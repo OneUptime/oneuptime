@@ -107,11 +107,14 @@ import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMainte
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
-import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
+import MicrosoftTeamsMessageSize, {
+  MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
+} from "./MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import MicrosoftTeamsInlineImages from "./MicrosoftTeamsInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
+import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 
 /*
  * AI Ops - observability assistant imports. These power the natural-language
@@ -141,9 +144,219 @@ import FeedMarkdown, {
  * after an even run of backslashes ("\\[") is not escaped: the backslashes
  * are a literal one, and a link follows. So text that only looks like a link
  * stays text, as it does in every other place the message is shown.
+ *
+ * Read in one pass (findMessageCardLinks), as the regular expression
+ *
+ *   /(?<!(?:^|[^\\])(?:\\\\)*\\)\[((?:[^\]\\]|\\.)+)\]\(([^)]+)\)/g
+ *
+ * read them - which looked for the end of every "[" through the rest of the
+ * line: a line of "[[[" took 16 s to read on 64 KB.
  */
-const MESSAGE_CARD_LINK_PATTERN: RegExp =
-  /(?<!(?:^|[^\\])(?:\\\\)*\\)\[((?:[^\]\\]|\\.)+)\]\(([^)]+)\)/g;
+interface MessageCardLink {
+  // Where the link starts ("[") and ends (after ")") in its line.
+  start: number;
+  end: number;
+  // Its text, as written: escapes and all.
+  text: string;
+  url: string;
+}
+
+const LEFT_BRACKET: number = 0x5b;
+const RIGHT_BRACKET: number = 0x5d;
+const LEFT_PARENTHESIS: number = 0x28;
+const RIGHT_PARENTHESIS: number = 0x29;
+const BACKSLASH_CODE: number = 0x5c;
+
+// What "." in a regular expression does not match: a line terminator.
+const isLineTerminator: (code: number) => boolean = (code: number): boolean => {
+  return (
+    code === 0x0a || code === 0x0d || code === 0x2028 || code === 0x2029
+  );
+};
+
+type FindMessageCardLinksFunction = (line: string) => Array<MessageCardLink>;
+
+/*
+ * The links of a line (see MessageCardLink), left to right. For each
+ * position, where a link's text starting there ends is found once, from the
+ * line's end: at the first "]" a backslash does not escape, its text read
+ * as the expression reads it - a backslash and the character after it as
+ * one, and a backslash with nothing it can take after it ending the text
+ * where no link can follow.
+ */
+const findMessageCardLinks: FindMessageCardLinksFunction = (
+  line: string,
+): Array<MessageCardLink> => {
+  const links: Array<MessageCardLink> = [];
+
+  if (line.indexOf("[") === -1) {
+    return links;
+  }
+
+  const length: number = line.length;
+  // Where a text starting at each position ends ("]"), or -1.
+  const textEnd: Int32Array = new Int32Array(length + 2).fill(-1);
+  // The first ")" at or after each position, or -1.
+  const nextRightParenthesis: Int32Array = new Int32Array(length + 2).fill(-1);
+
+  for (let index: number = length - 1; index >= 0; index--) {
+    const code: number = line.charCodeAt(index);
+
+    nextRightParenthesis[index] =
+      code === RIGHT_PARENTHESIS ? index : nextRightParenthesis[index + 1]!;
+
+    if (code === RIGHT_BRACKET) {
+      textEnd[index] = index;
+    } else if (code === BACKSLASH_CODE) {
+      textEnd[index] =
+        index + 1 < length && !isLineTerminator(line.charCodeAt(index + 1))
+          ? textEnd[index + 2]!
+          : -1;
+    } else {
+      textEnd[index] = textEnd[index + 1]!;
+    }
+  }
+
+  let backslashesBefore: number = 0;
+  let index: number = 0;
+
+  while (index < length) {
+    const code: number = line.charCodeAt(index);
+
+    if (code !== LEFT_BRACKET) {
+      backslashesBefore = code === BACKSLASH_CODE ? backslashesBefore + 1 : 0;
+      index++;
+      continue;
+    }
+
+    // A "[" an odd run of backslashes escapes opens nothing.
+    const isEscaped: boolean = backslashesBefore % 2 === 1;
+    backslashesBefore = 0;
+
+    const close: number = textEnd[index + 1]!;
+
+    if (
+      isEscaped ||
+      close <= index + 1 ||
+      line.charCodeAt(close + 1) !== LEFT_PARENTHESIS
+    ) {
+      index++;
+      continue;
+    }
+
+    const urlEnd: number = nextRightParenthesis[close + 2]!;
+
+    if (urlEnd === -1) {
+      // No ")" is left in the line: no link can end in it.
+      break;
+    }
+
+    if (urlEnd === close + 2) {
+      index++;
+      continue;
+    }
+
+    links.push({
+      start: index,
+      end: urlEnd + 1,
+      text: line.slice(index + 1, close),
+      url: line.slice(close + 2, urlEnd),
+    });
+    index = urlEnd + 1;
+    backslashesBefore = 0;
+  }
+
+  return links;
+};
+
+type WithLinksAsTextFunction = (
+  line: string,
+  links: Array<MessageCardLink>,
+) => string;
+
+// The line with each of its links replaced by the link's text.
+const withLinksAsText: WithLinksAsTextFunction = (
+  line: string,
+  links: Array<MessageCardLink>,
+): string => {
+  if (links.length === 0) {
+    return line;
+  }
+
+  let text: string = "";
+  let copiedUpTo: number = 0;
+
+  for (const link of links) {
+    text += line.slice(copiedUpTo, link.start) + link.text;
+    copiedUpTo = link.end;
+  }
+
+  return text + line.slice(copiedUpTo);
+};
+
+interface MessageCardFact {
+  name: string;
+  value: string;
+}
+
+type FindFactFunction = (line: string) => MessageCardFact | null;
+
+/*
+ * A fact, "**Label:** value", as /\*\*(.*?):\*\*\s*(.*)/ read it - which
+ * scanned the rest of the line from every "**" for a ":**": a line of
+ * "*" took seconds. Read with indexOf instead, the same way: the label runs
+ * from the first "**" to the first ":**" after it with no line terminator
+ * between ("." takes none), and the value is the rest of that line once the
+ * whitespace after the ":**" - line terminators too, as "\s" takes them -
+ * is passed.
+ */
+const findFact: FindFactFunction = (line: string): MessageCardFact | null => {
+  let segmentStart: number = 0;
+
+  while (segmentStart <= line.length) {
+    let segmentEnd: number = segmentStart;
+
+    while (
+      segmentEnd < line.length &&
+      !isLineTerminator(line.charCodeAt(segmentEnd))
+    ) {
+      segmentEnd++;
+    }
+
+    const segment: string = line.slice(segmentStart, segmentEnd);
+    const open: number = segment.indexOf("**");
+    const close: number = open === -1 ? -1 : segment.indexOf(":**", open + 2);
+
+    if (close !== -1) {
+      let valueStart: number = segmentStart + close + 3;
+
+      while (
+        valueStart < line.length &&
+        /\s/.test(line.charAt(valueStart))
+      ) {
+        valueStart++;
+      }
+
+      let valueEnd: number = valueStart;
+
+      while (
+        valueEnd < line.length &&
+        !isLineTerminator(line.charCodeAt(valueEnd))
+      ) {
+        valueEnd++;
+      }
+
+      return {
+        name: segment.slice(open + 2, close),
+        value: line.slice(valueStart, valueEnd),
+      };
+    }
+
+    segmentStart = segmentEnd + 1;
+  }
+
+  return null;
+};
 
 // A CommonMark backslash escape: a backslash before ASCII punctuation.
 const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
@@ -709,18 +922,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * Teams MessageCard supports HTML in the text field.
    */
   private static convertMarkdownTablesToHtml(markdown: string): string {
-    // Regular expression to match markdown tables
-    const tableRegex: RegExp =
-      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
-
-    return markdown.replace(
-      tableRegex,
-      (_match: string, table: string): string => {
-        const lines: Array<string> = table.trim().split("\n");
-
-        if (lines.length < 2) {
-          return table;
-        }
+    // Tables are found in one pass over the lines (Utils/Markdown/PipeTables).
+    return replacePipeTables(
+      markdown,
+      (lines: Array<string>): string => {
 
         // Parse header row
         const headerLine: string = lines[0] || "";
@@ -771,7 +976,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
         html += "</table>";
 
-        return "\n" + html + "\n";
+        return html;
       },
     );
   }
@@ -780,23 +985,40 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     /*
      * An incoming webhook's card cannot carry a screenshot's base64 (and a
      * Teams webhook refuses a message that large): an image whose address
-     * is a data: URL is its alt text. A text longer than a message can
-     * carry - a response body or a log of megabytes - is cut, with a note,
-     * to a card within the budget (fitMarkdownText, measuring the card each
-     * cut makes: a table's HTML is several times its Markdown): Teams would
-     * refuse it, and the regular expressions the card is built with cannot
-     * read megabytes safely. A text that fits makes the card it always made.
+     * is a data: URL is its alt text. The card is measured as it is sent,
+     * whatever the size of its text - a table that fits as Markdown can be
+     * HTML several times as big - and when it is more than an incoming
+     * webhook takes (MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES) its
+     * text is cut, in proportion and with a note, until the card fits
+     * (fitMarkdownText). A card that fits is the card it always was.
      */
+    let lastCard: { markdown: string; card: JSONObject } | null = null;
+
+    // The card for a text, built once however often it is measured.
+    const buildCard: (fitted: string) => JSONObject = (
+      fitted: string,
+    ): JSONObject => {
+      if (!lastCard || lastCard.markdown !== fitted) {
+        lastCard = {
+          markdown: fitted,
+          card: this.buildMessageCardFromFittedMarkdown(fitted),
+        };
+      }
+
+      return lastCard.card;
+    };
+
     const fittedMarkdown: string = MicrosoftTeamsMessageSize.fitMarkdownText(
       ChatInlineImages.toText(markdown),
       (fitted: string): number => {
-        return MicrosoftTeamsMessageSize.getSizeInBytes(
-          this.buildMessageCardFromFittedMarkdown(fitted),
+        return MicrosoftTeamsMessageSize.getIncomingWebhookSizeInBytes(
+          buildCard(fitted),
         );
       },
+      MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
     );
 
-    return this.buildMessageCardFromFittedMarkdown(fittedMarkdown);
+    return buildCard(fittedMarkdown);
   }
 
   private static buildMessageCardFromFittedMarkdown(
@@ -841,7 +1063,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         .replace(/^\*\*|\*\*$/g, "") // remove stray bold markers if any
         .trim();
       // Remove markdown link syntax from title for cleaner rendering
-      title = title.replace(MESSAGE_CARD_LINK_PATTERN, "$1");
+      title = withLinksAsText(title, findMessageCardLinks(title));
       // Sanitize unmatched bold markers if any remain
       const boldCountTitle: number = (title.match(/\*\*/g) || []).length;
       if (boldCountTitle % 2 !== 0) {
@@ -849,8 +1071,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
       lines.shift();
     }
-
-    const linkRegex: RegExp = new RegExp(MESSAGE_CARD_LINK_PATTERN); // [text](url)
 
     // Helper to clean up unmatched bold markers that can break rendering
     const sanitizeMarkdownText: (text: string) => string = (
@@ -901,48 +1121,40 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       // Extract links to actions and keep link display text in-place (without markdown)
-      let lineWithoutLinks: string = line;
-      let match: RegExpExecArray | null = null;
-      while ((match = linkRegex.exec(line))) {
-        const linkText: string = match[1] ?? "";
+      const links: Array<MessageCardLink> = findMessageCardLinks(line);
+
+      for (const link of links) {
         // The button's name is plain text: an escape in the link's text is undone.
-        const name: string = linkText.replace(
+        const name: string = link.text.replace(
           MARKDOWN_BACKSLASH_ESCAPE_PATTERN,
           "$1",
         );
-        const url: string = match[2] ?? "";
         actions.push({
           ["@type"]: "OpenUri",
           name: name,
           targets: [
             {
               os: "default",
-              uri: url,
+              uri: link.url,
             },
           ],
         });
-        /*
-         * Replace the markdown link with just its text to preserve sentence
-         * flow. The section is read as Markdown, so the text stays as it was
-         * written, escapes and all: unescaped, a title's "[x](...)" would turn
-         * into a link there. Replaced by a function, so a "$" in the text is
-         * not read as a replacement pattern.
-         */
-        lineWithoutLinks = lineWithoutLinks
-          .replace(match[0], (): string => {
-            return linkText;
-          })
-          .trim();
       }
 
+      /*
+       * Replace the markdown link with just its text to preserve sentence
+       * flow. The section is read as Markdown, so the text stays as it was
+       * written, escapes and all: unescaped, a title's "[x](...)" would turn
+       * into a link there.
+       */
+      const lineWithoutLinks: string = withLinksAsText(line, links).trim();
+
       // Parse facts of the form **Label:** value
-      const factMatch: RegExpExecArray | null = new RegExp(
-        "\\*\\*(.*?):\\*\\*\\s*(.*)",
-      ).exec(lineWithoutLinks);
+      const factMatch: MessageCardFact | null = findFact(lineWithoutLinks);
 
       if (factMatch) {
-        const name: string = (factMatch[1] ?? "").trim();
-        const value: string = (factMatch[2] ?? "").trim();
+        const name: string = factMatch.name.trim();
+        const value: string = factMatch.value.trim();
         if (
           name.toLowerCase() === "description" ||
           name.toLowerCase() === "note"
@@ -2857,7 +3069,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(
       `Built adaptive card with ${body.length} body elements and ${actions.length} actions`,
     );
-    return card;
+
+    /*
+     * Each text block fits on its own (getMarkdownBlock), but a card
+     * carries many: the card is measured as it is sent, and one over what
+     * Teams takes has its longest text blocks cut to fit (fitAdaptiveCard).
+     */
+    return MicrosoftTeamsMessageSize.fitAdaptiveCard(card);
   }
 
   private static convertAdaptiveCardToHtml(adaptiveCard: JSONObject): string {
@@ -3106,8 +3324,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * A text block. An image whose address is a data: URL - a screenshot in a
    * description - is its alt text here: sendMessage shows it as an image of
    * its own before a markdown block gets here (WorkspaceInlineImages). A
-   * text longer than a message can carry is cut, with a note
-   * (fitMarkdownText).
+   * text more than a message can carry, measured as it is sent, is cut,
+   * with a note (fitMarkdownText).
    */
   @CaptureSpan()
   public static override getMarkdownBlock(data: {

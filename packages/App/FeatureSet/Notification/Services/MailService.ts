@@ -35,10 +35,11 @@ import DataSourceEgressGuard, {
 import PinnedSmtpSocket, {
   SmtpSocketCallback,
 } from "Common/Server/Utils/Mail/PinnedSmtpSocket";
-import EmailInlineImages, {
-  EmailHtmlWithInlineImages,
-  EmailInlineImage,
-} from "Common/Server/Utils/Mail/EmailInlineImages";
+import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
+import EmailSize, {
+  EmailWithinLimit,
+  MAX_EMAIL_BYTES,
+} from "Common/Server/Utils/Mail/EmailSize";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
@@ -1207,12 +1208,20 @@ export default class MailService {
       /*
        * Inline images (a screenshot in a description) go out as attachments
        * the HTML points at by Content-ID; an email with none is sent exactly
-       * as rendered.
+       * as rendered. The whole of it is held to what every mail server
+       * takes (EmailSize): images that do not fit are left out, each with a
+       * note, and HTML too big on its own is cut, with a note.
        */
-      const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(
+      const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
         rendered.body,
       );
       const inlineImages: Array<EmailInlineImage> = attached.inlineImages;
+
+      if (attached.wasFitted) {
+        logger.warn(
+          `An email was more than ${MAX_EMAIL_BYTES} bytes with its images (${rendered.body.length} characters of HTML), and was cut to fit.`,
+        );
+      }
 
       mail.body = attached.html;
       mail.subject = rendered.subject;

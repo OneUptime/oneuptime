@@ -39,6 +39,13 @@ import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import SlackInlineImages from "./SlackInlineImages";
 import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
+import {
+  SLOW_MARKDOWN_MAX_INLINE_WORK,
+  SLOW_MARKDOWN_MAX_NESTING_DEPTH,
+  SlowMarkdownLimits,
+  holdBackSlowMarkdown,
+} from "../../../../Utils/Markdown/SlowMarkdown";
+import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 
 // Markdown as slackify is given it (see SlackUtil.cutMarkdown).
 export interface CutMarkdown {
@@ -55,6 +62,8 @@ export default class SlackUtil extends WorkspaceBase {
    * not just the offending block.
    */
   public static readonly SECTION_TEXT_MAX_LENGTH: number = 3000;
+  // The most a header block's text can be.
+  public static readonly HEADER_TEXT_MAX_LENGTH: number = 150;
   public static readonly MAX_BLOCKS_PER_MESSAGE: number = 50;
   public static readonly MAX_BLOCKS_PER_MODAL: number = 100;
 
@@ -85,6 +94,26 @@ export default class SlackUtil extends WorkspaceBase {
   public static readonly MARKDOWN_MAX_LENGTH: number =
     (SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK + 1) *
     SlackUtil.SECTION_TEXT_MAX_LENGTH;
+
+  /*
+   * What slackify is given at most once the Markdown is cut
+   * (Utils/Markdown/SlowMarkdown): its time grew with the square of a run of
+   * emphasis or brackets, of the lines of one block (a paragraph of 16,000
+   * lines took 4 s), of one paragraph (32 KB of web addresses on one line
+   * took three quarters of a second) and of the blocks of a message, so a
+   * block of more than 256 lines or with a paragraph or list item of more
+   * than 4,096 characters, more than 2,048 lines in all, and the content of
+   * fenced code are held back and written back as text.
+   */
+  public static readonly SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
+    maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
+    maxRunLines: 256,
+    maxLines: 2048,
+    maxUnitLength: 4096,
+    maxNestingDepth: SLOW_MARKDOWN_MAX_NESTING_DEPTH,
+    maxCellsPerLine: 128,
+    holdBackCodeBlockContent: true,
+  };
 
   // Closes and reopens a ``` code block that a section boundary cuts through.
   private static readonly CODE_FENCE: string = "```";
@@ -1971,11 +2000,23 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting header block with data:", {} as LogAttributes);
     logger.debug(data, {} as LogAttributes);
 
+    /*
+     * Slack refuses a whole message whose header is over 150 characters:
+     * a longer one is cut, between whole characters, and ends with "…".
+     */
+    const headerText: string =
+      data.payloadHeaderBlock.text.length > SlackUtil.HEADER_TEXT_MAX_LENGTH
+        ? cutToLength(
+            data.payloadHeaderBlock.text,
+            SlackUtil.HEADER_TEXT_MAX_LENGTH - 1,
+          ) + "…"
+        : data.payloadHeaderBlock.text;
+
     const headerBlock: JSONObject = {
       type: "header",
       text: {
         type: "plain_text",
-        text: data.payloadHeaderBlock.text,
+        text: headerText,
       },
     };
 
@@ -2463,7 +2504,7 @@ export default class SlackUtil extends WorkspaceBase {
         SlackUtil.SECTION_TEXT_MAX_LENGTH,
     );
 
-    const text: string = markdown.text ? SlackifyMarkdown(markdown.text) : "";
+    const text: string = markdown.text ? this.slackify(markdown.text) : "";
 
     const sectionTexts: Array<string> = this.splitSectionText({
       text: text,
@@ -3000,25 +3041,115 @@ export default class SlackUtil extends WorkspaceBase {
     return apiResult;
   }
 
+  /*
+   * Markdown as Slack's mrkdwn (slackify-markdown), in time linear in its
+   * length: the blocks slackify would take too long to read, and the
+   * content of fenced code, are held back first (SLOW_MARKDOWN_LIMITS) and
+   * written back where slackify put them - escaped as Slack reads text
+   * ("&", "<" and ">"), a line on each line.
+   */
+  public static slackify(markdown: string): string {
+    if (!markdown) {
+      return "";
+    }
+
+    const held: Array<string> = [];
+
+    // Read with indexOf: the text can be long.
+    const putBack: (value: string, escape: boolean) => string = (
+      value: string,
+      escape: boolean,
+    ): string => {
+      let restored: string = "";
+      let restoredUpTo: number = 0;
+
+      for (
+        let open: number = value.indexOf("\uE005");
+        open !== -1;
+        open = value.indexOf("\uE005", restoredUpTo)
+      ) {
+        const close: number = value.indexOf("\uE006", open + 1);
+
+        if (close === -1) {
+          break;
+        }
+
+        const heldText: string =
+          held[Number(value.slice(open + 1, close))] ?? "";
+
+        restored +=
+          value.slice(restoredUpTo, open) +
+          (escape ? SlackUtil.escapeSlackText(heldText) : heldText);
+        restoredUpTo = close + 1;
+      }
+
+      return restored + value.slice(restoredUpTo);
+    };
+
+    const hold: (text: string) => string = (text: string): string => {
+      held.push(putBack(text, false));
+
+      return `\uE005${held.length - 1}\uE006`;
+    };
+
+    // Token characters already in the Markdown are held back as they are.
+    let withoutTokens: string = markdown;
+
+    if (
+      markdown.indexOf("\uE005") !== -1 ||
+      markdown.indexOf("\uE006") !== -1
+    ) {
+      withoutTokens = "";
+      let copiedUpTo: number = 0;
+
+      for (let index: number = 0; index < markdown.length; index++) {
+        const code: number = markdown.charCodeAt(index);
+
+        if (code === 0xe005 || code === 0xe006) {
+          withoutTokens +=
+            markdown.slice(copiedUpTo, index) + hold(markdown.charAt(index));
+          copiedUpTo = index + 1;
+        }
+      }
+
+      withoutTokens += markdown.slice(copiedUpTo);
+    }
+
+    const heldTokenCharacters: number = held.length;
+    const markdownToRead: string = holdBackSlowMarkdown(
+      withoutTokens,
+      { holdLines: hold, holdCode: hold },
+      SlackUtil.SLOW_MARKDOWN_LIMITS,
+    );
+
+    if (held.length === heldTokenCharacters) {
+      return SlackifyMarkdown(markdown);
+    }
+
+    return putBack(SlackifyMarkdown(markdownToRead), true);
+  }
+
+  // Text as Slack shows it: "&", "<" and ">" escaped, nothing else changed.
+  public static escapeSlackText(text: string): string {
+    return text
+      .split("&")
+      .join("&amp;")
+      .split("<")
+      .join("&lt;")
+      .split(">")
+      .join("&gt;");
+  }
+
   /**
    * Converts markdown tables to a Slack-friendly format.
    * Since Slack's mrkdwn doesn't support tables, we convert them to
-   * a row-by-row format with bold headers.
+   * a row-by-row format with bold headers. Tables are found in one pass over
+   * the lines (Utils/Markdown/PipeTables).
    */
   private static convertMarkdownTablesToSlackFormat(markdown: string): string {
-    // Regular expression to match markdown tables
-    const tableRegex: RegExp =
-      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
-
-    return markdown.replace(
-      tableRegex,
-      (_match: string, table: string): string => {
-        const lines: Array<string> = table.trim().split("\n");
-
-        if (lines.length < 2) {
-          return table;
-        }
-
+    return replacePipeTables(
+      markdown,
+      (lines: Array<string>): string => {
         // Parse header row
         const headerLine: string = lines[0] || "";
         const headers: Array<string> = headerLine
@@ -3071,7 +3202,7 @@ export default class SlackUtil extends WorkspaceBase {
           }
         }
 
-        return "\n" + formattedRows.join("\n\n") + "\n";
+        return formattedRows.join("\n\n");
       },
     );
   }
@@ -3089,7 +3220,7 @@ export default class SlackUtil extends WorkspaceBase {
     // First convert tables to Slack-friendly format
     const markdownWithConvertedTables: string =
       this.convertMarkdownTablesToSlackFormat(markdownWithoutInlineImages.text);
-    const text: string = SlackifyMarkdown(markdownWithConvertedTables);
+    const text: string = this.slackify(markdownWithConvertedTables);
 
     return markdownWithoutInlineImages.isCutShort
       ? text.trimEnd() + SlackUtil.TRUNCATED_SECTION_NOTE

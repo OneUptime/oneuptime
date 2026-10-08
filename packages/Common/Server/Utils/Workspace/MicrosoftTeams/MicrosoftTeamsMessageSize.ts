@@ -1,6 +1,7 @@
 import { JSONObject } from "../../../../Types/JSON";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
 import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
+import { getWaterLevel } from "../../../../Utils/MessageFit";
 
 /*
  * How big a message Microsoft Teams takes from a bot.
@@ -45,6 +46,20 @@ export const MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES: number = 80 * 1024;
 export const MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE: string =
   "\n\n_… (truncated — see OneUptime for the full text)_";
 
+/*
+ * The most an incoming webhook's card is. Microsoft keeps a message sent
+ * through an incoming webhook (a connector card) to 28 KB and refuses a
+ * bigger one (HTTP 413), and the message is lost. Every card is measured as
+ * it is sent - the larger of its UTF-16 size (as Teams counts a bot
+ * message) and its UTF-8 size (as the request carries it):
+ * getIncomingWebhookSizeInBytes - and held to this, a margin under 28 KB,
+ * by cutting its text (fitMarkdownText). A description that fits the
+ * budget as Markdown can make a card several times bigger: a table is
+ * HTML in the card.
+ */
+export const MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES: number =
+  24 * 1024;
+
 // How big what Teams is sent for a text is, in bytes as Teams counts them.
 export type MeasureTextFunction = (text: string) => number;
 
@@ -65,6 +80,21 @@ export default class MicrosoftTeamsMessageSize {
       typeof value === "string" ? value : JSON.stringify(value);
 
     return text.length * 2;
+  }
+
+  /*
+   * Size of what an incoming webhook is sent, by the stricter count: the
+   * larger of its size as Teams counts a bot message (UTF-16) and its size
+   * as the request carries it (UTF-8: three bytes for a character of most
+   * Asian scripts).
+   */
+  public static getIncomingWebhookSizeInBytes(
+    value: string | JSONObject,
+  ): number {
+    const text: string =
+      typeof value === "string" ? value : JSON.stringify(value);
+
+    return Math.max(text.length * 2, Buffer.byteLength(text, "utf8"));
   }
 
   /*
@@ -138,33 +168,31 @@ export default class MicrosoftTeamsMessageSize {
   }
 
   /*
-   * A markdown text a notification carries, within
-   * MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES: as it is when it fits,
-   * else cut (cutToLength: at a line break where there is one near the end)
-   * and followed by MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.
+   * A markdown text a notification carries, within budgetInBytes
+   * (MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES unless the caller sends
+   * it somewhere that takes less): as it is when what is sent for it fits,
+   * else cut (cutToLength: at a line break where there is one near the
+   * end) and followed by MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.
    *
    * What Teams is sent for a text can be bigger than the text: JSON writes
    * each quote and backslash in two characters, and a MessageCard's table
-   * is HTML several times the size of its Markdown. So a cut text is
+   * is HTML several times the size of its Markdown. So every text is
    * measured as it is sent - measureInBytes: as a JSON string unless the
-   * caller measures the message it builds from it - and one that comes out
-   * over the budget is cut shorter, in proportion and with a margin, a few
-   * times at most. A text that fits is never measured: it is sent as it
-   * always was.
+   * caller measures the message it builds from it - whatever its length,
+   * and one that comes out over the budget is cut shorter, in proportion
+   * and with a margin, a few times at most. A text far longer than the
+   * budget is cut to it before it is first measured; one that fits is sent
+   * as it always was.
    */
   public static fitMarkdownText(
     text: string,
     measureInBytes: MeasureTextFunction = (fitted: string): number => {
       return MicrosoftTeamsMessageSize.getSizeInBytes(JSON.stringify(fitted));
     },
+    budgetInBytes: number = MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES,
   ): string {
-    const maxLength: number = Math.floor(
-      MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES / 2,
-    );
-
-    if (text.length <= maxLength) {
-      return text;
-    }
+    const maxLength: number = Math.floor(budgetInBytes / 2);
+    const noteLength: number = MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.length;
 
     const cut: (length: number) => string = (length: number): string => {
       return (
@@ -173,28 +201,147 @@ export default class MicrosoftTeamsMessageSize {
       );
     };
 
-    let length: number = maxLength - MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.length;
+    // What fits of `length` characters that measured `sizeInBytes`.
+    const getShorterLength: (length: number, sizeInBytes: number) => number = (
+      length: number,
+      sizeInBytes: number,
+    ): number => {
+      return Math.max(
+        1,
+        Math.floor(((length * budgetInBytes) / sizeInBytes) * FIT_MARGIN),
+      );
+    };
+
+    let length: number;
+
+    if (text.length <= maxLength) {
+      const sizeInBytes: number = measureInBytes(text);
+
+      if (sizeInBytes <= budgetInBytes) {
+        return text;
+      }
+
+      length = Math.max(
+        1,
+        getShorterLength(text.length, sizeInBytes) - noteLength,
+      );
+    } else {
+      length = Math.max(1, maxLength - noteLength);
+    }
+
     let fitted: string = cut(length);
 
     for (let attempt: number = 0; attempt < MAX_FIT_ATTEMPTS; attempt++) {
       const sizeInBytes: number = measureInBytes(fitted);
 
-      if (
-        sizeInBytes <= MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES ||
-        length <= 1
-      ) {
+      if (sizeInBytes <= budgetInBytes || length <= 1) {
         break;
       }
 
-      length = Math.max(
-        1,
-        Math.floor(
-          ((length * MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES) /
-            sizeInBytes) *
-            FIT_MARGIN,
-        ),
-      );
+      length = getShorterLength(length, sizeInBytes);
       fitted = cut(length);
+    }
+
+    return fitted;
+  }
+
+  /*
+   * An adaptive card a bot sends, held to budgetInBytes as Teams counts a
+   * message - everything in it but its images: Teams leaves base64 images
+   * out of a message's size (MicrosoftTeamsInlineImages). Each text block
+   * fits on its own (fitMarkdownText), but a card carries up to forty, and
+   * a direct message all of a message's blocks. A card over the budget has
+   * its longest text blocks cut, all to about the same size - the short
+   * ones (a title, a line of facts) stay whole - each ending with
+   * MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE; it is measured again, and cut
+   * shorter a few times at most. A card that fits is returned as it is;
+   * a cut card is a copy.
+   */
+  public static fitAdaptiveCard(
+    card: JSONObject,
+    budgetInBytes: number = MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES,
+  ): JSONObject {
+    const body: Array<JSONObject> = Array.isArray(card["body"])
+      ? (card["body"] as Array<JSONObject>)
+      : [];
+
+    // The size Teams counts: the card without its images.
+    const measure: (fitted: JSONObject) => number = (
+      fitted: JSONObject,
+    ): number => {
+      return MicrosoftTeamsMessageSize.getSizeInBytes({
+        ...fitted,
+        body: ((fitted["body"] as Array<JSONObject>) || []).filter(
+          (element: JSONObject): boolean => {
+            return element["type"] !== "Image";
+          },
+        ),
+      });
+    };
+
+    let sizeInBytes: number = measure(card);
+
+    const textIndexes: Array<number> = [];
+
+    body.forEach((element: JSONObject, index: number): void => {
+      if (element["type"] === "TextBlock" && typeof element["text"] === "string") {
+        textIndexes.push(index);
+      }
+    });
+
+    if (sizeInBytes <= budgetInBytes || textIndexes.length === 0) {
+      return card;
+    }
+
+    const texts: Array<string> = textIndexes.map((index: number): string => {
+      return body[index]!["text"] as string;
+    });
+    const textSizes: Array<number> = texts.map((text: string): number => {
+      return MicrosoftTeamsMessageSize.getSizeInBytes(JSON.stringify(text));
+    });
+    const otherBytes: number =
+      sizeInBytes -
+      textSizes.reduce((sum: number, size: number): number => {
+        return sum + size;
+      }, 0);
+
+    let textBudget: number = budgetInBytes * FIT_MARGIN - otherBytes;
+    let fitted: JSONObject = card;
+
+    for (let attempt: number = 0; attempt < MAX_FIT_ATTEMPTS; attempt++) {
+      const level: number = getWaterLevel(textSizes, textBudget);
+      const fittedBody: Array<JSONObject> = body.slice();
+
+      textIndexes.forEach((bodyIndex: number, textIndex: number): void => {
+        const text: string = texts[textIndex]!;
+        const textSize: number = textSizes[textIndex]!;
+
+        if (textSize <= level) {
+          return;
+        }
+
+        const length: number = Math.max(
+          1,
+          Math.floor((text.length * level) / textSize) -
+            MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.length,
+        );
+        const cut: string =
+          cutToLength(text, length).trimEnd() +
+          MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE;
+
+        if (cut.length < text.length) {
+          fittedBody[bodyIndex] = { ...body[bodyIndex]!, text: cut };
+        }
+      });
+
+      fitted = { ...card, body: fittedBody };
+      sizeInBytes = measure(fitted);
+
+      if (sizeInBytes <= budgetInBytes) {
+        break;
+      }
+
+      textBudget = textBudget * (budgetInBytes / sizeInBytes) * FIT_MARGIN;
     }
 
     return fitted;
