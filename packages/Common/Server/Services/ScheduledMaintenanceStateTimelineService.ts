@@ -213,7 +213,8 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         eventId: createBy.data.scheduledMaintenanceId,
         logAttributes: {
           projectId: createBy.data.projectId?.toString(),
-          scheduledMaintenanceId: createBy.data.scheduledMaintenanceId?.toString(),
+          scheduledMaintenanceId:
+            createBy.data.scheduledMaintenanceId?.toString(),
         } as LogAttributes,
       });
 
@@ -391,7 +392,8 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
        */
       await StateChangeLock.giveBack(mutex, {
         projectId: createBy.data.projectId?.toString(),
-        scheduledMaintenanceId: createBy.data.scheduledMaintenanceId?.toString(),
+        scheduledMaintenanceId:
+          createBy.data.scheduledMaintenanceId?.toString(),
       } as LogAttributes);
 
       throw error;
@@ -842,7 +844,8 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
   ): Promise<Exception> {
     await StateChangeLock.giveBackFor(onCreate, {
       projectId: onCreate?.createBy.data.projectId?.toString(),
-      scheduledMaintenanceId: onCreate?.createBy.data.scheduledMaintenanceId?.toString(),
+      scheduledMaintenanceId:
+        onCreate?.createBy.data.scheduledMaintenanceId?.toString(),
     } as LogAttributes);
 
     return error;

@@ -31,7 +31,9 @@ const LOG: LogAttributes = { incidentId: EVENT_ID.toString() } as LogAttributes;
 // A stand-in for a redis-semaphore mutex.
 const MUTEX: SemaphoreMutex = { id: "held" } as unknown as SemaphoreMutex;
 
-function changeCarrying(carryForward: unknown): OnCreate<IncidentStateTimeline> {
+function changeCarrying(
+  carryForward: unknown,
+): OnCreate<IncidentStateTimeline> {
   return {
     createBy: { data: new IncidentStateTimeline(), props: { isRoot: true } },
     carryForward: carryForward,
@@ -139,9 +141,9 @@ describe("StateChangeLock.giveBackFor (onCreateError)", () => {
 
 describe("StateChangeLock.carriedForward", () => {
   test("reads the lock off a change's carryForward, and nothing off anything else", () => {
-    expect(StateChangeLock.carriedForward(changeCarrying({ mutex: MUTEX }))).toBe(
-      MUTEX,
-    );
+    expect(
+      StateChangeLock.carriedForward(changeCarrying({ mutex: MUTEX })),
+    ).toBe(MUTEX);
     expect(StateChangeLock.carriedForward(changeCarrying({}))).toBeNull();
     expect(StateChangeLock.carriedForward(changeCarrying("taken"))).toBeNull();
     expect(StateChangeLock.carriedForward(undefined)).toBeNull();

@@ -49,7 +49,9 @@ function stateChangeSection(markdown: string): {
 } {
   const lines: Array<string> = markdown.split("\n");
   const firstRow: number = lines.findIndex((line: string): boolean => {
-    return line.includes(STATE_TIMELINE_PERMISSIONS[0]!) && line.startsWith("|");
+    return (
+      line.includes(STATE_TIMELINE_PERMISSIONS[0]!) && line.startsWith("|")
+    );
   });
 
   expect(firstRow).toBeGreaterThan(0);
@@ -155,16 +157,20 @@ describe("Docs: changing a state takes the state timeline's create permission", 
       ]);
 
       for (const permission of STATE_TIMELINE_PERMISSIONS) {
-        expect([language, permission, section.body.includes(permission)]).toEqual(
-          [language, permission, true],
-        );
+        expect([
+          language,
+          permission,
+          section.body.includes(permission),
+        ]).toEqual([language, permission, true]);
       }
 
       // The two permissions the change no longer needs, and the one it still does on declare.
       for (const permission of ["**Edit Incident**", "**Edit Alert**"]) {
-        expect([language, permission, section.body.includes(permission)]).toEqual(
-          [language, permission, true],
-        );
+        expect([
+          language,
+          permission,
+          section.body.includes(permission),
+        ]).toEqual([language, permission, true]);
       }
 
       // Right before the section on scope, as in English.
@@ -190,13 +196,16 @@ describe("Docs: changing a state takes the state timeline's create permission", 
       ]);
 
       // In-page anchors do not survive translation on this page.
-      expect([language, /\]\(#/.test(section.body)]).toEqual([language, false]);
+      expect([language, section.body.includes("](#")]).toEqual([
+        language,
+        false,
+      ]);
 
       if (language !== "en") {
-        expect([language, section.body === stateChangeSection(english).body]).toEqual([
+        expect([
           language,
-          false,
-        ]);
+          section.body === stateChangeSection(english).body,
+        ]).toEqual([language, false]);
         expect([language, section.heading === "### Changing a state"]).toEqual([
           language,
           false,

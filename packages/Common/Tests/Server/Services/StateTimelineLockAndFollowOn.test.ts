@@ -1005,9 +1005,7 @@ describe.each(TIMELINE_CASES)(
         // The event is in that state already.
         timelines.rows[0]![
           Object.keys(timelineCase.previousRow).find((column: string) => {
-            return (
-              column.endsWith("StateId") || column.endsWith("StatusId")
-            );
+            return column.endsWith("StateId") || column.endsWith("StatusId");
           })!
         ] = timelineCase.toStateId.toString();
 
@@ -1035,16 +1033,21 @@ describe.each(TIMELINE_CASES)(
       test("a second change to the same event takes the lock at once", async () => {
         await changeState(projectMemberProps());
 
-        held.clear();
+        // The first change took the event's own lock, and gave it back.
+        expect(lock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            key: EVENT_ID.toString(),
+            namespace: timelineCase.lockNamespace,
+          }),
+        );
+        expect(held.has(lockName(timelineCase))).toBe(false);
         lock.mockClear();
 
         // Back to the first state, later on.
         const back: BaseModel = timelineCase.buildStateChange();
         (back as unknown as StoredRow)[
           Object.keys(timelineCase.previousRow).find((column: string) => {
-            return (
-              column.endsWith("StateId") || column.endsWith("StatusId")
-            );
+            return column.endsWith("StateId") || column.endsWith("StatusId");
           })!
         ] = timelineCase.fromStateId;
         (back as unknown as StoredRow)["startsAt"] = new Date(

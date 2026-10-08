@@ -186,7 +186,10 @@ describe.each([...STATE_TIMELINES, "MonitorStatusTimelineService.ts"])(
      * the change was saved) reaches onCreateError with the same create.
      */
     test("onCreateSuccess gives back the lock its create carried forward, not a copy of it", () => {
-      const onCreateSuccess: string = methodText(classSource, "onCreateSuccess");
+      const onCreateSuccess: string = methodText(
+        classSource,
+        "onCreateSuccess",
+      );
 
       expect(onCreateSuccess).toMatch(
         /StateChangeLock\.giveBackFor\s*\(\s*onCreate\s*,/,

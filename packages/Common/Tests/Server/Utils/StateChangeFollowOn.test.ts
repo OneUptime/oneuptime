@@ -16,9 +16,13 @@ import { describe, expect, test } from "@jest/globals";
  * caller.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("6b000000-0000-4000-8000-000000000001");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "6b000000-0000-4000-8000-000000000001",
+);
 const USER_ID: ObjectID = new ObjectID("6b000000-0000-4000-8000-000000000002");
-const API_KEY_ID: ObjectID = new ObjectID("6b000000-0000-4000-8000-000000000003");
+const API_KEY_ID: ObjectID = new ObjectID(
+  "6b000000-0000-4000-8000-000000000003",
+);
 const GRANT_ID: ObjectID = new ObjectID("6b000000-0000-4000-8000-000000000004");
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "6b000000-0000-4000-8000-000000000005",

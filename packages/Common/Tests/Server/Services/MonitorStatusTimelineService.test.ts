@@ -283,9 +283,9 @@ describe("MonitorStatusTimelineService's per-monitor mutex", () => {
       createdItem.projectId = PROJECT_ID;
       createdItem.monitorStatusId = STATUS_ID;
 
-      await expect(
-        hooks.onCreateSuccess(onCreate, createdItem),
-      ).resolves.toBe(createdItem);
+      await expect(hooks.onCreateSuccess(onCreate, createdItem)).resolves.toBe(
+        createdItem,
+      );
     });
   });
 
@@ -304,9 +304,7 @@ describe("MonitorStatusTimelineService's per-monitor mutex", () => {
     it("and gives back nothing for a create that failed before the hook took it", async () => {
       const error: Exception = new BadDataException("refused before hooks");
 
-      await expect(hooks.onCreateError(error, undefined)).resolves.toBe(
-        error,
-      );
+      await expect(hooks.onCreateError(error, undefined)).resolves.toBe(error);
 
       expect(releaseMock).not.toHaveBeenCalled();
     });
