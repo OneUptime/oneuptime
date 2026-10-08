@@ -66,7 +66,6 @@ const DASHBOARD_SRC: string = path.join(
  * exactly the same way.
  */
 const STEPPED_FORM_PAGES: Array<string> = [
-  "Pages/NetworkDevice/Devices.tsx",
   "Pages/NetworkDevice/Discovery.tsx",
   /*
    * A device's and a site's details are edited on their Settings pages
@@ -78,8 +77,20 @@ const STEPPED_FORM_PAGES: Array<string> = [
   "Pages/NetworkSite/Links.tsx",
   "Pages/NetworkSite/Sites.tsx",
   "Pages/NetworkSite/View/Settings.tsx",
-  "Pages/NetworkSite/View/ChildSites.tsx",
   "Components/Topology/AddNeighborToMonitoringModal.tsx",
+];
+
+/*
+ * The Network forms that are ONE page now: Add Device (four questions, with
+ * SNMP and the rarely needed fields folded) and a site's Add Child Site (a
+ * type, a name and a folded location). A page that is one form with no
+ * steps must carry no stepId either: a field with a stepId on a form that
+ * declares no steps is a leftover that BasicForm happens to render today,
+ * and the first step added back would silently move it.
+ */
+const ONE_PAGE_FORM_PAGES: Array<string> = [
+  "Pages/NetworkDevice/Devices.tsx",
+  "Pages/NetworkSite/View/ChildSites.tsx",
 ];
 
 function squash(text: string): string {
@@ -203,5 +214,22 @@ describe.each(STEPPED_FORM_PAGES)("%s form steps", (page: string) => {
     );
 
     expect(undeclared).toEqual([]);
+  });
+});
+
+describe.each(ONE_PAGE_FORM_PAGES)("%s is a one-page form", (page: string) => {
+  const source: string = readPage(page);
+
+  test("declares no steps", () => {
+    expect(formStepBlocks(source)).toEqual([]);
+  });
+
+  test("places no field on a step", () => {
+    expect(usedStepIds(source)).toEqual([]);
+  });
+
+  // What the steps used to hold is folded instead, so the form stays short.
+  test("folds what it does not ask for under a collapsible section", () => {
+    expect(source).toMatch(/collapsibleSection: [A-Z_]+/);
   });
 });

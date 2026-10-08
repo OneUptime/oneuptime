@@ -9,7 +9,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import RelationListPermission from "../Types/Database/Permissions/RelationListPermission";
@@ -167,36 +167,30 @@ export class Service extends ProjectReferencesService<Model> {
     );
   }
 
-  @CaptureSpan()
-  protected override async onBeforeCreate(
+  // Before the project check (the base hooks run this first). See the top of this file.
+  protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    // Before the project check. See the top of this file.
+  ): Promise<void> {
     if (!Service.mayNameCredentials(createBy.props)) {
       Service.refuseCredentialsNamed(
         Service.getStepCredentialIds(createBy.data.steps),
       );
     }
-
-    return await super.onBeforeCreate(createBy);
   }
 
-  @CaptureSpan()
-  protected override async onBeforeUpdate(
+  // As checkCreateBeforeReferences: before the project check.
+  protected override async checkUpdateBeforeReferences(
     updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
+  ): Promise<void> {
     const named: Array<string> = Service.getStepCredentialIds(
       (updateBy.data as unknown as Record<string, unknown>)["steps"],
     );
 
-    // Before the project check. See the top of this file.
     if (named.length > 0 && !Service.mayNameCredentials(updateBy.props)) {
       Service.refuseCredentialsNamed(
         await this.findCredentialsNotHeld({ updateBy: updateBy, ids: named }),
       );
     }
-
-    return await super.onBeforeUpdate(updateBy);
   }
 
   /*

@@ -24,7 +24,7 @@ Sophos does not report gateway or SD-WAN health over SNMP, in any SFOS version. 
 ### 1. Register the firewall
 
 1. On the firewall, enable SNMP under **Administration → SNMP**: add an SNMPv3 user (or a v2c community) and allow the probe's address to query it.
-2. In OneUptime, go to **Network → Devices → Create Network Device**, enter the firewall's management address, pick a probe that can reach it, and add the SNMP credentials.
+2. In OneUptime, go to **Network → Devices → Add Device**, enter the firewall's management address, pick a probe that can reach it, and add the SNMP credentials under **SNMP**.
 3. Under the device's **Settings → Polling & Data Collection**, apply the **Sophos Firewall (SFOS / XGS)** template from the _Vendor Health Template_ dropdown and add its tables from _Add a vendor's tables_ — or turn on **Auto-Apply Vendor Health Template** and the first poll does both.
 
 After the next poll the device's **SNMP Tables** tab lists every IPsec connection with its status (active, inactive, partially active) and the CPU cores. SFOS numbers its cores from 196608, which is why CPU comes from a table rather than from a single `hrProcessorLoad.1`.
@@ -38,7 +38,7 @@ A tunnel that Sophos reports as active only has its security associations up. To
 ### 3. WAN links
 
 - **Port health.** The interface walk already measures every WAN port's status, bits in and out, utilization and errors. On the firewall's monitor, an **SNMP Interface Is Down** or **SNMP Interface Utilization** criteria with Interface set to the WAN port's name (or `*` for every port) alerts per link.
-- **Path quality.** Each link's latency, packet loss and jitter are measured from outside the firewall: a Ping monitor from the OneUptime cloud probes to each WAN link's public address, and a Ping monitor from a probe at the site to each ISP's gateway. Packet Loss and Jitter criteria on those monitors alert per link, and the **Latency Matrix** (**Network → Latency Matrix**) shows every probe against every device at a glance.
+- **Path quality.** Each link's latency, packet loss and jitter are measured from outside the firewall: a Ping monitor from the OneUptime cloud probes to each WAN link's public address, and a Ping monitor from a probe at the site to each ISP's gateway. Packet Loss and Jitter criteria on those monitors alert per link, and the **Latency Matrix** (**Network → Topology → Latency Matrix**) shows every probe against every device at a glance.
 - **Traffic.** SFOS exports NetFlow v5, which the probe receives when `PROBE_NETFLOW_RECEIVER_ENABLED=true` (UDP 2055 by default); top talkers appear on the device's **Traffic** tab.
 
 ### 4. Gateways and SD-WAN from syslog

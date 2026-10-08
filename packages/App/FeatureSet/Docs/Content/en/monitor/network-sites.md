@@ -2,7 +2,7 @@
 
 A **Network Site** is a place: a region, a market, a franchisee, a distribution centre, one store. Sites nest inside each other, Network Devices attach to them, and OneUptime rolls the health of those devices up the tree so that one number on a Region card answers "is anything wrong out there?".
 
-Find them under **Network** -> **Sites**.
+Find them under **Network** -> **Sites**, and on a map under **Network** -> **Map**.
 
 This page documents the three things people most often want pinned down: **how a parent's status is calculated from its children**, **what the uptime percentages mean**, and **how scheduled maintenance changes both**.
 
@@ -15,6 +15,22 @@ A site's type, name, description, parent and location are edited in one place: *
 Devices attach to exactly one site. A site's *subtree* is itself plus every site beneath it, and that subtree's devices are what its health rolls up from. A Region with no devices of its own still has a status, because the units under it do.
 
 > Rollups are recomputed when a device's monitor status changes, when a device moves site, when the tree is re-parented, and by a sweep every five minutes that catches the cases where only the passage of time changed the answer.
+
+## Adding a Site
+
+Click **Add Site** on **Network** -> **Sites**. The form walks three steps, each about one thing:
+
+1. **Site Details** — the **Site Type** (what kind of place this is: a region, a store, a data center) and a **Name**. The description, the street address and the latitude and longitude that pin the site on the map are folded under **More fields**; they can be filled in now or later.
+2. **Hierarchy** — the **Parent Site**, if the site sits under another one. Leave it empty to keep the site at the top level.
+3. **Monitoring Defaults** — the [default probe and credential profile](#monitoring-defaults) for devices added to the site.
+
+On a site's own **Child Sites** tab, **Add Child Site** asks only the type and the name on one page, with the location folded, and places the new site under that one.
+
+## The Map
+
+**Network** -> **Map** shows your sites on a map, framed to wherever they are; click a site to drill in. A site with sites under it shows them, on the map and as a graph of the links between them. A site with no sites under it but devices of its own — or a site whose type is unit-level — opens those devices' live topology.
+
+A project with no sites yet still has a map: the Map shows its devices' topology instead, and grouping devices into sites puts them on the map by location.
 
 ## Monitoring Defaults
 
