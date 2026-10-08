@@ -436,10 +436,53 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   description or labels, is recorded now, and a monitor's name,
   description and label names show as typed instead of being read as
   Markdown. An event moved from **Scheduled** straight into a state of
-  your own placed after **Ongoing** now starts the way **Ongoing** does:
-  its monitors change to its **Change Monitor Status to**, where until now
-  they were left as they were. See
+  your own placed between **Ongoing** and **Ended** now starts the way
+  **Ongoing** does: its monitors change to its **Change Monitor Status
+  to**, where until now they were left as they were. See
   [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **A maintenance event in a state of your own after Ongoing counts as
+  in progress everywhere.** A scheduled maintenance event moved on from
+  **Ongoing** to a state of your own placed above **Ended** - a
+  "Verifying" step, say - kept its monitors in maintenance, but nothing
+  else took it for in progress: its status pages' overview left it out
+  altogether, the network sites and telemetry series it covers were no
+  longer silenced, SLO burn-rate alerts on its monitors fired, the
+  **Ongoing** lists under **Scheduled Maintenance** and **Home**, their
+  menu badges and the **Ongoing maintenance** tile left it out, the
+  Microsoft Teams app did not list it, and nothing ended it at its **Ends
+  At**: it stayed in that state, with its monitors in maintenance, until
+  someone moved it on. Every one of them now asks one rule: an event is
+  in progress in the ongoing state and in every state of your own placed
+  between **Ongoing** and **Ended**. Such an event is ended at its **Ends
+  At** like an ongoing one, telling its subscribers if **When the event
+  ends** is on, so an event left in "Verifying" past its end is ended
+  within a minute of the upgrade. A state of your own placed after
+  **Ended** - "Reviewing" - is over: moving an event into it from
+  **Ongoing** or "Verifying" now ends it the way **Ended** does, where
+  until now its monitors stayed in maintenance for good, and the event's
+  header no longer offers **Mark as Ended** for it. A state placed before
+  **Ongoing** still waits for the start. Moving an event by hand into a
+  state of your own that starts or ends it starts **Notify Status Page
+  Subscribers** the way **Mark as Ongoing** or **Mark as Ended** would.
+  The status page's scheduled events page and its RSS and Atom feeds also
+  list an event in progress that started before the page's history
+  window. Projects whose own states all sit before **Ongoing** see no
+  change. Three smaller fixes come with it: moving an event's **Starts
+  At** moves its first reminder with it when its reminder rule waits for
+  the start; taking off its last affected resource besides the monitors
+  is recorded in its feed as "No other affected resources."; and a
+  **Starts At** or **Ends At** written without a time zone is compared as
+  UTC, as it is stored, so a server not running in UTC no longer records a
+  move that was not one. See
+  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **Saving a secret back as it is changes nothing.** A monitor secret, a
+  workflow variable, a runbook secret or credential, an LLM provider's
+  API key, an OIDC client secret and the other values OneUptime stores
+  encrypted are encrypted afresh on every save, so a save that sent one
+  back unchanged looked like a change: it ran the record's **On Update**
+  workflows, pushed the record to open dashboards and added an audit log
+  entry. A value written back as it is now counts as unchanged; a new
+  value still does all three, and is still stored encrypted.
 - **On OneUptime Cloud, API keys stop working below their plan, and SCIM
   only removes people.** A project's API keys need **Growth** and its SCIM
   connections - the project's and its status pages' - need **Scale**.
