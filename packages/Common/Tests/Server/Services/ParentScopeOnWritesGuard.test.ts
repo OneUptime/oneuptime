@@ -326,7 +326,7 @@ describe("which services check the references a write names themselves", () => {
     ]) {
       const text: string = fs.readFileSync(file, "utf8");
 
-      if (/checksReferencesInProject\(\): boolean/.test(text)) {
+      if (text.includes("checksReferencesInProject(): boolean")) {
         overriding.push(path.basename(file));
       }
     }

@@ -353,8 +353,9 @@ export default class CreateScopePermission {
       }
     };
 
-    const references: LabelledReferences =
-      ReadPermission.getLabelledReferences(data.modelType);
+    const references: LabelledReferences = ReadPermission.getLabelledReferences(
+      data.modelType,
+    );
 
     for (const reference of references.keys) {
       name(
@@ -452,8 +453,7 @@ export default class CreateScopePermission {
       if (
         ownedIds.some((ownedId: ObjectID): boolean => {
           return (
-            normalizeId(ownedId.toString()) ===
-            normalizeId(parentId.toString())
+            normalizeId(ownedId.toString()) === normalizeId(parentId.toString())
           );
         })
       ) {
@@ -461,8 +461,8 @@ export default class CreateScopePermission {
       }
     }
 
-    const parentModelType: { new (): BaseModel } | undefined =
-      ownedThrough.parentModels[0] as { new (): BaseModel } | undefined;
+    const parentModelType: { new (): BaseModel } | undefined = ownedThrough
+      .parentModels[0] as { new (): BaseModel } | undefined;
 
     throw new CreateScopeException(
       `Your access lets you create ${model.pluralName} only for the ${

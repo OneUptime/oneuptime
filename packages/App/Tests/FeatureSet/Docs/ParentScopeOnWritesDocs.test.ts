@@ -66,8 +66,10 @@ const CREATE_BLOCK: Record<string, string> = {
   pt: "Um bloqueio com rótulos sobre uma permissão para criar recusa um registro novo que carrega um dos seus rótulos ou, se não tiver rótulos próprios, que pertence a um registro que carrega um deles",
   ru: "Блокировка с метками на разрешение на создание отклоняет новую запись, которая несёт одну из этих меток или, если у неё нет собственных меток, относится к записи, несущей одну из них",
   sv: "En blockering med etiketter på en behörighet att skapa avvisar en ny post som bär någon av dess etiketter eller, för en post utan egna etiketter, hör till en post som bär någon av dem",
-  "zh-CN": "对创建权限的带标签阻止，会拒绝带有其中某个标签的新记录；对于自身没有标签的记录，则拒绝所属记录带有其中某个标签的新记录",
-  "zh-TW": "對建立權限的帶標籤封鎖，會拒絕帶有其中某個標籤的新記錄；對於本身沒有標籤的記錄，則拒絕所屬記錄帶有其中某個標籤的新記錄",
+  "zh-CN":
+    "对创建权限的带标签阻止，会拒绝带有其中某个标签的新记录；对于自身没有标签的记录，则拒绝所属记录带有其中某个标签的新记录",
+  "zh-TW":
+    "對建立權限的帶標籤封鎖，會拒絕帶有其中某個標籤的新記錄；對於本身沒有標籤的記錄，則拒絕所屬記錄帶有其中某個標籤的新記錄",
 };
 
 // Step 7: a change follows the parent rule, and the records a write lists.
@@ -95,7 +97,7 @@ const CHANGE_RULE: Record<string, string> = {
 const UPGRADE_HEADING: Record<string, string> = {
   en: "A record moved under another one, or given more records in a list",
   da: "En post, der flyttes under en anden eller får flere poster i en liste, får kun poster, som den, der ændrer den, må læse, og en tilladelse til at oprette begrænset til labels eller til omfanget Ejede gælder også den post, den opretter",
-  de: "Ein Datensatz, der unter einen anderen verschoben wird oder weitere Datensätze in einer Liste bekommt, bekommt nur Datensätze, die sein Bearbeiter lesen darf, und eine auf Labels oder auf „Eigene\" beschränkte Berechtigung zum Anlegen gilt auch für den Datensatz, den sie anlegt",
+  de: 'Ein Datensatz, der unter einen anderen verschoben wird oder weitere Datensätze in einer Liste bekommt, bekommt nur Datensätze, die sein Bearbeiter lesen darf, und eine auf Labels oder auf „Eigene" beschränkte Berechtigung zum Anlegen gilt auch für den Datensatz, den sie anlegt',
   es: "Un registro que se mueve bajo otro, o que recibe más registros en una lista, solo recibe registros que quien lo cambia puede leer, y un permiso para crear restringido a etiquetas o al alcance Propios rige también el registro que crea",
   fa: "رکوردی که زیر رکورد دیگری برده می‌شود یا رکوردهای بیشتری در یک فهرست می‌گیرد، فقط رکوردهایی می‌گیرد که ویرایشگرش اجازهٔ خواندنشان را دارد، و مجوز ساختنی که به برچسب‌ها یا دامنه Owned محدود است، رکوردی را که می‌سازد هم در بر می‌گیرد",
   fr: "Un enregistrement déplacé sous un autre, ou à qui l'on ajoute des enregistrements dans une liste, ne reçoit que des enregistrements que son auteur peut lire, et une autorisation de créer restreinte à des étiquettes ou à la portée Possédées vaut aussi pour l'enregistrement qu'elle crée",
@@ -108,8 +110,10 @@ const UPGRADE_HEADING: Record<string, string> = {
   pt: "Um registro movido para baixo de outro, ou que recebe mais registros em uma lista, só recebe registros que quem o altera pode ler, e uma permissão para criar restrita a rótulos ou ao escopo Próprios vale também para o registro que cria",
   ru: "Запись, которую перемещают под другую или которой добавляют записи в список, получает только записи, которые может читать тот, кто её изменяет, а разрешение на создание, ограниченное метками или областью «Свои», распространяется и на создаваемую запись",
   sv: "En post som flyttas under en annan eller får fler poster i en lista får bara poster som den som ändrar den får läsa, och en behörighet att skapa som är begränsad till etiketter eller till omfattningen Ägda gäller också posten den skapar",
-  "zh-CN": "把记录移到另一条记录之下或向列表中添加记录时，只能使用修改者能读取的记录；限定到标签或\"拥有\"范围的创建权限也约束它所创建的记录",
-  "zh-TW": "把記錄移到另一筆記錄之下或在清單中新增記錄時，只能使用修改者能讀取的記錄；限定到標籤或「擁有」範圍的建立權限也約束它所建立的記錄",
+  "zh-CN":
+    '把记录移到另一条记录之下或向列表中添加记录时，只能使用修改者能读取的记录；限定到标签或"拥有"范围的创建权限也约束它所创建的记录',
+  "zh-TW":
+    "把記錄移到另一筆記錄之下或在清單中新增記錄時，只能使用修改者能讀取的記錄；限定到標籤或「擁有」範圍的建立權限也約束它所建立的記錄",
 };
 
 // What step 7 already said about a create under a record you may read.
@@ -228,10 +232,10 @@ describe("Docs: a record's parents and listed records on a change, and a create'
         language,
         true,
       ]);
-      expect([
+      expect([language, seven.lastIndexOf("`404`") > change]).toEqual([
         language,
-        seven.lastIndexOf("`404`") > change,
-      ]).toEqual([language, true]);
+        true,
+      ]);
 
       // Step 7 answers no status code of its own for these: it keeps two.
       expect([language, countOf(seven, "`404`")]).toEqual([language, 2]);

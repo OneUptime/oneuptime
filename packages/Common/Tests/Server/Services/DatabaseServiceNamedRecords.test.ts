@@ -38,7 +38,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { FindOperator } from "typeorm";
+import type { Mock } from "jest-mock";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");
@@ -152,39 +152,6 @@ const asMonitors: (ids: Array<string>) => Array<Monitor> = (
   });
 };
 
-// The ids a condition binds, an AND of conditions included.
-const valuesOf: (condition: unknown) => Array<string> = (
-  condition: unknown,
-): Array<string> => {
-  if (typeof condition === "string") {
-    return [condition];
-  }
-
-  const operator: FindOperator<unknown> = condition as FindOperator<unknown>;
-
-  if (!operator || typeof operator !== "object") {
-    return [];
-  }
-
-  if (operator.type === "and") {
-    return (operator.value as unknown as Array<unknown>).flatMap(valuesOf);
-  }
-
-  if (Array.isArray(operator.value)) {
-    return (operator.value as Array<unknown>).map(String);
-  }
-
-  return Object.values(
-    (
-      operator as unknown as {
-        objectLiteralParameters?: Record<string, unknown>;
-      }
-    ).objectLiteralParameters || {},
-  )
-    .flat()
-    .map(String);
-};
-
 /*
  * An announcement service whose update hook may name another status page,
  * as a hook that derives a record's parents would.
@@ -236,8 +203,8 @@ let storedMonitors: Array<string>;
 let readablePages: Array<string>;
 let readableMonitors: Array<string>;
 let parentReads: Array<{ modelType: string; ids: Array<string> }>;
-let save: jest.Mock;
-let update: jest.Mock;
+let save: Mock<(entity: unknown) => Promise<unknown>>;
+let update: Mock<() => Promise<unknown>>;
 
 beforeEach(() => {
   stubProjectDirectory({});
@@ -247,33 +214,34 @@ beforeEach(() => {
    * database describes them: the record rule follows its status pages
    * through them, and their labels.
    */
-  getJestSpyOn(QueryUtil, "getManyToManyRelationMetadata").mockImplementation(
-    ((modelType: { new (): BaseModel }, propertyPath: string) => {
-      if (propertyPath === new modelType().getAccessControlColumn()) {
-        return getLabelJoinTable(modelType);
+  getJestSpyOn(QueryUtil, "getManyToManyRelationMetadata").mockImplementation(((
+    modelType: { new (): BaseModel },
+    propertyPath: string,
+  ) => {
+    if (propertyPath === new modelType().getAccessControlColumn()) {
+      return getLabelJoinTable(modelType);
+    }
+
+    if (modelType === (StatusPageAnnouncement as unknown)) {
+      if (propertyPath === "statusPages") {
+        return {
+          joinTableName: "AnnouncementStatusPage",
+          ownerColumnName: "announcementId",
+          relationColumnName: "statusPageId",
+        };
       }
 
-      if (modelType === (StatusPageAnnouncement as unknown)) {
-        if (propertyPath === "statusPages") {
-          return {
-            joinTableName: "AnnouncementStatusPage",
-            ownerColumnName: "announcementId",
-            relationColumnName: "statusPageId",
-          };
-        }
-
-        if (propertyPath === "monitors") {
-          return {
-            joinTableName: "AnnouncementMonitor",
-            ownerColumnName: "announcementId",
-            relationColumnName: "monitorId",
-          };
-        }
+      if (propertyPath === "monitors") {
+        return {
+          joinTableName: "AnnouncementMonitor",
+          ownerColumnName: "announcementId",
+          relationColumnName: "monitorId",
+        };
       }
+    }
 
-      return null;
-    }) as never,
-  );
+    return null;
+  }) as never);
 
   service = new AnnouncementService();
   rowReads = [];
@@ -557,9 +525,7 @@ describe("a write that lists records", () => {
 
 describe("what decides whether a lookup is made", () => {
   test("a service whose own hooks hold its references to the project says so; a plain one does not", () => {
-    const asked: (service: unknown) => boolean = (
-      target: unknown,
-    ): boolean => {
+    const asked: (service: unknown) => boolean = (target: unknown): boolean => {
       return (
         target as { checksReferencesInProject: () => boolean }
       ).checksReferencesInProject();
@@ -610,9 +576,9 @@ describe("the lookups OneUptime makes for a write", () => {
     expect(reads[0]!.props).toEqual({ isRoot: true });
     expect(reads[0]!.select).toEqual({ _id: true });
     expect(reads[0]!.limit).toBe(2);
-    expect(reads[0]!.query["projectId"]).toEqual(
-      new Includes([PROJECT_ID.toString()]),
-    );
+    expect(
+      (reads[0]!.query as unknown as Record<string, unknown>)["projectId"],
+    ).toEqual(new Includes([PROJECT_ID.toString()]));
 
     // No project to hold them to: none found, nothing read.
     await expect(
@@ -671,9 +637,9 @@ describe("the lookups OneUptime makes for a write", () => {
     expect(labels).toEqual({ [PAGE_A]: [PRODUCTION.toString()] });
     expect(reads[0]!.props).toEqual({ isRoot: true });
     expect(reads[0]!.select).toEqual({ _id: true, labels: { _id: true } });
-    expect(reads[0]!.query["projectId"]).toEqual(
-      new Includes([PROJECT_ID.toString()]),
-    );
+    expect(
+      (reads[0]!.query as unknown as Record<string, unknown>)["projectId"],
+    ).toEqual(new Includes([PROJECT_ID.toString()]));
   });
 
   test("the names of labels, in the order asked, an unknown one by its id", async () => {
@@ -684,7 +650,11 @@ describe("the lookups OneUptime makes for a write", () => {
       ): Promise<Array<BaseModel>> {
         expect(this.modelType).toBe(Label);
         expect(findBy.props).toEqual({ isRoot: true });
-        expect(String(findBy.query["projectId"])).toBe(PROJECT_ID.toString());
+        expect(
+          String(
+            (findBy.query as unknown as Record<string, unknown>)["projectId"],
+          ),
+        ).toBe(PROJECT_ID.toString());
 
         const label: Label = new Label();
         label._id = PRODUCTION.toString();
@@ -738,9 +708,11 @@ describe("a create held to its create permission's scope", () => {
 
   test("is asked once the hooks have run, on the record as it will be saved", async () => {
     const writes: ServiceWrites = new ServiceWrites();
-    const saved: jest.Mock = jest.fn(async (entity: unknown) => {
-      return entity;
-    });
+    const saved: Mock<(entity: unknown) => Promise<unknown>> = jest.fn(
+      async (entity: unknown): Promise<unknown> => {
+        return entity;
+      },
+    );
 
     getJestSpyOn(writes, "getRepository").mockReturnValue({
       save: saved,

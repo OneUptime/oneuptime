@@ -514,25 +514,22 @@ describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
       new NotAuthorizedException("You do not have permissions to create Owner"),
     ],
     ["a generic error", new Error("connection reset")],
-  ])(
-    "does not write around %s",
-    async (_label: string, failure: unknown) => {
-      const create: jest.Mock = jest.fn(async () => {
-        throw failure;
-      });
+  ])("does not write around %s", async (_label: string, failure: unknown) => {
+    const create: jest.Mock = jest.fn(async () => {
+      throw failure;
+    });
 
-      await expect(
-        OwnerRuleAssignment.createOwner({
-          ownerService: serviceThat(create),
-          owner: ownerTeam(TEAM_A),
-          props: creatorProps,
-          onCreatorsBehalf: true,
-        }),
-      ).rejects.toBe(failure);
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: serviceThat(create),
+        owner: ownerTeam(TEAM_A),
+        props: creatorProps,
+        onCreatorsBehalf: true,
+      }),
+    ).rejects.toBe(failure);
 
-      expect(create).toHaveBeenCalledTimes(1);
-    },
-  );
+    expect(create).toHaveBeenCalledTimes(1);
+  });
 
   it("a team the row may not name is still skipped when OneUptime writes it", async () => {
     const create: jest.Mock = jest
@@ -606,8 +603,11 @@ describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
     expect(ids(added.userIds)).toEqual([USER_A.toString()]);
     expect(userCreate).toHaveBeenCalledTimes(2);
     expect(
-      (userCreate.mock.calls[1]![0] as { props: DatabaseCommonInteractionProps })
-        .props,
+      (
+        userCreate.mock.calls[1]![0] as {
+          props: DatabaseCommonInteractionProps;
+        }
+      ).props,
     ).toEqual({ isRoot: true, userId: CREATOR });
   });
 });

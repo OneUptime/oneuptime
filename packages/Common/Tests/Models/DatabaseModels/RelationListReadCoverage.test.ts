@@ -183,16 +183,19 @@ describe("every list a write may name records in", () => {
     ["RunbookRule", "runbooks"],
     ["MonitorSecret", "monitors"],
     ["StatusPageSubscriber", "statusPageResources"],
-  ])("%s.%s is held to the read of what it lists", (table: string, column: string) => {
-    const list: WritableList | undefined = WRITABLE_LISTS.find(
-      (each: WritableList): boolean => {
-        return each.name === `${table}.${column}`;
-      },
-    );
+  ])(
+    "%s.%s is held to the read of what it lists",
+    (table: string, column: string) => {
+      const list: WritableList | undefined = WRITABLE_LISTS.find(
+        (each: WritableList): boolean => {
+          return each.name === `${table}.${column}`;
+        },
+      );
 
-    expect(list).toBeDefined();
-    expect(isChecked(list!)).toBe(true);
-  });
+      expect(list).toBeDefined();
+      expect(isChecked(list!)).toBe(true);
+    },
+  );
 
   test("the parent a model is read through, through a list, is the parent rule's", () => {
     expect(
@@ -217,9 +220,7 @@ describe("the shared paths ask it", () => {
     "utf8",
   );
 
-  const bodyOf: (signature: string) => string = (
-    signature: string,
-  ): string => {
+  const bodyOf: (signature: string) => string = (signature: string): string => {
     const start: number = source.indexOf(signature);
     expect(start).toBeGreaterThan(-1);
     return source.slice(start, start + 20000);
@@ -231,7 +232,9 @@ describe("the shared paths ask it", () => {
     );
 
     const lists: number = create.indexOf("await this.checkNamedLists({");
-    const hooks: number = create.indexOf("await this._onBeforeCreate(createBy)");
+    const hooks: number = create.indexOf(
+      "await this._onBeforeCreate(createBy)",
+    );
 
     expect(lists).toBeGreaterThan(-1);
     expect(hooks).toBeGreaterThan(lists);
@@ -250,9 +253,7 @@ describe("the shared paths ask it", () => {
     expect(named).toBeGreaterThan(-1);
     expect(hooks).toBeGreaterThan(named);
 
-    const helper: string = bodyOf(
-      "private async checkUpdateNamedRecords(",
-    );
+    const helper: string = bodyOf("private async checkUpdateNamedRecords(");
 
     expect(helper).toContain("heldIdsByColumn");
     expect(helper).toContain("await this.checkNamedLists({");

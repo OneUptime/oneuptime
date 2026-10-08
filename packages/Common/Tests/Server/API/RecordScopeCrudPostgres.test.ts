@@ -3430,19 +3430,22 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       [bothPagesAnnouncementId, [productionStatusPageId, stagingStatusPageId]],
     ];
 
-    const pagesOf: (announcementId: ObjectID) => Promise<Array<string>> =
-      async (announcementId: ObjectID): Promise<Array<string>> => {
-        const rows: Array<{ statusPageId: string }> = await database.query(
-          `SELECT "statusPageId" FROM "${schema}"."AnnouncementStatusPage" WHERE "announcementId" = $1`,
-          [announcementId.toString()],
-        );
+    const pagesOf: (
+      announcementId: ObjectID,
+    ) => Promise<Array<string>> = async (
+      announcementId: ObjectID,
+    ): Promise<Array<string>> => {
+      const rows: Array<{ statusPageId: string }> = await database.query(
+        `SELECT "statusPageId" FROM "${schema}"."AnnouncementStatusPage" WHERE "announcementId" = $1`,
+        [announcementId.toString()],
+      );
 
-        return sorted(
-          rows.map((row: { statusPageId: string }): string => {
-            return row.statusPageId;
-          }),
-        );
-      };
+      return sorted(
+        rows.map((row: { statusPageId: string }): string => {
+          return row.statusPageId;
+        }),
+      );
+    };
 
     const restorePages: () => Promise<void> = async (): Promise<void> => {
       for (const [announcementId, statusPageIds] of PAGES_BEFORE) {
@@ -3866,15 +3869,18 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     ] as Array<[string, "team" | "apiKey"]>)(
       "%s",
       (_name: string, kind: "team" | "apiKey") => {
-        const creatorWith: (rows: Array<PermissionRow>) => Promise<Caller> =
-          async (rows: Array<PermissionRow>): Promise<Caller> => {
-            if (kind === "team") {
-              await setTeamPermissions(homeTeamId, homeProjectId, rows);
-              return homeUser;
-            }
+        const creatorWith: (
+          rows: Array<PermissionRow>,
+        ) => Promise<Caller> = async (
+          rows: Array<PermissionRow>,
+        ): Promise<Caller> => {
+          if (kind === "team") {
+            await setTeamPermissions(homeTeamId, homeProjectId, rows);
+            return homeUser;
+          }
 
-            return { kind: "apiKey", apiKey: await createApiKey(rows) };
-          };
+          return { kind: "apiKey", apiKey: await createApiKey(rows) };
+        };
 
         test("creates a status page carrying one of its labels, and no other", async () => {
           const caller: Caller = await creatorWith([
@@ -4148,7 +4154,11 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         ).toEqual([homeTeamId.toString()]);
 
         // A page without their label is never made, so nothing under it can fail.
-        const refused: Outcome = await createStatusPage(homeUser, pageName(), []);
+        const refused: Outcome = await createStatusPage(
+          homeUser,
+          pageName(),
+          [],
+        );
 
         expect(refused.error).toBeInstanceOf(NotAuthorizedException);
       });
@@ -4216,7 +4226,11 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
             expect(refused.error).toBeInstanceOf(NotAuthorizedException);
           } finally {
             await removeRows([
-              ["OnCallDutyPolicyEscalationRule", "onCallDutyPolicyId", policyId],
+              [
+                "OnCallDutyPolicyEscalationRule",
+                "onCallDutyPolicyId",
+                policyId,
+              ],
               ["OnCallDutyPolicyLabel", "onCallDutyPolicyId", policyId],
               ["OnCallDutyPolicy", "_id", policyId],
             ]);

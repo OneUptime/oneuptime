@@ -137,8 +137,7 @@ export default class RelationListPermission {
       lists.push({
         column: columnName,
         listedModelType: listedModelType,
-        title:
-          column.title || new listedModelType().pluralName || columnName,
+        title: column.title || new listedModelType().pluralName || columnName,
       });
     }
 
@@ -251,9 +250,7 @@ export default class RelationListPermission {
 
     const refused: Array<string> = [];
 
-    for (const list of RelationListPermission.getCheckedLists(
-      data.modelType,
-    )) {
+    for (const list of RelationListPermission.getCheckedLists(data.modelType)) {
       const ids: Array<string> | undefined = named[list.column];
 
       if (!ids || ids.length === 0) {

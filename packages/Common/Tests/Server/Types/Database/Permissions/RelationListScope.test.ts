@@ -247,9 +247,9 @@ const LABELLED_DECLARER: Array<UserPermission> = [
   onProduction(Permission.ReadProjectMonitor),
 ];
 
-const columnsOf: (modelType: { new (): BaseModel }) => Array<string> = (
-  modelType: { new (): BaseModel },
-): Array<string> => {
+const columnsOf: (modelType: {
+  new (): BaseModel;
+}) => Array<string> = (modelType: { new (): BaseModel }): Array<string> => {
   return RelationListPermission.getCheckedLists(modelType).map(
     (list: CheckedRelationList): string => {
       return list.column;
@@ -502,11 +502,9 @@ describe("a create that lists records", () => {
     expect(lookups.projectCalls[0]?.modelType).toBe(Monitor);
     expect(lookups.projectCalls[0]?.ids).toEqual([MONITOR_A, MONITOR_B]);
     // The query leaves out the monitors carrying the blocked label.
-    expect(addBlockedLabels).toHaveBeenCalledWith(
-      Monitor,
-      expect.anything(),
-      [productionLabelId],
-    );
+    expect(addBlockedLabels).toHaveBeenCalledWith(Monitor, expect.anything(), [
+      productionLabelId,
+    ]);
     expect(lookups.projectCalls[0]?.query).toBe(
       addBlockedLabels.mock.results[0]?.value,
     );

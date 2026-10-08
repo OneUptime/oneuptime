@@ -2210,9 +2210,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     if (
       data.props.isRoot ||
       data.props.isMasterAdmin ||
-      Object.keys(
-        RelationListPermission.getNamedIds(this.modelType, data.data),
-      ).length === 0
+      Object.keys(RelationListPermission.getNamedIds(this.modelType, data.data))
+        .length === 0
     ) {
       return;
     }
@@ -2352,11 +2351,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const heldIdsByColumn: Dictionary<Array<Array<string>>> = {};
 
       for (const column of namedLists) {
-        heldIdsByColumn[column] = rows.map(
-          (row: TBaseModel): Array<string> => {
-            return DatabaseService.getListedIds(row, column);
-          },
-        );
+        heldIdsByColumn[column] = rows.map((row: TBaseModel): Array<string> => {
+          return DatabaseService.getListedIds(row, column);
+        });
       }
 
       await this.checkNamedLists({

@@ -158,7 +158,9 @@ interface Lookups {
 
 const lookupsWith: (
   labelsByRecord?: Record<string, Array<string>>,
-) => Lookups = (labelsByRecord: Record<string, Array<string>> = {}): Lookups => {
+) => Lookups = (
+  labelsByRecord: Record<string, Array<string>> = {},
+): Lookups => {
   const lookups: Lookups = {
     labelCalls: [],
     nameCalls: [],
@@ -260,7 +262,10 @@ afterEach(() => {
 
 describe("a create permission limited to labels", () => {
   test.each([
-    ["a team member", member([on(Permission.CreateProjectMonitor, [PRODUCTION])])],
+    [
+      "a team member",
+      member([on(Permission.CreateProjectMonitor, [PRODUCTION])]),
+    ],
     ["an API key", apiKey([on(Permission.CreateProjectMonitor, [PRODUCTION])])],
   ])(
     "%s creates a record carrying one of its labels, and no other",
@@ -463,9 +468,7 @@ describe("a create permission limited to labels", () => {
         check({
           modelType: IncidentSeverity,
           data: severity,
-          props: member([
-            on(Permission.CreateIncidentSeverity, [PRODUCTION]),
-          ]),
+          props: member([on(Permission.CreateIncidentSeverity, [PRODUCTION])]),
           lookups: lookups,
         }),
       ).resolves.toBeUndefined();
