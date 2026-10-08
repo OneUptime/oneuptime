@@ -19,6 +19,12 @@
  * with the freshly created project, and the navigation this helper returns is
  * what carries the user into it. Exempting either would strand the user on a
  * loader or a welcome screen.
+ *
+ * /dashboard/connect-return is listed although it, too, hands the user into a
+ * project: it carries them to a particular page of it - the Slack, Microsoft
+ * Teams or Code Repositories page a connection came back to - and does so
+ * itself, once a project is selected. Sending them to the project's home
+ * instead would lose where they were going and what happened.
  */
 export const projectIndependentRoutes: Array<string> = [
   "/dashboard/user-profile/overview",
@@ -33,6 +39,7 @@ export const projectIndependentRoutes: Array<string> = [
   "/dashboard/active-incident-episodes",
   "/dashboard/project-invitations",
   "/dashboard/my-on-call-policies",
+  "/dashboard/connect-return",
   "/dashboard/logout",
 ];
 

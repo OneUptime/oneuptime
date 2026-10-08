@@ -62,3 +62,18 @@ Preserve the method, path, query string, original body, `Content-Type`, `X-Slack
 In Slack's **Event Subscriptions**, verify the Events Request URL; Slack sends a [POST challenge and checks TLS](https://docs.slack.dev/apis/events-api/using-http-request-urls/). Then send a test notification, run a slash command, press an incident button, and trigger a subscribed event. Check gateway and OneUptime logs for failed deliveries without logging secrets. Slack expects prompt acknowledgments, including [a response within three seconds for interactions](https://docs.slack.dev/interactivity/handling-user-interaction/). A browser GET or successful outbound message does not verify these POST callbacks.
 
 If all inbound connectivity is prohibited, an already authorized app can still send messages with outbound HTTPS, but events, buttons, shortcuts, and commands cannot work. OneUptime's manifest uses HTTP callbacks and disables Socket Mode; turning on Slack Socket Mode is not a supported substitute for these routes. The [private network access setting](/docs/self-hosted/private-network-access) controls outbound requests to private destinations and does not expose callbacks to Slack.
+
+## Troubleshooting
+
+### Connecting did not finish
+
+When Slack sends you back and the connection was not made, the Slack page you started from (**Settings > Slack Integration**, or your own **User Settings** when you were connecting your account) says **Slack was not connected**, with one sentence saying why, in your language. The rest of the page loads as usual, so you can connect again right there. It never shows what Slack itself answered: that is in the OneUptime server log, with the reason.
+
+- **"This connection link is invalid, has expired, or has already been used. Please start again."** The link works once, for 15 minutes, in the browser that started it. Start again from the Slack page and finish in Slack within 15 minutes, in the same browser.
+- **"You do not have permission to connect this project to Slack."** Installing OneUptime in Slack needs **Project Owner**, **Project Admin** or **Project Member**. It is asked again when Slack sends you back, so a role taken away in the meantime ends the connection here too.
+- **"You are no longer a member of this project."** Connecting your own Slack account needs you to be a member of the project when Slack sends you back.
+- **"This project is not connected to a Slack workspace yet."** Install OneUptime in Slack from **Settings > Slack Integration** first, then connect your own account.
+- **"You signed in to a different Slack workspace from the one this project is connected to."** Connect your account while signed in to the Slack workspace the project is installed in.
+- **"The connection was cancelled, so nothing was changed."** The request was not allowed in Slack. Start again and allow it.
+- **"Slack is not set up on this OneUptime server."** Set `SLACK_APP_CLIENT_ID` and `SLACK_APP_CLIENT_SECRET` (see [Setup](#setup)) and restart OneUptime.
+- **"OneUptime could not finish connecting. Please try again."** Slack answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the Slack app's settings.
