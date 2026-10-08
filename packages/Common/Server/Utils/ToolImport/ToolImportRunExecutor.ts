@@ -135,7 +135,7 @@ export default class ToolImportRunExecutor {
       typeof data.apiKey === "string" ? data.apiKey.trim() : "";
 
     if (!apiKey) {
-      throw new BadDataException(`Paste a ${definition.title} API key.`);
+      throw new BadDataException(`Paste your ${definition.title} API key.`);
     }
 
     if (
@@ -143,7 +143,7 @@ export default class ToolImportRunExecutor {
       KEY_WHITESPACE.test(apiKey)
     ) {
       throw new BadDataException(
-        `That does not look like a ${definition.title} API key. Paste the key on its own.`,
+        `That does not look like your ${definition.title} API key. Paste the key on its own.`,
       );
     }
 

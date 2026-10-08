@@ -58,7 +58,7 @@ export function createToolImportClient(data: {
   const apiKey: string = (data.settings.apiKey || "").trim();
 
   if (!apiKey) {
-    throw new ToolImportReadError(`Paste a ${definition.title} API key.`);
+    throw new ToolImportReadError(`Paste your ${definition.title} API key.`);
   }
 
   const authorization: string =
