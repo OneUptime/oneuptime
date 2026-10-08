@@ -850,10 +850,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * A create that fails once its sign-in check holds the lock - in a step
    * just before the INSERT, at the INSERT, or in onCreateSuccess before it
    * gave the lock back - reaches no other hook: the lock is given back here,
-   * whatever happened - or, when the database may still apply the INSERT,
-   * kept until it would have cancelled it (SsoRequirementChanges).
-   * DatabaseService.create hands every failure after onBeforeCreate to this
-   * hook.
+   * whatever happened - or, when the database may still commit the project
+   * (its COMMIT went unanswered), kept until it would have cancelled it
+   * (SsoRequirementChanges). DatabaseService.create hands every failure
+   * after onBeforeCreate to this hook.
    */
   @CaptureSpan()
   protected override async onCreateError(
