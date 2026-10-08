@@ -256,7 +256,7 @@ A value can be of any size - a response body or a log of many megabytes - and th
 - **Slack** carries at most what Slack shows of a message (about 30,000 characters). **Microsoft Teams** carries about 40,000 characters in a message from the OneUptime app, and about 12,000 through an incoming webhook (status page subscribers, workflows) - measured as the message is sent, so a table counts as the HTML it becomes.
 - **SMS, phone calls, push notifications, WhatsApp and Telegram** carry what their providers take: see [How the levels page people](/docs/on-call/escalation-rules#how-the-levels-page-people).
 
-Every channel renders the text in time that grows with its length. A part that would take a renderer far longer - a line longer than 64 KB, a long paragraph of plain lines, a paragraph full of `*`, `_` or `[` that never close, a long table or list, quotes nested hundreds deep - reads as plain text where it is, and the rest of the description renders as usual.
+Every channel renders the text in time that grows with its length. A part that would take a renderer far longer - a line longer than 64 KB, a long paragraph of plain lines, a paragraph full of `*`, `_` or `[` that never close, quotes or lists nested more than sixteen deep, and on the incident's or alert's page a table or list of more than a thousand lines - reads as plain text where it is, and the rest of the description renders as usual.
 
 ## Advanced Usage
 
