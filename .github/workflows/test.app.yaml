@@ -136,7 +136,7 @@ jobs:
             output/playwright/user-flows-ui/test-results
           retention-days: 7
 
-  # Twenty-one browser suites that each bundle real Dashboard or Status Page
+  # Twenty-two browser suites that each bundle real Dashboard or Status Page
   # sources with esbuild and serve them against fixture data: no database or
   # Docker stack. They used to run one after another in a single 41-minute
   # job, the longest of every pull request's checks. They are independent -
@@ -164,6 +164,7 @@ jobs:
               test-event-overview-ui
               test-slo-burn-rate-ui
               test-incoming-call-policies-ui
+              test-push-registration-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
           # chip editor's caret handling differs in each).
@@ -269,6 +270,8 @@ jobs:
           path: |
             output/playwright/incoming-call-policies/*.png
             output/playwright/incoming-call-policies/test-results
+            output/playwright/push-registration-ui/*.png
+            output/playwright/push-registration-ui/test-results
             output/playwright/slo-burn-rate/*.png
             output/playwright/slo-burn-rate/test-results
             output/playwright/exception-detail-ui/*.png
