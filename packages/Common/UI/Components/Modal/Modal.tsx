@@ -3,6 +3,7 @@ import ButtonType from "../Button/ButtonTypes";
 import Icon from "../Icon/Icon";
 import Loader, { LoaderType } from "../Loader/Loader";
 import ModalBody from "./ModalBody";
+import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
 import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -606,7 +607,13 @@ const Modal: FunctionComponent<ComponentProps> = (
               <div ref={contentInnerRef}>
                 <ModalBody error={props.error}>
                   {!props.isBodyLoading ? (
-                    props.children
+                    /*
+                     * A dialog is a surface of its own: a card drawn in it is
+                     * never a section of the card it was opened from.
+                     */
+                    <CardSurfaceContext.Provider value={CardSurface.Page}>
+                      {props.children}
+                    </CardSurfaceContext.Provider>
                   ) : (
                     <div className="modal-body flex justify-center py-16">
                       <Loader

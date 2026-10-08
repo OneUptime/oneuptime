@@ -1,3 +1,4 @@
+import CardSections from "../Card/CardSections";
 import FoldedSection from "../FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "../FoldedSection/FoldedSectionItem";
 import {
@@ -68,6 +69,10 @@ export interface ComponentProps {
 
 export const ADVANCED_PAGE_SECTION_TEST_ID: string = "advanced-page-section";
 
+// The sections in it, under its header.
+export const ADVANCED_PAGE_SECTION_SECTIONS_TEST_ID: string =
+  "advanced-page-section-sections";
+
 const CONFIGURED: string = translationKey("Configured");
 
 const AdvancedPageSection: FunctionComponent<ComponentProps> = (
@@ -95,15 +100,17 @@ const AdvancedPageSection: FunctionComponent<ComponentProps> = (
         badge={props.isConfigured && !hasSetItem ? CONFIGURED : undefined}
         defaultCollapsed={true}
         isElevated={true}
+        isBodyFlush={true}
       >
         {/*
-         * A card keeps a margin under it for the next card on the page.
-         * In here the section's padding frames the cards, so their own
-         * margins go, and the gap between two cards is set once.
+         * One card, not cards inside a card: each card in here is drawn as
+         * a section of this one - its title, description, actions and body
+         * without a frame of its own - with a divider across the whole card
+         * above it (CardSections).
          */}
-        <div className="space-y-5 [&_[data-testid=card]]:mb-0">
+        <CardSections dataTestId={ADVANCED_PAGE_SECTION_SECTIONS_TEST_ID}>
           {props.children}
-        </div>
+        </CardSections>
       </FoldedSection>
     </div>
   );
