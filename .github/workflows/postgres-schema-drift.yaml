@@ -948,6 +948,24 @@ jobs:
           Tests/Server/Services/StatusPageSsoSessionsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated Project, GlobalConfig and global SSO provider
+      # tables into an isolated schema and creates projects through
+      # ProjectService: while the server requires SSO for everyone, or when
+      # the new project asks for SSO itself, it is created only when a global
+      # provider that is on signs people in to every project, and a refused
+      # create writes no project row.
+      - name: Test project creation under SSO rules on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_CREATE_SSO_TESTS: "true"
+          PROJECT_CREATE_SSO_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_CREATE_SSO_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_CREATE_SSO_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProjectCreateSsoWayInPostgres.test.ts
+          --forceExit
+
       - name: Test team member reads across tenants on migrated Postgres
         working-directory: packages/Common
         env:
