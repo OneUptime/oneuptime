@@ -906,10 +906,11 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
   it("refuses a bulk change that widens any rule it reads, for an editor who may not read credentials", async () => {
     rulesRead = [
       rule(RULE_ID.toString(), [RUNNER_A]),
+      // The second rule already runs its commands without asking.
       {
         ...rule(SECOND_RULE, [RUNNER_A]),
         ...unattended({ commandRunners: runners([RUNNER_A]) }),
-      },
+      } as unknown as JSONObject,
     ];
 
     await expect(

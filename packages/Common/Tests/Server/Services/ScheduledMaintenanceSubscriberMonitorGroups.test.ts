@@ -147,10 +147,16 @@ function subscriber(data: {
   row.isSubscribedToAllEventTypes = true;
   row.subscriberEmail = new Email(data.email);
   row.unsubscribeToken = "7a".repeat(32);
+  /*
+   * Each pick as getSubscribersByStatusPage reads it: its id and the page it
+   * is on - a subscriber is told about an event only through resources of
+   * its own page.
+   */
   row.statusPageResources = (data.picked || []).map(
     (picked: StatusPageResourceRow): StatusPageResource => {
       const resource: StatusPageResource = new StatusPageResource();
       resource._id = picked._id;
+      resource.statusPageId = new ObjectID(picked.statusPageId);
       return resource;
     },
   );
