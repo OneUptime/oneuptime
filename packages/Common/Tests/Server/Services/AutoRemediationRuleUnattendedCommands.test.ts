@@ -59,7 +59,9 @@ const hooks: RuleHookAccess =
   AutoRemediationRuleService as unknown as RuleHookAccess;
 
 // A rule editor: may write rules, and - with ReadRunbookCredential - read credentials.
-function editor(permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function editor(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
   return {
     tenantId: PROJECT_ID,
     userId: ObjectID.generate(),
@@ -68,13 +70,15 @@ function editor(permissions: Array<Permission>): DatabaseCommonInteractionProps 
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",
         projectId: PROJECT_ID,
-        permissions: permissions.map((permission: Permission): UserPermission => {
-          return {
-            _type: "UserPermission",
-            permission: permission,
-            labelIds: [],
-          };
-        }),
+        permissions: permissions.map(
+          (permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+            };
+          },
+        ),
       },
     },
   } as unknown as DatabaseCommonInteractionProps;
@@ -124,12 +128,18 @@ describe("AiRemediationCredentialUse.runsCommandsWithoutAsking", () => {
   });
 
   it.each([
-    ["asks before fixing", { executionMode: AutoRemediationExecutionMode.Suggest }],
+    [
+      "asks before fixing",
+      { executionMode: AutoRemediationExecutionMode.Suggest },
+    ],
     ["has no allowlist", { commandAllowlist: [] }],
     ["has only blank allowlist patterns", { commandAllowlist: ["  "] }],
     ["has a null allowlist", { commandAllowlist: undefined }],
     ["does not compose commands", { aiComposesCommands: false }],
-    ["fixes with runbooks", { remediationAction: AutoRemediationAction.Runbooks }],
+    [
+      "fixes with runbooks",
+      { remediationAction: AutoRemediationAction.Runbooks },
+    ],
   ])(
     "is not a rule that %s",
     (_label: string, overrides: Partial<RuleCommandSettings>) => {
@@ -246,7 +256,9 @@ describe("AiRemediationCredentialUse.widensCommandsWithoutAsking", () => {
 });
 
 describe("AiRemediationCredentialUse - a plan's commands", () => {
-  function command(overrides: Partial<AiRemediationCommand>): AiRemediationCommand {
+  function command(
+    overrides: Partial<AiRemediationCommand>,
+  ): AiRemediationCommand {
     return {
       sequence: 1,
       stepType: RunbookStepType.Bash,
@@ -260,7 +272,9 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
     } as AiRemediationCommand;
   }
 
-  function plan(commands: Array<AiRemediationCommand>): AiRemediationCommandPlan {
+  function plan(
+    commands: Array<AiRemediationCommand>,
+  ): AiRemediationCommandPlan {
     return { commands: commands } as AiRemediationCommandPlan;
   }
 
@@ -408,9 +422,13 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
     expect(
       await create(unattended(), editor(RULE_EDITOR_WHO_READS_CREDENTIALS)),
     ).toBeNull();
-    expect(await create(unattended(), editor([Permission.ProjectAdmin]))).toBeNull();
     expect(
-      await create(unattended(), { isRoot: true } as DatabaseCommonInteractionProps),
+      await create(unattended(), editor([Permission.ProjectAdmin])),
+    ).toBeNull();
+    expect(
+      await create(unattended(), {
+        isRoot: true,
+      } as DatabaseCommonInteractionProps),
     ).toBeNull();
   });
 

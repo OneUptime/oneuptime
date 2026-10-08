@@ -121,34 +121,32 @@ export default class StatusPageSubscriberResources {
     const resourceService: DatabaseService<StatusPageResource> =
       ProjectScopedReferenceValidator.getLookupService(StatusPageResource);
 
-    const resources: Array<StatusPageResource> = await resourceService.findBy(
-      {
-        query: {
-          _id: QueryHelper.any(
-            validIds.map((id: string): string => {
-              return id.trim();
-            }),
-          ),
-          statusPageId: data.statusPageId,
-        },
-        select: {
-          _id: true,
-          ...(data.shownToVisitorsOnly
-            ? {
-                monitor: {
-                  _id: true,
-                  isArchived: true,
-                },
-              }
-            : {}),
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+    const resources: Array<StatusPageResource> = await resourceService.findBy({
+      query: {
+        _id: QueryHelper.any(
+          validIds.map((id: string): string => {
+            return id.trim();
+          }),
+        ),
+        statusPageId: data.statusPageId,
       },
-    );
+      select: {
+        _id: true,
+        ...(data.shownToVisitorsOnly
+          ? {
+              monitor: {
+                _id: true,
+                isArchived: true,
+              },
+            }
+          : {}),
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
 
     const onPage: Array<StatusPageResource> = data.shownToVisitorsOnly
       ? ArchivedMonitorResources.withoutArchivedMonitors(resources)
@@ -203,9 +201,8 @@ export default class StatusPageSubscriberResources {
       return;
     }
 
-    const onPage: Set<string> = await StatusPageSubscriberResources.findIdsOnPage(
-      data,
-    );
+    const onPage: Set<string> =
+      await StatusPageSubscriberResources.findIdsOnPage(data);
 
     StatusPageSubscriberResources.refuse(
       data.ids.filter((id: string): boolean => {

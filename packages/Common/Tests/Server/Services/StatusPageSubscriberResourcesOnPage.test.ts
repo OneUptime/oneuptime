@@ -179,16 +179,14 @@ function standInForThePages(): void {
         .filter((row: { id: string; page: ObjectID }): boolean => {
           return asked.includes(row.id) && row.page.toString() === pageId;
         })
-        .map(
-          (row: { id: string; archived: boolean }): StatusPageResource => {
-            const resource: StatusPageResource = new StatusPageResource();
-            resource._id = row.id;
-            const monitor: Monitor = new Monitor();
-            monitor.isArchived = row.archived;
-            resource.monitor = monitor;
-            return resource;
-          },
-        );
+        .map((row: { id: string; archived: boolean }): StatusPageResource => {
+          const resource: StatusPageResource = new StatusPageResource();
+          resource._id = row.id;
+          const monitor: Monitor = new Monitor();
+          monitor.isArchived = row.archived;
+          resource.monitor = monitor;
+          return resource;
+        });
     },
   );
 }
@@ -268,14 +266,15 @@ describe("StatusPageSubscriberService - a new subscription", () => {
       kind: string;
       contact: (row: StatusPageSubscriber) => void;
     }) => {
-      const result: OnCreate<StatusPageSubscriber> =
-        await hooks.onBeforeCreate({
+      const result: OnCreate<StatusPageSubscriber> = await hooks.onBeforeCreate(
+        {
           data: subscription({
             contact: kind.contact,
             resourceIds: [OWN_RESOURCE],
           }),
           props: { isRoot: true },
-        });
+        },
+      );
 
       expect(
         (result.carryForward as { statusPage: StatusPage }).statusPage._id,

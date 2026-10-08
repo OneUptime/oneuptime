@@ -755,7 +755,9 @@ describe("RuleRunPermission.assertMayChangeEveryRecord", () => {
       RuleRunPermission.assertMayChangeEveryRecord({
         props: propsWith({
           permissions: [Permission.ProjectAdmin],
-          labelledBlockedPermissions: [Permission.EditNetworkSiteAssignmentRule],
+          labelledBlockedPermissions: [
+            Permission.EditNetworkSiteAssignmentRule,
+          ],
         }),
         modelType: NetworkSiteAssignmentRule,
         requestType: DatabaseRequestType.Update,

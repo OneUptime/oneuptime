@@ -535,17 +535,15 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
     });
 
     it("finds no subscriber of another page before asking about resources", async () => {
-      await mockRouter
-        .match("put", UPDATE_SUBSCRIPTION_ROUTE)
-        .handlerFunction(
-          request({
-            statusPageId: OTHER_PAGE_ID,
-            subscriberId: SUBSCRIBER_ID,
-            body: pickResources([OTHER_PAGE_RESOURCE]),
-          }),
-          mockResponse,
-          nextFunction,
-        );
+      await mockRouter.match("put", UPDATE_SUBSCRIPTION_ROUTE).handlerFunction(
+        request({
+          statusPageId: OTHER_PAGE_ID,
+          subscriberId: SUBSCRIBER_ID,
+          body: pickResources([OTHER_PAGE_RESOURCE]),
+        }),
+        mockResponse,
+        nextFunction,
+      );
 
       expect((thrown() as Error).message).toBe("Subscriber not found");
       expect(resourceLookups).toEqual([]);

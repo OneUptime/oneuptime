@@ -743,7 +743,9 @@ export class Service extends ProjectReferencesService<Model> {
    * project, since hooks run before the framework scopes the query - so a
    * subscriber the update cannot reach says nothing.
    */
-  private async checkResourcesOnPages(updateBy: UpdateBy<Model>): Promise<void> {
+  private async checkResourcesOnPages(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
     const named: Array<string> = StatusPageSubscriberResources.getNamedIds(
       (updateBy.data as unknown as JSONObject | undefined)?.[
         StatusPageSubscriberResources.RESOURCES_COLUMN

@@ -193,7 +193,9 @@ describe("StatusPageSubscriberResources.findIdsOnPage", () => {
         shownToVisitorsOnly: false,
       });
 
-    expect([...onPage].sort()).toEqual([GROUP_RESOURCE, MONITOR_RESOURCE].sort());
+    expect([...onPage].sort()).toEqual(
+      [GROUP_RESOURCE, MONITOR_RESOURCE].sort(),
+    );
     expect(lookups).toHaveLength(1);
     expect((lookups[0]!.query["statusPageId"] as ObjectID).toString()).toBe(
       PAGE_ID.toString(),
@@ -220,7 +222,9 @@ describe("StatusPageSubscriberResources.findIdsOnPage", () => {
         shownToVisitorsOnly: true,
       });
 
-    expect([...onPage].sort()).toEqual([GROUP_RESOURCE, MONITOR_RESOURCE].sort());
+    expect([...onPage].sort()).toEqual(
+      [GROUP_RESOURCE, MONITOR_RESOURCE].sort(),
+    );
     expect(lookups[0]!.select["monitor"]).toEqual({
       _id: true,
       isArchived: true,

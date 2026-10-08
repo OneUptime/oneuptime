@@ -466,7 +466,10 @@ describe("POST /auto-remediation/approve — a plan that runs with a runbook cre
   });
 
   test.each([
-    ["Read Runbook Credential", [Permission.ProjectMember, Permission.ReadRunbookCredential]],
+    [
+      "Read Runbook Credential",
+      [Permission.ProjectMember, Permission.ReadRunbookCredential],
+    ],
     ["Project Admin", [Permission.ProjectAdmin]],
     ["Project Owner", [Permission.ProjectOwner]],
   ])(

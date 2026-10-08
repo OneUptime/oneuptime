@@ -1,7 +1,7 @@
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import ColumnAccessControl from "../../../../../Types/Database/AccessControl/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../../../Types/BaseDatabase/AccessControl";
 import Exception from "../../../../../Types/Exception/Exception";
 import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -112,7 +112,9 @@ describe("LlmProvider - who may read it", () => {
   test("no column is read by Public, and each reads with the table's readers", () => {
     const model: LlmProvider = new LlmProvider();
 
-    for (const column of Object.keys(model.getColumnAccessControlForAllColumns())) {
+    for (const column of Object.keys(
+      model.getColumnAccessControlForAllColumns(),
+    )) {
       const access: ColumnAccessControl | undefined =
         model.getColumnAccessControlFor(column) || undefined;
 
@@ -124,15 +126,17 @@ describe("LlmProvider - who may read it", () => {
     }
 
     for (const column of Object.keys(CONFIGURATION_SELECT)) {
-      expect([
-        ...(model.getColumnAccessControlFor(column)?.read || []),
-      ].sort()).toEqual([...READERS].sort());
+      expect(
+        [...(model.getColumnAccessControlFor(column)?.read || [])].sort(),
+      ).toEqual([...READERS].sort());
     }
   });
 
   test("the API key is read by the project's owners and admins alone", () => {
     expect(
-      [...(new LlmProvider().getColumnAccessControlFor("apiKey")?.read || [])].sort(),
+      [
+        ...(new LlmProvider().getColumnAccessControlFor("apiKey")?.read || []),
+      ].sort(),
     ).toEqual([Permission.ProjectAdmin, Permission.ProjectOwner].sort());
   });
 

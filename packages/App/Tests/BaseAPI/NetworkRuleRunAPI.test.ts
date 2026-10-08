@@ -163,9 +163,7 @@ function propsWith(data: {
   ): UserPermission => {
     return {
       permission: permission,
-      labelIds: isBlockPermission
-        ? blockLabelIds || []
-        : data.labelIds || [],
+      labelIds: isBlockPermission ? blockLabelIds || [] : data.labelIds || [],
       isBlockPermission: isBlockPermission,
       ...(data.scope && !isBlockPermission ? { scope: data.scope } : {}),
       _type: "UserPermission",
