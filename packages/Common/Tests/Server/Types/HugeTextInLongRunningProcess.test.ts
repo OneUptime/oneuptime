@@ -449,6 +449,68 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     expectEveryCheckPassed(report);
   }, 600000);
 
+  test("the dashboard renders it, and still renders what is around it", () => {
+    /*
+     * What MarkdownViewer does with a text: react-markdown with remark-gfm,
+     * the held-back text put back by the viewer's rehype plugin, and the
+     * viewer's urlTransform - rendered to HTML as a browser would get it.
+     */
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { holdBackForViewer, rehypePutBackHeldText } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
+        'export { markdownUrlTransform } from "./UI/Components/Markdown.tsx/MarkdownUrlTransform";',
+        'export { default as MonitorTemplateUtil } from "./Server/Utils/Monitor/MonitorTemplateUtil";',
+      ],
+      String.raw`
+        const React = require("react");
+        const { renderToStaticMarkup } = require("react-dom/server");
+        const ReactMarkdown = require("react-markdown").default;
+        const remarkGfm = require("remark-gfm").default;
+
+        const renderAsViewer = (text) => {
+          const heldBack = lib.holdBackForViewer(text);
+
+          return renderToStaticMarkup(
+            React.createElement(
+              ReactMarkdown,
+              {
+                remarkPlugins: [remarkGfm],
+                rehypePlugins:
+                  heldBack.held.length > 0
+                    ? [[lib.rehypePutBackHeldText, { held: heldBack.held }]]
+                    : undefined,
+                urlTransform: lib.markdownUrlTransform,
+              },
+              heldBack.markdown,
+            ),
+          );
+        };
+
+        const inputs = { ...markdownInputs, ...templatedInputs(lib.MonitorTemplateUtil) };
+
+        for (const [name, markdownOf] of Object.entries(inputs)) {
+          const markdown = markdownOf();
+
+          results[name] = await attempt(() => {
+            const html = renderAsViewer(markdown);
+
+            return {
+              "starts with the paragraph before": html.startsWith("<p>Before</p>"),
+              "ends with the paragraph after": html.endsWith("<p>After</p>"),
+              "keeps the text's start": html.includes("HEAD"),
+              "keeps the text's end": html.includes("TAIL"),
+              "keeps all of the text": html.length > 0.9 * markdown.length,
+            };
+          });
+        }
+      `,
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results)).toHaveLength(11);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
   test("a feed line shows a plain text of two hundred thousand lines", () => {
     const report: ProcessReport = runUnoptimized(
       [
