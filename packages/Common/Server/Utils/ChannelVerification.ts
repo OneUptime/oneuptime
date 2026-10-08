@@ -5,6 +5,10 @@ import VerificationCode from "./VerificationCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
+import VerificationCodeStatusJSON, {
+  VerificationCodeState,
+  VerificationCodeStatus,
+} from "../../Types/UserNotification/VerificationCodeStatus";
 import ObjectID from "../../Types/ObjectID";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
@@ -159,39 +163,11 @@ export interface ChannelVerificationResult {
  * whatever had happened - including when nothing had been sent at all,
  * because the project had no Twilio account and the send failed in the
  * background. It now asks (the channel's verification-status route) and
- * says what is true.
+ * says what is true. The shape is shared with the dashboard
+ * (Types/UserNotification/VerificationCodeStatus).
  */
-export enum VerificationCodeState {
-  // A code was sent and can still be entered.
-  Active = "active",
-  // A code was sent, and its time ran out.
-  Expired = "expired",
-  /*
-   * There is no code to enter: none was sent yet, the last one could not be
-   * sent, or it was used up by wrong guesses.
-   */
-  None = "none",
-}
-
-export interface ChannelVerificationStatus {
-  isVerified: boolean;
-  codeState: VerificationCodeState;
-  // When the code that is (or was) waiting went out. Null with no code.
-  codeSentAt: Date | null;
-  // When that code stops (or stopped) being accepted. Null with no code.
-  codeExpiresAt: Date | null;
-  /*
-   * Seconds until another code may be sent: the resend cooldown, counted by
-   * the server, so a wrong clock on the reader's machine cannot skew it.
-   */
-  resendAvailableInSeconds: number;
-  /*
-   * Why no code can be sent right now - the channel is off, the balance is
-   * too low, there is no Twilio account - in the words the refusal of a
-   * resend would use. Null when one can.
-   */
-  cannotSendReason: string | null;
-}
+export { VerificationCodeState };
+export type ChannelVerificationStatus = VerificationCodeStatus;
 
 /*
  * The slice of a channel service this module actually uses.
@@ -800,15 +776,6 @@ export default class ChannelVerification {
 
   // The status as the route sends it: times as ISO 8601 strings.
   public static statusToJSON(status: ChannelVerificationStatus): JSONObject {
-    return {
-      isVerified: status.isVerified,
-      codeState: status.codeState,
-      codeSentAt: status.codeSentAt ? status.codeSentAt.toISOString() : null,
-      codeExpiresAt: status.codeExpiresAt
-        ? status.codeExpiresAt.toISOString()
-        : null,
-      resendAvailableInSeconds: status.resendAvailableInSeconds,
-      cannotSendReason: status.cannotSendReason,
-    } as JSONObject;
+    return VerificationCodeStatusJSON.toJSON(status);
   }
 }
