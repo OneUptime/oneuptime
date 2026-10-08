@@ -4,8 +4,14 @@ import { AlertFeedEventType } from "../../../../../Models/DatabaseModels/AlertFe
 import { IncidentFeedEventType } from "../../../../../Models/DatabaseModels/IncidentFeed";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
-import { AiActivityAttentionKind } from "../../../../../Types/AI/AiActivityInsights";
-import { IncidentAlertAiInsights } from "../../../../../Types/AI/IncidentAlertAiInsights";
+import {
+  AiActivityInsight,
+  AiActivityInsightKind,
+} from "../../../../../Types/AI/AiActivityInsights";
+import {
+  INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT,
+  IncidentAlertAiInsights,
+} from "../../../../../Types/AI/IncidentAlertAiInsights";
 import {
   INCIDENT_ALERT_AI_SUBJECT_KINDS,
   IncidentAlertAiSubjectKind,
@@ -265,16 +271,48 @@ describe("a finding without a TL;DR", () => {
     },
   );
 
-  test("a TL;DR needs no report: none is read", async () => {
+  test("a TL;DR needs no report for its finding: the report is read only for the step it suggests", async () => {
     const one: FakeRow = incident(1);
+    const withTldr: FakeRow = run(onIncident(one));
     tables.incidents.push(one);
-    tables.runs.push(run(onIncident(one)));
+    tables.runs.push(withTldr);
+    tables.incidentFeeds.push({
+      ...report("incident", withTldr, one, "The report's own summary."),
+      feedInfoInMarkdown: [
+        "**Summary** — The report's own summary of what happened.",
+        "",
+        "**Suggested next steps**",
+        "1. Grow the data volume to 200 GiB [C1].",
+        "2. Then turn on log rotation.",
+      ].join("\n"),
+    });
 
     const insights: IncidentAlertAiInsights = await readInsights("incident");
 
+    // The TL;DR stays the finding; the report gives the step.
     expect(insights.problems[0]!.latestFinding?.source).toBe("tldr");
-    expect(store.callsTo("incidentFeeds")).toEqual([]);
+    expect(insights.problems[0]!.latestFinding?.text).toBe(
+      withTldr["analysisTldr"],
+    );
+    expect(insights.problems[0]!.latestNextStep).toBe(
+      "Grow the data volume to 200 GiB.",
+    );
+
+    const reads: Array<FakeCall> = store.callsTo("incidentFeeds");
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.props).toEqual({ isRoot: true });
+    expect(matchesFilter(withTldr._id, reads[0]!.query["aiRunId"])).toBe(true);
     expect(store.callsTo("alertFeeds")).toEqual([]);
+  });
+
+  test("a problem whose newest investigation did not complete has no report read", async () => {
+    const one: FakeRow = incident(1);
+    tables.incidents.push(one);
+    tables.runs.push(run(onIncident(one), { status: AIRunStatus.Error }));
+
+    await readInsights("incident");
+
+    expect(store.callsTo("incidentFeeds")).toEqual([]);
   });
 
   test("an incident the caller may not read never has its report read", async () => {
@@ -297,7 +335,11 @@ describe("a finding without a TL;DR", () => {
 
     const insights: IncidentAlertAiInsights = await readInsights("incident");
 
-    expect(store.callsTo("incidentFeeds")).toEqual([]);
+    // Only the readable incident's run is ever asked about.
+    for (const read of store.callsTo("incidentFeeds")) {
+      expect(matchesFilter(hiddenRun._id, read.query["aiRunId"])).toBe(false);
+      expect(matchesFilter(hidden._id, read.query["incidentId"])).toBe(false);
+    }
     expect(JSON.stringify(insights)).not.toContain(
       "A summary of an incident the caller may not read.",
     );
@@ -405,12 +447,12 @@ describe("who may read the insights", () => {
     expect(insights.totals.fixes).toBe(0);
     expect(insights.fixOutcomes.total).toBe(0);
     expect(insights.totals.investigations).toBe(1);
-    // Not even the failed fix's attention item.
+    // Not even the insight about the fix that did not help.
     expect(
-      insights.attention.map((item: { kind: string }): string => {
+      insights.insights.map((item: AiActivityInsight): string => {
         return item.kind;
       }),
-    ).not.toContain(AiActivityAttentionKind.FixesFailed);
+    ).not.toContain(AiActivityInsightKind.FixesDidNotHelp);
   });
 
   test("a caller who may read fixes is not told they are hidden", async () => {
@@ -482,6 +524,7 @@ describe("what it reads", () => {
       [
         "_id",
         "alertId",
+        "approvedAt",
         "createdAt",
         "incidentId",
         "status",
@@ -585,9 +628,9 @@ describe("what it reads", () => {
       { code: "provider_missing", count: 2 },
       { code: "severity_below_threshold", count: 1 },
     ]);
-    expect(insights.attention).toEqual([
+    expect(insights.insights).toEqual([
       expect.objectContaining({
-        kind: AiActivityAttentionKind.InvestigationsNotStarted,
+        kind: AiActivityInsightKind.NotInvestigated,
         reason: "provider_missing",
         count: 2,
       }),
@@ -788,5 +831,195 @@ describe("getMostCommonIds", () => {
     expect(
       IncidentAlertAiInsightsReader.getMostCommonIds(subjects, "serviceIds"),
     ).toEqual(["s1"]);
+  });
+});
+
+
+describe("everything that came up in the window", () => {
+  test.each(INCIDENT_ALERT_AI_SUBJECT_KINDS)(
+    "the window's %ss are read under the caller's props, newest first, bounded, with what the page names",
+    async (subjectKind: IncidentAlertAiSubjectKind) => {
+      await readInsights(subjectKind);
+
+      const table: "incidents" | "alerts" =
+        subjectKind === "incident" ? "incidents" : "alerts";
+      const windowRead: FakeCall = store
+        .callsTo(table)
+        .find((call: FakeCall): boolean => {
+          return (
+            Boolean(call.query["createdAt"]) &&
+            !call.query["aiInvestigationDecision"] &&
+            call.props === CALLER
+          );
+        })!;
+
+      expect(windowRead).toBeDefined();
+      expect(String(windowRead.query["projectId"])).toBe(PROJECT_ID.toString());
+      expect(matchesFilter(daysAgo(31), windowRead.query["createdAt"])).toBe(
+        false,
+      );
+      expect(matchesFilter(daysAgo(29), windowRead.query["createdAt"])).toBe(
+        true,
+      );
+      expect(windowRead.limit).toBe(
+        INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT,
+      );
+      expect(windowRead.select).toEqual(
+        expect.objectContaining({
+          _id: true,
+          createdAt: true,
+          title: true,
+          seriesLabels: true,
+        }),
+      );
+    },
+  );
+
+  test("an incident AI never investigated still counts for the problem its monitor raised", async () => {
+    const rows: Array<FakeRow> = [1, 2, 3].map((index: number): FakeRow => {
+      return incident(index, {
+        monitors: [related(MONITOR_DB)],
+        createdAt: daysAgo(index),
+      });
+    });
+    tables.incidents.push(...rows);
+    tables.runs.push(run(onIncident(rows[0]!)));
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.occurrences).toBe(3);
+    expect(insights.problems[0]).toMatchObject({
+      occurrenceCount: 3,
+      investigationCount: 1,
+      subjectCount: 1,
+    });
+
+    const recurring: AiActivityInsight | undefined = insights.insights.find(
+      (item: AiActivityInsight): boolean => {
+        return item.kind === AiActivityInsightKind.RecurringProblem;
+      },
+    );
+    expect(recurring).toMatchObject({
+      count: 3,
+      monitors: [{ id: MONITOR_DB, name: "Database disk" }],
+    });
+    expect(insights.monitors).toEqual([
+      expect.objectContaining({ id: MONITOR_DB, occurrenceCount: 3 }),
+    ]);
+  });
+
+  test("an incident the caller may not read never counts", async () => {
+    const mine: FakeRow = incident(1, { monitors: [related(MONITOR_DB)] });
+    const hidden: FakeRow = incident(2, {
+      monitors: [related(MONITOR_DB)],
+      title: "Hidden incident",
+    });
+    tables.incidents.push(mine, hidden);
+    tables.runs.push(run(onIncident(mine)));
+    store.access.readableIncidentIds = new Set<string>([mine._id]);
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.occurrences).toBe(1);
+    expect(JSON.stringify(insights)).not.toContain("Hidden incident");
+  });
+
+  test("the rows' own incidents the window's read did not reach are read by id, under the caller's props", async () => {
+    // Created before the window, investigated in it.
+    const old: FakeRow = incident(1, { createdAt: daysAgo(45) });
+    tables.incidents.push(old);
+    tables.runs.push(run(onIncident(old)));
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    const byId: FakeCall = store
+      .callsTo("incidents")
+      .find((call: FakeCall): boolean => {
+        return Boolean(call.query["_id"]) && call.props === CALLER;
+      })!;
+    expect(matchesFilter(old._id, byId.query["_id"])).toBe(true);
+    expect(insights.totals.investigations).toBe(1);
+    expect(insights.problems).toHaveLength(1);
+  });
+
+  test("an incident the window's read already has is not read again by id", async () => {
+    const one: FakeRow = incident(1);
+    tables.incidents.push(one);
+    tables.runs.push(run(onIncident(one)));
+
+    await readInsights("incident");
+
+    expect(
+      store.callsTo("incidents").filter((call: FakeCall): boolean => {
+        return Boolean(call.query["_id"]) && call.props === CALLER;
+      }),
+    ).toEqual([]);
+  });
+
+  test("the monitors and services of every readable incident are read once, as root", async () => {
+    const investigated: FakeRow = incident(1, {
+      monitors: [related(MONITOR_DB)],
+    });
+    const notInvestigated: FakeRow = incident(2, {
+      services: [related(SERVICE_CHECKOUT)],
+    });
+    tables.incidents.push(investigated, notInvestigated);
+    tables.runs.push(run(onIncident(investigated)));
+
+    await readInsights("incident");
+
+    const relationReads: Array<FakeCall> = store
+      .callsTo("incidents")
+      .filter((call: FakeCall): boolean => {
+        return Boolean(call.select["monitors"]);
+      });
+
+    expect(relationReads).toHaveLength(1);
+    expect(relationReads[0]!.props).toEqual({ isRoot: true });
+    expect(relationReads[0]!.select["services"]).toBeDefined();
+    for (const row of [investigated, notInvestigated]) {
+      expect(matchesFilter(row._id, relationReads[0]!.query["_id"])).toBe(true);
+    }
+  });
+
+  test("an alert's monitor is read as root, never under the caller's props", async () => {
+    const first: FakeRow = alert(1, { monitorId: new ObjectID(MONITOR_DB) });
+    tables.alerts.push(first);
+    tables.runs.push(run(onAlert(first)));
+
+    await readInsights("alert");
+
+    for (const call of store.callsTo("alerts")) {
+      if (call.props === CALLER) {
+        expect(call.select["monitorId"]).toBeUndefined();
+      }
+    }
+    expect(
+      store.callsTo("alerts").some((call: FakeCall): boolean => {
+        return Boolean(call.select["monitorId"]) && Boolean(call.props?.isRoot);
+      }),
+    ).toBe(true);
+  });
+
+  test("a window holding more than it reads says so", async () => {
+    for (
+      let index: number = 0;
+      index < INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT;
+      index++
+    ) {
+      tables.incidents.push(incident(index + 1, { createdAt: daysAgo(1) }));
+    }
+
+    expect((await readInsights("incident")).isPartial).toBe(true);
+  });
+
+  test("a role that may not read incidents in the window still gets the page it may see", async () => {
+    store.access.readableIncidentIds = new Set<string>();
+    tables.incidents.push(incident(1));
+
+    const insights: IncidentAlertAiInsights = await readInsights("incident");
+
+    expect(insights.totals.occurrences).toBe(0);
+    expect(insights.insights).toEqual([]);
   });
 });

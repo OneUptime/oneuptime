@@ -2,6 +2,7 @@ import AiActivityInsightsBuilder, {
   AiActivityFixInput,
   AiActivityInsightsInput,
   AiActivityInvestigationInput,
+  AiActivityOccurrence,
   AiActivitySubjectInput,
   toPublicProblemKey,
 } from "../../../../../Server/Utils/AI/ActivityInsights/AiActivityInsightsBuilder";
@@ -12,17 +13,23 @@ import AIRunAutoGrade from "../../../../../Types/AI/AIRunAutoGrade";
 import AIRunHumanVerdict from "../../../../../Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import {
-  AI_ACTIVITY_INSIGHTS_MAX_ATTENTION_ITEMS,
+  AI_ACTIVITY_INSIGHTS_MAX_EVIDENCE,
   AI_ACTIVITY_INSIGHTS_MAX_HOTSPOTS,
+  AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS,
   AI_ACTIVITY_INSIGHTS_MAX_PREVENTIVE_INSIGHTS,
   AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS,
+  AI_ACTIVITY_INSIGHTS_MAX_RECURRING_INSIGHTS,
+  AI_ACTIVITY_INSIGHTS_MAX_RISK_INSIGHTS,
+  AI_ACTIVITY_INSIGHTS_MAX_STOPPED_INSIGHTS,
   AI_ACTIVITY_INSIGHTS_WINDOW_IN_DAYS,
-  AiActivityAttentionItem,
-  AiActivityAttentionKind,
-  AiActivityAttentionSeverity,
+  AiActivityHotspot,
+  AiActivityInsight,
+  AiActivityInsightKind,
+  AiActivityInsightTone,
   AiActivityInsights,
   AiActivityPreventiveInsight,
   AiActivityProblem,
+  AiActivityTimeOfDay,
 } from "../../../../../Types/AI/AiActivityInsights";
 import AutoRemediationSuggestionStatus from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "../../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
@@ -30,12 +37,15 @@ import { JSONObject } from "../../../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * The pure half of every AI Insights page. These tests pin how it reads
- * what OneUptime AI did on a scope: problems grouped by what raised them,
- * the parts of the scope they keep coming back to, what the investigations
- * concluded (the TL;DR, else the report's own summary), how fixes turned
- * out, the trend, and what deserves attention — all derived, nothing
- * invented, the same input always giving the same insights.
+ * The pure half of every AI Insights page. These tests pin how it reads a
+ * scope's month: every incident and alert that came up, grouped into
+ * problems by what raised them, how often each happened and whether it is
+ * getting worse, when in the day it tends to start, the parts of the scope
+ * behind them, what the investigations concluded (the TL;DR, else the
+ * report's own summary) and the step they suggest, how fixes turned out,
+ * the trend — and, above all, the insights the page leads with, ranked. All
+ * derived, nothing invented, the same input always giving the same
+ * insights.
  */
 
 // A fixed "now": Tuesday, 2026-09-22, 10:00 UTC.
@@ -55,6 +65,7 @@ const SCOPE_LABEL_KEYS: Array<string> = [
 const REPLICA_MONITOR: string = "aaaaaaaa-0000-4000-8000-000000000001";
 const CPU_MONITOR: string = "aaaaaaaa-0000-4000-8000-000000000002";
 const PENDING_MONITOR: string = "aaaaaaaa-0000-4000-8000-000000000003";
+const MEMORY_MONITOR: string = "aaaaaaaa-0000-4000-8000-000000000004";
 
 function hoursAgo(hours: number): Date {
   return new Date(NOW.getTime() - hours * HOUR);
@@ -64,11 +75,32 @@ function daysAgo(days: number): Date {
   return new Date(NOW.getTime() - days * DAY);
 }
 
+// A UTC day before NOW at a given hour and minute.
+function dayAt(daysBack: number, hourUtc: number, minute: number = 5): Date {
+  const day: Date = daysAgo(daysBack);
+  return new Date(
+    Date.UTC(
+      day.getUTCFullYear(),
+      day.getUTCMonth(),
+      day.getUTCDate(),
+      hourUtc,
+      minute,
+    ),
+  );
+}
+
 function deploymentLabels(deployment: string, namespace: string): JSONObject {
   return {
     "resource.k8s.cluster.name": CLUSTER_NAME,
     "resource.k8s.namespace.name": namespace,
     "resource.k8s.deployment.name": deployment,
+  };
+}
+
+function nodeLabels(node: string): JSONObject {
+  return {
+    "resource.k8s.cluster.name": CLUSTER_NAME,
+    "resource.k8s.node.name": node,
   };
 }
 
@@ -168,12 +200,33 @@ function build(
   return AiActivityInsightsBuilder.build(input(overrides));
 }
 
-function attentionOf(
+function insightsOf(
   insights: AiActivityInsights,
-  kind: AiActivityAttentionKind,
-): Array<AiActivityAttentionItem> {
-  return insights.attention.filter((item: AiActivityAttentionItem): boolean => {
-    return item.kind === kind;
+  kind: AiActivityInsightKind,
+): Array<AiActivityInsight> {
+  return insights.insights.filter((insight: AiActivityInsight): boolean => {
+    return insight.kind === kind;
+  });
+}
+
+/*
+ * The alerts of one monitor at the given days back (and hours), each
+ * created then: everything that came up for that problem.
+ */
+function firings(data: {
+  prefix: string;
+  monitorId: string;
+  at: Array<Date>;
+  title?: string | undefined;
+  seriesLabels?: JSONObject | undefined;
+}): Array<AiActivitySubjectInput> {
+  return data.at.map((createdAt: Date, index: number) => {
+    return alert(`${data.prefix}-${index}`, {
+      monitorIds: [data.monitorId],
+      title: data.title || `Problem ${data.prefix}`,
+      createdAt,
+      ...(data.seriesLabels ? { seriesLabels: data.seriesLabels } : {}),
+    });
   });
 }
 
@@ -354,7 +407,7 @@ describe("AiActivityInsightsBuilder.getScopeObjects", () => {
     scopeNames: [CLUSTER_NAME],
   };
 
-  test("names the parts of the scope, most identifying first", () => {
+  test("names the parts of the scope, most identifying first, with the label each was read from", () => {
     expect(
       AiActivityInsightsBuilder.getScopeObjects(
         {
@@ -367,11 +420,25 @@ describe("AiActivityInsightsBuilder.getScopeObjects", () => {
         scope,
       ),
     ).toEqual([
-      { name: "Container", value: "app" },
-      { name: "Pod", value: "web-7d9f" },
-      { name: "Namespace", value: "shop" },
-      { name: "Node", value: "node-a" },
+      { name: "Container", value: "app", key: "k8s.container.name" },
+      { name: "Pod", value: "web-7d9f", key: "k8s.pod.name" },
+      { name: "Namespace", value: "shop", key: "k8s.namespace.name" },
+      { name: "Node", value: "node-a", key: "k8s.node.name" },
     ]);
+  });
+
+  test("the label is the same with or without the resource. prefix", () => {
+    expect(
+      AiActivityInsightsBuilder.getScopeObjects(
+        { "k8s.node.name": "node-a" },
+        scope,
+      ),
+    ).toEqual(
+      AiActivityInsightsBuilder.getScopeObjects(
+        { "resource.k8s.node.name": "node-a" },
+        scope,
+      ),
+    );
   });
 
   test("leaves out the labels that name the scope itself, with or without the resource. prefix", () => {
@@ -385,7 +452,9 @@ describe("AiActivityInsightsBuilder.getScopeObjects", () => {
         },
         scope,
       ),
-    ).toEqual([{ name: "Namespace", value: "shop" }]);
+    ).toEqual([
+      { name: "Namespace", value: "shop", key: "k8s.namespace.name" },
+    ]);
   });
 
   test("leaves out any label whose value is the scope's own name, in any case", () => {
@@ -394,7 +463,9 @@ describe("AiActivityInsightsBuilder.getScopeObjects", () => {
         { "host.name": "OneUptime-Test", "k8s.namespace.name": "shop" },
         scope,
       ),
-    ).toEqual([{ name: "Namespace", value: "shop" }]);
+    ).toEqual([
+      { name: "Namespace", value: "shop", key: "k8s.namespace.name" },
+    ]);
   });
 
   test("leaves out ids and qualifiers that are not a part of anything", () => {
@@ -412,7 +483,7 @@ describe("AiActivityInsightsBuilder.getScopeObjects", () => {
         },
         scope,
       ),
-    ).toEqual([{ name: "Mount", value: "/var" }]);
+    ).toEqual([{ name: "Mount", value: "/var", key: "mountpoint" }]);
   });
 
   test("a subject without series labels is about nothing in particular", () => {
@@ -509,8 +580,159 @@ describe("AiActivityInsightsBuilder.getProblemKey", () => {
   });
 });
 
+describe("AiActivityInsightsBuilder.getOccurrences", () => {
+  function ids(occurrences: Array<AiActivityOccurrence>): Array<string> {
+    return occurrences.map((occurrence: AiActivityOccurrence): string => {
+      return occurrence.subject.id;
+    });
+  }
+
+  test("every incident and alert of the window once, newest first, with when it came up and its problem", () => {
+    const occurrences: Array<AiActivityOccurrence> =
+      AiActivityInsightsBuilder.getOccurrences(
+        input({
+          occurrences: [
+            alert("a", { monitorIds: [CPU_MONITOR], createdAt: hoursAgo(5) }),
+            alert("b", { monitorIds: [CPU_MONITOR], createdAt: hoursAgo(2) }),
+            // The same alert read twice: once.
+            alert("b", { monitorIds: [CPU_MONITOR], createdAt: hoursAgo(2) }),
+          ],
+          // Its investigation adds nothing new.
+          investigations: [
+            run(
+              hoursAgo(1),
+              alert("b", { monitorIds: [CPU_MONITOR], createdAt: hoursAgo(2) }),
+            ),
+          ],
+        }),
+      );
+
+    expect(ids(occurrences)).toEqual(["b", "a"]);
+    expect(occurrences[0]!.at).toEqual(hoursAgo(2));
+    expect(occurrences[0]!.problemKey).toBe(`monitor:${CPU_MONITOR}`);
+  });
+
+  test("leaves out what came up before the window, and what has no time to place it", () => {
+    expect(
+      ids(
+        AiActivityInsightsBuilder.getOccurrences(
+          input({
+            occurrences: [
+              alert("old", { createdAt: daysAgo(40) }),
+              alert("timeless"),
+              alert("now", { createdAt: hoursAgo(1) }),
+            ],
+          }),
+        ),
+      ),
+    ).toEqual(["now"]);
+  });
+
+  test("an investigated incident the reader did not list came up when it was created", () => {
+    const occurrences: Array<AiActivityOccurrence> =
+      AiActivityInsightsBuilder.getOccurrences(
+        input({
+          investigations: [
+            run(hoursAgo(3), incident("i", { createdAt: hoursAgo(4) })),
+          ],
+        }),
+      );
+
+    expect(ids(occurrences)).toEqual(["i"]);
+    expect(occurrences[0]!.at).toEqual(hoursAgo(4));
+  });
+
+  test("one from before the window that AI investigated in it came up, here, when it was first investigated", () => {
+    const old: AiActivitySubjectInput = incident("old", {
+      createdAt: daysAgo(40),
+    });
+    const occurrences: Array<AiActivityOccurrence> =
+      AiActivityInsightsBuilder.getOccurrences(
+        input({
+          investigations: [run(hoursAgo(2), old), run(hoursAgo(10), old)],
+        }),
+      );
+
+    expect(occurrences).toHaveLength(1);
+    expect(occurrences[0]!.at).toEqual(hoursAgo(10));
+  });
+
+  test("one with no creation time came up when it was first investigated", () => {
+    const occurrences: Array<AiActivityOccurrence> =
+      AiActivityInsightsBuilder.getOccurrences(
+        input({
+          investigations: [
+            run(hoursAgo(1), alert("x")),
+            run(hoursAgo(6), alert("x")),
+          ],
+        }),
+      );
+
+    expect(occurrences[0]!.at).toEqual(hoursAgo(6));
+  });
+
+  test("runs from before the window, or about no incident or alert, add nothing", () => {
+    expect(
+      AiActivityInsightsBuilder.getOccurrences(
+        input({
+          investigations: [
+            run(daysAgo(45), alert("old")),
+            run(hoursAgo(1), undefined),
+          ],
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  test("ties on time are ordered by id, so the same rows always read the same", () => {
+    expect(
+      ids(
+        AiActivityInsightsBuilder.getOccurrences(
+          input({
+            occurrences: [
+              alert("z", { createdAt: hoursAgo(1) }),
+              alert("a", { createdAt: hoursAgo(1) }),
+            ],
+          }),
+        ),
+      ),
+    ).toEqual(["a", "z"]);
+  });
+});
+
 describe("AiActivityInsightsBuilder.groupProblems", () => {
-  test("groups by what raised the subject: most investigated first, then newest", () => {
+  test("groups by what raised the subject: the most often it came up first", () => {
+    const groups: Array<{ key: string; runs: Array<{ aiRunId: string }> }> =
+      AiActivityInsightsBuilder.groupProblems(
+        input({
+          occurrences: firings({
+            prefix: "cpu",
+            monitorId: CPU_MONITOR,
+            at: [hoursAgo(1), hoursAgo(2), hoursAgo(3)],
+          }),
+          investigations: [
+            run(hoursAgo(1), alert("cpu-0", { monitorIds: [CPU_MONITOR] })),
+            run(hoursAgo(4), alert("r-1", { monitorIds: [REPLICA_MONITOR] })),
+            run(hoursAgo(5), alert("r-1", { monitorIds: [REPLICA_MONITOR] })),
+            run(hoursAgo(6), alert("r-2", { monitorIds: [REPLICA_MONITOR] })),
+            run(hoursAgo(0.5), alert("p", { monitorIds: [PENDING_MONITOR] })),
+          ],
+        }),
+      );
+
+    // Three times, then twice (investigated three times), then once.
+    expect(
+      groups.map((group: { key: string }): string => {
+        return group.key;
+      }),
+    ).toEqual([
+      `monitor:${CPU_MONITOR}`,
+      `monitor:${REPLICA_MONITOR}`,
+      `monitor:${PENDING_MONITOR}`,
+    ]);
+  });
+
+  test("of problems that came up as often, the most investigated first, then the newest", () => {
     const groups: Array<{ key: string; runs: Array<{ aiRunId: string }> }> =
       AiActivityInsightsBuilder.groupProblems(
         input({ investigations: screenshotCluster() }),
@@ -526,6 +748,20 @@ describe("AiActivityInsightsBuilder.groupProblems", () => {
     expect(groups[1]!.key).toBe(`monitor:${CPU_MONITOR}`);
   });
 
+  test("a problem nobody investigated is no group: there is nothing it was found to be", () => {
+    expect(
+      AiActivityInsightsBuilder.groupProblems(
+        input({
+          occurrences: firings({
+            prefix: "x",
+            monitorId: CPU_MONITOR,
+            at: [hoursAgo(1), hoursAgo(2)],
+          }),
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   test("leaves out runs with no subject and runs from before the window", () => {
     const groups: Array<unknown> = AiActivityInsightsBuilder.groupProblems(
       input({
@@ -539,35 +775,50 @@ describe("AiActivityInsightsBuilder.groupProblems", () => {
   });
 });
 
-describe("AiActivityInsightsBuilder.getRunsNeedingReportSummary", () => {
-  test("names each problem's newest completed run that has no TL;DR", () => {
+describe("AiActivityInsightsBuilder.getRunsNeedingReport", () => {
+  test("names each problem's newest completed run, for the step its report suggests", () => {
     const newest: AiActivityInvestigationInput = run(
       hoursAgo(1),
       alert("a", { monitorIds: [CPU_MONITOR] }),
+      { tldr: "The CPU limit is too low." },
     );
     const older: AiActivityInvestigationInput = run(
       hoursAgo(5),
       alert("b", { monitorIds: [CPU_MONITOR] }),
-      { tldr: "An older finding." },
     );
 
     expect(
-      AiActivityInsightsBuilder.getRunsNeedingReportSummary(
+      AiActivityInsightsBuilder.getRunsNeedingReport(
         input({ investigations: [older, newest] }),
       ),
     ).toEqual([newest.aiRunId]);
   });
 
-  test("names nothing for a problem whose newest completed run has a TL;DR or a summary already", () => {
+  test("and when its TL;DR call failed, for its finding too", () => {
+    const newest: AiActivityInvestigationInput = run(
+      hoursAgo(1),
+      alert("a", { monitorIds: [CPU_MONITOR] }),
+    );
+
     expect(
-      AiActivityInsightsBuilder.getRunsNeedingReportSummary(
+      AiActivityInsightsBuilder.getRunsNeedingReport(
+        input({ investigations: [newest] }),
+      ),
+    ).toEqual([newest.aiRunId]);
+  });
+
+  test("names nothing for a run whose finding and step are already known", () => {
+    expect(
+      AiActivityInsightsBuilder.getRunsNeedingReport(
         input({
           investigations: [
             run(hoursAgo(1), alert("a", { monitorIds: [CPU_MONITOR] }), {
               tldr: "Found it.",
+              nextStep: "Raise the limit.",
             }),
             run(hoursAgo(2), alert("b", { monitorIds: [REPLICA_MONITOR] }), {
               reportSummary: "Found it in the report.",
+              nextStep: "Add a replica.",
             }),
           ],
         }),
@@ -582,7 +833,7 @@ describe("AiActivityInsightsBuilder.getRunsNeedingReportSummary", () => {
     );
 
     expect(
-      AiActivityInsightsBuilder.getRunsNeedingReportSummary(
+      AiActivityInsightsBuilder.getRunsNeedingReport(
         input({
           investigations: [
             run(hoursAgo(1), alert("a", { monitorIds: [CPU_MONITOR] }), {
@@ -598,6 +849,20 @@ describe("AiActivityInsightsBuilder.getRunsNeedingReportSummary", () => {
     ).toEqual([completed.aiRunId]);
   });
 
+  test("a problem none of whose investigations completed names nothing", () => {
+    expect(
+      AiActivityInsightsBuilder.getRunsNeedingReport(
+        input({
+          investigations: [
+            run(hoursAgo(1), alert("a", { monitorIds: [CPU_MONITOR] }), {
+              status: AIRunStatus.Stale,
+            }),
+          ],
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   test(`only for the ${AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS} problems shown`, () => {
     const investigations: Array<AiActivityInvestigationInput> = Array.from(
       { length: AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS + 5 },
@@ -610,26 +875,413 @@ describe("AiActivityInsightsBuilder.getRunsNeedingReportSummary", () => {
     );
 
     expect(
-      AiActivityInsightsBuilder.getRunsNeedingReportSummary(
-        input({ investigations }),
-      ),
+      AiActivityInsightsBuilder.getRunsNeedingReport(input({ investigations })),
     ).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS);
+  });
+});
+
+describe("AiActivityInsightsBuilder.getTimeOfDay", () => {
+  function at(days: Array<[number, number]>): Array<Date> {
+    return days.map(([daysBack, hour]: [number, number]): Date => {
+      return dayAt(daysBack, hour);
+    });
+  }
+
+  test("says nothing for fewer than five times", () => {
+    expect(
+      AiActivityInsightsBuilder.getTimeOfDay(
+        at([
+          [1, 2],
+          [2, 2],
+          [3, 2],
+          [4, 2],
+        ]),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("says nothing for fewer than three days, however many times", () => {
+    expect(
+      AiActivityInsightsBuilder.getTimeOfDay(
+        at([
+          [1, 2],
+          [1, 2],
+          [1, 3],
+          [2, 2],
+          [2, 2],
+          [2, 3],
+        ]),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("names the busiest stretch, as tightly as it happened, with how much of it fell there", () => {
+    expect(
+      AiActivityInsightsBuilder.getTimeOfDay(
+        at([
+          [1, 1],
+          [2, 2],
+          [3, 3],
+          [4, 1],
+          [5, 2],
+          [6, 14],
+        ]),
+      ),
+    ).toEqual({
+      startHourUtc: 1,
+      hours: 3,
+      count: 5,
+      total: 6,
+      days: 5,
+      totalDays: 6,
+    });
+  });
+
+  test("a problem that keeps to two hours is said as two hours, from the first", () => {
+    const timeOfDay: AiActivityTimeOfDay | undefined =
+      AiActivityInsightsBuilder.getTimeOfDay(
+        at([
+          [1, 13],
+          [2, 14],
+          [3, 13],
+          [4, 14],
+          [5, 13],
+        ]),
+      );
+
+    expect(timeOfDay).toEqual(
+      expect.objectContaining({ startHourUtc: 13, hours: 2 }),
+    );
+  });
+
+  test("a stretch may wrap past midnight", () => {
+    expect(
+      AiActivityInsightsBuilder.getTimeOfDay(
+        at([
+          [1, 23],
+          [2, 0],
+          [3, 1],
+          [4, 23],
+          [5, 0],
+        ]),
+      ),
+    ).toEqual(
+      expect.objectContaining({ startHourUtc: 23, hours: 3, count: 5 }),
+    );
+  });
+
+  test("a problem that fires all day long has no time of day", () => {
+    const dates: Array<[number, number]> = [];
+
+    for (const daysBack of [1, 2, 3, 4]) {
+      for (const hour of [0, 6, 12, 18]) {
+        dates.push([daysBack, hour]);
+      }
+    }
+
+    expect(AiActivityInsightsBuilder.getTimeOfDay(at(dates))).toBeUndefined();
+  });
+
+  test("most of the days must fall in the stretch, not just most of the times", () => {
+    // A burst at 14:00 on one day, and the rest at night on others.
+    expect(
+      AiActivityInsightsBuilder.getTimeOfDay(
+        at([
+          [1, 14],
+          [1, 14],
+          [1, 14],
+          [1, 14],
+          [1, 14],
+          [1, 14],
+          [2, 3],
+          [3, 3],
+          [4, 9],
+        ]),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("three of four days, and three of five times, are just enough", () => {
+    expect(
+      AiActivityInsightsBuilder.getTimeOfDay(
+        at([
+          [1, 2],
+          [2, 2],
+          [3, 2],
+          [4, 10],
+          [4, 16],
+        ]),
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        startHourUtc: 2,
+        hours: 1,
+        count: 3,
+        total: 5,
+        days: 3,
+        totalDays: 4,
+      }),
+    );
+  });
+
+  test("two of four days are not", () => {
+    expect(
+      AiActivityInsightsBuilder.getTimeOfDay(
+        at([
+          [1, 2],
+          [2, 2],
+          [2, 2],
+          [3, 10],
+          [4, 16],
+        ]),
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("AiActivityInsightsBuilder.isBehindTheTrouble", () => {
+  test.each([
+    // [occurrences of it, problems, everything, behind?]
+    [3, 2, 6, true],
+    [3, 2, 5, true],
+    [3, 2, 7, false],
+    [3, 3, 9, true],
+    [2, 2, 3, false],
+    [5, 1, 8, false],
+    [6, 3, 6, false],
+    [0, 0, 0, false],
+  ])(
+    "%i of everything in %i problems, out of %i: %s",
+    (
+      occurrenceCount: number,
+      problemCount: number,
+      occurrences: number,
+      expected: boolean,
+    ) => {
+      expect(
+        AiActivityInsightsBuilder.isBehindTheTrouble({
+          occurrenceCount,
+          problemCount,
+          occurrences,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  test("pickBehindTheTrouble: the one behind the most problems, then the most incidents, then the list's order", () => {
+    const candidates: Array<{
+      name: string;
+      occurrenceCount: number;
+      problemCount: number;
+    }> = [
+      { name: "namespace", occurrenceCount: 9, problemCount: 2 },
+      { name: "node", occurrenceCount: 7, problemCount: 3 },
+      { name: "pod", occurrenceCount: 7, problemCount: 3 },
+      { name: "everything", occurrenceCount: 12, problemCount: 5 },
+      { name: "lonely", occurrenceCount: 8, problemCount: 1 },
+    ];
+
+    expect(
+      AiActivityInsightsBuilder.pickBehindTheTrouble(candidates, 12)?.name,
+    ).toBe("node");
+    expect(
+      AiActivityInsightsBuilder.pickBehindTheTrouble([], 12),
+    ).toBeUndefined();
+    expect(
+      AiActivityInsightsBuilder.pickBehindTheTrouble(
+        [{ name: "lonely", occurrenceCount: 8, problemCount: 1 }],
+        12,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("AiActivityInsightsBuilder.rankInsights", () => {
+  function insight(
+    kind: AiActivityInsightKind,
+    tone: AiActivityInsightTone,
+    count: number = 1,
+  ): AiActivityInsight {
+    return { kind, tone, count };
+  }
+
+  function order(insights: Array<AiActivityInsight>): Array<string> {
+    return insights.map((item: AiActivityInsight): string => {
+      return `${item.tone}:${item.kind}:${item.count}`;
+    });
+  }
+
+  test("by tone, then kind, then the larger count", () => {
+    expect(
+      order(
+        AiActivityInsightsBuilder.rankInsights([
+          insight(
+            AiActivityInsightKind.FixedAutomatically,
+            AiActivityInsightTone.Positive,
+          ),
+          insight(AiActivityInsightKind.Hotspot, AiActivityInsightTone.Pattern),
+          insight(
+            AiActivityInsightKind.FixesAwaitingApproval,
+            AiActivityInsightTone.Warning,
+          ),
+          insight(
+            AiActivityInsightKind.RiskSpotted,
+            AiActivityInsightTone.Critical,
+          ),
+          insight(
+            AiActivityInsightKind.RecurringProblem,
+            AiActivityInsightTone.Critical,
+            4,
+          ),
+          insight(
+            AiActivityInsightKind.RecurringProblem,
+            AiActivityInsightTone.Critical,
+            9,
+          ),
+          insight(
+            AiActivityInsightKind.FixesDidNotHelp,
+            AiActivityInsightTone.Critical,
+          ),
+        ]),
+      ),
+    ).toEqual([
+      "Critical:RecurringProblem:9",
+      "Critical:RecurringProblem:4",
+      "Critical:FixesDidNotHelp:1",
+      "Critical:RiskSpotted:1",
+      "Warning:FixesAwaitingApproval:1",
+      "Pattern:Hotspot:1",
+      "Positive:FixedAutomatically:1",
+    ]);
+  });
+
+  test(`at most ${AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS}`, () => {
+    const many: Array<AiActivityInsight> = Array.from(
+      { length: 12 },
+      (_: unknown, index: number) => {
+        return insight(
+          AiActivityInsightKind.RiskSpotted,
+          AiActivityInsightTone.Critical,
+          index,
+        );
+      },
+    );
+
+    expect(AiActivityInsightsBuilder.rankInsights(many)).toHaveLength(
+      AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS,
+    );
+  });
+
+  test("keeps the best pattern and the best good news when they would be cut, in place of the least important", () => {
+    const critical: Array<AiActivityInsight> = Array.from(
+      { length: AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS },
+      (_: unknown, index: number) => {
+        return insight(
+          AiActivityInsightKind.RiskSpotted,
+          AiActivityInsightTone.Critical,
+          100 - index,
+        );
+      },
+    );
+
+    const ranked: Array<AiActivityInsight> =
+      AiActivityInsightsBuilder.rankInsights([
+        ...critical,
+        insight(
+          AiActivityInsightKind.ProblemStopped,
+          AiActivityInsightTone.Positive,
+          2,
+        ),
+        insight(
+          AiActivityInsightKind.FixedAutomatically,
+          AiActivityInsightTone.Positive,
+          9,
+        ),
+        insight(AiActivityInsightKind.Hotspot, AiActivityInsightTone.Pattern, 5),
+      ]);
+
+    expect(ranked).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS);
+    // The six most important warnings, then the pattern, then the good news.
+    expect(order(ranked).slice(-2)).toEqual([
+      "Pattern:Hotspot:5",
+      "Positive:ProblemStopped:2",
+    ]);
+    expect(order(ranked).slice(0, 6)).toEqual(
+      order(critical.slice(0, AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS - 2)),
+    );
+  });
+
+  test("never drops the pattern it kept to make room for good news", () => {
+    const ranked: Array<AiActivityInsight> =
+      AiActivityInsightsBuilder.rankInsights([
+        ...Array.from(
+          { length: AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS - 1 },
+          (_: unknown, index: number) => {
+            return insight(
+              AiActivityInsightKind.RecurringProblem,
+              AiActivityInsightTone.Warning,
+              50 - index,
+            );
+          },
+        ),
+        insight(AiActivityInsightKind.Hotspot, AiActivityInsightTone.Pattern),
+        insight(
+          AiActivityInsightKind.FixedAutomatically,
+          AiActivityInsightTone.Positive,
+        ),
+      ]);
+
+    expect(
+      ranked.map((item: AiActivityInsight): string => {
+        return item.kind;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        AiActivityInsightKind.Hotspot,
+        AiActivityInsightKind.FixedAutomatically,
+      ]),
+    );
+    expect(ranked).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS);
+  });
+
+  test("leaves a short list as it is, only ordered", () => {
+    expect(
+      order(
+        AiActivityInsightsBuilder.rankInsights([
+          insight(
+            AiActivityInsightKind.ReadyForAutomaticFixes,
+            AiActivityInsightTone.Positive,
+          ),
+          insight(
+            AiActivityInsightKind.NotInvestigated,
+            AiActivityInsightTone.Pattern,
+          ),
+        ]),
+      ),
+    ).toEqual([
+      "Pattern:NotInvestigated:1",
+      "Positive:ReadyForAutomaticFixes:1",
+    ]);
+    expect(AiActivityInsightsBuilder.rankInsights([])).toEqual([]);
   });
 });
 
 describe("AiActivityInsightsBuilder.build", () => {
   describe("with nothing to go on", () => {
-    test("says so with zeros and empty lists, a day per window day, and no attention", () => {
+    test("says so with zeros and empty lists, a day per window day, and no insight", () => {
       const insights: AiActivityInsights = build({ isPartial: false });
 
       expect(insights.windowInDays).toBe(30);
       expect(insights.windowStart).toBe("2026-08-24T00:00:00.000Z");
       expect(insights.generatedAt).toBe(NOW.toISOString());
       expect(insights.totals).toEqual({
+        occurrences: 0,
         investigations: 0,
         completedInvestigations: 0,
         failedInvestigations: 0,
         activeInvestigations: 0,
+        confirmedFindings: 0,
+        rejectedFindings: 0,
         problems: 0,
         recurringProblems: 0,
         fixes: 0,
@@ -637,7 +1289,7 @@ describe("AiActivityInsightsBuilder.build", () => {
         failedCommands: 0,
         timedOutCommands: 0,
       });
-      expect(insights.attention).toEqual([]);
+      expect(insights.insights).toEqual([]);
       expect(insights.problems).toEqual([]);
       expect(insights.hotspots).toEqual([]);
       expect(insights.preventiveInsights).toEqual([]);
@@ -650,6 +1302,20 @@ describe("AiActivityInsightsBuilder.build", () => {
 
     test("passes on that the reader could not read everything", () => {
       expect(build({ isPartial: true }).isPartial).toBe(true);
+    });
+
+    test("incidents and alerts nobody investigated make no problem and no insight", () => {
+      const insights: AiActivityInsights = build({
+        occurrences: firings({
+          prefix: "x",
+          monitorId: CPU_MONITOR,
+          at: [daysAgo(1), daysAgo(2), daysAgo(3), daysAgo(4)],
+        }),
+      });
+
+      expect(insights.totals.occurrences).toBe(4);
+      expect(insights.problems).toEqual([]);
+      expect(insights.insights).toEqual([]);
     });
   });
 
@@ -708,6 +1374,41 @@ describe("AiActivityInsightsBuilder.build", () => {
       expect(insights.totals.recurringProblems).toBe(1);
       expect(insights.totals.fixes).toBe(2);
     });
+
+    test("count everything that came up: the reader's incidents and alerts, and the investigated ones it did not list", () => {
+      const insights: AiActivityInsights = build({
+        occurrences: [
+          alert("a", { createdAt: hoursAgo(1) }),
+          alert("b", { createdAt: hoursAgo(2) }),
+        ],
+        investigations: [
+          run(hoursAgo(1), alert("a", { createdAt: hoursAgo(1) })),
+          run(hoursAgo(3), incident("c", { createdAt: hoursAgo(4) })),
+        ],
+      });
+
+      expect(insights.totals.occurrences).toBe(3);
+    });
+
+    test("count the findings people confirmed or the grader matched, and the ones they did not", () => {
+      const insights: AiActivityInsights = build({
+        investigations: [
+          run(hoursAgo(1), alert("a"), {
+            humanVerdict: AIRunHumanVerdict.Confirmed,
+          }),
+          run(hoursAgo(2), alert("b"), { autoGrade: AIRunAutoGrade.Match }),
+          run(hoursAgo(3), alert("c"), { autoGrade: AIRunAutoGrade.Partial }),
+          run(hoursAgo(4), alert("d"), {
+            humanVerdict: AIRunHumanVerdict.Rejected,
+          }),
+          run(hoursAgo(5), alert("e"), { autoGrade: AIRunAutoGrade.Mismatch }),
+          run(hoursAgo(6), alert("f")),
+        ],
+      });
+
+      expect(insights.totals.confirmedFindings).toBe(3);
+      expect(insights.totals.rejectedFindings).toBe(2);
+    });
   });
 
   describe("problems", () => {
@@ -721,6 +1422,7 @@ describe("AiActivityInsightsBuilder.build", () => {
       );
       expect(problem.investigationCount).toBe(2);
       expect(problem.subjectCount).toBe(2);
+      expect(problem.occurrenceCount).toBe(2);
       expect(problem.isRecurring).toBe(true);
       expect(problem.latestSubject).toEqual({
         kind: "alert",
@@ -729,12 +1431,52 @@ describe("AiActivityInsightsBuilder.build", () => {
           "[K8s] Deployment Replica Mismatch - oneuptime-test - Deployment: oneuptime-home | Namespace: default",
       });
       expect(problem.objects).toEqual([
-        { name: "Deployment", value: "oneuptime-home", count: 1 },
-        { name: "Deployment", value: "oneuptime-worker", count: 1 },
+        {
+          name: "Deployment",
+          value: "oneuptime-home",
+          key: "k8s.deployment.name",
+          count: 1,
+        },
+        {
+          name: "Deployment",
+          value: "oneuptime-worker",
+          key: "k8s.deployment.name",
+          count: 1,
+        },
       ]);
       expect(problem.firstSeenAt).toBe(hoursAgo(1.1).toISOString());
       expect(problem.lastSeenAt).toBe(hoursAgo(1).toISOString());
       expect(problem.key).toMatch(/^problem-/);
+    });
+
+    test("count every time it came up, investigated or not, and when", () => {
+      const problem: AiActivityProblem = build({
+        occurrences: firings({
+          prefix: "cpu",
+          monitorId: CPU_MONITOR,
+          at: [
+            daysAgo(1),
+            daysAgo(2),
+            daysAgo(3),
+            daysAgo(4),
+            daysAgo(8),
+            daysAgo(12),
+            daysAgo(20),
+          ],
+        }),
+        investigations: [
+          run(daysAgo(1), alert("cpu-0", { monitorIds: [CPU_MONITOR] })),
+        ],
+      }).problems[0]!;
+
+      expect(problem.occurrenceCount).toBe(7);
+      expect(problem.investigationCount).toBe(1);
+      expect(problem.subjectCount).toBe(1);
+      expect(problem.recentOccurrenceCount).toBe(4);
+      expect(problem.previousOccurrenceCount).toBe(2);
+      expect(problem.firstSeenAt).toBe(daysAgo(20).toISOString());
+      expect(problem.lastSeenAt).toBe(daysAgo(1).toISOString());
+      expect(problem.isRecurring).toBe(true);
     });
 
     test("a problem seen once is not recurring, and keeps its incident number", () => {
@@ -748,6 +1490,7 @@ describe("AiActivityInsightsBuilder.build", () => {
       )!;
 
       expect(manual.isRecurring).toBe(false);
+      expect(manual.occurrenceCount).toBe(1);
       expect(manual.latestSubject).toEqual({
         kind: "incident",
         id: "incident-2",
@@ -757,7 +1500,7 @@ describe("AiActivityInsightsBuilder.build", () => {
       expect(manual.objects).toEqual([]);
     });
 
-    test("the same alert investigated again counts each time, but as one subject", () => {
+    test("the same alert investigated again counts each investigation, but came up once", () => {
       const subject: AiActivitySubjectInput = alert("flapping", {
         monitorIds: [CPU_MONITOR],
         seriesLabels: { "k8s.pod.name": "web-1" },
@@ -772,13 +1515,15 @@ describe("AiActivityInsightsBuilder.build", () => {
 
       expect(problem.investigationCount).toBe(3);
       expect(problem.subjectCount).toBe(1);
+      expect(problem.occurrenceCount).toBe(1);
+      expect(problem.isRecurring).toBe(false);
       expect(problem.objects).toEqual([
-        { name: "Pod", value: "web-1", count: 1 },
+        { name: "Pod", value: "web-1", key: "k8s.pod.name", count: 1 },
       ]);
     });
 
-    test("name at most three parts, the most frequent first", () => {
-      const investigations: Array<AiActivityInvestigationInput> = [
+    test("name at most three parts, the most frequent first, counted over everything that came up", () => {
+      const occurrences: Array<AiActivitySubjectInput> = [
         "a",
         "b",
         "b",
@@ -787,17 +1532,18 @@ describe("AiActivityInsightsBuilder.build", () => {
         "c",
         "d",
       ].map((pod: string, index: number) => {
-        return run(
-          hoursAgo(index + 1),
-          alert(`alert-${index}`, {
-            monitorIds: [CPU_MONITOR],
-            seriesLabels: { "k8s.pod.name": pod },
-          }),
-        );
+        return alert(`alert-${index}`, {
+          monitorIds: [CPU_MONITOR],
+          seriesLabels: { "k8s.pod.name": pod },
+          createdAt: hoursAgo(index + 1),
+        });
       });
 
       expect(
-        build({ investigations }).problems[0]!.objects.map(
+        build({
+          occurrences,
+          investigations: [run(hoursAgo(1), occurrences[0])],
+        }).problems[0]!.objects.map(
           (object: { value: string; count: number }) => {
             return [object.value, object.count];
           },
@@ -809,7 +1555,7 @@ describe("AiActivityInsightsBuilder.build", () => {
       ]);
     });
 
-    test(`at most ${AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS}, the most investigated first`, () => {
+    test(`at most ${AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS}, the most frequent first`, () => {
       const investigations: Array<AiActivityInvestigationInput> = [];
 
       for (let index: number = 0; index < 14; index++) {
@@ -831,7 +1577,7 @@ describe("AiActivityInsightsBuilder.build", () => {
 
       expect(problems).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_PROBLEMS);
       expect(problems[0]!.title).toBe("P13");
-      expect(problems[0]!.investigationCount).toBe(2);
+      expect(problems[0]!.occurrenceCount).toBe(2);
     });
 
     test("leave out investigations with no incident or alert", () => {
@@ -843,28 +1589,65 @@ describe("AiActivityInsightsBuilder.build", () => {
       expect(insights.totals.investigations).toBe(1);
     });
 
+    test("say when in the day a problem tends to start, when it keeps to one", () => {
+      const occurrences: Array<AiActivitySubjectInput> = firings({
+        prefix: "night",
+        monitorId: MEMORY_MONITOR,
+        at: [1, 2, 3, 4, 5].map((daysBack: number): Date => {
+          return dayAt(daysBack, 2);
+        }),
+      });
+
+      const problem: AiActivityProblem = build({
+        occurrences,
+        investigations: [run(dayAt(1, 2, 10), occurrences[0])],
+      }).problems[0]!;
+
+      expect(problem.timeOfDay).toEqual({
+        startHourUtc: 2,
+        hours: 1,
+        count: 5,
+        total: 5,
+        days: 5,
+        totalDays: 5,
+      });
+    });
+
+    test("say nothing of the time of day of a problem that keeps to none", () => {
+      expect(
+        build({ investigations: screenshotCluster() }).problems[0]!.timeOfDay,
+      ).toBeUndefined();
+    });
+
     describe("what the investigations concluded", () => {
-      test("the newest completed investigation's TL;DR", () => {
+      test("the newest completed investigation's TL;DR, and the first step its report suggests", () => {
         const subject: AiActivitySubjectInput = alert("a", {
           monitorIds: [CPU_MONITOR],
         });
         const newest: AiActivityInvestigationInput = run(hoursAgo(1), subject, {
           tldr: "The CPU limit is too low for the new release.",
+          nextStep: "Raise the CPU limit of web to 1 core.",
         });
 
-        expect(
-          build({
-            investigations: [
-              newest,
-              run(hoursAgo(2), subject, { tldr: "An older finding." }),
-            ],
-          }).problems[0]!.latestFinding,
-        ).toEqual({
+        const problem: AiActivityProblem = build({
+          investigations: [
+            newest,
+            run(hoursAgo(2), subject, {
+              tldr: "An older finding.",
+              nextStep: "An older step.",
+            }),
+          ],
+        }).problems[0]!;
+
+        expect(problem.latestFinding).toEqual({
           aiRunId: newest.aiRunId,
           text: "The CPU limit is too low for the new release.",
           source: "tldr",
           at: newest.completedAt!.toISOString(),
         });
+        expect(problem.latestNextStep).toBe(
+          "Raise the CPU limit of web to 1 core.",
+        );
       });
 
       test("its report's own summary when its TL;DR call failed", () => {
@@ -898,23 +1681,37 @@ describe("AiActivityInsightsBuilder.build", () => {
         ).toBe("tldr");
       });
 
-      test("an older finding when the newest investigations have none", () => {
+      test("an older finding when the newest investigations have none, with that one's step", () => {
         const subject: AiActivitySubjectInput = alert("a", {
           monitorIds: [CPU_MONITOR],
         });
         const older: AiActivityInvestigationInput = run(hoursAgo(3), subject, {
           tldr: "Found it the first time.",
+          nextStep: "Do the thing.",
         });
 
+        const problem: AiActivityProblem = build({
+          investigations: [
+            run(hoursAgo(1), subject, { status: AIRunStatus.Running }),
+            run(hoursAgo(2), subject, { nextStep: "A step with no finding." }),
+            older,
+          ],
+        }).problems[0]!;
+
+        expect(problem.latestFinding!.aiRunId).toBe(older.aiRunId);
+        expect(problem.latestNextStep).toBe("Do the thing.");
+      });
+
+      test("no step without a finding to go with it", () => {
         expect(
           build({
             investigations: [
-              run(hoursAgo(1), subject, { status: AIRunStatus.Running }),
-              run(hoursAgo(2), subject),
-              older,
+              run(hoursAgo(1), alert("a", { monitorIds: [CPU_MONITOR] }), {
+                nextStep: "Restart it.",
+              }),
             ],
-          }).problems[0]!.latestFinding!.aiRunId,
-        ).toBe(older.aiRunId);
+          }).problems[0]!.latestNextStep,
+        ).toBeUndefined();
       });
 
       test("never from an investigation that did not complete, and none at all without one", () => {
@@ -924,23 +1721,30 @@ describe("AiActivityInsightsBuilder.build", () => {
               run(hoursAgo(1), alert("a", { monitorIds: [CPU_MONITOR] }), {
                 status: AIRunStatus.Error,
                 tldr: "A half-written finding.",
+                nextStep: "A half-written step.",
               }),
             ],
-          }).problems[0]!.latestFinding,
-        ).toBeUndefined();
+          }).problems[0]!,
+        ).toEqual(
+          expect.not.objectContaining({
+            latestFinding: expect.anything(),
+          }),
+        );
       });
 
-      test("blank text is no finding", () => {
-        expect(
-          build({
-            investigations: [
-              run(hoursAgo(1), alert("a", { monitorIds: [CPU_MONITOR] }), {
-                tldr: "   ",
-                reportSummary: "",
-              }),
-            ],
-          }).problems[0]!.latestFinding,
-        ).toBeUndefined();
+      test("blank text is no finding and no step", () => {
+        const problem: AiActivityProblem = build({
+          investigations: [
+            run(hoursAgo(1), alert("a", { monitorIds: [CPU_MONITOR] }), {
+              tldr: "   ",
+              reportSummary: "",
+              nextStep: "  ",
+            }),
+          ],
+        }).problems[0]!;
+
+        expect(problem.latestFinding).toBeUndefined();
+        expect(problem.latestNextStep).toBeUndefined();
       });
     });
 
@@ -973,8 +1777,14 @@ describe("AiActivityInsightsBuilder.build", () => {
       });
     });
 
-    test("count the fixes proposed for its incidents and alerts, and how they went", () => {
+    test("count the fixes proposed for its incidents and alerts, investigated or not, and how they went", () => {
       const insights: AiActivityInsights = build({
+        occurrences: [
+          alert("alert-not-investigated", {
+            monitorIds: [CPU_MONITOR],
+            createdAt: hoursAgo(5),
+          }),
+        ],
         investigations: [
           run(hoursAgo(1), incident("inc-a", { monitorIds: [CPU_MONITOR] })),
           run(hoursAgo(2), alert("alert-b", { monitorIds: [CPU_MONITOR] })),
@@ -999,6 +1809,7 @@ describe("AiActivityInsightsBuilder.build", () => {
             alertId: "alert-b",
             status: AutoRemediationSuggestionStatus.Dismissed,
           }),
+          fix(hoursAgo(1), { alertId: "alert-not-investigated" }),
           // Another problem's, and one whose subject is not here at all.
           fix(hoursAgo(1), { alertId: "alert-other" }),
           fix(hoursAgo(1), { incidentId: "unknown" }),
@@ -1012,17 +1823,17 @@ describe("AiActivityInsightsBuilder.build", () => {
       )!;
 
       expect(cpu.fixes).toEqual({
-        proposed: 4,
+        proposed: 5,
         applied: 2,
         verified: 1,
         failed: 1,
-        awaitingApproval: 1,
+        awaitingApproval: 2,
       });
     });
   });
 
   describe("hotspots", () => {
-    test("the parts of the scope in two investigations or more, most first", () => {
+    test("the parts of the scope in two incidents or alerts or more, most first", () => {
       const insights: AiActivityInsights = build({
         investigations: screenshotCluster(),
       });
@@ -1031,11 +1842,63 @@ describe("AiActivityInsightsBuilder.build", () => {
         {
           name: "Namespace",
           value: "default",
+          key: "k8s.namespace.name",
+          occurrenceCount: 3,
           investigationCount: 3,
           problemCount: 2,
           lastSeenAt: hoursAgo(1).toISOString(),
         },
       ]);
+    });
+
+    test("count everything that came up there, and how often AI investigated it", () => {
+      const hotspot: AiActivityHotspot = build({
+        occurrences: [
+          alert("a", {
+            monitorIds: [CPU_MONITOR],
+            seriesLabels: nodeLabels("node-a"),
+            createdAt: hoursAgo(1),
+          }),
+          alert("b", {
+            monitorIds: [REPLICA_MONITOR],
+            seriesLabels: nodeLabels("node-a"),
+            createdAt: hoursAgo(2),
+          }),
+          alert("c", {
+            monitorIds: [REPLICA_MONITOR],
+            seriesLabels: nodeLabels("node-a"),
+            createdAt: hoursAgo(3),
+          }),
+        ],
+        investigations: [
+          run(
+            hoursAgo(1),
+            alert("a", {
+              monitorIds: [CPU_MONITOR],
+              seriesLabels: nodeLabels("node-a"),
+              createdAt: hoursAgo(1),
+            }),
+          ),
+          run(
+            hoursAgo(0.5),
+            alert("a", {
+              monitorIds: [CPU_MONITOR],
+              seriesLabels: nodeLabels("node-a"),
+              createdAt: hoursAgo(1),
+            }),
+          ),
+        ],
+      }).hotspots[0]!;
+
+      expect(hotspot).toEqual({
+        name: "Node",
+        value: "node-a",
+        key: "k8s.node.name",
+        occurrenceCount: 3,
+        investigationCount: 2,
+        problemCount: 2,
+        lastSeenAt: hoursAgo(1).toISOString(),
+      });
     });
 
     test("never the scope itself", () => {
@@ -1114,6 +1977,13 @@ describe("AiActivityInsightsBuilder.build", () => {
       expect(build({ investigations }).hotspots).toHaveLength(
         AI_ACTIVITY_INSIGHTS_MAX_HOTSPOTS,
       );
+    });
+
+    test("none for a scope with no parts of its own", () => {
+      expect(
+        build({ investigations: screenshotCluster(), includeHotspots: false })
+          .hotspots,
+      ).toEqual([]);
     });
   });
 
@@ -1250,380 +2120,1063 @@ describe("AiActivityInsightsBuilder.build", () => {
     ).toEqual(["high-new", "high-old", "medium", "low", "low-2"]);
   });
 
-  describe("attention", () => {
-    test("nothing when nothing needs it", () => {
-      expect(
+  describe("insights: a problem that keeps coming back", () => {
+    test("three times, still this week: worth acting on, with how often and when", () => {
+      const occurrences: Array<AiActivitySubjectInput> = firings({
+        prefix: "replica",
+        monitorId: REPLICA_MONITOR,
+        title: "Replica mismatch",
+        at: [daysAgo(1), daysAgo(9), daysAgo(20)],
+      });
+
+      const recurring: AiActivityInsight = insightsOf(
         build({
+          occurrences,
+          investigations: [run(daysAgo(1), occurrences[0])],
+        }),
+        AiActivityInsightKind.RecurringProblem,
+      )[0]!;
+
+      expect(recurring).toEqual(
+        expect.objectContaining({
+          tone: AiActivityInsightTone.Warning,
+          count: 3,
+          total: 3,
+          recentCount: 1,
+          previousCount: 1,
+          title: "Replica mismatch",
+          firstSeenAt: daysAgo(20).toISOString(),
+          lastSeenAt: daysAgo(1).toISOString(),
+        }),
+      );
+      expect(recurring.problemKey).toMatch(/^problem-/);
+    });
+
+    test("getting worse — three or more this week, more than the week before — needs attention now", () => {
+      const occurrences: Array<AiActivitySubjectInput> = firings({
+        prefix: "cpu",
+        monitorId: CPU_MONITOR,
+        at: [daysAgo(1), daysAgo(2), daysAgo(3), daysAgo(10)],
+      });
+
+      expect(
+        insightsOf(
+          build({
+            occurrences,
+            investigations: [run(daysAgo(1), occurrences[0])],
+          }),
+          AiActivityInsightKind.RecurringProblem,
+        )[0]!.tone,
+      ).toBe(AiActivityInsightTone.Critical);
+    });
+
+    test("as bad as the week before is not getting worse", () => {
+      const occurrences: Array<AiActivitySubjectInput> = firings({
+        prefix: "cpu",
+        monitorId: CPU_MONITOR,
+        at: [
+          daysAgo(1),
+          daysAgo(2),
+          daysAgo(3),
+          daysAgo(8),
+          daysAgo(9),
+          daysAgo(10),
+        ],
+      });
+
+      const recurring: AiActivityInsight = insightsOf(
+        build({
+          occurrences,
+          investigations: [run(daysAgo(1), occurrences[0])],
+        }),
+        AiActivityInsightKind.RecurringProblem,
+      )[0]!;
+
+      expect(recurring.tone).toBe(AiActivityInsightTone.Warning);
+      expect([recurring.recentCount, recurring.previousCount]).toEqual([3, 3]);
+    });
+
+    test("twice is not yet a pattern, and a problem quiet all week is not coming back", () => {
+      const twice: Array<AiActivitySubjectInput> = firings({
+        prefix: "twice",
+        monitorId: CPU_MONITOR,
+        at: [daysAgo(1), daysAgo(2)],
+      });
+      const quiet: Array<AiActivitySubjectInput> = firings({
+        prefix: "quiet",
+        monitorId: REPLICA_MONITOR,
+        at: [daysAgo(8), daysAgo(9), daysAgo(10), daysAgo(11)],
+      });
+
+      expect(
+        insightsOf(
+          build({
+            occurrences: [...twice, ...quiet],
+            investigations: [
+              run(daysAgo(1), twice[0]),
+              run(daysAgo(8), quiet[0]),
+            ],
+          }),
+          AiActivityInsightKind.RecurringProblem,
+        ),
+      ).toEqual([]);
+    });
+
+    test("carries what the investigation found and the step it suggests, where, when, and the incidents and alerts behind it", () => {
+      const occurrences: Array<AiActivitySubjectInput> = firings({
+        prefix: "mem",
+        monitorId: MEMORY_MONITOR,
+        title: "High memory",
+        seriesLabels: {
+          "resource.k8s.cluster.name": CLUSTER_NAME,
+          "resource.k8s.pod.name": "api-1",
+        },
+        at: [1, 2, 3, 4, 5].map((daysBack: number): Date => {
+          return dayAt(daysBack, 2);
+        }),
+      });
+      const found: AiActivityInvestigationInput = run(
+        dayAt(2, 2, 30),
+        occurrences[1],
+        {
+          tldr: "api-1 is OOM-killed: its 512Mi limit is below its usage.",
+          nextStep: "Raise api-1's memory limit to 1Gi.",
+        },
+      );
+
+      const recurring: AiActivityInsight = insightsOf(
+        build({
+          occurrences,
           investigations: [
-            run(hoursAgo(1), alert("a", { monitorIds: [CPU_MONITOR] }), {
-              tldr: "Fine.",
+            // The newest investigation failed; the one before found it.
+            run(dayAt(1, 2, 30), occurrences[0], {
+              status: AIRunStatus.Error,
+            }),
+            found,
+          ],
+        }),
+        AiActivityInsightKind.RecurringProblem,
+      )[0]!;
+
+      expect(recurring.finding).toEqual({
+        aiRunId: found.aiRunId,
+        text: "api-1 is OOM-killed: its 512Mi limit is below its usage.",
+        source: "tldr",
+        at: found.completedAt!.toISOString(),
+      });
+      expect(recurring.nextStep).toBe("Raise api-1's memory limit to 1Gi.");
+      expect(recurring.timeOfDay).toEqual(
+        expect.objectContaining({ startHourUtc: 2, days: 5, totalDays: 5 }),
+      );
+      expect(recurring.objects).toEqual([
+        { name: "Pod", value: "api-1", key: "k8s.pod.name" },
+      ]);
+      // The incident or alert it opens is the one whose investigation found it.
+      expect(recurring.subject).toEqual({
+        kind: "alert",
+        id: "mem-1",
+        title: "High memory",
+      });
+      // The newest few behind it, and how many in all.
+      expect(
+        recurring.evidence!.map((subject: { id: string }) => {
+          return subject.id;
+        }),
+      ).toEqual(["mem-0", "mem-1", "mem-2"]);
+      expect(recurring.evidence).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_EVIDENCE);
+      expect(recurring.evidenceCount).toBe(5);
+    });
+
+    test("with nothing found yet, it opens the latest incident or alert investigated", () => {
+      const occurrences: Array<AiActivitySubjectInput> = firings({
+        prefix: "x",
+        monitorId: CPU_MONITOR,
+        at: [daysAgo(1), daysAgo(2), daysAgo(3)],
+      });
+
+      const recurring: AiActivityInsight = insightsOf(
+        build({
+          occurrences,
+          investigations: [
+            run(daysAgo(2), occurrences[1], { status: AIRunStatus.Error }),
+          ],
+        }),
+        AiActivityInsightKind.RecurringProblem,
+      )[0]!;
+
+      expect(recurring.finding).toBeUndefined();
+      expect(recurring.nextStep).toBeUndefined();
+      expect(recurring.subject!.id).toBe("x-1");
+    });
+
+    test(`at most ${AI_ACTIVITY_INSIGHTS_MAX_RECURRING_INSIGHTS}, the most frequent first`, () => {
+      const problems: Array<Array<AiActivitySubjectInput>> = [
+        firings({
+          prefix: "three",
+          monitorId: CPU_MONITOR,
+          at: [daysAgo(1), daysAgo(2), daysAgo(3)],
+        }),
+        firings({
+          prefix: "five",
+          monitorId: REPLICA_MONITOR,
+          at: [daysAgo(1), daysAgo(2), daysAgo(3), daysAgo(4), daysAgo(5)],
+        }),
+        firings({
+          prefix: "four",
+          monitorId: PENDING_MONITOR,
+          at: [daysAgo(1), daysAgo(2), daysAgo(3), daysAgo(4)],
+        }),
+      ];
+
+      const recurring: Array<AiActivityInsight> = insightsOf(
+        build({
+          occurrences: problems.flat(),
+          investigations: problems.map(
+            (
+              subjects: Array<AiActivitySubjectInput>,
+            ): AiActivityInvestigationInput => {
+              return run(daysAgo(1), subjects[0]);
+            },
+          ),
+        }),
+        AiActivityInsightKind.RecurringProblem,
+      );
+
+      expect(recurring).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_RECURRING_INSIGHTS);
+      expect(
+        recurring.map((insight: AiActivityInsight): number => {
+          return insight.count;
+        }),
+      ).toEqual([5, 4]);
+    });
+
+    test("never links an incident or alert the caller could not read", () => {
+      // Everything handed to the builder is readable: nothing else can be named.
+      const occurrences: Array<AiActivitySubjectInput> = firings({
+        prefix: "r",
+        monitorId: CPU_MONITOR,
+        at: [daysAgo(1), daysAgo(2), daysAgo(3)],
+      });
+      const recurring: AiActivityInsight = insightsOf(
+        build({
+          occurrences,
+          investigations: [run(daysAgo(1), occurrences[0])],
+          fixes: [fix(daysAgo(1), { alertId: "hidden" })],
+        }),
+        AiActivityInsightKind.RecurringProblem,
+      )[0]!;
+
+      for (const subject of recurring.evidence!) {
+        expect(["r-0", "r-1", "r-2"]).toContain(subject.id);
+      }
+    });
+  });
+
+  describe("insights: one part behind the trouble", () => {
+    function cluster(): Array<AiActivitySubjectInput> {
+      return [
+        ...firings({
+          prefix: "cpu",
+          monitorId: CPU_MONITOR,
+          seriesLabels: nodeLabels("node-a"),
+          at: [hoursAgo(1), hoursAgo(5)],
+        }),
+        ...firings({
+          prefix: "replica",
+          monitorId: REPLICA_MONITOR,
+          seriesLabels: nodeLabels("node-a"),
+          at: [hoursAgo(3)],
+        }),
+        ...firings({
+          prefix: "pending",
+          monitorId: PENDING_MONITOR,
+          seriesLabels: nodeLabels("node-b"),
+          at: [hoursAgo(4)],
+        }),
+      ];
+    }
+
+    test("a part behind several problems and most of what came up", () => {
+      const occurrences: Array<AiActivitySubjectInput> = cluster();
+      const hotspot: AiActivityInsight = insightsOf(
+        build({
+          occurrences,
+          investigations: [run(hoursAgo(1), occurrences[0])],
+        }),
+        AiActivityInsightKind.Hotspot,
+      )[0]!;
+
+      expect(hotspot).toEqual({
+        kind: AiActivityInsightKind.Hotspot,
+        tone: AiActivityInsightTone.Pattern,
+        count: 3,
+        total: 4,
+        problemCount: 2,
+        object: { name: "Node", value: "node-a", key: "k8s.node.name" },
+        lastSeenAt: hoursAgo(1).toISOString(),
+        subject: { kind: "alert", id: "cpu-0", title: "Problem cpu" },
+        evidence: [
+          { kind: "alert", id: "cpu-0", title: "Problem cpu" },
+          { kind: "alert", id: "replica-0", title: "Problem replica" },
+          { kind: "alert", id: "cpu-1", title: "Problem cpu" },
+        ],
+        evidenceCount: 3,
+      });
+    });
+
+    test("not a part behind everything: the only node says nothing", () => {
+      const occurrences: Array<AiActivitySubjectInput> = cluster().map(
+        (subject: AiActivitySubjectInput): AiActivitySubjectInput => {
+          return { ...subject, seriesLabels: nodeLabels("node-a") };
+        },
+      );
+
+      expect(
+        insightsOf(
+          build({
+            occurrences,
+            investigations: [run(hoursAgo(1), occurrences[0])],
+          }),
+          AiActivityInsightKind.Hotspot,
+        ),
+      ).toEqual([]);
+    });
+
+    test("not a part behind one problem only: that problem says it", () => {
+      const occurrences: Array<AiActivitySubjectInput> = [
+        ...firings({
+          prefix: "cpu",
+          monitorId: CPU_MONITOR,
+          seriesLabels: nodeLabels("node-a"),
+          at: [hoursAgo(1), hoursAgo(2), hoursAgo(3)],
+        }),
+        ...firings({
+          prefix: "other",
+          monitorId: PENDING_MONITOR,
+          seriesLabels: nodeLabels("node-b"),
+          at: [hoursAgo(4)],
+        }),
+      ];
+
+      expect(
+        insightsOf(
+          build({
+            occurrences,
+            investigations: [run(hoursAgo(1), occurrences[0])],
+          }),
+          AiActivityInsightKind.Hotspot,
+        ),
+      ).toEqual([]);
+    });
+
+    test("three different problems are enough, even under half of everything", () => {
+      const occurrences: Array<AiActivitySubjectInput> = [
+        ...[CPU_MONITOR, REPLICA_MONITOR, PENDING_MONITOR].flatMap(
+          (monitorId: string, index: number) => {
+            return firings({
+              prefix: `on-a-${index}`,
+              monitorId,
+              seriesLabels: nodeLabels("node-a"),
+              at: [hoursAgo(index + 1)],
+            });
+          },
+        ),
+        ...firings({
+          prefix: "elsewhere",
+          monitorId: MEMORY_MONITOR,
+          seriesLabels: nodeLabels("node-b"),
+          at: [1, 2, 3, 4, 5, 6, 7].map((hours: number): Date => {
+            return hoursAgo(hours + 10);
+          }),
+        }),
+      ];
+
+      const hotspot: AiActivityInsight = insightsOf(
+        build({
+          occurrences,
+          investigations: [run(hoursAgo(1), occurrences[0])],
+        }),
+        AiActivityInsightKind.Hotspot,
+      )[0]!;
+
+      expect(hotspot.object!.value).toBe("node-a");
+      expect([hotspot.count, hotspot.total, hotspot.problemCount]).toEqual([
+        3, 10, 3,
+      ]);
+    });
+
+    test("of several, the part behind the most problems", () => {
+      /*
+       * The namespace is in more incidents (5 of 7, two problems); the node
+       * is in fewer (3 of 7) but behind three different problems.
+       */
+      const labels: (node: string, namespace?: string) => JSONObject = (
+        node: string,
+        namespace?: string,
+      ): JSONObject => {
+        return {
+          "resource.k8s.cluster.name": CLUSTER_NAME,
+          ...(namespace ? { "resource.k8s.namespace.name": namespace } : {}),
+          "resource.k8s.node.name": node,
+        };
+      };
+      const occurrences: Array<AiActivitySubjectInput> = [
+        ...firings({
+          prefix: "a",
+          monitorId: CPU_MONITOR,
+          seriesLabels: labels("node-a", "shop"),
+          at: [hoursAgo(1)],
+        }),
+        ...firings({
+          prefix: "b",
+          monitorId: REPLICA_MONITOR,
+          seriesLabels: labels("node-a", "shop"),
+          at: [hoursAgo(2)],
+        }),
+        ...firings({
+          prefix: "c",
+          monitorId: PENDING_MONITOR,
+          seriesLabels: labels("node-a"),
+          at: [hoursAgo(3)],
+        }),
+        ...firings({
+          prefix: "d",
+          monitorId: CPU_MONITOR,
+          seriesLabels: labels("node-b", "shop"),
+          at: [hoursAgo(4), hoursAgo(5), hoursAgo(7)],
+        }),
+        ...firings({
+          prefix: "e",
+          monitorId: MEMORY_MONITOR,
+          seriesLabels: labels("node-c"),
+          at: [hoursAgo(6)],
+        }),
+      ];
+
+      const insights: AiActivityInsights = build({
+        occurrences,
+        investigations: [run(hoursAgo(1), occurrences[0])],
+      });
+
+      // The namespace leads the list of where problems happen...
+      expect(insights.hotspots[0]!.value).toBe("shop");
+      // ...but the insight names the node behind the most problems.
+      expect(
+        insightsOf(insights, AiActivityInsightKind.Hotspot)[0]!.object!.value,
+      ).toBe("node-a");
+    });
+
+    test("none for a scope with no parts of its own", () => {
+      const occurrences: Array<AiActivitySubjectInput> = cluster();
+
+      expect(
+        insightsOf(
+          build({
+            occurrences,
+            investigations: [run(hoursAgo(1), occurrences[0])],
+            includeHotspots: false,
+          }),
+          AiActivityInsightKind.Hotspot,
+        ),
+      ).toEqual([]);
+    });
+  });
+
+  describe("insights: a problem that stopped", () => {
+    function stopped(data: {
+      at: Array<Date>;
+      fixedAt: Date;
+      fix?: Partial<AiActivityFixInput> | undefined;
+      prefix?: string | undefined;
+      monitorId?: string | undefined;
+    }): Partial<AiActivityInsightsInput> {
+      const occurrences: Array<AiActivitySubjectInput> = firings({
+        prefix: data.prefix || "disk",
+        monitorId: data.monitorId || PENDING_MONITOR,
+        title: "Node disk pressure",
+        at: data.at,
+      });
+
+      return {
+        occurrences,
+        investigations: [run(data.at[0]!, occurrences[0])],
+        fixes: [
+          fix(data.fixedAt, {
+            alertId: occurrences[0]!.id,
+            status: AutoRemediationSuggestionStatus.AutoExecuted,
+            verificationStatus: AutoRemediationVerificationStatus.Verified,
+            ...(data.fix || {}),
+          }),
+        ],
+      };
+    }
+
+    test("it kept coming back, a fix held, and nothing since: good news, in place of 'keeps coming back'", () => {
+      const insights: AiActivityInsights = build(
+        stopped({
+          at: [daysAgo(4), daysAgo(5), daysAgo(6)],
+          fixedAt: new Date(daysAgo(4).getTime() + HOUR),
+        }),
+      );
+
+      expect(
+        insightsOf(insights, AiActivityInsightKind.ProblemStopped),
+      ).toEqual([
+        {
+          kind: AiActivityInsightKind.ProblemStopped,
+          tone: AiActivityInsightTone.Positive,
+          count: 3,
+          problemKey: insights.problems[0]!.key,
+          title: "Node disk pressure",
+          fixedAt: new Date(daysAgo(4).getTime() + HOUR).toISOString(),
+          lastSeenAt: daysAgo(4).toISOString(),
+          subject: { kind: "alert", id: "disk-0", title: "Node disk pressure" },
+          evidence: [
+            { kind: "alert", id: "disk-0", title: "Node disk pressure" },
+          ],
+          evidenceCount: 1,
+        },
+      ]);
+      // Three this week, but it stopped: it is not said to keep coming back.
+      expect(
+        insightsOf(insights, AiActivityInsightKind.RecurringProblem),
+      ).toEqual([]);
+    });
+
+    test("an approved fix counts from when it was approved", () => {
+      const approvedAt: Date = daysAgo(4);
+
+      expect(
+        insightsOf(
+          build(
+            stopped({
+              at: [daysAgo(5), daysAgo(6), daysAgo(7)],
+              fixedAt: daysAgo(5),
+              fix: {
+                status: AutoRemediationSuggestionStatus.Approved,
+                approvedAt,
+              },
+            }),
+          ),
+          AiActivityInsightKind.ProblemStopped,
+        )[0]!.fixedAt,
+      ).toBe(approvedAt.toISOString());
+    });
+
+    test("not when it came back after the fix", () => {
+      expect(
+        insightsOf(
+          build(
+            stopped({
+              at: [daysAgo(4), daysAgo(8), daysAgo(9)],
+              fixedAt: daysAgo(6),
+            }),
+          ),
+          AiActivityInsightKind.ProblemStopped,
+        ),
+      ).toEqual([]);
+    });
+
+    test("not until three days have passed since the fix", () => {
+      expect(
+        insightsOf(
+          build(
+            stopped({
+              at: [daysAgo(2), daysAgo(5), daysAgo(6)],
+              fixedAt: new Date(daysAgo(2).getTime() + HOUR),
+            }),
+          ),
+          AiActivityInsightKind.ProblemStopped,
+        ),
+      ).toEqual([]);
+    });
+
+    test.each([
+      [
+        "not checked yet",
+        { verificationStatus: AutoRemediationVerificationStatus.Pending },
+      ],
+      [
+        "checked, and it did not help",
+        { verificationStatus: AutoRemediationVerificationStatus.Failed },
+      ],
+      ["never checked", { verificationStatus: undefined }],
+      [
+        "only proposed",
+        {
+          status: AutoRemediationSuggestionStatus.Suggested,
+          verificationStatus: AutoRemediationVerificationStatus.Verified,
+        },
+      ],
+    ])(
+      "not after a fix that was %s",
+      (_: string, override: Partial<AiActivityFixInput>) => {
+        expect(
+          insightsOf(
+            build(
+              stopped({
+                at: [daysAgo(5), daysAgo(6), daysAgo(7)],
+                fixedAt: daysAgo(4),
+                fix: override,
+              }),
+            ),
+            AiActivityInsightKind.ProblemStopped,
+          ),
+        ).toEqual([]);
+      },
+    );
+
+    test("not for a problem that only came up twice", () => {
+      expect(
+        insightsOf(
+          build(
+            stopped({ at: [daysAgo(5), daysAgo(6)], fixedAt: daysAgo(4) }),
+          ),
+          AiActivityInsightKind.ProblemStopped,
+        ),
+      ).toEqual([]);
+    });
+
+    test(`at most ${AI_ACTIVITY_INSIGHTS_MAX_STOPPED_INSIGHTS}`, () => {
+      const parts: Array<Partial<AiActivityInsightsInput>> = [
+        CPU_MONITOR,
+        REPLICA_MONITOR,
+        PENDING_MONITOR,
+      ].map((monitorId: string, index: number) => {
+        return stopped({
+          prefix: `p${index}`,
+          monitorId,
+          at: [daysAgo(5), daysAgo(6), daysAgo(7)],
+          fixedAt: daysAgo(4),
+        });
+      });
+
+      expect(
+        insightsOf(
+          build({
+            occurrences: parts.flatMap(
+              (
+                part: Partial<AiActivityInsightsInput>,
+              ): Array<AiActivitySubjectInput> => {
+                return part.occurrences || [];
+              },
+            ),
+            investigations: parts.flatMap(
+              (
+                part: Partial<AiActivityInsightsInput>,
+              ): Array<AiActivityInvestigationInput> => {
+                return part.investigations || [];
+              },
+            ),
+            fixes: parts.flatMap(
+              (
+                part: Partial<AiActivityInsightsInput>,
+              ): Array<AiActivityFixInput> => {
+                return part.fixes || [];
+              },
+            ),
+          }),
+          AiActivityInsightKind.ProblemStopped,
+        ),
+      ).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_STOPPED_INSIGHTS);
+    });
+  });
+
+  describe("insights: fixes", () => {
+    test("fixes that did not solve the problem, out of the ones applied, with their readable incidents", () => {
+      const fixes: AiActivityInsight = insightsOf(
+        build({
+          investigations: [run(hoursAgo(1), incident("inc-a"))],
+          fixes: [
+            fix(hoursAgo(1), {
+              incidentId: "inc-a",
+              status: AutoRemediationSuggestionStatus.AutoExecuted,
+              verificationStatus: AutoRemediationVerificationStatus.Failed,
+            }),
+            fix(hoursAgo(2), {
+              incidentId: "hidden",
+              status: AutoRemediationSuggestionStatus.Approved,
+              verificationStatus: AutoRemediationVerificationStatus.Failed,
+            }),
+            fix(hoursAgo(3), {
+              status: AutoRemediationSuggestionStatus.Approved,
+              verificationStatus: AutoRemediationVerificationStatus.Verified,
             }),
           ],
+        }),
+        AiActivityInsightKind.FixesDidNotHelp,
+      )[0]!;
+
+      expect(fixes).toEqual({
+        kind: AiActivityInsightKind.FixesDidNotHelp,
+        tone: AiActivityInsightTone.Critical,
+        count: 2,
+        total: 3,
+        subject: { kind: "incident", id: "inc-a", title: "Incident inc-a" },
+        evidence: [{ kind: "incident", id: "inc-a", title: "Incident inc-a" }],
+        // The hidden incident is counted, never named.
+        evidenceCount: 2,
+      });
+    });
+
+    test("fixes nobody could read the incident of are still said, with nothing linked", () => {
+      const fixes: AiActivityInsight = insightsOf(
+        build({
+          fixes: [
+            fix(hoursAgo(1), {
+              incidentId: "hidden",
+              status: AutoRemediationSuggestionStatus.AutoExecuted,
+              verificationStatus: AutoRemediationVerificationStatus.Failed,
+            }),
+          ],
+        }),
+        AiActivityInsightKind.FixesDidNotHelp,
+      )[0]!;
+
+      expect(fixes.count).toBe(1);
+      expect(fixes.subject).toBeUndefined();
+      expect(fixes.evidence).toBeUndefined();
+    });
+
+    test("fixes waiting for approval, the newest one's incident or alert to open", () => {
+      const waiting: AiActivityInsight = insightsOf(
+        build({
+          investigations: [
+            run(hoursAgo(1), alert("older")),
+            run(hoursAgo(1), alert("newer")),
+          ],
+          fixes: [
+            fix(hoursAgo(5), { alertId: "older" }),
+            fix(hoursAgo(1), { alertId: "newer" }),
+          ],
+        }),
+        AiActivityInsightKind.FixesAwaitingApproval,
+      )[0]!;
+
+      expect(waiting.tone).toBe(AiActivityInsightTone.Warning);
+      expect(waiting.count).toBe(2);
+      expect(waiting.subject!.id).toBe("newer");
+    });
+
+    test("fixes AI applied on its own, and how many held", () => {
+      const automatic: AiActivityInsight = insightsOf(
+        build({
           fixes: [
             fix(hoursAgo(1), {
               status: AutoRemediationSuggestionStatus.AutoExecuted,
               verificationStatus: AutoRemediationVerificationStatus.Verified,
             }),
-          ],
-          commands: { total: 10, failed: 1, timedOut: 0 },
-        }).attention,
-      ).toEqual([]);
-    });
-
-    test("fixes that did not fix it come first, linked to their readable incident", () => {
-      const items: Array<AiActivityAttentionItem> = build({
-        investigations: [run(hoursAgo(1), incident("inc-a"))],
-        fixes: [
-          fix(hoursAgo(1), {
-            incidentId: "inc-a",
-            status: AutoRemediationSuggestionStatus.AutoExecuted,
-            verificationStatus: AutoRemediationVerificationStatus.Failed,
-          }),
-          fix(hoursAgo(2), {
-            status: AutoRemediationSuggestionStatus.Approved,
-            verificationStatus: AutoRemediationVerificationStatus.Verified,
-          }),
-        ],
-      }).attention;
-
-      expect(items[0]).toEqual({
-        kind: AiActivityAttentionKind.FixesFailed,
-        severity: AiActivityAttentionSeverity.High,
-        count: 1,
-        total: 2,
-        subject: { kind: "incident", id: "inc-a", title: "Incident inc-a" },
-      });
-    });
-
-    test("never links an incident or alert the caller could not read", () => {
-      const items: Array<AiActivityAttentionItem> = build({
-        fixes: [
-          fix(hoursAgo(1), {
-            incidentId: "hidden",
-            status: AutoRemediationSuggestionStatus.AutoExecuted,
-            verificationStatus: AutoRemediationVerificationStatus.Failed,
-          }),
-          fix(hoursAgo(1), { alertId: "hidden-alert" }),
-        ],
-      }).attention;
-
-      for (const item of items) {
-        expect(item.subject).toBeUndefined();
-      }
-      expect(items).toHaveLength(2);
-    });
-
-    test("a problem investigated three times is worth a look; five times, or three this week, urgently", () => {
-      const subject: (id: string) => AiActivitySubjectInput = (
-        id: string,
-      ): AiActivitySubjectInput => {
-        return alert(id, {
-          monitorIds: [REPLICA_MONITOR],
-          title: "Replica mismatch",
-        });
-      };
-
-      const spreadOut: AiActivityAttentionItem = attentionOf(
-        build({
-          investigations: [
-            run(daysAgo(10), subject("a")),
-            run(daysAgo(12), subject("b")),
-            run(daysAgo(14), subject("c")),
-          ],
-        }),
-        AiActivityAttentionKind.RecurringProblem,
-      )[0]!;
-
-      expect(spreadOut.severity).toBe(AiActivityAttentionSeverity.Medium);
-      expect(spreadOut.count).toBe(3);
-      expect(spreadOut.recentCount).toBe(0);
-      expect(spreadOut.title).toBe("Replica mismatch");
-      expect(spreadOut.subject).toEqual({
-        kind: "alert",
-        id: "a",
-        title: "Replica mismatch",
-      });
-
-      const thisWeek: AiActivityAttentionItem = attentionOf(
-        build({
-          investigations: [
-            run(daysAgo(1), subject("a")),
-            run(daysAgo(2), subject("b")),
-            run(daysAgo(3), subject("c")),
-          ],
-        }),
-        AiActivityAttentionKind.RecurringProblem,
-      )[0]!;
-      expect(thisWeek.severity).toBe(AiActivityAttentionSeverity.High);
-      expect(thisWeek.recentCount).toBe(3);
-
-      const often: AiActivityAttentionItem = attentionOf(
-        build({
-          investigations: [10, 11, 12, 13, 14].map((days: number) => {
-            return run(daysAgo(days), subject(`s-${days}`));
-          }),
-        }),
-        AiActivityAttentionKind.RecurringProblem,
-      )[0]!;
-      expect(often.severity).toBe(AiActivityAttentionSeverity.High);
-    });
-
-    test("twice is a recurring problem on the list, not yet worth attention; at most two make it", () => {
-      expect(
-        attentionOf(
-          build({ investigations: screenshotCluster() }),
-          AiActivityAttentionKind.RecurringProblem,
-        ),
-      ).toEqual([]);
-
-      const investigations: Array<AiActivityInvestigationInput> = [];
-      for (const monitor of [CPU_MONITOR, REPLICA_MONITOR, PENDING_MONITOR]) {
-        for (const days of [10, 11, 12]) {
-          investigations.push(
-            run(
-              daysAgo(days),
-              alert(`${monitor}-${days}`, { monitorIds: [monitor] }),
-            ),
-          );
-        }
-      }
-
-      expect(
-        attentionOf(
-          build({ investigations }),
-          AiActivityAttentionKind.RecurringProblem,
-        ),
-      ).toHaveLength(2);
-    });
-
-    test("open High and Medium preventive insights, at most two; Low ones wait in their card", () => {
-      const items: Array<AiActivityAttentionItem> = attentionOf(
-        build({
-          preventiveInsights: [
-            preventive({ id: "low", severity: AIInsightSeverity.Low }),
-            preventive({ id: "medium", severity: AIInsightSeverity.Medium }),
-            preventive({
-              id: "high",
-              severity: AIInsightSeverity.High,
-              occurrenceCount: 7,
+            fix(hoursAgo(2), {
+              status: AutoRemediationSuggestionStatus.AutoExecuted,
+              verificationStatus: AutoRemediationVerificationStatus.Pending,
             }),
-            preventive({ id: "high-2", severity: AIInsightSeverity.High }),
+            fix(hoursAgo(3), {
+              status: AutoRemediationSuggestionStatus.AutoExecuted,
+              verificationStatus: AutoRemediationVerificationStatus.Verified,
+            }),
+            // Applied on its own, and did not help: said elsewhere.
+            fix(hoursAgo(4), {
+              status: AutoRemediationSuggestionStatus.AutoExecuted,
+              verificationStatus: AutoRemediationVerificationStatus.Failed,
+            }),
           ],
         }),
-        AiActivityAttentionKind.PreventiveInsight,
-      );
-
-      expect(
-        items.map((item: AiActivityAttentionItem) => {
-          return [item.insightId, item.severity];
-        }),
-      ).toEqual([
-        ["high", AiActivityAttentionSeverity.High],
-        ["high-2", AiActivityAttentionSeverity.High],
-      ]);
-      expect(items[0]!.count).toBe(7);
-      expect(items[0]!.title).toBe("Error-log spike: 6.0x normal volume");
-      expect(items[0]!.insightSeverity).toBe(AIInsightSeverity.High);
-    });
-
-    test("fixes waiting for approval, linked to the newest one's incident or alert", () => {
-      expect(
-        attentionOf(
-          build({
-            investigations: [run(hoursAgo(1), alert("alert-a"))],
-            fixes: [
-              fix(hoursAgo(1), { alertId: "alert-a" }),
-              fix(hoursAgo(2), { alertId: "alert-other" }),
-            ],
-          }),
-          AiActivityAttentionKind.FixesAwaitingApproval,
-        ),
-      ).toEqual([
-        {
-          kind: AiActivityAttentionKind.FixesAwaitingApproval,
-          severity: AiActivityAttentionSeverity.Medium,
-          count: 2,
-          subject: { kind: "alert", id: "alert-a", title: "Alert alert-a" },
-        },
-      ]);
-    });
-
-    test("failed investigations: worth a look, urgent when most of them fail", () => {
-      const some: AiActivityAttentionItem = attentionOf(
-        build({
-          investigations: [
-            run(hoursAgo(1), alert("a"), { status: AIRunStatus.Error }),
-            run(hoursAgo(2), alert("b")),
-            run(hoursAgo(3), alert("c")),
-          ],
-        }),
-        AiActivityAttentionKind.InvestigationsFailed,
+        AiActivityInsightKind.FixedAutomatically,
       )[0]!;
 
-      expect(some).toEqual({
-        kind: AiActivityAttentionKind.InvestigationsFailed,
-        severity: AiActivityAttentionSeverity.Medium,
-        count: 1,
-        total: 3,
-        subject: { kind: "alert", id: "a", title: "Alert a" },
+      expect(automatic).toEqual(
+        expect.objectContaining({
+          tone: AiActivityInsightTone.Positive,
+          count: 3,
+          verifiedCount: 2,
+        }),
+      );
+    });
+
+    test("a fix applied on its own that did not help is no good news", () => {
+      const insights: AiActivityInsights = build({
+        fixes: [
+          fix(hoursAgo(1), {
+            status: AutoRemediationSuggestionStatus.AutoExecuted,
+            verificationStatus: AutoRemediationVerificationStatus.Failed,
+          }),
+        ],
       });
 
       expect(
-        attentionOf(
+        insights.insights.map((insight: AiActivityInsight): string => {
+          return insight.kind;
+        }),
+      ).toEqual([AiActivityInsightKind.FixesDidNotHelp]);
+    });
+
+    describe("your team approved every fix AI proposed", () => {
+      function approved(
+        count: number,
+        verification: AutoRemediationVerificationStatus | undefined =
+          AutoRemediationVerificationStatus.Verified,
+      ): Array<AiActivityFixInput> {
+        return Array.from({ length: count }, (_: unknown, index: number) => {
+          return fix(hoursAgo(index + 1), {
+            status: AutoRemediationSuggestionStatus.Approved,
+            approvedAt: hoursAgo(index + 0.5),
+            verificationStatus: verification,
+          });
+        });
+      }
+
+      test("three approved, none dismissed, none applied on its own, none failed: AI could do it itself", () => {
+        const ready: AiActivityInsight = insightsOf(
           build({
-            investigations: [
-              run(hoursAgo(1), undefined, { status: AIRunStatus.Error }),
-              run(hoursAgo(2), alert("b"), { status: AIRunStatus.Stale }),
-              run(hoursAgo(3), alert("c"), { status: AIRunStatus.Error }),
-              run(hoursAgo(4), alert("d")),
+            fixes: [
+              ...approved(2),
+              ...approved(1, AutoRemediationVerificationStatus.Pending),
             ],
           }),
-          AiActivityAttentionKind.InvestigationsFailed,
-        )[0]!.severity,
-      ).toBe(AiActivityAttentionSeverity.High);
-    });
+          AiActivityInsightKind.ReadyForAutomaticFixes,
+        )[0]!;
 
-    test("commands the agent never ran", () => {
-      expect(
-        attentionOf(
-          build({ commands: { total: 20, failed: 3, timedOut: 4 } }),
-          AiActivityAttentionKind.CommandsTimedOut,
-        ),
-      ).toEqual([
-        {
-          kind: AiActivityAttentionKind.CommandsTimedOut,
-          severity: AiActivityAttentionSeverity.Medium,
-          count: 4,
-          total: 20,
-        },
-      ]);
-    });
-
-    test("findings people rejected, or the grader found wrong", () => {
-      expect(
-        attentionOf(
-          build({
-            investigations: [
-              run(hoursAgo(1), incident("a"), {
-                humanVerdict: AIRunHumanVerdict.Rejected,
-              }),
-              run(hoursAgo(2), incident("b"), {
-                autoGrade: AIRunAutoGrade.Mismatch,
-              }),
-              run(hoursAgo(3), incident("c"), {
-                humanVerdict: AIRunHumanVerdict.Confirmed,
-              }),
-            ],
-          }),
-          AiActivityAttentionKind.FindingsRejected,
-        ),
-      ).toEqual([
-        {
-          kind: AiActivityAttentionKind.FindingsRejected,
-          severity: AiActivityAttentionSeverity.Low,
-          count: 2,
-          total: 3,
-          subject: { kind: "incident", id: "a", title: "Incident a" },
-        },
-      ]);
-    });
-
-    test("one part of the scope in most investigations", () => {
-      const investigations: Array<AiActivityInvestigationInput> = [
-        "a",
-        "b",
-        "c",
-      ].map((id: string, index: number) => {
-        return run(
-          hoursAgo(index + 1),
-          alert(id, {
-            monitorIds: [`monitor-${id}`],
-            seriesLabels: { "k8s.namespace.name": "payments" },
+        expect(ready).toEqual(
+          expect.objectContaining({
+            tone: AiActivityInsightTone.Positive,
+            count: 3,
+            verifiedCount: 2,
           }),
         );
       });
-      investigations.push(run(hoursAgo(9), alert("d")));
 
-      expect(
-        attentionOf(build({ investigations }), AiActivityAttentionKind.Hotspot),
-      ).toEqual([
-        {
-          kind: AiActivityAttentionKind.Hotspot,
-          severity: AiActivityAttentionSeverity.Low,
-          count: 3,
-          total: 4,
-          object: { name: "Namespace", value: "payments" },
+      test.each([
+        ["only two were approved", approved(2)],
+        [
+          "one was dismissed",
+          [
+            ...approved(3),
+            fix(hoursAgo(1), {
+              status: AutoRemediationSuggestionStatus.Dismissed,
+            }),
+          ],
+        ],
+        [
+          "AI already applies some on its own",
+          [
+            ...approved(3),
+            fix(hoursAgo(1), {
+              status: AutoRemediationSuggestionStatus.AutoExecuted,
+            }),
+          ],
+        ],
+        [
+          "one of them did not help",
+          [...approved(3), ...approved(1, AutoRemediationVerificationStatus.Failed)],
+        ],
+      ])(
+        "not when %s",
+        (_: string, fixes: Array<AiActivityFixInput>) => {
+          expect(
+            insightsOf(
+              build({ fixes }),
+              AiActivityInsightKind.ReadyForAutomaticFixes,
+            ),
+          ).toEqual([]);
         },
-      ]);
-
-      // Not when it is a small share of what AI looked at.
-      for (const id of ["e", "f", "g", "h"]) {
-        investigations.push(run(hoursAgo(10), alert(id)));
-      }
-      expect(
-        attentionOf(build({ investigations }), AiActivityAttentionKind.Hotspot),
-      ).toEqual([]);
-    });
-
-    test(`most important first, at most ${AI_ACTIVITY_INSIGHTS_MAX_ATTENTION_ITEMS}`, () => {
-      const subject: (id: string) => AiActivitySubjectInput = (
-        id: string,
-      ): AiActivitySubjectInput => {
-        return alert(id, {
-          monitorIds: [REPLICA_MONITOR],
-          seriesLabels: { "k8s.namespace.name": "payments" },
-        });
-      };
-
-      const insights: AiActivityInsights = build({
-        investigations: [
-          run(daysAgo(10), subject("a"), {
-            humanVerdict: AIRunHumanVerdict.Rejected,
-          }),
-          run(daysAgo(11), subject("b"), { status: AIRunStatus.Error }),
-          run(daysAgo(12), subject("c")),
-        ],
-        fixes: [
-          fix(hoursAgo(1), { alertId: "a" }),
-          fix(hoursAgo(2), {
-            alertId: "b",
-            status: AutoRemediationSuggestionStatus.AutoExecuted,
-            verificationStatus: AutoRemediationVerificationStatus.Failed,
-          }),
-        ],
-        commands: { total: 5, failed: 0, timedOut: 1 },
-        preventiveInsights: [
-          preventive({ severity: AIInsightSeverity.Medium }),
-        ],
-      });
-
-      expect(insights.attention).toHaveLength(
-        AI_ACTIVITY_INSIGHTS_MAX_ATTENTION_ITEMS,
       );
-      expect(
-        insights.attention.map((item: AiActivityAttentionItem) => {
-          return item.kind;
-        }),
-      ).toEqual([
-        AiActivityAttentionKind.FixesFailed,
-        AiActivityAttentionKind.RecurringProblem,
-        AiActivityAttentionKind.PreventiveInsight,
-        AiActivityAttentionKind.FixesAwaitingApproval,
-        AiActivityAttentionKind.InvestigationsFailed,
-        AiActivityAttentionKind.CommandsTimedOut,
-      ]);
     });
   });
 
-  test("the same rows give the same insights, in whatever order they come", () => {
-    const investigations: Array<AiActivityInvestigationInput> =
-      screenshotCluster();
+  describe("insights: risks spotted before anything paged", () => {
+    test("open High and Medium findings, at most two; Low ones wait in their card", () => {
+      const risks: Array<AiActivityInsight> = insightsOf(
+        build({
+          preventiveInsights: [
+            preventive({
+              id: "low",
+              severity: AIInsightSeverity.Low,
+              lastSeenAt: hoursAgo(0.1).toISOString(),
+            }),
+            preventive({
+              id: "medium",
+              severity: AIInsightSeverity.Medium,
+              occurrenceCount: undefined,
+            }),
+            preventive({ id: "high", severity: AIInsightSeverity.High }),
+            preventive({ id: "high-2", severity: AIInsightSeverity.High }),
+          ],
+        }),
+        AiActivityInsightKind.RiskSpotted,
+      );
 
-    const first: AiActivityInsights = build({ investigations });
-    const second: AiActivityInsights = build({
-      investigations: [...investigations].reverse(),
+      expect(risks).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_RISK_INSIGHTS);
+      expect(
+        risks.map((risk: AiActivityInsight): string => {
+          return `${risk.insightId}:${risk.tone}`;
+        }),
+      ).toEqual(["high:Critical", "high-2:Critical"]);
+      expect(risks[0]).toEqual({
+        kind: AiActivityInsightKind.RiskSpotted,
+        tone: AiActivityInsightTone.Critical,
+        count: 3,
+        title: "Error-log spike: 6.0x normal volume",
+        insightId: "high",
+        insightSeverity: AIInsightSeverity.High,
+        insightType: AIInsightType.ErrorLogSpike,
+        lastSeenAt: hoursAgo(1).toISOString(),
+      });
     });
 
-    expect(second).toEqual(first);
+    test("a Medium one is worth acting on, and one seen without a count is seen once", () => {
+      const risk: AiActivityInsight = insightsOf(
+        build({
+          preventiveInsights: [
+            preventive({
+              severity: AIInsightSeverity.Medium,
+              occurrenceCount: undefined,
+            }),
+          ],
+        }),
+        AiActivityInsightKind.RiskSpotted,
+      )[0]!;
+
+      expect(risk.tone).toBe(AiActivityInsightTone.Warning);
+      expect(risk.count).toBe(1);
+    });
+  });
+
+  describe("insights, together", () => {
+    test("the screenshot's cluster: the problem coming back leads, the node behind it, the risk, and AI's own fix", () => {
+      const memory: Array<AiActivitySubjectInput> = firings({
+        prefix: "mem",
+        monitorId: MEMORY_MONITOR,
+        title: "[K8s] High Memory Utilization (>85%) - oneuptime-test",
+        seriesLabels: nodeLabels("db-pool-rqyt"),
+        at: [1, 1, 2, 2, 3, 3, 4, 5, 6, 12].map((daysBack: number): Date => {
+          return dayAt(daysBack, 2);
+        }),
+      });
+      const cpu: Array<AiActivitySubjectInput> = firings({
+        prefix: "cpu",
+        monitorId: CPU_MONITOR,
+        seriesLabels: nodeLabels("db-pool-rqyt"),
+        at: [daysAgo(1), daysAgo(9)],
+      });
+      const other: Array<AiActivitySubjectInput> = firings({
+        prefix: "other",
+        monitorId: PENDING_MONITOR,
+        seriesLabels: nodeLabels("default-pool"),
+        at: [daysAgo(3), daysAgo(4)],
+      });
+
+      const insights: AiActivityInsights = build({
+        occurrences: [...memory, ...cpu, ...other],
+        investigations: [
+          run(dayAt(1, 2, 30), memory[0], {
+            tldr: "The api pod is OOM-killed every two hours.",
+            nextStep: "Raise its memory limit to 1Gi.",
+          }),
+          run(daysAgo(1), cpu[0]),
+          run(daysAgo(3), other[0]),
+        ],
+        fixes: [
+          fix(dayAt(1, 2, 20), {
+            alertId: memory[0]!.id,
+            status: AutoRemediationSuggestionStatus.AutoExecuted,
+            verificationStatus: AutoRemediationVerificationStatus.Verified,
+          }),
+        ],
+        preventiveInsights: [preventive({ id: "spike" })],
+      });
+
+      expect(
+        insights.insights.map((insight: AiActivityInsight): string => {
+          return `${insight.tone}:${insight.kind}`;
+        }),
+      ).toEqual([
+        "Critical:RecurringProblem",
+        "Critical:RiskSpotted",
+        "Pattern:Hotspot",
+        "Positive:FixedAutomatically",
+      ]);
+      expect(insights.insights[0]!.nextStep).toBe(
+        "Raise its memory limit to 1Gi.",
+      );
+      expect(insights.insights[2]!.object!.value).toBe("db-pool-rqyt");
+    });
+
+    test("insights a reader worked out itself are ranked with the builder's own", () => {
+      const insights: AiActivityInsights = build({
+        fixes: [
+          fix(hoursAgo(1), {
+            status: AutoRemediationSuggestionStatus.AutoExecuted,
+          }),
+        ],
+        extraInsights: [
+          {
+            kind: AiActivityInsightKind.NotInvestigated,
+            tone: AiActivityInsightTone.Critical,
+            count: 7,
+            total: 10,
+            reason: "provider_missing",
+          },
+        ],
+      });
+
+      expect(
+        insights.insights.map((insight: AiActivityInsight): string => {
+          return insight.kind;
+        }),
+      ).toEqual([
+        AiActivityInsightKind.NotInvestigated,
+        AiActivityInsightKind.FixedAutomatically,
+      ]);
+      expect(insights.insights[0]!.reason).toBe("provider_missing");
+    });
+
+    test("the same rows give the same insights, in whatever order they come", () => {
+      const occurrences: Array<AiActivitySubjectInput> = [
+        ...firings({
+          prefix: "a",
+          monitorId: CPU_MONITOR,
+          seriesLabels: nodeLabels("node-a"),
+          at: [daysAgo(1), daysAgo(2), daysAgo(3), daysAgo(4)],
+        }),
+        ...firings({
+          prefix: "b",
+          monitorId: REPLICA_MONITOR,
+          seriesLabels: nodeLabels("node-a"),
+          at: [daysAgo(2), daysAgo(5), daysAgo(6)],
+        }),
+        ...firings({
+          prefix: "c",
+          monitorId: PENDING_MONITOR,
+          seriesLabels: nodeLabels("node-b"),
+          at: [daysAgo(1)],
+        }),
+      ];
+      const investigations: Array<AiActivityInvestigationInput> = [
+        run(daysAgo(1), occurrences[0], { tldr: "Finding A." }),
+        run(daysAgo(2), occurrences[4], { tldr: "Finding B." }),
+        run(daysAgo(1), occurrences[7]),
+      ];
+      const fixes: Array<AiActivityFixInput> = [
+        fix(daysAgo(1), {
+          alertId: occurrences[0]!.id,
+          status: AutoRemediationSuggestionStatus.AutoExecuted,
+          verificationStatus: AutoRemediationVerificationStatus.Verified,
+        }),
+        fix(daysAgo(2), { alertId: occurrences[4]!.id }),
+      ];
+
+      const forwards: AiActivityInsights = build({
+        occurrences,
+        investigations,
+        fixes,
+      });
+      const backwards: AiActivityInsights = build({
+        occurrences: [...occurrences].reverse(),
+        investigations: [...investigations].reverse(),
+        fixes: [...fixes].reverse(),
+      });
+
+      expect(backwards).toEqual(forwards);
+    });
   });
 });

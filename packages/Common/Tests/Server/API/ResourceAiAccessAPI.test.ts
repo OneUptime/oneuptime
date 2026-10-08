@@ -3021,19 +3021,21 @@ describe("ResourceAiAccessAPI", () => {
           const query: Record<string, unknown> = (
             args as { query: Record<string, unknown> }
           ).query;
+          // The linked alert, read whole: the page needs nothing more of it.
           return (
             query[kind.subjectRelation]
-              ? [{ id: ALERT_ID }]
-              : [
+              ? [
                   {
                     id: ALERT_ID,
                     title: "Disk almost full",
+                    createdAt: new Date(),
                     seriesLabels: {
                       [OWN_LABEL[kind.resourceType]]: "prod-1",
                       mountpoint: "/var",
                     },
                   },
                 ]
+              : []
           ) as never;
         });
       jest.spyOn(AIRunService, "findBy").mockResolvedValue([
@@ -3049,6 +3051,8 @@ describe("ResourceAiAccessAPI", () => {
         .spyOn(AutoRemediationSuggestionService, "findBy")
         .mockResolvedValue([]);
       jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+      jest.spyOn(IncidentFeedService, "findBy").mockResolvedValue([]);
+      jest.spyOn(AlertFeedService, "findBy").mockResolvedValue([]);
 
       await callRoute(
         RESOURCE_AI_ACCESS_INSIGHTS_PATH,
@@ -3065,8 +3069,10 @@ describe("ResourceAiAccessAPI", () => {
       );
       // The resource's own label is never a part of it.
       expect(insights.problems[0]!.objects).toEqual([
-        { name: "Mount", value: "/var", count: 1 },
+        { name: "Mount", value: "/var", key: "mountpoint", count: 1 },
       ]);
+      // It came up once here: the linked alert.
+      expect(insights.totals.occurrences).toBe(1);
 
       const linked: Record<string, unknown> = (
         alertFind.mock.calls[0]![0] as { query: Record<string, unknown> }

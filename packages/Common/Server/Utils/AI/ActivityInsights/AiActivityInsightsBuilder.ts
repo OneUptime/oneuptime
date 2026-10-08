@@ -1790,25 +1790,38 @@ export default class AiActivityInsightsBuilder {
       });
     }
 
-    // 5. What AI fixed without waiting for anyone.
+    /*
+     * 5. What AI fixed without waiting for anyone — the fixes it applied on
+     * its own that verification did not find wanting (one that did not help
+     * is said above, never as good news).
+     */
     const automatic: Array<AiActivityFixInput> = data.fixes.filter(
       (fix: AiActivityFixInput): boolean => {
         return fix.status === AutoRemediationSuggestionStatus.AutoExecuted;
       },
     );
+    const automaticThatHeld: Array<AiActivityFixInput> = automatic.filter(
+      (fix: AiActivityFixInput): boolean => {
+        return (
+          fix.verificationStatus !== AutoRemediationVerificationStatus.Failed
+        );
+      },
+    );
 
-    if (automatic.length > 0) {
+    if (automaticThatHeld.length > 0) {
       insights.push({
         kind: AiActivityInsightKind.FixedAutomatically,
         tone: AiActivityInsightTone.Positive,
-        count: automatic.length,
-        verifiedCount: automatic.filter((fix: AiActivityFixInput): boolean => {
-          return (
-            fix.verificationStatus ===
-            AutoRemediationVerificationStatus.Verified
-          );
-        }).length,
-        ...this.getFixEvidence(automatic, data.subjects),
+        count: automaticThatHeld.length,
+        verifiedCount: automaticThatHeld.filter(
+          (fix: AiActivityFixInput): boolean => {
+            return (
+              fix.verificationStatus ===
+              AutoRemediationVerificationStatus.Verified
+            );
+          },
+        ).length,
+        ...this.getFixEvidence(automaticThatHeld, data.subjects),
       });
     }
 
