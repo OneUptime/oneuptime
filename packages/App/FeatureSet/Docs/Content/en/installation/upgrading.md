@@ -860,7 +860,9 @@ API, SSO, or the Slack and Microsoft Teams apps.
     allowlist - needs the same permission when the save turns that on
     (switching such a rule on included) or adds allowlist patterns or
     Runners. Rules that already run that way keep running, and narrowing
-    them or turning that off needs nothing more.
+    them or turning that off needs nothing more. Turning on **Runs AI
+    Remediation Commands** for a Runner that holds SSH credentials needs the
+    same permission; a Runner that runs them already keeps doing so.
     `ProjectMember` and the runbook roles approve such plans once
     `ReadRunbookCredential` is added to their team.
   See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types),

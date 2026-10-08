@@ -16,9 +16,10 @@ import path from "path";
  * - LLM providers are read by the project's members who may read its
  *   settings, the global list by anyone signed in: the LLM provider page
  *   says so.
- * - Approving an AI plan with an SSH command, and letting a rule run AI
- *   commands without asking, take the read of runbook credentials
- *   (AiRemediationCredentialUse): the AI SRE page says so.
+ * - Approving an AI plan with an SSH command, letting a rule run AI
+ *   commands without asking, and letting a Runner that holds SSH
+ *   credentials run them, take the read of runbook credentials
+ *   (AiRemediationCredentialUse, RunnerService): the AI SRE page says so.
  *
  * Users, Teams & Permissions carries the two rules - a paragraph before the
  * scope-exempt roles, and the close of the paragraph on settings that hold
@@ -185,6 +186,7 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
     expectSentences(paragraph, [
       "Approving a plan with an SSH command confirms that pick, so it takes permission to read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin), as naming a credential in a runbook step does; without it the approval is refused, saying who may approve the plan, and nothing runs.",
       "Letting such a rule run its commands without asking - **Fix without asking**, with a command allowlist - takes the same permission when a save turns that on - switching such a rule on included - or adds allowlist patterns or Runners, however the allowlist is written; narrowing the rule, or turning that off, does not.",
+      "Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission, since a rule that names no Runners reaches every Runner that runs OneUptime AI's commands.",
       "A kubectl command runs with the credential bound to its cluster on the **AI agent** page, which only someone who may read runbook credentials can bind (see [Who may change it](#who-may-change-it)), so approving it asks nothing more.",
     ]);
 
@@ -239,7 +241,7 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
 
     expect(
       credentials.endsWith(
-        "Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners.",
+        "Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners, or turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials.",
       ),
     ).toBe(true);
   });
@@ -259,6 +261,8 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
       "    a request that is not signed in gets a `401`. The list of global LLM",
       "  - Approving an AI command plan with an SSH command needs permission to",
       "    read runbook credentials (`ReadRunbookCredential`, or `ProjectOwner` or",
+      "    them or turning that off needs nothing more. Turning on **Runs AI",
+      "    Remediation Commands** for a Runner that holds SSH credentials needs the",
       "  See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types),",
       "  [Run Rules on Existing Resources](/docs/configuration/run-rules-now#before-you-begin)",
     ]);
