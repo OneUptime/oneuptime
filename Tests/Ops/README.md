@@ -810,6 +810,19 @@ App; MobileApp compiles after Common in its job (its tsconfig maps `Common/*`
 to `../Common/build/dist/*`); and every step after a job's first install runs
 unless the run was cancelled, so one run reports each package that fails.
 
+### `TerraformProviderGeneratorTypeCheck.test.js`
+
+`Scripts/TerraformProvider`'s `npm run compile` type-checks the Terraform
+provider generator, `Scripts/OpenAPI/GenerateSpec.ts` and the Common sources
+they import, with Common's own compiler options (the generator's
+`tsconfig.json` extends `packages/Common/tsconfig.json`). No workflow ran it,
+and it failed with about 10,700 errors before anyone looked. The suite pins
+that `.github/workflows/terraform-provider-generation.yml` runs it in one step,
+on every pull request and every push to master, after installing Common,
+`Scripts` and the generator in the same job (what its imports resolve from),
+before the provider is generated, with nothing that lets it fail quietly, and
+with the generator's unit tests still running when it fails.
+
 ### `CodeQlWorkflow.test.js`
 
 `.github/workflows/codeql.yml` is CodeQL's advanced setup, to replace the
