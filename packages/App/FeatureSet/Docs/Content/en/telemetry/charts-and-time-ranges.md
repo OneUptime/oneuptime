@@ -1,17 +1,28 @@
 # Zooming Into a Time Range
 
-## Overview
+Drag across a chart to zoom the page into that moment, and double-click to go back. This page explains the gestures, how a zoom behaves, and which charts zoom what.
+
+:::cards
+- [Zoom in and back out](#zoom-in-and-back-out): The two gestures, and the Reset zoom button.
+- [How zooming behaves](#how-zooming-behaves): Nested zooms, auto-refresh, clicks and drags.
+- [Where it works](#where-it-works): The pages and charts a drag retimes.
+- [Charts that don't zoom](#charts-that-dont-zoom): Strips, gauges and sparklines.
+:::
+
+## Zoom in and back out
 
 Every time-series chart in OneUptime doubles as a time-range picker. When a
 chart shows a spike you want to look at, you don't have to open the picker and
 type in dates:
 
+:::steps
 1. **Drag across the spike** on any chart. The page's time range moves to the
    window you dragged out, exactly as if you had picked it in the time-range
    picker. Every chart, and every tile or table worked out from the page's
    time range, re-queries for it, so you read one moment across all of them.
 2. **Double-click any chart** to go back. The page returns to the time range it
    had before you started zooming.
+:::
 
 Panels that show the current state stay on now, just as they do when you pick
 a range yourself: inventory counts, health, top resource consumers, recent
@@ -20,6 +31,17 @@ warnings, open incidents and alerts, and a dashboard's live lists.
 While a zoom is active, a **Reset zoom** button appears next to the page's
 time-range picker. It does the same thing as a double-click, and it is the way
 back for keyboard users and on touch screens.
+
+```mermaid title="What a drag, a double-click and the picker do to the page's time range"
+stateDiagram-v2
+    state "Range from the picker" as Picked
+    state "Zoomed window" as Zoomed
+    [*] --> Picked
+    Picked --> Zoomed: drag across a chart
+    Zoomed --> Zoomed: drag again
+    Zoomed --> Picked: double-click or Reset zoom
+    Zoomed --> Picked: pick a range
+```
 
 ## How zooming behaves
 
@@ -58,6 +80,8 @@ back for keyboard users and on touch screens.
   and the log and trace analytics charts, zoom into the bars you drag across,
   or into the single bar you click. These charts say **Click or drag to
   zoom**.
+
+### Hints on the charts
 
 Most charts that zoom name the gesture above the plot — **Drag to zoom**, or
 **Click or drag to zoom** — and, while a zoom is active, remind you to
@@ -115,3 +139,11 @@ drag on, or always show a fixed window of their own, so they don't zoom:
 - small sparklines with a fixed window of their own, such as a network
   device's round-trip time over the past hour — its **Open metrics** link
   leads to charts you can zoom.
+
+## Next steps
+
+:::cards
+- [Authoring a Dashboard](/docs/dashboards/authoring): Zoom works on every chart of a dashboard.
+- [Search Syntax](/docs/telemetry/search-syntax): Filter the explorers once you have found the moment.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on the metric you were looking at.
+:::

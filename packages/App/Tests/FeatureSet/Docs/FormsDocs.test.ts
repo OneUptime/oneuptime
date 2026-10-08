@@ -41,6 +41,11 @@ import DocsNav, {
   NavGroup,
   NavLink,
 } from "../../../FeatureSet/Docs/Utils/Nav";
+import {
+  DOCS_DEFAULT_ICON,
+  getDocsNavIcon,
+  hasDocsNavIcon,
+} from "../../../FeatureSet/Docs/Utils/NavIcons";
 import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import Form from "Common/Models/DatabaseModels/Form";
@@ -145,7 +150,6 @@ import path from "path";
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
 const DOCS_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs");
 const CONTENT_DIR: string = path.join(DOCS_DIR, "Content");
-const NAV_PARTIAL_FILE: string = path.join(DOCS_DIR, "Views/Partials/Nav.ejs");
 const RATE_LIMIT_FILE: string = path.join(
   REPO_ROOT,
   "Common/Server/Middleware/FormRateLimit.ts",
@@ -578,7 +582,10 @@ describe("Forms docs", () => {
     );
 
     it("has an icon in the docs menu", () => {
-      expect(readSource(NAV_PARTIAL_FILE)).toMatch(/'Forms':\s*'<path /);
+      expect(hasDocsNavIcon("Forms")).toBe(true);
+      expect(getDocsNavIcon("Forms")).toMatch(/^<path /);
+      expect(getDocsNavIcon("Forms")).not.toBe(DOCS_DEFAULT_ICON);
+      expect(formsGroup().title).toBe("Forms");
     });
   });
 

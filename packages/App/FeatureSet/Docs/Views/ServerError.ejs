@@ -91,7 +91,7 @@
     <% if (hasNav) { %>
     <%- include('./Partials/SearchModal.ejs', { t: t }) %>
     <% } %>
-    <%- include('./Partials/Scripts.ejs', { nav: hasNav ? nav : [], t: t }) %>
+    <%- include('./Partials/Scripts.ejs', { nav: hasNav ? nav : [], t: t, lang: lang }) %>
 </body>
 
 </html>

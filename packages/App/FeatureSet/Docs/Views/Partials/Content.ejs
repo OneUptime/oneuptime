@@ -29,6 +29,25 @@ var isOtherLanguage = typeof contentLang !== 'undefined' && contentLang && conte
 
     <header class="mb-8">
         <h1 class="docs-title"><%- link.title %></h1>
+        <% if (typeof markdownUrl !== 'undefined' && markdownUrl) { %>
+        <%
+        /*
+         * The page as Markdown, to read raw or to paste into an AI assistant.
+         * The copy button ships hidden: the page's script shows it once it
+         * knows the clipboard is there to write to.
+         */
+        %>
+        <div class="docs-page-actions">
+            <button type="button" class="docs-page-action" data-copy-page data-markdown-url="<%= markdownUrl %>" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                <span class="docs-page-action__label"><%- t('ui.copyPage') %></span>
+            </button>
+            <a class="docs-page-action" href="<%= markdownUrl %>" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span><%- t('ui.viewAsMarkdown') %></span>
+            </a>
+        </div>
+        <% } %>
     </header>
 
     <div class="docs-content" id="docs-content"<% if (isOtherLanguage) { %> lang="<%= contentLang %>" dir="<%= contentDir %>"<% } %>>

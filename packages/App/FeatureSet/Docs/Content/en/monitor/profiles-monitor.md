@@ -1,65 +1,128 @@
 # Profiles Monitor
 
-Profiles monitoring allows you to monitor continuous profiling data from your applications and trigger alerts based on profile counts and patterns. OneUptime evaluates profile data from your telemetry services over a time window.
+A Profiles monitor counts the continuous profiles your services send to OneUptime that match your filters — profile type, service, attributes — over a time window, and changes the monitor's status, creates an alert or declares an incident when the count meets your criteria. Its main use is to notice when profiling data stops arriving from a service.
 
-## Overview
+> [!IMPORTANT]
+> **Create Monitor** in the dashboard does not offer Profiles: there is no form for its filters yet. Create a Profiles monitor through the [API](/docs/api-reference/api-reference) or [Terraform](/docs/terraform/monitor-steps), as described below. Once it exists, you can view and edit its criteria on the monitor's **Criteria** page in the dashboard; its filters can only be changed through the API or Terraform.
 
-Profiles monitors count and filter profiling data matching specific criteria. This enables you to:
+:::cards
+- [Create the monitor](#create-a-profiles-monitor): The configuration to send through the API or Terraform.
+- [What it queries](#what-it-queries): Profile types, services, attributes and the window.
+- [Criteria](#criteria): The conditions you can use.
+- [Worked example](#worked-example-profiles-stop-arriving): Know when a service stops sending profiles.
+:::
 
-- Monitor continuous profiling data from your applications
-- Filter profiles by type (CPU, memory, goroutines, etc.)
-- Track profile volume and patterns
-- Alert on profiling anomalies
-- Filter by custom profile attributes
+## How it works
 
-## Creating a Profiles Monitor
+```mermaid title="Every minute, a Profiles monitor counts and checks"
+flowchart TB
+    App["Profilers: Grafana Alloy<br/>or a Pyroscope SDK"] --> Store[("Profiles in OneUptime")]
+    Store --> Count["Count matching profiles<br/>in the time window"]
+    Count --> Check{"Criteria met?"}
+    Check -->|"First match"| Act["Change status,<br/>alert or incident"]
+    Check -->|None| Default["Default status"]
+```
 
-1. Go to **Monitors** in the OneUptime Dashboard
-2. Click **Create Monitor**
-3. Select **Profiles** as the monitor type
-4. Select the telemetry services to monitor
-5. Configure profile filters and criteria as needed
+Every minute, OneUptime counts the profiles that match the monitor's filters and started within its time window. It checks that count against the monitor's criteria from top to bottom, and the first criteria that matches decides what happens. When none matches, the monitor goes back to its default status.
 
-## Configuration Options
+## Before you begin
 
-### Telemetry Services
+- Your services send continuous profiling data to OneUptime, through Grafana Alloy (eBPF) or a Pyroscope SDK. See [Continuous Profiling](/docs/telemetry/profiles).
+- You have either an API key that can create monitors, or the OneUptime Terraform provider set up.
+- You know the ID of each telemetry service to watch, and the profile types it sends, such as `cpu`, `wall`, `alloc_objects`, `alloc_space` or `goroutine`.
 
-Select one or more services to monitor profiles from. Services must be sending continuous profiling data to OneUptime via Grafana Alloy (eBPF) or a Pyroscope SDK.
+## Create a profiles monitor
 
-### Profile Filters
+:::steps
+### Choose what to count
 
-| Filter        | Description                                                   | Required |
-| ------------- | ------------------------------------------------------------- | -------- |
-| Profile Types | Filter by profile type names (e.g., CPU, memory, goroutines)  | No       |
-| Attributes    | Key-value pairs to filter on custom profile attributes        | No       |
-| Time Window   | How far back to search for profiles (in seconds, default: 60) | No       |
+Write the step's `profileMonitor` configuration. This one counts CPU profiles from one service over the last five minutes:
 
-## Monitoring Criteria
+```json
+{
+  "profileMonitor": {
+    "telemetryServiceIds": [],
+    "profileTypes": ["cpu"],
+    "profileType": "",
+    "attributes": {},
+    "lastXSecondsOfProfiles": 300
+  }
+}
+```
 
-### Available Filter Types
+Put the service's ID in `telemetryServiceIds`, or leave the list empty to count profiles from every service. [What it queries](#what-it-queries) describes each field.
 
-| Filter Type   | Description                                                     |
-| ------------- | --------------------------------------------------------------- |
-| Profile Count | The number of profiles matching your filters in the time window |
+### Create the monitor
 
-### Filter Conditions
+Create a monitor with the monitor type `Profiles` and a step that holds this configuration and at least one criteria, through the [API](/docs/api-reference/api-reference) or [Terraform](/docs/terraform/monitor-steps). In Terraform, pass the configuration as the step's `profile_monitor` attribute, written with `jsonencode()`.
 
-- **Greater Than** — Profile count exceeds a threshold
-- **Less Than** — Profile count is below a threshold
-- **Greater Than or Equal To** — Profile count is at or above a threshold
-- **Less Than or Equal To** — Profile count is at or below a threshold
-- **Equal To** — Profile count matches exactly
-- **Not Equal To** — Profile count does not match
+### Check it in the dashboard
 
-### Example Criteria
+Open the monitor from **Monitors**. Its first evaluation runs within a minute, and its status changes as soon as a criteria matches.
+:::
 
-#### Alert if no profiles received in 5 minutes
+## What it queries
 
-- **Time Window**: 300 seconds
-- **Filter Type**: Profile Count
-- **Filter Condition**: Equal To
-- **Value**: 0
+| Field | What it matches | Default |
+| --- | --- | --- |
+| `profileTypes` | Profiles of any of these types, matched exactly, such as `cpu`. | Empty: every type |
+| `profileType` | Profiles whose type contains this text, ignoring case. When it is set, `profileTypes` is ignored. | Empty |
+| `telemetryServiceIds` | Profiles from any of these telemetry services. | Empty: every service |
+| `entityKeys` | Profiles from any of these hosts, pods, containers and other infrastructure entities. | Empty: every entity |
+| `attributes` | Profiles whose attributes have these values. | Empty: no condition |
+| `lastXSecondsOfProfiles` | Profiles that started within this many seconds before the evaluation. | `60` |
 
-## Setup Requirements
+All the filters you set must match for a profile to be counted.
 
-Profiles monitoring requires your applications to send continuous profiling data to OneUptime. See the [Continuous Profiling](/docs/telemetry/profiles) documentation for setup instructions.
+## How it is evaluated
+
+- **Every minute.** A Profiles monitor is not checked by probes, so it has no interval to set and no **Probes & Interval** page.
+- **One number per evaluation.** The monitor counts the profiles that match every filter and started within `lastXSecondsOfProfiles`. A profiler uploads at a regular interval, so give the window room for several uploads.
+- **No profiles is a count of 0.** A service whose profiler stops uploading produces 0.
+- **Criteria from top to bottom.** The first criteria that matches decides, so put the most severe one first.
+
+Each status change, with the reason for it, is recorded on the monitor's **Status Timeline**.
+
+## Criteria
+
+A Profiles monitor's criteria have one filter, **Profile Count**: the number of profiles that matched in the window. Compare it with a value:
+
+| Filter Condition | Matches when the profile count is… |
+| --- | --- |
+| **Greater Than** | above the value |
+| **Greater Than Or Equal To** | the value or above |
+| **Less Than** | below the value |
+| **Less Than Or Equal To** | the value or below |
+| **Equal To** | exactly the value |
+| **Not Equal To** | anything but the value |
+
+Profile counts have no anomaly conditions: there is no baseline to compare them with.
+
+## Worked example: profiles stop arriving
+
+The checkout service runs a Pyroscope SDK that uploads CPU profiles. You want an incident when they stop for five minutes:
+
+- `profileTypes`: `["cpu"]`, `telemetryServiceIds`: the checkout service, `lastXSecondsOfProfiles`: `300`
+- Criteria 1: **Profile Count** **Equal To** `0` — mark the monitor offline and declare an incident
+- Criteria 2: **Profile Count** **Greater Than** `0` — mark the monitor online
+
+While the SDK uploads, every evaluation counts some profiles and criteria 2 keeps the monitor online. When the service is deployed without the SDK, the count falls to 0 five minutes after the last upload, criteria 1 matches, and the incident is declared. The first upload after the fix brings the count above 0 again, and the incident resolves itself if **Auto Resolve Incident** is on for it.
+
+## Troubleshooting
+
+:::details The monitor counts 0, but profiles show up in OneUptime
+Check the filters against the profiles you see: `profileTypes` must match the type exactly, and `telemetryServiceIds` must hold the right service IDs. A short `lastXSecondsOfProfiles` can also fall between two uploads.
+:::
+
+:::details Profiles is missing from Create Monitor
+That is expected: the dashboard has no form for a Profiles monitor's filters yet. Create it through the API or Terraform, as described in [Create a profiles monitor](#create-a-profiles-monitor).
+:::
+
+## Next steps
+
+:::cards
+- [Continuous Profiling](/docs/telemetry/profiles): Send profiles from Grafana Alloy or a Pyroscope SDK.
+- [Terraform Monitor Steps](/docs/terraform/monitor-steps): Pass the step configuration from Terraform.
+- [Traces Monitor](/docs/monitor/traces-monitor): Alert on failing spans.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on CPU, memory and other metrics.
+:::

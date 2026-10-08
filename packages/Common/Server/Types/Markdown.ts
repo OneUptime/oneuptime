@@ -1,6 +1,12 @@
-import { Renderer, marked } from "marked";
+import { Marked, MarkedOptions, Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
+import {
+  DOCS_CALLOUT_TYPES,
+  docsMarkdownExtensions,
+  docsSafeUrl,
+  renderDocsCallout,
+} from "./MarkdownDocsExtensions";
 import SafeHtml from "../../Types/SafeHtml";
 import {
   InlineImageDataUri,
@@ -787,6 +793,7 @@ export default class Markdown {
 
   private static blogRenderer: Renderer | null = null;
   private static docsRenderer: Renderer | null = null;
+  private static docsMarkedOptions: MarkedOptions | null = null;
   private static emailRenderer: Renderer | null = null;
   private static blogValidationRenderer: Renderer | null = null;
 
@@ -867,11 +874,43 @@ export default class Markdown {
       }
     }
 
+    /*
+     * The docs have block components of their own (steps, tabs, cards,
+     * collapsible sections and callouts - see MarkdownDocsExtensions.ts).
+     * They are passed with each docs render rather than registered on
+     * marked, so the blog, email and the rest keep reading ":::" as text,
+     * and docs rendering still goes through marked like every other type.
+     */
+    if (contentType === MarkdownContentType.Docs && renderer) {
+      return await marked(markdown, {
+        ...Markdown.getDocsMarkedOptions(),
+        renderer: renderer,
+      });
+    }
+
     const htmlBody: string = await marked(markdown, {
       renderer: renderer,
     });
 
     return htmlBody;
+  }
+
+  /*
+   * marked's own processed form of the docs extensions - the tokenizers,
+   * renderers and the hook that resets per-page ids - taken from an instance
+   * that has them registered, to pass with each docs render.
+   */
+  private static getDocsMarkedOptions(): MarkedOptions {
+    if (this.docsMarkedOptions === null) {
+      const defaults: MarkedOptions = new Marked(docsMarkdownExtensions)
+        .defaults;
+      this.docsMarkedOptions = {
+        extensions: defaults.extensions ?? null,
+        hooks: defaults.hooks ?? null,
+      };
+    }
+
+    return this.docsMarkedOptions;
   }
 
   /*
@@ -1295,9 +1334,9 @@ export default class Markdown {
      * `code` arrives ALREADY escaped — marked escapes codespan text before
      * it reaches the renderer — so escaping again here would turn a typed
      * "<img>" into the literal "&lt;img&gt;" on screen rather than the
-     * "<img>" the author wrote. (The Docs and BlogValidation renderers do
-     * escape a second time; that is a separate defect in those surfaces,
-     * not a pattern to copy.)
+     * "<img>" the author wrote. (The blog's renderers do escape a second
+     * time; that is a separate defect in those surfaces, not a pattern to
+     * copy. The docs renderer no longer does.)
      */
     renderer.codespan = function (code: string): string {
       return (
@@ -1557,68 +1596,76 @@ export default class Markdown {
     };
 
     renderer.blockquote = function (quote) {
+      /*
+       * GitHub's alert syntax - "> [!NOTE]" on the first line - names the
+       * kind of callout without a word in any language, so a translated page
+       * keeps it as written and the label is put into the page's language
+       * (see renderDocsCallout). The older "> **Note:**" form still works.
+       */
+      const alertMatch: RegExpMatchArray | null = quote.match(
+        /^\s*<p>\[!(NOTE|TIP|INFO|IMPORTANT|WARNING|CAUTION|DANGER)\][ \t]*(?:\n|<br>)?/i,
+      );
+
+      if (alertMatch) {
+        const body: string = quote
+          .slice(alertMatch[0].length)
+          // "[!NOTE]" alone on its line leaves an empty paragraph behind.
+          .replace(/^\s*<\/p>/, "");
+
+        return renderDocsCallout({
+          type: alertMatch[1]!.toLowerCase(),
+          title: null,
+          bodyHtml: body.trim().startsWith("<") ? body : `<p>${body}`,
+        });
+      }
+
       const calloutMatch: RegExpMatchArray | null = quote.match(
-        /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution):?<\/strong>/i,
+        /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution|Important):?<\/strong>/i,
       );
 
       if (calloutMatch) {
         const type: string = calloutMatch[1]!.toLowerCase();
-        const configMap: Record<string, { icon: string; label: string }> = {
-          note: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Note",
-          },
-          info: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Info",
-          },
-          tip: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>`,
-            label: "Tip",
-          },
-          warning: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>`,
-            label: "Warning",
-          },
-          caution: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>`,
-            label: "Caution",
-          },
-          danger: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Danger",
-          },
-        };
-
-        const config: { icon: string; label: string } =
-          configMap[type] || configMap["note"]!;
 
         const content: string = quote.replace(
-          /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution):?<\/strong>\s*/i,
+          /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution|Important):?<\/strong>\s*/i,
           "<p>",
         );
 
-        return `<div class="docs-callout docs-callout--${type}">
-          <div class="docs-callout__head">
-            <svg class="docs-callout__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">${config.icon}</svg>
-            <span class="docs-callout__label">${config.label}</span>
-          </div>
-          <div class="docs-callout__body">${content}</div>
-        </div>`;
+        return renderDocsCallout({
+          type: DOCS_CALLOUT_TYPES.includes(type) ? type : "note",
+          title: null,
+          bodyHtml: content,
+        });
       }
 
       return `<blockquote class="docs-quote">${quote}</blockquote>`;
     };
 
+    /*
+     * marked hands a link's or an image's address over as written, so it
+     * goes through docsSafeUrl before it is put in an attribute: a quote in
+     * it cannot end the attribute, and a javascript: address is shown as
+     * text, not as a link.
+     */
     renderer.image = function (href, title, text) {
+      const src: string | null = href
+        ? docsSafeUrl(href, { isImage: true })
+        : null;
+
+      if (src === null) {
+        return text || "";
+      }
+
       const titleAttr: string = title
         ? ` title="${Markdown.escapeHtml(title)}"`
         : "";
-      return `<img src="${href}" alt="${text || ""}"${titleAttr} class="docs-image" loading="lazy" decoding="async" />`;
+      return `<img src="${src}" alt="${text || ""}"${titleAttr} class="docs-image" loading="lazy" decoding="async" />`;
     };
 
     renderer.link = function (href, title, text) {
-      if (!href) {
+      const safeHref: string | null = href ? docsSafeUrl(href) : null;
+
+      if (safeHref === null) {
         return text as string;
       }
 
@@ -1636,11 +1683,22 @@ export default class Markdown {
         ? '<svg class="docs-link__external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>'
         : "";
 
-      return `<a class="docs-link" href="${href}"${titleAttr}${externalAttrs}>${text}${marker}</a>`;
+      return `<a class="docs-link" href="${safeHref}"${titleAttr}${externalAttrs}>${text}${marker}</a>`;
     };
 
     renderer.code = function (code, language) {
-      const lang: string = (language || "").trim().toLowerCase();
+      /*
+       * The info string is the language, optionally followed by a title:
+       * ```bash title="install.sh"
+       */
+      const info: string = (language || "").trim();
+      const lang: string = (info.split(/\s+/)[0] || "").toLowerCase();
+      const titleMatch: RegExpMatchArray | null = info.match(
+        /\btitle=(?:"([^"]*)"|'([^']*)')/,
+      );
+      const title: string = titleMatch
+        ? (titleMatch[1] ?? titleMatch[2] ?? "").trim()
+        : "";
 
       if (lang === "mermaid") {
         /*
@@ -1648,7 +1706,10 @@ export default class Markdown {
          * the diagram identical while making sure a `<` in a node label can
          * never be parsed as markup.
          */
-        return `<div class="docs-diagram"><div class="mermaid">${Markdown.escapeHtml(code)}</div></div>`;
+        const caption: string = title
+          ? `<p class="docs-diagram__caption">${Markdown.escapeHtml(title)}</p>`
+          : "";
+        return `<div class="docs-diagram"><div class="mermaid">${Markdown.escapeHtml(code)}</div>${caption}</div>`;
       }
 
       const escaped: string = Markdown.escapeHtml(code);
@@ -1664,15 +1725,18 @@ export default class Markdown {
        * without scripting it would be a dead control with an English name.
        * The bar reserves its height either way, so nothing shifts.
        */
+      const titleHtml: string = title
+        ? `<span class="docs-code__title">${Markdown.escapeHtml(title)}</span>`
+        : "";
       const bar: string = `<div class="docs-code__bar">
-          <span class="docs-code__lang">${label || ""}</span>
+          ${titleHtml}<span class="docs-code__lang">${label || ""}</span>
           <button type="button" class="docs-code__copy" data-copy-code hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             <span class="docs-code__copy-text"></span>
           </button>
         </div>`;
 
-      return `<div class="docs-code"${lang ? ` data-language="${lang}"` : ""}>${bar}<pre><code class="${codeClass}">${escaped}</code></pre></div>`;
+      return `<div class="docs-code"${lang ? ` data-language="${Markdown.escapeHtml(lang)}"` : ""}>${bar}<pre><code class="${Markdown.escapeHtml(codeClass)}">${escaped}</code></pre></div>`;
     };
 
     renderer.heading = function (text, level) {
@@ -1707,10 +1771,13 @@ export default class Markdown {
       return `<${tag}${align}>${content}</${tag}>`;
     };
 
-    // Inline code
+    /*
+     * Inline code. marked has escaped the code already, so it goes in as it
+     * is: escaping it again showed every quote, `<` and `&` in inline code
+     * as its entity - `"UP"` read "&quot;UP&quot;" on the page.
+     */
     renderer.codespan = function (code) {
-      const escaped: string = Markdown.escapeHtml(code);
-      return `<code class="docs-code-inline">${escaped}</code>`;
+      return `<code class="docs-code-inline">${code}</code>`;
     };
 
     this.docsRenderer = renderer;
