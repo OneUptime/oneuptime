@@ -14,6 +14,7 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadButtons,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
+  WorkspacePayloadInlineImage,
   WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
@@ -107,6 +108,9 @@ import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplic
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
 import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
+import MicrosoftTeamsInlineImages from "./MicrosoftTeamsInlineImages";
+import WorkspaceInlineImages from "../WorkspaceInlineImages";
+import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 
 /*
  * AI Ops - observability assistant imports. These power the natural-language
@@ -777,9 +781,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
      * and single newlines can collapse. Convert common patterns to a structured card.
      */
 
+    /*
+     * An incoming webhook's card cannot carry a screenshot's base64 (and a
+     * Teams webhook refuses a message that large): an image whose address
+     * is a data: URL is its alt text.
+     */
+    const markdownWithoutInlineImages: string =
+      ChatInlineImages.toText(markdown);
+
     // First, convert markdown tables to HTML
-    const markdownWithHtmlTables: string =
-      this.convertMarkdownTablesToHtml(markdown);
+    const markdownWithHtmlTables: string = this.convertMarkdownTablesToHtml(
+      markdownWithoutInlineImages,
+    );
 
     const lines: Array<string> = markdownWithHtmlTables
       .split("\n")
@@ -1542,35 +1555,41 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     /*
      * Teams adaptive cards have a ~28KB payload limit.
      * Split message blocks into chunks of 40 to avoid hitting the limit.
+     *
+     * A screenshot in the message's Markdown is shown as an image of its
+     * own, where the Markdown had it (WorkspaceInlineImages). Each card that
+     * shows one is built a second time with each image as its alt text, to
+     * send instead if Teams refuses the first.
      */
     const maxBlocksPerCard: number = 40;
     const allMessageBlocks: Array<WorkspaceMessageBlock> =
-      data.workspaceMessagePayload.messageBlocks;
+      WorkspaceInlineImages.splitMessageBlocks(
+        data.workspaceMessagePayload.messageBlocks,
+      );
 
     const adaptiveCards: Array<JSONObject> = [];
+    const adaptiveCardsWithoutImages: Array<JSONObject | null> = [];
 
-    if (allMessageBlocks.length <= maxBlocksPerCard) {
-      adaptiveCards.push(
-        this.buildAdaptiveCardFromMessageBlocks({
-          messageBlocks: allMessageBlocks,
-        }),
+    for (
+      let i: number = 0;
+      i < Math.max(allMessageBlocks.length, 1);
+      i += maxBlocksPerCard
+    ) {
+      const chunk: Array<WorkspaceMessageBlock> = allMessageBlocks.slice(
+        i,
+        i + maxBlocksPerCard,
       );
-    } else {
-      for (
-        let i: number = 0;
-        i < allMessageBlocks.length;
-        i += maxBlocksPerCard
-      ) {
-        const chunk: Array<WorkspaceMessageBlock> = allMessageBlocks.slice(
-          i,
-          i + maxBlocksPerCard,
-        );
-        adaptiveCards.push(
-          this.buildAdaptiveCardFromMessageBlocks({
-            messageBlocks: chunk,
-          }),
-        );
-      }
+      const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
+        messageBlocks: chunk,
+        showInlineImages: true,
+      });
+
+      adaptiveCards.push(adaptiveCard);
+      adaptiveCardsWithoutImages.push(
+        MicrosoftTeamsInlineImages.hasImage(adaptiveCard)
+          ? this.buildAdaptiveCardFromMessageBlocks({ messageBlocks: chunk })
+          : null,
+      );
     }
 
     logger.debug(
@@ -1700,13 +1719,20 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
         // Send each adaptive card chunk to the channel
         let lastThread: WorkspaceThread | undefined;
-        for (const adaptiveCard of adaptiveCards) {
-          lastThread = await this.sendAdaptiveCardToChannel({
-            authToken: data.authToken,
-            teamId: data.workspaceMessagePayload.teamId!,
-            workspaceChannel: channel,
-            adaptiveCard: adaptiveCard,
-            projectId: data.projectId,
+        for (let index: number = 0; index < adaptiveCards.length; index++) {
+          lastThread = await this.sendCardShowingImagesIfTeamsTakesThem({
+            adaptiveCard: adaptiveCards[index]!,
+            adaptiveCardWithoutImages: adaptiveCardsWithoutImages[index]!,
+            destination: channel.id,
+            send: (adaptiveCard: JSONObject): Promise<WorkspaceThread> => {
+              return this.sendAdaptiveCardToChannel({
+                authToken: data.authToken,
+                teamId: data.workspaceMessagePayload.teamId!,
+                workspaceChannel: channel,
+                adaptiveCard: adaptiveCard,
+                projectId: data.projectId,
+              });
+            },
           });
         }
 
@@ -1750,11 +1776,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
         try {
           let lastThread: WorkspaceThread | undefined;
-          for (const adaptiveCard of adaptiveCards) {
-            lastThread = await this.sendAdaptiveCardToChat({
-              chatId: chatId,
-              adaptiveCard: adaptiveCard,
-              projectId: data.projectId,
+          for (let index: number = 0; index < adaptiveCards.length; index++) {
+            lastThread = await this.sendCardShowingImagesIfTeamsTakesThem({
+              adaptiveCard: adaptiveCards[index]!,
+              adaptiveCardWithoutImages: adaptiveCardsWithoutImages[index]!,
+              destination: chatId,
+              send: (adaptiveCard: JSONObject): Promise<WorkspaceThread> => {
+                return this.sendAdaptiveCardToChat({
+                  chatId: chatId,
+                  adaptiveCard: adaptiveCard,
+                  projectId: data.projectId,
+                });
+              },
             });
           }
 
@@ -1785,6 +1818,36 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Final response: ${JSON.stringify(workspaceMessageResponse)}`);
 
     return workspaceMessageResponse;
+  }
+
+  /*
+   * Sends a card that may show images. When Teams refuses it in a way the
+   * images can have caused (MicrosoftTeamsInlineImages), the same card with
+   * each image as its alt text is sent instead; a card without images, or a
+   * refusal for anything else, is the caller's to handle as before.
+   */
+  private static async sendCardShowingImagesIfTeamsTakesThem(data: {
+    adaptiveCard: JSONObject;
+    adaptiveCardWithoutImages: JSONObject | null;
+    destination: string;
+    send: (adaptiveCard: JSONObject) => Promise<WorkspaceThread>;
+  }): Promise<WorkspaceThread> {
+    try {
+      return await data.send(data.adaptiveCard);
+    } catch (error) {
+      if (
+        !data.adaptiveCardWithoutImages ||
+        !MicrosoftTeamsInlineImages.mayBeRefusedForImages(error)
+      ) {
+        throw error;
+      }
+
+      logger.warn(
+        `Microsoft Teams refused a card with images for ${data.destination} (${MicrosoftTeamsReplies.describeError(error)}); sending it with each image as its alt text.`,
+      );
+
+      return await data.send(data.adaptiveCardWithoutImages);
+    }
   }
 
   @CaptureSpan()
@@ -2684,6 +2747,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
   private static buildAdaptiveCardFromMessageBlocks(data: {
     messageBlocks: Array<WorkspaceMessageBlock>;
+    /*
+     * Whether the card shows the message's inline images
+     * (MicrosoftTeamsInlineImages). Without, or past what a card carries,
+     * each is its alt text.
+     */
+    showInlineImages?: boolean | undefined;
   }): JSONObject {
     logger.debug("=== buildAdaptiveCardFromMessageBlocks called ===");
     logger.debug(`Number of message blocks: ${data.messageBlocks.length}`);
@@ -2698,9 +2767,39 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     const body: Array<JSONObject> = [];
     const actions: Array<JSONObject> = [];
+    let imageCount: number = 0;
+    let imageBytes: number = 0;
 
     for (const block of data.messageBlocks) {
       logger.debug(`Processing message block of type: ${block._type}`);
+
+      if (block._type === "WorkspacePayloadInlineImage") {
+        const inlineImage: WorkspacePayloadInlineImage =
+          block as WorkspacePayloadInlineImage;
+
+        if (
+          data.showInlineImages &&
+          MicrosoftTeamsInlineImages.isShownByTeams(inlineImage.image) &&
+          imageCount < MicrosoftTeamsInlineImages.MAX_IMAGES_PER_CARD &&
+          imageBytes + inlineImage.image.byteLength <=
+            MicrosoftTeamsInlineImages.MAX_IMAGE_BYTES_PER_CARD
+        ) {
+          imageCount++;
+          imageBytes += inlineImage.image.byteLength;
+          body.push(MicrosoftTeamsInlineImages.getImageElement(inlineImage));
+        } else if (inlineImage.fallbackMarkdown) {
+          body.push(
+            this.getMarkdownBlock({
+              payloadMarkdownBlock: {
+                _type: "WorkspacePayloadMarkdown",
+                text: inlineImage.fallbackMarkdown,
+              },
+            }),
+          );
+        }
+
+        continue;
+      }
 
       if (block._type === "WorkspacePayloadMarkdown") {
         const markdownBlock: WorkspacePayloadMarkdown =
@@ -2985,13 +3084,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     };
   }
 
+  /*
+   * A text block. An image whose address is a data: URL - a screenshot in a
+   * description - is its alt text here: sendMessage shows it as an image of
+   * its own before a markdown block gets here (WorkspaceInlineImages).
+   */
   @CaptureSpan()
   public static override getMarkdownBlock(data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
     return {
       type: "TextBlock",
-      text: data.payloadMarkdownBlock.text,
+      text: ChatInlineImages.toText(data.payloadMarkdownBlock.text),
       wrap: true,
       markdown: true,
     };
@@ -4138,7 +4242,9 @@ If you need to report an incident or check historical incidents, please visit th
         }
 
         if (incident.description) {
-          const desc: string = incident.description.replace(/\s+/g, " ");
+          const desc: string = ChatInlineImages.toText(
+            incident.description,
+          ).replace(/\s+/g, " ");
           message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
@@ -4245,7 +4351,9 @@ Check back later for upcoming maintenance windows.`;
         }
 
         if (event.description) {
-          const desc: string = event.description.replace(/\s+/g, " ");
+          const desc: string = ChatInlineImages.toText(
+            event.description,
+          ).replace(/\s+/g, " ");
           message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
@@ -4351,7 +4459,9 @@ All systems are currently operating normally.`;
         }
 
         if (event.description) {
-          const desc: string = event.description.replace(/\s+/g, " ");
+          const desc: string = ChatInlineImages.toText(
+            event.description,
+          ).replace(/\s+/g, " ");
           message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
@@ -4467,7 +4577,9 @@ All monitoring checks are passing normally.`;
         }
 
         if (alert.description) {
-          const desc: string = alert.description.replace(/\s+/g, " ");
+          const desc: string = ChatInlineImages.toText(
+            alert.description,
+          ).replace(/\s+/g, " ");
           message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 

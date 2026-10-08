@@ -10,6 +10,7 @@ import {
   neutralizeUntrustedMarkdown,
   neutralizeUntrustedValue,
 } from "./UntrustedMarkdown";
+import ChatInlineImages from "./ChatInlineImages";
 import type URL from "../../Types/API/URL";
 import type ObjectID from "../../Types/ObjectID";
 
@@ -1370,6 +1371,19 @@ export default class FeedMarkdown {
    */
   public static asMarkdown(markdown: string | null | undefined): MarkdownText {
     return makeMarkdownText(markdown || "");
+  }
+
+  /**
+   * Markdown somebody wrote, placed in a chat message that shows no image of
+   * its own - a Microsoft Teams text reply: as asMarkdown, except that an
+   * image whose address is a data: URL - a screenshot a monitor's template
+   * put in a description - is its alt text (ChatInlineImages.toText). A
+   * chat cannot show one, and its base64 would only fill the message.
+   */
+  public static asChatMarkdown(
+    markdown: string | null | undefined,
+  ): MarkdownText {
+    return makeMarkdownText(ChatInlineImages.toText(markdown));
   }
 
   /**

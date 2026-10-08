@@ -392,7 +392,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         case MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance:
           // The title and the state's name are plain text; the description is Markdown.
           await turnContext.sendActivity(
-            mdText`**${scheduledMaintenance.title}**\n\n${FeedMarkdown.asMarkdown(scheduledMaintenance.description)}\n\nStarts: ${String(scheduledMaintenance.startsAt)}\nEnds: ${String(scheduledMaintenance.endsAt)}\nStatus: ${scheduledMaintenance.currentScheduledMaintenanceState?.name}`.toString(),
+            mdText`**${scheduledMaintenance.title}**\n\n${FeedMarkdown.asChatMarkdown(scheduledMaintenance.description)}\n\nStarts: ${String(scheduledMaintenance.startsAt)}\nEnds: ${String(scheduledMaintenance.endsAt)}\nStatus: ${scheduledMaintenance.currentScheduledMaintenanceState?.name}`.toString(),
           );
           break;
 
