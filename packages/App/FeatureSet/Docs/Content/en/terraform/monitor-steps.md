@@ -4,7 +4,7 @@
 
 ## Typed nested attributes, not JSON
 
-`monitor_steps` is a **typed nested attribute**: a list of step objects written directly in HCL. There is no `jsonencode()`, no `{_type, value}` envelopes, no camelCase keys, and no hand-written ids — the provider translates your HCL to the API's wire format and the server generates all internal ids.
+`monitor_steps` is a **typed nested attribute**: a list of step objects written directly in HCL. There is no `jsonencode()`, no `{_type, value}` envelopes, no camelCase keys, and no hand-written ids — the provider translates your HCL to the API's wire format and the server generates all internal ids: one for every step, criteria, and incident and alert template. It keeps them across every apply — matching each criteria and template to the one it replaces by name, else by position — so probe results stay attached to their step and incidents keep pointing at the criteria that raised them, however often the configuration changes.
 
 ```hcl
 resource "oneuptime_monitor" "example" {
@@ -288,6 +288,10 @@ The provider validates `check_on`, `filter_type`, and the other enum attributes 
 4. **`change_monitor_status = true` without `monitor_status_id`.** The criteria then matches but has no status to switch to.
 5. **Writing ids.** There are no `id` attributes anywhere in `monitor_steps` anymore. If you are migrating old JSON, delete them — the server generates ids.
 6. **Escape hatches with hand-built strings.** Write `log_monitor` and friends with `jsonencode()` so Terraform handles quoting and produces canonical JSON (for `metric_monitor`, include the full object shape the dashboard produces — the server normalizes it).
+
+## When no criteria matches
+
+A check that matches none of the criteria puts the monitor in its *default status*: the project's operational status, the same one the dashboard preselects for a new monitor. Its open incidents whose criteria opted into auto-resolve are resolved too. To keep a status change for every outcome under your control, end the list with a broad "healthy" criteria, as the examples on this page do.
 
 ## Omitting monitor_steps entirely
 

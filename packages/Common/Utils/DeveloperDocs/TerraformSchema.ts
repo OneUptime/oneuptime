@@ -188,7 +188,7 @@ export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
 };
 
 /*
- * The provider's resource and attribute names: its StringUtils.toSnakeCase
+ * The provider's attribute names: its StringUtils.toLegacySnakeCase
  * (Scripts/TerraformProvider/Core/StringUtils.ts), character for character.
  * "On-Call Policy" -> on_call_policy, "isEnabled" -> is_enabled,
  * "APIKey" -> api_key.
@@ -202,6 +202,54 @@ export function toTerraformSnakeCase(value: string): string {
     .replace(/^_/, "")
     .replace(/[-\s]+/g, "_")
     .replace(/_+/g, "_");
+}
+
+/*
+ * Words whose capitals sit inside the word, which the provider keeps whole in
+ * type names: StringUtils.MIXED_CASE_WORDS, word for word.
+ */
+const TERRAFORM_MIXED_CASE_WORDS: ReadonlyArray<string> = [
+  "IoT",
+  "vCenter",
+  "VMware",
+  "OAuth",
+  "GitHub",
+  "GitLab",
+  "JavaScript",
+  "TypeScript",
+  "WhatsApp",
+  "OneUptime",
+  "OpenTelemetry",
+  "PagerDuty",
+  "OpsGenie",
+  "ClickHouse",
+  "PostgreSQL",
+  "MySQL",
+  "MongoDB",
+  "macOS",
+  "iOS",
+];
+
+/*
+ * The provider's resource and data source type names: its
+ * StringUtils.toSnakeCase, which keeps mixed-case words whole - "IoT Fleet"
+ * -> iot_fleet, "vCenter" -> vcenter - and is otherwise toTerraformSnakeCase.
+ */
+export function toTerraformTypeSnakeCase(value: string): string {
+  let words: string = value;
+
+  for (const word of TERRAFORM_MIXED_CASE_WORDS) {
+    words = words.replace(
+      new RegExp(`(^|[^A-Za-z])${word}(?=$|[^a-z])`, "g"),
+      (_match: string, before: string): string => {
+        return `${before}${word.charAt(0).toUpperCase()}${word
+          .slice(1)
+          .toLowerCase()}`;
+      },
+    );
+  }
+
+  return toTerraformSnakeCase(words);
 }
 
 /*
@@ -268,7 +316,7 @@ export function getTerraformTypeName(
   const model: DatabaseBaseModel = new modelType();
   const name: string = model.singularName || model.tableName || "";
 
-  return `oneuptime_${toTerraformSnakeCase(name)}`;
+  return `oneuptime_${toTerraformTypeSnakeCase(name)}`;
 }
 
 function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {

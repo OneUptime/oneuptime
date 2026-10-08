@@ -15,6 +15,7 @@ import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/Proj
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -62,6 +63,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const MONITOR_STATUS_ID: ObjectID = new ObjectID(
   "8ff02a3f-3f18-4c1d-9db1-6cf27bb2a4a1",
+);
+const OTHER_MONITOR_STATUS_ID: ObjectID = new ObjectID(
+  "3d9e7a51-0c64-4b2f-a8d3-5e1f6c7b9a04",
 );
 const INCIDENT_STATE_ID: ObjectID = new ObjectID(
   "2b0a94a4-2f8c-49f0-8a2e-0f1ff5df41c9",
@@ -441,9 +445,10 @@ describe("missing-reference guard on write", () => {
       spyOnValidator();
       const calls: Array<StepsValidatorCall> = spyOnStepsValidator();
 
+      // Two statuses, so the incoming steps cannot pass for the stored ones.
       const stored: JSONObject = stepsReferencing(MONITOR_STATUS_ID.toString());
       const incoming: JSONObject = stepsReferencing(
-        MONITOR_STATUS_ID.toString(),
+        OTHER_MONITOR_STATUS_ID.toString(),
       );
 
       const monitor: Monitor = new Monitor();
@@ -454,8 +459,10 @@ describe("missing-reference guard on write", () => {
         .spyOn(MonitorService, "findBy")
         .mockResolvedValue([monitor] as never);
 
+      const data: JSONObject = { monitorSteps: incoming };
+
       await callHook(MonitorService, "onBeforeUpdate", {
-        data: { monitorSteps: incoming },
+        data: data,
         query: {},
         props: { tenantId: PROJECT_ID },
       });
@@ -463,12 +470,18 @@ describe("missing-reference guard on write", () => {
       expect(calls).toHaveLength(1);
       expect(calls[0]!.projectId).toBe(PROJECT_ID);
       /*
-       * Identity, not equality, on both blobs: `stored` and `incoming` are
-       * structurally identical, so a swap of the two arguments — validating the
+       * Identity, not equality: a swap of the two arguments — validating the
        * incoming payload as if it were what was already saved, which would
-       * exempt every id from the check — passes a deep-equality assertion.
+       * exempt every id from the check — must not pass. The incoming steps are
+       * validated as they will be written, with the ids the server fills in
+       * (MonitorStepIdsOnWrite), so that is the object the update now carries.
        */
-      expect(calls[0]!.monitorSteps).toBe(incoming);
+      expect(calls[0]!.monitorSteps).toBe(data["monitorSteps"]);
+      expect(
+        (
+          calls[0]!.monitorSteps as MonitorSteps
+        ).data?.defaultMonitorStatusId?.toString(),
+      ).toBe(OTHER_MONITOR_STATUS_ID.toString());
       expect(calls[0]!.alreadyStoredMonitorSteps).toBe(stored);
     });
 

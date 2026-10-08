@@ -320,6 +320,16 @@ jobs:
           go vet ./...
           go test ./...
 
+      # Every "Example Usage" block on the provider's registry pages, validated
+      # against the provider just built, by both engines. An example with a
+      # renamed attribute, a value of the wrong type or a missing required
+      # argument fails here instead of in a reader's first plan. Needs no
+      # running OneUptime, so it runs before the stack comes up.
+      - name: Validate the generated docs examples
+        run: |
+          bash ./Scripts/TerraformProvider/validate-docs-examples.sh Terraform/terraform-provider-oneuptime terraform
+          bash ./Scripts/TerraformProvider/validate-docs-examples.sh Terraform/terraform-provider-oneuptime tofu
+
       # `npm run dev` runs `npm run prerun`, whose Scripts/Install/configure.sh
       # renders the Dockerfile templates with gomplate and downloads gomplate
       # from GitHub's release CDN whenever it is not on PATH -- the same CDN,

@@ -11,7 +11,7 @@ terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
@@ -77,7 +77,7 @@ OneUptime resource schemas map the OneUptime API directly:
 
 Provider versions track OneUptime platform versions.
 
-- **OneUptime Cloud**: use `version = "~> 11.0"`.
+- **OneUptime Cloud**: use `version = "{{TERRAFORM_PROVIDER_VERSION}}"`.
 - **Self-hosted**: use the newest published provider version that is **less than or equal to** your OneUptime platform version. Do not pin an exact patch version — not every platform patch release is published to the registry. See [Self-Hosted Setup](/docs/terraform/self-hosted).
 
 ## Support

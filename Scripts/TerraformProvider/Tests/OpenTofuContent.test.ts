@@ -312,3 +312,38 @@ describe("published module source address", () => {
     expect(path.basename(MODULE_DIR)).toBe("monitoring-and-incident-response");
   });
 });
+
+describe("the provider version the examples pin", () => {
+  /*
+   * The provider's major tracks the platform's. An example that pins an older
+   * major installs a provider that old for everyone who copies it - the docs
+   * recommended ~> 11.0 three majors later. A major bump has to bring the
+   * examples along.
+   */
+  const releaseMajor: string = read(path.join(REPO_ROOT, "VERSION"))
+    .trim()
+    .split(".")[0]!;
+  const PESSIMISTIC_PIN: RegExp = /version\s*=\s*"~>\s*(\d+)\.\d+"/;
+
+  const pinned: Array<{ file: string; major: string }> = allTfFiles
+    .map((file: string) => {
+      const match: RegExpMatchArray | null = read(file).match(PESSIMISTIC_PIN);
+      return {
+        file: path.relative(EXAMPLES_DIR, file),
+        major: match ? match[1]! : "",
+      };
+    })
+    .filter((entry: { file: string; major: string }) => {
+      return entry.major !== "";
+    });
+
+  test("there is a pinned example to check", () => {
+    expect(pinned.length).toBeGreaterThan(0);
+  });
+
+  test("every pessimistic pin is this release's major", () => {
+    for (const entry of pinned) {
+      expect(entry).toEqual({ file: entry.file, major: releaseMajor });
+    }
+  });
+});

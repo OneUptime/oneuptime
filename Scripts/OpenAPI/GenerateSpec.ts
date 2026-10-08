@@ -30,8 +30,15 @@ export async function generateOpenAPISpec(outputPath?: string): Promise<void> {
   Logger.info(`OpenAPI spec generated and saved to ${finalOutputPath}`);
 }
 
-generateOpenAPISpec(process.argv[2]).catch((error: Error) => {
-  Logger.error("Error generating OpenAPI spec:");
-  Logger.error(error);
-  process.exit(1);
-});
+/*
+ * Only when run as a script. The Terraform provider generator imports this
+ * module for generateOpenAPISpec; running here on import too built the spec
+ * a second time, at whatever path its own command line happened to name.
+ */
+if (require.main === module) {
+  generateOpenAPISpec(process.argv[2]).catch((error: Error) => {
+    Logger.error("Error generating OpenAPI spec:");
+    Logger.error(error);
+    process.exit(1);
+  });
+}
