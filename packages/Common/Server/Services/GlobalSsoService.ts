@@ -161,14 +161,18 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  /*
+   * Failed, or refused, once its hooks ran: the lock it held is given back -
+   * or, when the database may still apply the write, kept until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedWrite).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+      await GlobalSsoProviderChanges.afterFailedWrite(onUpdate.updateBy, error);
     }
 
     return error;
@@ -212,14 +216,18 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
-  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  /*
+   * Failed, or refused, once its hooks ran: the lock it held is given back -
+   * or, when the database may still apply the write, kept until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedWrite).
+   */
   @CaptureSpan()
   protected override async onDeleteError(
     error: Exception,
     onDelete?: OnDelete<Model> | undefined,
   ): Promise<Exception> {
     if (onDelete) {
-      await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+      await GlobalSsoProviderChanges.afterFailedWrite(onDelete.deleteBy, error);
     }
 
     return error;

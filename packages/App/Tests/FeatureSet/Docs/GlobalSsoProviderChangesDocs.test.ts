@@ -22,7 +22,16 @@ import path from "path";
  *   - changes that let people sign in reach every server at once
  *     (RealtimeAccessChanges SignInRulesChanged);
  *   - a status page provider turned off or deleted signs out the private
- *     users it signed in (StatusPagePrivateUserSessionService.addSignInRule).
+ *     users it signed in (StatusPagePrivateUserSessionService.addSignInRule);
+ *   - a save that sends Require SSO for Login on, or names the provider a
+ *     project requires, is checked even when the setting has that value
+ *     already (SsoRequirementChanges.beforeProjectUpdate /
+ *     beforeServerUpdate);
+ *   - behind PgBouncer, the statement timeout the app relies on is set on
+ *     the app's database role (HelmChart/Docs/Postgres.md): a change to who
+ *     can sign in whose write the app stopped waiting for is held until it
+ *     would have been cancelled (ProjectSsoProviderChanges.
+ *     giveBackAfterFailedWrite).
  *
  * Markdown is not compiled, so nothing else notices a guide that falls
  * behind. Other languages follow in the translated docs catch-up.
@@ -164,6 +173,12 @@ describe("the Global SSO guide", () => {
       );
       expect(section).toContain("Turning it off is never refused.");
     });
+
+    it("says a save that sends the switch on while it is on already is checked the same way", () => {
+      expect(section).toContain(
+        "- A save that sends **Require SSO for Login** on while it is on already - with other settings, or from the API - is checked the same way, for the instance or for a project, and so is one that names the provider a project requires already.",
+      );
+    });
   });
 });
 
@@ -181,6 +196,20 @@ describe("the SSO guide", () => {
     );
     expect(section).toContain(
       "If you pick a provider the project requires, it has to be one of those, and the same is asked when you require another provider later.",
+    );
+  });
+
+  it("says a save that sends Require SSO for Login on again, or names the provider the project requires already, is checked the same way, and what to do first", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "A save that sends **Require SSO for Login** on while it is on already, or names the provider the project requires already, is checked the same way - the API, Terraform and other tools often send every setting with each save.",
+    );
+    expect(section).toContain(
+      "So while the project has no provider that signs people in, or the provider it requires was turned off since, such a save is refused in the same words, whatever else it changes: turn a provider on, require another one, or turn **Require SSO for Login** off, first.",
     );
   });
 
@@ -297,6 +326,38 @@ describe("the upgrade notes", () => {
     );
     expect(page).toContain(
       "[SSO](/docs/identity/sso#requiring-sso-for-your-project) and [Global SSO](/docs/identity/global-sso#enforcing-sso).",
+    );
+  });
+
+  it("say that saving Require SSO for Login on again is checked as turning it on is, and that turning it off never is", () => {
+    expect(page).toContain(
+      "**Saving Require SSO for Login on again is checked as turning it on is.**",
+    );
+    expect(page).toContain(
+      "A save that sends Require SSO for Login on - for a project or for the whole server - or names the provider a project requires is now checked even when the setting has that value already, as the API, Terraform and other tools that send every setting with each save do.",
+    );
+    expect(page).toContain(
+      "such a save is refused with the message turning it on gives, whatever else it changes: turn a provider on, or turn the setting off, first. Turning it off and clearing the required provider are never refused.",
+    );
+  });
+});
+
+describe("the Postgres operations guide", () => {
+  // Markdown wraps the guide's lines; read it as one line of text.
+  const page: string = fs
+    .readFileSync(path.join(REPO_ROOT, "../HelmChart/Docs/Postgres.md"), "utf8")
+    .replace(/\s+/g, " ");
+
+  it("says behind the pooler the statement timeout the app relies on is set on its database role, and why", () => {
+    expect(page).toContain("#### Statement timeout behind the pooler");
+    expect(page).toContain(
+      "The app's client-side `query_timeout` (`DATABASE_QUERY_TIMEOUT_MS`) does not cancel a statement: it stops waiting for it, and the backend runs it on - and may commit it after the app reported the write as failed.",
+    );
+    expect(page).toContain(
+      `ALTER ROLE "postgres" IN DATABASE "oneuptimedb" SET statement_timeout = '30s';`,
+    );
+    expect(page).toContain(
+      "[Statement timeout behind the pooler](#statement-timeout-behind-the-pooler)",
     );
   });
 });

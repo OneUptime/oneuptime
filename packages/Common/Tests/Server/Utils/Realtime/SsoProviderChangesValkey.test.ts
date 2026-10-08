@@ -15,6 +15,7 @@ import type { SemaphoreMutex } from "../../../../Server/Infrastructure/Semaphore
 import ObjectID from "../../../../Types/ObjectID";
 import SsoProviderType from "../../../../Types/SSO/SsoProviderType";
 import getTestRedisConnectionOptions from "../../TestingUtils/Redis/TestRedisOptions";
+import { clientTimeout } from "../../TestingUtils/StatementFailures";
 import { getJestSpyOn } from "../../../Spy";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { Redis as RedisClient } from "ioredis";
@@ -652,7 +653,7 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     }
   }, 30000);
 
-  test("a change whose lock Valkey lost before its write is refused right before it, and keeps nothing alive", async () => {
+  test("a change whose lock Valkey lost before its write, with nothing to check it again with, is refused right before it, and keeps nothing alive", async () => {
     const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
 
     const held: Array<SemaphoreMutex> =
@@ -672,6 +673,172 @@ describe("project SSO provider changes reach every server through Valkey", () =>
       await serverA.providerChanges.releaseSignInChange(held);
     }
   });
+
+  /*
+   * A lock found gone right before the write is taken again in Valkey, and
+   * the change checked again under it (its recheck: here, taking the lock
+   * the way the change's check does); the change then holds it for its
+   * write like any other.
+   */
+  test("a change whose lock Valkey lost before its write takes it again, is checked again, and holds it for the write; another server's change waits", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+    const lost: SemaphoreMutex = held[0]!;
+    let rechecks: number = 0;
+
+    try {
+      // Valkey lost it (a restart, an eviction) while a slow step ran.
+      await serverA.client.del(lockKey);
+
+      await serverA.providerChanges.holdForWrite(
+        held,
+        async (): Promise<Array<SemaphoreMutex>> => {
+          rechecks++;
+          return await serverA.providerChanges.lockSignInChange({
+            projectIds: [],
+            wholeServer: true,
+          });
+        },
+      );
+
+      expect(rechecks).toBe(1);
+      // Holding the lock taken again: in Valkey, and kept alive for the write.
+      expect(held).toHaveLength(1);
+      expect(held[0]).not.toBe(lost);
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(true);
+      expect(serverA.providerChanges.isKeptForWrite(lost)).toBe(false);
+      expect(await serverA.client.exists(lockKey)).toBe(1);
+      expect(await serverA.client.pttl(lockKey)).toBeGreaterThan(5000);
+
+      // Another server's change to who can sign in, meanwhile: it waits.
+      let heldByB: Array<SemaphoreMutex> | null = null;
+      const waitingB: Promise<void> = serverB.providerChanges
+        .lockSignInChange({ projectIds: [], wholeServer: true })
+        .then((locks: Array<SemaphoreMutex>): void => {
+          heldByB = locks;
+        });
+
+      await quietPeriod();
+      expect(heldByB).toBeNull();
+
+      // Written: given back, and B goes on.
+      await serverA.providerChanges.releaseSignInChange(held);
+      await waitingB;
+
+      expect(heldByB).toHaveLength(1);
+      await serverB.providerChanges.releaseSignInChange(heldByB!);
+    } finally {
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  }, 30000);
+
+  test("a lock another server's change took in the moment it was lost: the change waits for it to be given back, and is checked again under it", async () => {
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+    let heldByB: Array<SemaphoreMutex> = [];
+    const order: Array<string> = [];
+
+    try {
+      // Lost, and taken at once by a change on server B.
+      await serverA.client.del(
+        "mutex:ProjectSsoProviderChanges.keepAWayIn-server",
+      );
+      heldByB = await serverB.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+      const holding: Promise<void> = serverA.providerChanges.holdForWrite(
+        held,
+        async (): Promise<Array<SemaphoreMutex>> => {
+          const locks: Array<SemaphoreMutex> =
+            await serverA.providerChanges.lockSignInChange({
+              projectIds: [],
+              wholeServer: true,
+            });
+          // Checked again once B's change is written: against what B wrote.
+          order.push("A checked again");
+          return locks;
+        },
+      );
+
+      await quietPeriod();
+      expect(order).toEqual([]);
+
+      // B's change is written, and its lock given back.
+      order.push("B written");
+      await serverB.providerChanges.releaseSignInChange(heldByB);
+      await holding;
+
+      expect(order).toEqual(["B written", "A checked again"]);
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(true);
+    } finally {
+      await serverB.providerChanges.releaseSignInChange(heldByB);
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  }, 30000);
+
+  /*
+   * A write whose statement the client stopped waiting for may still be
+   * applied by the database: its locks are not given back, and stay kept
+   * alive in Valkey until the database would have cancelled it
+   * (ProjectSsoProviderChanges.giveBackAfterFailedWrite). The lock is cut
+   * short in Valkey as before, and still held 2s past the cut.
+   */
+  test("a write the database never answered keeps its lock alive in Valkey past the time it would have run out; another server's change waits", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    try {
+      await serverA.providerChanges.holdForWrite(held);
+
+      // The client stopped waiting for the statement: the database may still run it.
+      await serverA.providerChanges.giveBackAfterFailedWrite(
+        held,
+        clientTimeout(),
+      );
+
+      expect(await serverA.client.exists(lockKey)).toBe(1);
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(true);
+
+      await serverA.client.pexpire(lockKey, 4000);
+      await pause(6000);
+
+      expect(await serverA.client.pttl(lockKey)).toBeGreaterThan(5000);
+
+      let heldByB: Array<SemaphoreMutex> | null = null;
+      const waitingB: Promise<void> = serverB.providerChanges
+        .lockSignInChange({ projectIds: [], wholeServer: true })
+        .then((locks: Array<SemaphoreMutex>): void => {
+          heldByB = locks;
+        });
+
+      await quietPeriod();
+      expect(heldByB).toBeNull();
+
+      // Here the test gives it back; in the app it runs out once the statement could no longer land.
+      await serverA.providerChanges.releaseSignInChange(held);
+      await waitingB;
+
+      expect(heldByB).toHaveLength(1);
+      await serverB.providerChanges.releaseSignInChange(heldByB!);
+    } finally {
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  }, 30000);
 
   /*
    * A project created on one server holds the lock on the server's sign-in
