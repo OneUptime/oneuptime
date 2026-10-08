@@ -7,6 +7,8 @@ import type {
 } from "../../../../Server/Utils/ProjectSsoProviderStanding";
 import type * as GlobalSsoAuthorizationType from "../../../../Server/Utils/GlobalSsoAuthorization";
 import type RedisType from "../../../../Server/Infrastructure/Redis";
+import type SemaphoreType from "../../../../Server/Infrastructure/Semaphore";
+import type { SemaphoreMutex } from "../../../../Server/Infrastructure/Semaphore";
 import ObjectID from "../../../../Types/ObjectID";
 import SsoProviderType from "../../../../Types/SSO/SsoProviderType";
 import getTestRedisConnectionOptions from "../../TestingUtils/Redis/TestRedisOptions";
@@ -74,6 +76,7 @@ jest.mock("../../../../Server/Services/UserService", () => {
 interface Server {
   changes: typeof RealtimeAccessChangesType;
   providerChanges: typeof ProjectSsoProviderChangesType;
+  semaphore: typeof SemaphoreType;
   standing: typeof ProjectSsoProviderStandingType;
   globalSso: typeof GlobalSsoAuthorizationType;
   client: RedisClient;
@@ -106,6 +109,8 @@ async function startServer(): Promise<Server> {
     const standing: typeof ProjectSsoProviderStandingType =
       require("../../../../Server/Utils/ProjectSsoProviderStanding").default;
     const globalSso: typeof GlobalSsoAuthorizationType = require("../../../../Server/Utils/GlobalSsoAuthorization");
+    const semaphore: typeof SemaphoreType =
+      require("../../../../Server/Infrastructure/Semaphore").default;
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
     const client: RedisClient = connection();
@@ -116,6 +121,7 @@ async function startServer(): Promise<Server> {
     const created: Server = {
       changes,
       providerChanges,
+      semaphore,
       standing,
       globalSso,
       client,
@@ -172,6 +178,12 @@ async function eventually(
   }
 
   return condition();
+}
+
+async function pause(ms: number): Promise<void> {
+  await new Promise<void>((resolve: () => void) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 // Long enough for a message published now to have reached every server.
@@ -407,5 +419,136 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     await quietPeriod();
     expect(serverA.globalForgets).toBe(1);
     expect(serverA.rechecked).toEqual([undefined]);
+  });
+
+  /*
+   * Every change to who can sign in - a global provider or one of its
+   * attachments, Require SSO for Login for a project or the server, a
+   * project's provider taken away - is checked and written under the lock
+   * on the server's sign-in rules (ProjectSsoProviderChanges.
+   * lockSignInChange), held in Valkey: one server's change waits for
+   * another's to be written, so neither is checked against what the other
+   * is about to change.
+   */
+  test("a change to who can sign in on one server waits for another server's to be written", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    // Server A checks a change to the global providers, and holds the lock.
+    const heldByA: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+    expect(heldByA).toHaveLength(1);
+
+    // Server B turns Require SSO for Login on for a project meanwhile.
+    let heldByB: Array<SemaphoreMutex> | null = null;
+    const waitingB: Promise<void> = serverB.providerChanges
+      .lockSignInChange({
+        projectIds: [projectId.toString()],
+        wholeServer: true,
+      })
+      .then((locks: Array<SemaphoreMutex>): void => {
+        heldByB = locks;
+      });
+
+    await quietPeriod();
+    expect(heldByB).toBeNull();
+
+    // A's change is written and its lock given back: B goes on.
+    await serverA.providerChanges.releaseSignInChange(heldByA);
+    await waitingB;
+
+    expect(heldByB).toHaveLength(2);
+
+    await serverB.providerChanges.releaseSignInChange(heldByB!);
+
+    // Given back: the next change takes it at once.
+    const next: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+    expect(next).toHaveLength(1);
+    await serverA.providerChanges.releaseSignInChange(next);
+  });
+
+  /*
+   * A change whose check reads many projects keeps its locks page by page
+   * (Semaphore.keepLock, ProjectSsoProviderChanges.keepSignInChange): kept,
+   * a lock outlasts its timeout; no longer kept - its holder's write failed
+   * half way - it runs out, and another server takes it.
+   */
+  /*
+   * The times leave a second or more either side of every edge, so a busy
+   * machine whose timers fire late still sees the same order: the lock is
+   * kept before it runs out (2s of 4s), looked at after it would have run
+   * out unkept (5s) and before the kept time ends (6s), and taken again
+   * after that (7s).
+   */
+  test("a lock kept by its holder outlasts its timeout; one it stops keeping runs out, and keeping it then answers that it was lost", async () => {
+    const lock: {
+      key: string;
+      namespace: string;
+      lockTimeout: number;
+      refreshInterval: number;
+    } = {
+      key: ObjectID.generate().toString(),
+      namespace: "SsoProviderChangesValkey.keep",
+      lockTimeout: 4000,
+      refreshInterval: 0,
+    };
+    const tryOnce: {
+      acquireTimeout: number;
+      acquireAttemptsLimit: number;
+    } = { acquireTimeout: 50, acquireAttemptsLimit: 1 };
+
+    const heldByA: SemaphoreMutex = await serverA.semaphore.lock(lock);
+
+    await pause(2000);
+    await expect(serverA.semaphore.keepLock(heldByA)).resolves.toBe(true);
+    await pause(3000);
+
+    // 5s after it was taken, past its own 4s, 3s after it was kept: still A's.
+    await expect(
+      serverB.semaphore.lock({ ...lock, ...tryOnce }),
+    ).rejects.toThrow();
+
+    // A stops keeping it: it runs out, and B takes it.
+    await pause(2000);
+    const heldByB: SemaphoreMutex = await serverB.semaphore.lock({
+      ...lock,
+      ...tryOnce,
+    });
+
+    await expect(serverA.semaphore.keepLock(heldByA)).resolves.toBe(false);
+    await expect(serverB.semaphore.keepLock(heldByB)).resolves.toBe(true);
+
+    await serverB.semaphore.release(heldByB);
+  }, 30000);
+
+  test("a sign-in change keeps the lock on the server's rules for another full timeout, and is refused once that lock was lost", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    await serverA.client.pexpire(lockKey, 1000);
+    await serverA.providerChanges.keepSignInChange(held);
+    expect(await serverA.client.pttl(lockKey)).toBeGreaterThan(9000);
+
+    // Valkey lost it (a restart, an eviction): what the change read may no longer hold.
+    await serverA.client.del(lockKey);
+    // The busy refusal, in this server's own module copy.
+    await expect(
+      serverA.providerChanges.keepSignInChange(held),
+    ).rejects.toThrow(
+      "Another change to who can sign in with SSO is being saved. Try again in a moment.",
+    );
+
+    await serverA.providerChanges.releaseSignInChange(held);
   });
 });

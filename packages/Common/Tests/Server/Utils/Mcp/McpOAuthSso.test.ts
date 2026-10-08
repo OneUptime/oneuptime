@@ -1470,6 +1470,7 @@ describe("McpOAuthSso", () => {
         ).mockResolvedValue({
           isUsable: true,
           restrictToAttachedProjects: false,
+          signInsEndedAtMs: null,
         });
         oidcTrust = getJestSpyOn(
           GlobalOidcService,
@@ -1477,6 +1478,7 @@ describe("McpOAuthSso", () => {
         ).mockResolvedValue({
           isUsable: true,
           restrictToAttachedProjects: false,
+          signInsEndedAtMs: null,
         });
         ssoGoverns = getJestSpyOn(
           GlobalSsoProjectService,
@@ -1518,6 +1520,7 @@ describe("McpOAuthSso", () => {
         ssoTrust.mockResolvedValue({
           isUsable: false,
           restrictToAttachedProjects: false,
+          signInsEndedAtMs: null,
         });
 
         await expect(
@@ -1531,6 +1534,7 @@ describe("McpOAuthSso", () => {
         oidcTrust.mockResolvedValue({
           isUsable: true,
           restrictToAttachedProjects: true,
+          signInsEndedAtMs: null,
         });
         oidcGoverns.mockResolvedValue(false);
 
@@ -1563,6 +1567,67 @@ describe("McpOAuthSso", () => {
 
         expect(ssoTrust).not.toHaveBeenCalled();
         expect(oidcTrust).not.toHaveBeenCalled();
+      });
+
+      /*
+       * A Global provider turned off ends the sign-ins it gave, and turning
+       * it on again does not bring them back (Server/Utils/SsoSignInsEnded).
+       * A grant copied its sign-in when it was made (capturedAt), so it is
+       * held to that time, as a browser's token is held to its own.
+       */
+      test.each([
+        ["SAML", SsoProviderType.GlobalSSO],
+        ["OIDC", SsoProviderType.GlobalOIDC],
+      ])(
+        "Global %s: a provider turned off after the grant was made refuses it, even once it is on again",
+        async (_label: string, ssoProviderType: SsoProviderType) => {
+          const capturedAt: Date = new Date(NOW.getTime() - 2 * ONE_HOUR_MS);
+          const trust: SpyInstance =
+            ssoProviderType === SsoProviderType.GlobalSSO
+              ? ssoTrust
+              : oidcTrust;
+
+          trust.mockResolvedValue({
+            isUsable: true,
+            restrictToAttachedProjects: false,
+            signInsEndedAtMs: capturedAt.getTime() + 60 * 1000,
+          });
+
+          await expect(
+            satisfied(projectEvidence({ ssoProviderType, capturedAt })),
+          ).resolves.toBe(false);
+
+          // Turned off before the grant was made, and on again since: it counts.
+          trust.mockResolvedValue({
+            isUsable: true,
+            restrictToAttachedProjects: false,
+            signInsEndedAtMs: capturedAt.getTime() - 60 * 1000,
+          });
+
+          await expect(
+            satisfied(projectEvidence({ ssoProviderType, capturedAt })),
+          ).resolves.toBe(true);
+        },
+      );
+
+      test("Global evidence that does not say when it was captured counts only for a provider never turned off", async () => {
+        await expect(
+          satisfied(
+            projectEvidence({ ssoProviderType: SsoProviderType.GlobalSSO }),
+          ),
+        ).resolves.toBe(true);
+
+        ssoTrust.mockResolvedValue({
+          isUsable: true,
+          restrictToAttachedProjects: false,
+          signInsEndedAtMs: NOW.getTime() - ONE_HOUR_MS,
+        });
+
+        await expect(
+          satisfied(
+            projectEvidence({ ssoProviderType: SsoProviderType.GlobalSSO }),
+          ),
+        ).resolves.toBe(false);
       });
 
       test("a failing trust lookup propagates through the real check too", async () => {

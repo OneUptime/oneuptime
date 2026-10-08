@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Model from "../../Models/DatabaseModels/GlobalSsoProject";
 import Team from "../../Models/DatabaseModels/Team";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -15,7 +16,6 @@ import validateGlobalProviderProjectTeams, {
   resolveAttachmentProjectId,
 } from "../Utils/ValidateGlobalProviderProjectTeams";
 import {
-  GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderAttachments,
   GlobalProviderTrust,
   announceGlobalSignInChange,
@@ -28,6 +28,9 @@ import {
   loadAttachmentsOnce,
 } from "../Utils/GlobalSsoAuthorization";
 import DeleteBy from "../Types/Database/DeleteBy";
+import GlobalSsoProviderChanges from "../Utils/GlobalSsoProviderChanges";
+import Exception from "../../Types/Exception/Exception";
+import SsoProviderType from "../../Types/SSO/SsoProviderType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -79,7 +82,8 @@ export class Service extends DatabaseService<Model> {
           props: { isRoot: true },
         });
 
-        const loaded: GlobalProviderAttachments = {
+        // Cached by loadAttachmentsOnce, unless the answers were dropped while it ran.
+        return {
           hasAnyAttachmentRows: rows.length > 0,
           enabledProjectIds: rows
             .filter((row: Model) => {
@@ -89,20 +93,17 @@ export class Service extends DatabaseService<Model> {
               return row.projectId!.toString();
             }),
         };
-
-        globalSsoAttachmentsCache.set(
-          key,
-          loaded,
-          GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
-        );
-
-        return loaded;
       },
     );
 
     return doAttachmentsGovernProject(attachments, data.projectId);
   }
 
+  /*
+   * Removing an attachment of a provider restricted to its attached
+   * projects is refused when it would leave a project that requires SSO
+   * with no provider to sign in with (Utils/GlobalSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
@@ -110,7 +111,18 @@ export class Service extends DatabaseService<Model> {
     // Detaching a project has to take effect now, not in 60s, on this node.
     clearGlobalSsoAuthorizationCaches();
 
-    // Their providers, read while the rows are still there.
+    await GlobalSsoProviderChanges.beforeAttachmentDelete<Model>({
+      providerType: SsoProviderType.GlobalSSO,
+      service: this,
+      deleteBy: deleteBy,
+    });
+
+    /*
+     * Their providers, read under the lock, while the rows are still there.
+     * The read never throws - a provider it cannot tell counts as one its
+     * attachments decide - so nothing after the lock here can fail and keep
+     * it.
+     */
     return {
       deleteBy,
       carryForward: await this.readProviderIds(deleteBy.query),
@@ -127,22 +139,83 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
+    // Removed: the lock is given back before anything else.
+    const changedReach: boolean = await GlobalSsoProviderChanges.afterWrite(
+      onDelete.deleteBy,
+    );
+
     clearGlobalSsoAuthorizationCaches();
 
     /*
      * A provider restricted to its attached projects no longer signs people
-     * in to this one: asked again on every server.
+     * in to this one - or, its last attachment gone, signs people in to
+     * every project again: asked again on every server.
      */
     if (
       itemIdsBeforeDelete.length > 0 &&
-      (await this.isAnyProviderRestricted(
-        (onDelete.carryForward as Array<ObjectID | null> | null) || [null],
-      ))
+      (changedReach ||
+        (await this.isAnyProviderRestricted(
+          (onDelete.carryForward as Array<ObjectID | null> | null) || [null],
+        )))
     ) {
       announceGlobalSignInChange();
     }
 
     return onDelete;
+  }
+
+  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  @CaptureSpan()
+  protected override async onDeleteError(
+    error: Exception,
+    onDelete?: OnDelete<Model> | undefined,
+  ): Promise<Exception> {
+    if (onDelete) {
+      await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+    }
+
+    return error;
+  }
+
+  /*
+   * A hard delete (the retention job's purge) runs no onDeleteSuccess: the
+   * lock its check took is given back here, and every server is told only
+   * when it changed where a provider signs people in, as read under the
+   * lock (GlobalSsoProviderChanges.afterHardDelete). A purge of rows
+   * deleted long ago tells no server anything.
+   */
+  @CaptureSpan()
+  protected override async onHardDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    if (
+      await GlobalSsoProviderChanges.afterHardDelete(
+        onDelete.deleteBy,
+        itemIdsBeforeDelete,
+      )
+    ) {
+      clearGlobalSsoAuthorizationCaches();
+      announceGlobalSignInChange();
+    }
+
+    return onDelete;
+  }
+
+  /*
+   * An attachment is checked, under the lock on the server's sign-in rules,
+   * once every permission and clash check has passed (onCreatePermitted).
+   * The lock is given back once it is written (onCreateSuccess), and here
+   * whatever happened after the check: a create that fails at the INSERT,
+   * or in a step just before it, runs no other hook.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    try {
+      return await super.create(createBy);
+    } finally {
+      await GlobalSsoProviderChanges.afterWrite(createBy);
+    }
   }
 
   /*
@@ -153,13 +226,19 @@ export class Service extends DatabaseService<Model> {
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    // Written: the lock is given back before anything else.
+    const changedReach: boolean = await GlobalSsoProviderChanges.afterWrite(
+      onCreate.createBy,
+    );
+
     clearGlobalSsoAuthorizationCaches();
 
     if (
-      await this.isAnyProviderRestricted([this.readProviderIdOf(createdItem)])
+      changedReach ||
+      (await this.isAnyProviderRestricted([this.readProviderIdOf(createdItem)]))
     ) {
       announceGlobalSignInChange();
     }
@@ -172,22 +251,46 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // Written: the lock is given back before anything else.
+    const changedReach: boolean = await GlobalSsoProviderChanges.afterWrite(
+      onUpdate.updateBy,
+    );
+
     clearGlobalSsoAuthorizationCaches();
 
-    // An attachment turned off: as removing it.
+    /*
+     * An attachment turned off, or moved to another project or provider,
+     * where that changes where its provider signs people in (as read under
+     * the lock): as removing it. One turned off is told for a provider
+     * restricted to its attached projects whatever was read.
+     */
     if (
       updatedItemIds.length > 0 &&
-      isGlobalProviderNarrowing(onUpdate.updateBy.data) &&
-      (await this.isAnyProviderRestricted(
-        await this.readProviderIds({
-          _id: QueryHelper.any(updatedItemIds),
-        } as Query<Model>),
-      ))
+      (changedReach ||
+        (isGlobalProviderNarrowing(onUpdate.updateBy.data) &&
+          (await this.isAnyProviderRestricted(
+            await this.readProviderIds({
+              _id: QueryHelper.any(updatedItemIds),
+            } as Query<Model>),
+          ))))
     ) {
       announceGlobalSignInChange();
     }
 
     return onUpdate;
+  }
+
+  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+    }
+
+    return error;
   }
 
   /*
@@ -274,6 +377,24 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: null };
   }
 
+  /*
+   * Once every permission and clash check has passed: the first attachment
+   * of a provider restricted to its attached projects narrows it from every
+   * project to this one, refused when that would leave a project that
+   * requires SSO with no provider to sign in with
+   * (Utils/GlobalSsoProviderChanges). The lock it holds is given back once
+   * the attachment is written, or the create fails (create).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await GlobalSsoProviderChanges.beforeAttachmentCreate({
+      providerType: SsoProviderType.GlobalSSO,
+      createBy: onCreate.createBy as unknown as CreateBy<BaseModel>,
+    });
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -318,6 +439,24 @@ export class Service extends DatabaseService<Model> {
     clearGlobalSsoAuthorizationCaches();
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Once every permission check has passed: turning an attachment off, or
+   * moving it to another project or provider, is refused when it would
+   * leave a project that requires SSO with no provider to sign in with, and
+   * holds the lock on the server's sign-in rules until it is written or
+   * fails (Utils/GlobalSsoProviderChanges).
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await GlobalSsoProviderChanges.beforeAttachmentUpdate<Model>({
+      providerType: SsoProviderType.GlobalSSO,
+      service: this,
+      updateBy: updateBy,
+    });
   }
 }
 

@@ -1,6 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import SsoSignInsEnded, { SsoProviderSignInStanding } from "./SsoSignInsEnded";
 
 /*
  * WHETHER A PROJECT'S OWN SSO PROVIDER STILL VOUCHES FOR A SIGN-IN IT GAVE.
@@ -40,16 +41,12 @@ export type ProjectSsoProviderType =
   | SsoProviderType.ProjectSSO
   | SsoProviderType.ProjectOIDC;
 
-// What the database says about a provider, for one project.
-export interface ProjectSsoProviderStandingValue {
-  // The provider exists, is that project's, and is turned on.
-  isOn: boolean;
-  /*
-   * When it was last turned off (milliseconds), or null when it never was:
-   * a sign-in it gave before then no longer counts.
-   */
-  signInsEndedAtMs: number | null;
-}
+/*
+ * What the database says about a provider, for one project: whether it
+ * exists, is that project's and is turned on, and when it was last turned
+ * off (Utils/SsoSignInsEnded, the rule every kind of provider follows).
+ */
+export type ProjectSsoProviderStandingValue = SsoProviderSignInStanding;
 
 // A provider that is not there, or not the project's: it vouches for nobody.
 export const PROVIDER_NOT_FOUND: ProjectSsoProviderStandingValue = {
@@ -143,25 +140,14 @@ export default class ProjectSsoProviderStanding {
 
   /*
    * Whether a provider with this standing vouches for a sign-in it gave at
-   * `issuedAtMs`. A sign-in that does not say when it was given cannot be
-   * placed after the provider was turned off, so it only counts for a
-   * provider that never was. JWT issue times are whole seconds, rounded
-   * down, so a sign-in given in the same second the provider was turned off
-   * does not count either.
+   * `issuedAtMs`: the rule every kind of provider follows
+   * (SsoSignInsEnded.doesProviderVouchFor).
    */
   public static doesVouchFor(
     standing: ProjectSsoProviderStandingValue,
     issuedAtMs: number | null,
   ): boolean {
-    if (!standing.isOn) {
-      return false;
-    }
-
-    if (standing.signInsEndedAtMs === null) {
-      return true;
-    }
-
-    return issuedAtMs !== null && issuedAtMs > standing.signInsEndedAtMs;
+    return SsoSignInsEnded.doesProviderVouchFor(standing, issuedAtMs);
   }
 
   /*

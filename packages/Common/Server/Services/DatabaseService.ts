@@ -885,7 +885,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const hookNames: Array<string> =
       type === DatabaseRequestType.Update
         ? ["onBeforeUpdate", "onUpdateSuccess"]
-        : ["onBeforeDelete", "onDeleteSuccess"];
+        : ["onBeforeDelete", "onDeleteSuccess", "onHardDeleteSuccess"];
 
     return hookNames.some((hookName: string): boolean => {
       return (
@@ -1505,7 +1505,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve(onUpdate);
   }
 
-  protected async onUpdateError(error: Exception): Promise<Exception> {
+  /*
+   * An update that failed - refused or thrown - once onBeforeUpdate had run,
+   * with what onBeforeUpdate handed back: onUpdateSuccess never runs for
+   * it, so this is where a service gives back what its hooks took for the
+   * write (a lock). Undefined when the update failed before
+   * onBeforeUpdate ran.
+   */
+  protected async onUpdateError(
+    error: Exception,
+    _onUpdate?: OnUpdate<TBaseModel> | undefined,
+  ): Promise<Exception> {
     // A place holder method used for overriding.
     return Promise.resolve(error);
   }
@@ -1518,9 +1528,32 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve(onDelete);
   }
 
-  protected async onDeleteError(error: Exception): Promise<Exception> {
+  /*
+   * The same for a delete: one that failed once onBeforeDelete had run,
+   * with what onBeforeDelete handed back - a hard delete's too.
+   */
+  protected async onDeleteError(
+    error: Exception,
+    _onDelete?: OnDelete<TBaseModel> | undefined,
+  ): Promise<Exception> {
     // A place holder method used for overriding.
     return Promise.resolve(error);
+  }
+
+  /*
+   * A hard delete that is done (hardDeleteBy: the retention job's purge),
+   * with what onBeforeDelete handed back and the rows it found to delete.
+   * A hard delete runs no onDeleteSuccess, whose work - workflows, live
+   * updates, notices - is for the rows a person deletes; this is where a
+   * service gives back what its onBeforeDelete took for the write (a
+   * lock). Skipped with ignoreHooks.
+   */
+  protected async onHardDeleteSuccess(
+    onDelete: OnDelete<TBaseModel>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<TBaseModel>> {
+    // A place holder method used for overriding.
+    return Promise.resolve(onDelete);
   }
 
   protected async onFindSuccess(
@@ -4703,6 +4736,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
+    // What onBeforeDelete handed back, for onDeleteError.
+    let onDeleteOfError: OnDelete<TBaseModel> | undefined = undefined;
+
     try {
       deleteBy.props = await this.checkCallerBeforeHooks(
         deleteBy.props,
@@ -4726,6 +4762,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
+      onDeleteOfError = onDelete;
       const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
       beforeDeleteBy.query = this.getRuleCriteriaEffectiveEnabledQuery(
@@ -4813,9 +4850,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         });
       }
 
+      if (!deleteBy.props.ignoreHooks) {
+        await this.onHardDeleteSuccess(
+          onDelete,
+          items.map((item: TBaseModel): ObjectID => {
+            return new ObjectID(item._id!);
+          }),
+        );
+      }
+
       return numberOfDocsAffected;
     } catch (error) {
-      await this.onDeleteError(error as Exception);
+      await this.onDeleteError(error as Exception, onDeleteOfError);
       throw this.getException(error as Exception);
     }
   }
@@ -4852,6 +4898,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
+    // What onBeforeDelete handed back, for onDeleteError.
+    let onDeleteOfError: OnDelete<TBaseModel> | undefined = undefined;
+
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
@@ -4877,6 +4926,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
+      onDeleteOfError = onDelete;
 
       const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
@@ -5064,7 +5114,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       return numberOfDocsAffected;
     } catch (error) {
-      await this.onDeleteError(error as Exception);
+      await this.onDeleteError(error as Exception, onDeleteOfError);
       throw this.getException(error as Exception);
     }
   }
@@ -5585,6 +5635,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
+    // What onBeforeUpdate handed back, for onUpdateError.
+    let onUpdateOfError: OnUpdate<TBaseModel> | undefined = undefined;
+
     try {
       this.setTelemetryContextFromProps(updateBy.props);
 
@@ -5639,6 +5692,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
+      onUpdateOfError = onUpdate;
 
       /*
        * A switch the service's hook set is held as the database stores it
@@ -6181,7 +6235,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       return affectedItems.length;
     } catch (error) {
-      await this.onUpdateError(error as Exception);
+      await this.onUpdateError(error as Exception, onUpdateOfError);
       throw this.getException(error as Exception);
     }
   }

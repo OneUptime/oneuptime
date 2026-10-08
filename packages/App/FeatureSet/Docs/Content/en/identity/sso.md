@@ -306,6 +306,8 @@ Setting up a provider does not stop anyone signing in with a password. To make S
 2. Turn on **Require SSO for Login**. OneUptime asks before it saves anything: from then on everyone in the project, you included, has to sign in with SSO to open it, and anyone signed in with a password is locked out of the project until they sign in with SSO.
 3. Click **Require SSO** to confirm. The switch saves straight away; there is no separate Save button.
 
+Turning **Require SSO for Login** on needs a provider that signs people in to the project: one of its own SAML or OIDC providers that is on, or a global provider that is on and signs people in to it. Without one, OneUptime refuses, and says to turn on a provider for the project and test it first. If you pick a provider the project requires, it has to be one of those, and the same is asked when you require another provider later.
+
 Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password. Project owners, project admins and members with the **Edit Project** permission can change it; anyone else sees the switch locked, with the permission they would need.
 
 On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off works on every plan. Below Scale, **Project Settings** > **Security** > **SSO** shows the plan's upsell; a project a Scale trial left requiring SSO also finds **Require SSO for Login** there, under the upsell, so it can be turned off. Turning it on again needs **Scale**.
@@ -323,6 +325,8 @@ Changing anything else about a provider keeps everyone signed in: a new certific
 While the project requires SSO, OneUptime keeps a way in: you cannot turn off or delete the last provider people can sign in to the project with, counting global providers that sign people in to it, or the provider the project requires. Turn off **Require SSO for Login** first.
 
 When the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.
+
+Global providers are held to the same rule: a change to one, or to its attached projects, that would leave a project that requires SSO with no provider is refused, naming the project. See [Global SSO](/docs/identity/global-sso#turning-a-provider-off-or-deleting-it).
 
 Where neither the project nor the server requires SSO, turning a provider off stops new sign-ins with it. People already signed in stay signed in, as people who signed in with a password do.
 

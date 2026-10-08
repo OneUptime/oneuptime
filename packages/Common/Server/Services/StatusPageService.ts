@@ -812,6 +812,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
           enableMasterPassword: true,
           masterPassword: true,
           isArchived: true,
+          requireSsoForLogin: true,
         },
       });
 
@@ -902,29 +903,33 @@ export class Service extends ProjectReferencesService<StatusPage> {
              * One primary-key lookup joined to the private user. Do not cache
              * authorization: revocation and soft deletion must take effect on
              * the next request, even while the access JWT remains unexpired.
+             * The same read asks whether the session's sign-in still counts:
+             * the SSO provider that signed it in still vouches for it, or -
+             * for a session no provider signed in - the page does not
+             * require SSO (StatusPagePrivateUserSessionService.addSignInRule).
              */
             const session: StatusPagePrivateUserSession | null =
-              await StatusPagePrivateUserSessionService.getQueryBuilder(
-                "session",
-              )
-                .select(["session._id", "session.additionalInfo"])
-                .innerJoin("session.statusPagePrivateUser", "privateUser")
-                .where("session._id = :sessionId", {
-                  sessionId: decoded.sessionId.toString(),
-                })
-                .andWhere("session.statusPageId = :statusPageId", {
-                  statusPageId: statusPageId.toString(),
-                })
-                .andWhere("session.statusPagePrivateUserId = :userId", {
-                  userId: decoded.userId.toString(),
-                })
-                .andWhere("privateUser.statusPageId = :statusPageId")
-                .andWhere("privateUser.deletedAt IS NULL")
-                .andWhere("session.isRevoked = false")
-                .andWhere("session.refreshTokenExpiresAt > :now", {
-                  now: OneUptimeDate.getCurrentDate(),
-                })
-                .getOne();
+              await StatusPagePrivateUserSessionService.addSignInRule(
+                StatusPagePrivateUserSessionService.getQueryBuilder("session")
+                  .select(["session._id", "session.additionalInfo"])
+                  .innerJoin("session.statusPagePrivateUser", "privateUser")
+                  .where("session._id = :sessionId", {
+                    sessionId: decoded.sessionId.toString(),
+                  })
+                  .andWhere("session.statusPageId = :statusPageId", {
+                    statusPageId: statusPageId.toString(),
+                  })
+                  .andWhere("session.statusPagePrivateUserId = :userId", {
+                    userId: decoded.userId.toString(),
+                  })
+                  .andWhere("privateUser.statusPageId = :statusPageId")
+                  .andWhere("privateUser.deletedAt IS NULL")
+                  .andWhere("session.isRevoked = false")
+                  .andWhere("session.refreshTokenExpiresAt > :now", {
+                    now: OneUptimeDate.getCurrentDate(),
+                  }),
+                { requiresSso: Boolean(statusPage.requireSsoForLogin) },
+              ).getOne();
 
             if (
               session &&

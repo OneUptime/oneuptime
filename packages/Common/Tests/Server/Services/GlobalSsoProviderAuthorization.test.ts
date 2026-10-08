@@ -13,6 +13,7 @@ import {
   clearGlobalSsoAuthorizationCaches,
   isGlobalProviderNarrowing,
 } from "../../../Server/Utils/GlobalSsoAuthorization";
+import GlobalSsoProviderChanges from "../../../Server/Utils/GlobalSsoProviderChanges";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
   RealtimeAccessChangeKind,
@@ -107,6 +108,31 @@ function callArgs(spy: jest.SpyInstance, callIndex: number): DatabaseCallArgs {
   expect(call).toBeDefined();
 
   return (call as Array<unknown>)[0] as DatabaseCallArgs;
+}
+
+/*
+ * The before-hooks also check, under a lock, that a write leaves every
+ * project that requires SSO a provider to sign in with
+ * (GlobalSsoProviderChanges, pinned in GlobalSsoProviderChanges.test.ts).
+ * Here only what the hooks do to the caches and the announcements counts, so
+ * that check finds nothing to hold.
+ */
+function stubSignInWayChecks(): void {
+  jest
+    .spyOn(GlobalSsoProviderChanges, "beforeProviderUpdate")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(GlobalSsoProviderChanges, "beforeProviderDelete")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(GlobalSsoProviderChanges, "beforeAttachmentCreate")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(GlobalSsoProviderChanges, "beforeAttachmentUpdate")
+    .mockResolvedValue(null);
+  jest
+    .spyOn(GlobalSsoProviderChanges, "beforeAttachmentDelete")
+    .mockResolvedValue(null);
 }
 
 // Calls a protected hook without widening the service's public surface.
@@ -232,6 +258,7 @@ describe.each(TRUST_SUITES)(
       expect(trust).toEqual({
         isUsable: true,
         restrictToAttachedProjects: false,
+        signInsEndedAtMs: null,
       });
     });
 
@@ -243,6 +270,7 @@ describe.each(TRUST_SUITES)(
       expect(trust).toEqual({
         isUsable: true,
         restrictToAttachedProjects: true,
+        signInsEndedAtMs: null,
       });
     });
 
@@ -283,6 +311,7 @@ describe.each(TRUST_SUITES)(
       expect(await suite.getTrust(PROVIDER_ID)).toEqual({
         isUsable: false,
         restrictToAttachedProjects: false,
+        signInsEndedAtMs: null,
       });
     });
 
@@ -880,6 +909,8 @@ function installProbes(): CacheProbes {
     .spyOn(RealtimeAccessChanges, "announce")
     .mockImplementation((): void => {});
 
+  stubSignInWayChecks();
+
   const ssoTrust: jest.SpyInstance = spyOnQuery(GlobalSsoService, "findOneBy");
   const ssoRow: GlobalSso = new GlobalSso();
   ssoRow.id = PROVIDER_ID;
@@ -1444,6 +1475,7 @@ describe("write hooks that let a global provider sign fewer people in tell every
       .mockImplementation((change: RealtimeAccessChange): void => {
         announced.push(change);
       });
+    stubSignInWayChecks();
   });
 
   test.each(ANNOUNCEMENT_CASES)(
@@ -1555,14 +1587,17 @@ const ATTACHMENT_ANNOUNCEMENT_SUITES: Array<AttachmentAnnouncementSuite> = [
 const RESTRICTED: GlobalProviderTrust = {
   isUsable: true,
   restrictToAttachedProjects: true,
+  signInsEndedAtMs: null,
 };
 const EVERY_PROJECT: GlobalProviderTrust = {
   isUsable: true,
   restrictToAttachedProjects: false,
+  signInsEndedAtMs: null,
 };
 const OFF_AND_RESTRICTED: GlobalProviderTrust = {
   isUsable: false,
   restrictToAttachedProjects: true,
+  signInsEndedAtMs: null,
 };
 
 describe.each(ATTACHMENT_ANNOUNCEMENT_SUITES)(
@@ -1581,6 +1616,7 @@ describe.each(ATTACHMENT_ANNOUNCEMENT_SUITES)(
         .mockImplementation((change: RealtimeAccessChange): void => {
           announced.push(change);
         });
+      stubSignInWayChecks();
 
       trust = spyOnQuery(suite.providerService, "getProviderTrust");
       trust.mockImplementation(

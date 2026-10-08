@@ -245,6 +245,7 @@ describe("GlobalOidcService", () => {
     const trust: GlobalProviderTrust = {
       isUsable: false,
       restrictToAttachedProjects: false,
+      signInsEndedAtMs: null,
     };
 
     globalSsoProviderTrustCache.set("oidc:cached-provider", trust, 60000);

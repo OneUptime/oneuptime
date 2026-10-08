@@ -231,6 +231,34 @@ export default class GlobalSSO extends BaseModel {
   })
   public isEnabled?: boolean = undefined;
 
+  /*
+   * When this provider was last turned off. Turning a global provider off
+   * ends the sign-ins it gave: a Global SSO sign-in made before this time
+   * no longer counts, even once the provider is turned on again, so the
+   * person signs in again (UserMiddleware.
+   * isGlobalSsoTokenAuthorizedForProject). OneUptime writes it when the
+   * provider is turned off (Server/Utils/GlobalSsoProviderChanges); no one
+   * reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Sign-ins Ended At",
+    description:
+      "Internal: when this provider was last turned off. Sign-ins it gave before then no longer count.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public signInsEndedAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],
