@@ -1907,7 +1907,7 @@ ${IMPACT_DETAILS}
       );
 
       expect(feedItem()["moreInformationInMarkdown"]).toContain(
-        "- **Internal Ticket:** OPS\\-4411",
+        "- **Internal Ticket:** OPS-4411",
       );
     },
   );

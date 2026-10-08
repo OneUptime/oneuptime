@@ -1829,7 +1829,7 @@ describe("register: first-connection defaults", () => {
 
     const item: AnyObject = harness.feed.mock.calls[0]![0] as AnyObject;
     expect(String(item["feedInfoInMarkdown"])).toContain("Ask for approval");
-    expect(String(item["feedInfoInMarkdown"])).toContain("to web-*, api");
+    expect(String(item["feedInfoInMarkdown"])).toContain("to web-\\*, api");
   });
 
   test("when an operator configured the resource a moment earlier, the conditional update lands nowhere and nothing is claimed", async () => {
@@ -1998,7 +1998,7 @@ describe("register: the resource's feed", () => {
       posture: { allowWrites: true, writeTargets: ["web-*", "api"] },
     });
     expect(String(feedItem(scoped)["feedInfoInMarkdown"])).toContain(
-      "(can make changes to web-*, api)",
+      "(can make changes to web-\\*, api)",
     );
     jest.restoreAllMocks();
 

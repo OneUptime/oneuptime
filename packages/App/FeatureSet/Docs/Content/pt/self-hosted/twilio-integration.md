@@ -98,3 +98,11 @@ Para desenvolvimento, o [guia de testes de webhooks do Twilio](https://www.twili
 4. Confirme o status de entrega do SMS no OneUptime e nos logs de mensagens do Twilio. Um envio aceito não comprova a entrega; [o Twilio informa alterações posteriores de status por callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 Se o envio falhar, verifique credenciais, recursos do número, restrições da conta e conectividade de saída. Se a mensagem ou chamada chegar, mas o status ou reconhecimento não for atualizado, examine a URL do callback e os logs do ingress público. O [guia do Twilio sobre falhas de recuperação HTTP](https://www.twilio.com/docs/api/errors/11200) ajuda a diagnosticar callbacks inacessíveis, problemas de TLS e erros HTTP. Uma chamada de teste bem-sucedida, por si só, não verifica o acesso dos callbacks.
+
+## 5. Verifique os números de telefone dos membros da equipe
+
+Adicionar um número de telefone para SMS ou chamadas envia o código de verificação imediatamente, e a caixa de diálogo de verificação é aberta. Ela mostra quando o código foi enviado e até quando é válido, e envia um novo código quando solicitado, no máximo uma vez por minuto. Nada precisa ser reenviado antes de verificar.
+
+Quando nenhum código pode ser enviado, a caixa de diálogo informa o motivo em vez de afirmar que um código foi enviado: por exemplo, que nenhuma conta Twilio está configurada, enquanto não existir uma configuração padrão do projeto nem a configuração de toda a instalação descrita acima. Um número cujo primeiro código não pode ser enviado não é adicionado, e o formulário mostra o motivo, como o Twilio recusar um país de destino.
+
+Um número verificado para SMS também fica verificado para chamadas, sem um segundo código. Verificar por chamada não verifica o SMS, porque um número que recebe chamadas, como um telefone fixo, nem sempre consegue receber mensagens de texto. Se o Twilio aceitar um código que nunca chega, o registro de SMS do projeto mostra o status de entrega.

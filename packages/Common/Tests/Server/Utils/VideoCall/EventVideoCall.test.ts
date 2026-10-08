@@ -640,7 +640,7 @@ describe("EventVideoCall.announce", () => {
       IncidentFeedEventType.VideoCallStarted,
     );
     expect(item["feedInfoInMarkdown"]).toContain(
-      "📞 A **Zoom meeting** was started for [Incident INC\\-42]",
+      "📞 A **Zoom meeting** was started for [Incident INC-42]",
     );
     expect(item["feedInfoInMarkdown"]).toContain(
       "**[Join the call](https://zoom.us/j/1)**",
@@ -734,7 +734,7 @@ describe("EventVideoCall.announce", () => {
     expect(item["alertFeedEventType"]).toBe(
       AlertFeedEventType.VideoCallStarted,
     );
-    expect(item["feedInfoInMarkdown"]).toContain("[Alert ALT\\-7]");
+    expect(item["feedInfoInMarkdown"]).toContain("[Alert ALT-7]");
   });
 });
 

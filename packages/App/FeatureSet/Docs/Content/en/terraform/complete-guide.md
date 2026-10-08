@@ -203,7 +203,7 @@ resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
 ## Upgrading the provider
 
 1. Read the release notes on the [registry page](https://registry.terraform.io/providers/oneuptime/oneuptime) or [GitHub releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases).
-2. Raise the version constraint (for example `~> 11.0` already allows all 11.x releases; moving to a new major requires editing the constraint).
+2. Raise the version constraint (for example `{{TERRAFORM_PROVIDER_VERSION}}` already allows every {{TERRAFORM_PROVIDER_MAJOR}}.x release; moving to a new major requires editing the constraint).
 3. Run `terraform init -upgrade` to fetch the new version.
 4. Run `terraform plan` and confirm the plan is empty (or contains only changes you expect) before applying.
 

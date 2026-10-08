@@ -8,7 +8,6 @@ import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import TenantPermission from "../Types/Database/Permissions/TenantPermission";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";
 import EmailColorUtil from "../../Utils/Email/EmailColorUtil";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import CallService from "./CallService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentService from "./IncidentService";
@@ -128,6 +127,7 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export interface NotificationMethodDescriptor {
   userEmailId?: ObjectID;
@@ -4256,7 +4256,7 @@ export class Service extends ProjectReferencesService<Model> {
     ackUrl: URL;
   }): Array<WorkspaceMessageBlock> {
     const lines: Array<string> = [
-      `🚨 **${data.headline}**`,
+      mdText`🚨 **${data.headline}**`.toString(),
       "",
       /*
        * The identifier ends with a title - plain text, which anyone holding
@@ -4264,7 +4264,7 @@ export class Service extends ProjectReferencesService<Model> {
        * says a title must be, so it cannot become an image or a link that
        * hides where it goes.
        */
-      `📋 **${escapeMarkdownValue(data.identifier)}**`,
+      mdText`📋 **${data.identifier}**`.toString(),
       "",
       "👤 You're getting this because you're on call.",
     ];
@@ -4272,11 +4272,14 @@ export class Service extends ProjectReferencesService<Model> {
     if (data.dashboardUrl) {
       lines.push(
         "",
-        `🔎 [${data.dashboardLinkText}](${data.dashboardUrl.toString()})`,
+        mdText`🔎 [${data.dashboardLinkText}](${data.dashboardUrl.toString()})`.toString(),
       );
     }
 
-    lines.push("", `✅ [Acknowledge](${data.ackUrl.toString()})`);
+    lines.push(
+      "",
+      mdText`✅ [Acknowledge](${data.ackUrl.toString()})`.toString(),
+    );
 
     const markdownBlock: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",

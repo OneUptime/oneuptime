@@ -101,10 +101,11 @@ function platformTableRows(markdown: string): Array<string> {
   });
 }
 
-function telemetryGroup(): NavGroup {
+// The Cloud pages have a sidebar group of their own, in Observability.
+function cloudGroup(): NavGroup {
   const group: NavGroup | undefined = DocsNav.find(
     (item: NavGroup): boolean => {
-      return item.title === "Telemetry";
+      return item.title === "Cloud";
     },
   );
 
@@ -171,8 +172,8 @@ describe("Cloud Environments docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("lists the hub, the platform pages and troubleshooting in order, in the Telemetry group", (): void => {
-      const urls: Array<string> = telemetryGroup().links.map(
+    it("lists the hub, the platform pages and troubleshooting in order, in the Cloud group", (): void => {
+      const urls: Array<string> = cloudGroup().links.map(
         (link: NavLink): string => {
           return link.url;
         },
@@ -187,7 +188,7 @@ describe("Cloud Environments docs", (): void => {
     });
 
     it("uses titles that match the platform names the registry uses", (): void => {
-      const titles: Array<string> = telemetryGroup().links.map(
+      const titles: Array<string> = cloudGroup().links.map(
         (link: NavLink): string => {
           return link.title;
         },
@@ -205,8 +206,8 @@ describe("Cloud Environments docs", (): void => {
       );
     });
 
-    it("resolves every Telemetry-group URL to an English page on disk", (): void => {
-      for (const link of telemetryGroup().links) {
+    it("resolves every Cloud-group URL to an English page on disk", (): void => {
+      for (const link of cloudGroup().links) {
         expect({
           url: link.url,
           exists: fs.existsSync(pageFile(link.url.replace("/docs/", ""))),

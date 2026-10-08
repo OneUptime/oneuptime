@@ -137,12 +137,19 @@ export class Service extends DatabaseService<Model> {
     clearGlobalSsoAuthorizationCaches();
 
     /*
-     * Turned off, or restricted to its attached projects - or turned on -
-     * where that changes where it signs people in, as read under the lock:
-     * the sign-ins it gave stop counting where it no longer signs people
-     * in, and the live updates already open are asked again on every
-     * server. A write that turns it off or restricts it is told whatever
-     * was read.
+     * Turned off or on, restricted to its attached projects or opened to
+     * every project again: every server forgets what it knew of the
+     * provider, once. The sign-ins it gave stop counting where it no longer
+     * signs people in, and the live updates already open are asked again;
+     * people it now signs in are let in at once, not when another server's
+     * cached answer runs out.
+     *
+     * A write that turns it off or restricts it is told whatever was read
+     * under the lock: one that turns it on or lifts the restriction takes
+     * no lock, and may have been written between that read and this write.
+     * One that turns it on or opens it, written back as it was - an edit
+     * form sends every field it shows - changed nothing, and tells no
+     * server.
      */
     if (
       updatedItemIds.length > 0 &&
@@ -154,14 +161,18 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  /*
+   * Failed, or refused, once its hooks ran: the lock it held is given back -
+   * or, when the database may still apply the write, kept until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedWrite).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+      await GlobalSsoProviderChanges.afterFailedWrite(onUpdate.updateBy, error);
     }
 
     return error;
@@ -205,14 +216,18 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
-  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  /*
+   * Failed, or refused, once its hooks ran: the lock it held is given back -
+   * or, when the database may still apply the write, kept until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedWrite).
+   */
   @CaptureSpan()
   protected override async onDeleteError(
     error: Exception,
     onDelete?: OnDelete<Model> | undefined,
   ): Promise<Exception> {
     if (onDelete) {
-      await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+      await GlobalSsoProviderChanges.afterFailedWrite(onDelete.deleteBy, error);
     }
 
     return error;

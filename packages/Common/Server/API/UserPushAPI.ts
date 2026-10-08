@@ -19,6 +19,7 @@ import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import { JSONObject, ObjectType } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
@@ -51,6 +52,42 @@ export function parseCriticalAlertFlagStrict(raw: unknown): boolean {
   }
 
   throw new BadDataException("isEnabled must be either true or false.");
+}
+
+/*
+ * The project a registration names. The mobile app sends the id as a string.
+ * The Dashboard sent the ObjectID itself, which JSON writes as
+ * { _type: "ObjectID", value: "<id>" } (ObjectID.toJSON), and a browser keeps
+ * running that Dashboard until it reloads. Both name the same project.
+ * Reading the second with toString() gave "[object Object]", and every
+ * browser registration was refused as "Project ID is invalid". Anything else
+ * is not a project id: null.
+ */
+export function readProjectIdFromBody(raw: unknown): ObjectID | null {
+  let value: unknown = raw;
+
+  if (raw instanceof ObjectID) {
+    value = raw.toString();
+  } else if (
+    raw &&
+    typeof raw === "object" &&
+    !Array.isArray(raw) &&
+    (raw as JSONObject)["_type"] === ObjectType.ObjectID
+  ) {
+    value = (raw as JSONObject)["value"];
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const projectId: string = value.trim();
+
+  if (!ObjectID.isValidUUID(projectId)) {
+    return null;
+  }
+
+  return new ObjectID(projectId);
 }
 
 /*
@@ -133,17 +170,17 @@ export default class UserPushAPI extends BaseAPI<
             );
           }
 
-          const projectIdString: string = req.body.projectId.toString();
+          const projectId: ObjectID | null = readProjectIdFromBody(
+            req.body.projectId,
+          );
 
-          if (!ObjectID.isValidUUID(projectIdString)) {
+          if (!projectId) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException("Project ID is invalid"),
             );
           }
-
-          const projectId: ObjectID = new ObjectID(projectIdString);
 
           await assertUserIsMemberOfProject({
             userId: userId,
@@ -162,17 +199,30 @@ export default class UserPushAPI extends BaseAPI<
             },
             select: {
               _id: true,
+              isVerified: true,
             },
           });
 
+          /*
+           * Registering a device that is already registered is not a
+           * mistake: it is Register Device pressed again in a browser that
+           * already gets this project's notifications, or the mobile app
+           * registering on launch. The caller is told which device they
+           * already have, and nothing is created or changed.
+           *
+           * isVerified false: the push service no longer accepts the
+           * subscription the browser still holds
+           * (UserPushService.markWebPushSubscriptionAsGone). The Dashboard
+           * then gets a new one and reports it (subscription-change), so the
+           * device it already has receives notifications again.
+           */
           if (existingDevice) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "This device is already registered for push notifications",
-              ),
-            );
+            return Response.sendJsonObjectResponse(req, res, {
+              success: true,
+              deviceId: existingDevice._id!.toString(),
+              alreadyRegistered: true,
+              isVerified: Boolean(existingDevice.isVerified),
+            });
           }
 
           // Create new device registration
@@ -222,6 +272,8 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             deviceId: savedDevice._id!.toString(),
+            alreadyRegistered: false,
+            isVerified: true,
           });
         } catch (error: any) {
           next(error);
@@ -261,6 +313,101 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             message: "Device unregistered successfully",
+          });
+        } catch (error) {
+          return next(error);
+        }
+      },
+    );
+
+    /*
+     * A browser replaced its push subscription, or lost it. The Dashboard's
+     * service worker (sw.js.template) calls this from its
+     * pushsubscriptionchange handler, and again when the Dashboard is next
+     * opened if the call could not be made then. Until this route existed the
+     * worker sent the new subscription nowhere, and the browser's devices kept
+     * the old one until every notification to them failed.
+     *
+     * Keyed on the old subscription, like unregister and critical-alerts: the
+     * worker knows the subscription it had and holds no row ids, and one
+     * browser has a device per project it is registered in.
+     *
+     * Authenticated by the person's session, like every route here: a service
+     * worker's fetch carries the Dashboard's cookies (same origin, SameSite
+     * lax), and the worker refreshes a session whose access token has expired
+     * before it gives up. Only the caller's own devices change.
+     *
+     * POST rather than PUT: PUT /user-push/:id is the generic update, and
+     * would read "subscription-change" as a device id.
+     */
+    this.router.post(
+      `/user-push/subscription-change`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          req = req as OneUptimeRequest;
+
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
+          const oldDeviceToken: unknown = req.body.oldDeviceToken;
+
+          if (!oldDeviceToken || typeof oldDeviceToken !== "string") {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("oldDeviceToken is required"),
+            );
+          }
+
+          const newDeviceToken: unknown = req.body.newDeviceToken;
+
+          if (newDeviceToken === undefined) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "newDeviceToken is required: the new subscription, or null when the browser has none",
+              ),
+            );
+          }
+
+          /*
+           * null, said outright: the browser has no subscription any more -
+           * notifications were blocked for the site, or it could not get a
+           * new one. Its devices stop being verified now, rather than at the
+           * next page that fails to reach them.
+           */
+          if (newDeviceToken === null) {
+            const markedCount: number =
+              await this.service.markWebPushSubscriptionAsGone({
+                deviceToken: oldDeviceToken,
+                userId: userId,
+              });
+
+            return Response.sendJsonObjectResponse(req, res, {
+              success: true,
+              devicesUpdated: markedCount,
+            });
+          }
+
+          PushNotificationService.assertIsWebPushSubscription(newDeviceToken);
+
+          const memberProjectIds: Array<ObjectID> =
+            await ProjectMembership.getMemberProjectIds({
+              userId: userId,
+            });
+
+          const renewedCount: number =
+            await this.service.replaceWebPushSubscription({
+              userId: userId,
+              oldDeviceToken: oldDeviceToken,
+              newDeviceToken: newDeviceToken as string,
+              memberProjectIds: memberProjectIds,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            success: true,
+            devicesUpdated: renewedCount,
           });
         } catch (error) {
           return next(error);
@@ -326,11 +473,19 @@ export default class UserPushAPI extends BaseAPI<
             projectId: device.projectId,
           });
 
+          /*
+           * A device stops being verified when its push subscription is gone
+           * (UserPushService.markWebPushSubscriptionAsGone), and nothing is
+           * sent to it. Said in those words: "Device is not verified" told
+           * nobody what to do.
+           */
           if (!device.isVerified) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Device is not verified"),
+              new BadDataException(
+                "This device no longer receives push notifications. Register it again from the browser or app it belongs to.",
+              ),
             );
           }
 

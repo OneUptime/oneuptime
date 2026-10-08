@@ -830,7 +830,7 @@ describe("ServiceLevelObjectiveService - the items an update posts", () => {
     });
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `📝 [SLO x\\]\\(https://evil.example\\)](${SLO_LINK}) was updated: **Name** changed from Checkout to x\\]\\(https://evil.example\\).`,
+      `📝 [SLO x\\]\\(https://evil.example\\)](${SLO_LINK}) was updated: **Name** changed from Checkout to x\\](https://evil.example).`,
     );
   });
 

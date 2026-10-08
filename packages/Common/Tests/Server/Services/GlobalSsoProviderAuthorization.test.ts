@@ -1314,15 +1314,20 @@ describe.each(HOOK_SUITES)(
  * Telling every server
  * ----------------------------------------------------------------------
  *
- * A write that lets a global provider sign fewer people in - turning it off,
- * deleting it, restricting it to its attached projects, or adding, turning
- * off or removing an attachment of one that is restricted to its attached
- * projects - is announced to every server (RealtimeAccessChanges,
- * SignInRulesChanged for the whole instance): each forgets what it knew of
- * the global providers and asks the live updates it holds again, as their
- * joins were. A write that changes nothing about who it signs in - a new
- * certificate, a new name, turning it on, an attachment of a provider that
- * signs people in to every project - is not.
+ * A write that changes where a global provider signs people in - turning it
+ * off or on, deleting it, restricting it to its attached projects or lifting
+ * that, or adding, turning off or on or removing an attachment of one that
+ * is restricted to its attached projects - is announced to every server
+ * (RealtimeAccessChanges, SignInRulesChanged for the whole instance): each
+ * forgets what it knew of the global providers and asks the live updates it
+ * holds again, as their joins were. Whether an update changed it is
+ * GlobalSsoProviderChanges.afterWrite's answer, worked out before the write
+ * (pinned in GlobalSsoProviderChanges.test.ts): here it is given. A write
+ * that turns a provider or an attachment off, or restricts it, is announced
+ * whatever that answer is: one that turns it on takes no lock, and may land
+ * between what the other read and what it wrote. A write that changes
+ * nothing about who it signs in - a new certificate, a new name, turned on
+ * or opened again while it was so - is not announced.
  */
 
 interface AnnouncementCase {
@@ -1330,6 +1335,8 @@ interface AnnouncementCase {
   service: any;
   hookName: string;
   args: () => Array<unknown>;
+  // afterWrite's answer: the update changed where the provider signs people in.
+  changedReach?: boolean;
   announces: boolean;
 }
 
@@ -1385,6 +1392,7 @@ function providerAnnouncementCases(
       service,
       hookName: "onUpdateSuccess",
       args: updateSuccess({ isEnabled: false }),
+      changedReach: true,
       announces: true,
     },
     {
@@ -1392,6 +1400,23 @@ function providerAnnouncementCases(
       service,
       hookName: "onUpdateSuccess",
       args: updateSuccess({ restrictToAttachedProjects: true }),
+      changedReach: true,
+      announces: true,
+    },
+    {
+      label: `${name}: turned off when it was read as off already - told whatever was read: one turned on a moment before took no lock`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: false, name: "Renamed" }),
+      changedReach: false,
+      announces: true,
+    },
+    {
+      label: `${name}: restricted when it was read as restricted already - told whatever was read`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ restrictToAttachedProjects: true }),
+      changedReach: false,
       announces: true,
     },
     {
@@ -1409,13 +1434,46 @@ function providerAnnouncementCases(
       announces: false,
     },
     {
-      label: `${name}: turned on, or opened to every project`,
+      label: `${name}: turned on, or opened to every project - told once, so no server keeps refusing the people it now signs in`,
       service,
       hookName: "onUpdateSuccess",
       args: updateSuccess({
         isEnabled: true,
         restrictToAttachedProjects: false,
       }),
+      changedReach: true,
+      announces: true,
+    },
+    {
+      label: `${name}: turned on alone`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: true }),
+      changedReach: true,
+      announces: true,
+    },
+    {
+      label: `${name}: opened to every project alone`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ restrictToAttachedProjects: false }),
+      changedReach: true,
+      announces: true,
+    },
+    {
+      label: `${name}: saved on again while on, as an edit form sends every switch it shows - nobody is told`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: true, name: "Renamed" }),
+      changedReach: false,
+      announces: false,
+    },
+    {
+      label: `${name}: turned on by an update that wrote no row`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: true }, []),
+      changedReach: true,
       announces: false,
     },
     {
@@ -1423,6 +1481,7 @@ function providerAnnouncementCases(
       service,
       hookName: "onUpdateSuccess",
       args: updateSuccess({ isEnabled: false }, []),
+      changedReach: true,
       announces: false,
     },
     {
@@ -1465,7 +1524,7 @@ const ANNOUNCEMENT_CASES: Array<AnnouncementCase> = [
   ),
 ];
 
-describe("write hooks that let a global provider sign fewer people in tell every server", () => {
+describe("write hooks that change who a global provider signs in tell every server", () => {
   let announced: Array<RealtimeAccessChange>;
 
   beforeEach(() => {
@@ -1481,6 +1540,10 @@ describe("write hooks that let a global provider sign fewer people in tell every
   test.each(ANNOUNCEMENT_CASES)(
     "$label",
     async (announcementCase: AnnouncementCase) => {
+      jest
+        .spyOn(GlobalSsoProviderChanges, "afterWrite")
+        .mockResolvedValue(announcementCase.changedReach === true);
+
       await callHook(
         announcementCase.service,
         announcementCase.hookName,
@@ -1495,7 +1558,7 @@ describe("write hooks that let a global provider sign fewer people in tell every
     },
   );
 
-  test("only the write's own fields count, never ones it inherits", () => {
+  test("only the write's own fields count as turning a provider off or restricting it, never ones it inherits", () => {
     const inherited: Record<string, unknown> = Object.create({
       isEnabled: false,
       restrictToAttachedProjects: true,
@@ -1506,6 +1569,10 @@ describe("write hooks that let a global provider sign fewer people in tell every
     expect(
       isGlobalProviderNarrowing({ restrictToAttachedProjects: true }),
     ).toBe(true);
+    expect(isGlobalProviderNarrowing({ isEnabled: true })).toBe(false);
+    expect(
+      isGlobalProviderNarrowing({ restrictToAttachedProjects: false }),
+    ).toBe(false);
     expect(isGlobalProviderNarrowing({ isEnabled: "false" })).toBe(false);
     expect(isGlobalProviderNarrowing(null)).toBe(false);
     expect(isGlobalProviderNarrowing(undefined)).toBe(false);
@@ -1760,34 +1827,65 @@ describe.each(ATTACHMENT_ANNOUNCEMENT_SUITES)(
       expectAnnounced(true);
     });
 
-    test("an attachment turned off is told for a restricted provider, read by the ids written", async () => {
-      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
+    test.each([
+      ["turned off", false],
+      ["turned on: no server keeps refusing the people it now signs in", true],
+    ])(
+      "an attachment %s is told when that changed where its provider signs people in, and nothing more is read once it is written",
+      async (_label: string, isEnabled: boolean) => {
+        jest
+          .spyOn(GlobalSsoProviderChanges, "afterWrite")
+          .mockResolvedValue(true);
+        const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+
+        await updated({ isEnabled: isEnabled }, [ObjectID.generate()]);
+
+        expectAnnounced(true);
+        expect(rows).not.toHaveBeenCalled();
+        expect(trust).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each([
+      ["turned on again while on", { isEnabled: true }],
+      [
+        "turned off, of a provider that signs people in to every project",
+        { isEnabled: false },
+      ],
+      [
+        "moved, of a provider that signs people in to every project",
+        { projectId: PROJECT_A },
+      ],
+    ])(
+      "an attachment %s - afterWrite's answer is that nothing changed - is not told, and nothing is read for it once it is written",
+      async (_label: string, data: Record<string, unknown>) => {
+        jest
+          .spyOn(GlobalSsoProviderChanges, "afterWrite")
+          .mockResolvedValue(false);
+        const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+
+        await updated(data, [ObjectID.generate()]);
+
+        expectAnnounced(false);
+        expect(rows).not.toHaveBeenCalled();
+        expect(trust).not.toHaveBeenCalled();
+      },
+    );
+
+    test("an attachment turned on by an update that wrote no row is not told, and nothing is read for it", async () => {
       const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
-      const attachmentId: ObjectID = ObjectID.generate();
 
-      await updated({ isEnabled: false }, [attachmentId]);
-
-      expectAnnounced(true);
-
-      const args: DatabaseCallArgs = callArgs(rows, 0);
-      expect(args.select).toEqual({ _id: true, [suite.idColumn]: true });
-      expect(args.props).toEqual({ isRoot: true });
-      expect(JSON.stringify(args.query)).toContain(attachmentId.toString());
-    });
-
-    test("an attachment turned off is not told for a provider that signs people in to every project", async () => {
-      trustByProvider.set(PROVIDER_ID.toString(), EVERY_PROJECT);
-      stubAttachmentRows([PROVIDER_ID]);
-
-      await updated({ isEnabled: false }, [ObjectID.generate()]);
+      await updated({ isEnabled: true }, []);
 
       expectAnnounced(false);
+      expect(rows).not.toHaveBeenCalled();
+      expect(trust).not.toHaveBeenCalled();
     });
 
-    test("an attachment turned on is not told, and nothing is read for it", async () => {
+    test("changing only an attachment's teams is not told, and nothing is read for it", async () => {
       const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
 
-      await updated({ isEnabled: true }, [ObjectID.generate()]);
+      await updated({ teams: [] }, [ObjectID.generate()]);
 
       expectAnnounced(false);
       expect(rows).not.toHaveBeenCalled();

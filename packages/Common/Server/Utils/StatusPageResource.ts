@@ -43,7 +43,7 @@ export default class StatusPageResourceUtil {
    * getResourcesGroupedByGroupNameAsPlainText everywhere else: it is not
    * escaped, because SMS, subjects and webhooks show text as written. Slack
    * and Teams messages are Markdown, and their callers escape it where they
-   * place it (escapeMarkdownValue, SubscriberMarkdownTemplateValues).
+   * place it (FeedMarkdown.templateText, SubscriberMarkdownTemplateValues).
    *
    * @param resources - Array of StatusPageResource items with displayName, statusPageGroupId, and optionally statusPageGroup.name
    * @param defaultValue - Value to return if no resources (defaults to "")

@@ -31,7 +31,9 @@ import DatabaseService from "./DatabaseService";
  * own reads a referenced record, so an id from another project gets the same
  * answer as an id that matches nothing. ProjectScopedReferencesEverywhere and
  * OwnerAndRuleServicesCheckReferences (Common Tests) hold every service to
- * this.
+ * this. A check of the service's own that must answer before the project
+ * check looks anything up goes in checkCreateBeforeReferences /
+ * checkUpdateBeforeReferences, which the base hooks run first.
  *
  * The check only ever answers someone who may write the table in the
  * project: DatabaseService refuses everyone else before any hook runs
@@ -120,10 +122,47 @@ export default class ProjectReferencesService<
     return false;
   }
 
+  /*
+   * Every reference a write names is held to the write's project here, in
+   * the words a missing record gets (ProjectReferenceCheck, or the
+   * service's own check of the relations and lists it names in
+   * getRelationsCheckedByService / getListsCheckedByService) - so the
+   * permission layer need not look up a parent or a listed record that the
+   * caller's read reaches whatever it is (DatabaseService
+   * .checksReferencesInProject).
+   */
+  protected override checksReferencesInProject(): boolean {
+    return true;
+  }
+
+  /*
+   * A check of the service's own that answers before the project check
+   * looks up anything a write names - for a caller who may not read a kind
+   * of record at all, so that naming one is refused the same way whatever
+   * the id, rather than first telling them which ids the project has
+   * (RunbookService: the credentials a runbook's steps name). Runs on every
+   * write, root and master admin included; a check that should let them
+   * through says so itself. Nothing by default.
+   */
+  protected async checkCreateBeforeReferences(
+    _createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    return;
+  }
+
+  // As checkCreateBeforeReferences, for an update.
+  protected async checkUpdateBeforeReferences(
+    _updateBy: UpdateBy<TBaseModel>,
+  ): Promise<void> {
+    return;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TBaseModel>,
   ): Promise<OnCreate<TBaseModel>> {
+    await this.checkCreateBeforeReferences(createBy);
+
     if (this.isCheckedWrite(createBy.props)) {
       const write: ProjectReferenceWrite = {
         kind: "create",
@@ -160,6 +199,8 @@ export default class ProjectReferencesService<
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<TBaseModel>,
   ): Promise<OnUpdate<TBaseModel>> {
+    await this.checkUpdateBeforeReferences(updateBy);
+
     if (this.isCheckedWrite(updateBy.props)) {
       const write: ProjectReferenceWrite = {
         kind: "update",

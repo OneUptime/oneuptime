@@ -63,6 +63,32 @@ A record read through another one - an incident's or an alert's notes and state 
 You do not have permissions to create Incident Internal Note. It is read through its Incident, and you need one of these permissions to read Incidents: …
 ```
 
+A change that moves such a record follows the same rule: each record it adds as a parent - another status page for an announcement, another service for a record read through its service - must be one you may read, or the change is refused with the same `400` and nothing is written. The parents a record has already are not checked again, and a change that leaves it under none needs a permission to read that kind of record that reaches every one of them, as a create that names none does.
+
+The owners of a resource - the user and team owner records of a monitor, an on-call policy, a dashboard and every other resource with owners - are read through the resource they own the same way: listing, reading, adding and removing them needs a permission to read that resource, under its labels and owners, and an owner record of a resource you may not read is answered as if it did not exist.
+
+The records a create or a change lists - an incident's monitors and on-call policies, an alert's services, a scheduled maintenance event's status pages, a rule's runbooks - keep to your permission to read that kind of record when you have one, and to a block with labels on reading it either way: one outside them is refused with the same `400`. A change checks only the records it adds to a list, so the ones the list holds already stay.
+
+The one record a create or a change names in a field of its own - an alert's monitor, the monitor a status page resource shows, a cost budget's service, the incident a runbook run is linked to - keeps to the same rule, under either of its names: one outside your permission to read that kind of record, or carrying a label a block on reading it takes away, is refused with the same `400`. A change checks it only when it names another record than the one the field holds already. OneUptime's global probes and AI agents, which every project can use, stay open to every project. The records a template fills in for you are checked the same way once they are filled in, before anything is saved: the monitors, status pages and on-call policies an incident template adds to an incident declared from it must be ones you may read, as if you had picked them.
+
+A setting that holds credentials - an SMTP server, a call and SMS provider, a runbook credential, SNMP credentials, a video call connection, an API key - is named only by a caller who may read that kind of setting: a status page's `smtpConfig` and `callSmsConfig`, an incoming call policy's `projectCallSMSConfig`, a Kubernetes cluster's `aiAccessCredential`, a network device's or site's `snmpCredentialProfile`, an incident's or alert's video call `videoCallConnection`, an API key permission's `apiKey`, and the `credentialId` of a runbook's SSH and Kubernetes steps. Naming one without a permission to read that kind of setting - or with one a block with no labels takes away - is refused with the same `400`, under either of its names; a change that keeps the setting a record names already is not asked about. The number search and the owned-number list of an incoming call policy take the same read of the Call/SMS config they name.
+
+A permission to create restricted to labels creates only records carrying one of its labels - for a record with no labels of its own, records under one that carries one - unless another permission to create that kind of record reaches the whole project, and a block with labels on a permission to create refuses a record carrying one of its labels. A create outside them is refused with a `422` that names the labels:
+
+```text
+Your access lets you create Status Pages only with one of these labels: Production. Add one of them and try again.
+```
+
+A permission to create scoped to **Owned** creates a monitor, a status page or another record with owners of its own only for a person, who becomes one of its owners, and a note or another record that takes its owners from the record it belongs to only under one you or one of your teams own.
+
+The creator is made an owner right after the record is saved, before anything else happens to it. If the owner row cannot be written, the record is removed again and the create is refused with a `500`, so no record is left behind that its creator could not reach.
+
+A change of the labels a record carries - its own labels, or for a record with no labels of its own the records it names - keeps to your permission to change that kind of record the same way: with one restricted to labels, the record keeps at least one of them, unless another permission to change it reaches the whole project, and a block with labels on a permission to change refuses giving it one of its labels. Such a change is refused with a `422` that names the labels:
+
+```text
+Your access lets you change Monitors only with one of these labels: Production. Keep one of them and try again.
+```
+
 A record can be named in two ways: by its ID field (`monitorId`), or by the relation (`"monitor": { "_id": "…" }`), which is what the dashboard's forms send. Send one of them. If a request sends both, they must name the same record: a request whose two disagree — two different IDs, or an ID and an empty value — is refused with a `400` that names both fields:
 
 ```text
@@ -80,6 +106,14 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 An update that writes a record's values as they already are changes nothing: it does not start the record's **On Update** workflows, send live updates or add an audit log entry. `false` written over `false` counts as the same value, and so do `"false"` written over `false`, a number written as its text, a time written as the same instant in another format, and labels written as the same labels in any order. When an update changes some values and writes others back as they are, its audit log entry lists only the values that changed, and a workflow's **Listen on** hears only those.
+
+### Where a project was bought
+
+A project's reseller, reseller plan and reseller license (`resellerId`, `resellerPlanId`, `resellerLicenseId`, and the relations `reseller` and `resellerPlan`) are set by OneUptime alone: when a project is created with a reseller's promo code, and when the reseller changes the plan. A create or a change of a project that sends one of them is refused with a `400` that names the field, whoever sends it:
+
+```text
+User is not allowed to create on resellerId column of Project
+```
 
 ### Who created a record
 

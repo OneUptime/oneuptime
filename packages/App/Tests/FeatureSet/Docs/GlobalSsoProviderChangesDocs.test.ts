@@ -16,8 +16,22 @@ import path from "path";
  *   - Require SSO for Login, for a project or for the whole server, needs a
  *     provider that signs people in (Common/Server/Utils/
  *     SsoRequirementChanges);
+ *   - a new project needs a global provider that signs people in to every
+ *     project while the server requires SSO, or when it is created with
+ *     Require SSO for Login on (SsoRequirementChanges.beforeProjectCreate);
+ *   - changes that let people sign in reach every server at once
+ *     (RealtimeAccessChanges SignInRulesChanged);
  *   - a status page provider turned off or deleted signs out the private
- *     users it signed in (StatusPagePrivateUserSessionService.addSignInRule).
+ *     users it signed in (StatusPagePrivateUserSessionService.addSignInRule);
+ *   - a save that sends Require SSO for Login on, or names the provider a
+ *     project requires, is checked even when the setting has that value
+ *     already (SsoRequirementChanges.beforeProjectUpdate /
+ *     beforeServerUpdate);
+ *   - behind PgBouncer, the statement timeout the app relies on is set on
+ *     the app's database role (HelmChart/Docs/Postgres.md): a change to who
+ *     can sign in whose write the app stopped waiting for is held until it
+ *     would have been cancelled (ProjectSsoProviderChanges.
+ *     giveBackAfterFailedWrite).
  *
  * Markdown is not compiled, so nothing else notices a guide that falls
  * behind. Other languages follow in the translated docs catch-up.
@@ -104,9 +118,24 @@ describe("the Global SSO guide", () => {
       );
     });
 
-    it("says changes that let a provider sign more people in are never refused", () => {
+    it("says a project created while such a change is saved waits for it, and in what words it is refused when it waits too long", () => {
+      expect(section).toContain(
+        'A project created at that moment waits for the change too, and if it waits too long it is refused with "The server\'s SSO settings are being changed. Create the project again in a moment."',
+      );
+    });
+
+    it("says changes that let a provider sign more people in are never refused, and reach every app server at once", () => {
       expect(section).toContain(
         "Changes that let a provider sign more people in - turning it or an attachment on, lifting the restriction - are never refused.",
+      );
+      expect(section).toContain(
+        "They reach every app server at once, as turning **Require SSO for Login** off does: people can sign in with the provider straight away.",
+      );
+    });
+
+    it("says an app server can take up to a minute to follow only when another change to the same provider is saved at that very moment", () => {
+      expect(section).toContain(
+        "Only when another change to the same provider is saved at that very moment can an app server take up to a minute to follow.",
       );
     });
   });
@@ -126,11 +155,29 @@ describe("the Global SSO guide", () => {
       );
     });
 
+    it("says a new project needs a global provider that signs people in to every project while the instance requires SSO, and master admins can still create projects", () => {
+      expect(section).toContain(
+        "- For a new project, which has no provider of its own yet: while the instance requires SSO, creating a project needs a global provider that is on and signs people in to every project, or nobody, its creator included, could open it.",
+      );
+      expect(section).toContain(
+        "Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.",
+      );
+      expect(section).toContain(
+        "A project created with **Require SSO for Login** already on needs the same, whoever creates it.",
+      );
+    });
+
     it("keeps master admins exempt, and turning it off never refused", () => {
       expect(section).toContain(
         "Master admins remain exempt so they cannot be locked out.",
       );
       expect(section).toContain("Turning it off is never refused.");
+    });
+
+    it("says a save that sends the switch on while it is on already is checked the same way", () => {
+      expect(section).toContain(
+        "- A save that sends **Require SSO for Login** on while it is on already - with other settings, or from the API - is checked the same way, for the instance or for a project, and so is one that names the provider a project requires already.",
+      );
     });
   });
 });
@@ -149,6 +196,56 @@ describe("the SSO guide", () => {
     );
     expect(section).toContain(
       "If you pick a provider the project requires, it has to be one of those, and the same is asked when you require another provider later.",
+    );
+  });
+
+  it("says a save that sends Require SSO for Login on again, or names the provider the project requires already, is checked the same way, and what to do first", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "A save that sends **Require SSO for Login** on while it is on already, or names the provider the project requires already, is checked the same way - the API, Terraform and other tools often send every setting with each save.",
+    );
+    expect(section).toContain(
+      "So while the project has no provider that signs people in, or the provider it requires was turned off since, such a save is refused in the same words, whatever else it changes: turn a provider on, require another one, or turn **Require SSO for Login** off, first.",
+    );
+  });
+
+  it("says a new project is held to the same rule, and what to do instead", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "A new project is held to the same rule. It has no provider of its own yet, so creating one with **Require SSO for Login** already on - only a master admin can - needs a global provider that is on and signs people in to every project, and is refused in the same words without one. Create the project, set up and test its provider, then turn the switch on.",
+    );
+  });
+
+  it("says creating a project while the server requires SSO needs a global provider, and master admins can still create projects", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "While the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), creating any project needs such a global provider too, or nobody, its creator included, could open the project.",
+    );
+    expect(section).toContain(
+      "Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.",
+    );
+  });
+
+  it("says turning Require SSO for Login off lets members back in straight away, unless it is turned on again at that very moment", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password straight away - unless someone turns it on again at that very moment, when an app server can take up to a minute to follow.",
     );
   });
 
@@ -211,6 +308,56 @@ describe("the upgrade notes", () => {
     );
     expect(page).toContain(
       "[Status Pages](/docs/status-pages/index#sso-and-oidc)",
+    );
+  });
+
+  it("say that creating a project follows the SSO rules, and that changes that let people sign in reach every app server at once", () => {
+    expect(page).toContain(
+      "**Creating a project follows the SSO rules too, and changes that let people sign in reach every app server at once.**",
+    );
+    expect(page).toContain(
+      "While the whole server requires SSO for login, creating a project needs a global SSO provider that is on and signs people in to every project, since a new project has no provider of its own yet; without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.",
+    );
+    expect(page).toContain(
+      "now reach every app server at once, as changes that end sign-ins already did, rather than when another server's cached answer runs out a minute later.",
+    );
+    expect(page).toContain(
+      "Only when two changes to the same setting are saved at the very same moment can an app server still take up to a minute to follow.",
+    );
+    expect(page).toContain(
+      "[SSO](/docs/identity/sso#requiring-sso-for-your-project) and [Global SSO](/docs/identity/global-sso#enforcing-sso).",
+    );
+  });
+
+  it("say that saving Require SSO for Login on again is checked as turning it on is, and that turning it off never is", () => {
+    expect(page).toContain(
+      "**Saving Require SSO for Login on again is checked as turning it on is.**",
+    );
+    expect(page).toContain(
+      "A save that sends Require SSO for Login on - for a project or for the whole server - or names the provider a project requires is now checked even when the setting has that value already, as the API, Terraform and other tools that send every setting with each save do.",
+    );
+    expect(page).toContain(
+      "such a save is refused with the message turning it on gives, whatever else it changes: turn a provider on, or turn the setting off, first. Turning it off and clearing the required provider are never refused.",
+    );
+  });
+});
+
+describe("the Postgres operations guide", () => {
+  // Markdown wraps the guide's lines; read it as one line of text.
+  const page: string = fs
+    .readFileSync(path.join(REPO_ROOT, "../HelmChart/Docs/Postgres.md"), "utf8")
+    .replace(/\s+/g, " ");
+
+  it("says behind the pooler the statement timeout the app relies on is set on its database role, and why", () => {
+    expect(page).toContain("#### Statement timeout behind the pooler");
+    expect(page).toContain(
+      "The app's client-side `query_timeout` (`DATABASE_QUERY_TIMEOUT_MS`) does not cancel a statement: it stops waiting for it, and the backend runs it on - and may commit it after the app reported the write as failed.",
+    );
+    expect(page).toContain(
+      `ALTER ROLE "postgres" IN DATABASE "oneuptimedb" SET statement_timeout = '30s';`,
+    );
+    expect(page).toContain(
+      "[Statement timeout behind the pooler](#statement-timeout-behind-the-pooler)",
     );
   });
 });

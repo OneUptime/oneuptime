@@ -5,6 +5,7 @@ import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import ScheduledMaintenanceFeedService from "../../../Server/Services/ScheduledMaintenanceFeedService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceFieldChange from "../../../Server/Utils/ScheduledMaintenance/ScheduledMaintenanceFieldChange";
 import AlertWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Alert";
 import IncidentWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Incident";
 import ScheduledMaintenanceWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
@@ -177,7 +178,7 @@ describe("incident created feed item", () => {
     });
 
     expect(sectionLines(markdown, HEADER)).toEqual([
-      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
       `- [Host web](${link("host", HOST_ID)})`,
       `- [Kubernetes Cluster prod](${link("kubernetes", CLUSTER_ID)})`,
       `- [Database orders](${link("databases", DATABASE_ID)})`,
@@ -273,7 +274,7 @@ describe("alert created feed item", () => {
     });
 
     expect(sectionLines(markdown, HEADER)).toEqual([
-      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
       `- [Kubernetes Cluster prod](${link("kubernetes", CLUSTER_ID)})`,
       `- [Service checkout](${link("service", SERVICE_ID)})`,
     ]);
@@ -337,7 +338,7 @@ describe("scheduled maintenance feed items", () => {
     ).createScheduledMaintenanceFeedAsync(event);
 
     expect(sectionLines(postedMarkdown(feedItem), HEADER)).toEqual([
-      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
       `- [Network Site London DC](${link("network-sites/view", SITE_ID)})`,
     ]);
   });
@@ -428,7 +429,7 @@ describe("scheduled maintenance feed items", () => {
       await update({ hosts: [{ _id: HOST_ID }] });
 
       expect(sectionLines(postedMarkdown(feedItem), UPDATED_HEADER)).toEqual([
-        `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
+        `- [checkout-web](${link("monitors", MONITOR_ID)})`,
         `- [Host web](${link("host", HOST_ID)})`,
       ]);
 
@@ -483,7 +484,7 @@ describe("scheduled maintenance feed items", () => {
       expect(feedItem).not.toHaveBeenCalled();
     });
 
-    test("clearing lists that held resources reads what the event now affects; nothing left, as before, writes no section", async () => {
+    test("clearing lists that held resources reads what the event now affects; nothing left says so, in one line", async () => {
       const reads: jest.SpyInstance = answerRelationReads(
         ScheduledMaintenanceService,
         {},
@@ -492,7 +493,22 @@ describe("scheduled maintenance feed items", () => {
       await update({ monitors: [], hosts: [] }, { hosts: [HOST_ID] });
 
       expect(reads).toHaveBeenCalled();
-      expect(feedItem).not.toHaveBeenCalled();
+      expect(feedItem).toHaveBeenCalledTimes(1);
+      expect(postedMarkdown(feedItem)).toContain(
+        `**Resources Affected**: \n${ScheduledMaintenanceFieldChange.noOtherResourcesLine}\n`,
+      );
+    });
+
+    test("only monitors taken off, the last ones: no 'nothing else' line - the monitors taken off are named instead", async () => {
+      answerRelationReads(ScheduledMaintenanceService, {});
+
+      await update({ monitors: [] }, { monitors: [MONITOR_ID] });
+
+      for (const call of feedItem.mock.calls) {
+        expect(
+          (call[0] as { feedInfoInMarkdown: string }).feedInfoInMarkdown,
+        ).not.toContain(ScheduledMaintenanceFieldChange.noOtherResourcesLine);
+      }
     });
   });
 });

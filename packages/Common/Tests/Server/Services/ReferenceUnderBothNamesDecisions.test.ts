@@ -35,6 +35,7 @@ import {
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * What a service does with a reference, not only whether it lets it in:
  * the state a record starts in, the template values it fills in, the state
@@ -434,7 +435,7 @@ describe("declaring an incident", () => {
       jest
         .spyOn(UserService, "getUserMarkdownString")
         .mockImplementation((async (data: { userId: ObjectID }) => {
-          return `user ${data.userId.toString()}`;
+          return FeedMarkdown.asMarkdown(`user ${data.userId.toString()}`);
         }) as never);
     });
 

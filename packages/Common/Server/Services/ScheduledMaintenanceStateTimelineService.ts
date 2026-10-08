@@ -16,7 +16,6 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteService from "./NetworkSiteService";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -38,9 +37,13 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import Select from "../Types/Database/Select";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Enough of a state to tell which kind it is. A project can add its own
@@ -127,83 +130,100 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       throw new BadDataException("scheduledMaintenanceId is null");
     }
 
+    // Under either of its names; the two must agree.
+    const scheduledMaintenanceStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
+        "Scheduled Maintenance State",
+      );
+
+    if (!scheduledMaintenanceStateId) {
+      throw new BadDataException("scheduledMaintenanceStateId is null");
+    }
+
+    // The public note that comes with the change, if any (a blank one is none).
+    const publicNote: string | undefined =
+      StateChangeSubscriberNotification.getPublicNote(
+        createBy.miscDataProps as JSONObject | undefined,
+      );
+
+    /*
+     * The note is posted once the change is saved (onCreateSuccess), as the
+     * person changing the state: after the change in the event's feed and in
+     * its Slack and Microsoft Teams channels, and never for a change that is
+     * refused or fails to save. With Notify on it is the one message
+     * subscribers get about the change, which is recorded as sent by it. So
+     * whether they may post it is asked now, before the change takes the
+     * event's lock or reads anything, with the check the note's own create
+     * runs: a change whose note they may not post is refused whole, with one
+     * plain message (StateChangePublicNote).
+     *
+     * It notifies exactly when the change was asked to: a change that does
+     * not say keeps its column defaults and notifies itself, and its note
+     * stays quiet - one message, not two.
+     */
+    let publicNoteToPost: ScheduledMaintenancePublicNote | undefined =
+      undefined;
+
+    if (publicNote) {
+      publicNoteToPost = new ScheduledMaintenancePublicNote();
+      publicNoteToPost.scheduledMaintenanceId =
+        createBy.data.scheduledMaintenanceId;
+      publicNoteToPost.note = publicNote;
+
+      /*
+       * At the change's time: as it was sent, or now when it names none.
+       * The saved change has the last word on it (onCreateSuccess).
+       */
+      const postedAt: Date =
+        createBy.data.startsAt || OneUptimeDate.getCurrentDate();
+      publicNoteToPost.postedAt = postedAt;
+      publicNoteToPost.createdAt = postedAt;
+
+      const noteProjectId: ObjectID | undefined =
+        createBy.data.projectId || createBy.props.tenantId;
+
+      if (noteProjectId) {
+        publicNoteToPost.projectId = noteProjectId;
+      }
+
+      publicNoteToPost.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+        Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+      // Its messages name the state the event moves to.
+      StateChangePublicNote.markPostedWith(
+        publicNoteToPost,
+        scheduledMaintenanceStateId,
+      );
+
+      StateChangePublicNote.assertCallerMayPost({
+        noteModelType: ScheduledMaintenancePublicNote,
+        note: publicNoteToPost,
+        props: createBy.props,
+      });
+    }
+
     let mutex: SemaphoreMutex | null = null;
 
     try {
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.scheduledMaintenanceId.toString(),
-          namespace: "ScheduledMaintenanceStateTimeline.create",
-        });
-      } catch (err) {
-        logger.error(err, {
+      // The event's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "ScheduledMaintenanceStateTimeline.create",
+        eventId: createBy.data.scheduledMaintenanceId,
+        logAttributes: {
+          projectId: createBy.data.projectId?.toString(),
           scheduledMaintenanceId:
             createBy.data.scheduledMaintenanceId?.toString(),
-        } as LogAttributes);
-      }
-
-      if (!createBy.data.startsAt) {
-        createBy.data.startsAt = OneUptimeDate.getCurrentDate();
-      }
-
-      // Under either of its names; the two must agree.
-      const scheduledMaintenanceStateId: ObjectID | null =
-        RelationIdUtil.readConsistent(
-          createBy.data as unknown as Record<string, unknown>,
-          ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
-          "Scheduled Maintenance State",
-        );
-
-      if (!scheduledMaintenanceStateId) {
-        throw new BadDataException("scheduledMaintenanceStateId is null");
-      }
-
-      // The public note that comes with the change, if any (a blank one is none).
-      const publicNote: string | undefined =
-        StateChangeSubscriberNotification.getPublicNote(
-          createBy.miscDataProps as JSONObject | undefined,
-        );
+        } as LogAttributes,
+      });
 
       /*
-       * The note, as it will be posted below - before the change, as the
-       * person changing the state, so that a note they may not post refuses
-       * the change too. Asked now, before anything is read or written, with
-       * the check the note's own create runs, so the refusal says what it
-       * means for the change (StateChangePublicNote).
+       * Taken once the lock is held, so that changes made to the event at
+       * the same moment are timed - and ordered - as they get it.
        */
-      let scheduledMaintenancePublicNote:
-        | ScheduledMaintenancePublicNote
-        | undefined = undefined;
-
-      if (publicNote) {
-        scheduledMaintenancePublicNote = new ScheduledMaintenancePublicNote();
-        scheduledMaintenancePublicNote.scheduledMaintenanceId =
-          createBy.data.scheduledMaintenanceId;
-        scheduledMaintenancePublicNote.note = publicNote;
-        scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
-        scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
-
-        const noteProjectId: ObjectID | undefined =
-          createBy.data.projectId || createBy.props.tenantId;
-
-        if (noteProjectId) {
-          scheduledMaintenancePublicNote.projectId = noteProjectId;
-        }
-
-        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
-
-        // Its messages name the state the event moves to.
-        StateChangePublicNote.markPostedWith(
-          scheduledMaintenancePublicNote,
-          scheduledMaintenanceStateId,
-        );
-
-        StateChangePublicNote.assertCallerMayPost({
-          noteModelType: ScheduledMaintenancePublicNote,
-          note: scheduledMaintenancePublicNote,
-          props: createBy.props,
-        });
+      if (!createBy.data.startsAt) {
+        createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
       /*
@@ -343,14 +363,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         }
       }
 
-      // The note goes first: a note that cannot be posted refuses the change.
-      if (scheduledMaintenancePublicNote) {
-        await ScheduledMaintenancePublicNoteService.create({
-          data: scheduledMaintenancePublicNote,
-          props: createBy.props,
-        });
-      }
-
       /*
        * The change's own notification, decided once: when it notifies
        * subscribers and a note came with it, the note is the one message
@@ -369,22 +381,20 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
           publicNote: publicNote,
+          publicNoteToPost: publicNoteToPost,
           mutex: mutex,
         },
       };
     } catch (error) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            scheduledMaintenanceId:
-              createBy.data.scheduledMaintenanceId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        scheduledMaintenanceId:
+          createBy.data.scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
 
       throw error;
     }
@@ -395,8 +405,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
     onCreate: OnCreate<ScheduledMaintenanceStateTimeline>,
     createdItem: ScheduledMaintenanceStateTimeline,
   ): Promise<ScheduledMaintenanceStateTimeline> {
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
-
     if (!createdItem.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
     }
@@ -493,6 +501,11 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       } as LogAttributes);
     }
 
+    /*
+     * The event's current state follows its timeline, as OneUptime's own
+     * write: the permission to create the change is the permission to change
+     * the event's state (StateChangeFollowOn).
+     */
     if (!createdItem.endsAt) {
       await ScheduledMaintenanceService.updateOneBy({
         query: {
@@ -502,21 +515,14 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           currentScheduledMaintenanceStateId:
             createdItem.scheduledMaintenanceStateId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          scheduledMaintenanceId:
-            createdItem.scheduledMaintenanceId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: createdItem.projectId?.toString(),
+      scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString(),
+    } as LogAttributes);
 
     const scheduledMaintenanceState: ScheduledMaintenanceState | null =
       await ScheduledMaintenanceStateService.findOneBy({
@@ -527,30 +533,48 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           isRoot: true,
         },
         select: {
-          _id: true,
-          isResolvedState: true,
-          isOngoingState: true,
-          isScheduledState: true,
+          ...STATE_KIND_SELECT,
+          order: true,
           color: true,
           name: true,
         },
       });
 
     /*
-     * The state's name is plain text, placed into the feed item's Markdown
-     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     * The project's states, with their place: read once, and only when a
+     * state of the project's own needs placing. Whether an event is in
+     * progress in one (placed between Ongoing and Ended) or over (placed
+     * after Ended) only its place can tell (ScheduledMaintenanceStartUtil).
      */
-    const stateName: string = escapeMarkdownValue(
-      scheduledMaintenanceState?.name || "",
-    );
+    const getProjectStates: () => Promise<Array<ScheduledMaintenanceState>> =
+      createdItem.projectId
+        ? this.getProjectStatesReader(createdItem.projectId)
+        : async (): Promise<Array<ScheduledMaintenanceState>> => {
+            return [];
+          };
+
+    // Whether the event is in progress in the state it moves into.
+    const isMovingIntoProgress: boolean = await this.isStateInProgress({
+      state: scheduledMaintenanceState,
+      getStates: getProjectStates,
+    });
+
+    /*
+     * The state's name is plain text, placed into the feed item's Markdown
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
+     */
+    const stateName: string = scheduledMaintenanceState?.name || "";
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.
 
     if (scheduledMaintenanceState?.isResolvedState) {
       stateEmoji = "✅";
-    } else if (scheduledMaintenanceState?.isOngoingState) {
-      // eyes emoji for acknowledged state.
+    } else if (isMovingIntoProgress) {
+      /*
+       * In progress: the ongoing state, or a state of the project's own
+       * placed between Ongoing and Ended, such as "Verifying".
+       */
       stateEmoji = "⏳";
     } else if (scheduledMaintenanceState?.isScheduledState) {
       stateEmoji = "🕒";
@@ -574,10 +598,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
-        stateName +
-        "**",
+        mdText`${stateEmoji} Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **${stateName}**`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -585,48 +606,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
     });
-
-    const isResolvedState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          _id: createdItem.scheduledMaintenanceStateId.toString()!,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
-
-    const isEndedState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          _id: createdItem.scheduledMaintenanceStateId.toString()!,
-          isEndedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
-
-    const isOngoingState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          _id: createdItem.scheduledMaintenanceStateId.toString()!,
-          isOngoingState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
 
     const scheduledMaintenanceEvent: ScheduledMaintenance | null =
       await ScheduledMaintenanceService.findOneBy({
@@ -659,36 +638,65 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       hasProgressedBeyondScheduledState &&
       scheduledMaintenanceEvent?.nextSubscriberNotificationBeforeTheEventAt
     ) {
+      // Derived from the change too, so written the same way.
       await ScheduledMaintenanceService.updateOneById({
         id: createdItem.scheduledMaintenanceId!,
         data: {
           nextSubscriberNotificationBeforeTheEventAt: null,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
     /*
+     * The built-in kind of the state moved into, if it is one: in progress
+     * (Ongoing), or not (Scheduled, Ended, Completed). Null for a state of
+     * the project's own, which its place decides.
+     */
+    const inProgressByFlags: boolean | null =
+      ScheduledMaintenanceStartUtil.isInProgressByFlags(
+        scheduledMaintenanceState,
+      );
+
+    /*
      * The event starts here when it moves into its ongoing state - or,
-     * straight from a state where it had not started, into a state of the
+     * from a state where it was not in progress, into a state of the
      * project's own placed between Ongoing and Ended ("Verifying"), which
-     * counts as started just the same (ScheduledMaintenanceStartUtil). Both
+     * is in progress just the same (ScheduledMaintenanceStartUtil). Both
      * starts do the same: probing of the event's monitors stops, and they
      * change to its Change Monitor Status to.
      */
     const isStart: boolean =
-      Boolean(isOngoingState) ||
-      (!isResolvedState &&
-        !isEndedState &&
-        Boolean(scheduledMaintenanceState) &&
-        !scheduledMaintenanceState?.isScheduledState &&
+      inProgressByFlags === true ||
+      (inProgressByFlags === null &&
+        isMovingIntoProgress &&
         (await this.isStartIntoStateOfItsOwn({
-          projectId: createdItem.projectId,
           scheduledMaintenanceStateId: createdItem.scheduledMaintenanceStateId,
           stateIdBeforeThis:
             onCreate.carryForward.statusTimelineBeforeThisStatus
               ?.scheduledMaintenanceStateId,
           isCurrentState: !createdItem.endsAt,
+          getStates: getProjectStates,
+        })));
+
+    /*
+     * And it ends here when it moves into its ended or completed state, as
+     * before - or, while it holds its monitors, into a state of the
+     * project's own placed after Ended ("Reviewing"), where it is over just
+     * the same: it lets go of them, as the move into Ended does. Without
+     * this, an event moved from Ongoing straight into such a state kept its
+     * monitors paused in its status for good.
+     */
+    const isEnd: boolean =
+      ScheduledMaintenanceStartUtil.hasEndedByFlags(
+        scheduledMaintenanceState,
+      ) === true ||
+      (inProgressByFlags === null &&
+        !isMovingIntoProgress &&
+        (await this.isEndIntoStateOfItsOwn({
+          createdItem: createdItem,
+          isCurrentState: !createdItem.endsAt,
+          getStates: getProjectStates,
         })));
 
     if (isStart) {
@@ -716,7 +724,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       }
     }
 
-    if (isResolvedState || isEndedState) {
+    if (isEnd) {
       // resolve all the monitors.
       await this.enableActiveMonitoringForMonitors(scheduledMaintenanceEvent!);
     }
@@ -724,18 +732,46 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
     /*
      * Network sites are suppressed by the LIVE state of the event, not by a
      * flag written onto them, so both edges of the window have to re-roll the
-     * chains above the attached sites: entering ongoing takes the planned
-     * outage out of every ancestor's rollup, and leaving it puts whatever is
-     * genuinely wrong back in. Without this the change would still land, but
-     * only whenever the five-minute stale sweep next reached those sites.
+     * chains above the attached sites: the start takes the planned outage
+     * out of every ancestor's rollup, and the end puts whatever is genuinely
+     * wrong back in - whichever state, built-in or the project's own, either
+     * edge moves into. Without this the change would still land, but only
+     * whenever the five-minute stale sweep next reached those sites.
      *
      * Awaited rather than fired and forgotten: the state transition is
      * already inside a hook, and a rollup that ran after the response would
      * race the very sweep it is trying to pre-empt. The call swallows
      * per-site failures itself.
      */
-    if (isOngoingState || isResolvedState || isEndedState) {
+    if (isStart || isEnd) {
       await this.recomputeNetworkSiteRollups(scheduledMaintenanceEvent);
+    }
+
+    /*
+     * The note that came with the change, which onBeforeCreate built and
+     * made sure may be posted: posted now that the change is saved - after
+     * it in the event's feed and its Slack and Microsoft Teams channels, and
+     * before a completed event's channels are archived - on the event, at
+     * the time and in the project the change was saved with, as the person
+     * who changed the state.
+     */
+    const publicNoteToPost: ScheduledMaintenancePublicNote | undefined =
+      onCreate.carryForward.publicNoteToPost;
+
+    if (publicNoteToPost) {
+      if (createdItem.startsAt) {
+        publicNoteToPost.postedAt = createdItem.startsAt;
+        publicNoteToPost.createdAt = createdItem.startsAt;
+      }
+
+      if (createdItem.projectId) {
+        publicNoteToPost.projectId = createdItem.projectId;
+      }
+
+      await ScheduledMaintenancePublicNoteService.create({
+        data: publicNoteToPost,
+        props: onCreate.createBy.props,
+      });
     }
 
     const isLastScheduledMaintenanceState: boolean =
@@ -752,12 +788,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
+          text: mdText`**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               createdItem.projectId!,
               createdItem.scheduledMaintenanceId!,
             )
-          ).toString()})** is complete. Archiving channel.`,
+          ).toString()})** is complete. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {
@@ -799,6 +835,27 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
     });
 
     return createdItem;
+  }
+
+  /*
+   * A change refused or failed once onBeforeCreate took the event's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the event
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<ScheduledMaintenanceStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      scheduledMaintenanceId:
+        onCreate?.createBy.data.scheduledMaintenanceId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   @CaptureSpan()
@@ -985,50 +1042,73 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
   }
 
   /*
-   * Whether a move into a state of the project's own - none of the four
-   * built-in kinds - is the event's start: the state is placed between
-   * Ongoing and Ended (ScheduledMaintenanceStartUtil.isInProgress), and the
-   * state the event moves from had not started (none, Scheduled, or a state
-   * of the project's own placed before Ongoing). A move from Ongoing into
-   * such a state is not a start: the event already holds its monitors.
-   *
-   * Only for the event's current state (isCurrentState): a row filled in
-   * between two others, back in its timeline, starts nothing. The project's
-   * states are read here, once, and only for such a move.
+   * Whether the event is in progress in `state`
+   * (ScheduledMaintenanceStartUtil): a built-in state answers by its flag;
+   * a state of the project's own by its place in the project's list, read
+   * only then (getStates).
    */
-  private async isStartIntoStateOfItsOwn(data: {
-    projectId: ObjectID | undefined;
-    scheduledMaintenanceStateId: ObjectID;
-    stateIdBeforeThis: ObjectID | undefined;
-    isCurrentState: boolean;
+  private async isStateInProgress(data: {
+    state: ScheduledMaintenanceState | null | undefined;
+    getStates: () => Promise<Array<ScheduledMaintenanceState>>;
   }): Promise<boolean> {
-    if (!data.isCurrentState || !data.projectId) {
+    const byFlags: boolean | null =
+      ScheduledMaintenanceStartUtil.isInProgressByFlags(data.state);
+
+    if (byFlags !== null) {
+      return byFlags;
+    }
+
+    if (!data.state) {
       return false;
     }
 
-    const states: Array<ScheduledMaintenanceState> =
-      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
-        projectId: data.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
+    return ScheduledMaintenanceStartUtil.isInProgress({
+      states: await data.getStates(),
+      state: data.state,
+    });
+  }
 
-    const stateOf: (
-      stateId: ObjectID | undefined,
-    ) => ScheduledMaintenanceState | undefined = (
-      stateId: ObjectID | undefined,
-    ): ScheduledMaintenanceState | undefined => {
-      const key: string = stateId?.toString().trim().toLowerCase() || "";
+  // The state of the project's list with this id, if any.
+  private findStateOf(
+    states: Array<ScheduledMaintenanceState>,
+    stateId: ObjectID | undefined,
+  ): ScheduledMaintenanceState | undefined {
+    const key: string = stateId?.toString().trim().toLowerCase() || "";
 
-      return key
-        ? states.find((state: ScheduledMaintenanceState): boolean => {
-            return state.id?.toString().trim().toLowerCase() === key;
-          })
-        : undefined;
-    };
+    return key
+      ? states.find((state: ScheduledMaintenanceState): boolean => {
+          return state.id?.toString().trim().toLowerCase() === key;
+        })
+      : undefined;
+  }
 
-    const state: ScheduledMaintenanceState | undefined = stateOf(
+  /*
+   * Whether a move into a state of the project's own - none of the four
+   * built-in kinds - is the event's start: the state is placed between
+   * Ongoing and Ended (ScheduledMaintenanceStartUtil.isInProgress), and the
+   * state the event moves from is not in progress (none, Scheduled, a state
+   * of the project's own placed before Ongoing - or one where the event was
+   * over, reopened). A move from Ongoing into such a state is not a start:
+   * the event already holds its monitors.
+   *
+   * Only for the event's current state (isCurrentState): a row filled in
+   * between two others, back in its timeline, starts nothing. The project's
+   * states are read once (getStates), and only for such a move.
+   */
+  private async isStartIntoStateOfItsOwn(data: {
+    scheduledMaintenanceStateId: ObjectID;
+    stateIdBeforeThis: ObjectID | undefined;
+    isCurrentState: boolean;
+    getStates: () => Promise<Array<ScheduledMaintenanceState>>;
+  }): Promise<boolean> {
+    if (!data.isCurrentState) {
+      return false;
+    }
+
+    const states: Array<ScheduledMaintenanceState> = await data.getStates();
+
+    const state: ScheduledMaintenanceState | undefined = this.findStateOf(
+      states,
       data.scheduledMaintenanceStateId,
     );
 
@@ -1043,17 +1123,96 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       return false;
     }
 
-    const stateBeforeThis: ScheduledMaintenanceState | undefined = stateOf(
-      data.stateIdBeforeThis,
-    );
+    const stateBeforeThis: ScheduledMaintenanceState | undefined =
+      this.findStateOf(states, data.stateIdBeforeThis);
 
     return !(
       stateBeforeThis &&
-      ScheduledMaintenanceStartUtil.hasStarted({
+      ScheduledMaintenanceStartUtil.isInProgress({
         states: states,
         state: stateBeforeThis,
       })
     );
+  }
+
+  /*
+   * Whether a move into a state of the project's own placed after Ended
+   * ("Reviewing") is the event's end: it is over in that state
+   * (ScheduledMaintenanceStartUtil.hasEnded), and it held its monitors until
+   * now - its timeline before this row, replayed the way the transitions
+   * applied it (isHoldingAfterTimeline). Moved on from Ended, it let go of
+   * them already; moved there straight from Scheduled, it never held them -
+   * and releasing them again would put a monitor that went down since back
+   * to operational.
+   *
+   * Only for the event's current state (isCurrentState), as the start. The
+   * timeline is read only for such a move.
+   */
+  private async isEndIntoStateOfItsOwn(data: {
+    createdItem: ScheduledMaintenanceStateTimeline;
+    isCurrentState: boolean;
+    getStates: () => Promise<Array<ScheduledMaintenanceState>>;
+  }): Promise<boolean> {
+    const createdItem: ScheduledMaintenanceStateTimeline = data.createdItem;
+
+    if (
+      !data.isCurrentState ||
+      !createdItem.projectId ||
+      !createdItem.scheduledMaintenanceId
+    ) {
+      return false;
+    }
+
+    const states: Array<ScheduledMaintenanceState> = await data.getStates();
+
+    const state: ScheduledMaintenanceState | undefined = this.findStateOf(
+      states,
+      createdItem.scheduledMaintenanceStateId,
+    );
+
+    if (
+      !state ||
+      ScheduledMaintenanceStartUtil.hasEndedByFlags(state) !== null ||
+      !ScheduledMaintenanceStartUtil.hasEnded({
+        states: states,
+        state: state,
+      })
+    ) {
+      return false;
+    }
+
+    const timeline: Array<ScheduledMaintenanceStateTimeline> =
+      await this.findBy({
+        query: {
+          scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
+          projectId: createdItem.projectId,
+        },
+        select: {
+          _id: true,
+          scheduledMaintenanceState: STATE_KIND_SELECT,
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const createdItemId: string = createdItem.id?.toString() || "";
+
+    return await this.isHoldingAfterTimeline({
+      timeline: timeline.filter(
+        (timelineItem: ScheduledMaintenanceStateTimeline): boolean => {
+          return (
+            !createdItemId || timelineItem.id?.toString() !== createdItemId
+          );
+        },
+      ),
+      getStates: data.getStates,
+    });
   }
 
   /*
@@ -1316,9 +1475,10 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
     const isHeldByOngoingEvent: boolean = scheduledMaintenanceEvents.some(
       (scheduledMaintenanceEvent: ScheduledMaintenance): boolean => {
-        return Boolean(
-          scheduledMaintenanceEvent.currentScheduledMaintenanceState
-            ?.isOngoingState,
+        return (
+          ScheduledMaintenanceStartUtil.isInProgressByFlags(
+            scheduledMaintenanceEvent.currentScheduledMaintenanceState,
+          ) === true
         );
       },
     );
@@ -1483,9 +1643,13 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
   /*
    * An event's state timeline, oldest first, replayed the way the
-   * transitions applied it: entering ongoing holds the monitors, entering
-   * ended or resolved lets go of them, and a state the project added itself
-   * does neither (states only ever move forward).
+   * transitions applied it: entering a state where the event is in progress
+   * holds the monitors - Ongoing, or a state of the project's own placed
+   * between Ongoing and Ended (isStartIntoStateOfItsOwn) - and entering one
+   * where it is over lets go of them: Ended, Completed, or a state of the
+   * project's own placed after Ended (isEndIntoStateOfItsOwn). A state where
+   * it has not started - Scheduled, or one of the project's own before
+   * Ongoing - does neither (states only ever move forward).
    */
   private async isHoldingAfterTimeline(data: {
     timeline: Array<ScheduledMaintenanceStateTimeline>;
@@ -1498,29 +1662,42 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       const timelineState: ScheduledMaintenanceState | undefined =
         timelineItem.scheduledMaintenanceState;
 
-      if (timelineState?.isOngoingState) {
+      if (!timelineState) {
+        continue;
+      }
+
+      const inProgressByFlags: boolean | null =
+        ScheduledMaintenanceStartUtil.isInProgressByFlags(timelineState);
+
+      if (inProgressByFlags === true) {
         isHolding = true;
-      } else if (
-        timelineState?.isEndedState ||
-        timelineState?.isResolvedState
-      ) {
-        isHolding = false;
-      } else if (
-        !isHolding &&
-        timelineState &&
-        !timelineState.isScheduledState &&
-        /*
-         * Moved into from a state where it had not started, a state of the
-         * project's own placed between Ongoing and Ended started the event,
-         * as Ongoing does, and holds what Ongoing would have
-         * (isStartIntoStateOfItsOwn). Only its place can tell.
-         */
+        continue;
+      }
+
+      if (inProgressByFlags === false) {
+        if (ScheduledMaintenanceStartUtil.hasEndedByFlags(timelineState)) {
+          isHolding = false;
+        }
+        continue;
+      }
+
+      // A state of the project's own: only its place can tell.
+      const states: Array<ScheduledMaintenanceState> = await data.getStates();
+
+      if (
         ScheduledMaintenanceStartUtil.isInProgress({
-          states: await data.getStates(),
+          states: states,
           state: timelineState,
         })
       ) {
         isHolding = true;
+      } else if (
+        ScheduledMaintenanceStartUtil.hasEnded({
+          states: states,
+          state: timelineState,
+        })
+      ) {
+        isHolding = false;
       }
     }
 
@@ -1553,13 +1730,14 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
   /*
    * Whether the event is holding its monitors in maintenance: it has moved
-   * to an ongoing state and not since to an ended or resolved one. That is
-   * what the state transitions leave behind - entering ongoing disables the
-   * attached monitors, entering ended or resolved restores them (both in
-   * onCreateSuccess), and a state a project added itself (say "Verifying",
-   * between Ongoing and Ended) does neither, so an event sitting in one
-   * still holds whatever it held while ongoing. Asking isOngoingState alone
-   * would treat that event like a scheduled one.
+   * into a state where it is in progress and not since into one where it is
+   * over. That is what the state transitions leave behind - the start
+   * (Ongoing, or a state of the project's own between Ongoing and Ended,
+   * say "Verifying") disables the attached monitors, the end (Ended,
+   * Completed, or a state of the project's own after Ended, say
+   * "Reviewing") restores them (both in onCreateSuccess), and a state where
+   * the event has not started does neither. Asking the ongoing flag alone
+   * would treat an event in "Verifying" like a scheduled one.
    *
    * The one definition of holding, for both questions asked of it: whether
    * an edit to an event's monitors puts them into or out of maintenance
@@ -1584,16 +1762,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       return false;
     }
 
-    if (currentState.isOngoingState) {
-      return true;
-    }
+    // Ongoing holds; Scheduled, Ended and Completed do not.
+    const inProgressByFlags: boolean | null =
+      ScheduledMaintenanceStartUtil.isInProgressByFlags(currentState);
 
-    if (
-      currentState.isScheduledState ||
-      currentState.isEndedState ||
-      currentState.isResolvedState
-    ) {
-      return false;
+    if (inProgressByFlags !== null) {
+      return inProgressByFlags;
     }
 
     const timeline: Array<ScheduledMaintenanceStateTimeline> =

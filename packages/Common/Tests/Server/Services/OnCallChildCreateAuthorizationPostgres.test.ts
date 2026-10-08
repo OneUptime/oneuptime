@@ -139,6 +139,8 @@ describePostgres(
       "OnCallDutyPolicy",
       "OnCallDutyPolicyLabel",
       "OnCallDutyPolicySchedule",
+      // A create permission limited to labels reads the schedule's too.
+      "OnCallDutyPolicyScheduleLabel",
       "OnCallDutyPolicyOwnerUser",
       "OnCallDutyPolicyOwnerTeam",
       "OnCallDutyPolicyEscalationRule",
@@ -256,6 +258,15 @@ describePostgres(
           [id.toString(), projectId.toString(), name, name],
         );
       }
+      /*
+       * The schedule a rule pages carries Development: a member whose
+       * on-call permissions are limited to it reads, and so may name, only
+       * the schedules that carry it.
+       */
+      await database.query(
+        `INSERT INTO "${schema}"."OnCallDutyPolicyScheduleLabel" ("onCallDutyPolicyScheduleId", "labelId") VALUES ($1, $2)`,
+        [targetScheduleId.toString(), developmentLabelId.toString()],
+      );
       for (const [id, tenant, label, deleted] of [
         [developmentPolicyId, projectId, developmentLabelId, false],
         [productionPolicyId, projectId, productionLabelId, false],
@@ -717,6 +728,73 @@ describePostgres(
         });
       },
     );
+
+    /*
+     * The schedule a rule pages is one its creator may read: a member whose
+     * on-call permissions are limited to Development names only the
+     * schedules that carry it, and one outside them is answered like a
+     * schedule that does not exist.
+     */
+    describe("the schedule a rule pages", () => {
+      const productionScheduleId: ObjectID = ObjectID.generate();
+
+      // After the fixtures every case starts from (the beforeEach above).
+      beforeEach(async () => {
+        await database.query(
+          `INSERT INTO "${schema}"."OnCallDutyPolicySchedule" ("_id", "version", "projectId", "name", "slug") VALUES ($1, 1, $2, 'Synthetic production schedule', $3)`,
+          [
+            productionScheduleId.toString(),
+            projectId.toString(),
+            productionScheduleId.toString(),
+          ],
+        );
+        await database.query(
+          `INSERT INTO "${schema}"."OnCallDutyPolicyScheduleLabel" ("onCallDutyPolicyScheduleId", "labelId") VALUES ($1, $2)`,
+          [productionScheduleId.toString(), productionLabelId.toString()],
+        );
+      });
+
+      function pagingProductionSchedule(): BaseModel {
+        const data: BaseModel = child(
+          "schedule",
+          developmentPolicyId,
+          developmentRuleId,
+        );
+        data.setColumnValue("onCallDutyPolicyScheduleId", productionScheduleId);
+        return data;
+      }
+
+      test("a schedule outside the member's labels is refused like one that does not exist, and nothing is saved", async () => {
+        // The schedule is the project's own, there to be read.
+        expect(
+          await database.query(
+            `SELECT "_id" FROM "${schema}"."OnCallDutyPolicySchedule" WHERE "_id" = $1 AND "projectId" = $2`,
+            [productionScheduleId.toString(), projectId.toString()],
+          ),
+        ).toHaveLength(1);
+
+        const before: unknown = await storedRows("schedule");
+
+        await expect(
+          services["schedule"].create({
+            data: pagingProductionSchedule(),
+            props: memberProps(),
+          }),
+        ).rejects.toThrow(
+          `This schedule's on-call duty escalation rule references records that are not in this project: On Call Policy Schedule "${productionScheduleId.toString()}". Please pick values from this project and try again.`,
+        );
+        expect(await storedRows("schedule")).toEqual(before);
+      });
+
+      test("a member whose on-call permissions reach the whole project names it", async () => {
+        const created: BaseModel = await services["schedule"].create({
+          data: pagingProductionSchedule(),
+          props: memberProps(true),
+        });
+
+        expect(created.id).toBeDefined();
+      });
+    });
 
     /*
      * What a rule pages is the project's own, read from the real tables:

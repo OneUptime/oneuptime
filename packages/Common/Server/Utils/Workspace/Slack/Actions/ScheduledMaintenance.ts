@@ -36,12 +36,13 @@ import OneUptimeDate from "../../../../../Types/Date";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
-import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SlackActionAuthorization from "./Authorization";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackScheduledMaintenanceActions {
   @CaptureSpan()
@@ -152,14 +153,24 @@ export default class SlackScheduledMaintenanceActions {
         response_action: "clear",
       });
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      /*
+       * Created by the member the Slack account is connected to, with
+       * their own permissions, as they would create it in OneUptime: they
+       * must be allowed to create events, and every record the submitted
+       * view names - the monitors, labels and monitor status, whatever ids
+       * it carries - must be one they may name. ScheduledMaintenanceService
+       * checks those on the create itself, and a record they may not read is
+       * answered like one that is not in the project.
+       */
+      const props: DatabaseCommonInteractionProps | null =
+        await SlackActionAuthorization.authorize({
           requester: slackRequest,
           modelType: ScheduledMaintenance,
           action: "create a scheduled maintenance event",
           resources: [],
-        }))
-      ) {
+        });
+
+      if (!props) {
         return;
       }
 
@@ -206,7 +217,7 @@ export default class SlackScheduledMaintenanceActions {
         // send slack message to user that start date is in the past.
         const markdownPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with start date in the past.`,
+          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with start date in the past.`.toString(),
         };
         await SlackUtil.sendDirectMessageToUser({
           messageBlocks: [markdownPayload],
@@ -220,7 +231,7 @@ export default class SlackScheduledMaintenanceActions {
         // send slack message to user that end date is in the past.
         const markdownPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date in the past.`,
+          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date in the past.`.toString(),
         };
         await SlackUtil.sendDirectMessageToUser({
           messageBlocks: [markdownPayload],
@@ -236,7 +247,7 @@ export default class SlackScheduledMaintenanceActions {
         // send slack message to user that end date is before start date.
         const markdownPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date before start date.`,
+          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date before start date.`.toString(),
         };
         await SlackUtil.sendDirectMessageToUser({
           messageBlocks: [markdownPayload],
@@ -246,29 +257,11 @@ export default class SlackScheduledMaintenanceActions {
         return;
       }
 
-      /*
-       * The event is created as root from ids in the submitted view, so check
-       * they belong to this project. ScheduledMaintenanceService only checks
-       * the monitor status on create.
-       */
-      await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject(
-        {
-          projectId: slackRequest.projectId!,
-          subject: "scheduled maintenance event",
-          monitorIds: scheduledMaintenanceMonitors,
-          labelIds: scheduledMaintenanceLabels,
-        },
-      );
-
       const scheduledMaintenance: ScheduledMaintenance =
         new ScheduledMaintenance();
       scheduledMaintenance.title = title;
       scheduledMaintenance.description = description;
       scheduledMaintenance.projectId = slackRequest.projectId!;
-
-      if (userId) {
-        scheduledMaintenance.createdByUserId = userId;
-      }
 
       scheduledMaintenance.startsAt = startDate;
       scheduledMaintenance.endsAt = endDate;
@@ -297,13 +290,21 @@ export default class SlackScheduledMaintenanceActions {
         );
       }
 
-      const createdEvent: ScheduledMaintenance =
-        await ScheduledMaintenanceService.create({
-          data: scheduledMaintenance,
-          props: {
-            isRoot: true,
+      const createdEvent: ScheduledMaintenance | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "create the scheduled maintenance event",
+          run: async (): Promise<ScheduledMaintenance> => {
+            return await ScheduledMaintenanceService.create({
+              data: scheduledMaintenance,
+              props: props,
+            });
           },
         });
+
+      if (!createdEvent) {
+        return;
+      }
 
       // post a message to Slack after the incident was created.
       const slackChannelId: string = data.action.actionValue || ""; // this is the channel id where the incident was created.
@@ -321,10 +322,10 @@ export default class SlackScheduledMaintenanceActions {
             messageBlocks: [
               {
                 _type: "WorkspacePayloadMarkdown",
-                text: `**Scheduled Event ${createdEvent.scheduledMaintenanceNumberWithPrefix || "#" + createdEvent.scheduledMaintenanceNumber}** created successfully. [View Event](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                text: mdText`**Scheduled Event ${createdEvent.scheduledMaintenanceNumberWithPrefix || "#" + createdEvent.scheduledMaintenanceNumber}** created successfully. [View Event](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                   slackRequest.projectId!,
                   createdEvent.id!,
-                )})`,
+                )})`.toString(),
               } as WorkspacePayloadMarkdown,
             ],
           },
@@ -344,6 +345,24 @@ export default class SlackScheduledMaintenanceActions {
 
     // send response to clear the action.
     Response.sendTextResponse(data.req, data.res, "");
+
+    /*
+     * The form is filled in as the member the Slack account is connected
+     * to: someone who may not create a scheduled maintenance event is told
+     * so now, before filling it in, and every list below is read with their
+     * own permissions (WorkspaceActionAuthorization.findReadable), so it
+     * offers only what they may read - as the form in OneUptime does.
+     */
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: ScheduledMaintenance,
+        action: "create a scheduled maintenance event",
+      });
+
+    if (!props) {
+      return;
+    }
 
     /*
      * show new scheduledMaintenance modal.
@@ -398,19 +417,48 @@ export default class SlackScheduledMaintenanceActions {
 
     blocks.push(endDatePicker);
 
-    const monitorsForProject: Array<Monitor> = await MonitorService.findBy({
-      query: {
-        projectId: data.slackRequest.projectId!,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
+    const [monitorsForProject, monitorStatusForProject, labelsForProject]: [
+      Array<Monitor>,
+      Array<MonitorStatus>,
+      Array<Label>,
+    ] = await Promise.all([
+      WorkspaceActionAuthorization.findReadable({
+        service: MonitorService,
+        props: props,
+        query: {
+          projectId: data.slackRequest.projectId!,
+        },
+        select: {
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: MonitorStatusService,
+        props: props,
+        query: {
+          projectId: data.slackRequest.projectId!,
+        },
+        select: {
+          name: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: LabelService,
+        props: props,
+        query: {
+          projectId: data.slackRequest.projectId!,
+        },
+        select: {
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+    ]);
 
     const monitorDropdownOptions: Array<DropdownOption> =
       monitorsForProject.map((monitor: Monitor) => {
@@ -433,24 +481,6 @@ export default class SlackScheduledMaintenanceActions {
     if (monitorsForProject.length > 0) {
       blocks.push(scheduledMaintenanceMonitors);
     }
-
-    const monitorStatusForProject: Array<MonitorStatus> =
-      await MonitorStatusService.findBy({
-        query: {
-          projectId: data.slackRequest.projectId!,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        sort: {
-          priority: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
 
     const monitorStatusDropdownOptions: Array<DropdownOption> =
       monitorStatusForProject.map((status: MonitorStatus) => {
@@ -477,20 +507,6 @@ export default class SlackScheduledMaintenanceActions {
     ) {
       blocks.push(monitorStatusDropdown);
     }
-
-    const labelsForProject: Array<Label> = await LabelService.findBy({
-      query: {
-        projectId: data.slackRequest.projectId!,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
 
     const labelsDropdownOptions: Array<DropdownOption> = labelsForProject.map(
       (label: Label) => {
@@ -619,7 +635,7 @@ export default class SlackScheduledMaintenanceActions {
         // send a message to the channel visible to user, that the scheduledMaintenance has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -772,7 +788,7 @@ export default class SlackScheduledMaintenanceActions {
         // send a message to the channel visible to user, that the scheduledMaintenance has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot resolve the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**. It has already been resolved.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({

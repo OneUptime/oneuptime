@@ -27,6 +27,15 @@ import OneUptimeDate from "../../Types/Date";
 
 export type ModelSchemaType = ZodSchema;
 
+/*
+ * The model a relation column points at, as the generated spec names it:
+ * `tag` is what that model's endpoints are tagged with (its singular name).
+ */
+export interface ModelRelationReference {
+  tag: string;
+  tableName: string;
+}
+
 // Type for schema method functions
 type SchemaMethodFunction = (data: {
   modelType: new () => DatabaseBaseModel;
@@ -86,6 +95,9 @@ export class ModelSchema extends BaseSchema {
     // Get column access control for permission filtering
     const columnAccessControl: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();
+
+    const relations: Dictionary<ModelRelationReference> =
+      this.getRelationReferences(columns);
 
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
@@ -416,9 +428,11 @@ export class ModelSchema extends BaseSchema {
       }
 
       // Set the final combined description
-      if (finalDescription) {
-        zodType = zodType.describe(finalDescription);
-      }
+      zodType = this.annotateColumn({
+        zodType: zodType,
+        description: finalDescription,
+        relation: relations[key],
+      });
 
       // Mark computed fields as readOnly in OpenAPI spec
       if (column.computed) {
@@ -431,6 +445,97 @@ export class ModelSchema extends BaseSchema {
     const schema: ModelSchemaType = z.object(shape);
 
     return schema;
+  }
+
+  /*
+   * A column's own documentation, set where the generated spec reads it.
+   *
+   * `.describe()` alone loses to a type that brings a description of its own
+   * in its openapi metadata - ObjectID ("A unique identifier for an object,
+   * represented as a UUID") and Date ("A date time object") among them - so
+   * every id and date column of every model was documented as nothing but its
+   * type. Setting it as openapi metadata as well lets the column's words win.
+   *
+   * A relation's id column and a relation list also name the model they point
+   * at (`x-oneuptime-relation`): `tag` is the name that model's endpoints are
+   * tagged with, so a client generated from the spec - the Terraform provider
+   * - can say which of its resources an id belongs to.
+   */
+  private static annotateColumn(data: {
+    zodType: ZodTypes.ZodTypeAny;
+    description: string;
+    relation?: ModelRelationReference | undefined;
+    disableOpenApiSchema?: boolean | undefined;
+  }): ZodTypes.ZodTypeAny {
+    let zodType: ZodTypes.ZodTypeAny = data.zodType;
+
+    if (data.description) {
+      zodType = zodType.describe(data.description);
+    }
+
+    if (data.disableOpenApiSchema) {
+      return zodType;
+    }
+
+    if (data.description) {
+      zodType = zodType.openapi({ description: data.description });
+    }
+
+    if (data.relation) {
+      zodType = zodType.openapi({
+        "x-oneuptime-relation": data.relation,
+      } as any);
+    }
+
+    return zodType;
+  }
+
+  /*
+   * The model each relation of `columns` points at, keyed by the column a
+   * caller writes: a many-to-one relation's id column (`labelId` for
+   * `label`), and a relation list itself (`labels`).
+   */
+  public static getRelationReferences(
+    columns: Dictionary<TableColumnMetadata>,
+  ): Dictionary<ModelRelationReference> {
+    const references: Dictionary<ModelRelationReference> = {};
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+
+      if (!column?.modelType) {
+        continue;
+      }
+
+      let columnKey: string | undefined = undefined;
+
+      if (
+        column.type === TableColumnType.Entity &&
+        column.manyToOneRelationColumn
+      ) {
+        columnKey = column.manyToOneRelationColumn;
+      } else if (column.type === TableColumnType.EntityArray) {
+        columnKey = key;
+      }
+
+      if (!columnKey) {
+        continue;
+      }
+
+      const target: DatabaseBaseModel = new column.modelType();
+      const tableName: string | null = target.tableName;
+
+      if (!tableName) {
+        continue;
+      }
+
+      references[columnKey] = {
+        tag: target.singularName || tableName,
+        tableName: tableName,
+      };
+    }
+
+    return references;
   }
 
   public static getSortableTypes(): Array<TableColumnType> {
@@ -1094,6 +1199,9 @@ export class ModelSchema extends BaseSchema {
     const columnAccessControl: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();
 
+    const relations: Dictionary<ModelRelationReference> =
+      this.getRelationReferences(columns);
+
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
       if (!column) {
@@ -1222,9 +1330,12 @@ export class ModelSchema extends BaseSchema {
       }
 
       // Set the final combined description
-      if (finalDescription) {
-        zodType = zodType.describe(finalDescription);
-      }
+      zodType = this.annotateColumn({
+        zodType: zodType,
+        description: finalDescription,
+        relation: relations[key],
+        disableOpenApiSchema: data.disableOpenApiSchema || false,
+      });
 
       shape[key] = zodType;
     }

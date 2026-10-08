@@ -19,7 +19,6 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -41,12 +40,16 @@ import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNo
 import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import IncidentAlertService from "./IncidentAlertService";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -97,17 +100,15 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         throw new BadDataException("incidentId is null");
       }
 
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.incidentId.toString(),
-          namespace: "IncidentStateTimeline.create",
-        });
-      } catch (err) {
-        logger.error(err, {
+      // The incident's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "IncidentStateTimeline.create",
+        eventId: createBy.data.incidentId,
+        logAttributes: {
           projectId: createBy.data.projectId?.toString(),
           incidentId: createBy.data.incidentId?.toString(),
-        } as LogAttributes);
-      }
+        } as LogAttributes,
+      });
 
       if (!createBy.data.startsAt) {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
@@ -180,12 +181,13 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       );
 
       if (changedByUserId && !createBy.data.rootCause) {
-        createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString(
-          {
-            userId: changedByUserId,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
+        createBy.data.rootCause =
+          mdText`Incident state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: changedByUserId,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`.toString();
       }
 
       /*
@@ -368,17 +370,14 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         },
       };
     } catch (err) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            incidentId: createBy.data.incidentId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        incidentId: createBy.data.incidentId?.toString(),
+      } as LogAttributes);
 
       throw err;
     }
@@ -389,8 +388,6 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     onCreate: OnCreate<IncidentStateTimeline>,
     createdItem: IncidentStateTimeline,
   ): Promise<IncidentStateTimeline> {
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
-
     if (!createdItem.incidentId) {
       throw new BadDataException("incidentId is null");
     }
@@ -486,6 +483,11 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       } as LogAttributes);
     }
 
+    /*
+     * The incident's current state follows its timeline, as OneUptime's own
+     * write: the permission to create the change is the permission to change
+     * the incident's state (StateChangeFollowOn).
+     */
     if (!createdItem.endsAt) {
       await IncidentService.updateOneBy({
         query: {
@@ -494,7 +496,7 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         data: {
           currentIncidentStateId: createdItem.incidentStateId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
@@ -514,16 +516,10 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         },
       });
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          incidentId: createdItem.incidentId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
 
     /*
      * Carry the incident's new state over to its linked alerts, when the
@@ -597,9 +593,9 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown
-     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
      */
-    const stateName: string = escapeMarkdownValue(incidentState?.name || "");
+    const stateName: string = incidentState?.name || "";
     const stateEmoji: string = StateChangeFeedEmoji.get({
       isResolved: isResolved,
       isAcknowledged: isAcknowledged,
@@ -625,12 +621,9 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
-        stateName +
-        "**",
-      moreInformationInMarkdown: `**Cause:**
-${createdItem.rootCause}`,
+        mdText`${stateEmoji} Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **${stateName}**`.toString(),
+      moreInformationInMarkdown: mdText`**Cause:**
+${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -817,12 +810,12 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Incident ${incidentNumberDisplay}](${(
+          text: mdText`**[Incident ${incidentNumberDisplay}](${(
             await IncidentService.getIncidentLinkInDashboard(
               createdItem.projectId!,
               createdItem.incidentId!,
             )
-          ).toString()})** is resolved. Archiving channel.`,
+          ).toString()})** is resolved. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {
@@ -837,6 +830,26 @@ ${createdItem.rootCause}`,
     }
 
     return createdItem;
+  }
+
+  /*
+   * A change refused or failed once onBeforeCreate took the incident's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the incident
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<IncidentStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      incidentId: onCreate?.createBy.data.incidentId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   @CaptureSpan()

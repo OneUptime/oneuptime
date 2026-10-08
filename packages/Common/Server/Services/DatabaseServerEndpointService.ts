@@ -29,6 +29,7 @@ import {
   formatDatabaseEndpoint,
   parseManualDatabaseEndpoint,
 } from "../../Types/DatabaseServer/DatabaseEndpoint";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Who added an endpoint:
@@ -450,7 +451,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     try {
-      const link: string =
+      const link: MarkdownText =
         await DatabaseServerService.getDatabaseServerMarkdownLink(
           data.projectId,
           databaseServerId,
@@ -464,11 +465,11 @@ export class Service extends ProjectReferencesService<Model> {
           DatabaseServerFeedEventType.DatabaseServerUpdated,
         displayColor: added ? Gray500 : Red500,
         feedInfoInMarkdown: added
-          ? `🔗 Added the endpoint \`${endpoint}\` to ${link}.`
-          : `🔗 Removed the endpoint \`${endpoint}\` from ${link}.`,
+          ? mdText`🔗 Added the endpoint \`${endpoint}\` to ${link}.`.toString()
+          : mdText`🔗 Removed the endpoint \`${endpoint}\` from ${link}.`.toString(),
         moreInformationInMarkdown: added
-          ? `**Endpoint**: \`${endpoint}\`\n\nCalls applications make to this endpoint now count as this database's traffic, and no other database can claim it.`
-          : `**Endpoint**: \`${endpoint}\`\n\nCalls to this endpoint no longer count as this database's traffic, and another database may claim it.`,
+          ? mdText`**Endpoint**: \`${endpoint}\`\n\nCalls applications make to this endpoint now count as this database's traffic, and no other database can claim it.`.toString()
+          : mdText`**Endpoint**: \`${endpoint}\`\n\nCalls to this endpoint no longer count as this database's traffic, and another database may claim it.`.toString(),
         userId: data.userId,
       });
     } catch (error) {

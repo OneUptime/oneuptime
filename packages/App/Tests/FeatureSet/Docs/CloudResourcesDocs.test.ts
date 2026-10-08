@@ -91,10 +91,11 @@ function modelOf(descriptor: CloudResourceTypeDescriptor): string {
   return CLOUD_SERVICE_MODEL_LABELS[descriptor.serviceModel];
 }
 
-function telemetryGroup(): NavGroup {
+// The Cloud pages have a sidebar group of their own, in Observability.
+function cloudGroup(): NavGroup {
   const group: NavGroup | undefined = DocsNav.find(
     (item: NavGroup): boolean => {
-      return item.title === "Telemetry";
+      return item.title === "Cloud";
     },
   );
 
@@ -196,8 +197,8 @@ describe("Cloud Resources docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("follows the Cloud Environments pages in the Telemetry group", (): void => {
-      const links: Array<NavLink> = telemetryGroup().links;
+    it("follows the Cloud Environments pages in the Cloud group", (): void => {
+      const links: Array<NavLink> = cloudGroup().links;
       const urls: Array<string> = links.map((link: NavLink): string => {
         return link.url;
       });

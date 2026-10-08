@@ -33,6 +33,9 @@ import IncidentEpisodeInternalNote from "../../../../../Models/DatabaseModels/In
 import IncidentEpisodePublicNote from "../../../../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import SlackActionAuthorization from "./Authorization";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackIncidentEpisodeActions {
   @CaptureSpan()
@@ -129,7 +132,7 @@ export default class SlackIncidentEpisodeActions {
         // send a message to the channel visible to user, that the episode has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot acknowledge the **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been acknowledged.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot acknowledge the **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been acknowledged.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -259,7 +262,7 @@ export default class SlackIncidentEpisodeActions {
         // send a message to the channel visible to user, that the episode has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot resolve the **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -305,8 +308,30 @@ export default class SlackIncidentEpisodeActions {
     // We send this early let slack know we're ok. We'll do the rest in the background.
     Response.sendTextResponse(req, res, "");
 
+    /*
+     * Asked as the submit asks it, before the form is shown: someone who may
+     * not execute an on-call policy for this incident episode is told so now. The
+     * form then offers the policies they may read, with their own
+     * permissions (WorkspaceActionAuthorization.findReadable).
+     */
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this incident episode",
+        resources: [
+          { service: IncidentEpisodeService, id: new ObjectID(actionValue) },
+        ],
+      });
+
+    if (!props) {
+      return;
+    }
+
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: data.slackRequest.projectId!,
           // Archived policies page no one, so they are not offered.
@@ -315,11 +340,7 @@ export default class SlackIncidentEpisodeActions {
         select: {
           name: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: LIMIT_PER_PROJECT,
-        skip: 0,
       });
 
     const dropdownOption: Array<DropdownOption> = onCallPolicies
@@ -339,7 +360,7 @@ export default class SlackIncidentEpisodeActions {
           messageBlocks: [
             {
               _type: "WorkspacePayloadMarkdown",
-              text: "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
+              text: "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
             } as WorkspacePayloadMarkdown,
           ],
           authToken: data.slackRequest.projectAuthToken!,
@@ -630,7 +651,7 @@ export default class SlackIncidentEpisodeActions {
         // send a message to the channel visible to user, that the episode has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({

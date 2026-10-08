@@ -25,6 +25,7 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import Team from "../../Models/DatabaseModels/Team";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -193,7 +194,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         projectId: projectId!,
         onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.TeamAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
         userId: createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -258,7 +260,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           onCallDutyPolicyFeedEventType:
             OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
           displayColor: Red500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) and escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) and escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

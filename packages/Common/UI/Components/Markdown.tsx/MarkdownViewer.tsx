@@ -86,6 +86,13 @@ SyntaxHighlighter.registerLanguage("hcl", hcl);
 SyntaxHighlighter.registerLanguage("terraform", hcl);
 SyntaxHighlighter.registerLanguage("tf", hcl);
 import SessionAwareImage from "./SessionAwareImage";
+import {
+  HeldBackViewerText,
+  MAX_HIGHLIGHTED_CODE_LENGTH,
+  holdBackForViewer,
+  rehypePutBackHeldText,
+} from "./MarkdownViewerOverLongText";
+import { markdownUrlTransform } from "./MarkdownUrlTransform";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
 import {
@@ -509,7 +516,13 @@ const CodeBlock: FunctionComponent<{
         data-language={language}
         // eslint-disable-next-line react/no-children-prop
         children={content}
-        language={language}
+        /*
+         * Code too long to highlight - a response body or a log of
+         * megabytes took minutes - is shown as it is.
+         */
+        language={
+          content.length > MAX_HIGHLIGHTED_CODE_LENGTH ? "text" : language
+        }
         style={vscDarkPlus}
         className={`!rounded-none !mt-0 !mb-0 !bg-gray-900 !pt-3 !pb-3 !px-4 text-sm !border-0 ${CODE_BLOCK_FONT_CLASS_NAME}`}
         codeTagProps={{ className: "font-mono" }}
@@ -676,6 +689,16 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
    * reset whenever the parent re-rendered.
    */
   const hasInlineReferences: boolean = Boolean(inlineReferences);
+
+  /*
+   * Text too long for the parser - a response body or a log of megabytes -
+   * is held back before it reads the text, and put back, as text, in what
+   * it renders (MarkdownViewerOverLongText).
+   */
+  const heldBack: HeldBackViewerText = useMemo((): HeldBackViewerText => {
+    return holdBackForViewer(props.text);
+  }, [props.text]);
+
   const components: Components = useMemo((): Components => {
     return {
       /*
@@ -945,7 +968,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
            * (a zero-click exfil channel). Show the source as a plain,
            * non-executing code block instead.
            */
-          if (safeMode) {
+          if (safeMode || content.length > MAX_HIGHLIGHTED_CODE_LENGTH) {
             return (
               <CodeBlock language="mermaid" content={content} rest={rest} />
             );
@@ -994,10 +1017,30 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
     };
   }, [safeMode, hasInlineReferences]);
 
+  /*
+   * More Markdown than react-markdown reads in good time is left even after
+   * holding back - a log of megabytes whose lines each hold a "|" or a "<",
+   * a table of thousands of rows: the text is shown as it was written, its
+   * line breaks kept (MarkdownViewerOverLongText).
+   */
+  if (heldBack.showAsText) {
+    return (
+      <MarkdownViewerFrame inlineReferences={inlineReferences}>
+        <p
+          className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed whitespace-pre-wrap break-words"
+          data-testid="markdown-viewer-text"
+        >
+          {props.text}
+        </p>
+      </MarkdownViewerFrame>
+    );
+  }
+
   return (
     <MarkdownViewerFrame inlineReferences={inlineReferences}>
       <ReactMarkdown
         components={components}
+        urlTransform={markdownUrlTransform}
         remarkPlugins={
           hasInlineReferences
             ? [
@@ -1006,8 +1049,13 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               ]
             : [remarkGfm]
         }
+        rehypePlugins={
+          heldBack.held.length > 0
+            ? [[rehypePutBackHeldText, { held: heldBack.held }]]
+            : undefined
+        }
       >
-        {props.text}
+        {heldBack.markdown}
       </ReactMarkdown>
     </MarkdownViewerFrame>
   );

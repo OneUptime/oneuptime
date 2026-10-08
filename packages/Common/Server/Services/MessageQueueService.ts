@@ -49,6 +49,7 @@ import {
 import ObjectID from "../../Types/ObjectID";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Two sightings, two namespaces: a queue named in an application's spans is a
@@ -1010,7 +1011,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getMessageQueueMarkdownLink(
     projectId: ObjectID,
     messageQueueId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getMessageQueueName({
       messageQueueId: messageQueueId,
     });
@@ -1019,7 +1020,7 @@ export class Service extends ProjectReferencesService<Model> {
       messageQueueId,
     );
 
-    return `[Queue ${name}](${link.toString()})`;
+    return mdText`[Queue ${name}](${link.toString()})`;
   }
 
   // For tests: forget the cached auto-create counts and budget warnings.

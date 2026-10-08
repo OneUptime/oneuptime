@@ -24,7 +24,9 @@ import UserNotificationEventType from "../../../../../Types/UserNotification/Use
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
-import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class MicrosoftTeamsAlertEpisodeActions {
   @CaptureSpan()
@@ -378,7 +380,8 @@ export default class MicrosoftTeamsAlertEpisodeActions {
       }
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
-      const message: string = `**Alert Episode Details**\n\n**Title:** ${escapeMarkdownValue(episode.title)}\n**Description:** ${episode.description || "No description"}\n**State:** ${escapeMarkdownValue(episode.currentAlertState?.name || "Unknown")}\n**Severity:** ${escapeMarkdownValue(episode.alertSeverity?.name || "Unknown")}\n**Alert Count:** ${episode.alertCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`;
+      const message: string =
+        mdText`**Alert Episode Details**\n\n**Title:** ${episode.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(episode.description || "No description")}\n**State:** ${episode.currentAlertState?.name || "Unknown"}\n**Severity:** ${episode.alertSeverity?.name || "Unknown"}\n**Alert Count:** ${episode.alertCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;
@@ -470,15 +473,29 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         return;
       }
 
+      /*
+       * Asked as the submit asks it, before the card is shown, and the card
+       * then offers the policies the member may read.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this alert episode",
+        resources: [
+          { service: AlertEpisodeService, id: new ObjectID(actionValue) },
+        ],
+      });
+
       // Send the input card
       const card: JSONObject | null =
         await this.buildExecuteAlertEpisodeOnCallPolicyCard(
           actionValue,
           projectId,
+          databaseProps,
         );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
         );
         return;
       }
@@ -679,9 +696,13 @@ export default class MicrosoftTeamsAlertEpisodeActions {
   private static async buildExecuteAlertEpisodeOnCallPolicyCard(
     episodeId: string,
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<JSONObject | null> {
+    // The policies the member may read, with their own permissions.
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: projectId,
           // Archived policies page no one, so they are not offered.
@@ -691,11 +712,7 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           name: true,
           _id: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: 50,
-        skip: 0,
       });
 
     const choices: Array<{ title: string; value: string }> = onCallPolicies

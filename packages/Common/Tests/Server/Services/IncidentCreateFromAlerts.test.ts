@@ -51,6 +51,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Declaring an incident from alerts, and carrying incident state changes over
  * to linked alerts, at the two places they hook into existing services:
@@ -200,7 +201,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
       .mockResolvedValue(undefined as never);
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("**A responder**" as never);
+      .mockResolvedValue(FeedMarkdown.asMarkdown("**A responder**") as never);
 
     counter = jest
       .spyOn(ProjectService, "incrementAndGetIncidentCounter")

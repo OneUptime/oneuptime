@@ -903,3 +903,257 @@ describe("resource-scoped event overlay lifecycle", (): void => {
     expect(screen.getByText("Alert: Other monitor")).toBeVisible();
   });
 });
+
+/*
+ * Issue #4472, through the hook every chart surface draws its markers with.
+ * The list endpoint here behaves like the real one - it applies the request's
+ * filter, then its limit - and each record carries the metrics its monitor's
+ * queries read, which is what an incident's or alert's telemetryQuery holds.
+ */
+describe("event overlay for a chart filtered to no resource", (): void => {
+  interface MetricEvent extends TestEvent {
+    // What the firing monitor's queries read; absent when no metric fired it.
+    metricNames?: Array<string> | undefined;
+  }
+
+  interface ContainmentValue {
+    metricViewData?: {
+      queryConfigs?: Array<{
+        metricQueryData?: { filterData?: { metricName?: string } };
+      }>;
+    };
+  }
+
+  const CHARTED_METRIC: string = "container_cpu_cfs_periods_total";
+
+  function unscopedConfig(metricName: string): MetricQueryConfigData {
+    return {
+      metricQueryData: {
+        filterData: { metricName: metricName, attributes: {} },
+      },
+    };
+  }
+
+  function raisedOn(metricName: string): Record<string, unknown> {
+    return {
+      telemetryQuery: {
+        metricViewData: {
+          queryConfigs: [{ metricQueryData: { filterData: { metricName } } }],
+        },
+      },
+    };
+  }
+
+  function metricEvent(
+    title: string,
+    number: number,
+    metricNames?: Array<string>,
+  ): MetricEvent {
+    return { ...event(title, number), metricNames: metricNames };
+  }
+
+  // The metric a request's containment value names, if it names one.
+  function requestedMetric(query: Record<string, unknown>): string | undefined {
+    const value: ContainmentValue | undefined = query["telemetryQuery"] as
+      | ContainmentValue
+      | undefined;
+    return value?.metricViewData?.queryConfigs?.[0]?.metricQueryData?.filterData
+      ?.metricName;
+  }
+
+  function serve(records: Array<MetricEvent>): void {
+    const newestFirst: Array<MetricEvent> = [...records].sort(
+      (first: MetricEvent, second: MetricEvent): number => {
+        return second.createdAt.localeCompare(first.createdAt);
+      },
+    );
+    getListMock.mockImplementation((request: EventRequest) => {
+      const metricName: string | undefined = requestedMetric(request.query);
+      const hostQuery: unknown = request.query["hosts"];
+      return Promise.resolve({
+        data: newestFirst
+          .filter((record: MetricEvent): boolean => {
+            if (hostQuery) {
+              return record.title.startsWith("web-1");
+            }
+            // A request without a filter is the whole project.
+            return (
+              metricName === undefined ||
+              (record.metricNames || []).includes(metricName)
+            );
+          })
+          .slice(request.skip, request.skip + request.limit),
+      });
+    });
+  }
+
+  test("draws what was raised on the charted metric, never a status page's incident", async (): Promise<void> => {
+    serve([
+      // Older than every unrelated record below: only a filtered request finds it.
+      metricEvent("Container CPU throttled", 1, [
+        CHARTED_METRIC,
+        "container_cpu_cfs_throttled_periods_total",
+      ]),
+      ...Array.from(
+        { length: EVENT_OVERLAY_FETCH_LIMIT + 10 },
+        (_value: unknown, index: number): MetricEvent => {
+          return metricEvent(`Unrelated host CPU ${index}`, index + 100, [
+            "system.cpu.utilization",
+          ]);
+        },
+      ),
+      metricEvent("Claude | Official status reports incident or outage", 500),
+      metricEvent(
+        "FreedomPay | Official vendor status has an active incident or outage",
+        501,
+      ),
+    ]);
+    analyticsGetListMock.mockResolvedValue({ data: [event("v2.31.0", 2)] });
+
+    render(<Probe queryConfigs={[unscopedConfig(CHARTED_METRIC)]} />);
+
+    await expectMarkerCount(3);
+    expect(screen.getByText("Incident: Container CPU throttled")).toBeVisible();
+    expect(screen.getByText("Alert: Container CPU throttled")).toBeVisible();
+    expect(screen.getByText("Deploy: v2.31.0")).toBeVisible();
+    expect(screen.queryByText(/Claude/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/FreedomPay/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Unrelated host CPU/)).not.toBeInTheDocument();
+
+    for (const modelName of ["Incident", "Alert"]) {
+      // One request per source, filtered before its limit - never the project.
+      expect(requestsFor(modelName)).toHaveLength(1);
+      expect(requestsFor(modelName)[0]!.query).toEqual({
+        ...raisedOn(CHARTED_METRIC),
+        projectId: PROJECT_ID,
+        createdAt: WINDOW,
+      });
+      expect(requestsFor(modelName)[0]!.limit).toBe(EVENT_OVERLAY_FETCH_LIMIT);
+    }
+    // Change events keep the project's timeline.
+    expect(analyticsGetListMock).toHaveBeenCalledTimes(1);
+    expect(analyticsGetListMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { projectId: PROJECT_ID, time: WINDOW },
+      }),
+    );
+  });
+
+  test("draws no incident or alert when nothing was raised on the metric", async (): Promise<void> => {
+    serve([
+      metricEvent("Claude | Official status reports incident or outage", 1),
+      metricEvent("Website is down", 2),
+    ]);
+    // Every source settles together, so the deploy marks the fetch as done.
+    analyticsGetListMock.mockResolvedValue({ data: [event("v2.31.0", 3)] });
+
+    render(<Probe queryConfigs={[unscopedConfig(CHARTED_METRIC)]} />);
+
+    await expectMarkerCount(1);
+    expect(screen.getByText("Deploy: v2.31.0")).toBeVisible();
+    expect(screen.queryByText(/Claude/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Website is down/)).not.toBeInTheDocument();
+    expect(requestsFor("Incident")).toHaveLength(1);
+    expect(requestsFor("Alert")).toHaveLength(1);
+  });
+
+  test("a host-scoped query beside an unscoped one requests both scopes and draws each record once", async (): Promise<void> => {
+    serve([
+      metricEvent("web-1 CPU is high", 1, [CHARTED_METRIC]),
+      metricEvent("Claude | Official status reports incident or outage", 2),
+    ]);
+
+    render(
+      <Probe
+        queryConfigs={[
+          {
+            metricQueryData: {
+              filterData: {
+                metricName: "system.cpu.utilization",
+                attributes: { "resource.host.name": "web-1" },
+              },
+            },
+          },
+          unscopedConfig(CHARTED_METRIC),
+        ]}
+      />,
+    );
+
+    // Found by both requests, drawn once per source.
+    await expectMarkerCount(2);
+    expect(screen.getAllByText("Incident: web-1 CPU is high")).toHaveLength(1);
+    expect(screen.getAllByText("Alert: web-1 CPU is high")).toHaveLength(1);
+    expect(screen.queryByText(/Claude/)).not.toBeInTheDocument();
+    for (const modelName of ["Incident", "Alert"]) {
+      const queries: Array<Record<string, unknown>> = requestsFor(
+        modelName,
+      ).map((request: EventRequest): Record<string, unknown> => {
+        return request.query;
+      });
+      expect(queries).toHaveLength(2);
+      expect(queries).toContainEqual({
+        hosts: { hostIdentifier: "web-1" },
+        projectId: PROJECT_ID,
+        createdAt: WINDOW,
+      });
+      expect(queries).toContainEqual({
+        ...raisedOn(CHARTED_METRIC),
+        projectId: PROJECT_ID,
+        createdAt: WINDOW,
+      });
+      expect(queries).not.toContainEqual({
+        projectId: PROJECT_ID,
+        createdAt: WINDOW,
+      });
+    }
+  });
+
+  test("charting another metric refetches for that metric and drops the old markers", async (): Promise<void> => {
+    serve([
+      metricEvent("Throttling", 1, [CHARTED_METRIC]),
+      metricEvent("Memory pressure", 2, ["container_memory_working_set_bytes"]),
+    ]);
+    const { rerender } = render(
+      <Probe queryConfigs={[unscopedConfig(CHARTED_METRIC)]} />,
+    );
+    await expectMarkerCount(2);
+    expect(screen.getByText("Incident: Throttling")).toBeVisible();
+
+    rerender(
+      <Probe
+        queryConfigs={[unscopedConfig("container_memory_working_set_bytes")]}
+      />,
+    );
+
+    await waitFor((): void => {
+      expect(screen.getByText("Incident: Memory pressure")).toBeVisible();
+    });
+    expect(screen.queryByText("Incident: Throttling")).not.toBeInTheDocument();
+    expect(requestedMetric(requestsFor("Incident")[1]!.query)).toBe(
+      "container_memory_working_set_bytes",
+    );
+  });
+
+  test("adding a blank query beside an unscoped metric sends no new request", async (): Promise<void> => {
+    serve([metricEvent("Throttling", 1, [CHARTED_METRIC])]);
+    const { rerender } = render(
+      <Probe queryConfigs={[unscopedConfig(CHARTED_METRIC)]} />,
+    );
+    await expectMarkerCount(2);
+    const calls: number = getListMock.mock.calls.length;
+    const analyticsCalls: number = analyticsGetListMock.mock.calls.length;
+
+    rerender(
+      <Probe
+        queryConfigs={[unscopedConfig(CHARTED_METRIC), unscopedConfig("")]}
+      />,
+    );
+    await act(async (): Promise<void> => {
+      await Promise.resolve();
+    });
+
+    expect(getListMock.mock.calls.length).toBe(calls);
+    expect(analyticsGetListMock.mock.calls.length).toBe(analyticsCalls);
+    expect(screen.getByTestId("marker-count").textContent).toBe("2");
+  });
+});

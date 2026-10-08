@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
 import Model from "../../Models/DatabaseModels/MonitorStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 /*
  * Statically imported despite the MonitorService <-> MonitorStatusService
  * cycle: both modules reference each other only from method bodies (never at
@@ -211,6 +212,55 @@ export class Service extends DatabaseService<Model> {
     });
 
     return this.firstSurvivingId(anyStatuses, deletedStatusIds);
+  }
+
+  /**
+   * The project's default operational status: the operational status with
+   * the lowest priority, the oldest one on a tie - the status a new monitor
+   * starts in, and the one the dashboard preselects as a monitor's default
+   * status. Null when the project has no operational status.
+   */
+  @CaptureSpan()
+  public async findDefaultOperationalStatusId(
+    projectId: ObjectID,
+  ): Promise<ObjectID | null> {
+    const status: Model | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isOperationalState: true,
+      },
+      select: {
+        _id: true,
+      },
+      sort: {
+        priority: SortOrder.Ascending,
+        createdAt: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return status?.id || null;
+  }
+
+  /**
+   * findDefaultOperationalStatusId for filling in a missing default: a failed
+   * lookup leaves the default unset (and says so) rather than failing the
+   * write it was only going to complete.
+   */
+  public async findDefaultOperationalStatusIdOrNull(
+    projectId: ObjectID,
+  ): Promise<ObjectID | null> {
+    try {
+      return await this.findDefaultOperationalStatusId(projectId);
+    } catch (err) {
+      logger.warn(
+        `Could not look up the default operational monitor status of project ${projectId.toString()}; leaving the default monitor status unset.`,
+      );
+      logger.warn(err);
+      return null;
+    }
   }
 
   /**

@@ -74,9 +74,9 @@ const MAINTENANCE_SUBJECT: string =
     eventTitle: "<title>",
   });
 const RESOLVED_LINE: string =
-  StateChangeNoteMessage.getChatStatusLine("Resolved");
+  StateChangeNoteMessage.getChatStatusLine("Resolved").toString();
 const ONGOING_LINE: string =
-  StateChangeNoteMessage.getChatStatusLine("Ongoing");
+  StateChangeNoteMessage.getChatStatusLine("Ongoing").toString();
 
 describe("the code the guides quote", () => {
   test("the subjects, SMS and chat lines are the ones the jobs send", () => {

@@ -24,6 +24,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test - creating an SLO's first monitor rule while the SLO
  * still runs on the deprecated "Auto-Add Monitors With Labels" list.
@@ -151,7 +152,7 @@ function installSpies(): HookSpies {
     .mockResolvedValue(undefined);
   jest
     .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-    .mockResolvedValue(SLO_LINK);
+    .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK));
   jest.spyOn(LabelService, "findBy").mockResolvedValue([]);
 
   return {
@@ -559,7 +560,7 @@ describe("creating the first monitor rule of an SLO still on the deprecated labe
       .mockResolvedValue(undefined);
     jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-      .mockResolvedValue(SLO_LINK);
+      .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK));
     jest.spyOn(LabelService, "findBy").mockResolvedValue([]);
   });
 

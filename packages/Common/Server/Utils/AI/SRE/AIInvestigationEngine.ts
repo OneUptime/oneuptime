@@ -43,9 +43,9 @@ import ObservabilityAssistant, {
   ObservabilityAssistantStepType,
 } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
+import LLMService from "../../LLM/LLMService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import { escapeMarkdownValue } from "../../../../Utils/Markdown/MarkdownEscape";
-import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
+import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * AI SRE — the shared autonomous-investigation engine.
@@ -90,7 +90,9 @@ const CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS: number = 3;
  * Failures a retry cannot fix within the run's usefulness window: missing/
  * broken provider configuration and budget exhaustion (both messages minted
  * by our own gating in AIService/LLMService, so they are stable to match),
- * and the project's own daily AI limits, which hold until midnight UTC.
+ * the project's own daily AI limits, which hold until midnight UTC, and a
+ * model context window too small for the run, which a retry would only fill
+ * again until the operator raises it.
  */
 const PERMANENT_FAILURE_RE: RegExp =
   /no llm provider configured|llm provider type is not configured|token budget exhausted/i;
@@ -101,7 +103,8 @@ export const isPermanentInvestigationFailure: (message: string) => boolean = (
 ): boolean => {
   return (
     PERMANENT_FAILURE_RE.test(message) ||
-    PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN.test(message)
+    PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN.test(message) ||
+    message.includes(LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR)
   );
 };
 
@@ -986,7 +989,7 @@ export default class AIInvestigationEngine {
    * The analysis is written from telemetry, which can carry text meant to
    * steer the model, and this is what the subject's feed, its internal note
    * and its Slack and Teams channels show. It stays the Markdown the model
-   * wrote, but nothing in it acts on its own (neutralizeAiWrittenMarkdown):
+   * wrote, but nothing in it acts on its own (FeedMarkdown.aiWritten):
    * no chat mention, no image or diagram, no link whose words hide where it
    * goes, no HTML tag. A citation's label and the model's name are text.
    */
@@ -996,7 +999,8 @@ export default class AIInvestigationEngine {
     clusterToolCallCount: number = 0,
     infrastructureToolCallCount: number = 0,
   ): string {
-    let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${neutralizeAiWrittenMarkdown(analysisMarkdown)}`;
+    let markdown: string =
+      mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
 
     const citations: Array<AIChatCitation> = result.citations || [];
 
@@ -1007,21 +1011,19 @@ export default class AIInvestigationEngine {
           AIInvestigationEngine.describeClusterCitationOutcome(citation);
 
         if (clusterOutcome !== null) {
-          markdown += `\n- **[${citation.id}]** ${escapeMarkdownValue(citation.label)} — ${clusterOutcome}`;
+          markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${clusterOutcome}`;
           continue;
         }
 
-        markdown += `\n- **[${citation.id}]** ${escapeMarkdownValue(citation.label)} — ${citation.rowCount} row(s)`;
+        markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${citation.rowCount} row(s)`;
       }
     }
 
     if (clusterToolCallCount <= 0 && infrastructureToolCallCount <= 0) {
-      markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
+      markdown += mdText`\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
         result.toolCallCount === 1 ? "y" : "ies"
       } run across your own telemetry${
-        result.modelName
-          ? ` using ${escapeMarkdownValue(result.modelName)}`
-          : ""
+        result.modelName ? ` using ${result.modelName}` : ""
       }. This is an AI-generated first pass; verify before acting.*`;
 
       return markdown;
@@ -1089,10 +1091,11 @@ export default class AIInvestigationEngine {
       counts.splice(0, counts.length - 1, counts.slice(0, -1).join(", "));
     }
 
-    markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
+    markdown += mdText`\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${FeedMarkdown.join(
+      counts,
       " and ",
     )}${
-      result.modelName ? ` using ${escapeMarkdownValue(result.modelName)}` : ""
+      result.modelName ? ` using ${result.modelName}` : ""
     }. This is an AI-generated first pass; verify before acting.*`;
 
     return markdown;

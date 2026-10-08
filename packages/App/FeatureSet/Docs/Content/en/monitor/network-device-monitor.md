@@ -2,7 +2,7 @@
 
 Network Device monitoring covers switches, routers, firewalls, access points, PDUs, cameras, printers — anything with an address on your network, whether or not it speaks SNMP.
 
-Registering a device takes a name, an address, a site and a probe. From that moment the probe **pings** the device on its schedule and the device has an up/down status, appears on the network map and votes in its site's health rollup. Everything else is an upgrade on top of that same device:
+Adding a device takes its address and a probe — a name and a site too, if you want them. From that moment the probe **pings** the device on its schedule and the device has an up/down status, appears on the network map and votes in its site's health rollup. Everything else is an upgrade on top of that same device:
 
 - **Add SNMP credentials** — on the device, or by pointing it at a reusable credential profile, or by setting a default profile on its site — and the same probe starts **walking** it as well: interfaces, hardware inventory, LLDP/CDP neighbours, health OIDs.
 - **Add a monitor** and the device's polls raise **incidents and alerts**. [Alert policies](#alert-policies) are where the same intent is written once for a whole set of devices.
@@ -26,43 +26,62 @@ The Network Devices product is made up of:
 - **SNMP traps** — probes run a trap receiver, so link-down events raise incidents in seconds instead of waiting for the next poll.
 - **Topology view** — a live network map built from LLDP neighbour data, complemented by CDP on Cisco estates.
 
-## Registering a Network Device
+## The Network Overview
 
-1. Go to **Network** -> **Devices** in the OneUptime Dashboard
-2. Click **Create Network Device**
-3. Fill in the device details, its probe and site, and — optionally — SNMP credentials
+**Network** -> **Overview** is where the Network area opens, and it starts with the answer: one sentence that says whether your network is healthy and, when it is not, what is wrong — worst news first:
 
-There is no "how is this device monitored?" question on the form. Every device you create is polled by its probe; the bound-monitor override lives on the device's **Settings** page for the few devices that need it.
+| What it says | When |
+| ------------ | ---- |
+| **3 devices are down** | A device's probe or monitor cannot reach it. Red. |
+| **2 sites need attention** | Every device answers, but a site's health is not operational. |
+| **5 interfaces are down** | Every device answers, but ports are dark. |
+| **2 devices are not reporting their details** | They answer ping, but their SNMP walk is failing, so their interfaces and health are not being refreshed — usually credentials. |
+| **Waiting for the first check** | Devices were added and their probe has not checked them yet. |
+| **All 40 devices are up** | Every device answers. Devices still waiting for their first check are counted in a line of their own, never hidden. |
 
-Once registered, the device is pinged by the probe you assigned within a couple of minutes. If it has credentials, its Overview page also fills in with system identity, interfaces and health data on the first successful walk.
+Under it, one line says whether anything raises an incident when a device goes down: how many [alert policies](#alert-policies) are on, or — with none — a **Set up alerts** link. The **Add Device** and **Discover Devices** buttons beside it open those forms straight away. The tiles and lists below (devices and sites needing attention, the fleet by vendor, recent scans) carry the detail.
+
+Before anything is added, the Overview shows the two ways in instead: **Discover devices** (scan an address range and pick what to add — best for a whole network or a new site) and **Add one device** (by its IP address or hostname).
+
+The Network menu keeps what you open every day in view — **Overview**, **Devices**, **Sites**, **Map** and **Discovery** — and folds the rest: **Topology** (Device Topology, Endpoints, Latency Matrix, Site Links, Device Links), **Rules** (auto import, site assignment, owner, label and link rules) and **Settings** (Alert Policies, SNMP Credentials, Device Roles, Site Types, OID Collection Templates). A folded section opens by itself when you are on one of its pages.
+
+## Adding a Network Device
+
+1. Go to **Network** -> **Devices** and click **Add Device** — or click **Add Device** on the Network **Overview**, which opens the same form
+2. Type the device's **Hostname**: its IP address or hostname
+3. Click **Add Device**
+
+That is all most devices need. The form is one page — the hostname, a name, the site and the probe — with **SNMP** and **More fields** folded underneath. There is no "how is this device monitored?" question on the form. Every device you add is polled by its probe; the bound-monitor override lives on the device's **Settings** page for the few devices that need it.
+
+Once added, the device is pinged by its probe within a couple of minutes. If it has credentials, its Overview page also fills in with system identity, interfaces and health data on the first successful walk.
 
 A device's details — its name, description, role, site, labels and address — are edited in one place afterwards: the **Device Settings** card on its **Settings** page. The **Device Details** card on its Overview shows them, with an **Edit in Settings** link.
 
-### Device Details
+### The device
 
-| Field       | Description                                                                                                                                                                                                                  | Required |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Name        | A friendly name for the device (e.g., core-switch-01)                                                                                                                                                                        | Yes      |
-| Hostname    | IP address or hostname the probe pings, and walks over SNMP                                                                                                                                                                  | Yes      |
-| MAC Address | The device's own MAC. Lets the topology map put a device that speaks neither LLDP nor CDP on the switch port that learned it — see [Network Topology](#network-topology). Usually learned for you from a router's ARP table. | No       |
-| Description | Free text                                                                                                                                                                                                                    | No       |
-| Role        | Device role (core switch, access switch, firewall …) — drives topology tiering and alert-policy scoping                                                                                                                      | No       |
+| Field    | Description                                                                                                                                                                                                                          | Required |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| Hostname | The IP address or hostname the probe pings — and walks over SNMP once the device has credentials                                                                                                                                     | Yes      |
+| Name     | A friendly name (e.g., core-switch-01). Leave it empty and the device is named after its hostname. The API does the same: a device created with no name is named after its hostname.                                                 | No       |
+| Site     | The [Network Site](/docs/monitor/network-sites) the device sits in. The site's health rolls up from the devices in it, and a site with a default probe fills in the Probe below.                                                     | No       |
+| Probe    | Which probe pings this device, walks it over SNMP when it has credentials, and receives its traps, syslog and NetFlow. It must be able to reach the device directly — a probe on the public internet cannot reach a private address. | Yes      |
 
-### Probe & Site
+The Probe field fills itself in where it can: a project with exactly one custom probe starts on that one, and picking a site replaces it with the [site's default probe](#site-monitoring-defaults). It never overwrites a probe you chose yourself. Set a default probe on your sites and a device can be added by its address alone.
+
+### More fields (folded)
 
 | Field                                    | Description                                                                                                                                                                                                                                                                                                                 | Required |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Probe                                    | Which probe pings this device, walks it over SNMP when it has credentials, and receives its traps, syslog and NetFlow. It must be able to reach the device directly — a probe on the public internet cannot reach a private address.                                                                                        | Yes      |
-| Site                                     | The [Network Site](/docs/monitor/network-sites) the device sits in. The site's health rolls up from the devices in it.                                                                                                                                                                                                      | No       |
+| Description                              | Free text                                                                                                                                                                                                                                                                                                                   | No       |
+| Device Role                              | Device role (core switch, access switch, firewall …) — drives topology tiering and alert-policy scoping                                                                                                                                                                                                                     | No       |
+| MAC Address                              | The device's own MAC. Lets the topology map put a device that speaks neither LLDP nor CDP on the switch port that learned it — see [Network Topology](#network-topology). Usually learned for you from a router's ARP table.                                                                                                | No       |
 | Also create a Ping monitor for incidents | The probe already pings the device and gives it a status; this is what turns failed pings into an **incident**. Tick it and a Ping monitor is created on the hostname above and bound to the device when you save. It counts towards your plan, and incidents are off on it until you turn them on from the monitor's page. | No       |
 
-The Probe field fills itself in where it can: a project with exactly one custom probe starts on that one, and picking a site replaces it with the [site's default probe](#site-monitoring-defaults). It never overwrites a probe you chose yourself. Set a default probe on your sites and a device can be added by name and address alone.
+Ticking the Ping monitor opt-in reveals a **Ping from probes** field for the monitor's own probes — they have to be able to reach the device's network, and leaving it empty uses the project's default probes. To alert on many devices at once, use [alert policies](#alert-policies) instead.
 
-Ticking the Ping monitor opt-in reveals a **Ping from probes** field for the monitor's own probes — they have to be able to reach the device's network, and leaving it empty uses the project's default probes.
+### SNMP (folded, optional)
 
-### SNMP (Optional)
-
-**Leave this step empty and the device is pinged only.** It still has a status from its first poll, still sits in its site and on the map — it simply has no interfaces, inventory or health OIDs until credentials appear.
+**Leave it folded and the device is pinged only.** While nothing is set, the folded section says so in one sentence. The device still has a status from its first poll, still sits in its site and on the map — it simply has no interfaces, inventory or health OIDs until credentials appear. Open it to type a community string or a v3 user, or to pick a saved credential profile.
 
 | Field                   | Description                                                         | Required                   |
 | ----------------------- | ------------------------------------------------------------------- | -------------------------- |
@@ -412,23 +431,30 @@ A ping-only device keeps the name and address you (or a discovery scan) gave it 
 
 ## Discovering Devices with a Network Scan
 
-Instead of registering devices one at a time, you can sweep a range of addresses:
+Instead of adding devices one at a time, you can sweep a range of addresses:
 
-1. Go to **Network** -> **Discovery** -> **Discovery Scans**
-2. Click **Create Discovery Scan**
-3. Configure the scan:
+1. Go to **Network** -> **Discovery** and click **Start Scan** — or click **Discover Devices** on the Network **Overview**, which opens the same form
+2. On the first step, **Scan Target**, type the range, check the **Probe**, and decide whether to **Check SNMP on hosts that answer**
+3. With SNMP on, the second step, **SNMP Credentials**, asks for the credentials to try. With it off there is no second step: the scan is a [ping-only scan](#ping-only-scans) and **Start Scan** is on the first page
+4. Click **Start Scan**
 
 | Field                                            | Description                                                                                                                                                                                                                                                            | Required            |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | Scan Target                                      | The address space to scan, in [CIDR or octet-range notation](#scan-target-notation)                                                                                                                                                                                    | Yes                 |
-| Probe                                            | Which probe should run the sweep                                                                                                                                                                                                                                       | Yes                 |
+| Probe                                            | Which probe should run the sweep. A project with exactly one custom probe starts on that one                                                                                                                                                                           | Yes                 |
 | Check SNMP on hosts that answer                  | A scan normally starts by pinging the range; this decides whether the hosts that answer are then queried over SNMP for their name and vendor. Turn it off for a [ping-only scan](#ping-only-scans). Chosen when the scan is created and fixed after that (default: on) | No                  |
-| Name devices by their short hostname             | Name imported devices by the first part of a fully qualified hostname — `core-sw-01` instead of `core-sw-01.corp.example.com`. See [how discovered devices are named](#how-discovered-devices-are-named) (default: off)                                                | No                  |
-| Look up NetBIOS names for hosts DNS doesn't name | Ask hosts that have no SNMP system name and no reverse-DNS name for their NetBIOS name, over UDP port 137. Private addresses and custom probes only — see [NetBIOS names](#how-discovered-devices-are-named) (default: on)                                             | No                  |
-| SNMP credentials                                 | Same fields as device registration (v1/v2c community string, or the full v3 credential set) — tried against every host in the range                                                                                                                                    | If Check SNMP is on |
+| SNMP credentials                                 | The second step. Same fields as on a device (v1/v2c community string, or the full v3 credential set) — tried against every host in the range                                                                                                                           | If Check SNMP is on |
 
-4. The scan runs from the selected probe and reports how many hosts were scanned and how many answered — how many responded to SNMP, or, on a ping-only scan, how many answered ping
-5. Click **Review Results** on a completed scan, select the devices you want, and click **Import Selected**
+Folded under **More fields** on the first step, for the scans that need them:
+
+| Field                                            | Description                                                                                                                                                                                                                | Required |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Name                                             | What the scan is for, so you can tell it apart from other scans. The list shows the scan target when this is empty                                                                                                         | No       |
+| Look up NetBIOS names for hosts DNS doesn't name | Ask hosts that have no SNMP system name and no reverse-DNS name for their NetBIOS name, over UDP port 137. Private addresses and custom probes only — see [NetBIOS names](#how-discovered-devices-are-named) (default: on) | No       |
+| Name devices by their short hostname             | Name imported devices by the first part of a fully qualified hostname — `core-sw-01` instead of `core-sw-01.corp.example.com`. See [how discovered devices are named](#how-discovered-devices-are-named) (default: off)    | No       |
+| Repeat this scan                                 | Re-run the scan on an interval (**Rescan Interval (Minutes)**) to keep discovery continuous — see [auto import rules](#importing-automatically-with-auto-import-rules) (default: off)                                       | No       |
+
+The scan runs from the selected probe and reports how many hosts were scanned and how many answered — how many responded to SNMP, or, on a ping-only scan, how many answered ping. Click **Review Results** on a completed scan, select the devices you want, and click **Import Selected**.
 
 ### Scan Target Notation
 
@@ -511,7 +537,7 @@ The probe looks names up through its own DNS servers — the ones in `/etc/resol
 ### Importing Automatically with Auto Import Rules
 
 Reviewing every scan by hand does not scale past the first few subnets.
-**Network** -> **Settings** -> **Auto Import Rules** is where you write the
+**Network** -> **Rules** -> **Auto Import Rules** is where you write the
 import down once: a rule says which discovered hosts to claim (a host IP range,
 and optional system name, description and sysObjectID patterns), and optionally
 which [Monitor Template](#alert-policies) and [OID Collection
@@ -562,7 +588,7 @@ monitors, and reports itself that way.
 
 ### Ping-Only Scans
 
-Turn **Check SNMP on hosts that answer** off and the scan becomes a plain ICMP sweep: it pings every address in the range, reports the ones that answered, and sends no SNMP packet at all. The SNMP step disappears from the create form, so no version, community string or v3 credential is asked for — and none is stored on the scan.
+Turn **Check SNMP on hosts that answer** off and the scan becomes a plain ICMP sweep: it pings every address in the range, reports the ones that answered, and sends no SNMP packet at all. The SNMP Credentials step disappears from the form — it is one page, with **Start Scan** on it — so no version, community string or v3 credential is asked for, and none is stored on the scan.
 
 **Check SNMP on hosts that answer** is chosen when the scan is created and cannot be changed afterwards. There is no toggle for it on a saved scan and no re-run button: a scan created ping-only stays ping-only for its whole life, including every run of a recurring one. To scan the same range the other way, create a second scan.
 
@@ -778,7 +804,7 @@ renders as "Gi0/1 on core-switch-01 is down". See [Incident & Alert Templating](
 
 ## Network Topology
 
-Go to **Network** -> **Network Map** -> **Topology** for a live map of your network, built from LLDP neighbour data collected during interface walks and complemented by CDP on Cisco estates. Managed devices are filled; unmanaged LLDP peers are hollow. Node colour reflects device status, and clicking a managed device opens it.
+Go to **Network** -> **Topology** -> **Device Topology** for a live map of your network, built from LLDP neighbour data collected during interface walks and complemented by CDP on Cisco estates. Managed devices are filled; unmanaged LLDP peers are hollow. Node colour reflects device status, and clicking a managed device opens it.
 
 For the map to populate:
 

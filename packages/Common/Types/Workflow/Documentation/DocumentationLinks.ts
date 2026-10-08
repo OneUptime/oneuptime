@@ -69,6 +69,7 @@ export const WorkflowDocsPaths: {
   readonly microsoftTeams: string;
   readonly discord: string;
   readonly telegram: string;
+  readonly irc: string;
   readonly email: string;
   readonly customCode: string;
   readonly json: string;
@@ -98,6 +99,7 @@ export const WorkflowDocsPaths: {
   microsoftTeams: "/workflows/components#microsoft-teams",
   discord: "/workflows/components#discord",
   telegram: "/workflows/components#telegram",
+  irc: "/workflows/components#irc",
   email: "/workflows/components#email",
   customCode: "/workflows/components#custom-code",
   json: "/workflows/components#json",

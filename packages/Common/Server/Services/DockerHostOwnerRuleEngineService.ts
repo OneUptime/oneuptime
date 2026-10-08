@@ -26,6 +26,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 class DockerHostOwnerRuleEngineServiceClass
   implements RuleRunEngine<DockerHost, DockerHostOwnerRule>
@@ -293,15 +295,17 @@ class DockerHostOwnerRuleEngineServiceClass
       projectId: dockerHost.projectId,
       dockerHostFeedEventType: DockerHostFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await DockerHostService.getDockerHostMarkdownLink(
-        dockerHost.projectId,
-        dockerHost.id,
-      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-        .map((rule: DockerHostOwnerRule) => {
-          return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await DockerHostService.getDockerHostMarkdownLink(
+          dockerHost.projectId,
+          dockerHost.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRules.map((rule: DockerHostOwnerRule): string => {
+          return rule.name || rule.id?.toString() || "Unnamed rule";
+        }),
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);

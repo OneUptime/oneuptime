@@ -2037,6 +2037,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         description:
           "Additional options for SNMP monitor filters. Contains 'oid' (string) - the SNMP OID to check when using 'SNMP OID Value' or 'SNMP OID Exists' checkOn values.",
       },
+      {
+        name: "customCodeMonitorOptions",
+        type: "object",
+        required: false,
+        description:
+          "Additional options for Custom Code and Synthetic monitor filters. Contains 'resultValuePath' (string) - with the 'Result Value' checkOn, the field of the returned data to compare instead of the whole value, using dots for nested fields and [n] for array items (e.g., 'status', 'data.items[0].value'). Omit it to compare the whole value.",
+      },
     ],
     values: [],
     jsonExample: JSON.stringify(

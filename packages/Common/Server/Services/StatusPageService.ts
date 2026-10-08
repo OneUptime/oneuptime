@@ -439,6 +439,17 @@ export class Service extends ProjectReferencesService<StatusPage> {
   ): Promise<OnCreate<StatusPage>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: StatusPageOwnerUserService,
+      ownerTeamService: StatusPageOwnerTeamService,
+      resourceIdColumn: "statusPageId",
+      resourceModelType: StatusPage,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }
@@ -556,8 +567,17 @@ export class Service extends ProjectReferencesService<StatusPage> {
    * success hook), so a teammate whose read of status pages reaches only the
    * ones they own adds them as themselves, with the same checks as adding
    * them by hand - an owner row is created only under a page its creator may
-   * read (CreatePermission.checkParentPermission). In the background, as
-   * before: a failure is logged, and the page is kept.
+   * read (CreatePermission.checkParentPermission).
+   *
+   * Whether the creator may add owners at all is asked before anything is
+   * saved (OwnerRuleAssignment.checkOwnersPickedOnCreate, from
+   * onBeforeCreate): a refused pick refuses the create, so nobody gets a
+   * page without the owners they asked for. A creator whose read of status
+   * pages does not reach the page they just made - limited to labels it
+   * does not carry - has OneUptime add the owners for them
+   * (OwnerRuleAssignment.createOwner), rather than lose what they picked. In
+   * the background, as before: any other failure is logged, and the page is
+   * kept.
    */
   @CaptureSpan()
   public override async create(
@@ -597,6 +617,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
       ownerTeams,
       false,
       createBy.props,
+      true,
     ).catch((error: Error) => {
       logger.error(`Error in StatusPageService owner assignment: ${error}`, {
         projectId: createdItem.projectId?.toString(),
@@ -744,6 +765,12 @@ export class Service extends ProjectReferencesService<StatusPage> {
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the status page are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -756,6 +783,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 

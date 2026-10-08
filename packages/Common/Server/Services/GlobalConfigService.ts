@@ -474,27 +474,39 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Turning the server's Require SSO for Login on needs an SSO provider that
-   * signs people in to every project that does not require SSO itself
-   * (Utils/SsoRequirementChanges): checked once the caller has passed every
-   * permission check, under the lock on the server's sign-in rules, held
-   * until the write is done (onUpdateSuccess).
+   * Writing the server's Require SSO for Login on - turning it on, or saving
+   * it on again - needs an SSO provider that signs people in to every
+   * project that does not require SSO itself (Utils/SsoRequirementChanges):
+   * checked once the caller has passed every permission check, under the
+   * lock on the server's sign-in rules, held until the write is done
+   * (onUpdateSuccess) - kept once more right before it, taken again and the
+   * check run again should it be gone by then, and kept alive while it is
+   * written (SsoRequirementChanges.beforeWrite).
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     await SsoRequirementChanges.beforeServerUpdate({ updateBy });
+
+    // What the rule is now, so turning it off is told only when it was on.
+    await SsoRequirementChanges.rememberServerRuleBefore(updateBy);
+
+    await SsoRequirementChanges.beforeWrite(updateBy);
   }
 
-  // An update that failed once it held the lock: it is given back.
+  /*
+   * An update that failed once it held the lock: it is given back - or, when
+   * the database may still apply the write, kept until it would have
+   * cancelled it (SsoRequirementChanges).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+      await SsoRequirementChanges.afterFailedUpdate(onUpdate.updateBy, error);
     }
 
     return error;
@@ -515,15 +527,17 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Turned on: every server reads the rule again, and the live updates
-     * already open are asked again as their joins were, so a page that no
-     * longer meets it stops hearing at once, as its API requests are
-     * refused. Turned off, it refuses nobody, so nobody is asked again.
+     * Turned on or off: every server reads the rule again at once, rather
+     * than when its cached copy runs out a minute later. Turned on, the live
+     * updates already open are asked again as their joins were, so a page
+     * that no longer meets it stops hearing at once, as its API requests are
+     * refused. That is told even when it was on already: turning it off
+     * takes no lock, so it may have been turned off a moment before this
+     * write landed. Turned off, people signed in with a password are let
+     * back in at once on every server, not only on this one; saved off
+     * again while off, nobody is told.
      */
-    if (
-      (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
-        .requireSsoForLogin === true
-    ) {
+    if (SsoRequirementChanges.takeWhetherServerRuleChanged(onUpdate.updateBy)) {
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SignInRulesChanged,
       });

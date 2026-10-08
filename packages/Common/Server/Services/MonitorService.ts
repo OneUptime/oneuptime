@@ -48,10 +48,7 @@ import MonitorType, {
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
+
 import EventFieldChange, {
   EventFieldSet,
   EventValuesBeforeUpdate,
@@ -119,11 +116,16 @@ import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
+import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
   ProbeMonitorsNotificationContent,
   ProbeMonitorsRecipient,
 } from "../Utils/Monitor/ProbeMonitorsNotification";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
@@ -796,6 +798,17 @@ export class Service extends ProjectReferencesService<Model> {
           MONITOR_TEMPLATE_RELATION_KEYS,
           "Monitor Template",
         );
+
+      if (isMonitorStepsWritten && updateBy.data.monitorSteps) {
+        (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
+          await this.assignWrittenMonitorStepIds({
+            monitorSteps: updateBy.data.monitorSteps as
+              | MonitorSteps
+              | JSONObject,
+            matchedMonitors: monitors,
+            tenantId: updateBy.props.tenantId,
+          });
+      }
 
       for (const monitor of monitors) {
         if (isMonitorStepsWritten) {
@@ -1526,10 +1539,11 @@ export class Service extends ProjectReferencesService<Model> {
 
         const projectId: ObjectID = monitor!.projectId!;
         // The monitor's name, inside its link's own text.
-        const monitorName: string = escapeMarkdownInline(monitor!.name!);
+        const monitorName: string = monitor!.name!;
 
         let shouldAddMonitorFeed: boolean = false;
-        let feedInfoInMarkdown: string = `Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
+        let feedInfoInMarkdown: string =
+          mdText`Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`.toString();
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
@@ -1599,16 +1613,20 @@ export class Service extends ProjectReferencesService<Model> {
           kind: MONITOR_FIELDS,
         });
 
-        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
-          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
-          changes: fieldChanges,
-          projectId: projectId,
-          recordName: "Monitor",
-          kind: MONITOR_FIELDS,
-        });
+        const fieldsMarkdown: MarkdownText =
+          await EventFieldChange.getFeedMarkdown({
+            written: onUpdate.updateBy.data as unknown as Record<
+              string,
+              unknown
+            >,
+            changes: fieldChanges,
+            projectId: projectId,
+            recordName: "Monitor",
+            kind: MONITOR_FIELDS,
+          });
 
-        if (fieldsMarkdown) {
-          feedInfoInMarkdown += fieldsMarkdown;
+        if (!fieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += fieldsMarkdown.toString();
           shouldAddMonitorFeed = true;
         }
 
@@ -1717,6 +1735,17 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: MonitorOwnerUserService,
+      ownerTeamService: MonitorOwnerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
 
     if (!createBy.data.monitorType) {
       throw new BadDataException("Monitor type required to create monitor.");
@@ -1936,7 +1965,72 @@ export class Service extends ProjectReferencesService<Model> {
       monitorStatus.id,
     );
 
+    /*
+     * The ids inside monitorSteps are the server's to give (an API client such
+     * as the Terraform provider sends none), and steps with no default status
+     * fall back to this one, as the dashboard preselects it.
+     */
+    if (createBy.data.monitorSteps) {
+      createBy.data.monitorSteps = MonitorStepsIdentityUtil.assignIds({
+        monitorSteps: MonitorSteps.fromJSON(
+          createBy.data.monitorSteps as MonitorSteps | JSONObject,
+        ),
+        defaultMonitorStatusId: monitorStatus.id,
+      });
+    }
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * The written monitorSteps with their ids filled in, keeping the stored ids
+   * wherever the caller sent none - so a `terraform apply` that resends the
+   * steps keeps the criteria ids its open incidents point at (see
+   * MonitorStepsIdentityUtil). Only a write to a single monitor has stored
+   * steps to keep ids from; a bulk write gives every matched monitor the same
+   * steps, so it only fills in what is missing.
+   */
+  private async assignWrittenMonitorStepIds(data: {
+    monitorSteps: MonitorSteps | JSONObject;
+    matchedMonitors: Array<Model>;
+    tenantId?: ObjectID | undefined;
+  }): Promise<MonitorSteps> {
+    const monitorSteps: MonitorSteps = MonitorSteps.fromJSON(data.monitorSteps);
+    const storedMonitorSteps: MonitorSteps | undefined =
+      data.matchedMonitors.length === 1
+        ? data.matchedMonitors[0]!.monitorSteps
+        : undefined;
+
+    let defaultMonitorStatusId: ObjectID | null = null;
+
+    if (
+      !monitorSteps.data?.defaultMonitorStatusId &&
+      !storedMonitorSteps?.data?.defaultMonitorStatusId
+    ) {
+      const projectIds: Set<string> = new Set<string>(
+        data.matchedMonitors
+          .map((monitor: Model) => {
+            return monitor.projectId?.toString() || "";
+          })
+          .filter(Boolean),
+      );
+      const projectId: string | undefined =
+        data.tenantId?.toString() ||
+        (projectIds.size === 1 ? Array.from(projectIds)[0] : undefined);
+
+      if (projectId) {
+        defaultMonitorStatusId =
+          await MonitorStatusService.findDefaultOperationalStatusIdOrNull(
+            new ObjectID(projectId),
+          );
+      }
+    }
+
+    return MonitorStepsIdentityUtil.assignIds({
+      monitorSteps,
+      storedMonitorSteps,
+      defaultMonitorStatusId,
+    });
   }
 
   @CaptureSpan()
@@ -1991,27 +2085,27 @@ export class Service extends ProjectReferencesService<Model> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    let feedInfoInMarkdown: string = `#### 🌎 Monitor Created: 
+    let feedInfoInMarkdown: string = mdText`#### 🌎 Monitor Created: 
           
-**${escapeMarkdownValue(createdItem.name?.trim() || "No name provided.")}**:
+**${createdItem.name?.trim() || "No name provided."}**:
 
-${createdItem.description?.trim() || "No description provided."}
+${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description provided.")}
     
-`;
+`.toString();
 
     if (monitor?.currentMonitorStatus?.name) {
-      feedInfoInMarkdown += `➡️ **Monitor Status**: ${escapeMarkdownValue(monitor.currentMonitorStatus.name)} \n\n`;
+      feedInfoInMarkdown += mdText`➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
     }
 
     if (monitor?.monitorType) {
-      feedInfoInMarkdown += `⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
+      feedInfoInMarkdown += mdText`⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
     }
 
     if (monitor?.labels && monitor.labels.length > 0) {
       feedInfoInMarkdown += `🏷️ **Labels**:\n`;
 
       for (const label of monitor.labels) {
-        feedInfoInMarkdown += `- ${escapeMarkdownValue(label.name)}\n`;
+        feedInfoInMarkdown += mdText`- ${label.name}\n`;
       }
 
       feedInfoInMarkdown += `\n\n`;
@@ -2140,6 +2234,7 @@ ${createdItem.description?.trim() || "No description provided."}
               ] as Array<ObjectID>) || [],
               false,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -2423,6 +2518,12 @@ ${createdItem.description?.trim() || "No description provided."}
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the monitor are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -2435,6 +2536,7 @@ ${createdItem.description?.trim() || "No description provided."}
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 

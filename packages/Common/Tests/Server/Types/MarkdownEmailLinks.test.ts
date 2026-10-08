@@ -1,5 +1,6 @@
 import Markdown, {
   EMAIL_IMAGE_SCHEMES,
+  EMAIL_IMAGE_STYLE,
   EMAIL_LINK_SCHEMES,
   MarkdownContentType,
 } from "../../../Server/Types/Markdown";
@@ -15,7 +16,21 @@ import { describe, expect, test } from "@jest/globals";
  * a live link in an email the recipient trusts. The email renderer now keeps
  * only http, https and mailto links (http and https images), plus relative
  * ones, and renders anything else as its text.
+ *
+ * The one data: URL an image may have is an inline raster image - a PNG,
+ * JPEG, GIF or WebP that carries itself - which is how a synthetic monitor's
+ * screenshot reaches a description (issue #4532). Every other data: URL,
+ * and every data: link, still renders as its text.
  */
+
+// Real 1x1 images, as Buffer.toString("base64") writes them.
+const PNG: string =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const JPEG: string =
+  "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
+const GIF: string = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+const WEBP: string =
+  "UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=";
 
 type RenderFunction = (markdown: string) => Promise<string>;
 
@@ -233,7 +248,32 @@ describe("Markdown email renderer - images", () => {
 
   test.each([
     ["javascript:", "![Graph](javascript:alert(1))"],
-    ["data:", "![Graph](data:image/svg+xml;base64,PHN2Zy8+)"],
+    ["data: SVG", "![Graph](data:image/svg+xml;base64,PHN2Zy8+)"],
+    [
+      "data: SVG that is not base64",
+      "![Graph](data:image/svg+xml,%3Csvg%20onload=alert(1)%3E)",
+    ],
+    [
+      "data: HTML",
+      "![Graph](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)",
+    ],
+    ["data: HTML carrying PNG bytes", `![Graph](data:text/html;base64,${PNG})`],
+    [
+      "data: PNG whose bytes are not a PNG",
+      "![Graph](data:image/png;base64,AAAA)",
+    ],
+    [
+      "data: PNG that is not base64",
+      "![Graph](data:image/png,%89PNG%0D%0A%1A%0A)",
+    ],
+    [
+      "data: PNG with a media type parameter",
+      `![Graph](data:image/png;charset=utf-8;base64,${PNG})`,
+    ],
+    [
+      "data: PNG written with character references",
+      "![Graph](data&#58;image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB)",
+    ],
     ["mailto:", "![Graph](mailto:ops@example.com)"],
     ["a character reference", "![Graph](&#x6A;avascript:alert(1))"],
   ])(
@@ -242,6 +282,7 @@ describe("Markdown email renderer - images", () => {
       const html: string = await render(markdown);
 
       expect(html).not.toContain("<img");
+      expect(html.toLowerCase()).not.toContain("src=");
       expect(html).toContain("Graph");
     },
   );
@@ -253,6 +294,344 @@ describe("Markdown email renderer - images", () => {
 
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img");
+  });
+
+  test("every image is scaled down to the width of the email, never up", async () => {
+    const html: string = await render(
+      [
+        "![Graph](https://cdn.example.com/g.png)",
+        "",
+        `![Login page](data:image/png;base64,${PNG})`,
+      ].join("\n"),
+    );
+
+    expect(html.match(/<img /g)).toHaveLength(2);
+    expect(html.match(/ style="max-width:100%;height:auto;"/g)).toHaveLength(2);
+    expect(EMAIL_IMAGE_STYLE).toBe("max-width:100%;height:auto;");
+  });
+});
+
+describe("Markdown email renderer - inline images (synthetic monitor screenshots)", () => {
+  test.each([
+    ["a PNG", "image/png", PNG],
+    ["a JPEG", "image/jpeg", JPEG],
+    ["a GIF", "image/gif", GIF],
+    ["a WebP", "image/webp", WEBP],
+  ])(
+    "keeps %s carried in a data: URL",
+    async (_label: string, mimeType: string, base64: string) => {
+      const html: string = await render(
+        `![Login page](data:${mimeType};base64,${base64})`,
+      );
+
+      expect(html).toContain(
+        `<img src="data:${mimeType};base64,${base64}" alt="Login page" style="${EMAIL_IMAGE_STYLE}">`,
+      );
+    },
+  );
+
+  /*
+   * The template from the issue: the error text, then the screenshot with no
+   * alt text. Since ea611c316 the image rendered as its alt text - nothing at
+   * all - so the email said only what the error was.
+   */
+  test("keeps a screenshot with no alt text, after the error it shows", async () => {
+    const html: string = await render(
+      `Timeout 30000ms exceeded\n![](data:image/png;base64,${PNG})`,
+    );
+
+    expect(html).toBe(
+      `<p>Timeout 30000ms exceeded\n<img src="data:image/png;base64,${PNG}" alt="" style="${EMAIL_IMAGE_STYLE}"></p>\n`,
+    );
+  });
+
+  test("writes a JPEG placed into an image/png template out as the JPEG it is", async () => {
+    const html: string = await render(
+      `![Checkout](data:image/png;base64,${JPEG})`,
+    );
+
+    expect(urlsIn(html)).toEqual([`data:image/jpeg;base64,${JPEG}`]);
+  });
+
+  test("writes the URL out from what it checked, in lower case", async () => {
+    const html: string = await render(`![Shot](DATA:IMAGE/PNG;BASE64,${PNG})`);
+
+    expect(urlsIn(html)).toEqual([`data:image/png;base64,${PNG}`]);
+  });
+
+  test("keeps the alt text and title escaped, as for any other image", async () => {
+    const html: string = await render(
+      `![Login <page> & "form"](data:image/png;base64,${PNG} "Taken <at> 10:00")`,
+    );
+
+    expect(html).toContain('alt="Login &lt;page&gt; &amp; &quot;form&quot;"');
+    expect(html).toContain('title="Taken &lt;at&gt; 10:00"');
+    expect(urlsIn(html)).toEqual([`data:image/png;base64,${PNG}`]);
+  });
+
+  test("keeps an inline image in a reference-style image, a table and a list", async () => {
+    const html: string = await render(
+      [
+        "![Shot][shot]",
+        "",
+        "| Browser | Screenshot |",
+        "| --- | --- |",
+        `| Chromium | ![Chromium](data:image/png;base64,${PNG}) |`,
+        "",
+        `- Firefox: ![Firefox](data:image/jpeg;base64,${JPEG})`,
+        "",
+        `[shot]: data:image/png;base64,${PNG}`,
+      ].join("\n"),
+    );
+
+    expect(urlsIn(html)).toEqual([
+      `data:image/png;base64,${PNG}`,
+      `data:image/png;base64,${PNG}`,
+      `data:image/jpeg;base64,${JPEG}`,
+    ]);
+  });
+
+  test("a data: link is never kept, even when it carries an image", async () => {
+    const html: string = await render(
+      [
+        `[Open the screenshot](data:image/png;base64,${PNG})`,
+        "",
+        `[![Shot](data:image/png;base64,${PNG})](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)`,
+      ].join("\n"),
+    );
+
+    expect(html).not.toContain("<a ");
+    expect(html.toLowerCase()).not.toContain("href=");
+    expect(html).toContain("Open the screenshot");
+    // The image inside the dropped link is still an image.
+    expect(urlsIn(html)).toEqual([`data:image/png;base64,${PNG}`]);
+  });
+
+  test("an inline image inside an https link keeps both", async () => {
+    const html: string = await render(
+      `[![Shot](data:image/png;base64,${PNG})](https://oneuptime.example.com/incidents/1)`,
+    );
+
+    expect(urlsIn(html)).toEqual([
+      "https://oneuptime.example.com/incidents/1",
+      `data:image/png;base64,${PNG}`,
+    ]);
+  });
+
+  test("an inline image as raw HTML is still escaped, as all raw HTML is", async () => {
+    const html: string = await render(
+      `<img src="data:image/png;base64,${PNG}" onerror="alert(1)">`,
+    );
+
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img");
+  });
+
+  test("an inline image stays out of the Docs and Blog renderers' business", async () => {
+    const markdown: string = `![Shot](data:image/png;base64,${PNG})`;
+
+    expect(
+      await Markdown.convertToHTML(markdown, MarkdownContentType.Docs),
+    ).toContain(`src="data:image/png;base64,${PNG}"`);
+    expect(
+      await Markdown.convertToHTML(markdown, MarkdownContentType.Blog),
+    ).toContain(`src="data:image/png;base64,${PNG}"`);
+  });
+
+  test("renders a screenshot of several megabytes", async () => {
+    const base64: string = Buffer.concat([
+      Buffer.from(PNG, "base64"),
+      Buffer.alloc(3 * 1024 * 1024, 0x5a),
+    ]).toString("base64");
+
+    const html: string = await render(
+      `Login failed\n\n![Login](data:image/png;base64,${base64})`,
+    );
+
+    expect(urlsIn(html)).toEqual([`data:image/png;base64,${base64}`]);
+  });
+});
+
+describe("Markdown email renderer - screenshots too long for one line of Markdown", () => {
+  /*
+   * marked reads a line with regular expressions whose backtracking stack
+   * can grow with the line, and a screenshot is millions of characters on
+   * one line. The email renderer holds long base64 back while marked reads
+   * the Markdown and puts it back after, so the email has to come out
+   * exactly as it would have. (ScreenshotEmailInLongRunningProcess.test.ts
+   * runs the same path where V8 compiles regular expressions unoptimized.)
+   */
+
+  // The PNG with enough after it to be held back - padded the same way.
+  const LONG: string = Buffer.concat([
+    Buffer.from(PNG, "base64"),
+    Buffer.alloc(3 * 1365, 0x5a),
+  ]).toString("base64");
+
+  test("the long data is long enough to be held back, and padded like the short", () => {
+    expect(LONG.length).toBeGreaterThan(4096);
+    expect(PNG.length).toBeLessThan(1024);
+    expect(LONG.endsWith("==")).toBe(true);
+    expect(PNG.endsWith("==")).toBe(true);
+  });
+
+  test("renders a screenshot too big for marked to read on one line", async () => {
+    // About sixteen million characters of base64 on one line.
+    const base64: string = Buffer.concat([
+      Buffer.from(PNG, "base64"),
+      Buffer.alloc(12 * 1024 * 1024, 0x5a),
+    ]).toString("base64");
+
+    const html: string = await render(
+      `Login failed\n\n![Login](data:image/png;base64,${base64})\n\nRetried twice.`,
+    );
+    const urls: Array<string> = urlsIn(html);
+
+    expect(urls).toHaveLength(1);
+    // A boolean, so a failure does not print sixteen million characters.
+    expect(urls[0] === `data:image/png;base64,${base64}`).toBe(true);
+    expect(html.startsWith("<p>Login failed</p>\n<p><img src=")).toBe(true);
+    expect(html.endsWith("<p>Retried twice.</p>\n")).toBe(true);
+  });
+
+  test.each([
+    [
+      "an image",
+      (data: string) => {
+        return `![Shot](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "an image with a title",
+      (data: string) => {
+        return `![Shot](data:image/png;base64,${data} "Login page")`;
+      },
+    ],
+    [
+      "a reference-style image",
+      (data: string) => {
+        return `![Shot][login]\n\n[login]: data:image/png;base64,${data}`;
+      },
+    ],
+    [
+      "an image inside a link",
+      (data: string) => {
+        return `[![Shot](data:image/png;base64,${data})](https://oneuptime.example.com/incidents/1)`;
+      },
+    ],
+    [
+      "an image in a table",
+      (data: string) => {
+        return `| Browser | Screenshot |\n| --- | --- |\n| Chromium | ![Chromium](data:image/png;base64,${data}) |`;
+      },
+    ],
+    [
+      "an image in a list",
+      (data: string) => {
+        return `- Opened the page\n- ![Login](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "an image in a quote",
+      (data: string) => {
+        return `> ![Shot](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "an image in bold",
+      (data: string) => {
+        return `**![Shot](data:image/png;base64,${data})**`;
+      },
+    ],
+    [
+      "an image underlined as a heading",
+      (data: string) => {
+        return `![Shot](data:image/png;base64,${data})\n===`;
+      },
+    ],
+    [
+      "an upper-case data: URL",
+      (data: string) => {
+        return `![Shot](DATA:IMAGE/PNG;BASE64,${data})`;
+      },
+    ],
+    [
+      "two screenshots of the same data",
+      (data: string) => {
+        return `![One](data:image/png;base64,${data})\n\n![Two](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "a data: link, which stays text",
+      (data: string) => {
+        return `[Open the screenshot](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "a data: autolink, which stays text",
+      (data: string) => {
+        return `<data:image/png;base64,${data}>`;
+      },
+    ],
+    [
+      "a code span",
+      (data: string) => {
+        return `\`data:image/png;base64,${data}\``;
+      },
+    ],
+    [
+      "a code block",
+      (data: string) => {
+        return `\`\`\`\ndata:image/png;base64,${data}\n\`\`\``;
+      },
+    ],
+    [
+      "the data as alt text",
+      (data: string) => {
+        return `![data:image/png;base64,${data}](https://cdn.example.com/login.png)`;
+      },
+    ],
+    [
+      "raw HTML, which is escaped",
+      (data: string) => {
+        return `<img src="data:image/png;base64,${data}">`;
+      },
+    ],
+  ])(
+    "long data renders as short data does: %s",
+    async (_label: string, markdownWith: (data: string) => string) => {
+      const short: string = await render(markdownWith(PNG));
+      const long: string = await render(markdownWith(LONG));
+
+      expect(long.split(LONG).join(PNG)).toBe(short);
+    },
+  );
+
+  test("what follows the data reads as it did: its last character keeps an emphasis from closing", async () => {
+    // Unpadded data that ends in "+", which a closing "*" may not follow.
+    const markdownWith: (data: string) => string = (data: string): string => {
+      return `*data:image/png;base64,${data.replace(/[=]+$/, "")}+*after`;
+    };
+
+    const short: string = await render(markdownWith(PNG));
+    const long: string = await render(markdownWith(LONG));
+
+    expect(short).not.toContain("<em>");
+    expect(
+      long.split(LONG.replace(/[=]+$/, "")).join(PNG.replace(/[=]+$/, "")),
+    ).toBe(short);
+  });
+
+  test("Private Use Area characters already in the Markdown come through as they are", async () => {
+    const text: string = "Odd   0  text";
+
+    const html: string = await render(
+      `${text}\n\n![Shot](data:image/png;base64,${LONG})\n\n\`${text}\``,
+    );
+
+    expect(html).toContain(`<p>${text}</p>`);
+    expect(html).toContain(`>${text}</code>`);
+    expect(urlsIn(html)).toEqual([`data:image/png;base64,${LONG}`]);
   });
 });
 

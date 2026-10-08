@@ -121,7 +121,12 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  // Deleting a provider that is on ends the sign-ins it gave, as turning it off does.
+  /*
+   * Deleting a provider that is on ends the sign-ins it gave, as turning it
+   * off does. A delete - a hard delete included - reaches only the
+   * providers its check read under the lock, and rows deleted before
+   * (Utils/ProjectSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
@@ -162,7 +167,11 @@ export class Service extends DatabaseService<Model> {
     return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
   }
 
-  // An update that failed, or was refused, once it held its locks: they are given back.
+  /*
+   * An update that failed, or was refused, once it held its locks: they are
+   * given back - or, when the database may still apply it, kept until it
+   * would have cancelled it (Utils/ProjectSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
@@ -170,6 +179,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Exception> {
     await ProjectSsoProviderChanges.afterFailedWrite(
       onUpdate?.carryForward as ProjectSsoProviderWrite | null | undefined,
+      error,
     );
 
     return error;
@@ -183,6 +193,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Exception> {
     await ProjectSsoProviderChanges.afterFailedWrite(
       onDelete?.carryForward as ProjectSsoProviderWrite | null | undefined,
+      error,
     );
 
     return error;

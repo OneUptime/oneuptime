@@ -36,6 +36,11 @@ import {
   ProjectBalanceType,
 } from "Common/Utils/Project/ProjectBalance";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import {
+  getNoTwilioAccountMessage,
+  TwilioMessageKind,
+} from "Common/Utils/Project/TwilioAccount";
+import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
@@ -270,8 +275,13 @@ export default class SmsService {
          * Nobody has filled in Twilio credentials in Global Settings (or the
          * caller passed a project-level config that is empty). Failing to send
          * is the correct behaviour, not a defect, so do not open an Issue.
+         * The log, and anyone waiting on this SMS, are told what is missing
+         * and who can add it (Utils/Project/TwilioAccount) - not "Twilio
+         * Config not found".
          */
-        throw new BadDataException("Twilio Config not found").asUserError();
+        throw new BadDataException(
+          getNoTwilioAccountMessage(TwilioMessageKind.SMS),
+        ).asUserError();
       }
 
       const client: Twilio.Twilio = Twilio(
@@ -507,7 +517,8 @@ export default class SmsService {
       logger.error("SMS message failed to send.");
       logger.error(smsLog.statusMessage);
 
-      smsError = e;
+      // Twilio's refusal keeps its words on the way out (TwilioSendError).
+      smsError = TwilioSendError.toSendError(e, TwilioSendKind.SMS) as Error;
     }
 
     if (options.projectId) {

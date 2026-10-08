@@ -6,10 +6,10 @@ import AiActivityInsightsBuilder, {
 } from "../../../../../Server/Utils/AI/ActivityInsights/AiActivityInsightsBuilder";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import {
-  AI_ACTIVITY_INSIGHTS_MAX_ATTENTION_ITEMS,
-  AiActivityAttentionItem,
-  AiActivityAttentionKind,
-  AiActivityAttentionSeverity,
+  AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS,
+  AiActivityInsight,
+  AiActivityInsightKind,
+  AiActivityInsightTone,
   AiActivityInsights,
 } from "../../../../../Types/AI/AiActivityInsights";
 import AutoRemediationSuggestionStatus from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
@@ -22,9 +22,9 @@ import { describe, expect, test } from "@jest/globals";
  * beyond a cluster and a resource - a project's incidents and its alerts
  * (IncidentAlertAiInsightsBuilder): a subject's prefixed number travels with
  * it, a subject the reader read for a fix can be linked, a scope with no
- * parts of its own asks for no hotspots, and attention items only the
- * reader's rows can say are ranked with the builder's own. A cluster's and
- * a resource's insights, which pass none of it, are pinned unchanged by
+ * parts of its own asks for no hotspots, and insights only the reader's rows
+ * can say are ranked with the builder's own. A cluster's and a resource's
+ * insights, which pass none of it, are pinned by
  * AiActivityInsightsBuilder.test.ts.
  */
 
@@ -33,6 +33,7 @@ const HOUR: number = 60 * 60 * 1000;
 const DAY: number = 24 * HOUR;
 
 const MONITOR_ID: string = "aaaaaaaa-0000-4000-8000-000000000001";
+const OTHER_MONITOR_ID: string = "aaaaaaaa-0000-4000-8000-000000000002";
 
 function hoursAgo(hours: number): Date {
   return new Date(NOW.getTime() - hours * HOUR);
@@ -103,58 +104,77 @@ function input(
 }
 
 function item(
-  kind: AiActivityAttentionKind,
-  severity: AiActivityAttentionSeverity,
+  kind: AiActivityInsightKind,
+  tone: AiActivityInsightTone,
   count: number = 1,
-): AiActivityAttentionItem {
-  return { kind, severity, count };
+): AiActivityInsight {
+  return { kind, tone, count };
 }
 
-function kindsOf(insights: AiActivityInsights): Array<AiActivityAttentionKind> {
-  return insights.attention.map(
-    (attention: AiActivityAttentionItem): AiActivityAttentionKind => {
-      return attention.kind;
+function kindsOf(insights: AiActivityInsights): Array<AiActivityInsightKind> {
+  return insights.insights.map(
+    (insight: AiActivityInsight): AiActivityInsightKind => {
+      return insight.kind;
     },
   );
 }
 
-// Labels that name the same deployment, so it shows up as a hotspot.
+function insightOf(
+  insights: AiActivityInsights,
+  kind: AiActivityInsightKind,
+): AiActivityInsight | undefined {
+  return insights.insights.find((insight: AiActivityInsight): boolean => {
+    return insight.kind === kind;
+  });
+}
+
+// Labels that name one deployment: where several problems happen.
 const DEPLOYMENT_LABELS: JSONObject = {
   "resource.k8s.namespace.name": "shop",
   "resource.k8s.deployment.name": "checkout",
 };
 
 describe("a subject's prefixed number", () => {
-  test("travels with the subject to its problem and to an attention item", () => {
-    const subject: AiActivitySubjectInput = incident("inc-1", {
-      numberWithPrefix: "INC-7",
-      monitorIds: [MONITOR_ID],
-    });
+  test("travels with the subject to its problem and to the insight about it", () => {
+    const subjects: Array<AiActivitySubjectInput> = [7, 8, 9].map(
+      (number: number, index: number): AiActivitySubjectInput => {
+        return incident(`inc-${number}`, {
+          number,
+          numberWithPrefix: `INC-${number}`,
+          monitorIds: [MONITOR_ID],
+          createdAt: hoursAgo(index + 1),
+        });
+      },
+    );
 
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
       input({
-        investigations: [
-          run(hoursAgo(1), subject),
-          run(hoursAgo(2), subject),
-          run(hoursAgo(3), subject),
-        ],
+        occurrences: subjects,
+        investigations: [run(hoursAgo(1), subjects[0])],
       }),
     );
 
     expect(insights.problems[0]!.latestSubject).toEqual({
       kind: "incident",
-      id: "inc-1",
-      title: "Incident inc-1",
+      id: "inc-7",
+      title: "Incident inc-7",
       number: 7,
       numberWithPrefix: "INC-7",
     });
 
-    const recurring: AiActivityAttentionItem | undefined =
-      insights.attention.find((attention: AiActivityAttentionItem) => {
-        return attention.kind === AiActivityAttentionKind.RecurringProblem;
-      });
+    const recurring: AiActivityInsight = insightOf(
+      insights,
+      AiActivityInsightKind.RecurringProblem,
+    )!;
 
-    expect(recurring?.subject?.numberWithPrefix).toBe("INC-7");
+    expect(recurring.subject?.numberWithPrefix).toBe("INC-7");
+    expect(
+      recurring.evidence!.map(
+        (subject: { numberWithPrefix?: string | undefined }) => {
+          return subject.numberWithPrefix;
+        },
+      ),
+    ).toEqual(["INC-7", "INC-8", "INC-9"]);
   });
 
   test("is left out, not empty, for a subject without one", () => {
@@ -180,7 +200,7 @@ describe("the subjects a reader read for its fixes", () => {
     numberWithPrefix: "INC-9",
   });
 
-  test("let a failed fix link the incident it was for", () => {
+  test("let a fix that did not help link the incident it was for", () => {
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
       input({
         fixes: [failedFix(hoursAgo(2), { incidentId: "inc-fix" })],
@@ -190,9 +210,9 @@ describe("the subjects a reader read for its fixes", () => {
       }),
     );
 
-    const failed: AiActivityAttentionItem = insights.attention[0]!;
+    const failed: AiActivityInsight = insights.insights[0]!;
 
-    expect(failed.kind).toBe(AiActivityAttentionKind.FixesFailed);
+    expect(failed.kind).toBe(AiActivityInsightKind.FixesDidNotHelp);
     expect(failed.subject).toEqual({
       kind: "incident",
       id: "inc-fix",
@@ -207,10 +227,10 @@ describe("the subjects a reader read for its fixes", () => {
       input({ fixes: [failedFix(hoursAgo(2), { incidentId: "inc-fix" })] }),
     );
 
-    expect(insights.attention[0]!.kind).toBe(
-      AiActivityAttentionKind.FixesFailed,
+    expect(insights.insights[0]!.kind).toBe(
+      AiActivityInsightKind.FixesDidNotHelp,
     );
-    expect(insights.attention[0]!.subject).toBeUndefined();
+    expect(insights.insights[0]!.subject).toBeUndefined();
   });
 
   test("never link a fix whose incident the reader did not hand over", () => {
@@ -223,7 +243,8 @@ describe("the subjects a reader read for its fixes", () => {
       }),
     );
 
-    expect(insights.attention[0]!.subject).toBeUndefined();
+    expect(insights.insights[0]!.subject).toBeUndefined();
+    expect(insights.insights[0]!.evidence).toBeUndefined();
   });
 
   test("do not make a problem of an incident nobody investigated", () => {
@@ -258,11 +279,11 @@ describe("the subjects a reader read for its fixes", () => {
       }),
     );
 
-    // The newest failed fix links the incident as the map has it.
-    expect(insights.attention[0]!.kind).toBe(
-      AiActivityAttentionKind.FixesFailed,
+    // The newest fix that did not help links the incident as the map has it.
+    expect(insights.insights[0]!.kind).toBe(
+      AiActivityInsightKind.FixesDidNotHelp,
     );
-    expect(insights.attention[0]!.subject?.title).toBe("Map title");
+    expect(insights.insights[0]!.subject?.title).toBe("Map title");
     // A problem is always its runs' own.
     expect(
       insights.problems.map((problem: { title: string }): string => {
@@ -282,20 +303,33 @@ describe("the subjects a reader read for its fixes", () => {
       }),
     );
 
-    expect(insights.attention[0]!.subject?.id).toBe("inc-2");
+    expect(insights.insights[0]!.subject?.id).toBe("inc-2");
   });
 });
 
 describe("a scope with no parts of its own", () => {
-  // Four investigations of one deployment: a hotspot, and in most of them.
-  const subjects: Array<AiActivitySubjectInput> = [1, 2, 3, 4].map(
-    (index: number): AiActivitySubjectInput => {
+  /*
+   * Four incidents of one deployment from two monitors, and one more
+   * elsewhere: the deployment is behind two problems and most of it.
+   */
+  const subjects: Array<AiActivitySubjectInput> = [
+    ...[1, 2, 3].map((index: number): AiActivitySubjectInput => {
       return incident(`inc-${index}`, {
         monitorIds: [MONITOR_ID],
         seriesLabels: DEPLOYMENT_LABELS,
+        createdAt: hoursAgo(index),
       });
-    },
-  );
+    }),
+    incident("inc-4", {
+      monitorIds: [OTHER_MONITOR_ID],
+      seriesLabels: DEPLOYMENT_LABELS,
+      createdAt: hoursAgo(4),
+    }),
+    incident("inc-5", {
+      title: "Somewhere else",
+      createdAt: hoursAgo(5),
+    }),
+  ];
   const investigations: Array<AiActivityInvestigationInput> = subjects.map(
     (subject: AiActivitySubjectInput, index: number) => {
       return run(hoursAgo(index + 1), subject);
@@ -304,41 +338,45 @@ describe("a scope with no parts of its own", () => {
 
   test("by default, a cluster's or a resource's hotspots are found", () => {
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
-      input({ investigations }),
+      input({ occurrences: subjects, investigations }),
     );
 
     expect(insights.hotspots.length).toBeGreaterThan(0);
-    expect(kindsOf(insights)).toContain(AiActivityAttentionKind.Hotspot);
+    expect(kindsOf(insights)).toContain(AiActivityInsightKind.Hotspot);
   });
 
   test("includeHotspots: true is the default spelled out", () => {
     expect(
       AiActivityInsightsBuilder.build(
-        input({ investigations, includeHotspots: true }),
+        input({ occurrences: subjects, investigations, includeHotspots: true }),
       ),
-    ).toEqual(AiActivityInsightsBuilder.build(input({ investigations })));
+    ).toEqual(
+      AiActivityInsightsBuilder.build(
+        input({ occurrences: subjects, investigations }),
+      ),
+    );
   });
 
-  test("asks for none: no hotspots, and no hotspot to pay attention to", () => {
+  test("asks for none: no hotspots, and no part behind the trouble", () => {
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
-      input({ investigations, includeHotspots: false }),
+      input({ occurrences: subjects, investigations, includeHotspots: false }),
     );
 
     expect(insights.hotspots).toEqual([]);
-    expect(kindsOf(insights)).not.toContain(AiActivityAttentionKind.Hotspot);
+    expect(kindsOf(insights)).not.toContain(AiActivityInsightKind.Hotspot);
   });
 
   test("still names the parts a problem fired for", () => {
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
-      input({ investigations, includeHotspots: false }),
+      input({ occurrences: subjects, investigations, includeHotspots: false }),
     );
 
     expect(insights.problems[0]!.objects.length).toBeGreaterThan(0);
-    expect(insights.problems[0]!.objects[0]!.count).toBe(4);
+    expect(insights.problems[0]!.objects[0]!.count).toBe(3);
   });
 });
 
-describe("attention items a reader worked out itself", () => {
+describe("insights a reader worked out itself", () => {
   test("nothing extra changes nothing", () => {
     const base: AiActivityInsightsInput = input({
       investigations: [
@@ -347,26 +385,20 @@ describe("attention items a reader worked out itself", () => {
     });
 
     expect(
-      AiActivityInsightsBuilder.build({ ...base, extraAttention: [] }),
+      AiActivityInsightsBuilder.build({ ...base, extraInsights: [] }),
     ).toEqual(AiActivityInsightsBuilder.build(base));
   });
 
-  test("are ranked with the builder's own: severity first, then kind", () => {
+  test("are ranked with the builder's own: tone first, then kind", () => {
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
       input({
         fixes: [failedFix(hoursAgo(2), { incidentId: "inc-1" })],
-        investigations: [
-          run(hoursAgo(1), incident("inc-1"), { status: AIRunStatus.Error }),
-        ],
-        extraAttention: [
+        investigations: [run(hoursAgo(1), incident("inc-1"))],
+        extraInsights: [
+          item(AiActivityInsightKind.Hotspot, AiActivityInsightTone.Pattern, 4),
           item(
-            AiActivityAttentionKind.MonitorHotspot,
-            AiActivityAttentionSeverity.Low,
-            4,
-          ),
-          item(
-            AiActivityAttentionKind.InvestigationsNotStarted,
-            AiActivityAttentionSeverity.High,
+            AiActivityInsightKind.NotInvestigated,
+            AiActivityInsightTone.Critical,
             9,
           ),
         ],
@@ -374,117 +406,130 @@ describe("attention items a reader worked out itself", () => {
     );
 
     expect(kindsOf(insights)).toEqual([
-      // High: a failed fix before a skip.
-      AiActivityAttentionKind.FixesFailed,
-      AiActivityAttentionKind.InvestigationsNotStarted,
-      // Medium: one failed investigation of one.
-      AiActivityAttentionKind.InvestigationsFailed,
-      // Low.
-      AiActivityAttentionKind.MonitorHotspot,
+      // Critical: a fix that did not help before a skip.
+      AiActivityInsightKind.FixesDidNotHelp,
+      AiActivityInsightKind.NotInvestigated,
+      // A pattern.
+      AiActivityInsightKind.Hotspot,
     ]);
   });
 
   test("keep what they say", () => {
-    const extra: AiActivityAttentionItem = {
-      kind: AiActivityAttentionKind.InvestigationsNotStarted,
-      severity: AiActivityAttentionSeverity.Medium,
+    const extra: AiActivityInsight = {
+      kind: AiActivityInsightKind.NotInvestigated,
+      tone: AiActivityInsightTone.Warning,
       count: 3,
       total: 10,
       reason: "ai_disabled",
     };
 
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
-      input({ extraAttention: [extra] }),
+      input({ extraInsights: [extra] }),
     );
 
-    expect(insights.attention).toEqual([extra]);
+    expect(insights.insights).toEqual([extra]);
   });
 
-  test("of one kind and severity, the larger count comes first", () => {
+  test("of one kind and tone, the larger count comes first", () => {
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
       input({
-        extraAttention: [
-          item(
-            AiActivityAttentionKind.MonitorHotspot,
-            AiActivityAttentionSeverity.Low,
-            3,
-          ),
-          item(
-            AiActivityAttentionKind.MonitorHotspot,
-            AiActivityAttentionSeverity.Low,
-            8,
-          ),
+        extraInsights: [
+          item(AiActivityInsightKind.Hotspot, AiActivityInsightTone.Pattern, 3),
+          item(AiActivityInsightKind.Hotspot, AiActivityInsightTone.Pattern, 8),
         ],
       }),
     );
 
     expect(
-      insights.attention.map((attention: AiActivityAttentionItem): number => {
-        return attention.count;
+      insights.insights.map((insight: AiActivityInsight): number => {
+        return insight.count;
       }),
     ).toEqual([8, 3]);
   });
 
-  test("count towards the page's few items: the least important are dropped", () => {
+  test("count towards the page's few insights: the least important are dropped", () => {
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
       input({
-        extraAttention: [
+        extraInsights: [
           ...Array.from({
-            length: AI_ACTIVITY_INSIGHTS_MAX_ATTENTION_ITEMS,
-          }).map((): AiActivityAttentionItem => {
+            length: AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS,
+          }).map((): AiActivityInsight => {
             return item(
-              AiActivityAttentionKind.MonitorHotspot,
-              AiActivityAttentionSeverity.Low,
+              AiActivityInsightKind.RiskSpotted,
+              AiActivityInsightTone.Warning,
             );
           }),
           item(
-            AiActivityAttentionKind.InvestigationsNotStarted,
-            AiActivityAttentionSeverity.High,
+            AiActivityInsightKind.NotInvestigated,
+            AiActivityInsightTone.Critical,
           ),
         ],
       }),
     );
 
-    expect(insights.attention).toHaveLength(
-      AI_ACTIVITY_INSIGHTS_MAX_ATTENTION_ITEMS,
-    );
-    expect(insights.attention[0]!.kind).toBe(
-      AiActivityAttentionKind.InvestigationsNotStarted,
+    expect(insights.insights).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS);
+    expect(insights.insights[0]!.kind).toBe(
+      AiActivityInsightKind.NotInvestigated,
     );
   });
 
-  test("every kind has its place, at one severity", () => {
-    const order: Array<AiActivityAttentionKind> = [
-      AiActivityAttentionKind.FixesFailed,
-      AiActivityAttentionKind.InvestigationsNotStarted,
-      AiActivityAttentionKind.RecurringProblem,
-      AiActivityAttentionKind.PreventiveInsight,
-      AiActivityAttentionKind.FixesAwaitingApproval,
-      AiActivityAttentionKind.InvestigationsFailed,
-      AiActivityAttentionKind.CommandsTimedOut,
-      AiActivityAttentionKind.FindingsRejected,
-      AiActivityAttentionKind.Hotspot,
-      AiActivityAttentionKind.MonitorHotspot,
+  test("every kind has its place, at one tone", () => {
+    const order: Array<AiActivityInsightKind> = [
+      AiActivityInsightKind.RecurringProblem,
+      AiActivityInsightKind.FixesDidNotHelp,
+      AiActivityInsightKind.NotInvestigated,
+      AiActivityInsightKind.RiskSpotted,
+      AiActivityInsightKind.FixesAwaitingApproval,
+      AiActivityInsightKind.Hotspot,
+      AiActivityInsightKind.ProblemStopped,
+      AiActivityInsightKind.FixedAutomatically,
+      AiActivityInsightKind.ReadyForAutomaticFixes,
     ];
 
     expect([...order].sort()).toEqual(
-      Object.values(AiActivityAttentionKind).sort(),
+      Object.values(AiActivityInsightKind).sort(),
     );
 
     // Two pages' worth, each handed in last-first: the order is the builder's.
     for (const kinds of [order.slice(0, 5), order.slice(5)]) {
       const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
         input({
-          extraAttention: [...kinds]
+          extraInsights: [...kinds]
             .reverse()
-            .map((kind: AiActivityAttentionKind): AiActivityAttentionItem => {
-              return item(kind, AiActivityAttentionSeverity.Medium);
+            .map((kind: AiActivityInsightKind): AiActivityInsight => {
+              return item(kind, AiActivityInsightTone.Warning);
             }),
         }),
       );
 
       expect(kindsOf(insights)).toEqual(kinds);
     }
+  });
+
+  test("every tone has its place: the most urgent first", () => {
+    const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
+      input({
+        extraInsights: [
+          AiActivityInsightTone.Positive,
+          AiActivityInsightTone.Pattern,
+          AiActivityInsightTone.Warning,
+          AiActivityInsightTone.Critical,
+        ].map((tone: AiActivityInsightTone): AiActivityInsight => {
+          return item(AiActivityInsightKind.RiskSpotted, tone);
+        }),
+      }),
+    );
+
+    expect(
+      insights.insights.map((insight: AiActivityInsight): string => {
+        return insight.tone;
+      }),
+    ).toEqual([
+      AiActivityInsightTone.Critical,
+      AiActivityInsightTone.Warning,
+      AiActivityInsightTone.Pattern,
+      AiActivityInsightTone.Positive,
+    ]);
   });
 
   test("leave the window, the totals and the problems alone", () => {
@@ -494,35 +539,32 @@ describe("attention items a reader worked out itself", () => {
     const plain: AiActivityInsights = AiActivityInsightsBuilder.build(base);
     const extra: AiActivityInsights = AiActivityInsightsBuilder.build({
       ...base,
-      extraAttention: [
+      extraInsights: [
         item(
-          AiActivityAttentionKind.InvestigationsNotStarted,
-          AiActivityAttentionSeverity.High,
+          AiActivityInsightKind.NotInvestigated,
+          AiActivityInsightTone.Critical,
           5,
         ),
       ],
     });
 
-    expect({ ...extra, attention: [] }).toEqual({ ...plain, attention: [] });
+    expect({ ...extra, insights: [] }).toEqual({ ...plain, insights: [] });
   });
 
   test("stand on their own: kept with nothing of the window to show", () => {
-    // The only run is older than the window; the reader's item still counts.
+    // The only run is older than the window; the reader's insight still counts.
     const insights: AiActivityInsights = AiActivityInsightsBuilder.build(
       input({
         investigations: [
           run(new Date(NOW.getTime() - 40 * DAY), incident("inc-old")),
         ],
-        extraAttention: [
-          item(
-            AiActivityAttentionKind.MonitorHotspot,
-            AiActivityAttentionSeverity.Low,
-          ),
+        extraInsights: [
+          item(AiActivityInsightKind.Hotspot, AiActivityInsightTone.Pattern),
         ],
       }),
     );
 
     expect(insights.totals.investigations).toBe(0);
-    expect(kindsOf(insights)).toEqual([AiActivityAttentionKind.MonitorHotspot]);
+    expect(kindsOf(insights)).toEqual([AiActivityInsightKind.Hotspot]);
   });
 });

@@ -27,6 +27,7 @@ import ProjectNotificationChannelsCopy, {
   PROJECT_NOTIFICATION_CHANNELS,
   ProjectNotificationChannelDefinition,
 } from "./ProjectNotificationChannelsCopy";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
  * Project Settings -> Notification Settings: the project's four channel
@@ -54,6 +55,7 @@ export const PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID: string =
   "project-notification-channels-who-can-change";
 
 const ProjectNotificationChannelsCard: FunctionComponent = (): ReactElement => {
+  const ruledListClassName: string = useCardRuledListClassName();
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const projectIdString: string = projectId?.toString() || "";
@@ -147,7 +149,7 @@ const ProjectNotificationChannelsCard: FunctionComponent = (): ReactElement => {
          * Full-bleed rows, ruled like the card's own header rule, as on the
          * status page's Channels card.
          */}
-        <div className="-mx-5 -mb-6 divide-y divide-gray-200 border-t border-gray-200 md:-mx-6">
+        <div className={ruledListClassName}>
           {PROJECT_NOTIFICATION_CHANNELS.map(
             (
               definition: ProjectNotificationChannelDefinition,

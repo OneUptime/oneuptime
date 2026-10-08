@@ -98,3 +98,11 @@ Pour le développement, le [guide de test des webhooks Twilio](https://www.twili
 4. Vérifiez le statut de livraison du SMS dans OneUptime et les journaux de messages Twilio. Un envoi accepté ne prouve pas la livraison ; [Twilio signale les changements de statut ultérieurs par callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 Si l'envoi échoue, vérifiez les identifiants, les fonctionnalités du numéro, les restrictions du compte et la connectivité sortante. Si le message ou l'appel arrive sans mise à jour du statut ou de l'acquittement, examinez l'URL du callback et les journaux de l'ingress public. Le [guide Twilio des échecs de récupération HTTP](https://www.twilio.com/docs/api/errors/11200) aide à diagnostiquer les callbacks inaccessibles, les problèmes TLS et les erreurs HTTP. Un appel de test réussi ne suffit pas à vérifier l'accès aux callbacks.
+
+## 5. Vérifier les numéros de téléphone des membres de l'équipe
+
+L'ajout d'un numéro de téléphone pour les SMS ou les appels envoie immédiatement son code de vérification, et la boîte de dialogue de vérification s'ouvre. Elle indique quand le code a été envoyé et jusqu'à quand il est valable, et envoie un nouveau code sur demande, au plus une fois par minute. Rien n'a besoin d'être renvoyé avant la vérification.
+
+Lorsqu'aucun code ne peut être envoyé, la boîte de dialogue en indique la raison au lieu de prétendre qu'un code a été envoyé : par exemple, qu'aucun compte Twilio n'est configuré, tant qu'il n'existe ni configuration par défaut du projet ni la configuration à l'échelle de l'installation ci-dessus. Un numéro dont le premier code ne peut pas être envoyé n'est pas ajouté, et le formulaire affiche la raison, par exemple un pays de destination refusé par Twilio.
+
+Un numéro vérifié pour les SMS est également vérifié pour les appels, sans second code. La vérification par appel ne vérifie pas les SMS, car un numéro qui reçoit des appels, comme une ligne fixe, ne peut pas toujours recevoir de SMS. Si Twilio accepte un code qui n'arrive jamais, le journal des SMS du projet indique son état de livraison.

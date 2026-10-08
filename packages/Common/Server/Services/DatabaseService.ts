@@ -22,6 +22,17 @@ import {
   OnUpdate,
 } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import CreatePermission, {
+  CreateParent,
+  ReadableParentIdsFinder,
+  RecordIdsFinder,
+} from "../Types/Database/Permissions/CreatePermission";
+import RelationListPermission, {
+  CheckedRelationList,
+} from "../Types/Database/Permissions/RelationListPermission";
+import UpdatePermission from "../Types/Database/Permissions/UpdatePermission";
+import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePermission";
+import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
 import PublicPermission from "../Types/Database/Permissions/PublicPermission";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
@@ -45,6 +56,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
 import BaseService from "./BaseService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Label from "../../Models/DatabaseModels/Label";
 import RelationOnlyRuleBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/RelationOnlyRuleBaseModel";
 import RuleBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 import { WorkflowRoute } from "../../ServiceRoute";
@@ -75,6 +87,7 @@ import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConn
 import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
+import ServerException from "../../Types/Exception/ServerException";
 import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -122,6 +135,11 @@ import {
   getBooleanColumnWriteError,
 } from "../../Types/Database/BooleanColumnValue";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import {
+  normalizeReferenceId,
+  resolveReferenceIds,
+} from "../Utils/Database/ProjectScopedReferenceRefusal";
+import CreateScopePermission from "../Types/Database/Permissions/CreateScopePermission";
 import RelationNames from "../Utils/Database/RelationNames";
 import ListOrderMaintainer, {
   ListOrderCreatePlan,
@@ -191,6 +209,73 @@ interface PinnedQuery<TBaseModel extends BaseModel> {
   namesTheRows: boolean;
 }
 
+/*
+ * A record a create is about to save, that rows its caller adds once it is
+ * saved already name (the owners picked in its form, an on-call policy's
+ * first escalation rule): its model, the placeholder id those rows name it
+ * by, the labels it will carry, and whether its creator is to become its
+ * owner (autoOwnerOnCreate). See checkCreateScopeOf.
+ */
+export interface PendingRecord {
+  modelType: { new (): BaseModel };
+  id: ObjectID;
+  labelIds: Array<string>;
+  ownedByCreator: boolean;
+}
+
+// What an update names that checkUpdateNamedRecords asks about.
+interface UpdateNamedRecords {
+  // The parent it names, when it names one (CreatePermission.getCreateParent).
+  parent: CreateParent | null;
+  /*
+   * The records it lists, or names in a field of their own, by column
+   * (RelationListPermission.getNamedIds).
+   */
+  namedIds: Dictionary<Array<string>>;
+  /*
+   * When it changes the labels its records carry and the caller's
+   * permission to update them is limited by labels: the columns those labels
+   * are read from (UpdateScopePermission.getLabelColumns). Null otherwise.
+   */
+  labelColumns: Array<string> | null;
+}
+
+// What checkUpdateNamedRecords asked, for the asks after the update's hooks.
+interface UpdateNamedRecordsChecked<TBaseModel extends BaseModel> {
+  // What the parent check returned; null when the update named no parent.
+  checkedParentIds: Array<string> | null;
+  // What it asked about, as the update named it then.
+  named: UpdateNamedRecords;
+  // What the update wrote of the labels then (UpdateScopePermission.getLabelWrite).
+  labelWrite: string;
+  // The rows it read - with their parents, lists and labels as it named them.
+  rows: Array<TBaseModel>;
+  // What it read them by, as it was then (see isReadBySameUpdate).
+  readBy: {
+    query: Query<TBaseModel>;
+    queryEntries: Array<[string, unknown]>;
+    skip: UpdateBy<TBaseModel>["skip"];
+    limit: UpdateBy<TBaseModel>["limit"];
+    props: DatabaseCommonInteractionProps;
+  };
+}
+
+/*
+ * The owner row that names a record's creator (DatabaseService
+ * .getCreatorOwnerRow): the service of the owner table that names people,
+ * the record, the creator and the project.
+ */
+interface CreatorOwnerRow {
+  entry: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ownerUserService: any;
+    fkColumn: string;
+  };
+  resourceId: ObjectID;
+  userId: ObjectID;
+  projectId: ObjectID;
+}
+
 // One row's share of an update (see getRowWrite).
 interface RowWrite<TBaseModel extends BaseModel> {
   // The row as the read before the write found it.
@@ -201,6 +286,11 @@ interface RowWrite<TBaseModel extends BaseModel> {
   written: PartialEntity<TBaseModel>;
   // What decides whether the write changes the row (getChangedColumns).
   comparedAs: Record<string, unknown>;
+}
+
+// What onBeforeCreate handed back, for onCreateError (see create).
+interface CreateHandedBack<TBaseModel extends BaseModel> {
+  onCreate: OnCreate<TBaseModel> | undefined;
 }
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
@@ -512,7 +602,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data?: unknown;
     },
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
-    options: { withDeleted?: boolean } = {},
+    options: {
+      withDeleted?: boolean;
+      // More of the rows to read, for a check that comes after this one.
+      alsoSelect?: Dictionary<unknown> | undefined;
+      // Handed the rows read, with `alsoSelect`, when any are read.
+      onRows?: ((rows: Array<TBaseModel>) => void) | undefined;
+    } = {},
   ): Promise<boolean> {
     if (
       write.props.isRoot ||
@@ -544,13 +640,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const rows: Array<TBaseModel> = await this._findBy(
       {
         query: writableQuery,
-        select: { _id: true } as Select<TBaseModel>,
+        select: {
+          ...(options.alsoSelect || {}),
+          _id: true,
+        } as Select<TBaseModel>,
         skip: this.normalizePositiveNumber(write.skip) ?? 0,
         limit: this.normalizePositiveNumber(write.limit) ?? LIMIT_MAX,
         props: { isRoot: true, ignoreHooks: true },
       },
       options.withDeleted,
     );
+
+    if (options.onRows) {
+      options.onRows(rows);
+    }
 
     const rowIds: Array<string> = [];
 
@@ -1492,7 +1595,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve(createdItem);
   }
 
-  protected async onCreateError(error: Exception): Promise<Exception> {
+  /*
+   * A create that failed - refused or thrown - once onBeforeCreate had run,
+   * with what onBeforeCreate handed back: refused by a check after the hook,
+   * failed at the INSERT, or thrown by a success hook. A refused create never
+   * reaches onCreateSuccess, and one that threw there may not have finished
+   * it, so this is where a service gives back what its hooks took for the
+   * write - a lock (StateChangeLock, SsoRequirementChanges). Undefined when
+   * the create failed before onBeforeCreate ran.
+   */
+  protected async onCreateError(
+    error: Exception,
+    _onCreate?: OnCreate<TBaseModel> | undefined,
+  ): Promise<Exception> {
     // A place holder method used for overriding.
     return Promise.resolve(error);
   }
@@ -2155,6 +2270,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data: data.data,
       props: data.props,
       checkedParentIds: data.checkedParentIds,
+      referencesCheckedInProject: this.referencesCheckedInProjectFor(
+        data.props,
+      ),
       findReadableParentIds: async (lookup: {
         parentModelType: { new (): BaseModel };
         ids: Array<string>;
@@ -2171,7 +2289,1072 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           }),
         });
       },
+      findParentIdsInProject: this.getProjectRecordFinder(
+        this.getRecordProjectId(data.data, data.props),
+      ),
     });
+  }
+
+  /*
+   * Whether this service's own hooks hold every record a write names to the
+   * project the write is made in, answering one that is not like one that
+   * does not exist (ProjectReferencesService, which says yes). The
+   * permission layer then need not look up a parent or a listed record that
+   * the caller's read reaches whatever it is; for a service without such a
+   * check it looks every one up, in the project, itself
+   * (CreatePermission.checkParentIds, RelationListPermission).
+   */
+  protected checksReferencesInProject(): boolean {
+    return false;
+  }
+
+  /*
+   * Whether a write's references are held to its project by the service's
+   * own hooks (checksReferencesInProject) - never for a write that skips
+   * them (ignoreHooks): its references are looked up as any other
+   * service's are.
+   */
+  private referencesCheckedInProjectFor(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return this.checksReferencesInProject() && !props.ignoreHooks;
+  }
+
+  /*
+   * The project a create's record goes into: the request's, or - for a
+   * request that names none - the one the record names.
+   */
+  private getRecordProjectId(
+    record: TBaseModel | PartialEntity<TBaseModel> | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): ObjectID | null {
+    if (props.tenantId) {
+      return props.tenantId;
+    }
+
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+    const recordProjectId: unknown =
+      tenantColumn && record
+        ? (record as unknown as Record<string, unknown>)[tenantColumn]
+        : null;
+
+    if (!recordProjectId) {
+      return null;
+    }
+
+    return new ObjectID(recordProjectId.toString());
+  }
+
+  /*
+   * THE RECORDS A CREATE OR AN UPDATE NAMES ARE RECORDS ITS CALLER MAY READ
+   * (RelationListPermission): an incident's monitors, a maintenance event's
+   * status pages, a rule's runbooks - and the one record a field names, an
+   * alert's monitor or a cost budget's service. Asked before the hooks run,
+   * on what the caller sent, and again after them on what a hook named
+   * besides (`askedIds`: what the ask before them named) - an incident
+   * template's monitors and status pages are held to the declarer's read as
+   * if they had picked them, and so is a record a hook names under one name
+   * of a reference while the caller's other stays in place. What a hook
+   * fills in from a record the write names is the service's to answer for
+   * (getReferencesFilledFromNamedRecords). For an update, `heldIdsByColumn`
+   * is what each record it writes lists or names already: those are not
+   * asked about again. Root and master admin writes are not asked. Returns
+   * what the write names, by column.
+   */
+  private async checkNamedLists(data: {
+    data: unknown;
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID | null;
+    heldIdsByColumn?: Dictionary<Array<Array<string>>> | undefined;
+    // RelationListPermission.getNamedIds of the write, when known already.
+    namedIds?: Dictionary<Array<string>> | undefined;
+    // What an ask before the hooks named: only the others are asked about.
+    askedIds?: Dictionary<Array<string>> | undefined;
+  }): Promise<Dictionary<Array<string>>> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return {};
+    }
+
+    const namedIds: Dictionary<Array<string>> =
+      data.namedIds ||
+      RelationListPermission.getNamedIds(
+        this.modelType,
+        data.data,
+        data.askedIds !== undefined,
+      );
+
+    const idsToAsk: Dictionary<Array<string>> = data.askedIds
+      ? this.leaveFilledReferencesToService(
+          RelationListPermission.getIdsNotIn(namedIds, data.askedIds),
+          data.askedIds,
+        )
+      : namedIds;
+
+    if (Object.keys(idsToAsk).length === 0) {
+      return namedIds;
+    }
+
+    await ModelPermission.checkNamedListsPermission({
+      modelType: this.modelType as { new (): BaseModel },
+      data: data.data,
+      props: data.props,
+      heldIdsByColumn: data.heldIdsByColumn,
+      namedIds: idsToAsk,
+      referencesCheckedInProject: this.referencesCheckedInProjectFor(
+        data.props,
+      ),
+      findReadableIds: async (lookup: {
+        modelType: { new (): BaseModel };
+        ids: Array<string>;
+        query: Query<BaseModel>;
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Array<string>> => {
+        return await DatabaseService.findReadableParentIds({
+          parentModelType: lookup.modelType,
+          ids: lookup.ids,
+          query: DatabaseService.inProject(
+            lookup.modelType,
+            lookup.query,
+            data.props.tenantId ? null : data.projectId,
+          ),
+          props: lookup.props,
+        });
+      },
+      findIdsInProject: this.getProjectRecordFinder(data.projectId),
+      findSharedIds: DatabaseService.findSharedIds,
+    });
+
+    return namedIds;
+  }
+
+  /*
+   * The lists and single references (by relation, as
+   * RelationListPermission.getNamedIds keys them) this service's hooks fill
+   * in from a record the write names, as that record holds it: a diagnostic
+   * runs on the probe of the device it names, a device takes the default
+   * probe of the site it is put in. The record named is asked about as the
+   * caller's, and what it holds was asked about when it was set on it; so
+   * the asks after the hooks leave what a hook puts in these to the service,
+   * and ask only about what the caller sent in them - which is asked about
+   * before the hooks too. None by default.
+   */
+  protected getReferencesFilledFromNamedRecords(): Array<string> {
+    return [];
+  }
+
+  /*
+   * Of `idsToAsk`, what an ask after the hooks asks about: in a list or
+   * reference a hook fills in from a record the write names
+   * (getReferencesFilledFromNamedRecords), only what the caller sent
+   * (`callerNamedIds`, what the ask before the hooks named).
+   */
+  private leaveFilledReferencesToService(
+    idsToAsk: Dictionary<Array<string>>,
+    callerNamedIds: Dictionary<Array<string>>,
+  ): Dictionary<Array<string>> {
+    const filled: Array<string> = this.getReferencesFilledFromNamedRecords();
+
+    if (filled.length === 0) {
+      return idsToAsk;
+    }
+
+    const left: Dictionary<Array<string>> = {};
+
+    for (const column of Object.keys(idsToAsk)) {
+      const ids: Array<string> = idsToAsk[column] || [];
+
+      if (!filled.includes(column)) {
+        left[column] = ids;
+        continue;
+      }
+
+      const sent: Set<string> = new Set<string>(
+        (callerNamedIds[column] || []).map(normalizeReferenceId),
+      );
+
+      const sentIds: Array<string> = ids.filter((id: string): boolean => {
+        return sent.has(normalizeReferenceId(id));
+      });
+
+      if (sentIds.length > 0) {
+        left[column] = sentIds;
+      }
+    }
+
+    return left;
+  }
+
+  /*
+   * The records `data` names - one in a field of its own, or several in a
+   * list - held to its caller's read as a create through this service holds
+   * them (checkNamedLists): for code that writes such a record as OneUptime
+   * once its caller is known, as the run of a runbook is written for the
+   * person who starts it. A record they may not read is answered like one
+   * that does not exist. Root and master admin callers are not asked.
+   */
+  public async checkNamedRecordsOf(data: {
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await this.checkNamedLists({
+      data: data.data,
+      props: data.props,
+      projectId: this.getRecordProjectId(data.data, data.props),
+    });
+  }
+
+  /*
+   * What a create's ask before its hooks named (checkNamedLists), by the
+   * create, for a hook that asks itself before it sets something off
+   * (checkRecordsNamedSoFar) and for the ask after the hooks.
+   */
+  private static namedIdsAskedOn: WeakMap<
+    CreateBy<BaseModel>,
+    Dictionary<Array<string>>
+  > = new WeakMap<CreateBy<BaseModel>, Dictionary<Array<string>>>();
+
+  /*
+   * For a create hook that fills in records a template names - an incident
+   * declared from a template takes its monitors and status pages - before
+   * it sets something off that a refusal would not undo (an incident's
+   * number): the records it named besides what the caller sent are asked
+   * about now, as DatabaseService.create asks about them once the hooks have
+   * run (checkNamedLists), and not again then. Root and master admin creates
+   * are not asked.
+   */
+  protected async checkRecordsNamedSoFar(
+    createBy: CreateBy<TBaseModel>,
+  ): Promise<void> {
+    if (createBy.props.isRoot || createBy.props.isMasterAdmin) {
+      return;
+    }
+
+    const namedIds: Dictionary<Array<string>> = await this.checkNamedLists({
+      data: createBy.data,
+      props: createBy.props,
+      projectId: this.getRecordProjectId(createBy.data, createBy.props),
+      askedIds: DatabaseService.namedIdsAskedOn.get(createBy) || {},
+    });
+
+    DatabaseService.namedIdsAskedOn.set(createBy, namedIds);
+  }
+
+  /*
+   * Of `ids`, the records every project may name (RelationListPermission
+   * .getSharedRecordQuery - OneUptime's global probes and AI agents) that
+   * `query` finds, read by OneUptime, selecting nothing but the id.
+   */
+  private static async findSharedIds(data: {
+    modelType: { new (): BaseModel };
+    ids: Array<string>;
+    query: Query<BaseModel>;
+  }): Promise<Array<string>> {
+    if (data.ids.length === 0) {
+      return [];
+    }
+
+    const rows: Array<BaseModel> = await DatabaseService.getParentReader(
+      data.modelType,
+    ).findBy({
+      query: data.query,
+      select: {
+        _id: true,
+      } as Select<BaseModel>,
+      skip: 0,
+      limit: data.ids.length,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const sharedIds: Array<string> = [];
+
+    for (const row of rows) {
+      if (row._id) {
+        sharedIds.push(row._id.toString());
+      }
+    }
+
+    return sharedIds;
+  }
+
+  /*
+   * A CREATE MAKES ONLY A RECORD ITS CALLER'S CREATE PERMISSION REACHES
+   * (CreateScopePermission): one limited to labels, a record carrying one of
+   * them; one limited to owned records, a record its creator will own; a
+   * block with labels, no record carrying one. Asked once the hooks have run
+   * and the create permissions are checked, on the record as it will be
+   * saved. Root and master admin creates are not asked. `pending` is a
+   * record the row names that is not saved yet (see checkCreateScopeOf).
+   */
+  private async checkCreateScope(data: {
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+    pending?: PendingRecord | undefined;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    const projectId: ObjectID | null = this.getRecordProjectId(
+      data.data,
+      data.props,
+    );
+
+    const pending: PendingRecord | undefined = data.pending;
+    const pendingId: string | null = pending
+      ? normalizeReferenceId(pending.id.toString())
+      : null;
+
+    await ModelPermission.checkCreateScopePermission({
+      modelType: this.modelType,
+      data: data.data,
+      props: data.props,
+      ownedParentIds:
+        pending && pendingId && pending.ownedByCreator ? [pendingId] : [],
+      findRecordLabels: async (lookup: {
+        modelType: { new (): BaseModel };
+        ids: Array<string>;
+      }): Promise<Dictionary<Array<string>>> => {
+        const labels: Dictionary<Array<string>> = {};
+        let savedIds: Array<string> = lookup.ids;
+
+        // The record not saved yet carries the labels it is created with.
+        if (pending && pendingId && lookup.modelType === pending.modelType) {
+          savedIds = lookup.ids.filter((id: string): boolean => {
+            return normalizeReferenceId(id) !== pendingId;
+          });
+
+          if (savedIds.length !== lookup.ids.length) {
+            labels[pendingId] = pending.labelIds.map(normalizeReferenceId);
+          }
+        }
+
+        if (savedIds.length > 0) {
+          Object.assign(
+            labels,
+            await DatabaseService.findRecordLabels({
+              modelType: lookup.modelType,
+              ids: savedIds,
+              projectId: projectId,
+            }),
+          );
+        }
+
+        return labels;
+      },
+      findLabelNames: async (lookup: {
+        labelIds: Array<string>;
+      }): Promise<Array<string>> => {
+        return await DatabaseService.findLabelNames({
+          labelIds: lookup.labelIds,
+          projectId: projectId,
+        });
+      },
+    });
+  }
+
+  /*
+   * Whether this service's create permission scope (CreateScopePermission)
+   * reaches `row`, a record its caller adds on a record of theirs: the
+   * owners picked in a create form, an on-call policy's first escalation
+   * rule. `pending` is that record of theirs while it is not saved yet: asked
+   * before it is, so a pick the caller's permission does not reach refuses
+   * the create rather than being dropped after it. Asked as well before
+   * OneUptime writes such a row for its creator, which goes around nothing
+   * but the creator's read of their new record (OwnerRuleAssignment
+   * .createOwner, OnCallDutyPolicyService.addFirstEscalationRule). Throws a
+   * CreateScopeException; returns nothing.
+   */
+  public async checkCreateScopeOf(data: {
+    row: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+    pending?: PendingRecord | undefined;
+  }): Promise<void> {
+    await this.checkCreateScope({
+      data: data.row,
+      props: data.props,
+      pending: data.pending,
+    });
+  }
+
+  /*
+   * A RECORD MOVED TO ANOTHER PARENT, GIVEN MORE RECORDS IN A LIST OR
+   * POINTED AT ANOTHER RECORD GETS ONLY ONES ITS EDITOR MAY READ
+   * (UpdatePermission.checkParentPermission, RelationListPermission), AND
+   * ONE WHOSE LABELS CHANGE KEEPS TO ITS EDITOR'S PERMISSION TO UPDATE IT
+   * (UpdateScopePermission) - asked before the update hooks run, right after
+   * the rows the caller may update are known (keepRowsCallerMayWrite), so no
+   * hook acts on a write that is going to be refused. The rows it writes are
+   * read as they are now, by the query the caller may update with: a parent
+   * or a named record a row has already is not asked about again. `named` is
+   * what the update names (getUpdateNamedRecords) and `rowsRead` the rows
+   * keepRowsCallerMayWrite read with it, when it read them. Returns what it
+   * asked and the rows it read, for the asks after the hooks
+   * (checkUpdateParentsAfterHooks, checkUpdateNamedRecordsAfterHooks); null
+   * when nothing was asked.
+   */
+  private async checkUpdateNamedRecords(
+    updateBy: UpdateBy<TBaseModel>,
+    named: UpdateNamedRecords | null,
+    rowsRead: Array<TBaseModel> | null,
+  ): Promise<UpdateNamedRecordsChecked<TBaseModel> | null> {
+    const props: DatabaseCommonInteractionProps = updateBy.props;
+
+    if (!named || props.isRoot || props.isMasterAdmin) {
+      return null;
+    }
+
+    const parent: CreateParent | null = named.parent;
+    const namedRelations: Array<CheckedRelationList> =
+      this.getNamedRelations(named);
+
+    const rows: Array<TBaseModel> =
+      rowsRead ||
+      (await this.findRowsToUpdate(
+        updateBy,
+        this.getNamedRecordColumns(named),
+        named.labelColumns,
+      ));
+
+    const projectId: ObjectID | null =
+      props.tenantId || this.getRowsProjectId(rows);
+
+    let checkedParentIds: Array<string> | null = null;
+
+    if (parent) {
+      checkedParentIds = await ModelPermission.checkUpdateParentPermission({
+        modelType: this.modelType,
+        data: updateBy.data,
+        props: props,
+        heldParentIds: rows.map((row: TBaseModel): Array<string> => {
+          return DatabaseService.getHeldParentIds(row, parent);
+        }),
+        referencesCheckedInProject: this.referencesCheckedInProjectFor(props),
+        findReadableParentIds: this.getUpdateParentFinder(projectId, props),
+        findParentIdsInProject: this.getProjectRecordFinder(projectId),
+      });
+    }
+
+    if (namedRelations.length > 0) {
+      await this.checkNamedLists({
+        data: updateBy.data,
+        props: props,
+        projectId: projectId,
+        heldIdsByColumn: DatabaseService.getHeldIdsByColumn(
+          rows,
+          namedRelations,
+        ),
+        namedIds: named.namedIds,
+      });
+    }
+
+    if (named.labelColumns) {
+      await this.checkUpdateLabelScope({
+        data: updateBy.data,
+        rows: rows,
+        props: props,
+        projectId: projectId,
+      });
+    }
+
+    return {
+      checkedParentIds: checkedParentIds,
+      named: named,
+      labelWrite: UpdateScopePermission.getLabelWrite(
+        this.modelType,
+        updateBy.data,
+      ),
+      rows: rows,
+      readBy: {
+        query: updateBy.query,
+        queryEntries: Object.entries(updateBy.query),
+        skip: updateBy.skip,
+        limit: updateBy.limit,
+        props: updateBy.props,
+      },
+    };
+  }
+
+  /*
+   * What an update names that checkUpdateNamedRecords asks about: a parent
+   * it moves its records to, the records it lists or names in a field, the
+   * labels it gives them (when the caller's permission to update is limited
+   * by labels). Null for root and master admin callers, and for an update
+   * that names none of them.
+   */
+  private getUpdateNamedRecords(
+    updateBy: UpdateBy<TBaseModel>,
+  ): UpdateNamedRecords | null {
+    const props: DatabaseCommonInteractionProps = updateBy.props;
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return null;
+    }
+
+    const parent: CreateParent | null = CreatePermission.getCreateParent(
+      this.modelType,
+    );
+    const namedIds: Dictionary<Array<string>> =
+      RelationListPermission.getNamedIds(this.modelType, updateBy.data);
+
+    const namedParent: CreateParent | null =
+      parent && UpdatePermission.namesParent(parent, updateBy.data)
+        ? parent
+        : null;
+
+    const labelColumns: Array<string> | null = this.getUpdateLabelColumns(
+      updateBy.data,
+      props,
+    );
+
+    if (
+      !namedParent &&
+      Object.keys(namedIds).length === 0 &&
+      labelColumns === null
+    ) {
+      return null;
+    }
+
+    return {
+      parent: namedParent,
+      namedIds: namedIds,
+      labelColumns: labelColumns,
+    };
+  }
+
+  /*
+   * When an update writes the labels its records carry and the caller's
+   * permission to update is limited by labels (UpdateScopePermission): the
+   * columns the rows are read with to tell their labels once written - none
+   * for a model that carries labels of its own, which the update writes as a
+   * whole. Null otherwise: nothing to ask.
+   */
+  private getUpdateLabelColumns(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): Array<string> | null {
+    if (
+      !UpdateScopePermission.changesLabels(this.modelType, data) ||
+      !UpdateScopePermission.getLimitedScope(this.modelType, props)
+    ) {
+      return null;
+    }
+
+    return this.getModel().getAccessControlColumn()
+      ? []
+      : UpdateScopePermission.getLabelColumns(this.modelType);
+  }
+
+  // The parent, lists and single references `named` names, to read rows with.
+  private getNamedRecordColumns(
+    named: UpdateNamedRecords,
+  ): Array<CreateParent | CheckedRelationList> {
+    return [
+      ...(named.parent ? [named.parent] : []),
+      ...this.getNamedRelations(named),
+    ];
+  }
+
+  // The lists and single references `named` names (RelationListPermission).
+  private getNamedRelations(
+    named: UpdateNamedRecords,
+  ): Array<CheckedRelationList> {
+    return RelationListPermission.getCheckedRelations(this.modelType).filter(
+      (relation: CheckedRelationList): boolean => {
+        return named.namedIds[relation.column] !== undefined;
+      },
+    );
+  }
+
+  /*
+   * Whether the rows `checked` read are the ones `updateBy` writes: the
+   * hooks kept its query - the same one, with the same entries - and its
+   * skip, limit and props. A hook that changed any of them has the rows read
+   * again.
+   */
+  private static isReadBySameUpdate<TBaseModel extends BaseModel>(
+    checked: UpdateNamedRecordsChecked<TBaseModel>,
+    updateBy: UpdateBy<TBaseModel>,
+  ): boolean {
+    const readBy: UpdateNamedRecordsChecked<TBaseModel>["readBy"] =
+      checked.readBy;
+
+    if (
+      readBy.query !== updateBy.query ||
+      readBy.skip !== updateBy.skip ||
+      readBy.limit !== updateBy.limit ||
+      readBy.props !== updateBy.props
+    ) {
+      return false;
+    }
+
+    const entries: Array<[string, unknown]> = Object.entries(updateBy.query);
+
+    return (
+      entries.length === readBy.queryEntries.length &&
+      entries.every((entry: [string, unknown], index: number): boolean => {
+        const readEntry: [string, unknown] | undefined =
+          readBy.queryEntries[index];
+
+        return (
+          Boolean(readEntry) &&
+          entry[0] === readEntry![0] &&
+          entry[1] === readEntry![1]
+        );
+      })
+    );
+  }
+
+  /*
+   * After the update hooks: a hook that named other parents than the caller
+   * did has them asked about too (UpdatePermission.checkParentPermission),
+   * on the rows the update writes. While the hooks kept what the update
+   * reaches (isReadBySameUpdate), those are the rows read before the hooks,
+   * and the parents asked about then are not asked again: each was looked
+   * up, or every one of those rows had it. A hook that changed what the
+   * update reaches has the rows read again, and every parent the update
+   * names asked about on them.
+   */
+  private async checkUpdateParentsAfterHooks(
+    updateBy: UpdateBy<TBaseModel>,
+    checked: UpdateNamedRecordsChecked<TBaseModel> | null,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps = updateBy.props;
+    const checkedParentIds: Array<string> | null = checked
+      ? checked.checkedParentIds
+      : null;
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const parent: CreateParent | null = CreatePermission.getCreateParent(
+      this.modelType,
+    );
+
+    if (!parent || !UpdatePermission.namesParent(parent, updateBy.data)) {
+      return;
+    }
+
+    const namedIds: Array<string> = CreatePermission.getNamedParentIds(
+      parent,
+      updateBy.data as unknown as BaseModel,
+    );
+
+    const sameRows: boolean = Boolean(
+      checked &&
+        checkedParentIds &&
+        DatabaseService.isReadBySameUpdate(checked, updateBy),
+    );
+
+    if (sameRows && checkedParentIds) {
+      const asked: Set<string> = new Set<string>(
+        checkedParentIds.map(normalizeReferenceId),
+      );
+
+      if (
+        namedIds.every((id: string): boolean => {
+          return asked.has(normalizeReferenceId(id));
+        }) &&
+        (namedIds.length > 0 || checkedParentIds.length === 0)
+      ) {
+        return;
+      }
+    }
+
+    const rows: Array<TBaseModel> =
+      sameRows && checked
+        ? checked.rows
+        : await this.findRowsToUpdate(updateBy, [parent]);
+
+    const projectId: ObjectID | null =
+      props.tenantId || this.getRowsProjectId(rows);
+
+    await ModelPermission.checkUpdateParentPermission({
+      modelType: this.modelType,
+      data: updateBy.data,
+      props: props,
+      heldParentIds: rows.map((row: TBaseModel): Array<string> => {
+        return DatabaseService.getHeldParentIds(row, parent);
+      }),
+      checkedParentIds: sameRows ? checkedParentIds || [] : [],
+      referencesCheckedInProject: this.referencesCheckedInProjectFor(props),
+      findReadableParentIds: this.getUpdateParentFinder(projectId, props),
+      findParentIdsInProject: this.getProjectRecordFinder(projectId),
+    });
+  }
+
+  /*
+   * After the update hooks, as for its parents: the records a hook named
+   * besides what the caller sent - more in a list, another in a field, under
+   * either of its names - are asked about too (RelationListPermission), but
+   * what a hook fills in from a record the update names
+   * (getReferencesFilledFromNamedRecords); and so are the labels the rows
+   * carry once written, should a hook change what the update writes of them
+   * (UpdateScopePermission). While the hooks kept what the update reaches
+   * (isReadBySameUpdate), only what they added is asked, on the rows read
+   * before them when those were read with it; a hook that changed what the
+   * update reaches has the rows read again, and everything the update names
+   * asked about on them.
+   */
+  private async checkUpdateNamedRecordsAfterHooks(
+    updateBy: UpdateBy<TBaseModel>,
+    checked: UpdateNamedRecordsChecked<TBaseModel> | null,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps = updateBy.props;
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const sameRows: boolean = Boolean(
+      checked && DatabaseService.isReadBySameUpdate(checked, updateBy),
+    );
+
+    const idsToAsk: Dictionary<Array<string>> =
+      this.leaveFilledReferencesToService(
+        RelationListPermission.getIdsNotIn(
+          RelationListPermission.getNamedIds(
+            this.modelType,
+            updateBy.data,
+            true,
+          ),
+          sameRows && checked ? checked.named.namedIds : {},
+        ),
+        checked ? checked.named.namedIds : {},
+      );
+
+    const relations: Array<CheckedRelationList> =
+      RelationListPermission.getCheckedRelations(this.modelType).filter(
+        (relation: CheckedRelationList): boolean => {
+          return idsToAsk[relation.column] !== undefined;
+        },
+      );
+
+    const labelColumns: Array<string> | null = this.getUpdateLabelColumns(
+      updateBy.data,
+      props,
+    );
+
+    const asksLabels: boolean =
+      labelColumns !== null &&
+      !(
+        sameRows &&
+        checked &&
+        checked.named.labelColumns !== null &&
+        checked.labelWrite ===
+          UpdateScopePermission.getLabelWrite(this.modelType, updateBy.data)
+      );
+
+    if (relations.length === 0 && !asksLabels) {
+      return;
+    }
+
+    // The rows read before the hooks, when they were read with what is asked.
+    const rowsHoldIt: boolean = Boolean(
+      sameRows &&
+        checked &&
+        relations.every((relation: CheckedRelationList): boolean => {
+          return checked.named.namedIds[relation.column] !== undefined;
+        }) &&
+        (!asksLabels || checked.named.labelColumns !== null),
+    );
+
+    const rows: Array<TBaseModel> =
+      rowsHoldIt && checked
+        ? checked.rows
+        : await this.findRowsToUpdate(
+            updateBy,
+            relations,
+            asksLabels ? labelColumns : null,
+          );
+
+    const projectId: ObjectID | null =
+      props.tenantId || this.getRowsProjectId(rows);
+
+    if (relations.length > 0) {
+      await this.checkNamedLists({
+        data: updateBy.data,
+        props: props,
+        projectId: projectId,
+        heldIdsByColumn: DatabaseService.getHeldIdsByColumn(rows, relations),
+        namedIds: idsToAsk,
+      });
+    }
+
+    if (asksLabels) {
+      await this.checkUpdateLabelScope({
+        data: updateBy.data,
+        rows: rows,
+        props: props,
+        projectId: projectId,
+      });
+    }
+  }
+
+  /*
+   * A CHANGE KEEPS TO ITS EDITOR'S PERMISSION TO UPDATE (UpdateScopePermission):
+   * the labels each row carries once `data` is written - looked up as
+   * OneUptime in `projectId` - are held to the caller's permission to update
+   * it, limited to labels or narrowed by a block with labels.
+   */
+  private async checkUpdateLabelScope(data: {
+    data: unknown;
+    rows: Array<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID | null;
+  }): Promise<void> {
+    await ModelPermission.checkUpdateScopePermission({
+      modelType: this.modelType,
+      data: data.data,
+      rows: data.rows,
+      props: data.props,
+      findRecordLabels: async (lookup: {
+        modelType: { new (): BaseModel };
+        ids: Array<string>;
+      }): Promise<Dictionary<Array<string>>> => {
+        return await DatabaseService.findRecordLabels({
+          modelType: lookup.modelType,
+          ids: lookup.ids,
+          projectId: data.projectId,
+        });
+      },
+      findLabelNames: async (lookup: {
+        labelIds: Array<string>;
+      }): Promise<Array<string>> => {
+        return await DatabaseService.findLabelNames({
+          labelIds: lookup.labelIds,
+          projectId: data.projectId,
+        });
+      },
+    });
+  }
+
+  /*
+   * The rows an update writes, as they are now, read as OneUptime through
+   * the query the caller may update with (ModelPermission.getUpdatableQuery
+   * - the same narrowing the update itself gets): their ids, their project,
+   * the parent and the lists and references the update names, and the
+   * columns their labels are read from (`labelColumns`).
+   */
+  private async findRowsToUpdate(
+    updateBy: UpdateBy<TBaseModel>,
+    named: Array<CreateParent | CheckedRelationList>,
+    labelColumns?: Array<string> | null | undefined,
+  ): Promise<Array<TBaseModel>> {
+    const select: Dictionary<unknown> = this.getRowsToUpdateSelect(
+      named,
+      labelColumns,
+    );
+
+    const updatableQuery: Query<TBaseModel> =
+      await ModelPermission.getUpdatableQuery(
+        this.modelType,
+        this.getRuleCriteriaEffectiveEnabledQuery(updateBy.query),
+        updateBy.props,
+        updateBy.data,
+      );
+
+    return await this._findBy({
+      query: updatableQuery,
+      select: select as Select<TBaseModel>,
+      skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
+      limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+  }
+
+  /*
+   * What the rows an update writes are read with: their ids, their project,
+   * the parent and the lists and single references `named` - a single
+   * reference by its ID column, a list by its records' ids - and the columns
+   * their labels are read from (`labelColumns`).
+   */
+  private getRowsToUpdateSelect(
+    named: Array<CreateParent | CheckedRelationList>,
+    labelColumns?: Array<string> | null | undefined,
+  ): Dictionary<unknown> {
+    const select: Dictionary<unknown> = { _id: true };
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (tenantColumn) {
+      select[tenantColumn] = true;
+    }
+
+    for (const each of named) {
+      if (each.idColumn) {
+        select[each.idColumn] = true;
+      } else {
+        select[DatabaseService.getListColumn(each)] = { _id: true };
+      }
+    }
+
+    for (const column of labelColumns || []) {
+      select[column] =
+        this.getModel().getTableColumnMetadata(column)?.type ===
+        TableColumnType.EntityArray
+          ? { _id: true }
+          : true;
+    }
+
+    return select;
+  }
+
+  // The project of the rows an update writes, when they share one.
+  private getRowsProjectId(rows: Array<TBaseModel>): ObjectID | null {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (!tenantColumn) {
+      return null;
+    }
+
+    const projectIds: Set<string> = new Set<string>();
+
+    for (const row of rows) {
+      const value: unknown = (row as unknown as Record<string, unknown>)[
+        tenantColumn
+      ];
+
+      if (value) {
+        projectIds.add(value.toString().toLowerCase());
+      }
+    }
+
+    return projectIds.size === 1
+      ? new ObjectID(Array.from(projectIds)[0] as string)
+      : null;
+  }
+
+  /*
+   * The column a parent or a checked list or reference is read under when
+   * it has no ID column of its own: a parent's relation, a list's column.
+   */
+  private static getListColumn(
+    named: CreateParent | CheckedRelationList,
+  ): string {
+    return "parentModelType" in named ? named.relation : named.column;
+  }
+
+  /*
+   * What a row read by findRowsToUpdate holds of a parent, or of a checked
+   * list or single reference, now: the one record its ID column names, or
+   * the records its list holds - none for one it leaves empty.
+   */
+  private static getHeldIds(
+    row: BaseModel,
+    named: CreateParent | CheckedRelationList,
+  ): Array<string> {
+    if (named.idColumn) {
+      const id: unknown = (row as unknown as Record<string, unknown>)[
+        named.idColumn
+      ];
+
+      return id ? [id.toString()] : [];
+    }
+
+    return DatabaseService.getListedIds(
+      row,
+      DatabaseService.getListColumn(named),
+    );
+  }
+
+  // The parents a row read by findRowsToUpdate has now.
+  private static getHeldParentIds(
+    row: BaseModel,
+    parent: CreateParent,
+  ): Array<string> {
+    return DatabaseService.getHeldIds(row, parent);
+  }
+
+  // The records a row read with `column: { _id: true }` lists.
+  private static getListedIds(row: BaseModel, column: string): Array<string> {
+    return resolveReferenceIds(
+      (row as unknown as Record<string, unknown>)[column],
+    ).map((id: ObjectID | string): string => {
+      return id.toString();
+    });
+  }
+
+  /*
+   * What each row read by findRowsToUpdate lists or names already, for each
+   * of `relations` (getHeldIds), by column.
+   */
+  private static getHeldIdsByColumn(
+    rows: Array<BaseModel>,
+    relations: Array<CheckedRelationList>,
+  ): Dictionary<Array<Array<string>>> {
+    const heldIdsByColumn: Dictionary<Array<Array<string>>> = {};
+
+    for (const relation of relations) {
+      heldIdsByColumn[relation.column] = rows.map(
+        (row: BaseModel): Array<string> => {
+          return DatabaseService.getHeldIds(row, relation);
+        },
+      );
+    }
+
+    return heldIdsByColumn;
+  }
+
+  // Reads an update's new parents as the caller, held to the rows' project.
+  private getUpdateParentFinder(
+    projectId: ObjectID | null,
+    props: DatabaseCommonInteractionProps,
+  ): ReadableParentIdsFinder {
+    return async (lookup: {
+      parentModelType: { new (): BaseModel };
+      ids: Array<string>;
+      query: Query<BaseModel>;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<string>> => {
+      return await DatabaseService.findReadableParentIds({
+        ...lookup,
+        query: DatabaseService.inProject(
+          lookup.parentModelType,
+          lookup.query,
+          props.tenantId ? null : projectId,
+        ),
+      });
+    };
+  }
+
+  /*
+   * Reads records by id as OneUptime, in `projectId` - for a record whose
+   * read the caller is not held to, which need only be the project's
+   * (findIdsInProject). With no project to hold them to, it finds none.
+   */
+  private getProjectRecordFinder(projectId: ObjectID | null): RecordIdsFinder {
+    return async (lookup: {
+      modelType: { new (): BaseModel };
+      ids: Array<string>;
+      query: Query<BaseModel>;
+    }): Promise<Array<string>> => {
+      return await DatabaseService.findIdsInProject({
+        modelType: lookup.modelType,
+        ids: lookup.ids,
+        query: lookup.query,
+        projectId: projectId,
+      });
+    };
+  }
+
+  // `query` held to `projectId`, on a model that has a project; as it is with none.
+  private static inProject(
+    modelType: { new (): BaseModel },
+    query: Query<BaseModel>,
+    projectId: ObjectID | null,
+  ): Query<BaseModel> {
+    const tenantColumn: string | null = new modelType().getTenantColumn();
+
+    if (!projectId || !tenantColumn) {
+      return query;
+    }
+
+    return {
+      ...query,
+      [tenantColumn]: new Includes([projectId.toString()]),
+    } as Query<BaseModel>;
   }
 
   /*
@@ -2269,6 +3452,164 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return reader;
+  }
+
+  /*
+   * Of `ids`, the records `query` finds in `projectId`, read by OneUptime -
+   * whatever the caller may read - selecting nothing but the id. For a
+   * record whose read the caller is not held to: a parent read optionally,
+   * a listed record of a model they hold no read of
+   * (CreatePermission.checkParentIds, RelationListPermission). A model with
+   * a project and no project to hold the records to finds none.
+   */
+  private static async findIdsInProject(data: {
+    modelType: { new (): BaseModel };
+    ids: Array<string>;
+    query: Query<BaseModel>;
+    projectId: ObjectID | null;
+  }): Promise<Array<string>> {
+    const tenantColumn: string | null = new data.modelType().getTenantColumn();
+
+    if (data.ids.length === 0 || (tenantColumn && !data.projectId)) {
+      return [];
+    }
+
+    const rows: Array<BaseModel> = await DatabaseService.getParentReader(
+      data.modelType,
+    ).findBy({
+      query: DatabaseService.inProject(
+        data.modelType,
+        data.query,
+        data.projectId,
+      ),
+      select: {
+        _id: true,
+      } as Select<BaseModel>,
+      skip: 0,
+      limit: data.ids.length,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const foundIds: Array<string> = [];
+
+    for (const row of rows) {
+      if (row._id) {
+        foundIds.push(row._id.toString());
+      }
+    }
+
+    return foundIds;
+  }
+
+  /*
+   * The labels each of `ids` carries, by record id, every id lower-cased -
+   * records of `modelType`, a model that carries labels, read by OneUptime
+   * in `projectId`. A record not found there carries none. For the labels a
+   * new record names (CreateScopePermission).
+   */
+  private static async findRecordLabels(data: {
+    modelType: { new (): BaseModel };
+    ids: Array<string>;
+    projectId: ObjectID | null;
+  }): Promise<Dictionary<Array<string>>> {
+    const model: BaseModel = new data.modelType();
+    const labelsColumn: string | null = model.getAccessControlColumn();
+    const tenantColumn: string | null = model.getTenantColumn();
+
+    const labelsByRecord: Dictionary<Array<string>> = {};
+
+    if (
+      !labelsColumn ||
+      data.ids.length === 0 ||
+      (tenantColumn && !data.projectId)
+    ) {
+      return labelsByRecord;
+    }
+
+    const rows: Array<BaseModel> = await DatabaseService.getParentReader(
+      data.modelType,
+    ).findBy({
+      query: DatabaseService.inProject(
+        data.modelType,
+        {
+          _id: QueryHelper.any(data.ids),
+        } as Query<BaseModel>,
+        data.projectId,
+      ),
+      select: {
+        _id: true,
+        [labelsColumn]: {
+          _id: true,
+        },
+      } as Select<BaseModel>,
+      skip: 0,
+      limit: data.ids.length,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const row of rows) {
+      if (!row._id) {
+        continue;
+      }
+
+      labelsByRecord[row._id.toString().toLowerCase()] = resolveReferenceIds(
+        (row as unknown as Record<string, unknown>)[labelsColumn],
+      ).map((labelId: ObjectID | string): string => {
+        return labelId.toString().toLowerCase();
+      });
+    }
+
+    return labelsByRecord;
+  }
+
+  /*
+   * The names of the labels `labelIds`, in `projectId`, in the order asked:
+   * for a refusal that says which labels a create permission allows
+   * (CreateScopePermission). A label not found is named by its id.
+   */
+  private static async findLabelNames(data: {
+    labelIds: Array<string>;
+    projectId: ObjectID | null;
+  }): Promise<Array<string>> {
+    const names: Dictionary<string> = {};
+
+    if (data.labelIds.length > 0 && data.projectId) {
+      const labels: Array<BaseModel> = await DatabaseService.getParentReader(
+        Label,
+      ).findBy({
+        query: {
+          _id: QueryHelper.any(data.labelIds),
+          projectId: data.projectId,
+        } as Query<BaseModel>,
+        select: {
+          _id: true,
+          name: true,
+        } as Select<BaseModel>,
+        skip: 0,
+        limit: data.labelIds.length,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const label of labels) {
+        const name: unknown = (label as unknown as Record<string, unknown>)[
+          "name"
+        ];
+
+        if (label._id && typeof name === "string" && name) {
+          names[label._id.toString().toLowerCase()] = name;
+        }
+      }
+    }
+
+    return data.labelIds.map((labelId: string): string => {
+      return names[labelId.toLowerCase()] || labelId;
+    });
   }
 
   /*
@@ -3122,6 +4463,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     data: PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
     switchStamps: Array<SwitchStamp>,
+    // The encrypted columns as the update gave them. See getRowWrite.
+    encryptedColumnsAsGiven: Record<string, unknown> = {},
   ): Promise<Map<string, RealtimeReadAccess>> {
     const accessByProject: Map<string, RealtimeReadAccess> = new Map<
       string,
@@ -3159,6 +4502,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               item: item,
               data: data,
               switchStamps: switchStamps,
+              encryptedColumnsAsGiven: encryptedColumnsAsGiven,
             }),
           );
         },
@@ -3376,8 +4720,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /*
+   * Creates a record: the checks, the hooks, the INSERT and what follows it
+   * (_create). A create refused or failed at any of those steps reaches
+   * onCreateError with what onBeforeCreate handed back, once that has run -
+   * as onUpdateError and onDeleteError are handed what onBeforeUpdate and
+   * onBeforeDelete handed back - so a service gives back there what its
+   * hooks took for the write. A lock taken in onBeforeCreate and given back
+   * only in onCreateSuccess used to be held for as long as the process lived
+   * by a create refused in between.
+   */
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    const handedBack: CreateHandedBack<TBaseModel> = { onCreate: undefined };
+
+    try {
+      return await this._create(createBy, handedBack);
+    } catch (error) {
+      await this.onCreateError(error as Exception, handedBack.onCreate);
+      throw this.getException(error as Exception);
+    }
+  }
+
+  private async _create(
+    createBy: CreateBy<TBaseModel>,
+    // Given what onBeforeCreate hands back, for create to hand onCreateError.
+    handedBack: CreateHandedBack<TBaseModel>,
+  ): Promise<TBaseModel> {
     // Every switch as the database stores it, before anything reads one.
     this.coerceBooleanColumns(createBy.data);
 
@@ -3433,9 +4802,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       props: createBy.props,
     });
 
+    // Naming and listing only records the caller may read. See the helper.
+    DatabaseService.namedIdsAskedOn.set(
+      createBy,
+      await this.checkNamedLists({
+        data: createBy.data,
+        props: createBy.props,
+        projectId: this.getRecordProjectId(createBy.data, createBy.props),
+      }),
+    );
+
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
       : await this._onBeforeCreate(createBy);
+    handedBack.onCreate = onCreate;
 
     let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
 
@@ -3510,6 +4890,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       checkedParentIds: checkedParentIds,
     });
 
+    /*
+     * And the records the hooks named besides what the caller sent - an
+     * incident template's monitors and status pages - as if the caller had
+     * named them. See the helper.
+     */
+    await this.checkNamedLists({
+      data: data,
+      props: _createdBy.props,
+      projectId: this.getRecordProjectId(data, _createdBy.props),
+      askedIds: DatabaseService.namedIdsAskedOn.get(createBy) || {},
+    });
+
+    // A record the caller's create permission reaches. See the helper.
+    await this.checkCreateScope({
+      data: data,
+      props: _createdBy.props,
+    });
+
     // Only the record's own files. See the helper.
     await this.assertFileReferencesOwnedOnCreate(data);
 
@@ -3552,12 +4950,27 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whatever has written to it since the top of create(), this must INSERT.
     this.assertCreateWillInsert(createBy.data, createBy.props);
 
+    /*
+     * Whether the caller's permission let this create through only as one
+     * they will own (createReliesOnOwnership), on a model with owner rows of
+     * its own: they are made its owner before anything else happens to it,
+     * or it is not created. See makeCreatorOwnerOrUndo.
+     */
+    const isOwnedByCreatorFirst: boolean =
+      this.createReliesOnOwnership(createBy.props) &&
+      OwnedScopePermission.hasOwnerTables(this.modelType);
+
     try {
       createBy.data = await this.getRepository().save(createBy.data);
       this.applyRuleCriteriaEffectiveEnabledToItem(createBy.data);
 
       // Seed telemetry context with projectId + <model>Id for this create.
       this.setTelemetryContextFromItem(createBy.data);
+
+      // Its creator's own, before anything else. See the helper.
+      if (isOwnedByCreatorFirst) {
+        await this.makeCreatorOwnerOrUndo(createBy.data, createBy.props);
+      }
 
       // The rows that make room for it, now that it exists.
       await this.applyListOrderCreatePlan(listOrderPlan);
@@ -3587,13 +5000,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       /*
-       * Auto-owner-on-create for @OperationalResource models. Inserts the
-       * creating user into <Model>OwnerUser so the Owned permission scope
-       * covers the newly-created resource on the next request. See
-       * Internal/Docs/PermissionsSimplification.md. Best-effort: failures
-       * are logged but do not roll back the create.
+       * Auto-owner-on-create for every model with owner rows of its own.
+       * Inserts the creating user into <Model>OwnerUser so the Owned
+       * permission scope covers the newly-created resource on the next
+       * request. See Internal/Docs/PermissionsSimplification.md.
+       * Best-effort: failures are logged but do not roll back the create. A
+       * create its caller's permission let through only as one they will own
+       * (createReliesOnOwnership) made them its owner already, right after
+       * the save and with no best effort about it (makeCreatorOwnerOrUndo).
        */
-      if (!createBy.props.ignoreHooks) {
+      if (!createBy.props.ignoreHooks && !isOwnedByCreatorFirst) {
         await this.autoOwnerOnCreate(createBy.data, createBy.props);
       }
 
@@ -3640,16 +5056,41 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       return createBy.data;
     } catch (error) {
-      await this.onCreateError(error as Exception);
+      /*
+       * The database's own refusal, in words its caller can act on; create()
+       * hands it to onCreateError, as it does every failure of a create.
+       */
       throw this.getException(error as Exception);
     }
   }
 
   /*
-   * Inserts the creating user into the resource's *OwnerUser table for
-   * operational resources. Mirrors the existing OwnerRule behavior for user
-   * assignment and gives the creator immediate access under the `Owned`
-   * permission scope.
+   * Whether the caller's permission to create in this table reaches only the
+   * records they own (CreateScopePermission.getCreateScope): such a create
+   * went through because its creator - a person - is to own the record.
+   */
+  private createReliesOnOwnership(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin || !props.userId) {
+      return false;
+    }
+
+    return CreateScopePermission.getCreateScope(this.modelType, props)
+      .isOwnedOnly;
+  }
+
+  /*
+   * Inserts the creating user into the resource's *OwnerUser table, for a
+   * model whose records have owners of their own (OwnerTableRegistry).
+   * Mirrors the existing OwnerRule behavior for user assignment and gives
+   * the creator immediate access under the `Owned` permission scope. The
+   * creator of an operational resource always becomes an owner, best-effort:
+   * a failure is logged and the record kept. A creator whose permission to
+   * create reaches only what they own - of an operational resource, a host,
+   * a cluster or the rest that carry owners - is made the owner before
+   * anything else happens to the record, and is never left without it
+   * (makeCreatorOwnerOrUndo).
    */
   private async autoOwnerOnCreate(
     createdItem: TBaseModel,
@@ -3657,91 +5098,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<void> {
     /*
      * System/root creates don't get an owner; non-user callers (API keys,
-     * Probes) have no userId either. Both evaluate Owned as All elsewhere.
+     * Probes) have no userId either, and nobody owns what they make.
      */
     if (props.isRoot || props.isMasterAdmin || !props.userId) {
       return;
     }
 
     // The @OperationalResource() decorator sets this on the model prototype.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(createdItem as any).isOperationalResource) {
+    const isOperationalResource: boolean = Boolean(
+      (createdItem as unknown as { isOperationalResource?: boolean })
+        .isOperationalResource,
+    );
+
+    if (!isOperationalResource && !this.createReliesOnOwnership(props)) {
       return;
     }
 
     const modelName: string = this.modelType.name;
 
-    /*
-     * Lazy require to avoid circular dependency: owner services extend
-     * DatabaseService, so importing them at top-level leaves DatabaseService
-     * undefined at class-extension time.
-     */
-    const ownerTableRegistry: Map<
-      string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { ownerUserService: any; ownerTeamService: any; fkColumn: string }
-    > =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../Types/Database/Permissions/OwnerTableRegistry").default;
-
-    const entry:
-      | {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ownerUserService: any;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ownerTeamService: any;
-          fkColumn: string;
-        }
-      | undefined = ownerTableRegistry.get(modelName);
-    if (!entry) {
-      /*
-       * Operational but no registered owner tables — not a configuration we
-       * know how to auto-own. Skip silently.
-       */
-      return;
-    }
-
-    const resourceId: ObjectID | undefined = createdItem.id || undefined;
-    if (!resourceId) {
-      logger.error(
-        `auto-owner-on-create: created ${modelName} has no id; skipping`,
-      );
-      return;
-    }
-
-    const tenantColumnName: string | null = createdItem.getTenantColumn();
-    let projectId: ObjectID | undefined = undefined;
-    if (tenantColumnName) {
-      projectId =
-        createdItem.getValue<ObjectID>(tenantColumnName) || props.tenantId;
-    } else {
-      projectId = props.tenantId;
-    }
-
-    if (!projectId) {
-      logger.error(
-        `auto-owner-on-create: no projectId for ${modelName} ${resourceId.toString()}; skipping`,
-      );
-      return;
-    }
-
     try {
-      /*
-       * A new row every time. getModel() is the owner service's own shared
-       * instance, and a save writes the generated _id back onto whatever it
-       * was handed - so reusing it would turn the next auto-owner insert into
-       * an update of this row.
-       */
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ownerModel: any = new entry.ownerUserService.modelType();
-      ownerModel[entry.fkColumn] = resourceId;
-      ownerModel.userId = props.userId;
-      ownerModel.projectId = projectId;
-
-      await entry.ownerUserService.create({
-        data: ownerModel,
-        props: { isRoot: true },
-      });
+      await this.insertCreatorAsOwner(createdItem, props);
     } catch (err) {
       /*
        * The create form can name the creator as an owner too, and that path
@@ -3752,10 +5128,212 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       logger.error(
-        `auto-owner-on-create failed for ${modelName} ${resourceId.toString()}`,
+        `auto-owner-on-create failed for ${modelName} ${createdItem.id?.toString() || ""}`,
       );
       logger.error(err as Error);
     }
+  }
+
+  /*
+   * A CREATOR WHO REACHES WHAT THEY CREATE ONLY AS ITS OWNER OWNS IT, OR IT
+   * IS NOT CREATED.
+   *
+   * When every permission that lets the caller create in this table reaches
+   * only the records they own (createReliesOnOwnership), the record just
+   * saved is one they could not read, change or delete again unless they own
+   * it. So they are made its owner right after the save - before its list
+   * place, its images, its hooks, its feed entries and its notifications -
+   * and not best-effort: should the owner row not be there once the insert
+   * returns, the record is deleted again with nothing else done to it, and
+   * the create fails. What the hooks before the save took for it stays
+   * taken, as for any create that fails at its save: an incident's number is
+   * not handed out again. Creators who reach what they create without owning
+   * it keep autoOwnerOnCreate's best effort.
+   */
+  private async makeCreatorOwnerOrUndo(
+    createdItem: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    let failure: unknown = null;
+
+    try {
+      await this.insertCreatorAsOwner(createdItem, props);
+    } catch (err) {
+      failure = err;
+    }
+
+    /*
+     * An insert that threw after the row was written - a hook of the owner
+     * row's own service - or one the unique index refused because the
+     * creator owns it already, left them its owner all the same.
+     */
+    if (!failure || (await this.isCreatorOwnerOf(createdItem, props))) {
+      return;
+    }
+
+    logger.error(
+      `The creator of ${this.modelType.name} ${createdItem.id?.toString() || ""} could not be made its owner, which their permission to create it needs; the create is undone.`,
+    );
+    logger.error(failure as Error);
+
+    try {
+      if (createdItem.id) {
+        await this.hardDeleteBy({
+          query: {
+            _id: createdItem.id.toString(),
+          } as Query<TBaseModel>,
+          limit: 1,
+          skip: 0,
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
+    } catch (undoError) {
+      logger.error(
+        `Undoing the create of ${this.modelType.name} ${createdItem.id?.toString() || ""} failed.`,
+      );
+      logger.error(undoError as Error);
+    }
+
+    throw new ServerException(
+      `This ${this.model.singularName || "record"} was not created: your access lets you create only the ${this.model.pluralName || "records"} you own, and you could not be made its owner. Please try again.`,
+    );
+  }
+
+  /*
+   * The owner row naming the creator of `createdItem`, written as OneUptime
+   * through the owner table's own service (OwnerTableRegistry). Throws when
+   * it is not written - for a model with no owner tables, or a record with
+   * no project, as much as for a failed insert.
+   */
+  private async insertCreatorAsOwner(
+    createdItem: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    const owner: CreatorOwnerRow | null = this.getCreatorOwnerRow(
+      createdItem,
+      props,
+    );
+
+    if (!owner) {
+      throw new BadDataException(
+        `${this.modelType.name} ${createdItem.id?.toString() || ""}: no owner row can name its creator.`,
+      );
+    }
+
+    /*
+     * A new row every time. getModel() is the owner service's own shared
+     * instance, and a save writes the generated _id back onto whatever it
+     * was handed - so reusing it would turn the next auto-owner insert into
+     * an update of this row.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ownerModel: any = new owner.entry.ownerUserService.modelType();
+    ownerModel[owner.entry.fkColumn] = owner.resourceId;
+    ownerModel.userId = owner.userId;
+    ownerModel.projectId = owner.projectId;
+
+    await owner.entry.ownerUserService.create({
+      data: ownerModel,
+      props: { isRoot: true },
+    });
+  }
+
+  // Whether the creator of `createdItem` owns it now, read as OneUptime.
+  private async isCreatorOwnerOf(
+    createdItem: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<boolean> {
+    const owner: CreatorOwnerRow | null = this.getCreatorOwnerRow(
+      createdItem,
+      props,
+    );
+
+    if (!owner) {
+      return false;
+    }
+
+    try {
+      const ownerRow: BaseModel | null =
+        await owner.entry.ownerUserService.findOneBy({
+          query: {
+            [owner.entry.fkColumn]: owner.resourceId,
+            userId: owner.userId,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      return Boolean(ownerRow);
+    } catch (err) {
+      logger.error(err as Error);
+      return false;
+    }
+  }
+
+  /*
+   * What the owner row naming the creator of `createdItem` holds, and the
+   * owner table's service (OwnerTableRegistry): null for a model with no
+   * owner tables, a caller who is not a person, or a record with no id or no
+   * project.
+   */
+  private getCreatorOwnerRow(
+    createdItem: TBaseModel,
+    props: DatabaseCommonInteractionProps,
+  ): CreatorOwnerRow | null {
+    const modelName: string = this.modelType.name;
+
+    /*
+     * Lazy require to avoid circular dependency: owner services extend
+     * DatabaseService, so importing them at top-level leaves DatabaseService
+     * undefined at class-extension time.
+     */
+    const ownerTableRegistry: Map<string, CreatorOwnerRow["entry"]> =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../Types/Database/Permissions/OwnerTableRegistry").default;
+
+    const entry: CreatorOwnerRow["entry"] | undefined =
+      ownerTableRegistry.get(modelName);
+
+    if (!entry || !props.userId) {
+      /*
+       * Operational but no registered owner tables — not a configuration we
+       * know how to auto-own.
+       */
+      return null;
+    }
+
+    const resourceId: ObjectID | undefined = createdItem.id || undefined;
+
+    if (!resourceId) {
+      logger.error(`auto-owner-on-create: created ${modelName} has no id`);
+      return null;
+    }
+
+    const tenantColumnName: string | null = createdItem.getTenantColumn();
+    const projectId: ObjectID | undefined = tenantColumnName
+      ? createdItem.getValue<ObjectID>(tenantColumnName) || props.tenantId
+      : props.tenantId;
+
+    if (!projectId) {
+      logger.error(
+        `auto-owner-on-create: no projectId for ${modelName} ${resourceId.toString()}`,
+      );
+      return null;
+    }
+
+    return {
+      entry: entry,
+      resourceId: resourceId,
+      userId: props.userId,
+      projectId: projectId,
+    };
   }
 
   private checkMaxLengthOfFields<TBaseModel extends BaseModel>(
@@ -5679,20 +7257,65 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // One reference, one value, whichever name it is sent under. See the helper.
       this.assertRelationNamesAgree(updateBy.data, updateBy.props);
 
-      // Only the rows the caller may update reach the hook. See the helper.
+      // The parent, records and labels the update names, should it name any.
+      const namedRecords: UpdateNamedRecords | null =
+        this.getUpdateNamedRecords(updateBy);
+      const rowsReadWithNamed: { rows: Array<TBaseModel> | null } = {
+        rows: null,
+      };
+
+      /*
+       * Only the rows the caller may update reach the hook. See the helper.
+       * Read with what the update names, for the check below.
+       */
       if (
         !(await this.keepRowsCallerMayWrite(
           updateBy,
           DatabaseRequestType.Update,
+          namedRecords
+            ? {
+                alsoSelect: this.getRowsToUpdateSelect(
+                  this.getNamedRecordColumns(namedRecords),
+                  namedRecords.labelColumns,
+                ),
+                onRows: (rows: Array<TBaseModel>): void => {
+                  rowsReadWithNamed.rows = rows;
+                },
+              }
+            : {},
         ))
       ) {
         return 0;
       }
 
+      /*
+       * A new parent, more records in a list or another record in a field:
+       * ones the caller may read. Labels: ones their update permission keeps.
+       */
+      const namedRecordsChecked: UpdateNamedRecordsChecked<TBaseModel> | null =
+        await this.checkUpdateNamedRecords(
+          updateBy,
+          namedRecords,
+          rowsReadWithNamed.rows,
+        );
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
       onUpdateOfError = onUpdate;
+
+      // And the parents, records and labels the hooks left it with.
+      if (!updateBy.props.ignoreHooks) {
+        await this.checkUpdateParentsAfterHooks(
+          onUpdate.updateBy,
+          namedRecordsChecked,
+        );
+
+        await this.checkUpdateNamedRecordsAfterHooks(
+          onUpdate.updateBy,
+          namedRecordsChecked,
+        );
+      }
 
       /*
        * A switch the service's hook set is held as the database stores it
@@ -5700,6 +7323,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * coerceBooleanColumns.
        */
       this.coerceBooleanColumns(onUpdate.updateBy.data);
+
+      /*
+       * What the update writes to the encrypted columns, as it was given -
+       * kept before they are encrypted below. Each write encrypts afresh,
+       * with a salt of its own, so its ciphertext never matches what a row
+       * holds; the read before the write decrypts the row, and these are
+       * what decide whether the write changes it (getRowWrite). Writing
+       * back the secret a row holds - every save of a form that sends it
+       * does - is no change of it.
+       */
+      const encryptedColumnsAsGiven: Record<string, unknown> =
+        this.getEncryptedColumnsAsGiven(onUpdate.updateBy.data);
 
       // Encrypt data
       updateBy.data = (await this.encrypt(
@@ -5941,6 +7576,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           data,
           updateBy.props,
           switchStamps,
+          encryptedColumnsAsGiven,
         );
 
       for (const item of items) {
@@ -5953,6 +7589,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           item: item,
           data: data,
           switchStamps: switchStamps,
+          encryptedColumnsAsGiven: encryptedColumnsAsGiven,
         });
 
         const updatedItem: any = rowWrite.updatedItem;
@@ -6325,12 +7962,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    *   switch the row already stands at.
    * - comparedAs: what decides whether the write changes the row
    *   (getChangedColumns) - what it is written with, a rule's switch as the
-   *   rule reads it.
+   *   rule reads it, and an encrypted column as the update gave it
+   *   (encryptedColumnsAsGiven), before it was encrypted: the row is read
+   *   decrypted, and a ciphertext - salted afresh on every write - never
+   *   matches it.
    */
   private getRowWrite(data: {
     item: TBaseModel;
     data: PartialEntity<TBaseModel>;
     switchStamps: Array<SwitchStamp>;
+    encryptedColumnsAsGiven?: Record<string, unknown> | undefined;
   }): RowWrite<TBaseModel> {
     const { item } = data;
     const update: Record<string, unknown> = data.data as Record<
@@ -6399,12 +8040,50 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       comparedAs["isEnabled"] = update["isEnabled"];
     }
 
+    for (const [column, valueAsGiven] of Object.entries(
+      data.encryptedColumnsAsGiven || {},
+    )) {
+      if (Object.prototype.hasOwnProperty.call(comparedAs, column)) {
+        comparedAs[column] = valueAsGiven;
+      }
+    }
+
     return {
       item: item,
       updatedItem: updatedItem,
       written: written as PartialEntity<TBaseModel>,
       comparedAs: comparedAs,
     };
+  }
+
+  /*
+   * The encrypted columns an update writes, as it gives them - the ones
+   * encrypt() encrypts (a value that is set), each a copy: encrypt() writes
+   * the ciphertext of an object's values into the object itself.
+   */
+  private getEncryptedColumnsAsGiven(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): Record<string, unknown> {
+    const asGiven: Record<string, unknown> = {};
+    const values: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const column of this.model.getEncryptedColumns().columns) {
+      const value: unknown = values[column];
+
+      if (!value || typeof value === "function") {
+        continue;
+      }
+
+      asGiven[column] =
+        typeof value === Typeof.Object
+          ? { ...(value as Record<string, unknown>) }
+          : value;
+    }
+
+    return asGiven;
   }
 
   /*

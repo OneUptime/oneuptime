@@ -54,16 +54,21 @@ jest.mock("../../../UI/Utils/Translation", () => {
  *
  * The maintainer asked to "reduce decision / choice paralysis as much as
  * possible: show people as few options as possible". A menu that names the
- * categories it keeps open (the Dashboard names Essentials) shows those as
- * cards and folds every other category to one line: its name, how many
- * products it holds and what they are called. Nothing is gone: a click or
- * Enter opens a category, search finds every product, the category of the
- * page the user is on opens by itself, and what someone opens or folds is
- * remembered on their browser.
+ * categories it opens on (the Dashboard names Essentials) shows those
+ * open, as cards, and folds every other category to one line: its name, how
+ * many products it holds and what they are called. Nothing is gone: a click
+ * or Enter opens a category, search finds every product, the category of
+ * the page the user is on opens by itself, and what someone opens or folds
+ * is remembered on their browser.
  *
- * Then: "Always have Essentials expanded by default." The categories a menu
- * keeps open never fold: a plain heading like Recent's, no chevron, no stop
- * for the keyboard cursor, and no remembered fold that hides them.
+ * Then: "Always have Essentials expanded by default", and "have essentials
+ * in this group as well and have it open by default and not collapsed,
+ * every other category other than essentials can be collapsed by default".
+ * Essentials are a row of the same list as every other category, with a
+ * chevron that folds them, a stop for the keyboard cursor, and their cards
+ * under the row. They are open whenever the menu opens: folding them lasts
+ * until it closes, is never remembered, and no fold remembered from before
+ * hides them.
  */
 
 const RECENT_STORAGE_KEY: string = "oneuptime-navbar-recent-products";
@@ -112,7 +117,7 @@ function renderMenu(
   return render(
     <NavBarMenuModal
       items={CATALOG}
-      categoriesAlwaysOpen={["Essentials"]}
+      categoriesOpenByDefault={["Essentials"]}
       onClose={() => {}}
       {...props}
     />,
@@ -142,7 +147,7 @@ function heading(category: string): HTMLElement {
   return screen.getByRole("button", { name: category });
 }
 
-// The heading of a category that never folds: a heading, not a button.
+// A heading with no button to fold it: Recent's, or any while searching.
 function plainHeading(category: string): HTMLElement {
   return screen.getByRole("heading", { level: 3, name: category });
 }
@@ -166,6 +171,16 @@ function foldedCategories(): Array<string> {
   return categoryButtons()
     .filter((button: HTMLElement): boolean => {
       return button.getAttribute("aria-expanded") === "false";
+    })
+    .map((button: HTMLElement): string => {
+      return button.textContent ?? "";
+    });
+}
+
+function openCategories(): Array<string> {
+  return categoryButtons()
+    .filter((button: HTMLElement): boolean => {
+      return button.getAttribute("aria-expanded") === "true";
     })
     .map((button: HTMLElement): string => {
       return button.textContent ?? "";
@@ -221,18 +236,18 @@ afterEach(() => {
 });
 
 describe("the products menu opens on the essentials", () => {
-  test("only the essentials are cards; every other category is one folded line", () => {
+  test("only the essentials are open, as cards; every other category is one folded line", () => {
     renderMenu();
 
     expect(productTitles()).toEqual(["Monitors", "Incidents", "Alerts"]);
+    expect(openCategories()).toEqual(["Essentials"]);
     expect(foldedCategories()).toEqual(FOLDED_CATEGORIES);
-    expect(plainHeading("Essentials")).toBeVisible();
-    // The only fold controls are the folded lines: nothing folds Essentials.
+    // Every category has a row that folds it, the essentials first.
     expect(
       categoryButtons().map((button: HTMLElement): string => {
         return button.textContent ?? "";
       }),
-    ).toEqual(FOLDED_CATEGORIES);
+    ).toEqual(["Essentials", ...FOLDED_CATEGORIES]);
   });
 
   test("a folded line names the category, counts its products and lists them", () => {
@@ -409,48 +424,128 @@ describe("opening and folding a category", () => {
   });
 });
 
-describe("the essentials are always open", () => {
-  test("their heading is a plain heading, like Recent's: no button, no chevron, no summary", () => {
-    window.localStorage.setItem(
-      RECENT_STORAGE_KEY,
-      JSON.stringify(["/p/hosts"]),
-    );
+describe("the essentials open with the menu, every time", () => {
+  test("their row is drawn as every other category's: a button that says it is open, and a chevron", () => {
     renderMenu();
 
-    const essentials: HTMLElement = screen.getByRole("group", {
-      name: "Essentials",
-    });
+    const essentials: HTMLElement = heading("Essentials");
 
-    expect(screen.queryByRole("button", { name: "Essentials" })).toBeNull();
-    expect(within(essentials).queryAllByRole("button")).toEqual([]);
-    expect(plainHeading("Essentials")).not.toHaveAttribute("aria-expanded");
-    expect(plainHeading("Essentials")).not.toHaveAttribute("aria-describedby");
-    // The chevron is an svg on the heading row of every category that folds.
-    expect(line("Infrastructure").querySelector("svg")).not.toBeNull();
-    expect(plainHeading("Essentials").parentElement!.querySelector("svg")).toBe(
-      null,
+    expect(essentials).toHaveAttribute("aria-expanded", "true");
+    // Open, a row has no summary: its products are right below it.
+    expect(essentials).not.toHaveAttribute("aria-describedby");
+    expect(line("Essentials")).not.toHaveTextContent(
+      "Monitors, Incidents, Alerts",
     );
-    // Drawn as Recent's heading is, lined up with the folded rows' icons.
-    expect(plainHeading("Essentials").className).toBe(
-      plainHeading("Recent").className,
-    );
-    expect(plainHeading("Essentials").parentElement).toHaveClass(
-      "border",
-      "border-transparent",
-      "px-3",
-    );
-    expect(line("Infrastructure")).toHaveClass("px-3");
+    // The heading's text is the category's name, the button inside it.
+    expect(
+      within(line("Essentials")).getByRole("heading", { level: 3 }),
+    ).toHaveTextContent(/^Essentials$/);
+    expect(line("Essentials")).toHaveTextContent(/^Essentials3$/);
+    // The chevron is the row's last svg: turned down open, to the side folded.
+    const chevron: (category: string) => SVGElement = (
+      category: string,
+    ): SVGElement => {
+      const glyphs: NodeListOf<SVGElement> =
+        line(category).querySelectorAll("svg");
+      expect(glyphs).toHaveLength(2);
+      return glyphs[1]!;
+    };
+    expect(chevron("Essentials")).toHaveClass("rotate-0");
+    expect(chevron("Infrastructure")).toHaveClass("-rotate-90");
+    // Otherwise drawn exactly as the folded rows are.
+    expect(line("Essentials").className).toBe(line("Infrastructure").className);
+    expect(essentials.className).toBe(heading("Infrastructure").className);
   });
 
-  test("clicking their heading leaves them open and remembers nothing", () => {
+  test("the row controls the cards under it", () => {
     renderMenu();
 
-    fireEvent.click(plainHeading("Essentials"));
-    fireEvent.click(plainHeading("Essentials"));
-    fireEvent.click(plainHeading("Essentials"));
+    const body: HTMLElement = document.getElementById(
+      heading("Essentials").getAttribute("aria-controls")!,
+    )!;
 
+    expect(body).not.toBeNull();
+    expect(
+      within(body)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string | null => {
+          return link.getAttribute("href");
+        }),
+    ).toEqual(["/p/monitors", "/p/incidents", "/p/alerts"]);
+    expect(screen.getByRole("group", { name: "Essentials" })).toContainElement(
+      body,
+    );
+  });
+
+  test("a click folds them like any other category, and their row then says what they hold", () => {
+    renderMenu();
+
+    fireEvent.click(heading("Essentials"));
+
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "false");
+    expect(heading("Essentials")).not.toHaveAttribute("aria-controls");
+    expect(productTitles()).toEqual([]);
+    expect(line("Essentials")).toHaveTextContent("Monitors, Incidents, Alerts");
+    expect(heading("Essentials")).toHaveAccessibleDescription(
+      "3 products Monitors, Incidents, Alerts",
+    );
+    expect(foldedCategories()).toEqual(["Essentials", ...FOLDED_CATEGORIES]);
+    // The cursor follows the click.
+    expect(cursorText()).toBe("heading:Essentials");
+  });
+
+  test("a second click opens them again", () => {
+    renderMenu();
+
+    fireEvent.click(heading("Essentials"));
+    fireEvent.click(heading("Essentials"));
+
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "true");
     expect(productTitles()).toEqual(["Monitors", "Incidents", "Alerts"]);
+  });
+
+  test("a click folds them without taking focus from the search box", () => {
+    renderMenu();
+
+    expect(fireEvent.mouseDown(heading("Essentials"))).toBe(false);
+    fireEvent.click(heading("Essentials"));
+
+    expect(search()).toHaveFocus();
+    expect(productTitles()).toEqual([]);
+  });
+
+  test("folding them is not remembered: the next menu opens on them again", () => {
+    const { unmount } = renderMenu();
+    fireEvent.click(heading("Essentials"));
+    expect(productTitles()).toEqual([]);
+    unmount();
+
     expect(storedFolds()).toBeNull();
+
+    renderMenu();
+
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "true");
+    expect(productTitles()).toEqual(["Monitors", "Incidents", "Alerts"]);
+    expect(cursorText()).toBe("Monitors");
+  });
+
+  test("folding them leaves the other categories' remembered choices as they were", () => {
+    const { unmount } = renderMenu();
+    fireEvent.click(heading("Code"));
+    fireEvent.click(heading("Essentials"));
+    unmount();
+
+    expect(storedFolds()).toEqual({ Code: true });
+
+    renderMenu();
+
+    expect(openCategories()).toEqual(["Essentials", "Code"]);
+    expect(productTitles()).toEqual([
+      "Monitors",
+      "Incidents",
+      "Alerts",
+      "Tasks",
+    ]);
   });
 
   test("they stay open while every other category is opened and folded again", () => {
@@ -487,7 +582,7 @@ describe("the essentials are always open", () => {
   });
 
   test("a fold of the essentials remembered on this browser no longer hides them", () => {
-    // What the menu stored when the essentials could still be folded.
+    // What the menu stored when a fold of the essentials was remembered.
     window.localStorage.setItem(
       CATEGORY_FOLDS_STORAGE_KEY,
       JSON.stringify({ Essentials: false, Code: true }),
@@ -501,7 +596,7 @@ describe("the essentials are always open", () => {
       "Alerts",
       "Tasks",
     ]);
-    expect(screen.queryByRole("button", { name: "Essentials" })).toBeNull();
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "true");
     expect(heading("Code")).toHaveAttribute("aria-expanded", "true");
     expect(cursorText()).toBe("Monitors");
   });
@@ -516,11 +611,26 @@ describe("the essentials are always open", () => {
     expect(categoryButtons()).toEqual([]);
   });
 
-  test("a menu can keep more than one category open", () => {
-    renderMenu({ categoriesAlwaysOpen: ["Essentials", "Settings"] });
+  test("a search finds their products while they are folded, and clearing it folds them again", () => {
+    renderMenu();
+    fireEvent.click(heading("Essentials"));
 
-    expect(plainHeading("Settings")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Settings" })).toBeNull();
+    queryFor("uptime");
+    expect(productTitles()).toEqual(["Monitors"]);
+    expect(cursorText()).toBe("Monitors");
+
+    queryFor("");
+
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "false");
+    expect(productTitles()).toEqual([]);
+  });
+
+  test("a menu can open on more than one category, and folds each of them for now only", () => {
+    const { unmount } = renderMenu({
+      categoriesOpenByDefault: ["Essentials", "Settings"],
+    });
+
+    expect(openCategories()).toEqual(["Essentials", "Settings"]);
     expect(productTitles()).toEqual([
       "Monitors",
       "Incidents",
@@ -532,6 +642,14 @@ describe("the essentials are always open", () => {
         return category !== "Settings";
       }),
     );
+
+    fireEvent.click(heading("Settings"));
+    expect(productTitles()).toEqual(["Monitors", "Incidents", "Alerts"]);
+    unmount();
+
+    expect(storedFolds()).toBeNull();
+    renderMenu({ categoriesOpenByDefault: ["Essentials", "Settings"] });
+    expect(heading("Settings")).toHaveAttribute("aria-expanded", "true");
   });
 });
 
@@ -561,18 +679,22 @@ describe("the keyboard moves over headings and the products on screen", () => {
     ]);
   });
 
-  test("the essentials' heading is no stop: ArrowLeft from the first product stays on it", () => {
+  test("the essentials' row is a stop: ArrowLeft from their first product lands on it, and holds there", () => {
     renderMenu();
 
     press("ArrowLeft");
 
+    expect(cursorText()).toBe("heading:Essentials");
+    expect(screen.queryByRole("option", { selected: true })).toBeNull();
+
+    press("ArrowLeft");
+    expect(cursorText()).toBe("heading:Essentials");
+
+    press("ArrowRight");
     expect(cursorText()).toBe("Monitors");
-    expect(screen.getByRole("option", { selected: true })).toHaveTextContent(
-      "Monitors",
-    );
   });
 
-  test("ArrowLeft walks back from the first folded line over the essentials, never onto their heading", () => {
+  test("ArrowLeft walks back from the first folded line over the essentials, onto their row", () => {
     renderMenu();
     for (let step: number = 0; step < 3; step++) {
       press("ArrowRight");
@@ -580,12 +702,45 @@ describe("the keyboard moves over headings and the products on screen", () => {
     expect(cursorText()).toBe("heading:Observability");
 
     const visited: Array<string> = [];
-    for (let step: number = 0; step < 4; step++) {
+    for (let step: number = 0; step < 5; step++) {
       press("ArrowLeft");
       visited.push(cursorText());
     }
 
-    expect(visited).toEqual(["Alerts", "Incidents", "Monitors", "Monitors"]);
+    expect(visited).toEqual([
+      "Alerts",
+      "Incidents",
+      "Monitors",
+      "heading:Essentials",
+      "heading:Essentials",
+    ]);
+  });
+
+  test("Enter on the essentials' row folds them, keeps the cursor there, and Enter opens them again", () => {
+    const onClose: Mock<() => void> = jest.fn<() => void>();
+    renderMenu({ onClose });
+    press("ArrowLeft");
+    expect(cursorText()).toBe("heading:Essentials");
+
+    press("Enter");
+
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "false");
+    expect(productTitles()).toEqual([]);
+    expect(cursorText()).toBe("heading:Essentials");
+    expect(Navigation.navigate).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    // Folded, the next stop is the next row.
+    press("ArrowRight");
+    expect(cursorText()).toBe("heading:Observability");
+    press("ArrowLeft");
+
+    press("Enter");
+
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "true");
+    expect(cursorText()).toBe("heading:Essentials");
+    press("ArrowRight");
+    expect(cursorText()).toBe("Monitors");
+    expect(storedFolds()).toBeNull();
   });
 
   test("Enter on a folded heading opens it and keeps the cursor there; ArrowRight goes into it", () => {
@@ -825,6 +980,7 @@ describe("where the user is", () => {
 
     const recent: HTMLElement = screen.getByRole("group", { name: "Recent" });
     expect(within(recent).queryByRole("button")).toBeNull();
+    expect(plainHeading("Recent")).toBeVisible();
     expect(productTitles().slice(0, 2)).toEqual(["Hosts", "Logs"]);
     // Their categories stay folded below.
     expect(foldedCategories()).toEqual(FOLDED_CATEGORIES);
@@ -832,9 +988,38 @@ describe("where the user is", () => {
 
     press("ArrowRight");
     expect(cursorText()).toBe("Logs");
-    // Past the essentials' plain heading, straight onto their first product.
+    // From Recent onto the essentials' row, then their first product.
+    press("ArrowRight");
+    expect(cursorText()).toBe("heading:Essentials");
     press("ArrowRight");
     expect(cursorText()).toBe("Monitors");
+  });
+
+  test("on one of the essentials' own pages, they are open with that product selected", () => {
+    goTo("/p/incidents/42");
+
+    renderMenu();
+
+    expect(openCategories()).toEqual(["Essentials"]);
+    expect(foldedCategories()).toEqual(FOLDED_CATEGORIES);
+    expect(cursorText()).toBe("Incidents");
+  });
+
+  test("folded there, they hide the product of the page, and the cursor stays on their row", () => {
+    goTo("/p/incidents/42");
+    const { unmount } = renderMenu();
+
+    fireEvent.click(heading("Essentials"));
+
+    expect(productTitles()).toEqual([]);
+    expect(cursorText()).toBe("heading:Essentials");
+    unmount();
+
+    // Open again in the next menu, with the page's product selected.
+    renderMenu();
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "true");
+    expect(cursorText()).toBe("Incidents");
+    expect(storedFolds()).toBeNull();
   });
 });
 
@@ -873,8 +1058,8 @@ describe("what someone opens or folds is remembered on this browser", () => {
   });
 
   test("with nothing open at all, the cursor starts on the first heading", () => {
-    // A menu that keeps no category open that is in the catalog.
-    renderMenu({ categoriesAlwaysOpen: ["Nothing by this name"] });
+    // A menu that opens on no category that is in the catalog.
+    renderMenu({ categoriesOpenByDefault: ["Nothing by this name"] });
 
     expect(productTitles()).toEqual([]);
     expect(foldedCategories()).toEqual(["Essentials", ...FOLDED_CATEGORIES]);
@@ -896,17 +1081,21 @@ describe("what someone opens or folds is remembered on this browser", () => {
 
     renderMenu();
 
+    expect(openCategories()).toEqual(["Essentials"]);
     expect(foldedCategories()).toEqual(FOLDED_CATEGORIES);
     fireEvent.click(heading("Settings"));
     expect(productTitles()).toContain("Users");
+    fireEvent.click(heading("Essentials"));
+    expect(productTitles()).toEqual(["Users"]);
   });
 });
 
-describe("a menu that names no categories to keep open (the Admin Dashboard's)", () => {
+describe("a menu that names no categories to open on (the Admin Dashboard's)", () => {
   test("shows every category open, under plain headings with nothing to fold", () => {
-    renderMenu({ categoriesAlwaysOpen: undefined });
+    renderMenu({ categoriesOpenByDefault: undefined });
 
     expect(categoryButtons()).toEqual([]);
+    expect(plainHeading("Essentials")).toBeVisible();
     expect(productTitles()).toEqual(
       CATALOG.map((item: MoreMenuItem): string => {
         return item.title;
@@ -915,7 +1104,7 @@ describe("a menu that names no categories to keep open (the Admin Dashboard's)",
   });
 
   test("moves the cursor over products only", () => {
-    renderMenu({ categoriesAlwaysOpen: undefined });
+    renderMenu({ categoriesOpenByDefault: undefined });
 
     press("ArrowLeft");
     expect(cursorText()).toBe("Monitors");
@@ -931,7 +1120,7 @@ describe("a menu that names no categories to keep open (the Admin Dashboard's)",
       JSON.stringify({ Essentials: false }),
     );
 
-    renderMenu({ categoriesAlwaysOpen: undefined });
+    renderMenu({ categoriesOpenByDefault: undefined });
 
     expect(productTitles()).toContain("Monitors");
     expect(

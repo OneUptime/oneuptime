@@ -19,9 +19,16 @@ import {
 import { clearGlobalSsoAuthorizationCaches } from "../../../Server/Utils/GlobalSsoAuthorization";
 import logger from "../../../Server/Utils/Logger";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
-import { SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE } from "../../../Server/Utils/ProjectSsoProviderChanges";
+import ProjectSsoProviderChanges, {
+  SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+} from "../../../Server/Utils/ProjectSsoProviderChanges";
+import SsoRequirementChanges from "../../../Server/Utils/SsoRequirementChanges";
+import SsoSignInWays, {
+  GlobalProviderAttachmentRows,
+} from "../../../Server/Utils/SsoSignInWays";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
+  RealtimeAccessChangeKind,
 } from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -38,6 +45,12 @@ import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
 import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
+import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
+import {
+  COMMIT_STATEMENT,
+  INSERT_STATEMENT,
+  clientTimeout,
+} from "../TestingUtils/StatementFailures";
 import {
   afterEach,
   beforeEach,
@@ -143,10 +156,25 @@ let announced: Array<RealtimeAccessChange> = [];
 
 // The locks kept while a check ran, and those found lost meanwhile.
 let kept: Array<string> = [];
+// By key: a lock taken again is lost too.
 let lostLocks: Array<string> = [];
+// As handed out: a lock taken again is not lost.
+let lostLockObjects: Set<{ key: string }> = new Set<{ key: string }>();
 
 // The database refuses every write of this kind it is asked for.
 let failing: "update" | "delete" | "save" | null = null;
+
+// What an INSERT fails with instead, as TypeORM hands it on.
+let saveFailsWith: Error | null = null;
+
+// The locks Semaphore.lock handed out, by key, the last of each.
+let lockObjects: Map<string, { key: string }> = new Map<
+  string,
+  { key: string }
+>();
+
+// Runs as the database is asked to write, delete or insert rows, before it does.
+let whileWriting: (() => void) | null = null;
 
 // The values a repository `where` asks a column for, lower-cased.
 const askedValues: (value: unknown) => Array<string> | null = (
@@ -179,29 +207,17 @@ const askedValues: (value: unknown) => Array<string> | null = (
   throw new Error(`This test cannot read the query value ${String(value)}`);
 };
 
+/*
+ * Whether a row matches a repository `where`, as Postgres would decide it:
+ * values and ids, and the operators the services write - ids among those
+ * read, rows deleted before (deletedAt set), several conditions on one
+ * column together (InMemoryRepository).
+ */
 const matches: (row: Row, where: Record<string, unknown>) => boolean = (
   row: Row,
   where: Record<string, unknown>,
 ): boolean => {
-  for (const [column, value] of Object.entries(where || {})) {
-    const asked: Array<string> | null = askedValues(value);
-
-    if (asked === null) {
-      continue;
-    }
-
-    const held: unknown = row[column];
-
-    if (
-      held === undefined ||
-      held === null ||
-      !asked.includes(String(held).toLowerCase())
-    ) {
-      return false;
-    }
-  }
-
-  return true;
+  return rowMatchesWhere(row, where);
 };
 
 const toStored: (value: unknown) => unknown = (value: unknown): unknown => {
@@ -258,6 +274,8 @@ const stubTable: (
         throw new Error("The database could not write the row");
       }
 
+      whileWriting?.();
+
       const written: Record<string, unknown> = {};
 
       for (const [column, value] of Object.entries(set)) {
@@ -286,6 +304,8 @@ const stubTable: (
         throw new Error("The database could not delete the row");
       }
 
+      whileWriting?.();
+
       const gone: Array<Row> = table().rows.filter((row: Row): boolean => {
         return matches(row, where);
       });
@@ -302,9 +322,15 @@ const stubTable: (
       return { affected: gone.length };
     },
     save: async (data: BaseModel): Promise<BaseModel> => {
+      if (saveFailsWith) {
+        throw saveFailsWith;
+      }
+
       if (failing === "save") {
         throw new Error("The database could not insert the row");
       }
+
+      whileWriting?.();
 
       const row: Row = { _id: data._id || ObjectID.generate().toString() };
 
@@ -594,6 +620,54 @@ const attachmentRow: (
 
 const ATTACHED_TO_ACME: string = id(51);
 const ATTACHED_TO_BETA: string = id(52);
+const ATTACHED_LATER: string = id(53);
+const DELETED_BEFORE: string = id(61);
+const CREATED_LATER: string = id(62);
+
+/*
+ * Runs `landing` once, right after the first read through `service` that
+ * selects `selected` - the hooks' own read of the rows a write names - as
+ * another server's write landing then would.
+ */
+const afterRead: (
+  service: DatabaseService<any>,
+  selected: string,
+  landing: () => void,
+) => void = (
+  service: DatabaseService<any>,
+  selected: string,
+  landing: () => void,
+): void => {
+  const findAllBy: (...args: Array<unknown>) => Promise<unknown> =
+    service.findAllBy.bind(service) as unknown as (
+      ...args: Array<unknown>
+    ) => Promise<unknown>;
+  let hasLanded: boolean = false;
+
+  getJestSpyOn(service, "findAllBy").mockImplementation((async (
+    ...args: Array<unknown>
+  ): Promise<unknown> => {
+    const answer: unknown = await findAllBy(...args);
+    const select: Record<string, unknown> =
+      (args[0] as { select?: Record<string, unknown> }).select || {};
+
+    if (!hasLanded && select[selected]) {
+      hasLanded = true;
+      landing();
+    }
+
+    return answer;
+  }) as never);
+};
+
+// Whether each lock Semaphore.lock handed out is kept alive for a write now.
+const keptForWrite: () => Array<boolean> = (): Array<boolean> => {
+  return Array.from(lockObjects.values()).map(
+    (lock: { key: string }): boolean => {
+      return ProjectSsoProviderChanges.isKeptForWrite(lock as never);
+    },
+  );
+};
 
 beforeEach(() => {
   clearGlobalSsoAuthorizationCaches();
@@ -613,7 +687,11 @@ beforeEach(() => {
   announced = [];
   kept = [];
   lostLocks = [];
+  lostLockObjects = new Set<{ key: string }>();
   failing = null;
+  saveFailsWith = null;
+  lockObjects = new Map<string, { key: string }>();
+  whileWriting = null;
 
   for (const silenced of ["debug", "info", "warn", "error"]) {
     getJestSpyOn(logger, silenced).mockImplementation((): void => {
@@ -729,7 +807,9 @@ beforeEach(() => {
     }
 
     events.push(`lock:${data.key}`);
-    return { key: data.key };
+    const lock: { key: string } = { key: data.key };
+    lockObjects.set(data.key, lock);
+    return lock;
   }) as never);
   getJestSpyOn(Semaphore, "release").mockImplementation((async (mutex: {
     key: string;
@@ -740,7 +820,10 @@ beforeEach(() => {
     key: string;
   }): Promise<boolean> => {
     kept.push(mutex.key);
-    return !lostLocks.includes(mutex.key);
+    return (
+      !lostLocks.includes(mutex.key) &&
+      !lostLockObjects.has(mutex as { key: string })
+    );
   }) as never);
 
   getJestSpyOn(RealtimeAccessChanges, "announce").mockImplementation(((
@@ -822,12 +905,167 @@ describe.each([
       expect(events).toEqual([`write:${PROVIDER}`]);
     });
 
-    test("saving one that is on as on again takes no lock", async () => {
+    test("saving one that is on as on again - an edit form sends every switch it shows - takes no lock and tells nobody: it changed nothing", async () => {
       await expect(
         updateProvider(kind, { isEnabled: true, name: "Okta (renamed)" }),
       ).resolves.toBe("done");
 
       expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([]);
+    });
+
+    test("saving one that is open to every project as open again tells nobody either", async () => {
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: false }),
+      ).resolves.toBe("done");
+
+      expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([]);
+    });
+
+    test("saving one as it is reads none of its attachments: it signs the same people in; turning it on reads them", async () => {
+      const attachmentReads: jest.SpyInstance = getJestSpyOn(
+        GlobalProviderAttachmentRows,
+        "read",
+      );
+
+      await expect(
+        updateProvider(kind, {
+          isEnabled: true,
+          restrictToAttachedProjects: false,
+          name: "Okta (renamed)",
+        }),
+      ).resolves.toBe("done");
+
+      expect(attachmentReads).not.toHaveBeenCalled();
+
+      providerRow(kind)!["isEnabled"] = false;
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(attachmentReads).toHaveBeenCalledTimes(1);
+    });
+
+    test("turning it off is told to every server even when it was read as off: one turned on in between - turning on takes no lock - is turned off by this write", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      const findStrandedProjects: typeof SsoSignInWays.findStrandedProjects =
+        SsoSignInWays.findStrandedProjects.bind(SsoSignInWays);
+      jest
+        .spyOn(SsoSignInWays, "findStrandedProjects")
+        .mockImplementation(
+          async (
+            ...args: Parameters<typeof SsoSignInWays.findStrandedProjects>
+          ): ReturnType<typeof SsoSignInWays.findStrandedProjects> => {
+            // Turned on by a write that takes no lock, after this one read it.
+            providerRow(kind)!["isEnabled"] = true;
+            return await findStrandedProjects(...args);
+          },
+        );
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        "done",
+      );
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(false);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("restricting one read as restricted already is told to every server all the same", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+      projects = [project(ACME, "Acme")];
+
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: true }),
+      ).resolves.toBe("done");
+
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("turning it on is told to every server once, so none keeps refusing the people it signs in", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("lifting its restriction to its attached projects is told to every server once, and takes no lock", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: false }),
+      ).resolves.toBe("done");
+
+      expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("lifting the restriction of one attached to no project tells nobody: it signed people in to every project already", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: false }),
+      ).resolves.toBe("done");
+
+      expect(announced).toEqual([]);
+    });
+
+    test("turning it on when what it changes cannot be read is still written, and told to every server all the same", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+      jest.spyOn(logger, "warn").mockImplementation((): void => {
+        return undefined;
+      });
+
+      const findAllBy: (args: unknown) => Promise<unknown> =
+        kind.providerService.findAllBy.bind(kind.providerService) as never;
+      jest
+        .spyOn(kind.providerService, "findAllBy")
+        .mockImplementation((async (args: {
+          select?: Record<string, unknown>;
+        }): Promise<unknown> => {
+          // The read of where the provider signs people in, before the write.
+          if (args.select?.["restrictToAttachedProjects"]) {
+            throw new Error("The database is not answering");
+          }
+
+          return await findAllBy(args);
+        }) as never);
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("a new name alone is told to nobody", async () => {
+      await expect(
+        updateProvider(kind, { name: "Okta (renamed)" }),
+      ).resolves.toBe("done");
+
       expect(announced).toEqual([]);
     });
 
@@ -1295,6 +1533,35 @@ describe.each([
       expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
     });
 
+    test("an attachment whose INSERT the client stopped waiting for is rolled back with its own transaction: the lock is given back at once", async () => {
+      projects = [project(BETA, "Beta")];
+      saveFailsWith = clientTimeout(INSERT_STATEMENT);
+
+      await expect(attach(kind, BETA)).rejects.toThrow("Query read timeout");
+
+      expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
+    });
+
+    test("an attachment whose COMMIT went unanswered may have landed: the lock is kept until the database would have cancelled it", async () => {
+      projects = [project(BETA, "Beta")];
+      saveFailsWith = clientTimeout(COMMIT_STATEMENT);
+
+      await expect(attach(kind, BETA)).rejects.toThrow("Query read timeout");
+
+      expect(events).toEqual([`lock:${SERVER_LOCK}`]);
+
+      const serverLock: { key: string } = lockObjects.get(SERVER_LOCK)!;
+
+      expect(
+        ProjectSsoProviderChanges.isKeptForWrite(serverLock as never),
+      ).toBe(true);
+
+      // Stops keeping it, so nothing outlives the test.
+      await ProjectSsoProviderChanges.releaseSignInChange([
+        serverLock,
+      ] as never);
+    });
+
     test("turning an attachment off that the database fails to write gives the lock back", async () => {
       projects = [project(BETA, "Beta")];
       kind.attachmentTable().rows = [
@@ -1431,7 +1698,7 @@ describe.each([
       expect(kind.attachmentTable().deleted).toEqual([ATTACHED_TO_ACME]);
     });
 
-    test("turning an attachment on takes no lock and is never refused", async () => {
+    test("turning an attachment on takes no lock, is never refused, and is told to every server once", async () => {
       kind.attachmentTable().rows = [
         attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
       ];
@@ -1444,6 +1711,81 @@ describe.each([
           return event.startsWith("lock:");
         }),
       ).toEqual([]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("saving an attachment that is on as on again tells nobody, and reads nothing more for it", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+      const attachmentReads: jest.SpyInstance = getJestSpyOn(
+        GlobalProviderAttachmentRows,
+        "read",
+      );
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: true }),
+      ).resolves.toBe("done");
+      expect(announced).toEqual([]);
+      expect(attachmentReads).not.toHaveBeenCalled();
+    });
+
+    test("turning an attachment off that was read as off already is told to every server all the same: one turned on in between takes no lock", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+      ];
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: false }),
+      ).resolves.toBe("done");
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("moving an attachment that was read as off is told to every server all the same: one turned on in between takes no lock", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_ACME, { projectId: GAMMA }),
+      ).resolves.toBe("done");
+      expect(kind.attachmentTable().rows[0]!["projectId"]).toBe(GAMMA);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("moving an attachment that was read as off to a provider that signs people in to every project is told all the same: the provider it leaves is restricted", async () => {
+      kind.providerTable().rows.push({
+        _id: OTHER_PROVIDER,
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      });
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+
+      await expect(
+        kind.attachmentService.updateBy({
+          query: { _id: ATTACHED_TO_ACME },
+          data: { [kind.providerColumn]: OTHER_PROVIDER } as never,
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+      expect(kind.attachmentTable().rows[0]![kind.providerColumn]).toBe(
+        OTHER_PROVIDER,
+      );
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
     });
   });
 
@@ -1469,6 +1811,22 @@ describe.each([
     expect(announced).toEqual([]);
   });
 
+  test("an attachment of a provider that signs people in to every project, turned off or moved while it was off, tells nobody", async () => {
+    projects = [project(ACME, "Acme"), project(BETA, "Beta")];
+    kind.attachmentTable().rows = [
+      attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+    ];
+
+    await expect(
+      updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: false }),
+    ).resolves.toBe("done");
+    await expect(
+      updateAttachment(kind, ATTACHED_TO_ACME, { projectId: BETA }),
+    ).resolves.toBe("done");
+
+    expect(announced).toEqual([]);
+  });
+
   test("the attachments of a provider that signs people in to every project decide nothing", async () => {
     projects = [project(ACME, "Acme"), project(BETA, "Beta")];
     kind.attachmentTable().rows = [attachmentRow(kind, ATTACHED_TO_ACME, ACME)];
@@ -1478,6 +1836,530 @@ describe.each([
     ).resolves.toBe("done");
     await expect(detach(kind, ATTACHED_TO_ACME)).resolves.toBe("done");
     await expect(attach(kind, BETA)).resolves.toBe("done");
+  });
+
+  /*
+   * A write that names its providers or attachments by a filter - no API
+   * route does, but OneUptime's own code may - writes exactly the rows its
+   * hooks read, under the lock or, for a write that only lets people in,
+   * without it: a row that comes to match the filter a moment later was
+   * never checked, nor worked out.
+   */
+  /*
+   * The row that lands is put first in the table: a write held only to as
+   * many rows as were read, rather than to the rows read, would reach it.
+   */
+  describe("a write that names its rows by a filter writes exactly the rows it read", () => {
+    beforeEach(() => {
+      projects = [project(ACME, "Acme")];
+      // Acme keeps a way in of its own: no change here strands it.
+      ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+    });
+
+    const providerNamed: (
+      providerId: string,
+      name: string,
+      isEnabled: boolean,
+    ) => Row = (providerId: string, name: string, isEnabled: boolean): Row => {
+      return {
+        _id: providerId,
+        name: name,
+        isEnabled: isEnabled,
+        restrictToAttachedProjects: false,
+      };
+    };
+
+    test("turning providers off by a filter turns off the ones read under the lock: one that comes to match afterwards stays on", async () => {
+      afterRead(kind.providerService, "restrictToAttachedProjects", () => {
+        kind
+          .providerTable()
+          .rows.unshift(providerNamed(OTHER_PROVIDER, "Okta", true));
+      });
+
+      await expect(
+        kind.providerService.updateBy({
+          query: { name: "Okta" },
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(false);
+      expect(providerRow(kind, OTHER_PROVIDER)!["isEnabled"]).toBe(true);
+      expect(providerRow(kind, OTHER_PROVIDER)!["signInsEndedAt"]).toBe(
+        undefined,
+      );
+      expect(
+        kind.providerTable().writes.map((write: { id: string }): string => {
+          return write.id;
+        }),
+      ).toEqual([PROVIDER]);
+    });
+
+    test("turning providers on by a filter - which takes no lock - turns on only the ones it read", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      afterRead(kind.providerService, "restrictToAttachedProjects", () => {
+        kind
+          .providerTable()
+          .rows.unshift(providerNamed(OTHER_PROVIDER, "Okta", false));
+      });
+
+      await expect(
+        kind.providerService.updateBy({
+          query: { name: "Okta" },
+          data: { isEnabled: true } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(providerRow(kind, OTHER_PROVIDER)!["isEnabled"]).toBe(false);
+      expect(lockObjects.size).toBe(0);
+    });
+
+    test("turning providers on by a filter whose providers cannot be read goes on with its own filter - nothing about it is checked - and every server is told", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      getJestSpyOn(kind.providerService, "findAllBy").mockRejectedValue(
+        new Error("The database could not read the providers") as never,
+      );
+
+      await expect(
+        kind.providerService.updateBy({
+          query: { name: "Okta" },
+          data: { isEnabled: true } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(lockObjects.size).toBe(0);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("turning attachments on by a filter whose attachments cannot be read goes on the same way, and every server is told", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+      ];
+
+      getJestSpyOn(kind.attachmentService, "findAllBy").mockRejectedValue(
+        new Error("The database could not read the attachments") as never,
+      );
+
+      await expect(
+        kind.attachmentService.updateBy({
+          query: { [kind.providerColumn]: PROVIDER },
+          data: { isEnabled: true } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.attachmentTable().rows[0]!["isEnabled"]).toBe(true);
+      expect(lockObjects.size).toBe(0);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("a provider turned on whose attachments cannot be read once it is held to the providers read is written all the same - those only - and every server is told", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      afterRead(kind.providerService, "restrictToAttachedProjects", () => {
+        kind
+          .providerTable()
+          .rows.unshift(providerNamed(OTHER_PROVIDER, "Okta", false));
+      });
+      getJestSpyOn(GlobalProviderAttachmentRows, "read").mockRejectedValue(
+        new Error("The database could not read the attachments") as never,
+      );
+
+      await expect(
+        kind.providerService.updateBy({
+          query: { name: "Okta" },
+          data: { isEnabled: true } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(providerRow(kind, OTHER_PROVIDER)!["isEnabled"]).toBe(false);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("deleting providers by a filter deletes the ones read under the lock, and leaves one that comes to match afterwards", async () => {
+      afterRead(kind.providerService, "restrictToAttachedProjects", () => {
+        kind
+          .providerTable()
+          .rows.unshift(providerNamed(OTHER_PROVIDER, "Okta", true));
+      });
+
+      await expect(
+        kind.providerService.deleteBy({
+          query: { name: "Okta" },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.providerTable().deleted).toEqual([PROVIDER]);
+      expect(providerRow(kind, OTHER_PROVIDER)).toBeDefined();
+    });
+
+    test("a delete by a filter that read no provider deletes none that come to match it afterwards", async () => {
+      afterRead(kind.providerService, "restrictToAttachedProjects", () => {
+        kind
+          .providerTable()
+          .rows.unshift(
+            providerNamed(OTHER_PROVIDER, "Created a moment later", true),
+          );
+      });
+
+      await expect(
+        kind.providerService.deleteBy({
+          query: { name: "Created a moment later" },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(0);
+
+      expect(kind.providerTable().deleted).toEqual([]);
+      expect(providerRow(kind, OTHER_PROVIDER)).toBeDefined();
+    });
+
+    test("a hard delete by a filter that read no provider purges only rows deleted before, never one created a moment later", async () => {
+      kind.providerTable().rows.push({
+        ...providerNamed(DELETED_BEFORE, "Retired", true),
+        deletedAt: OneUptimeDate.getSomeDaysAgo(40),
+      });
+
+      afterRead(kind.providerService, "restrictToAttachedProjects", () => {
+        kind
+          .providerTable()
+          .rows.unshift(providerNamed(CREATED_LATER, "Retired", true));
+      });
+
+      await expect(
+        kind.providerService.hardDeleteBy({
+          query: { name: "Retired" },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.providerTable().deleted).toEqual([DELETED_BEFORE]);
+      expect(providerRow(kind, CREATED_LATER)).toBeDefined();
+      expect(announced).toEqual([]);
+    });
+
+    test("the retention job's purge removes providers deleted more than a month ago, and never one that is there", async () => {
+      kind.providerTable().rows.push(
+        {
+          ...providerNamed(DELETED_BEFORE, "Deleted long ago", true),
+          deletedAt: OneUptimeDate.getSomeDaysAgo(40),
+        },
+        {
+          ...providerNamed(CREATED_LATER, "Deleted last week", true),
+          deletedAt: OneUptimeDate.getSomeDaysAgo(7),
+        },
+      );
+
+      await expect(
+        kind.providerService.hardDeleteBy({
+          query: {
+            deletedAt: QueryHelper.lessThan(OneUptimeDate.getSomeDaysAgo(30)),
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.providerTable().deleted).toEqual([DELETED_BEFORE]);
+      expect(providerRow(kind)).toBeDefined();
+      expect(providerRow(kind, CREATED_LATER)).toBeDefined();
+    });
+
+    test("turning attachments off by a filter turns off the ones read under the lock: one attached afterwards stays on", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+
+      afterRead(kind.attachmentService, "projectId", () => {
+        kind
+          .attachmentTable()
+          .rows.unshift(attachmentRow(kind, ATTACHED_LATER, BETA));
+      });
+
+      await expect(
+        kind.attachmentService.updateBy({
+          query: { [kind.providerColumn]: PROVIDER },
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      const attachments: Array<Row> = kind.attachmentTable().rows;
+
+      expect(
+        attachments.find((row: Row): boolean => {
+          return row._id === ATTACHED_TO_ACME;
+        })!["isEnabled"],
+      ).toBe(false);
+      expect(
+        attachments.find((row: Row): boolean => {
+          return row._id === ATTACHED_LATER;
+        })!["isEnabled"],
+      ).toBe(true);
+    });
+
+    test("removing attachments by a filter removes the ones read under the lock, and none attached afterwards", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+
+      afterRead(kind.attachmentService, "projectId", () => {
+        kind
+          .attachmentTable()
+          .rows.unshift(attachmentRow(kind, ATTACHED_LATER, BETA));
+      });
+
+      await expect(
+        kind.attachmentService.deleteBy({
+          query: { [kind.providerColumn]: PROVIDER },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.attachmentTable().deleted).toEqual([ATTACHED_TO_ACME]);
+    });
+
+    test("a hard delete of attachments by a filter that read none purges only rows deleted before", async () => {
+      kind.attachmentTable().rows = [
+        {
+          ...attachmentRow(kind, DELETED_BEFORE, ACME),
+          deletedAt: OneUptimeDate.getSomeDaysAgo(40),
+        },
+      ];
+
+      afterRead(kind.attachmentService, "projectId", () => {
+        kind
+          .attachmentTable()
+          .rows.unshift(attachmentRow(kind, ATTACHED_LATER, BETA));
+      });
+
+      await expect(
+        kind.attachmentService.hardDeleteBy({
+          query: { [kind.providerColumn]: PROVIDER },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.attachmentTable().deleted).toEqual([DELETED_BEFORE]);
+    });
+  });
+
+  describe("the lock of a change is kept for its write, until it is done", () => {
+    beforeEach(() => {
+      projects = [project(ACME, "Acme")];
+      ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+    });
+
+    test("a provider turned off: its lock is kept alive while it is written, and no more once it is", async () => {
+      let keptWhileWritten: Array<boolean> = [];
+      whileWriting = (): void => {
+        keptWhileWritten = keptForWrite();
+      };
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        "done",
+      );
+
+      expect(keptWhileWritten).toEqual([true]);
+      expect(keptForWrite()).toEqual([false]);
+    });
+
+    test("a provider deleted: kept alive while it is deleted, and no more once it is", async () => {
+      let keptWhileDeleted: Array<boolean> = [];
+      whileWriting = (): void => {
+        keptWhileDeleted = keptForWrite();
+      };
+
+      await expect(deleteProvider(kind)).resolves.toBe("done");
+
+      expect(keptWhileDeleted).toEqual([true]);
+      expect(keptForWrite()).toEqual([false]);
+    });
+
+    test("an attachment added: kept alive while it is inserted, and no more once it is - or once the database fails it", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+      projects = [project(ACME, "Acme"), project(BETA, "Beta")];
+
+      let keptWhileInserted: Array<boolean> = [];
+      whileWriting = (): void => {
+        keptWhileInserted = keptForWrite();
+      };
+
+      await expect(attach(kind, BETA)).resolves.toBe("done");
+
+      expect(keptWhileInserted).toEqual([true]);
+      expect(keptForWrite()).toEqual([false]);
+
+      failing = "save";
+
+      await expect(attach(kind, GAMMA)).rejects.toThrow(
+        "The database could not insert the row",
+      );
+
+      expect(keptForWrite()).toEqual([false]);
+      expect(events.slice(-2)).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    });
+
+    // The providers an attachment's delete detaches are read under the lock: then the lock is lost.
+    const loseLockAfterReadingProviders: (lose: () => void) => void = (
+      lose: () => void,
+    ): void => {
+      const readProviderIds: (...args: Array<unknown>) => Promise<unknown> = (
+        kind.attachmentService as unknown as {
+          readProviderIds: (...args: Array<unknown>) => Promise<unknown>;
+        }
+      ).readProviderIds.bind(kind.attachmentService);
+
+      getJestSpyOn(
+        kind.attachmentService,
+        "readProviderIds",
+      ).mockImplementation((async (
+        ...args: Array<unknown>
+      ): Promise<unknown> => {
+        const providerIds: unknown = await readProviderIds(...args);
+        lose();
+        return providerIds;
+      }) as never);
+    };
+
+    test("an attachment removed keeps the lock once more after reading the providers it detaches, right before the delete; lost by then, it is taken again, the attachment read and checked again, and removed", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+
+      loseLockAfterReadingProviders((): void => {
+        lostLockObjects.add(lockObjects.get(SERVER_LOCK)!);
+      });
+
+      await expect(detach(kind, ATTACHED_TO_ACME)).resolves.toBe("done");
+
+      expect(kind.attachmentTable().deleted).toEqual([ATTACHED_TO_ACME]);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        // Gone right before the delete: given back, taken again, checked again.
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `delete:${ATTACHED_TO_ACME}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(keptForWrite()).toEqual([false]);
+    });
+
+    test("an attachment removed whose lock is lost right before the delete, and lost again once taken again, is refused: nothing is removed, and nothing is held", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+
+      loseLockAfterReadingProviders((): void => {
+        lostLocks = [SERVER_LOCK];
+      });
+
+      await expect(detach(kind, ATTACHED_TO_ACME)).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(kind.attachmentTable().deleted).toEqual([]);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(keptForWrite()).toEqual([false]);
+      expect(announced).toEqual([]);
+    });
+
+    test("a lock lost once the check is done is taken again, the provider read and checked again under it, and the write goes through", async () => {
+      // Kept before the page of projects the check reads; gone once it is done, once.
+      getJestSpyOn(Semaphore, "keepLock").mockImplementation((async (mutex: {
+        key: string;
+      }): Promise<boolean> => {
+        kept.push(mutex.key);
+        return kept.length !== 2;
+      }) as never);
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        "done",
+      );
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(false);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `write:${PROVIDER}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(keptForWrite()).toEqual([false]);
+    });
+
+    test("a lock lost once the check is done, and lost again once taken again, refuses the write: nothing is written, and nothing is held", async () => {
+      // Kept before the page of projects the check reads; gone once it is done, and every time after.
+      getJestSpyOn(Semaphore, "keepLock").mockImplementation((async (mutex: {
+        key: string;
+      }): Promise<boolean> => {
+        kept.push(mutex.key);
+        return kept.length < 2;
+      }) as never);
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(kind.providerTable().writes).toEqual([]);
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(keptForWrite()).toEqual([false]);
+    });
   });
 });
 
@@ -1527,20 +2409,214 @@ describe("the server's Require SSO for Login", () => {
     expect(configTable.writes).toEqual([]);
   });
 
-  test("the lock is kept before each page of projects the check reads, and once more before the write", async () => {
+  test("the lock is kept before each page of projects the check reads, once it is done, and once more right before the write", async () => {
     globalSamlTable.rows = [
       { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
     ];
 
     await expect(updateServerRule(true)).resolves.toBe("done");
 
-    expect(kept).toEqual([SERVER_LOCK, SERVER_LOCK]);
+    expect(kept).toEqual([SERVER_LOCK, SERVER_LOCK, SERVER_LOCK]);
   });
 
-  test("turning it off, or saving it on again, is never refused", async () => {
+  test.each([
+    ["once its check is done", 2],
+    ["right before the write", 3],
+  ])(
+    "a lock lost %s is taken again, every project read and checked again under it, and the rule turned on",
+    async (_when: string, lostAtKeep: number) => {
+      globalSamlTable.rows = [
+        { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+      ];
+
+      getJestSpyOn(Semaphore, "keepLock").mockImplementation((async (mutex: {
+        key: string;
+      }): Promise<boolean> => {
+        kept.push(mutex.key);
+        return kept.length !== lostAtKeep;
+      }) as never);
+
+      await expect(updateServerRule(true)).resolves.toBe("done");
+
+      expect(configTable.writes[0]!.set).toEqual({ requireSsoForLogin: true });
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        // Gone: given back, taken again, checked again, and kept for the write.
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `write:${CONFIG_ID}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(keptForWrite()).toEqual([false]);
+    },
+  );
+
+  test.each([
+    ["once its check is done", 2],
+    ["right before the write", 3],
+  ])(
+    "a lock lost %s, and taken again once a project has lost its way in, refuses turning it on: nothing is written",
+    async (_when: string, lostAtKeep: number) => {
+      globalSamlTable.rows = [
+        { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+      ];
+
+      getJestSpyOn(Semaphore, "keepLock").mockImplementation((async (mutex: {
+        key: string;
+      }): Promise<boolean> => {
+        kept.push(mutex.key);
+
+        if (kept.length !== lostAtKeep) {
+          return true;
+        }
+
+        // While the lock was gone, the provider every project signed in with went off.
+        globalSamlTable.rows[0]!["isEnabled"] = false;
+        return false;
+      }) as never);
+
+      await expect(updateServerRule(true)).resolves.toBe(
+        'The project "Beta" has no SSO provider people can sign in with, so requiring SSO for everyone would lock its members out. Turn on a global SSO provider, or an SSO provider in that project, first.',
+      );
+
+      expect(configTable.writes).toEqual([]);
+      expect(configTable.rows[0]!["requireSsoForLogin"]).toBe(false);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(keptForWrite()).toEqual([false]);
+    },
+  );
+
+  test.each([
+    ["once its check is done", 2],
+    ["right before the write", 3],
+  ])(
+    "a lock lost %s, and lost again once taken again, refuses turning it on: nothing is written, and nothing is held",
+    async (_when: string, lostAtKeep: number) => {
+      globalSamlTable.rows = [
+        { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+      ];
+
+      getJestSpyOn(Semaphore, "keepLock").mockImplementation((async (mutex: {
+        key: string;
+      }): Promise<boolean> => {
+        kept.push(mutex.key);
+        return kept.length < lostAtKeep;
+      }) as never);
+
+      await expect(updateServerRule(true)).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(configTable.writes).toEqual([]);
+      expect(configTable.rows[0]!["requireSsoForLogin"]).toBe(false);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(keptForWrite()).toEqual([false]);
+    },
+  );
+
+  test("its lock is kept alive from the check on, before the write is started", async () => {
+    globalSamlTable.rows = [
+      { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+    ];
+
+    const rememberServerRuleBefore: (
+      ...args: Array<unknown>
+    ) => Promise<unknown> = SsoRequirementChanges.rememberServerRuleBefore.bind(
+      SsoRequirementChanges,
+    ) as unknown as (...args: Array<unknown>) => Promise<unknown>;
+
+    // The step that follows the check, before the write: the lock is kept alive by then.
+    let keptAfterCheck: Array<boolean> = [];
+    getJestSpyOn(
+      SsoRequirementChanges,
+      "rememberServerRuleBefore",
+    ).mockImplementation((async (...args: Array<unknown>): Promise<unknown> => {
+      keptAfterCheck = keptForWrite();
+      return await rememberServerRuleBefore(...args);
+    }) as never);
+
+    await expect(updateServerRule(true)).resolves.toBe("done");
+
+    expect(keptAfterCheck).toEqual([true]);
+    expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("its lock is kept alive while it is written, and no more once it is", async () => {
+    globalSamlTable.rows = [
+      { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+    ];
+
+    let keptWhileWritten: Array<boolean> = [];
+    whileWriting = (): void => {
+      keptWhileWritten = keptForWrite();
+    };
+
+    await expect(updateServerRule(true)).resolves.toBe("done");
+
+    expect(keptWhileWritten).toEqual([true]);
+    expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("a write the database fails gives the lock back, and keeps it alive no more", async () => {
+    globalSamlTable.rows = [
+      { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+    ];
+    failing = "update";
+
+    await expect(updateServerRule(true)).rejects.toThrow(
+      "The database could not write the row",
+    );
+
+    expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
+    expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("turning it off is never refused, and takes no lock", async () => {
     await expect(updateServerRule(false)).resolves.toBe("done");
 
+    expect(events).toEqual([`write:${CONFIG_ID}`]);
+  });
+
+  test("saved on again while it is on, it is checked as turning it on is: refused while a project has no way in, naming it", async () => {
     configTable.rows[0]!["requireSsoForLogin"] = true;
+
+    await expect(updateServerRule(true)).resolves.toBe(
+      'The project "Beta" has no SSO provider people can sign in with, so requiring SSO for everyone would lock its members out. Turn on a global SSO provider, or an SSO provider in that project, first.',
+    );
+
+    expect(configTable.writes).toEqual([]);
+    expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
+  });
+
+  test("saved on again while every project has a way in, it goes through, holding the lock until it is written", async () => {
+    configTable.rows[0]!["requireSsoForLogin"] = true;
+    globalSamlTable.rows = [
+      { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+    ];
+
+    let keptWhileWritten: Array<boolean> = [];
+    whileWriting = (): void => {
+      keptWhileWritten = keptForWrite();
+    };
+
     await expect(updateServerRule(true)).resolves.toBe("done");
+
+    expect(keptWhileWritten).toEqual([true]);
+    expect(events).toEqual([
+      `lock:${SERVER_LOCK}`,
+      `write:${CONFIG_ID}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+    expect(keptForWrite()).toEqual([false]);
   });
 });

@@ -10,9 +10,10 @@ import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
+import OneUptimeDate from "Common/Types/Date";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
 import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
 import AIInsightStatus from "Common/Types/AI/AIInsightStatus";
@@ -32,6 +33,18 @@ import AIPlanGate from "../../Components/AI/AIPlanGate";
 import InsightFilterBar, {
   InsightFilterOption,
 } from "../../Components/AIInsights/InsightFilterBar";
+import {
+  DEFAULT_INSIGHT_SORT,
+  INSIGHT_SEEN_WITHIN_OPTIONS,
+  INSIGHT_SORT_OPTIONS,
+  InsightSeenWithinValue,
+  InsightSortValue,
+  getInsightSeenWithinFilter,
+  getInsightSort,
+  parseInsightSeenWithin,
+  parseInsightSort,
+} from "../../Components/AIInsights/InsightListOrdering";
+import InsightHighlights from "../../Components/AIInsights/InsightHighlights";
 import InsightListItem from "../../Components/AIInsights/InsightListItem";
 import InsightListSkeleton from "../../Components/AIInsights/InsightListSkeleton";
 import InsightStatusSummary, {
@@ -131,10 +144,13 @@ const readFilterParam: ReadFilterParamFunction = (
 };
 
 /*
- * The AI insights inbox: a triage strip of per-status counts (which is also
- * the status filter), one search/type/severity toolbar, and a single aligned
- * list where every finding reads as title-first with its status, detection
- * count and freshness in fixed right-hand columns.
+ * The AI insights inbox. It leads with what to look at first — the open
+ * finding that matters most, with what OneUptime AI's triage concluded, the
+ * service behind most of them, and what is new this week
+ * (InsightHighlights) — then a triage strip of per-status counts (which is
+ * also the status filter), one search/type/severity toolbar, and a single
+ * aligned list where every finding reads as title-first with its status,
+ * detection count and freshness in fixed right-hand columns.
  */
 const AIInsightsPage: FunctionComponent<
   PageComponentProps
@@ -175,6 +191,17 @@ const AIInsightsPage: FunctionComponent<
   const [typeFilter, setTypeFilter] = useState<string>(() => {
     return readFilterParam("type", Object.values(AIInsightType));
   });
+  /*
+   * "Any time" is the same "All" sentinel the other filters use, so the bar's
+   * one unfilteredValue covers it too.
+   */
+  const [seenWithinFilter, setSeenWithinFilter] =
+    useState<InsightSeenWithinValue>(() => {
+      return parseInsightSeenWithin(Navigation.getQueryStringByName("seen"));
+    });
+  const [sortValue, setSortValue] = useState<InsightSortValue>(() => {
+    return parseInsightSort(Navigation.getQueryStringByName("sort"));
+  });
   const [searchText, setSearchText] = useState<string>(() => {
     return Navigation.getQueryStringByName("search") || "";
   });
@@ -189,9 +216,21 @@ const AIInsightsPage: FunctionComponent<
       status: statusFilter === ALL_FILTER_VALUE ? null : statusFilter,
       severity: severityFilter === ALL_FILTER_VALUE ? null : severityFilter,
       type: typeFilter === ALL_FILTER_VALUE ? null : typeFilter,
+      seen:
+        seenWithinFilter === InsightSeenWithinValue.AnyTime
+          ? null
+          : seenWithinFilter,
+      sort: sortValue === DEFAULT_INSIGHT_SORT ? null : sortValue,
       search: debouncedSearchText || null,
     });
-  }, [statusFilter, severityFilter, typeFilter, debouncedSearchText]);
+  }, [
+    statusFilter,
+    severityFilter,
+    typeFilter,
+    seenWithinFilter,
+    sortValue,
+    debouncedSearchText,
+  ]);
 
   // Debounce the title search so typing does not fire a request per key.
   useEffect(() => {
@@ -203,10 +242,12 @@ const AIInsightsPage: FunctionComponent<
     };
   }, [searchText]);
 
+  // The order is not a filter: it narrows nothing, and Clear keeps it.
   const hasActiveFilters: boolean = Boolean(
     statusFilter !== ALL_FILTER_VALUE ||
       severityFilter !== ALL_FILTER_VALUE ||
       typeFilter !== ALL_FILTER_VALUE ||
+      seenWithinFilter !== InsightSeenWithinValue.AnyTime ||
       debouncedSearchText,
   );
 
@@ -216,6 +257,7 @@ const AIInsightsPage: FunctionComponent<
     setStatusFilter(ALL_FILTER_VALUE);
     setSeverityFilter(ALL_FILTER_VALUE);
     setTypeFilter(ALL_FILTER_VALUE);
+    setSeenWithinFilter(InsightSeenWithinValue.AnyTime);
     setSearchText("");
     setDebouncedSearchText("");
   };
@@ -248,9 +290,19 @@ const AIInsightsPage: FunctionComponent<
         );
       }
 
+      const seenWithin: GreaterThanOrEqual<Date> | null =
+        getInsightSeenWithinFilter(
+          seenWithinFilter,
+          OneUptimeDate.getCurrentDate(),
+        );
+
+      if (seenWithin) {
+        (query as Record<string, unknown>)["lastSeenAt"] = seenWithin;
+      }
+
       return query;
     },
-    [severityFilter, typeFilter, debouncedSearchText],
+    [severityFilter, typeFilter, seenWithinFilter, debouncedSearchText],
   );
 
   /*
@@ -300,18 +352,17 @@ const AIInsightsPage: FunctionComponent<
               occurrenceCount: true,
             },
             /*
-             * The id is a tiebreaker, not decoration: the scanner stamps ONE
-             * lastSeenAt per project scan, so every live insight in a project
-             * carries the same timestamp to the millisecond. Ordering by a
-             * column that is tied across the whole page leaves Postgres free
-             * to return the rows in a different order per request, and offset
-             * pagination over a reshuffling order silently SKIPS rows — the
-             * de-dupe below only catches the opposite case (a row repeating).
+             * Every order ends on the id, and the id is a tiebreaker, not
+             * decoration: the scanner stamps ONE lastSeenAt per project scan,
+             * so every live insight in a project carries the same timestamp
+             * to the millisecond. Ordering by a column that is tied across
+             * the whole page leaves Postgres free to return the rows in a
+             * different order per request, and offset pagination over a
+             * reshuffling order silently SKIPS rows — the de-dupe below only
+             * catches the opposite case (a row repeating). See
+             * InsightListOrdering.getInsightSort.
              */
-            sort: {
-              lastSeenAt: SortOrder.Descending,
-              _id: SortOrder.Descending,
-            },
+            sort: getInsightSort(sortValue),
           },
         );
 
@@ -360,7 +411,7 @@ const AIInsightsPage: FunctionComponent<
         }
       }
     },
-    [buildQuery, statusFilter],
+    [buildQuery, statusFilter, sortValue],
   );
 
   const fetchStatusCounts: () => Promise<void> =
@@ -641,9 +692,14 @@ const AIInsightsPage: FunctionComponent<
 
       <p className="max-w-3xl text-sm leading-6 text-gray-500">
         {translator.translateText(
-          "Proactive findings from OneUptime AI's deterministic telemetry sensors — new or spiking exceptions, error-log spikes, latency regressions and metric drift. Insights never page and never open incidents.",
+          "OneUptime AI watches your telemetry around the clock and tells you about problems before anyone is paged: new or spiking exceptions, error-log spikes, slower requests and metrics that drift. Insights never page and never open incidents.",
+        )}{" "}
+        {translator.translateText(
+          "To be alerted when a finding happens again, open it and choose Create Monitor.",
         )}
       </p>
+
+      <InsightHighlights />
 
       <InsightStatusSummary
         buckets={statusBuckets}
@@ -661,6 +717,16 @@ const AIInsightsPage: FunctionComponent<
         severityOptions={SEVERITY_FILTER_OPTIONS}
         severityValue={severityFilter}
         onSeverityChange={setSeverityFilter}
+        seenWithinOptions={INSIGHT_SEEN_WITHIN_OPTIONS}
+        seenWithinValue={seenWithinFilter}
+        onSeenWithinChange={(value: string) => {
+          setSeenWithinFilter(parseInsightSeenWithin(value));
+        }}
+        sortOptions={INSIGHT_SORT_OPTIONS}
+        sortValue={sortValue}
+        onSortChange={(value: string) => {
+          setSortValue(parseInsightSort(value));
+        }}
         unfilteredValue={ALL_FILTER_VALUE}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={clearFilters}

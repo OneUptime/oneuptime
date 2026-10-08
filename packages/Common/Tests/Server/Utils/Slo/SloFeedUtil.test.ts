@@ -32,6 +32,7 @@ import Email from "../../../../Types/Email";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test: the server half of the SLO feed.
  *
@@ -159,7 +160,12 @@ describe("SloFeedUtil - the acting user", () => {
       .mockResolvedValue(URL.fromString(USER_LINK));
 
     await expect(
-      SloFeedUtil.getUserMarkdown({ userId: USER_ID, projectId: PROJECT_ID }),
+      SloFeedUtil.getUserMarkdown({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
+      }),
     ).resolves.toBe(`[Jane Doe](${USER_LINK})`);
   });
 
@@ -172,7 +178,12 @@ describe("SloFeedUtil - the acting user", () => {
       .mockResolvedValue(URL.fromString(USER_LINK));
 
     await expect(
-      SloFeedUtil.getUserMarkdown({ userId: USER_ID, projectId: PROJECT_ID }),
+      SloFeedUtil.getUserMarkdown({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
+      }),
     ).resolves.toBe(`[jane\\_doe@example.com](${USER_LINK})`);
   });
 
@@ -187,7 +198,12 @@ describe("SloFeedUtil - the acting user", () => {
       .mockResolvedValue(URL.fromString(USER_LINK));
 
     await expect(
-      SloFeedUtil.getUserMarkdown({ userId: USER_ID, projectId: PROJECT_ID }),
+      SloFeedUtil.getUserMarkdown({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
+      }),
     ).resolves.toBe(
       `[x\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://t.example/p.png\\)](${USER_LINK})`,
     );
@@ -211,9 +227,10 @@ describe("SloFeedUtil - the acting user", () => {
     ).resolves.toBeNull();
   });
 
-  test("the display name is escaped, and empty for no user", () => {
+  test("the display name is plain text, as typed, and empty for no user", () => {
+    // Placed as text (mdText) by the feed items that name the user.
     expect(SloFeedUtil.getUserDisplayName(makeUser({ name: "*Jane*" }))).toBe(
-      "\\*Jane\\*",
+      "*Jane*",
     );
     expect(SloFeedUtil.getUserDisplayName(null)).toBe("");
     expect(SloFeedUtil.getUserDisplayName(makeUser({}))).toBe("");

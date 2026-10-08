@@ -1084,7 +1084,7 @@ describe("submitPublicForm - the submission record and the private note", () => 
     );
     expect(note.note).toContain("**Which office?**  \nBerlin");
     expect(note.note).toContain(
-      "**Steps to reproduce**  \n1. Add to cart  \n2. Pay",
+      "**Steps to reproduce**  \n1\\. Add to cart  \n2\\. Pay",
     );
     // The answers already on the incident are not repeated.
     expect(note.note).not.toContain("What is wrong?");

@@ -296,6 +296,7 @@ func monitorStepsFilterAttrTypes() map[string]attr.Type {
 		"metric_monitor_options":            types.StringType,
 		"snmp_monitor_options":              types.StringType,
 		"database_monitor_options":          types.StringType,
+		"custom_code_monitor_options":       types.StringType,
 	}
 }
 
@@ -614,6 +615,11 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 			},
 			"database_monitor_options": schema.StringAttribute{
 				MarkdownDescription: "Raw JSON escape hatch for Database Health filter options (metricType). Required on every `Database Metric` filter — it names the series the threshold applies to. Write it with `jsonencode()`.",
+				Optional:            true,
+				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+			},
+			"custom_code_monitor_options": schema.StringAttribute{
+				MarkdownDescription: "Raw JSON escape hatch for Custom Code and Synthetic monitor filter options (resultValuePath - the field of the returned data a `Result Value` filter compares, e.g. `status` or `data.items[0].value`: dots for nested fields, `[n]` for array items). Omit it to compare the whole value. Write it with `jsonencode()`.",
 				Optional:            true,
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
@@ -1114,6 +1120,9 @@ func monitorStepsFilterToAPI(attrs map[string]attr.Value, attrPath string, diags
 	if v, ok := monitorStepsAttrJSON(attrs, "database_monitor_options", attrPath, diags); ok {
 		out["databaseMonitorOptions"] = v
 	}
+	if v, ok := monitorStepsAttrJSON(attrs, "custom_code_monitor_options", attrPath, diags); ok {
+		out["customCodeMonitorOptions"] = v
+	}
 	return out
 }
 
@@ -1585,6 +1594,9 @@ func monitorStepsFilterFromAPI(v interface{}, diags *diag.Diagnostics) (types.Ob
 	}
 	if s, ok := monitorStepsAPIJSONString(m["databaseMonitorOptions"]); ok {
 		attrs["database_monitor_options"] = types.StringValue(s)
+	}
+	if s, ok := monitorStepsAPIJSONString(m["customCodeMonitorOptions"]); ok {
+		attrs["custom_code_monitor_options"] = types.StringValue(s)
 	}
 	// metricCriteriaContext (evaluation-time context) and any unknown keys
 	// are intentionally dropped.

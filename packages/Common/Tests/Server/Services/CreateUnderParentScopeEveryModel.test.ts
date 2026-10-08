@@ -181,20 +181,50 @@ interface LookupCall {
 
 /*
  * The service of a model, its hooks replaced by the sentinel, and the read of
- * the parents answered by `readableIds`. The edition check is left out: the
- * Enterprise Edition's models are swept on a Community Edition test run too.
+ * the parents answered by `readableIds` - as the caller reads them, and as
+ * OneUptime finds them in the project for a caller whose read of the parent
+ * is optional (`projectLookups`). The service is a plain DatabaseService,
+ * which holds no reference to the project itself (no ProjectReferencesService
+ * check), so every parent it is given is looked up. The edition check is
+ * left out: the Enterprise Edition's models are swept on a Community Edition
+ * test run too.
  */
 const serviceFor: (
   modelType: ModelType,
   readableIds: Array<string>,
-) => { service: DatabaseService<BaseModel>; lookups: Array<LookupCall> } = (
+) => {
+  service: DatabaseService<BaseModel>;
+  lookups: Array<LookupCall>;
+  projectLookups: Array<LookupCall>;
+} = (
   modelType: ModelType,
   readableIds: Array<string>,
-): { service: DatabaseService<BaseModel>; lookups: Array<LookupCall> } => {
+): {
+  service: DatabaseService<BaseModel>;
+  lookups: Array<LookupCall>;
+  projectLookups: Array<LookupCall>;
+} => {
   const service: DatabaseService<BaseModel> = new DatabaseService<BaseModel>(
     modelType,
   );
   const lookups: Array<LookupCall> = [];
+  const projectLookups: Array<LookupCall> = [];
+
+  getJestSpyOn(DatabaseService as never, "findIdsInProject").mockImplementation(
+    (async (lookup: {
+      modelType: ModelType;
+      ids: Array<string>;
+    }): Promise<Array<string>> => {
+      projectLookups.push({
+        parentModelType: lookup.modelType,
+        ids: lookup.ids,
+      });
+
+      return lookup.ids.filter((id: string): boolean => {
+        return readableIds.includes(id);
+      });
+    }) as never,
+  );
 
   getJestSpyOn(
     service as unknown as { _onBeforeCreate: () => Promise<unknown> },
@@ -226,7 +256,11 @@ const serviceFor: (
     "checkEnterpriseColumnPermissions",
   ).mockReturnValue(undefined as never);
 
-  return { service: service, lookups: lookups };
+  return {
+    service: service,
+    lookups: lookups,
+    projectLookups: projectLookups,
+  };
 };
 
 const refusalOf: (promise: Promise<unknown>) => Promise<unknown> = async (
@@ -373,7 +407,10 @@ describe("every model read through another record is created only under a parent
     expect(optional.length).toBeGreaterThan(0);
 
     for (const modelType of optional) {
-      const { service, lookups } = serviceFor(modelType, []);
+      const parent: CreateParent = parentOf(modelType);
+      const { service, lookups, projectLookups } = serviceFor(modelType, [
+        PARENT_ID,
+      ]);
 
       const refusal: unknown = await refusalOf(
         service.create({
@@ -386,9 +423,71 @@ describe("every model read through another record is created only under a parent
         nameOf(modelType),
         true,
       ]);
+
+      // Never as the caller; a record of the project, found by OneUptime.
+      expect(lookups).toEqual([]);
+      expect(projectLookups).toEqual([
+        { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
+      ]);
+    }
+  });
+
+  test("a model whose parent read is optional takes no parent of another project from a caller who reads no parent", async () => {
+    const optional: Array<ModelType> = CREATABLE.map(
+      (entry: [string, ModelType]): ModelType => {
+        return entry[1];
+      },
+    ).filter((modelType: ModelType): boolean => {
+      return Boolean(new modelType().isParentReadOptional);
+    });
+
+    for (const modelType of optional) {
+      const parent: CreateParent = parentOf(modelType);
+      const { service, lookups } = serviceFor(modelType, []);
+
+      const refusal: unknown = await refusalOf(
+        service.create({
+          data: recordUnder(modelType),
+          props: memberWith([row(createGrantOf(modelType)!)]),
+        }),
+      );
+
+      expect([
+        nameOf(modelType),
+        refusal instanceof ProjectScopedReferenceException,
+      ]).toEqual([nameOf(modelType), true]);
+      expect((refusal as Error).message).toContain(
+        `references records that are not in this project: ${parent.title} "${PARENT_ID}".`,
+      );
       expect(lookups).toEqual([]);
     }
   });
+
+  test.each(CREATABLE)(
+    "%s: a parent of another project is refused when the caller reads every parent, for a service that checks no reference itself",
+    async (_name: string, modelType: ModelType) => {
+      const parent: CreateParent = parentOf(modelType);
+      const { service, lookups } = serviceFor(modelType, []);
+
+      const refusal: unknown = await refusalOf(
+        service.create({
+          data: recordUnder(modelType),
+          props: memberWith([
+            row(createGrantOf(modelType)!),
+            row(parentReadGrantOf(modelType)),
+          ]),
+        }),
+      );
+
+      expect(refusal).toBeInstanceOf(ProjectScopedReferenceException);
+      expect((refusal as Error).message).toContain(
+        `references records that are not in this project: ${parent.title} "${PARENT_ID}".`,
+      );
+      expect(lookups).toEqual([
+        { parentModelType: parent.parentModelType, ids: [PARENT_ID] },
+      ]);
+    },
+  );
 });
 
 const SERVER_DIRECTORY: string = path.resolve(__dirname, "../../../Server");

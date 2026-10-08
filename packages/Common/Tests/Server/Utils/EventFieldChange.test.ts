@@ -8,6 +8,8 @@ import EventFieldChange, {
   MONITOR_FIELDS,
   SCHEDULED_MAINTENANCE_FIELDS,
 } from "../../../Server/Utils/EventFieldChange";
+import ColumnValueChange from "../../../Server/Utils/Database/ColumnValueChange";
+import type { SpyInstance } from "jest-mock";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -20,6 +22,7 @@ import {
   test,
 } from "@jest/globals";
 
+import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * What an update really changes on an incident or an alert: the title, the
  * root cause, the description, the remediation notes, the labels and the
@@ -502,6 +505,8 @@ describe("EventFieldChange.getFeedMarkdown", () => {
       changes: { ...NOTHING, ...changes },
       projectId: PROJECT_ID,
       recordName: recordName,
+    }).then((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
   }
 
@@ -802,6 +807,8 @@ describe("EventFieldChange.getFeedMarkdown for a monitor", () => {
       projectId: PROJECT_ID,
       recordName: "Monitor",
       kind: MONITOR_FIELDS,
+    }).then((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
   }
 
@@ -849,13 +856,15 @@ describe("EventFieldChange.getFeedMarkdown for a monitor", () => {
 
   test("a scheduled maintenance description is Markdown, shown as written", async () => {
     expect(
-      await EventFieldChange.getFeedMarkdown({
-        written: { description: "**Database** [runbook](https://r.example)" },
-        changes: { ...NOTHING, textColumns: ["description"] },
-        projectId: PROJECT_ID,
-        recordName: "Scheduled Maintenance",
-        kind: SCHEDULED_MAINTENANCE_FIELDS,
-      }),
+      (
+        await EventFieldChange.getFeedMarkdown({
+          written: { description: "**Database** [runbook](https://r.example)" },
+          changes: { ...NOTHING, textColumns: ["description"] },
+          projectId: PROJECT_ID,
+          recordName: "Scheduled Maintenance",
+          kind: SCHEDULED_MAINTENANCE_FIELDS,
+        })
+      ).toString(),
     ).toBe(
       "\n\n**Scheduled Maintenance Description**: \n**Database** [runbook](https://r.example)\n",
     );
@@ -938,5 +947,61 @@ describe("EventFieldChange.toInstant and isInstantChanged", () => {
         valueBeforeUpdate: undefined,
       }),
     ).toBe(true);
+  });
+
+  /*
+   * A time written with no zone - a datetime-local field sends
+   * "2026-10-07T12:00", Postgres renders "2026-10-07 12:00:00" - is UTC, as
+   * the database stores it and as every other comparison of a write reads
+   * it (ColumnValueChange), whatever zone the server runs in. It used to be
+   * read in the server's own zone, so on a server not running in UTC the
+   * same time written back counted as moved: an "updated" feed line, and a
+   * reminder schedule started over.
+   *
+   * The zone is the process's (TZ), which a test cannot change from inside
+   * Jest: run under TZ=America/New_York, the old local-time read fails the
+   * first test here. Under UTC, the second keeps the rule in one place.
+   */
+  describe("a time with no zone is UTC, whatever zone the server runs in", () => {
+    test("in the zone this process runs in", () => {
+      expect(EventFieldChange.toInstant("2026-10-07T12:00")).toBe(NOON_UTC);
+      expect(EventFieldChange.toInstant("2026-10-07T12:00:00")).toBe(NOON_UTC);
+      expect(EventFieldChange.toInstant("2026-10-07 12:00:00")).toBe(NOON_UTC);
+      expect(EventFieldChange.toInstant("2026-10-07")).toBe(
+        Date.UTC(2026, 9, 7),
+      );
+
+      // Written back as it is stored, it has not moved.
+      expect(
+        EventFieldChange.isInstantChanged({
+          writtenValue: "2026-10-07T12:00",
+          valueBeforeUpdate: new Date(NOON_UTC),
+        }),
+      ).toBe(false);
+      expect(
+        EventFieldChange.isInstantChanged({
+          writtenValue: "2026-10-07T13:00",
+          valueBeforeUpdate: new Date(NOON_UTC),
+        }),
+      ).toBe(true);
+    });
+
+    test("is read the one way every comparison of a write reads a time", () => {
+      const readTime: SpyInstance<typeof ColumnValueChange.toInstant> =
+        jest.spyOn(ColumnValueChange, "toInstant");
+
+      try {
+        EventFieldChange.toInstant("2026-10-07T12:00");
+
+        expect(readTime).toHaveBeenCalledWith("2026-10-07T12:00");
+      } finally {
+        readTime.mockRestore();
+      }
+    });
+
+    test("looser text names no time, as a date column reads it", () => {
+      expect(EventFieldChange.toInstant("12")).toBeNull();
+      expect(EventFieldChange.toInstant("2026-13-45")).toBeNull();
+    });
   });
 });

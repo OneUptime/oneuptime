@@ -58,7 +58,7 @@ Le variabili locali esistono solo per la durata dell'esecuzione in corso. Ogni n
 Le accetta quasi ogni campo di testo:
 
 - L'URL di un blocco API.
-- Il testo del messaggio su Slack, Teams, Discord, Telegram, Email.
+- Il testo del messaggio su Slack, Teams, Discord, Telegram, IRC, Email.
 - L'oggetto e il corpo di un'email.
 - I campi degli header e del body (dentro i valori stringa).
 - Entrambi i lati di un blocco **If / Else**.

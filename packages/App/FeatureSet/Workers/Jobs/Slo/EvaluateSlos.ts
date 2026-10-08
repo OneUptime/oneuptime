@@ -67,6 +67,7 @@ import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import ServiceLevelObjectiveBurnRateRuleService from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveFeedService from "Common/Server/Services/ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObjectiveService";
@@ -103,13 +104,16 @@ import {
   buildSloBurnRateTemplateVariables,
   renderSloBurnRateTemplate,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
-import { escapeMarkdownInline } from "Common/Utils/Markdown/MarkdownEscape";
 import {
   SloFeedMarkdown,
   SloFeedStatusMeasurement,
   getSloStatusChangedFeedMarkdown,
 } from "Common/Utils/Slo/SloFeedMarkdown";
 import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * How far in the future the next full evaluation is scheduled, and the
@@ -1073,7 +1077,7 @@ async function postSloStatusChangedFeedItem(data: {
   }
 
   try {
-    const sloMarkdownLink: string =
+    const sloMarkdownLink: MarkdownText =
       await ServiceLevelObjectiveService.getSloMarkdownLink({
         projectId: data.slo.projectId,
         sloId: data.slo.id,
@@ -1381,22 +1385,31 @@ function computeBurnRateForLookback(data: {
 /*
  * Simplified form of MonitorAlert's scheduled-maintenance suppression: the
  * SLO alerting layer suppresses burn-rate alert CREATION while any attached
- * monitor is attached to an ongoing ScheduledMaintenance (same
- * currentScheduledMaintenanceState.isOngoingState query
- * MonitorMaintenanceSuppression uses, intersected against the SLO's monitors
- * instead of series labels). Existing open alerts still resolve normally.
+ * monitor is attached to a ScheduledMaintenance in progress - in its
+ * project's ongoing state, or in a state of the project's own placed between
+ * Ongoing and Ended, such as "Verifying" (the same in-progress states
+ * MonitorMaintenanceSuppression asks for, intersected against the SLO's
+ * monitors instead of series labels). Existing open alerts still resolve
+ * normally.
  */
 async function isAnySloMonitorUnderOngoingMaintenance(data: {
   projectId: ObjectID;
   monitorIds: Array<ObjectID>;
 }): Promise<boolean> {
+  const inProgressStateIds: Array<ObjectID> =
+    await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
+      data.projectId,
+    );
+
+  if (inProgressStateIds.length === 0) {
+    return false;
+  }
+
   const ongoingEvents: Array<ScheduledMaintenance> =
     await ScheduledMaintenanceService.findBy({
       query: {
         projectId: data.projectId,
-        currentScheduledMaintenanceState: {
-          isOngoingState: true,
-        },
+        currentScheduledMaintenanceStateId: QueryHelper.any(inProgressStateIds),
       },
       select: {
         _id: true,
@@ -1653,7 +1666,7 @@ async function evaluateBurnRateRule(data: {
     ruleId: ruleId,
     rootCause: hasFullLongWindow
       ? "Burn rate dropped below threshold."
-      : `The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`,
+      : mdText`The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`.toString(),
     /*
      * Only a measured recovery is what the rule's auto-resolve switches
      * describe. Losing the history to measure at all is not a recovery - the
@@ -2186,7 +2199,8 @@ async function buildBurnRateDeclaration(data: {
 
   return {
     fingerprint: data.fingerprint,
-    rootCause: `Error budget burn rate breached the "${rule.name}" rule of SLO "${context.slo.name}".`,
+    rootCause:
+      mdText`Error budget burn rate breached the "${rule.name}" rule of SLO "${context.slo.name}".`.toString(),
     variables: variables,
     alert: renderBurnRateOutputCopy({
       titleTemplate: rule.alertTitleTemplate,
@@ -3085,15 +3099,12 @@ async function postBurnRateRaisedFeedItem(data: {
           serviceLevelObjectiveFeedEventType: isAlert
             ? ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised
             : ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
-          feedInfoInMarkdown: `Burn rate rule **${escapeMarkdownInline(rule.name)}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`,
-          moreInformationInMarkdown: [
-            `**Visibility:** Private - only its owners and project admins can see this ${isAlert ? "alert" : "incident"}.`,
+          feedInfoInMarkdown:
+            mdText`Burn rate rule **${rule.name}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`.toString(),
+          moreInformationInMarkdown: FeedMarkdown.bulletList([
+            mdText`**Visibility:** Private - only its owners and project admins can see this ${isAlert ? "alert" : "incident"}.`,
             ...getBurnRateFeedMeasurementLines(variables),
-          ]
-            .map((line: string): string => {
-              return `- ${line}`;
-            })
-            .join("\n"),
+          ]).toString(),
           displayColor: Red500,
           postedAt: context.now,
         },
@@ -3102,12 +3113,12 @@ async function postBurnRateRaisedFeedItem(data: {
     }
 
     const recordLabel: string = data.recordNumber
-      ? `${isAlert ? "Alert" : "Incident"} ${escapeMarkdownInline(data.recordNumber)}`
+      ? `${isAlert ? "Alert" : "Incident"} ${data.recordNumber}`
       : isAlert
         ? "an alert"
         : "an incident";
 
-    let recordReference: string = recordLabel;
+    let recordReference: MarkdownText = mdText`${recordLabel}`;
 
     if (data.recordId) {
       const recordLink: string = isAlert
@@ -3124,13 +3135,13 @@ async function postBurnRateRaisedFeedItem(data: {
             )
           ).toString();
 
-      recordReference = `[${recordLabel}](${recordLink})`;
+      recordReference = mdText`[${recordLabel}](${recordLink})`;
     }
 
     const variables: SloBurnRateTemplateVariables = data.declaration.variables;
 
-    const moreInformation: Array<string> = [
-      `**Title:** ${escapeMarkdownInline(data.copy.title)}`,
+    const moreInformation: Array<MarkdownText> = [
+      mdText`**Title:** ${data.copy.title}`,
       ...getBurnRateFeedMeasurementLines(variables),
     ];
 
@@ -3140,12 +3151,10 @@ async function postBurnRateRaisedFeedItem(data: {
       serviceLevelObjectiveFeedEventType: isAlert
         ? ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised
         : ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
-      feedInfoInMarkdown: `Burn rate rule **${escapeMarkdownInline(rule.name)}** ${isAlert ? "raised" : "declared"} ${recordReference}.`,
-      moreInformationInMarkdown: moreInformation
-        .map((line: string): string => {
-          return `- ${line}`;
-        })
-        .join("\n"),
+      feedInfoInMarkdown:
+        mdText`Burn rate rule **${rule.name}** ${isAlert ? "raised" : "declared"} ${recordReference}.`.toString(),
+      moreInformationInMarkdown:
+        FeedMarkdown.bulletList(moreInformation).toString(),
       displayColor: Red500,
       postedAt: context.now,
     });
@@ -3164,12 +3173,12 @@ async function postBurnRateRaisedFeedItem(data: {
  */
 function getBurnRateFeedMeasurementLines(
   variables: SloBurnRateTemplateVariables,
-): Array<string> {
+): Array<MarkdownText> {
   return [
-    `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.LongWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.LongWindowBurnRate]}x`,
-    `**Burn rate over the last ${variables[SloBurnRateTemplateVariable.ShortWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.ShortWindowBurnRate]}x`,
-    `**Threshold:** ${variables[SloBurnRateTemplateVariable.BurnRateThreshold]}x`,
-    `**Error budget remaining:** ${variables[SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]}% (${variables[SloBurnRateTemplateVariable.ErrorBudgetRemaining]})`,
+    mdText`**Burn rate over the last ${variables[SloBurnRateTemplateVariable.LongWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.LongWindowBurnRate]}x`,
+    mdText`**Burn rate over the last ${variables[SloBurnRateTemplateVariable.ShortWindowInMinutes]} minutes:** ${variables[SloBurnRateTemplateVariable.ShortWindowBurnRate]}x`,
+    mdText`**Threshold:** ${variables[SloBurnRateTemplateVariable.BurnRateThreshold]}x`,
+    mdText`**Error budget remaining:** ${variables[SloBurnRateTemplateVariable.ErrorBudgetRemainingPercentage]}% (${variables[SloBurnRateTemplateVariable.ErrorBudgetRemaining]})`,
   ];
 }
 
@@ -3190,7 +3199,7 @@ async function postBurnRateResolvedFeedItem(data: {
   const isAlert: boolean = data.output === "alert";
   const record: string = isAlert ? "alert" : "incident";
   const createdVerb: string = isAlert ? "raised" : "declared";
-  const ruleName: string = escapeMarkdownInline(rule.name);
+  const ruleName: string = rule.name || "";
 
   try {
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({
@@ -3201,12 +3210,12 @@ async function postBurnRateResolvedFeedItem(data: {
         : ServiceLevelObjectiveFeedEventType.BurnRateIncidentResolved,
       feedInfoInMarkdown:
         data.closure === "resolved-by-hand"
-          ? `The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved by hand. The burn has recovered, so the rule can fire again.`
-          : `The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved.`,
+          ? mdText`The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved by hand. The burn has recovered, so the rule can fire again.`.toString()
+          : mdText`The ${record} ${createdVerb} by burn rate rule **${ruleName}** was resolved.`.toString(),
       moreInformationInMarkdown:
         data.closure === "resolved-by-hand"
-          ? `Auto-resolve is off for this rule's ${record}, so it stayed open until someone resolved it.`
-          : `**Reason:** ${data.rootCause}`,
+          ? mdText`Auto-resolve is off for this rule's ${record}, so it stayed open until someone resolved it.`.toString()
+          : mdText`**Reason:** ${FeedMarkdown.asMarkdown(data.rootCause)}`.toString(),
       displayColor: Green500,
       postedAt: context.now,
     });

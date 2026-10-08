@@ -20,6 +20,29 @@ If the generated migration builds an index (`CREATE INDEX`) or adds a foreign ke
 
 Clickhouse migrations are written manually. Please write the migration code in DataMigrations and follow the same pattern as other migrations.
 
+### Feed and chat Markdown
+
+Feed items and Slack / Microsoft Teams messages are Markdown with people's text in them: names, titles, labels, rule names. Write that Markdown with the `mdText` tag from `packages/Common/Utils/Markdown/FeedMarkdown.ts`. It escapes every value for where it sits (a sentence, a link's words or address, a code span, a table row, the start of a line), and places a `MarkdownText` (built with `mdText` or a `FeedMarkdown` helper) as it is, so nothing is escaped twice.
+
+- Join pieces with `FeedMarkdown.join` / `bulletList` / `numberedList`, not `Array.join` or `+`, and never turn a `MarkdownText` into a string to place it again.
+- Markdown a person wrote goes in with `FeedMarkdown.asMarkdown`, OneUptime AI's with `FeedMarkdown.aiWritten` (`aiWrittenForTeams` for the Teams bot), and text from outside OneUptime with `FeedMarkdown.writtenOutside` / `reportedValue`.
+- Only `packages/Common/Utils/Markdown/` imports `MarkdownEscape` or `UntrustedMarkdown`.
+
+`FeedAndChatPlainTextEscapedGuard` (packages/Common/Tests/Server/Services) enforces this for every feed and chat sink, including `ee/Server`.
+
+### Megabyte-long values
+
+A synthetic monitor's screenshot reaches descriptions and emails as base64 of several megabytes on one line. Do not run a regular expression with a quantifier over a value that long. V8 backtracks on a stack that can grow with every character a quantifier takes, and a process that has been running a while compiles regular expressions without optimization, so they run out of stack ("Maximum call stack size exceeded") on about three megabytes - in production, and in a CI test worker that has already run many test files. Scan such a value with a loop or `indexOf` (`isBase64` in `packages/Common/Utils/Markdown/InlineImageDataUri.ts`), and keep it out of marked (`Markdown.holdBackFromMarked`). `ScreenshotEmailInLongRunningProcess.test.ts` (packages/Common/Tests/Server/Utils/Mail) runs the screenshot-in-email path under `node --no-regexp-optimization`, the state such a process reaches; test new code that handles these values the same way.
+
+Any text a notification carries can be that long: a response body or a log a description template places, a log pasted into a note - megabytes on one line, or a paragraph of a hundred thousand lines. Markdown parsers (marked for emails, remark for the Dashboard and for slackify) read lines and paragraphs with regular expressions or in time that grows with their square, so:
+
+- Before a parser reads such Markdown, hold back what is too long with `packages/Common/Utils/Markdown/OverLongText.ts` (`holdBackOverLongText`: the middle of every line over 64 KB, the plain lines of every run of lines over 64 KB) and write it back, escaped, where the parser put the token - as the email renderer (`Markdown.holdBackFromMarked`) and `MarkdownViewer` (`MarkdownViewerOverLongText.ts`) do. Markdown of at most 64 KB holds back nothing and renders exactly as before.
+- When too much is still left - long tables, logs whose lines hold a `|`, a `<` or a backtick - show the text as written: an email field with more than `MAX_MARKED_EMAIL_MARKDOWN_LENGTH` (1 MiB) left, or a RangeError from marked, is sent as escaped text; the viewer shows more than `MAX_PARSED_MARKDOWN_LENGTH` (128 KB) as text.
+- A regular expression that can cross lines gets a bounded quantifier (`{0,65536}`, as in `Markdown.convertToPlainText`), and a step that only needs a loop uses one.
+- Chat messages are cut before any converter reads them, ending with a note: Slack at `SlackUtil.MARKDOWN_MAX_LENGTH` (`cutMarkdown`), Teams to an 80 KB message (`MicrosoftTeamsMessageSize.fitMarkdownText`).
+
+`HugeTextInLongRunningProcess.test.ts` (packages/Common/Tests/Server/Types) runs every converter - email, plain text, Slack, Teams, the Dashboard viewer, feed text - on sixteen megabytes under `node --no-regexp-optimization`; a new converter of notification text belongs there too.
+
 ### After you make a change.
 
 Do not lint the entire project. Only lint the files you have modified by passing their paths explicitly to `npx eslint --fix` from the root. Do not run `npm run lint`, `npm run fix-lint`, or `npm run fix`, as these commands lint the entire project.

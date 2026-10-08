@@ -267,7 +267,7 @@ describe("incident created feed item", () => {
 
     expect(markdown.split(RESOURCES_AFFECTED_HEADER)).toHaveLength(2);
     expect(resourcesAffectedLines(markdown)).toEqual([
-      `- [checkout\\-web](${monitorLink(MONITOR_ID)})`,
+      `- [checkout-web](${monitorLink(MONITOR_ID)})`,
       `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
       `- [SLO Search latency p95](${sloLink(OTHER_SLO_ID)})`,
     ]);
@@ -279,7 +279,7 @@ describe("incident created feed item", () => {
     );
 
     expect(resourcesAffectedLines(postedMarkdown(incidentFeedItem))).toEqual([
-      `- [checkout\\-web](${monitorLink(MONITOR_ID)})`,
+      `- [checkout-web](${monitorLink(MONITOR_ID)})`,
     ]);
   });
 
@@ -319,7 +319,7 @@ describe("incident created feed item", () => {
     expect(markdown).not.toContain("![pixel](");
     expect(markdown).not.toContain("\n# owned");
     expect(lines).toEqual([
-      `- [SLO Checkout\\]\\(https://evil.example\\) \\!\\[pixel\\]\\(https://tracker.example/p.gif\\) \\# owned](${sloLink(SLO_ID)})`,
+      `- [SLO Checkout\\]\\(https://evil.example\\) \\!\\[pixel\\]\\(https://tracker.example/p.gif\\) # owned](${sloLink(SLO_ID)})`,
     ]);
   });
 
@@ -488,7 +488,7 @@ describe("alert created feed item", () => {
 
     expect(markdown.split(RESOURCES_AFFECTED_HEADER)).toHaveLength(2);
     expect(resourcesAffectedLines(markdown)).toEqual([
-      `- [checkout\\-web](${monitorLink(MONITOR_ID)})`,
+      `- [checkout-web](${monitorLink(MONITOR_ID)})`,
       `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
     ]);
   });
@@ -501,7 +501,7 @@ describe("alert created feed item", () => {
     await createAlertFeed(ALERT_ID);
 
     expect(resourcesAffectedLines(postedMarkdown(alertFeedItem))).toEqual([
-      `- [checkout\\-web](${monitorLink(MONITOR_ID)})`,
+      `- [checkout-web](${monitorLink(MONITOR_ID)})`,
     ]);
   });
 
@@ -551,7 +551,7 @@ describe("alert created feed item", () => {
     // Escaped as `\<`, which renders as a literal `<` rather than raw HTML.
     expect(markdown).not.toMatch(/(^|[^\\])<img/);
     expect(resourcesAffectedLines(markdown)).toEqual([
-      `- [SLO x\\]\\(https://evil.example\\) \\<img src=x\\>](${sloLink(SLO_ID)})`,
+      `- [SLO x\\]\\(https://evil.example\\) \\<img src=x>](${sloLink(SLO_ID)})`,
     ]);
   });
 });

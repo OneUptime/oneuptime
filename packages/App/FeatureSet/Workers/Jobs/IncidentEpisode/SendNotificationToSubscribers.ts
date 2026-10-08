@@ -63,8 +63,8 @@ import SubscriberNotificationRunLimit, {
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
+import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "IncidentEpisode:SendNotificationToSubscribers",
@@ -213,8 +213,9 @@ RunCron(
           const projectId: ObjectID = episode.projectId!;
           const episodeNumber: string =
             episode.episodeNumber?.toString() || " - ";
-          const episodeFeedText: string = `📧 **Subscriber Episode Created Notification Sent for [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()})**:
-      Notification sent to status page subscribers because this episode was created.`;
+          const episodeFeedText: string =
+            mdText`📧 **Subscriber Episode Created Notification Sent for [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()})**:
+      Notification sent to status page subscribers because this episode was created.`.toString();
 
           /*
            * Pending to InProgress, only if no other run has claimed it and it
@@ -876,15 +877,16 @@ RunCron(
                         );
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(episode.title || "")}
+                      markdownMessage =
+                        mdText`## 🚨 Incident - ${episode.title || ""}
 
-**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
+**Severity:** ${episode.incidentSeverity?.name || " - "}
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Resources Affected:** ${resourcesAffectedPlainText}
 
-**Description:** ${episode.description || ""}
+**Description:** ${FeedMarkdown.asMarkdown(episode.description || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                     }
 
                     // send Slack notification with markdown conversion
@@ -933,11 +935,12 @@ RunCron(
                         );
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(episode.title || "")}
-**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
-**Description:** ${episode.description || ""}
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                      markdownMessage =
+                        mdText`## 🚨 Incident - ${episode.title || ""}
+**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Resources Affected:** ${resourcesAffectedPlainText}
+**Description:** ${FeedMarkdown.asMarkdown(episode.description || "")}
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                     }
 
                     // send Teams notification
@@ -1030,7 +1033,8 @@ RunCron(
               incidentEpisodeFeedEventType:
                 IncidentEpisodeFeedEventType.SubscriberNotificationSent,
               displayColor: Red500,
-              feedInfoInMarkdown: `📧 **Not every subscriber was sent the notification** that [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`,
+              feedInfoInMarkdown:
+                mdText`📧 **Not every subscriber was sent the notification** that [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`.toString(),
               // Each status page with what was sent and what failed, and its subject.
               moreInformationInMarkdown: deliveryMarkdown || undefined,
             });
@@ -1064,7 +1068,8 @@ RunCron(
               incidentEpisodeFeedEventType:
                 IncidentEpisodeFeedEventType.SubscriberNotificationSent,
               displayColor: Yellow500,
-              feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the creation of [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`,
+              feedInfoInMarkdown:
+                mdText`📧 **No notification sent to subscribers** for the creation of [Episode ${episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`.toString(),
               moreInformationInMarkdown: [
                 "Subscriber notifications were skipped because every associated status page either hides episodes, is left out by the status page scope of the episode's incidents, or had no matching subscribers.",
                 deliveryMarkdown,

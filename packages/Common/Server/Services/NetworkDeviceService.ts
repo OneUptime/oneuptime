@@ -13,6 +13,7 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
+import { fillDeviceNameOnCreate } from "../../Utils/NetworkDevice/DeviceNameDefault";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -521,6 +522,17 @@ export class Service extends ProjectReferencesService<Model> {
    * and labels - is checked by ProjectReferencesService.
    */
   protected override getRelationsCheckedByService(): Array<string> {
+    return ["probe"];
+  }
+
+  /*
+   * A device put in a site with no probe of its own takes the site's
+   * default probe (onBeforeCreate, and a move to another site): copied from
+   * the site the write names, which its caller may read, and set on the
+   * site by someone allowed to. A probe the caller names is asked about as
+   * theirs (DatabaseService.checkNamedLists).
+   */
+  protected override getReferencesFilledFromNamedRecords(): Array<string> {
     return ["probe"];
   }
 
@@ -1206,6 +1218,15 @@ export class Service extends ProjectReferencesService<Model> {
     normalizeMacAddressOnWrite(
       createBy.data as unknown as Record<string, unknown>,
     );
+
+    /*
+     * A device added without a name is named after its address. The Add
+     * Device form asks for the address first and leaves the name optional,
+     * and the same rule here means a device created through the API is named
+     * the same way rather than refused (the required-name check runs after
+     * this hook). A payload with neither is left for that check to name.
+     */
+    fillDeviceNameOnCreate(createBy.data);
 
     const siteId: ObjectID | null = readSiteIdFromData(
       createBy.data as unknown as Record<string, unknown>,

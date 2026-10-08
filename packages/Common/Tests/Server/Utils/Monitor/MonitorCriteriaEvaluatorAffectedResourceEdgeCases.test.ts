@@ -72,6 +72,9 @@ import PlatformResourceIdentity, {
 } from "../../../../Utils/Monitor/PlatformResourceIdentity";
 import { describe, expect, test } from "@jest/globals";
 
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Why this suite exists.
  *
@@ -1055,7 +1058,7 @@ interface ShimRow {
   identity: { name: string };
   value: number | null;
   formattedValue: string;
-  valueNote?: string | undefined;
+  valueNote?: MarkdownText | undefined;
 }
 
 type EvaluatorPrivate = {
@@ -1063,7 +1066,7 @@ type EvaluatorPrivate = {
     rows: Array<ShimRow>;
     worstIsLowest: boolean;
   }) => Array<ShimRow>;
-  renderAffectedRowValue: (row: ShimRow) => string;
+  renderAffectedRowValue: (row: ShimRow) => MarkdownText;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -1079,13 +1082,13 @@ describe("Affected-row ordering and value cells", () => {
       identity: { name: name },
       value: value,
       formattedValue: value === null ? "no data" : `${value}`,
-      ...(valueNote ? { valueNote: valueNote } : {}),
+      ...(valueNote ? { valueNote: FeedMarkdown.asMarkdown(valueNote) } : {}),
     };
   }
 
   function rendered(rows: Array<ShimRow>): Array<string> {
     return rows.map((row: ShimRow): string => {
-      return `${row.identity.name} ${Evaluator.renderAffectedRowValue(row)}`;
+      return `${row.identity.name} ${Evaluator.renderAffectedRowValue(row).toString()}`;
     });
   }
 

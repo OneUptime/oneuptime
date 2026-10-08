@@ -348,8 +348,8 @@ describe("Serverless Functions docs", (): void => {
 
   describe("navigation", (): void => {
     /*
-     * Docs/Index.ts serves a page only through a nav link, and resolves a
-     * request to the FIRST link whose URL contains the requested path.
+     * Docs/Index.ts serves a page only through a nav link: the one whose URL
+     * is exactly the requested path.
      */
     it("is the link the docs router resolves the page to", (): void => {
       const all: Array<NavLink> = DocsNav.flatMap(
@@ -359,7 +359,7 @@ describe("Serverless Functions docs", (): void => {
       );
       const resolved: NavLink | undefined = all.find(
         (link: NavLink): boolean => {
-          return link.url.toLocaleLowerCase().includes(PAGE);
+          return link.url.toLocaleLowerCase() === `/docs/${PAGE}`;
         },
       );
 
@@ -368,12 +368,12 @@ describe("Serverless Functions docs", (): void => {
         url: PAGE_URL,
       });
 
-      const telemetry: NavGroup | undefined = DocsNav.find(
+      const agents: NavGroup | undefined = DocsNav.find(
         (group: NavGroup): boolean => {
-          return group.title === "Telemetry";
+          return group.title === "Infrastructure Agents";
         },
       );
-      expect(telemetry?.links).toContainEqual(resolved);
+      expect(agents?.links).toContainEqual(resolved);
     });
   });
 

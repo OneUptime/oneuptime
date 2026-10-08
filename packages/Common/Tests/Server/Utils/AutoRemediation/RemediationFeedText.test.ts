@@ -13,6 +13,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { Lexer, Token, marked } from "marked";
 
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 // Where an HTML tag starts.
 const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
 
@@ -72,14 +73,21 @@ describe("A command's output quoted in a feed item", () => {
   ).capForFeed.bind(CommandPlanExecutor);
 
   test("reads as printed, on one line, and acts on nothing", () => {
+    // The output itself: plain text, on one line.
     const quoted: string = capForFeed(HOSTILE);
 
     expect(quoted).toBe(
+      "Error: <!channel> [Fix it here](https://evil.example/fix) ![](https://tracker.example/p.png) <b>now</b>",
+    );
+
+    // The feed item places it as text, as the executor's items do.
+    const line: string =
+      mdText`⚠️ **Approved AI command plan failed:** command 1 failed: ${quoted}`.toString();
+
+    expect(line).toContain(
       "Error: \\<\u2060!channel> \\[Fix it here\\](https://evil.example/fix) !\\[\\](https://tracker.example/p.png) \\<b>now\\</b>",
     );
-    expectText(
-      `⚠️ **Approved AI command plan failed:** command 1 failed: ${quoted}`,
-    );
+    expectText(line);
   });
 
   test("is cut to a feed line's length, and the cut cannot leave Markdown open", () => {
@@ -89,7 +97,7 @@ describe("A command's output quoted in a feed item", () => {
 
     expect(quoted.length).toBeLessThan(2000);
     expect(quoted.endsWith("…")).toBe(true);
-    expectText(quoted);
+    expectText(mdText`${quoted}`.toString());
   });
 });
 

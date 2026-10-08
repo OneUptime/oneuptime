@@ -13,7 +13,6 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
@@ -29,9 +28,13 @@ import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import StateChangeNote from "../Utils/StateChangeNote";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -110,17 +113,15 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
           ],
         });
 
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.alertId.toString(),
-          namespace: "AlertStateTimeline.create",
-        });
-      } catch (err) {
-        logger.error(err, {
+      // The alert's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "AlertStateTimeline.create",
+        eventId: createBy.data.alertId,
+        logAttributes: {
           projectId: createBy.data.projectId?.toString(),
           alertId: createBy.data.alertId?.toString(),
-        } as LogAttributes);
-      }
+        } as LogAttributes,
+      });
 
       // Who made the change, under either name of it: see CreatedByUser.
       const changedByUserId: ObjectID | null = CreatedByUser.getId(
@@ -129,12 +130,13 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       );
 
       if (changedByUserId && !createBy.data.rootCause) {
-        createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
-          {
-            userId: changedByUserId,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
+        createBy.data.rootCause =
+          mdText`Alert state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: changedByUserId,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`.toString();
       }
 
       // Under either of its names; the two must agree.
@@ -294,17 +296,14 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         },
       };
     } catch (error) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            alertId: createBy.data.alertId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        alertId: createBy.data.alertId?.toString(),
+      } as LogAttributes);
 
       throw error;
     }
@@ -318,8 +317,6 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
     if (!createdItem.alertId) {
       throw new BadDataException("alertId is null");
     }
-
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
 
     if (!createdItem.alertStateId) {
       throw new BadDataException("alertStateId is null");
@@ -384,6 +381,11 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       logger.debug("This status is in the middle.");
     }
 
+    /*
+     * The alert's current state follows its timeline, as OneUptime's own
+     * write: the permission to create the change is the permission to change
+     * the alert's state (StateChangeFollowOn).
+     */
     if (!createdItem.endsAt) {
       await AlertService.updateOneBy({
         query: {
@@ -392,20 +394,14 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         data: {
           currentAlertStateId: createdItem.alertStateId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          alertId: createdItem.alertId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: createdItem.projectId?.toString(),
+      alertId: createdItem.alertId?.toString(),
+    } as LogAttributes);
 
     const alertState: AlertState | null = await AlertStateService.findOneBy({
       query: {
@@ -441,9 +437,9 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown
-     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
      */
-    const stateName: string = escapeMarkdownValue(alertState?.name || "");
+    const stateName: string = alertState?.name || "";
     const stateEmoji: string = StateChangeFeedEmoji.get({
       isResolved: isResolvedState,
       isAcknowledged: isAcknowledged,
@@ -466,12 +462,9 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       alertFeedEventType: AlertFeedEventType.AlertStateChanged,
       displayColor: alertState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
-        stateName +
-        "**",
-      moreInformationInMarkdown: `**Cause:** 
-${createdItem.rootCause}`,
+        mdText`${stateEmoji} Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **${stateName}**`.toString(),
+      moreInformationInMarkdown: mdText`**Cause:** 
+${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -536,12 +529,12 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(
+          text: mdText`**[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(
             await AlertService.getAlertLinkInDashboard(
               createdItem.projectId!,
               createdItem.alertId!,
             )
-          ).toString()})** is resolved. Archiving channel.`,
+          ).toString()})** is resolved. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {
@@ -556,6 +549,26 @@ ${createdItem.rootCause}`,
     }
 
     return createdItem;
+  }
+
+  /*
+   * A change refused or failed once onBeforeCreate took the alert's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the alert
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<AlertStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      alertId: onCreate?.createBy.data.alertId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   @CaptureSpan()

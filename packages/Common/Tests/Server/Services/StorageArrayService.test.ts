@@ -41,6 +41,9 @@ import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import crypto from "crypto";
 
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * StorageArrayService — the row one Storage Array Agent reports into.
  *
@@ -816,10 +819,12 @@ describe("StorageArrayService names and links", () => {
         URL.fromString("https://oneuptime.example.com/dashboard"),
       );
 
-    const link: string = await StorageArrayService.getStorageArrayMarkdownLink(
-      PROJECT_ID,
-      ARRAY_ID,
-    );
+    const link: string = (
+      await StorageArrayService.getStorageArrayMarkdownLink(
+        PROJECT_ID,
+        ARRAY_ID,
+      )
+    ).toString();
 
     expect(link.startsWith("[Storage Array pure-prod-01](")).toBe(true);
     expect(link).toContain(
@@ -899,16 +904,20 @@ describe("StorageArray feed events", () => {
 
     jest
       .spyOn(StorageArrayService, "getStorageArrayMarkdownLink")
-      .mockImplementation((): Promise<string> => {
+      .mockImplementation((): Promise<MarkdownText> => {
         return Promise.resolve(
-          "[Storage Array pure-prod-01](https://example.com/storage-arrays/x)",
+          FeedMarkdown.asMarkdown(
+            "[Storage Array pure-prod-01](https://example.com/storage-arrays/x)",
+          ),
         );
       });
 
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockImplementation((): Promise<string> => {
-        return Promise.resolve("Jane Doe (jane@example.com)");
+      .mockImplementation((): Promise<MarkdownText> => {
+        return Promise.resolve(
+          FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
+        );
       });
 
     jest

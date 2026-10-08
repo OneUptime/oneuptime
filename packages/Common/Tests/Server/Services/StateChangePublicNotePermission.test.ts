@@ -47,6 +47,7 @@ import {
 } from "@jest/globals";
 import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");
 
@@ -67,11 +68,13 @@ jest.mock("../../../Server/Utils/Logger");
  * (found in #4411).
  *
  * The incident timeline now asks up front, with the very check the note's
- * create runs, and refuses the whole change with a plain message - the way a
- * scheduled maintenance change has always been refused, whose note is
- * posted first (it now asks up front too, for the same message). These run
- * the real hooks with the real permission check, role by role, and then the
- * real create pipeline over in-memory tables, to show what is saved.
+ * create runs, and refuses the whole change with a plain message. The
+ * scheduled maintenance timeline asks the same, with the same message,
+ * before it even takes the event's lock - and since #4442's finding it, too,
+ * posts its note once the change is saved, never before it
+ * (ScheduledMaintenanceStateChangeNoteAfterSave). These run the real hooks
+ * with the real permission check, role by role, and then the real create
+ * pipeline over in-memory tables, to show what is saved.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -306,6 +309,7 @@ function withNote(note: string | undefined): JSONObject {
   return note === undefined ? {} : { publicNote: note };
 }
 
+let lock: jest.SpyInstance;
 let release: jest.SpyInstance;
 
 beforeEach(() => {
@@ -322,12 +326,12 @@ beforeEach(() => {
    * found.
    */
   stubReadableParents();
-  getJestSpyOn(Semaphore, "lock").mockResolvedValue({
+  lock = getJestSpyOn(Semaphore, "lock").mockResolvedValue({
     key: "state-change",
   });
   release = getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined);
   getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
-    "[Ada Lovelace](mailto:ada@example.com)",
+    FeedMarkdown.asMarkdown("[Ada Lovelace](mailto:ada@example.com)"),
   );
 });
 
@@ -561,21 +565,28 @@ describe("a scheduled maintenance state change with a public note, role by role"
       return roleCase.mayPostTheNote;
     }),
   )(
-    "$role: the note is posted, marked with the state the event moved to",
+    "$role: the change goes ahead, carrying its note - marked with the state the event moves to - to post once it is saved",
     async (roleCase: RoleCase) => {
       const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
         await changeState({ props: memberProps(roleCase), note: NOTE });
 
-      expect(createNote).toHaveBeenCalledTimes(1);
+      // Nothing is posted before the change is saved.
+      expect(createNote).not.toHaveBeenCalled();
 
-      const note: ScheduledMaintenancePublicNote = (
-        createNote.mock.calls[0]![0] as { data: ScheduledMaintenancePublicNote }
-      ).data;
+      const note: ScheduledMaintenancePublicNote = result.carryForward[
+        "publicNoteToPost"
+      ] as ScheduledMaintenancePublicNote;
 
+      expect(note).toBeInstanceOf(ScheduledMaintenancePublicNote);
       expect(note.note).toBe(NOTE);
+      expect(note.scheduledMaintenanceId?.toString()).toBe(EVENT_ID.toString());
+      expect(note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
+        true,
+      );
       expect(StateChangePublicNote.getStatePostedWith(note)?.toString()).toBe(
         ONGOING_STATE_ID.toString(),
       );
+      // Recorded as sent by its note: the note is the one message.
       expect(result.createBy.data.subscriberNotificationStatus).toBe(
         StatusPageSubscriberNotificationStatus.Success,
       );
@@ -587,7 +598,7 @@ describe("a scheduled maintenance state change with a public note, role by role"
       return !roleCase.mayPostTheNote;
     }),
   )(
-    "$role: the whole change is refused with the same plain message, before the note or anything else",
+    "$role: the whole change is refused with the same plain message, before the event is locked or read",
     async (roleCase: RoleCase) => {
       const error: unknown = await rejectionOf(
         changeState({ props: memberProps(roleCase), note: NOTE }),
@@ -599,9 +610,20 @@ describe("a scheduled maintenance state change with a public note, role by role"
       );
       expect(createNote).not.toHaveBeenCalled();
       expect(findTimelines).not.toHaveBeenCalled();
-      expect(release).toHaveBeenCalledTimes(1);
+      // Nothing waits on a change that is refused.
+      expect(lock).not.toHaveBeenCalled();
+      expect(release).not.toHaveBeenCalled();
     },
   );
+
+  test("a role that may post the note takes the event's lock as before", async () => {
+    await changeState({
+      props: memberProps({ allow: [Permission.ScheduledMaintenanceMember] }),
+      note: NOTE,
+    });
+
+    expect(lock).toHaveBeenCalledTimes(1);
+  });
 
   test("a role without the note permission is told which permissions post a public note", async () => {
     const error: unknown = await rejectionOf(
@@ -625,9 +647,23 @@ describe("a scheduled maintenance state change with a public note, role by role"
       });
 
     expect(createNote).not.toHaveBeenCalled();
+    expect(result.carryForward["publicNoteToPost"]).toBeUndefined();
     expect(result.createBy.data.subscriberNotificationStatus).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
     );
+  });
+
+  test("OneUptime's own changes (root) are not asked", async () => {
+    const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
+      await changeState({
+        props: { isRoot: true, tenantId: PROJECT_ID },
+        note: NOTE,
+      });
+
+    expect(result.carryForward["publicNoteToPost"]).toBeInstanceOf(
+      ScheduledMaintenancePublicNote,
+    );
+    expect(createNote).not.toHaveBeenCalled();
   });
 });
 

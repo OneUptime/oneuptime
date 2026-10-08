@@ -1,5 +1,4 @@
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
@@ -20,6 +19,7 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import logger from "../Utils/Logger";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -135,7 +135,8 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${escapeMarkdownValue(team.name)}** from the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -189,7 +190,8 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${escapeMarkdownValue(team.name)}** to the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) as the owner.`.toString(),
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

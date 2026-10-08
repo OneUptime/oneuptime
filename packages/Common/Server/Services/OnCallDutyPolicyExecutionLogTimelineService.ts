@@ -7,10 +7,6 @@ import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/O
 import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import ObjectID from "../../Types/ObjectID";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import AlertFeedService from "./AlertFeedService";
@@ -26,6 +22,10 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentService from "./IncidentService";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 // A message that already ends its own sentence.
 const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
@@ -58,22 +58,24 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * " with the message: <message>." for the end of the sentence that names a
-   * step's status, or "." when the step has no message. The message is text:
-   * escaped rather than put in a code span, which a "`" in it would end
-   * early, and as prose (escapeMarkdownValue), so an address in an error
-   * message stays a whole address. It ends the sentence once, whether or not
-   * it ends with its own full stop.
+   * step's status, or "." when the step has no message. The message is text,
+   * placed as a sentence (mdText) rather than in a code span, which a "`" in
+   * it would end early, so an address in an error message stays a whole
+   * address. It ends the sentence once, whether or not it ends with its own
+   * full stop.
    */
-  private getStatusMessageClause(statusMessage: string | undefined): string {
-    const message: string = escapeMarkdownValue(statusMessage).trim();
+  private getStatusMessageClause(
+    statusMessage: string | undefined,
+  ): MarkdownText {
+    const message: string = (statusMessage || "").trim();
 
     if (!message) {
-      return ".";
+      return mdText`.`;
     }
 
     return SENTENCE_END_PATTERN.test(message)
-      ? ` with the message: ${message}`
-      : ` with the message: ${message}.`;
+      ? mdText` with the message: ${message}`
+      : mdText` with the message: ${message}.`;
   }
 
   public getEmojiBasedOnStatus(
@@ -204,7 +206,7 @@ export class Service extends DatabaseService<Model> {
           ? this.getColorBasedOnStatus(status)
           : Blue500;
 
-        let incidentOrAlertLink: string = "";
+        let incidentOrAlertLink: MarkdownText = FeedMarkdown.empty();
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
           const projectId: ObjectID | undefined =
@@ -220,7 +222,7 @@ export class Service extends DatabaseService<Model> {
           const incidentNumberDisplay: string =
             incidentNumberResult.numberWithPrefix ||
             "#" + incidentNumberResult.number;
-          incidentOrAlertLink = `[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
+          incidentOrAlertLink = mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
@@ -230,7 +232,7 @@ export class Service extends DatabaseService<Model> {
           } = await AlertService.getAlertNumber({
             alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
           });
-          incidentOrAlertLink = `[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId)).toString()})`;
+          incidentOrAlertLink = mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId) {
@@ -241,7 +243,7 @@ export class Service extends DatabaseService<Model> {
             episodeId:
               onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId,
           });
-          incidentOrAlertLink = `[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId)).toString()})`;
+          incidentOrAlertLink = mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId) {
@@ -252,7 +254,7 @@ export class Service extends DatabaseService<Model> {
             episodeId:
               onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId,
           });
-          incidentOrAlertLink = `[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
+          incidentOrAlertLink = mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
         /*
@@ -262,18 +264,12 @@ export class Service extends DatabaseService<Model> {
          * text, the rest inside bold. The step's status message is text as
          * well (getStatusMessageClause).
          */
-        const policyLink: string = `**[${escapeMarkdownInline(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name)}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})**`;
+        const policyLink: MarkdownText = mdText`**[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})**`;
 
-        const scheduleClause: string = onCallDutyPolicyExecutionLogTimeline
-          .onCallDutySchedule?.name
-          ? String(
-              " and schedule **" +
-                escapeMarkdownValue(
-                  onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
-                ) +
-                "**",
-            )
-          : "";
+        const scheduleClause: MarkdownText =
+          onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name
+            ? mdText` and schedule **${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule.name}**`
+            : FeedMarkdown.empty();
 
         /*
          * Some timeline rows have NO recipient by construction: a schedule that
@@ -293,35 +289,37 @@ export class Service extends DatabaseService<Model> {
         let feedInfoInMarkdown: string = "";
 
         if (!hasRecipient) {
-          const noRecipientReason: string = onCallDutyPolicyExecutionLogTimeline
-            .onCallDutySchedule?.name
-            ? `no one was on call in schedule **${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule.name)}**`
-            : "this escalation rule had no responders";
+          const noRecipientReason: MarkdownText =
+            onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name
+              ? mdText`no one was on call in schedule **${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule.name}**`
+              : mdText`this escalation rule had no responders`;
 
-          feedInfoInMarkdown = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} — nobody was notified**
+          feedInfoInMarkdown =
+            mdText`**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} — nobody was notified**
 
-The on-call policy ${policyLink} has been triggered. The escalation rule **${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name || "Unnamed Rule")}**${scheduleClause} were applied, but ${noRecipientReason}, so **no one was notified at this step**. The status of this step is **${status}**${this.getStatusMessageClause(onCallDutyPolicyExecutionLogTimeline.statusMessage)}`;
+The on-call policy ${policyLink} has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name || "Unnamed Rule"}**${scheduleClause} were applied, but ${noRecipientReason}, so **no one was notified at this step**. The status of this step is **${status}**${this.getStatusMessageClause(onCallDutyPolicyExecutionLogTimeline.statusMessage)}`.toString();
         } else {
-          feedInfoInMarkdown = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} to ${await UserService.getUserMarkdownString(
-            {
-              userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
-              projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-            },
-          )}**
+          feedInfoInMarkdown =
+            mdText`**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} to ${await UserService.getUserMarkdownString(
+              {
+                userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
+                projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+              },
+            )}**
 
-The on-call policy ${policyLink} has been triggered. The escalation rule **${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name || "Unnamed Rule")}** ${scheduleClause} were applied. ${await UserService.getUserMarkdownString(
-            {
-              userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
-              projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-            },
-          )} was alerted. The status of this alert is **${status}**${this.getStatusMessageClause(onCallDutyPolicyExecutionLogTimeline.statusMessage)} ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name) + "** " : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "** " : ""}`;
+The on-call policy ${policyLink} has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name || "Unnamed Rule"}** ${scheduleClause} were applied. ${await UserService.getUserMarkdownString(
+              {
+                userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
+                projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+              },
+            )} was alerted. The status of this alert is **${status}**${this.getStatusMessageClause(onCallDutyPolicyExecutionLogTimeline.statusMessage)} ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? mdText`The alert was sent because the user belogs to the team **${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam.name}** ` : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? mdText`The alert was acknowledged at **${String(onCallDutyPolicyExecutionLogTimeline.acknowledgedAt)}** ` : ""}`.toString();
         }
 
         if (
           hasRecipient &&
           onCallDutyPolicyExecutionLogTimeline.overridedByUser
         ) {
-          feedInfoInMarkdown += `The alert was supposed to be sent to **${await UserService.getUserMarkdownString(
+          feedInfoInMarkdown += mdText`The alert was supposed to be sent to **${await UserService.getUserMarkdownString(
             {
               userId: onCallDutyPolicyExecutionLogTimeline.overridedByUser.id!,
               projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,

@@ -414,6 +414,14 @@ describe("no list of a person's methods offers Add while its channel is off", ()
     },
   );
 
+  /*
+   * A new code is offered in the verify dialog, which asks the server
+   * whether one can be sent (the verification-status route's
+   * cannotSendReason - channel off, balance too low, no Twilio account) and
+   * offers it only then. The lists no longer offer a code of their own: a
+   * separate Resend Code row action was where people could not tell
+   * whether Verify sent a code or Resend had to come first.
+   */
   test.each(
     CHANNEL_GATED_METHOD_LISTS.filter(
       (definition: ChannelGatedMethodListDefinition): boolean => {
@@ -435,7 +443,19 @@ describe("no list of a person's methods offers Add while its channel is off", ()
         path.join(NOTIFICATION_METHODS_DIR, file),
       );
 
-      expect(source).toContain("isCodeResendOffered(");
+      // Verifying, and sending a new code, are the dialog's.
+      expect(source).toContain("<VerificationCodeModal");
+      expect(source).not.toContain('title: "Resend Code"');
+      expect(source).not.toContain("/resend-verification-code");
+
+      // And the dialog offers a code only when the server says one can go.
+      const dialog: string = readSource(
+        path.join(NOTIFICATION_METHODS_DIR, "VerificationCodeModal.tsx"),
+      );
+
+      expect(dialog).toContain(
+        "const canSendCode: boolean = !cannotSendReason &&",
+      );
     },
   );
 });

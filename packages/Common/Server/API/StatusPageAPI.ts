@@ -135,6 +135,7 @@ import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import StatusPageSubscriberUnsubscribe, {
@@ -2464,12 +2465,14 @@ export default class StatusPageAPI extends BaseAPI<
       endsAt: true,
       startsAt: true,
       currentScheduledMaintenanceState: {
+        _id: true,
         name: true,
         color: true,
-        isScheduledState: true,
-        isResolvedState: true,
-        isOngoingState: true,
         order: true,
+        isScheduledState: true,
+        isOngoingState: true,
+        isEndedState: true,
+        isResolvedState: true,
       },
       monitors: {
         _id: true,
@@ -2501,11 +2504,45 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
 
-    let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
+    /*
+     * The project's states, in their order, with their built-in flags: what
+     * tells which events are in progress (Common/Utils/
+     * ScheduledMaintenanceStart), here and on the page that sorts them into
+     * ongoing, upcoming and completed.
+     */
+    const scheduledEventStates: Array<ScheduledMaintenanceState> =
+      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+        projectId: statusPage.projectId!,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // An event read by two of the reads below is listed once.
+    const addEvents: (events: Array<ScheduledMaintenance>) => void = (
+      events: Array<ScheduledMaintenance>,
+    ): void => {
+      for (const event of events) {
+        const eventId: string | undefined = event.id?.toString();
+
+        if (
+          eventId &&
+          scheduledMaintenanceEvents.some(
+            (listed: ScheduledMaintenance): boolean => {
+              return listed.id?.toString() === eventId;
+            },
+          )
+        ) {
+          continue;
+        }
+
+        scheduledMaintenanceEvents.push(event);
+      }
+    };
 
     // If there is no scheduledMaintenanceId, then fetch all future scheduled events.
     if (!scheduledMaintenanceId) {
-      futureScheduledMaintenanceEvents =
+      addEvents(
         await ScheduledMaintenanceService.findBy({
           query: StatusPageVisibilityQuery.shownScheduledMaintenance({
             currentScheduledMaintenanceState: {
@@ -2523,13 +2560,41 @@ export default class StatusPageAPI extends BaseAPI<
           props: {
             isRoot: true,
           },
+        }),
+      );
+
+      /*
+       * And every event in progress, however long ago it started: a long
+       * window - or one started early, by hand - is ongoing now, as the
+       * overview shows it, while the history window above would leave it
+       * out of this list and the RSS and Atom feeds built from it.
+       */
+      const inProgressStateIds: Array<ObjectID> =
+        ScheduledMaintenanceStartUtil.getInProgressStateIds({
+          states: scheduledEventStates,
         });
 
-      futureScheduledMaintenanceEvents.forEach(
-        (event: ScheduledMaintenance) => {
-          scheduledMaintenanceEvents.push(event);
-        },
-      );
+      if (inProgressStateIds.length > 0) {
+        addEvents(
+          await ScheduledMaintenanceService.findBy({
+            query: StatusPageVisibilityQuery.shownScheduledMaintenance({
+              currentScheduledMaintenanceStateId:
+                QueryHelper.any(inProgressStateIds),
+              statusPages: [statusPageId] as any,
+              projectId: statusPage.projectId!,
+            }),
+            select: scheduledEventsSelect,
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          }),
+        );
+      }
     }
 
     const scheduledMaintenanceEventsOnStatusPage: Array<ObjectID> =
@@ -2587,11 +2652,14 @@ export default class StatusPageAPI extends BaseAPI<
             startsAt: true,
             scheduledMaintenanceId: true,
             scheduledMaintenanceState: {
+              _id: true,
               name: true,
               color: true,
+              order: true,
               isScheduledState: true,
-              isResolvedState: true,
               isOngoingState: true,
+              isEndedState: true,
+              isResolvedState: true,
             },
           },
 
@@ -2648,26 +2716,6 @@ export default class StatusPageAPI extends BaseAPI<
 
       monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
     }
-
-    // get scheduled event states.
-    const scheduledEventStates: Array<ScheduledMaintenanceState> =
-      await ScheduledMaintenanceStateService.findBy({
-        query: {
-          projectId: statusPage.projectId!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          order: true,
-          isEndedState: true,
-          isOngoingState: true,
-          isScheduledState: true,
-        },
-      });
 
     const response: JSONObject = {
       scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
@@ -5798,11 +5846,14 @@ export default class StatusPageAPI extends BaseAPI<
       endsAt: true,
       startsAt: true,
       currentScheduledMaintenanceState: {
+        _id: true,
         name: true,
         color: true,
+        order: true,
         isScheduledState: true,
-        isResolvedState: true,
         isOngoingState: true,
+        isEndedState: true,
+        isResolvedState: true,
       },
       monitors: {
         _id: true,
@@ -5821,25 +5872,55 @@ export default class StatusPageAPI extends BaseAPI<
 
     let scheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
 
+    /*
+     * The project's states, in their order, with their built-in flags: what
+     * tells which events are in progress (Common/Utils/
+     * ScheduledMaintenanceStart). Shipped too, so the page marks a state
+     * change into one of them as the event's work going on.
+     */
+    let scheduledMaintenanceStates: Array<ScheduledMaintenanceState> = [];
+
     if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
-      scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
-        query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-          currentScheduledMaintenanceState: {
-            isOngoingState: true,
-          } as any,
-          statusPages: statusPageId as any,
-          projectId: statusPage.projectId!,
-        }),
-        select: scheduledEventsSelect,
-        sort: {
-          startsAt: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
+      scheduledMaintenanceStates =
+        await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
+          {
+            projectId: statusPage.projectId!,
+            props: {
+              isRoot: true,
+            },
+          },
+        );
+
+      /*
+       * Every event in progress: in the project's ongoing state, or in a
+       * state of the project's own placed between Ongoing and Ended, such as
+       * "Verifying". Asked for by the ongoing flag alone, an event moved on
+       * to such a state dropped off the overview mid-window.
+       */
+      const inProgressStateIds: Array<ObjectID> =
+        ScheduledMaintenanceStartUtil.getInProgressStateIds({
+          states: scheduledMaintenanceStates,
+        });
+
+      if (inProgressStateIds.length > 0) {
+        scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
+            currentScheduledMaintenanceStateId:
+              QueryHelper.any(inProgressStateIds),
+            statusPages: statusPageId as any,
+            projectId: statusPage.projectId!,
+          }),
+          select: scheduledEventsSelect,
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
     }
 
     let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
@@ -5928,9 +6009,11 @@ export default class StatusPageAPI extends BaseAPI<
               _id: true,
               color: true,
               name: true,
+              order: true,
               isScheduledState: true,
-              isResolvedState: true,
               isOngoingState: true,
+              isEndedState: true,
+              isResolvedState: true,
             },
           },
 
@@ -6110,6 +6193,10 @@ export default class StatusPageAPI extends BaseAPI<
       scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(
         scheduledMaintenanceStateTimelines,
         ScheduledMaintenanceStateTimeline,
+      ),
+      scheduledMaintenanceStates: BaseModel.toJSONArray(
+        scheduledMaintenanceStates,
+        ScheduledMaintenanceState,
       ),
 
       monitorGroupCurrentStatuses: JSONFunctions.serialize(

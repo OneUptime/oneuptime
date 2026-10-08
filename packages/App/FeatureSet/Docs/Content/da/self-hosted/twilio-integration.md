@@ -98,3 +98,11 @@ Til udvikling beskriver Twilios [vejledning til webhook-test](https://www.twilio
 4. Kontroller SMS-leveringsstatus i OneUptime og Twilios beskedlogfiler. En accepteret afsendelse er ikke bevis på levering; [Twilio rapporterer senere statusændringer via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 Hvis afsendelsen mislykkes, skal du kontrollere legitimationsoplysninger, nummerets funktioner, kontobegrænsninger og udgående forbindelse. Hvis en besked eller et opkald ankommer, men status eller bekræftelse ikke opdateres, skal du undersøge callback-URL'en og den offentlige ingress' logfiler. Twilios [vejledning om fejl ved HTTP-hentning](https://www.twilio.com/docs/api/errors/11200) hjælper med at diagnosticere utilgængelige callbacks, TLS-problemer og HTTP-fejl. Et vellykket testopkald alene verificerer ikke callback-adgang.
+
+## 5. Bekræft teammedlemmers telefonnumre
+
+Når et telefonnummer tilføjes til SMS eller opkald, sendes bekræftelseskoden med det samme, og bekræftelsesdialogen åbnes. Den viser, hvornår koden blev sendt, og hvor længe den gælder, og sender en ny kode, når der bedes om det, højst én gang i minuttet. Intet skal sendes igen, før der bekræftes.
+
+Når der ikke kan sendes en kode, oplyser dialogen årsagen i stedet for at påstå, at der er sendt en: for eksempel at der ikke er konfigureret en Twilio-konto, så længe hverken en standardkonfiguration for projektet eller den installationsdækkende konfiguration ovenfor findes. Et nummer, hvis første kode ikke kan sendes, tilføjes ikke, og formularen viser årsagen, for eksempel at Twilio afviser et destinationsland.
+
+Et nummer, der er bekræftet til SMS, er også bekræftet til opkald uden en ekstra kode. Bekræftelse via opkald bekræfter ikke SMS, fordi et nummer, der kan modtage opkald, som en fastnettelefon, ikke altid kan modtage SMS. Hvis Twilio accepterer en kode, der aldrig når frem, viser projektets SMS-log leveringsstatussen.

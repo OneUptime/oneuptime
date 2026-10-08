@@ -69,6 +69,11 @@ export class OpenAPIParser {
         operations: operations,
         schema: {},
       };
+      const legacyName: string | undefined =
+        this.getLegacyNames().get(resourceName);
+      if (legacyName) {
+        resource.legacyName = legacyName;
+      }
       const resourceDescription: string | undefined =
         this.getTagDescriptions().get(resourceName);
       if (resourceDescription) {
@@ -80,6 +85,10 @@ export class OpenAPIParser {
         resourceName,
       );
       resource.schema = this.generateResourceSchema(resource.operationSchemas);
+      this.resolveRelations(resource.schema);
+      for (const operationSchema of Object.values(resource.operationSchemas)) {
+        this.resolveRelations(operationSchema || {});
+      }
 
       const writableFields: string[] = Object.entries(
         resource.operationSchemas.create || {},
@@ -136,6 +145,11 @@ export class OpenAPIParser {
         operations: dataSourceOperations,
         schema: {},
       };
+      const legacyName: string | undefined =
+        this.getLegacyNames().get(resourceName);
+      if (legacyName) {
+        dataSource.legacyName = legacyName;
+      }
       const dataSourceDescription: string | undefined =
         this.getTagDescriptions().get(resourceName);
       if (dataSourceDescription) {
@@ -143,6 +157,7 @@ export class OpenAPIParser {
       }
 
       dataSource.schema = this.generateDataSourceSchema(dataSource.operations);
+      this.resolveRelations(dataSource.schema);
       dataSources.push(dataSource);
     }
 
@@ -223,16 +238,107 @@ export class OpenAPIParser {
   }
 
   /*
+   * Resource names that changed when type names started keeping mixed-case
+   * words whole: new name -> the name it had before (iot_fleet ->
+   * io_t_fleet). The old name stays registered as a deprecated alias.
+   */
+  private getLegacyNames(): Map<string, string> {
+    const map: Map<string, string> = new Map<string, string>();
+    for (const tag of this.spec?.tags || []) {
+      if (!tag.name) {
+        continue;
+      }
+      const name: string = StringUtils.toSnakeCase(tag.name);
+      const legacyName: string = StringUtils.toLegacySnakeCase(tag.name);
+      if (legacyName !== name) {
+        map.set(name, legacyName);
+      }
+    }
+    return map;
+  }
+
+  /*
+   * Every name a relation can point at: the resources (creatable models) and
+   * the data sources (readable ones).
+   */
+  private getRelationTargets(): { resources: Set<string>; all: Set<string> } {
+    if (!this.relationTargets) {
+      const resources: Set<string> = new Set<string>();
+      const all: Set<string> = new Set<string>();
+      for (const [name, operations] of this.groupOperationsByResource()) {
+        if (operations.create) {
+          resources.add(name);
+        }
+        if (operations.create || operations.read || operations.list) {
+          all.add(name);
+        }
+      }
+      this.relationTargets = { resources, all };
+    }
+    return this.relationTargets;
+  }
+
+  private relationTargets:
+    | { resources: Set<string>; all: Set<string> }
+    | undefined = undefined;
+
+  /*
+   * Turns each attribute's spec relation (a tag) into the Terraform resource
+   * or data source it names, and says so in its description: an id is only
+   * useful to someone who knows what it is the id of.
+   */
+  private resolveRelations(schema: Record<string, TerraformAttribute>): void {
+    const targets: { resources: Set<string>; all: Set<string> } =
+      this.getRelationTargets();
+
+    for (const attribute of Object.values(schema)) {
+      if (!attribute.relationTag || attribute.relation) {
+        continue;
+      }
+
+      const name: string = StringUtils.toSnakeCase(attribute.relationTag);
+
+      if (!targets.all.has(name)) {
+        continue;
+      }
+
+      const isList: boolean =
+        attribute.type === "list" || attribute.type === "set";
+
+      attribute.relation = { name, isList };
+
+      const target: string = `\`oneuptime_${name}\``;
+      const sentence: string = isList
+        ? `IDs of ${target} ${targets.resources.has(name) ? "resources" : "records"}.`
+        : `The ID of a ${target}${targets.resources.has(name) ? "" : " (see the data source)"}.`;
+
+      attribute.description = attribute.description
+        ? `${attribute.description} ${sentence}`
+        : sentence;
+    }
+  }
+
+  /*
    * Column descriptions in the spec end with an appended
    * "Permissions - Create: [...], Read: [...], Update: [...]" clause. That is
    * API-reference material, not Terraform documentation — strip it so schema
    * descriptions read like prose.
    */
   private cleanDescription(description: string): string {
-    return description
-      .replace(/\.?\s*Permissions - Create: \[[\s\S]*$/, ".")
-      .replace(/\s+$/, "")
-      .replace(/^\.$/, "");
+    const text: string = description
+      .replace(/\s*Permissions - Create: \[[\s\S]*$/, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      // The spec joins a column's description to its permissions with ". ".
+      .replace(/\s*\.+$/, "");
+
+    if (!text) {
+      return "";
+    }
+
+    const endsWithPunctuation: RegExp = new RegExp("[.!?:]$");
+
+    return endsWithPunctuation.test(text) ? text : `${text}.`;
   }
 
   private extractResourceName(operation: OpenAPIOperation): string | null {
@@ -339,7 +445,7 @@ export class OpenAPIParser {
 
     schema["id"] = {
       type: "string",
-      description: "Unique identifier for the resource",
+      description: "Unique identifier for the resource.",
       computed: true,
     };
 
@@ -374,6 +480,14 @@ export class OpenAPIParser {
         readSchema,
         name,
       );
+
+      if (
+        !inCreate &&
+        !inUpdate &&
+        OpenAPIParser.isBookkeepingField(name, readSchema[name])
+      ) {
+        continue;
+      }
 
       // Prefer the writable definition for type metadata; fall back to read.
       const source: TerraformAttribute = (
@@ -467,6 +581,52 @@ export class OpenAPIParser {
     return operationSchemas;
   }
 
+  /*
+   * Fields every model carries for the server's own bookkeeping, which say
+   * nothing about a live resource: the soft-delete pair (always empty on
+   * anything Terraform can read) and the optimistic-locking counter. Shown,
+   * they only add a "(known after apply)" line to every plan.
+   */
+  public static isBookkeepingField(
+    name: string,
+    attribute: TerraformAttribute | undefined,
+  ): boolean {
+    if (name === "deleted_at" || name === "deleted_by_user_id") {
+      return true;
+    }
+
+    return name === "version" && attribute?.type === "number";
+  }
+
+  /*
+   * Whether a data source attribute can be a lookup argument: a single plain
+   * value the list endpoint can match exactly. JSON, timestamps, lists and
+   * secrets cannot.
+   */
+  public static isLookupFilterCandidate(
+    name: string,
+    attribute: TerraformAttribute,
+  ): boolean {
+    // Every lookup is already scoped to the API key's project.
+    if (name === "project_id") {
+      return false;
+    }
+
+    if (
+      attribute.sensitive ||
+      attribute.isDateTime ||
+      attribute.isMonitorSteps
+    ) {
+      return false;
+    }
+
+    if (attribute.type === "string") {
+      return !attribute.isComplexObject;
+    }
+
+    return attribute.type === "number" || attribute.type === "bool";
+  }
+
   private generateDataSourceSchema(
     operations: TerraformDataSource["operations"],
   ): Record<string, TerraformAttribute> {
@@ -480,32 +640,45 @@ export class OpenAPIParser {
     }
 
     /*
-     * id and name are the lookup keys (exactly one must be set); everything
-     * else is read-only output.
+     * Look up by `id`, or by any combination of the plain attributes below:
+     * each one set in configuration narrows the list, which must then hold
+     * exactly one item. Everything else is read-only output.
      */
     schema["id"] = {
       type: "string",
       description:
-        "Look up by unique identifier. Exactly one of `id` or `name` must be set.",
+        "Look up by unique identifier. Leave unset to look up by the other arguments instead.",
       required: false,
       optional: true,
       computed: true,
       apiFieldName: "_id",
     };
-    schema["name"] = {
-      type: "string",
-      description:
-        "Look up by name. Exactly one of `id` or `name` must be set. Fails if the name does not match exactly one item.",
-      required: false,
-      optional: true,
-      computed: true,
-      apiFieldName: "name",
-    };
 
     for (const [name, attr] of Object.entries(outputFields)) {
-      if (name === "id" || name === "name") {
+      if (name === "id" || OpenAPIParser.isBookkeepingField(name, attr)) {
         continue;
       }
+
+      /*
+       * `name` has always been a lookup argument, typed as a plain string -
+       * also on the few models whose name is a wrapped type.
+       */
+      const candidate: TerraformAttribute =
+        name === "name" && attr.type === "string"
+          ? { ...attr, isComplexObject: false }
+          : attr;
+
+      if (OpenAPIParser.isLookupFilterCandidate(name, candidate)) {
+        schema[name] = {
+          ...candidate,
+          required: false,
+          optional: true,
+          computed: true,
+          isLookupFilter: true,
+        };
+        continue;
+      }
+
       schema[name] = {
         ...attr,
         required: false,
@@ -547,10 +720,21 @@ export class OpenAPIParser {
       return;
     }
     const successResponse: any = responses["200"] || responses["201"];
-    const dataSchema: any =
+    let dataSchema: any =
       successResponse?.content?.["application/json"]?.schema?.properties?.[
         "data"
       ];
+
+    /*
+     * A list response's data is an array of the model. Without reading its
+     * items, a model that has a list endpoint and no get-item endpoint had a
+     * data source with nothing but an id.
+     */
+    const resolved: any = this.resolveSchema(dataSchema);
+    if (resolved?.type === "array" && resolved.items) {
+      dataSchema = resolved.items;
+    }
+
     if (dataSchema) {
       this.addPropertiesFromSchema(schema, dataSchema, true, "response");
     }
@@ -568,7 +752,11 @@ export class OpenAPIParser {
     }
 
     for (const [propName, propSchema] of Object.entries(resolved.properties)) {
-      const terraformName: string = StringUtils.toSnakeCase(propName);
+      /*
+       * Attribute names keep the spelling they have always had: renaming one
+       * would break every configuration that sets it.
+       */
+      const terraformName: string = StringUtils.toLegacySnakeCase(propName);
       if (terraformName === "id" || terraformName === "_id") {
         continue;
       }
@@ -622,6 +810,8 @@ export class OpenAPIParser {
     const format: string | undefined = prop.format;
     const required: boolean = requiredList.includes(propName);
 
+    const relationTag: unknown = prop["x-oneuptime-relation"]?.tag;
+
     const base: TerraformAttribute = {
       type: "string",
       description: description,
@@ -631,6 +821,9 @@ export class OpenAPIParser {
       example: example,
       default: defaultValue,
       ...(format ? { format } : {}),
+      ...(typeof relationTag === "string" && relationTag
+        ? { relationTag }
+        : {}),
     };
 
     /*
@@ -681,12 +874,33 @@ export class OpenAPIParser {
           requiredInCreate: required,
         };
       }
-      case "object":
-        // Complex nested objects are JSON strings with subset semantic equality.
+      case "object": {
+        /*
+         * Complex nested objects are JSON strings with subset semantic
+         * equality. A wrapped scalar (a Color, a Name...) is written as its
+         * plain value; anything else needs jsonencode(), which is worth
+         * saying where the attribute is documented.
+         */
+        const isWrappedScalar: boolean =
+          Boolean(example) &&
+          typeof example === "object" &&
+          typeof example._type === "string" &&
+          (typeof example.value === "string" ||
+            typeof example.value === "number");
+        const hint: string =
+          isWrappedScalar || description.includes("jsonencode")
+            ? ""
+            : "A JSON value: write it with `jsonencode()`.";
         return {
-          attribute: { ...base, type: "string", isComplexObject: true },
+          attribute: {
+            ...base,
+            type: "string",
+            isComplexObject: true,
+            description: [description, hint].filter(Boolean).join(" "),
+          },
           requiredInCreate: required,
         };
+      }
       default: {
         const attribute: TerraformAttribute = { ...base, type: "string" };
         if (Array.isArray(prop.enum) && prop.enum.length > 0) {

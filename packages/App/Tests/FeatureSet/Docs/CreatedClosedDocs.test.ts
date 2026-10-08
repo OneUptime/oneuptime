@@ -79,6 +79,7 @@ describe("the declare page says what a create in a later state sets off", () => 
       stage: StartingStage.Acknowledged,
       policyNames: ["Primary"],
     })
+      .toString()
       .replace("📞 ", "")
       .replace("**No one was paged.**", "No one was paged.");
 

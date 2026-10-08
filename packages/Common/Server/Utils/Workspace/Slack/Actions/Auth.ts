@@ -14,6 +14,7 @@ import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import Dictionary from "../../../../../Types/Dictionary";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export interface SlackAction {
   actionValue?: string | undefined;
@@ -41,14 +42,17 @@ export interface SlackRequest {
     | undefined;
 }
 
+/*
+ * What a Slack user may do without a Slack account connected to a current
+ * member of the project: open links. Everything that reads or writes the
+ * project's records acts as the member the Slack account is connected to,
+ * with that member's own permissions - declaring an incident included
+ * (/incident and its form), so an incident is never created by nobody, and
+ * its form lists only what its member may read. No project setting lets
+ * anyone in the workspace declare without connecting an account.
+ */
 const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: Array<SlackActionType> =
   [
-    /*
-     * anyone in the company can create incident.
-     * regardless of whether they are connected to OneUptime or not.
-     */
-    SlackActionType.NewIncident,
-    SlackActionType.SubmitNewIncident,
     SlackActionType.ViewIncident,
 
     // Alerts
@@ -277,8 +281,8 @@ export default class SlackAuthAction {
           const markdwonPayload: WorkspacePayloadMarkdown = {
             _type: "WorkspacePayloadMarkdown",
             text: isRemovedFromProject
-              ? `@${slackUsername}, ${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`
-              : `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
+              ? mdText`@${slackUsername}, ${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`.toString()
+              : mdText`@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `.toString(),
           };
 
           await SlackUtil.sendDirectMessageToUser({
