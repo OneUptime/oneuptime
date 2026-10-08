@@ -4,6 +4,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import LabelService from "../Services/LabelService";
 import QueryHelper from "../Types/Database/QueryHelper";
+import ColumnValueChange from "./Database/ColumnValueChange";
 import ReferenceChange from "./Database/ReferenceChange";
 import FeedMarkdown, {
   mdText,
@@ -46,8 +47,8 @@ import FeedMarkdown, {
  *   of an id mean nothing (ReferenceChange.isListChanged);
  * - Send reminders as on or off: a record that never set it is on, as the
  *   column's default and the reminder job read it (areRemindersOn);
- * - a time as the instant it names, however it was written
- *   (isInstantChanged).
+ * - a time as the instant it names, however it was written, as the
+ *   database reads it (isInstantChanged): one written with no zone is UTC.
  *
  * Which text columns a record's feed records, which of those hold
  * Markdown, and whether it has a Send reminders switch, is its kind
@@ -328,24 +329,19 @@ export default class EventFieldChange {
   /*
    * The instant a time names, in milliseconds, however it reached the
    * service: a Date, an ISO string (the API, a workflow) or a number of
-   * milliseconds. Null for no time, and for a value that names none.
+   * milliseconds - read as a date column reads it, and as every other
+   * comparison of a write does (ColumnValueChange.toInstant): an ISO time
+   * with no zone ("2026-11-02T09:00", a datetime-local field, or Postgres's
+   * "2026-11-02 09:00:00") is UTC, as Postgres stores it, whatever zone the
+   * server runs in. Null for no time, and for a value that names none -
+   * looser text ("next Tuesday") included.
    */
   public static toInstant(value: unknown): number | null {
     if (value === undefined || value === null) {
       return null;
     }
 
-    let instant: number = NaN;
-
-    if (value instanceof Date) {
-      instant = value.getTime();
-    } else if (typeof value === "number") {
-      instant = value;
-    } else if (typeof value === "string" && value.trim()) {
-      instant = new Date(value.trim()).getTime();
-    }
-
-    return Number.isFinite(instant) ? instant : null;
+    return ColumnValueChange.toInstant(value);
   }
 
   /*

@@ -16,6 +16,7 @@ import {
   getScheduledMaintenanceStateKind,
   getScheduledMaintenanceTiming,
   getScheduledMaintenanceTimingRefreshDelayInMs,
+  getStartedAndCompletedAt,
   getTimelineDateForState,
   isScheduledMaintenanceTimingLive,
   shouldRecheckScheduledMaintenanceState,
@@ -177,6 +178,127 @@ describe("getScheduledMaintenanceStateKind", () => {
         currentStateId: "both",
       }),
     ).toBe(ScheduledMaintenanceStateKind.Scheduled);
+  });
+
+  /*
+   * A state of the project's own placed after Ended ("Reviewing") is over,
+   * by the one rule (Common/Utils/ScheduledMaintenanceStart): the header
+   * used to count every custom state after the ongoing one as in progress,
+   * offering Mark as Ended to an event that had ended already.
+   */
+  test("classifies a state of the project's own after Ended as Ended", () => {
+    const reviewing: ScheduledMaintenanceStateFlags = { id: "reviewing" };
+
+    expect(
+      getScheduledMaintenanceStateKind({
+        states: [
+          scheduled,
+          preparing,
+          ongoing,
+          verifying,
+          ended,
+          reviewing,
+          resolved,
+        ],
+        currentStateId: "reviewing",
+      }),
+    ).toBe(ScheduledMaintenanceStateKind.Ended);
+  });
+
+  test("places a state by its order when the states carry one, not by where the list has it", () => {
+    // Read out of order: "Verifying" is placed after Ended by its order.
+    expect(
+      getScheduledMaintenanceStateKind({
+        states: [
+          { ...verifying, order: 5 },
+          { ...scheduled, order: 1 },
+          { ...ongoing, order: 2 },
+          { ...ended, order: 4 },
+          { ...resolved, order: 6 },
+        ],
+        currentStateId: "verifying",
+      }),
+    ).toBe(ScheduledMaintenanceStateKind.Ended);
+
+    expect(
+      getScheduledMaintenanceStateKind({
+        states: [
+          { ...verifying, order: 3 },
+          { ...scheduled, order: 1 },
+          { ...ongoing, order: 2 },
+          { ...ended, order: 4 },
+        ],
+        currentStateId: "verifying",
+      }),
+    ).toBe(ScheduledMaintenanceStateKind.Ongoing);
+  });
+});
+
+describe("getStartedAndCompletedAt", () => {
+  const states: Array<ScheduledMaintenanceStateFlags> = [
+    { id: "scheduled", isScheduledState: true },
+    { id: "ongoing", isOngoingState: true },
+    { id: "verifying" },
+    { id: "ended", isEndedState: true },
+    { id: "reviewing" },
+    { id: "completed", isResolvedState: true },
+  ];
+
+  function entry(
+    stateId: string,
+    offsetInMs: number,
+  ): {
+    stateId: string;
+    startsAt: Date;
+  } {
+    return { stateId: stateId, startsAt: at(offsetInMs) };
+  }
+
+  test("starts at the move into Ongoing and completes at the move into Ended", () => {
+    expect(
+      getStartedAndCompletedAt({
+        states: states,
+        timelines: [
+          entry("scheduled", -HOUR),
+          entry("ongoing", 0),
+          entry("verifying", HOUR),
+          entry("ended", 2 * HOUR),
+          entry("completed", 3 * HOUR),
+        ],
+      }),
+    ).toEqual({ startedAt: at(0), completedAt: at(2 * HOUR) });
+  });
+
+  test("an event started straight into a state of its own between Ongoing and Ended started there", () => {
+    expect(
+      getStartedAndCompletedAt({
+        states: states,
+        timelines: [entry("scheduled", -HOUR), entry("verifying", 5 * MINUTE)],
+      }),
+    ).toEqual({ startedAt: at(5 * MINUTE), completedAt: undefined });
+  });
+
+  test("an event moved from Ongoing straight into a state of its own after Ended completed there", () => {
+    expect(
+      getStartedAndCompletedAt({
+        states: states,
+        // Any order: the timeline is read by date.
+        timelines: [
+          entry("reviewing", 90 * MINUTE),
+          entry("scheduled", -HOUR),
+          entry("ongoing", 0),
+        ],
+      }),
+    ).toEqual({ startedAt: at(0), completedAt: at(90 * MINUTE) });
+  });
+
+  test("a scheduled event has neither", () => {
+    expect(
+      getStartedAndCompletedAt({
+        states: states,
+        timelines: [entry("scheduled", -HOUR)],
+      }),
+    ).toEqual({ startedAt: undefined, completedAt: undefined });
   });
 });
 
