@@ -1,9 +1,10 @@
 import PushNotificationRequest from "../../Types/PushNotification/PushNotificationRequest";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
+import { isExpoPushDeviceType } from "../../Types/PushNotification/ExpoPushDeviceType";
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
-import UserPushService, { isExpoPushDeviceType } from "./UserPushService";
+import UserPushService from "./UserPushService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
 import {

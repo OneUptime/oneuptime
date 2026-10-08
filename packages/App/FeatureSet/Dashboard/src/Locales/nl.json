@@ -26757,5 +26757,15 @@
   "Opens Google Calendar, which asks you to add this calendar.": "Opent Google Agenda, dat u vraagt deze agenda toe te voegen.",
   "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.": "Opent de agenda-app op dit apparaat die zich abonneert op agendalinks: Apple Agenda op een Mac, iPhone of iPad, of Outlook op Windows.",
   "Or copy the link": "Of kopieer de link",
-  "Paste it into any calendar app that can subscribe to a calendar by URL.": "Plak hem in een agenda-app die zich via een URL op een agenda kan abonneren."
+  "Paste it into any calendar app that can subscribe to a calendar by URL.": "Plak hem in een agenda-app die zich via een URL op een agenda kan abonneren.",
+  "Branding Dark Logo": "Branding Dark Logo",
+  "Branding Favicon": "Branding Favicon",
+  "Branding Logo": "Branding Logo",
+  "Branding Product Name": "Branding Product Name",
+  "Branding Updated At": "Branding Updated At",
+  "Branding Website URL": "Branding Website URL",
+  "Can Be White-Labelled": "Can Be White-Labelled",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "De mobiele app is van dit apparaat verwijderd, of het pushtoken is niet meer geldig. Open de mobiele app op het apparaat om het opnieuw te registreren.",
+  "Waiting for {{name}} to register it again": "Wacht tot {{name}} het opnieuw registreert",
+  "{{identifier}} (not receiving notifications)": "{{identifier}} (ontvangt geen meldingen)"
 }

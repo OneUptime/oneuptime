@@ -38,7 +38,8 @@ Mobil push bruger APNs (iOS) og FCM (Android) gennem Expo Push. Tjek følgende:
 2. Batterioptimering er deaktiveret, og baggrundsaktivitet er tilladt (Android).
 3. Do Not Disturb eller Fokus-tilstande er slået fra, eller appen er på undtagelseslisten.
 4. Du er logget ind — push-tokenet registreres først hos serveren, efter du er logget ind.
-5. **Kun selvhostet:** Push-notifikationer er konfigureret på din OneUptime-instans. Se vejledningen [Push-notifikationer](/docs/self-hosted/push-notifications).
+5. Telefonen er ikke markeret **Modtager ikke notifikationer** under **User Settings > Notification Methods > Push** i OneUptime. Hvis den er, så åbn appen på telefonen, mens du er logget ind, for at registrere den igen.
+6. **Kun selvhostet:** Push-notifikationer er konfigureret på din OneUptime-instans. Se vejledningen [Push-notifikationer](/docs/self-hosted/push-notifications).
 
 ### Er dataene på min telefon sikre?
 

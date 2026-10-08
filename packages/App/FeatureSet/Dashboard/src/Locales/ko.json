@@ -26757,5 +26757,15 @@
   "Opens Google Calendar, which asks you to add this calendar.": "Google 캘린더를 열어 이 캘린더를 추가할지 묻습니다.",
   "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.": "이 기기에서 캘린더 링크를 구독하는 캘린더 앱을 엽니다. Mac, iPhone, iPad에서는 Apple 캘린더, Windows에서는 Outlook입니다.",
   "Or copy the link": "또는 링크 복사",
-  "Paste it into any calendar app that can subscribe to a calendar by URL.": "URL로 캘린더를 구독할 수 있는 캘린더 앱에 붙여 넣으세요."
+  "Paste it into any calendar app that can subscribe to a calendar by URL.": "URL로 캘린더를 구독할 수 있는 캘린더 앱에 붙여 넣으세요.",
+  "Branding Dark Logo": "Branding Dark Logo",
+  "Branding Favicon": "Branding Favicon",
+  "Branding Logo": "Branding Logo",
+  "Branding Product Name": "Branding Product Name",
+  "Branding Updated At": "Branding Updated At",
+  "Branding Website URL": "Branding Website URL",
+  "Can Be White-Labelled": "Can Be White-Labelled",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "이 디바이스에서 모바일 앱이 삭제되었거나 푸시 토큰이 더 이상 유효하지 않습니다. 디바이스에서 모바일 앱을 열어 다시 등록하세요.",
+  "Waiting for {{name}} to register it again": "{{name}}님의 재등록 대기 중",
+  "{{identifier}} (not receiving notifications)": "{{identifier}} (알림을 받지 못하고 있음)"
 }

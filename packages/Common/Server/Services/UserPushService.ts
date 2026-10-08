@@ -15,19 +15,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Includes from "../../Types/BaseDatabase/Includes";
-
-/*
- * The device types whose token is an Expo push token: the mobile app's.
- * A web device's token is a browser's push subscription instead.
- */
-export const EXPO_PUSH_DEVICE_TYPES: ReadonlyArray<PushDeviceType> = [
-  PushDeviceType.iOS,
-  PushDeviceType.Android,
-];
-
-export function isExpoPushDeviceType(deviceType: unknown): boolean {
-  return EXPO_PUSH_DEVICE_TYPES.includes(deviceType as PushDeviceType);
-}
+import { EXPO_PUSH_DEVICE_TYPES } from "../../Types/PushNotification/ExpoPushDeviceType";
 
 export class Service extends DatabaseService<UserPush> {
   public constructor() {

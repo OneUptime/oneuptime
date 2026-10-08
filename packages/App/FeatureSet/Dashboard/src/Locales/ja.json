@@ -26757,5 +26757,15 @@
   "Opens Google Calendar, which asks you to add this calendar.": "Google カレンダーを開き、このカレンダーを追加するか確認します。",
   "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.": "このデバイスでカレンダーリンクを購読するカレンダーアプリを開きます。Mac、iPhone、iPad では Apple カレンダー、Windows では Outlook です。",
   "Or copy the link": "またはリンクをコピー",
-  "Paste it into any calendar app that can subscribe to a calendar by URL.": "URL でカレンダーを購読できる任意のカレンダーアプリに貼り付けてください。"
+  "Paste it into any calendar app that can subscribe to a calendar by URL.": "URL でカレンダーを購読できる任意のカレンダーアプリに貼り付けてください。",
+  "Branding Dark Logo": "Branding Dark Logo",
+  "Branding Favicon": "Branding Favicon",
+  "Branding Logo": "Branding Logo",
+  "Branding Product Name": "Branding Product Name",
+  "Branding Updated At": "Branding Updated At",
+  "Branding Website URL": "Branding Website URL",
+  "Can Be White-Labelled": "Can Be White-Labelled",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "このデバイスからモバイルアプリが削除されたか、プッシュトークンが無効になりました。デバイスでモバイルアプリを開いて、もう一度登録してください。",
+  "Waiting for {{name}} to register it again": "{{name}} の再登録待ち",
+  "{{identifier}} (not receiving notifications)": "{{identifier}}（通知を受信していません）"
 }

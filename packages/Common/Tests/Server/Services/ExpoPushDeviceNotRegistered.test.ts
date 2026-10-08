@@ -4,10 +4,11 @@ import PushNotificationService, {
 } from "../../../Server/Services/PushNotificationService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
-import UserPushService, {
+import UserPushService from "../../../Server/Services/UserPushService";
+import {
   EXPO_PUSH_DEVICE_TYPES,
   isExpoPushDeviceType,
-} from "../../../Server/Services/UserPushService";
+} from "../../../Types/PushNotification/ExpoPushDeviceType";
 import { PushNotificationRelayUrl } from "../../../Server/EnvironmentConfig";
 import PushNotificationLog from "../../../Models/DatabaseModels/PushNotificationLog";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { Platform } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { AppState, AppStateStatus, Platform } from "react-native";
 import { type Subscription } from "expo-notifications";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -45,6 +45,51 @@ export function usePushNotifications(navigationRef: unknown): void {
       setNavigationRef(navigationRef);
     }
   }, [navigationRef]);
+
+  /*
+   * How many times the app has come back from the background. Registration
+   * below runs again each time, not only when the app starts: opening the
+   * app is what the server and OneUptime's pages tell a person to do when
+   * this phone stopped receiving notifications (Expo said its push token was
+   * gone), because registering asks Expo for the token again - which renews
+   * it - and the server then verifies the phone again with its rules. A
+   * phone that was only ever brought back from the background would
+   * otherwise stay silent until the app was next started from scratch.
+   *
+   * Only a return from the background counts. iOS also passes through
+   * "inactive" for a Face ID prompt or Control Center, and none of those
+   * left the app.
+   */
+  const [returnsToForeground, setReturnsToForeground] = useState<number>(0);
+
+  useEffect((): (() => void) | undefined => {
+    if (Platform.OS === "web") {
+      return undefined;
+    }
+
+    let wasInBackground: boolean = AppState.currentState === "background";
+
+    const subscription: { remove: () => void } = AppState.addEventListener(
+      "change",
+      (nextState: AppStateStatus): void => {
+        if (nextState === "background") {
+          wasInBackground = true;
+          return;
+        }
+
+        if (nextState === "active" && wasInBackground) {
+          wasInBackground = false;
+          setReturnsToForeground((count: number): number => {
+            return count + 1;
+          });
+        }
+      },
+    );
+
+    return (): void => {
+      subscription.remove();
+    };
+  }, []);
 
   // Register push token when authenticated and projects loaded
   useEffect((): (() => void) | undefined => {
@@ -124,7 +169,7 @@ export function usePushNotifications(navigationRef: unknown): void {
     return (): void => {
       cancelled = true;
     };
-  }, [isAuthenticated, projectList]);
+  }, [isAuthenticated, projectList, returnsToForeground]);
 
   // Set up notification listeners
   useEffect((): (() => void) | undefined => {

@@ -26757,5 +26757,15 @@
   "Opens Google Calendar, which asks you to add this calendar.": "Google कैलेंडर खोलता है, जो आपसे यह कैलेंडर जोड़ने के लिए पूछता है।",
   "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.": "इस डिवाइस पर वह कैलेंडर ऐप खोलता है जो कैलेंडर लिंक की सदस्यता लेता है: Mac, iPhone या iPad पर Apple कैलेंडर, या Windows पर Outlook।",
   "Or copy the link": "या लिंक कॉपी करें",
-  "Paste it into any calendar app that can subscribe to a calendar by URL.": "इसे किसी भी ऐसे कैलेंडर ऐप में पेस्ट करें जो URL से कैलेंडर की सदस्यता ले सकता है।"
+  "Paste it into any calendar app that can subscribe to a calendar by URL.": "इसे किसी भी ऐसे कैलेंडर ऐप में पेस्ट करें जो URL से कैलेंडर की सदस्यता ले सकता है।",
+  "Branding Dark Logo": "Branding Dark Logo",
+  "Branding Favicon": "Branding Favicon",
+  "Branding Logo": "Branding Logo",
+  "Branding Product Name": "Branding Product Name",
+  "Branding Updated At": "Branding Updated At",
+  "Branding Website URL": "Branding Website URL",
+  "Can Be White-Labelled": "Can Be White-Labelled",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "इस डिवाइस से मोबाइल ऐप हटा दिया गया है, या इसका पुश टोकन अब मान्य नहीं है। इसे फिर से रजिस्टर करने के लिए डिवाइस पर मोबाइल ऐप खोलें।",
+  "Waiting for {{name}} to register it again": "{{name}} द्वारा फिर से रजिस्टर किए जाने की प्रतीक्षा",
+  "{{identifier}} (not receiving notifications)": "{{identifier}} (सूचनाएँ नहीं मिल रहीं)"
 }

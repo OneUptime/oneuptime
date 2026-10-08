@@ -26757,5 +26757,15 @@
   "Opens Google Calendar, which asks you to add this calendar.": "Öppnar Google Kalender, som ber dig lägga till den här kalendern.",
   "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.": "Öppnar kalenderappen på den här enheten som prenumererar på kalenderlänkar: Apple Kalender på en Mac, iPhone eller iPad, eller Outlook i Windows.",
   "Or copy the link": "Eller kopiera länken",
-  "Paste it into any calendar app that can subscribe to a calendar by URL.": "Klistra in den i valfri kalenderapp som kan prenumerera på en kalender via URL."
+  "Paste it into any calendar app that can subscribe to a calendar by URL.": "Klistra in den i valfri kalenderapp som kan prenumerera på en kalender via URL.",
+  "Branding Dark Logo": "Branding Dark Logo",
+  "Branding Favicon": "Branding Favicon",
+  "Branding Logo": "Branding Logo",
+  "Branding Product Name": "Branding Product Name",
+  "Branding Updated At": "Branding Updated At",
+  "Branding Website URL": "Branding Website URL",
+  "Can Be White-Labelled": "Can Be White-Labelled",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "Mobilappen har tagits bort från den här enheten, eller så är dess push-token inte längre giltig. Öppna mobilappen på enheten för att registrera den igen.",
+  "Waiting for {{name}} to register it again": "Väntar på att {{name}} registrerar den igen",
+  "{{identifier}} (not receiving notifications)": "{{identifier}} (tar inte emot aviseringar)"
 }

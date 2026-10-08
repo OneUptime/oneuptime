@@ -26757,5 +26757,15 @@
   "Opens Google Calendar, which asks you to add this calendar.": "Открывает Google Календарь, который предложит добавить этот календарь.",
   "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.": "Открывает на этом устройстве приложение календаря, которое подписывается на ссылки календарей: Календарь Apple на Mac, iPhone или iPad либо Outlook в Windows.",
   "Or copy the link": "Или скопируйте ссылку",
-  "Paste it into any calendar app that can subscribe to a calendar by URL.": "Вставьте её в любое приложение календаря, которое умеет подписываться на календарь по URL."
+  "Paste it into any calendar app that can subscribe to a calendar by URL.": "Вставьте её в любое приложение календаря, которое умеет подписываться на календарь по URL.",
+  "Branding Dark Logo": "Branding Dark Logo",
+  "Branding Favicon": "Branding Favicon",
+  "Branding Logo": "Branding Logo",
+  "Branding Product Name": "Branding Product Name",
+  "Branding Updated At": "Branding Updated At",
+  "Branding Website URL": "Branding Website URL",
+  "Can Be White-Labelled": "Can Be White-Labelled",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "Мобильное приложение удалено с этого устройства, или его push-токен больше не действителен. Откройте мобильное приложение на устройстве, чтобы зарегистрировать его снова.",
+  "Waiting for {{name}} to register it again": "Ожидает повторной регистрации пользователем {{name}}",
+  "{{identifier}} (not receiving notifications)": "{{identifier}} (уведомления не приходят)"
 }

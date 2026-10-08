@@ -38,7 +38,8 @@ Mobile push uses APNs (iOS) and FCM (Android) via Expo Push. Check the following
 2. Battery optimisation is disabled and background activity is allowed (Android).
 3. Do Not Disturb or Focus modes are off, or the app is on the exception list.
 4. You are signed in — the push token is registered with the server only after you sign in.
-5. **Self-hosted only:** Push notifications are configured on your OneUptime instance. See the [Push Notifications](/docs/self-hosted/push-notifications) guide.
+5. The phone is not marked **Not receiving notifications** under **User Settings > Notification Methods > Push** in OneUptime. If it is, open the app on the phone while signed in to register it again.
+6. **Self-hosted only:** Push notifications are configured on your OneUptime instance. See the [Push Notifications](/docs/self-hosted/push-notifications) guide.
 
 ### Is the data on my phone secure?
 

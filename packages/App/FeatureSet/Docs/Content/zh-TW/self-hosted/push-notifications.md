@@ -39,10 +39,13 @@ OneUptime 行動應用程式向後端註冊 Expo Push Token。後端透過 OneUp
 - 驗證該裝置已註冊於您資料庫中的 `UserPush` 資料表
 - 檢查 OneUptime 伺服器記錄中是否有 Expo Push API 錯誤
 - 確認裝置具有可用的網際網路連線且已啟用通知權限
+- 檢查 **User Settings > Notification Methods > Push**:標記為 **未收到通知** 的裝置已停止接收通知,需要重新註冊(見下文)
 
 ### 記錄中出現「DeviceNotRegistered」錯誤
 
-該 Expo Push Token 已不再有效。這通常表示應用程式已被解除安裝，或使用者撤銷了通知權限。該 Token 將會自動被清除。
+當行動應用程式已從裝置移除,或裝置的推播權杖已失效時,Expo 會以 `DeviceNotRegistered` 回應推播。之後 OneUptime 便停止傳送至該裝置。該裝置會被標記為不再接收通知,而不是被刪除,因此其通知規則會保留,推播記錄和值班時間軸會說明原因。**User Settings > Notification Methods > Push** 會將其顯示為 **未收到通知**。其擁有者的其他裝置和通知方式仍會收到通知。
+
+若要恢復該裝置,請在登入狀態下於該裝置上開啟行動應用程式。應用程式會重新註冊,藉此在 Expo 更新其推播權杖,裝置將帶著原有規則重新接收通知。如果應用程式已被移除,請重新安裝並登入。透過推播中繼(未設定 `EXPO_ACCESS_TOKEN`)時也是如此:中繼會將 `DeviceNotRegistered` 告知您的執行個體。
 
 ## 支援
 

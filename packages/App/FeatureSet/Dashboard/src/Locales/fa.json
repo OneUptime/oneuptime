@@ -26757,5 +26757,15 @@
   "Opens Google Calendar, which asks you to add this calendar.": "Google Calendar را باز می‌کند و از شما می‌پرسد که این تقویم افزوده شود یا نه.",
   "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.": "اپلیکیشن تقویمی را روی این دستگاه باز می‌کند که پیوندهای تقویم را مشترک می‌شود: Apple Calendar روی Mac، iPhone یا iPad، یا Outlook روی Windows.",
   "Or copy the link": "یا پیوند را کپی کنید",
-  "Paste it into any calendar app that can subscribe to a calendar by URL.": "آن را در هر اپلیکیشن تقویمی که می‌تواند از طریق URL مشترک یک تقویم شود جای‌گذاری کنید."
+  "Paste it into any calendar app that can subscribe to a calendar by URL.": "آن را در هر اپلیکیشن تقویمی که می‌تواند از طریق URL مشترک یک تقویم شود جای‌گذاری کنید.",
+  "Branding Dark Logo": "Branding Dark Logo",
+  "Branding Favicon": "Branding Favicon",
+  "Branding Logo": "Branding Logo",
+  "Branding Product Name": "Branding Product Name",
+  "Branding Updated At": "Branding Updated At",
+  "Branding Website URL": "Branding Website URL",
+  "Can Be White-Labelled": "Can Be White-Labelled",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "برنامهٔ موبایل از این دستگاه حذف شده یا توکن push آن دیگر معتبر نیست. برای ثبت دوباره، برنامهٔ موبایل را روی دستگاه باز کنید.",
+  "Waiting for {{name}} to register it again": "در انتظار ثبت دوباره توسط {{name}}",
+  "{{identifier}} (not receiving notifications)": "{{identifier}} (اعلان دریافت نمی‌شود)"
 }

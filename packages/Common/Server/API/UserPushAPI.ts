@@ -1,6 +1,5 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import UserPushService, {
-  isExpoPushDeviceType,
   Service as UserPushServiceType,
 } from "../Services/UserPushService";
 import UserNotificationRuleService from "../Services/UserNotificationRuleService";
@@ -23,6 +22,7 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import { JSONObject, ObjectType } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
+import { isExpoPushDeviceType } from "../../Types/PushNotification/ExpoPushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 

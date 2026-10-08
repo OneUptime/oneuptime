@@ -38,7 +38,8 @@ OneUptime 移动和桌面应用的常见问题及解决方案。
 2. 已禁用电池优化并允许后台活动(Android)。
 3. 勿扰模式或专注模式已关闭,或者该应用已在例外列表中。
 4. 您已登录 — 推送令牌仅在登录后才会注册到服务器。
-5. **仅限自托管:** 您的 OneUptime 实例已配置推送通知。请参阅 [推送通知](/docs/self-hosted/push-notifications) 指南。
+5. 在 OneUptime 的 **User Settings > Notification Methods > Push** 中,该手机未被标记为 **未收到通知**。如果已被标记,请在登录状态下在手机上打开应用以重新注册。
+6. **仅限自托管:** 您的 OneUptime 实例已配置推送通知。请参阅 [推送通知](/docs/self-hosted/push-notifications) 指南。
 
 ### 我手机上的数据安全吗?
 

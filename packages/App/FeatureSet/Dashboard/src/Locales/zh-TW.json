@@ -26757,5 +26757,15 @@
   "Opens Google Calendar, which asks you to add this calendar.": "開啟 Google 日曆，它會詢問是否新增此行事曆。",
   "Opens the calendar app on this device that subscribes to calendar links: Apple Calendar on a Mac, iPhone or iPad, or Outlook on Windows.": "開啟此裝置上用於訂閱行事曆連結的行事曆應用程式：Mac、iPhone 或 iPad 上的 Apple 行事曆，或 Windows 上的 Outlook。",
   "Or copy the link": "或複製連結",
-  "Paste it into any calendar app that can subscribe to a calendar by URL.": "將它貼到任何可以透過 URL 訂閱行事曆的行事曆應用程式中。"
+  "Paste it into any calendar app that can subscribe to a calendar by URL.": "將它貼到任何可以透過 URL 訂閱行事曆的行事曆應用程式中。",
+  "Branding Dark Logo": "Branding Dark Logo",
+  "Branding Favicon": "Branding Favicon",
+  "Branding Logo": "Branding Logo",
+  "Branding Product Name": "Branding Product Name",
+  "Branding Updated At": "Branding Updated At",
+  "Branding Website URL": "Branding Website URL",
+  "Can Be White-Labelled": "Can Be White-Labelled",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "此裝置上的行動應用程式已被移除，或其推播權杖已失效。請在該裝置上開啟行動應用程式以重新註冊。",
+  "Waiting for {{name}} to register it again": "等待 {{name}} 重新註冊",
+  "{{identifier}} (not receiving notifications)": "{{identifier}}（未收到通知）"
 }
