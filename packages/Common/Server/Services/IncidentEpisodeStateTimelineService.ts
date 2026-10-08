@@ -22,7 +22,10 @@ import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNo
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeInternalNote from "../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
@@ -76,17 +79,15 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
           props: createBy.props,
         });
 
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.incidentEpisodeId.toString(),
-          namespace: "IncidentEpisodeStateTimeline.create",
-        });
-      } catch (err) {
-        logger.error(err, {
+      // The episode's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "IncidentEpisodeStateTimeline.create",
+        eventId: createBy.data.incidentEpisodeId,
+        logAttributes: {
           projectId: createBy.data.projectId?.toString(),
           incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
-        } as LogAttributes);
-      }
+        } as LogAttributes,
+      });
 
       // Who made the change, under either name of it: see CreatedByUser.
       const changedByUserId: ObjectID | null = CreatedByUser.getId(
@@ -224,17 +225,14 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         },
       };
     } catch (error) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
+      } as LogAttributes);
 
       throw error;
     }
@@ -248,8 +246,6 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
     if (!createdItem.incidentEpisodeId) {
       throw new BadDataException("incidentEpisodeId is null");
     }
-
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
 
     if (!createdItem.incidentStateId) {
       throw new BadDataException("incidentStateId is null");
@@ -378,12 +374,17 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         updateData.resolvedAt = null;
       }
 
+      /*
+       * As OneUptime's own write, derived from the timeline: the permission
+       * to create the change is the permission to change the episode's state
+       * (StateChangeFollowOn).
+       */
       await IncidentEpisodeService.updateOneBy({
         query: {
           _id: createdItem.incidentEpisodeId?.toString(),
         },
         data: updateData,
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
 
       // Cascade state change to all member incidents
@@ -409,16 +410,10 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       }
     }
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: createdItem.projectId?.toString(),
+      incidentEpisodeId: createdItem.incidentEpisodeId?.toString(),
+    } as LogAttributes);
 
     const incidentState: IncidentState | null =
       await IncidentStateService.findOneBy({
@@ -504,6 +499,26 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
     });
 
     return createdItem;
+  }
+
+  /*
+   * A change refused or failed once onBeforeCreate took the episode's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the episode
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<IncidentEpisodeStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      incidentEpisodeId: onCreate?.createBy.data.incidentEpisodeId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   /*

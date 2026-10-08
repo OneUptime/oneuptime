@@ -20,7 +20,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import AlertEpisodeService from "./AlertEpisodeService";
 import AlertEpisodeInternalNote from "../../Models/DatabaseModels/AlertEpisodeInternalNote";
 import AlertEpisodeInternalNoteService from "./AlertEpisodeInternalNoteService";
@@ -74,17 +77,15 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
           props: createBy.props,
         });
 
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.alertEpisodeId.toString(),
-          namespace: "AlertEpisodeStateTimeline.create",
-        });
-      } catch (err) {
-        logger.error(err, {
+      // The episode's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "AlertEpisodeStateTimeline.create",
+        eventId: createBy.data.alertEpisodeId,
+        logAttributes: {
           projectId: createBy.data.projectId?.toString(),
           alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
-        } as LogAttributes);
-      }
+        } as LogAttributes,
+      });
 
       // Who made the change, under either name of it: see CreatedByUser.
       const changedByUserId: ObjectID | null = CreatedByUser.getId(
@@ -216,17 +217,14 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
         },
       };
     } catch (error) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
+      } as LogAttributes);
 
       throw error;
     }
@@ -240,8 +238,6 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
     if (!createdItem.alertEpisodeId) {
       throw new BadDataException("alertEpisodeId is null");
     }
-
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
 
     if (!createdItem.alertStateId) {
       throw new BadDataException("alertStateId is null");
@@ -370,12 +366,17 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
         updateData.resolvedAt = null;
       }
 
+      /*
+       * As OneUptime's own write, derived from the timeline: the permission
+       * to create the change is the permission to change the episode's state
+       * (StateChangeFollowOn).
+       */
       await AlertEpisodeService.updateOneBy({
         query: {
           _id: createdItem.alertEpisodeId?.toString(),
         },
         data: updateData,
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
 
       // Cascade state change to all member alerts
@@ -401,16 +402,10 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       }
     }
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          alertEpisodeId: createdItem.alertEpisodeId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: createdItem.projectId?.toString(),
+      alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+    } as LogAttributes);
 
     const alertState: AlertState | null = await AlertStateService.findOneBy({
       query: {
@@ -493,6 +488,26 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
     });
 
     return createdItem;
+  }
+
+  /*
+   * A change refused or failed once onBeforeCreate took the episode's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the episode
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<AlertEpisodeStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      alertEpisodeId: onCreate?.createBy.data.alertEpisodeId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   @CaptureSpan()
