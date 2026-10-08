@@ -1,12 +1,14 @@
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import FindBy from "../../../Server/Types/Database/FindBy";
+import Query from "../../../Server/Types/Database/Query";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -258,6 +260,54 @@ describe("a create under a parent reads the parent as its creator would", () => 
 
     expect(parentReads).toHaveLength(1);
     expect(parentReads[0]!.findBy.props.isMultiTenantRequest).toBe(false);
+    expect(parentReads[0]!.findBy.props.tenantId).toBe(PROJECT_ID);
+  });
+
+  /*
+   * A create whose request names no project is refused before its parent is
+   * read (its caller's grants are the project's), so the read is held to the
+   * record's project only should one get that far.
+   */
+  test("a request that names no project reads the parents of the record's project only", () => {
+    const props: DatabaseCommonInteractionProps = noteWriterOnOneLabel();
+    delete props.tenantId;
+
+    const note: IncidentInternalNote = noteOn(INCIDENT_ID);
+    note.projectId = PROJECT_ID;
+
+    const lookup: Query<BaseModel> = (
+      service as unknown as {
+        getParentLookupInRecordProject: (data: {
+          parentModelType: { new (): BaseModel };
+          query: Query<BaseModel>;
+          record: IncidentInternalNote;
+          props: DatabaseCommonInteractionProps;
+        }) => Query<BaseModel>;
+      }
+    ).getParentLookupInRecordProject({
+      parentModelType: Incident,
+      query: { _id: INCIDENT_ID } as Query<BaseModel>,
+      record: note,
+      props: props,
+    });
+
+    expect(lookup._id).toBe(INCIDENT_ID);
+    expect(lookup.projectId).toBeInstanceOf(Includes);
+    expect(
+      (lookup.projectId as unknown as Includes).values.map(String),
+    ).toEqual([PROJECT_ID.toString()]);
+  });
+
+  test("a request that names its project reads the parents of that project, as before", async () => {
+    await refusalOf(
+      service.create({
+        data: noteOn(INCIDENT_ID),
+        props: noteWriterOnOneLabel(),
+      }),
+    );
+
+    expect(parentReads).toHaveLength(1);
+    expect(parentReads[0]!.findBy.query.projectId).toBeUndefined();
     expect(parentReads[0]!.findBy.props.tenantId).toBe(PROJECT_ID);
   });
 

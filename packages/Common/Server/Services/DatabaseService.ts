@@ -53,6 +53,7 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Includes from "../../Types/BaseDatabase/Includes";
 import Sort from "../../Types/BaseDatabase/Sort";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { getMaxLengthFromTableColumnType } from "../../Types/Database/ColumnLength";
@@ -2127,9 +2128,51 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         query: Query<BaseModel>;
         props: DatabaseCommonInteractionProps;
       }): Promise<Array<string>> => {
-        return await DatabaseService.findReadableParentIds(lookup);
+        return await DatabaseService.findReadableParentIds({
+          ...lookup,
+          query: this.getParentLookupInRecordProject({
+            parentModelType: lookup.parentModelType,
+            query: lookup.query,
+            record: data.data,
+            props: lookup.props,
+          }),
+        });
       },
     });
+  }
+
+  /*
+   * The parent lookup of a create whose request names no project - a read
+   * across every project the caller belongs to - is held to the project the
+   * record is created in: a parent the caller reads in another project is
+   * not one the record may be created under. A request that names its
+   * project is held to it already (findReadableParentIds).
+   */
+  private getParentLookupInRecordProject(data: {
+    parentModelType: { new (): BaseModel };
+    query: Query<BaseModel>;
+    record: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Query<BaseModel> {
+    if (data.props.tenantId) {
+      return data.query;
+    }
+
+    const parentTenantColumn: string | null =
+      new data.parentModelType().getTenantColumn();
+    const recordTenantColumn: string | null = this.getModel().getTenantColumn();
+    const recordProjectId: unknown = recordTenantColumn
+      ? data.record.getValue(recordTenantColumn)
+      : null;
+
+    if (!parentTenantColumn || !recordProjectId) {
+      return data.query;
+    }
+
+    return {
+      ...data.query,
+      [parentTenantColumn]: new Includes([String(recordProjectId)]),
+    } as Query<BaseModel>;
   }
 
   /*
@@ -2140,7 +2183,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * the ids and carries the parent table's rule for its private records
    * (CreatePermission.getParentLookupQuery), selecting nothing but the id.
    * Pinned to the project of the request, as the create is: a request across
-   * projects reads the parents of the request's project only.
+   * projects reads the parents of the request's project only, and a request
+   * that names no project reads those of the record's project only
+   * (getParentLookupInRecordProject).
    */
   private static async findReadableParentIds(data: {
     parentModelType: { new (): BaseModel };

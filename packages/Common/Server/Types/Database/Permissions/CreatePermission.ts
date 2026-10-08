@@ -91,6 +91,15 @@ const PARENT_PRIVACY_FILTERS: Dictionary<SelfPrivacyFilter> = {
   AlertEpisode: applyAlertEpisodeSelfPrivacyFilter,
 };
 
+/*
+ * A parent table's rules a create is checked against: the rule for its
+ * private records, and whether it is itself read through another record.
+ */
+interface ParentTableFacts {
+  privacyFilter: SelfPrivacyFilter | null;
+  isReadThroughAnother: boolean;
+}
+
 export default class CreatePermission {
   @CaptureSpan()
   public static checkCreatePermissions<TBaseModel extends BaseModel>(
@@ -620,7 +629,8 @@ export default class CreatePermission {
     props: DatabaseCommonInteractionProps,
   ): boolean {
     return (
-      !new parentModelType().canAccessIfCanReadOn &&
+      !CreatePermission.getParentTableFacts(parentModelType)
+        .isReadThroughAnother &&
       !CreatePermission.isHeldToParentPrivacy(parentModelType, props) &&
       CreatePermission.reachesRecordsOfNoParent(parentModelType, props) &&
       ReadPermission.getBlockedLabelIds(
@@ -660,9 +670,34 @@ export default class CreatePermission {
   public static getParentPrivacyFilter(
     parentModelType: DatabaseBaseModelType,
   ): SelfPrivacyFilter | null {
-    return (
-      PARENT_PRIVACY_FILTERS[new parentModelType().tableName || ""] || null
-    );
+    return CreatePermission.getParentTableFacts(parentModelType).privacyFilter;
+  }
+
+  // What each parent table's rules come to, read from its metadata once.
+  private static parentTableFacts: Map<
+    DatabaseBaseModelType,
+    ParentTableFacts
+  > = new Map();
+
+  private static getParentTableFacts(
+    parentModelType: DatabaseBaseModelType,
+  ): ParentTableFacts {
+    let facts: ParentTableFacts | undefined =
+      CreatePermission.parentTableFacts.get(parentModelType);
+
+    if (!facts) {
+      const parentModel: BaseModel = new parentModelType();
+
+      facts = {
+        privacyFilter:
+          PARENT_PRIVACY_FILTERS[parentModel.tableName || ""] || null,
+        isReadThroughAnother: Boolean(parentModel.canAccessIfCanReadOn),
+      };
+
+      CreatePermission.parentTableFacts.set(parentModelType, facts);
+    }
+
+    return facts;
   }
 
   /*
