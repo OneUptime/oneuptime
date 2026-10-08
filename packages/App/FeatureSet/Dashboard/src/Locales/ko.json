@@ -26540,5 +26540,7 @@
   "{{threshold}} occurrences in a day is when the AI detector treats a new exception as recurring rather than a one-off.": "{{threshold}} occurrences in a day is when the AI detector treats a new exception as recurring rather than a one-off.",
   "{{threshold}} or more Error or Fatal logs in an hour": "{{threshold}} or more Error or Fatal logs in an hour",
   "{{threshold}} or more occurrences in 24 hours": "{{threshold}} or more occurrences in 24 hours",
-  "{{threshold}} or more occurrences in an hour": "{{threshold}} or more occurrences in an hour"
+  "{{threshold}} or more occurrences in an hour": "{{threshold}} or more occurrences in an hour",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "전화번호를 추가하려면 수신 통화 정책을 편집할 권한과 통화 및 SMS 설정을 읽을 권한이 필요합니다.",
+  "Releasing a phone number needs permission to edit incoming call policies.": "전화번호를 해제하려면 수신 통화 정책을 편집할 권한이 필요합니다."
 }

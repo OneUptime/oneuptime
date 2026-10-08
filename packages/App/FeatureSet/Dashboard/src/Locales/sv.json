@@ -26540,5 +26540,7 @@
   "{{threshold}} occurrences in a day is when the AI detector treats a new exception as recurring rather than a one-off.": "{{threshold}} occurrences in a day is when the AI detector treats a new exception as recurring rather than a one-off.",
   "{{threshold}} or more Error or Fatal logs in an hour": "{{threshold}} or more Error or Fatal logs in an hour",
   "{{threshold}} or more occurrences in 24 hours": "{{threshold}} or more occurrences in 24 hours",
-  "{{threshold}} or more occurrences in an hour": "{{threshold}} or more occurrences in an hour"
+  "{{threshold}} or more occurrences in an hour": "{{threshold}} or more occurrences in an hour",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "Att lägga till ett telefonnummer kräver behörighet att redigera inkommande samtalspolicyer och att läsa inställningar för samtal och sms.",
+  "Releasing a phone number needs permission to edit incoming call policies.": "Att frigöra ett telefonnummer kräver behörighet att redigera inkommande samtalspolicyer."
 }
