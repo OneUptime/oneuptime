@@ -1,4 +1,5 @@
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -6,6 +7,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import logger from "../../../Server/Utils/Logger";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -71,8 +73,10 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * created on every plan, and with billing off nothing changes.
  *
  * Runs the real hook and the real DatabaseService create path; only the
- * user lookup, the project-creation switch, the duplicate-name count and
- * the repository are stubbed. Nothing is saved: the repository's save
+ * user lookup, the project-creation switch, the duplicate-name count, the
+ * server's sign-in rules (no Require SSO for Login: SsoRequirementChanges.
+ * beforeProjectCreate asks) and the repository are stubbed. Nothing is
+ * saved: the repository's save
  * answers REACHED_SAVE, which is how a create that passed every check
  * shows here.
  */
@@ -262,6 +266,10 @@ beforeEach(() => {
   ).mockResolvedValue(false as never);
   getJestSpyOn(ProjectService, "countBy").mockResolvedValue(
     new PositiveNumber(0) as never,
+  );
+  // The server does not require SSO for everyone: a new project needs no provider.
+  getJestSpyOn(GlobalConfigService, "findOneBy").mockResolvedValue(
+    new GlobalConfig() as never,
   );
 
   save = jest.fn(async (): Promise<never> => {

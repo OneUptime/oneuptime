@@ -5,6 +5,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
+import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectSsoProviderChanges from "./ProjectSsoProviderChanges";
 import SsoSignInsEnded from "./SsoSignInsEnded";
@@ -33,7 +34,14 @@ import SsoSignInWays, {
  *   - the server that turns it on needs that for every project that does
  *     not require SSO itself: the refusal names the projects that have no
  *     way in. Master admins stay exempt from the server's rule, as they
- *     always were (UserMiddleware), so they can always turn it off again.
+ *     always were (UserMiddleware), so they can always turn it off again;
+ *   - a project created with Require SSO for Login on, or requiring a
+ *     provider, is held to the same rule as one updated to it - and a new
+ *     project has no provider of its own yet, so only a global provider
+ *     that signs people in to every project can be its way in. One created
+ *     while the whole server requires SSO needs such a provider too, or its
+ *     creator could not open it, unless the creator is a master admin, whom
+ *     the server's rule does not hold (beforeProjectCreate).
  *
  * The check is the one every change to who can sign in asks (SsoSignInWays),
  * under the locks those changes hold (ProjectSsoProviderChanges.
@@ -52,6 +60,14 @@ export const NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE: string =
 
 export const REQUIRED_PROVIDER_CANNOT_SIGN_IN_MESSAGE: string =
   "The SSO provider this project would require cannot sign people in to it: it is off, it was deleted, or it does not sign people in to this project. Turn it on first, or require another provider.";
+
+/*
+ * Why a project cannot be created while the whole server requires SSO and
+ * no provider would sign anyone in to a new project, and who can change
+ * that: a server admin, who sets up the global providers.
+ */
+export const SERVER_REQUIRES_SSO_FOR_NEW_PROJECT_MESSAGE: string =
+  "This server requires SSO for everyone, and no SSO provider would sign people in to a new project, so you would be locked out of the project you create. Ask a server admin to turn on a global SSO provider that signs people in to every project, then try again.";
 
 /*
  * Why the server's Require SSO for Login is refused, naming the projects it
@@ -121,8 +137,13 @@ export default class SsoRequirementChanges {
    * write (SsoRequirementChanges.test, GlobalSsoProviderChanges.test) fail
    * if one ever does not.
    */
-  private static writes: WeakMap<UpdateBy<BaseModel>, SsoRequirementWrite> =
-    new WeakMap<UpdateBy<BaseModel>, SsoRequirementWrite>();
+  private static writes: WeakMap<
+    UpdateBy<BaseModel> | CreateBy<BaseModel>,
+    SsoRequirementWrite
+  > = new WeakMap<
+    UpdateBy<BaseModel> | CreateBy<BaseModel>,
+    SsoRequirementWrite
+  >();
 
   /*
    * Before an update to projects is written (ProjectService.
@@ -356,13 +377,126 @@ export default class SsoRequirementChanges {
   }
 
   /*
+   * Before a project is created (ProjectService.onCreatePermitted, once
+   * every permission and plan check has passed): a project that would
+   * require SSO - itself, or because the whole server does - needs a
+   * provider that signs people in to it, and a new one has none of its own
+   * yet, so only a global provider that signs people in to every project
+   * counts (SsoSignInWays.findNewProjectStrandReason).
+   *
+   *   - Require SSO for Login on, or a provider required, is held to the
+   *     rule an update to them is held to (beforeProjectUpdate), and refused
+   *     in the same words, whoever creates it: the project's own rule holds
+   *     master admins too.
+   *   - Created while the whole server requires SSO, it needs such a
+   *     provider as well, or its creator could not open it; the refusal says
+   *     a server admin can turn one on. A master admin, whom the server's
+   *     rule does not hold, is not refused for it.
+   *
+   * Read under the lock on the server's sign-in rules, held until the
+   * project is written (afterProjectCreate, first in onCreateSuccess, or
+   * once the create fails): a server turning its Require SSO for Login on,
+   * or a global provider being turned off, at the same moment either reads
+   * the new project or is read by its check. A master admin's create that
+   * asks nothing of SSO itself needs no check and takes no lock.
+   */
+  public static async beforeProjectCreate(data: {
+    createBy: CreateBy<Project>;
+    // The creator is a master admin: the server's Require SSO for Login does not hold them.
+    isCreatorExemptFromServerRule: boolean;
+  }): Promise<SsoRequirementWrite | null> {
+    const written: Record<string, unknown> = data.createBy
+      .data as unknown as Record<string, unknown>;
+
+    const rule: ProjectSignInRule = {
+      requireSsoForLogin:
+        SsoSignInsEnded.getWrittenBoolean(written, "requireSsoForLogin") ===
+        true,
+      requiredProviderId: toIdString(written["requireSsoWithSsoProviderId"]),
+    };
+
+    const asksForSso: boolean =
+      rule.requireSsoForLogin || Boolean(rule.requiredProviderId);
+
+    // Neither the project's own rule nor the server's holds its creator.
+    if (!asksForSso && data.isCreatorExemptFromServerRule) {
+      return null;
+    }
+
+    const locks: Array<SemaphoreMutex> =
+      await ProjectSsoProviderChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    try {
+      const reason: StrandReason | null =
+        await SsoSignInWays.findNewProjectStrandReason({
+          rule,
+          heldToServerRule: !data.isCreatorExemptFromServerRule,
+        });
+
+      if (reason === StrandReason.RequiredProvider) {
+        throw new BadDataException(REQUIRED_PROVIDER_CANNOT_SIGN_IN_MESSAGE);
+      }
+
+      if (reason === StrandReason.NoProvider) {
+        throw new BadDataException(
+          rule.requireSsoForLogin
+            ? NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE
+            : SERVER_REQUIRES_SSO_FOR_NEW_PROJECT_MESSAGE,
+        );
+      }
+
+      // The lock lasts another while, for the write that follows.
+      await ProjectSsoProviderChanges.keepSignInChange(locks);
+
+      const write: SsoRequirementWrite = { locks };
+      SsoRequirementChanges.writes.set(
+        data.createBy as unknown as CreateBy<BaseModel>,
+        write,
+      );
+      return write;
+    } catch (err) {
+      await ProjectSsoProviderChanges.releaseSignInChange(locks);
+      throw err;
+    }
+  }
+
+  /*
    * Once the write is done (first in the success hooks) or has failed (the
    * error hooks): its locks are given back, once. Never throws.
    */
   public static async afterUpdate<TModel extends BaseModel>(
     updateBy: UpdateBy<TModel>,
   ): Promise<void> {
-    const key: UpdateBy<BaseModel> = updateBy as unknown as UpdateBy<BaseModel>;
+    await SsoRequirementChanges.release(
+      updateBy as unknown as UpdateBy<BaseModel>,
+    );
+  }
+
+  /*
+   * Once a project is created (first in ProjectService.onCreateSuccess), or
+   * its create has failed after the check (ProjectService.create, whatever
+   * happened): the lock its check took is given back, once. Never throws. A
+   * create that took none, or a hook handed no create, gives nothing back.
+   */
+  public static async afterProjectCreate(
+    createBy: CreateBy<Project> | null | undefined,
+  ): Promise<void> {
+    if (!createBy) {
+      return;
+    }
+
+    await SsoRequirementChanges.release(
+      createBy as unknown as CreateBy<BaseModel>,
+    );
+  }
+
+  // Gives a write's locks back, once.
+  private static async release(
+    key: UpdateBy<BaseModel> | CreateBy<BaseModel>,
+  ): Promise<void> {
     const write: SsoRequirementWrite | undefined =
       SsoRequirementChanges.writes.get(key);
 

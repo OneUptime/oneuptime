@@ -676,22 +676,55 @@ describe("live updates follow every change of access", () => {
       ]);
     });
 
-    test("turning Require SSO off, or clearing the pinned provider, asks nobody again: it refuses nobody", async () => {
+    test("turning Require SSO off, or clearing the pinned provider, is announced once per project too: no server keeps refusing people with the rule it held", async () => {
       await projectHooks.onUpdateSuccess(
         updateOf<User>({ requireSsoForLogin: false }),
         [PROJECT],
       );
       await projectHooks.onUpdateSuccess(
         updateOf<User>({ requireSsoWithSsoProviderId: null }),
-        [PROJECT],
+        [PROJECT, OTHER_PROJECT],
+      );
+
+      expect(announced).toEqual([
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: PROJECT.toString(),
+        },
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: PROJECT.toString(),
+        },
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: OTHER_PROJECT.toString(),
+        },
+      ]);
+    });
+
+    test("a project update that wrote no project announces nothing, whatever it names", async () => {
+      await projectHooks.onUpdateSuccess(
+        updateOf<User>({ requireSsoForLogin: false }),
+        [],
       );
 
       expect(announced).toEqual([]);
     });
 
-    test("turning the instance-wide rule off asks nobody again", async () => {
+    test("turning the instance-wide rule off is announced once, for every project", async () => {
       await instanceHooks.onUpdateSuccess(
         updateOf<User>({ requireSsoForLogin: false }),
+        [TEAM],
+      );
+
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("an instance-wide settings update that leaves Require SSO alone announces nothing", async () => {
+      await instanceHooks.onUpdateSuccess(
+        updateOf<User>({ name: "Renamed" }),
         [TEAM],
       );
 

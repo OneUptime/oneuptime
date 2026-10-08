@@ -515,14 +515,16 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Turned on: every server reads the rule again, and the live updates
-     * already open are asked again as their joins were, so a page that no
-     * longer meets it stops hearing at once, as its API requests are
-     * refused. Turned off, it refuses nobody, so nobody is asked again.
+     * Turned on or off: every server reads the rule again at once, rather
+     * than when its cached copy runs out a minute later. Turned on, the live
+     * updates already open are asked again as their joins were, so a page
+     * that no longer meets it stops hearing at once, as its API requests are
+     * refused. Turned off, people signed in with a password are let back in
+     * at once on every server, not only on this one.
      */
     if (
       (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
-        .requireSsoForLogin === true
+        .requireSsoForLogin !== undefined
     ) {
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SignInRulesChanged,

@@ -137,6 +137,32 @@ export function isGlobalProviderNarrowing(data: unknown): boolean {
 }
 
 /*
+ * Whether a write to a global provider, or to one of its project
+ * attachments, may change who it signs in, either way: it turns it on or
+ * off, or restricts it to its attached projects or lifts that. A write
+ * that lets a provider sign more people in is told to every server as one
+ * that lets it sign fewer is (announceGlobalSignInChange): a server still
+ * holding the old answer would refuse those people until it ran out.
+ */
+export function isGlobalProviderReachWrite(data: unknown): boolean {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  // Only the write's own fields count, never ones it inherits.
+  const writesSwitch: (column: string) => boolean = (
+    column: string,
+  ): boolean => {
+    return (
+      Object.prototype.hasOwnProperty.call(data, column) &&
+      typeof (data as Record<string, unknown>)[column] === "boolean"
+    );
+  };
+
+  return writesSwitch("isEnabled") || writesSwitch("restrictToAttachedProjects");
+}
+
+/*
  * Whether an attachment added, turned off or removed changes who these
  * providers sign in. Only a provider that is on and restricted to its
  * attached projects reads its attachments (doAttachmentsGovernProject); for
@@ -177,13 +203,15 @@ export async function isAnyAttachedProviderRestricted(data: {
 }
 
 /*
- * A global provider now signs fewer people in - turned off, deleted,
- * restricted to its attached projects, or an attachment of a restricted
- * one added, turned off or removed. Every server forgets these answers
- * (GlobalConfigService.forgetSignInRules) and asks the live updates it holds
- * again, as their joins were (RealtimeAccessChanges, SignInRulesChanged for
- * the whole instance), so a page signed in with it stops hearing at once,
- * as its requests are refused at once.
+ * A global provider now signs other people in - turned off or on, deleted,
+ * restricted to its attached projects or opened to every project again, or
+ * an attachment of a restricted one added, turned off or on, or removed.
+ * Every server forgets these answers (GlobalConfigService.forgetSignInRules)
+ * and asks the live updates it holds again, as their joins were
+ * (RealtimeAccessChanges, SignInRulesChanged for the whole instance): a page
+ * signed in with a provider that no longer signs it in stops hearing at
+ * once, as its requests are refused at once, and people a provider now signs
+ * in are let in at once on every server, not after a minute.
  */
 export function announceGlobalSignInChange(): void {
   RealtimeAccessChanges.announce({

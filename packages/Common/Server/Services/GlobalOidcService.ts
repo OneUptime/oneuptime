@@ -12,7 +12,7 @@ import {
   GlobalProviderTrust,
   announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
-  isGlobalProviderNarrowing,
+  isGlobalProviderReachWrite,
   globalProviderCacheKey,
   globalSsoProviderTrustCache,
   loadTrustOnce,
@@ -137,16 +137,17 @@ export class Service extends DatabaseService<Model> {
     clearGlobalSsoAuthorizationCaches();
 
     /*
-     * Turned off, or restricted to its attached projects - or turned on -
-     * where that changes where it signs people in, as read under the lock:
-     * the sign-ins it gave stop counting where it no longer signs people
-     * in, and the live updates already open are asked again on every
-     * server. A write that turns it off or restricts it is told whatever
-     * was read.
+     * Turned off or on, restricted to its attached projects or opened to
+     * every project again: every server forgets what it knew of the
+     * provider, once. The sign-ins it gave stop counting where it no longer
+     * signs people in, and the live updates already open are asked again;
+     * people it now signs in are let in at once, not when another server's
+     * cached answer runs out. Told whatever was read: a write that only
+     * widens takes no lock and reads nothing first.
      */
     if (
       updatedItemIds.length > 0 &&
-      (changedReach || isGlobalProviderNarrowing(onUpdate.updateBy.data))
+      (changedReach || isGlobalProviderReachWrite(onUpdate.updateBy.data))
     ) {
       announceGlobalSignInChange();
     }

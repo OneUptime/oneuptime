@@ -12,6 +12,7 @@ import {
   GlobalProviderTrust,
   clearGlobalSsoAuthorizationCaches,
   isGlobalProviderNarrowing,
+  isGlobalProviderReachWrite,
 } from "../../../Server/Utils/GlobalSsoAuthorization";
 import GlobalSsoProviderChanges from "../../../Server/Utils/GlobalSsoProviderChanges";
 import RealtimeAccessChanges, {
@@ -1409,13 +1410,34 @@ function providerAnnouncementCases(
       announces: false,
     },
     {
-      label: `${name}: turned on, or opened to every project`,
+      label: `${name}: turned on, or opened to every project - told once, so no server keeps refusing the people it now signs in`,
       service,
       hookName: "onUpdateSuccess",
       args: updateSuccess({
         isEnabled: true,
         restrictToAttachedProjects: false,
       }),
+      announces: true,
+    },
+    {
+      label: `${name}: turned on alone`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: true }),
+      announces: true,
+    },
+    {
+      label: `${name}: opened to every project alone`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ restrictToAttachedProjects: false }),
+      announces: true,
+    },
+    {
+      label: `${name}: turned on by an update that wrote no row`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: true }, []),
       announces: false,
     },
     {
@@ -1465,7 +1487,7 @@ const ANNOUNCEMENT_CASES: Array<AnnouncementCase> = [
   ),
 ];
 
-describe("write hooks that let a global provider sign fewer people in tell every server", () => {
+describe("write hooks that change who a global provider signs in tell every server", () => {
   let announced: Array<RealtimeAccessChange>;
 
   beforeEach(() => {
@@ -1509,6 +1531,27 @@ describe("write hooks that let a global provider sign fewer people in tell every
     expect(isGlobalProviderNarrowing({ isEnabled: "false" })).toBe(false);
     expect(isGlobalProviderNarrowing(null)).toBe(false);
     expect(isGlobalProviderNarrowing(undefined)).toBe(false);
+  });
+
+  test("a write of either switch, either way, may change who it signs in: only the write's own boolean fields count", () => {
+    const inherited: Record<string, unknown> = Object.create({
+      isEnabled: true,
+      restrictToAttachedProjects: false,
+    }) as Record<string, unknown>;
+
+    expect(isGlobalProviderReachWrite({ isEnabled: true })).toBe(true);
+    expect(isGlobalProviderReachWrite({ isEnabled: false })).toBe(true);
+    expect(
+      isGlobalProviderReachWrite({ restrictToAttachedProjects: false }),
+    ).toBe(true);
+    expect(
+      isGlobalProviderReachWrite({ restrictToAttachedProjects: true }),
+    ).toBe(true);
+    expect(isGlobalProviderReachWrite(inherited)).toBe(false);
+    expect(isGlobalProviderReachWrite({ isEnabled: "true" })).toBe(false);
+    expect(isGlobalProviderReachWrite({ name: "Renamed" })).toBe(false);
+    expect(isGlobalProviderReachWrite(null)).toBe(false);
+    expect(isGlobalProviderReachWrite(undefined)).toBe(false);
   });
 
   test("a server that hears it forgets what it knew of the global providers", async () => {
@@ -1784,10 +1827,42 @@ describe.each(ATTACHMENT_ANNOUNCEMENT_SUITES)(
       expectAnnounced(false);
     });
 
-    test("an attachment turned on is not told, and nothing is read for it", async () => {
+    test("an attachment turned on is told for a restricted provider, read by the ids written: no server keeps refusing the people it now signs in", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
       const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+      const attachmentId: ObjectID = ObjectID.generate();
+
+      await updated({ isEnabled: true }, [attachmentId]);
+
+      expectAnnounced(true);
+      expect(JSON.stringify(callArgs(rows, 0).query)).toContain(
+        attachmentId.toString(),
+      );
+    });
+
+    test("an attachment turned on is not told for a provider that signs people in to every project", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), EVERY_PROJECT);
+      stubAttachmentRows([PROVIDER_ID]);
 
       await updated({ isEnabled: true }, [ObjectID.generate()]);
+
+      expectAnnounced(false);
+    });
+
+    test("an attachment turned on by an update that wrote no row is not told, and nothing is read for it", async () => {
+      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+
+      await updated({ isEnabled: true }, []);
+
+      expectAnnounced(false);
+      expect(rows).not.toHaveBeenCalled();
+      expect(trust).not.toHaveBeenCalled();
+    });
+
+    test("changing only an attachment's teams is not told, and nothing is read for it", async () => {
+      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+
+      await updated({ teams: [] }, [ObjectID.generate()]);
 
       expectAnnounced(false);
       expect(rows).not.toHaveBeenCalled();

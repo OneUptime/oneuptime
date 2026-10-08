@@ -21,7 +21,7 @@ import {
   announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
   isAnyAttachedProviderRestricted,
-  isGlobalProviderNarrowing,
+  isGlobalProviderReachWrite,
   doAttachmentsGovernProject,
   globalProviderCacheKey,
   globalSsoAttachmentsCache,
@@ -261,13 +261,15 @@ export class Service extends DatabaseService<Model> {
     /*
      * An attachment turned off, or moved to another project or provider,
      * where that changes where its provider signs people in (as read under
-     * the lock): as removing it. One turned off is told for a provider
-     * restricted to its attached projects whatever was read.
+     * the lock): as removing it. One turned off or on is told for a
+     * provider restricted to its attached projects whatever was read:
+     * turning one on takes no lock and reads nothing first, and the people
+     * it lets in are let in at once on every server.
      */
     if (
       updatedItemIds.length > 0 &&
       (changedReach ||
-        (isGlobalProviderNarrowing(onUpdate.updateBy.data) &&
+        (isGlobalProviderReachWrite(onUpdate.updateBy.data) &&
           (await this.isAnyProviderRestricted(
             await this.readProviderIds({
               _id: QueryHelper.any(updatedItemIds),

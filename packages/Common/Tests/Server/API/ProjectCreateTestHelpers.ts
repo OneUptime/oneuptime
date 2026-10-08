@@ -13,6 +13,7 @@ import {
 } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import Response from "../../../Server/Utils/Response";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import Dictionary from "../../../Types/Dictionary";
@@ -140,6 +141,14 @@ export function stubProjectCreateSideEffects(): void {
     DatabaseConfig,
     "shouldDisableUserProjectCreation",
   ).mockResolvedValue(false as never);
+
+  /*
+   * The server does not require SSO for everyone, so a new project needs no
+   * provider (SsoRequirementChanges.beforeProjectCreate reads the rule).
+   */
+  getJestSpyOn(GlobalConfigService, "findOneBy").mockResolvedValue(
+    new GlobalConfig() as never,
+  );
 
   getJestSpyOn(ProjectService, "onCreateSuccess").mockImplementation((async (
     _onCreate: OnCreate<Project>,

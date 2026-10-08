@@ -46,7 +46,10 @@ import QueryHelper from "../Types/Database/QueryHelper";
  *     removed (GlobalSsoProviderChanges);
  *   - Require SSO for Login turned on, or another provider required, for a
  *     project, or Require SSO for Login turned on for the whole server
- *     (SsoRequirementChanges).
+ *     (SsoRequirementChanges);
+ *   - a project created while it would require SSO - itself, or because the
+ *     whole server does - with no provider to sign anyone in to it yet
+ *     (SsoRequirementChanges.beforeProjectCreate, findNewProjectStrandReason).
  *
  * It answers with the projects the change would leave with no way in. It
  * reads the database, never a cache: the caller holds the locks that keep
@@ -501,6 +504,57 @@ export default class SsoSignInWays {
     }
 
     return result;
+  }
+
+  /*
+   * Why a project created now with this rule would have no way in, or null
+   * when it would have one, or needs none.
+   *
+   * A new project has no SSO provider of its own yet, and no global
+   * provider is attached to it, so the only providers that sign people in
+   * to it are the global ones that are on and sign people in to every
+   * project: one not restricted to its attached projects, or restricted
+   * with none attached yet. It needs one when it requires SSO itself, or
+   * when the whole server does and its rule holds the people the check is
+   * for (`heldToServerRule`: the server's rule never holds a master admin,
+   * UserMiddleware). The provider it requires, when it requires one, must
+   * be one of those. Read from the database, under the lock on the
+   * server's sign-in rules the caller holds (SsoRequirementChanges.
+   * beforeProjectCreate), as every other change's check is.
+   */
+  public static async findNewProjectStrandReason(data: {
+    rule: ProjectSignInRule;
+    heldToServerRule: boolean;
+  }): Promise<StrandReason | null> {
+    const facts: SignInFacts = new SignInFacts({
+      reachChanges: [],
+      turnsOnServerRule: false,
+    });
+
+    // Read only when the project's own rule does not settle it.
+    const serverRequiresSso: boolean =
+      !data.rule.requireSsoForLogin && data.heldToServerRule
+        ? await facts.getServerRequiresSso()
+        : false;
+
+    if (!data.rule.requireSsoForLogin && !serverRequiresSso) {
+      return null;
+    }
+
+    const ways: Set<string> = new Set<string>(
+      await facts.getGlobalWaysToEveryProject(),
+    );
+
+    return decideStrandReason({
+      rule: data.rule,
+      serverRequiresSso,
+      // A new project's rule asks for all it asks for at once.
+      isTightened: true,
+      takenAway: new Set<string>(),
+      waysAfter: (): Set<string> => {
+        return ways;
+      },
+    });
   }
 
   /*
@@ -998,6 +1052,23 @@ class SignInFacts {
     }
 
     return false;
+  }
+
+  /*
+   * The global providers (wayKey) that, once the change lands, sign people
+   * in to every project - and so to one created now, which no provider is
+   * attached to yet.
+   */
+  public async getGlobalWaysToEveryProject(): Promise<Array<string>> {
+    const ways: Array<string> = [];
+
+    for (const provider of await this.loadGlobalProviders()) {
+      if (provider.reach.everyProject) {
+        ways.push(wayKey(provider.providerType, provider.id));
+      }
+    }
+
+    return ways;
   }
 
   // The global providers (wayKey) that reach the project once the change lands.

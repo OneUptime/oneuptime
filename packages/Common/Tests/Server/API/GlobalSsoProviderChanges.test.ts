@@ -22,6 +22,7 @@ import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import { SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE } from "../../../Server/Utils/ProjectSsoProviderChanges";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
+  RealtimeAccessChangeKind,
 } from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -822,12 +823,48 @@ describe.each([
       expect(events).toEqual([`write:${PROVIDER}`]);
     });
 
-    test("saving one that is on as on again takes no lock", async () => {
+    test("saving one that is on as on again takes no lock, and is told once: nothing is read before a write that only lets it sign people in", async () => {
       await expect(
         updateProvider(kind, { isEnabled: true, name: "Okta (renamed)" }),
       ).resolves.toBe("done");
 
       expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("turning it on is told to every server once, so none keeps refusing the people it signs in", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("lifting its restriction to its attached projects is told to every server once, and takes no lock", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: false }),
+      ).resolves.toBe("done");
+
+      expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("a new name alone is told to nobody", async () => {
+      await expect(
+        updateProvider(kind, { name: "Okta (renamed)" }),
+      ).resolves.toBe("done");
+
       expect(announced).toEqual([]);
     });
 
@@ -1431,7 +1468,7 @@ describe.each([
       expect(kind.attachmentTable().deleted).toEqual([ATTACHED_TO_ACME]);
     });
 
-    test("turning an attachment on takes no lock and is never refused", async () => {
+    test("turning an attachment on takes no lock, is never refused, and is told to every server once", async () => {
       kind.attachmentTable().rows = [
         attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
       ];
@@ -1444,6 +1481,9 @@ describe.each([
           return event.startsWith("lock:");
         }),
       ).toEqual([]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
     });
   });
 
