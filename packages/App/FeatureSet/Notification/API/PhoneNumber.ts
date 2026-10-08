@@ -38,6 +38,7 @@ import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/Incoming
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import ModelPermission from "Common/Server/Types/Database/Permissions/Index";
+import RelationListPermission from "Common/Server/Types/Database/Permissions/RelationListPermission";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Query from "Common/Types/BaseDatabase/Query";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
@@ -110,6 +111,27 @@ async function assertCanEditIncomingCallPolicy(data: {
   if (!permittedPolicy) {
     throw new NotAuthorizedException(
       "You do not have permission to edit this incoming call policy.",
+    );
+  }
+}
+
+/*
+ * A Call/SMS config the caller names in the request - the one the search and
+ * list routes look numbers up with - holds the provider account's
+ * credentials. It is named only by a caller who may read the project's call
+ * and SMS settings, as a create or an update that names one is
+ * (RelationListPermission.mayReadTable): one they may not read is answered
+ * like one that is not there, before it is read at all. The config a
+ * policy's own numbers use is the policy's, not the caller's to name, and
+ * is not asked about here.
+ */
+async function assertCallerMayNameConfig(req: ExpressRequest): Promise<void> {
+  const databaseProps: DatabaseCommonInteractionProps =
+    await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+  if (!RelationListPermission.mayReadTable(ProjectCallSMSConfig, databaseProps)) {
+    throw new BadDataException(
+      "Project Call/SMS Config not found for this project",
     );
   }
 }
@@ -322,7 +344,11 @@ router.post(
         );
       }
 
-      // Ensure the Twilio config belongs to the authenticated project.
+      /*
+       * Ensure the caller may name a Call/SMS config, and that this one
+       * belongs to the authenticated project.
+       */
+      await assertCallerMayNameConfig(req);
       await assertConfigBelongsToProject(projectCallSMSConfigId, projectId);
 
       const countryCode: string | undefined = body["countryCode"] as
@@ -454,7 +480,11 @@ router.post(
         );
       }
 
-      // Ensure the Twilio config belongs to the authenticated project.
+      /*
+       * Ensure the caller may name a Call/SMS config, and that this one
+       * belongs to the authenticated project.
+       */
+      await assertCallerMayNameConfig(req);
       await assertConfigBelongsToProject(projectCallSMSConfigId, projectId);
 
       // Check if project exists
