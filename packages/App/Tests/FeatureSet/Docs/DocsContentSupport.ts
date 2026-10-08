@@ -398,6 +398,19 @@ export const parseDocsLink: (target: string) => DocsPageLink | null = (
 
   return {
     page: `${match[1]}/${match[2]}`,
-    anchor: match[3] === undefined ? null : decodeURIComponent(match[3]),
+    anchor: match[3] === undefined ? null : decodeAnchor(match[3]),
   };
+};
+
+/*
+ * An anchor as the heading slug it names. Anchors are percent-encoded in
+ * links; one that is not valid percent-encoding ("#100%") is kept as written,
+ * so the link is reported as broken instead of throwing.
+ */
+export const decodeAnchor: (raw: string) => string = (raw: string): string => {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 };
