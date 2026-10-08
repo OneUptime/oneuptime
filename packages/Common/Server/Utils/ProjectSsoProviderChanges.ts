@@ -6,6 +6,7 @@ import Semaphore, {
   SemaphoreLockTimeoutError,
   SemaphoreMutex,
 } from "../Infrastructure/Semaphore";
+import { PostgresQueryTimeoutMs } from "../EnvironmentConfig";
 import DatabaseService from "../Services/DatabaseService";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -164,16 +165,32 @@ const LOCK_WAIT_IN_MS: number = 15_000;
 export const WRITE_KEEP_INTERVAL_IN_MS: number = 2_500;
 
 /*
- * The longest the locks of a change are kept alive while it is written:
- * longer than any statement of the write may run (the database gives up on
- * one after DATABASE_STATEMENT_TIMEOUT_MS, the client a little later), so a
- * write that is still going is held to the end; one stuck longer than that
- * - a step after its statements that never returns - is no longer kept,
- * and its locks run out LOCK_TIMEOUT_IN_MS later, rather than holding every
- * other change to who can sign in waiting. Every change gives its locks
- * back once it is written or has failed, well before this.
+ * The longest the locks of a change are kept alive while it is written, from
+ * its check on: as long as the client waits for any one statement
+ * (PostgresQueryTimeoutMs - DATABASE_QUERY_TIMEOUT_MS, by default a little
+ * after the database's DATABASE_STATEMENT_TIMEOUT_MS), with time to spare
+ * for the steps between the check and the write - and a minute at the
+ * least. So a write that is still going is held to the end, whatever the
+ * timeouts are set to; one stuck longer than that - a step after its
+ * statements that never returns - is no longer kept, and its locks run out
+ * LOCK_TIMEOUT_IN_MS later, rather than holding every other change to who
+ * can sign in waiting. Every change gives its locks back once it is written
+ * or has failed, well before this. A timeout that is not a number counts as
+ * none set: a minute.
  */
-export const WRITE_KEEP_LIMIT_IN_MS: number = 60_000;
+export const getWriteKeepLimitInMs: (queryTimeoutMs: number) => number = (
+  queryTimeoutMs: number,
+): number => {
+  if (!Number.isFinite(queryTimeoutMs)) {
+    return 60_000;
+  }
+
+  return Math.max(60_000, queryTimeoutMs + 25_000);
+};
+
+export const WRITE_KEEP_LIMIT_IN_MS: number = getWriteKeepLimitInMs(
+  PostgresQueryTimeoutMs,
+);
 
 const LOCK_NAMESPACE: string = "ProjectSsoProviderChanges.keepAWayIn";
 

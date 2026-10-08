@@ -13,6 +13,7 @@ import ProjectSsoProviderChanges, {
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
   WRITE_KEEP_INTERVAL_IN_MS,
   WRITE_KEEP_LIMIT_IN_MS,
+  getWriteKeepLimitInMs,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
 import { PostgresQueryTimeoutMs } from "../../../Server/EnvironmentConfig";
 import ProjectSso from "../../../Models/DatabaseModels/ProjectSso";
@@ -504,7 +505,27 @@ describe("a checked sign-in change holds its locks for its write", () => {
     );
     // Longer than the client waits for any one statement; far shorter than holding everyone for good.
     expect(WRITE_KEEP_LIMIT_IN_MS).toBeGreaterThan(PostgresQueryTimeoutMs);
-    expect(WRITE_KEEP_LIMIT_IN_MS).toBeLessThanOrEqual(60_000);
+    expect(WRITE_KEEP_LIMIT_IN_MS).toBe(60_000);
+  });
+
+  test("the keeping outlasts the client's wait for a statement whatever it is set to, and lasts a minute at the least", () => {
+    // The defaults: the database gives up after 30 seconds, the client 5 seconds later.
+    expect(getWriteKeepLimitInMs(35_000)).toBe(60_000);
+    expect(getWriteKeepLimitInMs(1_000)).toBe(60_000);
+
+    // Set longer: the keeping follows, with the same time to spare before the write.
+    expect(getWriteKeepLimitInMs(60_000)).toBe(85_000);
+    expect(getWriteKeepLimitInMs(300_000)).toBe(325_000);
+
+    for (const queryTimeoutMs of [0, 35_000, 59_999, 120_000, 600_000]) {
+      expect(getWriteKeepLimitInMs(queryTimeoutMs)).toBeGreaterThan(
+        queryTimeoutMs,
+      );
+    }
+
+    // Set to something that is not a number: still a limit, never none.
+    expect(getWriteKeepLimitInMs(Number.NaN)).toBe(60_000);
+    expect(getWriteKeepLimitInMs(Number.POSITIVE_INFINITY)).toBe(60_000);
   });
 });
 
