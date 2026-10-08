@@ -1,6 +1,7 @@
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   ProgressStateKey,
   makeEventInState,
@@ -34,10 +35,13 @@ const EXPECTED: Array<[ProgressStateKey, boolean]> = [
   ["archived", true],
 ];
 
+// The service's read of the event, answered with one in `key`.
+let findOneBy: SpyInstance<typeof ScheduledMaintenanceService.findOneBy>;
+
 function readsEvent(key: ProgressStateKey): ScheduledMaintenance {
   const event: ScheduledMaintenance = makeEventInState(key);
 
-  jest
+  findOneBy = jest
     .spyOn(ScheduledMaintenanceService, "findOneBy")
     .mockResolvedValue(event as never);
 
@@ -111,11 +115,6 @@ describe("ScheduledMaintenanceService.isScheduledMaintenanceOngoing: has the eve
       scheduledMaintenanceId: event.id!,
     });
 
-    const findOneBy: jest.SpiedFunction<
-      typeof ScheduledMaintenanceService.findOneBy
-    > = ScheduledMaintenanceService.findOneBy as unknown as jest.SpiedFunction<
-      typeof ScheduledMaintenanceService.findOneBy
-    >;
     const select: Record<string, unknown> = (
       findOneBy.mock.calls[0]![0] as unknown as {
         select: Record<string, unknown>;

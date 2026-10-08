@@ -9,6 +9,7 @@ import EventFieldChange, {
   SCHEDULED_MAINTENANCE_FIELDS,
 } from "../../../Server/Utils/EventFieldChange";
 import ColumnValueChange from "../../../Server/Utils/Database/ColumnValueChange";
+import type { SpyInstance } from "jest-mock";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -986,7 +987,7 @@ describe("EventFieldChange.toInstant and isInstantChanged", () => {
     });
 
     test("is read the one way every comparison of a write reads a time", () => {
-      const readTime: jest.SpiedFunction<typeof ColumnValueChange.toInstant> =
+      const readTime: SpyInstance<typeof ColumnValueChange.toInstant> =
         jest.spyOn(ColumnValueChange, "toInstant");
 
       try {
