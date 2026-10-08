@@ -168,6 +168,8 @@ Owners do two jobs:
 
 Ownership on its own grants nothing. Being the owner of a monitor does not let you edit it unless a team you belong to also holds a monitor permission. Ownership narrows access; it never widens it.
 
+Who owns a resource is read through the resource. The owners of a monitor or of any other resource are listed, read, added and removed only by someone who may read that resource, and a permission on owners alone reaches the owners of no resource you may not read.
+
 ## Labels
 
 Labels are project-wide tags you attach to resources. They serve two purposes: filtering and grouping in the dashboard, and restricting permissions as described above.
@@ -232,6 +234,8 @@ For a signed-in user, in order:
 Every field of a record is read with the record's own read permission: a permission for another kind of record never opens it. Some fields are narrower on purpose. Secrets are read only by people who may edit or administer the record they belong to, such as a monitor's incoming request and incoming email keys and its server agent key, or a workflow's webhook and incoming email keys. Watching a session replay's recording takes **Watch Session Replays**, not just **List Session Replays**. Telemetry is read signal by signal: **Read Telemetry Service Log** reads logs, **Read Telemetry Service Traces** reads traces, and **Read Telemetry Service Metrics** reads metrics, metric charts included.
 
 Fields follow the same rule. A block with no labels on a field's permission takes the field away, and on an operational resource the matching **All Operational Resources** permission opens every field that everyone who may read or change the record may open — but not a field that is narrower on purpose, such as a secret key.
+
+A setting that holds credentials is named only by someone who may read it. A create or a change names an SMTP server, a call and SMS provider, a runbook credential, SNMP credentials, a video call connection or an API key — such as the SMTP server a status page sends email with, or the credential a runbook step runs with — only when you may read that kind of setting; one you may not read is refused as if it did not exist, while a record keeps the one it names already. Searching a call and SMS provider for numbers to buy, or listing the numbers it owns, takes the same read.
 
 The same rule decides everything else that asks whether you hold a permission: actions that are not a plain read or write, such as adding SMS, call or AI credit, paying an invoice or testing a notification rule, and the buttons OneUptime shows you. A button you may not use is shown locked and says why; when a block on one of your teams is the reason, it names the blocked permission.
 
