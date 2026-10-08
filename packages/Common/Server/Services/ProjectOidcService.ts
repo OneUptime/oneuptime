@@ -150,6 +150,23 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A hard delete (the retention job's purge) also removes rows deleted
+   * long ago, which the sign-in check never reads - they sign nobody in -
+   * so the check is told it is one (Utils/ProjectSsoProviderChanges).
+   */
+  @CaptureSpan()
+  public override async hardDeleteBy(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<number> {
+    return await ProjectSsoProviderChanges.runHardDelete(
+      deleteBy,
+      (): Promise<number> => {
+        return super.hardDeleteBy(deleteBy);
+      },
+    );
+  }
+
+  /*
    * A hard delete (the retention job's purge) runs no onDeleteSuccess, so
    * it is handed on to it: the locks its check took are given back, and the
    * projects of the providers it deleted that were on are told.

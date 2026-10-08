@@ -223,8 +223,8 @@ function foldedSectionNames(): Array<string> {
 }
 
 /*
- * The menu opens on Essentials and folds every other section to one line.
- * Open each folded one, as a user would, to read the whole catalog.
+ * The menu opens with Essentials open and every other section folded to
+ * one row. Open each folded one, as a user would, to read the whole catalog.
  */
 function openEverySection(): void {
   for (const toggle of sectionToggles()) {
@@ -455,6 +455,15 @@ describe("the Products menu opens on the essentials", () => {
   test("only Essentials' products are listed; every other section is one folded line", () => {
     openProductsMenu();
 
+    expect(
+      sectionToggles()
+        .filter((toggle: HTMLElement): boolean => {
+          return toggle.getAttribute("aria-expanded") === "true";
+        })
+        .map((toggle: HTMLElement): string => {
+          return toggle.textContent || "";
+        }),
+    ).toEqual(["Essentials"]);
     expect(foldedSectionNames()).toEqual([
       "Observability",
       "AI",
@@ -534,18 +543,15 @@ describe("the Products menu opens on the essentials", () => {
     expect(foldedSectionNames()).not.toContain(
       lookupNested(DE, "navbar.categories.essentials"),
     );
-    // Essentials never fold: a plain heading, named in German too.
+    // Essentials are the open row of the same list, named in German too.
     expect(
-      within(productsMenu()).getByRole("heading", {
-        level: 3,
+      within(productsMenu()).getByRole("button", {
         name: lookupNested(DE, "navbar.categories.essentials")!,
       }),
-    ).toBeVisible();
-    expect(
-      within(productsMenu()).queryByRole("button", {
-        name: lookupNested(DE, "navbar.categories.essentials")!,
-      }),
-    ).toBeNull();
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(sectionToggles()[0]).toHaveTextContent(
+      lookupNested(DE, "navbar.categories.essentials")!,
+    );
   });
 });
 

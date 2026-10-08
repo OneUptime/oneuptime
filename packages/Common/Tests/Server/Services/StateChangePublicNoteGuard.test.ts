@@ -30,6 +30,14 @@ import path from "path";
  * sent only while it is Pending and notifies, a note only while it is
  * Pending and notifies - so a change recorded as sent by its note is never
  * sent again.
+ *
+ * And where the note is posted. A change recorded as sent by its note has
+ * to have that note, and a note must not tell subscribers about a change
+ * that never happened. So each service builds the note and asks whether
+ * its sender may post it in onBeforeCreate, before anything is written,
+ * and posts it in onCreateSuccess, once the change is saved. The scheduled
+ * maintenance timeline used to post its note in onBeforeCreate: a change
+ * that then failed to save had already told every subscriber (#4442).
  */
 
 // packages/Common/Tests/Server/Services -> packages/Common
@@ -46,6 +54,8 @@ interface StateChangeWithNote {
   stateChangeJob: string;
   // The job that sends the public note to subscribers.
   publicNoteJob: string;
+  // The service that creates the public note, as the timeline names it.
+  noteService: string;
 }
 
 /*
@@ -59,6 +69,7 @@ const STATE_CHANGES_WITH_NOTES: Array<StateChangeWithNote> = [
       "App/FeatureSet/Workers/Jobs/IncidentStateTimeline/SendNotificationToSubscribers.ts",
     publicNoteJob:
       "App/FeatureSet/Workers/Jobs/IncidentPublicNote/SendNotificationToSubscribers.ts",
+    noteService: "IncidentPublicNoteService",
   },
   {
     service: "ScheduledMaintenanceStateTimelineService.ts",
@@ -66,6 +77,7 @@ const STATE_CHANGES_WITH_NOTES: Array<StateChangeWithNote> = [
       "App/FeatureSet/Workers/Jobs/ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers.ts",
     publicNoteJob:
       "App/FeatureSet/Workers/Jobs/ScheduledMaintenancePublicNote/SendNotificationToSubscribers.ts",
+    noteService: "ScheduledMaintenancePublicNoteService",
   },
 ];
 
@@ -86,6 +98,11 @@ const ASSIGNS_STATUS: RegExp = /\.subscriberNotificationStatus\s*=(?!=)/;
 
 // `{ subscriberNotificationStatus: ... }`, as an update or create would send.
 const STATUS_AS_DATA: RegExp = /\bsubscriberNotificationStatus\s*:/;
+
+const ASKS_WHETHER_THE_SENDER_MAY_POST: RegExp =
+  /StateChangePublicNote\.assertCallerMayPost\s*\(/g;
+
+const MARKS_THE_STATE: RegExp = /StateChangePublicNote\.markPostedWith\s*\(/g;
 
 const NOTE_NOTIFIES_LIKE_THE_CHANGE: RegExp =
   /\.shouldStatusPageSubscribersBeNotifiedOnNoteCreated\s*=\s*Boolean\(\s*[\w.]+\.shouldStatusPageSubscribersBeNotified\s*,?\s*\)/;
@@ -222,6 +239,31 @@ describe.each(STATE_CHANGES_WITH_NOTES)(
     test("writes the change's subscriber notification status nowhere else", () => {
       expect(source).not.toMatch(ASSIGNS_STATUS);
       expect(source).not.toMatch(STATUS_AS_DATA);
+    });
+
+    test("builds the note in onBeforeCreate, marks it with the state the event moves to, and asks whether its sender may post it - there and only there", () => {
+      expect(count(source, ASKS_WHETHER_THE_SENDER_MAY_POST)).toBe(1);
+      expect(count(onBeforeCreate, ASKS_WHETHER_THE_SENDER_MAY_POST)).toBe(1);
+      expect(count(source, MARKS_THE_STATE)).toBe(1);
+      expect(count(onBeforeCreate, MARKS_THE_STATE)).toBe(1);
+
+      // Marked before it is asked about, so the check sees the note posted.
+      expect(onBeforeCreate.search(MARKS_THE_STATE)).toBeLessThan(
+        onBeforeCreate.search(ASKS_WHETHER_THE_SENDER_MAY_POST),
+      );
+    });
+
+    test("posts the note once the change is saved: from onCreateSuccess, and from nowhere else", () => {
+      const createsTheNote: RegExp = new RegExp(
+        `\\b${entry.noteService}\\.create\\s*\\(`,
+        "g",
+      );
+      const onCreateSuccess: string = methodBody(source, "onCreateSuccess");
+
+      expect(onCreateSuccess).not.toBe("");
+      expect(count(source, createsTheNote)).toBe(1);
+      expect(count(onCreateSuccess, createsTheNote)).toBe(1);
+      expect(count(onBeforeCreate, createsTheNote)).toBe(0);
     });
 
     test("posts the note to notify subscribers exactly when the change does", () => {

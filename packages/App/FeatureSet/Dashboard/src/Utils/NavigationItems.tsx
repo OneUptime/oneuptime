@@ -11,15 +11,15 @@ export interface DashboardNavigationItems {
   navItems: NavItem[];
   moreMenuItems: MoreMenuItem[];
   /*
-   * The categories the products menu always shows open: Essentials. They
-   * never fold. Every other category starts folded to one line until it is
+   * The categories the products menu opens on: Essentials, open every time
+   * it opens. Every other category starts folded to one row until it is
    * opened, so the menu opens on the core products rather than on every
    * product at once.
    */
-  moreMenuCategoriesAlwaysOpen: Array<string>;
+  moreMenuCategoriesOpenByDefault: Array<string>;
   /*
-   * The icon each folded category's row is drawn with, by the same
-   * translated name its items carry.
+   * The icon each category's row is drawn with, by the same translated name
+   * its items carry.
    */
   moreMenuCategoryIcons: Dictionary<IconProp>;
   rightElement: NavItem;
@@ -872,25 +872,28 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   ];
 
   /*
-   * The products menu always opens on Essentials, the products a problem
-   * flows through (see the top of the list), and they never fold: the
-   * maintainer asked to "always have Essentials expanded by default". The
+   * The products menu always opens with Essentials expanded, the products a
+   * problem flows through (see the top of the list): the maintainer asked
+   * to "always have Essentials expanded by default", in the same list as
+   * the other categories. Folding them lasts until the menu closes. The
    * rest - observability, AI, code, resources, every infrastructure
    * platform, dashboards and automation, settings - are each folded to one
-   * line that names what is inside, one click or a search away. The category
+   * row that names what is inside, one click or a search away. The category
    * of the page the user is on opens by itself, and what someone opens or
    * folds among those is remembered on their browser.
    */
-  const moreMenuCategoriesAlwaysOpen: Array<string> = [essentialsCategory];
+  const moreMenuCategoriesOpenByDefault: Array<string> = [essentialsCategory];
 
   /*
-   * A folded category is a row of the menu's list of categories, drawn with
-   * an icon of its own: one that names the whole category and is not drawn
+   * Every category is a row of the menu's list of categories, drawn with an
+   * icon of its own: one that names the whole category and is not drawn
    * like any product in the menu, so a row never passes for a product. AI
    * is the one exception: it wears the sparkles that mark AI across the
    * app, as the AI / LLM product does.
    */
   const moreMenuCategoryIcons: Dictionary<IconProp> = {
+    // The core products, the ones the menu opens on.
+    [essentialsCategory]: IconProp.Star,
     [observabilityCategory]: IconProp.PresentationChartLine,
     [aiCategory]: IconProp.Sparkles,
     [codeCategory]: IconProp.Code,
@@ -915,7 +918,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   return {
     navItems,
     moreMenuItems,
-    moreMenuCategoriesAlwaysOpen,
+    moreMenuCategoriesOpenByDefault,
     moreMenuCategoryIcons,
     rightElement,
   };

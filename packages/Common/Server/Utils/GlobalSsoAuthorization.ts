@@ -113,7 +113,10 @@ export function doAttachmentsGovernProject(
 /*
  * Whether a write to a global provider, or to one of its project
  * attachments, may let it sign fewer people in: it turns it off, or
- * restricts the provider to its attached projects.
+ * restricts the provider to its attached projects. Such a write is told to
+ * every server whatever it read before it was written: a write that turns a
+ * provider or an attachment on, or lifts the restriction, takes no lock, so
+ * one may have been written between what this one read and what it wrote.
  */
 export function isGlobalProviderNarrowing(data: unknown): boolean {
   if (!data || typeof data !== "object") {
@@ -177,13 +180,15 @@ export async function isAnyAttachedProviderRestricted(data: {
 }
 
 /*
- * A global provider now signs fewer people in - turned off, deleted,
- * restricted to its attached projects, or an attachment of a restricted
- * one added, turned off or removed. Every server forgets these answers
- * (GlobalConfigService.forgetSignInRules) and asks the live updates it holds
- * again, as their joins were (RealtimeAccessChanges, SignInRulesChanged for
- * the whole instance), so a page signed in with it stops hearing at once,
- * as its requests are refused at once.
+ * A global provider now signs other people in - turned off or on, deleted,
+ * restricted to its attached projects or opened to every project again, or
+ * an attachment of a restricted one added, turned off or on, or removed.
+ * Every server forgets these answers (GlobalConfigService.forgetSignInRules)
+ * and asks the live updates it holds again, as their joins were
+ * (RealtimeAccessChanges, SignInRulesChanged for the whole instance): a page
+ * signed in with a provider that no longer signs it in stops hearing at
+ * once, as its requests are refused at once, and people a provider now signs
+ * in are let in at once on every server, not after a minute.
  */
 export function announceGlobalSignInChange(): void {
   RealtimeAccessChanges.announce({
