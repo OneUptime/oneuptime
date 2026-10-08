@@ -62,6 +62,7 @@ import { getJestSpyOn } from "../../Spy";
 import crypto from "crypto";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -193,10 +194,10 @@ interface SideEffectSpies {
 
 function mockSideEffects(): SideEffectSpies {
   getJestSpyOn(service, "getDatabaseServerMarkdownLink").mockResolvedValue(
-    "[Database PostgreSQL orders-db.example.com:5432](/db)",
+    FeedMarkdown.asMarkdown("[Database PostgreSQL orders-db.example.com:5432](/db)"),
   );
   getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
-    "Jane Doe (jane@example.com)",
+    FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
   );
 
   return {
@@ -4032,7 +4033,7 @@ describe("DatabaseServerService names and links", () => {
     );
 
     const markdown: string =
-      await DatabaseServerService.getDatabaseServerMarkdownLink(PROJECT_ID, id);
+      (await DatabaseServerService.getDatabaseServerMarkdownLink(PROJECT_ID, id)).toString();
 
     expect(markdown).toBe(
       `[Database PostgreSQL orders-db.example.com:5432](https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/databases/${id.toString()})`,

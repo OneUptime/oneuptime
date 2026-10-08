@@ -40,6 +40,13 @@ import ObjectID from "../../../../../Types/ObjectID";
 import PlatformMetricUnitUtil from "../../../../../Utils/Monitor/PlatformMetricUnitUtil";
 import { describe, expect, test } from "@jest/globals";
 
+
+import { MarkdownText } from "../../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * WHAT THE CRITERIA HANDS THE EMAIL ABOUT A RATIO FORMULA.
  *
@@ -685,7 +692,7 @@ type EvaluatorPrivate = {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
-  }) => string | null;
+  }) => MarkdownText | null;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -709,10 +716,10 @@ function renderRootCause(context: MetricCriteriaContext): string {
     id: ObjectID.generate().toString(),
   };
 
-  const rendered: string | null = Evaluator.buildMetricRootCauseContext({
+  const rendered: string | null = textOf(Evaluator.buildMetricRootCauseContext({
     criteriaInstance: instance,
     monitor: new Monitor(),
-  });
+  }));
 
   expect(rendered).not.toBeNull();
   return rendered as string;

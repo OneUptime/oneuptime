@@ -1,6 +1,5 @@
 import {
   WORD_JOINER,
-  escapeMarkdownInline,
   escapeMarkdownValue,
   markdownCodeSpan,
   neutralizeChatControlSequences,
@@ -49,7 +48,10 @@ import type ObjectID from "../../Types/ObjectID";
  *     "`", "*", "_" and "~" - an "&" that would be read as a character
  *     reference, a "|" in a table row, and a heading, list, quote or fence
  *     marker when the value starts a line (after a list marker too).
- *   - In a link's text: escapeMarkdownInline, as above.
+ *   - In a link's text: the characters that act inside one - what starts
+ *     emphasis, code, HTML or a link, "(" and ")", and "|" - with chat
+ *     mentions and line breaks as above. "#", "-", "+" and ">" only start
+ *     blocks, which a link's text never does, so "INC-7" is left as typed.
  *   - As a link's address: characters that would end the address are
  *     percent-encoded, and only a web, mailto or relative address is kept.
  *   - Inside a code span: the span is written again around the value with
@@ -839,21 +841,36 @@ const escapeSentenceValue: EscapeSentenceValueFunction = (
   return escaped;
 };
 
-const STRIKETHROUGH_PATTERN: RegExp = /~/g;
+/*
+ * What acts inside a link's own text: every character that starts something
+ * inline ("\", "`", "*", "_", "~", "<", "!" and the brackets), "(" and ")" -
+ * marked reads a link's text again after undoing "\[" and "\]", so a
+ * "[x](y)" in a name must stay broken without its brackets - and "|", which
+ * ends a table cell.
+ *
+ * Not "#", "-", "+" or ">": they only start a block - a heading, a list, a
+ * quote - and a link's text never starts a line (its line breaks become
+ * spaces), so "INC-7", "#42" and "a > b" are left as typed.
+ */
+const LINK_TEXT_SPECIAL_CHARACTER_PATTERN: RegExp = /[\\`*_~[\]()!|<]/g;
+const LINK_TEXT_LINE_BREAK_PATTERN: RegExp = /\r\n|\r|\n/g;
 
 type EscapeLinkTextValueFunction = (text: string) => string;
 
 /*
- * In a link's own text: escapeMarkdownInline, which escapes every character
- * that starts something - marked reads a link's text again after undoing
- * "\[" and "\]", so brackets alone are not enough there - and the
- * strikethrough and character references it leaves alone.
+ * In a link's own text: one line, no chat mention, a backslash before each
+ * character that acts there (above), and before an "&" that would start a
+ * character reference.
  */
 const escapeLinkTextValue: EscapeLinkTextValueFunction = (
   text: string,
 ): string => {
-  return escapeMarkdownInline(text)
-    .replace(STRIKETHROUGH_PATTERN, "\\~")
+  return neutralizeChatControlSequences(
+    text.replace(LINK_TEXT_LINE_BREAK_PATTERN, " "),
+  )
+    .replace(LINK_TEXT_SPECIAL_CHARACTER_PATTERN, (character: string): string => {
+      return `\\${character}`;
+    })
     .replace(CHARACTER_REFERENCE_AMPERSAND_PATTERN, "\\&");
 };
 

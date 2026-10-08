@@ -363,6 +363,24 @@ describe("md: a bare web address in a value", () => {
   });
 });
 
+describe("md: a number that starts a line", () => {
+  test.each(["1.07 GB", "2)x", "99.9% availability", "3.14"])(
+    "starts no list, so it is left as it is: %s",
+    (value: string) => {
+      expect(mdText`${value}`.toString()).toBe(value);
+      expectOnlyText([mdText`${value}`.toString()]);
+    },
+  );
+
+  test.each(["1. ordered", "2) ordered", "10.", "7)"])(
+    "starts a list, so its marker is escaped: %s",
+    (value: string) => {
+      expect(mdText`${value}`.toString()).not.toBe(value);
+      expectOnlyText([mdText`${value}`.toString()]);
+    },
+  );
+});
+
 describe("md: a value that starts a line", () => {
   test.each(BLOCK_STARTING_VALUES)(
     "starts no block at the start of the text: %s",
@@ -430,7 +448,7 @@ describe("md: a value that starts a line", () => {
 });
 
 describe("md: a value in a link's words", () => {
-  test.each([...HOSTILE_VALUES, ...ORDINARY_VALUES])(
+  test.each([...HOSTILE_VALUES, ...BLOCK_STARTING_VALUES, ...ORDINARY_VALUES])(
     "the link keeps its address and its words read as typed: %s",
     (value: string) => {
       const markdown: string =
@@ -467,6 +485,22 @@ describe("md: a value in a link's words", () => {
       expect(textOfEmail(markdown)).toBe(`Monitor ${asOneLine(value)}`.trim());
     },
   );
+
+  test("what only starts a block is left as typed: a link's words never start a line", () => {
+    expect(
+      mdText`[Incident ${"INC-7"}](https://oneuptime.example/i/7)`.toString(),
+    ).toBe("[Incident INC-7](https://oneuptime.example/i/7)");
+    expect(
+      mdText`[Alert ${"#3"}](https://oneuptime.example/a/3)`.toString(),
+    ).toBe("[Alert #3](https://oneuptime.example/a/3)");
+    expect(
+      mdText`[${"a > b + c"}](https://oneuptime.example/x)`.toString(),
+    ).toBe("[a > b + c](https://oneuptime.example/x)");
+    // What acts inside a link's words is escaped.
+    expect(
+      mdText`[${"(EU) *x* [y]! a|b"}](https://oneuptime.example/x)`.toString(),
+    ).toBe("[\\(EU\\) \\*x\\* \\[y\\]\\! a\\|b](https://oneuptime.example/x)");
+  });
 
   test("a link inside bold, as the incident summaries write one", () => {
     const markdown: string =
@@ -865,6 +899,106 @@ describe("FeedMarkdown helpers", () => {
 
   test("multilineText: nothing for nothing", () => {
     expect(FeedMarkdown.multilineText(null).toString()).toBe("");
+  });
+
+  test("numberedList: numbered from 1, each item's bullets under it", () => {
+    expect(
+      FeedMarkdown.numberedList([
+        { line: mdText`\`a\` — **3**`, bullets: ["Namespace: payments"] },
+        { line: "plain" },
+      ]).toString(),
+    ).toBe("1. `a` — **3**\n   - Namespace: payments\n2. plain");
+    expect(FeedMarkdown.numberedList([]).toString()).toBe("");
+  });
+
+  test("numberedList: bullets indented to the item's content column, past item 9 too", () => {
+    const markdown: string = FeedMarkdown.numberedList(
+      Array.from({ length: 10 }, (_: unknown, index: number) => {
+        return { line: `item ${index + 1}`, bullets: [`detail ${index + 1}`] };
+      }),
+    ).toString();
+    const lines: Array<string> = markdown.split("\n");
+
+    expect(lines[1]).toBe("   - detail 1");
+    expect(lines[18]).toBe("10. item 10");
+    expect(lines[19]).toBe("    - detail 10");
+
+    const listItems: Array<Token> = tokensOf(markdown).filter(
+      (token: Token): boolean => {
+        return token.type === "list_item";
+      },
+    );
+
+    // Ten numbered items, each owning its one bullet.
+    expect(listItems).toHaveLength(20);
+  });
+
+  test("numberedList: a hostile line or bullet stays text in its item", () => {
+    const markdown: string = FeedMarkdown.numberedList(
+      HOSTILE_VALUES.map((value: string) => {
+        return { line: value, bullets: [value] };
+      }),
+    ).toString();
+
+    expect(
+      tokensOf(markdown).filter((token: Token): boolean => {
+        return (
+          ["image", "html", "heading", "blockquote", "code"].includes(
+            token.type,
+          ) ||
+          (token.type === "link" &&
+            !showsItsAddress(
+              (token as Tokens.Link).text,
+              (token as Tokens.Link).href,
+            ))
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("trim: the same Markdown without the white space around it", () => {
+    expect(mdText`  **${"x"}**\n`.trim().toString()).toBe("**x**");
+    expect(FeedMarkdown.empty().trim().isEmpty()).toBe(true);
+  });
+
+  test("withoutInvisibleBreaks: the text a reader sees", () => {
+    expect(
+      FeedMarkdown.withoutInvisibleBreaks(`<${WORD_JOINER}!channel> ok`),
+    ).toBe("<!channel> ok");
+    expect(FeedMarkdown.withoutInvisibleBreaks(undefined)).toBe("");
+  });
+
+  test("templateText, reportedValue and withoutChatSequences: text for Markdown somebody else puts together", () => {
+    expect(FeedMarkdown.templateText("[x](https://evil.example)")).toBe(
+      "\\[x\\](https://evil.example)",
+    );
+    expect(FeedMarkdown.templateText("a\nb")).toBe("a b");
+    expect(FeedMarkdown.templateText("a\nb", { keepLineBreaks: true })).toBe(
+      "a\nb",
+    );
+    expect(FeedMarkdown.reportedValue("<!channel> ![x](y)")).not.toMatch(
+      /<!channel>|!\[/,
+    );
+    expect(
+      FeedMarkdown.withoutChatSequences("**kept** <!channel>"),
+    ).toBe(`**kept** <${WORD_JOINER}!channel>`);
+  });
+
+  test("aiWrittenForTeams: as aiWritten, and a tag in fenced code breaks too", () => {
+    const answer: string =
+      "Run this:\n\n```html\n<img src=x onerror=alert(1)>\n```\n\n<b>bold</b> and `a<b`";
+    const forTeams: string = FeedMarkdown.aiWrittenForTeams(answer).toString();
+
+    expect(forTeams).not.toMatch(/<(?![\s\u2060])/);
+    expect(FeedMarkdown.withoutInvisibleBreaks(forTeams)).toBe(
+      FeedMarkdown.withoutInvisibleBreaks(
+        FeedMarkdown.aiWritten(answer).toString(),
+      ),
+    );
+    // Elsewhere aiWritten keeps a "<" in fenced code as it is.
+    expect(FeedMarkdown.aiWritten(answer).toString()).toContain(
+      "\n<img src=x",
+    );
   });
 
   test("the HTML element pattern used above catches what it should", () => {

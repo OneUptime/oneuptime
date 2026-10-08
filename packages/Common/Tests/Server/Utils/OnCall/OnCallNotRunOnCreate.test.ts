@@ -102,7 +102,7 @@ describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
       policyNames: [
         "![x](https://tracker.example/p) **bold** [team]\n# heading",
       ],
-    });
+    }).toString();
 
     expect(markdown).toBe(
       "📞 **No one was paged.** This incident was created already resolved, so its on-call policy **\\!\\[x\\]\\(https://tracker.example/p\\) \\*\\*bold\\*\\* \\[team\\] \\# heading** was not run.",

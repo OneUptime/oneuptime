@@ -26,6 +26,7 @@ import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Every note posted to an incident / alert channel starts with its author
  * ("@Jane posted private note ..."). Resolving that name used to be allowed to
@@ -113,7 +114,7 @@ beforeEach((): void => {
 
   userMarkdownSpy = jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("**Jane Doe** (jane@example.com)");
+    .mockResolvedValue(FeedMarkdown.asMarkdown("**Jane Doe** (jane@example.com)"));
 });
 
 afterEach((): void => {
@@ -453,7 +454,7 @@ describe("WorkspaceUtil.getMessageBlocksByMarkdown", () => {
   });
 
   test("an empty OneUptime name adds no stray space", async () => {
-    userMarkdownSpy.mockResolvedValue("");
+    userMarkdownSpy.mockResolvedValue(FeedMarkdown.asMarkdown(""));
 
     const blocks: Array<MessageBlocksByWorkspaceType> =
       await WorkspaceUtil.getMessageBlocksByMarkdown({

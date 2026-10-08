@@ -37,6 +37,7 @@ import RuleCriteria, {
 } from "../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../Utils/Rules/RuleEngineLimits";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * SLO label and owner rules - what is specific to SLOs.
  *
@@ -222,7 +223,7 @@ beforeEach(() => {
   jest.spyOn(logger, "debug").mockImplementation(() => {});
   linkSpy = jest
     .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-    .mockResolvedValue(SLO_LINK);
+    .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK));
   feedSpy = jest
     .spyOn(
       ServiceLevelObjectiveFeedService,

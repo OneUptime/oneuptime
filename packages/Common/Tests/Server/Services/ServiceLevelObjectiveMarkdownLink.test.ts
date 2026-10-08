@@ -91,11 +91,11 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
 
   test("renders [SLO <name>](<dashboard link>) from a name the caller already has", async () => {
     const markdown: string =
-      await ServiceLevelObjectiveService.getSloMarkdownLink({
+      (await ServiceLevelObjectiveService.getSloMarkdownLink({
         projectId: PROJECT_ID,
         sloId: SLO_ID,
         sloName: "Checkout API",
-      });
+      })).toString();
 
     expect(markdown).toBe(`[SLO Checkout API](${SLO_LINK})`);
   });
@@ -118,11 +118,11 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
     );
 
     const markdown: string =
-      await ServiceLevelObjectiveService.getSloMarkdownLink({
+      (await ServiceLevelObjectiveService.getSloMarkdownLink({
         projectId: PROJECT_ID,
         sloId: SLO_ID,
         sloName: "Checkout API",
-      });
+      })).toString();
 
     expect(markdown.endsWith(`](${link.toString()})`)).toBe(true);
   });
@@ -130,11 +130,11 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
   describe("user-controlled names", () => {
     test("a name cannot close the link early and re-point it", async () => {
       const markdown: string =
-        await ServiceLevelObjectiveService.getSloMarkdownLink({
+        (await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
           sloName: "x](https://evil.example) [click",
-        });
+        })).toString();
 
       expect(markdown).toBe(
         `[SLO x\\]\\(https://evil.example\\) \\[click](${SLO_LINK})`,
@@ -152,11 +152,11 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
       "the only link in the output is the SLO link, for %j",
       async (sloName: string) => {
         const markdown: string =
-          await ServiceLevelObjectiveService.getSloMarkdownLink({
+          (await ServiceLevelObjectiveService.getSloMarkdownLink({
             projectId: PROJECT_ID,
             sloId: SLO_ID,
             sloName,
-          });
+          })).toString();
 
         expect(markdown.startsWith("[SLO ")).toBe(true);
         expect(markdown.endsWith(`](${SLO_LINK})`)).toBe(true);
@@ -166,11 +166,11 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
 
     test("a multi-line name stays on one line", async () => {
       const markdown: string =
-        await ServiceLevelObjectiveService.getSloMarkdownLink({
+        (await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
           sloName: "Checkout\n# injected heading",
-        });
+        })).toString();
 
       expect(markdown).not.toMatch(/[\r\n]/);
       expect(markdown).toBe(`[SLO Checkout \\# injected heading](${SLO_LINK})`);
@@ -184,10 +184,10 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
       } as unknown as ServiceLevelObjective);
 
       const markdown: string =
-        await ServiceLevelObjectiveService.getSloMarkdownLink({
+        (await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
-        });
+        })).toString();
 
       expect(markdown).toBe(`[SLO Looked Up](${SLO_LINK})`);
       expect(findOneBySpy).toHaveBeenCalledTimes(1);
@@ -234,10 +234,10 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
       } as unknown as ServiceLevelObjective);
 
       const markdown: string =
-        await ServiceLevelObjectiveService.getSloMarkdownLink({
+        (await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
-        });
+        })).toString();
 
       expect(markdown).toBe(`[SLO](${SLO_LINK})`);
       expect(markdown).not.toContain("Other Tenant Payroll");
@@ -249,10 +249,10 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
       } as unknown as ServiceLevelObjective);
 
       const markdown: string =
-        await ServiceLevelObjectiveService.getSloMarkdownLink({
+        (await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
-        });
+        })).toString();
 
       expect(markdown).toBe(`[SLO a\\]\\(b\\)](${SLO_LINK})`);
     });
@@ -261,10 +261,10 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
       findOneBySpy.mockResolvedValue(null);
 
       const markdown: string =
-        await ServiceLevelObjectiveService.getSloMarkdownLink({
+        (await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
-        });
+        })).toString();
 
       expect(markdown).toBe(`[SLO](${SLO_LINK})`);
     });
@@ -274,11 +274,11 @@ describe("ServiceLevelObjectiveService.getSloMarkdownLink", () => {
     "a blank name %j renders as a plain SLO link without a dangling space",
     async (sloName: string) => {
       const markdown: string =
-        await ServiceLevelObjectiveService.getSloMarkdownLink({
+        (await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
           sloName,
-        });
+        })).toString();
 
       expect(markdown).toBe(`[SLO](${SLO_LINK})`);
       // An explicit value, even a blank one, means the caller has the name.

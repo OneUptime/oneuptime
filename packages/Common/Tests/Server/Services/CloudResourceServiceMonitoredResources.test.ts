@@ -41,6 +41,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
 import crypto from "crypto";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * CloudResourceService, for the Cloud Resources discovered from cloud
  * monitoring (CloudResourceKind.Resource). Everything external is mocked at
@@ -708,7 +709,7 @@ describe("a person's archive decisions", () => {
 describe("the created feed item", () => {
   test("names a resource by its provider id, an environment by its key", async () => {
     getJestSpyOn(service, "getCloudResourceMarkdownLink").mockResolvedValue(
-      "[Cloud Resource x](https://example.com)" as never,
+      FeedMarkdown.asMarkdown("[Cloud Resource x](https://example.com)") as never,
     );
     const markdown: jest.SpyInstance = jest
       .spyOn(ResourceFeedUtil, "getCreatedFeedMarkdown")

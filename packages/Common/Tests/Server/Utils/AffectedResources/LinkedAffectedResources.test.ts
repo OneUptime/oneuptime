@@ -31,6 +31,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * LinkedAffectedResources is what every server-side "Resources Affected"
  * text is built from - feed items, owner and on-call emails, workspace
@@ -812,7 +813,9 @@ describe("feed markdown", () => {
       dashboardUrl: URL.fromString(DASHBOARD),
       projectId: PROJECT_ID,
       resources,
-    });
+    }).map((line: MarkdownText): string => {
+ return line.toString();
+ });
   }
 
   test("keeps the monitor bullet, labels the rest, and ends with the SLO", () => {

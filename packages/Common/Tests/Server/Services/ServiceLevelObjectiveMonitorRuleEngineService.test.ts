@@ -24,6 +24,7 @@ import RuleCriteria, {
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../Utils/Rules/RuleEngineLimits";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test - SLO monitor rules.
  *
@@ -255,7 +256,7 @@ function installSpies(): SyncSpies {
       .mockResolvedValue(undefined),
     markdownLink: jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-      .mockResolvedValue(SLO_LINK),
+      .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK)),
   };
 }
 

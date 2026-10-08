@@ -65,11 +65,11 @@ describe("inline SLO links match ServiceLevelObjectiveService", () => {
     "the bullet for %s is the service's markdown link",
     async (_label: string, sloName: string) => {
       const canonical: string =
-        await ServiceLevelObjectiveService.getSloMarkdownLink({
+        (await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
           sloName: sloName,
-        });
+        })).toString();
 
       expect(
         getSloAffectedResourceMarkdownLines({

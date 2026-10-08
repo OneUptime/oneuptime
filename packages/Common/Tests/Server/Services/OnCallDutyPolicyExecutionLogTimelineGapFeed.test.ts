@@ -14,6 +14,9 @@ import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import { Token, Tokens, marked } from "marked";
 
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * addToIncidentOrAlertFeed turns an on-call execution timeline row into the
  * human-readable entry that lands in the incident feed and the workspace channel.
@@ -46,7 +49,8 @@ const service: any = OnCallDutyPolicyExecutionLogTimelineService as any;
 const realGetUserMarkdownString: (data: {
   userId: ObjectID;
   projectId: ObjectID;
-}) => Promise<string> = UserService.getUserMarkdownString.bind(UserService);
+}) => Promise<MarkdownText> =
+  UserService.getUserMarkdownString.bind(UserService);
 
 const PROJECT_ID: ObjectID = new ObjectID("project1");
 const TIMELINE_ID: ObjectID = new ObjectID("timeline1");
@@ -178,16 +182,16 @@ beforeEach(() => {
   originals["userMarkdown"] = UserService.getUserMarkdownString;
   (UserService as any).getUserMarkdownString = async (data: {
     userId: ObjectID;
-  }): Promise<string> => {
+  }): Promise<MarkdownText> => {
     /*
      * Mirrors the real guard: a falsy id yields an empty string rather than a
      * name. If the builder ever calls this for a gap row, the assertions below
      * catch the resulting "alerted to <nothing>" sentence.
      */
     if (!data.userId) {
-      return "";
+      return FeedMarkdown.empty();
     }
-    return "[Alice](https://oneuptime.test/user/1)";
+    return FeedMarkdown.asMarkdown("[Alice](https://oneuptime.test/user/1)");
   };
 });
 
@@ -563,10 +567,12 @@ describe("UserService.getUserMarkdownString fail-closed guard", () => {
     };
 
     try {
-      const result: string = await realGetUserMarkdownString({
-        userId: undefined as unknown as ObjectID,
-        projectId: PROJECT_ID,
-      });
+      const result: string = (
+        await realGetUserMarkdownString({
+          userId: undefined as unknown as ObjectID,
+          projectId: PROJECT_ID,
+        })
+      ).toString();
 
       expect(result).toBe("");
       expect(queried).toBe(false);

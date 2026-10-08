@@ -61,6 +61,7 @@ import { ResourceAiRemediationMode } from "../../../Types/ResourceAiAgent/Resour
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Who may make OneUptime AI do MORE on an infrastructure resource a
  * resource AI agent serves, enforced in each resource's own service (the
@@ -815,7 +816,7 @@ describe.each(WIRING)(
         .mockResolvedValue(`[resource](https://x)` as never);
       jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue("[Jane](https://oneuptime.example/user)");
+        .mockResolvedValue(FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"));
     });
 
     afterEach(() => {
@@ -987,7 +988,7 @@ describe.each(FULLY_COVERED)(
         .mockResolvedValue(undefined as never);
       jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue("[Jane](https://oneuptime.example/user)");
+        .mockResolvedValue(FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"));
       jest
         .spyOn(wiring.service, wiring.linkMethod)
         .mockResolvedValue("[resource](https://x)" as never);

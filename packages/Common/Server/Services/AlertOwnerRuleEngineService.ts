@@ -815,7 +815,7 @@ class AlertOwnerRuleEngineServiceClass
       }
       const inheritedNote: MarkdownText =
         inheritedSources.length > 0
-          ? mdText`\n\n_Some owners were inherited from the alert's ${inheritedSources.join(", ")}._`
+          ? mdText`\n\n_Some owners were inherited from the alert's ${FeedMarkdown.join(inheritedSources)}._`
           : FeedMarkdown.empty();
 
       const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(

@@ -120,7 +120,7 @@ describe("StateChangeNoteMessage", () => {
     test("a state's name is plain text in the line, and reads as typed", () => {
       const name: string =
         "![](https://tracker.example/p.png) [Open](https://evil.example) <!channel> <b>x</b>";
-      const line: string = StateChangeNoteMessage.getChatStatusLine(name);
+      const line: string = StateChangeNoteMessage.getChatStatusLine(name).toString();
 
       expect(line).toBe(
         `**Status:** !\\[\\](https://tracker.example/p.png) \\[Open\\](https://evil.example) \\<${WORD_JOINER}!channel> \\<b>x\\</b>`,

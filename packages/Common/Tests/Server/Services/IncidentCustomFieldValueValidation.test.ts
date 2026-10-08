@@ -29,6 +29,7 @@ import {
 import * as fs from "fs";
 import * as path from "path";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * IncidentService checks the custom field values a write puts on an incident
  * against the project's incident custom fields (CustomFieldValueValidator).
@@ -375,7 +376,7 @@ describe("IncidentService.onBeforeCreate: custom field values", () => {
       .mockResolvedValue(undefined as never);
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("Test User" as never);
+      .mockResolvedValue(FeedMarkdown.asMarkdown("Test User") as never);
     jest
       .spyOn(IncidentTemplateService, "findOneBy")
       .mockResolvedValue(null as never);

@@ -4,45 +4,41 @@ import ts from "typescript";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * A TITLE OR A NAME GOES INTO A FEED ITEM OR A CHAT MESSAGE AS TEXT.
+ * FEED AND CHAT MARKDOWN IS WRITTEN WITH mdText, AND ONLY WITH mdText.
  *
- * The feed items of incidents, alerts, both kinds of episode, scheduled
- * maintenance events and monitors are Markdown that the dashboard renders
- * without its safe mode and that is posted to the record's Slack and
- * Microsoft Teams channels; the Slack and Teams messages OneUptime builds for
- * them, and for status page subscribers, are Markdown too. A title is plain
- * text that is often not typed by a person at all - a monitor fills an
- * alert's in from an incoming email's subject or a field of an incoming
- * request - and a name (a state, a severity, a team, a person, a label, a
- * rule, a policy, a status page, a cluster or a host an agent reported) is
- * plain text as well. Placed into Markdown as it is, such text becomes a link
- * whose words hide where it goes, an image fetched when the text is shown,
- * raw HTML, or a Slack mention. So wherever it is placed it goes through
- * MarkdownEscape: escapeMarkdownValue in prose, escapeMarkdownInline inside a
- * link's own text, markdownCodeSpan where it is shown as code.
+ * Feed items - of incidents, alerts, both kinds of episode, scheduled
+ * maintenance events, monitors, on-call policies, SLOs and every
+ * infrastructure resource - are Markdown that the dashboard renders without
+ * its safe mode, that emails render with marked and that is posted to Slack
+ * and Microsoft Teams; so are the Slack and Teams messages OneUptime writes.
+ * Each places text OneUptime did not write - a title, a name, a label, a
+ * host an agent reported - and text placed into Markdown as it is becomes a
+ * link whose words hide where it goes, an image, raw HTML or a Slack mention.
  *
- * This reads every file that writes one of those feed items
- * (create{Incident,Alert,IncidentEpisode,AlertEpisode,ScheduledMaintenance,
- * Monitor}FeedItem), every file of the Slack and Teams integration
- * (Server/Utils/Workspace), the worker jobs of those records, of
- * announcements and of status pages, and the shared chat builders listed
- * below, and requires, in every Markdown template literal and every
- * concatenation with Markdown in it:
+ * Escaping each value by hand where it is placed missed values, one feed
+ * sentence at a time. So that Markdown is written with the `mdText` tag
+ * (Common/Utils/Markdown/FeedMarkdown), which escapes every value for the
+ * place it sits in by default, and this guard holds the code to it:
  *
- *   - each `.title` or `.name` it reads - or any property named for a name
- *     or a title (`clusterName`, `resourceName`, `ruleNameSnapshot`, ...) -
- *     is an argument of an escaper (or only decides something, as a
- *     condition does), and
- *   - each variable it reads that was set from such a read was set by an
- *     escaper.
+ *   A. In every file that writes feed or chat Markdown (below), a template
+ *      literal with values in it that is Markdown - "**", "](", a "`", a
+ *      heading, a list item or a quote at the start of a line, or assigned
+ *      to something named for Markdown - is tagged `mdText`. A Markdown
+ *      string is not joined to a value with "+" either.
+ *   B. Nothing outside Common/Utils/Markdown imports MarkdownEscape or
+ *      UntrustedMarkdown: FeedMarkdown is the one way into them, so there is
+ *      no second path that escapes, or forgets to, by hand.
+ *   C. No value placed into `mdText` is an Array's `.join(...)` or the
+ *      `.toString()` of Markdown: a list of Markdown pieces is joined with
+ *      FeedMarkdown.join, and Markdown stays a MarkdownText until it reaches
+ *      its sink - placed as a string it would be escaped a second time.
  *
- * A template literal is Markdown when its text has Markdown in it ("**",
- * "](", a heading, a list item or a quote at the start of a line) or when it
- * is assigned to something named for Markdown (feedInfoInMarkdown,
- * moreInformationInMarkdown, markdownMessage, ...). A read that is right to
- * go in as it is - text that is not shown in a feed or a chat at all - goes in
- * ALLOWED_READS with its reason, and the guard fails when an entry no longer
- * matches anything, so the list cannot outlive the code it excuses.
+ * A template that is right to stay untagged - an LLM prompt, a log line -
+ * goes in ALLOWED_UNTAGGED with its reason. The list only shrinks: the guard
+ * fails on an entry that no longer matches anything.
+ *
+ * ee/Server is read when it is there (CI deletes ee/ for the open-source
+ * build, so the guard must pass without it too).
  */
 
 // packages/Common/Tests/Server/Services -> packages/Common.
@@ -50,410 +46,154 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..");
 // packages/Common -> the repository root.
 const REPOSITORY_ROOT: string = path.resolve(COMMON_ROOT, "..", "..");
 
-const SCAN_ROOTS: Array<string> = [
+// Where feed and chat Markdown is written (rules A and C).
+const SINK_SCAN_ROOTS: Array<string> = [
   path.join(REPOSITORY_ROOT, "packages", "Common", "Server"),
-  // The series blocks a monitor's description template can place.
-  path.join(REPOSITORY_ROOT, "packages", "Common", "Types", "Monitor"),
-  path.join(REPOSITORY_ROOT, "packages", "App", "FeatureSet", "Workers"),
+  path.join(REPOSITORY_ROOT, "packages", "Common", "Types"),
+  path.join(REPOSITORY_ROOT, "packages", "Common", "Utils"),
+  path.join(REPOSITORY_ROOT, "packages", "App", "FeatureSet"),
   path.join(REPOSITORY_ROOT, "ee", "Server"),
 ];
 
-/*
- * The feed items of incidents, alerts, both kinds of episode, scheduled
- * maintenance events and monitors.
- */
-const FEED_ITEM_WRITERS: ReadonlySet<string> = new Set<string>([
-  "createIncidentFeedItem",
-  "createAlertFeedItem",
-  "createIncidentEpisodeFeedItem",
-  "createAlertEpisodeFeedItem",
-  "createScheduledMaintenanceFeedItem",
-  "createMonitorFeedItem",
-]);
+// Every package's source, for imports of the escapers (rule B).
+const IMPORT_SCAN_ROOTS: Array<string> = [
+  path.join(REPOSITORY_ROOT, "packages"),
+  path.join(REPOSITORY_ROOT, "ee"),
+];
+
+// The one directory whose code may import the escapers.
+const MARKDOWN_UTILS_DIRECTORY: string = "packages/Common/Utils/Markdown/";
+
+// A feed item of any kind: createIncidentFeedItem, createHostFeedItem, ...
+const FEED_ITEM_WRITER_PATTERN: RegExp = /\.create[A-Z][A-Za-z]*FeedItem\(/;
 
 // The Slack and Microsoft Teams integration: every message it builds.
 const CHAT_DIRECTORY: string = "packages/Common/Server/Utils/Workspace/";
 
-/*
- * The jobs of those records, of announcements and of status pages (owners'
- * notifications, status page subscribers' Slack and Teams messages,
- * reminders): every directory of Workers/Jobs whose name starts with
- * Incident, Alert, ScheduledMaintenance, Announcement, StatusPage or Monitor.
- */
-const FEED_AND_CHAT_JOBS_PATTERN: RegExp =
-  /^packages\/App\/FeatureSet\/Workers\/Jobs\/(?:Incident|Alert|ScheduledMaintenance|Announcement|StatusPage|Monitor)[A-Za-z]*\//;
+// The worker jobs: owners' notifications, subscribers' messages, reminders.
+const JOBS_DIRECTORY: string = "packages/App/FeatureSet/Workers/Jobs/";
 
-// Shared builders of the Markdown those feed items and messages carry.
-const CHAT_BUILDER_FILES: ReadonlyArray<string> = [
-  // The daily and weekly Slack / Teams summaries.
+// Code that writes with mdText reads as a sink, whatever else it does.
+const FEED_MARKDOWN_IMPORT_PATTERN: RegExp = /Markdown\/FeedMarkdown"/;
+
+/*
+ * Shared builders of feed and chat Markdown, read even if one stopped
+ * importing FeedMarkdown. The guard fails when one of them is gone.
+ */
+const BUILDER_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Services/WorkspaceNotificationSummaryService.ts",
-  // On-call messages in Slack and Teams.
   "packages/Common/Server/Services/UserNotificationRuleService.ts",
-  // [Name](link) of a person, in feed items of every kind.
   "packages/Common/Server/Services/UserService.ts",
-  // A note's attachments, listed in its feed item.
-  "packages/Common/Server/Utils/FileAttachmentMarkdownUtil.ts",
-  // An incident's custom Slack and Teams subscriber messages.
-  "packages/Common/Server/Utils/StatusPage/IncidentTemplateVariableBuilder.ts",
-  // The "Resources Affected" bullets of incident, alert and maintenance feeds.
-  "packages/Common/Server/Utils/AffectedResources/LinkedAffectedResources.ts",
-  // A subscriber's welcome and test messages in Slack and Teams.
   "packages/Common/Server/Services/StatusPageSubscriberService.ts",
-  // A monitor's root cause: criteria, findings, and what the probe reported.
+  "packages/Common/Server/Utils/AffectedResources/LinkedAffectedResources.ts",
   "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts",
-  // Why one series' incident or alert was resolved.
+  "packages/Common/Server/Utils/Monitor/RootCauseList.ts",
+  "packages/Common/Server/Utils/Monitor/AffectedResourceList.ts",
   "packages/Common/Server/Utils/Monitor/PerSeriesResolutionRootCause.ts",
-  // The probes that agreed, added to a root cause.
   "packages/Common/Server/Utils/Monitor/MonitorResource.ts",
-  // A series' labels, as a description template's {{seriesResourceBlock}}.
-  "packages/Common/Types/Monitor/SeriesContext/SeriesLabelDisplay.ts",
-  // An incident's or alert's video call, as posted to its feed and channels.
+  "packages/Common/Server/Utils/Rules/RuleFeedMarkdown.ts",
   "packages/Common/Server/Utils/VideoCall/VideoCallMessages.ts",
-  // Why a workspace rule's video call could not start, in the notification log.
-  "packages/Common/Server/Utils/VideoCall/VideoCallRuleExecutor.ts",
+  "packages/Common/Server/Utils/Form/FormSubmissionNote.ts",
+  "packages/Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord.ts",
+  "packages/Common/Types/Monitor/SeriesContext/SeriesLabelDisplay.ts",
+  "packages/Common/Types/Monitor/SeriesContext/SeriesDebugHints.ts",
+  "packages/Common/Utils/Slo/SloFeedMarkdown.ts",
 ];
 
 /*
- * The functions a title or a name may be handed to on its way into
- * Markdown: the escapers themselves, helpers that escape what they are
- * given (each one says so where it is defined), and helpers that only read
- * it to decide something and never show it.
- */
-const ESCAPERS: ReadonlySet<string> = new Set<string>([
-  "escapeMarkdownValue",
-  "escapeMarkdownInline",
-  // The episode members' feed items (IncidentEpisodeMemberService, AlertEpisodeMemberService).
-  "getFeedTitle",
-  // Linked alerts and incidents (IncidentAlertService).
-  "describeLinkedRecord",
-  // [Name](link) of a person (UserService).
-  "getUserMarkdownString",
-  // The monitors of a Teams summary line (MicrosoftTeamsUtil).
-  "formatAffectedMonitorNames",
-  // The resource names of a summary (WorkspaceNotificationSummaryService).
-  "joinNames",
-  // A state on a subscriber chat message (StateChangeNoteMessage).
-  "getChatStatusLine",
-  // A reported value shown as code (MarkdownEscape).
-  "markdownCodeSpan",
-  // A value a monitored system reported, in a template (UntrustedMarkdown).
-  "neutralizeUntrustedValue",
-  // Markdown OneUptime AI wrote (UntrustedMarkdown).
-  "neutralizeAiWrittenMarkdown",
-  /*
-   * A platform metric's friendly name as text and its own name as code
-   * (MonitorCriteriaEvaluator, directly and through its describeMetric).
-   */
-  "describePlatformMetricName",
-  "describeMetric",
-  // A Kubernetes root cause analysis: every name in it as code or text.
-  "buildKubernetesRootCauseAnalysis",
-  // Reads a metric's name only to pick the unit its value is shown in.
-  "metricNameForUnitHeuristics",
-]);
-
-/*
- * Escapers whose name alone says too little - "code" could be anything's -
- * matched by the whole callee as written: markdownCodeSpan under the names
- * the root cause builders give it.
- */
-const QUALIFIED_ESCAPERS: ReadonlySet<string> = new Set<string>([
-  "RootCauseList.code",
-  "AffectedResourceList.code",
-]);
-
-const PLAIN_TEXT_PROPERTIES: ReadonlySet<string> = new Set<string>([
-  "title",
-  "name",
-]);
-
-/*
- * A property named for a name or a title: `clusterName`, `resourceName`,
- * `ruleNameSnapshot`, `pageTitle`. Plain text, like `.name` and `.title`.
- */
-const PLAIN_TEXT_PROPERTY_PATTERN: RegExp =
-  /^[a-z][A-Za-z]*(?:Name|Title)(?:Snapshot)?$/;
-
-function isPlainTextProperty(propertyName: string): boolean {
-  return (
-    PLAIN_TEXT_PROPERTIES.has(propertyName) ||
-    PLAIN_TEXT_PROPERTY_PATTERN.test(propertyName)
-  );
-}
-
-/*
- * Markdown in a template's own text: bold, a link, or a heading, a list item
- * or a quote at the start of a line.
+ * Markdown in a template's own text: bold, a link, a code span, or a
+ * heading, a list item or a quote at the start of a line.
  */
 const MARKDOWN_TEXT_PATTERN: RegExp =
-  /\*\*|\]\(|(?:^|\n)[ \t]*(?:#{1,6} |- |> )/;
+  /(?<!\*)\*\*(?!\*)|\]\(|`|(?:^|\n)[ \t]*(?:#{1,6} |- |> )/;
+
+// A value named for Markdown: built as Markdown, placed as Markdown.
+const MARKDOWN_VALUE_NAME_PATTERN: RegExp = /markdown$/i;
 
 // Something a template is assigned to that is named for Markdown.
 const MARKDOWN_TARGET_PATTERN: RegExp = /markdown|feedInfo|moreInformation/i;
 
 /*
- * Reads that go in as they are, by file and the read's own text, each with
- * its reason. The guard fails on an entry that matches nothing.
+ * Untagged Markdown templates that are right as they are, each with its
+ * reason: by file and either a piece of the template's own text or the
+ * function the template is written in.
  */
-const ALLOWED_READS: Record<string, string> = {
-  /*
-   * An AI access gap's title is OneUptime's own wording (AI access status),
-   * not text anyone types.
-   */
-  "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts: firstGap":
-    "an AI access gap's title is OneUptime's own wording",
-  // The candidate runbooks listed in a prompt to the model, not a feed item.
-  "packages/Common/Server/Utils/AI/Remediation/RemediationPlanRunner.ts: runbook.name":
-    "a prompt to the model lists the runbooks; it is not shown in a feed",
-  // "Monitors Removed" / "Monitors Added": OneUptime's own section headings.
-  "packages/Common/Server/Services/ScheduledMaintenanceService.ts: section.title":
-    "the monitor change sections' headings are OneUptime's own wording",
-  /*
-   * The agent a resource's commands go through ("OneUptime Docker agent"):
-   * OneUptime's own name for it (AI_RESOURCE_TYPE_INFO).
-   */
-  "packages/Common/Server/Services/AutoRemediationRuleEngineService.ts: agentName":
-    "a resource type's agent name is OneUptime's own wording",
-  "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts: agentName":
-    "a resource type's agent name is OneUptime's own wording",
-  // The clusters a remediation run may not change, listed in a prompt to the model.
-  "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts: tripped.cluster.clusterName":
-    "a prompt to the model names the cluster; it is not shown in a feed",
-  "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts: held.cluster.clusterName":
-    "a prompt to the model names the cluster; it is not shown in a feed",
-};
+interface AllowedUntagged {
+  file: string;
+  text?: string | undefined;
+  inFunction?: string | undefined;
+  reason: string;
+}
 
-export interface UnescapedPlainText {
+const REMEDIATION_RUNNER: string =
+  "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts";
+const PROMPT_REASON: string =
+  "The text OneUptime AI is given to work from - a prompt, never shown in a feed or a chat.";
+
+const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
+  {
+    file: REMEDIATION_RUNNER,
+    text: "You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer",
+    reason: PROMPT_REASON,
+  },
+  ...[
+    "buildClusterFramingRules",
+    "buildResourceFramingRules",
+    "buildExecutionContext",
+    "describeResourceTarget",
+    "describePreviousRounds",
+  ].map((inFunction: string): AllowedUntagged => {
+    return {
+      file: REMEDIATION_RUNNER,
+      inFunction: inFunction,
+      reason: PROMPT_REASON,
+    };
+  }),
+  {
+    file: "packages/Common/Server/Utils/AI/Remediation/RemediationPlanRunner.ts",
+    inFunction: "buildPlanningContext",
+    reason: PROMPT_REASON,
+  },
+  {
+    file: "packages/Common/Server/Utils/AI/SRE/AlertInvestigationRunner.ts",
+    inFunction: "buildAlertSummary",
+    reason: PROMPT_REASON,
+  },
+  {
+    file: "packages/Common/Server/Utils/AI/SRE/IncidentInvestigationRunner.ts",
+    inFunction: "buildIncidentSummary",
+    reason: PROMPT_REASON,
+  },
+  {
+    file: "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts",
+    text: "`\\n- ${item}`",
+    reason:
+      "The evaluation summary's message, shown as plain text; the root cause beside it places each finding with mdText.",
+  },
+  {
+    file: "packages/Common/Types/Monitor/SeriesContext/SeriesLabelDisplay.ts",
+    inFunction: "buildTitleSuffix",
+    reason:
+      "A suffix of an alert's or incident's title, which is plain text: wherever a title is placed into Markdown, it is placed as text.",
+  },
+  {
+    file: "packages/App/FeatureSet/Workers/Jobs/Rum/ProcessSessionErasureRequests.ts",
+    inFunction: "buildErasedSessionTraceIdStatement",
+    reason: "A ClickHouse statement, not Markdown.",
+  },
+];
+
+export interface GuardFinding {
   file: string;
   line: number;
-  read: string;
+  rule: "A" | "B" | "C";
+  text: string;
 }
 
-function calleeName(call: ts.CallExpression): string | null {
-  const callee: ts.Expression = call.expression;
-
-  if (ts.isIdentifier(callee)) {
-    return callee.text;
-  }
-
-  if (ts.isPropertyAccessExpression(callee)) {
-    return callee.name.text;
-  }
-
-  return null;
+function lineOf(source: ts.SourceFile, node: ts.Node): number {
+  return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 }
 
-// Whether a call is to one of the escapers (ESCAPERS, QUALIFIED_ESCAPERS).
-function isEscaperCallee(call: ts.CallExpression): boolean {
-  if (QUALIFIED_ESCAPERS.has(call.expression.getText().replace(/\s+/g, ""))) {
-    return true;
-  }
-
-  return ESCAPERS.has(calleeName(call) || "");
-}
-
-function unwrap(expression: ts.Expression): ts.Expression {
-  let current: ts.Expression = expression;
-
-  while (
-    ts.isParenthesizedExpression(current) ||
-    ts.isAwaitExpression(current) ||
-    ts.isAsExpression(current) ||
-    ts.isNonNullExpression(current)
-  ) {
-    current = current.expression;
-  }
-
-  return current;
-}
-
-function isEscaperCall(expression: ts.Expression): boolean {
-  const unwrapped: ts.Expression = unwrap(expression);
-
-  return ts.isCallExpression(unwrapped) && isEscaperCallee(unwrapped);
-}
-
-/*
- * Whether `node` - somewhere inside `root` - goes into the text only through
- * an escaper, or does not go into it at all: an escaper's argument, a
- * condition, the left side of `&&`, the array whose length is counted.
- */
-function isSafePosition(node: ts.Node, root: ts.Node): boolean {
-  let current: ts.Node = node;
-
-  while (current !== root) {
-    const child: ts.Node = current;
-    const parent: ts.Node | undefined = child.parent;
-
-    if (!parent) {
-      return false;
-    }
-
-    if (
-      ts.isCallExpression(parent) &&
-      parent.arguments.some((argument: ts.Expression): boolean => {
-        return argument === child;
-      }) &&
-      isEscaperCallee(parent)
-    ) {
-      return true;
-    }
-
-    if (ts.isConditionalExpression(parent) && parent.condition === current) {
-      return true;
-    }
-
-    if (
-      ts.isBinaryExpression(parent) &&
-      parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
-      parent.left === current
-    ) {
-      return true;
-    }
-
-    if (
-      ts.isPropertyAccessExpression(parent) &&
-      parent.expression === current &&
-      parent.name.text === "length"
-    ) {
-      return true;
-    }
-
-    current = parent;
-  }
-
-  return false;
-}
-
-// The declaration a name refers to: the nearest one in an enclosing scope.
-function declarationOf(identifier: ts.Identifier): ts.Node | null {
-  const name: string = identifier.text;
-  let scope: ts.Node | undefined = identifier.parent;
-
-  while (scope) {
-    let found: ts.Node | null = null;
-    const currentScope: ts.Node = scope;
-
-    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-      if (found) {
-        return;
-      }
-
-      // A nested function's own declarations are not in scope here.
-      if (node !== currentScope && ts.isFunctionLike(node)) {
-        return;
-      }
-
-      if (
-        (ts.isVariableDeclaration(node) || ts.isParameter(node)) &&
-        ts.isIdentifier(node.name) &&
-        node.name.text === name
-      ) {
-        found = node;
-        return;
-      }
-
-      ts.forEachChild(node, visit);
-    };
-
-    if (
-      ts.isFunctionLike(scope) ||
-      ts.isSourceFile(scope) ||
-      ts.isBlock(scope) ||
-      ts.isForOfStatement(scope) ||
-      ts.isForStatement(scope) ||
-      ts.isCaseClause(scope)
-    ) {
-      ts.forEachChild(scope, visit);
-
-      if (found) {
-        return found;
-      }
-    }
-
-    scope = scope.parent;
-  }
-
-  return null;
-}
-
-// Each `.title` / `.name` read in `expression` that goes into the text raw.
-function directPlainReads(expression: ts.Node): Array<ts.Node> {
-  const reads: Array<ts.Node> = [];
-
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (
-      ts.isPropertyAccessExpression(node) &&
-      isPlainTextProperty(node.name.text)
-    ) {
-      const isCallee: boolean =
-        ts.isCallExpression(node.parent) && node.parent.expression === node;
-
-      if (!isCallee && !isSafePosition(node, expression)) {
-        reads.push(node);
-      }
-
-      return;
-    }
-
-    ts.forEachChild(node, visit);
-  };
-
-  visit(expression);
-
-  return reads;
-}
-
-/*
- * What `expression` puts into the text raw: its own `.title` / `.name`
- * reads, and each variable it reads that was set from one without an
- * escaper.
- */
-function plainReads(expression: ts.Expression): Array<ts.Node> {
-  const reads: Array<ts.Node> = directPlainReads(expression);
-
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (ts.isIdentifier(node)) {
-      const parent: ts.Node = node.parent;
-      const isPropertyName: boolean =
-        (ts.isPropertyAccessExpression(parent) && parent.name === node) ||
-        (ts.isPropertyAssignment(parent) && parent.name === node) ||
-        (ts.isCallExpression(parent) && parent.expression === node);
-
-      if (!isPropertyName && !isSafePosition(node, expression)) {
-        const declaration: ts.Node | null = declarationOf(node);
-
-        if (
-          declaration &&
-          ts.isVariableDeclaration(declaration) &&
-          declaration.initializer &&
-          !isEscaperCall(declaration.initializer) &&
-          directPlainReads(declaration.initializer).length > 0
-        ) {
-          reads.push(node);
-        }
-      }
-    }
-
-    if (
-      ts.isPropertyAccessExpression(node) &&
-      isPlainTextProperty(node.name.text)
-    ) {
-      return;
-    }
-
-    ts.forEachChild(node, visit);
-  };
-
-  visit(expression);
-
-  return reads;
-}
-
-/*
- * A template's own text, with a placeholder where each value goes: a value
- * is never the start of a line, so the text after it is not read as one.
- */
 function templateText(template: ts.TemplateExpression): string {
   return [
     template.head.text,
@@ -463,7 +203,7 @@ function templateText(template: ts.TemplateExpression): string {
   ].join("\u0000");
 }
 
-// The name of what a template (through parentheses, `||`, `?:` and `+`) is assigned to.
+// The name of what an expression (through parentheses, `||`, `?:`, `+`, await) is assigned to.
 function assignmentTargetName(node: ts.Node): string | null {
   let current: ts.Node = node;
   let parent: ts.Node | undefined = current.parent;
@@ -505,17 +245,137 @@ function assignmentTargetName(node: ts.Node): string | null {
   return null;
 }
 
-function isMarkdownTemplate(template: ts.TemplateExpression): boolean {
-  if (MARKDOWN_TEXT_PATTERN.test(templateText(template))) {
-    return true;
-  }
-
-  const target: string | null = assignmentTargetName(template);
-
-  return Boolean(target && MARKDOWN_TARGET_PATTERN.test(target));
+function calleeText(call: ts.CallExpression | ts.NewExpression): string {
+  return call.expression.getText();
 }
 
-// The operands of a chain of `+`, left to right.
+/*
+ * Text that is not Markdown placed anywhere: a log line, an error, or the
+ * text of a code span FeedMarkdown.code writes around it.
+ */
+function isOutsideMarkdown(node: ts.Node): boolean {
+  let current: ts.Node = node;
+  let parent: ts.Node | undefined = node.parent;
+
+  while (parent && !ts.isSourceFile(parent)) {
+    if (ts.isCallExpression(parent) || ts.isNewExpression(parent)) {
+      const callee: string = calleeText(parent);
+
+      if (/^logger\.|^console\.|Error$/.test(callee)) {
+        return true;
+      }
+
+      const callArguments: ReadonlyArray<ts.Expression> = parent.arguments || [];
+
+      if (
+        /(?:^|\.)code$|\.codeWithId$/.test(callee) &&
+        callArguments.includes(current as ts.Expression)
+      ) {
+        return true;
+      }
+    }
+
+    if (ts.isThrowStatement(parent)) {
+      return true;
+    }
+
+    if (
+      ts.isBlock(parent) ||
+      ts.isClassDeclaration(parent) ||
+      ts.isTaggedTemplateExpression(parent)
+    ) {
+      return false;
+    }
+
+    current = parent;
+    parent = parent.parent;
+  }
+
+  return false;
+}
+
+function isMdTextTag(node: ts.Node): node is ts.TaggedTemplateExpression {
+  return ts.isTaggedTemplateExpression(node) && node.tag.getText() === "mdText";
+}
+
+function isMarkdownLiteral(expression: ts.Expression): boolean {
+  return (
+    (ts.isStringLiteral(expression) ||
+      ts.isNoSubstitutionTemplateLiteral(expression)) &&
+    MARKDOWN_TEXT_PATTERN.test(expression.text)
+  );
+}
+
+function unwrap(expression: ts.Expression): ts.Expression {
+  let current: ts.Expression = expression;
+
+  while (
+    ts.isParenthesizedExpression(current) ||
+    ts.isAwaitExpression(current) ||
+    ts.isNonNullExpression(current) ||
+    ts.isAsExpression(current)
+  ) {
+    current = current.expression;
+  }
+
+  return current;
+}
+
+/*
+ * A value - not a literal, not Markdown written with mdText or FeedMarkdown -
+ * that a "+" would put into Markdown as it is.
+ */
+function isRawValue(expression: ts.Expression): boolean {
+  const unwrapped: ts.Expression = unwrap(expression);
+
+  if (MARKDOWN_VALUE_NAME_PATTERN.test(valueName(unwrapped))) {
+    return false;
+  }
+
+  if (
+    ts.isStringLiteral(unwrapped) ||
+    ts.isNoSubstitutionTemplateLiteral(unwrapped) ||
+    ts.isNumericLiteral(unwrapped) ||
+    isMdTextTag(unwrapped)
+  ) {
+    return false;
+  }
+
+  if (ts.isTemplateExpression(unwrapped)) {
+    return !MARKDOWN_TEXT_PATTERN.test(templateText(unwrapped));
+  }
+
+  if (ts.isCallExpression(unwrapped)) {
+    const callee: string = calleeText(unwrapped);
+
+    // mdText`...`.toString(), FeedMarkdown.join(...).toString(), ...
+    if (/\.toString$/.test(callee)) {
+      const target: ts.Expression = unwrap(
+        (unwrapped.expression as ts.PropertyAccessExpression).expression,
+      );
+
+      return !(
+        isMdTextTag(target) ||
+        (ts.isCallExpression(target) &&
+          /^FeedMarkdown\./.test(calleeText(target)))
+      );
+    }
+
+    return !/^FeedMarkdown\./.test(callee);
+  }
+
+  if (ts.isConditionalExpression(unwrapped)) {
+    return isRawValue(unwrapped.whenTrue) || isRawValue(unwrapped.whenFalse);
+  }
+
+  return (
+    ts.isIdentifier(unwrapped) ||
+    ts.isPropertyAccessExpression(unwrapped) ||
+    ts.isElementAccessExpression(unwrapped)
+  );
+}
+
+// The operands of a chain of "+", left to right.
 function concatenationOperands(
   node: ts.BinaryExpression,
 ): Array<ts.Expression> {
@@ -545,86 +405,186 @@ function concatenationOperands(
   return operands;
 }
 
+// The name of the function or method a node is written in, if any.
+function enclosingFunctionName(node: ts.Node): string | null {
+  let current: ts.Node | undefined = node.parent;
+
+  while (current && !ts.isSourceFile(current)) {
+    if (
+      (ts.isFunctionDeclaration(current) || ts.isMethodDeclaration(current)) &&
+      current.name
+    ) {
+      return current.name.getText();
+    }
+
+    if (
+      (ts.isArrowFunction(current) || ts.isFunctionExpression(current)) &&
+      ts.isVariableDeclaration(current.parent) &&
+      ts.isIdentifier(current.parent.name)
+    ) {
+      return current.parent.name.text;
+    }
+
+    current = current.parent;
+  }
+
+  return null;
+}
+
+// The allowances a scan has used: one that is never used is stale.
+const USED_ALLOWANCES: Set<AllowedUntagged> = new Set<AllowedUntagged>();
+
+function isAllowedUntagged(file: string, node: ts.Node, text: string): boolean {
+  const allowance: AllowedUntagged | undefined = ALLOWED_UNTAGGED.find(
+    (entry: AllowedUntagged): boolean => {
+      if (entry.file !== file) {
+        return false;
+      }
+
+      if (entry.text !== undefined) {
+        return text.includes(entry.text);
+      }
+
+      return enclosingFunctionName(node) === entry.inFunction;
+    },
+  );
+
+  if (allowance) {
+    USED_ALLOWANCES.add(allowance);
+  }
+
+  return Boolean(allowance);
+}
+
+// The name an expression goes by: a variable's, a property's or a function's.
+function valueName(expression: ts.Expression): string {
+  const unwrapped: ts.Expression = unwrap(expression);
+
+  if (ts.isIdentifier(unwrapped)) {
+    return unwrapped.text;
+  }
+
+  if (ts.isPropertyAccessExpression(unwrapped)) {
+    return unwrapped.name.text;
+  }
+
+  if (ts.isCallExpression(unwrapped)) {
+    if (
+      ts.isPropertyAccessExpression(unwrapped.expression) &&
+      unwrapped.expression.name.text === "toString"
+    ) {
+      return valueName(unwrapped.expression.expression);
+    }
+
+    return valueName(unwrapped.expression);
+  }
+
+  return "";
+}
+
 /**
- * Every title or name read that goes into the Markdown of `sourceText` raw.
+ * Rules A and C over one file that writes feed or chat Markdown.
  */
-export function findUnescapedPlainText(
-  fileName: string,
+export function findUntaggedFeedMarkdown(
+  file: string,
   sourceText: string,
-): Array<UnescapedPlainText> {
+): Array<GuardFinding> {
   const source: ts.SourceFile = ts.createSourceFile(
-    fileName,
+    file,
     sourceText,
     ts.ScriptTarget.Latest,
     true,
   );
+  const found: Array<GuardFinding> = [];
 
-  const found: Array<UnescapedPlainText> = [];
-  const seen: Set<ts.Node> = new Set<ts.Node>();
+  const report: (node: ts.Node, rule: "A" | "C") => void = (
+    node: ts.Node,
+    rule: "A" | "C",
+  ): void => {
+    const text: string = node.getText(source);
 
-  const report: (read: ts.Node) => void = (read: ts.Node): void => {
-    if (seen.has(read)) {
+    if (rule === "A" && isAllowedUntagged(file, node, text)) {
       return;
     }
 
-    seen.add(read);
     found.push({
-      file: fileName,
-      line:
-        source.getLineAndCharacterOfPosition(read.getStart(source)).line + 1,
-      read: read.getText(source).replace(/\s+/g, " "),
+      file: file,
+      line: lineOf(source, node),
+      rule: rule,
+      text: text.slice(0, 120),
     });
   };
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (ts.isTemplateExpression(node) && isMarkdownTemplate(node)) {
-      for (const span of node.templateSpans) {
-        for (const read of plainReads(span.expression)) {
-          report(read);
-        }
+    // A: an untagged Markdown template with values in it.
+    if (
+      ts.isTemplateExpression(node) &&
+      !ts.isTaggedTemplateExpression(node.parent) &&
+      !isOutsideMarkdown(node)
+    ) {
+      const target: string | null = assignmentTargetName(node);
+
+      if (
+        MARKDOWN_TEXT_PATTERN.test(templateText(node)) ||
+        (target !== null && MARKDOWN_TARGET_PATTERN.test(target))
+      ) {
+        report(node, "A");
       }
     }
 
-    /*
-     * A chain of `+` with Markdown in one of its strings, at the top of the
-     * chain only.
-     */
+    // A: a Markdown string joined to a value with "+".
     if (
       ts.isBinaryExpression(node) &&
       node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
       !(
         ts.isBinaryExpression(node.parent) &&
         node.parent.operatorToken.kind === ts.SyntaxKind.PlusToken
-      )
+      ) &&
+      !isOutsideMarkdown(node)
     ) {
       const operands: Array<ts.Expression> = concatenationOperands(node);
 
-      const hasMarkdown: boolean = operands.some(
-        (operand: ts.Expression): boolean => {
-          const text: string | null = ts.isStringLiteral(operand)
-            ? operand.text
-            : ts.isNoSubstitutionTemplateLiteral(operand)
-              ? operand.text
-              : ts.isTemplateExpression(operand)
-                ? templateText(operand)
-                : null;
+      if (operands.some(isMarkdownLiteral) && operands.some(isRawValue)) {
+        report(node, "A");
+      }
+    }
 
-          return text !== null && MARKDOWN_TEXT_PATTERN.test(text);
-        },
-      );
+    // A: a value appended as it is to something named for Markdown.
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken &&
+      MARKDOWN_TARGET_PATTERN.test(node.left.getText(source)) &&
+      isRawValue(node.right)
+    ) {
+      report(node, "A");
+    }
 
-      if (hasMarkdown) {
-        for (const operand of operands) {
+    // C: what goes into mdText is not a joined string or Markdown's string.
+    if (isMdTextTag(node) && ts.isTemplateExpression(node.template)) {
+      for (const span of node.template.templateSpans) {
+        const value: ts.Expression = unwrap(span.expression);
+
+        if (!ts.isCallExpression(value)) {
+          continue;
+        }
+
+        const callee: string = calleeText(value);
+
+        if (/\.join$/.test(callee) && !/^FeedMarkdown\./.test(callee)) {
+          report(span.expression, "C");
+        }
+
+        if (/\.toString$/.test(callee)) {
+          const target: ts.Expression = unwrap(
+            (value.expression as ts.PropertyAccessExpression).expression,
+          );
+
           if (
-            ts.isStringLiteral(operand) ||
-            ts.isNoSubstitutionTemplateLiteral(operand) ||
-            ts.isTemplateExpression(operand)
+            isMdTextTag(target) ||
+            (ts.isCallExpression(target) &&
+              /^FeedMarkdown\./.test(calleeText(target)))
           ) {
-            continue;
-          }
-
-          for (const read of plainReads(operand)) {
-            report(read);
+            report(span.expression, "C");
           }
         }
       }
@@ -638,17 +598,66 @@ export function findUnescapedPlainText(
   return found;
 }
 
-function writesFeedItemOfTheFourKinds(sourceText: string): boolean {
-  for (const writer of FEED_ITEM_WRITERS) {
-    if (sourceText.includes(`.${writer}(`)) {
-      return true;
-    }
+const ESCAPER_MODULE_PATTERN: RegExp = /(?:^|\/)(MarkdownEscape|UntrustedMarkdown)$/;
+
+/**
+ * Rule B over one file: its imports of MarkdownEscape and UntrustedMarkdown.
+ */
+export function findEscaperImports(
+  file: string,
+  sourceText: string,
+): Array<GuardFinding> {
+  if (file.startsWith(MARKDOWN_UTILS_DIRECTORY)) {
+    return [];
   }
 
-  return false;
+  const source: ts.SourceFile = ts.createSourceFile(
+    file,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const found: Array<GuardFinding> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    let specifier: string | null = null;
+
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
+      specifier = node.moduleSpecifier.text;
+    }
+
+    if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        node.expression.getText(source) === "require") &&
+      node.arguments[0] &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      specifier = node.arguments[0].text;
+    }
+
+    if (specifier !== null && ESCAPER_MODULE_PATTERN.test(specifier)) {
+      found.push({
+        file: file,
+        line: lineOf(source, node),
+        rule: "B",
+        text: node.getText(source).slice(0, 120),
+      });
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return found;
 }
 
-function listTypeScriptFiles(directory: string): Array<string> {
+function listSourceFiles(directory: string): Array<string> {
   if (!fs.existsSync(directory)) {
     return [];
   }
@@ -656,17 +665,26 @@ function listTypeScriptFiles(directory: string): Array<string> {
   const files: Array<string> = [];
 
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (["node_modules", "build", "dist"].includes(entry.name)) {
+    if (
+      [
+        "node_modules",
+        "build",
+        "dist",
+        "Tests",
+        "coverage",
+        ".git",
+      ].includes(entry.name)
+    ) {
       continue;
     }
 
     const fullPath: string = path.join(directory, entry.name);
 
     if (entry.isDirectory()) {
-      files.push(...listTypeScriptFiles(fullPath));
+      files.push(...listSourceFiles(fullPath));
     } else if (
-      entry.name.endsWith(".ts") &&
-      !entry.name.endsWith(".test.ts") &&
+      /\.tsx?$/.test(entry.name) &&
+      !/\.test\.tsx?$/.test(entry.name) &&
       !entry.name.endsWith(".d.ts")
     ) {
       files.push(fullPath);
@@ -680,25 +698,35 @@ function toRepositoryPath(file: string): string {
   return path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/");
 }
 
-interface SinkFile {
+interface SourceFile {
   file: string;
   sourceText: string;
 }
 
-function readSinkFiles(): Array<SinkFile> {
-  const sinks: Array<SinkFile> = [];
+function isSink(file: string, sourceText: string): boolean {
+  return (
+    file.startsWith(CHAT_DIRECTORY) ||
+    file.startsWith(JOBS_DIRECTORY) ||
+    BUILDER_FILES.includes(file) ||
+    FEED_ITEM_WRITER_PATTERN.test(sourceText) ||
+    FEED_MARKDOWN_IMPORT_PATTERN.test(sourceText)
+  );
+}
 
-  for (const root of SCAN_ROOTS) {
-    for (const fullPath of listTypeScriptFiles(root)) {
+function readSinkFiles(): Array<SourceFile> {
+  const sinks: Array<SourceFile> = [];
+
+  for (const root of SINK_SCAN_ROOTS) {
+    for (const fullPath of listSourceFiles(root)) {
       const file: string = toRepositoryPath(fullPath);
+
+      if (file.startsWith(MARKDOWN_UTILS_DIRECTORY) || /\.tsx$/.test(file)) {
+        continue;
+      }
+
       const sourceText: string = fs.readFileSync(fullPath, "utf8");
 
-      if (
-        file.startsWith(CHAT_DIRECTORY) ||
-        FEED_AND_CHAT_JOBS_PATTERN.test(file) ||
-        CHAT_BUILDER_FILES.includes(file) ||
-        writesFeedItemOfTheFourKinds(sourceText)
-      ) {
+      if (isSink(file, sourceText)) {
         sinks.push({ file: file, sourceText: sourceText });
       }
     }
@@ -707,230 +735,281 @@ function readSinkFiles(): Array<SinkFile> {
   return sinks;
 }
 
-describe("feed items and chat messages place titles and names as text", () => {
-  const sinks: Array<SinkFile> = readSinkFiles();
+function describeFindings(findings: Array<GuardFinding>): Array<string> {
+  return findings.map((finding: GuardFinding): string => {
+    return `${finding.file}:${finding.line} [${finding.rule}] ${finding.text}`;
+  });
+}
+
+describe("feed and chat Markdown is written with mdText", () => {
+  const sinks: Array<SourceFile> = readSinkFiles();
+
+  let sinkFindings: Array<GuardFinding> | null = null;
+
+  // Every sink read once; the allowances it used are recorded on the way.
+  const scanSinks: () => Array<GuardFinding> = (): Array<GuardFinding> => {
+    if (sinkFindings === null) {
+      sinkFindings = [];
+
+      for (const sink of sinks) {
+        sinkFindings.push(
+          ...findUntaggedFeedMarkdown(sink.file, sink.sourceText),
+        );
+      }
+    }
+
+    return sinkFindings;
+  };
 
   test("reads the feed and chat code it is meant to read", () => {
-    const files: Array<string> = sinks.map((sink: SinkFile): string => {
+    const files: Array<string> = sinks.map((sink: SourceFile): string => {
       return sink.file;
     });
 
-    for (const expected of [
-      "packages/Common/Server/Services/AlertService.ts",
-      "packages/Common/Server/Services/AlertEpisodeService.ts",
-      "packages/Common/Server/Services/AlertEpisodeMemberService.ts",
-      "packages/Common/Server/Services/AlertStateTimelineService.ts",
-      "packages/Common/Server/Services/IncidentService.ts",
-      "packages/Common/Server/Services/IncidentEpisodeService.ts",
-      "packages/Common/Server/Services/IncidentEpisodeMemberService.ts",
-      "packages/Common/Server/Services/IncidentAlertService.ts",
-      "packages/Common/Server/Services/OnCallDutyPolicyExecutionLogTimelineService.ts",
-      "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams.ts",
-      "packages/Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Alert.ts",
-      "packages/Common/Server/Utils/Workspace/MicrosoftTeams/Actions/AlertEpisode.ts",
-      "packages/App/FeatureSet/Workers/Jobs/AlertOwners/SendStateChangeNotification.ts",
-      "packages/App/FeatureSet/Workers/Jobs/IncidentStateTimeline/SendNotificationToSubscribers.ts",
-      ...CHAT_BUILDER_FILES,
-    ]) {
-      expect(files).toContain(expected);
-    }
-  });
-
-  test("every title and name in their Markdown is escaped", () => {
-    const unescaped: Array<string> = [];
-
-    for (const sink of sinks) {
-      for (const finding of findUnescapedPlainText(
-        sink.file,
-        sink.sourceText,
-      )) {
-        const key: string = `${finding.file}: ${finding.read}`;
-
-        if (Object.prototype.hasOwnProperty.call(ALLOWED_READS, key)) {
-          continue;
-        }
-
-        unescaped.push(`${finding.file}:${finding.line}: ${finding.read}`);
-      }
+    for (const builder of BUILDER_FILES) {
+      expect(fs.existsSync(path.join(REPOSITORY_ROOT, builder))).toBe(true);
+      expect(files).toContain(builder);
     }
 
-    expect(unescaped).toEqual([]);
-  });
-
-  test("every allowed read still exists", () => {
-    const stillThere: Set<string> = new Set<string>();
-
-    for (const sink of sinks) {
-      for (const finding of findUnescapedPlainText(
-        sink.file,
-        sink.sourceText,
-      )) {
-        stillThere.add(`${finding.file}: ${finding.read}`);
-      }
-    }
-
+    // Feed items of every kind, the chat integration and the worker jobs.
     expect(
-      Object.keys(ALLOWED_READS).filter((key: string): boolean => {
-        return !stillThere.has(key);
-      }),
-    ).toEqual([]);
+      files.filter((file: string): boolean => {
+        return file.startsWith(CHAT_DIRECTORY);
+      }).length,
+    ).toBeGreaterThan(20);
+    expect(
+      files.filter((file: string): boolean => {
+        return file.startsWith(JOBS_DIRECTORY);
+      }).length,
+    ).toBeGreaterThan(50);
+    expect(files).toContain(
+      "packages/Common/Server/Services/IncidentService.ts",
+    );
+    expect(files).toContain(
+      "packages/Common/Server/Services/KubernetesClusterService.ts",
+    );
+    expect(files).toContain(
+      "packages/Common/Server/Services/ServiceLevelObjectiveService.ts",
+    );
+    expect(sinks.length).toBeGreaterThan(300);
+  });
+
+  test("every Markdown template with values in it is mdText, and nothing places Markdown as a string", () => {
+    expect(describeFindings(scanSinks())).toEqual([]);
+  });
+
+  test("nothing outside Utils/Markdown imports MarkdownEscape or UntrustedMarkdown", () => {
+    const findings: Array<GuardFinding> = [];
+    let scanned: number = 0;
+
+    for (const root of IMPORT_SCAN_ROOTS) {
+      for (const fullPath of listSourceFiles(root)) {
+        scanned++;
+        findings.push(
+          ...findEscaperImports(
+            toRepositoryPath(fullPath),
+            fs.readFileSync(fullPath, "utf8"),
+          ),
+        );
+      }
+    }
+
+    expect(scanned).toBeGreaterThan(5000);
+    expect(describeFindings(findings)).toEqual([]);
+  });
+
+  test("every allowed untagged template still exists and still excuses one", () => {
+    scanSinks();
+
+    const stale: Array<string> = ALLOWED_UNTAGGED.filter(
+      (entry: AllowedUntagged): boolean => {
+        return !USED_ALLOWANCES.has(entry);
+      },
+    ).map((entry: AllowedUntagged): string => {
+      return `${entry.file} ${entry.text || entry.inFunction}`;
+    });
+
+    expect(stale).toEqual([]);
+
+    for (const entry of ALLOWED_UNTAGGED) {
+      expect(entry.reason.length).toBeGreaterThan(10);
+      expect(Boolean(entry.text) !== Boolean(entry.inFunction)).toBe(true);
+    }
   });
 });
 
-describe("findUnescapedPlainText", () => {
-  function reads(sourceText: string): Array<string> {
-    return findUnescapedPlainText("Sample.ts", sourceText).map(
-      (finding: UnescapedPlainText): string => {
-        return finding.read;
+describe("findUntaggedFeedMarkdown", () => {
+  const FILE: string = "packages/Common/Server/Services/ExampleService.ts";
+
+  function find(code: string): Array<string> {
+    return findUntaggedFeedMarkdown(FILE, code).map(
+      (finding: GuardFinding): string => {
+        return `${finding.rule}: ${finding.text}`;
       },
     );
   }
 
-  test("finds a title placed into a feed item raw", () => {
+  test("finds an untagged Markdown template with a value in it", () => {
     expect(
-      reads("const markdown: string = `**${alert.title || 'No title'}**`;"),
-    ).toEqual(["alert.title"]);
+      find("const text: string = `Changed **${incident.title}**`;"),
+    ).toHaveLength(1);
   });
 
-  test("passes a title an escaper was given", () => {
+  test("passes the same template tagged mdText", () => {
     expect(
-      reads(
-        "const markdown: string = `**${escapeMarkdownValue(alert.title || 'No title')}**`;",
+      find("const text: MarkdownText = mdText`Changed **${incident.title}**`;"),
+    ).toEqual([]);
+  });
+
+  test("finds a link written by hand", () => {
+    expect(find("const link: string = `[${name}](${url})`;")).toHaveLength(1);
+  });
+
+  test("finds a code span written by hand", () => {
+    expect(find("const code: string = `\\`${value}\\``;")).toHaveLength(1);
+  });
+
+  test("finds a list item written by hand", () => {
+    expect(find("lines.push(`- ${label.name}`);")).toHaveLength(1);
+  });
+
+  test("finds a template assigned to something named for Markdown, Markdown or not", () => {
+    expect(
+      find("const feedInfoInMarkdown: string = `Changed ${title}`;"),
+    ).toHaveLength(1);
+  });
+
+  test("leaves a template that is not Markdown alone: an SMS carries the title as written", () => {
+    expect(find("const sms: string = `Incident ${title} declared`;")).toEqual(
+      [],
+    );
+  });
+
+  test("leaves a log line alone", () => {
+    expect(find("logger.debug(`**${title}** failed`);")).toEqual([]);
+  });
+
+  test("leaves the text of a code span FeedMarkdown.code writes around alone", () => {
+    expect(
+      find(
+        "const span: MarkdownText = FeedMarkdown.code(`kubectl logs ${pod} -c **x**`);",
       ),
     ).toEqual([]);
   });
 
-  test("finds a name inside a link's text", () => {
-    expect(
-      reads("const line: string = `- [${monitor.name}](${link})`;"),
-    ).toEqual(["monitor.name"]);
+  test("finds a Markdown string joined to a value with +", () => {
+    expect(find('const text: string = "**Title:** " + incident.title;')).toHaveLength(
+      1,
+    );
   });
 
-  test("passes a name inside a link's text that was escaped", () => {
+  test("passes Markdown joined to Markdown written with mdText", () => {
     expect(
-      reads(
-        "const line: string = `- [${escapeMarkdownInline(monitor.name)}](${link})`;",
+      find(
+        'const text: string = "**Title:** " + mdText`${incident.title}`.toString();',
       ),
     ).toEqual([]);
   });
 
-  test("finds a variable set from a name and placed raw", () => {
-    expect(
-      reads(
-        "function f() { const stateName: string = state?.name || ''; return `to **${stateName}**`; }",
-      ),
-    ).toEqual(["stateName"]);
+  test("finds a value appended to something named for Markdown", () => {
+    expect(find("feedInfoInMarkdown += incident.title;")).toHaveLength(1);
   });
 
-  test("passes a variable an escaper set", () => {
-    expect(
-      reads(
-        "function f() { const stateName: string = escapeMarkdownValue(state?.name || ''); return `to **${stateName}**`; }",
-      ),
-    ).toEqual([]);
+  test("passes mdText appended to something named for Markdown", () => {
+    expect(find("feedInfoInMarkdown += mdText` ${incident.title}`;")).toEqual(
+      [],
+    );
   });
 
-  test("finds a name joined into Markdown with +", () => {
+  test("finds an Array's join placed into mdText", () => {
     expect(
-      reads(
-        "const markdown: string = emoji + ' Changed state to **' + newState.name + '**';",
-      ),
-    ).toEqual(["newState.name"]);
+      find("const text: MarkdownText = mdText`Labels: ${names.join(\", \")}`;"),
+    ).toEqual([expect.stringMatching(/^C: /)]);
   });
 
-  test("passes a name that only decides what is written", () => {
+  test("passes FeedMarkdown.join placed into mdText", () => {
     expect(
-      reads(
-        "const markdown: string = `${team?.name ? 'by the team **' + escapeMarkdownValue(team?.name) + '**' : ''}`;",
+      find(
+        "const text: MarkdownText = mdText`Labels: ${FeedMarkdown.join(names)}`;",
       ),
     ).toEqual([]);
   });
 
-  test("passes a count of names", () => {
+  test("finds Markdown turned into a string and placed into mdText again", () => {
     expect(
-      reads(
-        "const markdown: string = `**Rules:** ${names.length} rule${names.length === 1 ? '' : 's'}`;",
+      find(
+        "const text: MarkdownText = mdText`Owner: ${mdText`**${name}**`.toString()}`;",
+      ),
+    ).toEqual([expect.stringMatching(/^C: /)]);
+  });
+
+  test("passes Markdown named as Markdown appended to something named for Markdown", () => {
+    expect(
+      find(
+        "feedInfoInMarkdown += fieldsMarkdown.toString(); feedInfoInMarkdown += await this.getMonitorChangeFeedMarkdown(data);",
       ),
     ).toEqual([]);
   });
 
-  test("leaves text that is not Markdown alone: an SMS carries the title as written", () => {
+  test("leaves a masked phone number alone: six asterisks are no bold", () => {
     expect(
-      reads(
-        "const sms: string = `Alert ${alert.title} is down. Reply to stop.`;",
+      find("const masked: string = `${phone.slice(0, 2)}******${phone.slice(-2)}`;"),
+    ).toEqual([]);
+  });
+
+  test("an allowed template must name its file", () => {
+    expect(
+      findUntaggedFeedMarkdown(
+        "packages/Common/Server/Services/Other.ts",
+        "const text: string = `**${title}**`;",
+      ),
+    ).toHaveLength(1);
+  });
+});
+
+describe("findEscaperImports", () => {
+  test("finds MarkdownEscape imported outside Utils/Markdown", () => {
+    expect(
+      findEscaperImports(
+        "packages/Common/Server/Services/ExampleService.ts",
+        'import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";',
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("finds UntrustedMarkdown imported by package path", () => {
+    expect(
+      findEscaperImports(
+        "packages/App/FeatureSet/Workers/Jobs/Example.ts",
+        'import { neutralizeAiWrittenMarkdown } from "Common/Utils/Markdown/UntrustedMarkdown";',
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("finds a dynamic import and a require", () => {
+    expect(
+      findEscaperImports(
+        "packages/Common/Server/Utils/Example.ts",
+        'const a = await import("../Markdown/MarkdownEscape"); const b = require("./UntrustedMarkdown");',
+      ),
+    ).toHaveLength(2);
+  });
+
+  test("passes FeedMarkdown", () => {
+    expect(
+      findEscaperImports(
+        "packages/Common/Server/Services/ExampleService.ts",
+        'import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";',
       ),
     ).toEqual([]);
   });
 
-  test("reads a template named for Markdown even without Markdown in its text", () => {
+  test("passes the Markdown utilities themselves", () => {
     expect(
-      reads("const feedInfoInMarkdown: string = `Alert: ${alert.title}`;"),
-    ).toEqual(["alert.title"]);
-  });
-
-  test("finds a name turned into text by a call that does not escape it", () => {
-    expect(
-      reads("const markdown: string = `**${user.name.toString()}**`;"),
-    ).toEqual(["user.name"]);
-  });
-
-  test.each([
-    ["clusterName", "cluster.clusterName"],
-    ["resourceName", "data.resourceName"],
-    ["ruleNameSnapshot", "execution.ruleNameSnapshot"],
-    ["pageTitle", "statusPage.pageTitle"],
-  ])(
-    "finds a property named for a name or a title (%s) placed raw",
-    (_property: string, read: string) => {
-      expect(
-        reads(`const markdown: string = \`**Resource:** \${${read}}\`;`),
-      ).toEqual([read]);
-    },
-  );
-
-  test("leaves a property that only ends in a name-like word alone when it is not one", () => {
-    expect(
-      reads(
-        "const markdown: string = `**Count:** ${data.nameCount} and ${data.titleLength}`;",
+      findEscaperImports(
+        "packages/Common/Utils/Markdown/FeedMarkdown.ts",
+        'import { escapeMarkdownValue } from "./MarkdownEscape";',
       ),
     ).toEqual([]);
-  });
-
-  test.each([
-    ["a call named code that escapes nothing", "error.code(pod.name)"],
-    ["a local function named code", "code(pod.name)"],
-  ])("finds a name passed to %s", (_kind: string, call: string) => {
-    expect(
-      reads(`const markdown: string = \`- **Pod:** \${${call}}\`;`),
-    ).toEqual(["pod.name"]);
-  });
-
-  test.each([
-    ["a name shown as code", "markdownCodeSpan(series.resourceName)"],
-    [
-      "a name shown as code through RootCauseList",
-      "RootCauseList.code(pod.name)",
-    ],
-    [
-      "a name shown as code through AffectedResourceList",
-      "AffectedResourceList.code(pod.name)",
-    ],
-    [
-      "a reported value placed into a template",
-      "neutralizeUntrustedValue(body.title)",
-    ],
-    ["Markdown the AI wrote", "neutralizeAiWrittenMarkdown(result.title)"],
-  ])("passes %s", (_kind: string, call: string) => {
-    expect(
-      reads(`const markdown: string = \`- **Pod:** \${${call}}\`;`),
-    ).toEqual([]);
-  });
-
-  test("finds a name-like property set into a variable and placed raw", () => {
-    expect(
-      reads(
-        "function f() { const clusterName: string = cluster.clusterName; return `- Cluster: **${clusterName}**`; }",
-      ),
-    ).toEqual(["clusterName"]);
   });
 });

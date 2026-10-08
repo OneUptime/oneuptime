@@ -49,6 +49,7 @@ import { StartingStage } from "../../../Utils/StartingStage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Declaring an incident from alerts and acknowledging those alerts in the
  * same request (miscDataProps.acknowledgeAlertsToLink), at the two places it
@@ -469,7 +470,7 @@ function stubBeforeCreate(): jest.SpyInstance {
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("**A responder**" as never);
+    .mockResolvedValue(FeedMarkdown.asMarkdown("**A responder**") as never);
 
   // The project's alerts: every id asked for exists (see storeAlert).
   storedAlerts = new Map();

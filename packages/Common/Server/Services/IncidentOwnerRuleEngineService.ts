@@ -827,7 +827,7 @@ class IncidentOwnerRuleEngineServiceClass
       }
       const inheritedNote: MarkdownText =
         inheritedSources.length > 0
-          ? mdText`\n\n_Some owners were inherited from the incident's ${inheritedSources.join(", ")}._`
+          ? mdText`\n\n_Some owners were inherited from the incident's ${FeedMarkdown.join(inheritedSources)}._`
           : FeedMarkdown.empty();
 
       const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(

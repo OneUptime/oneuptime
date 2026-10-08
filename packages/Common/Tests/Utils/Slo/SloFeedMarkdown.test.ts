@@ -45,6 +45,7 @@ import {
 } from "../../../Utils/Slo/SloFeedMarkdown";
 import { describe, expect, test } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test: the words of the SLO feed, and the change detection
  * that decides whether there are any words to post at all.
@@ -151,7 +152,7 @@ describe("SloFeedMarkdown - numbers and durations", () => {
 
 describe("SloFeedMarkdown - user text", () => {
   test.each(HOSTILE_NAMES)("renders %p as inert text", (name: string) => {
-    expectInert(formatSloFeedText(name));
+    expectInert(formatSloFeedText(name).toString());
   });
 
   test("keeps an ordinary name exactly as typed", () => {
@@ -169,7 +170,7 @@ describe("SloFeedMarkdown - user text", () => {
   test("cuts long text before escaping, so no escape is ever split in half", () => {
     // The 160th character is a bracket: cutting after escaping would strand "\".
     const text: string = `${"a".repeat(159)}[${"b".repeat(50)}`;
-    const formatted: string = formatSloFeedText(text);
+    const formatted: string = formatSloFeedText(text).toString();
 
     expect(formatted.endsWith("…")).toBe(true);
     expect(formatted).toBe(`${"a".repeat(159)}\\[…`);
@@ -233,7 +234,7 @@ describe("SloFeedMarkdown - relation ids and names", () => {
       },
     );
 
-    const formatted: string = formatSloFeedEntityNames(labels);
+    const formatted: string = formatSloFeedEntityNames(labels).toString();
 
     expect(formatted.startsWith("Label 00, Label 01")).toBe(true);
     expect(formatted.endsWith("Label 09 and 3 more")).toBe(true);
@@ -245,7 +246,7 @@ describe("SloFeedMarkdown - relation ids and names", () => {
         HOSTILE_NAMES.map((name: string): { name: string } => {
           return { name: name };
         }),
-      ).replace(/ and \d+ more$/, ""),
+      ).toString().replace(/ and \d+ more$/, ""),
     );
   });
 
@@ -612,8 +613,8 @@ describe("SloFeedMarkdown - reading what changed", () => {
 describe("SloFeedMarkdown - SLO lifecycle items", () => {
   test("a created SLO names its creator, its promise and the default rules that came with it", () => {
     const markdown: SloFeedMarkdown = getSloCreatedFeedMarkdown({
-      sloMarkdownLink: LINK,
-      createdByUserMarkdown: "[Jane Doe](https://oneuptime.test/u)",
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
+      createdByUserMarkdown: FeedMarkdown.asMarkdown("[Jane Doe](https://oneuptime.test/u)"),
       targetPercentage: 99.9,
       windowType: SloWindowType.Rolling,
       windowDays: 30,
@@ -654,7 +655,7 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
 
   test("a created SLO with nobody behind it says so instead of naming anyone", () => {
     const markdown: SloFeedMarkdown = getSloCreatedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       createdByUserMarkdown: null,
       windowType: SloWindowType.CalendarMonth,
       timezone: "Europe/Oslo",
@@ -688,7 +689,7 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
   test("escapes a hostile description and rule name in the created item", () => {
     for (const name of HOSTILE_NAMES) {
       const markdown: SloFeedMarkdown = getSloCreatedFeedMarkdown({
-        sloMarkdownLink: LINK,
+        sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
         createdByUserMarkdown: null,
         description: name,
         defaultBurnRateRules: [{ name: name }],
@@ -706,14 +707,14 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
 
   test("a single short change is spelled out in the summary line", () => {
     const markdown: SloFeedMarkdown = getSloUpdatedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       changes: [
         {
           column: "targetPercentage",
           title: "Target",
           kind: SloFeedValueKind.Percent,
-          from: "99.9%",
-          to: "99.95%",
+          from: FeedMarkdown.asMarkdown("99.9%"),
+          to: FeedMarkdown.asMarkdown("99.95%"),
         },
       ],
     });
@@ -728,28 +729,28 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
 
   test("several changes, or a long one, are named in the summary and spelled out below", () => {
     const markdown: SloFeedMarkdown = getSloUpdatedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       changes: [
         {
           column: "targetPercentage",
           title: "Target",
           kind: SloFeedValueKind.Percent,
-          from: "99.9%",
-          to: "99.95%",
+          from: FeedMarkdown.asMarkdown("99.9%"),
+          to: FeedMarkdown.asMarkdown("99.95%"),
         },
         {
           column: "windowDays",
           title: "Rolling window length",
           kind: SloFeedValueKind.Days,
-          from: "30 days",
-          to: "7 days",
+          from: FeedMarkdown.asMarkdown("30 days"),
+          to: FeedMarkdown.asMarkdown("7 days"),
         },
         {
           column: "timezone",
           title: "Timezone",
           kind: SloFeedValueKind.Text,
           from: null,
-          to: "Europe/Oslo",
+          to: FeedMarkdown.asMarkdown("Europe/Oslo"),
         },
       ],
     });
@@ -766,14 +767,14 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
     );
 
     const description: SloFeedMarkdown = getSloUpdatedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       changes: [
         {
           column: "description",
           title: "Description",
           kind: SloFeedValueKind.LongText,
-          from: "old",
-          to: "new",
+          from: FeedMarkdown.asMarkdown("old"),
+          to: FeedMarkdown.asMarkdown("new"),
         },
       ],
     });
@@ -812,7 +813,7 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
       detail: string;
     }) => {
       const markdown: SloFeedMarkdown = getSloEnabledFeedMarkdown({
-        sloMarkdownLink: LINK,
+        sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
         isEnabled: row.isEnabled,
         isArchived: row.isArchived,
       });
@@ -850,7 +851,7 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
       detail: string;
     }) => {
       const markdown: SloFeedMarkdown = getSloArchivedFeedMarkdown({
-        sloMarkdownLink: LINK,
+        sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
         isArchived: row.isArchived,
         isEnabled: row.isEnabled,
       });
@@ -868,7 +869,7 @@ describe("SloFeedMarkdown - monitors attached and detached", () => {
 
   test("one monitor is named in the summary", () => {
     const markdown: SloFeedMarkdown = getSloMonitorsChangedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       monitors: [monitor("API", "1")],
       change: "attached",
     });
@@ -887,7 +888,7 @@ describe("SloFeedMarkdown - monitors attached and detached", () => {
 
   test("many monitors are counted, the first three named alphabetically", () => {
     const markdown: SloFeedMarkdown = getSloMonitorsChangedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       monitors: ["E", "C", "A", "D", "B"].map((name: string) => {
         return monitor(name, name);
       }),
@@ -901,7 +902,7 @@ describe("SloFeedMarkdown - monitors attached and detached", () => {
 
   test("a very large change keeps More Information bounded", () => {
     const markdown: SloFeedMarkdown = getSloMonitorsChangedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       monitors: Array.from({ length: 75 }, (_value: unknown, index: number) => {
         return monitor(`Monitor ${String(index).padStart(2, "0")}`, `${index}`);
       }),
@@ -918,7 +919,7 @@ describe("SloFeedMarkdown - monitors attached and detached", () => {
     "a monitor named %p cannot re-point or add a link",
     (name: string) => {
       const markdown: SloFeedMarkdown = getSloMonitorsChangedFeedMarkdown({
-        sloMarkdownLink: LINK,
+        sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
         monitors: [monitor(name, "1")],
         change: "attached",
       });
@@ -933,7 +934,7 @@ describe("SloFeedMarkdown - monitors attached and detached", () => {
 
   test("a monitor whose name could not be read is still listed", () => {
     const markdown: SloFeedMarkdown = getSloMonitorsChangedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       monitors: [monitor("", "1")],
       change: "detached",
     });
@@ -957,7 +958,7 @@ describe("SloFeedMarkdown - status changes", () => {
 
   test("an evaluated transition carries the numbers behind it", () => {
     const markdown: SloFeedMarkdown = getSloStatusChangedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       previousStatus: SloStatus.Healthy,
       newStatus: SloStatus.AtRisk,
       measurement: {
@@ -987,7 +988,7 @@ describe("SloFeedMarkdown - status changes", () => {
 
   test("an over-budget SLO says by how much, not a negative duration", () => {
     const markdown: SloFeedMarkdown = getSloStatusChangedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       previousStatus: SloStatus.AtRisk,
       newStatus: SloStatus.BudgetExhausted,
       measurement: {
@@ -1008,7 +1009,7 @@ describe("SloFeedMarkdown - status changes", () => {
 
   test("a guard transition gives its reason and claims no measurement", () => {
     const markdown: SloFeedMarkdown = getSloStatusChangedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       previousStatus: undefined,
       newStatus: SloStatus.Misconfigured,
       reason: "No monitors are attached to this SLO.",
@@ -1030,7 +1031,7 @@ describe("SloFeedMarkdown - status changes", () => {
 describe("SloFeedMarkdown - burn rate rules", () => {
   test("an added rule says when it fires and what it opens", () => {
     const markdown: SloFeedMarkdown = getBurnRateRuleAddedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       rule: {
         name: "Fast burn",
         burnRateThreshold: 14.4,
@@ -1069,7 +1070,7 @@ describe("SloFeedMarkdown - burn rate rules", () => {
     "outputs %p read as %p",
     (outputs: Record<string, boolean>, text: string) => {
       const markdown: SloFeedMarkdown = getBurnRateRuleAddedFeedMarkdown({
-        sloMarkdownLink: LINK,
+        sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
         rule: { name: "Rule", ...outputs },
       });
 
@@ -1083,15 +1084,15 @@ describe("SloFeedMarkdown - burn rate rules", () => {
     "turning a rule %s is its own sentence",
     (to: string) => {
       const markdown: SloFeedMarkdown = getBurnRateRuleChangedFeedMarkdown({
-        sloMarkdownLink: LINK,
+        sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
         ruleName: "Fast burn",
         changes: [
           {
             column: "isEnabled",
             title: "Enabled",
             kind: SloFeedValueKind.Boolean,
-            from: to === "On" ? "Off" : "On",
-            to: to,
+            from: FeedMarkdown.asMarkdown(to === "On" ? "Off" : "On"),
+            to: FeedMarkdown.asMarkdown(to),
           },
         ],
       });
@@ -1104,22 +1105,22 @@ describe("SloFeedMarkdown - burn rate rules", () => {
 
   test("any other change is spelled out like an SLO update", () => {
     const markdown: SloFeedMarkdown = getBurnRateRuleChangedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       ruleName: "Fast burn",
       changes: [
         {
           column: "burnRateThreshold",
           title: "Burn rate threshold",
           kind: SloFeedValueKind.Multiplier,
-          from: "14.4x",
-          to: "10x",
+          from: FeedMarkdown.asMarkdown("14.4x"),
+          to: FeedMarkdown.asMarkdown("10x"),
         },
         {
           column: "alertTitleTemplate",
           title: "Alert title template",
           kind: SloFeedValueKind.Opaque,
-          from: "_not set_",
-          to: "_set_",
+          from: FeedMarkdown.asMarkdown("_not set_"),
+          to: FeedMarkdown.asMarkdown("_set_"),
         },
       ],
     });
@@ -1134,7 +1135,7 @@ describe("SloFeedMarkdown - burn rate rules", () => {
 
   test("a removed rule is described from the row read before it went", () => {
     const markdown: SloFeedMarkdown = getBurnRateRuleRemovedFeedMarkdown({
-      sloMarkdownLink: LINK,
+      sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
       rule: {
         name: "Slow burn",
         burnRateThreshold: 6,
@@ -1159,11 +1160,11 @@ describe("SloFeedMarkdown - burn rate rules", () => {
     (name: string) => {
       for (const markdown of [
         getBurnRateRuleAddedFeedMarkdown({
-          sloMarkdownLink: LINK,
+          sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
           rule: { name: name },
         }),
         getBurnRateRuleRemovedFeedMarkdown({
-          sloMarkdownLink: LINK,
+          sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
           rule: { name: name },
         }),
       ]) {
@@ -1178,7 +1179,7 @@ describe("SloFeedMarkdown - burn rate rules", () => {
 
   test("a nameless rule is still identifiable", () => {
     expect(
-      getBurnRateRuleAddedFeedMarkdown({ sloMarkdownLink: LINK, rule: {} })
+      getBurnRateRuleAddedFeedMarkdown({ sloMarkdownLink: FeedMarkdown.asMarkdown(LINK), rule: {} })
         .feedInfoInMarkdown,
     ).toBe(`🔥 Burn rate rule **Unnamed rule** was added to ${LINK}.`);
   });

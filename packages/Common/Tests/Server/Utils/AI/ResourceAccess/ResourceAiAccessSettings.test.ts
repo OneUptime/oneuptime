@@ -55,6 +55,7 @@ import ResourceCommandPolicy, {
 } from "../../../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
+import FeedMarkdown from "../../../../../Utils/Markdown/FeedMarkdown";
 /*
  * The rules every resource AI agent's resource applies to an operator's
  * write of its AI access settings (ResourceAiAccessSettings), pure and
@@ -1077,7 +1078,7 @@ describe("ResourceAiAccessSettings.afterUpdate", () => {
       .mockResolvedValue("[Docker Host web-1](https://x)");
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("[Jane](https://oneuptime.example/user)");
+      .mockResolvedValue(FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"));
   });
 
   afterEach(() => {

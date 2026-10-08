@@ -32,6 +32,7 @@ import {
   test,
 } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The Kubernetes AI agent after registration (DESIGN §5.1, §5.2):
  *
@@ -826,7 +827,7 @@ describe("resetAgent", () => {
         .mockResolvedValue(undefined) as unknown as SpyCalls,
       userName: jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue(USER_MARKDOWN) as unknown as SpyCalls,
+        .mockResolvedValue(FeedMarkdown.asMarkdown(USER_MARKDOWN)) as unknown as SpyCalls,
     };
   }
 

@@ -94,11 +94,11 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
     ]);
 
     const markdown: string =
-      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      (await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
         modelId,
         attachmentIds: [first, second],
         attachmentApiPath,
-      });
+      })).toString();
 
     expect(markdown).toContain("**Attachments:**");
     expect(markdown).toContain(`[runbook.pdf](`);
@@ -118,11 +118,11 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
     ]);
 
     const markdown: string =
-      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      (await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
         modelId,
         attachmentIds: [first, second],
         attachmentApiPath,
-      });
+      })).toString();
 
     expect(markdown.indexOf("first.txt")).toBeLessThan(
       markdown.indexOf("second.txt"),
@@ -138,11 +138,11 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
     ]);
 
     const markdown: string =
-      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      (await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
         modelId,
         attachmentIds: [found, missing],
         attachmentApiPath,
-      });
+      })).toString();
 
     expect(markdown).toContain("found.txt");
     expect(markdown).not.toContain(missing.toString());
@@ -184,11 +184,11 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
     ]);
 
     const markdown: string =
-      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      (await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
         modelId,
         attachmentIds: [id, id],
         attachmentApiPath,
-      });
+      })).toString();
 
     expect(markdown.split("a.txt").length - 1).toEqual(2);
   });
@@ -199,11 +199,11 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
     findByMock.mockResolvedValue([makeFile({ id: id.toString() })]);
 
     const markdown: string =
-      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      (await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
         modelId,
         attachmentIds: [id],
         attachmentApiPath,
-      });
+      })).toString();
 
     expect(markdown).toContain("[Attachment](");
   });
@@ -222,11 +222,11 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
     findByMock.mockResolvedValue([makeFile({ id: id.toString(), name: name })]);
 
     const markdown: string =
-      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      (await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
         modelId,
         attachmentIds: [id],
         attachmentApiPath,
-      });
+      })).toString();
 
     const html: string = marked.parse(markdown, { async: false }) as string;
     const links: Array<RegExpMatchArray> = Array.from(
@@ -260,11 +260,11 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
     ]);
 
     const markdown: string =
-      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      (await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
         modelId,
         attachmentIds: [id],
         attachmentApiPath,
-      });
+      })).toString();
 
     expect(marked.parse(markdown, { async: false }) as string).toContain(
       ">q3_report-final (v2).pdf</a>",
@@ -279,11 +279,11 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
     ]);
 
     const markdown: string =
-      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+      (await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
         modelId,
         attachmentIds: [id],
         attachmentApiPath: "/alert/attachment",
-      });
+      })).toString();
 
     expect(markdown).toContain("/alert/attachment/");
   });

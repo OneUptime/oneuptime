@@ -44,6 +44,7 @@ import {
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
+import FeedMarkdown from "../../../../../Utils/Markdown/FeedMarkdown";
 const MAX_LENGTH: number = SlackUtil.SECTION_TEXT_MAX_LENGTH;
 const NOTE: string = SlackUtil.TRUNCATED_SECTION_NOTE;
 
@@ -203,7 +204,7 @@ function buildKubernetesRootCause(): string {
   for (let index: number = 0; index < 10; index++) {
     entries.push({
       kind: "Container",
-      name: `${AffectedResourceList.code(`checkout-worker-${index}`)} in pod ${AffectedResourceList.code(`checkout-service-7d9f8b6c5d-x2k9q${index}`)}`,
+      name: FeedMarkdown.asMarkdown(`${AffectedResourceList.code(`checkout-worker-${index}`)} in pod ${AffectedResourceList.code(`checkout-service-7d9f8b6c5d-x2k9q${index}`)}`),
       value: `**${20 - index}**`,
       details: [
         {
@@ -236,7 +237,7 @@ function buildKubernetesRootCause(): string {
     overflowNoun: "affected resources",
     totalCount: 83,
     entries: entries,
-  });
+  }).toString();
 
   const analysis: string = [
     "**Root Cause Analysis**",

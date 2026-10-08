@@ -7,6 +7,7 @@ import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The SLO bullets under "Resources Affected" in an incident's or alert's
  * "created" feed item. The feed renders markdown without safe mode, so the
@@ -109,6 +110,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
         ownSlo({ _id: SLO_ID, name: "A" }),
         ownSlo({ _id: OTHER_SLO_ID, name: "B" }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(lines[1]).toBe(`- [SLO B](${sloLink(OTHER_SLO_ID)})`);
@@ -124,6 +127,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       serviceLevelObjectives: [
         ownSlo({ _id: SLO_ID, name: "Checkout](https://evil.example) x" }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(line).toBe(
@@ -144,6 +149,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           name: "![pixel](https://tracker.example/p.gif) <img src=x> *loud* _x_",
         }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(line).not.toContain("![");
@@ -162,6 +169,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
       serviceLevelObjectives: [
         ownSlo({ _id: SLO_ID, name: "Checkout\n# Pwned\r\n- injected bullet" }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(line).not.toMatch(/[\r\n]/);
@@ -244,6 +253,8 @@ describe("getSloAffectedResourceMarkdownLines names only the record's own projec
         },
         ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
       ],
+    }).map((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
 
     expect(lines).toEqual([

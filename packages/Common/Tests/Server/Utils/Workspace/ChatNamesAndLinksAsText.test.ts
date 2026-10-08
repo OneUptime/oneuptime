@@ -99,10 +99,10 @@ describe("UserService.getUserMarkdownString", () => {
   async function markdownFor(user: User | null): Promise<string> {
     jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
 
-    return await UserService.getUserMarkdownString({
+    return (await UserService.getUserMarkdownString({
       userId: USER_ID,
       projectId: PROJECT_ID,
-    });
+    })).toString();
   }
 
   test("a name is the text of one link to the profile, and reads as typed", async () => {

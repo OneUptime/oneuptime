@@ -35,6 +35,7 @@ import {
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The resource AI agent after registration:
  *
@@ -771,7 +772,7 @@ describe("resetAgent", () => {
         .mockResolvedValue(undefined) as unknown as SpyCalls,
       userName: jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue(USER_MARKDOWN) as unknown as SpyCalls,
+        .mockResolvedValue(FeedMarkdown.asMarkdown(USER_MARKDOWN)) as unknown as SpyCalls,
     };
   }
 

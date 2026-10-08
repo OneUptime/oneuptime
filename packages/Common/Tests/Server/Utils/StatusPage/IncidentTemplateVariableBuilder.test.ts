@@ -1501,7 +1501,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
     ]);
 
     expect(
-      variables.getSentCustomFieldsMarkdown().match(/Internal/g),
+      variables.getSentCustomFieldsMarkdown().toString().match(/Internal/g),
     ).toHaveLength(1);
   });
 
@@ -1520,7 +1520,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
     await variables.recordIncludedFieldsSent();
     await variables.recordIncludedFieldsSent();
 
-    const markdown: string = variables.getSentCustomFieldsMarkdown();
+    const markdown: string = variables.getSentCustomFieldsMarkdown().toString();
 
     expect(markdown.match(/Affected Location/g)).toHaveLength(1);
     expect(markdown.indexOf("Affected Location")).toBeLessThan(

@@ -2036,7 +2036,7 @@ describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
 
     const line: string = MicrosoftTeamsUtil.formatAffectedMonitorNames(
       monitorsNamed(names),
-    );
+    ).toString();
 
     expect(line).toBe(`${names.slice(0, 10).join(", ")} and 1490 more`);
     expect(line).not.toContain("Monitor 0011");

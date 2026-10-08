@@ -35,6 +35,7 @@ import { Gray500, Green500, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test: the SLO feed items about burn rate rules - added,
  * changed, removed.
@@ -152,7 +153,7 @@ beforeEach(() => {
 
   sloLinkSpy = jest
     .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-    .mockResolvedValue(SLO_MARKDOWN_LINK);
+    .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_MARKDOWN_LINK));
 
   jest.spyOn(logger, "error").mockImplementation((): void => {});
 });

@@ -24,6 +24,9 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import { KubernetesClusterFeedEventType } from "../../../Models/DatabaseModels/KubernetesClusterFeed";
 import ObjectID from "../../../Types/ObjectID";
 
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The two questions this whole feature exists to answer, pinned on the one
  * family that exercises both paths hardest:
@@ -86,16 +89,14 @@ beforeEach(() => {
 
   jest
     .spyOn(KubernetesClusterService, "getKubernetesClusterMarkdownLink")
-    .mockImplementation((): Promise<string> => {
-      return Promise.resolve(
-        "[Kubernetes Cluster prod-us-east](https://example.com/cluster)",
-      );
+    .mockImplementation((): Promise<MarkdownText> => {
+      return Promise.resolve(FeedMarkdown.asMarkdown("[Kubernetes Cluster prod-us-east](https://example.com/cluster)"));
     });
 
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockImplementation((): Promise<string> => {
-      return Promise.resolve("Jane Doe (jane@example.com)");
+    .mockImplementation((): Promise<MarkdownText> => {
+      return Promise.resolve(FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"));
     });
 });
 

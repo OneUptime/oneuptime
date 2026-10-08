@@ -41,6 +41,7 @@ import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Owners are who gets paged when an SLO goes at risk, so "who was put on the
  * hook, who was taken off, and by whom" is part of the SLO's history. These
@@ -173,7 +174,7 @@ beforeEach(() => {
 
   sloLinkSpy = jest
     .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-    .mockResolvedValue(SLO_MARKDOWN_LINK);
+    .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_MARKDOWN_LINK));
 
   jest
     .spyOn(UserService, "getUserLinkInDashboard")

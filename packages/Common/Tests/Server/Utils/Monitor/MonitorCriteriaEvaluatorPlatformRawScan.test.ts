@@ -70,6 +70,13 @@ import ObjectID from "../../../../Types/ObjectID";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import { describe, expect, test } from "@jest/globals";
 
+
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * The UNGROUPED half of the platform "Affected Resources" list.
  *
@@ -109,11 +116,11 @@ type BuilderInput = {
 type EvaluatorPrivate = {
   buildKubernetesRootCauseContext: (
     input: BuilderInput,
-  ) => Promise<string | null>;
-  buildProxmoxRootCauseContext: (input: BuilderInput) => string | null;
-  buildVMwareRootCauseContext: (input: BuilderInput) => string | null;
-  buildDockerSwarmRootCauseContext: (input: BuilderInput) => string | null;
-  buildCephRootCauseContext: (input: BuilderInput) => string | null;
+  ) => Promise<MarkdownText | null>;
+  buildProxmoxRootCauseContext: (input: BuilderInput) => MarkdownText | null;
+  buildVMwareRootCauseContext: (input: BuilderInput) => MarkdownText | null;
+  buildDockerSwarmRootCauseContext: (input: BuilderInput) => MarkdownText | null;
+  buildCephRootCauseContext: (input: BuilderInput) => MarkdownText | null;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -475,12 +482,12 @@ async function kubernetesContext(input: {
   response: MetricMonitorResponse;
   criteria?: MonitorCriteriaInstance | undefined;
 }): Promise<string | null> {
-  return Evaluator.buildKubernetesRootCauseContext({
+  return textOf(await Evaluator.buildKubernetesRootCauseContext({
     dataToProcess: input.response,
     monitorStep: input.step,
     monitor: new Monitor(),
     criteriaInstance: input.criteria,
-  });
+  }));
 }
 
 /*
@@ -908,12 +915,12 @@ function proxmoxSelectionCase(): PlatformSelectionCase {
     platform: "Proxmox",
     listHeading: "**Affected Resources**",
     render: (criteriaInstance: MonitorCriteriaInstance): string | null => {
-      return Evaluator.buildProxmoxRootCauseContext({
+      return textOf(Evaluator.buildProxmoxRootCauseContext({
         dataToProcess: response,
         monitorStep: step,
         monitor: new Monitor(),
         criteriaInstance: criteriaInstance,
-      });
+      }));
     },
     queryAlias: "mem_size",
     expectedQueryList: [
@@ -1005,12 +1012,12 @@ function vmwareSelectionCase(): PlatformSelectionCase {
     platform: "VMware",
     listHeading: "**Affected Resources**",
     render: (criteriaInstance: MonitorCriteriaInstance): string | null => {
-      return Evaluator.buildVMwareRootCauseContext({
+      return textOf(Evaluator.buildVMwareRootCauseContext({
         dataToProcess: response,
         monitorStep: step,
         monitor: new Monitor(),
         criteriaInstance: criteriaInstance,
-      });
+      }));
     },
     queryAlias: "mem_util",
     expectedQueryList: [
@@ -1099,12 +1106,12 @@ function dockerSwarmSelectionCase(): PlatformSelectionCase {
     platform: "Docker Swarm",
     listHeading: "**Affected Tasks**",
     render: (criteriaInstance: MonitorCriteriaInstance): string | null => {
-      return Evaluator.buildDockerSwarmRootCauseContext({
+      return textOf(Evaluator.buildDockerSwarmRootCauseContext({
         dataToProcess: response,
         monitorStep: step,
         monitor: new Monitor(),
         criteriaInstance: criteriaInstance,
-      });
+      }));
     },
     queryAlias: "mem_pct",
     expectedQueryList: [
@@ -1193,12 +1200,12 @@ function cephSelectionCase(): PlatformSelectionCase {
     platform: "Ceph",
     listHeading: "**Affected Resources**",
     render: (criteriaInstance: MonitorCriteriaInstance): string | null => {
-      return Evaluator.buildCephRootCauseContext({
+      return textOf(Evaluator.buildCephRootCauseContext({
         dataToProcess: response,
         monitorStep: step,
         monitor: new Monitor(),
         criteriaInstance: criteriaInstance,
-      });
+      }));
     },
     queryAlias: "osd_used",
     expectedQueryList: [
@@ -1334,7 +1341,7 @@ describe("Platform raw scan: the catalog unit wins over the scan's declared unit
 
     expect(getVMwareMetricByMetricName(query.metricName)?.unit).toBe("%");
 
-    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+    const context: string | null = textOf(Evaluator.buildVMwareRootCauseContext({
       dataToProcess: metricResponse({
         vmwareResourceBreakdowns: [
           {
@@ -1374,7 +1381,7 @@ describe("Platform raw scan: the catalog unit wins over the scan's declared unit
       monitorStep: step,
       monitor: new Monitor(),
       criteriaInstance: firingCriteria(step),
-    });
+    }));
 
     const text: string = context || "";
 
@@ -1784,7 +1791,7 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
     expect(metricFilter(criteria).value).toBe(1);
 
     const text: string =
-      Evaluator.buildProxmoxRootCauseContext({
+      textOf(Evaluator.buildProxmoxRootCauseContext({
         dataToProcess: metricResponse({
           proxmoxResourceBreakdowns: [
             {
@@ -1800,7 +1807,7 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
         monitorStep: step,
         monitor: new Monitor(),
         criteriaInstance: criteria,
-      }) || "";
+      })) || "";
 
     expect(text).toContain(PROXMOX_DOWN_LIST);
     expect(text).toContain(
@@ -1815,7 +1822,7 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
     const query: { alias: string; metricName: string } = firstQuery(step);
 
     const text: string =
-      Evaluator.buildProxmoxRootCauseContext({
+      textOf(Evaluator.buildProxmoxRootCauseContext({
         dataToProcess: metricResponse({
           proxmoxResourceBreakdown: {
             clusterName: CLUSTER,
@@ -1828,7 +1835,7 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
         monitorStep: step,
         monitor: new Monitor(),
         criteriaInstance: firingCriteria(step),
-      }) || "";
+      })) || "";
 
     expect(text).toContain(PROXMOX_DOWN_LIST);
     expect(text).not.toContain("node/pve2");
@@ -1846,7 +1853,7 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
     );
 
     const text: string =
-      Evaluator.buildDockerSwarmRootCauseContext({
+      textOf(Evaluator.buildDockerSwarmRootCauseContext({
         dataToProcess: metricResponse({
           dockerSwarmResourceBreakdowns: [
             {
@@ -1888,7 +1895,7 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
         monitorStep: step,
         monitor: new Monitor(),
         criteriaInstance: criteria,
-      }) || "";
+      })) || "";
 
     expect(text).toContain(
       [
@@ -1915,7 +1922,7 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
     expect(metricFilter(criteria).value).toBe(1);
 
     const text: string =
-      Evaluator.buildCephRootCauseContext({
+      textOf(Evaluator.buildCephRootCauseContext({
         dataToProcess: metricResponse({
           cephResourceBreakdowns: [
             {
@@ -1950,7 +1957,7 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
         monitorStep: step,
         monitor: new Monitor(),
         criteriaInstance: criteria,
-      }) || "";
+      })) || "";
 
     expect(text).toContain(
       [

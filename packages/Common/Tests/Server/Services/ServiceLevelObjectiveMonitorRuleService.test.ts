@@ -29,6 +29,7 @@ import RuleCriteria, {
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test - the write hooks of SLO monitor rules.
  *
@@ -217,7 +218,7 @@ function installSpies(): HookSpies {
       .mockResolvedValue(undefined),
     markdownLink: jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-      .mockResolvedValue(SLO_LINK),
+      .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK)),
     labelFindBy: jest.spyOn(LabelService, "findBy").mockResolvedValue([
       {
         id: LABEL_ID,

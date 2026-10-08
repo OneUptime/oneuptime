@@ -24,6 +24,7 @@ import ResourceFeedUtil, {
 } from "../../../../Server/Utils/ResourceFeed/ResourceFeedUtil";
 import ObjectID from "../../../../Types/ObjectID";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const USER_ID: ObjectID = ObjectID.generate();
 
@@ -129,7 +130,7 @@ describe("ResourceFeedUtil.getCreatedFeedMarkdown", () => {
     const markdown: ResourceFeedMarkdown =
       await ResourceFeedUtil.getCreatedFeedMarkdown({
         resourceTypeName: "Kubernetes cluster",
-        resourceMarkdownLink: "[Kubernetes Cluster prod](https://example.com)",
+        resourceMarkdownLink: FeedMarkdown.asMarkdown("[Kubernetes Cluster prod](https://example.com)"),
         projectId: PROJECT_ID,
         createdByUserId: USER_ID,
         identifierName: "Cluster identifier",
@@ -161,7 +162,7 @@ describe("ResourceFeedUtil.getCreatedFeedMarkdown", () => {
     const markdown: ResourceFeedMarkdown =
       await ResourceFeedUtil.getCreatedFeedMarkdown({
         resourceTypeName: "Docker host",
-        resourceMarkdownLink: "[Docker Host node-1](https://example.com)",
+        resourceMarkdownLink: FeedMarkdown.asMarkdown("[Docker Host node-1](https://example.com)"),
         projectId: PROJECT_ID,
         createdByUserId: undefined,
         identifierName: "Host identifier",
@@ -183,7 +184,7 @@ describe("ResourceFeedUtil.getCreatedFeedMarkdown", () => {
     const markdown: ResourceFeedMarkdown =
       await ResourceFeedUtil.getCreatedFeedMarkdown({
         resourceTypeName: "Ceph cluster",
-        resourceMarkdownLink: "[Ceph Cluster ceph-1](https://example.com)",
+        resourceMarkdownLink: FeedMarkdown.asMarkdown("[Ceph Cluster ceph-1](https://example.com)"),
         projectId: PROJECT_ID,
       });
 
@@ -198,7 +199,7 @@ describe("ResourceFeedUtil.getUpdatedFeedMarkdown", () => {
   test("names the fields that changed", () => {
     const markdown: ResourceFeedMarkdown =
       ResourceFeedUtil.getUpdatedFeedMarkdown({
-        resourceMarkdownLink: "[Host web-1](https://example.com)",
+        resourceMarkdownLink: FeedMarkdown.asMarkdown("[Host web-1](https://example.com)"),
         columns: ["name", "labels"],
       });
 

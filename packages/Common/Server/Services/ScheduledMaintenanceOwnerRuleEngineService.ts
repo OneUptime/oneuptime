@@ -849,7 +849,7 @@ class ScheduledMaintenanceOwnerRuleEngineServiceClass
       }
       const inheritedNote: MarkdownText =
         inheritedSources.length > 0
-          ? mdText`\n\n_Some owners were inherited from the event's ${inheritedSources.join(", ")}._`
+          ? mdText`\n\n_Some owners were inherited from the event's ${FeedMarkdown.join(inheritedSources)}._`
           : FeedMarkdown.empty();
 
       const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(

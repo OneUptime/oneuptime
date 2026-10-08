@@ -39,7 +39,7 @@ describe("VideoCallMessages", () => {
     test("a rule's Zoom meeting: which call, for which incident, and the link", () => {
       const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
         announcement({}),
-      );
+      ).toString();
 
       expect(markdown).toBe(
         `📞 A **Zoom meeting** was started for [Incident INC\\-42](${EVENT_LINK}).
@@ -54,7 +54,7 @@ describe("VideoCallMessages", () => {
           provider: VideoCallProvider.MicrosoftTeams,
           startedByPerson: true,
         }),
-      );
+      ).toString();
 
       expect(
         markdown.startsWith(
@@ -98,7 +98,7 @@ describe("VideoCallMessages", () => {
           provider: VideoCallProvider.SlackHuddle,
           joinUrl: "https://app.slack.com/huddle/T1/C1",
         }),
-      );
+      ).toString();
 
       expect(markdown).toContain(
         "🎧 The **Slack huddle** of [Incident INC\\-42]",
@@ -128,7 +128,7 @@ describe("VideoCallMessages", () => {
             "<!channel> [Reset password](https://evil.example) ![](https://tracker.example/p.gif)",
           startedByPerson: true,
         }),
-      );
+      ).toString();
 
       expect(markdown).not.toContain("[Reset password](https://evil.example)");
       expect(markdown).not.toContain("![](https://tracker.example/p.gif)");
@@ -141,7 +141,7 @@ describe("VideoCallMessages", () => {
           provider: VideoCallProvider.CustomLink,
           joinUrl: "https://example.com/room(1) <b>",
         }),
-      );
+      ).toString();
 
       expect(markdown).toContain(
         "**[Join the call](https://example.com/room%281%29%20%3Cb%3E)**",
@@ -189,7 +189,7 @@ describe("VideoCallMessages", () => {
         eventNoun: "Incident",
         ruleName: "Sev1 <!here>",
         error: "Zoom said [no](https://evil.example)",
-      });
+      }).toString();
 
       expect(markdown).toContain("⚠️ The video call the **Sev1");
       expect(markdown).toContain(
@@ -283,11 +283,28 @@ describe("VideoCallMessages", () => {
     });
   });
 
-  test("toMarkdownLinkTarget leaves an ordinary link as it is", () => {
-    expect(
-      VideoCallMessages.toMarkdownLinkTarget(
-        " https://meet.google.com/abc-mnop-xyz ",
-      ),
-    ).toBe("https://meet.google.com/abc-mnop-xyz");
+  test("an ordinary join link is placed as it is, without the spaces around it", () => {
+    const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
+      announcement({
+        provider: VideoCallProvider.GoogleMeet,
+        joinUrl: " https://meet.google.com/abc-mnop-xyz ",
+      }),
+    ).toString();
+
+    expect(markdown).toContain(
+      "**[Join the call](https://meet.google.com/abc-mnop-xyz)**",
+    );
+  });
+
+  test("a join link that is not a web address is not linked", () => {
+    const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
+      announcement({
+        provider: VideoCallProvider.CustomLink,
+        joinUrl: "javascript:alert(1)",
+      }),
+    ).toString();
+
+    expect(markdown).toContain("**[Join the call](#)**");
+    expect(markdown).not.toContain("javascript:");
   });
 });

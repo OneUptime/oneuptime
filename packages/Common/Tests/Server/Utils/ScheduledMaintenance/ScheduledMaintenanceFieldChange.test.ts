@@ -472,7 +472,7 @@ describe("ScheduledMaintenanceFieldChange.getFeedMarkdown", () => {
     return ScheduledMaintenanceFieldChange.getFeedMarkdown({
       written: written,
       changes: { ...NOTHING, ...changes },
-    });
+    }).toString();
   }
 
   function shownTime(date: Date): string {

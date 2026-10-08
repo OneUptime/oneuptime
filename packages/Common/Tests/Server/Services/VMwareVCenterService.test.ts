@@ -32,6 +32,9 @@ import { VMwareVCenterFeedEventType } from "../../../Models/DatabaseModels/VMwar
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * VMwareVCenterService — the row one VMware Agent reports into.
  *
@@ -422,10 +425,10 @@ describe("VMwareVCenterService markdown link", () => {
       );
 
     const link: string =
-      await VMwareVCenterService.getVMwareVCenterMarkdownLink(
+      (await VMwareVCenterService.getVMwareVCenterMarkdownLink(
         PROJECT_ID,
         VCENTER_ID,
-      );
+      )).toString();
 
     expect(link.startsWith("[vCenter vcsa-prod](")).toBe(true);
     expect(link).toContain(
@@ -461,16 +464,14 @@ describe("VMwareVCenter feed events", () => {
 
     jest
       .spyOn(VMwareVCenterService, "getVMwareVCenterMarkdownLink")
-      .mockImplementation((): Promise<string> => {
-        return Promise.resolve(
-          "[vCenter vcsa-prod](https://example.com/vcenter)",
-        );
+      .mockImplementation((): Promise<MarkdownText> => {
+        return Promise.resolve(FeedMarkdown.asMarkdown("[vCenter vcsa-prod](https://example.com/vcenter)"));
       });
 
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockImplementation((): Promise<string> => {
-        return Promise.resolve("Jane Doe (jane@example.com)");
+      .mockImplementation((): Promise<MarkdownText> => {
+        return Promise.resolve(FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"));
       });
 
     jest

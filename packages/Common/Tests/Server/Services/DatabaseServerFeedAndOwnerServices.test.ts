@@ -43,6 +43,7 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The database feed and the owner join services: every owner change is
  * explained on the database's feed, and a feed write can never fail the
@@ -224,7 +225,7 @@ describe("DatabaseServerOwnerUserService feed items", () => {
 
   test("adding a user owner is recorded on the database's feed", async () => {
     getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
-      "Jane Doe (jane@example.com)",
+      FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
     );
     const owner: DatabaseServerOwnerUser = new DatabaseServerOwnerUser();
     owner.databaseServerId = DATABASE_ID;
@@ -485,7 +486,7 @@ describe("database child rows created by a caller", () => {
           "forgetAutomaticAssignments",
         ).mockResolvedValue(undefined);
         getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
-          "Jane Doe (jane@example.com)",
+          FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
         );
         const team: Team = new Team(TEAM_ID);
         team.name = "Data Platform";
