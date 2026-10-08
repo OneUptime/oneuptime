@@ -205,6 +205,11 @@ describe("StatusPageAPI subscriber ownership", () => {
       .spyOn(StatusPageSubscriberService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
+    // A visitor's change goes through its own entry point.
+    jest
+      .spyOn(StatusPageSubscriberService, "updateFromManageSubscriptionPage")
+      .mockResolvedValue(1 as never);
+
     jest
       .spyOn(StatusPageSubscriberService, "create")
       .mockResolvedValue(victimSubscriber as never);
@@ -235,6 +240,9 @@ describe("StatusPageAPI subscriber ownership", () => {
       await callUpdateSubscription({ statusPageId: attackerStatusPageId });
 
       expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expect(
+        StatusPageSubscriberService.updateFromManageSubscriptionPage,
+      ).not.toHaveBeenCalled();
       expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
     });
 
@@ -267,14 +275,16 @@ describe("StatusPageAPI subscriber ownership", () => {
       await callUpdateSubscription({ statusPageId: victimStatusPageId });
 
       expect(nextFunction).not.toHaveBeenCalled();
-      expect(StatusPageSubscriberService.updateOneById).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(
+        StatusPageSubscriberService.updateFromManageSubscriptionPage,
+      ).toHaveBeenCalledTimes(1);
+      // As the visitor's change, never as a plain update.
+      expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
 
-      const updateArgs: { id: ObjectID; data: JSONObject } = (
-        StatusPageSubscriberService.updateOneById as unknown as jest.Mock
-      ).mock.calls[0]![0] as { id: ObjectID; data: JSONObject };
-      expect(updateArgs.id.toString()).toBe(subscriberId.toString());
+      const updateArgs: { subscriberId: ObjectID; data: JSONObject } = (
+        StatusPageSubscriberService.updateFromManageSubscriptionPage as unknown as jest.Mock
+      ).mock.calls[0]![0] as { subscriberId: ObjectID; data: JSONObject };
+      expect(updateArgs.subscriberId.toString()).toBe(subscriberId.toString());
 
       /*
        * Cancelling goes through unsubscribe(), like the unsubscribe link: it
@@ -297,9 +307,9 @@ describe("StatusPageAPI subscriber ownership", () => {
 
       expect(nextFunction).not.toHaveBeenCalled();
 
-      const updateArgs: { id: ObjectID; data: JSONObject } = (
-        StatusPageSubscriberService.updateOneById as unknown as jest.Mock
-      ).mock.calls[0]![0] as { id: ObjectID; data: JSONObject };
+      const updateArgs: { subscriberId: ObjectID; data: JSONObject } = (
+        StatusPageSubscriberService.updateFromManageSubscriptionPage as unknown as jest.Mock
+      ).mock.calls[0]![0] as { subscriberId: ObjectID; data: JSONObject };
       expect(updateArgs.data["isUnsubscribed"]).toBe(false);
       expect(StatusPageSubscriberService.unsubscribe).not.toHaveBeenCalled();
     });
