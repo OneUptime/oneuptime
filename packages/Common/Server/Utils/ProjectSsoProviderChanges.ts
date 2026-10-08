@@ -623,9 +623,9 @@ export default class ProjectSsoProviderChanges {
     isHardDelete: boolean;
     decide: (rows: Array<ProjectSsoProviderRow>) => ProjectSsoProviderWrite;
   }): Promise<ProjectSsoProviderWrite> {
-    const readNow: () => Promise<Array<ProjectSsoProviderRow>> = async (): Promise<
+    const readNow: () => Promise<
       Array<ProjectSsoProviderRow>
-    > => {
+    > = async (): Promise<Array<ProjectSsoProviderRow>> => {
       return await ProjectSsoProviderChanges.readRows({
         service: data.service,
         query: data.write.query,

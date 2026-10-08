@@ -2047,9 +2047,11 @@ describe("a write locks before it reads, and writes only the rows it read under 
   test.each(KINDS)(
     "%s: a write's window is the rows it read under the lock: a skip it was sent with does not move it onto rows it did not read",
     async (_label: string, kind: ProviderKind) => {
-      kind.rows().push(
-        row({ id: LATER_ID, columns: { name: "Another of this project's" } }),
-      );
+      kind
+        .rows()
+        .push(
+          row({ id: LATER_ID, columns: { name: "Another of this project's" } }),
+        );
 
       await expect(
         kind.service.updateBy({

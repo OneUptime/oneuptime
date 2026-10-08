@@ -156,10 +156,16 @@ const propsOf: (creator: Creator) => DatabaseCommonInteractionProps = (
 // Creates a project as `creator`: "created", or the words it was refused in.
 const create: (
   creator: Creator,
-  rule?: { requireSsoForLogin?: boolean; requireSsoWithSsoProviderId?: ObjectID },
+  rule?: {
+    requireSsoForLogin?: boolean;
+    requireSsoWithSsoProviderId?: ObjectID;
+  },
 ) => Promise<string> = async (
   creator: Creator,
-  rule?: { requireSsoForLogin?: boolean; requireSsoWithSsoProviderId?: ObjectID },
+  rule?: {
+    requireSsoForLogin?: boolean;
+    requireSsoWithSsoProviderId?: ObjectID;
+  },
 ): Promise<string> => {
   creatorIsMasterAdmin = creator === "masterAdmin";
 
@@ -268,21 +274,25 @@ beforeEach(() => {
   getJestSpyOn(ProductAnalytics, "capture").mockReturnValue(undefined);
 
   // The seeding a create is followed by: the default teams, states and the rest.
+  const seed: () => Promise<void> = async (): Promise<void> => {
+    if (!events.includes("seed")) {
+      events.push("seed");
+    }
+  };
+
   for (const seeder of SEEDERS) {
-    getJestSpyOn(ProjectService, seeder).mockImplementation((async () => {
-      if (!events.includes("seed")) {
-        events.push("seed");
-      }
-    }) as never);
+    getJestSpyOn(ProjectService, seeder).mockImplementation(seed as never);
   }
 
   // The server's Require SSO for Login, as the Admin Dashboard sets it.
-  getJestSpyOn(GlobalConfigService, "findOneBy").mockImplementation((async () => {
-    events.push("read:server-rule");
-    const config: GlobalConfig = new GlobalConfig();
-    config.requireSsoForLogin = serverRequiresSso;
-    return config;
-  }) as never);
+  getJestSpyOn(GlobalConfigService, "findOneBy").mockImplementation(
+    (async () => {
+      events.push("read:server-rule");
+      const config: GlobalConfig = new GlobalConfig();
+      config.requireSsoForLogin = serverRequiresSso;
+      return config;
+    }) as never,
+  );
 
   // The global providers that are on (the check asks for those), and their attachments.
   getJestSpyOn(GlobalSsoService, "findBy").mockImplementation((async () => {

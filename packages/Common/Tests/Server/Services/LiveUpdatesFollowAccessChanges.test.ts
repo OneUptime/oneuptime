@@ -723,10 +723,9 @@ describe("live updates follow every change of access", () => {
     });
 
     test("an instance-wide settings update that leaves Require SSO alone announces nothing", async () => {
-      await instanceHooks.onUpdateSuccess(
-        updateOf<User>({ name: "Renamed" }),
-        [TEAM],
-      );
+      await instanceHooks.onUpdateSuccess(updateOf<User>({ name: "Renamed" }), [
+        TEAM,
+      ]);
 
       expect(announced).toEqual([]);
     });

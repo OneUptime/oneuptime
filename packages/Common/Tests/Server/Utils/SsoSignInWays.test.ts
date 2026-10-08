@@ -1565,7 +1565,12 @@ describe("a project created now, which has no provider of its own yet", () => {
     await expect(create({ requireSsoForLogin: true })).resolves.toBeNull();
 
     samlAttachments = [
-      { id: id(301), providerId: GLOBAL_SAML, projectId: ACME, isEnabled: true },
+      {
+        id: id(301),
+        providerId: GLOBAL_SAML,
+        projectId: ACME,
+        isEnabled: true,
+      },
     ];
 
     await expect(create({ requireSsoForLogin: true })).resolves.toBe(

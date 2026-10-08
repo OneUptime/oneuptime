@@ -259,7 +259,9 @@ describePostgres("a project created with a way in, on Postgres", () => {
     database = new DataSource({
       type: "postgres",
       host: process.env["PROJECT_CREATE_SSO_TEST_DATABASE_HOST"] || "localhost",
-      port: Number(process.env["PROJECT_CREATE_SSO_TEST_DATABASE_PORT"] || "5400"),
+      port: Number(
+        process.env["PROJECT_CREATE_SSO_TEST_DATABASE_PORT"] || "5400",
+      ),
       username: process.env["DATABASE_USERNAME"] || "postgres",
       password: process.env["DATABASE_PASSWORD"] || "password",
       database:
@@ -376,8 +378,14 @@ describePostgres("a project created with a way in, on Postgres", () => {
     });
 
     test("with every global provider off, a member's create is refused in words that name a server admin, and no project row is written", async () => {
-      await addGlobalSaml({ isEnabled: false, restrictToAttachedProjects: false });
-      await addGlobalOidc({ isEnabled: false, restrictToAttachedProjects: false });
+      await addGlobalSaml({
+        isEnabled: false,
+        restrictToAttachedProjects: false,
+      });
+      await addGlobalOidc({
+        isEnabled: false,
+        restrictToAttachedProjects: false,
+      });
 
       await expect(create("member")).resolves.toBe(
         SERVER_REQUIRES_SSO_FOR_NEW_PROJECT_MESSAGE,
@@ -385,7 +393,10 @@ describePostgres("a project created with a way in, on Postgres", () => {
     });
 
     test("a global SAML provider on for every project lets it through, and the project is written", async () => {
-      await addGlobalSaml({ isEnabled: true, restrictToAttachedProjects: false });
+      await addGlobalSaml({
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      });
 
       await expect(create("member")).resolves.toEqual({
         createdWithRule: false,
@@ -393,7 +404,10 @@ describePostgres("a project created with a way in, on Postgres", () => {
     });
 
     test("a global OIDC provider on for every project counts the same", async () => {
-      await addGlobalOidc({ isEnabled: true, restrictToAttachedProjects: false });
+      await addGlobalOidc({
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      });
 
       await expect(create("member")).resolves.toEqual({
         createdWithRule: false,
@@ -442,14 +456,17 @@ describePostgres("a project created with a way in, on Postgres", () => {
           restrictToAttachedProjects: false,
         });
 
-        await expect(create(creator, { requireSsoForLogin: true })).resolves.toBe(
-          NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE,
-        );
+        await expect(
+          create(creator, { requireSsoForLogin: true }),
+        ).resolves.toBe(NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE);
       },
     );
 
     test("with a global provider on for every project, it is written with the rule on", async () => {
-      await addGlobalOidc({ isEnabled: true, restrictToAttachedProjects: false });
+      await addGlobalOidc({
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      });
 
       await expect(
         create("masterAdmin", { requireSsoForLogin: true }),

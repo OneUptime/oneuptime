@@ -782,7 +782,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     await SsoRequirementChanges.beforeProjectCreate({
       createBy: onCreate.createBy,
-      isCreatorExemptFromServerRule: carryForward?.isCreatorMasterAdmin === true,
+      isCreatorExemptFromServerRule:
+        carryForward?.isCreatorMasterAdmin === true,
     });
   }
 

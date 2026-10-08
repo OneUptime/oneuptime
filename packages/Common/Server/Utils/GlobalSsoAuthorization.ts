@@ -159,7 +159,9 @@ export function isGlobalProviderReachWrite(data: unknown): boolean {
     );
   };
 
-  return writesSwitch("isEnabled") || writesSwitch("restrictToAttachedProjects");
+  return (
+    writesSwitch("isEnabled") || writesSwitch("restrictToAttachedProjects")
+  );
 }
 
 /*
