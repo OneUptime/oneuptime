@@ -512,7 +512,8 @@ async function syncPushSubscription(previousSubscription, currentSubscription) {
 
   let subscription = currentSubscription || (await pushManager.getSubscription());
 
-  // No device this worker knows of: what the browser has is what they will be registered with.
+  // Nothing registered that this worker knows of: what the browser has now
+  // is what Register Device sends, so it is what the next change replaces.
   if (!oldDeviceToken) {
     if (subscription) {
       await writePushState(REGISTERED_SUBSCRIPTION_STATE, {
@@ -551,7 +552,8 @@ async function syncPushSubscription(previousSubscription, currentSubscription) {
     return;
   }
 
-  // Kept when there is none, so a subscription the browser gets later (notifications allowed again) renews the same devices.
+  // With none, the old one is kept: a subscription the browser gets later
+  // (notifications allowed again) renews the same devices.
   await writePushState(REGISTERED_SUBSCRIPTION_STATE, newDeviceToken
     ? { deviceToken: newDeviceToken, isGone: false }
     : { deviceToken: oldDeviceToken, isGone: true });

@@ -84,7 +84,7 @@ async function renewGoneSubscription(data: {
     return API.getFriendlyMessage(response);
   }
 
-  // The device that was found is not among them: it still receives nothing.
+  // No device took the new subscription: the one found still receives nothing.
   if (
     !((response as HTTPResponse<JSONObject>).data["devicesUpdated"] as number)
   ) {
