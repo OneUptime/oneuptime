@@ -295,13 +295,20 @@ export default class RelationListPermission {
    * The records each checked list and single reference of `modelType`
    * names in `data` (a create's model or an update's data), each once, as
    * sent - for the lists and references `data` names at all, by column. An
-   * entry with no id is skipped, as the reference checks skip it; a single
-   * reference is read under both of its names, which must agree
-   * (RelationIdUtil.readConsistent), and one that clears it names nothing.
+   * entry with no id is skipped, as the reference checks skip it; one that
+   * clears a single reference names nothing.
+   *
+   * A single reference is read under both of its names. What a caller sends
+   * must have them agree (RelationIdUtil.readConsistent, which refuses two
+   * that do not). What a service's hooks leave behind (`afterHooks`) is not
+   * the caller's to answer for: a hook may have written one name and left
+   * the caller's other in place, so the record each of them names is asked
+   * about.
    */
   public static getNamedIds(
     modelType: DatabaseBaseModelType,
     data: unknown,
+    afterHooks: boolean = false,
   ): Dictionary<Array<string>> {
     const named: Dictionary<Array<string>> = {};
 
@@ -347,6 +354,14 @@ export default class RelationListPermission {
         continue;
       }
 
+      if (afterHooks) {
+        named[reference.column] = RelationListPermission.getIdsUnderEachName(
+          record,
+          [idColumn, reference.column],
+        );
+        continue;
+      }
+
       const id: ObjectID | null = RelationIdUtil.readConsistent(
         record,
         [idColumn, reference.column],
@@ -357,6 +372,34 @@ export default class RelationListPermission {
     }
 
     return named;
+  }
+
+  // The record each of `names` holds in `record`, each once (getNamedIds).
+  private static getIdsUnderEachName(
+    record: Record<string, unknown>,
+    names: Array<string>,
+  ): Array<string> {
+    const seen: Set<string> = new Set<string>();
+    const ids: Array<string> = [];
+
+    for (const name of names) {
+      const id: ObjectID | null = RelationIdUtil.read(record, [name]);
+
+      if (!id) {
+        continue;
+      }
+
+      const trimmed: string = id.toString().trim();
+
+      if (seen.has(normalizeReferenceId(trimmed))) {
+        continue;
+      }
+
+      seen.add(normalizeReferenceId(trimmed));
+      ids.push(trimmed);
+    }
+
+    return ids;
   }
 
   /*

@@ -262,15 +262,13 @@ interface UpdateNamedRecordsChecked<TBaseModel extends BaseModel> {
 
 /*
  * The owner row that names a record's creator (DatabaseService
- * .getCreatorOwnerRow): the owner table's services, the record, the creator
- * and the project.
+ * .getCreatorOwnerRow): the service of the owner table that names people,
+ * the record, the creator and the project.
  */
 interface CreatorOwnerRow {
   entry: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ownerUserService: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ownerTeamService: any;
     fkColumn: string;
   };
   resourceId: ObjectID;
@@ -2338,10 +2336,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * on what the caller sent, and again after them on what a hook named
    * besides (`askedIds`: what the ask before them named) - an incident
    * template's monitors and status pages are held to the declarer's read as
-   * if they had picked them. For an update, `heldIdsByColumn` is what each
-   * record it writes lists or names already: those are not asked about
-   * again. Root and master admin writes are not asked. Returns what the
-   * write names, by column.
+   * if they had picked them, and so is a record a hook names under one name
+   * of a reference while the caller's other stays in place. What a hook
+   * fills in from a record the write names is the service's to answer for
+   * (getReferencesFilledFromNamedRecords). For an update, `heldIdsByColumn`
+   * is what each record it writes lists or names already: those are not
+   * asked about again. Root and master admin writes are not asked. Returns
+   * what the write names, by column.
    */
   private async checkNamedLists(data: {
     data: unknown;
@@ -2359,10 +2360,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     const namedIds: Dictionary<Array<string>> =
       data.namedIds ||
-      RelationListPermission.getNamedIds(this.modelType, data.data);
+      RelationListPermission.getNamedIds(
+        this.modelType,
+        data.data,
+        data.askedIds !== undefined,
+      );
 
     const idsToAsk: Dictionary<Array<string>> = data.askedIds
-      ? RelationListPermission.getIdsNotIn(namedIds, data.askedIds)
+      ? this.leaveFilledReferencesToService(
+          RelationListPermission.getIdsNotIn(namedIds, data.askedIds),
+          data.askedIds,
+        )
       : namedIds;
 
     if (Object.keys(idsToAsk).length === 0) {
@@ -2400,6 +2408,63 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
 
     return namedIds;
+  }
+
+  /*
+   * The lists and single references (by relation, as
+   * RelationListPermission.getNamedIds keys them) this service's hooks fill
+   * in from a record the write names, as that record holds it: a diagnostic
+   * runs on the probe of the device it names, a device takes the default
+   * probe of the site it is put in. The record named is asked about as the
+   * caller's, and what it holds was asked about when it was set on it; so
+   * the asks after the hooks leave what a hook puts in these to the service,
+   * and ask only about what the caller sent in them - which is asked about
+   * before the hooks too. None by default.
+   */
+  protected getReferencesFilledFromNamedRecords(): Array<string> {
+    return [];
+  }
+
+  /*
+   * Of `idsToAsk`, what an ask after the hooks asks about: in a list or
+   * reference a hook fills in from a record the write names
+   * (getReferencesFilledFromNamedRecords), only what the caller sent
+   * (`callerNamedIds`, what the ask before the hooks named).
+   */
+  private leaveFilledReferencesToService(
+    idsToAsk: Dictionary<Array<string>>,
+    callerNamedIds: Dictionary<Array<string>>,
+  ): Dictionary<Array<string>> {
+    const filled: Array<string> = this.getReferencesFilledFromNamedRecords();
+
+    if (filled.length === 0) {
+      return idsToAsk;
+    }
+
+    const left: Dictionary<Array<string>> = {};
+
+    for (const column of Object.keys(idsToAsk)) {
+      const ids: Array<string> = idsToAsk[column] || [];
+
+      if (!filled.includes(column)) {
+        left[column] = ids;
+        continue;
+      }
+
+      const sent: Set<string> = new Set<string>(
+        (callerNamedIds[column] || []).map(normalizeReferenceId),
+      );
+
+      const sentIds: Array<string> = ids.filter((id: string): boolean => {
+        return sent.has(normalizeReferenceId(id));
+      });
+
+      if (sentIds.length > 0) {
+        left[column] = sentIds;
+      }
+    }
+
+    return left;
   }
 
   /*
@@ -2451,7 +2516,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data: createBy.data,
       props: createBy.props,
       projectId: this.getRecordProjectId(createBy.data, createBy.props),
-      askedIds: DatabaseService.namedIdsAskedOn.get(createBy),
+      askedIds: DatabaseService.namedIdsAskedOn.get(createBy) || {},
     });
 
     DatabaseService.namedIdsAskedOn.set(createBy, namedIds);
@@ -2905,14 +2970,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * After the update hooks, as for its parents: the records a hook named
-   * besides what the caller sent - more in a list, another in a field - are
-   * asked about too (RelationListPermission), and so are the labels the
-   * rows carry once written, should a hook change what the update writes of
-   * them (UpdateScopePermission). While the hooks kept what the update
-   * reaches (isReadBySameUpdate), only what they added is asked, on the rows
-   * read before them when those were read with it; a hook that changed what
-   * the update reaches has the rows read again, and everything the update
-   * names asked about on them.
+   * besides what the caller sent - more in a list, another in a field, under
+   * either of its names - are asked about too (RelationListPermission), but
+   * what a hook fills in from a record the update names
+   * (getReferencesFilledFromNamedRecords); and so are the labels the rows
+   * carry once written, should a hook change what the update writes of them
+   * (UpdateScopePermission). While the hooks kept what the update reaches
+   * (isReadBySameUpdate), only what they added is asked, on the rows read
+   * before them when those were read with it; a hook that changed what the
+   * update reaches has the rows read again, and everything the update names
+   * asked about on them.
    */
   private async checkUpdateNamedRecordsAfterHooks(
     updateBy: UpdateBy<TBaseModel>,
@@ -2929,9 +2996,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     );
 
     const idsToAsk: Dictionary<Array<string>> =
-      RelationListPermission.getIdsNotIn(
-        RelationListPermission.getNamedIds(this.modelType, updateBy.data),
-        sameRows && checked ? checked.named.namedIds : {},
+      this.leaveFilledReferencesToService(
+        RelationListPermission.getIdsNotIn(
+          RelationListPermission.getNamedIds(
+            this.modelType,
+            updateBy.data,
+            true,
+          ),
+          sameRows && checked ? checked.named.namedIds : {},
+        ),
+        checked ? checked.named.namedIds : {},
       );
 
     const relations: Array<CheckedRelationList> =
@@ -3092,16 +3166,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     for (const each of named) {
-      if ("parentModelType" in each) {
-        if (each.idColumn) {
-          select[each.idColumn] = true;
-        } else {
-          select[each.relation] = { _id: true };
-        }
-      } else if (each.idColumn) {
+      if (each.idColumn) {
         select[each.idColumn] = true;
       } else {
-        select[each.column] = { _id: true };
+        select[DatabaseService.getListColumn(each)] = { _id: true };
       }
     }
 
@@ -3141,22 +3209,45 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       : null;
   }
 
+  /*
+   * The column a parent or a checked list or reference is read under when
+   * it has no ID column of its own: a parent's relation, a list's column.
+   */
+  private static getListColumn(
+    named: CreateParent | CheckedRelationList,
+  ): string {
+    return "parentModelType" in named ? named.relation : named.column;
+  }
+
+  /*
+   * What a row read by findRowsToUpdate holds of a parent, or of a checked
+   * list or single reference, now: the one record its ID column names, or
+   * the records its list holds - none for one it leaves empty.
+   */
+  private static getHeldIds(
+    row: BaseModel,
+    named: CreateParent | CheckedRelationList,
+  ): Array<string> {
+    if (named.idColumn) {
+      const id: unknown = (row as unknown as Record<string, unknown>)[
+        named.idColumn
+      ];
+
+      return id ? [id.toString()] : [];
+    }
+
+    return DatabaseService.getListedIds(
+      row,
+      DatabaseService.getListColumn(named),
+    );
+  }
+
   // The parents a row read by findRowsToUpdate has now.
   private static getHeldParentIds(
     row: BaseModel,
     parent: CreateParent,
   ): Array<string> {
-    const record: Record<string, unknown> = row as unknown as Record<
-      string,
-      unknown
-    >;
-
-    if (parent.idColumn) {
-      const id: unknown = record[parent.idColumn];
-      return id ? [id.toString()] : [];
-    }
-
-    return DatabaseService.getListedIds(row, parent.relation);
+    return DatabaseService.getHeldIds(row, parent);
   }
 
   // The records a row read with `column: { _id: true }` lists.
@@ -3170,8 +3261,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * What each row read by findRowsToUpdate lists or names already, for each
-   * of `relations`: a list's records, a single reference's one record (by
-   * its ID column), none for a reference the row leaves empty.
+   * of `relations` (getHeldIds), by column.
    */
   private static getHeldIdsByColumn(
     rows: Array<BaseModel>,
@@ -3182,15 +3272,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     for (const relation of relations) {
       heldIdsByColumn[relation.column] = rows.map(
         (row: BaseModel): Array<string> => {
-          if (!relation.idColumn) {
-            return DatabaseService.getListedIds(row, relation.column);
-          }
-
-          const id: unknown = (row as unknown as Record<string, unknown>)[
-            relation.idColumn
-          ];
-
-          return id ? [id.toString()] : [];
+          return DatabaseService.getHeldIds(row, relation);
         },
       );
     }
@@ -4764,8 +4846,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     /*
      * And the records the hooks named besides what the caller sent - an
-     * incident template's monitors and status pages, a site's default probe
-     * - as if the caller had named them. See the helper.
+     * incident template's monitors and status pages - as if the caller had
+     * named them. See the helper.
      */
     await this.checkNamedLists({
       data: data,
@@ -5014,8 +5096,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * place, its images, its hooks, its feed entries and its notifications -
    * and not best-effort: should the owner row not be there once the insert
    * returns, the record is deleted again with nothing else done to it, and
-   * the create fails. Creators who reach what they create without owning it
-   * keep autoOwnerOnCreate's best effort.
+   * the create fails. What the hooks before the save took for it stays
+   * taken, as for any create that fails at its save: an incident's number is
+   * not handed out again. Creators who reach what they create without owning
+   * it keep autoOwnerOnCreate's best effort.
    */
   private async makeCreatorOwnerOrUndo(
     createdItem: TBaseModel,

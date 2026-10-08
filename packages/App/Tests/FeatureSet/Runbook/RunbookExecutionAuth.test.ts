@@ -1361,6 +1361,8 @@ describe("Runbook execution routes require an authorized member of the runbook's
     let incidentId: ObjectID;
     let readableIncidents: Array<string>;
     let incidentReads: Array<Array<string>>;
+    // Every other table the caller's own read was asked about.
+    let otherReads: Array<string>;
 
     function runnerReadingIncidents(labels: Array<ObjectID>): void {
       mockProps({
@@ -1402,6 +1404,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
       incidentId = ObjectID.generate();
       readableIncidents = [];
       incidentReads = [];
+      otherReads = [];
 
       mockRunbookInProject(callerProjectId);
 
@@ -1410,15 +1413,21 @@ describe("Runbook execution routes require an authorized member of the runbook's
         projectId: callerProjectId,
       } as unknown as Incident);
 
-      // The incidents the caller's own read finds.
+      /*
+       * The incidents the caller's own read finds - and no runbook: a run's
+       * runbook is the one the permission to run it reached.
+       */
       jest
         .spyOn(DatabaseService as never, "findReadableParentIds")
         .mockImplementation((async (lookup: {
           parentModelType: { new (): BaseModel };
           ids: Array<string>;
         }): Promise<Array<string>> => {
-          if (new lookup.parentModelType().tableName !== "Incident") {
-            return lookup.ids;
+          const table: string = new lookup.parentModelType().tableName || "";
+
+          if (table !== "Incident") {
+            otherReads.push(table);
+            return table === "Runbook" ? [] : lookup.ids;
           }
 
           incidentReads.push(lookup.ids);
@@ -1475,6 +1484,44 @@ describe("Runbook execution routes require an authorized member of the runbook's
       const linked: RouteCallResult = await linkedRun();
 
       expect(linked.thrownToNext).toBeUndefined();
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("only the link is asked about: the runbook is the one the permission to run it reached, whatever their read of runbooks", async () => {
+      // A runner whose read of runbooks is limited to some labels.
+      mockProps({
+        tenantId: callerProjectId,
+        userId: callerUserId,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [callerProjectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: callerProjectId,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.RunbookMember,
+                labelIds: [PRODUCTION],
+                isBlockPermission: false,
+              },
+              {
+                _type: "UserPermission",
+                permission: Permission.ReadProjectIncident,
+                labelIds: [],
+                isBlockPermission: false,
+              },
+            ],
+          },
+        },
+      });
+      readableIncidents = [incidentId.toString().toLowerCase()];
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(incidentReads).toEqual([[incidentId.toString()]]);
+      expect(otherReads).not.toContain("Runbook");
+      expect(executionCreateSpy).toHaveBeenCalledTimes(1);
       expect(startExecutionMock).toHaveBeenCalledTimes(1);
     });
   });

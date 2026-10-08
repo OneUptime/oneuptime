@@ -1,5 +1,8 @@
+import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import AccessControlPermission from "../../../../../Server/Types/Database/Permissions/AccessControlPermission";
 import { RecordLabelsFinder } from "../../../../../Server/Types/Database/Permissions/CreateScopePermission";
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
+import OwnedScopePermission from "../../../../../Server/Types/Database/Permissions/OwnedScopePermission";
 import UpdateScopeException from "../../../../../Server/Types/Database/Permissions/UpdateScopeException";
 import UpdateScopePermission from "../../../../../Server/Types/Database/Permissions/UpdateScopePermission";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -431,6 +434,38 @@ describe("whose permission to update is limited by labels", () => {
     expect(
       UpdateScopePermission.getLimitedScope(Monitor, member(rows)),
     ).toBeNull();
+  });
+
+  test("a permission limited to owned records beside one limited to labels is held to the labels, as the update itself is narrowed to them", () => {
+    const props: DatabaseCommonInteractionProps = member([
+      row(Permission.EditProjectMonitor, { scope: PermissionScope.Owned }),
+      row(Permission.EditProjectMonitor, { labelIds: [PRODUCTION] }),
+    ]);
+
+    // The update reaches the monitors carrying Production, owned or not.
+    expect(
+      OwnedScopePermission.isLimitedToOwnedRecords(
+        Monitor,
+        props,
+        DatabaseRequestType.Update,
+      ),
+    ).toBe(false);
+    expect(
+      AccessControlPermission.getAccessControlIdsForQuery(
+        Monitor,
+        {},
+        null,
+        props,
+        DatabaseRequestType.Update,
+      ).map((labelId: ObjectID): string => {
+        return labelId.toString().toLowerCase();
+      }),
+    ).toEqual([PRODUCTION]);
+
+    // So a change of labels keeps a monitor to them.
+    expect(
+      UpdateScopePermission.getLimitedScope(Monitor, props)?.grantedLabelIds,
+    ).toEqual([PRODUCTION]);
   });
 
   test("not OneUptime's own writes", () => {

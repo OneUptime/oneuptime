@@ -46,7 +46,9 @@ jest.mock("../../../Server/Utils/Logger");
  *     resource's monitor - is asked about before the hooks run, on what the
  *     caller sent, and again after them on what a hook named besides (a
  *     template's monitor), before anything is written; a hook that sets
- *     something off first asks itself (checkRecordsNamedSoFar);
+ *     something off first asks itself (checkRecordsNamedSoFar); what a hook
+ *     fills in from a record the write names is the service's to answer
+ *     for, when it says so (getReferencesFilledFromNamedRecords);
  *   - an update that changes the labels a record carries is held to the
  *     caller's permission to update it, on the labels the record carries
  *     once written, before and after the hooks;
@@ -232,6 +234,9 @@ class ResourceService extends DatabaseService<StatusPageResource> {
   public sideEffects: number = 0;
   public createHookCalls: number = 0;
   public updateHookCalls: number = 0;
+  // The update hook changes what the update reaches, and so the rows it writes.
+  public replacesQueryInUpdateHook: boolean = false;
+  public onUpdateHook: (() => void) | null = null;
 
   public constructor() {
     super(StatusPageResource);
@@ -272,7 +277,25 @@ class ResourceService extends DatabaseService<StatusPageResource> {
       );
     }
 
+    if (this.replacesQueryInUpdateHook) {
+      updateBy.query = { ...updateBy.query };
+    }
+
+    if (this.onUpdateHook) {
+      this.onUpdateHook();
+    }
+
     return { updateBy: updateBy, carryForward: null };
+  }
+}
+
+/*
+ * One whose hooks fill the monitor in from a record the write names, as a
+ * device takes its site's default probe, and say so.
+ */
+class FillingResourceService extends ResourceService {
+  protected override getReferencesFilledFromNamedRecords(): Array<string> {
+    return ["monitor"];
   }
 }
 
@@ -286,8 +309,9 @@ interface ResourceStubs {
 // The monitor the stored resource shows.
 let storedMonitor: string;
 
-const resourceService: () => ResourceStubs = (): ResourceStubs => {
-  const service: ResourceService = new ResourceService();
+const resourceService: (service?: ResourceService) => ResourceStubs = (
+  service: ResourceService = new ResourceService(),
+): ResourceStubs => {
   const rowReads: Array<FindBy<StatusPageResource>> = [];
 
   getJestSpyOn(service as never, "_findBy").mockImplementation((async (
@@ -505,6 +529,146 @@ describe("a create that names a record in a field of its own", () => {
 
     expect(monitorReads()).toEqual([]);
   });
+
+  test("a hook that writes one name of the reference beside the caller's other has the record each holds asked about, not a refusal of the two names", async () => {
+    const refused: ResourceStubs = resourceService();
+    refused.service.monitorNamedByCreateHook = STAGING_MONITOR;
+
+    const refusal: unknown = await refusalOf(
+      refused.service.create({
+        data: newResource({ monitor: PRODUCTION_MONITOR }),
+        props: member(RESOURCE_EDITOR),
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect((refusal as Error).message).toBe(
+      `This status page resource references records that are not in this project: Monitor "${STAGING_MONITOR}". Please pick values from this project and try again.`,
+    );
+    expect(refused.save).not.toHaveBeenCalled();
+    // The caller's monitor before the hooks, the hook's after them.
+    expect(monitorReads()).toEqual([[PRODUCTION_MONITOR], [STAGING_MONITOR]]);
+
+    recordReads = [];
+
+    const allowed: ResourceStubs = resourceService();
+    allowed.service.monitorNamedByCreateHook = OTHER_PRODUCTION_MONITOR;
+
+    await allowed.service.create({
+      data: newResource({ monitor: PRODUCTION_MONITOR }),
+      props: member(RESOURCE_EDITOR),
+    });
+
+    expect(allowed.save).toHaveBeenCalledTimes(1);
+    expect(monitorReads()).toEqual([
+      [PRODUCTION_MONITOR],
+      [OTHER_PRODUCTION_MONITOR],
+    ]);
+  });
+});
+
+describe("a record a hook fills in from one the write names", () => {
+  beforeEach(() => {
+    storedMonitor = PRODUCTION_MONITOR;
+  });
+
+  test("on a create, what the hook fills in is the service's to answer for, not asked about after the hooks", async () => {
+    const stubs: ResourceStubs = resourceService(new FillingResourceService());
+    stubs.service.monitorNamedByCreateHook = STAGING_MONITOR;
+
+    await stubs.service.create({
+      data: newResource({}),
+      props: member(RESOURCE_EDITOR),
+    });
+
+    expect(stubs.service.createHookCalls).toBe(1);
+    expect(stubs.save).toHaveBeenCalledTimes(1);
+    expect(monitorReads()).toEqual([]);
+  });
+
+  test("on a create, a monitor the caller names there is asked about as theirs, before the hooks", async () => {
+    const stubs: ResourceStubs = resourceService(new FillingResourceService());
+
+    const refusal: unknown = await refusalOf(
+      stubs.service.create({
+        data: newResource({ monitorId: STAGING_MONITOR }),
+        props: member(RESOURCE_EDITOR),
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect(stubs.service.createHookCalls).toBe(0);
+    expect(stubs.save).not.toHaveBeenCalled();
+    expect(monitorReads()).toEqual([[STAGING_MONITOR]]);
+  });
+
+  test("on an update, what the hook fills in is not asked about, and what the caller sent is asked about once", async () => {
+    const filled: ResourceStubs = resourceService(new FillingResourceService());
+    filled.service.monitorNamedByUpdateHook = STAGING_MONITOR;
+
+    await filled.service.updateOneById({
+      id: new ObjectID(RESOURCE_ID),
+      data: { displayName: "API" } as never,
+      props: member(RESOURCE_EDITOR),
+    });
+
+    expect(filled.service.updateHookCalls).toBe(1);
+    expect(monitorReads()).toEqual([]);
+
+    const replaced: ResourceStubs = resourceService(
+      new FillingResourceService(),
+    );
+    replaced.service.monitorNamedByUpdateHook = STAGING_MONITOR;
+
+    await replaced.service.updateOneById({
+      id: new ObjectID(RESOURCE_ID),
+      data: { monitorId: OTHER_PRODUCTION_MONITOR } as never,
+      props: member(RESOURCE_EDITOR),
+    });
+
+    expect(replaced.service.updateHookCalls).toBe(1);
+    expect(monitorReads()).toEqual([[OTHER_PRODUCTION_MONITOR]]);
+  });
+
+  test("on an update whose hook changes the rows it writes, what the caller sent there is asked about again, on those rows", async () => {
+    // The row the update reaches shows the monitor the caller keeps.
+    storedMonitor = STAGING_MONITOR;
+    const stubs: ResourceStubs = resourceService(new FillingResourceService());
+    stubs.service.replacesQueryInUpdateHook = true;
+    // The rows the hook's query reaches show another one.
+    stubs.service.onUpdateHook = (): void => {
+      storedMonitor = PRODUCTION_MONITOR;
+    };
+
+    const refusal: unknown = await refusalOf(
+      stubs.service.updateOneById({
+        id: new ObjectID(RESOURCE_ID),
+        data: { monitorId: STAGING_MONITOR } as never,
+        props: member(RESOURCE_EDITOR),
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect(stubs.service.updateHookCalls).toBe(1);
+    expect(stubs.update).not.toHaveBeenCalled();
+    // Kept by the row before the hooks, new to the rows after them.
+    expect(monitorReads()).toEqual([[STAGING_MONITOR]]);
+  });
+
+  test("a service that does not say so has what its hook fills in asked about", async () => {
+    const stubs: ResourceStubs = resourceService();
+    stubs.service.monitorNamedByCreateHook = STAGING_MONITOR;
+
+    const refusal: unknown = await refusalOf(
+      stubs.service.create({
+        data: newResource({}),
+        props: member(RESOURCE_EDITOR),
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect(stubs.save).not.toHaveBeenCalled();
+  });
 });
 
 describe("an update that points a record at another one", () => {
@@ -594,6 +758,27 @@ describe("an update that points a record at another one", () => {
     expect(stubs.update).not.toHaveBeenCalled();
     expect(stubs.save).not.toHaveBeenCalled();
     expect(monitorReads()).toEqual([[STAGING_MONITOR]]);
+  });
+
+  test("a hook that writes one name of the reference beside the caller's other has the record each holds asked about, not a refusal of the two names", async () => {
+    const stubs: ResourceStubs = resourceService();
+    stubs.service.monitorNamedByUpdateHook = STAGING_MONITOR;
+
+    const refusal: unknown = await refusalOf(
+      updateResource(stubs, { monitor: { _id: OTHER_PRODUCTION_MONITOR } }),
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect((refusal as Error).message).toContain(
+      `Monitor "${STAGING_MONITOR}"`,
+    );
+    expect(stubs.update).not.toHaveBeenCalled();
+    expect(stubs.save).not.toHaveBeenCalled();
+    // The caller's monitor before the hooks, the hook's after them.
+    expect(monitorReads()).toEqual([
+      [OTHER_PRODUCTION_MONITOR],
+      [STAGING_MONITOR],
+    ]);
   });
 
   test("OneUptime's own updates are not asked", async () => {

@@ -445,6 +445,42 @@ describe("what a write names in a field of its own", () => {
     }
   });
 
+  test("after a service's hooks, the record each name holds is named: a hook may have written one name beside the caller's other", () => {
+    const named: (
+      data: Record<string, unknown>,
+    ) => Array<string> | undefined = (
+      data: Record<string, unknown>,
+    ): Array<string> | undefined => {
+      return RelationListPermission.getNamedIds(Alert, data, true)[
+        "monitor"
+      ]?.map((id: string): string => {
+        return id.toLowerCase();
+      });
+    };
+
+    expect(
+      named({
+        monitorId: new ObjectID(MONITOR_B),
+        monitor: { _id: MONITOR_A },
+      }),
+    ).toEqual([MONITOR_B, MONITOR_A]);
+
+    // One record under both names is named once.
+    expect(
+      named({
+        monitorId: MONITOR_A,
+        monitor: { _id: MONITOR_A.toUpperCase() },
+      }),
+    ).toEqual([MONITOR_A]);
+
+    // A name a hook cleared names nothing; the other still names its record.
+    expect(named({ monitorId: null, monitor: { _id: MONITOR_B } })).toEqual([
+      MONITOR_B,
+    ]);
+    expect(named({ monitorId: null })).toEqual([]);
+    expect(named({ title: "Disk full" })).toBeUndefined();
+  });
+
   test("the records a hook named besides what the caller sent", () => {
     expect(
       RelationListPermission.getIdsNotIn(

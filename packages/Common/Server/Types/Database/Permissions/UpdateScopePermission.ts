@@ -52,8 +52,34 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  * does not write them - is not asked. Root and master admin callers are left
  * alone. DatabaseService asks before the update hooks run, on the rows the
  * update writes, and again after them should a hook change the labels.
+ *
+ * The permissions to update are read as the update itself is narrowed by
+ * them (CreateScopePermission.getWriteScope): permissions limited to the
+ * records the caller owns, held beside ones limited to labels, leave the
+ * update reaching the records carrying those labels - owned or not - as
+ * BasePermission.addRecordScopeToQuery narrows it, so the labels are what a
+ * change must keep. Held alone, they narrow the update to what the caller
+ * owns, which a change of labels does not move: nothing is asked.
  */
 export default class UpdateScopePermission {
+  // What each model's records carry their labels in, read from its metadata once.
+  private static labelColumnsByModel: Map<
+    DatabaseBaseModelType,
+    Array<string>
+  > = new Map();
+
+  // The single relations stored in those columns, by model, read once.
+  private static singleRelationsByModel: Map<
+    DatabaseBaseModelType,
+    Array<RelationName>
+  > = new Map();
+
+  // The names a write may give those columns, by model, read once.
+  private static writtenNamesByModel: Map<
+    DatabaseBaseModelType,
+    Array<string>
+  > = new Map();
+
   /*
    * The columns the labels a record carries are read from: a model that
    * carries labels, its labels column; one that does not, the key columns
@@ -63,6 +89,25 @@ export default class UpdateScopePermission {
    * for a model whose records carry no labels at all.
    */
   public static getLabelColumns(
+    modelType: DatabaseBaseModelType,
+  ): Array<string> {
+    const cached: Array<string> | undefined =
+      UpdateScopePermission.labelColumnsByModel.get(modelType);
+
+    if (cached) {
+      return cached;
+    }
+
+    const columns: Array<string> =
+      UpdateScopePermission.readLabelColumns(modelType);
+
+    UpdateScopePermission.labelColumnsByModel.set(modelType, columns);
+
+    return columns;
+  }
+
+  // getLabelColumns, read from the model's metadata.
+  private static readLabelColumns(
     modelType: DatabaseBaseModelType,
   ): Array<string> {
     const model: BaseModel = new modelType();
@@ -451,30 +496,49 @@ export default class UpdateScopePermission {
   private static getWrittenNames(
     modelType: DatabaseBaseModelType,
   ): Array<string> {
-    const columns: Array<string> =
-      UpdateScopePermission.getLabelColumns(modelType);
+    const cached: Array<string> | undefined =
+      UpdateScopePermission.writtenNamesByModel.get(modelType);
 
-    return [
-      ...columns,
+    if (cached) {
+      return cached;
+    }
+
+    const names: Array<string> = [
+      ...UpdateScopePermission.getLabelColumns(modelType),
       ...UpdateScopePermission.getSingleRelationsOf(modelType).map(
         (relation: RelationName): string => {
           return relation.relation;
         },
       ),
     ];
+
+    UpdateScopePermission.writtenNamesByModel.set(modelType, names);
+
+    return names;
   }
 
   // The single relations whose ID column is one getLabelColumns names.
   private static getSingleRelationsOf(
     modelType: DatabaseBaseModelType,
   ): Array<RelationName> {
+    const cached: Array<RelationName> | undefined =
+      UpdateScopePermission.singleRelationsByModel.get(modelType);
+
+    if (cached) {
+      return cached;
+    }
+
     const columns: Array<string> =
       UpdateScopePermission.getLabelColumns(modelType);
 
-    return RelationNames.getSingleRelations(new modelType()).filter(
-      (relation: RelationName): boolean => {
-        return columns.includes(relation.idColumn);
-      },
-    );
+    const relations: Array<RelationName> = RelationNames.getSingleRelations(
+      new modelType(),
+    ).filter((relation: RelationName): boolean => {
+      return columns.includes(relation.idColumn);
+    });
+
+    UpdateScopePermission.singleRelationsByModel.set(modelType, relations);
+
+    return relations;
   }
 }

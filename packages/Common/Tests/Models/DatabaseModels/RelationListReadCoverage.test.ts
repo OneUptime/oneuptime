@@ -619,3 +619,105 @@ describe("the records a hook names are asked about too", () => {
     expect(number).toBeGreaterThan(asks);
   });
 });
+
+/*
+ * What a hook fills in from a record the write names - as that record holds
+ * it - is the service's to answer for, not asked about after the hooks as
+ * the caller's own naming (DatabaseService
+ * .getReferencesFilledFromNamedRecords). Only the services below say so, for
+ * the reason given; this list only shrinks. A template's records are never
+ * among them: what a template fills in is asked about as the caller's.
+ */
+const FILLED_FROM_NAMED_RECORDS: Dictionary<Dictionary<string>> = {
+  NetworkDeviceService: {
+    probe:
+      "a device put in a site with no probe of its own takes the site's default probe, set on the site by someone allowed to",
+  },
+  NetworkDeviceDiagnosticService: {
+    probe:
+      "a diagnostic its caller names no probe for runs on the probe of the device it names",
+  },
+};
+
+describe("what a hook fills in from a record the write names", () => {
+  const servicesDirectory: string = path.resolve(
+    __dirname,
+    "../../../Server/Services",
+  );
+
+  const SIGNATURE: string =
+    "protected override getReferencesFilledFromNamedRecords(): Array<string> {";
+
+  // Each service that says its hooks fill something in, and what.
+  const declared: Dictionary<Array<string>> = {};
+
+  for (const file of fs.readdirSync(servicesDirectory)) {
+    if (!file.endsWith(".ts")) {
+      continue;
+    }
+
+    const source: string = fs.readFileSync(
+      path.join(servicesDirectory, file),
+      "utf8",
+    );
+    const start: number = source.indexOf(SIGNATURE);
+
+    if (start < 0) {
+      continue;
+    }
+
+    const body: string = source.slice(
+      start,
+      source.indexOf("\n  }", start) + 1,
+    );
+    const returned: RegExpMatchArray | null =
+      body.match(/return \[([^\]]*)\];/);
+
+    declared[file.replace(/\.ts$/, "")] = (returned?.[1] || "")
+      .split(",")
+      .map((entry: string): string => {
+        return entry.trim().replace(/^"|"$/g, "");
+      })
+      .filter((entry: string): boolean => {
+        return entry.length > 0;
+      });
+  }
+
+  test("only the services listed say so, each for the references listed", () => {
+    expect(
+      Object.fromEntries(
+        Object.entries(declared).map(
+          ([service, columns]: [string, Array<string>]): [
+            string,
+            Array<string>,
+          ] => {
+            return [service, [...columns].sort()];
+          },
+        ),
+      ),
+    ).toEqual(
+      Object.fromEntries(
+        Object.entries(FILLED_FROM_NAMED_RECORDS).map(
+          ([service, columns]: [string, Dictionary<string>]): [
+            string,
+            Array<string>,
+          ] => {
+            return [service, Object.keys(columns).sort()];
+          },
+        ),
+      ),
+    );
+  });
+
+  test("every reason is given", () => {
+    for (const columns of Object.values(FILLED_FROM_NAMED_RECORDS)) {
+      for (const reason of Object.values(columns)) {
+        expect(reason.length).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  test("the incident service, which fills records in from templates, is not among them", () => {
+    expect(declared["IncidentService"]).toBeUndefined();
+  });
+});
