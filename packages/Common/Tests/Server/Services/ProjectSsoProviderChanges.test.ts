@@ -11,6 +11,7 @@ import GlobalSsoService from "../../../Server/Services/GlobalSsoService";
 import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import logger from "../../../Server/Utils/Logger";
@@ -39,12 +40,14 @@ import ProjectSso from "../../../Models/DatabaseModels/ProjectSso";
 import User from "../../../Models/DatabaseModels/User";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import { getJestSpyOn } from "../../Spy";
+import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
   afterEach,
   beforeEach,
@@ -178,6 +181,21 @@ let releasesFail: boolean = false;
 let kept: Array<string> = [];
 let lostLocks: Array<string> = [];
 
+/*
+ * From this keep on (counted from 1), every lock is found lost: a lock that
+ * ran out, or that Valkey lost, after the check that kept it.
+ */
+let locksLostFromKeep: number | null = null;
+
+// The locks Semaphore.lock handed out, by key, the last of each.
+let lockObjects: Map<string, { key: string }> = new Map<
+  string,
+  { key: string }
+>();
+
+// Runs as the database is asked to write or delete rows, before it does.
+let whileWriting: (() => void) | null = null;
+
 // The database refuses every update, or every delete, it is asked for.
 let writesFail: boolean = false;
 let deletesFail: boolean = false;
@@ -224,29 +242,17 @@ const askedValues: (value: unknown) => Array<string> | null = (
   throw new Error(`This test cannot read the query value ${String(value)}`);
 };
 
+/*
+ * Whether a row matches a repository `where`, as Postgres would decide it:
+ * values and ids, and the operators the services write - ids among those
+ * read, rows deleted before (deletedAt set), several conditions on one
+ * column together (InMemoryRepository).
+ */
 const matches: (row: Row, where: Record<string, unknown>) => boolean = (
   row: Row,
   where: Record<string, unknown>,
 ): boolean => {
-  for (const [column, value] of Object.entries(where || {})) {
-    const asked: Array<string> | null = askedValues(value);
-
-    if (asked === null) {
-      continue;
-    }
-
-    const held: unknown = row[column];
-
-    if (
-      held === undefined ||
-      held === null ||
-      !asked.includes(String(held).toLowerCase())
-    ) {
-      return false;
-    }
-  }
-
-  return true;
+  return rowMatchesWhere(row, where);
 };
 
 // The repository of a provider table, over the rows above.
@@ -302,6 +308,8 @@ const stubRepository: (
         throw new Error("The database could not write the row");
       }
 
+      whileWriting?.();
+
       const written: Record<string, unknown> = { ...set };
       delete written["version"];
 
@@ -324,6 +332,8 @@ const stubRepository: (
       if (deletesFail) {
         throw new Error("The database could not delete the row");
       }
+
+      whileWriting?.();
 
       const gone: Array<Row> = rows().filter((row: Row): boolean => {
         return matches(row, where);
@@ -576,6 +586,9 @@ beforeEach(() => {
   releasesFail = false;
   kept = [];
   lostLocks = [];
+  locksLostFromKeep = null;
+  lockObjects = new Map<string, { key: string }>();
+  whileWriting = null;
   writesFail = false;
   deletesFail = false;
   busyProjectId = null;
@@ -619,7 +632,9 @@ beforeEach(() => {
     }
 
     events.push(`lock:${data.key}`);
-    return { key: data.key };
+    const lock: { key: string } = { key: data.key };
+    lockObjects.set(data.key, lock);
+    return lock;
   }) as never);
   getJestSpyOn(Semaphore, "release").mockImplementation((async (mutex: {
     key: string;
@@ -635,6 +650,11 @@ beforeEach(() => {
     key: string;
   }): Promise<boolean> => {
     kept.push(mutex.key);
+
+    if (locksLostFromKeep !== null && kept.length >= locksLostFromKeep) {
+      return false;
+    }
+
     return !lostLocks.includes(mutex.key);
   }) as never);
   getJestSpyOn(logger, "debug").mockImplementation((): void => {
@@ -1367,13 +1387,35 @@ describe("the check and the write hold the project's lock", () => {
   );
 
   test.each(KINDS)(
-    "%s: the locks are kept while the check runs, and once more before the write",
+    "%s: the locks are kept while the check runs, once it is done, and once more right before the write",
     async (_label: string, kind: ProviderKind) => {
       leaveItLast(kind);
 
       await expect(turnOff(kind)).resolves.toBe(1);
 
-      // Before the page of projects the check reads, and once it is done.
+      /*
+       * Before the page of projects the check reads, once it is done (the
+       * update's onBeforeUpdate), and right before the write (its
+       * onUpdatePermitted, the last step before it).
+       */
+      expect(kept).toEqual([
+        PROJECT_ID.toString(),
+        SERVER_LOCK,
+        PROJECT_ID.toString(),
+        SERVER_LOCK,
+        PROJECT_ID.toString(),
+        SERVER_LOCK,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete keeps its locks while the check runs and once more when it is done, the last step before the delete",
+    async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+
+      await expect(remove(kind)).resolves.toBe(1);
+
       expect(kept).toEqual([
         PROJECT_ID.toString(),
         SERVER_LOCK,
@@ -2137,6 +2179,398 @@ describe("a write by filter reads under its locks, and writes only the rows it r
       await expect(remove(kind)).resolves.toBe(0);
 
       expect(deleted).toEqual([]);
+    },
+  );
+
+  const DELETED_BEFORE_ID: ObjectID = new ObjectID(
+    "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  );
+
+  // A provider row deleted before, as the retention job's purge finds it.
+  const deletedBefore: (
+    kind: ProviderKind,
+    data: { name: string; deletedAt: Date },
+  ) => Row = (
+    kind: ProviderKind,
+    data: { name: string; deletedAt: Date },
+  ): Row => {
+    const deletedRow: Row = row({
+      id: DELETED_BEFORE_ID,
+      columns: { name: data.name, deletedAt: data.deletedAt },
+    });
+
+    kind.rows().push(deletedRow);
+
+    return deletedRow;
+  };
+
+  const hardDeleteNamed: (
+    kind: ProviderKind,
+    name: string,
+  ) => Promise<number> = (
+    kind: ProviderKind,
+    name: string,
+  ): Promise<number> => {
+    return kind.service.hardDeleteBy({
+      query: { name: name } as never,
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: ROOT,
+    });
+  };
+
+  test.each(KINDS)(
+    "%s: a hard delete by a filter that read no provider purges the rows deleted before that it matches, and leaves one created a moment later",
+    async (_label: string, kind: ProviderKind) => {
+      deletedBefore(kind, {
+        name: "Retired",
+        deletedAt: OneUptimeDate.getSomeDaysAgo(40),
+      });
+
+      // Once the delete has read its rows - none that are there - a provider of that name is created, on.
+      watchReads(kind, {
+        1: (): void => {
+          kind.rows().push(row({ id: LATER_ID, columns: { name: "Retired" } }));
+        },
+      });
+
+      await expect(hardDeleteNamed(kind, "Retired")).resolves.toBe(1);
+
+      expect(deleted).toEqual([DELETED_BEFORE_ID.toString()]);
+      expect(rowOf(kind, LATER_ID)).toBeDefined();
+      expect(rowOf(kind, LATER_ID)!.isEnabled).toBe(true);
+      // It read no provider that is there: nothing to lock, check or tell.
+      expect(lockCalls).toEqual([]);
+      expect(projectAnnouncements()).toEqual([]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a hard delete whose rows are gone once read under the lock purges only rows deleted before, and none created since",
+    async (_label: string, kind: ProviderKind) => {
+      rowOf(kind, kind.secondId)!["name"] = "Spare";
+      deletedBefore(kind, {
+        name: "Spare",
+        deletedAt: OneUptimeDate.getSomeDaysAgo(40),
+      });
+
+      watchReads(kind, {
+        // Read to learn its project, it is renamed before the read under the lock.
+        1: (): void => {
+          rowOf(kind, kind.secondId)!["name"] = "Renamed";
+        },
+        // Read again, under the lock, it is gone: then a provider of that name is created.
+        2: (): void => {
+          kind.rows().push(row({ id: LATER_ID, columns: { name: "Spare" } }));
+        },
+      });
+
+      await expect(hardDeleteNamed(kind, "Spare")).resolves.toBe(1);
+
+      expect(deleted).toEqual([DELETED_BEFORE_ID.toString()]);
+      expect(rowOf(kind, LATER_ID)).toBeDefined();
+      expect(rowOf(kind, kind.secondId)).toBeDefined();
+      // The project's lock was taken for the read under it, and given back at once.
+      expect(events).toEqual([
+        "read",
+        `lock:${PROJECT_ID.toString()}`,
+        "read",
+        `release:${PROJECT_ID.toString()}`,
+        `delete:${DELETED_BEFORE_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: the retention job's purge removes rows deleted more than a month ago, and never a provider that is there",
+    async (_label: string, kind: ProviderKind) => {
+      deletedBefore(kind, {
+        name: "Deleted long ago",
+        deletedAt: OneUptimeDate.getSomeDaysAgo(40),
+      });
+      kind.rows().push(
+        row({
+          id: LATER_ID,
+          columns: {
+            name: "Deleted last week",
+            deletedAt: OneUptimeDate.getSomeDaysAgo(7),
+          },
+        }),
+      );
+
+      await expect(
+        kind.service.hardDeleteBy({
+          query: {
+            deletedAt: QueryHelper.lessThan(OneUptimeDate.getSomeDaysAgo(30)),
+          } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
+
+      expect(deleted).toEqual([DELETED_BEFORE_ID.toString()]);
+      expect(rowOf(kind, LATER_ID)).toBeDefined();
+      expect(rowOf(kind)).toBeDefined();
+      expect(rowOf(kind, kind.secondId)).toBeDefined();
+      expect(lockCalls).toEqual([]);
+      expect(projectAnnouncements()).toEqual([]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a hard delete that read providers under its lock deletes exactly those - not one that comes to match afterwards - and the rows deleted before that it matched go on its next pass",
+    async (_label: string, kind: ProviderKind) => {
+      const name: string = String(rowOf(kind)!["name"]);
+      deletedBefore(kind, {
+        name: name,
+        deletedAt: OneUptimeDate.getSomeDaysAgo(40),
+      });
+
+      // Read under the lock, the delete takes this provider: then another of that name is created.
+      watchReads(kind, {
+        2: (): void => {
+          kind.rows().push(row({ id: LATER_ID, columns: { name: name } }));
+        },
+      });
+
+      await expect(hardDeleteNamed(kind, name)).resolves.toBe(1);
+
+      expect(deleted).toEqual([kind.id.toString()]);
+      expect(rowOf(kind, LATER_ID)).toBeDefined();
+      expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
+
+      // Its next pass reads no provider that is there - the new one aside - ...
+      rowOf(kind, LATER_ID)!["name"] = "Created a moment later";
+
+      await expect(hardDeleteNamed(kind, name)).resolves.toBe(1);
+
+      // ... and purges the row deleted before.
+      expect(deleted).toEqual([
+        kind.id.toString(),
+        DELETED_BEFORE_ID.toString(),
+      ]);
+      expect(rowOf(kind, LATER_ID)).toBeDefined();
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete that is not a hard delete, by a filter that read no provider, deletes nothing - not even a row deleted before",
+    async (_label: string, kind: ProviderKind) => {
+      deletedBefore(kind, {
+        name: "Retired",
+        deletedAt: OneUptimeDate.getSomeDaysAgo(40),
+      });
+
+      await expect(
+        kind.service.deleteBy({
+          query: { name: "Retired" } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(0);
+
+      expect(deleted).toEqual([]);
+      expect(lockCalls).toEqual([]);
+    },
+  );
+});
+
+describe("the locks of a change are kept for its write, until it is done", () => {
+  // Every keep, in the order of the locks, the writes and the gives back.
+  const recordKeeps: () => void = (): void => {
+    getJestSpyOn(Semaphore, "keepLock").mockImplementation((async (mutex: {
+      key: string;
+    }): Promise<boolean> => {
+      kept.push(mutex.key);
+      events.push(`keep:${mutex.key}`);
+
+      return !(locksLostFromKeep !== null && kept.length >= locksLostFromKeep);
+    }) as never);
+  };
+
+  const keptForWrite: () => Array<boolean> = (): Array<boolean> => {
+    return Array.from(lockObjects.values()).map(
+      (lock: { key: string }): boolean => {
+        return ProjectSsoProviderChanges.isKeptForWrite(lock as never);
+      },
+    );
+  };
+
+  test.each(KINDS)(
+    "%s: an update keeps its project's lock once its check is done, and once more right before the row is written",
+    async (_label: string, kind: ProviderKind) => {
+      recordKeeps();
+
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `keep:${PROJECT_ID.toString()}`,
+        `keep:${PROJECT_ID.toString()}`,
+        `write:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete keeps its project's lock as the last step before the row is deleted",
+    async (_label: string, kind: ProviderKind) => {
+      recordKeeps();
+
+      await expect(remove(kind)).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `keep:${PROJECT_ID.toString()}`,
+        `delete:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a project's last provider keeps both locks before the write, the server's rules last",
+    async (_label: string, kind: ProviderKind) => {
+      rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
+      recordKeeps();
+
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      const write: number = events.indexOf(`write:${kind.id.toString()}`);
+
+      expect(events.slice(write - 2, write)).toEqual([
+        `keep:${PROJECT_ID.toString()}`,
+        `keep:${SERVER_LOCK}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a lock lost after the check, by the time the update is written, refuses it: nothing is written, nobody is told, and the lock is given back",
+    async (_label: string, kind: ProviderKind) => {
+      // Kept once its check is done; gone right before the write.
+      locksLostFromKeep = 2;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(kind.writes()).toEqual([]);
+      expect(rowOf(kind)!.isEnabled).toBe(true);
+      expect(signInsEndedAtOf(kind)).toBeNull();
+      expect(projectAnnouncements()).toEqual([]);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+      expect(keptForWrite()).toEqual([false]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: the last provider's write is refused the same way when the lock on the server's rules is lost before it",
+    async (_label: string, kind: ProviderKind) => {
+      rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
+      // Kept before the page of projects and once the check is done; gone right before the write.
+      locksLostFromKeep = 6;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(kind.writes()).toEqual([]);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(keptForWrite()).toEqual([false, false]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete whose lock is lost once its check is done is refused before anything is deleted",
+    async (_label: string, kind: ProviderKind) => {
+      locksLostFromKeep = 1;
+
+      await expect(refusalOf(remove(kind))).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(deleted).toEqual([]);
+      expect(rowOf(kind)).toBeDefined();
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: while the row is written its locks are kept alive, and once it is written they are kept no more",
+    async (_label: string, kind: ProviderKind) => {
+      rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
+
+      let keptWhileWritten: Array<boolean> = [];
+      whileWriting = (): void => {
+        keptWhileWritten = keptForWrite();
+      };
+
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      expect(keptWhileWritten).toEqual([true, true]);
+      expect(keptForWrite()).toEqual([false, false]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete's locks are kept alive while the row is deleted, and no more once it is",
+    async (_label: string, kind: ProviderKind) => {
+      let keptWhileDeleted: Array<boolean> = [];
+      whileWriting = (): void => {
+        keptWhileDeleted = keptForWrite();
+      };
+
+      await expect(remove(kind)).resolves.toBe(1);
+
+      expect(keptWhileDeleted).toEqual([true]);
+      expect(keptForWrite()).toEqual([false]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a write the database fails gives its locks back, and they are kept no more",
+    async (_label: string, kind: ProviderKind) => {
+      writesFail = true;
+
+      await expect(turnOff(kind)).rejects.toThrow(
+        "The database could not write the row",
+      );
+
+      expect(lockObjects.size).toBe(1);
+      expect(keptForWrite()).toEqual([false]);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a change refused by its check keeps nothing alive",
+    async (_label: string, kind: ProviderKind) => {
+      project.requireSsoForLogin = true;
+      rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        LAST_SSO_PROVIDER_MESSAGE,
+      );
+
+      expect(keptForWrite()).toEqual([false, false]);
     },
   );
 });

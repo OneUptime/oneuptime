@@ -11,7 +11,7 @@ terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
@@ -73,7 +73,32 @@ Resources follow the naming pattern `oneuptime_<snake_case_resource>`. The most 
 | `oneuptime_scheduled_maintenance_event` | Scheduled maintenance windows |
 | `oneuptime_probe` | Custom monitoring probes |
 
-Every resource also has a matching **data source** with the same name (for example `data "oneuptime_label"`), which looks up an existing resource by `id` or by `name`.
+Every resource also has a matching **data source** with the same name (for example `data "oneuptime_label"`), for referring to something that already exists instead of creating it. Look it up by `id`, or by any of its other plain arguments — each one you set must match, and exactly one item may match them all (none, or more than one, is an error rather than an empty or arbitrary result):
+
+```hcl
+data "oneuptime_monitor_status" "offline" {
+  name = "Offline"
+}
+
+# Any other argument works too - here, the project's offline status,
+# whatever it is called. Set several and all of them must match.
+data "oneuptime_monitor_status" "offline_by_state" {
+  is_offline_state = true
+}
+```
+
+### Renamed resources
+
+Resource type names keep words like IoT and vCenter whole: `oneuptime_iot_fleet` and `oneuptime_vcenter`, where older providers had `oneuptime_io_t_fleet` and `oneuptime_v_center` (and the same for their label rules, owners and feeds). The old names still work, as deprecated aliases — a plan that uses one says so. To switch, rename the resource in your configuration and add a `moved` block, and Terraform keeps the existing resource instead of replacing it:
+
+```hcl
+moved {
+  from = oneuptime_io_t_fleet.factory
+  to   = oneuptime_iot_fleet.factory
+}
+```
+
+Moving between resource types needs Terraform 1.8 or newer. On an engine without it, keep the old name for now: it keeps working.
 
 The full, generated per-resource schema reference lives on the [Terraform Registry documentation tab](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs).
 
@@ -82,15 +107,17 @@ The full, generated per-resource schema reference lives on the [Terraform Regist
 OneUptime resource schemas map the OneUptime API directly:
 
 - **Scalar attributes** are plain Terraform strings, numbers, and booleans (`name`, `description`, `monitor_type`, `is_public_status_page`, ...).
-- **Entity references** are ID strings (`incident_severity_id`, `monitor_id`). Arrays of references, such as `labels`, are unordered sets of ID strings — reordering them produces no diff.
+- **Entity references** are ID strings (`incident_severity_id`, `monitor_id`); each one's description names the resource it is the ID of. Arrays of references, such as `labels`, are unordered sets of ID strings — reordering them produces no diff.
+- **Server-managed IDs inside a resource** — the IDs of a monitor's steps, criteria, and incident and alert templates — are never written in configuration. The server gives them and keeps them across every apply, so incidents keep pointing at the criteria that raised them.
 - **Complex nested configuration** — most notably a monitor's `monitor_steps` — uses typed nested attributes written directly in HCL, with per-monitor-type raw-JSON escape hatches for deep telemetry query configs. See [Monitor Steps](/docs/terraform/monitor-steps).
 - **Date/time attributes** are RFC3339 strings (for example `2026-08-01T02:00:00Z`). The provider treats semantically equal timestamps as equal, so server-side normalization does not cause drift.
+- **Attributes the server keeps up to date** — a monitor's current status, when it last checked a heartbeat — are fine to leave out. The server can change them between `terraform plan` and the end of `terraform apply`; the provider keeps the planned value for anything you did not configure, and the next refresh reads the server's, so this never fails an apply or shows up as a diff.
 
 ## Versioning
 
 Provider versions track OneUptime platform versions.
 
-- **OneUptime Cloud**: use `version = "~> 11.0"`.
+- **OneUptime Cloud**: use `version = "{{TERRAFORM_PROVIDER_VERSION}}"`.
 - **Self-hosted**: use the newest published provider version that is **less than or equal to** your OneUptime platform version. Do not pin an exact patch version — not every platform patch release is published to the registry. See [Self-Hosted Setup](/docs/terraform/self-hosted).
 
 ## Support

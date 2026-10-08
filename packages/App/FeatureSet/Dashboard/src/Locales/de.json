@@ -26462,7 +26462,7 @@
   "Last seen: newest first": "Last seen: newest first",
   "Last seen: oldest first": "Last seen: oldest first",
   "Latency regressions are measured on trace spans, and monitors cannot alert on span latency yet. To alert on latency, create a Metrics monitor on your service's request duration metric.": "Latency regressions are measured on trace spans, and monitors cannot alert on span latency yet. To alert on latency, create a Metrics monitor on your service's request duration metric.",
-  "Manage Phone Numbers that will receive call notifications for this project. A number you have verified for SMS needs no code here.": "Manage Phone Numbers that will receive call notifications for this project. A number you have verified for SMS needs no code here.",
+  "Manage Phone Numbers that will receive call notifications for this project. A number you have verified for SMS is verified for calls too, with no new code.": "Manage Phone Numbers that will receive call notifications for this project. A number you have verified for SMS is verified for calls too, with no new code.",
   "Metric drift: {{metricName}}": "Metric drift: {{metricName}}",
   "Monitors cannot be created from this kind of insight yet.": "Monitors cannot be created from this kind of insight yet.",
   "Most detections": "Most detections",

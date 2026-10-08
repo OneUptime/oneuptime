@@ -436,10 +436,53 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   description or labels, is recorded now, and a monitor's name,
   description and label names show as typed instead of being read as
   Markdown. An event moved from **Scheduled** straight into a state of
-  your own placed after **Ongoing** now starts the way **Ongoing** does:
-  its monitors change to its **Change Monitor Status to**, where until now
-  they were left as they were. See
+  your own placed between **Ongoing** and **Ended** now starts the way
+  **Ongoing** does: its monitors change to its **Change Monitor Status
+  to**, where until now they were left as they were. See
   [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **A maintenance event in a state of your own after Ongoing counts as
+  in progress everywhere.** A scheduled maintenance event moved on from
+  **Ongoing** to a state of your own placed above **Ended** - a
+  "Verifying" step, say - kept its monitors in maintenance, but nothing
+  else took it for in progress: its status pages' overview left it out
+  altogether, the network sites and telemetry series it covers were no
+  longer silenced, SLO burn-rate alerts on its monitors fired, the
+  **Ongoing** lists under **Scheduled Maintenance** and **Home**, their
+  menu badges and the **Ongoing maintenance** tile left it out, the
+  Microsoft Teams app did not list it, and nothing ended it at its **Ends
+  At**: it stayed in that state, with its monitors in maintenance, until
+  someone moved it on. Every one of them now asks one rule: an event is
+  in progress in the ongoing state and in every state of your own placed
+  between **Ongoing** and **Ended**. Such an event is ended at its **Ends
+  At** like an ongoing one, telling its subscribers if **When the event
+  ends** is on, so an event left in "Verifying" past its end is ended
+  within a minute of the upgrade. A state of your own placed after
+  **Ended** - "Reviewing" - is over: moving an event into it from
+  **Ongoing** or "Verifying" now ends it the way **Ended** does, where
+  until now its monitors stayed in maintenance for good, and the event's
+  header no longer offers **Mark as Ended** for it. A state placed before
+  **Ongoing** still waits for the start. Moving an event by hand into a
+  state of your own that starts or ends it starts **Notify Status Page
+  Subscribers** the way **Mark as Ongoing** or **Mark as Ended** would.
+  The status page's scheduled events page and its RSS and Atom feeds also
+  list an event in progress that started before the page's history
+  window. Projects whose own states all sit before **Ongoing** see no
+  change. Three smaller fixes come with it: moving an event's **Starts
+  At** moves its first reminder with it when its reminder rule waits for
+  the start; taking off its last affected resource besides the monitors
+  is recorded in its feed as "No other affected resources."; and a
+  **Starts At** or **Ends At** written without a time zone is compared as
+  UTC, as it is stored, so a server not running in UTC no longer records a
+  move that was not one. See
+  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **Saving a secret back as it is changes nothing.** A monitor secret, a
+  workflow variable, a runbook secret or credential, an LLM provider's
+  API key, an OIDC client secret and the other values OneUptime stores
+  encrypted are encrypted afresh on every save, so a save that sent one
+  back unchanged looked like a change: it ran the record's **On Update**
+  workflows, pushed the record to open dashboards and added an audit log
+  entry. A value written back as it is now counts as unchanged; a new
+  value still does all three, and is still stored encrypted.
 - **On OneUptime Cloud, API keys stop working below their plan, and SCIM
   only removes people.** A project's API keys need **Growth** and its SCIM
   connections - the project's and its status pages' - need **Scale**.
@@ -655,6 +698,33 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   their permission to add it does not reach - restricted to labels the new
   record does not carry, for one - refuses the create, and nothing is
   saved. See
+  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
+  and [Users, Teams & Permissions](/docs/permissions/index).
+- **The one record a write names, and a change of a record's labels, keep to
+  the caller's permissions too.** The one record a create or a change names
+  in a field of its own - an alert's monitor, the monitor a status page
+  resource shows, a cost budget's service, the incident a runbook run is
+  linked to - follows the rule the records a write lists follow, under either
+  of its names: one outside the caller's permission to read that kind of
+  record, or carrying a label a block on reading it takes away, is refused
+  with the `400` that names the field and the ID, and nothing is written. A
+  change checks it only when it names another record. OneUptime's global
+  probes and AI agents stay open to every project. The records a service
+  fills in for its caller - the monitors, status pages and on-call policies
+  an incident template adds to an incident declared from it - are checked
+  the same way, before anything is saved and before the incident takes its
+  number. A change of the labels a record carries keeps it within the
+  caller's permission to change it: restricted to labels, the record keeps
+  one of them, and a block with labels on changing it refuses giving it one
+  of its labels; either is refused with a `422` that names the labels. A
+  creator whose permission to create reaches only what they own is made the
+  owner right after the save, before anything else happens to the record,
+  and when that fails the record is removed again and the create is refused
+  with a `500`. The owners of monitors, incidents, alerts, scheduled
+  maintenance events and their templates are now read through the record
+  they own, as a status page's and a service's are. Roles and API keys whose
+  permissions reach the whole project work as before; give a custom role or
+  an API key restricted to labels the read of the records it names. See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a

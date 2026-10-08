@@ -5,7 +5,10 @@ import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import StatusPageOwnerUserService from "../../../Server/Services/StatusPageOwnerUserService";
 import UserService from "../../../Server/Services/UserService";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
+import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -20,20 +23,29 @@ import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediat
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import Label from "../../../Models/DatabaseModels/Label";
+import LlmCostBudget from "../../../Models/DatabaseModels/LlmCostBudget";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageOwnerTeam from "../../../Models/DatabaseModels/StatusPageOwnerTeam";
 import MetricPipelineRule from "../../../Models/DatabaseModels/MetricPipelineRule";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import Service from "../../../Models/DatabaseModels/Service";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import {
+  EventOverlayScope,
+  getEventOverlayScope,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/EventOverlayScope";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import ServerException from "../../../Types/Exception/ServerException";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
@@ -77,6 +89,12 @@ import { DataSource, Logger } from "typeorm";
  *   - A record read through a parent - an alert's note, a status page's
  *     announcement - is created only under a parent its creator may read,
  *     a private alert only by the people it names and by project admins.
+ *   - The one record a write names in a field of its own (a cost
+ *     budget's service) is one its caller may read; an update that changes
+ *     the labels a record carries keeps it within its editor's permission
+ *     to change it; the records a create's hooks name besides are asked
+ *     about too; a creator who may create only what they own owns it, or
+ *     it is not created.
  *   - An AI insight follows the service it names.
  *   - The work per request does not grow with the rows it reads.
  *
@@ -183,6 +201,7 @@ const TABLES: Array<string> = [
   "OnCallDutyPolicyEscalationRule",
   "OnCallDutyPolicyOwnerUser",
   "OnCallDutyPolicyOwnerTeam",
+  "LlmCostBudget",
 ];
 
 interface PermissionRow {
@@ -283,6 +302,10 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     new DatabaseService(
       OnCallDutyPolicyEscalationRule,
     ) as DatabaseService<BaseModel>,
+  );
+  new BaseAPI(
+    LlmCostBudget,
+    new DatabaseService(LlmCostBudget) as DatabaseService<BaseModel>,
   );
 
   // The signed-in member: in the home project and the second project.
@@ -4449,6 +4472,753 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     });
   });
 
+  describe("the one record a write names in a field of its own", () => {
+    // What the budgets this block creates are named, to clear them after.
+    const CREATED_BUDGET_MARKER: string = "Named record";
+
+    afterAll(async () => {
+      await database.query(
+        `DELETE FROM "${schema}"."LlmCostBudget" WHERE "name" LIKE $1`,
+        [`${CREATED_BUDGET_MARKER}%`],
+      );
+
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    const budgetName: () => string = (): string => {
+      return `${CREATED_BUDGET_MARKER} ${ObjectID.generate().toString()}`;
+    };
+
+    const budgetsNamed: (name: string) => Promise<number> = async (
+      name: string,
+    ): Promise<number> => {
+      const rows: Array<{ count: string }> = await database.query(
+        `SELECT COUNT(*) AS "count" FROM "${schema}"."LlmCostBudget" WHERE "name" = $1`,
+        [name],
+      );
+
+      return Number(rows[0]?.count || 0);
+    };
+
+    const createBudget: (
+      caller: Caller,
+      name: string,
+      reference: JSONObject,
+    ) => Promise<Outcome> = async (
+      caller: Caller,
+      name: string,
+      reference: JSONObject,
+    ): Promise<Outcome> => {
+      return await send({
+        uri: "/llm-cost-budget",
+        caller: caller,
+        body: {
+          data: JSONFunctions.serialize({
+            name: name,
+            isEnabled: true,
+            dailyBudgetInUSD: 10,
+            ...reference,
+          }),
+        },
+      });
+    };
+
+    // Who keeps the project's budgets, without a word about services.
+    const BUDGET_KEEPER: Array<PermissionRow> = [
+      { permission: Permission.CreateProjectLlmCostBudget },
+      { permission: Permission.EditProjectLlmCostBudget },
+      { permission: Permission.ReadProjectLlmCostBudget },
+    ];
+
+    // The refusal of a service the caller may not read: that of a missing one.
+    const expectRefusedAsMissing: (outcome: Outcome, id: ObjectID) => void = (
+      outcome: Outcome,
+      id: ObjectID,
+    ): void => {
+      expect(outcome.error).toBeInstanceOf(BadDataException);
+      expect((outcome.error as Error).message).toBe(
+        `This llm cost budget references records that are not in this project: Service "${id.toString()}". Please pick values from this project and try again.`,
+      );
+    };
+
+    const byIdColumn: (id: ObjectID) => JSONObject = (
+      id: ObjectID,
+    ): JSONObject => {
+      return { serviceId: id.toString() };
+    };
+
+    const byRelation: (id: ObjectID) => JSONObject = (
+      id: ObjectID,
+    ): JSONObject => {
+      return { service: { _id: id.toString() } };
+    };
+
+    const byBoth: (id: ObjectID) => JSONObject = (id: ObjectID): JSONObject => {
+      return { serviceId: id.toString(), service: { _id: id.toString() } };
+    };
+
+    describe.each([
+      ["a team member", "team"],
+      ["an API key", "apiKey"],
+    ] as Array<[string, "team" | "apiKey"]>)(
+      "%s whose read of services is limited to a label",
+      (_name: string, kind: "team" | "apiKey") => {
+        const keeper: () => Promise<Caller> = async (): Promise<Caller> => {
+          const rows: Array<PermissionRow> = [
+            ...BUDGET_KEEPER,
+            {
+              permission: Permission.ReadService,
+              labelIds: [productionLabelId],
+            },
+          ];
+
+          if (kind === "team") {
+            await setTeamPermissions(homeTeamId, homeProjectId, rows);
+            return homeUser;
+          }
+
+          return { kind: "apiKey", apiKey: await createApiKey(rows) };
+        };
+
+        test.each([
+          ["by its ID column", byIdColumn],
+          ["by its relation", byRelation],
+          ["by both of its names", byBoth],
+        ] as Array<[string, (id: ObjectID) => JSONObject]>)(
+          "%s, names only a service carrying the label",
+          async (_how: string, named: (id: ObjectID) => JSONObject) => {
+            const caller: Caller = await keeper();
+
+            const created: Outcome = await createBudget(
+              caller,
+              budgetName(),
+              named(productionServiceId),
+            );
+
+            expect(created.error).toBeUndefined();
+            expect(
+              await readColumn("LlmCostBudget", created.item!.id!, "serviceId"),
+            ).toBe(productionServiceId.toString());
+
+            const name: string = budgetName();
+            const refused: Outcome = await createBudget(
+              caller,
+              name,
+              named(stagingServiceId),
+            );
+
+            expectRefusedAsMissing(refused, stagingServiceId);
+            expect(await budgetsNamed(name)).toBe(0);
+          },
+        );
+
+        test("an update points a budget only at a service the editor may read, and keeps the one it names already", async () => {
+          const caller: Caller = await keeper();
+
+          const created: Outcome = await createBudget(
+            caller,
+            budgetName(),
+            byIdColumn(productionServiceId),
+          );
+          const budgetId: ObjectID = created.item!.id!;
+
+          for (const named of [byIdColumn, byRelation]) {
+            const refused: Outcome = await update(
+              "/llm-cost-budget",
+              caller,
+              budgetId,
+              named(stagingServiceId),
+            );
+
+            expectRefusedAsMissing(refused, stagingServiceId);
+            expect(
+              await readColumn("LlmCostBudget", budgetId, "serviceId"),
+            ).toBe(productionServiceId.toString());
+          }
+
+          // Named already - by someone who reads it - and kept.
+          await database.query(
+            `UPDATE "${schema}"."LlmCostBudget" SET "serviceId" = $1 WHERE "_id" = $2`,
+            [stagingServiceId.toString(), budgetId.toString()],
+          );
+
+          const kept: Outcome = await update(
+            "/llm-cost-budget",
+            caller,
+            budgetId,
+            { ...byIdColumn(stagingServiceId), dailyBudgetInUSD: 20 },
+          );
+
+          expect(kept.error).toBeUndefined();
+          expect(await readColumn("LlmCostBudget", budgetId, "serviceId")).toBe(
+            stagingServiceId.toString(),
+          );
+        });
+      },
+    );
+
+    test("a keeper whose read of services reaches only what they own names only a service they own", async () => {
+      // The member owns the production service.
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        ...BUDGET_KEEPER,
+        { permission: Permission.ReadService, scope: PermissionScope.Owned },
+      ]);
+
+      const created: Outcome = await createBudget(
+        homeUser,
+        budgetName(),
+        byRelation(productionServiceId),
+      );
+
+      expect(created.error).toBeUndefined();
+
+      const name: string = budgetName();
+      const refused: Outcome = await createBudget(
+        homeUser,
+        name,
+        byRelation(stagingServiceId),
+      );
+
+      expectRefusedAsMissing(refused, stagingServiceId);
+      expect(await budgetsNamed(name)).toBe(0);
+    });
+
+    test("a block with labels on reading services leaves out the services carrying them", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        ...BUDGET_KEEPER,
+        { permission: Permission.ReadService },
+        {
+          permission: Permission.ReadService,
+          isBlock: true,
+          labelIds: [stagingLabelId],
+        },
+      ]);
+
+      const created: Outcome = await createBudget(
+        homeUser,
+        budgetName(),
+        byIdColumn(productionServiceId),
+      );
+
+      expect(created.error).toBeUndefined();
+
+      const name: string = budgetName();
+      const refused: Outcome = await createBudget(
+        homeUser,
+        name,
+        byIdColumn(stagingServiceId),
+      );
+
+      expectRefusedAsMissing(refused, stagingServiceId);
+      expect(await budgetsNamed(name)).toBe(0);
+    });
+
+    test("a keeper who reads no services is held to the project: a service of another project reads like a missing one", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, BUDGET_KEEPER);
+
+      const created: Outcome = await createBudget(
+        homeUser,
+        budgetName(),
+        byIdColumn(stagingServiceId),
+      );
+
+      expect(created.error).toBeUndefined();
+
+      const refused: Outcome = await createBudget(
+        homeUser,
+        budgetName(),
+        byIdColumn(otherServiceId),
+      );
+
+      expectRefusedAsMissing(refused, otherServiceId);
+    });
+
+    test("the two names must agree", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        ...BUDGET_KEEPER,
+        { permission: Permission.ReadService },
+      ]);
+
+      const name: string = budgetName();
+      const refused: Outcome = await createBudget(homeUser, name, {
+        serviceId: productionServiceId.toString(),
+        service: { _id: stagingServiceId.toString() },
+      });
+
+      expect(refused.error).toBeInstanceOf(BadDataException);
+      expect(await budgetsNamed(name)).toBe(0);
+    });
+  });
+
+  describe("an update that changes the labels a record carries", () => {
+    let alertId: ObjectID;
+
+    beforeEach(async () => {
+      alertId = ObjectID.generate();
+
+      await insertAlert({
+        id: alertId,
+        projectId: homeProjectId,
+        title: "Relabelled alert",
+        labelIds: [productionLabelId],
+      });
+    });
+
+    afterEach(async () => {
+      await removeRows([
+        ["AlertLabel", "alertId", alertId],
+        ["Alert", "_id", alertId],
+      ]);
+    });
+
+    afterAll(async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    const labelsOf: (id: ObjectID) => Promise<Array<string>> = async (
+      id: ObjectID,
+    ): Promise<Array<string>> => {
+      const rows: Array<{ labelId: string }> = await database.query(
+        `SELECT "labelId" FROM "${schema}"."AlertLabel" WHERE "alertId" = $1`,
+        [id.toString()],
+      );
+
+      return sorted(
+        rows.map((row: { labelId: string }): string => {
+          return row.labelId;
+        }),
+      );
+    };
+
+    const relabel: (
+      caller: Caller,
+      labelIds: Array<ObjectID>,
+    ) => Promise<Outcome> = async (
+      caller: Caller,
+      labelIds: Array<ObjectID>,
+    ): Promise<Outcome> => {
+      return await update("/alert", caller, alertId, {
+        labels: labelIds.map((labelId: ObjectID): JSONObject => {
+          return { _id: labelId.toString() };
+        }),
+      });
+    };
+
+    describe.each([
+      ["a team member", "team"],
+      ["an API key", "apiKey"],
+    ] as Array<[string, "team" | "apiKey"]>)(
+      "%s whose permission to change alerts is limited to a label",
+      (_name: string, kind: "team" | "apiKey") => {
+        const editor: () => Promise<Caller> = async (): Promise<Caller> => {
+          const rows: Array<PermissionRow> = [
+            { permission: Permission.ReadAlert },
+            { permission: Permission.EditAlert, labelIds: [productionLabelId] },
+          ];
+
+          if (kind === "team") {
+            await setTeamPermissions(homeTeamId, homeProjectId, rows);
+            return homeUser;
+          }
+
+          return { kind: "apiKey", apiKey: await createApiKey(rows) };
+        };
+
+        test("a change that keeps one of its labels is written", async () => {
+          const caller: Caller = await editor();
+
+          const changed: Outcome = await relabel(caller, [
+            productionLabelId,
+            stagingLabelId,
+          ]);
+
+          expect(changed.error).toBeUndefined();
+          expect(await labelsOf(alertId)).toEqual(
+            sorted([productionLabelId, stagingLabelId]),
+          );
+        });
+
+        test("a change that takes the last of its labels away is refused, and the labels are as they were", async () => {
+          const caller: Caller = await editor();
+
+          for (const labelIds of [[stagingLabelId], []]) {
+            const refused: Outcome = await relabel(caller, labelIds);
+
+            expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+            expect((refused.error as Error).message).toBe(
+              "Your access lets you change Alerts only with one of these labels: Production. Keep one of them and try again.",
+            );
+            expect(await labelsOf(alertId)).toEqual([
+              productionLabelId.toString(),
+            ]);
+          }
+        });
+      },
+    );
+
+    test("a block with labels on changing alerts refuses a change that gives one of them", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadAlert },
+        { permission: Permission.EditAlert },
+        {
+          permission: Permission.EditAlert,
+          isBlock: true,
+          labelIds: [stagingLabelId],
+        },
+      ]);
+
+      const refused: Outcome = await relabel(homeUser, [
+        productionLabelId,
+        stagingLabelId,
+      ]);
+
+      expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+      expect((refused.error as Error).message).toBe(
+        `You are not authorized to change this Alert because ${Permission.EditAlert} is in your team's permission block list for the label "Staging".`,
+      );
+      expect(await labelsOf(alertId)).toEqual([productionLabelId.toString()]);
+
+      // Any other change of labels goes through.
+      const changed: Outcome = await relabel(homeUser, []);
+
+      expect(changed.error).toBeUndefined();
+      expect(await labelsOf(alertId)).toEqual([]);
+    });
+
+    test("a permission over the whole project changes the labels any way", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadAlert },
+        { permission: Permission.EditAlert },
+      ]);
+
+      const changed: Outcome = await relabel(homeUser, [stagingLabelId]);
+
+      expect(changed.error).toBeUndefined();
+      expect(await labelsOf(alertId)).toEqual([stagingLabelId.toString()]);
+    });
+
+    test("an announcement moved off its editor's labels is refused, and stays where it was", async () => {
+      const announcementId: ObjectID = ObjectID.generate();
+
+      await insert("StatusPageAnnouncement", {
+        _id: announcementId,
+        projectId: homeProjectId,
+        title: "Relabelled announcement",
+        description: "Relabelled announcement",
+        showAnnouncementAt: new Date(),
+        version: 1,
+      });
+      await insert("AnnouncementStatusPage", {
+        announcementId: announcementId,
+        statusPageId: productionStatusPageId,
+      });
+
+      const pagesOf: () => Promise<Array<string>> = async (): Promise<
+        Array<string>
+      > => {
+        const rows: Array<{ statusPageId: string }> = await database.query(
+          `SELECT "statusPageId" FROM "${schema}"."AnnouncementStatusPage" WHERE "announcementId" = $1`,
+          [announcementId.toString()],
+        );
+
+        return sorted(
+          rows.map((row: { statusPageId: string }): string => {
+            return row.statusPageId;
+          }),
+        );
+      };
+
+      try {
+        // Every status page read; announcements changed on Production pages only.
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          { permission: Permission.ReadProjectStatusPage },
+          { permission: Permission.ReadStatusPageAnnouncement },
+          {
+            permission: Permission.EditStatusPageAnnouncement,
+            labelIds: [productionLabelId],
+          },
+        ]);
+
+        const refused: Outcome = await update(
+          "/status-page-announcement",
+          homeUser,
+          announcementId,
+          { statusPages: [{ _id: stagingStatusPageId.toString() }] },
+        );
+
+        expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+        expect((refused.error as Error).message).toBe(
+          "Your access lets you change Status Page Announcements only for records with one of these labels: Production.",
+        );
+        expect(await pagesOf()).toEqual([productionStatusPageId.toString()]);
+
+        const kept: Outcome = await update(
+          "/status-page-announcement",
+          homeUser,
+          announcementId,
+          {
+            statusPages: [
+              { _id: productionStatusPageId.toString() },
+              { _id: stagingStatusPageId.toString() },
+            ],
+          },
+        );
+
+        expect(kept.error).toBeUndefined();
+        expect(await pagesOf()).toEqual(
+          sorted([productionStatusPageId, stagingStatusPageId]),
+        );
+      } finally {
+        await removeRows([
+          ["AnnouncementStatusPage", "announcementId", announcementId],
+          ["StatusPageAnnouncement", "_id", announcementId],
+        ]);
+      }
+    });
+  });
+
+  describe("the records a create's hooks name besides what its caller sent", () => {
+    const TEMPLATED_ALERT_MARKER: string = "Templated alert";
+
+    /*
+     * An alert service whose hook fills in the services the caller left
+     * out, from a template, as a service that declares from a template does.
+     */
+    class TemplatedAlertService extends DatabaseService<Alert> {
+      public templateServiceIds: Array<ObjectID> = [];
+
+      public constructor() {
+        super(Alert);
+      }
+
+      protected override async onBeforeCreate(
+        createBy: CreateBy<Alert>,
+      ): Promise<OnCreate<Alert>> {
+        if (createBy.data.services === undefined) {
+          createBy.data.services = this.templateServiceIds.map(
+            (serviceId: ObjectID): Service => {
+              const service: Service = new Service();
+              service._id = serviceId.toString();
+              return service;
+            },
+          );
+        }
+
+        return { createBy: createBy, carryForward: null };
+      }
+    }
+
+    const templated: TemplatedAlertService = new TemplatedAlertService();
+
+    let autoOwner: ReturnType<typeof getJestSpyOn>;
+
+    beforeAll(() => {
+      // The creator's owner row of a new alert is not what this block is about.
+      autoOwner = getJestSpyOn(
+        DatabaseService.prototype as never,
+        "autoOwnerOnCreate",
+      ).mockResolvedValue(undefined as never);
+    });
+
+    afterAll(async () => {
+      autoOwner.mockRestore();
+
+      const rows: Array<{ _id: string }> = await database.query(
+        `SELECT "_id" FROM "${schema}"."Alert" WHERE "title" LIKE $1`,
+        [`${TEMPLATED_ALERT_MARKER}%`],
+      );
+
+      for (const created of rows) {
+        await removeRows([
+          ["AlertService", "alertId", new ObjectID(created._id)],
+          ["AlertLabel", "alertId", new ObjectID(created._id)],
+          ["Alert", "_id", new ObjectID(created._id)],
+        ]);
+      }
+
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    const newAlert: (title: string) => Alert = (title: string): Alert => {
+      const alert: Alert = new Alert();
+      alert.title = title;
+      alert.currentAlertStateId = ObjectID.generate();
+      alert.alertSeverityId = ObjectID.generate();
+
+      const label: Label = new Label();
+      label._id = productionLabelId.toString();
+      alert.labels = [label];
+
+      return alert;
+    };
+
+    const alertsTitled: (title: string) => Promise<Array<string>> = async (
+      title: string,
+    ): Promise<Array<string>> => {
+      const rows: Array<{ _id: string }> = await database.query(
+        `SELECT "_id" FROM "${schema}"."Alert" WHERE "title" = $1`,
+        [title],
+      );
+
+      return rows.map((row: { _id: string }): string => {
+        return row._id;
+      });
+    };
+
+    test("a service a template names is held to the declarer's read, as if they had named it", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.CreateAlert },
+        { permission: Permission.EditAlert },
+        { permission: Permission.ReadAlert },
+        { permission: Permission.ReadService, labelIds: [productionLabelId] },
+      ]);
+
+      const props: DatabaseCommonInteractionProps = await propsOf(homeUser);
+
+      // The template names a service the declarer may not read: nothing is made.
+      templated.templateServiceIds = [stagingServiceId];
+
+      const refusedTitle: string = `${TEMPLATED_ALERT_MARKER} ${ObjectID.generate().toString()}`;
+
+      let refusal: unknown = undefined;
+
+      try {
+        await templated.create({ data: newAlert(refusedTitle), props: props });
+      } catch (error) {
+        refusal = error;
+      }
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(
+        `This alert references records that are not in this project: Services "${stagingServiceId.toString()}". Please pick values from this project and try again.`,
+      );
+      expect(await alertsTitled(refusedTitle)).toEqual([]);
+
+      // One they may read is listed.
+      templated.templateServiceIds = [productionServiceId];
+
+      const title: string = `${TEMPLATED_ALERT_MARKER} ${ObjectID.generate().toString()}`;
+      const created: Alert = await templated.create({
+        data: newAlert(title),
+        props: props,
+      });
+
+      const listed: Array<{ serviceId: string }> = await database.query(
+        `SELECT "serviceId" FROM "${schema}"."AlertService" WHERE "alertId" = $1`,
+        [created.id!.toString()],
+      );
+
+      expect(
+        listed.map((row: { serviceId: string }): string => {
+          return row.serviceId;
+        }),
+      ).toEqual([productionServiceId.toString()]);
+    });
+  });
+
+  describe("a creator whose permission to create reaches only what they own", () => {
+    const OWNED_PAGE_MARKER: string = "Owned-first page";
+
+    afterAll(async () => {
+      const rows: Array<{ _id: string }> = await database.query(
+        `SELECT "_id" FROM "${schema}"."StatusPage" WHERE "name" LIKE $1`,
+        [`${OWNED_PAGE_MARKER}%`],
+      );
+
+      for (const created of rows) {
+        await removeRows([
+          ["StatusPageOwnerUser", "statusPageId", new ObjectID(created._id)],
+          ["StatusPage", "_id", new ObjectID(created._id)],
+        ]);
+      }
+
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    const pagesNamed: (name: string) => Promise<Array<string>> = async (
+      name: string,
+    ): Promise<Array<string>> => {
+      // Removed for good, not marked deleted: no row of any kind is left.
+      const rows: Array<{ _id: string }> = await database.query(
+        `SELECT "_id" FROM "${schema}"."StatusPage" WHERE "name" = $1`,
+        [name],
+      );
+
+      return rows.map((row: { _id: string }): string => {
+        return row._id;
+      });
+    };
+
+    const createPage: (name: string) => Promise<Outcome> = async (
+      name: string,
+    ): Promise<Outcome> => {
+      return await send({
+        uri: "/status-page",
+        caller: homeUser,
+        body: { data: JSONFunctions.serialize({ name: name }) },
+      });
+    };
+
+    test("is made its owner, or what they create is removed and the create refused", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        {
+          permission: Permission.CreateProjectStatusPage,
+          scope: PermissionScope.Owned,
+        },
+        {
+          permission: Permission.ReadProjectStatusPage,
+          scope: PermissionScope.Owned,
+        },
+      ]);
+
+      const failedInsert: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+        StatusPageOwnerUserService,
+        "create",
+      ).mockRejectedValue(new Error("The database went away.") as never);
+
+      const refusedName: string = `${OWNED_PAGE_MARKER} ${ObjectID.generate().toString()}`;
+
+      try {
+        const refused: Outcome = await createPage(refusedName);
+
+        expect(refused.error).toBeInstanceOf(ServerException);
+        expect((refused.error as Error).message).toBe(
+          "This Status Page was not created: your access lets you create only the Status Pages you own, and you could not be made its owner. Please try again.",
+        );
+        expect(failedInsert).toHaveBeenCalledTimes(1);
+      } finally {
+        failedInsert.mockRestore();
+      }
+
+      expect(await pagesNamed(refusedName)).toEqual([]);
+
+      // With the owner row written, the page is made, and theirs.
+      const name: string = `${OWNED_PAGE_MARKER} ${ObjectID.generate().toString()}`;
+      const created: Outcome = await createPage(name);
+
+      expect(created.error).toBeUndefined();
+
+      const owners: Array<{ userId: string }> = await database.query(
+        `SELECT o."userId" FROM "${schema}"."StatusPageOwnerUser" o JOIN "${schema}"."StatusPage" p ON p."_id" = o."statusPageId" WHERE p."name" = $1`,
+        [name],
+      );
+
+      expect(
+        owners.map((owner: { userId: string }): string => {
+          return owner.userId;
+        }),
+      ).toEqual([memberId.toString()]);
+    });
+  });
+
   /*
    * A READ ACROSS PROJECTS (the home page's alerts of every project): each
    * project's rows are narrowed by the member's grants and blocks in that
@@ -5014,6 +5784,183 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
         await removeRows([["AIInsight", "_id", id]]);
       }
+    });
+  });
+
+  /*
+   * ALERTS LISTED BY THE METRIC THEIR TELEMETRY QUERY READ (#4472): what a
+   * metric chart filtered to no resource asks for its markers. The filter is
+   * on the jsonb column a metric-evaluating monitor writes the queries that
+   * fired the alert into, and the route answers it like any other filter: in
+   * the request's project, under the label rule.
+   */
+  describe("alerts listed by the metric their telemetry query read", () => {
+    const CHARTED: string = "container_cpu_cfs_periods_total";
+
+    const chartedAlertId: ObjectID = ObjectID.generate();
+    const chartedProductionAlertId: ObjectID = ObjectID.generate();
+    const otherMetricAlertId: ObjectID = ObjectID.generate();
+    const statusPageAlertId: ObjectID = ObjectID.generate();
+    const chartedOtherProjectAlertId: ObjectID = ObjectID.generate();
+
+    // The queries a Kubernetes monitor's step read, as MonitorResource stores them.
+    const raisedOn: (metricName: string) => JSONObject = (
+      metricName: string,
+    ): JSONObject => {
+      return {
+        telemetryType: "Metric",
+        telemetryQuery: null,
+        metricViewData: {
+          startAndEndDate: null,
+          queryConfigs: [
+            {
+              metricAliasData: {
+                metricVariable: "a",
+                title: metricName,
+                description: "",
+                legend: "",
+                legendUnit: "",
+              },
+              metricQueryData: {
+                filterData: {
+                  metricName: metricName,
+                  attributes: { "resource.k8s.cluster.name": "prod" },
+                  aggegationType: "Avg",
+                },
+              },
+            },
+          ],
+          formulaConfigs: [],
+        },
+      };
+    };
+
+    // What the overlay hook sends for the chart: its query, project and window.
+    const chartQuery: () => JSONObject = (): JSONObject => {
+      const scope: EventOverlayScope = getEventOverlayScope([
+        {
+          metricQueryData: {
+            filterData: { metricName: CHARTED, attributes: {} },
+          },
+        },
+      ]);
+
+      expect(scope.alertQueries).toHaveLength(1);
+
+      return {
+        ...(scope.alertQueries[0] as JSONObject),
+        projectId: homeProjectId,
+        createdAt: new InBetween<Date>(
+          new Date(Date.now() - 60 * 60 * 1000),
+          new Date(Date.now() + 60 * 60 * 1000),
+        ),
+      };
+    };
+
+    beforeAll(async () => {
+      for (const [id, projectId, title, telemetryQuery, labelIds] of [
+        [chartedAlertId, homeProjectId, "Throttled", raisedOn(CHARTED), []],
+        [
+          chartedProductionAlertId,
+          homeProjectId,
+          "Throttled in production",
+          raisedOn(CHARTED),
+          [productionLabelId],
+        ],
+        [
+          otherMetricAlertId,
+          homeProjectId,
+          "Memory",
+          raisedOn("container_memory_working_set_bytes"),
+          [],
+        ],
+        [statusPageAlertId, homeProjectId, "Vendor outage", null, []],
+        [
+          chartedOtherProjectAlertId,
+          otherProjectId,
+          "Throttled elsewhere",
+          raisedOn(CHARTED),
+          [],
+        ],
+      ] as Array<
+        [ObjectID, ObjectID, string, JSONObject | null, Array<ObjectID>]
+      >) {
+        await insertAlert({
+          id: id,
+          projectId: projectId,
+          title: title,
+          labelIds: labelIds,
+        });
+        // JSON.stringify is what TypeORM writes to a jsonb column.
+        await database.query(
+          `UPDATE "${schema}"."Alert" SET "telemetryQuery" = $1 WHERE "_id" = $2`,
+          [
+            telemetryQuery ? JSON.stringify(telemetryQuery) : null,
+            id.toString(),
+          ],
+        );
+      }
+    });
+
+    afterAll(async () => {
+      for (const id of [
+        chartedAlertId,
+        chartedProductionAlertId,
+        otherMetricAlertId,
+        statusPageAlertId,
+        chartedOtherProjectAlertId,
+      ]) {
+        await removeRows([
+          ["AlertLabel", "alertId", id],
+          ["Alert", "_id", id],
+        ]);
+      }
+    });
+
+    test("a member's list and count hold only the alerts raised on the charted metric", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+
+      const listed: Outcome = await list("/alert", homeUser, chartQuery());
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(
+        sorted([chartedAlertId, chartedProductionAlertId]),
+      );
+      expect(listed.count).toBe(2);
+
+      const counted: Outcome = await count("/alert", homeUser, chartQuery());
+
+      expect(counted.count).toBe(2);
+    });
+
+    test("the label rule still holds on the filtered list", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+        ...alertBlocks([productionLabelId]),
+      ]);
+
+      const listed: Outcome = await list("/alert", homeUser, chartQuery());
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(sorted([chartedAlertId]));
+    });
+
+    test("an API key with only the read permission gets the same answer", async () => {
+      const listed: Outcome = await list(
+        "/alert",
+        {
+          kind: "apiKey",
+          apiKey: await createApiKey([{ permission: Permission.ReadAlert }]),
+        },
+        chartQuery(),
+      );
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(
+        sorted([chartedAlertId, chartedProductionAlertId]),
+      );
     });
   });
 

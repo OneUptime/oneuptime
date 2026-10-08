@@ -47,7 +47,17 @@ export type LabelNamesFinder = (data: {
   props: DatabaseCommonInteractionProps;
 }) => Promise<Array<string>>;
 
-// What the caller's create permission on a model reaches.
+/*
+ * The labelled records a record that carries no labels of its own names,
+ * by labelled model (CreateScopePermission.getLabelledRecordsNamed), and
+ * whether it names any record at all.
+ */
+export interface LabelledRecordsNamed {
+  namesARecord: boolean;
+  ids: Map<DatabaseBaseModelType, Set<string>>;
+}
+
+// What the caller's create (or update) permission on a model reaches.
 export interface CreateScope {
   // A permission to create that reaches the whole project.
   isProjectWide: boolean;
@@ -213,11 +223,29 @@ export default class CreateScopePermission {
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
   ): CreateScope {
+    return CreateScopePermission.getWriteScope(
+      modelType,
+      props,
+      DatabaseRequestType.Create,
+    );
+  }
+
+  /*
+   * What the caller's permissions to create or to update `modelType` reach,
+   * read the same way (see getCreateScope): an update that changes the
+   * labels a record carries is held to its update permission's scope
+   * (UpdateScopePermission) as a create is to its create permission's.
+   */
+  public static getWriteScope(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType.Create | DatabaseRequestType.Update,
+  ): CreateScope {
     const held: HeldPermissions = TablePermission.getHeldPermissions(props);
 
     const granting: Array<Permission> = TablePermission.getGrantingPermissions(
       modelType,
-      DatabaseRequestType.Create,
+      type,
       props,
       held,
     );
@@ -257,14 +285,8 @@ export default class CreateScopePermission {
 
     const blocking: Array<Permission> =
       HeldPermissionsUtil.getLabelBlockingPermissions(held, {
-        modelPermissions: TablePermission.getTablePermission(
-          modelType,
-          DatabaseRequestType.Create,
-        ),
-        wildcard: TablePermission.getModelWildcard(
-          modelType,
-          DatabaseRequestType.Create,
-        ),
+        modelPermissions: TablePermission.getTablePermission(modelType, type),
+        wildcard: TablePermission.getModelWildcard(modelType, type),
       });
 
     const labelledBlocks: Array<UserPermission> =
@@ -317,6 +339,54 @@ export default class CreateScopePermission {
       );
     }
 
+    const named: LabelledRecordsNamed =
+      CreateScopePermission.getLabelledRecordsNamed(data.modelType, record);
+
+    if (!named.namesARecord) {
+      return null;
+    }
+
+    const labelIds: Set<string> = new Set<string>();
+
+    // Each kind of record named, looked up at once.
+    const labelsByKind: Array<Dictionary<Array<string>>> = await Promise.all(
+      Array.from(named.ids.entries()).map(
+        ([modelType, ids]: [DatabaseBaseModelType, Set<string>]): Promise<
+          Dictionary<Array<string>>
+        > => {
+          return data.findRecordLabels({
+            modelType: modelType,
+            ids: Array.from(ids),
+            props: data.props,
+          });
+        },
+      ),
+    );
+
+    for (const labelsByRecord of labelsByKind) {
+      for (const recordLabelIds of Object.values(labelsByRecord)) {
+        for (const labelId of recordLabelIds || []) {
+          labelIds.add(normalizeReferenceId(labelId));
+        }
+      }
+    }
+
+    return labelIds;
+  }
+
+  /*
+   * The labelled records a record of a model that carries no labels of its
+   * own names (ReadPermission.getLabelledReferences, and the parents it is
+   * read through, through a list), by labelled model, every id lower-cased -
+   * and whether it names a record at all. A malformed id names a record, but
+   * none that could carry a label. See getRecordLabelIds.
+   */
+  public static getLabelledRecordsNamed(
+    modelType: DatabaseBaseModelType,
+    record: Record<string, unknown>,
+  ): LabelledRecordsNamed {
+    const model: BaseModel = new modelType();
+
     // The ids each labelled model is named by.
     const namedIds: Map<DatabaseBaseModelType, Set<string>> = new Map();
     let namesARecord: boolean = false;
@@ -348,9 +418,8 @@ export default class CreateScopePermission {
       }
     };
 
-    const references: LabelledReferences = ReadPermission.getLabelledReferences(
-      data.modelType,
-    );
+    const references: LabelledReferences =
+      ReadPermission.getLabelledReferences(modelType);
 
     for (const reference of references.keys) {
       name(
@@ -367,6 +436,31 @@ export default class CreateScopePermission {
     }
 
     // The parents it is read through, through a list (an announcement's pages).
+    const parentRelation: string | null =
+      CreateScopePermission.getLabelledParentList(modelType);
+    const parentColumn: TableColumnMetadata | undefined = parentRelation
+      ? model.getTableColumnMetadata(parentRelation)
+      : undefined;
+
+    if (parentRelation && parentColumn?.modelType) {
+      for (const parentId of resolveReferenceIds(record[parentRelation])) {
+        name([parentColumn.modelType as DatabaseBaseModelType], parentId);
+      }
+    }
+
+    return { namesARecord: namesARecord, ids: namedIds };
+  }
+
+  /*
+   * The list of parents a model that carries no labels of its own is read
+   * through (@CanAccessIfCanReadOn naming a list - an announcement's status
+   * pages), when those parents carry labels: the record carries theirs. Null
+   * for any other model.
+   */
+  public static getLabelledParentList(
+    modelType: DatabaseBaseModelType,
+  ): string | null {
+    const model: BaseModel = new modelType();
     const parentRelation: string | null = model.canAccessIfCanReadOn;
     const parentColumn: TableColumnMetadata | undefined = parentRelation
       ? model.getTableColumnMetadata(parentRelation)
@@ -378,41 +472,10 @@ export default class CreateScopePermission {
       parentColumn.modelType &&
       new parentColumn.modelType().getAccessControlColumn()
     ) {
-      for (const parentId of resolveReferenceIds(record[parentRelation])) {
-        name([parentColumn.modelType as DatabaseBaseModelType], parentId);
-      }
+      return parentRelation;
     }
 
-    if (!namesARecord) {
-      return null;
-    }
-
-    const labelIds: Set<string> = new Set<string>();
-
-    // Each kind of record named, looked up at once.
-    const labelsByKind: Array<Dictionary<Array<string>>> = await Promise.all(
-      Array.from(namedIds.entries()).map(
-        ([modelType, ids]: [DatabaseBaseModelType, Set<string>]): Promise<
-          Dictionary<Array<string>>
-        > => {
-          return data.findRecordLabels({
-            modelType: modelType,
-            ids: Array.from(ids),
-            props: data.props,
-          });
-        },
-      ),
-    );
-
-    for (const labelsByRecord of labelsByKind) {
-      for (const recordLabelIds of Object.values(labelsByRecord)) {
-        for (const labelId of recordLabelIds || []) {
-          labelIds.add(normalizeReferenceId(labelId));
-        }
-      }
-    }
-
-    return labelIds;
+    return null;
   }
 
   /*
@@ -486,7 +549,7 @@ export default class CreateScopePermission {
   }
 
   // `the label "Production"`, `the labels "Production", "Staging"`.
-  private static describeLabels(names: Array<string>): string {
+  public static describeLabels(names: Array<string>): string {
     const quoted: Array<string> = names.map((labelName: string): string => {
       return `"${labelName}"`;
     });

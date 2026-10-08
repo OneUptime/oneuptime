@@ -524,6 +524,17 @@ export class Service extends ProjectReferencesService<Model> {
     return ["probe"];
   }
 
+  /*
+   * A device put in a site with no probe of its own takes the site's
+   * default probe (onBeforeCreate, and a move to another site): copied from
+   * the site the write names, which its caller may read, and set on the
+   * site by someone allowed to. A probe the caller names is asked about as
+   * theirs (DatabaseService.checkNamedLists).
+   */
+  protected override getReferencesFilledFromNamedRecords(): Array<string> {
+    return ["probe"];
+  }
+
   /**
    * The four numbers in the summary strip above the device list, in one
    * round trip and one SQL statement.

@@ -569,6 +569,111 @@ describe("project SSO provider changes reach every server through Valkey", () =>
   });
 
   /*
+   * Once its check is done, a change keeps its locks alive while it is
+   * written (ProjectSsoProviderChanges.holdForWrite) - every
+   * WRITE_KEEP_INTERVAL_IN_MS, however long the write takes - until they are
+   * given back: it never lands once they could have run out, and no other
+   * server's change to who can sign in comes between.
+   *
+   * The lock is cut short in Valkey right after it is held, as though it
+   * were nearly out (4s): the keep 2.5s in sets it back to a full timeout,
+   * so 6s in - 2s past the cut - it is still held, with seconds to spare.
+   */
+  test("a change being written keeps its lock alive in Valkey past the time it would have run out; another server's change waits until it is given back", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    try {
+      await serverA.providerChanges.holdForWrite(held);
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(true);
+
+      await serverA.client.pexpire(lockKey, 4000);
+      await pause(6000);
+
+      expect(await serverA.client.pttl(lockKey)).toBeGreaterThan(5000);
+
+      // Another server's change to who can sign in, meanwhile: it waits.
+      let heldByB: Array<SemaphoreMutex> | null = null;
+      const waitingB: Promise<void> = serverB.providerChanges
+        .lockSignInChange({ projectIds: [], wholeServer: true })
+        .then((locks: Array<SemaphoreMutex>): void => {
+          heldByB = locks;
+        });
+
+      await quietPeriod();
+      expect(heldByB).toBeNull();
+
+      // Written: the lock is given back, kept no more, and B goes on.
+      await serverA.providerChanges.releaseSignInChange(held);
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(false);
+
+      await waitingB;
+      expect(heldByB).toHaveLength(1);
+      await serverB.providerChanges.releaseSignInChange(heldByB!);
+    } finally {
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  }, 30000);
+
+  test("a lock Valkey loses while its change is written is kept no more: nothing takes it back for the change", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    try {
+      await serverA.providerChanges.holdForWrite(held);
+
+      // Valkey lost it (a restart, an eviction) while the write ran.
+      await serverA.client.del(lockKey);
+      await pause(4000);
+
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(false);
+      expect(await serverA.client.exists(lockKey)).toBe(0);
+
+      // Another server's change takes it at once.
+      const next: Array<SemaphoreMutex> =
+        await serverB.providerChanges.lockSignInChange({
+          projectIds: [],
+          wholeServer: true,
+        });
+      expect(next).toHaveLength(1);
+      await serverB.providerChanges.releaseSignInChange(next);
+    } finally {
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  }, 30000);
+
+  test("a change whose lock Valkey lost before its write is refused right before it, and keeps nothing alive", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    try {
+      await serverA.client.del(lockKey);
+
+      await expect(serverA.providerChanges.holdForWrite(held)).rejects.toThrow(
+        "Another change to who can sign in with SSO is being saved. Try again in a moment.",
+      );
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(false);
+    } finally {
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  });
+
+  /*
    * A project created on one server holds the lock on the server's sign-in
    * rules from its check until it is written (SsoRequirementChanges.
    * beforeProjectCreate / afterProjectCreate): a server turning Require SSO

@@ -438,7 +438,7 @@ export default class MicrosoftTeamsIncidentActions {
         incident.declaredAt || incident.createdAt || undefined;
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
       const message: string =
-        mdText`**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${FeedMarkdown.asMarkdown(incident.description || "No description")}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`.toString();
+        mdText`**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(incident.description || "No description")}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;

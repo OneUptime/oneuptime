@@ -60,10 +60,12 @@ interface Kind {
    * The refusals for a record, or an episode, the caller cannot see. The
    * record is the one a member row is created under, so one the caller may
    * not read is answered like one that does not exist, naming it, before the
-   * episode's own checks run (CreatePermission.checkParentPermission).
+   * episode's own checks run (CreatePermission.checkParentPermission). The
+   * episode is a record the member row names: one the caller may not read
+   * is answered the same way (RelationListPermission).
    */
   hiddenRecord: (recordId: ObjectID) => string;
-  hiddenEpisode: string;
+  hiddenEpisode: (episodeId: ObjectID) => string;
 }
 
 const KINDS: Array<Kind> = [
@@ -78,8 +80,9 @@ const KINDS: Array<Kind> = [
     hiddenRecord: (recordId: ObjectID): string => {
       return `This incident episode member references records that are not in this project: Incident "${recordId.toString()}". Please pick values from this project and try again.`;
     },
-    hiddenEpisode:
-      "The episode to add the incident to does not exist in this project, or you do not have access to it.",
+    hiddenEpisode: (episodeId: ObjectID): string => {
+      return `This incident episode member references records that are not in this project: Incident Episode "${episodeId.toString()}". Please pick values from this project and try again.`;
+    },
   },
   {
     name: "Alert",
@@ -92,8 +95,9 @@ const KINDS: Array<Kind> = [
     hiddenRecord: (recordId: ObjectID): string => {
       return `This alert episode member references records that are not in this project: Alert "${recordId.toString()}". Please pick values from this project and try again.`;
     },
-    hiddenEpisode:
-      "The episode to add the alert to does not exist in this project, or you do not have access to it.",
+    hiddenEpisode: (episodeId: ObjectID): string => {
+      return `This alert episode member references records that are not in this project: Alert Episode "${episodeId.toString()}". Please pick values from this project and try again.`;
+    },
   },
 ];
 
@@ -502,7 +506,7 @@ describePostgres(
               userProps(s.projectId, userId, Permission.ProjectMember),
             );
 
-            expect(refusal?.message).toBe(kind.hiddenEpisode);
+            expect(refusal?.message).toBe(kind.hiddenEpisode(episodeId));
           }
         }
 
