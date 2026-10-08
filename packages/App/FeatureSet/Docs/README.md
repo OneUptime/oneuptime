@@ -31,7 +31,11 @@ flowchart LR
 
 URLs never change. The dashboard, the website and search engines link to
 them; when a page has to move, keep its file where it is and move its nav
-entry, or add a permanent redirect in `Index.ts`.
+entry, or add a permanent redirect in `Index.ts`. Headings are part of the
+address too: other pages and the product link to `#anchors`, which are made
+from the heading text. Before renaming a heading, search for its anchor
+(`grep -rn "<category>/<page>#" packages`); `DocsLinksResolve` fails on an
+English page or a literal product link that names a heading no longer there.
 
 ## What a page looks like
 
@@ -271,6 +275,14 @@ page with no translation is served in English.
   `../Dashboard/src/Locales/<language>.json`. Several tests check this.
 - In-page links (`#anchor`) point at the translated heading: anchors are made
   from the heading text, so a translated heading has a translated anchor.
+  Copy the English links as they are, then let
+  `npm run docs:localize-anchors -- --apply --lang <code> --page <category/page>`
+  point them at the translated headings. It pairs each English heading with
+  the one in the same place in the translation, so it only maps a page whose
+  translation keeps the English page's shape (the same headings at the same
+  levels, with the same code samples under them); a link into a page whose
+  translation is out of date is reported and left alone until that page is
+  translated again. Without `--apply` it only reports.
 - Links to other pages stay `/docs/<category>/<page>`; the reader is kept in
   their language automatically.
 - Persian (`fa`) is written right to left; code and diagrams stay left to
@@ -284,6 +296,9 @@ cd packages/App && npx jest Tests/FeatureSet/Docs
 
 # In-page anchors in every language.
 npm run docs:check-anchors
+
+# Anchors in translations that still name English headings (add -- --apply).
+npm run docs:localize-anchors
 
 # Every locale file has every key.
 npm run i18n:validate
