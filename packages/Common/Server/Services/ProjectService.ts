@@ -862,7 +862,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
 
-    this.announceSignInRulesChanged(updateData, updatedItemIds);
+    this.announceSignInRulesChanged(
+      SsoRequirementChanges.takeProjectsWhoseRuleChanged(
+        onUpdate.updateBy,
+        updatedItemIds,
+      ),
+    );
 
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
@@ -969,8 +974,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A project's sign-in rules changed: Require SSO turned on or off, or the
-   * provider it pins set or cleared. Every server reads them again at once,
+   * The projects whose sign-in rules a write changed: Require SSO turned on
+   * or off, or the provider it pins set, changed or cleared
+   * (SsoRequirementChanges.takeProjectsWhoseRuleChanged - a rule written
+   * back as it was is not one). Every server reads them again at once,
    * rather than when its cached copy runs out a minute later
    * (RealtimeAccessChanges). Rules that ask for more stop a page that no
    * longer meets them hearing at once, as its API requests are refused at
@@ -979,19 +986,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * every server: one that still held the old rule would refuse them until
    * it ran out.
    */
-  private announceSignInRulesChanged(
-    updateData: Record<string, unknown>,
-    updatedItemIds: Array<ObjectID>,
-  ): void {
-    const changesRule: boolean =
-      updateData["requireSsoForLogin"] !== undefined ||
-      updateData["requireSsoWithSsoProviderId"] !== undefined;
-
-    if (!changesRule) {
-      return;
-    }
-
-    for (const projectId of updatedItemIds) {
+  private announceSignInRulesChanged(changedProjectIds: Array<ObjectID>): void {
+    for (const projectId of changedProjectIds) {
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SignInRulesChanged,
         projectId: projectId.toString(),
@@ -1067,6 +1063,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
+
+    // What the rules are now, so only a rule the write changes is told.
+    await SsoRequirementChanges.rememberProjectRulesBefore(updateBy);
 
     await this.chargeAutoRechargeTurnedOn(updateBy);
   }

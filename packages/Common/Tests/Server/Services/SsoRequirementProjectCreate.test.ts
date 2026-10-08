@@ -19,6 +19,7 @@ import {
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
 import {
   NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE,
+  PROJECT_CREATE_WAITS_FOR_SIGN_IN_CHANGE_MESSAGE,
   REQUIRED_PROVIDER_CANNOT_SIGN_IN_MESSAGE,
   SERVER_REQUIRES_SSO_FOR_NEW_PROJECT_MESSAGE,
 } from "../../../Server/Utils/SsoRequirementChanges";
@@ -306,27 +307,41 @@ beforeEach(() => {
       return new GlobalOidc();
     });
   }) as never);
-  getJestSpyOn(GlobalSsoProjectService, "findAllBy").mockImplementation(
-    (async () => {
-      return globalSaml.flatMap(
-        (provider: GlobalProvider): Array<GlobalSsoProject> => {
-          return provider.attachedTo.map(
-            (projectId: ObjectID): GlobalSsoProject => {
-              const attachment: GlobalSsoProject = new GlobalSsoProject();
-              attachment.id = ObjectID.generate();
-              attachment.globalSsoId = provider.id;
-              attachment.projectId = projectId;
-              attachment.isEnabled = true;
-              return attachment;
-            },
-          );
+  /*
+   * Whether a restricted provider has any attachment: the one row the check
+   * asks for. It never reads a provider's attachments as a list.
+   */
+  getJestSpyOn(GlobalSsoProjectService, "findOneBy").mockImplementation(
+    (async (data: { query: { globalSsoId?: ObjectID } }) => {
+      events.push("read:attachment");
+
+      const provider: GlobalProvider | undefined = globalSaml.find(
+        (candidate: GlobalProvider): boolean => {
+          return candidate.id.toString() === data.query.globalSsoId?.toString();
         },
       );
+      const projectId: ObjectID | undefined = provider?.attachedTo[0];
+
+      if (!provider || !projectId) {
+        return null;
+      }
+
+      const attachment: GlobalSsoProject = new GlobalSsoProject();
+      attachment.id = ObjectID.generate();
+      attachment.globalSsoId = provider.id;
+      attachment.projectId = projectId;
+      attachment.isEnabled = true;
+      return attachment;
     }) as never,
   );
-  getJestSpyOn(GlobalOidcProjectService, "findAllBy").mockResolvedValue(
-    [] as never,
+  getJestSpyOn(GlobalOidcProjectService, "findOneBy").mockResolvedValue(
+    null as never,
   );
+  for (const service of [GlobalSsoProjectService, GlobalOidcProjectService]) {
+    getJestSpyOn(service, "findAllBy").mockImplementation((async () => {
+      throw new Error("A create's check reads no attachment list");
+    }) as never);
+  }
 
   // The lock on the server's sign-in rules, held in memory.
   getJestSpyOn(Semaphore, "lock").mockImplementation((async (data: {
@@ -453,6 +468,34 @@ describe("a project created with Require SSO for Login on", () => {
       create("masterAdmin", { requireSsoForLogin: true }),
     ).resolves.toBe(NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE);
     expect(saved).toHaveLength(1);
+  });
+
+  test("a restricted provider is only asked whether it has an attachment at all, one row; one that is not restricted is not asked", async () => {
+    globalSaml = [
+      everyProject(GLOBAL_SAML),
+      {
+        id: RESTRICTED_SAML,
+        restrictToAttachedProjects: true,
+        attachedTo: [OTHER_PROJECT],
+      },
+    ];
+
+    await expect(
+      create("masterAdmin", { requireSsoForLogin: true }),
+    ).resolves.toBe("created");
+
+    const asked: Array<Array<unknown>> = (
+      GlobalSsoProjectService.findOneBy as unknown as {
+        mock: { calls: Array<Array<unknown>> };
+      }
+    ).mock.calls;
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]![0]).toEqual({
+      query: { globalSsoId: RESTRICTED_SAML },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
   });
 
   test("the provider it requires must be one that signs people in to it", async () => {
@@ -637,10 +680,13 @@ describe("the lock the check holds", () => {
     ).toHaveLength(1);
   });
 
-  test("held by another change for longer than a create waits refuses the create: try again in a moment", async () => {
+  test("held by another change for longer than a create waits refuses the create: try again in a moment, in a creator's words", async () => {
     lockBusy = true;
 
     await expect(create("member")).resolves.toBe(
+      PROJECT_CREATE_WAITS_FOR_SIGN_IN_CHANGE_MESSAGE,
+    );
+    expect(PROJECT_CREATE_WAITS_FOR_SIGN_IN_CHANGE_MESSAGE).not.toBe(
       SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
     );
     expect(saved).toEqual([]);
@@ -650,7 +696,7 @@ describe("the lock the check holds", () => {
     lostLocks = [SERVER_LOCK];
 
     await expect(create("member")).resolves.toBe(
-      SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      PROJECT_CREATE_WAITS_FOR_SIGN_IN_CHANGE_MESSAGE,
     );
     expect(saved).toEqual([]);
     expect(lockEvents()).toEqual([

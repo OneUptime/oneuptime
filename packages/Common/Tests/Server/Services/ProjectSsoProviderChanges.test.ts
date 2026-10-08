@@ -11,7 +11,6 @@ import GlobalSsoService from "../../../Server/Services/GlobalSsoService";
 import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
-import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import logger from "../../../Server/Utils/Logger";
@@ -1826,7 +1825,7 @@ describe("the rows a write names are read under the lock", () => {
   );
 });
 
-describe("a write locks before it reads, and writes only the rows it read under its locks", () => {
+describe("a write by filter reads under its locks, and writes only the rows it read there", () => {
   const LATER_ID: ObjectID = new ObjectID(
     "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
   );
@@ -1871,7 +1870,7 @@ describe("a write locks before it reads, and writes only the rows it read under 
   };
 
   test.each(KINDS)(
-    "%s: a write whose filter names its project locks the project first, and reads its rows only under the lock",
+    "%s: a write whose filter names its project reads once to learn it, locks it, and reads its rows again under the lock",
     async (_label: string, kind: ProviderKind) => {
       watchReads(kind);
 
@@ -1885,7 +1884,8 @@ describe("a write locks before it reads, and writes only the rows it read under 
         }),
       ).resolves.toBe(1);
 
-      expect(events.slice(0, 2)).toEqual([
+      expect(events.slice(0, 3)).toEqual([
+        "read",
         `lock:${PROJECT_ID.toString()}`,
         "read",
       ]);
@@ -1894,7 +1894,7 @@ describe("a write locks before it reads, and writes only the rows it read under 
   );
 
   test.each(KINDS)(
-    "%s: a write whose filter names a project that has no such provider writes nothing, and gives the lock back at once",
+    "%s: a write whose filter reaches no provider - a clean-up of a project that has none - takes no lock, and writes nothing",
     async (_label: string, kind: ProviderKind) => {
       watchReads(kind);
 
@@ -1911,12 +1911,49 @@ describe("a write locks before it reads, and writes only the rows it read under 
         }),
       ).resolves.toBe(0);
 
-      expect(events).toEqual([
-        `lock:${OTHER_PROJECT_ID.toString()}`,
-        "read",
-        `release:${OTHER_PROJECT_ID.toString()}`,
-      ]);
+      expect(events).toEqual(["read"]);
+      expect(lockCalls).toEqual([]);
       expect(kind.writes()).toEqual([]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a filter that names two projects locks the one it found providers in; a provider that comes to match it in the other between the reads refuses the write, to be saved again",
+    async (_label: string, kind: ProviderKind) => {
+      const name: string = String(rowOf(kind)!["name"]);
+
+      // While the write waits for its project's lock, the other project gets a provider of that name.
+      whileWaitingForLock = (): void => {
+        kind.rows().push(
+          row({
+            id: LATER_ID,
+            projectId: OTHER_PROJECT_ID,
+            columns: { name: name },
+          }),
+        );
+      };
+
+      await expect(
+        refusalOf(
+          kind.service.updateBy({
+            query: {
+              projectId: new Includes([PROJECT_ID, OTHER_PROJECT_ID]),
+              name: name,
+            } as never,
+            data: { isEnabled: false } as never,
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: ROOT,
+          }),
+        ),
+      ).resolves.toBe(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
+
+      expect(kind.writes()).toEqual([]);
+      expect(rowOf(kind, LATER_ID)!.isEnabled).toBe(true);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
     },
   );
 
@@ -2102,53 +2139,6 @@ describe("a write locks before it reads, and writes only the rows it read under 
       expect(deleted).toEqual([]);
     },
   );
-});
-
-describe("the projects a write's filter names", () => {
-  test("one project, by its id or as text, in the case its rows are compared in", () => {
-    expect(
-      ProjectSsoProviderChanges.getProjectIdsNamedBy({
-        projectId: PROJECT_ID,
-      }),
-    ).toEqual([PROJECT_ID.toString().toLowerCase()]);
-    expect(
-      ProjectSsoProviderChanges.getProjectIdsNamedBy({
-        projectId: PROJECT_ID.toString().toUpperCase(),
-        name: "Okta",
-      }),
-    ).toEqual([PROJECT_ID.toString().toLowerCase()]);
-  });
-
-  test("a list of them, each once", () => {
-    expect(
-      ProjectSsoProviderChanges.getProjectIdsNamedBy({
-        projectId: new Includes([PROJECT_ID, OTHER_PROJECT_ID, PROJECT_ID]),
-      }),
-    ).toEqual([
-      PROJECT_ID.toString().toLowerCase(),
-      OTHER_PROJECT_ID.toString().toLowerCase(),
-    ]);
-    expect(
-      ProjectSsoProviderChanges.getProjectIdsNamedBy({
-        projectId: new Includes([]),
-      }),
-    ).toEqual([]);
-  });
-
-  test("none, when the filter does not name its projects by value: any project's rows may come to match it", () => {
-    for (const query of [
-      {},
-      { _id: SAML_ID.toString() },
-      { name: "Okta" },
-      { projectId: QueryHelper.any([PROJECT_ID]) },
-      { projectId: null },
-      { projectId: "" },
-      [{ projectId: PROJECT_ID }],
-      null,
-    ]) {
-      expect(ProjectSsoProviderChanges.getProjectIdsNamedBy(query)).toBeNull();
-    }
-  });
 });
 
 describe("the check reads the providers that are on once per kind", () => {

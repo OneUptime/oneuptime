@@ -1,5 +1,4 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Includes from "../../Types/BaseDatabase/Includes";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -27,7 +26,6 @@ import SsoSignInWays, {
   StrandReason,
   StrandedProject,
   StrandedProjects,
-  toIdString,
 } from "./SsoSignInWays";
 
 /*
@@ -540,60 +538,17 @@ export default class ProjectSsoProviderChanges {
   }
 
   /*
-   * The projects a write's filter names by value - one project, or a list
-   * of them (Includes) - so every row it can ever reach is in one of them,
-   * whatever is written meanwhile. Null when it names none that way: then a
-   * row of any project may come to match it.
-   */
-  public static getProjectIdsNamedBy(query: unknown): Array<string> | null {
-    if (!query || typeof query !== "object" || Array.isArray(query)) {
-      return null;
-    }
-
-    const value: unknown = (query as Record<string, unknown>)["projectId"];
-
-    if (typeof value === "string" || value instanceof ObjectID) {
-      const projectId: string | null = toIdString(value);
-
-      return projectId ? [projectId] : null;
-    }
-
-    if (value instanceof Includes) {
-      const projectIds: Set<string> = new Set<string>();
-
-      for (const item of value.values) {
-        const projectId: string | null = toIdString(item);
-
-        if (!projectId) {
-          return null;
-        }
-
-        projectIds.add(projectId);
-      }
-
-      return Array.from(projectIds);
-    }
-
-    return null;
-  }
-
-  /*
    * The rows a write names and what it does to them, read under a lock on
-   * each project they can be in, so no other turn off, turn on or delete of
+   * each project they are in, so no other turn off, turn on or delete of
    * those projects' providers comes between what this write reads and what
-   * it writes:
+   * it writes. The rows are read once to learn their projects - a write
+   * that reaches no provider takes no lock, and writes nothing - the
+   * projects are locked, and the rows are read again. Read again, they must
+   * stay within the projects locked: a write whose filter now reaches
+   * another project - a provider created, or moved, there in between - is
+   * refused, to be saved again.
    *
-   *   - a write whose filter names its projects (getProjectIdsNamedBy) - a
-   *     write from a project, which is always held to it - locks them
-   *     first, and reads its rows only then;
-   *   - one that names none - a server admin's, or OneUptime's own, by id
-   *     or by another filter - reads its rows once to learn their projects,
-   *     locks those, and reads them again. Read again, they must stay
-   *     within the projects locked: one that now reaches another project -
-   *     a provider created or moved there in between - is refused, to be
-   *     saved again.
-   *
-   * Either way the write then goes to exactly the rows read under the locks
+   * The write then goes to exactly the rows read under the locks
    * (writeOnlyTheRowsRead): a row that comes to match its filter later - a
    * provider created, renamed or turned on a moment after - was never
    * checked, and is left alone; a write whose rows read under the locks are
@@ -634,15 +589,10 @@ export default class ProjectSsoProviderChanges {
       });
     };
 
-    const namedProjectIds: Array<string> | null =
-      ProjectSsoProviderChanges.getProjectIdsNamedBy(data.write.query);
-
-    const lockedProjectIds: Array<string> =
-      namedProjectIds !== null
-        ? namedProjectIds
-        : Array.from(
-            ProjectSsoProviderChanges.groupByProject(await readNow()).keys(),
-          );
+    // Read once, unlocked, only to learn which projects to lock.
+    const lockedProjectIds: Array<string> = Array.from(
+      ProjectSsoProviderChanges.groupByProject(await readNow()).keys(),
+    );
 
     // It reaches no provider: nothing to lock or check, and nothing to write.
     if (lockedProjectIds.length === 0) {

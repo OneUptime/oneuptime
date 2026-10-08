@@ -2,12 +2,16 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import Project from "../../Models/DatabaseModels/Project";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import ProjectSsoProviderChanges from "./ProjectSsoProviderChanges";
+import ProjectSsoProviderChanges, {
+  SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+} from "./ProjectSsoProviderChanges";
+import logger from "./Logger";
 import SsoSignInsEnded from "./SsoSignInsEnded";
 import SsoSignInWays, {
   ProjectSignInRule,
@@ -68,6 +72,16 @@ export const REQUIRED_PROVIDER_CANNOT_SIGN_IN_MESSAGE: string =
  */
 export const SERVER_REQUIRES_SSO_FOR_NEW_PROJECT_MESSAGE: string =
   "This server requires SSO for everyone, and no SSO provider would sign people in to a new project, so you would be locked out of the project you create. Ask a server admin to turn on a global SSO provider that signs people in to every project, then try again.";
+
+/*
+ * Why a project cannot be created at this moment: a change to who can sign
+ * in with SSO on the server - its Require SSO for Login, or a global
+ * provider - is being saved, and holds the lock a create's check waits for
+ * longer than it waits. Said in a creator's terms; the change itself is
+ * refused in SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE's.
+ */
+export const PROJECT_CREATE_WAITS_FOR_SIGN_IN_CHANGE_MESSAGE: string =
+  "The server's SSO settings are being changed. Create the project again in a moment.";
 
 /*
  * Why the server's Require SSO for Login is refused, naming the projects it
@@ -423,13 +437,14 @@ export default class SsoRequirementChanges {
       return null;
     }
 
-    const locks: Array<SemaphoreMutex> =
-      await ProjectSsoProviderChanges.lockSignInChange({
+    let locks: Array<SemaphoreMutex> = [];
+
+    try {
+      locks = await ProjectSsoProviderChanges.lockSignInChange({
         projectIds: [],
         wholeServer: true,
       });
 
-    try {
       const reason: StrandReason | null =
         await SsoSignInWays.findNewProjectStrandReason({ rule });
 
@@ -456,6 +471,17 @@ export default class SsoRequirementChanges {
       return write;
     } catch (err) {
       await ProjectSsoProviderChanges.releaseSignInChange(locks);
+
+      // Busy, or lost while the check read: in the creator's words.
+      if (
+        err instanceof BadDataException &&
+        err.message === SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE
+      ) {
+        throw new BadDataException(
+          PROJECT_CREATE_WAITS_FOR_SIGN_IN_CHANGE_MESSAGE,
+        );
+      }
+
       throw err;
     }
   }
@@ -488,6 +514,202 @@ export default class SsoRequirementChanges {
     await SsoRequirementChanges.release(
       createBy as unknown as CreateBy<BaseModel>,
     );
+  }
+
+  /*
+   * The sign-in rules an update names, as they were before it is written
+   * (rememberProjectRulesBefore, rememberServerRuleBefore), by the update:
+   * so that once it is written every server is told of a rule it changed -
+   * and not of one it wrote back as it was, as an edit form or an API client
+   * that sends a whole record does with every save.
+   */
+  private static projectRulesBefore: WeakMap<
+    UpdateBy<BaseModel>,
+    Map<string, ProjectSignInRule>
+  > = new WeakMap<UpdateBy<BaseModel>, Map<string, ProjectSignInRule>>();
+
+  private static serverRuleBefore: WeakMap<UpdateBy<BaseModel>, boolean> =
+    new WeakMap<UpdateBy<BaseModel>, boolean>();
+
+  /*
+   * Before an update that names a project's Require SSO for Login, or the
+   * provider it requires, is written (ProjectService.onUpdatePermitted):
+   * the rules of the projects it reaches, as they are. Never throws: a read
+   * that fails leaves every project it writes to be told.
+   */
+  public static async rememberProjectRulesBefore(
+    updateBy: UpdateBy<Project>,
+  ): Promise<void> {
+    const written: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      written["requireSsoForLogin"] === undefined &&
+      written["requireSsoWithSsoProviderId"] === undefined
+    ) {
+      return;
+    }
+
+    try {
+      const projects: Array<Project> = await ProjectService.findAllBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          requireSsoForLogin: true,
+          requireSsoWithSsoProviderId: true,
+        },
+        limit: updateBy.limit,
+        skip: updateBy.skip,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const rules: Map<string, ProjectSignInRule> = new Map<
+        string,
+        ProjectSignInRule
+      >();
+
+      for (const project of projects) {
+        const projectId: string | null = toIdString(project.id);
+
+        if (projectId) {
+          rules.set(projectId, {
+            requireSsoForLogin: project.requireSsoForLogin === true,
+            requiredProviderId: toIdString(project.requireSsoWithSsoProviderId),
+          });
+        }
+      }
+
+      SsoRequirementChanges.projectRulesBefore.set(
+        updateBy as unknown as UpdateBy<BaseModel>,
+        rules,
+      );
+    } catch (err) {
+      logger.warn(
+        "Require SSO for Login: could not read the projects' rules before the write; every project it writes is told.",
+      );
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * Once the update is written (ProjectService.onUpdateSuccess): those of
+   * the projects it wrote whose Require SSO for Login, or required
+   * provider, it changed - as the switch and the id are stored. A project
+   * whose rule was not read before counts, so a change is never missed.
+   */
+  public static takeProjectsWhoseRuleChanged(
+    updateBy: UpdateBy<Project>,
+    updatedItemIds: Array<ObjectID>,
+  ): Array<ObjectID> {
+    const key: UpdateBy<BaseModel> = updateBy as unknown as UpdateBy<BaseModel>;
+    const before: Map<string, ProjectSignInRule> | undefined =
+      SsoRequirementChanges.projectRulesBefore.get(key);
+
+    SsoRequirementChanges.projectRulesBefore.delete(key);
+
+    const written: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const writesRule: boolean = written["requireSsoForLogin"] !== undefined;
+    const writesProvider: boolean =
+      written["requireSsoWithSsoProviderId"] !== undefined;
+
+    if (!writesRule && !writesProvider) {
+      return [];
+    }
+
+    const requireSsoForLogin: boolean = written["requireSsoForLogin"] === true;
+    const requiredProviderId: string | null = writesProvider
+      ? toIdString(written["requireSsoWithSsoProviderId"])
+      : null;
+
+    return updatedItemIds.filter((projectId: ObjectID): boolean => {
+      const rule: ProjectSignInRule | undefined = before?.get(
+        toIdString(projectId) || "",
+      );
+
+      if (!rule) {
+        return true;
+      }
+
+      return (
+        (writesRule && requireSsoForLogin !== rule.requireSsoForLogin) ||
+        (writesProvider && requiredProviderId !== rule.requiredProviderId)
+      );
+    });
+  }
+
+  /*
+   * Before an update that names the server's Require SSO for Login is
+   * written (GlobalConfigService.onUpdatePermitted): the rule as it is.
+   * Never throws: a read that fails leaves the write to be told.
+   */
+  public static async rememberServerRuleBefore(
+    updateBy: UpdateBy<GlobalConfig>,
+  ): Promise<void> {
+    const written: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (written["requireSsoForLogin"] === undefined) {
+      return;
+    }
+
+    try {
+      const config: GlobalConfig | null = await GlobalConfigService.findOneBy({
+        query: updateBy.query,
+        select: {
+          requireSsoForLogin: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (config) {
+        SsoRequirementChanges.serverRuleBefore.set(
+          updateBy as unknown as UpdateBy<BaseModel>,
+          config.requireSsoForLogin === true,
+        );
+      }
+    } catch (err) {
+      logger.warn(
+        "Require SSO for Login: could not read the server's rule before the write; the write is told.",
+      );
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * Once the update is written (GlobalConfigService.onUpdateSuccess):
+   * whether it changed the server's Require SSO for Login, as the switch is
+   * stored. One whose rule was not read before counts as a change.
+   */
+  public static takeWhetherServerRuleChanged(
+    updateBy: UpdateBy<GlobalConfig>,
+  ): boolean {
+    const key: UpdateBy<BaseModel> = updateBy as unknown as UpdateBy<BaseModel>;
+    const before: boolean | undefined =
+      SsoRequirementChanges.serverRuleBefore.get(key);
+
+    SsoRequirementChanges.serverRuleBefore.delete(key);
+
+    const written: unknown = (
+      updateBy.data as unknown as Record<string, unknown>
+    )["requireSsoForLogin"];
+
+    if (written === undefined) {
+      return false;
+    }
+
+    return before === undefined || (written === true) !== before;
   }
 
   // Gives a write's locks back, once.

@@ -111,60 +111,6 @@ export function doAttachmentsGovernProject(
 }
 
 /*
- * Whether a write to a global provider, or to one of its project
- * attachments, may let it sign fewer people in: it turns it off, or
- * restricts the provider to its attached projects.
- */
-export function isGlobalProviderNarrowing(data: unknown): boolean {
-  if (!data || typeof data !== "object") {
-    return false;
-  }
-
-  // Only the write's own fields count, never ones it inherits.
-  const writes: (column: string, value: boolean) => boolean = (
-    column: string,
-    value: boolean,
-  ): boolean => {
-    return (
-      Object.prototype.hasOwnProperty.call(data, column) &&
-      (data as Record<string, unknown>)[column] === value
-    );
-  };
-
-  return (
-    writes("isEnabled", false) || writes("restrictToAttachedProjects", true)
-  );
-}
-
-/*
- * Whether a write to a global provider, or to one of its project
- * attachments, may change who it signs in, either way: it turns it on or
- * off, or restricts it to its attached projects or lifts that. A write
- * that lets a provider sign more people in is told to every server as one
- * that lets it sign fewer is (announceGlobalSignInChange): a server still
- * holding the old answer would refuse those people until it ran out.
- */
-export function isGlobalProviderReachWrite(data: unknown): boolean {
-  if (!data || typeof data !== "object") {
-    return false;
-  }
-
-  // Only the write's own fields count, never ones it inherits.
-  const writesSwitch: (column: string) => boolean = (
-    column: string,
-  ): boolean => {
-    return (
-      Object.prototype.hasOwnProperty.call(data, column) &&
-      typeof (data as Record<string, unknown>)[column] === "boolean"
-    );
-  };
-
-  return (
-    writesSwitch("isEnabled") || writesSwitch("restrictToAttachedProjects")
-  );
-}
-
-/*
  * Whether an attachment added, turned off or removed changes who these
  * providers sign in. Only a provider that is on and restricted to its
  * attached projects reads its attachments (doAttachmentsGovernProject); for

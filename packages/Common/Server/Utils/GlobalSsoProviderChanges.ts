@@ -17,6 +17,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "./Database/RelationIdUtil";
+import logger from "./Logger";
 import ProjectSsoProviderChanges from "./ProjectSsoProviderChanges";
 import SsoSignInsEnded from "./SsoSignInsEnded";
 import SsoSignInWays, {
@@ -68,12 +69,15 @@ import SsoSignInWays, {
  *     write is done (afterWrite, first in the success hooks; afterHardDelete
  *     for a hard delete, which runs none of them) or fails (the error
  *     hooks). A write that only lets a provider sign more people in -
- *     turning it or an attachment on, lifting the restriction, a new
- *     certificate - takes no lock and is never refused.
+ *     turning it or an attachment on, lifting the restriction - takes no
+ *     lock and is never refused; where it moves the provider is worked out
+ *     all the same, unlocked (workOutUnlocked). One that writes neither
+ *     switch - a new certificate, a new name - reads nothing.
  *
  * Every server hearing of the change is the services' part
  * (announceGlobalSignInChange): told when the write changed where a
- * provider signs people in, as read under the lock (afterWrite).
+ * provider signs people in (afterWrite) - narrowed or widened - and not
+ * when it wrote a switch back as it was.
  */
 
 // What a write does to where global providers sign people in.
@@ -82,9 +86,15 @@ export interface GlobalSsoProviderWrite {
   reachChanges: Array<GlobalProviderReachChange>;
   /*
    * The lock on the server's sign-in rules, held from before the rows were
-   * read until the write is done or fails (afterWrite).
+   * read until the write is done or fails (afterWrite). None for a write
+   * that only lets providers sign more people in (workOutUnlocked).
    */
   locks?: Array<SemaphoreMutex> | undefined;
+  /*
+   * Where the write moves the providers could not be worked out (the read
+   * failed): it counts as a change, so every server is told.
+   */
+  isReachUnknown?: boolean | undefined;
 }
 
 // A global provider, as these hooks read it.
@@ -182,8 +192,10 @@ export default class GlobalSsoProviderChanges {
    * once every permission check has passed): one that turns it off or
    * restricts it to its attached projects is checked, under the lock on the
    * server's sign-in rules, against the projects it would stop signing
-   * people in to. Null for any other update, which takes no lock: turning
-   * a provider on is never refused.
+   * people in to. One that turns it on or lifts the restriction is never
+   * refused and takes no lock; where it moves the provider is worked out
+   * without one (workOutUnlocked). Null for an update that writes neither
+   * switch.
    */
   public static async beforeProviderUpdate<TModel extends BaseModel>(data: {
     providerType: GlobalSsoProviderType;
@@ -199,58 +211,71 @@ export default class GlobalSsoProviderChanges {
         "restrictToAttachedProjects",
       );
 
-    if (isEnabled !== false && restrictToAttachedProjects !== true) {
+    // Writes neither switch: where the provider signs people in stays as it is.
+    if (isEnabled === undefined && restrictToAttachedProjects === undefined) {
       return null;
+    }
+
+    const work: () => Promise<
+      Omit<GlobalSsoProviderWrite, "locks">
+    > = async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
+      const providers: Array<GlobalProviderRow> =
+        await GlobalSsoProviderChanges.readProviders({
+          service: data.service,
+          query: data.updateBy.query,
+          limit: data.updateBy.limit,
+          skip: data.updateBy.skip,
+        });
+
+      const attachments: Map<
+        string,
+        Array<AttachmentRow>
+      > = await GlobalSsoProviderChanges.readAttachments({
+        providerType: data.providerType,
+        providerIds: providers.map((provider: GlobalProviderRow) => {
+          return provider.id;
+        }),
+      });
+
+      return {
+        reachChanges: providers.map(
+          (provider: GlobalProviderRow): GlobalProviderReachChange => {
+            const rows: Array<AttachmentRow> =
+              attachments.get(provider.id) || [];
+
+            return {
+              providerType: data.providerType,
+              providerId: provider.id,
+              before: GlobalSsoProviderChanges.reachOf(provider, rows),
+              after: GlobalSsoProviderChanges.reachOf(
+                {
+                  id: provider.id,
+                  isEnabled:
+                    isEnabled !== undefined ? isEnabled : provider.isEnabled,
+                  restrictToAttachedProjects:
+                    restrictToAttachedProjects !== undefined
+                      ? restrictToAttachedProjects
+                      : provider.restrictToAttachedProjects,
+                },
+                rows,
+              ),
+            };
+          },
+        ),
+      };
+    };
+
+    // Turned on, or opened to every project: never refused, so no lock.
+    if (isEnabled !== false && restrictToAttachedProjects !== true) {
+      return await GlobalSsoProviderChanges.workOutUnlocked({
+        key: keyOf(data.updateBy),
+        work,
+      });
     }
 
     return await GlobalSsoProviderChanges.lockAndCheck({
       key: keyOf(data.updateBy),
-      work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-        const providers: Array<GlobalProviderRow> =
-          await GlobalSsoProviderChanges.readProviders({
-            service: data.service,
-            query: data.updateBy.query,
-            limit: data.updateBy.limit,
-            skip: data.updateBy.skip,
-          });
-
-        const attachments: Map<
-          string,
-          Array<AttachmentRow>
-        > = await GlobalSsoProviderChanges.readAttachments({
-          providerType: data.providerType,
-          providerIds: providers.map((provider: GlobalProviderRow) => {
-            return provider.id;
-          }),
-        });
-
-        return {
-          reachChanges: providers.map(
-            (provider: GlobalProviderRow): GlobalProviderReachChange => {
-              const rows: Array<AttachmentRow> =
-                attachments.get(provider.id) || [];
-
-              return {
-                providerType: data.providerType,
-                providerId: provider.id,
-                before: GlobalSsoProviderChanges.reachOf(provider, rows),
-                after: GlobalSsoProviderChanges.reachOf(
-                  {
-                    id: provider.id,
-                    isEnabled:
-                      isEnabled !== undefined ? isEnabled : provider.isEnabled,
-                    restrictToAttachedProjects:
-                      restrictToAttachedProjects !== undefined
-                        ? restrictToAttachedProjects
-                        : provider.restrictToAttachedProjects,
-                  },
-                  rows,
-                ),
-              };
-            },
-          ),
-        };
-      },
+      work,
     });
   }
 
@@ -386,8 +411,9 @@ export default class GlobalSsoProviderChanges {
   /*
    * Before an update to attachments is written (onUpdatePermitted): one
    * that turns them off or moves them - to another project or another
-   * provider - is checked under the lock. Turning them on, or changing their
-   * teams, only widens or changes nothing: no lock, no check.
+   * provider - is checked under the lock. Turning them on only widens: no
+   * lock, no check, but where it moves their providers is worked out,
+   * unlocked (workOutUnlocked). Changing their teams changes nothing there.
    */
   public static async beforeAttachmentUpdate<TModel extends BaseModel>(data: {
     providerType: GlobalSsoProviderType;
@@ -411,7 +437,8 @@ export default class GlobalSsoProviderChanges {
     const writesProject: boolean =
       written["projectId"] !== undefined || written["project"] !== undefined;
 
-    if (isEnabled !== false && !writesProvider && !writesProject) {
+    // Neither turned on or off nor moved: where it signs people in stays as it is.
+    if (isEnabled === undefined && !writesProvider && !writesProject) {
       return null;
     }
 
@@ -430,35 +457,45 @@ export default class GlobalSsoProviderChanges {
         )
       : null;
 
+    const work: () => Promise<
+      Omit<GlobalSsoProviderWrite, "locks">
+    > = async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
+      const matched: Array<AttachmentRow> =
+        await GlobalSsoProviderChanges.readAttachmentRows({
+          providerType: data.providerType,
+          service: data.service,
+          query: data.updateBy.query,
+          limit: data.updateBy.limit,
+          skip: data.updateBy.skip,
+        });
+
+      return {
+        reachChanges: await GlobalSsoProviderChanges.getAttachmentReachChanges({
+          providerType: data.providerType,
+          before: matched,
+          after: matched.map((row: AttachmentRow): AttachmentRow => {
+            return {
+              id: row.id,
+              providerId: writesProvider ? newProviderId : row.providerId,
+              projectId: writesProject ? newProjectId : row.projectId,
+              isEnabled: isEnabled !== undefined ? isEnabled : row.isEnabled,
+            };
+          }),
+        }),
+      };
+    };
+
+    // Turned on, in place: never refused, so no lock.
+    if (isEnabled !== false && !writesProvider && !writesProject) {
+      return await GlobalSsoProviderChanges.workOutUnlocked({
+        key: keyOf(data.updateBy),
+        work,
+      });
+    }
+
     return await GlobalSsoProviderChanges.lockAndCheck({
       key: keyOf(data.updateBy),
-      work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-        const matched: Array<AttachmentRow> =
-          await GlobalSsoProviderChanges.readAttachmentRows({
-            providerType: data.providerType,
-            service: data.service,
-            query: data.updateBy.query,
-            limit: data.updateBy.limit,
-            skip: data.updateBy.skip,
-          });
-
-        return {
-          reachChanges:
-            await GlobalSsoProviderChanges.getAttachmentReachChanges({
-              providerType: data.providerType,
-              before: matched,
-              after: matched.map((row: AttachmentRow): AttachmentRow => {
-                return {
-                  id: row.id,
-                  providerId: writesProvider ? newProviderId : row.providerId,
-                  projectId: writesProject ? newProjectId : row.projectId,
-                  isEnabled:
-                    isEnabled !== undefined ? isEnabled : row.isEnabled,
-                };
-              }),
-            }),
-        };
-      },
+      work,
     });
   }
 
@@ -501,11 +538,11 @@ export default class GlobalSsoProviderChanges {
    * Once the write is done (first in the success hooks, a hard delete's
    * too) or has failed (the error hooks, and a create's own wrapper): its
    * lock is given back, once, and whether it changed where a provider signs
-   * people in - as read under the lock - is answered, for the service to
-   * tell every server. A write that held no lock - one that only lets a
-   * provider sign more people in, or names no provider at all - changed
-   * nothing there; nor did one that failed, whatever it answers. Never
-   * throws.
+   * people in is answered, for the service to tell every server: as read
+   * under the lock, or - for one that only lets a provider sign more people
+   * in - as worked out without it, a switch written back as it was
+   * changing nothing. A write that names neither switch changed nothing
+   * there; nor did one that failed, whatever it answers. Never throws.
    */
   public static async afterWrite<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
@@ -520,14 +557,15 @@ export default class GlobalSsoProviderChanges {
 
     return Boolean(
       write &&
-        write.reachChanges.some(
-          (change: GlobalProviderReachChange): boolean => {
-            return !GlobalSsoProviderChanges.isSameReach(
-              change.before,
-              change.after,
-            );
-          },
-        ),
+        (write.isReachUnknown ||
+          write.reachChanges.some(
+            (change: GlobalProviderReachChange): boolean => {
+              return !GlobalSsoProviderChanges.isSameReach(
+                change.before,
+                change.after,
+              );
+            },
+          )),
     );
   }
 
@@ -587,6 +625,37 @@ export default class GlobalSsoProviderChanges {
    * when it is done, so the write has the whole time; it is held for the
    * write (afterWrite), or given back at once when the write is refused.
    */
+  /*
+   * A write that is never refused - it turns a provider or an attachment
+   * on, or lifts the restriction - takes no lock and checks nothing, but
+   * where it moves the providers is worked out all the same, so afterWrite
+   * answers whether it changed anything: a switch written back as it was
+   * tells no server. Read without the lock, the answer can miss a change
+   * another write makes at that moment; that write tells the servers
+   * itself, or their cached answers run out within a minute. Never throws:
+   * when the read fails, the write counts as a change.
+   */
+  private static async workOutUnlocked(data: {
+    key: WriteKey;
+    work: () => Promise<Omit<GlobalSsoProviderWrite, "locks">>;
+  }): Promise<GlobalSsoProviderWrite> {
+    let write: GlobalSsoProviderWrite;
+
+    try {
+      write = { ...(await data.work()), locks: [] };
+    } catch (err) {
+      logger.warn(
+        "Global SSO provider change: could not work out what it changes; every server is told.",
+      );
+      logger.warn(err);
+      write = { reachChanges: [], locks: [], isReachUnknown: true };
+    }
+
+    GlobalSsoProviderChanges.writes.set(data.key, write);
+
+    return write;
+  }
+
   private static async lockAndCheck(data: {
     key: WriteKey;
     work: () => Promise<Omit<GlobalSsoProviderWrite, "locks">>;

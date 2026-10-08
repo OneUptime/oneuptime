@@ -427,6 +427,50 @@ beforeEach(() => {
     ) as never,
   );
 
+  // Whether a provider has any attachment: the first one the query matches.
+  const firstAttachment: (
+    reads: (data: {
+      query: Record<string, unknown>;
+    }) => Promise<Array<unknown>>,
+  ) => (data: { query: Record<string, unknown> }) => Promise<unknown> = (
+    reads: (data: {
+      query: Record<string, unknown>;
+    }) => Promise<Array<unknown>>,
+  ): ((data: { query: Record<string, unknown> }) => Promise<unknown>) => {
+    return async (data: {
+      query: Record<string, unknown>;
+    }): Promise<unknown> => {
+      return (await reads(data))[0] || null;
+    };
+  };
+
+  getJestSpyOn(GlobalSsoProjectService, "findOneBy").mockImplementation(
+    firstAttachment(
+      attachmentReads(
+        (): Array<AttachmentRow> => {
+          return samlAttachments;
+        },
+        "globalSsoId",
+        (): GlobalSsoProject => {
+          return new GlobalSsoProject();
+        },
+      ),
+    ) as never,
+  );
+  getJestSpyOn(GlobalOidcProjectService, "findOneBy").mockImplementation(
+    firstAttachment(
+      attachmentReads(
+        (): Array<AttachmentRow> => {
+          return oidcAttachments;
+        },
+        "globalOidcId",
+        (): GlobalOidcProject => {
+          return new GlobalOidcProject();
+        },
+      ),
+    ) as never,
+  );
+
   serverRuleReads = getJestSpyOn(
     GlobalConfigService,
     "findOneBy",

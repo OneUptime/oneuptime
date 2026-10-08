@@ -10,6 +10,7 @@ import UserSessionService from "../../../Server/Services/UserSessionService";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import SsoRequirementChanges from "../../../Server/Utils/SsoRequirementChanges";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
   RealtimeAccessChangeKind,
@@ -20,6 +21,8 @@ import RealtimeReaders, {
 import RealtimeSessions, {
   RealtimeSessionSocket,
 } from "../../../Server/Utils/Realtime/RealtimeSessions";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import Project from "../../../Models/DatabaseModels/Project";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserSession from "../../../Models/DatabaseModels/UserSession";
@@ -747,6 +750,159 @@ describe("live updates follow every change of access", () => {
       expect(announced).toEqual([
         { kind: RealtimeAccessChangeKind.SignInRulesChanged },
       ]);
+    });
+
+    /*
+     * The rules as they were before the write (SsoRequirementChanges.
+     * rememberProjectRulesBefore / rememberServerRuleBefore, from the
+     * services' onUpdatePermitted): a rule written back as it was - an edit
+     * form, an API client or Terraform sends the whole record - is told to
+     * no server.
+     */
+    describe("a rule written back as it was", () => {
+      const projectWithRule: (
+        projectId: ObjectID,
+        rule: { requireSsoForLogin: boolean; requiredProviderId?: ObjectID },
+      ) => Project = (
+        projectId: ObjectID,
+        rule: { requireSsoForLogin: boolean; requiredProviderId?: ObjectID },
+      ): Project => {
+        const project: Project = new Project();
+        project.id = projectId;
+        project.requireSsoForLogin = rule.requireSsoForLogin;
+        if (rule.requiredProviderId) {
+          project.requireSsoWithSsoProviderId = rule.requiredProviderId;
+        }
+        return project;
+      };
+
+      test("tells no server about a project whose rule it left as it was, and tells about one whose rule it changed", async () => {
+        jest
+          .spyOn(ProjectService, "findAllBy")
+          .mockResolvedValue([
+            projectWithRule(PROJECT, { requireSsoForLogin: true }),
+            projectWithRule(OTHER_PROJECT, { requireSsoForLogin: false }),
+          ] as never);
+
+        const update: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: true,
+        });
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          update.updateBy as never,
+        );
+        await projectHooks.onUpdateSuccess(update, [PROJECT, OTHER_PROJECT]);
+
+        expect(announced).toEqual([
+          {
+            kind: RealtimeAccessChangeKind.SignInRulesChanged,
+            projectId: OTHER_PROJECT.toString(),
+          },
+        ]);
+      });
+
+      test("the provider a project requires, saved again as it is, tells nobody; another one is told", async () => {
+        jest.spyOn(ProjectService, "findAllBy").mockResolvedValue([
+          projectWithRule(PROJECT, {
+            requireSsoForLogin: true,
+            requiredProviderId: TEAM,
+          }),
+        ] as never);
+
+        const same: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: true,
+          requireSsoWithSsoProviderId: TEAM,
+        });
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          same.updateBy as never,
+        );
+        await projectHooks.onUpdateSuccess(same, [PROJECT]);
+
+        expect(announced).toEqual([]);
+
+        const another: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoWithSsoProviderId: OTHER_USER,
+        });
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          another.updateBy as never,
+        );
+        await projectHooks.onUpdateSuccess(another, [PROJECT]);
+
+        expect(announced).toEqual([
+          {
+            kind: RealtimeAccessChangeKind.SignInRulesChanged,
+            projectId: PROJECT.toString(),
+          },
+        ]);
+      });
+
+      test("when the rules cannot be read before the write, every project it wrote is told, so no change is missed", async () => {
+        jest
+          .spyOn(ProjectService, "findAllBy")
+          .mockRejectedValue(new Error("The database is not answering"));
+
+        const update: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
+        });
+
+        await expect(
+          SsoRequirementChanges.rememberProjectRulesBefore(
+            update.updateBy as never,
+          ),
+        ).resolves.toBeUndefined();
+        await projectHooks.onUpdateSuccess(update, [PROJECT]);
+
+        expect(announced).toEqual([
+          {
+            kind: RealtimeAccessChangeKind.SignInRulesChanged,
+            projectId: PROJECT.toString(),
+          },
+        ]);
+      });
+
+      test("a write that names no rule reads nothing before it", async () => {
+        const reads: jest.SpyInstance = jest.spyOn(ProjectService, "findAllBy");
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          updateOf<User>({ name: "Renamed" }).updateBy as never,
+        );
+
+        expect(reads).not.toHaveBeenCalled();
+      });
+
+      test("the instance-wide rule saved again as it is tells nobody; turned off, it is told", async () => {
+        const config: GlobalConfig = new GlobalConfig();
+        config.requireSsoForLogin = true;
+        jest
+          .spyOn(GlobalConfigService, "findOneBy")
+          .mockResolvedValue(config as never);
+
+        const same: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: true,
+        });
+
+        await SsoRequirementChanges.rememberServerRuleBefore(
+          same.updateBy as never,
+        );
+        await instanceHooks.onUpdateSuccess(same, [TEAM]);
+
+        expect(announced).toEqual([]);
+
+        const off: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
+        });
+
+        await SsoRequirementChanges.rememberServerRuleBefore(
+          off.updateBy as never,
+        );
+        await instanceHooks.onUpdateSuccess(off, [TEAM]);
+
+        expect(announced).toEqual([
+          { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+        ]);
+      });
     });
   });
 });

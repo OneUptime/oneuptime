@@ -485,6 +485,9 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     await SsoRequirementChanges.beforeServerUpdate({ updateBy });
+
+    // What the rule is now, so only a change of it is told.
+    await SsoRequirementChanges.rememberServerRuleBefore(updateBy);
   }
 
   // An update that failed once it held the lock: it is given back.
@@ -520,12 +523,10 @@ export class Service extends DatabaseService<Model> {
      * updates already open are asked again as their joins were, so a page
      * that no longer meets it stops hearing at once, as its API requests are
      * refused. Turned off, people signed in with a password are let back in
-     * at once on every server, not only on this one.
+     * at once on every server, not only on this one. Saved again as it was,
+     * nobody is told.
      */
-    if (
-      (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
-        .requireSsoForLogin !== undefined
-    ) {
+    if (SsoRequirementChanges.takeWhetherServerRuleChanged(onUpdate.updateBy)) {
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SignInRulesChanged,
       });

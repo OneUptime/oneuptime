@@ -538,7 +538,7 @@ export default class SsoSignInWays {
     }
 
     const ways: Set<string> = new Set<string>(
-      await facts.getGlobalWaysToEveryProject(),
+      await SsoSignInWays.readGlobalWaysToEveryProject(),
     );
 
     return decideStrandReason({
@@ -551,6 +551,84 @@ export default class SsoSignInWays {
         return ways;
       },
     });
+  }
+
+  /*
+   * The global providers (wayKey) that sign people in to every project, and
+   * so to one created now: the ones that are on and are not restricted to
+   * their attached projects, or are restricted and attached to none yet
+   * (getGlobalProviderReach). A restricted one is only asked whether it has
+   * an attachment at all - one that has can never reach a project that does
+   * not exist yet - so the check reads one row per restricted provider, not
+   * all of their attachments, under the lock it holds.
+   */
+  private static async readGlobalWaysToEveryProject(): Promise<Array<string>> {
+    const [samlProviders, oidcProviders]: [
+      Array<GlobalSso>,
+      Array<GlobalOidc>,
+    ] = await Promise.all([
+      GlobalSsoService.findBy({
+        query: { isEnabled: true },
+        select: { _id: true, restrictToAttachedProjects: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      GlobalOidcService.findBy({
+        query: { isEnabled: true },
+        select: { _id: true, restrictToAttachedProjects: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ]);
+
+    const hasAttachment: (
+      providerType: GlobalSsoProviderType,
+      providerId: ObjectID,
+    ) => Promise<boolean> = async (
+      providerType: GlobalSsoProviderType,
+      providerId: ObjectID,
+    ): Promise<boolean> => {
+      const attachment: GlobalSsoProject | GlobalOidcProject | null =
+        providerType === SsoProviderType.GlobalSSO
+          ? await GlobalSsoProjectService.findOneBy({
+              query: { globalSsoId: providerId },
+              select: { _id: true },
+              props: { isRoot: true },
+            })
+          : await GlobalOidcProjectService.findOneBy({
+              query: { globalOidcId: providerId },
+              select: { _id: true },
+              props: { isRoot: true },
+            });
+
+      return Boolean(attachment);
+    };
+
+    const ways: Array<string> = [];
+
+    for (const [providerType, rows] of [
+      [SsoProviderType.GlobalSSO, samlProviders],
+      [SsoProviderType.GlobalOIDC, oidcProviders],
+    ] as Array<[GlobalSsoProviderType, Array<GlobalSso | GlobalOidc>]>) {
+      for (const row of rows) {
+        const id: string | null = toIdString(row.id);
+
+        if (!id) {
+          continue;
+        }
+
+        if (
+          !row.restrictToAttachedProjects ||
+          !(await hasAttachment(providerType, new ObjectID(id)))
+        ) {
+          ways.push(wayKey(providerType, id));
+        }
+      }
+    }
+
+    return ways;
   }
 
   /*
@@ -1048,23 +1126,6 @@ class SignInFacts {
     }
 
     return false;
-  }
-
-  /*
-   * The global providers (wayKey) that, once the change lands, sign people
-   * in to every project - and so to one created now, which no provider is
-   * attached to yet.
-   */
-  public async getGlobalWaysToEveryProject(): Promise<Array<string>> {
-    const ways: Array<string> = [];
-
-    for (const provider of await this.loadGlobalProviders()) {
-      if (provider.reach.everyProject) {
-        ways.push(wayKey(provider.providerType, provider.id));
-      }
-    }
-
-    return ways;
   }
 
   // The global providers (wayKey) that reach the project once the change lands.
