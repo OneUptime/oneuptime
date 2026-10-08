@@ -529,6 +529,102 @@ export async function getPushSubscription(data: {
 }
 
 /*
+ * A fresh subscription in place of one the push service no longer accepts,
+ * though the browser still holds it: the server marked its devices as no
+ * longer receiving notifications after a send to it came back 404 or 410
+ * (UserPushService.markWebPushSubscriptionAsGone). getPushSubscription alone
+ * would hand the same dead subscription back, and registering the browser
+ * again would change nothing.
+ */
+export async function replacePushSubscription(data: {
+  pushManager: PushManager;
+  subscription: PushSubscription;
+  vapidPublicKey: string;
+}): Promise<PushSubscription> {
+  try {
+    await data.subscription.unsubscribe();
+  } catch (error) {
+    throw toBrowserPushError(error);
+  }
+
+  return await getPushSubscription({
+    pushManager: data.pushManager,
+    vapidPublicKey: data.vapidPublicKey,
+  });
+}
+
+/*
+ * What OneUptime's service worker needs to renew this browser's push
+ * subscription when the browser replaces it (pushsubscriptionchange in
+ * sw.js.template): the server's VAPID public key. The worker cannot read it
+ * for itself - sw.js is built into the image, the key is set per deployment -
+ * and without it a browser that loses its subscription stays without one.
+ * The worker also takes the message as the moment to tell the server about a
+ * change it could not report when it happened (signed out, offline).
+ */
+export const PUSH_CONFIGURATION_MESSAGE_TYPE: string = "PUSH_CONFIGURATION";
+
+// Whether the message went: a registration with an active worker, and a key.
+export function sendPushConfigurationToServiceWorker(data: {
+  registration: Pick<ServiceWorkerRegistration, "active"> | null | undefined;
+  vapidPublicKey: string;
+}): boolean {
+  const worker: ServiceWorker | null | undefined = data.registration?.active;
+  const vapidPublicKey: string = (data.vapidPublicKey || "").trim();
+
+  if (!worker || !decodeVapidPublicKey(vapidPublicKey)) {
+    return false;
+  }
+
+  try {
+    worker.postMessage({
+      type: PUSH_CONFIGURATION_MESSAGE_TYPE,
+      vapidPublicKey: vapidPublicKey,
+    });
+  } catch {
+    // A worker that went away between the two lines: the next start sends it.
+    return false;
+  }
+
+  return true;
+}
+
+/*
+ * The same, each time the Dashboard starts, to the worker of a browser that
+ * was registered before - including before the worker learnt to keep the
+ * key. Nothing is installed or asked here: a browser without OneUptime's
+ * worker has no push subscription to keep.
+ */
+export async function sendPushConfigurationToRegisteredServiceWorker(data: {
+  container: Pick<ServiceWorkerContainer, "getRegistration"> | undefined;
+  vapidPublicKey: string;
+}): Promise<boolean> {
+  if (!data.container || !decodeVapidPublicKey(data.vapidPublicKey)) {
+    return false;
+  }
+
+  try {
+    const registration: ServiceWorkerRegistration | undefined =
+      await data.container.getRegistration();
+
+    if (
+      !registration?.active ||
+      !isWorkerScript(registration.active, DASHBOARD_SERVICE_WORKER_URL)
+    ) {
+      return false;
+    }
+
+    return sendPushConfigurationToServiceWorker({
+      registration: registration,
+      vapidPublicKey: data.vapidPublicKey,
+    });
+  } catch {
+    // A browser that cannot say what is registered has nothing to be told.
+    return false;
+  }
+}
+
+/*
  * What the browser's own errors mean for the person. NotAllowedError is a
  * permission taken away (Firefox raises it from subscribe); AbortError is
  * the push service saying no, which is what Chrome says in an incognito

@@ -70,7 +70,9 @@ self.addEventListener('activate', function(event) {
       }),
       
       // Claim all clients
-      self.clients.claim()
+      self.clients.claim(),
+
+      rememberPushSubscriptionIfNoneIs()
     ])
   );
 });
@@ -251,23 +253,368 @@ async function updateCacheInBackground(request, cacheName) {
   }
 }
 
-// Handle push subscription changes
-self.addEventListener('pushsubscriptionchange', function(event) {
-  console.log('[ServiceWorker] Push subscription changed:', event);
-  
-  // Re-subscribe to push notifications
-  event.waitUntil(
-    self.registration.pushManager.subscribe({
+// ---------------------------------------------------------------------------
+// Keeping this browser's push subscription known to the server
+//
+// The browser replaces its push subscription when the push service expires or
+// rotates it, and when notifications are blocked and allowed again, and fires
+// pushsubscriptionchange here. The devices this browser is registered as (a
+// UserPush row per project, Register Device in Push.tsx) carry the
+// subscription they were registered with, so every change is reported to the
+// server: the subscription it knows this browser by, and the one the browser
+// has now - or none.
+//
+// subscribe() needs the server's VAPID public key, which this worker cannot
+// read for itself: sw.js is built into the image, the key is set per
+// deployment. The Dashboard sends it (a PUSH_CONFIGURATION message,
+// BrowserPushRegistration.ts) after registering this browser and whenever it
+// opens. The worker keeps it in IndexedDB with the subscription the server
+// knows this browser by: before Firefox 137 the event does not say which
+// subscription it replaced.
+// ---------------------------------------------------------------------------
+
+const PUSH_SUBSCRIPTION_CHANGE_URL = '/api/user-push/subscription-change';
+const SESSION_REFRESH_URL = '/identity/refresh-token';
+
+// The lock the Dashboard refreshes its session under (Common/UI/Utils/API/API.ts).
+const SESSION_REFRESH_LOCK = 'oneuptime-session-refresh:dashboard';
+
+const PUSH_CONFIGURATION_MESSAGE = 'PUSH_CONFIGURATION';
+const PUSH_STATE_DATABASE = 'oneuptime-push';
+const PUSH_STATE_STORE = 'state';
+const VAPID_PUBLIC_KEY_STATE = 'vapidPublicKey';
+
+// { deviceToken, isGone }: the subscription the server knows this browser's
+// devices by, and whether it has been told the browser no longer has it.
+const REGISTERED_SUBSCRIPTION_STATE = 'registeredSubscription';
+
+function openPushState() {
+  return new Promise(function(resolve, reject) {
+    const request = indexedDB.open(PUSH_STATE_DATABASE, 1);
+
+    request.onupgradeneeded = function() {
+      request.result.createObjectStore(PUSH_STATE_STORE);
+    };
+    request.onsuccess = function() {
+      resolve(request.result);
+    };
+    request.onerror = function() {
+      reject(request.error);
+    };
+  });
+}
+
+async function readPushState(name) {
+  const database = await openPushState();
+
+  try {
+    return await new Promise(function(resolve, reject) {
+      const request = database
+        .transaction(PUSH_STATE_STORE, 'readonly')
+        .objectStore(PUSH_STATE_STORE)
+        .get(name);
+
+      request.onsuccess = function() {
+        resolve(request.result === undefined ? null : request.result);
+      };
+      request.onerror = function() {
+        reject(request.error);
+      };
+    });
+  } finally {
+    database.close();
+  }
+}
+
+async function writePushState(name, value) {
+  const database = await openPushState();
+
+  try {
+    await new Promise(function(resolve, reject) {
+      const transaction = database.transaction(PUSH_STATE_STORE, 'readwrite');
+
+      transaction.objectStore(PUSH_STATE_STORE).put(value, name);
+      transaction.oncomplete = function() {
+        resolve();
+      };
+      transaction.onerror = function() {
+        reject(transaction.error);
+      };
+      transaction.onabort = function() {
+        reject(transaction.error);
+      };
+    });
+  } finally {
+    database.close();
+  }
+}
+
+// The VAPID public key (base64url, as the server is configured with it) as the
+// bytes subscribe() takes, or null for one that is not a key.
+function decodeVapidPublicKey(vapidPublicKey) {
+  const key = typeof vapidPublicKey === 'string' ? vapidPublicKey.trim() : '';
+
+  if (!key || key.length > 256 || !/^[A-Za-z0-9_-]+={0,2}$/.test(key)) {
+    return null;
+  }
+
+  try {
+    const binary = atob(
+      (key + '='.repeat((4 - (key.length % 4)) % 4))
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
+    );
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index++) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return bytes;
+  } catch (error) {
+    return null;
+  }
+}
+
+// What the server knows a subscription by: PushSubscription.toJSON(),
+// stringified, exactly as Register Device sends it (Push.tsx).
+function toDeviceToken(subscription) {
+  return subscription ? JSON.stringify(subscription) : null;
+}
+
+// A subscription in place of one this browser lost, while notifications are
+// still allowed: for the server's key, or - before the Dashboard has said what
+// that is - the key the lost one was made for. Null when there is none to be
+// had: notifications blocked, no key, the push service refusing.
+async function subscribeAgain(lostSubscription) {
+  const pushManager = self.registration.pushManager;
+
+  try {
+    const permission = await pushManager.permissionState({ userVisibleOnly: true });
+
+    if (permission !== 'granted') {
+      return null;
+    }
+  } catch (error) {
+    // A browser that cannot say: subscribe() answers for it.
+  }
+
+  const applicationServerKey =
+    decodeVapidPublicKey(await readPushState(VAPID_PUBLIC_KEY_STATE)) ||
+    (lostSubscription && lostSubscription.options &&
+      lostSubscription.options.applicationServerKey) ||
+    null;
+
+  if (!applicationServerKey) {
+    console.warn('[ServiceWorker] No VAPID key to subscribe to push notifications again with');
+    return null;
+  }
+
+  try {
+    return await pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: null // This should be set by your application
+      applicationServerKey: applicationServerKey
+    });
+  } catch (error) {
+    console.error('[ServiceWorker] Could not subscribe to push notifications again:', error);
+    return null;
+  }
+}
+
+function postPushSubscriptionChange(oldDeviceToken, newDeviceToken) {
+  return fetch(PUSH_SUBSCRIPTION_CHANGE_URL, {
+    method: 'POST',
+    // The Dashboard's session cookies: this worker has the Dashboard's origin.
+    credentials: 'same-origin',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json;charset=UTF-8'
+    },
+    body: JSON.stringify({
+      oldDeviceToken: oldDeviceToken,
+      newDeviceToken: newDeviceToken
     })
-    .then(function(newSubscription) {
-      console.log('[ServiceWorker] New push subscription:', newSubscription);
-      // Send new subscription to your server
-      return updatePushSubscription(newSubscription);
+  });
+}
+
+// The access token lives for minutes, and a subscription changes whenever the
+// browser decides - usually with no Dashboard open to have kept it fresh. The
+// refresh token rotates on every use, and a second refresh with the old one
+// signs the person out everywhere, so this refresh waits for any the Dashboard
+// is making, under the same lock.
+async function refreshSession() {
+  const refresh = function() {
+    return fetch(SESSION_REFRESH_URL, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json;charset=UTF-8'
+      },
+      body: '{}'
     })
+      .then(function(response) {
+        return response.ok;
+      })
+      .catch(function() {
+        return false;
+      });
+  };
+
+  const locks = self.navigator && self.navigator.locks;
+
+  if (locks && typeof locks.request === 'function') {
+    return await locks.request(SESSION_REFRESH_LOCK, refresh);
+  }
+
+  return await refresh();
+}
+
+// Whether the server now has the change: signed out and offline are not.
+async function sendPushSubscriptionChange(oldDeviceToken, newDeviceToken) {
+  try {
+    let response = await postPushSubscriptionChange(oldDeviceToken, newDeviceToken);
+
+    if (response.status === 401 && (await refreshSession())) {
+      response = await postPushSubscriptionChange(oldDeviceToken, newDeviceToken);
+    }
+
+    if (!response.ok) {
+      console.error('[ServiceWorker] The server did not take the push subscription change:', response.status);
+    }
+
+    return response.ok;
+  } catch (error) {
+    console.error('[ServiceWorker] Could not report the push subscription change:', error);
+    return false;
+  }
+}
+
+/*
+ * Brings the server up to date with this browser's push subscription: the
+ * devices registered with the one it had - `previousSubscription`, or the one
+ * this worker remembers - carry the one it has now (`currentSubscription`, or
+ * whatever the browser holds), or stop being sent to when it has none.
+ * Remembered once the server has it. Until then nothing is remembered, so the
+ * next PUSH_CONFIGURATION - the Dashboard opening, signed in - tries again.
+ */
+async function syncPushSubscription(previousSubscription, currentSubscription) {
+  const pushManager = self.registration.pushManager;
+
+  if (!pushManager) {
+    return;
+  }
+
+  const registered = await readPushState(REGISTERED_SUBSCRIPTION_STATE);
+  const oldDeviceToken = previousSubscription
+    ? toDeviceToken(previousSubscription)
+    : registered && registered.deviceToken;
+
+  let subscription = currentSubscription || (await pushManager.getSubscription());
+
+  // No device this worker knows of: what the browser has is what they will be registered with.
+  if (!oldDeviceToken) {
+    if (subscription) {
+      await writePushState(REGISTERED_SUBSCRIPTION_STATE, {
+        deviceToken: toDeviceToken(subscription),
+        isGone: false
+      });
+    }
+
+    return;
+  }
+
+  if (!subscription) {
+    subscription = await subscribeAgain(previousSubscription);
+  }
+
+  const newDeviceToken = toDeviceToken(subscription);
+
+  if (newDeviceToken === oldDeviceToken) {
+    if (!registered || registered.deviceToken !== newDeviceToken || registered.isGone) {
+      await writePushState(REGISTERED_SUBSCRIPTION_STATE, {
+        deviceToken: newDeviceToken,
+        isGone: false
+      });
+    }
+
+    return;
+  }
+
+  // The server has already been told this browser has none.
+  if (!newDeviceToken && registered && registered.isGone &&
+      registered.deviceToken === oldDeviceToken) {
+    return;
+  }
+
+  if (!(await sendPushSubscriptionChange(oldDeviceToken, newDeviceToken))) {
+    return;
+  }
+
+  // Kept when there is none, so a subscription the browser gets later (notifications allowed again) renews the same devices.
+  await writePushState(REGISTERED_SUBSCRIPTION_STATE, newDeviceToken
+    ? { deviceToken: newDeviceToken, isGone: false }
+    : { deviceToken: oldDeviceToken, isGone: true });
+}
+
+// One at a time, so a change and the Dashboard opening at once report it once.
+let pushSubscriptionWork = Promise.resolve();
+
+function queuePushSubscriptionWork(work) {
+  pushSubscriptionWork = pushSubscriptionWork
+    .then(work)
     .catch(function(error) {
-      console.error('[ServiceWorker] Failed to resubscribe to push:', error);
+      console.error('[ServiceWorker] Could not bring the push subscription up to date:', error);
+    });
+
+  return pushSubscriptionWork;
+}
+
+function applyPushConfiguration(vapidPublicKey) {
+  return queuePushSubscriptionWork(async function() {
+    if (decodeVapidPublicKey(vapidPublicKey)) {
+      await writePushState(VAPID_PUBLIC_KEY_STATE, vapidPublicKey.trim());
+    }
+
+    await syncPushSubscription(null, null);
+  });
+}
+
+// A worker that replaces one from before it remembered anything: the browser's
+// subscription now is what its devices were registered with. Local only - the
+// network has no place in activating the worker.
+async function rememberPushSubscriptionIfNoneIs() {
+  try {
+    if (!self.registration.pushManager ||
+        (await readPushState(REGISTERED_SUBSCRIPTION_STATE))) {
+      return;
+    }
+
+    const subscription = await self.registration.pushManager.getSubscription();
+
+    if (subscription) {
+      await writePushState(REGISTERED_SUBSCRIPTION_STATE, {
+        deviceToken: toDeviceToken(subscription),
+        isGone: false
+      });
+    }
+  } catch (error) {
+    console.error('[ServiceWorker] Could not read the push subscription:', error);
+  }
+}
+
+// Chrome 138+, Safari and Firefox 137+ say which subscription was replaced and
+// by which (newSubscription is null when the browser could not get one: this
+// worker then tries); earlier Firefox says neither.
+self.addEventListener('pushsubscriptionchange', function(event) {
+  console.log('[ServiceWorker] Push subscription changed');
+
+  event.waitUntil(
+    queuePushSubscriptionWork(function() {
+      return syncPushSubscription(
+        event.oldSubscription || null,
+        event.newSubscription || null
+      );
     })
   );
 });
@@ -406,21 +753,9 @@ self.addEventListener('message', function(event) {
     self.skipWaiting();
   } else if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: CACHE_VERSION });
+  } else if (event.data && event.data.type === PUSH_CONFIGURATION_MESSAGE) {
+    event.waitUntil(applyPushConfiguration(event.data.vapidPublicKey));
   }
 });
-
-// Helper function to update push subscription
-function updatePushSubscription(subscription) {
-  return fetch('/api/push-subscription', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(subscription)
-  })
-  .catch(function(error) {
-    console.error('[ServiceWorker] Error updating push subscription:', error);
-  });
-}
 
 console.log('[ServiceWorker] OneUptime PWA Service Worker Ready');

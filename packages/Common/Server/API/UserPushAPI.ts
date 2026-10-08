@@ -199,6 +199,7 @@ export default class UserPushAPI extends BaseAPI<
             },
             select: {
               _id: true,
+              isVerified: true,
             },
           });
 
@@ -208,12 +209,19 @@ export default class UserPushAPI extends BaseAPI<
            * already gets this project's notifications, or the mobile app
            * registering on launch. The caller is told which device they
            * already have, and nothing is created or changed.
+           *
+           * isVerified false: the push service no longer accepts the
+           * subscription the browser still holds
+           * (UserPushService.markWebPushSubscriptionAsGone). The Dashboard
+           * then gets a new one and reports it (subscription-change), so the
+           * device it already has receives notifications again.
            */
           if (existingDevice) {
             return Response.sendJsonObjectResponse(req, res, {
               success: true,
               deviceId: existingDevice._id!.toString(),
               alreadyRegistered: true,
+              isVerified: Boolean(existingDevice.isVerified),
             });
           }
 
@@ -265,6 +273,7 @@ export default class UserPushAPI extends BaseAPI<
             success: true,
             deviceId: savedDevice._id!.toString(),
             alreadyRegistered: false,
+            isVerified: true,
           });
         } catch (error: any) {
           next(error);

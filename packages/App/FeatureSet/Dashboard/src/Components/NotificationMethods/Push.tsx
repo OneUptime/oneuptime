@@ -2,7 +2,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import { Blue500 } from "Common/Types/BrandColors";
+import { Blue500, Red500 } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -37,6 +37,8 @@ import {
   getThisBrowserDeviceId,
   readBrowserIdentity,
   readBrowserPushEnvironment,
+  replacePushSubscription,
+  sendPushConfigurationToServiceWorker,
   setThisBrowserDeviceId,
   waitForActiveServiceWorker,
 } from "./BrowserPushRegistration";
@@ -44,6 +46,52 @@ import {
 interface RegisteredBrowser {
   deviceId: string;
   alreadyRegistered: boolean;
+}
+
+const SUBSCRIPTION_NOT_RENEWED_MESSAGE: string =
+  "This browser's push subscription could not be renewed. Reload the page and register this browser again.";
+
+/*
+ * Replaces a subscription the push service no longer accepts
+ * (replacePushSubscription), and has the devices registered with it carry the
+ * new one: what the service worker reports when the browser replaces a
+ * subscription itself (sw.js.template). The error to show, or null.
+ */
+async function renewGoneSubscription(data: {
+  registration: ServiceWorkerRegistration;
+  subscription: PushSubscription;
+}): Promise<string | null> {
+  const goneDeviceToken: string = JSON.stringify(data.subscription);
+
+  const subscription: PushSubscription = await replacePushSubscription({
+    pushManager: data.registration.pushManager,
+    subscription: data.subscription,
+    vapidPublicKey: VAPID_PUBLIC_KEY,
+  });
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        "/user-push/subscription-change",
+      ),
+      data: {
+        oldDeviceToken: goneDeviceToken,
+        newDeviceToken: JSON.stringify(subscription),
+      },
+    });
+
+  if (response.isFailure()) {
+    return API.getFriendlyMessage(response);
+  }
+
+  // The device that was found is not among them: it still receives nothing.
+  if (
+    !((response as HTTPResponse<JSONObject>).data["devicesUpdated"] as number)
+  ) {
+    return SUBSCRIPTION_NOT_RENEWED_MESSAGE;
+  }
+
+  return null;
 }
 
 /*
@@ -177,6 +225,32 @@ const Push: () => JSX.Element = (): ReactElement => {
       const deviceId: string = result["deviceId"]
         ? result["deviceId"].toString()
         : "";
+      let alreadyRegistered: boolean = result["alreadyRegistered"] === true;
+
+      /*
+       * Registered already, but the device no longer receives notifications:
+       * the push service stopped accepting the subscription this browser
+       * still holds. Registering it again as it is would change nothing.
+       */
+      if (alreadyRegistered && result["isVerified"] === false) {
+        const renewalError: string | null = await renewGoneSubscription({
+          registration: registration,
+          subscription: subscription,
+        });
+
+        if (renewalError) {
+          setError(renewalError);
+          return;
+        }
+
+        alreadyRegistered = false;
+      }
+
+      // So the worker can renew the subscription when the browser replaces it.
+      sendPushConfigurationToServiceWorker({
+        registration: registration,
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+      });
 
       if (deviceId) {
         setThisBrowserDeviceId({ projectId: projectId, deviceId: deviceId });
@@ -187,7 +261,7 @@ const Push: () => JSX.Element = (): ReactElement => {
       setTestNotificationError("");
       setRegisteredBrowser({
         deviceId: deviceId,
-        alreadyRegistered: result["alreadyRegistered"] === true,
+        alreadyRegistered: alreadyRegistered,
       });
       setRefreshToggle(ObjectID.generate().toString());
     } catch (err: unknown) {
@@ -279,6 +353,9 @@ const Push: () => JSX.Element = (): ReactElement => {
           userId: User.getUserId().toString(),
         }}
         refreshToggle={refreshToggle}
+        selectMoreFields={{
+          isVerified: true,
+        }}
         actionButtons={[
           {
             title: "Test Notification",
@@ -352,6 +429,21 @@ const Push: () => JSX.Element = (): ReactElement => {
                       color={Blue500}
                       size={PillSize.Small}
                       isMinimal={true}
+                    />
+                  ) : (
+                    <></>
+                  )}
+                  {/*
+                   * Its push subscription is gone, and nothing is sent to it
+                   * (UserPushService.markWebPushSubscriptionAsGone). The list
+                   * used to show it like any other device.
+                   */}
+                  {item.isVerified === false ? (
+                    <Pill
+                      text="Not receiving notifications"
+                      color={Red500}
+                      size={PillSize.Small}
+                      tooltip="This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to."
                     />
                   ) : (
                     <></>
