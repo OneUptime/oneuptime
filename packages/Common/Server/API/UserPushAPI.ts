@@ -1,5 +1,6 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import UserPushService, {
+  isExpoPushDeviceType,
   Service as UserPushServiceType,
 } from "../Services/UserPushService";
 import UserNotificationRuleService from "../Services/UserNotificationRuleService";
@@ -200,6 +201,7 @@ export default class UserPushAPI extends BaseAPI<
             select: {
               _id: true,
               isVerified: true,
+              deviceType: true,
             },
           });
 
@@ -208,15 +210,41 @@ export default class UserPushAPI extends BaseAPI<
            * mistake: it is Register Device pressed again in a browser that
            * already gets this project's notifications, or the mobile app
            * registering on launch. The caller is told which device they
-           * already have, and nothing is created or changed.
+           * already have, and nothing is created.
            *
-           * isVerified false: the push service no longer accepts the
-           * subscription the browser still holds
+           * isVerified false, for a browser: the push service no longer
+           * accepts the subscription the browser still holds
            * (UserPushService.markWebPushSubscriptionAsGone). The Dashboard
            * then gets a new one and reports it (subscription-change), so the
            * device it already has receives notifications again.
            */
           if (existingDevice) {
+            /*
+             * A phone that stopped receiving notifications - Expo said its
+             * token was gone (UserPushService.markExpoPushTokenAsGone) - and
+             * registers that token again. The app asked Expo for the token
+             * just before, which renews it there, so the device receives
+             * notifications again, with its rules. Before, it stayed marked
+             * however often the app registered it, and only deleting the
+             * device (and its rules) brought the phone back.
+             */
+            if (
+              !existingDevice.isVerified &&
+              isExpoPushDeviceType(existingDevice.deviceType)
+            ) {
+              const isVerifiedAgain: boolean =
+                await this.service.verifyExpoPushDeviceRegisteredAgain(
+                  new ObjectID(existingDevice._id!.toString()),
+                );
+
+              return Response.sendJsonObjectResponse(req, res, {
+                success: true,
+                deviceId: existingDevice._id!.toString(),
+                alreadyRegistered: true,
+                isVerified: isVerifiedAgain,
+              });
+            }
+
             return Response.sendJsonObjectResponse(req, res, {
               success: true,
               deviceId: existingDevice._id!.toString(),
@@ -475,16 +503,19 @@ export default class UserPushAPI extends BaseAPI<
 
           /*
            * A device stops being verified when its push subscription is gone
-           * (UserPushService.markWebPushSubscriptionAsGone), and nothing is
-           * sent to it. Said in those words: "Device is not verified" told
-           * nobody what to do.
+           * (UserPushService.markWebPushSubscriptionAsGone), or Expo says its
+           * token is (markExpoPushTokenAsGone), and nothing is sent to it.
+           * Said in those words: "Device is not verified" told nobody what to
+           * do. A phone registers again when its app is opened.
            */
           if (!device.isVerified) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "This device no longer receives push notifications. Register it again from the browser or app it belongs to.",
+                isExpoPushDeviceType(device.deviceType)
+                  ? PushNotificationService.EXPO_DEVICE_NOT_RECEIVING_MESSAGE
+                  : "This device no longer receives push notifications. Register it again from the browser or app it belongs to.",
               ),
             );
           }

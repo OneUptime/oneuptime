@@ -9,6 +9,7 @@ import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import PushNotificationService, {
+  ExpoDeviceNotRegisteredError,
   ExpoInterruptionLevel,
   ExpoPushSound,
 } from "Common/Server/Services/PushNotificationService";
@@ -221,6 +222,21 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, { success: true });
     } catch (err) {
+      /*
+       * Expo says the token is gone. Answered apart from every other
+       * failure, so the server that relayed the page can stop sending to
+       * the token (PushNotificationService.sendViaRelay). It used to reach
+       * the error handler like any failure and come back as 500 "Server
+       * Error". Still a failure to a server that does not know this answer,
+       * which counts the send as failed, as it always did.
+       */
+      if (err instanceof ExpoDeviceNotRegisteredError) {
+        res
+          .status(PushNotificationService.RELAY_DEVICE_NOT_REGISTERED_STATUS_CODE)
+          .json(PushNotificationService.getRelayDeviceNotRegisteredAnswer());
+        return;
+      }
+
       return next(err);
     }
   },
