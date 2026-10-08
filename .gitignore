@@ -179,6 +179,7 @@ openapi.json
 
 Terraform/terraform-provider-oneuptime/**
 Terraform/openapi.json
+Terraform/provider-schema.json
 TerraformTest/**
 
 terraform-provider-example/**

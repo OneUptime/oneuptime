@@ -310,8 +310,8 @@ describe("data source lookups", () => {
     expect(monitorDataSourceGo).not.toContain("d.client.Post(ctx,");
   });
 
-  test("the by-name lookup still sends its query and limit", () => {
-    expect(monitorDataSourceGo).toContain('"query": map[string]interface{}{');
+  test("the lookup by arguments still sends its query and limit", () => {
+    expect(monitorDataSourceGo).toContain('"query":  filters,');
     expect(monitorDataSourceGo).toContain('"limit": 2,');
   });
 });

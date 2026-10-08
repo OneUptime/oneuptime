@@ -20,13 +20,150 @@ import fs from "fs";
  */
 const STATIC_FILES_DIR: string = path.join(__dirname, "..", "StaticFiles");
 
+export interface SchemaFlags {
+  required: boolean;
+  optional: boolean;
+  computed: boolean;
+}
+
 export class ResourceGenerator {
   private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
 
+  /*
+   * Read-only attributes the server sets once, at create, and never changes:
+   * planned as their state value rather than "(known after apply)", so an
+   * update's plan lists only what actually changes.
+   */
+  public static readonly STABLE_COMPUTED_ATTRIBUTES: Set<string> =
+    new Set<string>(["created_at", "created_by_user_id", "project_id"]);
+
+  /*
+   * Required / Optional / Computed for one attribute, exactly as its schema
+   * declares them. Everything that has to agree with the schema (the
+   * attribute itself, the plan modifiers, which values Create and Update
+   * keep from the plan, the docs) asks here.
+   */
+  public static getSchemaFlags(
+    name: string,
+    attr: TerraformAttribute,
+    resource?: TerraformResource,
+  ): SchemaFlags {
+    // project_id is inferred from the API key, so it is computed-only.
+    if (name === "project_id" || name === "projectId") {
+      return { required: false, optional: false, computed: true };
+    }
+
+    if (attr.required) {
+      return { required: true, optional: false, computed: false };
+    }
+
+    if (attr.computed && !attr.optional) {
+      return { required: false, optional: false, computed: true };
+    }
+
+    const isInCreateSchema: boolean = Boolean(
+      resource?.operationSchemas?.create &&
+        Object.prototype.hasOwnProperty.call(
+          resource.operationSchemas.create,
+          name,
+        ),
+    );
+    const isInUpdateSchema: boolean = Boolean(
+      resource?.operationSchemas?.update &&
+        Object.prototype.hasOwnProperty.call(
+          resource.operationSchemas.update,
+          name,
+        ),
+    );
+    const hasDefault: boolean =
+      attr.default !== undefined && attr.default !== null;
+
+    if (attr.optional && attr.computed) {
+      return { required: false, optional: true, computed: true };
+    }
+
+    /*
+     * A default on a field neither request writes is the server's to keep:
+     * computed only, so it is never drift.
+     */
+    if (hasDefault && !isInCreateSchema && !isInUpdateSchema) {
+      return { required: false, optional: false, computed: true };
+    }
+
+    /*
+     * A schema default needs Computed, and so do lists and sets, which
+     * default to empty so null and [] are never a diff.
+     */
+    if (hasDefault || attr.type === "list" || attr.type === "set") {
+      return { required: false, optional: true, computed: true };
+    }
+
+    return { required: false, optional: true, computed: false };
+  }
+
+  private providerName: string;
+
   public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
     this.spec = spec;
+    this.providerName = config.providerName;
     this.fileGenerator = new FileGenerator(config.outputDir);
+  }
+
+  /*
+   * What a configuration that still uses a resource's old name is told:
+   * the new name, and the moved block that moves its state across.
+   */
+  private getLegacyAliasDeprecationMessage(
+    resource: TerraformResource,
+  ): string {
+    return `${this.providerName}_${resource.legacyName} has been renamed to ${this.providerName}_${resource.name}. Rename the resource in your configuration and add a moved block (from = ${this.providerName}_${resource.legacyName}.<name>, to = ${this.providerName}_${resource.name}.<name>) to keep the existing ${resource.name.replace(/_/g, " ")}; the old name keeps working until then.`;
+  }
+
+  private generateLegacyAliasConstructor(
+    resource: TerraformResource,
+    resourceTypeName: string,
+  ): string {
+    if (!resource.legacyName) {
+      return "";
+    }
+
+    return `
+// New${resourceTypeName}LegacyResource registers this resource under the name it
+// had before resource type names kept mixed-case words whole,
+// ${this.providerName}_${resource.legacyName}, so configurations that use it keep
+// working. Deprecated: plans that use it say so.
+func New${resourceTypeName}LegacyResource() resource.Resource {
+    return &${resourceTypeName}Resource{isLegacyAlias: true}
+}
+`;
+  }
+
+  private generateMoveStateMethod(
+    resource: TerraformResource,
+    resourceTypeName: string,
+  ): string {
+    if (!resource.legacyName) {
+      return "";
+    }
+
+    return `
+// MoveState lets a moved block bring state over from the old name:
+//
+//     moved {
+//       from = ${this.providerName}_${resource.legacyName}.example
+//       to   = ${this.providerName}_${resource.name}.example
+//     }
+func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.StateMover {
+    if r.isLegacyAlias {
+        return nil
+    }
+
+    return []resource.StateMover{
+        legacyNameStateMover("${this.providerName}_${resource.legacyName}", r.schemaDefinition()),
+    }
+}
+`;
   }
 
   public async generateResources(): Promise<void> {
@@ -54,6 +191,14 @@ export class ResourceGenerator {
     );
     await this.copyStaticFile(
       "provider_schema_smoke_test.go",
+      "internal/provider",
+    );
+    await this.copyStaticFile("legacynames.go", "internal/provider");
+    await this.copyStaticFile("legacynames_test.go", "internal/provider");
+
+    // Writes the built provider's schema for the docs generator.
+    await this.copyStaticFile(
+      "provider_schema_dump_test.go",
       "internal/provider",
     );
 
@@ -459,14 +604,25 @@ ${importStatements}
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &${resourceTypeName}Resource{}
 var _ resource.ResourceWithImportState = &${resourceTypeName}Resource{}
-
+${
+  resource.legacyName
+    ? `var _ resource.ResourceWithMoveState = &${resourceTypeName}Resource{}
+`
+    : ""
+}
 func New${resourceTypeName}Resource() resource.Resource {
     return &${resourceTypeName}Resource{}
 }
-
+${this.generateLegacyAliasConstructor(resource, resourceTypeName)}
 // ${resourceTypeName}Resource defines the resource implementation.
 type ${resourceTypeName}Resource struct {
-    client *Client
+    client *Client${
+      resource.legacyName
+        ? `
+    // Registered under the name this resource had before (see New${resourceTypeName}LegacyResource).
+    isLegacyAlias bool`
+        : ""
+    }
 }
 
 // ${resourceTypeName}ResourceModel describes the resource data model.
@@ -474,12 +630,31 @@ type ${resourceTypeName}ResourceModel struct {
 ${this.generateModelFields(resource)}
 }
 
-func (r *${resourceTypeName}Resource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *${resourceTypeName}Resource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {${
+      resource.legacyName
+        ? `
+    if r.isLegacyAlias {
+        resp.TypeName = req.ProviderTypeName + "_${resource.legacyName}"
+        return
+    }`
+        : ""
+    }
     resp.TypeName = req.ProviderTypeName + "_${resource.name}"
 }
 
 func (r *${resourceTypeName}Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-    resp.Schema = schema.Schema{
+    resp.Schema = r.schemaDefinition()${
+      resource.legacyName
+        ? `
+    if r.isLegacyAlias {
+        resp.Schema.DeprecationMessage = "${GoCodeGenerator.escapeString(this.getLegacyAliasDeprecationMessage(resource))}"
+    }`
+        : ""
+    }
+}
+
+func (r *${resourceTypeName}Resource) schemaDefinition() schema.Schema {
+    return schema.Schema{
         MarkdownDescription: "${GoCodeGenerator.escapeString(resource.description || `Manages a ${resource.name.replace(/_/g, " ")} in OneUptime.`)}",
 
         Attributes: map[string]schema.Attribute{
@@ -487,7 +662,7 @@ ${this.generateSchemaAttributes(resource)}
         },
     }
 }
-
+${this.generateMoveStateMethod(resource, resourceTypeName)}
 func (r *${resourceTypeName}Resource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
     // Prevent panic if the provider has not been configured.
     if req.ProviderData == nil {
@@ -523,6 +698,7 @@ ${
 }
 }
 
+${this.generateKeepPlannedValuesMethod(resource, resourceTypeName)}
 // Helper method to convert Terraform map to Go interface{}
 func (r *${resourceTypeName}Resource) convertTerraformMapToInterface(terraformMap types.Map) interface{} {
     if terraformMap.IsNull() || terraformMap.IsUnknown() {
@@ -713,22 +889,7 @@ ${this.generateValidObjectTypesMap()}
   }
 
   private sanitizeAttributeName(name: string): string {
-    // List of reserved attribute names in Terraform
-    const reservedNames: string[] = [
-      "count",
-      "for_each",
-      "provider",
-      "lifecycle",
-      "depends_on",
-      "connection",
-      "provisioner",
-    ];
-
-    if (reservedNames.includes(name)) {
-      return `${name}_value`;
-    }
-
-    return name;
+    return StringUtils.toTerraformAttributeName(name);
   }
 
   private generateSchemaAttribute(
@@ -788,40 +949,19 @@ ${this.generateValidObjectTypesMap()}
     const isProjectIdField: boolean =
       name === "project_id" || name === "projectId";
 
-    if (isProjectIdField) {
-      // Project ID is always computed from API key - users don't need to provide it
-      options.push("Computed: true");
-    } else if (attr.required) {
+    const flags: SchemaFlags = ResourceGenerator.getSchemaFlags(
+      name,
+      attr,
+      resource,
+    );
+
+    if (flags.required) {
       options.push("Required: true");
-    } else if (attr.optional && attr.computed) {
-      // Handle fields that are both optional and computed (server-managed with optional user input)
-      options.push("Optional: true");
-      options.push("Computed: true");
-    } else if (attr.computed) {
-      options.push("Computed: true");
-    } else if (
-      attr.default !== undefined &&
-      attr.default !== null &&
-      !isInCreateSchema &&
-      !isInUpdateSchema
-    ) {
-      /*
-       * Fields with defaults that are not in create or update schema should be Computed only
-       * This prevents drift when the server manages these fields
-       */
-      options.push("Computed: true");
-    } else {
+    }
+    if (flags.optional) {
       options.push("Optional: true");
     }
-
-    // Attributes with default values that are in the create or update schema must also be computed
-    if (
-      attr.default !== undefined &&
-      attr.default !== null &&
-      !attr.required &&
-      !attr.computed &&
-      (isInCreateSchema || isInUpdateSchema)
-    ) {
+    if (flags.computed) {
       options.push("Computed: true");
     }
 
@@ -875,10 +1015,6 @@ ${this.generateValidObjectTypesMap()}
       options.push(
         "Default: listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{}))",
       );
-      // Ensure the attribute is also computed since it has a default
-      if (!options.includes("Computed: true")) {
-        options.push("Computed: true");
-      }
     }
     if (
       attr.type === "set" &&
@@ -889,10 +1025,6 @@ ${this.generateValidObjectTypesMap()}
       options.push(
         "Default: setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{}))",
       );
-      // Ensure the attribute is also computed since it has a default
-      if (!options.includes("Computed: true")) {
-        options.push("Computed: true");
-      }
     }
 
     // For collection attributes, add ElementType
@@ -926,7 +1058,14 @@ ${this.generateValidObjectTypesMap()}
       modifierInterfaceByType[attr.type];
 
     const modifiers: string[] = [];
-    if (name === "id" || (attr.optional && attr.computed && modifierPackage)) {
+    if (
+      name === "id" ||
+      (attr.optional && attr.computed && modifierPackage) ||
+      (flags.computed &&
+        !flags.optional &&
+        ResourceGenerator.STABLE_COMPUTED_ATTRIBUTES.has(name) &&
+        modifierPackage)
+    ) {
       modifiers.push(
         `${modifierPackage || "stringplanmodifier"}.UseStateForUnknown()`,
       );
@@ -989,6 +1128,90 @@ ${this.generateValidObjectTypesMap()}
     return `schema.${attrType}Attribute{
                 ${options.join(",\n                ")}${planModifiers}${validators},
             }`;
+  }
+
+  /*
+   * The optional attributes Terraform also computes: the ones whose planned
+   * value Create and Update keep when the configuration leaves them out.
+   */
+  private getKeptPlannedAttributes(resource: TerraformResource): string[] {
+    return Object.entries(resource.schema)
+      .filter(([name, attr]: [string, TerraformAttribute]) => {
+        if (name === "id" || attr.format === "binary") {
+          return false;
+        }
+        const flags: SchemaFlags = ResourceGenerator.getSchemaFlags(
+          name,
+          attr,
+          resource,
+        );
+        return flags.optional && flags.computed;
+      })
+      .map(([name]: [string, TerraformAttribute]) => {
+        return StringUtils.toPascalCase(this.sanitizeAttributeName(name));
+      });
+  }
+
+  private generatePlanAndConfigCapture(
+    resource: TerraformResource,
+    resourceTypeName: string,
+  ): string {
+    if (this.getKeptPlannedAttributes(resource).length === 0) {
+      return "";
+    }
+
+    return `
+    // What the configuration sets, and what Terraform planned (see keepPlannedValues).
+    var config ${resourceTypeName}ResourceModel
+    resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+    if resp.Diagnostics.HasError() {
+        return
+    }
+    plan := data
+`;
+  }
+
+  private generateKeepPlannedValuesCall(resource: TerraformResource): string {
+    if (this.getKeptPlannedAttributes(resource).length === 0) {
+      return "";
+    }
+
+    return `
+
+    // Unconfigured attributes keep their planned value; see keepPlannedValues.
+    r.keepPlannedValues(&data, &plan, &config)`;
+  }
+
+  private generateKeepPlannedValuesMethod(
+    resource: TerraformResource,
+    resourceTypeName: string,
+  ): string {
+    const fields: string[] = this.getKeptPlannedAttributes(resource);
+
+    if (fields.length === 0) {
+      return "";
+    }
+
+    const assignments: string = fields
+      .map((field: string) => {
+        return `    if config.${field}.IsNull() && !plan.${field}.IsUnknown() {
+        data.${field} = plan.${field}
+    }`;
+      })
+      .join("\n");
+
+    return `
+// keepPlannedValues puts back, after a create or an update, the planned value
+// of each optional attribute the configuration leaves out. The server keeps
+// some of these up to date on its own (when it last checked a heartbeat, the
+// status a probe last reported...), so the value read back after the write can
+// already differ from the plan, and Terraform would fail the apply with
+// "Provider produced inconsistent result after apply". The next refresh reads
+// the server's value, which is never a diff for an attribute nobody configured.
+func (r *${resourceTypeName}Resource) keepPlannedValues(data *${resourceTypeName}ResourceModel, plan *${resourceTypeName}ResourceModel, config *${resourceTypeName}ResourceModel) {
+${assignments}
+}
+`;
   }
 
   private generateCRUDMethods(
@@ -1062,7 +1285,7 @@ ${this.generateValidObjectTypesMap()}
     let readBackCode: string = `
     // No read endpoint for this resource: map the create response directly.
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", true)}`;
+${this.generateResponseMapping(resource, resourceVarName + "Response", true)}${this.generateKeepPlannedValuesCall(resource)}`;
 
     if (resource.operations.read) {
       const readPath: string = this.buildPathExpression(
@@ -1123,7 +1346,7 @@ ${this.generateSelectParameter(resource)}
     // Update the model with the authoritative read response
 ${this.generateResponseMapping(resource, "readResponse", true)}
     // The read response is authoritative, but never let it clobber the id we just received.
-    data.Id = types.StringValue(createdId)`;
+    data.Id = types.StringValue(createdId)${this.generateKeepPlannedValuesCall(resource)}`;
     }
 
     return `
@@ -1136,7 +1359,7 @@ func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.C
     if resp.Diagnostics.HasError() {
         return
     }
-
+${this.generatePlanAndConfigCapture(resource, resourceTypeName)}
 ${this.generateOriginalValueStorage(resource)}
 
     // Create API request body. Unset (null/unknown) optional fields are
@@ -1318,7 +1541,7 @@ ${this.generateSelectParameter(resource)}
 
     // Update the model with response data from the Read operation
 ${this.generateResponseMapping(resource, "readResponse", false)}
-    data.Id = state.Id`
+    data.Id = state.Id${this.generateKeepPlannedValuesCall(resource)}`
       : `
     // No read endpoint for this resource: the planned values become state.`;
 
@@ -1341,7 +1564,7 @@ func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.U
 
     // Use the ID from the current state
     data.Id = state.Id
-
+${hasRead ? this.generatePlanAndConfigCapture(resource, resourceTypeName) : ""}
     // Create API request body
     ${resourceVarName}Request := map[string]interface{}{
         "data": map[string]interface{}{},
@@ -2216,6 +2439,27 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       })
       .join("\n");
 
+    const renamedResources: Array<TerraformResource> = resources.filter(
+      (resource: TerraformResource) => {
+        return Boolean(resource.legacyName);
+      },
+    );
+
+    const legacyAliasFunctions: string = renamedResources
+      .map((resource: TerraformResource) => {
+        return `        New${StringUtils.toPascalCase(resource.name)}LegacyResource,`;
+      })
+      .join("\n");
+
+    const legacyAliasEntries: string = renamedResources
+      .map((resource: TerraformResource) => {
+        const resourceTypeName: string = StringUtils.toPascalCase(
+          resource.name,
+        );
+        return `    {Name: "${resource.name}", LegacyName: "${resource.legacyName}", New: New${resourceTypeName}Resource, NewLegacy: New${resourceTypeName}LegacyResource},`;
+      })
+      .join("\n");
+
     /*
      * This would update the provider.go file to include the resources
      * For now, we'll create a separate file with the resource list
@@ -2229,8 +2473,21 @@ import (
 // GetResources returns all available resources
 func GetResources() []func() resource.Resource {
     return []func() resource.Resource{
-${resourceFunctions}
+${resourceFunctions}${
+      legacyAliasFunctions
+        ? `
+        // Deprecated aliases: the names these resources had before resource
+        // type names kept mixed-case words whole.
+${legacyAliasFunctions}`
+        : ""
     }
+    }
+}
+
+// legacyResourceAliases pairs each renamed resource with the alias that keeps
+// its old name working.
+var legacyResourceAliases = []legacyResourceAlias{
+${legacyAliasEntries}
 }
 `;
 
