@@ -232,6 +232,11 @@ describe("a create under a parent reads the parent as its creator would", () => 
     // A plain service: no incident service's hooks run on the read.
     expect(read.reader.constructor).toBe(DatabaseService);
     expect(valuesOf(read.findBy.query._id)).toEqual([INCIDENT_ID]);
+    /*
+     * With the incident table's rule for private incidents, which a plain
+     * service does not add on its own (CreatePermission.getParentLookupQuery).
+     */
+    expect(Object.keys(read.findBy.query).sort()).toEqual(["_id", "isPrivate"]);
     expect(read.findBy.select).toEqual({ _id: true });
     expect(read.findBy.limit).toBe(1);
     expect(read.findBy.skip).toBe(0);

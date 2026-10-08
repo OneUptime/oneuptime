@@ -8,7 +8,10 @@ import ServiceLevelObjectiveMonitorRuleEngineService from "../../../Server/Servi
 import StatusPageMonitorRuleEngineService from "../../../Server/Services/StatusPageMonitorRuleEngineService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
-import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import {
+  ProjectScopedReferenceException,
+  UnreadableParentException,
+} from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -40,8 +43,9 @@ jest.mock("../../../Server/Utils/Logger");
  *     whose read reaches only what they own would not reach it yet: they are
  *     made an owner once the create returns.
  *   - a change a person makes to several monitors - an incident they declare
- *     or edit - writes each row as them. A monitor they may not write a row
- *     for keeps its status, and the others are still changed.
+ *     or edit - writes each row as them. A monitor they may not read keeps
+ *     its status, and the others are still changed; a caller who may write
+ *     no status row at all is refused, as before.
  *
  * No database: the status rows and the hook's other steps are stubbed.
  */
@@ -230,21 +234,48 @@ describe("a change to several monitors writes each row as the person making it",
     );
   };
 
-  test.each([
-    [
-      "one their read of monitors does not reach",
-      new ProjectScopedReferenceException(
+  test("a monitor their read of monitors does not reach keeps its status, and the others still change", async () => {
+    refuseFor(
+      OTHER_MONITOR_ID,
+      new UnreadableParentException(
         `This monitor status timeline references records that are not in this project: Monitor "${OTHER_MONITOR_ID.toString()}". Please pick values from this project and try again.`,
       ),
-    ],
+    );
+
+    await expect(
+      MonitorService.changeMonitorStatus(
+        PROJECT_ID,
+        [MONITOR_ID, OTHER_MONITOR_ID, THIRD_MONITOR_ID],
+        STATUS_ID,
+        true,
+        "Status was changed because an incident was updated.",
+        undefined,
+        member,
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(createdFor).toEqual([
+      MONITOR_ID.toString(),
+      THIRD_MONITOR_ID.toString(),
+    ]);
+  });
+
+  test.each([
     [
-      "one they may not write a status row for",
+      "a caller who may write no status row at all",
       new NotAuthorizedException(
         "You do not have permissions to create Monitor Status Timeline.",
       ),
     ],
+    [
+      "a status of another project",
+      new ProjectScopedReferenceException(
+        `This monitor status timeline references records that are not in this project: Monitor Status "${STATUS_ID.toString()}". Please pick values from this project and try again.`,
+      ),
+    ],
+    ["any other failure", new BadDataException("Something else broke.")],
   ])(
-    "a monitor they may not write - %s - keeps its status, and the others still change",
+    "%s still stops the change, as before",
     async (_why: string, refusal: Error) => {
       refuseFor(OTHER_MONITOR_ID, refusal);
 
@@ -254,34 +285,13 @@ describe("a change to several monitors writes each row as the person making it",
           [MONITOR_ID, OTHER_MONITOR_ID, THIRD_MONITOR_ID],
           STATUS_ID,
           true,
-          "Status was changed because an incident was updated.",
+          undefined,
           undefined,
           member,
         ),
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow(refusal.message);
 
-      expect(createdFor).toEqual([
-        MONITOR_ID.toString(),
-        THIRD_MONITOR_ID.toString(),
-      ]);
+      expect(createdFor).toEqual([MONITOR_ID.toString()]);
     },
   );
-
-  test("any other failure still stops the change", async () => {
-    refuseFor(OTHER_MONITOR_ID, new BadDataException("Something else broke."));
-
-    await expect(
-      MonitorService.changeMonitorStatus(
-        PROJECT_ID,
-        [MONITOR_ID, OTHER_MONITOR_ID, THIRD_MONITOR_ID],
-        STATUS_ID,
-        true,
-        undefined,
-        undefined,
-        member,
-      ),
-    ).rejects.toThrow("Something else broke.");
-
-    expect(createdFor).toEqual([MONITOR_ID.toString()]);
-  });
 });

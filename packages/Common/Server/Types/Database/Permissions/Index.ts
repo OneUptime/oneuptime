@@ -267,9 +267,10 @@ export default class ModelPermission {
   /*
    * A record read through another one is created only under a parent its
    * creator may read (CreatePermission.checkParentPermission). Asked by
-   * DatabaseService before the create hooks run, and again after them when
-   * a hook named other parents (`checkedParentIds`). Returns the parent ids
-   * the create names.
+   * DatabaseService before the create hooks run, and again after them
+   * (`checkedParentIds`, what the first ask returned), which looks a parent
+   * up only when a hook named other parents and decides a create that names
+   * none. Returns the parent ids the create names.
    */
   @CaptureSpan()
   public static async checkCreateParentPermission<

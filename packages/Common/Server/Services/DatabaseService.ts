@@ -2103,9 +2103,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * writes or answers anything about a parent the caller may not read. Asked
    * again once the hooks have run and the create permissions are checked,
    * which looks a parent up only when a hook named another one than was
-   * checked before (`checkedParentIds`). Root and master admin creates -
-   * OneUptime's own engines and workers - are not asked. Returns the parent
-   * ids the create names.
+   * checked before (`checkedParentIds`), and decides a create that names no
+   * parent. Root and master admin creates - OneUptime's own engines and
+   * workers - are not asked. Returns the parent ids the create names.
    */
   private async checkCreateParents(data: {
     data: TBaseModel;
@@ -2124,6 +2124,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       findReadableParentIds: async (lookup: {
         parentModelType: { new (): BaseModel };
         ids: Array<string>;
+        query: Query<BaseModel>;
         props: DatabaseCommonInteractionProps;
       }): Promise<Array<string>> => {
         return await DatabaseService.findReadableParentIds(lookup);
@@ -2135,21 +2136,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * Of `ids`, the parents the caller may read: one read of the parent's own
    * table as the caller, so every rule a read of it follows decides - the
    * project, the caller's read permissions, the labels their read is limited
-   * to, their team's blocks and the Owned scope - selecting nothing but the
-   * id. Pinned to the project of the request, as the create is: a request
-   * across projects reads the parents of the request's project only.
+   * to, their team's blocks and the Owned scope - with `query`, which names
+   * the ids and carries the parent table's rule for its private records
+   * (CreatePermission.getParentLookupQuery), selecting nothing but the id.
+   * Pinned to the project of the request, as the create is: a request across
+   * projects reads the parents of the request's project only.
    */
   private static async findReadableParentIds(data: {
     parentModelType: { new (): BaseModel };
     ids: Array<string>;
+    query: Query<BaseModel>;
     props: DatabaseCommonInteractionProps;
   }): Promise<Array<string>> {
     const rows: Array<BaseModel> = await DatabaseService.getParentReader(
       data.parentModelType,
     ).findBy({
-      query: {
-        _id: QueryHelper.any(data.ids),
-      } as Query<BaseModel>,
+      query: data.query,
       select: {
         _id: true,
       } as Select<BaseModel>,

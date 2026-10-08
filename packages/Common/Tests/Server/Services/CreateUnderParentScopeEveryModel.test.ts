@@ -491,3 +491,71 @@ describe("the code creates these records through DatabaseService.create only", (
     expect(lines.sort()).toEqual([...RAW_INSERTS_BY_ONEUPTIME].sort());
   });
 });
+
+/*
+ * THE PARENT TABLES THAT HOLD PRIVATE RECORDS. An incident, an alert or an
+ * episode marked private is read only by the people it names and by those
+ * who see every private record of the project - a rule its own service adds
+ * to every read of it (IncidentService.onBeforeFind and the others). The
+ * parent lookup reads through a plain service, so it adds that rule itself
+ * (CreatePermission.getParentLookupQuery): every parent table with private
+ * records has its rule there, and it is the rule that table's service
+ * applies to its reads.
+ */
+describe("a parent table's private records are looked up with its own rule", () => {
+  const parentModels: Array<ModelType> = Array.from(
+    new Set<ModelType>(
+      MODELS_READ_THROUGH_A_PARENT.map((modelType: ModelType): ModelType => {
+        return parentOf(modelType).parentModelType as ModelType;
+      }),
+    ),
+  );
+
+  const holdsPrivateRecords: (modelType: ModelType) => boolean = (
+    modelType: ModelType,
+  ): boolean => {
+    return Boolean(new modelType().getTableColumnMetadata("isPrivate"));
+  };
+
+  test("the incidents, alerts and episodes are the parents with private records", () => {
+    expect(parentModels.filter(holdsPrivateRecords).map(nameOf).sort()).toEqual(
+      ["Alert", "AlertEpisode", "Incident", "IncidentEpisode"],
+    );
+  });
+
+  test.each(
+    parentModels.map((modelType: ModelType): [string, ModelType] => {
+      return [nameOf(modelType), modelType];
+    }),
+  )(
+    "%s is looked up with a rule for private records exactly when it holds them",
+    (_name: string, modelType: ModelType) => {
+      expect(CreatePermission.getParentPrivacyFilter(modelType) !== null).toBe(
+        holdsPrivateRecords(modelType),
+      );
+    },
+  );
+
+  test.each(
+    parentModels
+      .filter(holdsPrivateRecords)
+      .map((modelType: ModelType): [string, ModelType] => {
+        return [nameOf(modelType), modelType];
+      }),
+  )(
+    "%s's rule is the one its own service adds to every read",
+    (name: string, modelType: ModelType) => {
+      const filterName: string =
+        CreatePermission.getParentPrivacyFilter(modelType)!.name;
+      const serviceSource: string = fs.readFileSync(
+        path.join(SERVER_DIRECTORY, "Services", `${name}Service.ts`),
+        "utf-8",
+      );
+
+      expect(filterName).toMatch(/^apply\w+SelfPrivacyFilter$/);
+      expect(serviceSource).toMatch(
+        new RegExp(`${filterName}\\(\\s*findBy\\.query,`),
+      );
+    },
+  );
+});

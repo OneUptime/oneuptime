@@ -3,7 +3,11 @@ import CreatePermission, {
   ReadableParentIdsFinder,
 } from "../../../../../Server/Types/Database/Permissions/CreatePermission";
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
-import { ProjectScopedReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import Query from "../../../../../Server/Types/Database/Query";
+import {
+  ProjectScopedReferenceException,
+  UnreadableParentException,
+} from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentAlert from "../../../../../Models/DatabaseModels/IncidentAlert";
@@ -42,10 +46,10 @@ jest.mock("../../../../../Server/Utils/Logger");
  *   - every parent the create names, under either of its names, must be one
  *     a read of the parent's table finds for the caller - the lookup is
  *     handed in, as DatabaseService hands in a read with the caller's own
- *     props; a caller whose read of the parents is not narrowed at all is
- *     not looked up;
+ *     props, with the parent table's rule for its private records; a caller
+ *     whose read of the parents is not narrowed at all is not looked up;
  *   - a create that names no parent needs a read that reaches the whole
- *     project.
+ *     project, asked once the create's hooks have run.
  *
  * A parent the caller may not read is answered like one that does not
  * exist.
@@ -163,6 +167,7 @@ interface Lookup {
   calls: Array<{
     parentModelType: { new (): BaseModel };
     ids: Array<string>;
+    query: Query<BaseModel>;
     props: DatabaseCommonInteractionProps;
   }>;
 }
@@ -175,6 +180,7 @@ const lookupFinding: (readableIds: Array<string>) => Lookup = (
     find: async (data: {
       parentModelType: { new (): BaseModel };
       ids: Array<string>;
+      query: Query<BaseModel>;
       props: DatabaseCommonInteractionProps;
     }): Promise<Array<string>> => {
       lookup.calls.push(data);
@@ -320,6 +326,7 @@ describe("a record read through another one is created only under a parent its c
         idColumn: "incidentId",
         isList: false,
         title: "Incident",
+        isParentReadOptional: false,
       });
 
       expect(CreatePermission.getCreateParent(StatusPageAnnouncement)).toEqual({
@@ -328,6 +335,12 @@ describe("a record read through another one is created only under a parent its c
         idColumn: null,
         isList: true,
         title: "Status Pages",
+        isParentReadOptional: false,
+      });
+
+      expect(CreatePermission.getCreateParent(IncidentAlert)).toMatchObject({
+        parentModelType: Incident,
+        isParentReadOptional: true,
       });
 
       expect(CreatePermission.getCreateParent(Incident)).toBeNull();
@@ -411,16 +424,36 @@ describe("a record read through another one is created only under a parent its c
   });
 
   describe("a parent named by its key", () => {
-    test("a caller who reads every incident of the project is not looked up", async () => {
+    test("a caller who reads every status page of the project is not looked up", async () => {
       for (const rows of [
         [
-          everywhere(Permission.CreateIncidentInternalNote),
-          everywhere(Permission.ReadProjectIncident),
+          everywhere(Permission.CreateStatusPageAnnouncement),
+          everywhere(Permission.ReadProjectStatusPage),
         ],
         [everywhere(Permission.ProjectMember)],
         [everywhere(Permission.ProjectAdmin)],
         // The scope of a role that cannot be scoped is not weighed.
         [owned(Permission.ProjectOwner)],
+      ]) {
+        const lookup: Lookup = lookupFinding([]);
+
+        await expect(
+          check({
+            modelType: StatusPageAnnouncement,
+            data: announcementOn([PAGE_A]),
+            props: member(rows),
+            lookup: lookup,
+          }),
+        ).resolves.toEqual([PAGE_A]);
+
+        expect(lookup.calls).toEqual([]);
+      }
+    });
+
+    test("a project owner or admin, who sees every private incident, is not looked up", async () => {
+      for (const rows of [
+        [everywhere(Permission.ProjectAdmin)],
+        [everywhere(Permission.ProjectOwner)],
       ]) {
         const lookup: Lookup = lookupFinding([]);
 
@@ -434,6 +467,54 @@ describe("a record read through another one is created only under a parent its c
         ).resolves.toEqual([INCIDENT_ID]);
 
         expect(lookup.calls).toEqual([]);
+      }
+    });
+
+    test("anyone else who reads every incident is looked up with the rule for private incidents", async () => {
+      for (const rows of [
+        [
+          everywhere(Permission.CreateIncidentInternalNote),
+          everywhere(Permission.ReadProjectIncident),
+        ],
+        [everywhere(Permission.ProjectMember)],
+      ]) {
+        const props: DatabaseCommonInteractionProps = member(rows);
+
+        // A private incident that does not name them reads like a missing one.
+        const missing: Lookup = lookupFinding([]);
+        const refusal: unknown = await refusalOf(
+          check({
+            modelType: IncidentInternalNote,
+            data: noteOn({ incidentId: new ObjectID(INCIDENT_ID) }),
+            props: props,
+            lookup: missing,
+          }),
+        );
+
+        expect(refusal).toBeInstanceOf(UnreadableParentException);
+        expect((refusal as Error).message).toBe(
+          missingParentMessage(
+            "incident internal note",
+            `Incident "${INCIDENT_ID}"`,
+          ),
+        );
+        expect(missing.calls).toHaveLength(1);
+        // The lookup carries the incident table's rule for private records.
+        expect(Object.keys(missing.calls[0]!.query).sort()).toEqual([
+          "_id",
+          "isPrivate",
+        ]);
+
+        const found: Lookup = lookupFinding([INCIDENT_ID]);
+
+        await expect(
+          check({
+            modelType: IncidentInternalNote,
+            data: noteOn({ incidentId: new ObjectID(INCIDENT_ID) }),
+            props: props,
+            lookup: found,
+          }),
+        ).resolves.toEqual([INCIDENT_ID]);
       }
     });
 
@@ -683,6 +764,24 @@ describe("a record read through another one is created only under a parent its c
   });
 
   describe("a create that names no parent - a record of the whole project", () => {
+    test("is asked about after the hooks: a hook may name the parent, and a missing one is the required check's", async () => {
+      const lookup: Lookup = lookupFinding([]);
+
+      await expect(
+        check({
+          modelType: StatusPageAnnouncement,
+          data: announcementOn([]),
+          props: member([
+            everywhere(Permission.CreateStatusPageAnnouncement),
+            onProduction(Permission.ReadProjectStatusPage),
+          ]),
+          lookup: lookup,
+        }),
+      ).resolves.toEqual([]);
+
+      expect(lookup.calls).toEqual([]);
+    });
+
     test("needs a read of the parents that is limited neither to labels nor to owned records", async () => {
       for (const rows of [
         [
@@ -703,6 +802,7 @@ describe("a record read through another one is created only under a parent its c
               data: announcementOn(statusPages),
               props: member(rows),
               lookup: lookup,
+              checkedParentIds: [],
             }),
           );
 
@@ -728,6 +828,7 @@ describe("a record read through another one is created only under a parent its c
             onProduction(Permission.ReadWorkflow),
           ]),
           lookup: lookupFinding([]),
+          checkedParentIds: [],
         }),
       );
 
@@ -911,24 +1012,37 @@ describe("a record read through another one is created only under a parent its c
     // Narrowed: a label-limited grant, an owned-only grant.
     expect(
       CreatePermission.readsEveryParent(
-        Incident,
-        member([onProduction(Permission.ReadProjectIncident)]),
+        StatusPage,
+        member([onProduction(Permission.ReadProjectStatusPage)]),
       ),
     ).toBe(false);
     expect(
       CreatePermission.readsEveryParent(
-        Incident,
-        member([owned(Permission.ReadProjectIncident)]),
+        StatusPage,
+        member([owned(Permission.ReadProjectStatusPage)]),
       ),
     ).toBe(false);
     // Not narrowed: a grant over the project, beside a narrower one.
     expect(
       CreatePermission.readsEveryParent(
-        Incident,
+        StatusPage,
         member([
-          onProduction(Permission.ReadProjectIncident),
-          everywhere(Permission.IncidentViewer),
+          onProduction(Permission.ReadProjectStatusPage),
+          everywhere(Permission.StatusPageViewer),
         ]),
+      ),
+    ).toBe(true);
+    // A table of private records: read whole only by who sees them all.
+    expect(
+      CreatePermission.readsEveryParent(
+        Incident,
+        member([everywhere(Permission.IncidentViewer)]),
+      ),
+    ).toBe(false);
+    expect(
+      CreatePermission.readsEveryParent(
+        Incident,
+        member([everywhere(Permission.ProjectAdmin)]),
       ),
     ).toBe(true);
   });

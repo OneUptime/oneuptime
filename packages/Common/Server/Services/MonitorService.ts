@@ -40,7 +40,6 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
@@ -91,10 +90,10 @@ import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
+import { UnreadableParentException } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
   ProjectScopedReference,
-  ProjectScopedReferenceException,
   ProjectScopedRelation,
   resolveReferenceId,
   resolveReferenceIds,
@@ -3681,13 +3680,15 @@ ${createdItem.description?.trim() || "No description provided."}
    *     the next probe result recreates the transition, and failing the caller
    *     outright would strand its remaining monitors instead.
    *
-   *   - a row the caller may not write: a person's change - an incident they
-   *     declare or edit - writes as them, and a monitor their read of
-   *     monitors does not reach takes no row from them (CreatePermission
-   *     .checkParentPermission). That monitor keeps its status; the others
-   *     are still changed.
+   *   - a monitor the caller may not read: a person's change - an incident
+   *     they declare or edit - writes as them, and a monitor outside what
+   *     their read of monitors reaches takes no row from them
+   *     (CreatePermission.checkParentPermission refuses it with
+   *     UnreadableParentException). That monitor keeps its status; the
+   *     others are still changed.
    *
-   * Every other error still propagates.
+   * Every other error still propagates - a caller who may write no status
+   * row at all is refused, as before.
    */
   private async createStatusTimelineWithRetry(data: {
     statusTimeline: MonitorStatusTimeline;
@@ -3742,13 +3743,10 @@ ${createdItem.description?.trim() || "No description provided."}
           return;
         }
 
-        // A row the caller may not write. See the comment above.
-        if (
-          err instanceof ProjectScopedReferenceException ||
-          err instanceof NotAuthorizedException
-        ) {
+        // A monitor the caller may not read. See the comment above.
+        if (err instanceof UnreadableParentException) {
           logger.warn(
-            `changeMonitorStatus: monitor ${data.monitorId.toString()} keeps its status, as this change may not write it: ${err.message}`,
+            `changeMonitorStatus: monitor ${data.monitorId.toString()} keeps its status: the caller of this change may not read it.`,
             logAttributes,
           );
           return;

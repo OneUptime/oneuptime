@@ -69,7 +69,8 @@ import { DataSource, Logger } from "typeorm";
  *   - A read across projects applies each project's own grants and blocks
  *     to that project's rows.
  *   - A record read through a parent - an alert's note, a status page's
- *     announcement - is created only under a parent its creator may read.
+ *     announcement - is created only under a parent its creator may read,
+ *     a private alert only by the people it names and by project admins.
  *   - An AI insight follows the service it names.
  *   - The work per request does not grow with the rows it reads.
  *
@@ -3182,6 +3183,61 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
         expect(created.error).toBeUndefined();
         expect(await notesWithText(text)).toBe(1);
+      }
+    });
+
+    test("a private alert takes notes from the people it names and from who sees every private alert", async () => {
+      // A member who reads every alert, on alerts marked private.
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+      await database.query(
+        `UPDATE "${schema}"."Alert" SET "isPrivate" = true WHERE "_id" IN ($1, $2)`,
+        [stagingAlertId.toString(), productionAlertId.toString()],
+      );
+
+      try {
+        // The member owns the staging alert, so it names them.
+        const text: string = noteText();
+        const created: Outcome = await createNote(
+          homeUser,
+          { alertId: stagingAlertId },
+          text,
+        );
+
+        expect(created.error).toBeUndefined();
+        expect(await notesWithText(text)).toBe(1);
+
+        // The production alert names nobody they are: it reads like a missing one.
+        const refusedText: string = noteText();
+        const refused: Outcome = await createNote(
+          homeUser,
+          { alertId: productionAlertId },
+          refusedText,
+        );
+
+        expectRefusedAsMissing(refused, "Alert", productionAlertId);
+        expect(await notesWithText(refusedText)).toBe(0);
+
+        // A project admin sees every private alert.
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          { permission: Permission.ProjectAdmin },
+        ]);
+
+        const adminText: string = noteText();
+        const adminCreated: Outcome = await createNote(
+          homeUser,
+          { alertId: productionAlertId },
+          adminText,
+        );
+
+        expect(adminCreated.error).toBeUndefined();
+        expect(await notesWithText(adminText)).toBe(1);
+      } finally {
+        await database.query(
+          `UPDATE "${schema}"."Alert" SET "isPrivate" = false WHERE "_id" IN ($1, $2)`,
+          [stagingAlertId.toString(), productionAlertId.toString()],
+        );
       }
     });
 
