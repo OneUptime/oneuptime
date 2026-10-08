@@ -4563,7 +4563,10 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         const keeper: () => Promise<Caller> = async (): Promise<Caller> => {
           const rows: Array<PermissionRow> = [
             ...BUDGET_KEEPER,
-            { permission: Permission.ReadService, labelIds: [productionLabelId] },
+            {
+              permission: Permission.ReadService,
+              labelIds: [productionLabelId],
+            },
           ];
 
           if (kind === "team") {
@@ -4625,9 +4628,9 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
             );
 
             expectRefusedAsMissing(refused, stagingServiceId);
-            expect(await readColumn("LlmCostBudget", budgetId, "serviceId")).toBe(
-              productionServiceId.toString(),
-            );
+            expect(
+              await readColumn("LlmCostBudget", budgetId, "serviceId"),
+            ).toBe(productionServiceId.toString());
           }
 
           // Named already - by someone who reads it - and kept.

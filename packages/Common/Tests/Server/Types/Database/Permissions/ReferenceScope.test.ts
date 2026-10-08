@@ -422,9 +422,7 @@ describe("what a write names in a field of its own", () => {
 
   test("a clear names nothing, and a write that leaves it out does not name it", () => {
     expect(
-      RelationListPermission.getNamedIds(Alert, { monitorId: null })[
-        "monitor"
-      ],
+      RelationListPermission.getNamedIds(Alert, { monitorId: null })["monitor"],
     ).toEqual([]);
     expect(
       RelationListPermission.getNamedIds(Alert, { monitor: null })["monitor"],
@@ -588,7 +586,10 @@ describe("a create that names a record in a field of its own", () => {
 
   test("a caller whose read of the named model is narrowed by nothing is not looked up: the reference check answers", async () => {
     for (const rows of [
-      [everywhere(Permission.CreateAlert), everywhere(Permission.ReadProjectMonitor)],
+      [
+        everywhere(Permission.CreateAlert),
+        everywhere(Permission.ReadProjectMonitor),
+      ],
       [everywhere(Permission.ProjectMember)],
       [everywhere(Permission.ProjectAdmin)],
     ]) {
@@ -960,7 +961,10 @@ describe("the records every project may name", () => {
         modelType: MonitorProbe,
         data: { probeId: GLOBAL_PROBE },
         props: member(PROBE_EDITOR),
-        lookups: lookupsFinding({ readable: [PROBE_A], shared: [GLOBAL_PROBE] }),
+        lookups: lookupsFinding({
+          readable: [PROBE_A],
+          shared: [GLOBAL_PROBE],
+        }),
         withoutSharedFinder: true,
       }),
     );

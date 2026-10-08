@@ -62,7 +62,9 @@ export default class UpdateScopePermission {
    * it is read through (CreateScopePermission.getLabelledParentList). None
    * for a model whose records carry no labels at all.
    */
-  public static getLabelColumns(modelType: DatabaseBaseModelType): Array<string> {
+  public static getLabelColumns(
+    modelType: DatabaseBaseModelType,
+  ): Array<string> {
     const model: BaseModel = new modelType();
     const accessControlColumn: string | null = model.getAccessControlColumn();
 
@@ -235,15 +237,13 @@ export default class UpdateScopePermission {
         ]
       : await UpdateScopePermission.getLabelsOfRecordsAfter({
           modelType: data.modelType,
-          records: data.rows.map(
-            (row: BaseModel): Record<string, unknown> => {
-              return UpdateScopePermission.getRecordAfterUpdate(
-                data.modelType,
-                row,
-                data.data,
-              );
-            },
-          ),
+          records: data.rows.map((row: BaseModel): Record<string, unknown> => {
+            return UpdateScopePermission.getRecordAfterUpdate(
+              data.modelType,
+              row,
+              data.data,
+            );
+          }),
           props: data.props,
           findRecordLabels: data.findRecordLabels,
         });
@@ -275,9 +275,7 @@ export default class UpdateScopePermission {
       unknown
     >;
     const written: Record<string, unknown> =
-      data && typeof data === "object"
-        ? (data as Record<string, unknown>)
-        : {};
+      data && typeof data === "object" ? (data as Record<string, unknown>) : {};
 
     const record: Record<string, unknown> = {};
 
@@ -391,11 +389,12 @@ export default class UpdateScopePermission {
     const model: BaseModel = data.model;
 
     for (const block of data.scope.labelledBlocks) {
-      const blockedLabelIds: Array<string> = UpdateScopePermission.getBlockLabelIds(
-        block,
-      ).filter((labelId: string): boolean => {
-        return Boolean(data.recordLabelIds?.has(labelId));
-      });
+      const blockedLabelIds: Array<string> =
+        UpdateScopePermission.getBlockLabelIds(block).filter(
+          (labelId: string): boolean => {
+            return Boolean(data.recordLabelIds?.has(labelId));
+          },
+        );
 
       if (blockedLabelIds.length > 0) {
         const names: Array<string> = await data.findLabelNames({
@@ -449,7 +448,9 @@ export default class UpdateScopePermission {
    * The names a write may give the columns getLabelColumns names: each
    * column, and the relation of each single reference whose ID column it is.
    */
-  private static getWrittenNames(modelType: DatabaseBaseModelType): Array<string> {
+  private static getWrittenNames(
+    modelType: DatabaseBaseModelType,
+  ): Array<string> {
     const columns: Array<string> =
       UpdateScopePermission.getLabelColumns(modelType);
 

@@ -366,7 +366,9 @@ describe("a create limited to owned records makes a record its creator owns", ()
     expect(body).toContain(
       "if (!isOperationalResource && !this.createReliesOnOwnership(props)) {",
     );
-    expect(body).toContain("await this.insertCreatorAsOwner(createdItem, props);");
+    expect(body).toContain(
+      "await this.insertCreatorAsOwner(createdItem, props);",
+    );
 
     // The owner row names the creator, in the record's own owner table.
     const rowStart: number = source.indexOf("private getCreatorOwnerRow(");

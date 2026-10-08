@@ -250,7 +250,9 @@ describe("Docs: the one record a write names, and a change of a record's labels"
     // After the records a write lists, and after an Owned create.
     expect(
       section.indexOf("The one record a create or a change names"),
-    ).toBeGreaterThan(section.indexOf("The records a create or a change lists"));
+    ).toBeGreaterThan(
+      section.indexOf("The records a create or a change lists"),
+    );
     expect(
       section.indexOf("A change of the labels a record carries"),
     ).toBeGreaterThan(

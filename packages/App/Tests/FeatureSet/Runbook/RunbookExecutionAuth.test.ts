@@ -1406,9 +1406,9 @@ describe("Runbook execution routes require an authorized member of the runbook's
       mockRunbookInProject(callerProjectId);
 
       // The incident is the project's.
-      jest
-        .spyOn(IncidentService, "findOneById")
-        .mockResolvedValue({ projectId: callerProjectId } as unknown as Incident);
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+        projectId: callerProjectId,
+      } as unknown as Incident);
 
       // The incidents the caller's own read finds.
       jest

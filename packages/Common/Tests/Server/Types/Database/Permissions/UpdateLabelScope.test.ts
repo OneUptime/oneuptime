@@ -400,7 +400,10 @@ describe("whose permission to update is limited by labels", () => {
   });
 
   test.each([
-    ["a permission over the whole project", [row(Permission.EditProjectMonitor)]],
+    [
+      "a permission over the whole project",
+      [row(Permission.EditProjectMonitor)],
+    ],
     ["a project admin", [row(Permission.ProjectAdmin)]],
     [
       "a permission over the whole project beside one limited to labels",
@@ -424,14 +427,11 @@ describe("whose permission to update is limited by labels", () => {
         row(Permission.EditProjectStatusPage, { labelIds: [PRODUCTION] }),
       ],
     ],
-  ])(
-    "not %s",
-    (_name: string, rows: Array<UserPermission>) => {
-      expect(
-        UpdateScopePermission.getLimitedScope(Monitor, member(rows)),
-      ).toBeNull();
-    },
-  );
+  ])("not %s", (_name: string, rows: Array<UserPermission>) => {
+    expect(
+      UpdateScopePermission.getLimitedScope(Monitor, member(rows)),
+    ).toBeNull();
+  });
 
   test("not OneUptime's own writes", () => {
     for (const props of [
@@ -652,7 +652,10 @@ describe("an update that changes what a label-less record names", () => {
           modelType: StatusPageResource,
           data: data,
           rows: [
-            resourceRow({ statusPageId: PAGE_A, monitorId: UNLABELLED_MONITOR }),
+            resourceRow({
+              statusPageId: PAGE_A,
+              monitorId: UNLABELLED_MONITOR,
+            }),
           ],
           props: member(PRODUCTION_RESOURCE_EDITOR),
           lookups: found,
@@ -682,7 +685,10 @@ describe("an update that changes what a label-less record names", () => {
           modelType: StatusPageResource,
           data: data,
           rows: [
-            resourceRow({ statusPageId: PAGE_A, monitorId: PRODUCTION_MONITOR }),
+            resourceRow({
+              statusPageId: PAGE_A,
+              monitorId: PRODUCTION_MONITOR,
+            }),
           ],
           props: member(PRODUCTION_RESOURCE_EDITOR),
           lookups: lookups(),
@@ -760,7 +766,9 @@ describe("an update that changes what a label-less record names", () => {
       check({
         modelType: StatusPageResource,
         data: { monitorId: STAGING_MONITOR },
-        rows: [resourceRow({ statusPageId: PAGE_A, monitorId: PRODUCTION_MONITOR })],
+        rows: [
+          resourceRow({ statusPageId: PAGE_A, monitorId: PRODUCTION_MONITOR }),
+        ],
         props: member([
           row(Permission.ReadStatusPageResource),
           row(Permission.EditStatusPageResource),
@@ -803,7 +811,9 @@ describe("an update that moves an announcement between status pages", () => {
     await expect(
       check({
         modelType: StatusPageAnnouncement,
-        data: { statusPages: [{ _id: PRODUCTION_PAGE }, { _id: STAGING_PAGE }] },
+        data: {
+          statusPages: [{ _id: PRODUCTION_PAGE }, { _id: STAGING_PAGE }],
+        },
         rows: [announcementOn([PRODUCTION_PAGE])],
         props: member(PRODUCTION_ANNOUNCER),
         lookups: lookups(),

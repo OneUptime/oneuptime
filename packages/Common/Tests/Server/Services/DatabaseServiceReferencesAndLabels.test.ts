@@ -599,9 +599,13 @@ describe("an update that points a record at another one", () => {
   test("OneUptime's own updates are not asked", async () => {
     const stubs: ResourceStubs = resourceService();
 
-    await updateResource(stubs, { monitorId: STAGING_MONITOR }, {
-      isRoot: true,
-    });
+    await updateResource(
+      stubs,
+      { monitorId: STAGING_MONITOR },
+      {
+        isRoot: true,
+      },
+    );
 
     expect(monitorReads()).toEqual([]);
   });
@@ -738,17 +742,17 @@ describe("an update that changes a labelled record's own labels", () => {
   } => {
     const service: ServiceWrites = new ServiceWrites();
 
-    getJestSpyOn(service as never, "_findBy").mockImplementation((async (): Promise<
-      Array<Service>
-    > => {
-      const stored: Service = new Service();
-      stored._id = SERVICE_ID;
-      stored.projectId = PROJECT_ID;
-      const label: Label = new Label();
-      label._id = PRODUCTION;
-      stored.labels = [label];
-      return [stored];
-    }) as never);
+    getJestSpyOn(service as never, "_findBy").mockImplementation(
+      (async (): Promise<Array<Service>> => {
+        const stored: Service = new Service();
+        stored._id = SERVICE_ID;
+        stored.projectId = PROJECT_ID;
+        const label: Label = new Label();
+        label._id = PRODUCTION;
+        stored.labels = [label];
+        return [stored];
+      }) as never,
+    );
 
     const save: Mock<(entity: unknown) => Promise<unknown>> = jest.fn(
       async (entity: unknown): Promise<unknown> => {
@@ -972,7 +976,10 @@ describe("a creator whose permission to create reaches only what they own", () =
     });
 
     const refusal: unknown = await refusalOf(
-      stubs.service.create({ data: newService(), props: member(OWNED_CREATOR) }),
+      stubs.service.create({
+        data: newService(),
+        props: member(OWNED_CREATOR),
+      }),
     );
 
     expect(refusal).toBeInstanceOf(ServerException);
@@ -1026,7 +1033,10 @@ describe("a creator whose permission to create reaches only what they own", () =
     });
 
     const refusal: unknown = await refusalOf(
-      stubs.service.create({ data: newService(), props: member(OWNED_CREATOR) }),
+      stubs.service.create({
+        data: newService(),
+        props: member(OWNED_CREATOR),
+      }),
     );
 
     expect(refusal).toBeInstanceOf(ServerException);

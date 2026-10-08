@@ -2426,8 +2426,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * create, for a hook that asks itself before it sets something off
    * (checkRecordsNamedSoFar) and for the ask after the hooks.
    */
-  private static namedIdsAskedOn: WeakMap<object, Dictionary<Array<string>>> =
-    new WeakMap<object, Dictionary<Array<string>>>();
+  private static namedIdsAskedOn: WeakMap<
+    CreateBy<BaseModel>,
+    Dictionary<Array<string>>
+  > = new WeakMap<CreateBy<BaseModel>, Dictionary<Array<string>>>();
 
   /*
    * For a create hook that fills in records a template names - an incident
