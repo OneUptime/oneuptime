@@ -606,3 +606,119 @@ test("live updates keep an open status message open and drop a toggle that is no
 
   await expectTogglesOnlyWhereCutShort(page);
 });
+
+/*
+ * Starting a scan, in a real browser.
+ *
+ * "Discover Devices" on the Network Overview (and on an empty device list)
+ * links here with ?open=discover-devices, and the page opens Start New Scan
+ * as soon as its table is drawn - then takes the action off the address so
+ * a refresh does not open it again. The scan form is two steps, and one for
+ * a ping sweep: with SNMP off there are no credentials to ask for, so the
+ * step list goes and Start Scan is on the first page.
+ */
+const START_SCAN_SNMP_SWITCH: string = "Check SNMP on hosts that answer";
+
+test("Discover Devices from elsewhere opens Start New Scan at once, and leaves the address clean", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  const errors: Array<string> = [];
+  page.on("pageerror", (error: Error): void => {
+    errors.push(error.message);
+  });
+
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText("Start New Scan", { exact: true })).toBeVisible();
+
+  await expect
+    .poll((): string => {
+      return new URL(page.url()).search;
+    })
+    .toBe("");
+  expect(new URL(page.url()).pathname).toBe(route);
+
+  // The project's only custom probe is already picked.
+  await expect(modal.getByText("London datacenter")).toBeVisible();
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-start-scan.png"),
+    fullPage: false,
+  });
+  expect(errors).toEqual([]);
+});
+
+test("a scan walks two steps, and a ping sweep is one page", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+
+  await page.getByRole("button", { name: "Start Scan" }).first().click();
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(modal.getByText("Start New Scan", { exact: true })).toBeVisible();
+
+  const progress: Locator = modal.getByRole("navigation", {
+    name: "Progress",
+  });
+  await expect(progress.getByRole("listitem")).toHaveText([
+    "Scan Target",
+    "SNMP Credentials",
+  ]);
+  await expect(page.getByTestId("modal-footer-next-button")).toBeVisible();
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveCount(0);
+
+  // The name, the naming rules and the schedule wait under More fields.
+  const moreFields: Locator = modal.getByRole("button", {
+    name: /More fields/,
+  });
+  await expect(moreFields).toHaveAttribute("aria-expanded", "false");
+  await expect(modal.getByPlaceholder("Router Discovery - Region 1100")).toBeHidden();
+
+  const snmpSwitch: Locator = modal.getByRole("switch", {
+    name: START_SCAN_SNMP_SWITCH,
+  });
+  await expect(snmpSwitch).toHaveAttribute("aria-checked", "true");
+  await snmpSwitch.click();
+  await expect(snmpSwitch).toHaveAttribute("aria-checked", "false");
+
+  // A ping sweep asks for no credentials: one page, and Start Scan on it.
+  await expect(progress).toHaveCount(0);
+  await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
+    "Start Scan",
+  );
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-ping-sweep.png"),
+    fullPage: false,
+  });
+});
+
+test("Start New Scan fits a narrow screen", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(modal.getByText("Start New Scan", { exact: true })).toBeVisible();
+
+  const scrollWidth: number = await page.evaluate((): number => {
+    return document.documentElement.scrollWidth;
+  });
+  expect(scrollWidth).toBeLessThanOrEqual(390);
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-start-scan-mobile.png"),
+    fullPage: false,
+  });
+});

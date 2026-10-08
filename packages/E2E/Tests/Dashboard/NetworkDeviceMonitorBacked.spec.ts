@@ -12,9 +12,10 @@ import Faker from "Common/Utils/Faker";
  * Registering a network device, and reaching the monitor-backed override,
  * end to end.
  *
- * Ping-first polling changed what registering a device means, and the create
- * form is where a user meets that change. A device is now registered with a
- * name, an address, a site and a PROBE; the probe pings it on its schedule,
+ * Ping-first polling changed what registering a device means, and the Add
+ * Device form is where a user meets that change. A device is registered
+ * with an address and a PROBE (a name and a site if wanted, on the same
+ * page); the probe pings it on its schedule,
  * so it has a status from its first poll with no monitor and no SNMP
  * credentials. The form no longer asks "how is this device monitored?" at
  * all — the bound-monitor override is a rare answer to "nothing can reach
@@ -23,17 +24,19 @@ import Faker from "Common/Utils/Faker";
  * Three things have to hold, and none of them is visible from a unit test
  * that mocks the form:
  *
- *   1. a device saves with nothing but a name, an address and a probe — no
- *      monitoring-method question, no monitor, no community string — and it
- *      is genuinely probe-polled afterwards (the API says so), so the list
- *      never tags it "No monitor". That qualifier belongs to devices nothing
- *      polls, and a probe-polled device is not one of them;
+ *   1. a device saves with nothing but an address and a probe — no
+ *      monitoring-method question, no monitor, no community string, and the
+ *      name may be left for the hostname to fill — and it is genuinely
+ *      probe-polled afterwards (the API says so), so the list never tags it
+ *      "No monitor". That qualifier belongs to devices nothing polls, and a
+ *      probe-polled device is not one of them;
  *
- *   2. ticking "Also create a Ping monitor for incidents" on that same form
- *      still creates a monitor named "Ping <device name>" and binds it before
- *      the modal closes. The probe already gives the device a status, so this
- *      opt-in buys incidents, not reachability — and it is still off by
- *      default because a monitor is billable and plan-limited;
+ *   2. ticking "Also create a Ping monitor for incidents" under More fields
+ *      on that same form still creates a monitor named "Ping <device name>"
+ *      and binds it before the modal closes. The probe already gives the
+ *      device a status, so this opt-in buys incidents, not reachability —
+ *      and it is still off by default because a monitor is billable and
+ *      plan-limited;
  *
  *   3. the monitor-backed override is still reachable, now from the device's
  *      Settings page, and a device switched to it with nothing bound reads
@@ -73,12 +76,12 @@ test.skip(({ browserName }: { browserName: string }): boolean => {
 const UNROUTABLE_HOSTNAME: string = "192.0.2.10";
 
 /*
- * The devices card's own Create button: the first device is created from an
+ * The devices card's own Add button: the first device is added from an
  * empty list, which offers the same button again under its message. The
- * create dialog's action, on its last step, reads the same: ModelTable
- * draws both with translateCreateAction.
+ * dialog's action reads the same: ModelTable draws both from the table's
+ * createVerb and singularName.
  */
-const CREATE_DEVICE_BUTTON_NAME: string = "Create Network Device";
+const CREATE_DEVICE_BUTTON_NAME: string = "Add Device";
 
 /*
  * The exact string NetworkDevice.monitoringMethod must hold for a device this
@@ -263,26 +266,26 @@ const selectFirstOption: SelectFirstOptionFunction = async (data: {
 };
 
 /*
- * Walks the create form for an ordinary device.
+ * Fills in the Add Device form for an ordinary device.
  *
- * The form is a stepped ModelFormModal with THREE steps and no monitoring
- * question among them: Device Details -> Probe & Site -> SNMP (Optional).
- * The SNMP step is shown for every device and required by none, and it is
- * the last step: Device Details and Probe & Site walk on with a plain Next
- * (modal-footer-next-button), and the form's action, Create Network Device
- * (modal-footer-submit-button), is on the SNMP step only.
+ * The form is ONE page with no monitoring question on it: the hostname, an
+ * optional name (left empty, the device is named after its hostname), the
+ * site and the probe, then two folds - SNMP, and More fields with the Ping
+ * monitor opt-in. Add Device (modal-footer-submit-button) is on screen from
+ * the start, and there is no Next to walk.
  */
 type CreateDeviceFunction = (data: {
   page: Page;
   projectId: string;
-  name: string;
+  // Left out, the name box is left empty and the hostname names the device.
+  name?: string | undefined;
   shouldCreatePingMonitor: boolean;
 }) => Promise<void>;
 
 const createDevice: CreateDeviceFunction = async (data: {
   page: Page;
   projectId: string;
-  name: string;
+  name?: string | undefined;
   shouldCreatePingMonitor: boolean;
 }): Promise<void> => {
   const page: Page = data.page;
@@ -296,9 +299,20 @@ const createDevice: CreateDeviceFunction = async (data: {
 
   const footerButton: Locator = page.getByTestId("modal-footer-submit-button");
 
-  // Step 1 - Device Details: the two required fields, and nothing else.
-  const nameField: Locator = modal.getByPlaceholder("core-switch-01");
-  await nameField.waitFor({ state: "visible", timeout: 30000 });
+  // One page: the action is there from the start, and nothing to walk.
+  await expect(footerButton).toHaveText(CREATE_DEVICE_BUTTON_NAME, {
+    timeout: 30000,
+  });
+  await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
+  await expect(modal.getByRole("navigation", { name: "Progress" })).toHaveCount(
+    0,
+  );
+
+  // The address first: the one thing only the person adding it knows.
+  const hostnameField: Locator = modal.getByPlaceholder(
+    "10.0.0.1 or switch-01.example.com",
+  );
+  await hostnameField.waitFor({ state: "visible", timeout: 30000 });
 
   /*
    * The question that is gone. It used to be step 1 of this form and it
@@ -310,18 +324,18 @@ const createDevice: CreateDeviceFunction = async (data: {
     modal.getByRole("combobox", { name: /How is this device monitored/ }),
   ).toHaveCount(0);
 
-  await nameField.fill(data.name);
-  await modal
-    .getByPlaceholder("10.0.0.1 or switch-01.example.com")
-    .fill(UNROUTABLE_HOSTNAME);
+  await hostnameField.fill(UNROUTABLE_HOSTNAME);
 
-  await expect(footerButton).toHaveCount(0);
-  await page.getByTestId("modal-footer-next-button").click();
+  if (data.name) {
+    await modal.getByPlaceholder("Same as the hostname").fill(data.name);
+  }
 
   /*
-   * Step 2 - Probe & Site. The probe is REQUIRED here now: it is the thing
-   * that will ping the device. The site is left empty - a device does not
-   * need one - and so the site's default probe never fills this in for us.
+   * The probe is REQUIRED: it is the thing that will ping the device. A
+   * project with exactly one custom probe has it picked already; a fresh
+   * project has only the deployment's global probes, so one is picked here.
+   * The site is left empty - a device does not need one - and so the
+   * site's default probe never fills this in for us.
    */
   const probeCombo: Locator = modal.getByRole("combobox", {
     name: /^Probe\b/,
@@ -333,9 +347,9 @@ const createDevice: CreateDeviceFunction = async (data: {
 
   /*
    * An empty label means the dropdown opened with nothing in it. Said here
-   * rather than left to the required-field error on the next click, because
-   * "this deployment seeded no probe" and "the form stopped asking for one"
-   * are very different failures and only this one names the cause.
+   * rather than left to the required-field error on the click below,
+   * because "this deployment seeded no probe" and "the form stopped asking
+   * for one" are very different failures and only this one names the cause.
    */
   expect(
     probeName,
@@ -343,14 +357,28 @@ const createDevice: CreateDeviceFunction = async (data: {
   ).not.toEqual("");
 
   /*
-   * The Ping monitor opt-in. Off by default on purpose: the probe above
-   * already gives the device a status, so this creates a billable,
-   * plan-limited monitor for INCIDENTS and nothing else - which is a thing
-   * to choose, never a thing to inherit. Matched loosely on "Ping monitor"
-   * so a reworded label does not silently stop the box being ticked (a
-   * checkbox locator that matches nothing would make test 2 pass while
-   * creating no monitor at all - hence the explicit visibility wait).
+   * SNMP stays folded and empty. That is the whole point of ping-first
+   * polling: no community string, no v3 user, and the device is still
+   * polled. The fold says so in one sentence while nothing is set.
    */
+  await expect(
+    modal.getByText(
+      "Optional. Without it the device is pinged, so it gets a status and a response time.",
+      { exact: false },
+    ),
+  ).toBeVisible({ timeout: 30000 });
+
+  /*
+   * The Ping monitor opt-in, under More fields. Off by default on purpose:
+   * the probe already gives the device a status, so this creates a
+   * billable, plan-limited monitor for INCIDENTS and nothing else - which is
+   * a thing to choose, never a thing to inherit. Matched loosely on "Ping
+   * monitor" so a reworded label does not silently stop the box being
+   * ticked (a checkbox locator that matches nothing would make the opt-in test pass
+   * while creating no monitor at all - hence the explicit visibility wait).
+   */
+  await modal.getByRole("button", { name: /More fields/ }).click();
+
   const createPingMonitorCheckbox: Locator = modal.getByRole("checkbox", {
     name: /Ping monitor/i,
   });
@@ -365,23 +393,6 @@ const createDevice: CreateDeviceFunction = async (data: {
     await expect(createPingMonitorCheckbox).toBeChecked();
   }
 
-  /*
-   * Only the optional SNMP step is left, and Create Network Device is on
-   * it, not here.
-   */
-  await expect(footerButton).toHaveCount(0);
-  await page.getByTestId("modal-footer-next-button").click();
-
-  /*
-   * Step 3 - SNMP (Optional), left entirely empty. That is the whole point
-   * of ping-first polling: no community string, no v3 user, and the device
-   * is still polled. It is the last step: Create Network Device, and
-   * nothing to walk on to.
-   */
-  await expect(footerButton).toHaveText(CREATE_DEVICE_BUTTON_NAME, {
-    timeout: 30000,
-  });
-  await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
   await footerButton.click();
 
   /*
@@ -390,7 +401,9 @@ const createDevice: CreateDeviceFunction = async (data: {
    */
   await modal.waitFor({ state: "hidden", timeout: 90000 });
 
-  await expect(page.getByText(data.name).first()).toBeVisible({
+  await expect(
+    page.getByText(data.name || UNROUTABLE_HOSTNAME).first(),
+  ).toBeVisible({
     timeout: 30000,
   });
 };
@@ -442,7 +455,8 @@ test.describe.skip(
       /*
        * "No monitor" says nothing reports this device's health, and that is
        * false here: its probe does. The qualifier is reserved for the
-       * monitor-backed override with nothing bound (test 3), and a device
+       * monitor-backed override with nothing bound (the last test), and a
+       * device
        * registered through this form is never one of those.
        */
       await expect(row.getByText("No monitor", { exact: true })).toHaveCount(
@@ -450,6 +464,41 @@ test.describe.skip(
         {
           timeout: 30000,
         },
+      );
+    });
+
+    /*
+     * The name is optional: a device added by its address alone is named
+     * after it, by the form and by the server alike
+     * (getDeviceNameForCreate / fillDeviceNameOnCreate), so the list never
+     * shows a nameless row.
+     */
+    test("a device added by its address alone is named after it", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const projectId: string = await registerAndCreateProject({
+        page,
+        projectNamePrefix: "E2E Network Device Project",
+      });
+
+      await createDevice({
+        page,
+        projectId,
+        shouldCreatePingMonitor: false,
+      });
+
+      const stored: StoredDevice = await fetchDevice({
+        page,
+        projectId,
+        name: UNROUTABLE_HOSTNAME,
+      });
+      expect(stored.monitoringMethod).toEqual(PROBE_POLLED_METHOD);
+      expect(stored.probeId).not.toEqual("");
+
+      await expect(deviceRow({ page, name: UNROUTABLE_HOSTNAME })).toBeVisible(
+        { timeout: 30000 },
       );
     });
 
