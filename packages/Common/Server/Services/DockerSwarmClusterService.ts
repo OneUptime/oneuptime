@@ -32,6 +32,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "docker-swarm-cluster-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -481,7 +482,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getDockerSwarmClusterMarkdownLink(
     projectId: ObjectID,
     dockerSwarmClusterId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getDockerSwarmClusterName({
       dockerSwarmClusterId: dockerSwarmClusterId,
     });
@@ -490,7 +491,7 @@ export class Service extends ProjectReferencesService<Model> {
       dockerSwarmClusterId,
     );
 
-    return `[Docker Swarm Cluster ${name}](${link.toString()})`;
+    return mdText`[Docker Swarm Cluster ${name}](${link.toString()})`;
   }
 
   private async writeDockerSwarmClusterCreatedFeed(
@@ -640,7 +641,7 @@ export class Service extends ProjectReferencesService<Model> {
       getResourceMarkdownLink: (
         projectId: ObjectID,
         dockerSwarmClusterId: ObjectID,
-      ): Promise<string> => {
+      ): Promise<MarkdownText> => {
         return this.getDockerSwarmClusterMarkdownLink(
           projectId,
           dockerSwarmClusterId,
@@ -711,7 +712,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getDockerSwarmClusterMarkdownLink(
           projectId,
           dockerSwarmClusterId,
@@ -726,8 +727,8 @@ export class Service extends ProjectReferencesService<Model> {
             : DockerSwarmClusterFeedEventType.DockerSwarmClusterRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

@@ -1,6 +1,10 @@
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import UserService from "../../Services/UserService";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Shared formatting for the infrastructure and catalog resource feeds
@@ -75,7 +79,7 @@ export default class ResourceFeedUtil {
    */
   public static async getCreatedFeedMarkdown(data: {
     resourceTypeName: string;
-    resourceMarkdownLink: string;
+    resourceMarkdownLink: MarkdownText;
     projectId: ObjectID;
     createdByUserId?: ObjectID | undefined;
     identifierName?: string | undefined;
@@ -85,23 +89,29 @@ export default class ResourceFeedUtil {
     const details: Array<string> = [];
 
     if (data.identifierName && data.identifierValue) {
-      details.push(`**${data.identifierName}**: \`${data.identifierValue}\``);
+      details.push(
+        mdText`**${data.identifierName}**: \`${data.identifierValue}\``.toString(),
+      );
     }
 
     if (data.description) {
-      details.push(`**Description**: ${data.description}`);
+      details.push(
+        mdText`**Description**: ${FeedMarkdown.asMarkdown(data.description)}`.toString(),
+      );
     }
 
     if (data.createdByUserId) {
-      const userMarkdown: string = await UserService.getUserMarkdownString({
-        userId: data.createdByUserId,
-        projectId: data.projectId,
-      });
+      const userMarkdown: MarkdownText =
+        await UserService.getUserMarkdownString({
+          userId: data.createdByUserId,
+          projectId: data.projectId,
+        });
 
       return {
-        feedInfoInMarkdown: `🚀 ${data.resourceMarkdownLink} was created by **${userMarkdown}**.`,
+        feedInfoInMarkdown:
+          mdText`🚀 ${data.resourceMarkdownLink} was created by **${userMarkdown}**.`.toString(),
         moreInformationInMarkdown: [
-          `**Created by**: ${userMarkdown}`,
+          mdText`**Created by**: ${userMarkdown}`.toString(),
           `**How it was created**: Added by a user, from the OneUptime dashboard or through the OneUptime API.`,
           `**Automatically created from telemetry**: No.`,
           ...details,
@@ -110,10 +120,11 @@ export default class ResourceFeedUtil {
     }
 
     return {
-      feedInfoInMarkdown: `🤖 ${data.resourceMarkdownLink} was created automatically by OneUptime the first time telemetry for it arrived.`,
+      feedInfoInMarkdown:
+        mdText`🤖 ${data.resourceMarkdownLink} was created automatically by OneUptime the first time telemetry for it arrived.`.toString(),
       moreInformationInMarkdown: [
-        `**Created by**: No user. OneUptime created this ${data.resourceTypeName} on its own.`,
-        `**How it was created**: A OneUptime agent or OpenTelemetry collector reported data for a ${data.resourceTypeName} that did not exist in this project yet, so it was registered automatically so the data had somewhere to land.`,
+        mdText`**Created by**: No user. OneUptime created this ${data.resourceTypeName} on its own.`.toString(),
+        mdText`**How it was created**: A OneUptime agent or OpenTelemetry collector reported data for a ${data.resourceTypeName} that did not exist in this project yet, so it was registered automatically so the data had somewhere to land.`.toString(),
         `**Automatically created from telemetry**: Yes.`,
         ...details,
       ].join("\n\n"),
@@ -125,16 +136,18 @@ export default class ResourceFeedUtil {
    * from getUpdatedColumnsWorthRecording, so it never names an ingest column.
    */
   public static getUpdatedFeedMarkdown(data: {
-    resourceMarkdownLink: string;
+    resourceMarkdownLink: MarkdownText;
     columns: Array<string>;
   }): ResourceFeedMarkdown {
     return {
-      feedInfoInMarkdown: `📝 ${data.resourceMarkdownLink} was updated.`,
-      moreInformationInMarkdown: `**Updated fields**: ${data.columns
-        .map((column: string) => {
-          return `\`${column}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`📝 ${data.resourceMarkdownLink} was updated.`.toString(),
+      moreInformationInMarkdown: mdText`**Updated fields**: ${FeedMarkdown.join(
+        data.columns.map((column: string) => {
+          return mdText`\`${column}\``;
+        }),
+        ", ",
+      )}`.toString(),
     };
   }
 }

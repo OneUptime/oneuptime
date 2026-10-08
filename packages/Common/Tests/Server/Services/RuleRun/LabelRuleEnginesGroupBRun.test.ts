@@ -88,6 +88,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEng
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -254,7 +255,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(PodmanHostService, "getPodmanHostMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(PodmanHostFeedService, "createPodmanHostFeedItem")
         .mockResolvedValue(undefined);
@@ -291,7 +292,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(ProxmoxClusterService, "getProxmoxClusterMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(ProxmoxClusterFeedService, "createProxmoxClusterFeedItem")
         .mockResolvedValue(undefined);
@@ -415,7 +416,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(ServiceService, "getServiceMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(ServiceFeedService, "createServiceFeedItem")
         .mockResolvedValue(undefined);
@@ -453,7 +454,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(
           ServiceLevelObjectiveFeedService,
@@ -521,7 +522,7 @@ const cases: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(VMwareVCenterService, "getVMwareVCenterMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(VMwareVCenterFeedService, "createVMwareVCenterFeedItem")
         .mockResolvedValue(undefined);

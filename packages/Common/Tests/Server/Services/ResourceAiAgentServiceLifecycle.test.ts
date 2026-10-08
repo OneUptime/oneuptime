@@ -35,6 +35,9 @@ import {
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The resource AI agent after registration:
  *
@@ -566,7 +569,7 @@ describe("heartbeat", () => {
       const text: string = String(
         (harness.feed.mock.calls[0]![0] as AnyObject)["feedInfoInMarkdown"],
       );
-      expect(text).toContain("can now make changes to web-*");
+      expect(text).toContain("can now make changes to web-\\*");
       expect(text).toContain('"Ask for approval"');
     });
 
@@ -771,7 +774,9 @@ describe("resetAgent", () => {
         .mockResolvedValue(undefined) as unknown as SpyCalls,
       userName: jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue(USER_MARKDOWN) as unknown as SpyCalls,
+        .mockResolvedValue(
+          FeedMarkdown.asMarkdown(USER_MARKDOWN),
+        ) as unknown as SpyCalls,
     };
   }
 
@@ -856,9 +861,9 @@ describe("resetAgent", () => {
     const harness: ResetHarness = setUp();
     (
       harness.userName as unknown as {
-        mockResolvedValue: (value: string) => void;
+        mockResolvedValue: (value: MarkdownText) => void;
       }
-    ).mockResolvedValue("");
+    ).mockResolvedValue(FeedMarkdown.empty());
 
     await reset(USER_ID);
 

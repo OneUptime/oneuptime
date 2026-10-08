@@ -35,6 +35,7 @@ import { Gray500, Green500, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test: the SLO feed items about burn rate rules - added,
  * changed, removed.
@@ -152,7 +153,7 @@ beforeEach(() => {
 
   sloLinkSpy = jest
     .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-    .mockResolvedValue(SLO_MARKDOWN_LINK);
+    .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_MARKDOWN_LINK));
 
   jest.spyOn(logger, "error").mockImplementation((): void => {});
 });
@@ -215,7 +216,7 @@ describe("SLO burn rate rules - added", () => {
     });
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `🔥 Burn rate rule **burn\\*\\* \\!\\[p\\]\\(https://t.example/p.png\\)** was added to ${SLO_MARKDOWN_LINK}.`,
+      `🔥 Burn rate rule **burn\\*\\* !\\[p\\](https://t.example/p.png)** was added to ${SLO_MARKDOWN_LINK}.`,
     );
   });
 
@@ -572,7 +573,7 @@ describe("SLO burn rate rules - changed", () => {
     });
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `🔥 Burn rate rule **\\[fast\\]\\(https://evil.example\\)** on ${SLO_MARKDOWN_LINK} was updated: **Name** changed from Fast burn to \\[fast\\]\\(https://evil.example\\).`,
+      `🔥 Burn rate rule **\\[fast\\](https://evil.example)** on ${SLO_MARKDOWN_LINK} was updated: **Name** changed from Fast burn to \\[fast\\](https://evil.example).`,
     );
   });
 

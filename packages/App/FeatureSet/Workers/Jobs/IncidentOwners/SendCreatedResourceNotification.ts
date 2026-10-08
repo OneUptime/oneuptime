@@ -27,7 +27,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
@@ -94,8 +94,9 @@ RunCron(
         },
       });
 
-      const incidentFeedText: string = `🔔 **Owner Incident Created Notification Sent**:
-Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) was created.`;
+      const incidentFeedText: string =
+        mdText`🔔 **Owner Incident Created Notification Sent**:
+Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) was created.`.toString();
       let moreIncidentFeedInformationInMarkdown: string = "";
 
       const incidentIdentifiedDate: Date =
@@ -284,7 +285,7 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             eventType,
           });
 
-          moreIncidentFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
+          moreIncidentFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()})\n`;
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",

@@ -56,6 +56,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
@@ -483,7 +484,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
 
         if (subject || smsBody) {
           const lines: Array<string> = [];
-          lines.push(`🔔 **${subject || "OneUptime notification"}**`);
+          lines.push(
+            mdText`🔔 **${subject || "OneUptime notification"}**`.toString(),
+          );
           if (smsBody) {
             lines.push("");
             lines.push(smsBody);

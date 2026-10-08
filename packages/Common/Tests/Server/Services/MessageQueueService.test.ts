@@ -2174,8 +2174,9 @@ describe("MessageQueueService names and links", () => {
       URL.fromString("https://oneuptime.example.com/dashboard"),
     );
 
-    const markdown: string =
-      await MessageQueueService.getMessageQueueMarkdownLink(PROJECT_ID, id);
+    const markdown: string = (
+      await MessageQueueService.getMessageQueueMarkdownLink(PROJECT_ID, id)
+    ).toString();
 
     expect(markdown).toBe(
       `[Queue orders.created](https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/queues/${id.toString()})`,

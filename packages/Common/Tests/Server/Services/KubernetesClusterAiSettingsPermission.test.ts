@@ -35,6 +35,7 @@ import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -1156,10 +1157,14 @@ describe("KubernetesCluster AI access through updateOneById", () => {
       .mockResolvedValue(undefined);
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("[Jane](https://oneuptime.example/user)");
+      .mockResolvedValue(
+        FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"),
+      );
     jest
       .spyOn(KubernetesClusterService, "getKubernetesClusterMarkdownLink")
-      .mockResolvedValue("[Kubernetes Cluster prod-us](https://x)");
+      .mockResolvedValue(
+        FeedMarkdown.asMarkdown("[Kubernetes Cluster prod-us](https://x)"),
+      );
     stubProjectDirectory({});
   });
 

@@ -30,7 +30,7 @@ import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendUnresolvedReminderNotification",
@@ -353,7 +353,7 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
         eventType,
       });
 
-      moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+      moreScheduledMaintenanceFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
         {
           userId: user.id!,
           projectId: projectId,
@@ -371,7 +371,8 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
       scheduledMaintenanceFeedEventType:
         ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
       displayColor: Blue500,
-      feedInfoInMarkdown: `🔔 **Reminder sent to owners of [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${scheduledMaintenanceViewLink})**: This scheduled maintenance is still **${escapeMarkdownValue(currentStateName)}** and has been open for **${openDuration}**.`,
+      feedInfoInMarkdown:
+        mdText`🔔 **Reminder sent to owners of [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${scheduledMaintenanceViewLink})**: This scheduled maintenance is still **${currentStateName}** and has been open for **${openDuration}**.`.toString(),
       moreInformationInMarkdown:
         moreScheduledMaintenanceFeedInformationInMarkdown,
       workspaceNotification: {

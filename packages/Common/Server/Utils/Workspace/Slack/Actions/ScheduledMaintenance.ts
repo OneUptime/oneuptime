@@ -42,6 +42,7 @@ import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels
 import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SlackActionAuthorization from "./Authorization";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackScheduledMaintenanceActions {
   @CaptureSpan()
@@ -206,7 +207,7 @@ export default class SlackScheduledMaintenanceActions {
         // send slack message to user that start date is in the past.
         const markdownPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with start date in the past.`,
+          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with start date in the past.`.toString(),
         };
         await SlackUtil.sendDirectMessageToUser({
           messageBlocks: [markdownPayload],
@@ -220,7 +221,7 @@ export default class SlackScheduledMaintenanceActions {
         // send slack message to user that end date is in the past.
         const markdownPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date in the past.`,
+          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date in the past.`.toString(),
         };
         await SlackUtil.sendDirectMessageToUser({
           messageBlocks: [markdownPayload],
@@ -236,7 +237,7 @@ export default class SlackScheduledMaintenanceActions {
         // send slack message to user that end date is before start date.
         const markdownPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date before start date.`,
+          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date before start date.`.toString(),
         };
         await SlackUtil.sendDirectMessageToUser({
           messageBlocks: [markdownPayload],
@@ -321,10 +322,10 @@ export default class SlackScheduledMaintenanceActions {
             messageBlocks: [
               {
                 _type: "WorkspacePayloadMarkdown",
-                text: `**Scheduled Event ${createdEvent.scheduledMaintenanceNumberWithPrefix || "#" + createdEvent.scheduledMaintenanceNumber}** created successfully. [View Event](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                text: mdText`**Scheduled Event ${createdEvent.scheduledMaintenanceNumberWithPrefix || "#" + createdEvent.scheduledMaintenanceNumber}** created successfully. [View Event](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                   slackRequest.projectId!,
                   createdEvent.id!,
-                )})`,
+                )})`.toString(),
               } as WorkspacePayloadMarkdown,
             ],
           },
@@ -619,7 +620,7 @@ export default class SlackScheduledMaintenanceActions {
         // send a message to the channel visible to user, that the scheduledMaintenance has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -772,7 +773,7 @@ export default class SlackScheduledMaintenanceActions {
         // send a message to the channel visible to user, that the scheduledMaintenance has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot resolve the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**. It has already been resolved.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({

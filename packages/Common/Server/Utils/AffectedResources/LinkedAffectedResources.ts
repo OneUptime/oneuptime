@@ -9,11 +9,11 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
 import {
   getSloAffectedResourceMarkdownLines,
   SloAffectedResourceLinkSubject,
 } from "../../../Utils/Slo/SloAffectedResourceMarkdown";
+import { mdText, MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * What an incident, alert or scheduled maintenance event affects, for the
@@ -533,17 +533,17 @@ export default class LinkedAffectedResources {
    * the SLO's shape, `- [Host <name>](<link>)`, so the reader can tell a host
    * from a cluster from a service.
    *
-   * Every name, a monitor's included, is escaped (escapeMarkdownInline, as
-   * it sits inside the link's own text): feeds render without safe mode and
-   * the same markdown goes to Slack and Teams, and a host or cluster name
-   * can come from an agent rather than from someone typing it.
+   * Every name, a monitor's included, is placed as the link's own text
+   * (mdText): feeds render without safe mode and the same markdown goes to
+   * Slack and Teams, and a host or cluster name can come from an agent
+   * rather than from someone typing it.
    */
   public static getMarkdownLines(data: {
     dashboardUrl: URL;
     projectId: ObjectID;
     resources: Array<LinkedAffectedResource>;
-  }): Array<string> {
-    const lines: Array<string> = [];
+  }): Array<MarkdownText> {
+    const lines: Array<MarkdownText> = [];
     const slos: Array<SloAffectedResourceLinkSubject> = [];
 
     for (const resource of data.resources) {
@@ -564,17 +564,19 @@ export default class LinkedAffectedResources {
       }).toString();
 
       if (resource.type === LinkedAffectedResourceType.Monitor) {
-        lines.push(`- [${escapeMarkdownInline(resource.name)}](${link})`);
+        lines.push(mdText`- [${resource.name}](${link})`);
         continue;
       }
 
       const label: string = LinkedAffectedResources.getRelationForType(
         resource.type,
       ).label;
-      const escapedName: string = escapeMarkdownInline(resource.name).trim();
+      const name: string = resource.name.trim();
 
       lines.push(
-        `- [${escapedName ? `${label} ${escapedName}` : label}](${link})`,
+        name
+          ? mdText`- [${label} ${name}](${link})`
+          : mdText`- [${label}](${link})`,
       );
     }
 

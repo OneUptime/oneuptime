@@ -58,6 +58,7 @@ import {
   DeviceHealthGroup,
   deviceRollupStateForGroup,
 } from "../Utils/NetworkDevice/DeviceHealthAggregation";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /**
  * How many sites are stamped with each MonitorStatus. `monitorStatusId` is
@@ -2841,7 +2842,8 @@ export class Service extends ProjectReferencesService<Model> {
       await this.resolveSiteAlert({
         projectId: site.projectId,
         alertId: site.currentActiveAlertId,
-        rootCause: `**Recovered:** Network site **${site.name || "site"}** rolled back up to ${data.newStatus.name || "an operational status"}.`,
+        rootCause:
+          mdText`**Recovered:** Network site **${site.name || "site"}** rolled back up to ${data.newStatus.name || "an operational status"}.`.toString(),
       });
 
       await this.updateColumnsByIdWithoutHooks({
@@ -2898,11 +2900,12 @@ export class Service extends ProjectReferencesService<Model> {
     const alert: Alert = new Alert();
     alert.projectId = site.projectId;
     alert.title = `Network site ${site.name || site.id.toString()} is ${statusName}`;
-    alert.description = `The health rollup of network site **${
+    alert.description = mdText`The health rollup of network site **${
       site.name || site.id.toString()
-    }** changed to **${statusName}**, rolled up from the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`;
+    }** changed to **${statusName}**, rolled up from the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`.toString();
     alert.alertSeverityId = alertSeverityId;
-    alert.rootCause = `Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`;
+    alert.rootCause =
+      mdText`Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`.toString();
 
     const createdAlert: Alert = await AlertService.create({
       data: alert,

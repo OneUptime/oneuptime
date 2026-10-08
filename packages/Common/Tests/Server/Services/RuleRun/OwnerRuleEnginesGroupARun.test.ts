@@ -83,6 +83,7 @@ import RuleCriteria, {
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test - "Run now" for the owner rules that create owner rows
  * directly (group A: Ceph, cloud resources, dashboards, Docker hosts, Docker
@@ -538,7 +539,7 @@ function mockEngine(
   if (c.feed) {
     jest
       .spyOn(c.resourceService, c.feed.markdownLinkMethod)
-      .mockResolvedValue("[prod-core-01](/resource)");
+      .mockResolvedValue(FeedMarkdown.asMarkdown("[prod-core-01](/resource)"));
     createFeedItem = jest
       .spyOn(c.feed.service, c.feed.createItemMethod)
       .mockResolvedValue(undefined);

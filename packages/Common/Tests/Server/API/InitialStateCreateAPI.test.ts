@@ -89,6 +89,7 @@ import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { DataSource } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-a91c-4aaa-8bbb-000000000001",
 );
@@ -502,7 +503,7 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("Ada" as never);
+    .mockResolvedValue(FeedMarkdown.asMarkdown("Ada") as never);
   jest
     .spyOn(AuditLogService, "recordCreate")
     .mockResolvedValue(undefined as never);

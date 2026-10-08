@@ -32,6 +32,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "proxmox-cluster-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -460,7 +461,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getProxmoxClusterMarkdownLink(
     projectId: ObjectID,
     proxmoxClusterId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getProxmoxClusterName({
       proxmoxClusterId: proxmoxClusterId,
     });
@@ -469,7 +470,7 @@ export class Service extends ProjectReferencesService<Model> {
       proxmoxClusterId,
     );
 
-    return `[Proxmox Cluster ${name}](${link.toString()})`;
+    return mdText`[Proxmox Cluster ${name}](${link.toString()})`;
   }
 
   private async writeProxmoxClusterCreatedFeed(
@@ -618,7 +619,7 @@ export class Service extends ProjectReferencesService<Model> {
       getResourceMarkdownLink: (
         projectId: ObjectID,
         proxmoxClusterId: ObjectID,
-      ): Promise<string> => {
+      ): Promise<MarkdownText> => {
         return this.getProxmoxClusterMarkdownLink(projectId, proxmoxClusterId);
       },
       createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
@@ -686,7 +687,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getProxmoxClusterMarkdownLink(projectId, proxmoxClusterId);
 
       if (isArchiveChange) {
@@ -698,8 +699,8 @@ export class Service extends ProjectReferencesService<Model> {
             : ProxmoxClusterFeedEventType.ProxmoxClusterRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

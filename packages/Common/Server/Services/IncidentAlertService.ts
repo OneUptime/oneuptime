@@ -56,7 +56,10 @@ import {
 } from "../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The project's two linked alert switches: acknowledge linked alerts when the
@@ -278,29 +281,35 @@ export interface LinkedAlertMention {
  * the alert read it (the incident's feed and Slack / Microsoft Teams posts).
  *
  * The title is plain text - an alert's is often filled in by a monitor from
- * an incoming email or request - escaped as MarkdownEscape says a title must
- * be, so it reads as typed and cannot become a link, an image, raw HTML or a
- * chat mention in the feed or in the posts.
+ * an incoming email or request - placed as text (mdText), so it reads as
+ * typed and cannot become a link, an image, raw HTML or a chat mention in
+ * the feed or in the posts.
  */
+// How a feed entry names a linked alert or incident.
+interface LinkedRecordMention {
+  subject: MarkdownText;
+  titleSuffix: MarkdownText;
+}
+
 function describeLinkedRecord(data: {
   label: string;
   link: string;
   title: string | undefined;
   isPrivate: boolean;
   privateNoun: string;
-}): { subject: string; titleSuffix: string } {
-  const subject: string = `**[${data.label}](${data.link})**`;
+}): LinkedRecordMention {
+  const subject: MarkdownText = mdText`**[${data.label}](${data.link})**`;
 
   if (data.isPrivate) {
     return {
-      subject: `${subject} (private ${data.privateNoun})`,
-      titleSuffix: "",
+      subject: mdText`${subject} (private ${data.privateNoun})`,
+      titleSuffix: FeedMarkdown.empty(),
     };
   }
 
   return {
     subject: subject,
-    titleSuffix: `: ${escapeMarkdownValue(data.title || "No title")}`,
+    titleSuffix: mdText`: ${data.title || "No title"}`,
   };
 }
 
@@ -312,24 +321,23 @@ function describeLinkedRecord(data: {
 export function getDeclaredFromAlertsMarkdown(
   alerts: Array<LinkedAlertMention>,
 ): string {
-  const lines: Array<string> = alerts.map(
-    (alert: LinkedAlertMention): string => {
-      const described: { subject: string; titleSuffix: string } =
-        describeLinkedRecord({
-          label: alert.label,
-          link: alert.link,
-          title: alert.title,
-          isPrivate: alert.isPrivate,
-          privateNoun: "alert",
-        });
+  const lines: Array<MarkdownText> = alerts.map(
+    (alert: LinkedAlertMention): MarkdownText => {
+      const described: LinkedRecordMention = describeLinkedRecord({
+        label: alert.label,
+        link: alert.link,
+        title: alert.title,
+        isPrivate: alert.isPrivate,
+        privateNoun: "alert",
+      });
 
-      return `- ${described.subject}${described.titleSuffix}`;
+      return mdText`${described.subject}${described.titleSuffix}`;
     },
   );
 
   const noun: string = alerts.length === 1 ? "alert" : "alerts";
 
-  return `🔗 Declared from ${alerts.length} ${noun}:\n\n${lines.join("\n")}`;
+  return mdText`🔗 Declared from ${alerts.length} ${noun}:\n\n${FeedMarkdown.bulletList(lines)}`.toString();
 }
 
 /*
@@ -885,25 +893,23 @@ export class Service extends ProjectReferencesService<Model> {
       await AlertService.getAlertLinkInDashboard(link.projectId, link.alertId)
     ).toString();
 
-    const alertMention: { subject: string; titleSuffix: string } =
-      describeLinkedRecord({
-        label: alertLabel,
-        link: alertLink,
-        title: alert?.title,
-        isPrivate: alert?.isPrivate === true,
-        privateNoun: "alert",
-      });
+    const alertMention: LinkedRecordMention = describeLinkedRecord({
+      label: alertLabel,
+      link: alertLink,
+      title: alert?.title,
+      isPrivate: alert?.isPrivate === true,
+      privateNoun: "alert",
+    });
 
-    const incidentMention: { subject: string; titleSuffix: string } =
-      describeLinkedRecord({
-        label: incidentLabel,
-        link: incidentLink,
-        title: incident?.title,
-        isPrivate: incident?.isPrivate === true,
-        privateNoun: "incident",
-      });
+    const incidentMention: LinkedRecordMention = describeLinkedRecord({
+      label: incidentLabel,
+      link: incidentLink,
+      title: incident?.title,
+      isPrivate: incident?.isPrivate === true,
+      privateNoun: "incident",
+    });
 
-    const incidentSubject: string = `**[${incidentLabel}](${incidentLink})**`;
+    const incidentSubject: MarkdownText = mdText`**[${incidentLabel}](${incidentLink})**`;
 
     if (data.writeIncidentEntry) {
       await IncidentFeedService.createIncidentFeedItem({
@@ -914,8 +920,8 @@ export class Service extends ProjectReferencesService<Model> {
           : IncidentFeedEventType.AlertUnlinked,
         displayColor: isLinked ? Yellow500 : Gray500,
         feedInfoInMarkdown: isLinked
-          ? `🔗 Linked ${alertMention.subject} to ${incidentSubject}${alertMention.titleSuffix}`
-          : `Unlinked ${alertMention.subject} from ${incidentSubject}${alertMention.titleSuffix}`,
+          ? mdText`🔗 Linked ${alertMention.subject} to ${incidentSubject}${alertMention.titleSuffix}`.toString()
+          : mdText`Unlinked ${alertMention.subject} from ${incidentSubject}${alertMention.titleSuffix}`.toString(),
         userId: actorUserId,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -932,8 +938,8 @@ export class Service extends ProjectReferencesService<Model> {
         : AlertFeedEventType.UnlinkedFromIncident,
       displayColor: isLinked ? Yellow500 : Gray500,
       feedInfoInMarkdown: isLinked
-        ? `🔗 Linked to ${incidentMention.subject}${incidentMention.titleSuffix}`
-        : `Unlinked from ${incidentMention.subject}${incidentMention.titleSuffix}`,
+        ? mdText`🔗 Linked to ${incidentMention.subject}${incidentMention.titleSuffix}`.toString()
+        : mdText`Unlinked from ${incidentMention.subject}${incidentMention.titleSuffix}`.toString(),
       userId: actorUserId,
     });
   }
@@ -2266,10 +2272,10 @@ export class Service extends ProjectReferencesService<Model> {
       const isResolving: boolean = target === plan.resolvedAlertState;
 
       const rootCause: string = isResolving
-        ? `Resolved because linked ${incidentLabel} was resolved.`
-        : `Acknowledged because linked ${incidentLabel} was ${
+        ? mdText`Resolved because linked ${incidentLabel} was resolved.`.toString()
+        : mdText`Acknowledged because linked ${incidentLabel} was ${
             plan.incidentReachedResolved ? "resolved" : "acknowledged"
-          }.`;
+          }.`.toString();
 
       try {
         await AlertService.changeAlertState({

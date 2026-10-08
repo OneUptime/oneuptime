@@ -20,6 +20,7 @@ import MicrosoftTeamsScheduledMaintenanceActions, {
 import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import MicrosoftTeamsTimezone from "./MicrosoftTeamsTimezone";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * "create incident" and "create maintenance" typed to the Microsoft Teams bot.
@@ -114,7 +115,7 @@ export default class MicrosoftTeamsCreateCommands {
         turnContext,
         `An incident needs a severity, and this project has no incident severities yet. Add one in OneUptime under ${
           severitySettingsUrl
-            ? `[Incidents → Settings → Incident Severity](${severitySettingsUrl})`
+            ? mdText`[Incidents → Settings → Incident Severity](${severitySettingsUrl})`
             : "Incidents → Settings → Incident Severity"
         }, then try again.`,
       );

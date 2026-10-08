@@ -31,7 +31,6 @@ import IncidentStateTimeline from "../../../../../Models/DatabaseModels/Incident
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
-import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
 import ColumnLength from "../../../../../Types/Database/ColumnLength";
 import { truncateToLength } from "../../../Database/TruncateColumnValue";
 import MicrosoftTeamsCardChoices, {
@@ -39,6 +38,9 @@ import MicrosoftTeamsCardChoices, {
 } from "../MicrosoftTeamsCardChoices";
 import { MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES } from "../MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 // Incident.title is a LongText column.
 const MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
@@ -435,7 +437,8 @@ export default class MicrosoftTeamsIncidentActions {
       const declaredAt: Date | undefined =
         incident.declaredAt || incident.createdAt || undefined;
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
-      const message: string = `**Incident Details**\n\n**Title:** ${escapeMarkdownValue(incident.title)}\n**Description:** ${incident.description || "No description"}\n**State:** ${escapeMarkdownValue(incident.currentIncidentState?.name || "Unknown")}\n**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || "Unknown")}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`;
+      const message: string =
+        mdText`**Incident Details**\n\n**Title:** ${incident.title}\n**Description:** ${FeedMarkdown.asMarkdown(incident.description || "No description")}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;

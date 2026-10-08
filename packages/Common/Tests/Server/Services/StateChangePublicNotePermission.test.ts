@@ -47,6 +47,7 @@ import {
 } from "@jest/globals";
 import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");
 
@@ -327,7 +328,7 @@ beforeEach(() => {
   });
   release = getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined);
   getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
-    "[Ada Lovelace](mailto:ada@example.com)",
+    FeedMarkdown.asMarkdown("[Ada Lovelace](mailto:ada@example.com)"),
   );
 });
 

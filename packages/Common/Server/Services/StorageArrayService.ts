@@ -25,6 +25,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The snapshot columns the metrics ingest (StorageArraySnapshotScan) and the
@@ -510,7 +511,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getStorageArrayMarkdownLink(
     projectId: ObjectID,
     storageArrayId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getStorageArrayName({
       storageArrayId: storageArrayId,
     });
@@ -519,7 +520,7 @@ export class Service extends ProjectReferencesService<Model> {
       storageArrayId,
     );
 
-    return `[Storage Array ${name}](${link.toString()})`;
+    return mdText`[Storage Array ${name}](${link.toString()})`;
   }
 
   private async writeStorageArrayCreatedFeed(
@@ -631,7 +632,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getStorageArrayMarkdownLink(projectId, storageArrayId);
 
       if (isArchiveChange) {
@@ -643,8 +644,8 @@ export class Service extends ProjectReferencesService<Model> {
             : StorageArrayFeedEventType.StorageArrayRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

@@ -526,9 +526,11 @@ export default class EventVideoCall {
       };
 
       const feedInfoInMarkdown: string =
-        VideoCallMessages.getStartedFeedMarkdown(announcement);
+        VideoCallMessages.getStartedFeedMarkdown(announcement).toString();
       const moreInformationInMarkdown: string | undefined =
-        VideoCallMessages.getStartedFeedMoreInformationMarkdown(announcement);
+        VideoCallMessages.getStartedFeedMoreInformationMarkdown(
+          announcement,
+        )?.toString();
 
       const workspaceNotification: {
         sendWorkspaceNotification: boolean;
@@ -597,7 +599,7 @@ export default class EventVideoCall {
           eventNoun: EventVideoCall.getEventNoun(data.eventType),
           ruleName: data.ruleName,
           error: data.error,
-        });
+        }).toString();
 
       if (data.eventType === VideoCallEventType.Incident) {
         await IncidentFeedService.createIncidentFeedItem({

@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { marked, Token, Tokens } from "marked";
 import AffectedResourceList, {
+  AffectedResourceListDetail,
   AffectedResourceListEntry,
 } from "../../../Server/Utils/Monitor/AffectedResourceList";
 import {
@@ -13,6 +14,7 @@ import {
   markdownToHtml,
 } from "../../../UI/Components/Markdown.tsx/MarkdownConverters";
 
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The markdown <-> HTML pair behind the WYSIWYG editor.
  *
@@ -1265,7 +1267,9 @@ describe("nested list round trip", () => {
  * it back with every resource numbered "1." and its details detached.
  */
 describe("Affected Resources block in the editor", () => {
-  const code: (value: string) => string = (value: string): string => {
+  const code: (value: string) => MarkdownText = (
+    value: string,
+  ): MarkdownText => {
     return AffectedResourceList.code(value);
   };
 
@@ -1276,7 +1280,7 @@ describe("Affected Resources block in the editor", () => {
       {
         kind: "Pod",
         name: code("oneuptime-migrate-267-k64qm"),
-        value: "**3**",
+        value: mdText`**3**`,
         details: [
           { label: "Namespace", value: code("default") },
           { label: "Job", value: code("oneuptime-migrate-267") },
@@ -1292,7 +1296,7 @@ describe("Affected Resources block in the editor", () => {
       result.push({
         kind: "Pod",
         name: code(`kube-dns-autoscaler-859854db85-gg5x${i}`),
-        value: `**${i % 3 === 0 ? 1 : 2}**`,
+        value: mdText`**${i % 3 === 0 ? 1 : 2}**`,
         details: [
           { label: "Namespace", value: code("kube-system") },
           // An empty detail is dropped by the renderer.
@@ -1317,7 +1321,7 @@ describe("Affected Resources block in the editor", () => {
       overflowNoun: "affected resources",
       totalCount,
       entries: podEntries(count),
-    });
+    }).toString();
   };
 
   // A root cause as a monitor saves it: a sentence, then the block.
@@ -1375,8 +1379,8 @@ describe("Affected Resources block in the editor", () => {
         },
       ) as Array<Tokens.List>;
       const expectedDetails: number = (entries[index]?.details || []).filter(
-        (detail: { value: string }): boolean => {
-          return detail.value.length > 0;
+        (detail: AffectedResourceListDetail): boolean => {
+          return String(detail.value ?? "").length > 0;
         },
       ).length;
 

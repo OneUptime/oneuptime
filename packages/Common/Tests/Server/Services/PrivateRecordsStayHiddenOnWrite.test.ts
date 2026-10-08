@@ -35,6 +35,7 @@ import {
   test,
 } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * A private incident or incident episode is never shown on a status page
  * (StatusPageVisibility), and every write keeps it so, whoever makes it -
@@ -442,7 +443,7 @@ describe("IncidentService.onBeforeCreate creates a private incident hidden", () 
       .mockResolvedValue(undefined as never);
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("a teammate" as never);
+      .mockResolvedValue(FeedMarkdown.asMarkdown("a teammate") as never);
     jest
       .spyOn(IncidentTemplateService, "findOneBy")
       .mockResolvedValue(null as never);
@@ -758,7 +759,7 @@ describe("IncidentEpisodeService.onBeforeCreate creates a private episode hidden
       .mockResolvedValue({ counter: 3, prefix: undefined } as never);
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("a teammate" as never);
+      .mockResolvedValue(FeedMarkdown.asMarkdown("a teammate") as never);
     jest
       .spyOn(IncidentGroupingRuleService, "findOneById")
       .mockImplementation((async () => {

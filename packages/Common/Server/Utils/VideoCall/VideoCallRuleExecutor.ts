@@ -22,7 +22,6 @@ import WorkspaceNotificationRuleService, {
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import SlackUtil from "../Workspace/Slack/Slack";
 import { WorkspaceChannel } from "../Workspace/WorkspaceBase";
 import EventVideoCall, {
@@ -31,6 +30,7 @@ import EventVideoCall, {
 } from "./EventVideoCall";
 import SlackHuddleLink from "./Providers/SlackHuddleLink";
 import { Service as VideoCallConnectionServiceType } from "../../Services/VideoCallConnectionService";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Starts the video calls the workspace notification rules ask for when an
@@ -520,7 +520,8 @@ export default class VideoCallRuleExecutor {
           actionType: WorkspaceNotificationActionType.StartVideoCall,
           status: data.status,
           statusMessage: data.statusMessage.substring(0, 500),
-          message: `Video call for the **${escapeMarkdownValue(data.request.ruleName)}** workspace notification rule`,
+          message:
+            mdText`Video call for the **${data.request.ruleName}** workspace notification rule`.toString(),
           ...(data.event.type === VideoCallEventType.Incident
             ? { incidentId: data.event.id }
             : { alertId: data.event.id }),

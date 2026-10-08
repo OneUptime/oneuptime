@@ -23,8 +23,10 @@ import IncidentStateService from "../../../../Services/IncidentStateService";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
-import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class MicrosoftTeamsIncidentEpisodeActions {
   @CaptureSpan()
@@ -348,7 +350,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       }
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
-      const message: string = `**Incident Episode Details**\n\n**Title:** ${escapeMarkdownValue(episode.title)}\n**Description:** ${episode.description || "No description"}\n**State:** ${escapeMarkdownValue(episode.currentIncidentState?.name || "Unknown")}\n**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || "Unknown")}\n**Incident Count:** ${episode.incidentCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`;
+      const message: string =
+        mdText`**Incident Episode Details**\n\n**Title:** ${episode.title}\n**Description:** ${FeedMarkdown.asMarkdown(episode.description || "No description")}\n**State:** ${episode.currentIncidentState?.name || "Unknown"}\n**Severity:** ${episode.incidentSeverity?.name || "Unknown"}\n**Incident Count:** ${episode.incidentCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;

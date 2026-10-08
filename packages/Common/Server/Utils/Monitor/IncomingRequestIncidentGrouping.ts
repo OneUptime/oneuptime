@@ -1,5 +1,4 @@
 import logger from "../Logger";
-import RootCauseList from "./RootCauseList";
 import VMUtil from "../VM/VMAPI";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import DataToProcess from "./DataToProcess";
@@ -10,6 +9,7 @@ import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestRespo
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import Typeof from "../../../Types/Typeof";
 
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 /**
  * One key extracted from an incoming webhook payload by an
  * {@link IncidentGroupingConfig}.
@@ -126,13 +126,13 @@ export default class IncomingRequestIncidentGrouping {
         labels: item.labels,
         /*
          * The key is whatever the request carried at the grouping path:
-         * shown as code (RootCauseList.code), so a backtick in it cannot
-         * close the span and nothing in it is read as Markdown or as a
-         * chat mention.
+         * shown as code (mdText writes the span around it), so a backtick
+         * in it cannot close the span and nothing in it is read as
+         * Markdown or as a chat mention.
          */
         rootCause:
           input.rootCause ||
-          `Incoming request matched grouping key ${RootCauseList.code(item.keyValue)}.`,
+          mdText`Incoming request matched grouping key \`${item.keyValue}\`.`.toString(),
         metricContext: undefined,
       });
     }

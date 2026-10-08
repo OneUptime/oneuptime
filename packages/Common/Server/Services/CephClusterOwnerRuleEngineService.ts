@@ -26,6 +26,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 class CephClusterOwnerRuleEngineServiceClass
   implements RuleRunEngine<CephCluster, CephClusterOwnerRule>
@@ -295,15 +297,17 @@ class CephClusterOwnerRuleEngineServiceClass
       projectId: cephCluster.projectId,
       cephClusterFeedEventType: CephClusterFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await CephClusterService.getCephClusterMarkdownLink(
-        cephCluster.projectId,
-        cephCluster.id,
-      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-        .map((rule: CephClusterOwnerRule) => {
-          return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await CephClusterService.getCephClusterMarkdownLink(
+          cephCluster.projectId,
+          cephCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRules.map((rule: CephClusterOwnerRule): string => {
+          return rule.name || rule.id?.toString() || "Unnamed rule";
+        }),
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);

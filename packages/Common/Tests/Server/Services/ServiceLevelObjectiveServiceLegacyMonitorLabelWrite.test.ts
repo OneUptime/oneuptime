@@ -19,6 +19,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -855,7 +856,11 @@ describe("an out-of-date dashboard tab saving labels on an SLO with no monitor r
       .mockResolvedValue(undefined);
     jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-      .mockResolvedValue("[SLO Checkout](https://oneuptime.test/slos/1)");
+      .mockResolvedValue(
+        FeedMarkdown.asMarkdown(
+          "[SLO Checkout](https://oneuptime.test/slos/1)",
+        ),
+      );
     stubProjectDirectory({});
   });
 

@@ -10,8 +10,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import OneUptimeDate from "Common/Types/Date";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 /**
  * This job sends automatic internal and public note reminders for incidents
  * based on the SLA rule configuration.
@@ -265,7 +265,7 @@ function processTemplate(
    * goes; and put in by a function, so a "$&" in it is not read as a
    * replacement pattern.
    */
-  const incidentTitle: string = escapeMarkdownValue(incident.title || "");
+  const incidentTitle: string = FeedMarkdown.templateText(incident.title || "");
 
   result = result.replace(/\{\{incidentTitle\}\}/g, (): string => {
     return incidentTitle;
