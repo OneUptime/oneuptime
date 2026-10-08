@@ -68,6 +68,11 @@ interface SideMenuWrapper {
 }
 
 const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
+  /*
+   * The only section open on arrival, and only what people open Network
+   * for: whether it is healthy, the devices, where they are, the map, and
+   * the way to find more. Five rows, down from ten open before.
+   */
   {
     title: "Network",
     defaultCollapsed: false,
@@ -91,35 +96,39 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
         breadcrumbTitles: ["Project", "Network", "Sites"],
       },
       {
-        title: "Endpoints",
-        pageMapKey: PageMap.NETWORK_DEVICE_ENDPOINTS,
-        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
-        breadcrumbTitles: ["Project", "Network", "Endpoints"],
+        title: "Map",
+        pageMapKey: PageMap.NETWORK_SITE_MAP,
+        getBreadcrumbs: getNetworkSiteBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Map"],
+        resetsMapDrill: true,
       },
       {
-        title: "Discovery Scans",
+        title: "Discovery",
         pageMapKey: PageMap.NETWORK_DEVICE_DISCOVERY,
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
-        breadcrumbTitles: ["Project", "Network", "Discovery Scans"],
+        breadcrumbTitles: ["Project", "Network", "Discovery"],
       },
     ],
   },
+  /*
+   * The deeper views and the links drawn by hand: where people dig, not
+   * where they look, so folded.
+   */
   {
     title: "Topology",
-    defaultCollapsed: false,
+    defaultCollapsed: true,
     entries: [
-      {
-        title: "Network Map",
-        pageMapKey: PageMap.NETWORK_SITE_MAP,
-        getBreadcrumbs: getNetworkSiteBreadcrumbs,
-        breadcrumbTitles: ["Project", "Network", "Topology", "Network Map"],
-        resetsMapDrill: true,
-      },
       {
         title: "Device Topology",
         pageMapKey: PageMap.NETWORK_DEVICE_TOPOLOGY,
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
         breadcrumbTitles: ["Project", "Network", "Topology", "Device Topology"],
+      },
+      {
+        title: "Endpoints",
+        pageMapKey: PageMap.NETWORK_DEVICE_ENDPOINTS,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Topology", "Endpoints"],
       },
       {
         title: "Latency Matrix",
@@ -186,27 +195,22 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
     title: "Settings",
     defaultCollapsed: true,
     entries: [
+      /*
+       * Alert policies first: how devices raise incidents is the setting
+       * most people come here for. A definition rather than a rule ("alert
+       * on devices like these"): the engine that provisions the monitors is
+       * what runs, and it has no page of its own.
+       */
       {
-        title: "Device Roles",
-        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES,
+        title: "Alert Policies",
+        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
-        breadcrumbTitles: ["Project", "Network", "Settings", "Device Roles"],
-      },
-      {
-        title: "OID Collection Templates",
-        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
-        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
-        breadcrumbTitles: [
-          "Project",
-          "Network",
-          "Settings",
-          "OID Collection Templates",
-        ],
+        breadcrumbTitles: ["Project", "Network", "Settings", "Alert Policies"],
       },
       /*
-       * The named credential sets a device is walked WITH, beside the OID
-       * templates that say what it COLLECTS. Settings rather than Rules:
-       * nothing here runs on its own, it is a definition a device points at.
+       * The named credential sets a device is walked WITH. Settings rather
+       * than Rules: nothing here runs on its own, it is a definition a
+       * device points at.
        */
       {
         title: "SNMP Credentials",
@@ -219,22 +223,28 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
           "SNMP Credentials",
         ],
       },
-      /*
-       * Alert policies are a definition too ("alert on devices like these"),
-       * which is why they sit here and not under Rules: the engine that
-       * provisions the monitors is what runs, and it has no page of its own.
-       */
       {
-        title: "Alert Policies",
-        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
+        title: "Device Roles",
+        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES,
         getBreadcrumbs: getNetworkDeviceBreadcrumbs,
-        breadcrumbTitles: ["Project", "Network", "Settings", "Alert Policies"],
+        breadcrumbTitles: ["Project", "Network", "Settings", "Device Roles"],
       },
       {
         title: "Site Types",
         pageMapKey: PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES,
         getBreadcrumbs: getNetworkSiteBreadcrumbs,
         breadcrumbTitles: ["Project", "Network", "Settings", "Site Types"],
+      },
+      {
+        title: "OID Collection Templates",
+        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: [
+          "Project",
+          "Network",
+          "Settings",
+          "OID Collection Templates",
+        ],
       },
     ],
   },
@@ -409,9 +419,114 @@ describe("Network side menu", () => {
         expect(isExpanded(section.title)).toBe(!section.defaultCollapsed);
       });
     });
+
+    test("opens on one section: the Network section, and nothing else", async () => {
+      await renderNetworkMenu();
+
+      const openSections: Array<string> = sectionTitlesInOrder().filter(
+        (title: string): boolean => {
+          return isExpanded(title);
+        },
+      );
+
+      expect(openSections).toEqual(["Network"]);
+    });
+
+    test("shows five rows on arrival: Overview, Devices, Sites, Map and Discovery", async () => {
+      await renderNetworkMenu();
+
+      expect(
+        linksIn("Network").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).toEqual(["Overview", "Devices", "Sites", "Map", "Discovery"]);
+
+      /*
+       * Every other row sits in a folded section: drawn (so it can open
+       * without a re-render), but not one more row to read on arrival.
+       */
+      const visibleRows: number = sectionTitlesInOrder()
+        .filter((title: string): boolean => {
+          return isExpanded(title);
+        })
+        .reduce((count: number, title: string): number => {
+          return count + linksIn(title).length;
+        }, 0);
+
+      expect(visibleRows).toBe(5);
+    });
+
+    test("leaves the deeper views out of the open section", async () => {
+      await renderNetworkMenu();
+
+      const everydayTitles: Array<string> = linksIn("Network").map(
+        (link: MenuLink): string => {
+          return link.title;
+        },
+      );
+
+      for (const title of [
+        "Device Topology",
+        "Endpoints",
+        "Latency Matrix",
+        "Site Links",
+        "Device Links",
+        "Network Map",
+        "Discovery Scans",
+      ]) {
+        expect(everydayTitles).not.toContain(title);
+      }
+
+      expect(
+        linksIn("Topology").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).toEqual([
+        "Device Topology",
+        "Endpoints",
+        "Latency Matrix",
+        "Site Links",
+        "Device Links",
+      ]);
+    });
+
+    test("puts Alert Policies first under Settings, then SNMP Credentials", async () => {
+      await renderNetworkMenu();
+
+      expect(
+        linksIn("Settings")
+          .slice(0, 2)
+          .map((link: MenuLink): string => {
+            return link.title;
+          }),
+      ).toEqual(["Alert Policies", "SNMP Credentials"]);
+    });
   });
 
   describe("collapsed sections", () => {
+    test("Topology expands and collapses without unmounting its links", async () => {
+      await renderNetworkMenu();
+
+      expect(isExpanded("Topology")).toBe(false);
+      expect(sectionBody("Topology")).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+      expect(linksIn("Topology")).toHaveLength(5);
+
+      fireEvent.click(sectionToggle("Topology"));
+
+      expect(isExpanded("Topology")).toBe(true);
+      expect(sectionBody("Topology")).toHaveClass("opacity-100");
+      expect(sectionBody("Topology")).not.toHaveClass("invisible");
+
+      fireEvent.click(sectionToggle("Topology"));
+
+      expect(isExpanded("Topology")).toBe(false);
+      expect(linksIn("Topology")).toEqual(expectedLinks(EXPECTED_SECTIONS[1]!));
+    });
+
     test("Rules expands and collapses without unmounting its links", async () => {
       await renderNetworkMenu();
 
@@ -534,6 +649,47 @@ describe("Network side menu", () => {
   });
 
   describe("active routes", () => {
+    test.each([
+      [PageMap.NETWORK_DEVICE_TOPOLOGY, "Device Topology"],
+      [PageMap.NETWORK_DEVICE_ENDPOINTS, "Endpoints"],
+      [PageMap.NETWORK_DEVICE_LATENCY_MATRIX, "Latency Matrix"],
+      [PageMap.NETWORK_SITE_LINKS, "Site Links"],
+      [PageMap.NETWORK_DEVICE_LINKS, "Device Links"],
+    ])(
+      "%s opens the folded Topology section and highlights %s",
+      async (pageMapKey: string, title: string): Promise<void> => {
+        goTo(routeFor(pageMapKey));
+
+        await renderNetworkMenu();
+
+        expect(isExpanded("Topology")).toBe(true);
+        expect(sectionBody("Topology")).toHaveClass("opacity-100");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Settings")).toBe(false);
+        expectActiveLink(title);
+      },
+    );
+
+    test.each([
+      [PageMap.NETWORK_OVERVIEW, "Overview"],
+      [PageMap.NETWORK_DEVICES, "Devices"],
+      [PageMap.NETWORK_SITES, "Sites"],
+      [PageMap.NETWORK_DEVICE_DISCOVERY, "Discovery"],
+    ])(
+      "%s highlights %s and keeps every folded section folded",
+      async (pageMapKey: string, title: string): Promise<void> => {
+        goTo(routeFor(pageMapKey));
+
+        await renderNetworkMenu();
+
+        expectActiveLink(title);
+
+        for (const section of ["Topology", "Rules", "Settings", "Advanced"]) {
+          expect(isExpanded(section)).toBe(false);
+        }
+      },
+    );
+
     test("an active Rules deep link expands Rules and highlights its item", async () => {
       goTo(routeFor(PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES));
 
@@ -602,15 +758,15 @@ describe("Network side menu", () => {
     });
   });
 
-  describe("Network Map", () => {
+  describe("Map", () => {
     test("links to an explicit root reset instead of the bare map route", async () => {
       await renderNetworkMenu();
 
-      const mapLink: MenuLink = linksIn("Topology")[0]!;
+      const mapLink: MenuLink = linksIn("Network")[3]!;
       const bareMapRoute: string = routeFor(PageMap.NETWORK_SITE_MAP);
 
       expect(mapLink).toEqual({
-        title: "Network Map",
+        title: "Map",
         href: `${bareMapRoute}?site=`,
       });
       expect(mapLink.href).not.toBe(bareMapRoute);
@@ -621,9 +777,11 @@ describe("Network side menu", () => {
 
       await renderNetworkMenu();
 
-      expect(isExpanded("Topology")).toBe(true);
-      expectActiveLink("Network Map");
-      expect(findAnchor("Network Map")).toHaveAttribute(
+      // The map is an everyday page now: it opens no folded section.
+      expect(isExpanded("Network")).toBe(true);
+      expect(isExpanded("Topology")).toBe(false);
+      expectActiveLink("Map");
+      expect(findAnchor("Map")).toHaveAttribute(
         "href",
         `${routeFor(PageMap.NETWORK_SITE_MAP)}?site=`,
       );
@@ -635,13 +793,14 @@ describe("Network side menu", () => {
 
       await renderNetworkMenu();
 
-      expect(mobileSummaryText()).toContain("Topology / Network Map");
+      expect(mobileSummaryText()).toContain("Network / Map");
     });
   });
 
   describe("mobile summaries", () => {
     test.each([
-      [PageMap.NETWORK_DEVICE_ENDPOINTS, "Network / Endpoints"],
+      [PageMap.NETWORK_DEVICE_ENDPOINTS, "Topology / Endpoints"],
+      [PageMap.NETWORK_DEVICE_DISCOVERY, "Network / Discovery"],
       [PageMap.NETWORK_DEVICE_TOPOLOGY, "Topology / Device Topology"],
       [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES, "Rules / Owner Rules"],
       [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES, "Settings / Site Types"],

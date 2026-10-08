@@ -505,6 +505,10 @@ const NetworkDeviceSettings: FunctionComponent<
               },
               title: "Description",
               fieldType: FieldType.Text,
+              // Hidden while empty, like the Overview's Description row.
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.description);
+              },
             },
             {
               field: {
@@ -599,6 +603,20 @@ const NetworkDeviceSettings: FunctionComponent<
               },
               title: "Monitor",
               fieldType: FieldType.Text,
+              /*
+               * Shown when a monitor is bound, or when the device is on the
+               * bound-monitor override (where an empty row says nothing is
+               * bound yet). A probe-polled device with no monitor - most of
+               * them - has no blank Monitor row to wonder about.
+               */
+              showIf: (item: NetworkDevice): boolean => {
+                return (
+                  Boolean(item.monitor?.name) ||
+                  NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                    item.monitoringMethod,
+                  )
+                );
+              },
             },
             {
               /*
