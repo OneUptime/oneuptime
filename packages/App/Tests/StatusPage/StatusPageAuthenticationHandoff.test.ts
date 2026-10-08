@@ -141,6 +141,33 @@ describe("Status Page authentication handoff", () => {
     },
   );
 
+  /*
+   * The session a status page SSO callback starts names the provider that
+   * signed the person in, so it counts only while that provider vouches for
+   * it: turning the provider off or deleting it ends the session
+   * (StatusPagePrivateUserSessionService.addSignInRule).
+   */
+  it.each([
+    ["SAML", "statusPageSsoId: statusPageSSO.id!"],
+    ["OIDC", "statusPageOidcId: statusPageOidcId"],
+  ])(
+    "%s callback's session names the provider that signed the person in",
+    (name: string, naming: string) => {
+      const callback: string = callbacks.find(
+        (entry: [string, string]): boolean => {
+          return entry[0] === name;
+        },
+      )![1];
+
+      const sessionStart: number = callback.indexOf("createLoginCodeSession");
+
+      expect(sessionStart).toBeGreaterThan(-1);
+      expect(callback.indexOf(naming, sessionStart)).toBeGreaterThan(
+        sessionStart,
+      );
+    },
+  );
+
   it("revalidates the stored post-login redirect at its final consumer", () => {
     const validation: number = overview.indexOf(
       "StatusPageUtil.getSafeRedirectPath(redirectUrl)",

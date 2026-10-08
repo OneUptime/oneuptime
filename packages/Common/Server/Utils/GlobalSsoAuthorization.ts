@@ -43,6 +43,12 @@ export interface GlobalProviderTrust {
   isUsable: boolean;
   // The admin opted this provider into attachment-scoped access.
   restrictToAttachedProjects: boolean;
+  /*
+   * When the provider was last turned off (milliseconds), or null when it
+   * never was: a sign-in it gave before then no longer counts, even once it
+   * is on again (Utils/SsoSignInsEnded).
+   */
+  signInsEndedAtMs: number | null;
 }
 
 /*
@@ -185,8 +191,16 @@ export function announceGlobalSignInChange(): void {
   });
 }
 
+/*
+ * Counts the times every answer was dropped. A lookup that started before
+ * the latest drop may hold an answer from before the change that caused it,
+ * so it is handed to the requests waiting on it but never cached.
+ */
+let forgets: number = 0;
+
 /** Drops every cached answer. Used by the write hooks and by tests. */
 export function clearGlobalSsoAuthorizationCaches(): void {
+  forgets++;
   globalSsoProviderTrustCache.clear();
   globalSsoAttachmentsCache.clear();
   inFlightTrustLookups.clear();
@@ -214,8 +228,16 @@ const inFlightAttachmentLookups: Map<
   Promise<GlobalProviderAttachments>
 > = new Map();
 
+/*
+ * One lookup per key at a time, cached for GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS
+ * once it answers - unless the answers were dropped while it ran: the
+ * change that dropped them may have landed after it read, so its answer is
+ * returned to the requests waiting on it and not cached. A lookup that fails
+ * is not cached either.
+ */
 async function loadOnce<T>(
   inFlight: Map<string, Promise<T>>,
+  cache: InMemoryTTLCache<T>,
   key: string,
   load: () => Promise<T>,
 ): Promise<T> {
@@ -225,7 +247,17 @@ async function loadOnce<T>(
     return existing;
   }
 
-  const pending: Promise<T> = load().finally((): void => {
+  const forgetsAtStart: number = forgets;
+
+  const loaded: Promise<T> = load().then((value: T): T => {
+    if (forgetsAtStart === forgets) {
+      cache.set(key, value, GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS);
+    }
+
+    return value;
+  });
+
+  const pending: Promise<T> = loaded.finally((): void => {
     /*
      * Only clear the slot if it is still OURS. A cache clear between the two
      * (every write to a Global SSO/OIDC service does exactly that, twice) lets
@@ -248,12 +280,17 @@ export function loadTrustOnce(
   key: string,
   load: () => Promise<GlobalProviderTrust>,
 ): Promise<GlobalProviderTrust> {
-  return loadOnce(inFlightTrustLookups, key, load);
+  return loadOnce(inFlightTrustLookups, globalSsoProviderTrustCache, key, load);
 }
 
 export function loadAttachmentsOnce(
   key: string,
   load: () => Promise<GlobalProviderAttachments>,
 ): Promise<GlobalProviderAttachments> {
-  return loadOnce(inFlightAttachmentLookups, key, load);
+  return loadOnce(
+    inFlightAttachmentLookups,
+    globalSsoAttachmentsCache,
+    key,
+    load,
+  );
 }

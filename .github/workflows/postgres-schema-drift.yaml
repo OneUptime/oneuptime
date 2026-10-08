@@ -930,6 +930,24 @@ jobs:
           Tests/Server/Services/StatusPagePrivateUserReadAccessPostgres.test.ts
           --forceExit
 
+      # Clones the migrated status page session, private user and SSO
+      # provider tables into an isolated schema: a session counts only while
+      # the provider that signed it in is the page's, on and not turned off
+      # since; one no provider signed in counts only where the page does not
+      # require SSO; and the upgrade's data fixes stamp only providers that
+      # are off and end only sessions that cannot name their provider.
+      - name: Test status page SSO sessions on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STATUS_PAGE_SSO_SESSION_TESTS: "true"
+          STATUS_PAGE_SSO_SESSION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STATUS_PAGE_SSO_SESSION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STATUS_PAGE_SSO_SESSION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPageSsoSessionsPostgres.test.ts
+          --forceExit
+
       - name: Test team member reads across tenants on migrated Postgres
         working-directory: packages/Common
         env:

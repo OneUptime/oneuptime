@@ -167,6 +167,7 @@ router.post(
             isEnabled: true,
           },
           select: {
+            _id: true,
             signOnURL: true,
             issuerURL: true,
             publicCertificate: true,
@@ -292,11 +293,18 @@ router.post(
         alreadySavedUser.projectId = projectId;
       }
 
+      /*
+       * The session names the provider that signed the person in: it counts
+       * only while that provider vouches for it, so turning it off or
+       * deleting it ends the session (StatusPagePrivateUserSessionService.
+       * addSignInRule).
+       */
       const sessionMetadata: StatusPageSessionMetadata =
         await StatusPagePrivateUserSessionService.createLoginCodeSession({
           projectId: alreadySavedUser.projectId!,
           statusPageId: statusPageId,
           statusPagePrivateUserId: alreadySavedUser.id!,
+          statusPageSsoId: statusPageSSO.id!,
           ipAddress: getClientIp(req),
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
