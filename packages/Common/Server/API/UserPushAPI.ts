@@ -232,16 +232,37 @@ export default class UserPushAPI extends BaseAPI<
               !existingDevice.isVerified &&
               isExpoPushDeviceType(existingDevice.deviceType)
             ) {
-              const isVerifiedAgain: boolean =
-                await this.service.verifyExpoPushDeviceRegisteredAgain(
-                  new ObjectID(existingDevice._id!.toString()),
+              const deviceId: ObjectID = new ObjectID(
+                existingDevice._id!.toString(),
+              );
+
+              /*
+               * Nothing to verify again: a registration a moment earlier
+               * verified it already, or it is gone. Said as it is now.
+               */
+              const isVerified: boolean =
+                (await this.service.verifyExpoPushDeviceRegisteredAgain(
+                  deviceId,
+                )) ||
+                Boolean(
+                  (
+                    await this.service.findOneById({
+                      id: deviceId,
+                      select: {
+                        isVerified: true,
+                      },
+                      props: {
+                        isRoot: true,
+                      },
+                    })
+                  )?.isVerified,
                 );
 
               return Response.sendJsonObjectResponse(req, res, {
                 success: true,
-                deviceId: existingDevice._id!.toString(),
+                deviceId: deviceId.toString(),
                 alreadyRegistered: true,
-                isVerified: isVerifiedAgain,
+                isVerified: isVerified,
               });
             }
 

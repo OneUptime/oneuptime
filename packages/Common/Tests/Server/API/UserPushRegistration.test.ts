@@ -417,6 +417,207 @@ describe("POST /user-push/register", () => {
     expect(defaultRules).not.toHaveBeenCalled();
   });
 
+  /*
+   * A browser's gone subscription is gone for good, so registering it again
+   * as it is must not bring the device back: the Dashboard renews it with a
+   * new subscription instead (subscription-change).
+   */
+  test("a browser whose device no longer receives notifications is not verified again by registering the same subscription", async () => {
+    lookup.mockResolvedValue({
+      _id: EXISTING_DEVICE_ID.toString(),
+      id: EXISTING_DEVICE_ID,
+      isVerified: false,
+      deviceType: PushDeviceType.Web,
+    } as never);
+
+    const verifyAgain: SpyInstance<
+      typeof UserPushService.verifyExpoPushDeviceRegisteredAgain
+    > = jest
+      .spyOn(UserPushService, "verifyExpoPushDeviceRegisteredAgain")
+      .mockResolvedValue(true);
+
+    const answer: Answer = await register(
+      overTheWire({
+        ...browserRegistration,
+        projectId: PROJECT_ID.toString(),
+      }),
+    );
+
+    expect(verifyAgain).not.toHaveBeenCalled();
+    expect((answer as { json: JSONObject }).json["isVerified"]).toBe(false);
+  });
+
+  describe("a phone registering the token Expo said was gone", () => {
+    const PHONE_TOKEN: string = "ExponentPushToken[phone-token-000000001]";
+
+    let verifyAgain: SpyInstance<
+      typeof UserPushService.verifyExpoPushDeviceRegisteredAgain
+    >;
+    let reread: SpyInstance<typeof UserPushService.findOneById>;
+
+    beforeEach(() => {
+      verifyAgain = jest
+        .spyOn(UserPushService, "verifyExpoPushDeviceRegisteredAgain")
+        .mockResolvedValue(true);
+
+      reread = jest
+        .spyOn(UserPushService, "findOneById")
+        .mockResolvedValue(null);
+    });
+
+    function phoneRegistration(
+      deviceType: PushDeviceType,
+    ): Record<string, unknown> {
+      // As the mobile app sends it on every launch (MobileApp pushDevice.ts).
+      return {
+        deviceToken: PHONE_TOKEN,
+        deviceType: deviceType,
+        deviceName: "Pixel 8",
+        projectId: PROJECT_ID.toString(),
+        isCriticalAlertEnabled: true,
+      };
+    }
+
+    /*
+     * Expo said the token was gone, so its device stopped being verified
+     * (UserPushService.markExpoPushTokenAsGone). The app asks Expo for its
+     * token before every registration, which renews it there: the token it
+     * registers is one Expo delivers to again. Before, the device stayed
+     * marked however often the app registered, and only deleting it - and
+     * its rules - brought the phone back.
+     */
+    test.each([[PushDeviceType.iOS], [PushDeviceType.Android]])(
+      "%s: receives notifications again, the device it already had and its rules",
+      async (deviceType: PushDeviceType) => {
+        lookup.mockResolvedValue({
+          _id: EXISTING_DEVICE_ID.toString(),
+          id: EXISTING_DEVICE_ID,
+          isVerified: false,
+          deviceType: deviceType,
+        } as never);
+
+        const answer: Answer = await register(
+          overTheWire(phoneRegistration(deviceType)),
+        );
+
+        expect(answer).toEqual({
+          json: {
+            success: true,
+            deviceId: EXISTING_DEVICE_ID.toString(),
+            alreadyRegistered: true,
+            isVerified: true,
+          },
+        });
+        expect(verifyAgain).toHaveBeenCalledTimes(1);
+        expect(verifyAgain.mock.calls[0]![0].toString()).toBe(
+          EXISTING_DEVICE_ID.toString(),
+        );
+        // The device it had, not a new one with default rules.
+        expect(create).not.toHaveBeenCalled();
+        // The rules its owner set up survived the mark; none are added back.
+        expect(defaultRules).not.toHaveBeenCalled();
+      },
+    );
+
+    test("the lookup reads the device's type, which decides whether registering verifies it again", async () => {
+      await register(overTheWire(phoneRegistration(PushDeviceType.iOS)));
+
+      expect(
+        (lookup.mock.calls[0]![0].select as Record<string, unknown>)[
+          "deviceType"
+        ],
+      ).toBe(true);
+      expect(
+        (lookup.mock.calls[0]![0].select as Record<string, unknown>)[
+          "isVerified"
+        ],
+      ).toBe(true);
+    });
+
+    test("a phone that still receives notifications is left as it is", async () => {
+      lookup.mockResolvedValue({
+        _id: EXISTING_DEVICE_ID.toString(),
+        id: EXISTING_DEVICE_ID,
+        isVerified: true,
+        deviceType: PushDeviceType.iOS,
+      } as never);
+
+      const answer: Answer = await register(
+        overTheWire(phoneRegistration(PushDeviceType.iOS)),
+      );
+
+      expect(verifyAgain).not.toHaveBeenCalled();
+      expect((answer as { json: JSONObject }).json["isVerified"]).toBe(true);
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    test("verified a moment earlier by another registration: says it is verified", async () => {
+      lookup.mockResolvedValue({
+        _id: EXISTING_DEVICE_ID.toString(),
+        id: EXISTING_DEVICE_ID,
+        isVerified: false,
+        deviceType: PushDeviceType.Android,
+      } as never);
+      verifyAgain.mockResolvedValue(false);
+      reread.mockResolvedValue({ isVerified: true } as never);
+
+      const answer: Answer = await register(
+        overTheWire(phoneRegistration(PushDeviceType.Android)),
+      );
+
+      expect((answer as { json: JSONObject }).json["isVerified"]).toBe(true);
+      expect(reread.mock.calls[0]![0].id.toString()).toBe(
+        EXISTING_DEVICE_ID.toString(),
+      );
+    });
+
+    test("gone in the meantime: says it is not verified", async () => {
+      lookup.mockResolvedValue({
+        _id: EXISTING_DEVICE_ID.toString(),
+        id: EXISTING_DEVICE_ID,
+        isVerified: false,
+        deviceType: PushDeviceType.Android,
+      } as never);
+      verifyAgain.mockResolvedValue(false);
+      reread.mockResolvedValue(null);
+
+      const answer: Answer = await register(
+        overTheWire(phoneRegistration(PushDeviceType.Android)),
+      );
+
+      expect((answer as { json: JSONObject }).json["isVerified"]).toBe(false);
+    });
+
+    test("somebody who is not a member of the project verifies nothing", async () => {
+      members.clear();
+
+      const answer: Answer = await register(
+        overTheWire(phoneRegistration(PushDeviceType.iOS)),
+      );
+
+      expect(answer).toBeInstanceOf(NotAuthorizedException);
+      expect(lookup).not.toHaveBeenCalled();
+      expect(verifyAgain).not.toHaveBeenCalled();
+    });
+
+    test("a phone registering a token it never registered gets a new device, as before", async () => {
+      const answer: Answer = await register(
+        overTheWire(phoneRegistration(PushDeviceType.iOS)),
+      );
+
+      expect(verifyAgain).not.toHaveBeenCalled();
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(answer).toEqual({
+        json: {
+          success: true,
+          deviceId: NEW_DEVICE_ID.toString(),
+          alreadyRegistered: false,
+          isVerified: true,
+        },
+      });
+    });
+  });
+
   test("somebody who is not a member learns nothing about devices that exist", async () => {
     members.clear();
     lookup.mockResolvedValue({

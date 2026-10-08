@@ -818,7 +818,8 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           userPush: {
             id: METHOD_ID,
             deviceToken: "device-token",
-            deviceType: "iOS",
+            // As UserPush stores it (PushDeviceType.iOS).
+            deviceType: "ios",
             isVerified: false,
           },
         } as unknown as JSONObject) as never,
@@ -837,13 +838,77 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       expect(spies.workspaceMessage).not.toHaveBeenCalled();
       expect(spies.push).not.toHaveBeenCalled();
 
-      // One "not verified" Error row per unverified channel: 8 in total.
+      // One Error row per unverified channel: 8 in total.
       expect(timelineRows).toHaveLength(8);
       for (const row of timelineRows) {
         expect(row.status).toBe(UserNotificationStatus.Error);
-        expect(row.statusMessage).toContain("not verified");
+      }
+
+      /*
+       * Seven say the method is not verified. The push row says what an
+       * unverified push device is - one its push service or Expo said is
+       * gone - and how to bring it back: "device is not verified" told
+       * on-call nothing they could act on.
+       */
+      const pushRows: Array<TimelineRow> = timelineRows.filter(
+        (row: TimelineRow): boolean => {
+          return Boolean(row.statusMessage?.startsWith("Push notification"));
+        },
+      );
+
+      expect(pushRows).toHaveLength(1);
+      expect(pushRows[0]!.statusMessage).toBe(
+        "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.",
+      );
+
+      for (const row of timelineRows) {
+        if (row !== pushRows[0]) {
+          expect(row.statusMessage).toContain("not verified");
+        }
       }
     });
+
+    test.each([
+      [
+        "an iPhone",
+        "ios",
+        "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.",
+      ],
+      [
+        "an Android phone",
+        "android",
+        "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.",
+      ],
+      [
+        "a browser",
+        "web",
+        "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods in that browser.",
+      ],
+    ])(
+      "a page not pushed to %s that no longer receives notifications says how to register it again",
+      async (_name: string, deviceType: string, message: string) => {
+        spies.findRule.mockResolvedValue(
+          ruleItem({
+            userPush: {
+              id: METHOD_ID,
+              deviceToken: "device-token",
+              deviceType: deviceType,
+              isVerified: false,
+            },
+          } as unknown as JSONObject) as never,
+        );
+
+        await UserNotificationRuleService.executeNotificationRuleItem(
+          RULE_ID,
+          executeOptions(),
+        );
+
+        expect(spies.push).not.toHaveBeenCalled();
+        expect(timelineRows).toHaveLength(1);
+        expect(timelineRows[0]?.status).toBe(UserNotificationStatus.Error);
+        expect(timelineRows[0]?.statusMessage).toBe(message);
+      },
+    );
 
     test("the Telegram unverified branch keys off the RELATION, not the chat id", async () => {
       spies.findRule.mockResolvedValue(
