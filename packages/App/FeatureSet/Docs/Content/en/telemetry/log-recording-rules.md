@@ -1,8 +1,15 @@
 # Log Recording Rules
 
-## Overview
-
 A **Log Recording Rule** turns logs into a metric. Every minute it takes the logs that match its filter and writes one number per minute into the metric store: how many logs matched, or the sum, average, minimum, maximum or a percentile of a numeric attribute those logs carry. Split the result by up to five log attributes and you get one series per value - one per gateway, per host, per customer.
+
+:::cards
+- [How a rule works](#how-a-rule-works): Buckets, timing, catch-up and gaps.
+- [Creating a rule](#creating-a-rule): The fields of the rule editor.
+- [Example: SD-WAN gateway latency](#example-sd-wan-gateway-latency-from-a-sophos-firewall): From firewall syslog to a per-gateway alert.
+- [Permissions](#permissions): Who can create, change and read rules.
+:::
+
+## Overview
 
 The output is an ordinary metric. Chart it in the **Metric Explorer** and on dashboards, and alert on it with a **Metrics** monitor - including per-series alerting with **Group By**.
 
@@ -12,17 +19,43 @@ Log recording rules live under **Logs → Settings → Recording Rules**. Their 
 
 ## How a Rule Works
 
+```mermaid title="What a log recording rule does every minute"
+flowchart TB
+    logs["Logs that match the rule"] --> bucket["One-minute bucket, by log timestamp"]
+    bucket --> groups["One group per group-by value"]
+    groups --> agg["Count, or aggregate a numeric attribute"]
+    agg --> points["One metric point per series"]
+    points --> explorer["Metric Explorer and dashboards"]
+    points --> monitor["Metrics monitors"]
+```
+
 - **One point per minute, per series.** Logs are grouped into 1-minute buckets by their timestamp. Each bucket produces one point for each distinct combination of the group-by attributes' values.
 - **Computed 30 seconds after the minute ends.** The short wait lets logs that arrive a little late still land in their minute. A log that arrives later than that is not counted.
 - **No gaps, no double counting.** Each rule remembers the last minute it wrote (shown as **Computed Until** in the rules list). After a worker restart or other downtime it catches up on the minutes it missed, up to 60 minutes back, and it never writes the same minute twice.
 - **A count with no group by never has gaps.** A minute with no matching logs is written as `0`. Every other rule writes nothing for a minute with nothing to aggregate, so charts and monitors see no data rather than a made-up zero.
-- **Written like any other derived metric.** Points are Gauge data points named after the rule's **Output Metric Name**, carrying the group-by attributes and `oneuptime.derived.log_rule_id` (the rule's ID), and they follow the same retention as the metric and trace recording rules' points.
+- **Written like any other derived metric.** Points are Gauge data points named after the rule's **Output Metric Name**, carrying the group-by attributes and `oneuptime.derived.log_rule_id` (the rule's ID), and they follow the same retention as the metric and trace recording rules' points: 15 days.
 
 Changing a rule's definition applies from the next minute it writes; points already written are not rewritten. Turning a rule off stops it; turned back on, it catches up on the minutes it missed while it was off, up to the same 60 minutes.
 
 ## Creating a Rule
 
+:::steps
+### Open the recording rules
+
 Go to **Logs → Settings → Recording Rules** and choose **Create Log Recording Rule**.
+
+### Name the rule
+
+Type a **Name**. The **Output Metric Name** under it is made from the name as you type; choose **Edit** next to it to type your own.
+
+### Choose the logs and what to compute
+
+Under **Which Logs**, narrow the rule down with telemetry services, severities, body text and attribute filters. Pick an **Aggregation**, and for anything but a count, the **Numeric Attribute** to aggregate.
+
+### Split the result, and save
+
+Optionally add **Group By** attributes and a **Unit**. Check the line at the bottom of the editor, then save. Within a few minutes the rules list shows a **Computed Until** time.
+:::
 
 | Field              | What it does                                                                                                                                                                                               |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,6 +70,8 @@ Go to **Logs → Settings → Recording Rules** and choose **Create Log Recordin
 | Enabled            | Under **More fields**: on by default. Only enabled rules are computed.                                                                                                                                     |
 
 The line at the bottom of the editor says what the rule will write, e.g. `avg(latency) by gw_name, profile_name`.
+
+A rule can filter on at most 10 attributes and 100 telemetry services.
 
 ### Aggregations
 
@@ -73,19 +108,29 @@ A rule writes at most 1,000 series per minute. Past that, the series with the mo
 
 A Sophos XGS firewall with SD-WAN logging on sends an SLA summary per SD-WAN profile and gateway every few minutes:
 
-```
+```text
 log_type="SD-WAN" log_component="SLA" profile_name="Branch-Internet" gw_name="WAN2" latency=11 jitter=2 packet_loss=0 gw_status="up" sla_status="SLA met"
 ```
 
 This example turns those summaries into a latency metric per gateway, and alerts when one gateway's latency stays high.
 
-### 1. Get the logs in, with their fields as attributes
+```mermaid title="From firewall syslog to a per-gateway alert"
+flowchart TB
+    firewall["Sophos firewall"] -->|"syslog"| logs["Logs"]
+    logs --> pipeline["Log pipeline parses key=value pairs"]
+    pipeline --> rule["Recording rule: avg latency by gateway"]
+    rule --> metric["sdwan.gateway.latency.ms"]
+    metric --> monitor["Metrics monitor, one alert per gateway"]
+```
+
+:::steps
+### Get the logs in, with their fields as attributes
 
 1. Send the firewall's syslog to OneUptime - see [Syslog](/docs/telemetry/syslog).
-2. Under **Logs → Settings → Pipelines**, add a pipeline with a processor that parses the body's `key=value` pairs into log attributes, so each summary carries `log_type`, `log_component`, `profile_name`, `gw_name`, `latency`, `jitter` and `packet_loss` as attributes.
+2. Under **Logs → Settings → Pipelines**, add a pipeline with a processor that parses the body's `key=value` pairs into log attributes, so each summary carries `log_type`, `log_component`, `profile_name`, `gw_name`, `latency`, `jitter` and `packet_loss` as attributes. The [Key=Value Parser](/docs/telemetry/log-pipelines#keyvalue-parser) does this.
 3. Open the **Logs** explorer and check the attribute names on an SLA log. If your pipeline adds a prefix, use the prefixed names below.
 
-### 2. Create the recording rule
+### Create the recording rule
 
 Under **Logs → Settings → Recording Rules**, create a rule:
 
@@ -117,7 +162,7 @@ Repeat with `jitter` (`sdwan.gateway.jitter.ms`, unit `ms`) and `packet_loss` (`
 
 Within a few minutes the rules list shows a **Computed Until** time, and `sdwan.gateway.latency.ms` appears in the Metric Explorer: pick it, group by `gw_name`, and you have one latency line per gateway.
 
-### 3. Alert when one gateway's latency stays high
+### Alert when one gateway's latency stays high
 
 Create a **Metrics** monitor (see [Metrics Monitor](/docs/monitor/metrics-monitor)):
 
@@ -128,6 +173,7 @@ Create a **Metrics** monitor (see [Metrics Monitor](/docs/monitor/metrics-monito
 5. Optionally use the group-by values in the alert title, e.g. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
 With Group By set, each gateway is its own series: WAN2 going slow opens an alert for WAN2 alone, and it resolves on its own when WAN2 recovers - see [Per-Series Alerting](/docs/monitor/metrics-monitor#per-series-alerting-group-by).
+:::
 
 ## Good to Know
 
@@ -146,3 +192,11 @@ With Group By set, each gateway is its own series: WAN2 going slow opens an aler
 | Read Log Recording Rule   | Seeing rules and what they compute.     |
 
 Project owners and admins can do all of these. Project members, viewers and the telemetry roles can read rules.
+
+## Next steps
+
+:::cards
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on the metrics your rules write.
+- [Log Pipelines](/docs/telemetry/log-pipelines): Extract the attributes a rule aggregates.
+- [Syslog](/docs/telemetry/syslog): Send firewall and server logs to OneUptime.
+:::

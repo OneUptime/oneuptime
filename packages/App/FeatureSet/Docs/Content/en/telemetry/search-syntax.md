@@ -1,14 +1,47 @@
 # Telemetry Search Syntax
 
-## Overview
+The search box above the Logs, Traces, Metrics and Exceptions explorers speaks one query language. A query is a list of filters separated by spaces, and **every filter must match** — there is no implicit OR between filters. Use this page as a reference while you search.
 
-The search box above the Logs, Traces, Metrics and Exceptions explorers all speak the same language. A query is a list of filters separated by spaces, and **every filter must match** — there is no implicit OR between filters.
+:::cards
+- [The two kinds of filter](#the-two-kinds-of-filter): Built-in fields, attributes and free text.
+- [Matching values](#matching-values): Wildcards, contains, comparisons and lists.
+- [Excluding](#excluding): Turn any filter around with a leading `-`.
+- [Fields by signal](#fields-by-signal): What you can filter on in each explorer.
+:::
 
-```
+## How a query is read
+
+```text
 severity:error @platform.team:a* -@http.method:GET timeout
 ```
 
 That reads as: error-level logs, whose `platform.team` attribute starts with `a`, whose `http.method` attribute is not `GET`, and whose message mentions `timeout`.
+
+| Term | Kind | Matches |
+| --- | --- | --- |
+| `severity:error` | Field | The log's severity is Error. |
+| `@platform.team:a*` | Attribute | The `platform.team` attribute starts with `a`. |
+| `-@http.method:GET` | Excluded attribute | The `http.method` attribute is anything but `GET`. |
+| `timeout` | Free text | The message contains `timeout`. |
+
+Each space-separated term is read on its own, then all of them are combined with AND:
+
+```mermaid title="How each term of a query is read"
+flowchart TB
+    term["A term in the search box"] --> neg{"Starts with -"}
+    neg -->|"yes"| invert["Exclude what it matches"]
+    neg -->|"no"| at{"Starts with @"}
+    invert --> at
+    at -->|"yes"| attr["Attribute filter"]
+    at -->|"no"| colon{"Has key:value"}
+    colon -->|"no"| text["Free text"]
+    colon -->|"yes"| known{"Known field"}
+    known -->|"yes"| field["Field filter"]
+    known -->|"no"| attr
+    attr --> all["All terms must match"]
+    field --> all
+    text --> all
+```
 
 ## The two kinds of filter
 
@@ -16,7 +49,7 @@ That reads as: error-level logs, whose `platform.team` attribute starts with `a`
 | --- | --- | --- |
 | `field:value` | A built-in field of the signal | `severity:error` |
 | `@attribute:value` | An OpenTelemetry attribute on the row | `@http.status_code:500` |
-| bare words | The message (logs), span name (traces), metric name (metrics) | `connection refused` |
+| bare words | The message (logs), span name (traces), metric name (metrics) or exception message (exceptions) | `connection refused` |
 
 A bare `key:value` whose key is not a known field is treated as an attribute, so `k8s.pod:api-0` and `@k8s.pod:api-0` mean the same thing. Prefixing with `@` is never wrong and always means "look in the attributes".
 
@@ -46,7 +79,7 @@ Wildcard and contains matching ignore case; exact matching does not, because it 
 
 Wrap the value in double quotes:
 
-```
+```text
 name:"SELECT wp_options"
 @k8s.container.name:"my container"
 ```
@@ -80,11 +113,13 @@ A leading `-` inverts any filter, including the ones above:
 
 ## Fields by signal
 
+Field names are not case-sensitive: `statusMessage:` and `statusmessage:` are the same field.
+
 ### Logs
 
 | Field | Aliases | Notes |
 | --- | --- | --- |
-| `severity` | `level` | `fatal`, `error`, `warning`, `info`, `debug`, `trace` — any casing |
+| `severity` | `level` | `fatal`, `error`, `warning` (or `warn`), `info` (or `information`), `debug`, `trace`, `unspecified` — any casing |
 | `service` | | Service name |
 | `trace` | | Trace ID |
 | `span` | | Span ID |
@@ -112,30 +147,35 @@ A leading `-` inverts any filter, including the ones above:
 
 ### Exceptions
 
-| Field | Notes |
-| --- | --- |
-| `type` | Exception type, e.g. `type:TypeError` |
-| `env` | Environment |
-| `service` | Service name |
+| Field | Aliases | Notes |
+| --- | --- | --- |
+| `type` | `exceptionType` | Exception type, e.g. `type:TypeError` |
+| `env` | `environment` | Environment, from the `deployment.environment` resource attribute |
+| `service` | | Service name |
+| `class` | `errorClass` | Whose fault the error is: `code-fault`, `user-error`, `expected-denial`, `infrastructure` or `unknown` |
+
+Bare words search the exception message.
+
+The **Security Events** explorer uses the same language with fields of its own, such as `severity`, `tactic` and `user` — see [Security Events](/docs/telemetry/security-events).
 
 ## Combining filters
 
 Filters are combined with AND. `AND` may be written between them and changes nothing:
 
-```
+```text
 severity:error service:api          # both must hold
 severity:error AND service:api      # identical
 ```
 
 There is no OR **between** filters. To match either of two values for the same key, use the any-of form:
 
-```
+```text
 @http.method:(GET OR POST)
 ```
 
 Two filters on the same key are ANDed, which is how a range or a two-sided pattern is written:
 
-```
+```text
 @duration:>=100 @duration:<=500
 @k:a* @k:*z
 ```
@@ -146,8 +186,17 @@ Pressing Enter on a `key:value` term turns it into a chip above the results. A c
 
 Chips are part of the saved view and the page URL, so a filter survives a refresh, a bookmark and a shared link.
 
-## Notes
+## Good to know
 
 - Attribute **keys** are matched case-insensitively for wildcard, contains and prefix/suffix filters, so you do not have to remember whether it was ingested as `requestId` or `requestid`.
 - A `-@k:...` filter also matches rows that never had the attribute — a row that does not carry `platform.team` at all trivially does not start with `a`.
 - Numeric comparisons work on attribute values stored as text; a value that is not a number never satisfies one.
+
+## Next steps
+
+:::cards
+- [Zooming Into a Time Range](/docs/telemetry/charts-and-time-ranges): Narrow the explorers to the moment that matters.
+- [Log Pipelines](/docs/telemetry/log-pipelines): Turn parts of a log line into attributes you can search.
+- [Logs Monitor](/docs/monitor/logs-monitor): Alert when the logs you search for appear.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces to search.
+:::
