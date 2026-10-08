@@ -1,10 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 import { ProductBranding } from "../../../Types/Branding/ProductBranding";
-import CallRequest, {
-  GatherInput,
-  Say,
-} from "../../../Types/Call/CallRequest";
+import CallRequest, { GatherInput, Say } from "../../../Types/Call/CallRequest";
 import Phone from "../../../Types/Phone";
 import URL from "../../../Types/API/URL";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
@@ -188,11 +185,9 @@ describe("brandPushMessage", () => {
 
   test("keeps OneUptime's icon when the installation has no tab icon of its own", () => {
     expect(
-      ProductBrandingText.brandPushMessage(
-        message(),
-        [DEFAULT_ICON],
-        { productName: "Acme" },
-      ).icon,
+      ProductBrandingText.brandPushMessage(message(), [DEFAULT_ICON], {
+        productName: "Acme",
+      }).icon,
     ).toBe(DEFAULT_ICON);
   });
 

@@ -76,7 +76,10 @@ export const getPoweredByLink: () => {
   const branding: ProductBranding | null = getProductBranding();
 
   if (!ProductBrandingUtil.isRenamed(branding)) {
-    return { name: ProductBrandingUtil.getProductName(branding), url: "https://oneuptime.com" };
+    return {
+      name: ProductBrandingUtil.getProductName(branding),
+      url: "https://oneuptime.com",
+    };
   }
 
   return {

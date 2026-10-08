@@ -54,7 +54,9 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 
 const SIGNING_KEY: KeyPair = generateEd25519();
 const UNKNOWN_KEY: KeyPair = generateEd25519();
-const TRUSTED: ReadonlyArray<TrustedLicenseKey> = [trustedEntryFor(SIGNING_KEY)];
+const TRUSTED: ReadonlyArray<TrustedLicenseKey> = [
+  trustedEntryFor(SIGNING_KEY),
+];
 const INSTANCE_ID: string = "0b6d8f7e-1c2a-4e3b-9d4f-5a6b7c8d9e0f";
 
 const classify: (
@@ -223,31 +225,37 @@ afterEach(() => {
 });
 
 describe("isWhiteLabelAllowedFor, self-hosted (billing off)", () => {
-  test.each(LICENSE_STATES.map((state: LicenseStateCase) => [state.label, state]))(
-    "%s",
-    (_label: string, state: LicenseStateCase) => {
-      expect(
-        isWhiteLabelAllowedFor({
-          classification: state.classification(),
-          isBillingEnabled: false,
-        }),
-      ).toBe(state.isAllowed);
-    },
-  );
+  test.each(
+    LICENSE_STATES.map(
+      (state: LicenseStateCase): [string, LicenseStateCase] => {
+        return [state.label, state];
+      },
+    ),
+  )("%s", (_label: string, state: LicenseStateCase) => {
+    expect(
+      isWhiteLabelAllowedFor({
+        classification: state.classification(),
+        isBillingEnabled: false,
+      }),
+    ).toBe(state.isAllowed);
+  });
 });
 
 describe("isWhiteLabelAllowedFor on OneUptime Cloud (billing on)", () => {
-  test.each(LICENSE_STATES.map((state: LicenseStateCase) => [state.label, state]))(
-    "%s: never",
-    (_label: string, state: LicenseStateCase) => {
-      expect(
-        isWhiteLabelAllowedFor({
-          classification: state.classification(),
-          isBillingEnabled: true,
-        }),
-      ).toBe(false);
-    },
-  );
+  test.each(
+    LICENSE_STATES.map(
+      (state: LicenseStateCase): [string, LicenseStateCase] => {
+        return [state.label, state];
+      },
+    ),
+  )("%s: never", (_label: string, state: LicenseStateCase) => {
+    expect(
+      isWhiteLabelAllowedFor({
+        classification: state.classification(),
+        isBillingEnabled: true,
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("isWhiteLabelAllowed: this process's license", () => {

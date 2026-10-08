@@ -54,7 +54,9 @@ const fieldDeclaration: (formFields: string, column: string) => string = (
   formFields: string,
   column: string,
 ): string => {
-  return (formFields.split(`${column}: true`)[1] || "").split("field: {")[0] as string;
+  return (formFields.split(`${column}: true`)[1] || "").split(
+    "field: {",
+  )[0] as string;
 };
 
 describe("the switch on the license forms", () => {
@@ -79,8 +81,9 @@ describe("the switch on the license forms", () => {
 
   test("the license's details show it", () => {
     const details: string = viewSource.split("modelDetailProps={{")[1] || "";
-    const field: string = (details.split("canBeWhiteLabelled: true")[1] ||
-      "").split("field: {")[0] as string;
+    const field: string = (
+      details.split("canBeWhiteLabelled: true")[1] || ""
+    ).split("field: {")[0] as string;
 
     expect(field).toContain("title: CAN_BE_WHITE_LABELLED_TITLE");
     expect(field).toContain("FieldType.Boolean");
@@ -103,16 +106,15 @@ describe("the switch on the license forms", () => {
     expect(CAN_BE_WHITE_LABELLED_DESCRIPTION).toContain(
       "Admin Dashboard > Settings > White Label",
     );
-    expect(CAN_BE_WHITE_LABELLED_DESCRIPTION).toContain(
-      "signed license token",
-    );
+    expect(CAN_BE_WHITE_LABELLED_DESCRIPTION).toContain("signed license token");
   });
 });
 
 describe("EnterpriseLicense.canBeWhiteLabelled", () => {
-  const metadata: TableColumnMetadata = new EnterpriseLicense().getTableColumnMetadata(
-    "canBeWhiteLabelled",
-  ) as TableColumnMetadata;
+  const metadata: TableColumnMetadata =
+    new EnterpriseLicense().getTableColumnMetadata(
+      "canBeWhiteLabelled",
+    ) as TableColumnMetadata;
 
   test("is a boolean that is off unless OneUptime turns it on", () => {
     expect(metadata.type).toBe(TableColumnType.Boolean);

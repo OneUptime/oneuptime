@@ -57,8 +57,7 @@ export const WHITE_LABEL_IMAGE_RULES: Readonly<
     slot: WhiteLabelImageSlot.DarkLogo,
     accept: LOGO_ACCEPT,
     maxBytes: 512 * 1024,
-    tooLargeMessage:
-      "The logo for dark backgrounds must be 512 KB or smaller.",
+    tooLargeMessage: "The logo for dark backgrounds must be 512 KB or smaller.",
     formats: "PNG, JPEG, GIF, WebP or SVG, up to 512 KB",
   },
   [WhiteLabelImageSlot.Favicon]: {

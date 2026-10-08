@@ -181,7 +181,11 @@ describe("withProductName", () => {
 
 describe("the page title", () => {
   test("is 'OneUptime | <page>' by default", () => {
-    render(<Page title="Incidents" breadcrumbLinks={[]} />);
+    render(
+      <Page title="Incidents" breadcrumbLinks={[]}>
+        <div />
+      </Page>,
+    );
 
     expect(document.title).toBe("OneUptime | Incidents");
   });
@@ -196,7 +200,9 @@ describe("the page title", () => {
           { title: "Project", to: new Route("/dashboard/p") },
           { title: "Incidents", to: new Route("/dashboard/p/incidents") },
         ]}
-      />,
+      >
+        <div />
+      </Page>,
     );
 
     expect(document.title).toBe("Acme | Project - Incidents");

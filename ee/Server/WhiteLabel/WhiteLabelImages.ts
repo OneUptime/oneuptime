@@ -143,13 +143,16 @@ const startsWithBytes: (bytes: Buffer, signature: Array<number>) => boolean = (
   });
 };
 
-const startsWithText: (bytes: Buffer, text: string, offset?: number) => boolean =
-  (bytes: Buffer, text: string, offset: number = 0): boolean => {
-    return (
-      bytes.length >= offset + text.length &&
-      bytes.toString("latin1", offset, offset + text.length) === text
-    );
-  };
+const startsWithText: (
+  bytes: Buffer,
+  text: string,
+  offset?: number,
+) => boolean = (bytes: Buffer, text: string, offset: number = 0): boolean => {
+  return (
+    bytes.length >= offset + text.length &&
+    bytes.toString("latin1", offset, offset + text.length) === text
+  );
+};
 
 /*
  * An SVG is text: an XML declaration, a comment or a doctype, then an <svg>
@@ -202,7 +205,14 @@ const hasEventHandlerAttribute: (lowerCaseText: string) => boolean = (
   while (index !== -1) {
     const before: string = lowerCaseText.charAt(index - 1);
 
-    if (index > 0 && (before === " " || before === "\n" || before === "\t" || before === "\r" || before === "/")) {
+    if (
+      index > 0 &&
+      (before === " " ||
+        before === "\n" ||
+        before === "\t" ||
+        before === "\r" ||
+        before === "/")
+    ) {
       let cursor: number = index + 2;
       let letters: number = 0;
 
@@ -255,7 +265,9 @@ export const isUnsafeSvg: (svgText: string) => boolean = (
 export const sniffImageType: (bytes: Buffer) => string | null = (
   bytes: Buffer,
 ): string | null => {
-  if (startsWithBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
+  if (
+    startsWithBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  ) {
     return MimeType.png;
   }
 
@@ -324,7 +336,11 @@ const decodeDataUrl: (
     return "too-large";
   }
 
-  if (base64.length === 0 || base64.length % 4 !== 0 || !BASE64_TEXT.test(base64)) {
+  if (
+    base64.length === 0 ||
+    base64.length % 4 !== 0 ||
+    !BASE64_TEXT.test(base64)
+  ) {
     return null;
   }
 

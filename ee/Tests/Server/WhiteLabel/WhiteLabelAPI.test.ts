@@ -8,11 +8,17 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
 import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
-import type { ExpressRouter } from "Common/Server/Utils/Express";
+import {
+  createExpressApp,
+  ExpressApplication,
+  ExpressJson,
+  ExpressRequest,
+  ExpressResponse,
+  ExpressRouter,
+} from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import PartialEntity from "Common/Types/Database/PartialEntity";
@@ -28,8 +34,17 @@ import {
 import { WhiteLabelImageKind } from "../../../Server/WhiteLabel/WhiteLabelImages";
 import { WhiteLabelProvider } from "../../../Server/WhiteLabel/WhiteLabelProvider";
 import { WhiteLabelSettings } from "../../../Server/WhiteLabel/WhiteLabelSettings";
-import { findRoute, FoundRoute, listRoutes } from "../License/Helpers/LicenseTestKit";
-import { ICO_BYTES, PNG_BYTES, SVG_TEXT, toDataUrlOf } from "./WhiteLabelFixtures";
+import {
+  findRoute,
+  FoundRoute,
+  listRoutes,
+} from "../License/Helpers/LicenseTestKit";
+import {
+  ICO_BYTES,
+  PNG_BYTES,
+  SVG_TEXT,
+  toDataUrlOf,
+} from "./WhiteLabelFixtures";
 
 /*
  * The white-label routes.
@@ -373,12 +388,11 @@ describe("with the license allowing it", () => {
   test("an image that is not set ends like a route that does not exist", async () => {
     const harness: RouterHarness = createHarness();
 
-    const result: { nextArgument: unknown; stoppedAt: number } =
-      await runRoute(
-        findRoute(harness.router, "get", "/branding/dark-logo"),
-        {},
-        fakeResponse(),
-      );
+    const result: { nextArgument: unknown; stoppedAt: number } = await runRoute(
+      findRoute(harness.router, "get", "/branding/dark-logo"),
+      {},
+      fakeResponse(),
+    );
 
     expect(result.nextArgument).toBe("route");
   });
@@ -390,11 +404,11 @@ describe("over HTTP: an installation that may not white-label cannot tell these 
   const harness: RouterHarness = createHarness();
 
   beforeAll(async () => {
-    const app: express.Express = express();
-    app.use(express.json());
-    app.use("/api", harness.router as unknown as express.Router);
+    const app: ExpressApplication = createExpressApp();
+    app.use(ExpressJson());
+    app.use("/api", harness.router);
     // How the App ends a request nothing answered (StartServer.addDefaultRoutes).
-    app.all("*", (req: express.Request, res: express.Response) => {
+    app.all("*", (_req: ExpressRequest, res: ExpressResponse) => {
       res.status(404).send({ message: "Page not found" });
     });
 
@@ -430,7 +444,9 @@ describe("over HTTP: an installation that may not white-label cannot tell these 
         "content-type": "application/json",
         authorization: "Bearer not-a-real-token",
       },
-      ...(method === "PUT" ? { body: JSON.stringify({ productName: "x" }) } : {}),
+      ...(method === "PUT"
+        ? { body: JSON.stringify({ productName: "x" }) }
+        : {}),
     });
 
     return { status: response.status, body: await response.text() };

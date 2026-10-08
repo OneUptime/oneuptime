@@ -338,9 +338,7 @@ export class Service extends DatabaseService<Model> {
    * itself selects or filters on: read back through the generic API, they
    * would show values the enterprise module has decided not to apply.
    */
-  public dropBrandingColumnsFromRead(
-    findBy: FindBy<Model>,
-  ): FindBy<Model> {
+  public dropBrandingColumnsFromRead(findBy: FindBy<Model>): FindBy<Model> {
     if (findBy.props.isRoot) {
       return findBy;
     }

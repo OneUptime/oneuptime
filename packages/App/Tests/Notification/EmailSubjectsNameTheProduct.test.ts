@@ -43,6 +43,8 @@ const SUBJECT_LITERAL: RegExp = /\bsubject:\s*(["'`])((?:\\.|(?!\1)[^\\])*)\1/g;
 
 const ONEUPTIME_WORD: RegExp = /\bOneUptime\b/;
 
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
 const listSourceFiles: (directory: string) => Array<string> = (
   directory: string,
 ): Array<string> => {
@@ -163,10 +165,14 @@ describe("email subjects", () => {
       "utf8",
     );
 
-    expect(config).toContain(
+    // However the formatter wraps the line.
+    expect(config.replace(WHITESPACE_RUN, " ")).toContain(
       "fromName: globalConfig.smtpFromName || ProductBrandingText.getProductName()",
     );
     expect(config).not.toContain('|| "OneUptime"');
+    expect(mailService.replace(WHITESPACE_RUN, " ")).toContain(
+      "sendgridConfig.fromName || ProductBrandingText.getProductName()",
+    );
     expect(mailService).not.toContain('fromName || "OneUptime"');
   });
 });

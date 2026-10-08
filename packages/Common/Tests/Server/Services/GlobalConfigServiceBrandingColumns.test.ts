@@ -118,11 +118,10 @@ describe("ROOT_ONLY_BRANDING_COLUMNS", () => {
 
   test("are held to master admins by their own column ACLs too", () => {
     for (const column of EXPECTED_COLUMNS) {
-      const access: Record<string, unknown> = new GlobalConfig()
-        .getColumnAccessControlFor(column) as unknown as Record<
-        string,
-        unknown
-      >;
+      const access: Record<string, unknown> =
+        new GlobalConfig().getColumnAccessControlFor(
+          column,
+        ) as unknown as Record<string, unknown>;
 
       expect({ column, access }).toEqual({
         column,
@@ -187,10 +186,19 @@ describe("reads", () => {
   test("a master admin's read never selects or filters on them", async () => {
     const result: OnFind<GlobalConfig> = await hooks.onBeforeFind(
       makeFindBy(
-        { _id: true, disableSignup: true, ...Object.fromEntries(EXPECTED_COLUMNS.map((column: string) => {
-          return [column, true];
-        })) },
-        { _id: ObjectID.getZeroObjectID().toString(), brandingProductName: "Acme" },
+        {
+          _id: true,
+          disableSignup: true,
+          ...Object.fromEntries(
+            EXPECTED_COLUMNS.map((column: string) => {
+              return [column, true];
+            }),
+          ),
+        },
+        {
+          _id: ObjectID.getZeroObjectID().toString(),
+          brandingProductName: "Acme",
+        },
         MASTER_ADMIN_PROPS,
       ),
     );

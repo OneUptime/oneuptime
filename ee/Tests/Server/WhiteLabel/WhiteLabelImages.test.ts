@@ -46,10 +46,10 @@ const parse: (
   return parseUploadedImage(value, image);
 };
 
-const refusal: (
+const refusal: (value: unknown, image: WhiteLabelImageDefinition) => string = (
   value: unknown,
   image: WhiteLabelImageDefinition,
-) => string = (value: unknown, image: WhiteLabelImageDefinition): string => {
+): string => {
   try {
     parseUploadedImage(value, image);
   } catch (err) {
@@ -68,18 +68,32 @@ describe("sniffImageType", () => {
     ["WebP", WEBP_BYTES, MimeType.webp],
     ["ICO", ICO_BYTES, MimeType.ico],
     ["SVG", Buffer.from(SVG_TEXT), MimeType.svg],
-    ["SVG after an XML declaration and a comment", Buffer.from(SVG_WITH_XML_DECLARATION), MimeType.svg],
-    ["SVG after a byte order mark", Buffer.from(`﻿${SVG_TEXT}`), MimeType.svg],
-  ])("reads %s from its bytes", (_label: string, bytes: Buffer, type: string) => {
-    expect(sniffImageType(bytes)).toBe(type);
-  });
+    [
+      "SVG after an XML declaration and a comment",
+      Buffer.from(SVG_WITH_XML_DECLARATION),
+      MimeType.svg,
+    ],
+    [
+      "SVG after a byte order mark",
+      Buffer.from(`\uFEFF${SVG_TEXT}`),
+      MimeType.svg,
+    ],
+  ])(
+    "reads %s from its bytes",
+    (_label: string, bytes: Buffer, type: string) => {
+      expect(sniffImageType(bytes)).toBe(type);
+    },
+  );
 
   test.each([
     ["plain text", Buffer.from("hello, world")],
     ["a PDF", Buffer.from("%PDF-1.4\n%...")],
     ["HTML", Buffer.from("<html><body>hi</body></html>")],
     ["an empty file", Buffer.alloc(0)],
-    ["a RIFF that is not WebP", Buffer.from("RIFF\u0000\u0000\u0000\u0000WAVEfmt ")],
+    [
+      "a RIFF that is not WebP",
+      Buffer.from("RIFF\u0000\u0000\u0000\u0000WAVEfmt "),
+    ],
     ["an ICO header with no images", Buffer.from([0, 0, 1, 0, 0, 0])],
     ["a cursor file", Buffer.from([0, 0, 2, 0, 1, 0, 0, 0])],
   ])("reads nothing from %s", (_label: string, bytes: Buffer) => {
@@ -111,9 +125,9 @@ describe("parseUploadedImage: what each image may be", () => {
       parse(toDataUrlOf(MimeType.ico, ICO_BYTES), WHITE_LABEL_FAVICON).type,
     ).toBe(MimeType.ico);
 
-    expect(refusal(toDataUrlOf(MimeType.ico, ICO_BYTES), WHITE_LABEL_LOGO)).toBe(
-      "The logo must be a PNG, JPEG, GIF, WebP or SVG image.",
-    );
+    expect(
+      refusal(toDataUrlOf(MimeType.ico, ICO_BYTES), WHITE_LABEL_LOGO),
+    ).toBe("The logo must be a PNG, JPEG, GIF, WebP or SVG image.");
   });
 
   test("the type is read from the bytes: a JPEG sent as a PNG is stored as a JPEG", () => {
@@ -124,7 +138,10 @@ describe("parseUploadedImage: what each image may be", () => {
 
   test("a file that is no image is refused, whatever it claims to be", () => {
     expect(
-      refusal(toDataUrlOf(MimeType.png, "<html>not an image</html>"), WHITE_LABEL_LOGO),
+      refusal(
+        toDataUrlOf(MimeType.png, "<html>not an image</html>"),
+        WHITE_LABEL_LOGO,
+      ),
     ).toBe("The logo must be a PNG, JPEG, GIF, WebP or SVG image.");
     expect(
       refusal(toDataUrlOf(MimeType.png, "%PDF-1.4"), WHITE_LABEL_FAVICON),
@@ -253,13 +270,22 @@ describe("SVG", () => {
   );
 
   test.each([
-    ["font attributes", '<svg><text font-family="Inter" font-size="12">Acme</text></svg>'],
-    ["an id that starts with on", '<svg><g id="onboarding"><polygon points="0,0 1,1"/></g></svg>'],
+    [
+      "font attributes",
+      '<svg><text font-family="Inter" font-size="12">Acme</text></svg>',
+    ],
+    [
+      "an id that starts with on",
+      '<svg><g id="onboarding"><polygon points="0,0 1,1"/></g></svg>',
+    ],
     ["the word 'on' in text", "<svg><text>Turn it on now</text></svg>"],
     ["stroke-linejoin", '<svg><path stroke-linejoin="round" d="M0 0"/></svg>'],
-  ])("does not mistake %s for an event handler", (_label: string, svg: string) => {
-    expect(isUnsafeSvg(svg)).toBe(false);
-  });
+  ])(
+    "does not mistake %s for an event handler",
+    (_label: string, svg: string) => {
+      expect(isUnsafeSvg(svg)).toBe(false);
+    },
+  );
 });
 
 describe("parseStoredImage", () => {

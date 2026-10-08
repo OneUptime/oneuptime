@@ -2,7 +2,11 @@ import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import ProductBrandingUtil, {
   ProductBranding,
 } from "../../Types/Branding/ProductBranding";
-import { CallRequestMessage, GatherInput, Say } from "../../Types/Call/CallRequest";
+import {
+  CallRequestMessage,
+  GatherInput,
+  Say,
+} from "../../Types/Call/CallRequest";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
 /*
@@ -40,7 +44,8 @@ export default class ProductBrandingText {
     text: string,
     branding: ProductBranding | null = EnterpriseEdition.getProductBranding(),
   ): string {
-    const name: string | null = ProductBrandingText.getReplacementName(branding);
+    const name: string | null =
+      ProductBrandingText.getReplacementName(branding);
 
     if (!name || typeof text !== "string") {
       return text;

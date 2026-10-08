@@ -29,8 +29,7 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
      * translated with it), linking to its website, or to nothing when it
      * has none.
      */
-    const poweredBy: { name: string; url: string | null } =
-      getPoweredByLink();
+    const poweredBy: { name: string; url: string | null } = getPoweredByLink();
 
     if (poweredBy.url) {
       links.push({

@@ -196,7 +196,7 @@ describe("without a host", () => {
   // The mocked EnvironmentConfig above: EmailBranding reads Host when it runs.
   const environment: { Host: string } = jest.requireMock(
     "Common/Server/EnvironmentConfig",
-  );
+  ) as { Host: string };
 
   afterEach(() => {
     environment.Host = "status.acme.example";

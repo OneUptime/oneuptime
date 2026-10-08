@@ -41,8 +41,7 @@ export const isWhiteLabelAllowedFor: (data: {
     return false;
   }
 
-  const classification: LicenseTokenClassification | null =
-    data.classification;
+  const classification: LicenseTokenClassification | null = data.classification;
 
   if (!classification) {
     return false;

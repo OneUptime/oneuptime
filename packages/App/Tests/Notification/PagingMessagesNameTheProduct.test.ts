@@ -21,6 +21,8 @@ import {
   test,
 } from "@jest/globals";
 import type { Mock } from "jest-mock";
+import fs from "fs";
+import path from "path";
 import Twilio from "twilio";
 
 /*
@@ -263,12 +265,19 @@ describe("a call", () => {
 
 describe("push notifications", () => {
   test("go out with the installation's name and icon (PushNotificationService)", () => {
-    const source: string = jest
-      .requireActual<typeof import("fs")>("fs")
-      .readFileSync(
-        require.resolve("Common/Server/Services/PushNotificationService"),
-        "utf8",
-      );
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Common",
+        "Server",
+        "Services",
+        "PushNotificationService.ts",
+      ),
+      "utf8",
+    );
 
     expect(source).toContain(
       "message: ProductBrandingText.brandPushMessage(pushRequest.message, [",

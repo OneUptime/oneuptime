@@ -176,7 +176,9 @@ export class WhiteLabelProvider {
 
           logger.warn(
             `OneUptime Enterprise Edition: could not read the branding settings; ${
-              this.settings ? "keeping the settings read earlier" : "showing OneUptime's own until they can be read"
+              this.settings
+                ? "keeping the settings read earlier"
+                : "showing OneUptime's own until they can be read"
             }. ${err instanceof Error ? err.message : String(err)}`,
           );
 

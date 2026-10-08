@@ -207,9 +207,9 @@ describe("parseWhiteLabelSettingsUpdate: the images", () => {
 
 describe("parseWhiteLabelSettingsUpdate: only what the change names", () => {
   test("leaves out every key the change does not name", () => {
-    expect(Object.keys(parse({ websiteUrl: "https://acme.example" })).sort()).toEqual(
-      ["brandingUpdatedAt", "brandingWebsiteUrl"],
-    );
+    expect(
+      Object.keys(parse({ websiteUrl: "https://acme.example" })).sort(),
+    ).toEqual(["brandingUpdatedAt", "brandingWebsiteUrl"]);
   });
 
   test("ignores keys that are not settings", () => {

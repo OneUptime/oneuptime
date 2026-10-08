@@ -176,15 +176,15 @@ describe("the upload rules the page checks before sending", () => {
     expect(WHITE_LABEL_IMAGE_RULES[WhiteLabelImageSlot.Logo].maxBytes).toBe(
       512 * 1024,
     );
-    expect(
-      WHITE_LABEL_IMAGE_RULES[WhiteLabelImageSlot.DarkLogo].maxBytes,
-    ).toBe(512 * 1024);
-    expect(
-      WHITE_LABEL_IMAGE_RULES[WhiteLabelImageSlot.Favicon].maxBytes,
-    ).toBe(128 * 1024);
-    expect(WHITE_LABEL_IMAGE_RULES[WhiteLabelImageSlot.Logo].accept).not.toContain(
-      "ico",
+    expect(WHITE_LABEL_IMAGE_RULES[WhiteLabelImageSlot.DarkLogo].maxBytes).toBe(
+      512 * 1024,
     );
+    expect(WHITE_LABEL_IMAGE_RULES[WhiteLabelImageSlot.Favicon].maxBytes).toBe(
+      128 * 1024,
+    );
+    expect(
+      WHITE_LABEL_IMAGE_RULES[WhiteLabelImageSlot.Logo].accept,
+    ).not.toContain("ico");
     expect(
       WHITE_LABEL_IMAGE_RULES[WhiteLabelImageSlot.Favicon].accept,
     ).toContain(".ico");

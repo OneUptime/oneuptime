@@ -245,10 +245,7 @@ describe("white-labelling outside ee/", () => {
       },
     );
 
-    const mentions: Array<string> = findMentions(
-      outsideHome,
-      WHITE_LABEL_WORDS,
-    )
+    const mentions: Array<string> = findMentions(outsideHome, WHITE_LABEL_WORDS)
       .filter((mention: { file: string }): boolean => {
         return !SCHEMA_FILES.includes(mention.file);
       })

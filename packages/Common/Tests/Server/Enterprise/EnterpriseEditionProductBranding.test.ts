@@ -142,8 +142,7 @@ describe("the module contract", () => {
 
   test("getProductBranding, when present, must be a function", () => {
     const fake: FakeEnterpriseModule = new FakeEnterpriseModule();
-    (fake as unknown as Record<string, unknown>)["getProductBranding"] =
-      "Acme";
+    (fake as unknown as Record<string, unknown>)["getProductBranding"] = "Acme";
 
     expect(EnterpriseServerModuleShape.findProblems(fake)).toEqual([
       '"getProductBranding", when present, must be a function',

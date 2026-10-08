@@ -163,9 +163,11 @@ export const createWhiteLabelRouter: (
 
   const readSettings: () => Promise<WhiteLabelSettings> =
     async (): Promise<WhiteLabelSettings> => {
-      return (await deps.provider.getSettings()) || {
-        ...EMPTY_WHITE_LABEL_SETTINGS,
-      };
+      return (
+        (await deps.provider.getSettings()) || {
+          ...EMPTY_WHITE_LABEL_SETTINGS,
+        }
+      );
     };
 
   router.get(

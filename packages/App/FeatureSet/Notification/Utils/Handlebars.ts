@@ -97,9 +97,8 @@ Handlebars.registerHelper("ifNotCond", function (v1, v2, options) {
 export const getBrandNameFromEmailRoot: (options: unknown) => string = (
   options: unknown,
 ): string => {
-  const root: unknown = (
-    options as { data?: { root?: unknown } } | undefined
-  )?.data?.root;
+  const root: unknown = (options as { data?: { root?: unknown } } | undefined)
+    ?.data?.root;
   const productName: unknown =
     root && typeof root === "object"
       ? (root as Record<string, unknown>)["brandProductName"]

@@ -277,10 +277,10 @@ const installLicense: (canBeWhiteLabelled: boolean) => void = (
 ): void => {
   EnterpriseLicenseService.findOneBy = jest
     .fn()
-    .mockResolvedValue(makeLicense(canBeWhiteLabelled)) as never;
+    .mockResolvedValue(makeLicense(canBeWhiteLabelled) as never) as never;
   EnterpriseLicenseService.findOneById = jest
     .fn()
-    .mockResolvedValue(makeLicense(canBeWhiteLabelled)) as never;
+    .mockResolvedValue(makeLicense(canBeWhiteLabelled) as never) as never;
 };
 
 beforeEach(() => {
@@ -291,7 +291,7 @@ beforeEach(() => {
 
   EnterpriseLicenseService.updateOneById = jest
     .fn()
-    .mockResolvedValue(undefined) as never;
+    .mockResolvedValue(undefined as never) as never;
   EnterpriseLicenseService.runWithUsageAggregationLock = jest
     .fn()
     .mockImplementation((async (data: {
@@ -301,19 +301,19 @@ beforeEach(() => {
     }) as never) as never;
   EnterpriseLicenseInstanceService.findBy = jest
     .fn()
-    .mockResolvedValue([]) as never;
+    .mockResolvedValue([] as never) as never;
   EnterpriseLicenseInstanceService.findOneBy = jest
     .fn()
-    .mockResolvedValue(null) as never;
+    .mockResolvedValue(null as never) as never;
   EnterpriseLicenseInstanceService.updateOneById = jest
     .fn()
-    .mockResolvedValue(undefined) as never;
+    .mockResolvedValue(undefined as never) as never;
   EnterpriseLicenseInstanceService.create = jest
     .fn()
-    .mockResolvedValue(undefined) as never;
+    .mockResolvedValue(undefined as never) as never;
   EnterpriseLicenseInstanceService.countBy = jest
     .fn()
-    .mockResolvedValue(new PositiveNumber(0)) as never;
+    .mockResolvedValue(new PositiveNumber(0) as never) as never;
 });
 
 afterEach(() => {

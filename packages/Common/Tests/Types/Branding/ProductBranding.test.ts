@@ -90,7 +90,10 @@ describe("replaceProductName", () => {
 
   test("inserts a name with $ patterns as it is, never as a replacement pattern", () => {
     expect(
-      ProductBrandingUtil.replaceProductName("Sign in to OneUptime", "$& $1 $$"),
+      ProductBrandingUtil.replaceProductName(
+        "Sign in to OneUptime",
+        "$& $1 $$",
+      ),
     ).toBe("Sign in to $& $1 $$");
   });
 
@@ -223,17 +226,12 @@ describe("sanitize", () => {
   });
 
   test("says a logo is email safe only when there is a logo", () => {
-    expect(
-      ProductBrandingUtil.sanitize({ isLogoEmailSafe: true }),
-    ).toEqual({});
+    expect(ProductBrandingUtil.sanitize({ isLogoEmailSafe: true })).toEqual({});
   });
 
-  test.each([null, undefined, "x", 1, []])(
-    "is {} for %j",
-    (value: unknown) => {
-      expect(ProductBrandingUtil.sanitize(value)).toEqual({});
-    },
-  );
+  test.each([null, undefined, "x", 1, []])("is {} for %j", (value: unknown) => {
+    expect(ProductBrandingUtil.sanitize(value)).toEqual({});
+  });
 });
 
 describe("the env.js value", () => {

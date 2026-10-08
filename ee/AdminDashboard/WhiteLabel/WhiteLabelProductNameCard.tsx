@@ -168,7 +168,7 @@ const WhiteLabelProductNameCard: FunctionComponent<ComponentProps> = (
                   },
                   title: "Website",
                   description:
-                    "Where \"Powered by\" lines in emails and on status pages link to. Leave it empty for no link.",
+                    'Where "Powered by" lines in emails and on status pages link to. Leave it empty for no link.',
                   fieldType: FormFieldSchemaType.Text,
                   required: false,
                   placeholder: "https://example.com",
