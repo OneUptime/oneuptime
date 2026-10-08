@@ -147,6 +147,8 @@ import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
+import ToolImportRun from "./ToolImportRun";
+import ToolImportRecord from "./ToolImportRecord";
 import ThreatIntelFeed from "./ThreatIntelFeed";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
@@ -541,6 +543,8 @@ const AllModelTypes: Array<{
   DetectionRule,
   SecurityEventConnection,
   SecurityEventConnectionRun,
+  ToolImportRun,
+  ToolImportRecord,
   ThreatIntelFeed,
   LogScrubRule,
   MetricPipelineRule,

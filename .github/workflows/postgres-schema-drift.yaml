@@ -721,6 +721,41 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/TeamMemberInvitationAcceptancePostgres.test.ts --forceExit
 
+      # Clones every migrated table into an isolated schema and runs an import
+      # from another tool (Project Settings > Import from another tool) end to
+      # end through the real services, against a fixture Opsgenie: the API key
+      # stored encrypted and cleared when the read ends, records created as
+      # the person with their permissions, each one remembered so a second
+      # import creates nothing twice, nothing created for someone who left the
+      # project, and one record per item of the other tool. Run with billing
+      # off, then on with the plans config.env sets, where the project's plan
+      # decides what comes over.
+      - name: Test an import from another tool on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TOOL_IMPORT_TESTS: "true"
+          TOOL_IMPORT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TOOL_IMPORT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TOOL_IMPORT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/ToolImport/ToolImportPostgres.test.ts --forceExit
+      - name: Test an import from another tool with billing on, on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TOOL_IMPORT_TESTS: "true"
+          TOOL_IMPORT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TOOL_IMPORT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TOOL_IMPORT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+          BILLING_ENABLED: "true"
+          SUBSCRIPTION_PLAN_BASIC: Free,price_1M4niQANuQdJ93r7AVjhnik5,price_1M4niQANuQdJ93r7l1Wz1dkm,0,0,1,0
+          SUBSCRIPTION_PLAN_GROWTH: Growth,price_1M4nhZANuQdJ93r7yfQ1MePQ,price_1M4r3OANuQdJ93r7g8NyoCBq,22,20,2,14
+          SUBSCRIPTION_PLAN_SCALE: Scale,price_1MKidGANuQdJ93r7FoaZ1dOb,price_1MKidRANuQdJ93r7LVOc0BUy,99,84,3,14
+          SUBSCRIPTION_PLAN_ENTERPRISE: Enterprise,price_1M4ng9ANuQdJ93r7CP90ezSN,price_1M4ng9ANuQdJ93r72ZYUp4PU,-1,-1,4,14
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/ToolImport/ToolImportPostgres.test.ts --forceExit
+
       # Clones the migrated McpOAuthClient / McpOAuthGrant / McpOAuthToken
       # tables into an isolated schema and rebuilds the token -> grant foreign
       # key from the migrated definition. Of several requests racing to claim
