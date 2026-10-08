@@ -625,6 +625,38 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   under beside each such create permission. See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **A record moved under another one, or given more records in a list,
+  gets only records its editor may read, and a create permission restricted
+  to labels or to Owned scope holds the record it creates.** A change that
+  moves a record read through another one - an announcement put on more
+  status pages, a rule moved to another service - follows the rule a create
+  follows: each record it adds as a parent must be one the caller may read,
+  or the change is refused with the `400` that names the field and the ID,
+  and nothing is written. The records a create or a change lists - an
+  incident's monitors, an alert's services, a scheduled maintenance event's
+  status pages - keep to the caller's permission to read that kind of record
+  when it has one, and to a block with labels on reading it either way.
+  What a change leaves where it is, as a parent or in a list, is not checked
+  again. A create permission restricted to labels creates only records
+  carrying one of its labels - for a record with no labels of its own,
+  records under one that carries one - unless another permission to create
+  that kind of record reaches the whole project, and a block with labels on
+  a create permission refuses a record carrying one of its labels; either
+  is refused with a `422` that names the labels. A create permission scoped
+  to **Owned** creates a monitor, a status page or another record with
+  owners of its own only for a person, who becomes its owner, and a note
+  only on an incident that person or one of their teams owns. Roles and API
+  keys whose permissions reach the whole project work as before; give one
+  restricted to labels one of those labels on each record it creates. The
+  owners picked when creating a monitor, an incident, an alert, a scheduled
+  maintenance event, a status page or a template, and the first escalation
+  rule picked when creating an on-call policy, are added for their creator
+  even when the creator's own read does not reach the new record. A pick
+  their permission to add it does not reach - restricted to labels the new
+  record does not carry, for one - refuses the create, and nothing is
+  saved. See
+  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
+  and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
   record you may not read answers `404`.** The same rule now holds in the
   places it did not yet reach:

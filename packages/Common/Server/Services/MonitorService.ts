@@ -1724,6 +1724,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: MonitorOwnerUserService,
+      ownerTeamService: MonitorOwnerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     if (!createBy.data.monitorType) {
       throw new BadDataException("Monitor type required to create monitor.");
     }
@@ -2146,6 +2157,7 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
               ] as Array<ObjectID>) || [],
               false,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -2429,6 +2441,12 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the monitor are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -2441,6 +2459,7 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 
