@@ -887,6 +887,41 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   ahead at once, where it used to wait about ten seconds and then go ahead
   without the lock that keeps two changes from crossing. See
   [Changing a state](/docs/permissions/index#changing-a-state).
+- **An incoming call policy's phone numbers follow the policy's roles.**
+  Looking numbers up - `POST /api/notification/phone-number/search` and
+  `/list-owned` - needs permission to read incoming call policies and to
+  read call and SMS configs, so **Viewer** and the **Settings** roles can
+  look numbers up now, and a custom role with **Read Incoming Call Policy**
+  alone, which was let in and then told the config was not found, is refused
+  with "Looking up phone numbers needs permission to read incoming call
+  policies and call and SMS settings." Buying, attaching and releasing a
+  number - `/purchase`, `/assign-existing` and `/release` - need permission
+  to edit incoming call policies, which **Settings Admin** and **Settings
+  Member** have here now, as they do on the policy itself. A team's block
+  with no labels on either permission takes it away, where it used to be
+  ignored. The dashboard's **Add Phone Number** and **Release** buttons
+  stay on screen, locked, for anyone the API would refuse. Buying a number
+  still charges your own Twilio account and needs no billing permission.
+  Terraform does not manage phone numbers, so nothing changes there. See
+  [Who Can Add and Release Phone Numbers](/docs/on-call/incoming-call-policy#who-can-add-and-release-phone-numbers).
+- **Slack and Microsoft Teams forms act as the OneUptime member who uses
+  them.** Slack's `/incident` and `/maintenance`, Microsoft Teams' `create
+  incident` and `create maintenance` cards, and the **Execute On-Call
+  Policy** pickers used to list every severity, monitor, monitor status,
+  on-call policy and label of the project, and Slack's `/incident` was open
+  to anyone in the workspace, connected or not. Now someone whose chat
+  account is not connected to OneUptime is asked to connect it, someone who
+  may not declare an incident, create an event or execute a policy is told
+  so before any form opens, each list holds only what that member may read,
+  and the submit is made with the member's own permissions: a record they
+  may not read, or one of another project, is refused like one the project
+  does not have, and nothing is created. Teams' monitor and on-call policy
+  views read as the member as well, and escalating a policy from a card
+  needs the permission to execute one. No project setting brings back
+  declaring from Slack without a connected account. The REST API and
+  Terraform do not change. See
+  [Slack](/docs/workspace-connections/slack#creating-incidents-and-maintenance-from-slack)
+  and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#creating-incidents-and-maintenance-from-microsoft-teams).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
