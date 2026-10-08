@@ -227,3 +227,24 @@ export const SeatUsageMeter: FunctionComponent<SeatUsageMeterProps> = (
     </div>
   );
 };
+
+/*
+ * The license's white-labelling switch (EnterpriseLicense.canBeWhiteLabelled),
+ * in the words the create form, the edit form and the details share.
+ */
+export const CAN_BE_WHITE_LABELLED_TITLE: string = "Can be white-labelled";
+
+export const CAN_BE_WHITE_LABELLED_DESCRIPTION: string =
+  "Lets the customer replace the OneUptime name and logo on their own installation, from Admin Dashboard > Settings > White Label. Their installation picks it up at its next license refresh (daily, or when they refresh the license), from a signed license token only.";
+
+// Beside the license type in the list, for a license with the switch on.
+export const WhiteLabelBadge: FunctionComponent = (): ReactElement => {
+  return (
+    <span
+      className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-inset ring-sky-200"
+      data-testid="license-white-label-badge"
+    >
+      White-label
+    </span>
+  );
+};

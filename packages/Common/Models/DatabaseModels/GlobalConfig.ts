@@ -973,6 +973,114 @@ export default class GlobalConfig extends GlobalConfigModel {
   public enterpriseEditionFirstSeenAt?: Date = undefined;
 
   /*
+   * The installation's own branding: the name it goes by and its logos, in
+   * place of OneUptime's (Types/Branding/ProductBranding.ts). Written and read
+   * only by OneUptime itself - the enterprise module, which decides whether
+   * they apply - never through the generic API (GlobalConfigService,
+   * ROOT_ONLY_BRANDING_COLUMNS). Null keeps OneUptime's own. Each image is a
+   * data: URL, checked before it is stored, and served from its own route,
+   * so no File row and no file id is involved.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Branding Product Name",
+    description: "The name this installation goes by.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public brandingProductName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Branding Website URL",
+    description: "Where a 'Powered by' line links to.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public brandingWebsiteUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Branding Logo",
+    description: "The logo for light backgrounds, as a data: URL.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public brandingLogo?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Branding Dark Logo",
+    description: "The logo for dark backgrounds, as a data: URL.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public brandingDarkLogo?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    title: "Branding Favicon",
+    description: "The browser tab icon, as a data: URL.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public brandingFavicon?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Branding Updated At",
+    description:
+      "When the branding last changed. Part of every branding image's address, so browsers and mail clients fetch a changed image again.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public brandingUpdatedAt?: Date = undefined;
+
+  /*
    * The four latestRelease* columns cache the daily GitHub release check
    * (Workers/Jobs/InstanceUpdate/CheckForNewVersion). They are a cache, not
    * configuration: an air-gapped installation simply leaves them null and no

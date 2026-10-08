@@ -2,15 +2,15 @@
 
 {{> Logo this}}
 
-{{> EmailTitle title="ACTION REQUIRED: PostgreSQL on your OneUptime instance needs attention." }}
+{{> EmailTitle title=(concat "ACTION REQUIRED: PostgreSQL on your " (brandName) " instance needs attention.") }}
 
 {{> StatusBadge badgeType=badgeType badgeText=badgeText }}
 
-{{> InfoBlock info="PostgreSQL holds every monitor, incident, alert and configuration record on this OneUptime instance. A PostgreSQL health check you enabled has crossed its threshold." }}
+{{> InfoBlock info=(concat "PostgreSQL holds every monitor, incident, alert and configuration record on this " (brandNameHtml) " instance. A PostgreSQL health check you enabled has crossed its threshold.") }}
 
 {{> DetailBoxStart this }}
 {{#if oneuptimeHost}}
-{{> DetailBoxField title="OneUptime Host: " text=oneuptimeHost }}
+{{> DetailBoxField title=(concat (brandName) " Host: ") text=oneuptimeHost }}
 {{/if}}
 {{#if detail1Title}}
 {{> DetailBoxField title=detail1Title text=detail1Text }}
@@ -38,7 +38,7 @@
 {{> ButtonBlock buttonUrl=healthPageLink buttonText=healthPageButtonText }}
 {{/if}}
 
-{{> InfoBlock info="You are receiving this email because you are a master admin on this OneUptime instance and PostgreSQL health notifications are enabled." }}
+{{> InfoBlock info=(concat "You are receiving this email because you are a master admin on this " (brandNameHtml) " instance and PostgreSQL health notifications are enabled.") }}
 
 {{> Footer this}}
 

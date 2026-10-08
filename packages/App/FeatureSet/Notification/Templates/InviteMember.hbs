@@ -20,7 +20,7 @@
 {{> EmailTitle title=(concat "You've Been Added to " projectName) }}
 
 {{#ifCond isNewUser "true"}}
-{{> InfoBlock info="You've been added to a project on OneUptime. Create your account to get started - your access is already waiting for you."}}
+{{> InfoBlock info=(concat "You've been added to a project on " (brandNameHtml) ". Create your account to get started - your access is already waiting for you.")}}
 
 {{> ButtonBlock buttonUrl=registerLink buttonText="Create Your Account"}}
 
@@ -28,9 +28,9 @@
 
 {{> LinkBlock linkUrl=registerLink linkLabel="Or copy and paste this link into your browser:"}}
 {{else}}
-{{> InfoBlock info="You've been added to a project on OneUptime. Sign in to get started - there is nothing for you to accept."}}
+{{> InfoBlock info=(concat "You've been added to a project on " (brandNameHtml) ". Sign in to get started - there is nothing for you to accept.")}}
 
-{{> ButtonBlock buttonUrl=signInLink buttonText="Sign In to OneUptime"}}
+{{> ButtonBlock buttonUrl=signInLink buttonText=(concat "Sign In to " (brandName))}}
 
 {{> VerticalSpace this}}
 
@@ -42,7 +42,7 @@
 {{> EmailTitle title=(concat "You're Invited to " projectName) }}
 
 {{#ifCond isNewUser "true"}}
-{{> InfoBlock info="You've been invited to join a project on OneUptime. Create your account to get started."}}
+{{> InfoBlock info=(concat "You've been invited to join a project on " (brandNameHtml) ". Create your account to get started.")}}
 
 {{> ButtonBlock buttonUrl=registerLink buttonText="Create Your Account"}}
 
@@ -50,9 +50,9 @@
 
 {{> LinkBlock linkUrl=registerLink linkLabel="Or copy and paste this link into your browser:"}}
 {{else}}
-{{> InfoBlock info="You've been invited to join a project on OneUptime. Sign in to view and manage your invitations."}}
+{{> InfoBlock info=(concat "You've been invited to join a project on " (brandNameHtml) ". Sign in to view and manage your invitations.")}}
 
-{{> ButtonBlock buttonUrl=signInLink buttonText="Sign In to OneUptime"}}
+{{> ButtonBlock buttonUrl=signInLink buttonText=(concat "Sign In to " (brandName))}}
 
 {{> VerticalSpace this}}
 

@@ -80,3 +80,39 @@ Handlebars.registerHelper("ifNotCond", function (v1, v2, options) {
   //@ts-expect-error - Handlebars uses dynamic this context for template helpers
   return options.inverse(this);
 });
+
+/*
+ * The product's name in an email: the name the installation goes by when it
+ * has one (MailService.render puts it in the email's variables as
+ * brandProductName, see EmailBranding.ts), otherwise OneUptime. Read from the
+ * email's root, so it is right inside any partial or block, and it falls
+ * back to OneUptime when an email was rendered without the variables.
+ *
+ *   {{brandName}}                      in text: escaped, like any value
+ *   (brandName)                        as a value for an escaped argument
+ *                                      (title=, buttonText=, plainInfo=)
+ *   (brandNameHtml)                    for an argument printed raw (info=,
+ *                                      text=): already escaped, once
+ */
+export const getBrandNameFromEmailRoot: (options: unknown) => string = (
+  options: unknown,
+): string => {
+  const root: unknown = (options as { data?: { root?: unknown } } | undefined)
+    ?.data?.root;
+  const productName: unknown =
+    root && typeof root === "object"
+      ? (root as Record<string, unknown>)["brandProductName"]
+      : undefined;
+
+  return typeof productName === "string" && productName.trim().length > 0
+    ? productName
+    : "OneUptime";
+};
+
+Handlebars.registerHelper("brandName", (options: unknown) => {
+  return getBrandNameFromEmailRoot(options);
+});
+
+Handlebars.registerHelper("brandNameHtml", (options: unknown) => {
+  return Handlebars.escapeExpression(getBrandNameFromEmailRoot(options));
+});

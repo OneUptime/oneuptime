@@ -15,6 +15,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import MailService from "./MailService";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
@@ -1534,7 +1535,7 @@ export class Service extends DatabaseService<Model> {
       const mailResponse: HTTPResponse<EmptyResponseData> =
         await MailService.sendMail({
           toEmail: user.email,
-          subject: "Password Reset Request for OneUptime",
+          subject: `Password Reset Request for ${ProductBrandingText.getProductName()}`,
           isSubjectLiteral: true,
           templateType: EmailTemplateType.ForgotPassword,
           vars: {

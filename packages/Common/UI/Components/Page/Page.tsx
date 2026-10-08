@@ -6,6 +6,7 @@ import LabelElement from "../Label/Label";
 import Link from "../../../Types/Link";
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import useTranslateValue from "../../Utils/Translation";
+import { getProductName } from "../../Utils/ProductBranding";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -121,7 +122,8 @@ const Page: FunctionComponent<ComponentProps> = (
     const pageTitle: string | undefined = breadcrumbTitle || translatedTitle;
 
     if (pageTitle) {
-      document.title = `OneUptime | ${pageTitle}`;
+      // The installation's own name when it goes by one (ProductBranding).
+      document.title = `${getProductName()} | ${pageTitle}`;
     }
   }, [translatedTitle, breadcrumbLinks]);
 

@@ -1,14 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+<%
+  /*
+   * The installation's branding (Common/Server/Utils/ProductBrandingViewVariables.ts):
+   * the name it goes by, and its own browser tab icon when it has one.
+   * Rendered without them (a standalone frontend server), it is OneUptime.
+   */
+  var brandName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
+  var brandFaviconUrl = (typeof productFaviconUrl !== 'undefined' && productFaviconUrl) ? productFaviconUrl : '';
+  var isBranded = brandName !== 'OneUptime' || Boolean(brandFaviconUrl);
+%>
 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
   <meta name="theme-color" content="#f9fafb" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <% if (brandName !== 'OneUptime') { %>
+  <meta name="description" content="<%= brandName %>">
+  <% } else { %>
   <meta name="description" content="OneUptime - the complete open-source observability platform.">
+  <% } %>
   <meta name="keywords" content="monitoring, observability, uptime, dashboard, PWA, progressive web app">
-  <meta name="author" content="OneUptime">
+  <meta name="author" content="<%= brandName %>">
   <meta name="slack-app-id" content="ACVBMTPJQ">
 
   <!-- Apply the opt-in preference before CSS/React to avoid a theme flash. -->
@@ -38,10 +52,11 @@
   <!-- PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="OneUptime">
+  <meta name="apple-mobile-web-app-title" content="<%= brandName %>">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="OneUptime">
+  <meta name="application-name" content="<%= brandName %>">
   
+  <% if (!isBranded) { %>
   <!-- iOS Splash Screens (black background with centered OneUptime logo) -->
   <link rel="apple-touch-startup-image"
     href="/dashboard/assets/img/splash/apple-splash-2048-2732.png"
@@ -108,6 +123,7 @@
   <meta name="msapplication-TileColor" content="#000000">
   <meta name="msapplication-TileImage" content="/dashboard/assets/img/favicons/mstile-144x144.png">
   <meta name="msapplication-config" content="/dashboard/browserconfig.xml">
+  <% } %>
 
   <%- include('../../../../Common/Server/Views/Partials/AnalyticsConsent', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
@@ -129,12 +145,18 @@
 
   <!-- Manifest and Icons -->
   <link rel="manifest" href="/dashboard/manifest.json">
+  <% if (brandFaviconUrl) { %>
+  <link rel="icon" href="<%= brandFaviconUrl %>">
+  <link rel="shortcut icon" href="<%= brandFaviconUrl %>">
+  <link rel="apple-touch-icon" href="<%= brandFaviconUrl %>">
+  <% } else { %>
   <link rel="apple-touch-icon" sizes="180x180" href="/dashboard/assets/img/favicons/apple-touch-icon.png">
   <link rel="shortcut icon" href="/dashboard/assets/img/favicons/favicon.ico?v=up-v1">
   <link rel="icon" type="image/png" sizes="32x32" href="/dashboard/assets/img/favicons/favicon-32x32.png?v=up-v1">
   <link rel="icon" type="image/png" sizes="16x16" href="/dashboard/assets/img/favicons/favicon-16x16.png?v=up-v1">
   <link rel="icon" type="image/svg+xml" sizes="any" href="/oneuptime-assets/brand/favicons/oneuptime-up-v1.svg">
   <link rel="mask-icon" href="/dashboard/assets/img/favicons/safari-pinned-tab.svg" color="#000000">
+  <% } %>
 
   <!-- Preload critical resources -->
   <link rel="preload" href="/dashboard/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -244,7 +266,7 @@
   <script src="/dashboard/env.js"></script>
 
 
-  <title>OneUptime Dashboard</title>
+  <title><%= brandName %> Dashboard</title>
 
 
   <!--

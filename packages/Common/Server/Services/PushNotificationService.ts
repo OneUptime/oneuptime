@@ -21,6 +21,7 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog";
@@ -134,9 +135,17 @@ export default class PushNotificationService {
   }
 
   public static async sendPushNotification(
-    request: PushNotificationRequest,
+    pushRequest: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
+    // The installation's own name and icon, when it goes by one.
+    const request: PushNotificationRequest = {
+      ...pushRequest,
+      message: ProductBrandingText.brandPushMessage(pushRequest.message, [
+        PushNotificationUtil.DEFAULT_ICON,
+      ]),
+    };
+
     logger.info(
       `Sending push notification to ${request.devices?.length} devices`,
     );

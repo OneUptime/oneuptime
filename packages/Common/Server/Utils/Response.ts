@@ -26,6 +26,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import { GoogleTagManagerEnabled } from "../EnvironmentConfig";
+import { getProductBrandingViewVariables } from "./ProductBrandingViewVariables";
 import { createHash } from "crypto";
 
 /*
@@ -268,6 +269,8 @@ export default class Response {
      */
     oneUptimeResponse.render(path, {
       enableGoogleTagManager: GoogleTagManagerEnabled,
+      // How the installation names and shows itself; the page's own vars win.
+      ...getProductBrandingViewVariables(),
       ...vars,
     });
   }

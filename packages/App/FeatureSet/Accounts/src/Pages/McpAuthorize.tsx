@@ -15,7 +15,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import API from "Common/UI/Utils/API/API";
 import McpOAuthPendingAuthorization from "Common/UI/Utils/McpOAuthPendingAuthorization";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -238,11 +238,7 @@ const McpAuthorize: () => JSX.Element = () => {
   ): ReactElement => {
     return (
       <div className="w-full max-w-md mx-auto">
-        <img
-          className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt={t("common.yourCompany")}
-        />
+        <ProductLogo />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           {t("mcpAuthorize.title")}
         </h2>

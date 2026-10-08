@@ -42,6 +42,7 @@ import { VariableValueChange } from "Common/UI/Components/Dashboard/DashboardVar
 import MetricUtil from "../../../../Dashboard/src/Components/Metrics/Utils/Metrics";
 import { setPublicDashboardContext } from "../../../../Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import PoweredByFooter from "../../Components/PoweredByFooter";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -469,19 +470,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Footer */}
-      <div className="max-w-7xl mx-auto px-5 py-5">
-        <div className="flex items-center justify-center text-xs text-gray-400">
-          <span>Powered by</span>
-          <a
-            href="https://oneuptime.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-1 text-gray-500 hover:text-gray-700 font-medium"
-          >
-            OneUptime
-          </a>
-        </div>
-      </div>
+      <PoweredByFooter />
     </div>
   );
 };

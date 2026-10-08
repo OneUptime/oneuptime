@@ -344,6 +344,8 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
                 currentUserCount: true,
                 userCountUpdatedAt: true,
                 isEvaluationLicense: true,
+                // Signed into the token only; never echoed in the response.
+                canBeWhiteLabelled: true,
               },
               props: {
                 isRoot: true,
@@ -517,6 +519,8 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
                 licenseKey: true,
                 userLimit: true,
                 isEvaluationLicense: true,
+                // Signed into the token only; never echoed in the response.
+                canBeWhiteLabelled: true,
               },
               props: {
                 isRoot: true,
@@ -695,6 +699,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
         typeof license.userLimit === "number" ? license.userLimit : null,
       isEvaluation: Boolean(license.isEvaluationLicense),
       expiresAt: license.expiresAt || null,
+      canBeWhiteLabelled: license.canBeWhiteLabelled === true,
     };
   }
 

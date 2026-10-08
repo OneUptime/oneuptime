@@ -2,6 +2,10 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  registerEmailBrandHelpers,
+  registerJoiningConcat,
+} from "./Fixtures/EmailBrandHelpers";
 
 /*
  * InviteMember.hbs - the only email TeamMemberService sends when somebody is
@@ -111,9 +115,9 @@ beforeAll(() => {
     },
   );
 
-  Handlebars.registerHelper("concat", (v1: any, v2: any) => {
-    return v1 + v2;
-  });
+  // concat joins every argument, and the brand helpers name the product.
+  registerJoiningConcat(Handlebars);
+  registerEmailBrandHelpers(Handlebars);
 });
 
 describe("InviteMember.hbs - an invitation that was accepted for the recipient", () => {
@@ -269,7 +273,13 @@ describe("InviteMember.hbs - the branch variable", () => {
       encoding: "utf8",
     });
 
-    for (const helper of ["ifCond", "ifNotCond", "concat"]) {
+    for (const helper of [
+      "ifCond",
+      "ifNotCond",
+      "concat",
+      "brandName",
+      "brandNameHtml",
+    ]) {
       if (!templateSource().includes(helper)) {
         continue;
       }

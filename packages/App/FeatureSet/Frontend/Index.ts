@@ -31,6 +31,11 @@ import {
   shouldSkipStatusPageDomainFallbackRoute,
 } from "./RouteReservations";
 import { sendFrontendEnvironmentResponse } from "Common/Server/Utils/FrontendEnvironment";
+import { getProductBrandingViewVariables } from "Common/Server/Utils/ProductBrandingViewVariables";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import { ProductBranding } from "Common/Types/Branding/ProductBranding";
+import { getBrandedDashboardManifest } from "./BrandedManifest";
+import fsp from "fs/promises";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -241,7 +246,8 @@ const renderFrontendIndexPage: (
   const { req, res, next, frontendConfig } = options;
 
   try {
-    let variables: JSONObject = {};
+    // The installation's name and tab icon, for the page title and icons.
+    let variables: JSONObject = getProductBrandingViewVariables();
 
     if (frontendConfig.getVariablesToRenderIndexPage) {
       try {
@@ -421,6 +427,58 @@ const registerDashboardFallbackForPrimaryHost: () => void = (): void => {
   );
 };
 
+/*
+ * The Dashboard's web app manifest, for an installation that names or shows
+ * itself its own way (BrandedManifest.ts): its name and icon, in place of
+ * OneUptime's, when the Dashboard is installed as an app. Registered ahead of
+ * the static files; an installation that shows OneUptime's own branding gets
+ * the static file, exactly as before.
+ */
+const registerBrandedDashboardManifest: () => void = (): void => {
+  app.get(
+    ["/dashboard/manifest.json", "/manifest.json"],
+    async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+      try {
+        if (!isPrimaryHostRequest(req)) {
+          return next();
+        }
+
+        // The root copy is the Dashboard's only where the root serves the Dashboard.
+        if (req.path === "/manifest.json" && IsBillingEnabled) {
+          return next();
+        }
+
+        const branding: ProductBranding | null =
+          EnterpriseEdition.getProductBranding();
+
+        if (!branding) {
+          return next();
+        }
+
+        const manifest: JSONObject = JSON.parse(
+          await fsp.readFile(`${DashboardPublicPath}/manifest.json`, "utf8"),
+        ) as JSONObject;
+
+        const branded: JSONObject | null = getBrandedDashboardManifest(
+          manifest,
+          branding,
+        );
+
+        if (!branded) {
+          return next();
+        }
+
+        res.set("Content-Type", "application/manifest+json; charset=utf-8");
+        res.set("Cache-Control", "no-cache");
+        res.send(JSON.stringify(branded));
+      } catch (err) {
+        logger.error(err, { service: "frontend" });
+        next();
+      }
+    },
+  );
+};
+
 const registerDashboardRootPwaFiles: () => void = (): void => {
   for (const pwaFileRoute of DashboardRootPwaFileMap) {
     app.get(
@@ -467,6 +525,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     "/public-dashboard/:dashboardId/llms.txt",
     handlePublicDashboardLlmsTxt,
   );
+
+  // Ahead of the Dashboard's static files and its root PWA files.
+  registerBrandedDashboardManifest();
 
   registerFrontendApp({
     routePrefix: "/accounts",
