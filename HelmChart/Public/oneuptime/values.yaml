@@ -877,6 +877,12 @@ pgbouncer:
   # now ships lock_timeout in both postgresql.primary.configuration and
   # postgresOperator.cnpg.parameters. For an externalPostgres, set it yourself
   # (e.g. `ALTER DATABASE oneuptimedb SET lock_timeout='3s'`).
+  # statement_timeout is not shipped (it would reach admin sessions too): set
+  # it on the app's database role, to DATABASE_STATEMENT_TIMEOUT_MS, e.g.
+  # `ALTER ROLE "postgres" IN DATABASE "oneuptimedb" SET statement_timeout = '30s'`.
+  # Some writes are held back until a statement the app stopped waiting for
+  # could no longer land, and only this timeout bounds that. See
+  # HelmChart/Docs/Postgres.md ("Statement timeout behind the pooler").
   ignoreStartupParameters: "extra_float_digits,options,statement_timeout,idle_in_transaction_session_timeout,lock_timeout,idle_session_timeout"
   # TLS from pgbouncer to the Postgres backend. When fronting an externalPostgres
   # with ssl.enabled, this auto-defaults to "require" and verifies against

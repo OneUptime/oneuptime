@@ -58,7 +58,7 @@ Lokale Variablen existieren nur während der laufenden Ausführung. Jede neue Au
 Fast jedes Textfeld nimmt Variablen entgegen:
 
 - Die URL an einem API-Baustein.
-- Der Nachrichtentext bei Slack, Teams, Discord, Telegram, E-Mail.
+- Der Nachrichtentext bei Slack, Teams, Discord, Telegram, IRC, E-Mail.
 - Betreff und Text einer E-Mail.
 - Header- und Body-Felder (innerhalb von String-Werten).
 - Beide Seiten eines Bausteins **If / Else**.

@@ -474,13 +474,14 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Turning the server's Require SSO for Login on needs an SSO provider that
-   * signs people in to every project that does not require SSO itself
-   * (Utils/SsoRequirementChanges): checked once the caller has passed every
-   * permission check, under the lock on the server's sign-in rules, held
-   * until the write is done (onUpdateSuccess) - kept once more right before
-   * it, and kept alive while it is written (SsoRequirementChanges.
-   * beforeWrite).
+   * Writing the server's Require SSO for Login on - turning it on, or saving
+   * it on again - needs an SSO provider that signs people in to every
+   * project that does not require SSO itself (Utils/SsoRequirementChanges):
+   * checked once the caller has passed every permission check, under the
+   * lock on the server's sign-in rules, held until the write is done
+   * (onUpdateSuccess) - kept once more right before it, taken again and the
+   * check run again should it be gone by then, and kept alive while it is
+   * written (SsoRequirementChanges.beforeWrite).
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -494,14 +495,18 @@ export class Service extends DatabaseService<Model> {
     await SsoRequirementChanges.beforeWrite(updateBy);
   }
 
-  // An update that failed once it held the lock: it is given back.
+  /*
+   * An update that failed once it held the lock: it is given back - or, when
+   * the database may still apply the write, kept until it would have
+   * cancelled it (SsoRequirementChanges).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+      await SsoRequirementChanges.afterFailedUpdate(onUpdate.updateBy, error);
     }
 
     return error;

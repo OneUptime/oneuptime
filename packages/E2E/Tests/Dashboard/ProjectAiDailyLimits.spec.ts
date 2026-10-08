@@ -21,6 +21,8 @@ import {
  *    Daily limits - and says what applies and what AI used today:
  *    "Nothing limits how much OneUptime AI uses each day. Used today: 0
  *    tokens." (with the AI credits spent too, where AI is billed);
+ *  - open, it is one card: Daily limits is its section, a divider above
+ *    it and no frame of its own;
  *  - a token limit saved from the card is stored, is what the folded
  *    sentence says ("At most 200,000 tokens a day."), and is what
  *    POST /api/ai/daily-usage answers;
@@ -153,6 +155,84 @@ test.describe("Project Settings → AI Features: daily AI limits", () => {
         ? "Nothing limits how much OneUptime AI uses each day. Used today: 0 tokens and $0 of AI credits."
         : "Nothing limits how much OneUptime AI uses each day. Used today: 0 tokens.",
     );
+  });
+
+  /*
+   * "More Settings should look like one card instead of a card inside of a
+   * card, and it should have dividers." Open, the fold is the card and Daily
+   * limits is its section: a divider across the whole card above it, and no
+   * border, rounded corners, shadow or gap of its own.
+   */
+  test("open, More settings is one card: Daily limits is its section, edge to edge, with a divider and no frame of its own", async () => {
+    await openAiFeatures();
+    await foldHeader().click();
+    await expect(foldHeader()).toHaveAttribute("aria-expanded", "true");
+
+    const fold: Locator = section().getByTestId("folded-section");
+    const daily: Locator = section().locator(
+      '[data-testid="card"][data-card-surface="section"]',
+    );
+
+    await expect(daily).toHaveCount(1);
+    await expect(daily.getByTestId("card-details-heading")).toHaveText(
+      "Daily limits",
+    );
+
+    const sectionStyle: Record<string, string> = await daily.evaluate(
+      (element: HTMLElement): Record<string, string> => {
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+        return {
+          boxShadow: style.boxShadow,
+          borderRadius: style.borderTopLeftRadius,
+          borderTop: style.borderTopWidth,
+          borderLeft: style.borderLeftWidth,
+          marginBottom: style.marginBottom,
+        };
+      },
+    );
+
+    expect(sectionStyle).toEqual({
+      boxShadow: "none",
+      borderRadius: "0px",
+      borderTop: "1px",
+      borderLeft: "0px",
+      marginBottom: "0px",
+    });
+
+    // The card around it is the one frame: rounded, with a shadow.
+    const foldStyle: Record<string, string> = await fold.evaluate(
+      (element: HTMLElement): Record<string, string> => {
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+        return {
+          boxShadow: style.boxShadow,
+          borderRadius: style.borderTopLeftRadius,
+        };
+      },
+    );
+
+    expect(foldStyle.boxShadow).not.toBe("none");
+    expect(foldStyle.borderRadius).toBe("12px");
+
+    // Nothing in the section draws a card's frame of its own.
+    await expect(daily.locator(".rounded-xl.shadow-sm")).toHaveCount(0);
+
+    // The divider runs across the whole card: the section is as wide as its inside.
+    const foldBox: { x: number; width: number } | null =
+      await fold.boundingBox();
+    const dailyBox: { x: number; width: number } | null =
+      await daily.boundingBox();
+
+    expect(foldBox).not.toBeNull();
+    expect(dailyBox).not.toBeNull();
+    expect(Math.abs(dailyBox!.x - (foldBox!.x + 1))).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(dailyBox!.width - (foldBox!.width - 2)),
+    ).toBeLessThanOrEqual(1);
+
+    // Its Edit is still there, at the right edge of its header.
+    await expect(daily.getByRole("button", { name: "Edit" })).toBeVisible();
   });
 
   test("today's use is answered by POST /api/ai/daily-usage", async () => {

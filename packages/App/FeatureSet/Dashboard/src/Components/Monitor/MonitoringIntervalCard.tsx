@@ -30,6 +30,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -61,6 +62,7 @@ export interface ComponentProps {
 const MonitoringIntervalCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const initialValue: string | undefined = getMonitoringIntervalValue(
     props.initialInterval,
   );
@@ -209,7 +211,7 @@ const MonitoringIntervalCard: FunctionComponent<ComponentProps> = (
        * Monitoring card's switch.
        */}
       <div
-        className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6"
+        className={ruledBodyClassName}
         data-testid={`${MONITORING_INTERVAL_TEST_ID}-card`}
       >
         <div className="px-5 py-4 md:px-6">

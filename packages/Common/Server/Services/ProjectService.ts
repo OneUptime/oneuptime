@@ -850,15 +850,20 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * A create that fails once its sign-in check holds the lock - in a step
    * just before the INSERT, at the INSERT, or in onCreateSuccess before it
    * gave the lock back - reaches no other hook: the lock is given back here,
-   * whatever happened (SsoRequirementChanges). DatabaseService.create hands
-   * every failure after onBeforeCreate to this hook.
+   * whatever happened - or, when the database may still commit the project
+   * (its COMMIT went unanswered), kept until it would have cancelled it
+   * (SsoRequirementChanges). DatabaseService.create hands every failure
+   * after onBeforeCreate to this hook.
    */
   @CaptureSpan()
   protected override async onCreateError(
     error: Exception,
     onCreate?: OnCreate<Model> | undefined,
   ): Promise<Exception> {
-    await SsoRequirementChanges.afterProjectCreate(onCreate?.createBy);
+    await SsoRequirementChanges.afterFailedProjectCreate(
+      onCreate?.createBy,
+      error,
+    );
 
     return error;
   }
@@ -887,7 +892,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * An update that failed - refused or thrown, an auto recharge charge
    * included - once a stricter sign-in rule held its locks: they are given
-   * back (SsoRequirementChanges).
+   * back - or, when the database may still apply the write, kept until it
+   * would have cancelled it (SsoRequirementChanges).
    */
   @CaptureSpan()
   protected override async onUpdateError(
@@ -895,7 +901,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     onUpdate?: OnUpdate<Model> | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+      await SsoRequirementChanges.afterFailedUpdate(onUpdate.updateBy, error);
     }
 
     return error;
@@ -1113,7 +1119,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * The last steps before an update is written, once the caller has passed
    * every permission check:
    *
-   *   - turning Require SSO for Login on, or requiring another provider,
+   *   - writing Require SSO for Login on, or naming the provider the
+   *     project requires - turning it on, or saving back the rule it has -
    *     needs an SSO provider that signs people in to the project
    *     (Utils/SsoRequirementChanges). Checked under the project's lock -
    *     and, when the project would rely on more than its own providers that
@@ -1124,9 +1131,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
    *     projects read under those locks;
    *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn);
    *   - last, right before the write, the locks of the check are kept once
-   *     more, and kept alive while it is written: one lost by now - the
-   *     charge took long - refuses the write rather than let it land
-   *     unprotected (SsoRequirementChanges.beforeWrite).
+   *     more, and kept alive while it is written. One lost by now - the
+   *     charge took long, or Valkey lost it - is taken again and the check
+   *     run again under it: the write is refused only when the lock cannot
+   *     be taken or the check now fails, never for the time the charge took
+   *     (SsoRequirementChanges.beforeWrite). A charge made already stays:
+   *     the balance it bought is credited in its own write.
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
