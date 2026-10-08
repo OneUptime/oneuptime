@@ -120,6 +120,19 @@ export default class ProjectReferencesService<
     return false;
   }
 
+  /*
+   * Every reference a write names is held to the write's project here, in
+   * the words a missing record gets (ProjectReferenceCheck, or the
+   * service's own check of the relations and lists it names in
+   * getRelationsCheckedByService / getListsCheckedByService) - so the
+   * permission layer need not look up a parent or a listed record that the
+   * caller's read reaches whatever it is (DatabaseService
+   * .checksReferencesInProject).
+   */
+  protected override checksReferencesInProject(): boolean {
+    return true;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TBaseModel>,

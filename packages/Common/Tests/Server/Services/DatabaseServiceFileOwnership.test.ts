@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
 import {
   afterEach,
   beforeEach,
@@ -349,6 +350,12 @@ beforeEach(() => {
   jest
     .spyOn(AuditLogService, "recordUpdate")
     .mockResolvedValue(undefined as never);
+  /*
+   * A note is created under an incident its creator may read: the plain
+   * services here check no reference themselves, so the incident is looked
+   * up (CreatePermission.checkParentIds), and every one named is readable.
+   */
+  stubReadableParents();
 });
 
 afterEach(() => {
