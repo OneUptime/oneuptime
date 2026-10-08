@@ -794,6 +794,45 @@ describe("RuleRunPermission.assertMayChangeEveryRecord", () => {
     }).not.toThrow();
   });
 
+  it("names the permission to ask for when no grant reaches the whole project, and only then", () => {
+    function withHint(props: DatabaseCommonInteractionProps): void {
+      RuleRunPermission.assertMayChangeEveryRecord({
+        props: props,
+        modelType: NetworkDevice,
+        requestType: DatabaseRequestType.Update,
+        message: MESSAGE,
+        missingPermission: Permission.EditNetworkDevice,
+      });
+    }
+
+    expect(() => {
+      withHint(
+        propsWith({
+          permissions: [Permission.EditNetworkDevice],
+          labelIds: [ObjectID.generate()],
+        }),
+      );
+    }).toThrow(
+      new NotAuthorizedException(
+        `${MESSAGE} Missing permission: Edit Network Device, for all resources in the project.`,
+      ),
+    );
+
+    // A block says what blocks, not what is missing.
+    expect(() => {
+      withHint(
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          labelledBlockedPermissions: [Permission.EditNetworkDevice],
+        }),
+      );
+    }).toThrow(
+      new NotAuthorizedException(
+        `${MESSAGE} Edit Network Device is in your team's permission block list for some labels.`,
+      ),
+    );
+  });
+
   it("lets a master admin through without reading their rows", () => {
     expect(() => {
       assertMayEditEveryDevice(

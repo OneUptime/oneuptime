@@ -502,6 +502,19 @@ describe("POST /auto-remediation/approve — a plan that runs with a runbook cre
     expectApproved(await callApprove());
   });
 
+  test("a Bash command runs on its Runner with no credential, whatever the plan carries beside it", async () => {
+    suggestionFindSpy.mockResolvedValue(
+      suggestionWith([
+        bashCommandJson({
+          credentialId: CREDENTIAL_ID,
+          credentialNameSnapshot: "web-hosts",
+        }),
+      ]),
+    );
+
+    expectApproved(await callApprove());
+  });
+
   test("a kubectl command runs with the credential its cluster's AI page bound, and asks nothing more", async () => {
     suggestionFindSpy.mockResolvedValue(suggestionWith([kubectlCommandJson()]));
 

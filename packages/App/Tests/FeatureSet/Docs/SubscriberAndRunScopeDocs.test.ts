@@ -327,7 +327,7 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
 
     for (const sentence of [
       "Approving a plan with an SSH command confirms that pick, so it takes permission to read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin), as naming a credential in a runbook step does; without it the approval is refused, saying who may approve the plan, and nothing runs.",
-      "Letting such a rule run its commands without asking - **Fix without asking**, with a command allowlist - takes the same permission when a save turns that on or adds allowlist patterns or Runners; narrowing the rule, or turning that off, does not.",
+      "Letting such a rule run its commands without asking - **Fix without asking**, with a command allowlist - takes the same permission when a save turns that on - switching such a rule on included - or adds allowlist patterns or Runners, however the allowlist is written; narrowing the rule, or turning that off, does not.",
       "A kubectl command runs with the credential bound to its cluster on the **AI agent** page, which only someone who may read runbook credentials can bind (see [Who may change it](#who-may-change-it)), so approving it asks nothing more.",
     ]) {
       expect([sentence, paragraph.includes(sentence)]).toEqual([

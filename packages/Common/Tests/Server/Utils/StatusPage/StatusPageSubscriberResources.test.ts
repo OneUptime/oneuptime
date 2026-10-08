@@ -242,6 +242,18 @@ describe("StatusPageSubscriberResources.findIdsOnPage", () => {
     expect(onPage.size).toBe(0);
     expect(lookups).toHaveLength(0);
   });
+
+  it("finds nothing on no page, without a query that would match every page", async () => {
+    const onPage: Set<string> =
+      await StatusPageSubscriberResources.findIdsOnPage({
+        statusPageId: undefined,
+        ids: [MONITOR_RESOURCE, OTHER_PAGE_RESOURCE],
+        shownToVisitorsOnly: false,
+      });
+
+    expect(onPage.size).toBe(0);
+    expect(lookups).toHaveLength(0);
+  });
 });
 
 describe("StatusPageSubscriberResources.refuse", () => {
@@ -411,6 +423,27 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
         named: [OTHER_PAGE_RESOURCE],
       }),
     ).resolves.toBeUndefined();
+  });
+
+  it("refuses what a change adds to a subscriber with no page, and keeps what it holds", async () => {
+    const noPage: StatusPageSubscriber = subscriberOn(PAGE_ID, [
+      OTHER_PAGE_RESOURCE,
+    ]);
+    delete noPage.statusPageId;
+
+    await expect(
+      StatusPageSubscriberResources.assertUpdateOnPages({
+        subscribers: [noPage],
+        named: [OTHER_PAGE_RESOURCE, MONITOR_RESOURCE],
+      }),
+    ).rejects.toThrow(refusalFor([MONITOR_RESOURCE]));
+
+    await StatusPageSubscriberResources.assertUpdateOnPages({
+      subscribers: [noPage],
+      named: [OTHER_PAGE_RESOURCE],
+    });
+
+    expect(lookups).toHaveLength(0);
   });
 
   it("says nothing about an update that reaches no subscriber", async () => {

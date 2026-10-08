@@ -1,5 +1,6 @@
 import RelationListPermission from "../../Types/Database/Permissions/RelationListPermission";
 import { Service as RunnerServiceClass } from "../../Services/RunnerService";
+import CommandAllowlist from "./CommandAllowlist";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -16,14 +17,16 @@ import ObjectID from "../../../Types/ObjectID";
 
 /*
  * What a rule says about the commands OneUptime AI composes for it: the
- * columns of AutoRemediationRule, or what a write sends for them (Runners as
- * rows, { _id } objects or ids).
+ * columns of AutoRemediationRule, or what a write sends for them (the
+ * allowlist as an array, a JSON string or one bare pattern - the column is
+ * jsonb; Runners as rows, { _id } objects or ids).
  */
 export interface RuleCommandSettings {
+  isEnabled?: boolean | undefined;
   remediationAction?: AutoRemediationRule["remediationAction"] | undefined;
   aiComposesCommands?: boolean | undefined;
   executionMode?: AutoRemediationRule["executionMode"] | undefined;
-  commandAllowlist?: Array<string> | undefined;
+  commandAllowlist?: unknown;
   commandRunners?: unknown;
 }
 
@@ -70,17 +73,17 @@ export default class AiRemediationCredentialUse {
 
   /*
    * The first command of `plan` that runs with a credential OneUptime AI
-   * picked - an SSH command's - or undefined. A kubectl command's credential
-   * is its cluster's binding, not a pick.
+   * picked - an SSH command, the one kind that runs with one of its
+   * Runner's credentials - or undefined. A kubectl command's credential is
+   * its cluster's binding, not a pick; a Bash command runs on the Runner
+   * itself and a resource's command on its own agent, with none, whatever
+   * the plan carries beside them.
    */
   public static getCommandWithPickedCredential(
     plan: AiRemediationCommandPlan,
   ): AiRemediationCommand | undefined {
     return plan.commands.find((command: AiRemediationCommand): boolean => {
-      return (
-        Boolean(command.credentialId) &&
-        command.stepType !== RunbookStepType.Kubectl
-      );
+      return command.stepType === RunbookStepType.SSH;
     });
   }
 
@@ -123,31 +126,32 @@ export default class AiRemediationCredentialUse {
 
   /*
    * Whether a rule, as `rule` has it, runs OneUptime AI's commands without
-   * asking: it fixes with OneUptime AI composing commands (the column a
-   * rule saved without reads as OneUptime AI), Full Auto, with a command
-   * allowlist - without one, every run asks first.
+   * asking, as the rule engine and the run decide it: it is on (a rule
+   * saved without the column is), fixes with OneUptime AI composing
+   * commands (the column a rule saved without reads as OneUptime AI), Full
+   * Auto, with a command allowlist read as the run reads it
+   * (CommandAllowlist: an array, a JSON string or one bare pattern) -
+   * without one, every run asks first.
    */
   public static runsCommandsWithoutAsking(
     rule: Omit<RuleCommandSettings, "commandRunners">,
   ): boolean {
     return (
+      rule.isEnabled !== false &&
       rule.remediationAction !== AutoRemediationAction.Runbooks &&
       rule.aiComposesCommands === true &&
       rule.executionMode === AutoRemediationExecutionMode.FullAuto &&
-      Array.isArray(rule.commandAllowlist) &&
-      rule.commandAllowlist.some((pattern: unknown): boolean => {
-        return typeof pattern === "string" && pattern.trim().length > 0;
-      })
+      CommandAllowlist.normalize(rule.commandAllowlist).length > 0
     );
   }
 
   /*
    * Whether a write that leaves a rule `after` lets OneUptime AI do more
    * without asking than `before` (null for a new rule) did: it starts
-   * running commands without asking, adds an allowlist pattern, or reaches
-   * more Runners - one it did not, or every Runner once its list is
-   * cleared. A rule that does not run commands without asking afterwards
-   * never does more.
+   * running commands without asking (turning the rule on included), adds
+   * an allowlist pattern, or reaches more Runners - one it did not, or
+   * every Runner once its list is cleared. A rule that does not run
+   * commands without asking afterwards never does more.
    */
   public static widensCommandsWithoutAsking(
     data: RuleCommandSettingsChange,
@@ -163,18 +167,15 @@ export default class AiRemediationCredentialUse {
       return true;
     }
 
-    const patternsBefore: Array<string> = (
-      data.before.commandAllowlist || []
-    ).map((pattern: string): string => {
-      return String(pattern).trim();
-    });
-
-    const addsPattern: boolean = (data.after.commandAllowlist || []).some(
-      (pattern: string): boolean => {
-        const written: string = String(pattern).trim();
-        return written.length > 0 && !patternsBefore.includes(written);
-      },
+    const patternsBefore: Array<string> = CommandAllowlist.normalize(
+      data.before.commandAllowlist,
     );
+
+    const addsPattern: boolean = CommandAllowlist.normalize(
+      data.after.commandAllowlist,
+    ).some((pattern: string): boolean => {
+      return !patternsBefore.includes(pattern);
+    });
 
     if (addsPattern) {
       return true;
@@ -208,7 +209,7 @@ export default class AiRemediationCredentialUse {
 
   // Why a rule cannot be left running OneUptime AI's commands without asking.
   public static getUnattendedRuleRefusal(): string {
-    return `This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runners. Turning that on, adding allowlist patterns or Runners to it needs permission to read runbook credentials: ${AiRemediationCredentialUse.getCredentialReaderTitles()}. Set the rule to ask before fixing, or ask someone who has it to save the rule.`;
+    return `This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runners. Turning that on (or turning on a rule that does it), adding allowlist patterns or Runners to it needs permission to read runbook credentials: ${AiRemediationCredentialUse.getCredentialReaderTitles()}. Set the rule to ask before fixing, or ask someone who has it to save the rule.`;
   }
 
   /*

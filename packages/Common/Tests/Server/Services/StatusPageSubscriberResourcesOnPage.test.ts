@@ -429,6 +429,22 @@ describe("StatusPageSubscriberService - a change to a subscription", () => {
     expect(read.props["isRoot"]).toBe(true);
   });
 
+  test("the subscribers are read in the update's own window - the rows it goes on to write", async () => {
+    subscriberHolding([]);
+
+    await hooks.onBeforeUpdate({
+      ...change([OWN_RESOURCE]),
+      skip: 20000,
+      limit: 15000,
+    } as unknown as UpdateBy<StatusPageSubscriber>);
+
+    const read: { skip: number; limit: number } = subscriberRead.mock
+      .calls[0]![0] as { skip: number; limit: number };
+
+    expect(read.skip).toBe(20000);
+    expect(read.limit).toBe(15000);
+  });
+
   test("a change that names no resource reads nothing", async () => {
     subscriberHolding([]);
 

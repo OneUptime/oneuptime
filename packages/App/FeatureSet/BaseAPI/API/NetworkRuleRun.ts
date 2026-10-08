@@ -2,6 +2,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -112,6 +113,7 @@ function assertCanRunRule(data: {
       modelType: NetworkDevice,
       requestType: DatabaseRequestType.Create,
       message: `You do not have permission to create network devices anywhere in this project, which running ${data.ruleLabel} does.`,
+      missingPermission: Permission.CreateNetworkDevice,
     });
 
     return;
@@ -122,6 +124,7 @@ function assertCanRunRule(data: {
     modelType: NetworkDevice,
     requestType: DatabaseRequestType.Update,
     message: `You do not have permission to edit every network device in this project, which running ${data.ruleLabel} does.`,
+    missingPermission: Permission.EditNetworkDevice,
   });
 }
 
@@ -142,6 +145,7 @@ function assertCanCreateMonitor(props: DatabaseCommonInteractionProps): void {
     requestType: DatabaseRequestType.Create,
     message:
       "You do not have permission to create monitors anywhere in this project, which running this auto-import rule does.",
+    missingPermission: Permission.CreateProjectMonitor,
   });
 }
 

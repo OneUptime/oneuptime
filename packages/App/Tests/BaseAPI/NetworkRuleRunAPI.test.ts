@@ -1195,8 +1195,9 @@ describe("Network automation rule runs reach every device of the project", () =>
 
       const error: Error = errorFrom(next);
       expect(error).toBeInstanceOf(NotAuthorizedException);
+      // Saying which permission to ask for, and how far it must reach.
       expect(error.message).toBe(
-        `You do not have permission to edit every network device in this project, which running ${route.ruleLabel} does.`,
+        `You do not have permission to edit every network device in this project, which running ${route.ruleLabel} does. Missing permission: Edit Network Device, for all resources in the project.`,
       );
       expectNoRun();
     },
@@ -1283,6 +1284,9 @@ describe("Network automation rule runs reach every device of the project", () =>
     expect(errorFrom(next).message).toContain(
       "create monitors anywhere in this project",
     );
+    expect(errorFrom(next).message).toContain(
+      "Missing permission: Create Monitor, for all resources in the project.",
+    );
     expectNoRun();
   });
 
@@ -1316,7 +1320,7 @@ describe("Network automation rule runs reach every device of the project", () =>
     const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
 
     expect(errorFrom(next).message).toBe(
-      "You do not have permission to create network devices anywhere in this project, which running auto-import rules does.",
+      "You do not have permission to create network devices anywhere in this project, which running auto-import rules does. Missing permission: Create Network Device, for all resources in the project.",
     );
     expectNoRun();
   });
@@ -1357,7 +1361,7 @@ describe("Network automation rule runs reach every device of the project", () =>
     const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
 
     expect(errorFrom(next).message).toBe(
-      "You do not have permission to create monitors anywhere in this project, which running this auto-import rule does.",
+      "You do not have permission to create monitors anywhere in this project, which running this auto-import rule does. Missing permission: Create Monitor, for all resources in the project.",
     );
     expect(monitorTemplateService.findOneById).not.toHaveBeenCalled();
     expectNoRun();

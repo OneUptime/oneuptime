@@ -1,4 +1,5 @@
 import ToolOutputPager from "../Chat/ToolOutputPager";
+import CommandAllowlist from "../../AutoRemediation/CommandAllowlist";
 import {
   AI_AGENT_RUNAWAY_MAX_LLM_CALLS,
   AI_AGENT_RUNAWAY_MAX_TOOL_CALLS,
@@ -1949,34 +1950,11 @@ export default class RemediationExecutionRunner {
    * The allowlist column is jsonb, and the dashboard's JSON field can save
    * it as either a real array or a JSON string containing one. Anything
    * that is not a usable pattern list normalizes to empty — which means
-   * nothing auto-executes, the safe direction.
+   * nothing auto-executes, the safe direction. The same reading decides
+   * who may save a rule that runs without asking (CommandAllowlist).
    */
   public static normalizeAllowlist(value: unknown): Array<string> {
-    let raw: unknown = value;
-
-    if (typeof raw === "string") {
-      try {
-        raw = JSON.parse(raw);
-      } catch {
-        /*
-         * Not JSON — treat a bare string as a single pattern so an operator
-         * who typed one pattern without brackets still gets what they meant.
-         */
-        raw = [value];
-      }
-    }
-
-    if (!Array.isArray(raw)) {
-      return [];
-    }
-
-    return raw
-      .filter((pattern: unknown) => {
-        return typeof pattern === "string" && pattern.trim().length > 0;
-      })
-      .map((pattern: string) => {
-        return pattern.trim();
-      });
+    return CommandAllowlist.normalize(value);
   }
 
   /*

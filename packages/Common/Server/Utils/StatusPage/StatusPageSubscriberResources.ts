@@ -99,10 +99,12 @@ export default class StatusPageSubscriberResources {
   /*
    * Of `ids`, the ones that are resources of the status page - and, for a
    * visitor (`shownToVisitorsOnly`), ones the page shows - normalized. A
-   * malformed id names no resource, and is answered without a query.
+   * malformed id names no resource, and is answered without a query; with
+   * no status page named, nothing is on it (a query without the page would
+   * match every page's resources).
    */
   public static async findIdsOnPage(data: {
-    statusPageId: ObjectID;
+    statusPageId: ObjectID | undefined;
     ids: Array<string>;
     shownToVisitorsOnly: boolean;
   }): Promise<Set<string>> {
@@ -110,7 +112,7 @@ export default class StatusPageSubscriberResources {
       return ObjectID.isValidUUID(id.trim());
     });
 
-    if (validIds.length === 0) {
+    if (!data.statusPageId || validIds.length === 0) {
       return new Set<string>();
     }
 
@@ -193,7 +195,7 @@ export default class StatusPageSubscriberResources {
    * refused - all of them in one answer.
    */
   public static async assertOnPage(data: {
-    statusPageId: ObjectID;
+    statusPageId: ObjectID | undefined;
     ids: Array<string>;
     shownToVisitorsOnly: boolean;
   }): Promise<void> {
@@ -213,9 +215,10 @@ export default class StatusPageSubscriberResources {
 
   /*
    * An update's check: of `named`, the ids a subscriber the update changes
-   * does not name already must be resources of that subscriber's page. Each
-   * page is read once, however many of its subscribers the update changes,
-   * and everything refused is named in one answer, in the order written.
+   * does not name already must be resources of that subscriber's page (a
+   * subscriber with no page has none to add). Each page is read once,
+   * however many of its subscribers the update changes, and everything
+   * refused is named in one answer, in the order written.
    */
   public static async assertUpdateOnPages(data: {
     subscribers: Array<
@@ -232,16 +235,24 @@ export default class StatusPageSubscriberResources {
       { statusPageId: ObjectID; ids: Array<string> }
     > = new Map();
 
-    for (const subscriber of data.subscribers) {
-      if (!subscriber.statusPageId) {
-        continue;
-      }
+    const refused: Set<string> = new Set<string>();
 
+    for (const subscriber of data.subscribers) {
       const held: Set<string> = new Set<string>(
         StatusPageSubscriberResources.getNamedIds(
           subscriber.statusPageResources,
         ).map(normalizeReferenceId),
       );
+
+      if (!subscriber.statusPageId) {
+        for (const id of data.named) {
+          if (!held.has(normalizeReferenceId(id))) {
+            refused.add(normalizeReferenceId(id));
+          }
+        }
+
+        continue;
+      }
 
       const pageKey: string = normalizeReferenceId(
         subscriber.statusPageId.toString(),
@@ -272,8 +283,6 @@ export default class StatusPageSubscriberResources {
         addedByPage.set(pageKey, entry);
       }
     }
-
-    const refused: Set<string> = new Set<string>();
 
     for (const entry of addedByPage.values()) {
       const onPage: Set<string> =

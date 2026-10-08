@@ -6748,7 +6748,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return results;
   }
 
-  private normalizePositiveNumber(
+  protected normalizePositiveNumber(
     value?: PositiveNumber | number,
   ): number | undefined {
     if (value === undefined || value === null) {

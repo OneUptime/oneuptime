@@ -125,7 +125,27 @@ describe("AiRemediationCredentialUse.runsCommandsWithoutAsking", () => {
         unattended({ remediationAction: undefined }),
       ),
     ).toBe(true);
+    // A rule saved without the switch is on.
+    expect(
+      AiRemediationCredentialUse.runsCommandsWithoutAsking(
+        unattended({ isEnabled: undefined }),
+      ),
+    ).toBe(true);
   });
+
+  it.each([
+    ["one bare pattern", "systemctl restart *"],
+    ["a JSON string of patterns", '["systemctl restart *"]'],
+  ])(
+    "reads an allowlist saved as %s the way the run reads it",
+    (_label: string, commandAllowlist: string) => {
+      expect(
+        AiRemediationCredentialUse.runsCommandsWithoutAsking(
+          unattended({ commandAllowlist: commandAllowlist }),
+        ),
+      ).toBe(true);
+    },
+  );
 
   it.each([
     [
@@ -135,6 +155,9 @@ describe("AiRemediationCredentialUse.runsCommandsWithoutAsking", () => {
     ["has no allowlist", { commandAllowlist: [] }],
     ["has only blank allowlist patterns", { commandAllowlist: ["  "] }],
     ["has a null allowlist", { commandAllowlist: undefined }],
+    ["has a JSON string of no patterns", { commandAllowlist: "[]" }],
+    ["has an allowlist that is not a list", { commandAllowlist: { a: 1 } }],
+    ["is switched off", { isEnabled: false }],
     ["does not compose commands", { aiComposesCommands: false }],
     [
       "fixes with runbooks",
@@ -168,6 +191,7 @@ describe("AiRemediationCredentialUse.widensCommandsWithoutAsking", () => {
       unattended({ commandAllowlist: [] }),
       unattended({ aiComposesCommands: false }),
       unattended({ remediationAction: AutoRemediationAction.Runbooks }),
+      unattended({ isEnabled: false }),
     ]) {
       expect(
         AiRemediationCredentialUse.widensCommandsWithoutAsking({
@@ -207,6 +231,29 @@ describe("AiRemediationCredentialUse.widensCommandsWithoutAsking", () => {
         after: unattended(),
       }),
     ).toBe(false);
+  });
+
+  it("reads the patterns as the run does, whatever shape they are saved in", () => {
+    // The same pattern as a bare string, a JSON string and a list.
+    for (const commandAllowlist of [
+      "systemctl restart nginx",
+      '["systemctl restart nginx"]',
+    ]) {
+      expect(
+        AiRemediationCredentialUse.widensCommandsWithoutAsking({
+          before: unattended(),
+          after: unattended({ commandAllowlist: commandAllowlist }),
+        }),
+      ).toBe(false);
+    }
+
+    // Another pattern, written as a string.
+    expect(
+      AiRemediationCredentialUse.widensCommandsWithoutAsking({
+        before: unattended(),
+        after: unattended({ commandAllowlist: "reboot" }),
+      }),
+    ).toBe(true);
   });
 
   it("reaching another Runner widens it; dropping one does not", () => {
@@ -252,6 +299,17 @@ describe("AiRemediationCredentialUse.widensCommandsWithoutAsking", () => {
         }),
       }),
     ).toBe(false);
+
+    expect(
+      AiRemediationCredentialUse.widensCommandsWithoutAsking({
+        before: unattended(),
+        after: unattended({
+          isEnabled: false,
+          commandAllowlist: ["anything", "at all"],
+          commandRunners: [],
+        }),
+      }),
+    ).toBe(false);
   });
 });
 
@@ -290,6 +348,24 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
         plan([command({}), ssh]),
       ),
     ).toBe(ssh);
+  });
+
+  it("counts every SSH command: it runs with one of its Runner's credentials", () => {
+    const ssh: AiRemediationCommand = command({
+      stepType: RunbookStepType.SSH,
+    });
+
+    expect(
+      AiRemediationCredentialUse.getCommandWithPickedCredential(plan([ssh])),
+    ).toBe(ssh);
+  });
+
+  it("does not count a credential beside a Bash command, which runs on the Runner without one", () => {
+    expect(
+      AiRemediationCredentialUse.getCommandWithPickedCredential(
+        plan([command({ credentialId: RUNNER_B })]),
+      ),
+    ).toBeUndefined();
   });
 
   it("does not count a kubectl command's credential, which its cluster binds", () => {
@@ -396,12 +472,15 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
   async function update(
     data: JSONObject,
     props: DatabaseCommonInteractionProps,
+    window: { skip: number; limit: number } = { skip: 0, limit: 1 },
   ): Promise<unknown> {
     try {
       await hooks.onBeforeUpdate({
         query: { _id: RULE_ID.toString() },
         data: data,
         props: props,
+        skip: window.skip,
+        limit: window.limit,
       } as unknown as UpdateBy<AutoRemediationRule>);
       return null;
     } catch (error) {
@@ -414,7 +493,7 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
 
     expect(thrown).toBeInstanceOf(NotAuthorizedException);
     expect((thrown as Error).message).toBe(
-      "This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runners. Turning that on, adding allowlist patterns or Runners to it needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential. Set the rule to ask before fixing, or ask someone who has it to save the rule.",
+      "This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runners. Turning that on (or turning on a rule that does it), adding allowlist patterns or Runners to it needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential. Set the rule to ask before fixing, or ask someone who has it to save the rule.",
     );
   });
 
@@ -429,6 +508,52 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
       await create(unattended(), {
         isRoot: true,
       } as DatabaseCommonInteractionProps),
+    ).toBeNull();
+  });
+
+  it("refuses an allowlist saved as a string, which the run reads as patterns", async () => {
+    for (const commandAllowlist of [
+      "systemctl restart *",
+      '["systemctl restart *"]',
+    ]) {
+      expect(
+        await create(
+          unattended({ commandAllowlist: commandAllowlist }),
+          editor(RULE_EDITOR),
+        ),
+      ).toBeInstanceOf(NotAuthorizedException);
+    }
+
+    expect(
+      await update(
+        {
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+          commandAllowlist: "systemctl restart *",
+        },
+        editor(RULE_EDITOR),
+      ),
+    ).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  it("creates a switched-off rule for any editor; turning it on is asked about", async () => {
+    expect(
+      await create(unattended({ isEnabled: false }), editor(RULE_EDITOR)),
+    ).toBeNull();
+
+    storedRule = {
+      _id: RULE_ID.toString(),
+      id: RULE_ID,
+      ...unattended({ isEnabled: false }),
+    } as unknown as JSONObject;
+
+    expect(
+      await update({ isEnabled: true }, editor(RULE_EDITOR)),
+    ).toBeInstanceOf(NotAuthorizedException);
+    expect(
+      await update(
+        { isEnabled: true },
+        editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
+      ),
     ).toBeNull();
   });
 
@@ -523,6 +648,7 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
       { commandRunners: [{ _id: RUNNER_A }] },
       { executionMode: AutoRemediationExecutionMode.Suggest },
       { aiComposesCommands: false },
+      { isEnabled: false },
     ]) {
       expect(await update(data, editor(RULE_EDITOR))).toBeNull();
     }
@@ -545,5 +671,19 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
     expect(read.query["_id"]).toBe(RULE_ID.toString());
     expect(read.query["projectId"]).toBe(PROJECT_ID);
     expect(read.props["isRoot"]).toBe(true);
+  });
+
+  it("reads the rows in the change's own window - the ones it goes on to write", async () => {
+    await update(
+      { executionMode: AutoRemediationExecutionMode.FullAuto },
+      editor(RULE_EDITOR),
+      { skip: 20000, limit: 15000 },
+    );
+
+    const read: { skip: number; limit: number } = ruleFind.mock
+      .calls[0]![0] as { skip: number; limit: number };
+
+    expect(read.skip).toBe(20000);
+    expect(read.limit).toBe(15000);
   });
 });

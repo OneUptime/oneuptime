@@ -739,9 +739,10 @@ export class Service extends ProjectReferencesService<Model> {
    * subscriber names already is left alone, so the dashboard and the manage
    * subscription page, which send the whole list back on every save, never
    * lock a subscription against editing. The subscribers are read as
-   * OneUptime through the update's own query - pinned to the request's
-   * project, since hooks run before the framework scopes the query - so a
-   * subscriber the update cannot reach says nothing.
+   * OneUptime through the update's own query and window - the rows the
+   * write itself goes on to change - pinned to the request's project, since
+   * hooks run before the framework scopes the query - so a subscriber the
+   * update cannot reach says nothing.
    */
   private async checkResourcesOnPages(
     updateBy: UpdateBy<Model>,
@@ -770,8 +771,8 @@ export class Service extends ProjectReferencesService<Model> {
           _id: true,
         },
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
+      limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
       props: {
         isRoot: true,
         ignoreHooks: true,

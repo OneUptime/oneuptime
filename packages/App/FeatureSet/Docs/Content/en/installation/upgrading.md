@@ -771,9 +771,10 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
     it the approval is refused with a `422` and nothing runs. Saving an auto
     remediation rule that lets OneUptime AI run its commands without asking -
     OneUptime AI composing commands, **Fix without asking** and a command
-    allowlist - needs the same permission when the save turns that on or
-    adds allowlist patterns or Runners. Rules that already run that way keep
-    running, and narrowing them or turning that off needs nothing more.
+    allowlist - needs the same permission when the save turns that on
+    (switching such a rule on included) or adds allowlist patterns or
+    Runners. Rules that already run that way keep running, and narrowing
+    them or turning that off needs nothing more.
     `ProjectMember` and the runbook roles approve such plans once
     `ReadRunbookCredential` is added to their team.
   See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types),

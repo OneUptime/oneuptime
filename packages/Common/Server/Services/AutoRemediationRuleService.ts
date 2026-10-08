@@ -20,9 +20,11 @@ import AiRemediationCredentialUse, {
 
 /*
  * The columns that decide whether, and where, a rule runs OneUptime AI's
- * commands without asking (AiRemediationCredentialUse).
+ * commands without asking (AiRemediationCredentialUse) - whether it is on
+ * included.
  */
 const COMMAND_SETTINGS_COLUMNS: Array<keyof RuleCommandSettings> = [
+  "isEnabled",
   "remediationAction",
   "aiComposesCommands",
   "executionMode",
@@ -166,8 +168,9 @@ export class Service extends ProjectReferencesService<Model> {
    * (AiRemediationCredentialUse). Only a real change counts: the dashboard's
    * rule form posts every field, so an edit that keeps what a rule already
    * runs keeps it. The rules are read as OneUptime through the update's own
-   * query, pinned to the request's project (hooks run before the framework
-   * scopes it), and only when the update writes one of the settings at all.
+   * query and window - the rows the write itself goes on to change - pinned
+   * to the request's project (hooks run before the framework scopes it),
+   * and only when the update writes one of the settings at all.
    */
   private async checkCommandsWithoutAsking(
     updateBy: UpdateBy<Model>,
@@ -196,14 +199,15 @@ export class Service extends ProjectReferencesService<Model> {
       },
       select: {
         _id: true,
+        isEnabled: true,
         remediationAction: true,
         aiComposesCommands: true,
         executionMode: true,
         commandAllowlist: true,
         commandRunners: { _id: true },
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
+      limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
       props: { isRoot: true },
     });
 
@@ -211,6 +215,7 @@ export class Service extends ProjectReferencesService<Model> {
       props: updateBy.props,
       changes: rules.map((rule: Model): RuleCommandSettingsChange => {
         const after: RuleCommandSettings = {
+          isEnabled: rule.isEnabled,
           remediationAction: rule.remediationAction,
           aiComposesCommands: rule.aiComposesCommands,
           executionMode: rule.executionMode,

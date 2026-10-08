@@ -92,6 +92,11 @@ function requirePermission(data: {
   modelType: DatabaseBaseModelType;
   requestType: DatabaseRequestType.Create | DatabaseRequestType.Update;
   message: string;
+  /*
+   * The permission to name when no grant reaches the whole project, so the
+   * caller knows what to ask for.
+   */
+  missingPermission?: Permission | undefined;
 }): void {
   const model: DatabaseBaseModel = new data.modelType();
   const required: Array<Permission> =
@@ -111,7 +116,13 @@ function requirePermission(data: {
   };
 
   if (!CallerPermission.isGrantedAny(data.props, required, options)) {
-    throw new NotAuthorizedException(data.message);
+    throw new NotAuthorizedException(
+      data.missingPermission
+        ? `${data.message} Missing permission: ${PermissionHelper.getTitle(
+            data.missingPermission,
+          )}, for all resources in the project.`
+        : data.message,
+    );
   }
 
   TablePermission.checkTableLevelBlockPermissions(
@@ -209,13 +220,15 @@ export default class RuleRunPermission {
    * every record of `modelType` in the project? A project-wide grant (or the
    * model's wildcard), no block on the model's list, and - for a model whose
    * records carry labels - no block on some labels either; refused with
-   * `message`. A master admin may, as the write path lets them.
+   * `message`, naming `missingPermission` when no grant reaches the whole
+   * project. A master admin may, as the write path lets them.
    */
   public static assertMayChangeEveryRecord(data: {
     props: DatabaseCommonInteractionProps;
     modelType: DatabaseBaseModelType;
     requestType: DatabaseRequestType.Create | DatabaseRequestType.Update;
     message: string;
+    missingPermission?: Permission | undefined;
   }): void {
     if (data.props.isMasterAdmin) {
       return;
