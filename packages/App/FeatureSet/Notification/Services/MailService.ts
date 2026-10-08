@@ -54,6 +54,11 @@ import type Mailer from "nodemailer/lib/mailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
+import {
+  BRAND_VARIABLE_NAMES,
+  getCurrentEmailBrandingVariables,
+  withBrandedSubject,
+} from "../Utils/EmailBranding";
 
 // One attachment of a SendGrid message.
 type SendgridAttachment = NonNullable<MailDataRequired["attachments"]>[number];
@@ -884,6 +889,19 @@ export default class MailService {
       vars["year"] = OneUptimeDate.getCurrentYear().toString();
     }
 
+    /*
+     * How the installation names and shows itself (EmailBranding.ts). These
+     * names are reserved for it: whatever a sender put there is replaced.
+     */
+    for (const name of BRAND_VARIABLE_NAMES) {
+      delete vars[name];
+    }
+
+    const brandVariables: Dictionary<string> =
+      getCurrentEmailBrandingVariables();
+
+    Object.assign(vars, brandVariables);
+
     const body: string = mail.templateType
       ? await this.compileEmailBody(mail.templateType, vars)
       : this.compileText(mail.body || "", vars);
@@ -891,11 +909,15 @@ export default class MailService {
     /*
      * A literal subject was rendered by the sender, often from user-authored
      * text; compiling it again would read any "{{" in that text as template
-     * syntax.
+     * syntax. A subject template's own words name the installation's product
+     * (withBrandedSubject); a literal subject is left exactly as it is.
      */
     const subject: string = mail.isSubjectLiteral
       ? mail.subject
-      : this.compileText(mail.subject, vars);
+      : this.compileText(
+          withBrandedSubject(mail.subject, brandVariables),
+          vars,
+        );
 
     return {
       subject: subject,

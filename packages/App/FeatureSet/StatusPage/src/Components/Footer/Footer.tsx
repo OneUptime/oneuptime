@@ -1,6 +1,7 @@
 import URL from "Common/Types/API/URL";
 import Link from "Common/Types/Link";
 import Footer, { FooterLink } from "Common/UI/Components/Footer/Footer";
+import { getPoweredByLink } from "Common/UI/Utils/ProductBranding";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
@@ -22,11 +23,26 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
   const links: Array<FooterLink> = [...props.links];
 
   if (!props.hidePoweredByOneUptimeBranding) {
-    links.push({
-      title: t("footer.poweredBy"),
-      to: URL.fromString("https://oneuptime.com"),
-      openInNewTab: true,
-    });
+    /*
+     * "Powered by" the product: OneUptime, linking to oneuptime.com, or the
+     * name the installation goes by (ProductBranding - the sentence is
+     * translated with it), linking to its website, or to nothing when it
+     * has none.
+     */
+    const poweredBy: { name: string; url: string | null } =
+      getPoweredByLink();
+
+    if (poweredBy.url) {
+      links.push({
+        title: t("footer.poweredBy"),
+        to: URL.fromString(poweredBy.url),
+        openInNewTab: true,
+      });
+    } else {
+      links.push({
+        content: <span>{t("footer.poweredBy")}</span>,
+      });
+    }
   }
 
   links.push({

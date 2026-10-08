@@ -11,7 +11,7 @@ import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Icon, { IconType, ThickProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
@@ -137,10 +137,8 @@ const VerifyEmail: () => JSX.Element = () => {
     <div className="flex w-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center sm:mb-10">
-          <img
+          <ProductLogo
             className="mx-auto h-10 w-auto sm:h-12"
-            src={OneUptimeLogo}
-            alt="OneUptime"
           />
         </div>
 

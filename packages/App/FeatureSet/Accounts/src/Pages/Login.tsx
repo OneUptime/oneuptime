@@ -27,7 +27,8 @@ import {
   CAPTCHA_ENABLED,
   CAPTCHA_SITE_KEY,
 } from "Common/UI/Config";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
+import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import LoginUtil from "Common/UI/Utils/Login";
@@ -760,14 +761,18 @@ const LoginPage: () => JSX.Element = () => {
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <img
-          className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt="OneUptime"
-        />
-        <div className="mt-4 flex justify-center">
-          <EditionLabel />
-        </div>
+        <ProductLogo className="mx-auto h-10 w-auto sm:h-12" />
+        {/*
+         * Which OneUptime edition this is, and its license: not on an
+         * installation that goes by a name of its own (ProductBranding),
+         * whose sign-in page is its own. Its master admins still find the
+         * license in the Admin Dashboard header.
+         */}
+        {!isProductRenamed() && (
+          <div className="mt-4 flex justify-center">
+            <EditionLabel />
+          </div>
+        )}
         {/*
          * The heading is the only thing on screen that names which of the six
          * states the card below is in, so `pendingLogin` has to come FIRST and

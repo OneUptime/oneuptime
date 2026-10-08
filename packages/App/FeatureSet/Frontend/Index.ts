@@ -31,6 +31,7 @@ import {
   shouldSkipStatusPageDomainFallbackRoute,
 } from "./RouteReservations";
 import { sendFrontendEnvironmentResponse } from "Common/Server/Utils/FrontendEnvironment";
+import { getProductBrandingIndexVariables } from "./ProductBrandingIndexVariables";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -241,7 +242,7 @@ const renderFrontendIndexPage: (
   const { req, res, next, frontendConfig } = options;
 
   try {
-    let variables: JSONObject = {};
+    let variables: JSONObject = getProductBrandingIndexVariables();
 
     if (frontendConfig.getVariablesToRenderIndexPage) {
       try {

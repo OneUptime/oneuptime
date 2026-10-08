@@ -4,7 +4,7 @@
 
 {{> EmailTitle title="A backup code was used to sign in to your account." }}
 
-{{> InfoBlock info="Someone signed in to your OneUptime account using one of your two factor authentication backup codes. Backup codes are single use, so this one has now been spent."}}
+{{> InfoBlock info=(concat "Someone signed in to your " (brandNameHtml) " account using one of your two factor authentication backup codes. Backup codes are single use, so this one has now been spent.")}}
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Signed in at:" text=signedInAt }}

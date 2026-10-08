@@ -42,6 +42,7 @@ import { VariableValueChange } from "Common/UI/Components/Dashboard/DashboardVar
 import MetricUtil from "../../../../Dashboard/src/Components/Metrics/Utils/Metrics";
 import { setPublicDashboardContext } from "../../../../Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import { getPoweredByLink } from "Common/UI/Utils/ProductBranding";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -261,6 +262,8 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
     return <PageLoader isVisible={true} />;
   }
 
+  const poweredBy: { name: string; url: string | null } = getPoweredByLink();
+
   return (
     <div
       ref={dashboardViewRef}
@@ -468,18 +471,28 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {/* Footer */}
+      {/*
+       * Footer: "Powered by" the product - OneUptime, or the name the
+       * installation goes by (ProductBranding), linking to its website or to
+       * nothing when it has none.
+       */}
       <div className="max-w-7xl mx-auto px-5 py-5">
         <div className="flex items-center justify-center text-xs text-gray-400">
           <span>Powered by</span>
-          <a
-            href="https://oneuptime.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-1 text-gray-500 hover:text-gray-700 font-medium"
-          >
-            OneUptime
-          </a>
+          {poweredBy.url ? (
+            <a
+              href={poweredBy.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 text-gray-500 hover:text-gray-700 font-medium"
+            >
+              {poweredBy.name}
+            </a>
+          ) : (
+            <span className="ml-1 text-gray-500 font-medium">
+              {poweredBy.name}
+            </span>
+          )}
         </div>
       </div>
     </div>

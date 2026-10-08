@@ -8,7 +8,7 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import WebAuthn from "Common/UI/Utils/WebAuthn";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import {
   PASSKEY_LOGIN_API_URL,
   PASSKEY_LOGIN_OPTIONS_API_URL,
@@ -142,10 +142,8 @@ const MobilePasskeyPage: () => JSX.Element = () => {
   return (
     <main className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-md">
-        <img
+        <ProductLogo
           className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt="OneUptime"
         />
         <h1 className="mt-6 text-center text-xl tracking-tight text-gray-900 sm:text-2xl">
           {t("mobilePasskey.title")}

@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <html>
+<%
+  /*
+   * The installation's branding (FeatureSet/Frontend/ProductBrandingIndexVariables.ts):
+   * the name it goes by, and its own browser tab icon when it has one.
+   * Rendered without them (a standalone frontend server), it is OneUptime.
+   */
+  var brandName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
+  var brandFaviconUrl = (typeof productFaviconUrl !== 'undefined' && productFaviconUrl) ? productFaviconUrl : '';
+  var isBranded = brandName !== 'OneUptime' || Boolean(brandFaviconUrl);
+%>
 
 <head>
   <meta charset="utf-8" />
@@ -11,7 +21,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="theme-color" content="#000000">
   <meta name="slack-app-id" content="ACVBMTPJQ">
+  <% if (brandName !== 'OneUptime') { %>
+  <meta name="description" content="<%= brandName %>">
+  <% } else { %>
   <meta name="description" content="OneUptime - the complete open-source observability platform.">
+  <% } %>
 
   <%- include('../../../../Common/Server/Views/Partials/AnalyticsConsent', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
@@ -39,6 +53,11 @@
 
   <link rel="manifest" href="/accounts/assets/img/favicons/ma">
   
+  <% if (brandFaviconUrl) { %>
+  <link rel="icon" href="<%= brandFaviconUrl %>">
+  <link rel="shortcut icon" href="<%= brandFaviconUrl %>">
+  <link rel="apple-touch-icon" href="<%= brandFaviconUrl %>">
+  <% } else { %>
   <link rel="apple-touch-icon" sizes="180x180" href="/accounts/assets/img/favicons/apple-touch-icon.png">
   <link rel="shortcut icon" href="/accounts/assets/img/favicons/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/accounts/assets/img/favicons/favicon-32x32.png">
@@ -48,6 +67,7 @@
   <link rel="mask-icon" href="/accounts/assets/img/favicons/safari-pinned-tab.svg" color="#5bbad5">
   <meta name="msapplication-TileColor" content="#121212">
   <meta name="msapplication-TileImage" content="/accounts/assets/img/favicons/mstile-144x144.png">
+  <% } %>
   <meta name="theme-color" content="#121212">
   
   <script src="/accounts/env.js"></script>
@@ -96,7 +116,7 @@
     <link rel="preload" href="/accounts/assets/js/tailwind-3.4.5.js" as="script">
     <script src="/accounts/assets/js/tailwind-3.4.5.js"></script>
 
-  <title>OneUptime Accounts</title>
+  <title><%= brandName %> Accounts</title>
 
 
   <!--
@@ -112,7 +132,7 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-  <title>OneUptime | Account</title>
+  <title><%= brandName %> | Account</title>
 </head>
 
 <body class="h-full bg-gray-50">

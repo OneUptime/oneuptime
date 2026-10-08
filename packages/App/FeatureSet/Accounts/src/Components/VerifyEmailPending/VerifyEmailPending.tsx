@@ -8,7 +8,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { IconType, ThickProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import React, { ReactElement, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -97,10 +97,8 @@ const VerifyEmailPending: (props: ComponentProps) => ReactElement = (
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <img
+        <ProductLogo
           className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt="OneUptime"
         />
         <div
           className="mt-6 rounded-xl border border-gray-200 bg-white px-5 py-8 text-center shadow-sm sm:px-8"

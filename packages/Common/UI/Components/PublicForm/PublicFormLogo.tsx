@@ -1,4 +1,6 @@
-import OneUptimeLogo from "../../Images/logos/OneUptimeSVG/3-transparent.svg";
+import { getProductLogoSource } from "../ProductLogo/ProductLogo";
+import { getProductName } from "../../Utils/ProductBranding";
+import { Theme } from "../../Utils/Theme";
 import {
   getPublicFormImageUrl,
   PublicFormImage,
@@ -7,8 +9,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * The logo at the top of a form's public page: the form's own when it has
- * one (its Branding), and the OneUptime logo until then - or when the form's
- * own cannot be drawn, so the page never shows a broken image. Drawn by the
+ * one (its Branding), and the product's logo until then - OneUptime's, or
+ * the installation's own when it has one (ProductBranding) - or when the
+ * form's own cannot be drawn, so the page never shows a broken image. Drawn by the
  * public page (Accounts Pages/Form.tsx) and by the dashboard's preview of
  * it, so the preview shows what a visitor sees.
  *
@@ -56,8 +59,8 @@ const PublicFormLogo: FunctionComponent<ComponentProps> = (
     return (
       <img
         className={className}
-        src={OneUptimeLogo}
-        alt="OneUptime"
+        src={getProductLogoSource(Theme.Light)}
+        alt={getProductName()}
         data-testid={PUBLIC_FORM_LOGO_TEST_ID}
         data-logo={PublicFormLogoSource.OneUptime}
       />
