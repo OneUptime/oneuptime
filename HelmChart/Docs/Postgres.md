@@ -320,9 +320,9 @@ parameter`, the driver is sending a libpq startup parameter PgBouncer isn't
 told to accept. node-postgres sends `statement_timeout` and
 `idle_in_transaction_session_timeout`; both must be in
 `pgbouncer.ignoreStartupParameters` (they are by default). PgBouncer accepts and
-_ignores_ them (does not forward them to the backend), so set
-`statement_timeout` on the backend if you need server-side enforcement — the
-app's client-side `query_timeout` still aborts slow queries.
+_ignores_ them (does not forward them to the backend), so the backend applies no
+`statement_timeout` to the app's statements unless one is set there (see
+[Statement timeout behind the pooler](#statement-timeout-behind-the-pooler)).
 
 **Pool mode and migrations are independent.** They did not used to be: the
 data-migration runner held a **session-level `pg_advisory_lock`** across its
@@ -340,6 +340,31 @@ on by default) does. Keep it enabled. With `migrate.enabled: false` — and unde
 docker-compose, which has no Job — every replica of every deployment runs the
 migration loop on boot, unserialized, so data migrations must be written to
 tolerate being run twice at once.
+
+#### Statement timeout behind the pooler
+
+The app's client-side `query_timeout` (`DATABASE_QUERY_TIMEOUT_MS`) does not
+cancel a statement: it stops waiting for it, and the backend runs it on - and
+may commit it after the app reported the write as failed. Only the backend's
+`statement_timeout` (`DATABASE_STATEMENT_TIMEOUT_MS`, 30 seconds by default)
+ends such a statement, and the app relies on it: a change to who can sign in
+with SSO whose write the app stopped waiting for holds back every other such
+change until the statement timeout would have cancelled it (and 10 seconds
+more), then lets them go on. Behind PgBouncer - the chart's, or a managed pooled
+endpoint that drops startup parameters too - set the timeout on the role the app
+connects as, to the value of `DATABASE_STATEMENT_TIMEOUT_MS`:
+
+```sql
+-- The role and database the app connects with: postgres and oneuptimedb for
+-- the chart's own Postgres, your own for an externalPostgres.
+ALTER ROLE "postgres" IN DATABASE "oneuptimedb" SET statement_timeout = '30s';
+```
+
+New backend connections pick it up; PgBouncer opens them as it needs them, or
+restart PgBouncer to start over. A connection that sends its own
+`statement_timeout` keeps it: the migration Job connects directly and sends the
+app's, so the role's setting changes nothing for it. A `psql` session for long
+manual work under that role can lift it with `SET statement_timeout = 0`.
 
 ### Transaction mode (real connection reduction)
 
@@ -400,7 +425,9 @@ Notes on the migration Job:
   boots at the same time runs the migration loop at the same time. This is the
   same path docker-compose uses.
 - Through the pooler the server-side `statement_timeout` GUC is dropped (as in
-  session mode); the app's client-side `query_timeout` still applies.
+  session mode); the app's client-side `query_timeout` still applies, but only
+  stops waiting. Set `statement_timeout` on the app's database role (see
+  [Statement timeout behind the pooler](#statement-timeout-behind-the-pooler)).
 
 ### New pods and pending schema migrations
 

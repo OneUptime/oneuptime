@@ -603,6 +603,16 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   minute to follow. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
+- **Saving Require SSO for Login on again is checked as turning it on is.**
+  A save that sends Require SSO for Login on - for a project or for the
+  whole server - or names the provider a project requires is now checked
+  even when the setting has that value already, as the API, Terraform and
+  other tools that send every setting with each save do. While no provider
+  would sign people in there, or the provider a project requires is off,
+  such a save is refused with the message turning it on gives, whatever
+  else it changes: turn a provider on, or turn the setting off, first.
+  Turning it off and clearing the required provider are never refused. See
+  [SSO](/docs/identity/sso#requiring-sso-for-your-project).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
