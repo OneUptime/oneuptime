@@ -246,7 +246,7 @@ describe("the shared paths ask it", () => {
     );
 
     const named: number = update.indexOf(
-      "await this.checkUpdateNamedRecords(updateBy)",
+      "await this.checkUpdateNamedRecords(",
     );
     const hooks: number = update.indexOf("await this.onBeforeUpdate(updateBy)");
 
