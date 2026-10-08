@@ -360,7 +360,7 @@ describePostgres(
             },
           ),
         },
-        props: { tenantId: projectId },
+        props: { isRoot: true, tenantId: projectId },
         skip: 0,
         limit: 10,
       } as unknown as UpdateBy<StatusPageSubscriber>;
@@ -459,7 +459,7 @@ describePostgres(
         return {
           query: {},
           data: { statusPageResources: namingResources(ids) },
-          props: { tenantId: projectId },
+          props: { isRoot: true, tenantId: projectId },
           skip: 0,
           limit: 10,
         } as unknown as UpdateBy<StatusPageSubscriber>;
@@ -667,7 +667,7 @@ describePostgres(
               },
             ),
           },
-          props: { tenantId: projectId },
+          props: { isRoot: true, tenantId: projectId },
           skip: 0,
           limit: 1,
         } as unknown as UpdateBy<StatusPageSubscriber>;

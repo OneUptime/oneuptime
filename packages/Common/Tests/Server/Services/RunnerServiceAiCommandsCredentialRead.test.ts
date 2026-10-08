@@ -18,6 +18,7 @@ import {
   stubGenericReferenceCheck,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * TURNING ON "RUNS AI REMEDIATION COMMANDS" FOR A RUNNER THAT HOLDS SSH
@@ -167,6 +168,11 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       .mockImplementation(async (): Promise<Array<Runner>> => {
         return runners;
       });
+
+    // The editor may write the Runners stored.
+    stubRowsCallerMayWrite(RunnerService, () => {
+      return runners;
+    });
 
     /*
      * The credentials assigned to the Runners asked about, of the type

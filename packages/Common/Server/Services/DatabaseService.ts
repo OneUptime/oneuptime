@@ -630,8 +630,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     } = {},
   ): Promise<boolean> {
     if (
-      write.props.isRoot ||
-      write.props.isMasterAdmin ||
+      DatabaseService.writesAnyRow(write.props) ||
       write.props.ignoreHooks ||
       !this.hasHooksFor(type)
     ) {
@@ -639,6 +638,35 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return true;
     }
 
+    return await this.readRowsCallerMayWrite(write, type, options);
+  }
+
+  // Whether a caller writes any row a write names: OneUptime, a master admin.
+  private static writesAnyRow(props: DatabaseCommonInteractionProps): boolean {
+    return Boolean(props.isRoot || props.isMasterAdmin);
+  }
+
+  /*
+   * keepRowsCallerMayWrite's read, for a caller who does not write any row:
+   * the rows of the write its caller may write, in the write's window, kept
+   * for that write (rowsTheCallerMayWrite) and named by its query from then
+   * on (pinQueryToRows). Returns whether there are any.
+   */
+  private async readRowsCallerMayWrite(
+    write: {
+      query: Query<TBaseModel>;
+      skip: PositiveNumber | number;
+      limit: PositiveNumber | number;
+      props: DatabaseCommonInteractionProps;
+      data?: unknown;
+    },
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+    options: {
+      withDeleted?: boolean;
+      alsoSelect?: Dictionary<unknown> | undefined;
+      onRows?: ((rows: Array<TBaseModel>) => void) | undefined;
+    },
+  ): Promise<boolean> {
     const query: Query<TBaseModel> = this.getRuleCriteriaEffectiveEnabledQuery(
       write.query,
     );
@@ -6799,10 +6827,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * read them with the caller's permissions, in the update's own window
    * (keepRowsCallerMayWrite), and this reads those rows again, by id, with
    * what the check needs: a row the caller cannot reach is neither asked
-   * about nor held. OneUptime and a master admin write any row, and a
-   * hook-free update reads none before: for them this reads the update's
-   * query in its window, pinned to the request's project, since hooks run
-   * before the framework scopes the update.
+   * about nor held. An update that reached the hook without that read - one
+   * a hook handed on as another object, or one made outside the update
+   * path - has them read here first, the same way. OneUptime and a master
+   * admin write any row: for them this reads the update's query in its
+   * window, pinned to the request's project, since hooks run before the
+   * framework scopes the update.
    *
    * The update then names the rows read, in the shapes its hooks already
    * read (pinQueryToRows), and by their ids even where those leave a query
@@ -6828,18 +6858,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return { ...query, [tenantColumn]: tenantId } as Query<TBaseModel>;
     };
 
-    const callerMayWrite: Array<string> | undefined =
-      rowsTheCallerMayWrite.get(updateBy);
+    // Who writes decides which rows: any, or the ones the caller may write.
+    let callerMayWrite: Array<string> | null = null;
 
-    if (callerMayWrite && callerMayWrite.length === 0) {
-      return [];
+    if (!DatabaseService.writesAnyRow(updateBy.props)) {
+      if (!rowsTheCallerMayWrite.has(updateBy)) {
+        await this.readRowsCallerMayWrite(
+          updateBy,
+          DatabaseRequestType.Update,
+          {},
+        );
+      }
+
+      callerMayWrite = rowsTheCallerMayWrite.get(updateBy) || [];
+
+      if (callerMayWrite.length === 0) {
+        return [];
+      }
     }
 
     const rows: Array<TBaseModel> = callerMayWrite
       ? await this.findBy({
           query: pinToProject({
             ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
-            _id: QueryHelper.any(callerMayWrite),
+            _id:
+              callerMayWrite.length === 1
+                ? callerMayWrite[0]!
+                : QueryHelper.any(callerMayWrite),
           } as Query<TBaseModel>),
           select: { ...select, _id: true } as Select<TBaseModel>,
           skip: 0,

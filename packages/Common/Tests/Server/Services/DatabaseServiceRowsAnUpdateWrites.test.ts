@@ -27,13 +27,14 @@ import {
  *
  * A service's onBeforeUpdate that checks the rows an update changes - the
  * resources a subscription adds, the command settings a rule widens - reads
- * them with findRowsAndHoldUpdateToThem. For a caller who is not OneUptime
- * or a master admin they are the rows the update path found the caller may
- * write, before the hooks, read again by id (the second describe below); for
- * OneUptime they are the update's own rows, read pinned to the request's
- * project in the update's window. The update is then held to the rows read:
- * its query names them, with a window that covers just them, so the write
- * can never reach a row the check did not see.
+ * them with findRowsAndHoldUpdateToThem. For OneUptime and a master admin,
+ * who write any row, they are the update's own rows, read pinned to the
+ * request's project in the update's window (the first describe below); for
+ * anyone else they are the rows the caller may write - found by the update
+ * path before the hooks, or by the hook itself when the update reached it
+ * some other way - read again by id (the second). The update is then held to
+ * the rows read: its query names them, with a window that covers just them,
+ * so the write can never reach a row the check did not see.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -75,7 +76,7 @@ function idsNamedBy(value: unknown): Array<string> {
   ).flat() as Array<string>;
 }
 
-describe("DatabaseService.findRowsAndHoldUpdateToThem", () => {
+describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update", () => {
   let service: DatabaseService<StatusPageSubscriber>;
   let findBy: jest.SpyInstance;
   let rowsRead: Array<StatusPageSubscriber>;
@@ -94,8 +95,8 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem", () => {
       query: data.query || { statusPageId: STATUS_PAGE_ID },
       data: { isSubscribedToAllResources: false },
       props: (data.props || {
+        isRoot: true,
         tenantId: PROJECT_ID,
-        userId: ObjectID.generate(),
       }) as unknown as DatabaseCommonInteractionProps,
       skip: data.skip ?? 0,
       limit: data.limit ?? LIMIT_MAX,
@@ -182,7 +183,11 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem", () => {
 
     await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(
       update({
-        props: { tenantId: PROJECT_ID, isMultiTenantRequest: true },
+        props: {
+          isRoot: true,
+          tenantId: PROJECT_ID,
+          isMultiTenantRequest: true,
+        },
       }),
       SELECT,
     );
@@ -351,6 +356,7 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - the rows the caller may 
   let rowsTheCallerMayWrite: Array<StatusPageSubscriber>;
   let rowsReadAgain: Array<StatusPageSubscriber>;
   let findBy: jest.SpyInstance;
+  let findRowsCallerMayWrite: jest.SpyInstance;
 
   function callerRows(): RowsTheCallerMayWrite {
     return service as unknown as RowsTheCallerMayWrite;
@@ -384,11 +390,12 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - the rows the caller may 
       },
     );
 
-    getJestSpyOn(service, "_findBy").mockImplementation(
-      async (): Promise<Array<StatusPageSubscriber>> => {
-        return rowsTheCallerMayWrite;
-      },
-    );
+    findRowsCallerMayWrite = getJestSpyOn(
+      service,
+      "_findBy",
+    ).mockImplementation(async (): Promise<Array<StatusPageSubscriber>> => {
+      return rowsTheCallerMayWrite;
+    });
 
     findBy = getJestSpyOn(service, "findBy").mockImplementation(
       async (): Promise<Array<StatusPageSubscriber>> => {
@@ -484,6 +491,56 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - the rows the caller may 
       callerRows().findRowsAndHoldUpdateToThem(updateBy, SELECT),
     ).resolves.toEqual([]);
     expect(findBy).not.toHaveBeenCalled();
+  });
+
+  it("reads the rows the caller may write itself when the update reached the hook without that read", async () => {
+    const updateBy: UpdateBy<StatusPageSubscriber> = update(TEAM_MEMBER);
+
+    await callerRows().findRowsAndHoldUpdateToThem(updateBy, SELECT);
+
+    // The caller's rows, found in the update's window...
+    const mayWrite: { query: JSONObject; skip: number; limit: number } =
+      findRowsCallerMayWrite.mock.calls[0]![0] as {
+        query: JSONObject;
+        skip: number;
+        limit: number;
+      };
+
+    expect(mayWrite.query["labelsTheCallerMayWrite"]).toBe(true);
+    expect(mayWrite.skip).toBe(0);
+    expect(mayWrite.limit).toBe(LIMIT_MAX);
+
+    // ... are the ones read again and held, and no other.
+    const read: { query: JSONObject } = findBy.mock.calls[0]![0] as {
+      query: JSONObject;
+    };
+
+    expect(idsNamedBy(read.query["_id"]).sort()).toEqual([ROW_A, ROW_B].sort());
+
+    const held: JSONObject = updateBy.query as unknown as JSONObject;
+
+    expect(idsNamedBy(held["_id"]).sort()).toEqual([ROW_A, ROW_B].sort());
+    expect(idsNamedBy(held["_id"])).not.toContain(ROW_C);
+  });
+
+  it("reads a master admin's update as OneUptime's: its own query, in its window", async () => {
+    const updateBy: UpdateBy<StatusPageSubscriber> = update({
+      tenantId: PROJECT_ID,
+      isMasterAdmin: true,
+    });
+
+    await callerRows().findRowsAndHoldUpdateToThem(updateBy, SELECT);
+
+    expect(findRowsCallerMayWrite).not.toHaveBeenCalled();
+
+    const read: { query: JSONObject; limit: number } = findBy.mock
+      .calls[0]![0] as { query: JSONObject; limit: number };
+
+    expect(read.query).toEqual({
+      statusPageId: STATUS_PAGE_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(read.limit).toBe(LIMIT_MAX);
   });
 
   it("reads the update's own query again when OneUptime writes the same update object", async () => {

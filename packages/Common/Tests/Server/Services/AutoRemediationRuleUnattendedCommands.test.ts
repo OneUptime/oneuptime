@@ -23,6 +23,7 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * A RULE LETS ONEUPTIME AI RUN ITS COMMANDS WITHOUT ASKING ONLY WHEN WHOEVER
@@ -427,6 +428,7 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
 
 describe("AutoRemediationRuleService - who may let a rule run AI commands without asking", () => {
   let ruleFind: jest.SpyInstance;
+  let rowsCallerMayWrite: jest.SpyInstance;
   let storedRule: JSONObject;
 
   beforeEach(() => {
@@ -443,6 +445,14 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
       .mockImplementation(async (): Promise<Array<AutoRemediationRule>> => {
         return [storedRule as unknown as AutoRemediationRule];
       });
+
+    // The editor may write the rule stored.
+    rowsCallerMayWrite = stubRowsCallerMayWrite(
+      AutoRemediationRuleService,
+      () => {
+        return [storedRule];
+      },
+    );
 
     // No Runner these rules name is a cluster's in-cluster agent.
     jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
@@ -718,11 +728,24 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
       { skip: 20000, limit: 15000 },
     );
 
-    const read: { skip: number; limit: number } = ruleFind.mock
+    // The rows the editor may write, found in the change's window...
+    const mayWrite: { skip: number; limit: number } = rowsCallerMayWrite.mock
       .calls[0]![0] as { skip: number; limit: number };
 
-    expect(read.skip).toBe(20000);
-    expect(read.limit).toBe(15000);
+    expect(mayWrite.skip).toBe(20000);
+    expect(mayWrite.limit).toBe(15000);
+
+    // ... are the ones the check reads, by id, and no others.
+    const read: { query: JSONObject; skip: number; limit: number } = ruleFind
+      .mock.calls[0]![0] as {
+      query: JSONObject;
+      skip: number;
+      limit: number;
+    };
+
+    expect(read.query["_id"]).toBe(RULE_ID.toString());
+    expect(read.skip).toBe(0);
+    expect(read.limit).toBe(1);
   });
 });
 
@@ -754,6 +777,11 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
       .mockImplementation(async (): Promise<Array<AutoRemediationRule>> => {
         return rulesRead as unknown as Array<AutoRemediationRule>;
       });
+
+    // The editor may write the rules read.
+    stubRowsCallerMayWrite(AutoRemediationRuleService, () => {
+      return rulesRead;
+    });
 
     // The Runner the change names is a cluster's in-cluster agent.
     jest

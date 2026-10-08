@@ -19,6 +19,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 import {
   afterEach,
   beforeEach,
@@ -203,6 +204,17 @@ beforeEach(() => {
     StatusPageSubscriberService,
     "findBy",
   ).mockResolvedValue([]);
+
+  // A teammate's change may write the subscribers the lookup answers with.
+  stubRowsCallerMayWrite(
+    StatusPageSubscriberService,
+    async (): Promise<Array<unknown>> => {
+      const answer: ((...args: Array<unknown>) => unknown) | undefined =
+        contactLookup.getMockImplementation();
+
+      return answer ? ((await answer({})) as Array<unknown>) : [];
+    },
+  );
 
   pagesLookup = getJestSpyOn(
     StatusPageSubscriberService,

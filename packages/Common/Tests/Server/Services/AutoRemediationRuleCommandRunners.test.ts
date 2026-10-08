@@ -12,6 +12,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Contract under test — an auto-remediation rule's Command Runners (the
@@ -216,6 +217,11 @@ describe("AutoRemediationRule Command Runners never include a kubernetes-agent R
       .mockImplementation(async (): Promise<Array<AutoRemediationRule>> => {
         return storedRules as Array<AutoRemediationRule>;
       });
+
+    // The editor may write the rules stored.
+    stubRowsCallerMayWrite(AutoRemediationRuleService, () => {
+      return storedRules;
+    });
   });
 
   afterEach(() => {
