@@ -1,5 +1,6 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
+import MonitorStatusService from "./MonitorStatusService";
 import NetworkAlertPolicyEngineService from "./NetworkAlertPolicyEngineService";
 import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkDeviceAutoImportRuleService from "./NetworkDeviceAutoImportRuleService";
@@ -27,6 +28,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MonitorTemplateCustomFieldUtil from "../../Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import MonitorTemplateSyncUtil from "../../Utils/Monitor/MonitorTemplateSyncUtil";
+import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
@@ -140,7 +142,48 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createBy.props.tenantId || createBy.data.projectId,
     });
 
+    /*
+     * Every monitor made or synced from a template takes its steps, ids and
+     * all, so the template's ids are given here exactly as a monitor's are
+     * (see MonitorService.onBeforeCreate).
+     */
+    if (createBy.data.monitorSteps) {
+      createBy.data.monitorSteps = await this.assignWrittenMonitorStepIds({
+        monitorSteps: createBy.data.monitorSteps as MonitorSteps | JSONObject,
+        storedMonitorSteps: undefined,
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+      });
+    }
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * See MonitorService.assignWrittenMonitorStepIds: a template's steps keep
+   * their stored ids across a write that resends them without ids, so the
+   * monitors synced from it keep matching it step for step.
+   */
+  private async assignWrittenMonitorStepIds(data: {
+    monitorSteps: MonitorSteps | JSONObject;
+    storedMonitorSteps: MonitorSteps | undefined;
+    projectId: ObjectID | undefined;
+  }): Promise<MonitorSteps> {
+    const monitorSteps: MonitorSteps = MonitorSteps.fromJSON(data.monitorSteps);
+
+    const defaultMonitorStatusId: ObjectID | null =
+      !monitorSteps.data?.defaultMonitorStatusId &&
+      !data.storedMonitorSteps?.data?.defaultMonitorStatusId &&
+      data.projectId
+        ? await MonitorStatusService.findDefaultOperationalStatusIdOrNull(
+            data.projectId,
+          )
+        : null;
+
+    return MonitorStepsIdentityUtil.assignIds({
+      monitorSteps,
+      storedMonitorSteps: data.storedMonitorSteps,
+      defaultMonitorStatusId,
+    });
   }
 
   @CaptureSpan()
@@ -185,6 +228,28 @@ export class Service extends ProjectReferencesService<Model> {
         ignoreHooks: true,
       },
     });
+
+    if (updateBy.data.monitorSteps) {
+      const projectIds: Set<string> = new Set<string>(
+        templates
+          .map((template: Model) => {
+            return template.projectId?.toString() || "";
+          })
+          .filter(Boolean),
+      );
+
+      (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
+        await this.assignWrittenMonitorStepIds({
+          monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
+          storedMonitorSteps:
+            templates.length === 1 ? templates[0]!.monitorSteps : undefined,
+          projectId:
+            updateBy.props.tenantId ||
+            (projectIds.size === 1
+              ? new ObjectID(Array.from(projectIds)[0]!)
+              : undefined),
+        });
+    }
 
     for (const template of templates) {
       this.validateSyncFields(
