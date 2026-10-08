@@ -7,6 +7,8 @@ import Card from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import ModelSwitchRow, { ModelSwitchConfirmation } from "./ModelSwitchRow";
+import { subscribeToModelSwitchSaved } from "./ModelSwitchEvents";
+import { getSwitchesInDrawnOrder } from "./ModelSwitchOrder";
 import {
   getColumnBooleanDefault,
   isModelSwitchOn,
@@ -51,7 +53,8 @@ import { useCardRuledListClassName } from "../Card/CardSurface";
  * drawn under its name, hanging from it, only while it is on - with it off
  * they would change nothing - and they turn on with it and off with it, in
  * the same save as its own column (ModelSwitchRow's childSwitches). While
- * it is on, each one is flipped on its own.
+ * it is on, each one is flipped on its own, and the switch it belongs to is
+ * locked while that save is out.
  */
 
 // A switch on the card, or one under another switch.
@@ -80,23 +83,6 @@ export interface ModelSwitchesCardSwitch<TBaseModel extends BaseModel>
    */
   children?: Array<ModelSwitchesCardChildSwitch<TBaseModel>> | undefined;
 }
-
-// Every switch of the card, in drawn order: each followed by the ones under it.
-export const getModelSwitchesInOrder: <TBaseModel extends BaseModel>(
-  switches: Array<ModelSwitchesCardSwitch<TBaseModel>>,
-) => Array<ModelSwitchesCardChildSwitch<TBaseModel>> = <
-  TBaseModel extends BaseModel,
->(
-  switches: Array<ModelSwitchesCardSwitch<TBaseModel>>,
-): Array<ModelSwitchesCardChildSwitch<TBaseModel>> => {
-  return switches.flatMap(
-    (
-      definition: ModelSwitchesCardSwitch<TBaseModel>,
-    ): Array<ModelSwitchesCardChildSwitch<TBaseModel>> => {
-      return [definition, ...(definition.children || [])];
-    },
-  );
-};
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -149,9 +135,37 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
 
   const modelIdString: string = props.modelId.toString();
 
-  // Every switch, the ones under another switch too.
+  // Every switch, in drawn order: the ones under another switch too.
   const allSwitches: Array<ModelSwitchesCardChildSwitch<TBaseModel>> =
-    getModelSwitchesInOrder(props.switches);
+    getSwitchesInDrawnOrder<ModelSwitchesCardSwitch<TBaseModel>>(
+      props.switches,
+    );
+
+  // The switches that are under another one.
+  const childSwitches: Array<ModelSwitchesCardChildSwitch<TBaseModel>> =
+    props.switches.flatMap(
+      (
+        definition: ModelSwitchesCardSwitch<TBaseModel>,
+      ): Array<ModelSwitchesCardChildSwitch<TBaseModel>> => {
+        return definition.children || [];
+      },
+    );
+
+  const childColumnsKey: string = childSwitches
+    .map((definition: ModelSwitchesCardChildSwitch<TBaseModel>): string => {
+      return `${definition.column}:${definition.isInverted ? "inverted" : ""}`;
+    })
+    .join(",");
+
+  // The switches under another one whose save is out, by column.
+  const [savingColumns, setSavingColumns] = useState<Record<string, boolean>>(
+    {},
+  );
+
+  // Where every switch is as last drawn, for telling which ones moved.
+  const positionsRef: MutableRefObject<SwitchPositions | null> =
+    useRef<SwitchPositions | null>(null);
+  positionsRef.current = positions;
 
   // The columns, as one string, so a new array of the same switches is no change.
   const columnsKey: string = allSwitches
@@ -236,9 +250,9 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
   }, [modelIdString, columnsKey]);
 
   /*
-   * Where a switch is now: the rows under a switch come and go with it, and
-   * each comes back where it was last left - or on, once the switch it
-   * belongs to was turned on.
+   * Where a switch is now. The rows under a switch are not drawn while it
+   * is off, so each is drawn again from here: where it was left, which is
+   * on (or off) once the save of the switch it belongs to set it so.
    */
   const remember: (column: string, isOn: boolean) => void = (
     column: string,
@@ -249,14 +263,47 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
     });
   };
 
+  /*
+   * A save of a switch under another one, made anywhere on the screen - its
+   * own row, the switch it belongs to, or somewhere else - is remembered
+   * here, so the row is drawn as the record holds it even when the save
+   * came while it was not drawn.
+   */
+  useEffect(() => {
+    const unsubscribes: Array<() => void> = childSwitches.map(
+      (definition: ModelSwitchesCardChildSwitch<TBaseModel>): (() => void) => {
+        return subscribeToModelSwitchSaved({
+          modelType: props.modelType,
+          modelId: props.modelId,
+          column: definition.column,
+          onSaved: (stored: boolean): void => {
+            remember(
+              definition.column,
+              definition.isInverted ? !stored : stored,
+            );
+          },
+        });
+      },
+    );
+
+    return () => {
+      for (const unsubscribe of unsubscribes) {
+        unsubscribe();
+      }
+    };
+  }, [modelIdString, childColumnsKey]);
+
   const renderRow: (data: {
     definition: ModelSwitchesCardChildSwitch<TBaseModel>;
     initialValue: boolean;
     children?: Array<ModelSwitchesCardChildSwitch<TBaseModel>> | undefined;
+    // A switch under another one.
+    isChild?: boolean | undefined;
   }) => ReactElement = (data: {
     definition: ModelSwitchesCardChildSwitch<TBaseModel>;
     initialValue: boolean;
     children?: Array<ModelSwitchesCardChildSwitch<TBaseModel>> | undefined;
+    isChild?: boolean | undefined;
   }): ReactElement => {
     const definition: ModelSwitchesCardChildSwitch<TBaseModel> =
       data.definition;
@@ -303,9 +350,29 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
                   return renderRow({
                     definition: child,
                     initialValue: Boolean(positions?.[child.column]),
+                    isChild: true,
                   });
                 },
               )
+            : undefined
+        }
+        // Locked while a switch under it is being saved.
+        isBusy={children.some(
+          (child: ModelSwitchesCardChildSwitch<TBaseModel>): boolean => {
+            return Boolean(savingColumns[child.column]);
+          },
+        )}
+        onSavingChange={
+          data.isChild
+            ? (isSaving: boolean): void => {
+                setSavingColumns(
+                  (
+                    current: Record<string, boolean>,
+                  ): Record<string, boolean> => {
+                    return { ...current, [definition.column]: isSaving };
+                  },
+                );
+              }
             : undefined
         }
         onChange={(isOn: boolean): void => {
@@ -313,10 +380,20 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
           props.onChange?.(definition.column, isOn);
         }}
         onSaved={(isOn: boolean): void => {
-          // The switches under it were saved with it, set the same way.
+          /*
+           * The switches under it were saved with it, set the same way: each
+           * is told as saved, and as moved when it was not there already.
+           */
           for (const child of children) {
+            const hasMoved: boolean =
+              positionsRef.current?.[child.column] !== isOn;
+
             remember(child.column, isOn);
-            props.onChange?.(child.column, isOn);
+
+            if (hasMoved) {
+              props.onChange?.(child.column, isOn);
+            }
+
             props.onSaved?.(child.column, isOn);
           }
 

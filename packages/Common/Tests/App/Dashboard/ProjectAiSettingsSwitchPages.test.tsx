@@ -35,7 +35,6 @@ import {
   ENABLE_AI_NOTICE_SWITCH_TEST_ID,
   ENABLE_AI_SWITCH_TEST_ID,
   EnableAiCopy,
-  getProjectAiSwitchesInOrder,
   getProjectAiSwitchTestId,
   PROJECT_AI_NOTICE_CONTEXT_COPY,
   PROJECT_AI_OFF_NOTICE_TEST_ID,
@@ -61,6 +60,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
+import { getSwitchesInDrawnOrder } from "../../../UI/Components/ModelSwitch/ModelSwitchOrder";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -516,7 +516,7 @@ describe("Incidents → AI → Settings", () => {
       }),
     ).toEqual(["true", "true", "true", "false", "true"]);
     expect(
-      titlesOf(getProjectAiSwitchesInOrder(AI_LANE_SWITCHES[AiLane.Incident])),
+      titlesOf(getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Incident])),
     ).toEqual(
       switches.map((control: HTMLElement): string => {
         return nameOf(control);
@@ -842,7 +842,7 @@ describe("Incidents → AI → Settings", () => {
       }
 
       // No AI switch rides along with a limit, nor one under a switch.
-      for (const definition of getProjectAiSwitchesInOrder(
+      for (const definition of getSwitchesInDrawnOrder(
         AI_LANE_SWITCHES[AiLane.Incident],
       )) {
         expect(posted[definition.column]).toBeUndefined();

@@ -18,6 +18,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getJestSpyOn } from "../../Spy";
 
 /*
  * Switches that belong to another switch (UI/Components/ModelSwitch):
@@ -97,7 +98,6 @@ jest.mock("../../../UI/Utils/User", () => {
 
 import ModelSwitchesCard, {
   ComponentProps as CardProps,
-  getModelSwitchesInOrder,
   ModelSwitchesCardChildSwitch,
   ModelSwitchesCardSwitch,
 } from "../../../UI/Components/ModelSwitch/ModelSwitchesCard";
@@ -115,11 +115,17 @@ import {
   getModelSwitchWrite,
   MODEL_SWITCH_CHILDREN_CLASS_NAME,
 } from "../../../UI/Components/ModelSwitch/ModelSwitchUtil";
+import { getSwitchesInDrawnOrder } from "../../../UI/Components/ModelSwitch/ModelSwitchOrder";
 import Project from "../../../Models/DatabaseModels/Project";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import ProjectUtil from "../../../UI/Utils/Project";
 
 const RECORD_ID: string = "7c7c7c7c-0000-4000-8000-0000000000cc";
 const CARD_TEST_ID: string = "the-switches";
@@ -648,6 +654,101 @@ describe("ModelSwitchRow: a switch with switches under it", () => {
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * A write any of its columns needs a plan for is refused whole, so the
+   * plan a child switch's column needs is named beside the switch it
+   * belongs to - here a free switch (the MCP server) holding a Growth one
+   * (the embedded status badge).
+   */
+  test("the plan a child switch's column needs is named beside the switch", () => {
+    getJestSpyOn(ProjectUtil, "getCurrentPlan").mockImplementation(
+      (): PlanType | null => {
+        return PlanType.Free;
+      },
+    );
+    getJestSpyOn(
+      SubscriptionPlan,
+      "isFeatureAccessibleOnCurrentPlan",
+    ).mockImplementation((needed: unknown, current: unknown): boolean => {
+      const order: Array<PlanType> = [
+        PlanType.Free,
+        PlanType.Growth,
+        PlanType.Scale,
+        PlanType.Enterprise,
+      ];
+
+      return (
+        order.indexOf(current as PlanType) >= order.indexOf(needed as PlanType)
+      );
+    });
+
+    const view: RenderResult = render(
+      <ModelSwitchRow<StatusPage>
+        modelType={StatusPage}
+        modelId={new ObjectID(RECORD_ID)}
+        column="enableMcpServer"
+        initialValue={false}
+        title="Turn on the MCP server"
+        dataTestId="switch-mcp"
+        childSwitches={[{ column: "enableEmbeddedOverallStatus" }]}
+      />,
+    );
+
+    expect(screen.getByTestId("switch-mcp-row")).toHaveTextContent(
+      "Growth Plan",
+    );
+
+    view.unmount();
+
+    // Without the child, the free switch names no plan.
+    render(
+      <ModelSwitchRow<StatusPage>
+        modelType={StatusPage}
+        modelId={new ObjectID(RECORD_ID)}
+        column="enableMcpServer"
+        initialValue={false}
+        title="Turn on the MCP server"
+        dataTestId="switch-mcp"
+      />,
+    );
+
+    expect(screen.getByTestId("switch-mcp-row")).not.toHaveTextContent("Plan");
+  });
+
+  test("locked as busy, it says nothing and a press saves nothing", async () => {
+    render(rowWithChildren({ isBusy: true }));
+
+    expect(screen.getByTestId(FIX)).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByTestId(`${FIX}-row`)).not.toHaveTextContent(
+      "permission",
+    );
+
+    await press(FIX);
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(checked(FIX)).toBe("false");
+  });
+
+  test("it says when its save goes out and when it is done, saved or refused", async () => {
+    const onSavingChange: MockFunction = getJestMockFunction();
+
+    render(rowWithChildren({ onSavingChange }));
+    await press(FIX);
+
+    expect(onSavingChange.mock.calls).toEqual([[true], [false]]);
+
+    cleanup();
+    onSavingChange.mockClear();
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new Error("No.");
+    });
+
+    render(rowWithChildren({ onSavingChange }));
+    await press(FIX);
+
+    expect(onSavingChange.mock.calls).toEqual([[true], [false]]);
+  });
+
   test("a switch without children draws exactly the row it always did", () => {
     render(
       <ModelSwitchRow<Project>
@@ -722,10 +823,10 @@ function switchIds(): Array<string | null> {
     });
 }
 
-describe("getModelSwitchesInOrder", () => {
+describe("getSwitchesInDrawnOrder", () => {
   test("every switch, each followed by the ones under it", () => {
     expect(
-      getModelSwitchesInOrder(SWITCHES).map(
+      getSwitchesInDrawnOrder<ModelSwitchesCardSwitch<Project>>(SWITCHES).map(
         (definition: ModelSwitchesCardChildSwitch<Project>): string => {
           return definition.column;
         },
@@ -736,6 +837,40 @@ describe("getModelSwitchesInOrder", () => {
       "enableAutomaticAlertCodeFixes",
       "enableAlertInstrumentationFixTasks",
     ]);
+  });
+
+  test("a list with no switch under another is its own order, and an empty one is empty", () => {
+    const flat: Array<{ name: string; children?: Array<{ name: string }> }> = [
+      { name: "a" },
+      { name: "b", children: [] },
+      { name: "c" },
+    ];
+
+    expect(
+      getSwitchesInDrawnOrder(flat).map((item: { name: string }): string => {
+        return item.name;
+      }),
+    ).toEqual(["a", "b", "c"]);
+    expect(getSwitchesInDrawnOrder([])).toEqual([]);
+  });
+
+  test("it is what the card draws, in the card's own order", async () => {
+    stored = {
+      enableAutomaticAlertRemediation: true,
+      enableAutomaticAlertCodeFixes: true,
+      enableAlertInstrumentationFixTasks: true,
+    };
+
+    render(card());
+    await loaded();
+
+    expect(switchIds()).toEqual(
+      getSwitchesInDrawnOrder<ModelSwitchesCardSwitch<Project>>(SWITCHES).map(
+        (definition: ModelSwitchesCardChildSwitch<Project>): string => {
+          return definition.dataTestId;
+        },
+      ),
+    );
   });
 });
 
@@ -1012,6 +1147,161 @@ describe("ModelSwitchesCard: switches under a switch", () => {
 
     expect(updateByIdMock).not.toHaveBeenCalled();
     expect(screen.getByTestId(`${FIX}-children`)).toBeInTheDocument();
+  });
+
+  /*
+   * A switch under another one being saved holds the switch it belongs to:
+   * turned off then, the child's row would go with its save's answer, and
+   * its write could land after the parent's and undo it.
+   */
+  test("while a switch under it is being saved, the switch it belongs to is locked, and a press does nothing", async () => {
+    stored = {
+      enableAutomaticAlertRemediation: true,
+      enableAutomaticAlertCodeFixes: true,
+      enableAlertInstrumentationFixTasks: true,
+    };
+
+    render(card());
+    await loaded();
+
+    const save: { finish: () => void } = holdSaves();
+
+    fireEvent.click(screen.getByTestId(CODE_FIX));
+    await flush();
+
+    expect(screen.getByTestId(FIX)).toHaveAttribute("aria-disabled", "true");
+    // The other switch under it, and the other rows, are not held.
+    expect(screen.getByTestId(TELEMETRY)).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByTestId(INVESTIGATE)).not.toHaveAttribute(
+      "aria-disabled",
+    );
+
+    fireEvent.click(screen.getByTestId(FIX));
+    await flush();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(checked(FIX)).toBe("true");
+    expect(screen.getByTestId(`${FIX}-children`)).toBeInTheDocument();
+
+    await act(async () => {
+      save.finish();
+    });
+    await flush();
+
+    expect(screen.getByTestId(FIX)).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByTestId(`${CODE_FIX}-status`)).toHaveTextContent("Saved");
+
+    // Now it turns off, with all three, after the child's save.
+    updateByIdMock.mockImplementation(
+      async (data: unknown): Promise<unknown> => {
+        Object.assign(stored, (data as { data: Record<string, unknown> }).data);
+        return {};
+      },
+    );
+    await press(FIX);
+
+    expect(writes()).toEqual([
+      { enableAutomaticAlertCodeFixes: false },
+      {
+        enableAutomaticAlertRemediation: false,
+        enableAutomaticAlertCodeFixes: false,
+        enableAlertInstrumentationFixTasks: false,
+      },
+    ]);
+  });
+
+  test("a refused save of a switch under it lets the switch it belongs to go again, and says why on that row", async () => {
+    stored = {
+      enableAutomaticAlertRemediation: true,
+      enableAutomaticAlertCodeFixes: true,
+      enableAlertInstrumentationFixTasks: true,
+    };
+
+    render(card());
+    await loaded();
+
+    const save: { refuse: (why: string) => void } = holdSaves();
+
+    fireEvent.click(screen.getByTestId(TELEMETRY));
+    await flush();
+    expect(screen.getByTestId(FIX)).toHaveAttribute("aria-disabled", "true");
+
+    await act(async () => {
+      save.refuse("The project could not be saved.");
+    });
+    await flush();
+
+    expect(screen.getByTestId(FIX)).not.toHaveAttribute("aria-disabled");
+    expect(checked(TELEMETRY)).toBe("true");
+    expect(screen.getByTestId(`${TELEMETRY}-row`)).toHaveTextContent(
+      "The project could not be saved.",
+    );
+  });
+
+  test("a save of a switch under it made elsewhere while it is not drawn is remembered, and drawn when it comes back", async () => {
+    stored = {
+      enableAutomaticAlertRemediation: false,
+      enableAutomaticAlertCodeFixes: false,
+      enableAlertInstrumentationFixTasks: false,
+    };
+
+    const view: RenderResult = render(card());
+    await loaded();
+
+    // Run the rows' and the card's effects (their subscriptions) first.
+    await act(async () => {
+      view.rerender(card());
+    });
+
+    expect(screen.queryByTestId(CODE_FIX)).toBeNull();
+
+    act(() => {
+      announceModelSwitchSaved({
+        modelType: Project,
+        modelId: new ObjectID(RECORD_ID),
+        column: "enableAutomaticAlertCodeFixes",
+        value: true,
+        source: "somewhere-else",
+      });
+      announceModelSwitchSaved({
+        modelType: Project,
+        modelId: new ObjectID(RECORD_ID),
+        column: "enableAutomaticAlertRemediation",
+        value: true,
+        source: "somewhere-else",
+      });
+    });
+
+    expect(checked(FIX)).toBe("true");
+    expect(checked(CODE_FIX)).toBe("true");
+    // Not saved anywhere: as the record holds it.
+    expect(checked(TELEMETRY)).toBe("false");
+  });
+
+  test("the caller hears every switch under it that was saved, and as moved only the ones that moved", async () => {
+    stored = {
+      enableAutomaticAlertRemediation: true,
+      enableAutomaticAlertCodeFixes: true,
+      enableAlertInstrumentationFixTasks: false,
+    };
+    const onChange: MockFunction = getJestMockFunction();
+    const onSaved: MockFunction = getJestMockFunction();
+
+    render(card({ onChange, onSaved }));
+    await loaded();
+    onChange.mockClear();
+
+    await press(FIX);
+
+    expect(onChange.mock.calls).toEqual([
+      ["enableAutomaticAlertRemediation", false],
+      ["enableAutomaticAlertCodeFixes", false],
+    ]);
+    expect(onSaved.mock.calls).toEqual([
+      ["enableAutomaticAlertCodeFixes", false],
+      ["enableAlertInstrumentationFixTasks", false],
+      ["enableAutomaticAlertRemediation", false],
+    ]);
   });
 
   test("a save of the switch made elsewhere on the screen moves it, and with it what is under it", async () => {

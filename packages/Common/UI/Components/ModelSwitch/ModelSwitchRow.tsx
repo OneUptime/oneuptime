@@ -173,6 +173,18 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * the save that sets them is out - and go at once when it is turned off.
    */
   childrenWhileOn?: ReactNode | undefined;
+  /*
+   * Lock the switch, saying nothing, while a save it depends on is out: a
+   * switch under it being saved (ModelSwitchesCard). Turned off then, that
+   * row would go with its save's answer, and the save could land after
+   * this switch's own write and undo it.
+   */
+  isBusy?: boolean | undefined;
+  /*
+   * Told when a save of the switch goes out (true), and when it is done,
+   * saved or refused (false).
+   */
+  onSavingChange?: ((isSaving: boolean) => void) | undefined;
 }
 
 /*
@@ -272,9 +284,22 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     childSwitches: props.childSwitches,
   });
 
-  const planNeeded: PlanType | null = getPlanNeededToChangeColumn(
-    model,
+  /*
+   * The plan a change of it needs: its own column's, else the first plan a
+   * child switch's column needs - the server refuses a write any of its
+   * columns needs a plan for. (A plan leftover, and locksWhenPlanNeeded,
+   * read its own column.)
+   */
+  const planNeeded: PlanType | null = [
     props.column,
+    ...(props.childSwitches || []).map((child: ModelSwitchChild): string => {
+      return child.column;
+    }),
+  ].reduce<PlanType | null>(
+    (found: PlanType | null, column: string): PlanType | null => {
+      return found || getPlanNeededToChangeColumn(model, column);
+    },
+    null,
   );
 
   // Locked by the plan: see locksWhenPlanNeeded.
@@ -318,6 +343,7 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     isBusyRef.current = true;
     setSaveState(ModelSwitchSaveState.Saving);
     setError("");
+    props.onSavingChange?.(true);
 
     // Its own column, and its child switches' set the same way.
     const write: Record<string, boolean> = getModelSwitchWrite({
@@ -361,17 +387,24 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
        */
       props.onSaved?.(value);
       setSaveState(ModelSwitchSaveState.Saved);
+      props.onSavingChange?.(false);
     } catch (err) {
       isBusyRef.current = false;
       setIsOn(previous);
       props.onChange?.(previous);
       setSaveState(ModelSwitchSaveState.Idle);
       setError(API.getFriendlyMessage(err));
+      props.onSavingChange?.(false);
     }
   };
 
   const change: (value: boolean) => void = (value: boolean): void => {
-    if (isBusyRef.current || !updateGate.isAllowed || planNeededToFlip) {
+    if (
+      isBusyRef.current ||
+      props.isBusy ||
+      !updateGate.isAllowed ||
+      planNeededToFlip
+    ) {
       return;
     }
 
@@ -475,6 +508,7 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
   const isLocked: boolean =
     saveState === ModelSwitchSaveState.Saving ||
     saveState === ModelSwitchSaveState.Confirming ||
+    Boolean(props.isBusy) ||
     !updateGate.isAllowed ||
     Boolean(props.lockedReason) ||
     Boolean(planNeededToFlip);

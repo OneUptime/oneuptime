@@ -21,7 +21,6 @@ import {
   getProjectAiNotices,
   getProjectAiProviderState,
   getProjectAiState,
-  getProjectAiSwitchesInOrder,
   getProjectAiSwitchTestId,
   isAiLaneAdvancedConfigured,
   isAiLaneAdvancedValueSet,
@@ -40,6 +39,7 @@ import {
   recordAiLaneAdvancedRules,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import Project from "Common/Models/DatabaseModels/Project";
+import { getSwitchesInDrawnOrder } from "Common/UI/Components/ModelSwitch/ModelSwitchOrder";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import Permission from "Common/Types/Permission";
@@ -189,8 +189,8 @@ const COLUMN_CARDS: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS.filter(
 
 // Every switch on the pages, the ones under a switch too.
 const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
-  ...getProjectAiSwitchesInOrder(AI_LANE_SWITCHES[AiLane.Incident]),
-  ...getProjectAiSwitchesInOrder(AI_LANE_SWITCHES[AiLane.Alert]),
+  ...getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Incident]),
+  ...getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Alert]),
   ...AI_INSIGHTS_SWITCHES,
 ];
 
@@ -427,7 +427,7 @@ describe("every AI behaviour is a switch", () => {
 
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
       const codeFix: ProjectAiSwitchDefinition<string> | undefined =
-        getProjectAiSwitchesInOrder(AI_LANE_SWITCHES[lane]).find(
+        getSwitchesInDrawnOrder(AI_LANE_SWITCHES[lane]).find(
           (definition: ProjectAiSwitchDefinition<string>): boolean => {
             return CODE_FIXES_COLUMN.test(definition.column);
           },

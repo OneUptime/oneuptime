@@ -6,10 +6,10 @@ import {
   AI_LANE_ADVANCED_CARDS,
   ENABLE_AI_COLUMN,
   getAiLaneAdvancedCardColumns,
-  getProjectAiSwitchesInOrder,
   ProjectAiSwitchDefinition,
   isAiLaneRulesCard,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { getSwitchesInDrawnOrder } from "Common/UI/Components/ModelSwitch/ModelSwitchOrder";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -143,7 +143,7 @@ function formFieldsOf(cards: Array<SettingsCard>): Array<string> {
 function columnsOf(
   switches: Array<ProjectAiSwitchDefinition<string>>,
 ): Array<string> {
-  return getProjectAiSwitchesInOrder(switches).map(
+  return getSwitchesInDrawnOrder(switches).map(
     (definition: ProjectAiSwitchDefinition<string>): string => {
       return definition.column;
     },

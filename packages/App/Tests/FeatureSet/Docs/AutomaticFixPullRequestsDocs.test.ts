@@ -220,6 +220,12 @@ describe("the AI SRE page", () => {
     expect(codeFixes).not.toContain("A second switch beside it");
   });
 
+  it("says the auto remediation rules narrow the cluster and host fixes and runbooks, not the pull requests", () => {
+    expect(codeFixes).toContain(
+      "Auto remediation rules narrow those fixes and the runbooks, not the pull requests: while fixing is on, every investigation that qualifies can open one.",
+    );
+  });
+
   it("says how to get the pull requests without OneUptime AI changing clusters or hosts", () => {
     expect(codeFixes).toContain(
       "To get the pull requests without OneUptime AI changing your clusters or hosts, turn fixing on, keep **Fixes** off on each Kubernetes cluster's and host's **AI agent** page (off is their default), and add no auto remediation rule",

@@ -20,6 +20,12 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitValues,
   ProjectAiDailyUsage,
 } from "Common/Types/AI/ProjectAiDailyLimits";
+import {
+  AUTOMATIC_FIX_PULL_REQUESTS,
+  AUTOMATIC_FIX_SWITCH_COLUMNS,
+  AutomaticFixPullRequest,
+} from "Common/Types/AI/AutomaticFixSwitches";
+import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 
 /*
  * What the project's AI settings pages say, in one place: Incidents → AI
@@ -104,28 +110,11 @@ export interface ProjectAiSwitchDefinition<TColumn extends string> {
   note?: string | undefined;
   /*
    * The switches that are part of this one, drawn under it while it is on.
-   * They turn on and off with it, in the same save. One level deep.
+   * They turn on and off with it, in the same save. One level deep; the
+   * order they are drawn in is Common's getSwitchesInDrawnOrder.
    */
   children?: Array<ProjectAiSwitchDefinition<TColumn>> | undefined;
 }
-
-/*
- * Every switch of a page, in the order it is drawn: each one followed by
- * the switches under it.
- */
-export const getProjectAiSwitchesInOrder: <TColumn extends string>(
-  switches: Array<ProjectAiSwitchDefinition<TColumn>>,
-) => Array<ProjectAiSwitchDefinition<TColumn>> = <TColumn extends string>(
-  switches: Array<ProjectAiSwitchDefinition<TColumn>>,
-): Array<ProjectAiSwitchDefinition<TColumn>> => {
-  return switches.flatMap(
-    (
-      definition: ProjectAiSwitchDefinition<TColumn>,
-    ): Array<ProjectAiSwitchDefinition<TColumn>> => {
-      return [definition, ...(definition.children || [])];
-    },
-  );
-};
 
 // The data-testid of a project AI switch, wherever it is drawn.
 export const getProjectAiSwitchTestId: (column: string) => string = (
@@ -166,12 +155,62 @@ const REMEDIATION_NOTE: string = translationKey(
   "Needs an AI agent that is allowed to fix things, on the Kubernetes cluster or host where it happens.",
 );
 
+// What each pull request's switch says: the same for incidents and alerts.
+const FIX_PULL_REQUEST_COPY: Record<
+  AutomaticFixPullRequest,
+  { title: string; description: string; note: string }
+> = {
+  [AutomaticFixPullRequest.CodeFix]: {
+    title: CODE_FIX_TITLE,
+    description: CODE_FIX_DESCRIPTION,
+    note: CODE_FIX_NOTE,
+  },
+  [AutomaticFixPullRequest.MissingTelemetry]: {
+    title: TELEMETRY_FIX_TITLE,
+    description: TELEMETRY_FIX_DESCRIPTION,
+    note: GITHUB_APP_NOTE,
+  },
+};
+
+/*
+ * A lane's fix switch and the pull-request switches under it, by the rule
+ * the server reads (Common/Types/AI/AutomaticFixSwitches): its columns and
+ * their order come from there, the words from here. So the page can never
+ * nest a switch the server does not hold to fixing, or leave one out.
+ */
+const getFixSwitch: (data: {
+  signal: AutoRemediationTriggerEntity;
+  title: string;
+  description: string;
+}) => ProjectAiSwitchDefinition<AiLaneSwitchColumn> = (data: {
+  signal: AutoRemediationTriggerEntity;
+  title: string;
+  description: string;
+}): ProjectAiSwitchDefinition<AiLaneSwitchColumn> => {
+  return {
+    column: AUTOMATIC_FIX_SWITCH_COLUMNS[data.signal].fix,
+    title: data.title,
+    description: data.description,
+    note: REMEDIATION_NOTE,
+    children: AUTOMATIC_FIX_PULL_REQUESTS.map(
+      (
+        pullRequest: AutomaticFixPullRequest,
+      ): ProjectAiSwitchDefinition<AiLaneSwitchColumn> => {
+        return {
+          column:
+            AUTOMATIC_FIX_SWITCH_COLUMNS[data.signal].pullRequests[pullRequest],
+          ...FIX_PULL_REQUEST_COPY[pullRequest],
+        };
+      },
+    ),
+  };
+};
+
 /*
  * The switches of each lane's page, in the order they are drawn: what
  * OneUptime AI does on its own as incidents (or alerts) happen - investigate,
  * fix (and, as part of fixing, open pull requests), and for incidents draft
- * the postmortem. The pull-request switches are the fix switch's children,
- * in the order Common's AUTOMATIC_FIX_PULL_REQUESTS gives them.
+ * the postmortem.
  */
 export const AI_LANE_SWITCHES: Record<
   AiLane,
@@ -185,28 +224,13 @@ export const AI_LANE_SWITCHES: Record<
         "OneUptime AI looks into each new incident and posts the likely root cause, with the evidence for it, to the incident's timeline.",
       ),
     },
-    {
-      column: "enableAutomaticIncidentRemediation",
+    getFixSwitch({
+      signal: AutoRemediationTriggerEntity.Incident,
       title: translationKey("Fix new incidents automatically"),
       description: translationKey(
         "OneUptime AI fixes each new incident through the AI agent on the cluster or host it affects, and can open pull requests for your team to review. Whether a fix waits for someone to approve it is up to that agent's settings.",
       ),
-      note: REMEDIATION_NOTE,
-      children: [
-        {
-          column: "enableAutomaticIncidentCodeFixes",
-          title: CODE_FIX_TITLE,
-          description: CODE_FIX_DESCRIPTION,
-          note: CODE_FIX_NOTE,
-        },
-        {
-          column: "enableIncidentInstrumentationFixTasks",
-          title: TELEMETRY_FIX_TITLE,
-          description: TELEMETRY_FIX_DESCRIPTION,
-          note: GITHUB_APP_NOTE,
-        },
-      ],
-    },
+    }),
     {
       column: "enableAutomaticPostmortemDraft",
       title: translationKey("Draft a postmortem when an incident resolves"),
@@ -223,28 +247,13 @@ export const AI_LANE_SWITCHES: Record<
         "OneUptime AI looks into each new alert and posts the likely root cause, with the evidence for it, to the alert's timeline.",
       ),
     },
-    {
-      column: "enableAutomaticAlertRemediation",
+    getFixSwitch({
+      signal: AutoRemediationTriggerEntity.Alert,
       title: translationKey("Fix new alerts automatically"),
       description: translationKey(
         "OneUptime AI fixes each new alert through the AI agent on the cluster or host it affects, and can open pull requests for your team to review. Whether a fix waits for someone to approve it is up to that agent's settings.",
       ),
-      note: REMEDIATION_NOTE,
-      children: [
-        {
-          column: "enableAutomaticAlertCodeFixes",
-          title: CODE_FIX_TITLE,
-          description: CODE_FIX_DESCRIPTION,
-          note: CODE_FIX_NOTE,
-        },
-        {
-          column: "enableAlertInstrumentationFixTasks",
-          title: TELEMETRY_FIX_TITLE,
-          description: TELEMETRY_FIX_DESCRIPTION,
-          note: GITHUB_APP_NOTE,
-        },
-      ],
-    },
+    }),
   ],
 };
 
