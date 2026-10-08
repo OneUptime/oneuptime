@@ -169,7 +169,7 @@ Under the providers, the **SSO Settings** card holds the **Require SSO for Login
 
 ### IP allowlist
 
-Under **More settings** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds. On OneUptime Cloud, changing it needs the **Scale** plan; emptying it works on every plan.
+Under **More settings** on **Access**, the **IP Allowlist** section (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds. On OneUptime Cloud, changing it needs the **Scale** plan; emptying it works on every plan.
 
 ## The embeddable badge and the RSS feed
 

@@ -463,3 +463,31 @@ describe("Workflow step card: colours that hold in dark mode", () => {
     }
   });
 });
+
+describe("Workflow step card: the colour of a chat step", () => {
+  type SelectedCardBorderFunction = (category: string, title: string) => string;
+
+  const selectedCardBorder: SelectedCardBorderFunction = (
+    category: string,
+    title: string,
+  ): string => {
+    renderCard(
+      makeData({ metadata: { ...METADATA, title: title, category: category } }),
+      true,
+    );
+
+    return (
+      screen.getByText(title).closest('[class="cursor-pointer"]') as HTMLElement
+    ).style.borderColor;
+  };
+
+  test("an IRC step has the green of the other chat steps", () => {
+    expect(selectedCardBorder("IRC", "Send Message to IRC")).toBe("#10b981");
+  });
+
+  test("a category with 'irc' inside a word is not taken for IRC", () => {
+    expect(selectedCardBorder("Circuit", "Create One Circuit")).not.toBe(
+      "#10b981",
+    );
+  });
+});

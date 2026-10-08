@@ -21,6 +21,7 @@ import IfElse from "./Conditions/IfElse";
 import DiscordSendMessageToChannel from "./Discord/SendMessageToChannel";
 import Email from "./Email";
 import IncomingEmailWorkflowTrigger from "./IncomingEmail";
+import IRCSendMessageToChannel from "./IRC/SendMessageToChannel";
 import JsonToText from "./JSON/JsonToText";
 import MergeJSON from "./JSON/MergeJson";
 import TextToJSON from "./JSON/TextToJson";
@@ -49,6 +50,7 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.MicrosoftTeamsSendMessageToChannel]:
     new MicrosoftTeamsSendMessageToChannel(),
   [ComponentID.TelegramSendMessageToChat]: new TelegramSendMessageToChat(),
+  [ComponentID.IRCSendMessageToChannel]: new IRCSendMessageToChannel(),
   [ComponentID.Log]: new Log(),
   [ComponentID.Schedule]: new Schedule(),
   [ComponentID.JavaScriptCode]: new JavaScriptCode(),

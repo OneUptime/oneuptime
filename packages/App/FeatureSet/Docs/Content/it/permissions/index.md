@@ -154,6 +154,8 @@ I proprietari svolgono due compiti:
 
 La proprietà da sola non concede nulla. Essere proprietari di un monitor non permette di modificarlo se nessuno dei vostri team detiene anche un'autorizzazione sui monitor. La proprietà restringe l'accesso; non lo amplia mai.
 
+Chi possiede una risorsa si legge attraverso la risorsa. I proprietari di un monitor o di qualsiasi altra risorsa vengono elencati, letti, aggiunti e rimossi solo da chi può leggere quella risorsa, e un'autorizzazione sui soli proprietari non raggiunge i proprietari di nessuna risorsa che non potete leggere.
+
 ## Etichette
 
 Le etichette sono contrassegni validi in tutto il progetto che applicate alle risorse. Servono a due scopi: filtrare e raggruppare nella dashboard e limitare le autorizzazioni come descritto sopra.
@@ -205,6 +207,8 @@ Per un utente autenticato, nell'ordine:
 Ogni campo di un record si legge con l'autorizzazione di lettura del record stesso: un'autorizzazione per un altro tipo di record non lo apre mai. Alcuni campi sono volutamente più ristretti. I segreti li leggono solo le persone che possono modificare o amministrare il record a cui appartengono, come le chiavi delle richieste in arrivo e delle email in arrivo di un monitor e la chiave del suo agente server, o le chiavi del webhook e delle email in arrivo di un workflow. Guardare la registrazione di una riproduzione di sessione richiede **Watch Session Replays**, non solo **List Session Replays**. La telemetria si legge segnale per segnale: **Read Telemetry Service Log** legge i log, **Read Telemetry Service Traces** legge le tracce e **Read Telemetry Service Metrics** legge le metriche, grafici delle metriche compresi.
 
 I campi seguono la stessa regola. Un blocco senza etichette sull'autorizzazione di un campo toglie quel campo, e su una risorsa operativa l'autorizzazione **All Operational Resources** corrispondente apre ogni campo che può aprire chiunque possa leggere o modificare il record — ma non un campo volutamente più ristretto, come una chiave segreta.
+
+Un'impostazione che contiene credenziali la nomina solo chi può leggerla. Una creazione o una modifica nomina un server SMTP, un fornitore di chiamate e SMS, una credenziale di runbook, credenziali SNMP, una connessione di videochiamata o una chiave API — come il server SMTP con cui una pagina di stato invia le email, o la credenziale con cui viene eseguito un passo di runbook — solo se potete leggere quel tipo di impostazione; una che non potete leggere viene rifiutata come se non esistesse, mentre un record conserva quella che nomina già. Cercare numeri da acquistare presso un fornitore di chiamate e SMS, o elencare i numeri che possiede, richiede la stessa lettura.
 
 La stessa regola decide tutto il resto che chiede se detenete un'autorizzazione: le azioni che non sono una semplice lettura o scrittura — aggiungere credito SMS, chiamate o IA, pagare una fattura, provare una regola di notifica — e i pulsanti che OneUptime mostra. Un pulsante che non potete usare appare bloccato e dice perché; quando la ragione è un blocco su uno dei vostri team, nomina l'autorizzazione bloccata.
 

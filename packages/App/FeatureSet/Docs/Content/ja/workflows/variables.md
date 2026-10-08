@@ -58,7 +58,7 @@
 ほとんどすべてのテキスト欄が変数を受け付けます。
 
 - API ブロックの URL。
-- Slack、Teams、Discord、Telegram、メールのメッセージ本文。
+- Slack、Teams、Discord、Telegram、IRC、メールのメッセージ本文。
 - メールの件名と本文。
 - ヘッダーとボディの項目（文字列の値の中で）。
 - **If / Else** ブロックの左右どちらの値も。

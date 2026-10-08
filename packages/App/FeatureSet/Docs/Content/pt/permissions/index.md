@@ -154,6 +154,8 @@ Proprietários cumprem duas funções:
 
 Propriedade sozinha não concede nada. Ser proprietário de um monitor não permite editá-lo, a menos que alguma equipe sua também detenha uma permissão de monitor. A propriedade restringe o acesso; nunca o amplia.
 
+Quem é proprietário de um recurso é lido por meio do recurso. Os proprietários de um monitor ou de qualquer outro recurso só são listados, lidos, adicionados e removidos por quem pode ler esse recurso, e uma permissão apenas sobre os proprietários não alcança os proprietários de nenhum recurso que você não possa ler.
+
 ## Rótulos
 
 Rótulos são marcações válidas em todo o projeto que você anexa aos recursos. Servem a dois propósitos: filtrar e agrupar no painel e restringir permissões conforme descrito acima.
@@ -205,6 +207,8 @@ Para um usuário autenticado, na ordem:
 Cada campo de um registro é lido com a permissão de leitura do próprio registro: uma permissão de outro tipo de registro nunca o abre. Alguns campos são mais restritos de propósito. Os segredos só são lidos por quem pode editar ou administrar o registro a que pertencem, como as chaves de requisições recebidas e de e-mails recebidos de um monitor e a chave do seu agente de servidor, ou as chaves de webhook e de e-mail de entrada de um fluxo de trabalho. Assistir à gravação de uma reprodução de sessão exige **Watch Session Replays**, não apenas **List Session Replays**. A telemetria é lida sinal a sinal: **Read Telemetry Service Log** lê os logs, **Read Telemetry Service Traces** lê os traces e **Read Telemetry Service Metrics** lê as métricas, incluindo os gráficos de métricas.
 
 Os campos seguem a mesma regra. Um bloqueio sem rótulos na permissão de um campo remove esse campo, e em um recurso operacional a permissão **All Operational Resources** correspondente abre todo campo que pode abrir qualquer pessoa que possa ler ou alterar o registro — mas não um campo mais restrito de propósito, como uma chave secreta.
+
+Uma configuração que guarda credenciais só é nomeada por quem pode lê-la. Uma criação ou uma alteração nomeia um servidor SMTP, um provedor de chamadas e SMS, uma credencial de runbook, credenciais SNMP, uma conexão de videochamada ou uma chave de API — como o servidor SMTP com que uma página de status envia e-mails, ou a credencial com que uma etapa de runbook é executada — somente quando você pode ler esse tipo de configuração; uma que você não pode ler é recusada como se não existisse, enquanto um registro mantém a que já nomeia. Buscar números para comprar em um provedor de chamadas e SMS, ou listar os números que ele possui, exige a mesma leitura.
 
 A mesma regra decide tudo o mais que pergunta se você tem uma permissão: as ações que não são uma simples leitura ou escrita — adicionar crédito de SMS, chamadas ou IA, pagar uma fatura ou testar uma regra de notificação — e os botões que o OneUptime mostra. Um botão que você não pode usar aparece travado e diz por quê; quando o motivo é um bloqueio em uma de suas equipes, ele nomeia a permissão bloqueada.
 

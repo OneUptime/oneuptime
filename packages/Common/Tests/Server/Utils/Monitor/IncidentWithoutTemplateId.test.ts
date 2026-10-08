@@ -146,7 +146,7 @@ describe("Auto-resolving an incident whose template had no id", () => {
 
   it("keeps it open when it names no criteria", () => {
     const incident: Incident = openIncident();
-    incident.createdCriteriaId = undefined;
+    delete incident.createdCriteriaId;
 
     expect(
       shouldCloseIncident({

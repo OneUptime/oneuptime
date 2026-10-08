@@ -43,7 +43,7 @@ For stronger gating (separate accounts per viewer, an audit trail of who viewed 
 
 ## IP allowlist
 
-Under **More settings** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column) limits the public link to the IP addresses or IPv4 ranges you list, one per line, for example `203.0.113.7` or `10.0.0.0/8`. It applies with or without the password; project members who sign in are not affected. Leave it empty to allow every address. It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud; emptying it works on every plan. While a list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds.
+Under **More settings** on the **Sharing** page, the **IP Allowlist** section (the `ipWhitelist` column) limits the public link to the IP addresses or IPv4 ranges you list, one per line, for example `203.0.113.7` or `10.0.0.0/8`. It applies with or without the password; project members who sign in are not affected. Leave it empty to allow every address. It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud; emptying it works on every plan. While a list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds.
 
 Use this when:
 

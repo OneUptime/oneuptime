@@ -53,6 +53,7 @@ import {
   STATUS_PAGE_REPORT_SCHEDULE_TEST_ID,
   StatusPageReportsCopy,
 } from "./StatusPageReportsCopy";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
  * "Email Reports", on a status page's Advanced -> Reports: one switch, "Send
@@ -206,6 +207,7 @@ const ScheduleLines: FunctionComponent<ScheduleLinesProps> = (
 const StatusPageReportsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const [page, setPage] = useState<ReportScheduleColumns | null>(null);
   // Where the switch is now: it moves the moment it is pressed.
   const [isOn, setIsOn] = useState<boolean>(false);
@@ -334,7 +336,7 @@ const StatusPageReportsCard: FunctionComponent<ComponentProps> = (
        * status page's other switch cards; the schedule is a row of its own
        * below it.
        */
-      <div className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6">
+      <div className={ruledBodyClassName}>
         <div className="px-5 py-4 md:px-6">
           <ModelSwitchRow<StatusPage>
             /*

@@ -20,6 +20,7 @@ import FilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import Pagination from "../Pagination/Pagination";
 import ListBody from "./ListBody";
+import { useIsCardSection } from "../Card/CardSurface";
 import ListSkeleton from "./ListSkeleton";
 import { ListDetailProps } from "./ListRow";
 import { DRAG_HANDLE_USAGE_INSTRUCTIONS } from "../Table/Table";
@@ -96,6 +97,7 @@ const List: ListFunction = <T extends GenericObject>(
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const translator: Translator = useTranslator();
+  const isCardSection: boolean = useIsCardSection();
   /*
    * A refetch with cards already on screen (pagination, sort, refresh - the
    * parent never clears `data` while fetching) keeps those cards visible and
@@ -308,7 +310,12 @@ const List: ListFunction = <T extends GenericObject>(
            * does not end in a white band under the empty state.
            */}
           {isPaginationHidden && !props.disablePagination ? (
-            <div className="-mb-6 h-6 rounded-b-xl bg-gray-50" />
+            <div
+              className={`-mb-6 h-6 bg-gray-50${
+                isCardSection ? "" : " rounded-b-xl"
+              }`}
+              data-testid="list-footer"
+            />
           ) : (
             <></>
           )}

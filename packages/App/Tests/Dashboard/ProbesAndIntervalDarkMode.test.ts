@@ -36,6 +36,8 @@ const FILES: Array<string> = [
   path.join(DASHBOARD_SRC, "Components", "Monitor", "ProbesAndIntervalCopy.ts"),
   path.join(DASHBOARD_SRC, "Pages", "Monitor", "View", "Probes.tsx"),
   path.join(COMMON_DIR, "UI", "Components", "SaveStatus", "SaveStatus.tsx"),
+  // The cards' ruled, edge-to-edge bodies take their classes from here.
+  path.join(COMMON_DIR, "UI", "Components", "Card", "CardSurface.ts"),
 ];
 
 const THEME_CSS_PATH: string = path.join(
