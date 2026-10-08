@@ -33,6 +33,10 @@ import {
  * Tiles, option cards and the items of a list (a runbook's steps, a form's
  * questions) are not whole cards: they have no card header and are the
  * content of the card they are in.
+ *
+ * The Common Test job deletes ee/ before it runs; the Enterprise Edition
+ * Test workflow (test.ee.yaml) runs this guard again with ee/ present, which
+ * is where the enterprise dashboards are held to it.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(

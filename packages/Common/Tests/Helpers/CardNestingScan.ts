@@ -229,39 +229,40 @@ function mainReturnOf(source: ts.SourceFile): ts.Expression | null {
     return null;
   }
 
-  let component: ts.FunctionLikeDeclaration | null = null;
+  const name: string = defaultName;
 
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (component) {
-      return;
-    }
-
+  // The component itself: a const arrow or function expression, or a function declaration.
+  const findComponent: (
+    node: ts.Node,
+  ) => ts.FunctionLikeDeclaration | null = (
+    node: ts.Node,
+  ): ts.FunctionLikeDeclaration | null => {
     if (
       ts.isVariableDeclaration(node) &&
-      node.name.getText() === defaultName &&
+      node.name.getText() === name &&
       node.initializer &&
       (ts.isArrowFunction(node.initializer) ||
         ts.isFunctionExpression(node.initializer))
     ) {
-      component = node.initializer;
-      return;
+      return node.initializer;
     }
 
-    if (
-      ts.isFunctionDeclaration(node) &&
-      node.name &&
-      node.name.text === defaultName
-    ) {
-      component = node;
-      return;
+    if (ts.isFunctionDeclaration(node) && node.name && node.name.text === name) {
+      return node;
     }
 
-    ts.forEachChild(node, visit);
+    // forEachChild stops at, and gives back, the first child that has it.
+    return (
+      ts.forEachChild(
+        node,
+        (child: ts.Node): ts.FunctionLikeDeclaration | undefined => {
+          return findComponent(child) || undefined;
+        },
+      ) || null
+    );
   };
 
-  visit(source);
-
-  const found: ts.FunctionLikeDeclaration | null = component;
+  const found: ts.FunctionLikeDeclaration | null = findComponent(source);
 
   if (!found || !found.body) {
     return null;
