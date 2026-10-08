@@ -203,7 +203,7 @@ resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
 ## ارتقای ارائه‌دهنده
 
 1. یادداشت‌های انتشار را در [صفحه رجیستری](https://registry.terraform.io/providers/oneuptime/oneuptime) یا [انتشارهای GitHub](https://github.com/OneUptime/terraform-provider-oneuptime/releases) بخوانید.
-2. محدودیت نسخه را بالا ببرید (برای نمونه `~> 11.0` از پیش همه انتشارهای 11.x را مجاز می‌کند؛ رفتن به یک نسخه اصلی جدید نیازمند ویرایش محدودیت است).
+2. محدودیت نسخه را بالا ببرید (برای نمونه `{{TERRAFORM_PROVIDER_VERSION}}` از پیش همه انتشارهای {{TERRAFORM_PROVIDER_MAJOR}}.x را مجاز می‌کند؛ رفتن به یک نسخه اصلی جدید نیازمند ویرایش محدودیت است).
 3. برای گرفتن نسخه جدید `terraform init -upgrade` را اجرا کنید.
 4. پیش از اعمال، `terraform plan` را اجرا کنید و مطمئن شوید طرح خالی است (یا فقط تغییرهایی دارد که انتظارشان را دارید).
 

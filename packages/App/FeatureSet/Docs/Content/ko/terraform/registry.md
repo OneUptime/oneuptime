@@ -15,7 +15,7 @@ terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
@@ -25,17 +25,17 @@ terraform {
 
 ## How versioning works
 
-Provider versions **track OneUptime platform versions**: provider 11.x is generated from and tested against OneUptime 11.x. This has two practical consequences:
+Provider versions **track OneUptime platform versions**: provider {{TERRAFORM_PROVIDER_MAJOR}}.x is generated from and tested against OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.x. This has two practical consequences:
 
 1. **Cloud users** always run the latest platform, so the newest provider is always correct:
 
 ```hcl
-version = "~> 11.0"
+version = "{{TERRAFORM_PROVIDER_VERSION}}"
 ```
 
 2. **Self-hosted users** should use the newest published provider version that is **less than or equal to** their OneUptime platform version. A newer provider may reference API fields your older platform does not have.
 
-**Version gaps are normal.** The provider is regenerated and published per meaningful change, not for every platform patch release — so do not pin exact patch versions (`= 11.0.7` may simply not exist on the registry, and `terraform init` will fail with `no matching version found`). Pessimistic constraints (`~> 11.0`) always resolve to a real published version. More on the self-hosted selection rule in [Self-Hosted Setup](/docs/terraform/self-hosted).
+**Version gaps are normal.** The provider is regenerated and published per meaningful change, not for every platform patch release — so do not pin exact patch versions (`= {{TERRAFORM_PROVIDER_MAJOR}}.0.7` may simply not exist on the registry, and `terraform init` will fail with `no matching version found`). Pessimistic constraints (`{{TERRAFORM_PROVIDER_VERSION}}`) always resolve to a real published version. More on the self-hosted selection rule in [Self-Hosted Setup](/docs/terraform/self-hosted).
 
 ## Checking versions and release notes
 
