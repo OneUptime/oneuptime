@@ -58,7 +58,7 @@ Lokale variabler finnes bare under den pågående kjøringen. Hver nye kjøring 
 Nesten hvert tekstfelt tar imot variabler:
 
 - URL-en på en API-blokk.
-- Meldingsteksten på Slack, Teams, Discord, Telegram, E-post.
+- Meldingsteksten på Slack, Teams, Discord, Telegram, IRC, E-post.
 - Emnet og teksten i en e-post.
 - Header- og kroppsfelt (inni strengverdier).
 - Begge sider av en **If / Else**-blokk.
