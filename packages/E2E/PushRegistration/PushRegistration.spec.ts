@@ -2,6 +2,7 @@ import {
   APIRequestContext,
   BrowserContext,
   CDPSession,
+  ConsoleMessage,
   expect,
   Locator,
   Page,
@@ -72,6 +73,20 @@ interface FixtureState {
     body: Record<string, unknown>;
   }>;
 }
+
+// A call to navigator.serviceWorker.register, and what came of it.
+interface WorkerRegistrationCall {
+  scriptURL: string;
+  options: RegistrationOptions | null;
+  outcome: string;
+}
+
+type RecordingWindow = Window & {
+  __workerRegistrations?: Array<WorkerRegistrationCall>;
+};
+
+// What index.ejs logged on every page load when the browser refused its registration.
+const REFUSED_REGISTRATION_LOG: RegExp = /SecurityError|registration failed/i;
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
@@ -145,6 +160,55 @@ async function standInForThePushService(
   }, SUBSCRIPTION);
 }
 
+/*
+ * Every call any script on the page makes to navigator.serviceWorker.register,
+ * the page's own and Register Device's, with the scope it was given or the
+ * error the browser refused it with.
+ */
+async function recordWorkerRegistrations(
+  context: BrowserContext,
+): Promise<void> {
+  await context.addInitScript(() => {
+    const calls: Array<WorkerRegistrationCall> = [];
+    (window as RecordingWindow).__workerRegistrations = calls;
+
+    const register: ServiceWorkerContainer["register"] =
+      ServiceWorkerContainer.prototype.register;
+
+    ServiceWorkerContainer.prototype.register = function (
+      this: ServiceWorkerContainer,
+      scriptURL: string | URL,
+      options?: RegistrationOptions,
+    ): Promise<ServiceWorkerRegistration> {
+      const call: WorkerRegistrationCall = {
+        scriptURL: String(scriptURL),
+        options: options || null,
+        outcome: "pending",
+      };
+      calls.push(call);
+
+      return register.call(this, scriptURL, options).then(
+        (registration: ServiceWorkerRegistration) => {
+          call.outcome = `registered for ${new URL(registration.scope).pathname}`;
+          return registration;
+        },
+        (error: Error) => {
+          call.outcome = error.name;
+          throw error;
+        },
+      );
+    };
+  });
+}
+
+async function workerRegistrations(
+  page: Page,
+): Promise<Array<WorkerRegistrationCall>> {
+  return await page.evaluate((): Array<WorkerRegistrationCall> => {
+    return (window as RecordingWindow).__workerRegistrations || [];
+  });
+}
+
 async function fixtureState(request: APIRequestContext): Promise<FixtureState> {
   return (await (await request.get("/__fixture/state")).json()) as FixtureState;
 }
@@ -210,7 +274,7 @@ test("the first registration installs the service worker without reloading the p
   await context.grantPermissions(["notifications"]);
   await openThePage(page);
 
-  // As in production: the page's own registration (scope "/") is refused, so no worker yet.
+  // The page does not install the worker itself, so there is none yet.
   expect(
     await page.evaluate(async (): Promise<boolean> => {
       return Boolean(await navigator.serviceWorker.getRegistration());
@@ -262,6 +326,47 @@ test("the first registration installs the service worker without reloading the p
   // And it is still there, and still this browser, on the next visit.
   await page.reload();
   await expect(row(page, "Chrome on Windows")).toContainText("This browser");
+});
+
+test("the page registers no service worker of its own: Register Device's, with the default scope, is the only one", async ({
+  page,
+  context,
+}: {
+  page: Page;
+  context: BrowserContext;
+}) => {
+  await context.grantPermissions(["notifications"]);
+  await recordWorkerRegistrations(context);
+
+  const consoleMessages: Array<string> = [];
+  page.on("console", (message: ConsoleMessage) => {
+    consoleMessages.push(message.text());
+  });
+
+  await openThePage(page);
+  // index.ejs registered the worker, with scope "/", from the load event.
+  await page.waitForLoadState("load");
+
+  expect(await workerRegistrations(page)).toEqual([]);
+
+  await registerThisBrowser(page);
+  await expect(page.getByTestId("modal-title")).toHaveText(
+    "Browser Registered",
+  );
+
+  expect(await workerRegistrations(page)).toEqual([
+    {
+      scriptURL: "/dashboard/sw.js",
+      options: null,
+      outcome: "registered for /dashboard/",
+    },
+  ]);
+
+  expect(
+    consoleMessages.filter((text: string): boolean => {
+      return REFUSED_REGISTRATION_LOG.test(text);
+    }),
+  ).toEqual([]);
 });
 
 test("the registered dialog sends a test notification to the device it just registered", async ({
