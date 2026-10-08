@@ -778,22 +778,34 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     /*
-     * Teams MessageCard has limited markdown support. Headings like '##' are not supported
-     * and single newlines can collapse. Convert common patterns to a structured card.
-     */
-
-    /*
      * An incoming webhook's card cannot carry a screenshot's base64 (and a
      * Teams webhook refuses a message that large): an image whose address
      * is a data: URL is its alt text. A text longer than a message can
-     * carry - a response body or a log of megabytes - is cut, with a note
-     * (fitMarkdownText): Teams would refuse it, and the regular expressions
-     * below cannot read megabytes safely.
+     * carry - a response body or a log of megabytes - is cut, with a note,
+     * to a card within the budget (fitMarkdownText, measuring the card each
+     * cut makes: a table's HTML is several times its Markdown): Teams would
+     * refuse it, and the regular expressions the card is built with cannot
+     * read megabytes safely. A text that fits makes the card it always made.
      */
-    const markdownWithoutInlineImages: string =
-      MicrosoftTeamsMessageSize.fitMarkdownText(
-        ChatInlineImages.toText(markdown),
-      );
+    const fittedMarkdown: string = MicrosoftTeamsMessageSize.fitMarkdownText(
+      ChatInlineImages.toText(markdown),
+      (fitted: string): number => {
+        return MicrosoftTeamsMessageSize.getSizeInBytes(
+          this.buildMessageCardFromFittedMarkdown(fitted),
+        );
+      },
+    );
+
+    return this.buildMessageCardFromFittedMarkdown(fittedMarkdown);
+  }
+
+  private static buildMessageCardFromFittedMarkdown(
+    markdownWithoutInlineImages: string,
+  ): JSONObject {
+    /*
+     * Teams MessageCard has limited markdown support. Headings like '##' are not supported
+     * and single newlines can collapse. Convert common patterns to a structured card.
+     */
 
     // First, convert markdown tables to HTML
     const markdownWithHtmlTables: string = this.convertMarkdownTablesToHtml(

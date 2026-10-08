@@ -45,6 +45,16 @@ export const MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES: number = 80 * 1024;
 export const MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE: string =
   "\n\n_… (truncated — see OneUptime for the full text)_";
 
+// How big what Teams is sent for a text is, in bytes as Teams counts them.
+export type MeasureTextFunction = (text: string) => number;
+
+/*
+ * fitMarkdownText cuts a text that measures over the budget shorter at most
+ * this many times, each time to this share of what would just fit.
+ */
+const MAX_FIT_ATTEMPTS: number = 5;
+const FIT_MARGIN: number = 0.9;
+
 const DEFAULT_TRUNCATION_NOTE: string =
   "…\n\n_This reply was shortened to fit in Microsoft Teams. Open OneUptime to see everything._";
 
@@ -132,8 +142,22 @@ export default class MicrosoftTeamsMessageSize {
    * MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES: as it is when it fits,
    * else cut (cutToLength: at a line break where there is one near the end)
    * and followed by MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.
+   *
+   * What Teams is sent for a text can be bigger than the text: JSON writes
+   * each quote and backslash in two characters, and a MessageCard's table
+   * is HTML several times the size of its Markdown. So a cut text is
+   * measured as it is sent - measureInBytes: as a JSON string unless the
+   * caller measures the message it builds from it - and one that comes out
+   * over the budget is cut shorter, in proportion and with a margin, a few
+   * times at most. A text that fits is never measured: it is sent as it
+   * always was.
    */
-  public static fitMarkdownText(text: string): string {
+  public static fitMarkdownText(
+    text: string,
+    measureInBytes: MeasureTextFunction = (fitted: string): number => {
+      return MicrosoftTeamsMessageSize.getSizeInBytes(JSON.stringify(fitted));
+    },
+  ): string {
     const maxLength: number = Math.floor(
       MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES / 2,
     );
@@ -142,12 +166,38 @@ export default class MicrosoftTeamsMessageSize {
       return text;
     }
 
-    return (
-      cutToLength(
-        text,
-        maxLength - MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.length,
-      ).trimEnd() + MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE
-    );
+    const cut: (length: number) => string = (length: number): string => {
+      return (
+        cutToLength(text, length).trimEnd() +
+        MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE
+      );
+    };
+
+    let length: number = maxLength - MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.length;
+    let fitted: string = cut(length);
+
+    for (let attempt: number = 0; attempt < MAX_FIT_ATTEMPTS; attempt++) {
+      const sizeInBytes: number = measureInBytes(fitted);
+
+      if (
+        sizeInBytes <= MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES ||
+        length <= 1
+      ) {
+        break;
+      }
+
+      length = Math.max(
+        1,
+        Math.floor(
+          ((length * MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES) /
+            sizeInBytes) *
+            FIT_MARGIN,
+        ),
+      );
+      fitted = cut(length);
+    }
+
+    return fitted;
   }
 
   /*
