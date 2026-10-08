@@ -185,7 +185,8 @@ export const getAutomaticFixPullRequestSelect: (
 ): Partial<
   Record<AutomaticFixSwitchColumn | AutomaticFixPullRequestColumn, true>
 > => {
-  const columns: AutomaticFixSwitchColumns = AUTOMATIC_FIX_SWITCH_COLUMNS[signal];
+  const columns: AutomaticFixSwitchColumns =
+    AUTOMATIC_FIX_SWITCH_COLUMNS[signal];
 
   return {
     [columns.fix]: true,

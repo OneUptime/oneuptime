@@ -504,14 +504,12 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
         .mockResolvedValue(fakeProject(fixOff));
       (AIRunService.findOneBy as unknown as jest.Mock).mockClear();
 
-      await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation(
-        {
-          projectId,
-          investigationRunId,
-          analysisMarkdown,
-          ...subject,
-        },
-      );
+      await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
+        projectId,
+        investigationRunId,
+        analysisMarkdown,
+        ...subject,
+      });
 
       expect(AIRunService.findOneBy).not.toHaveBeenCalled();
       expect(getBudgetStatus).not.toHaveBeenCalled();

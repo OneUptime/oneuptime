@@ -860,9 +860,9 @@ describe("Incidents → AI → Settings", () => {
       getProjectAiSwitchTestId("enableAutomaticIncidentCodeFixes"),
     );
 
-    expect(
-      switchesIn(AI_LANE_SWITCHES_TEST_ID[AiLane.Incident]),
-    ).toHaveLength(5);
+    expect(switchesIn(AI_LANE_SWITCHES_TEST_ID[AiLane.Incident])).toHaveLength(
+      5,
+    );
 
     for (const control of switchesIn(
       AI_LANE_SWITCHES_TEST_ID[AiLane.Incident],
@@ -1201,7 +1201,9 @@ function checkedOf(column: string): string | null {
 }
 
 function childrenGroupOf(fixColumn: string): HTMLElement | null {
-  return screen.queryByTestId(`${getProjectAiSwitchTestId(fixColumn)}-children`);
+  return screen.queryByTestId(
+    `${getProjectAiSwitchTestId(fixColumn)}-children`,
+  );
 }
 
 describe("the pull requests are part of fixing", () => {
@@ -1312,8 +1314,9 @@ describe("the pull requests are part of fixing", () => {
       expect(updates()).toEqual([allThree(lane.signal, true)]);
 
       // Nothing of the other kind of signal rides along.
-      const other: { fix: string; pullRequests: Array<string> } =
-        fixColumnsOf(lane.otherSignal);
+      const other: { fix: string; pullRequests: Array<string> } = fixColumnsOf(
+        lane.otherSignal,
+      );
       for (const column of [other.fix, ...other.pullRequests]) {
         expect(updates()[0]![column]).toBeUndefined();
       }

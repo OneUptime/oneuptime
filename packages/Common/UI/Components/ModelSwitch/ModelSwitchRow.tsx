@@ -337,7 +337,6 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
       });
 
       isBusyRef.current = false;
-      setSaveState(ModelSwitchSaveState.Saved);
 
       // Its own column first, then each child switch's.
       for (const column of [
@@ -355,7 +354,13 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
         });
       }
 
+      /*
+       * Told before the row draws itself saved: the switches under it are
+       * drawn with that, and the page that draws them (ModelSwitchesCard)
+       * has heard by then where this save put them.
+       */
       props.onSaved?.(value);
+      setSaveState(ModelSwitchSaveState.Saved);
     } catch (err) {
       isBusyRef.current = false;
       setIsOn(previous);

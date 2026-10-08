@@ -385,10 +385,7 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
         CodeRepositoryService,
         "countBy",
       );
-      const findOneBy: jest.SpyInstance = jest.spyOn(
-        AIRunService,
-        "findOneBy",
-      );
+      const findOneBy: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
       const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
       await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({

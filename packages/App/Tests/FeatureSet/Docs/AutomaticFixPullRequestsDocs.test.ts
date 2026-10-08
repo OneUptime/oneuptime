@@ -239,7 +239,10 @@ describe("the AI SRE page", () => {
 describe("the other pages that name the switch", () => {
   it("Fix Tasks says the automatic fix pull request is part of fixing, not set independently or on by default", () => {
     const section: string = flat(
-      getSection(read(AI_AGENT_PAGE), "## Automatic code fixes from investigations"),
+      getSection(
+        read(AI_AGENT_PAGE),
+        "## Automatic code fixes from investigations",
+      ),
     );
 
     expect(section).toContain(

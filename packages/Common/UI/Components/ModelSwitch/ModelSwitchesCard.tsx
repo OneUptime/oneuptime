@@ -244,11 +244,9 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
     column: string,
     isOn: boolean,
   ): void => {
-    setPositions(
-      (current: SwitchPositions | null): SwitchPositions | null => {
-        return current ? { ...current, [column]: isOn } : current;
-      },
-    );
+    setPositions((current: SwitchPositions | null): SwitchPositions | null => {
+      return current ? { ...current, [column]: isOn } : current;
+    });
   };
 
   const renderRow: (data: {

@@ -171,40 +171,41 @@ test.describe("Fix new alerts/incidents automatically: its pull requests are par
    * Presses a switch and waits for its save: the one PUT of the project
    * it sends, handed back as the columns it wrote.
    */
-  const pressAndSave: (control: Locator) => Promise<Record<string, unknown>> =
-    async (control: Locator): Promise<Record<string, unknown>> => {
-      const save: Promise<Response> = page.waitForResponse(
-        (response: Response): boolean => {
-          return (
-            response.url().includes(`/api/project/${projectId}`) &&
-            response.request().method() === "PUT"
-          );
-        },
-        SERVER,
-      );
+  const pressAndSave: (
+    control: Locator,
+  ) => Promise<Record<string, unknown>> = async (
+    control: Locator,
+  ): Promise<Record<string, unknown>> => {
+    const save: Promise<Response> = page.waitForResponse(
+      (response: Response): boolean => {
+        return (
+          response.url().includes(`/api/project/${projectId}`) &&
+          response.request().method() === "PUT"
+        );
+      },
+      SERVER,
+    );
 
-      await control.click();
+    await control.click();
 
-      const response: Response = await save;
-      expect(response.ok(), await response.text()).toBe(true);
+    const response: Response = await save;
+    expect(response.ok(), await response.text()).toBe(true);
 
-      return (
-        (response.request().postDataJSON() as { data: Record<string, unknown> })
-          .data || {}
-      );
-    };
+    return (
+      (response.request().postDataJSON() as { data: Record<string, unknown> })
+        .data || {}
+    );
+  };
 
   test("a new project starts with fixing off, and offers no pull-request switch under it", async () => {
     await openLane(ALERTS);
 
     await expect(fixSwitch(ALERTS)).toHaveAttribute("aria-checked", "false");
     await expect(childrenOf(ALERTS)).toHaveCount(0);
-    await expect(page.getByTestId(switchTestId(ALERTS.codeFix))).toHaveCount(
+    await expect(page.getByTestId(switchTestId(ALERTS.codeFix))).toHaveCount(0);
+    await expect(page.getByTestId(switchTestId(ALERTS.telemetry))).toHaveCount(
       0,
     );
-    await expect(
-      page.getByTestId(switchTestId(ALERTS.telemetry)),
-    ).toHaveCount(0);
 
     expect(await stored(ALERTS)).toEqual(allThree(ALERTS, false));
   });
@@ -302,10 +303,7 @@ test.describe("Fix new alerts/incidents automatically: its pull requests are par
   test("the incident page nests its own two the same way, before the postmortem, and leaves the alerts alone", async () => {
     await openLane(INCIDENTS);
 
-    await expect(fixSwitch(INCIDENTS)).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
+    await expect(fixSwitch(INCIDENTS)).toHaveAttribute("aria-checked", "false");
     await expect(childrenOf(INCIDENTS)).toHaveCount(0);
 
     const written: Record<string, unknown> = await pressAndSave(
@@ -319,12 +317,13 @@ test.describe("Fix new alerts/incidents automatically: its pull requests are par
 
     const names: Array<string> = [];
     for (const control of await card.getByRole("switch").all()) {
-      const labelId: string | null = await control.getAttribute(
-        "aria-labelledby",
-      );
+      const labelId: string | null =
+        await control.getAttribute("aria-labelledby");
       names.push(
         labelId
-          ? ((await page.locator(`[id="${labelId}"]`).textContent()) || "").trim()
+          ? (
+              (await page.locator(`[id="${labelId}"]`).textContent()) || ""
+            ).trim()
           : "",
       );
     }
@@ -359,10 +358,7 @@ test.describe("Fix new alerts/incidents automatically: its pull requests are par
     });
 
     await openLane(INCIDENTS);
-    await expect(fixSwitch(INCIDENTS)).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
+    await expect(fixSwitch(INCIDENTS)).toHaveAttribute("aria-checked", "false");
     await expect(childrenOf(INCIDENTS)).toHaveCount(0);
 
     // Turning fixing on from the page writes all three, as always.

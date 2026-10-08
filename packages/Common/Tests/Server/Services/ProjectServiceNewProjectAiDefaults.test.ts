@@ -236,9 +236,8 @@ describe("the automatic-fix switches", () => {
   it.each(FIX_PULL_REQUEST_SWITCHES)(
     "%s says it is part of fixing, names its fixing switch, and starts off",
     (column: string) => {
-      const description: string | undefined = new Project().getTableColumnMetadata(
-        column,
-      ).description;
+      const description: string | undefined =
+        new Project().getTableColumnMetadata(column).description;
       const fixColumn: string = column.includes("Incident")
         ? "enableAutomaticIncidentRemediation"
         : "enableAutomaticAlertRemediation";
@@ -255,9 +254,8 @@ describe("the automatic-fix switches", () => {
   it.each(FIX_SWITCHES)(
     "%s names the pull-request switches it holds, and says the API sets them in the same request",
     (column: string) => {
-      const description: string | undefined = new Project().getTableColumnMetadata(
-        column,
-      ).description;
+      const description: string | undefined =
+        new Project().getTableColumnMetadata(column).description;
       const pullRequests: Array<string> = FIX_PULL_REQUEST_SWITCHES.filter(
         (pullRequest: string): boolean => {
           return (

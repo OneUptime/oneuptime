@@ -285,12 +285,10 @@ export default class FixFromIncidentTaskTrigger {
       return { enqueue: false, reason: "AI is disabled for the project" };
     }
 
-    const signal: AutoRemediationTriggerEntity | null = getAutomaticFixSignal(
-      {
-        incidentId: input.incidentId,
-        alertId: input.alertId,
-      },
-    );
+    const signal: AutoRemediationTriggerEntity | null = getAutomaticFixSignal({
+      incidentId: input.incidentId,
+      alertId: input.alertId,
+    });
 
     if (!signal) {
       return {
@@ -373,11 +371,12 @@ export default class FixFromIncidentTaskTrigger {
     const { projectId } = data;
 
     try {
-      const signal: AutoRemediationTriggerEntity | null =
-        getAutomaticFixSignal({
+      const signal: AutoRemediationTriggerEntity | null = getAutomaticFixSignal(
+        {
           incidentId: data.incidentId,
           alertId: data.alertId,
-        });
+        },
+      );
 
       if (!signal) {
         return;

@@ -324,9 +324,7 @@ describe("where the children are drawn", () => {
       "border-gray-200",
     );
     // Not a hand-built card frame: no shadow, no rounded box, no fill.
-    expect(MODEL_SWITCH_CHILDREN_CLASS_NAME).not.toMatch(
-      /shadow|rounded|bg-/,
-    );
+    expect(MODEL_SWITCH_CHILDREN_CLASS_NAME).not.toMatch(/shadow|rounded|bg-/);
   });
 });
 
@@ -879,9 +877,7 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     expect(checked(CODE_FIX)).toBe("false");
     expect(checked(TELEMETRY)).toBe("true");
     expect(checked(FIX)).toBe("true");
-    expect(screen.getByTestId(`${CODE_FIX}-status`)).toHaveTextContent(
-      "Saved",
-    );
+    expect(screen.getByTestId(`${CODE_FIX}-status`)).toHaveTextContent("Saved");
   });
 
   test("off and on again, both come back on - the one turned off by hand too", async () => {
