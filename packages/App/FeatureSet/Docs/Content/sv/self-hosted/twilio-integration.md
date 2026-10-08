@@ -98,3 +98,11 @@ För utveckling beskriver Twilios [guide för webhook-testning](https://www.twil
 4. Kontrollera SMS-leveransstatus i OneUptime och Twilios meddelandeloggar. Ett godkänt sändningsförsök bevisar inte leverans; [Twilio rapporterar senare statusändringar via återanrop](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 Om sändningen misslyckas kontrollerar du autentiseringsuppgifter, numrets funktioner, kontobegränsningar och utgående anslutning. Om ett meddelande eller samtal kommer fram men status eller bekräftelse inte uppdateras undersöker du återanrops-URL:en och den offentliga ingressens loggar. Twilios [vägledning om HTTP-hämtningsfel](https://www.twilio.com/docs/api/errors/11200) hjälper till att diagnostisera onåbara återanrop, TLS-problem och HTTP-fel. Ett lyckat testsamtal verifierar inte i sig återanropsåtkomsten.
+
+## 5. Verifiera teammedlemmarnas telefonnummer
+
+När ett telefonnummer läggs till för sms eller samtal skickas verifieringskoden direkt och verifieringsdialogen öppnas. Den visar när koden skickades och hur länge den gäller, och skickar en ny kod på begäran, högst en gång per minut. Ingenting behöver skickas om innan du verifierar.
+
+När ingen kod kan skickas anger dialogen orsaken i stället för att påstå att en skickades: till exempel att inget Twilio-konto är konfigurerat, så länge varken en standardkonfiguration för projektet eller den installationsövergripande konfigurationen ovan finns. Ett nummer vars första kod inte kan skickas läggs inte till, och formuläret visar orsaken, till exempel att Twilio nekar ett destinationsland.
+
+Ett nummer som är verifierat för sms är även verifierat för samtal, utan en andra kod. Verifiering via samtal verifierar inte sms, eftersom ett nummer som tar emot samtal, till exempel en fast telefon, inte alltid kan ta emot sms. Om Twilio godtar en kod som aldrig kommer fram visar projektets sms-logg leveransstatusen.

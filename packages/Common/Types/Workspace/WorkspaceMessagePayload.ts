@@ -1,4 +1,5 @@
 import { DropdownOption } from "../../UI/Components/Dropdown/Dropdown";
+import { InlineImageDataUri } from "../../Utils/Markdown/InlineImageDataUri";
 import URL from "../API/URL";
 import WorkspaceType from "./WorkspaceType";
 
@@ -52,6 +53,25 @@ export interface WorkspacePayloadImage extends WorkspaceMessageBlock {
   _type: "WorkspacePayloadImage";
   imageUrl: URL;
   altText: string;
+}
+
+/*
+ * An image that carries itself - a synthetic monitor's screenshot in an
+ * incident's or an alert's description - taken out of a markdown block, at
+ * the place it reads, for a chat that can show it
+ * (Server/Utils/Workspace/WorkspaceInlineImages).
+ */
+export interface WorkspacePayloadInlineImage extends WorkspaceMessageBlock {
+  _type: "WorkspacePayloadInlineImage";
+  // The image, as checked: what its bytes are, and its base64.
+  image: InlineImageDataUri;
+  // Its alt text as plain text; empty when it has none.
+  altText: string;
+  /*
+   * Markdown to show in its place when it cannot be shown: its alt text, or
+   * "[image]". Empty when its alt text already reads in the text before it.
+   */
+  fallbackMarkdown: string;
 }
 
 export interface WorkspaceCheckboxBlock extends WorkspaceMessageBlock {

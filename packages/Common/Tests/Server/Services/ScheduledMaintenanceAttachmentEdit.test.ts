@@ -111,7 +111,7 @@ const STATE_IDS: Dictionary<string> = {
 // Mirrors the service's carry-forward entry.
 type AttachmentsBeforeUpdate = {
   projectId: ObjectID | undefined;
-  wasOngoingBeforeUpdate: boolean;
+  wasInProgressBeforeUpdate: boolean;
   wasHoldingMonitorsBeforeUpdate: boolean;
   monitorIdsBeforeUpdate: Array<ObjectID> | undefined;
   networkSiteIdsBeforeUpdate: Array<ObjectID> | undefined;
@@ -680,7 +680,7 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds befo
       MONITOR_A,
       MONITOR_B,
     ]);
-    expect(attachments.wasOngoingBeforeUpdate).toBe(true);
+    expect(attachments.wasInProgressBeforeUpdate).toBe(true);
     expect(attachments.wasHoldingMonitorsBeforeUpdate).toBe(true);
     expect(attachments.projectId?.toString()).toBe(PROJECT_ID.toString());
     // The network sites were not written, so they are not remembered.
@@ -765,10 +765,29 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds befo
       SITE_2,
     ]);
     expect(carried![EVENT_ID]!.monitorIdsBeforeUpdate).toBeUndefined();
-    expect(carried![EVENT_ID]!.wasOngoingBeforeUpdate).toBe(false);
+    expect(carried![EVENT_ID]!.wasInProgressBeforeUpdate).toBe(false);
     // Whether monitors are held only matters when they are written.
     expect(carried![EVENT_ID]!.wasHoldingMonitorsBeforeUpdate).toBe(false);
     expect(timelineFindBy).not.toHaveBeenCalled();
+  });
+
+  test("an event read without a state is not in progress, and the project's states are not read for it", async () => {
+    const stateless: ScheduledMaintenance = maintenanceEvent({
+      state: "ongoing",
+      networkSites: [SITE_1],
+    });
+    delete stateless.currentScheduledMaintenanceState;
+    eventsBeforeWrite = [stateless];
+
+    const carried: Dictionary<AttachmentsBeforeUpdate> | null = carriedOf(
+      await runBeforeUpdate(updateByFor({ networkSites: [{ _id: SITE_2 }] })),
+    );
+
+    expect(carried![EVENT_ID]!.wasInProgressBeforeUpdate).toBe(false);
+    // No state to place: the project's list would answer nothing.
+    expect(
+      ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates,
+    ).not.toHaveBeenCalled();
   });
 });
 
@@ -792,7 +811,7 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: whether the event holds it
       expect(carried![EVENT_ID]!.wasHoldingMonitorsBeforeUpdate).toBe(
         isHolding,
       );
-      expect(carried![EVENT_ID]!.wasOngoingBeforeUpdate).toBe(
+      expect(carried![EVENT_ID]!.wasInProgressBeforeUpdate).toBe(
         kind === "ongoing",
       );
       expect(timelineFindBy).not.toHaveBeenCalled();
@@ -830,7 +849,7 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: whether the event holds it
         isHolding,
       );
       // Sites follow only the live state.
-      expect(carried![EVENT_ID]!.wasOngoingBeforeUpdate).toBe(false);
+      expect(carried![EVENT_ID]!.wasInProgressBeforeUpdate).toBe(false);
       expect(timelineFindBy).toHaveBeenCalledTimes(1);
     },
   );
@@ -1409,7 +1428,7 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: an event in a state of th
     },
   );
 
-  test("past ongoing, its network sites are not re-rolled: only a live ongoing event suppresses them", async () => {
+  test("placed before Ongoing, it is not in progress: its network sites are not re-rolled", async () => {
     eventsBeforeWrite = [
       maintenanceEvent({ state: "custom", networkSites: [SITE_1] }),
     ];
@@ -1422,6 +1441,67 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: an event in a state of th
     // Nothing reads the sites' change, so they are not read back.
     expect(eventFindOneById).not.toHaveBeenCalled();
   });
+
+  test.each([
+    ["between Ongoing and Ended, it is in progress", 3.5, true],
+    ["after Ended, it is over", 4.5, false],
+  ] as Array<[string, number, boolean]>)(
+    "placed %s: its attached and detached network sites are re-rolled now only while in progress",
+    async (_label: string, customOrder: number, isInProgress: boolean) => {
+      /*
+       * The project's list with its own state placed elsewhere: between
+       * Ongoing (3) and Ended (4), or between Ended and Completed.
+       */
+      jest
+        .spyOn(
+          ScheduledMaintenanceStateService,
+          "getAllScheduledMaintenanceStates",
+        )
+        .mockImplementation((async (): Promise<
+          Array<ScheduledMaintenanceState>
+        > => {
+          return (
+            [
+              ["scheduled", 1],
+              ["custom", customOrder],
+              ["ongoing", 3],
+              ["ended", 4],
+              ["resolved", 5],
+            ] as Array<[StateKind, number]>
+          ).map(([kind, order]: [StateKind, number]) => {
+            const projectState: ScheduledMaintenanceState = state(kind);
+            projectState.order = order;
+            return projectState;
+          });
+        }) as never);
+
+      eventsBeforeWrite = [
+        maintenanceEvent({ state: "custom", networkSites: [SITE_1] }),
+      ];
+      afterWrite(maintenanceEvent({ state: "custom", networkSites: [SITE_2] }));
+
+      const onUpdate: OnUpdate<ScheduledMaintenance> = await edit({
+        networkSites: [{ _id: SITE_2 }],
+      });
+
+      expect(carriedOf(onUpdate)![EVENT_ID]!.wasInProgressBeforeUpdate).toBe(
+        isInProgress,
+      );
+
+      if (!isInProgress) {
+        expect(recomputeSiteRollups).not.toHaveBeenCalled();
+        return;
+      }
+
+      expect(recomputeSiteRollups).toHaveBeenCalledTimes(1);
+      expect(
+        idsOf(
+          (recomputeSiteRollups.mock.calls[0]![0] as ScheduledMaintenance)
+            .networkSites,
+        ),
+      ).toEqual([SITE_1, SITE_2]);
+    },
+  );
 });
 
 describe("ScheduledMaintenanceService.onUpdateSuccess: events that are not holding their monitors", () => {

@@ -68,6 +68,7 @@
         "channels:write.invites",
         "channels:write.topic",
         "chat:write",
+        "files:write",
         "users:read",
         "groups:read",
         "groups:write",

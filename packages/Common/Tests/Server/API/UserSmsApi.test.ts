@@ -1,4 +1,5 @@
 import UserSmsAPI from "../../../Server/API/UserSmsAPI";
+import UserCallService from "../../../Server/Services/UserCallService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import ChannelVerification from "../../../Server/Utils/ChannelVerification";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
@@ -13,6 +14,8 @@ import { describe, expect, it } from "@jest/globals";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
+import Phone from "../../../Types/Phone";
+import { VerificationCodeState } from "../../../Types/UserNotification/VerificationCodeStatus";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -42,6 +45,7 @@ jest.mock("../../../Server/Utils/Response", () => {
 });
 
 jest.mock("../../../Server/Services/UserSmsService");
+jest.mock("../../../Server/Services/UserCallService");
 
 const ITEM_ID: string = "7b1c2d3e-1111-4111-8111-111111111111";
 
@@ -51,6 +55,8 @@ describe("UserSmsAPI", () => {
   let nextFunction: NextFunction;
 
   beforeEach(() => {
+    // Each test reads only the responses it caused.
+    jest.clearAllMocks();
     new UserSmsAPI();
     mockRequest = {} as OneUptimeRequest;
     UserSmsService.updateOneById = jest.fn().mockResolvedValue(1);
@@ -277,16 +283,111 @@ describe("UserSmsAPI", () => {
       } as JSONWebTokenData;
 
       UserSmsService.findOneById = jest.fn().mockResolvedValue(buildLiveItem());
+      UserCallService.verifyNumbersProvenBySms = jest
+        .fn()
+        .mockResolvedValue(0) as never;
 
       await mockRouter
         .match("post", "/user-sms/verify")
         .handlerFunction(mockRequest, mockResponse, nextFunction);
 
-      const response: jest.SpyInstance = jest.spyOn(
-        Response,
-        "sendEmptySuccessResponse",
+      /*
+       * Answered with how many of the person's call numbers the code
+       * verified too - none here - so the dialog can say so.
+       */
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+        { alsoVerifiedForCalls: 0 },
       );
-      expect(response).toHaveBeenCalledWith(mockRequest, mockResponse);
+      expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A number verified for SMS is verified for calls: the call numbers the
+     * person added for the same number are verified with it, and the answer
+     * says how many.
+     */
+    it("verifies the person's call numbers for the same number, and says how many", async () => {
+      mockRequest.body = {
+        itemId: ITEM_ID,
+        code: "123456",
+      };
+      mockRequest.userAuthorization = {
+        userId: new ObjectID("user123"),
+      } as JSONWebTokenData;
+
+      UserSmsService.findOneById = jest
+        .fn()
+        .mockImplementation((query: { select: Record<string, boolean> }) => {
+          // The verify reads the code; the hand-over reads the number.
+          return Promise.resolve(
+            query.select["phone"]
+              ? ({ phone: new Phone("+15551230100") } as UserSMS)
+              : buildLiveItem(),
+          );
+        });
+      UserCallService.verifyNumbersProvenBySms = jest
+        .fn()
+        .mockResolvedValue(2) as never;
+
+      await mockRouter
+        .match("post", "/user-sms/verify")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      const handedOver: {
+        userId: ObjectID;
+        projectId: ObjectID;
+        phone: Phone;
+      } = (UserCallService.verifyNumbersProvenBySms as jest.Mock).mock
+        .calls[0][0];
+
+      expect(handedOver.userId.toString()).toBe(
+        new ObjectID("user123").toString(),
+      );
+      expect(handedOver.projectId.toString()).toBe(
+        new ObjectID("project1").toString(),
+      );
+      expect(handedOver.phone.toString()).toBe("+15551230100");
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+        { alsoVerifiedForCalls: 2 },
+      );
+    });
+
+    it("still reports the SMS number verified when the hand-over to calls fails", async () => {
+      mockRequest.body = {
+        itemId: ITEM_ID,
+        code: "123456",
+      };
+      mockRequest.userAuthorization = {
+        userId: new ObjectID("user123"),
+      } as JSONWebTokenData;
+
+      UserSmsService.findOneById = jest
+        .fn()
+        .mockImplementation((query: { select: Record<string, boolean> }) => {
+          return Promise.resolve(
+            query.select["phone"]
+              ? ({ phone: new Phone("+15551230100") } as UserSMS)
+              : buildLiveItem(),
+          );
+        });
+      UserCallService.verifyNumbersProvenBySms = jest
+        .fn()
+        .mockRejectedValue(new Error("database unavailable")) as never;
+
+      await mockRouter
+        .match("post", "/user-sms/verify")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+        { alsoVerifiedForCalls: 0 },
+      );
     });
   });
 
@@ -376,12 +477,23 @@ describe("UserSmsAPI", () => {
         userId: new ObjectID("user123"),
       } as UserSMS;
 
+      const sentAt: Date = new Date("2026-10-08T10:00:00.000Z");
+      const expiresAt: Date = new Date("2026-10-08T10:15:00.000Z");
+
       UserSmsService.findOneById = jest.fn().mockResolvedValue(item);
       UserSmsService.resendVerificationCode = jest
         .fn()
         .mockImplementation(() => {
           return Promise.resolve();
         });
+      UserSmsService.getVerificationStatus = jest.fn().mockResolvedValue({
+        isVerified: false,
+        codeState: VerificationCodeState.Active,
+        codeSentAt: sentAt,
+        codeExpiresAt: expiresAt,
+        resendAvailableInSeconds: 60,
+        cannotSendReason: null,
+      }) as never;
 
       await mockRouter
         .match("post", "/user-sms/resend-verification-code")
@@ -391,11 +503,22 @@ describe("UserSmsAPI", () => {
         "item1",
       );
 
-      const response: jest.SpyInstance = jest.spyOn(
-        Response,
-        "sendEmptySuccessResponse",
+      /*
+       * Answered with where the new code stands, so the verify dialog shows
+       * its times and the next cooldown without asking again.
+       */
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+        {
+          isVerified: false,
+          codeState: "active",
+          codeSentAt: sentAt.toISOString(),
+          codeExpiresAt: expiresAt.toISOString(),
+          resendAvailableInSeconds: 60,
+          cannotSendReason: null,
+        },
       );
-      expect(response).toHaveBeenCalledWith(mockRequest, mockResponse);
     });
   });
 });

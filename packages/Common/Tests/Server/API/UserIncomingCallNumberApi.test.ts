@@ -14,6 +14,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
 import UserIncomingCallNumber from "../../../Models/DatabaseModels/UserIncomingCallNumber";
+import { VerificationCodeState } from "../../../Types/UserNotification/VerificationCodeStatus";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -283,15 +284,30 @@ describe("UserIncomingCallNumberAPI", () => {
       UserIncomingCallNumberService.findOneById = jest
         .fn()
         .mockResolvedValue(itemOwnedBy(CALLER_USER_ID));
+      UserIncomingCallNumberService.getVerificationStatus = jest
+        .fn()
+        .mockResolvedValue({
+          isVerified: false,
+          codeState: VerificationCodeState.Active,
+          codeSentAt: null,
+          codeExpiresAt: null,
+          resendAvailableInSeconds: 60,
+          cannotSendReason: null,
+        }) as never;
 
       await callRoute(RESEND_ROUTE);
 
       expect(
         UserIncomingCallNumberService.resendVerificationCode,
       ).toHaveBeenCalledWith(ITEM_ID);
-      expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
+      // Answered with where the new code stands, for the verify dialog.
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
+        expect.objectContaining({
+          codeState: "active",
+          resendAvailableInSeconds: 60,
+        }),
       );
     });
 

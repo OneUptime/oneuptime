@@ -50,6 +50,7 @@ import { MergedDowntimeTotals } from "Common/Types/StatusPage/MergedDowntimeTota
 import MonitorGroupMergedDowntimeUtil from "Common/Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
@@ -226,6 +227,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
     scheduledMaintenanceStateTimelines,
     setScheduledMaintenanceStateTimelines,
   ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
+  // The project's states, in their order: what places a state of its own.
+  const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<
+    Array<ScheduledMaintenanceState>
+  >([]);
   /*
    * Clamped to [1, 90] to mirror the server (StatusPageAPI clamps before fetching the
    * timeline). showUptimeHistoryInDays has no server-side validation, so an out-of-range
@@ -468,6 +473,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ScheduledMaintenanceStateTimeline,
         );
 
+      const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+        BaseModel.fromJSONArray(
+          (data["scheduledMaintenanceStates"] as JSONArray) || [],
+          ScheduledMaintenanceState,
+        );
+
       const monitorsInGroup: Dictionary<Array<ObjectID>> =
         JSONFunctions.deserialize(
           (data["monitorsInGroup"] as JSONObject) || {},
@@ -539,6 +550,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setStatusPageResources(statusPageResources);
       setIncidentStateTimelines(incidentStateTimelines);
       setScheduledMaintenanceStateTimelines(scheduledMaintenanceStateTimelines);
+      setScheduledMaintenanceStates(scheduledMaintenanceStates);
 
       const overallStatus: MonitorStatus | null = data["overallStatus"]
         ? BaseModel.fromJSONObject(
@@ -2103,6 +2115,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                           monitorsInGroup: scheduledEventGroup.monitorsInGroup,
                           isPreviewPage: StatusPageUtil.isPreviewPage(),
                           isSummary: true,
+                          scheduledMaintenanceStates:
+                            scheduledMaintenanceStates,
                         })}
                         isDetailItem={false}
                       />

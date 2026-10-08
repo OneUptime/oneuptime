@@ -110,6 +110,7 @@ import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../../../../Server/Utils/Logger";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -1932,6 +1933,14 @@ describe("'show ...' replies name ten affected monitors, then how many more", ()
 
   function stubOneMaintenanceEvent(): void {
     const eventId: ObjectID = ObjectID.generate();
+
+    // The ongoing events are asked for by the states they are in progress in.
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getInProgressScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue([ObjectID.generate()]);
 
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")

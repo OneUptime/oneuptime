@@ -25,6 +25,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import AlertStateUtil from "../../Utils/AlertState";
+import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -40,6 +42,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   const [unresolvedAlertStates, setUnresolvedAlertStates] = useState<
     Array<AlertState>
   >([]);
+
+  /*
+   * The states a scheduled maintenance event is in progress in: ongoing,
+   * and every state of the project's own between Ongoing and Ended.
+   */
+  const [
+    inProgressScheduledMaintenanceStates,
+    setInProgressScheduledMaintenanceStates,
+  ] = useState<Array<ScheduledMaintenanceState>>([]);
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -67,8 +78,27 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const fetchScheduledMaintenanceStates: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        if (props.project?.id) {
+          setInProgressScheduledMaintenanceStates(
+            await ScheduledMaintenanceStateUtil.getInProgressScheduledMaintenanceStates(
+              props.project?.id,
+            ),
+          );
+        }
+      } catch {
+        // maybe show an error message
+      }
+    };
+
   useEffect(() => {
     fetchIncidentStates().catch((_err: Error) => {
+      // do nothing
+    });
+
+    fetchScheduledMaintenanceStates().catch((_err: Error) => {
       // do nothing
     });
 
@@ -199,9 +229,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Clock,
           countQuery: {
             projectId: props.project?._id,
-            currentScheduledMaintenanceState: {
-              isOngoingState: true,
-            },
+            currentScheduledMaintenanceStateId: new Includes(
+              inProgressScheduledMaintenanceStates.map(
+                (state: ScheduledMaintenanceState) => {
+                  return state.id!;
+                },
+              ),
+            ),
           },
           modelType: ScheduledMaintenance,
           badgeType: BadgeType.WARNING,

@@ -98,3 +98,11 @@ Für die Entwicklung beschreibt Twilios [Webhook-Testanleitung](https://www.twil
 4. Prüfen Sie den SMS-Zustellstatus in OneUptime und in Twilios Nachrichtenprotokollen. Ein angenommener Sendeauftrag beweist keine Zustellung; [Twilio meldet spätere Statusänderungen durch Callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 Schlägt der Versand fehl, prüfen Sie Zugangsdaten, Nummernfunktionen, Kontobeschränkungen und ausgehende Konnektivität. Kommt eine Nachricht oder ein Anruf an, ohne dass Status oder Bestätigung aktualisiert werden, prüfen Sie Callback-URL und öffentliche Ingress-Protokolle. Twilios [Anleitung zu HTTP-Abruffehlern](https://www.twilio.com/docs/api/errors/11200) hilft bei unerreichbaren Callbacks, TLS-Problemen und HTTP-Fehlern. Ein erfolgreicher Testanruf allein bestätigt keinen Callback-Zugriff.
+
+## 5. Telefonnummern der Teammitglieder verifizieren
+
+Wenn eine Telefonnummer für SMS oder Anrufe hinzugefügt wird, wird ihr Verifizierungscode sofort gesendet, und der Verifizierungsdialog öffnet sich. Er zeigt, wann der Code gesendet wurde und bis wann er gilt, und sendet auf Wunsch einen neuen Code, höchstens einmal pro Minute. Vor dem Verifizieren muss nichts erneut gesendet werden.
+
+Kann kein Code gesendet werden, nennt der Dialog den Grund, statt zu behaupten, es sei einer gesendet worden: zum Beispiel, dass kein Twilio-Konto eingerichtet ist, solange weder eine Standardkonfiguration des Projekts noch die installationsweite Konfiguration oben existiert. Eine Nummer, deren erster Code nicht gesendet werden kann, wird nicht hinzugefügt, und das Formular zeigt den Grund an, etwa dass Twilio ein Zielland ablehnt.
+
+Eine für SMS verifizierte Nummer ist ohne zweiten Code auch für Anrufe verifiziert. Eine Verifizierung per Anruf verifiziert keine SMS, da eine Nummer, die Anrufe annimmt, etwa ein Festnetzanschluss, nicht immer SMS empfangen kann. Nimmt Twilio einen Code an, der nie ankommt, zeigt das SMS-Protokoll des Projekts seinen Zustellstatus.

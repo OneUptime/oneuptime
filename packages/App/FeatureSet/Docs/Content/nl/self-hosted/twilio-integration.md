@@ -98,3 +98,11 @@ Voor ontwikkeling beschrijft Twilio's [handleiding voor webhooktests](https://ww
 4. Controleer de sms-afleverstatus in OneUptime en in de berichtenlogs van Twilio. Een geaccepteerd verzendverzoek bewijst niet dat het bericht is afgeleverd; [Twilio rapporteert latere statuswijzigingen via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 Als verzending mislukt, controleer dan de inloggegevens, nummermogelijkheden, accountbeperkingen en uitgaande verbinding. Als een bericht of oproep aankomt maar de status of bevestiging niet wordt bijgewerkt, controleer dan de callback-URL en de logs van de openbare ingress. Twilio's [instructies bij HTTP-ophaalfouten](https://www.twilio.com/docs/api/errors/11200) helpen bij het onderzoeken van onbereikbare callbacks, TLS-problemen en HTTP-fouten. Een geslaagde testoproep alleen verifieert de callback-toegang niet.
+
+## 5. Telefoonnummers van teamleden verifiëren
+
+Wanneer een telefoonnummer voor sms of oproepen wordt toegevoegd, wordt de verificatiecode meteen verstuurd en opent het verificatievenster. Dat toont wanneer de code is verstuurd en tot wanneer hij geldig is, en verstuurt op verzoek een nieuwe code, hooguit één keer per minuut. Vóór het verifiëren hoeft niets opnieuw te worden verstuurd.
+
+Kan er geen code worden verstuurd, dan noemt het venster de reden in plaats van te beweren dat er een is verstuurd: bijvoorbeeld dat er geen Twilio-account is ingesteld, zolang er geen standaardconfiguratie voor het project en geen installatiebrede configuratie hierboven bestaat. Een nummer waarvan de eerste code niet kan worden verstuurd, wordt niet toegevoegd en het formulier toont de reden, zoals een bestemmingsland dat Twilio weigert.
+
+Een nummer dat voor sms is geverifieerd, is zonder tweede code ook voor oproepen geverifieerd. Verifiëren via een oproep verifieert sms niet, omdat een nummer dat oproepen aanneemt, zoals een vaste lijn, niet altijd sms kan ontvangen. Accepteert Twilio een code die nooit aankomt, dan toont het sms-logboek van het project de afleverstatus.

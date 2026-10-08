@@ -17,10 +17,12 @@ import ChannelVerification, {
 } from "../Utils/ChannelVerification";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import ChannelVerificationStatusRoute from "./ChannelVerificationStatusRoute";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserNotificationRuleService from "../Services/UserNotificationRuleService";
+import UserCallService from "../Services/UserCallService";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
 /*
@@ -115,7 +117,44 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
             );
           }
 
-          return Response.sendEmptySuccessResponse(req, res);
+          /*
+           * A number verified for SMS is verified for calls: the call
+           * numbers this person added for the same number in this project
+           * are verified with it (UserCallService.isNumberVerifiedForSms
+           * says why, and why not the other way round). The answer says how
+           * many, so the dialog can tell them they need no second code.
+           */
+          let alsoVerifiedForCalls: number = 0;
+
+          try {
+            const smsNumber: UserSMS | null = await this.service.findOneById({
+              id: result.itemId!,
+              props: {
+                isRoot: true,
+              },
+              select: {
+                phone: true,
+              },
+            });
+
+            if (smsNumber?.phone) {
+              alsoVerifiedForCalls =
+                await UserCallService.verifyNumbersProvenBySms({
+                  userId: new ObjectID(result.userId!.toString()),
+                  projectId: new ObjectID(result.projectId!.toString()),
+                  phone: smsNumber.phone,
+                });
+            }
+          } catch (e) {
+            logger.error(
+              e,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {
+            alsoVerifiedForCalls: alsoVerifiedForCalls,
+          });
         } catch (err) {
           return next(err);
         }
@@ -177,11 +216,29 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
 
           await this.service.resendVerificationCode(req.body.itemId);
 
-          return Response.sendEmptySuccessResponse(req, res);
+          /*
+           * Answered with where the new code stands, so the verify dialog
+           * shows its times and the next cooldown without asking again.
+           */
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            (await ChannelVerificationStatusRoute.getStatusJSON({
+              service: this.service,
+              itemId: new ObjectID(req.body["itemId"].toString()),
+            })) || {},
+          );
         } catch (err) {
           return next(err);
         }
       },
     );
+
+    // Where the person's own code stands, for the verify dialog.
+    ChannelVerificationStatusRoute.register({
+      router: this.router,
+      path: "/user-sms",
+      service: this.service,
+    });
   }
 }

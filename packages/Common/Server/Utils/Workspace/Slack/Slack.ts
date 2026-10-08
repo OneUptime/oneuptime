@@ -13,6 +13,7 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadButtons,
   WorkspacePayloadHeader,
   WorkspacePayloadImage,
+  WorkspacePayloadInlineImage,
   WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
@@ -34,6 +35,9 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import SSRFProtection from "../../SSRFProtection";
+import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
+import WorkspaceInlineImages from "../WorkspaceInlineImages";
+import SlackInlineImages from "./SlackInlineImages";
 
 export default class SlackUtil extends WorkspaceBase {
   /*
@@ -1229,9 +1233,23 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Sending message to Slack with data:", sendMsgLogAttributes);
     logger.debug(data, sendMsgLogAttributes);
 
-    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
-      data.workspaceMessagePayload,
-    );
+    /*
+     * A screenshot in the message's Markdown is shown as an image of its own,
+     * where the Markdown had it (WorkspaceInlineImages). Until it is uploaded
+     * it is its alt text, which is also what is posted when it cannot be.
+     */
+    const messageBlocks: Array<WorkspaceMessageBlock> =
+      WorkspaceInlineImages.splitMessageBlocks(
+        data.workspaceMessagePayload.messageBlocks,
+        { repeatLinkDefinitions: true },
+      );
+
+    const blocksWithoutImages: Array<JSONObject> =
+      this.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: messageBlocks,
+      });
+
+    let blocks: Array<JSONObject> = blocksWithoutImages;
 
     logger.debug(
       "Blocks generated from workspace message payload:",
@@ -1303,6 +1321,24 @@ export default class SlackUtil extends WorkspaceBase {
       errors: [],
     };
 
+    const inlineImages: Array<WorkspacePayloadInlineImage> =
+      WorkspaceInlineImages.getInlineImages(messageBlocks);
+
+    if (inlineImages.length > 0 && workspaceChannelsToPostTo.length > 0) {
+      const uploadedImages: Map<string, string> =
+        await SlackInlineImages.uploadImages({
+          authToken: data.authToken,
+          images: inlineImages,
+        });
+
+      if (uploadedImages.size > 0) {
+        blocks = this.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: messageBlocks,
+          uploadedImages: uploadedImages,
+        });
+      }
+    }
+
     for (const channel of workspaceChannelsToPostTo) {
       try {
         if (data.userId) {
@@ -1322,28 +1358,39 @@ export default class SlackUtil extends WorkspaceBase {
           }
         }
 
-        // Slack has a limit of 50 blocks per message. Split into batches if needed.
-        const maxBlocksPerMessage: number = SlackUtil.MAX_BLOCKS_PER_MESSAGE;
         let lastThread: WorkspaceThread | undefined;
 
-        if (blocks.length <= maxBlocksPerMessage) {
-          lastThread = await this.sendPayloadBlocksToChannel({
+        try {
+          lastThread = await this.sendBlocksToChannel({
             authToken: data.authToken,
             workspaceChannel: channel,
             blocks: blocks,
           });
-        } else {
-          for (let i: number = 0; i < blocks.length; i += maxBlocksPerMessage) {
-            const chunk: Array<JSONObject> = blocks.slice(
-              i,
-              i + maxBlocksPerMessage,
-            );
-            lastThread = await this.sendPayloadBlocksToChannel({
-              authToken: data.authToken,
-              workspaceChannel: channel,
-              blocks: chunk,
-            });
+        } catch (error) {
+          /*
+           * Slack refuses the whole message when it cannot show one of its
+           * image blocks (invalid_blocks). A message with an uploaded image
+           * that went out in one post is posted again with each image as
+           * its alt text, so the message itself is not lost.
+           */
+          if (
+            blocks === blocksWithoutImages ||
+            blocks.length > SlackUtil.MAX_BLOCKS_PER_MESSAGE ||
+            !WorkspaceBase.getSendErrorMessage(error).includes("invalid_blocks")
+          ) {
+            throw error;
           }
+
+          logger.warn(
+            `Slack refused a message with images in channel ${channel.id}; posting it with each image as its alt text.`,
+            sendMsgLogAttributes,
+          );
+
+          lastThread = await this.sendBlocksToChannel({
+            authToken: data.authToken,
+            workspaceChannel: channel,
+            blocks: blocksWithoutImages,
+          });
         }
 
         if (lastThread) {
@@ -1371,6 +1418,38 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(workspaspaceMessageResponse, sendMsgLogAttributes);
 
     return workspaspaceMessageResponse;
+  }
+
+  /*
+   * Posts the blocks to the channel: in one message, or in several of at
+   * most MAX_BLOCKS_PER_MESSAGE blocks each. The last one's thread.
+   */
+  private static async sendBlocksToChannel(data: {
+    authToken: string;
+    workspaceChannel: WorkspaceChannel;
+    blocks: Array<JSONObject>;
+  }): Promise<WorkspaceThread | undefined> {
+    const maxBlocksPerMessage: number = SlackUtil.MAX_BLOCKS_PER_MESSAGE;
+
+    if (data.blocks.length <= maxBlocksPerMessage) {
+      return await this.sendPayloadBlocksToChannel(data);
+    }
+
+    let lastThread: WorkspaceThread | undefined;
+
+    for (
+      let index: number = 0;
+      index < data.blocks.length;
+      index += maxBlocksPerMessage
+    ) {
+      lastThread = await this.sendPayloadBlocksToChannel({
+        authToken: data.authToken,
+        workspaceChannel: data.workspaceChannel,
+        blocks: data.blocks.slice(index, index + maxBlocksPerMessage),
+      });
+    }
+
+    return lastThread;
   }
 
   @CaptureSpan()
@@ -2172,9 +2251,39 @@ export default class SlackUtil extends WorkspaceBase {
      * a modal view passes its own.
      */
     maxBlocks?: number | undefined;
+    /*
+     * The Slack files the message's inline images were uploaded as, by the
+     * image's base64 (SlackInlineImages.uploadImages). An inline image with
+     * none is shown as its alt text, or not at all when the text before it
+     * has that already.
+     */
+    uploadedImages?: Map<string, string> | undefined;
   }): Array<JSONObject> {
     const maxBlocks: number =
       data.maxBlocks ?? SlackUtil.MAX_BLOCKS_PER_MESSAGE;
+
+    const messageBlocks: Array<WorkspaceMessageBlock> = [];
+
+    for (const messageBlock of data.messageBlocks) {
+      if (messageBlock._type !== "WorkspacePayloadInlineImage") {
+        messageBlocks.push(messageBlock);
+        continue;
+      }
+
+      const inlineImage: WorkspacePayloadInlineImage =
+        messageBlock as WorkspacePayloadInlineImage;
+
+      if (data.uploadedImages?.has(inlineImage.image.base64)) {
+        messageBlocks.push(inlineImage);
+      } else if (inlineImage.fallbackMarkdown) {
+        const fallback: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: inlineImage.fallbackMarkdown,
+        };
+
+        messageBlocks.push(fallback);
+      }
+    }
 
     /*
      * A markdown payload is the one block whose size we do not control: it
@@ -2195,10 +2304,24 @@ export default class SlackUtil extends WorkspaceBase {
     const renderedBlocks: Array<Array<JSONObject> | null> = [];
     let blockCountBeforeSplitting: number = 0;
 
-    for (const messageBlock of data.messageBlocks) {
+    for (const messageBlock of messageBlocks) {
       if (messageBlock._type === "WorkspacePayloadMarkdown") {
         // Rendered in the second pass, once the budget is known.
         renderedBlocks.push(null);
+        blockCountBeforeSplitting += 1;
+        continue;
+      }
+
+      if (messageBlock._type === "WorkspacePayloadInlineImage") {
+        const inlineImage: WorkspacePayloadInlineImage =
+          messageBlock as WorkspacePayloadInlineImage;
+
+        renderedBlocks.push([
+          SlackInlineImages.getImageBlock({
+            fileId: data.uploadedImages!.get(inlineImage.image.base64)!,
+            altText: inlineImage.altText,
+          }),
+        ]);
         blockCountBeforeSplitting += 1;
         continue;
       }
@@ -2219,7 +2342,14 @@ export default class SlackUtil extends WorkspaceBase {
 
     const blocks: Array<JSONObject> = [];
 
-    for (let index: number = 0; index < data.messageBlocks.length; index++) {
+    /*
+     * The pieces of a markdown block split around its images share the
+     * sections that block may take: each piece still gets one.
+     */
+    const sectionsLeftBySplitBlock: Map<WorkspaceMessageBlock, number> =
+      new Map<WorkspaceMessageBlock, number>();
+
+    for (let index: number = 0; index < messageBlocks.length; index++) {
       // Empty, not null, for a block of an unknown type — it stays dropped.
       const rendered: Array<JSONObject> | null = renderedBlocks[index] ?? null;
 
@@ -2228,14 +2358,24 @@ export default class SlackUtil extends WorkspaceBase {
         continue;
       }
 
+      const splitFrom: WorkspaceMessageBlock | undefined =
+        WorkspaceInlineImages.getSplitFrom(messageBlocks[index]!);
+      const sectionsLeft: number = splitFrom
+        ? sectionsLeftBySplitBlock.get(splitFrom) ??
+          SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK
+        : SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK;
+
       const sections: Array<JSONObject> = this.getMarkdownBlocks({
-        payloadMarkdownBlock: data.messageBlocks[
-          index
-        ] as WorkspacePayloadMarkdown,
-        maxSections:
-          1 +
-          Math.min(spareBlocks, SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK - 1),
+        payloadMarkdownBlock: messageBlocks[index] as WorkspacePayloadMarkdown,
+        maxSections: 1 + Math.min(spareBlocks, Math.max(0, sectionsLeft - 1)),
       });
+
+      if (splitFrom) {
+        sectionsLeftBySplitBlock.set(
+          splitFrom,
+          Math.max(0, sectionsLeft - sections.length),
+        );
+      }
 
       spareBlocks -= sections.length - 1;
       blocks.push(...sections);
@@ -2279,8 +2419,16 @@ export default class SlackUtil extends WorkspaceBase {
     // Defaults to MAX_SECTIONS_PER_MARKDOWN_BLOCK.
     maxSections?: number | undefined;
   }): Array<JSONObject> {
+    /*
+     * Slack shows no image whose address is a data: URL - a screenshot in a
+     * description - and would get its base64 as a link: each becomes its
+     * alt text here. sendMessage shows them as images of their own before
+     * a markdown block gets here (WorkspaceInlineImages).
+     */
     const text: string = data.payloadMarkdownBlock.text
-      ? SlackifyMarkdown(data.payloadMarkdownBlock.text)
+      ? SlackifyMarkdown(
+          ChatInlineImages.toText(data.payloadMarkdownBlock.text),
+        )
       : "";
 
     const sectionTexts: Array<string> = this.splitSectionText({
@@ -2881,9 +3029,16 @@ export default class SlackUtil extends WorkspaceBase {
 
   @CaptureSpan()
   public static convertMarkdownToSlackRichText(markdown: string): string {
+    /*
+     * An incoming webhook cannot upload a file, so an image whose address
+     * is a data: URL - a screenshot in a description - is its alt text.
+     */
+    const markdownWithoutInlineImages: string =
+      ChatInlineImages.toText(markdown);
+
     // First convert tables to Slack-friendly format
     const markdownWithConvertedTables: string =
-      this.convertMarkdownTablesToSlackFormat(markdown);
+      this.convertMarkdownTablesToSlackFormat(markdownWithoutInlineImages);
     return SlackifyMarkdown(markdownWithConvertedTables);
   }
 
