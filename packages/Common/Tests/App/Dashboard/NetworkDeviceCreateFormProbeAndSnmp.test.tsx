@@ -273,6 +273,17 @@ type CapturedFormField = {
   sideLink?: { text: string; url: unknown } | undefined;
   required?: boolean | ((values: FormValuesLike) => boolean) | undefined;
   showIf?: ((values: FormValuesLike) => boolean) | undefined;
+  collapsibleSection?:
+    | {
+        id: string;
+        title: string;
+        description?: string | undefined;
+        openWhenConfigured?: boolean | undefined;
+        getSummary?:
+          | ((values: FormValuesLike) => Array<string> | undefined)
+          | undefined;
+      }
+    | undefined;
   onChange?:
     | ((
         value: unknown,
@@ -310,10 +321,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 import NetworkDevicesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Devices";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import { PROBE_FIELD_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/MonitoringMethodFormFields";
 import {
-  PROBE_FIELD_DESCRIPTION,
-  SNMP_STEP_DESCRIPTION,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/MonitoringMethodFormFields";
+  ADD_DEVICE_PROBE_DESCRIPTION,
+  ADD_DEVICE_SNMP_NOT_SET_SUMMARY,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/AddDeviceForm";
 import Route from "../../../Types/API/Route";
 
 const PAGE_PROPS: PageComponentProps = {
@@ -451,14 +463,23 @@ describe("the create form's Probe field", () => {
   });
 
   /*
-   * One sentence for the create form, the Settings page and the topology
-   * dialog. A private copy here is how "the probe polls this device via SNMP"
-   * survived on one surface after ping-first polling made it false.
+   * The Add Device form explains the probe in one plain sentence of its own
+   * - what it does for THIS device, and the one thing to get right - and
+   * leaves the long shared one (traps, syslog, NetFlow) to the Settings
+   * page and the topology dialog. It must still never claim the probe walks
+   * the device over SNMP: that is how "the probe polls this device via SNMP"
+   * once survived on one surface after ping-first polling made it false.
    */
-  test("explains itself with the shared probe description", async () => {
+  test("explains itself in one plain sentence, true of every device it adds", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
+    const description: string = String(
+      fieldFor(props, "probe").description || "",
+    );
 
-    expect(fieldFor(props, "probe").description).toBe(PROBE_FIELD_DESCRIPTION);
+    expect(description).toBe(ADD_DEVICE_PROBE_DESCRIPTION);
+    expect(description).not.toBe(PROBE_FIELD_DESCRIPTION);
+    expect(description).toContain("pings");
+    expect(description).not.toMatch(/SNMP/);
   });
 
   test("defaults to the project's single custom probe", async () => {
@@ -710,7 +731,7 @@ describe("picking a site fills in the site's default probe", () => {
   });
 });
 
-describe("the create form's SNMP step", () => {
+describe("the create form's SNMP fold", () => {
   beforeEach(() => {
     capturedTableProps = null;
     mockGetItemCalls.length = 0;
@@ -724,46 +745,72 @@ describe("the create form's SNMP step", () => {
   });
 
   /*
-   * The step used to be hidden for a monitor-backed device, which is the only
-   * device that is never polled. This form creates no such device, so there
-   * is no branch left — and a step every device walks through is a step whose
-   * fields must all be skippable.
+   * SNMP is a fold on the one page now, not a step: every device has it,
+   * nothing hides it, and the form walks no step to get past it - Add Device
+   * is on screen from the start.
    */
-  test("is shown for every device and gated by nothing", async () => {
+  test("is a fold every device has, on a form with no steps", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
 
-    const snmp: CapturedFormStep | undefined = (props.formSteps || []).find(
-      (step: CapturedFormStep): boolean => {
-        return step.id === "snmp";
+    expect(props.formSteps).toBeUndefined();
+
+    const inFold: Array<CapturedFormField> = (props.formFields || []).filter(
+      (field: CapturedFormField): boolean => {
+        return field.collapsibleSection?.id === "snmp";
       },
     );
 
-    expect(snmp).toBeDefined();
-    expect(snmp!.showIf).toBeUndefined();
-    // The stepper is where an operator learns they may walk past it.
-    expect(snmp!.title.toLowerCase()).toContain("optional");
+    expect(
+      inFold.map((field: CapturedFormField): string => {
+        return Object.keys(field.field || {})[0] || "";
+      }),
+    ).toEqual([
+      "snmpVersion",
+      "snmpCommunityString",
+      "snmpV3SecurityLevel",
+      "snmpV3Username",
+      "snmpV3AuthProtocol",
+      "snmpV3AuthKey",
+      "snmpV3PrivProtocol",
+      "snmpV3PrivKey",
+      "snmpPort",
+      "snmpCredentialProfile",
+    ]);
+
+    for (const field of inFold) {
+      expect(field.stepId).toBeUndefined();
+      expect(field.collapsibleSection?.title).toBe("SNMP");
+      // Folded on arrival, whatever it holds.
+      expect(field.collapsibleSection?.openWhenConfigured).toBe(false);
+    }
+
+    // Nothing hides the profile or the version: there is no branch left.
+    expect(fieldFor(props, "snmpCredentialProfile").showIf).toBeUndefined();
+    expect(fieldFor(props, "snmpVersion").showIf).toBeUndefined();
   });
 
-  test("says what an empty community string means, in the shared words", async () => {
+  test("says, while folded, what leaving it alone means", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
-    const profile: CapturedFormField = fieldFor(props, "snmpCredentialProfile");
+    const version: CapturedFormField = fieldFor(props, "snmpVersion");
 
-    /*
-     * The heading rides on the first field of the step, which is how BasicForm
-     * renders a section — sectionDescription is dropped unless a sectionTitle
-     * is set beside it.
-     */
-    expect(profile.sectionTitle).toBe("SNMP");
-    expect(profile.sectionDescription).toBe(SNMP_STEP_DESCRIPTION);
+    expect(version.collapsibleSection?.getSummary?.({})).toEqual([
+      ADD_DEVICE_SNMP_NOT_SET_SUMMARY,
+    ]);
+    // Once a community string is typed, the set fields speak instead.
+    expect(
+      version.collapsibleSection?.getSummary?.({
+        snmpCommunityString: "public",
+      }),
+    ).toBeUndefined();
   });
 
-  test("credentials are optional: nothing on the step is required but the version", async () => {
+  test("credentials are optional: nothing in the fold is required but the version", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
 
     const onSnmpStep: Array<CapturedFormField> = (
       props.formFields || []
     ).filter((field: CapturedFormField): boolean => {
-      return field.stepId === "snmp";
+      return field.collapsibleSection?.id === "snmp";
     });
 
     expect(onSnmpStep.length).toBeGreaterThan(0);
@@ -788,15 +835,20 @@ describe("the create form's SNMP step", () => {
    * device created with a profile and a device switched to one afterwards are
    * described by two different explanations of the same column.
    */
+  /*
+   * Last in the fold, after the credentials a device can be given by hand -
+   * "or use a saved set" - and the typed ones above it win when both are
+   * set, as on the Settings page.
+   */
   test("offers the credential profile beside the device's own credentials", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
     const profile: CapturedFormField = fieldFor(props, "snmpCredentialProfile");
 
-    expect(profile.stepId).toBe("snmp");
+    expect(profile.collapsibleSection?.id).toBe("snmp");
     expect(profile.fieldType).toBe(FormFieldSchemaType.Dropdown);
     expect(profile.dropdownModal?.type).toBe(NetworkSnmpCredentialProfile);
-    expect(profile.description).toContain("credentials below win");
-    expect(profile.placeholder?.toLowerCase()).toContain("no profile");
+    expect(profile.description).toContain("typed above win");
+    expect(profile.placeholder?.toLowerCase()).toContain("no saved credentials");
     // Somewhere to go when the list is empty, which it is until one is made.
     expect(profile.sideLink?.text).toBe("Manage credential profiles");
   });

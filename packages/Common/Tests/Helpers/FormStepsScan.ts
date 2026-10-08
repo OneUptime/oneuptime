@@ -354,6 +354,17 @@ interface ResolvedItem {
    * whose properties (stepId, title, showIf...) the field carries.
    */
   call?: ts.ObjectLiteralExpression | undefined;
+  /*
+   * For each field a LIST helper returns - spread into the form, as in
+   * `...getSnmpConfigFormFields({ collapsibleSection: SNMP })` - the object
+   * the call handed it, read for the folded section ONLY. A list helper
+   * puts every field it returns in the section it is handed (the SNMP
+   * helper does), so the fields are folded where the form is drawn. Its
+   * other arguments (a stepId, say) stay the helper's own business, left to
+   * the helper's tests as before: a step written in a list helper's call is
+   * not read here.
+   */
+  foldCall?: ts.ObjectLiteralExpression | undefined;
   // For a field a helper returns: the helper's name, as the call writes it.
   helper?: string | undefined;
 }
@@ -1071,6 +1082,34 @@ export class FormStepsScanner {
         best = best ? this.larger(best, candidate) : candidate;
       }
 
+      /*
+       * A folded section handed to a list helper folds every field it
+       * returns (see ResolvedItem.foldCall). Only a call written with an
+       * object argument that names one; the outermost call wins.
+       */
+      const argument: ts.Node | undefined = call.arguments[0]
+        ? unwrap(call.arguments[0])
+        : undefined;
+
+      if (
+        best &&
+        argument &&
+        ts.isObjectLiteralExpression(argument) &&
+        argument.properties.some(
+          (property: ts.ObjectLiteralElementLike): boolean => {
+            return (
+              ts.isPropertyAssignment(property) &&
+              property.name.getText(argument.getSourceFile()) ===
+                "collapsibleSection"
+            );
+          },
+        )
+      ) {
+        for (const item of best.items) {
+          item.foldCall = item.foldCall || argument;
+        }
+      }
+
       return best || result;
     }
 
@@ -1448,6 +1487,7 @@ export class FormStepsScanner {
           item.node,
           fieldResolution.plain.has(item.node),
           item.call,
+          item.foldCall,
         );
 
         if (item.helper) {
@@ -1841,6 +1881,7 @@ export class FormStepsScanner {
     node: ts.ObjectLiteralExpression,
     isPlainLiteral: boolean,
     call?: ts.ObjectLiteralExpression | undefined,
+    foldCall?: ts.ObjectLiteralExpression | undefined,
   ): FormFieldFacts {
     const propertyOf: (
       container: ts.ObjectLiteralExpression,
@@ -1925,8 +1966,19 @@ export class FormStepsScanner {
     );
     const stepId: ts.Node | null = initializerOf("stepId");
     const showIf: ts.Node | null = initializerOf("showIf");
+    /*
+     * A folded section handed to a list helper's call folds the field too
+     * (ResolvedItem.foldCall); what the field or a field helper's own call
+     * says comes first.
+     */
+    const foldedBy: ts.ObjectLiteralElementLike | undefined = foldCall
+      ? propertyOf(foldCall, "collapsibleSection")
+      : undefined;
     const collapsibleSection: ts.Node | null =
-      initializerOf("collapsibleSection");
+      initializerOf("collapsibleSection") ||
+      (foldedBy && ts.isPropertyAssignment(foldedBy)
+        ? unwrap(foldedBy.initializer)
+        : null);
 
     let stepIdValue: string | null | undefined = undefined;
 

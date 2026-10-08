@@ -10,6 +10,7 @@ import {
   ADD_DEVICE_NAME_DESCRIPTION,
   ADD_DEVICE_NAME_PLACEHOLDER,
   ADD_DEVICE_PING_MONITOR_DESCRIPTION,
+  ADD_DEVICE_PING_MONITOR_TITLE,
   ADD_DEVICE_PLURAL_NAME,
   ADD_DEVICE_PROBE_DESCRIPTION,
   ADD_DEVICE_SINGULAR_NAME,
@@ -253,6 +254,16 @@ describe("the form's words", () => {
    * One alert per device is the long way round: the per-device Ping monitor
    * points at Alert Policies for many devices at once.
    */
+  test("the Ping monitor option reads as an addition to the probe's status", () => {
+    expect(ADD_DEVICE_PING_MONITOR_TITLE).toBe(
+      "Also create a Ping monitor for incidents",
+    );
+    expect(ADD_DEVICE_PING_MONITOR_DESCRIPTION).toContain(
+      "already pings this device",
+    );
+    expect(ADD_DEVICE_PING_MONITOR_DESCRIPTION).toContain("incidents are off");
+  });
+
   test("the Ping monitor option points at Alert Policies for many devices", () => {
     expect(ADD_DEVICE_PING_MONITOR_DESCRIPTION).toContain("Alert Policies");
     expect(ADD_DEVICE_PING_MONITOR_DESCRIPTION).toContain("counts towards your plan");

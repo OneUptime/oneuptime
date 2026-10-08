@@ -87,12 +87,17 @@ export const ADD_DEVICE_CREDENTIAL_PROFILE_DESCRIPTION: string = translationKey(
 export const ADD_DEVICE_CREDENTIAL_PROFILE_PLACEHOLDER: string =
   translationKey("No saved credentials");
 
+/*
+ * "Also": the device has a status without it. "For incidents": what it adds.
+ * No "(optional)" - it sits under More fields, and a checkbox is never a
+ * question that must be answered.
+ */
 export const ADD_DEVICE_PING_MONITOR_TITLE: string = translationKey(
-  "Create a Ping monitor for incidents",
+  "Also create a Ping monitor for incidents",
 );
 
 export const ADD_DEVICE_PING_MONITOR_DESCRIPTION: string = translationKey(
-  "The probe already gives the device a status. A Ping monitor is what raises an incident when it stops answering: it is created on the hostname, bound to the device, and counts towards your plan. Incidents are off on it until you turn them on from the monitor's page. To alert on many devices at once, use Alert Policies instead.",
+  "The probe already pings this device and gives it a status. A Ping monitor is what turns failed pings into an incident: it is created on the hostname and bound to the device, it counts towards your plan, and incidents are off on it until you turn them on from the monitor's page. To alert on many devices at once, use Alert Policies instead.",
 );
 
 export const ADD_DEVICE_PING_PROBES_DESCRIPTION: string = translationKey(

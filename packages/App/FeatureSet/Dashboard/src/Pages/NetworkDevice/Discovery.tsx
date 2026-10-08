@@ -365,8 +365,13 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * FieldLabel appends "(Optional)" to every non-required field.
        */
       hideOptionalLabel: true,
+      /*
+       * Name and vendor, NOT model or interfaces: the sweep reads the SNMP
+       * system group (sysName / sysDescr / sysObjectId); a device's model
+       * and its interfaces arrive later, from the device's own polls.
+       */
       description:
-        "Every scan pings each address to find what is alive. Leave this on to also read what answers over SNMP - its name, vendor and interfaces - with the credentials on the next step. Turn it off to only ping: no credentials are asked for, and every device found is added as a pinged device.",
+        "Every scan pings each address in the range to find what is alive. Leave this on to also read the name and vendor of what answers over SNMP, with the credentials on the next step. Turn it off for an ICMP-only sweep: no credentials are asked for, and everything found is added as a device pinged by the scan's probe - add SNMP credentials later to read its details.",
       /*
        * Clear the credentials on the way past. Hiding the fields is not enough
        * on its own: ModelForm builds the request body from every DECLARED field
@@ -471,6 +476,14 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       title: "Look up NetBIOS names for hosts DNS doesn't name",
       stepId: "scan-target",
       collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
+      /*
+       * A small heading inside the fold, over the two naming switches:
+       * how a host is named, in order, so the NetBIOS lookup reads as the
+       * step it is in that order.
+       */
+      sectionTitle: "Device names",
+      sectionDescription:
+        "What each device imported from this scan is called. A host is named by the name it reports over SNMP, then by its reverse-DNS name, then by the NetBIOS name it reports if the scan looked one up, then by its address.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: true,
@@ -529,10 +542,12 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       /*
        * On the first step, under More fields: the schedule used to be a
        * step of its own that every scan walked through to reach the button,
-       * for a switch most first scans leave off.
+       * for a switch most first scans leave off. Its own small heading in
+       * the fold, after the naming switches.
        */
       stepId: "scan-target",
       collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
+      sectionTitle: "Schedule",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       // "Repeat this scan (Optional)" is noise on a toggle. Same as the method toggle above.
