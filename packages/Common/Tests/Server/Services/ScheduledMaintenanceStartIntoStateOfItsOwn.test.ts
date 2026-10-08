@@ -489,6 +489,21 @@ describe("an event that started straight into such a state", () => {
       ["scheduled", "postmortem"],
       false,
     ],
+    [
+      "Ongoing, then straight into Postmortem: over, let go there",
+      ["scheduled", "ongoing", "postmortem"],
+      false,
+    ],
+    [
+      "Verifying, then straight into Postmortem: over, let go there",
+      ["scheduled", "verifying", "postmortem"],
+      false,
+    ],
+    [
+      "Ongoing, then back to Confirmed: not over, still held",
+      ["scheduled", "ongoing", "confirmed"],
+      true,
+    ],
   ] as Array<[string, Array<StateKind>, boolean]>)(
     "holds its monitors after %s: %s",
     async (_name: string, kinds: Array<StateKind>, holding: boolean) => {
@@ -498,14 +513,18 @@ describe("an event that started straight into such a state", () => {
     },
   );
 
-  test("the replay reads the project's states only when a state of its own needs placing", async () => {
-    timeline = timelineOf(["scheduled", "ongoing", "verifying"]);
+  test("the replay reads the project's states once, and only when a state of its own needs placing", async () => {
+    timeline = timelineOf(["scheduled", "ongoing"]);
 
-    expect(await isHolding("verifying")).toBe(true);
-    // Held since Ongoing: "Verifying" needed no place.
+    // A built-in state answers by its flag: nothing is read.
+    expect(await isHolding("ongoing")).toBe(true);
     expect(statesRead).not.toHaveBeenCalled();
 
-    timeline = timelineOf(["scheduled", "verifying"]);
+    /*
+     * "Verifying" needs its place even while held since Ongoing: placed
+     * after Ended, a state of its own would end the hold.
+     */
+    timeline = timelineOf(["scheduled", "ongoing", "verifying"]);
 
     expect(await isHolding("verifying")).toBe(true);
     expect(statesRead).toHaveBeenCalledTimes(1);
@@ -539,6 +558,247 @@ describe("an event that started straight into such a state", () => {
     expect(releaseMonitors).toHaveBeenCalledTimes(1);
     expect(changeMonitorStatus).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * AN EVENT MOVED INTO A STATE OF THE PROJECT'S OWN AFTER ENDED IS OVER, AND
+ * LETS GO OF ITS MONITORS THERE.
+ *
+ * "Postmortem" sits between Ended and Completed: an event in it is over
+ * (ScheduledMaintenanceStartUtil.hasEnded). Moved there straight from
+ * Ongoing or "Verifying" - skipping Ended - it used to keep its monitors
+ * paused in its Change Monitor Status to for good, and count as holding
+ * them, so another event's end left them paused too.
+ */
+describe("the move into a state of the project's own placed after Ended", () => {
+  function timelineOf(
+    kinds: Array<StateKind>,
+  ): Array<ScheduledMaintenanceStateTimeline> {
+    return kinds.map(
+      (kind: StateKind, index: number): ScheduledMaintenanceStateTimeline => {
+        const item: ScheduledMaintenanceStateTimeline =
+          new ScheduledMaintenanceStateTimeline();
+        item._id = `0193c0de-0a0a-4ccc-8ddd-0000000001${String(index).padStart(2, "0")}`;
+        item.scheduledMaintenanceId = EVENT_ID;
+        item.scheduledMaintenanceState = state(kind);
+        return item;
+      },
+    );
+  }
+
+  // The row the move makes, as the timeline read finds it too.
+  function withTheMove(
+    rowsBefore: Array<ScheduledMaintenanceStateTimeline>,
+    into: StateKind,
+  ): Array<ScheduledMaintenanceStateTimeline> {
+    const row: ScheduledMaintenanceStateTimeline =
+      new ScheduledMaintenanceStateTimeline();
+    row._id = "0193c0de-0a0a-4ccc-8ddd-0000000000c1";
+    row.scheduledMaintenanceId = EVENT_ID;
+    row.scheduledMaintenanceState = state(into);
+    return [...rowsBefore, row];
+  }
+
+  test.each([
+    ["straight from Ongoing", ["scheduled", "ongoing"], "ongoing"],
+    [
+      "straight from Verifying, after a start into it",
+      ["scheduled", "verifying"],
+      "verifying",
+    ],
+    [
+      "from Confirmed, moved back to from Ongoing (still held)",
+      ["scheduled", "ongoing", "confirmed"],
+      "confirmed",
+    ],
+  ] as Array<[string, Array<StateKind>, StateKind]>)(
+    "%s, is the end: the event lets go of its monitors",
+    async (_name: string, kinds: Array<StateKind>, from: StateKind) => {
+      timeline = withTheMove(timelineOf(kinds), "postmortem");
+
+      await move({ from: from, into: "postmortem" });
+
+      expect(releaseMonitors).toHaveBeenCalledTimes(1);
+      expect(String(releaseMonitors.mock.calls[0]![0]!["_id"])).toBe(
+        EVENT_ID.toString(),
+      );
+      expectNothingStarted();
+    },
+  );
+
+  test.each([
+    [
+      "from Ended: let go there already",
+      ["scheduled", "ongoing", "ended"],
+      "ended",
+    ],
+    [
+      "straight from Scheduled: never held",
+      ["scheduled"],
+      "scheduled",
+    ],
+    [
+      "from Confirmed, never started: never held",
+      ["scheduled", "confirmed"],
+      "confirmed",
+    ],
+  ] as Array<[string, Array<StateKind>, StateKind]>)(
+    "%s, lets go of nothing",
+    async (_name: string, kinds: Array<StateKind>, from: StateKind) => {
+      timeline = withTheMove(timelineOf(kinds), "postmortem");
+
+      await move({ from: from, into: "postmortem" });
+
+      expect(releaseMonitors).not.toHaveBeenCalled();
+    },
+  );
+
+  test("filled in between two others, back in the timeline, lets go of nothing", async () => {
+    timeline = withTheMove(timelineOf(["scheduled", "ongoing"]), "postmortem");
+
+    await move({ from: "ongoing", into: "postmortem", filledInBetween: true });
+
+    expect(releaseMonitors).not.toHaveBeenCalled();
+  });
+
+  test("into Completed, as before: let go whatever came before", async () => {
+    await move({ from: "ongoing", into: "completed" });
+
+    expect(releaseMonitors).toHaveBeenCalledTimes(1);
+  });
+
+  test("a monitor attached to such an event is no longer held by it", async () => {
+    const otherEvent: ScheduledMaintenance = new ScheduledMaintenance();
+    otherEvent._id = OTHER_EVENT_ID;
+    otherEvent.projectId = PROJECT_ID;
+    otherEvent.currentScheduledMaintenanceState = state("postmortem");
+
+    timeline = timelineOf(["scheduled", "ongoing", "postmortem"]).map(
+      (
+        item: ScheduledMaintenanceStateTimeline,
+      ): ScheduledMaintenanceStateTimeline => {
+        item.scheduledMaintenanceId = new ObjectID(OTHER_EVENT_ID);
+        return item;
+      },
+    );
+
+    jest
+      .spyOn(ScheduledMaintenanceService, "findBy")
+      .mockResolvedValue([otherEvent] as never);
+
+    expect(
+      await ScheduledMaintenanceStateTimelineService.isMonitorHeldInMaintenanceByAnyEvent(
+        new ObjectID(MONITOR_A),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("what the move tells and re-rolls", () => {
+  // The emoji the state change's feed line starts with.
+  async function emojiOfTheMove(
+    from: StateKind | null,
+    into: StateKind,
+  ): Promise<string> {
+    await move({ from: from, into: into });
+
+    const createFeedItem: MockFunction =
+      ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem as unknown as MockFunction;
+
+    const feedInfo: string = String(
+      (createFeedItem.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+        .feedInfoInMarkdown,
+    );
+
+    return feedInfo.split(" ")[0]!;
+  }
+
+  test.each([
+    ["Ongoing", "scheduled", "ongoing", "⏳"],
+    ["Verifying, in progress too", "scheduled", "verifying", "⏳"],
+    ["Verifying, from Ongoing", "ongoing", "verifying", "⏳"],
+    ["Confirmed, not started", "scheduled", "confirmed", "➡️"],
+    ["Postmortem, over", "verifying", "postmortem", "➡️"],
+    ["Ended", "ongoing", "ended", "➡️"],
+    ["Completed", "ended", "completed", "✅"],
+    ["Scheduled", null, "scheduled", "🕒"],
+  ] as Array<[string, StateKind | null, StateKind, string]>)(
+    "the feed line of a move into %s starts with its emoji",
+    async (
+      _name: string,
+      from: StateKind | null,
+      into: StateKind,
+      emoji: string,
+    ) => {
+      expect(await emojiOfTheMove(from, into)).toBe(emoji);
+    },
+  );
+
+  test.each([
+    ["the start into Verifying", ["scheduled"], "scheduled", "verifying", 1],
+    ["the start into Ongoing", ["scheduled"], "scheduled", "ongoing", 1],
+    [
+      "the end into Postmortem, from Ongoing",
+      ["scheduled", "ongoing"],
+      "ongoing",
+      "postmortem",
+      1,
+    ],
+    ["the end into Ended", ["scheduled", "ongoing"], "ongoing", "ended", 1],
+    [
+      "the move on from Ongoing to Verifying: still in progress",
+      ["scheduled", "ongoing"],
+      "ongoing",
+      "verifying",
+      0,
+    ],
+    [
+      "the move on from Ended to Postmortem: over already",
+      ["scheduled", "ongoing", "ended"],
+      "ended",
+      "postmortem",
+      0,
+    ],
+    [
+      "the move into Confirmed: not started",
+      ["scheduled"],
+      "scheduled",
+      "confirmed",
+      0,
+    ],
+  ] as Array<[string, Array<StateKind>, StateKind, StateKind, number]>)(
+    "the network sites above the event are re-rolled on %s",
+    async (
+      _name: string,
+      kinds: Array<StateKind>,
+      from: StateKind,
+      into: StateKind,
+      rerolls: number,
+    ) => {
+      timeline = kinds.map(
+        (kind: StateKind): ScheduledMaintenanceStateTimeline => {
+          const item: ScheduledMaintenanceStateTimeline =
+            new ScheduledMaintenanceStateTimeline();
+          item.scheduledMaintenanceId = EVENT_ID;
+          item.scheduledMaintenanceState = state(kind);
+          return item;
+        },
+      );
+
+      const reroll: MockFunction = getJestMockFunction();
+      reroll.mockResolvedValue(undefined as never);
+      jest
+        .spyOn(
+          ScheduledMaintenanceStateTimelineService,
+          "recomputeNetworkSiteRollups",
+        )
+        .mockImplementation(reroll as never);
+
+      await move({ from: from, into: into });
+
+      expect(reroll).toHaveBeenCalledTimes(rerolls);
+    },
+  );
 });
 
 describe("ScheduledMaintenanceStartUtil.isInProgress", () => {
