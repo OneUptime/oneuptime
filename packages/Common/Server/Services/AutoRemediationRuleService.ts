@@ -101,11 +101,10 @@ export class Service extends ProjectReferencesService<Model> {
    * rule form posts every field, so an edit that keeps what a rule already
    * runs keeps it.
    *
-   * Both read the rules the update writes, once, as OneUptime pinned to the
-   * request's project (hooks run before the framework scopes the update),
-   * and the update is held to the rules read (findRowsAndHoldUpdateToThem),
-   * so a rule neither check saw is never written. Nothing is read when
-   * neither has anything to ask.
+   * Both read the rules the update writes - the ones its caller may write -
+   * once, and the update is held to the rules read
+   * (findRowsAndHoldUpdateToThem), so a rule neither check saw is never
+   * written. Nothing is read when neither has anything to ask.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(

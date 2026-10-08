@@ -784,10 +784,10 @@ export class Service extends ProjectReferencesService<Model> {
    * What a subscriber names already is left alone, so the dashboard and the
    * manage subscription page, which send the whole list back on every save,
    * never lock a subscription against editing. The subscribers are the rows
-   * the update writes, read as OneUptime pinned to the request's project,
-   * and the update is held to them (findRowsAndHoldUpdateToThem): a
-   * subscriber the update cannot reach says nothing, and one the check did
-   * not read is not written.
+   * the update writes - the ones its caller may write - and the update is
+   * held to them (findRowsAndHoldUpdateToThem): a subscriber the caller
+   * cannot reach says nothing, and one the check did not read is not
+   * written.
    */
   private async checkResourcesOnPages(
     updateBy: UpdateBy<Model>,

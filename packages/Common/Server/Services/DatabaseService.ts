@@ -167,6 +167,25 @@ const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
     RuleCriteriaOperator.HasNoneOf,
   ]);
 
+// An update or a delete whose rows keepRowsCallerMayWrite reads.
+interface WriteOfRows {
+  query: unknown;
+  props: DatabaseCommonInteractionProps;
+}
+
+/*
+ * The rows of an update or delete its caller may write, as
+ * keepRowsCallerMayWrite read them before the hooks: the very write objects,
+ * for as long as they live. A hook that checks the rows an update writes
+ * reads these (findRowsAndHoldUpdateToThem), so it is never answered about
+ * a row the caller cannot reach. No entry for OneUptime, a master admin or
+ * a hook-free write: they write any row.
+ */
+const rowsTheCallerMayWrite: WeakMap<WriteOfRows, Array<string>> = new WeakMap<
+  WriteOfRows,
+  Array<string>
+>();
+
 /*
  * A switch an update turns, and the who and when columns the server stamped
  * for it (see stampSwitchAttribution).
@@ -616,6 +635,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       write.props.ignoreHooks ||
       !this.hasHooksFor(type)
     ) {
+      rowsTheCallerMayWrite.delete(write);
       return true;
     }
 
@@ -662,6 +682,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         rowIds.push(row._id.toString());
       }
     }
+
+    // For a hook that checks these rows (see findRowsAndHoldUpdateToThem).
+    rowsTheCallerMayWrite.set(write, rowIds);
 
     if (rowIds.length === 0) {
       return false;
@@ -6772,15 +6795,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * held to those very rows, so its write never reaches a row the check did
    * not see.
    *
-   * Hooks run before the framework scopes an update to its caller, so the
-   * read is pinned to the request's project here, and it reads the update's
-   * own window (skip and limit). The update then names the rows read by id,
-   * with a window that covers just them, and the write narrows that by the
-   * caller's permissions - never past it. Without that, a bulk update that
-   * matches more rows than its window, by a caller whose permissions leave
-   * some of them out, could write a row past the window the check read. With
-   * no rows read the update is left as it is: it writes nothing either way,
-   * as what it writes is a part of what was read.
+   * They are the rows the caller may write. Before the hooks the update path
+   * read them with the caller's permissions, in the update's own window
+   * (keepRowsCallerMayWrite), and this reads those rows again, by id, with
+   * what the check needs: a row the caller cannot reach is neither asked
+   * about nor held. OneUptime and a master admin write any row, and a
+   * hook-free update reads none before: for them this reads the update's
+   * query in its window, pinned to the request's project, since hooks run
+   * before the framework scopes the update.
+   *
+   * The update then names the rows read, in the shapes its hooks already
+   * read (pinQueryToRows), and by their ids even where those leave a query
+   * over several rows without one: the write covers exactly the rows the
+   * check saw, where a window read a second time need not hold the same
+   * rows. With no rows read the update is left as it is: it writes nothing
+   * either way, as what it writes is a part of what was read.
    */
   protected async findRowsAndHoldUpdateToThem(
     updateBy: UpdateBy<TBaseModel>,
@@ -6799,19 +6828,37 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return { ...query, [tenantColumn]: tenantId } as Query<TBaseModel>;
     };
 
-    const query: Query<TBaseModel> = Array.isArray(updateBy.query)
-      ? (updateBy.query.map((each: Query<TBaseModel>): Query<TBaseModel> => {
-          return pinToProject(each);
-        }) as unknown as Query<TBaseModel>)
-      : pinToProject(updateBy.query);
+    const callerMayWrite: Array<string> | undefined =
+      rowsTheCallerMayWrite.get(updateBy);
 
-    const rows: Array<TBaseModel> = await this.findBy({
-      query: query,
-      select: { ...select, _id: true } as Select<TBaseModel>,
-      skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
-      limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
-      props: { isRoot: true, ignoreHooks: true },
-    });
+    if (callerMayWrite && callerMayWrite.length === 0) {
+      return [];
+    }
+
+    const rows: Array<TBaseModel> = callerMayWrite
+      ? await this.findBy({
+          query: pinToProject({
+            ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
+            _id: QueryHelper.any(callerMayWrite),
+          } as Query<TBaseModel>),
+          select: { ...select, _id: true } as Select<TBaseModel>,
+          skip: 0,
+          limit: callerMayWrite.length,
+          props: { isRoot: true, ignoreHooks: true },
+        })
+      : await this.findBy({
+          query: Array.isArray(updateBy.query)
+            ? (updateBy.query.map(
+                (each: Query<TBaseModel>): Query<TBaseModel> => {
+                  return pinToProject(each);
+                },
+              ) as unknown as Query<TBaseModel>)
+            : pinToProject(updateBy.query),
+          select: { ...select, _id: true } as Select<TBaseModel>,
+          skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
+          limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
+          props: { isRoot: true, ignoreHooks: true },
+        });
 
     const rowIds: Array<string> = [];
 
@@ -6825,10 +6872,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return rows;
     }
 
-    updateBy.query = {
-      ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
-      _id: rowIds.length === 1 ? rowIds[0]! : QueryHelper.any(rowIds),
-    } as Query<TBaseModel>;
+    const pinned: PinnedQuery<TBaseModel> | null = this.pinQueryToRows(
+      updateBy.query,
+      rowIds,
+      updateBy.props,
+    );
+
+    updateBy.query =
+      pinned && pinned.namesTheRows
+        ? pinned.query
+        : ({
+            ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
+            _id: rowIds.length === 1 ? rowIds[0]! : QueryHelper.any(rowIds),
+          } as Query<TBaseModel>);
     updateBy.skip = 0;
     updateBy.limit = rowIds.length;
 
