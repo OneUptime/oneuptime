@@ -100,6 +100,8 @@ const USER_PERMISSIONS_CALLERS: Record<string, string> = {
     "The same filter for a read: records carrying a blocked label are left out.",
   "packages/Common/Server/Types/Database/Permissions/OwnedScopePermission.ts":
     "How far a grant the table check let through reaches (Owned scope); it decides no grant.",
+  "packages/Common/Server/Types/Database/Permissions/CreateScopePermission.ts":
+    "How far the create grants the table check let through reach - limited to labels, or to owned records - and the blocks with labels that take records carrying them away from a create; it decides no grant.",
   "packages/Common/Server/Types/Database/Permissions/TenantPermission.ts":
     "Whether only Current User lets the caller in, to scope the query to their own rows; a blocked permission is refused by the table check first.",
   "packages/Common/Server/Types/AnalyticsDatabase/ModelPermission.ts":
