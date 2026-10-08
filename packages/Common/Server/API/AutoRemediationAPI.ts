@@ -881,18 +881,6 @@ router.post(
         }
 
         /*
-         * An SSH command runs with the credential OneUptime AI picked from
-         * its Runner's; approving confirms that pick, so it needs the
-         * approver's read of runbook credentials - as naming one in a
-         * runbook step does (AiRemediationCredentialUse). Asked before
-         * anything is read about the plan's targets.
-         */
-        AiRemediationCredentialUse.assertApproverMayUseCredentials({
-          plan: plan,
-          props: props,
-        });
-
-        /*
          * Fail fast if a target Runner lost its AI-commands consent (or was
          * deleted) since the plan was composed — better a clear error now
          * than a plan that half-runs into claim timeouts. Each Runner is
@@ -1015,6 +1003,17 @@ router.post(
           plan,
           props,
           projectId: suggestion.projectId,
+        });
+
+        /*
+         * And an SSH command runs with the credential OneUptime AI picked
+         * from its Runner's: approving confirms that pick, so it needs the
+         * approver's read of runbook credentials - as naming one in a
+         * runbook step does (AiRemediationCredentialUse).
+         */
+        AiRemediationCredentialUse.assertApproverMayUseCredentials({
+          plan: plan,
+          props: props,
         });
 
         const claimedPlan: number =
