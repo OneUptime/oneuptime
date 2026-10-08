@@ -26,9 +26,13 @@ jest.mock("marked", () => {
 
 import { Renderer, marked } from "marked";
 import Markdown, {
+  EMAIL_IMAGE_STYLE,
   MAX_MARKED_EMAIL_MARKDOWN_LENGTH,
   MarkdownContentType,
 } from "../../../Server/Types/Markdown";
+import EmailInlineImages, {
+  EmailHtmlWithInlineImages,
+} from "../../../Server/Utils/Mail/EmailInlineImages";
 import logger from "../../../Server/Utils/Logger";
 import { OVER_LONG_LINE_LENGTH } from "../../../Utils/Markdown/OverLongText";
 
@@ -273,6 +277,32 @@ describe("Markdown email renderer - the last resort", () => {
     expect(String(logged.mock.calls[0]![0])).toContain(
       "could not be rendered, and is sent as text: Maximum call stack size exceeded",
     );
+  });
+
+  test("if marked still runs out of stack, a screenshot stays an image - attached as it is sent, never its base64 as text", async () => {
+    mockMarkedState.failWith = new RangeError(
+      "Maximum call stack size exceeded",
+    );
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    // A real 1x1 PNG, as the probe reports a screenshot.
+    const png: string =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const notAnImage: string = Buffer.from("not an image").toString("base64");
+
+    const html: string = await render(
+      `**Down** <b>\n\n![Screenshot of the page](data:image/png;base64,${png} "Shot")\n\nThen ![a file](data:text/plain;base64,${notAnImage}) and & more`,
+    );
+
+    expect(html).toBe(
+      `<p>**Down** &lt;b&gt;<br>\n<br>\n<img src="data:image/png;base64,${png}" alt="Screenshot of the page" style="${EMAIL_IMAGE_STYLE}"><br>\n<br>\nThen a file and &amp; more</p>\n`,
+    );
+
+    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+
+    expect(attached.inlineImages).toHaveLength(1);
+    expect(attached.html.includes("base64")).toBe(false);
+    expect(attached.html.includes(notAnImage)).toBe(false);
   });
 
   test("Markdown with more than a megabyte left once over-long text is held back is sent as text, and marked never reads it", async () => {

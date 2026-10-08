@@ -1051,9 +1051,15 @@ const measureRun: (
   longestUnit = Math.max(longestUnit, unitLength);
   longestUnitLines = Math.max(longestUnitLines, unitLines);
 
+  const lastLineStart: number = lineStarts[lineStarts.length - 1]!;
+
   return {
     start: lineStarts[0]!,
-    end: getLineEnd(text, lineStarts[lineStarts.length - 1]!),
+    end: withoutCarriageReturn(
+      text,
+      lastLineStart,
+      getLineEnd(text, lastLineStart),
+    ),
     lines: lineStarts.length,
     inlineWork: inlineWork,
     longestUnit: longestUnit,
@@ -1135,7 +1141,7 @@ const readSegments: (
     if (fence !== null) {
       if (isFenceClosing(text, lineStart, lineEnd, fence)) {
         // Before the closer's line, and a "\r" its line break left.
-        pushCode(Math.max(fenceContentStart, lineStart - 1), lineBreak);
+        pushCode(Math.max(fenceContentStart, lineStart - 1), lineEnd);
         fence = null;
         // A new block starts on the next line, as after a blank line.
         previousLineWasBlank = true;
@@ -1154,7 +1160,10 @@ const readSegments: (
        * block ends here for this count, and this line and every line after
        * it are measured as Markdown.
        */
-      pushCode(Math.max(fenceContentStart, lineStart - 1), lineStart - 1);
+      pushCode(
+        Math.max(fenceContentStart, lineStart - 1),
+        withoutCarriageReturn(text, fenceStart, lineStart - 1),
+      );
       fence = null;
       isFenceReadable = false;
     }

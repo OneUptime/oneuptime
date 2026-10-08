@@ -128,18 +128,27 @@ interface Base64Run {
   end: number;
 }
 
-// Where an image is in Markdown: "![", its address, and after its ")".
+/*
+ * Where an image is in Markdown: "![", its address and where its data ends
+ * (after any "=" padding), and after its ")".
+ */
 interface MarkdownImagePosition {
   start: number;
   addressStart: number;
+  addressEnd: number;
   end: number;
 }
 
 // The start of base64 data after a data: URL's media type.
 const BASE64_DATA_START: RegExp = /;base64,/gi;
 
-// What a data: URL's media type and encoding read, before its data.
-const IMAGE_DATA_URL_PREFIX: RegExp = /^data:image\/[a-z0-9.+-]+;base64,$/i;
+/*
+ * What a data: URL's media type and encoding read, before its data - any
+ * type: whether it is an image an email sends is parseInlineImageDataUri's
+ * to say.
+ */
+const IMAGE_DATA_URL_PREFIX: RegExp =
+  /^data:[a-z0-9.+-]+\/[a-z0-9.+-]+;base64,$/i;
 
 /*
  * How far from an image's data its "![" may be, and its ")": the length of
@@ -1149,12 +1158,23 @@ export default class Markdown {
       return null;
     }
 
+    // The data's "=" padding, which the run does not take.
+    let addressEnd: number = run.end;
+
+    while (
+      addressEnd < markdown.length &&
+      addressEnd - run.end < 2 &&
+      markdown.charAt(addressEnd) === "="
+    ) {
+      addressEnd++;
+    }
+
     // After the data: spaces and a quoted title, then ")".
     const limit: number = Math.min(
       markdown.length,
-      run.end + IMAGE_SYNTAX_WINDOW,
+      addressEnd + IMAGE_SYNTAX_WINDOW,
     );
-    let end: number = run.end;
+    let end: number = addressEnd;
 
     while (end < limit && markdown.charAt(end) === " ") {
       end++;
@@ -1184,6 +1204,7 @@ export default class Markdown {
     return {
       start: altWindowStart + altIndex,
       addressStart: addressStart,
+      addressEnd: addressEnd,
       end: end + 1,
     };
   }
@@ -1483,7 +1504,7 @@ export default class Markdown {
 
       const alt: string = text.slice(found.start + 2, found.addressStart - 2);
       const image: InlineImageDataUri | null = parseInlineImageDataUri(
-        text.slice(found.addressStart, run.end),
+        text.slice(found.addressStart, found.addressEnd),
       );
 
       html += Markdown.getEmailLinesHtml(text.slice(copiedUpTo, found.start));
