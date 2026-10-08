@@ -28,6 +28,11 @@ import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import {
+  EventOverlayScope,
+  getEventOverlayScope,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/EventOverlayScope";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -5014,6 +5019,183 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
         await removeRows([["AIInsight", "_id", id]]);
       }
+    });
+  });
+
+  /*
+   * ALERTS LISTED BY THE METRIC THEIR TELEMETRY QUERY READ (#4472): what a
+   * metric chart filtered to no resource asks for its markers. The filter is
+   * on the jsonb column a metric-evaluating monitor writes the queries that
+   * fired the alert into, and the route answers it like any other filter: in
+   * the request's project, under the label rule.
+   */
+  describe("alerts listed by the metric their telemetry query read", () => {
+    const CHARTED: string = "container_cpu_cfs_periods_total";
+
+    const chartedAlertId: ObjectID = ObjectID.generate();
+    const chartedProductionAlertId: ObjectID = ObjectID.generate();
+    const otherMetricAlertId: ObjectID = ObjectID.generate();
+    const statusPageAlertId: ObjectID = ObjectID.generate();
+    const chartedOtherProjectAlertId: ObjectID = ObjectID.generate();
+
+    // The queries a Kubernetes monitor's step read, as MonitorResource stores them.
+    const raisedOn: (metricName: string) => JSONObject = (
+      metricName: string,
+    ): JSONObject => {
+      return {
+        telemetryType: "Metric",
+        telemetryQuery: null,
+        metricViewData: {
+          startAndEndDate: null,
+          queryConfigs: [
+            {
+              metricAliasData: {
+                metricVariable: "a",
+                title: metricName,
+                description: "",
+                legend: "",
+                legendUnit: "",
+              },
+              metricQueryData: {
+                filterData: {
+                  metricName: metricName,
+                  attributes: { "resource.k8s.cluster.name": "prod" },
+                  aggegationType: "Avg",
+                },
+              },
+            },
+          ],
+          formulaConfigs: [],
+        },
+      };
+    };
+
+    // What the overlay hook sends for the chart: its query, project and window.
+    const chartQuery: () => JSONObject = (): JSONObject => {
+      const scope: EventOverlayScope = getEventOverlayScope([
+        {
+          metricQueryData: {
+            filterData: { metricName: CHARTED, attributes: {} },
+          },
+        },
+      ]);
+
+      expect(scope.alertQueries).toHaveLength(1);
+
+      return {
+        ...(scope.alertQueries[0] as JSONObject),
+        projectId: homeProjectId,
+        createdAt: new InBetween<Date>(
+          new Date(Date.now() - 60 * 60 * 1000),
+          new Date(Date.now() + 60 * 60 * 1000),
+        ),
+      };
+    };
+
+    beforeAll(async () => {
+      for (const [id, projectId, title, telemetryQuery, labelIds] of [
+        [chartedAlertId, homeProjectId, "Throttled", raisedOn(CHARTED), []],
+        [
+          chartedProductionAlertId,
+          homeProjectId,
+          "Throttled in production",
+          raisedOn(CHARTED),
+          [productionLabelId],
+        ],
+        [
+          otherMetricAlertId,
+          homeProjectId,
+          "Memory",
+          raisedOn("container_memory_working_set_bytes"),
+          [],
+        ],
+        [statusPageAlertId, homeProjectId, "Vendor outage", null, []],
+        [
+          chartedOtherProjectAlertId,
+          otherProjectId,
+          "Throttled elsewhere",
+          raisedOn(CHARTED),
+          [],
+        ],
+      ] as Array<
+        [ObjectID, ObjectID, string, JSONObject | null, Array<ObjectID>]
+      >) {
+        await insertAlert({
+          id: id,
+          projectId: projectId,
+          title: title,
+          labelIds: labelIds,
+        });
+        // JSON.stringify is what TypeORM writes to a jsonb column.
+        await database.query(
+          `UPDATE "${schema}"."Alert" SET "telemetryQuery" = $1 WHERE "_id" = $2`,
+          [
+            telemetryQuery ? JSON.stringify(telemetryQuery) : null,
+            id.toString(),
+          ],
+        );
+      }
+    });
+
+    afterAll(async () => {
+      for (const id of [
+        chartedAlertId,
+        chartedProductionAlertId,
+        otherMetricAlertId,
+        statusPageAlertId,
+        chartedOtherProjectAlertId,
+      ]) {
+        await removeRows([
+          ["AlertLabel", "alertId", id],
+          ["Alert", "_id", id],
+        ]);
+      }
+    });
+
+    test("a member's list and count hold only the alerts raised on the charted metric", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+
+      const listed: Outcome = await list("/alert", homeUser, chartQuery());
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(
+        sorted([chartedAlertId, chartedProductionAlertId]),
+      );
+      expect(listed.count).toBe(2);
+
+      const counted: Outcome = await count("/alert", homeUser, chartQuery());
+
+      expect(counted.count).toBe(2);
+    });
+
+    test("the label rule still holds on the filtered list", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+        ...alertBlocks([productionLabelId]),
+      ]);
+
+      const listed: Outcome = await list("/alert", homeUser, chartQuery());
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(sorted([chartedAlertId]));
+    });
+
+    test("an API key with only the read permission gets the same answer", async () => {
+      const listed: Outcome = await list(
+        "/alert",
+        {
+          kind: "apiKey",
+          apiKey: await createApiKey([{ permission: Permission.ReadAlert }]),
+        },
+        chartQuery(),
+      );
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(
+        sorted([chartedAlertId, chartedProductionAlertId]),
+      );
     });
   });
 
