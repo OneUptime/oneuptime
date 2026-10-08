@@ -974,17 +974,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The projects whose sign-in rules a write changed: Require SSO turned on
-   * or off, or the provider it pins set, changed or cleared
-   * (SsoRequirementChanges.takeProjectsWhoseRuleChanged - a rule written
-   * back as it was is not one). Every server reads them again at once,
-   * rather than when its cached copy runs out a minute later
-   * (RealtimeAccessChanges). Rules that ask for more stop a page that no
-   * longer meets them hearing at once, as its API requests are refused at
-   * once - the live updates already open in the project are asked again as
-   * their joins were. Rules that ask for less let people back in at once on
-   * every server: one that still held the old rule would refuse them until
-   * it ran out.
+   * The projects whose sign-in rules a write told of: every project a write
+   * that asks for more wrote - Require SSO turned on, or a provider pinned,
+   * whatever the rule was before - and those whose rule a write that asks
+   * for less changed - Require SSO turned off, or the pinned provider
+   * cleared; written back as it was, it is not one
+   * (SsoRequirementChanges.takeProjectsWhoseRuleChanged). Every server reads
+   * them again at once, rather than when its cached copy runs out a minute
+   * later (RealtimeAccessChanges). Rules that ask for more stop a page that
+   * no longer meets them hearing at once, as its API requests are refused
+   * at once - the live updates already open in the project are asked again
+   * as their joins were. Rules that ask for less let people back in at once
+   * on every server: one that still held the old rule would refuse them
+   * until it ran out.
    */
   private announceSignInRulesChanged(changedProjectIds: Array<ObjectID>): void {
     for (const projectId of changedProjectIds) {
@@ -1064,7 +1066,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
 
-    // What the rules are now, so only a rule the write changes is told.
+    // What the rules are now, so a write that asks for less is told only where it changes one.
     await SsoRequirementChanges.rememberProjectRulesBefore(updateBy);
 
     await this.chargeAutoRechargeTurnedOn(updateBy);

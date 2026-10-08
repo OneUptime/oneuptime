@@ -77,7 +77,10 @@ import SsoSignInWays, {
  * Every server hearing of the change is the services' part
  * (announceGlobalSignInChange): told when the write changed where a
  * provider signs people in (afterWrite) - narrowed or widened - and not
- * when it wrote a switch back as it was.
+ * when it turned a provider or an attachment on, or opened one, that was so
+ * already. A write that turns one off or restricts it is told whatever it
+ * read (isGlobalProviderNarrowing): a write that turns one on takes no
+ * lock, and may land between what it read and what it wrote.
  */
 
 // What a write does to where global providers sign people in.
@@ -219,13 +222,29 @@ export default class GlobalSsoProviderChanges {
     const work: () => Promise<
       Omit<GlobalSsoProviderWrite, "locks">
     > = async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-      const providers: Array<GlobalProviderRow> =
+      /*
+       * Only the providers whose switches the write changes: one it leaves
+       * as it was - an edit form sends every switch it shows - signs the
+       * same people in after it, and its attachments are not read.
+       */
+      const providers: Array<GlobalProviderRow> = (
         await GlobalSsoProviderChanges.readProviders({
           service: data.service,
           query: data.updateBy.query,
           limit: data.updateBy.limit,
           skip: data.updateBy.skip,
-        });
+        })
+      ).filter((provider: GlobalProviderRow): boolean => {
+        return (
+          (isEnabled !== undefined && isEnabled !== provider.isEnabled) ||
+          (restrictToAttachedProjects !== undefined &&
+            restrictToAttachedProjects !== provider.restrictToAttachedProjects)
+        );
+      });
+
+      if (providers.length === 0) {
+        return { reachChanges: [] };
+      }
 
       const attachments: Map<
         string,
@@ -469,18 +488,37 @@ export default class GlobalSsoProviderChanges {
           skip: data.updateBy.skip,
         });
 
+      const before: Array<AttachmentRow> = [];
+      const after: Array<AttachmentRow> = [];
+
+      /*
+       * Only the attachments the write changes: one it leaves as it was -
+       * turned on again while on - changes nothing, and nothing more is
+       * read for it.
+       */
+      for (const row of matched) {
+        const written: AttachmentRow = {
+          id: row.id,
+          providerId: writesProvider ? newProviderId : row.providerId,
+          projectId: writesProject ? newProjectId : row.projectId,
+          isEnabled: isEnabled !== undefined ? isEnabled : row.isEnabled,
+        };
+
+        if (
+          written.providerId !== row.providerId ||
+          written.projectId !== row.projectId ||
+          written.isEnabled !== row.isEnabled
+        ) {
+          before.push(row);
+          after.push(written);
+        }
+      }
+
       return {
         reachChanges: await GlobalSsoProviderChanges.getAttachmentReachChanges({
           providerType: data.providerType,
-          before: matched,
-          after: matched.map((row: AttachmentRow): AttachmentRow => {
-            return {
-              id: row.id,
-              providerId: writesProvider ? newProviderId : row.providerId,
-              projectId: writesProject ? newProjectId : row.projectId,
-              isEnabled: isEnabled !== undefined ? isEnabled : row.isEnabled,
-            };
-          }),
+          before,
+          after,
         }),
       };
     };
@@ -609,31 +647,16 @@ export default class GlobalSsoProviderChanges {
   }
 
   /*
-   * Takes the lock on the server's sign-in rules, works the write out from
-   * what it reads under it, and refuses it when it would strand a project.
-   *
-   * The rows are read under the lock, never before it: whether a write
-   * narrows a provider's reach depends on the provider's switch and
-   * restriction and on its other attachments, which other writes change,
-   * and so does which rows a write that names them by a filter reaches. A
-   * decision made from an earlier read could be overtaken by one of them -
-   * an attachment created, or removed, while its provider is restricted to
-   * its attached projects. Global provider and attachment writes are rare,
-   * and each holds the lock for one check and one write.
-   *
-   * The lock is kept while the check reads, page by page, and once more
-   * when it is done, so the write has the whole time; it is held for the
-   * write (afterWrite), or given back at once when the write is refused.
-   */
-  /*
    * A write that is never refused - it turns a provider or an attachment
    * on, or lifts the restriction - takes no lock and checks nothing, but
    * where it moves the providers is worked out all the same, so afterWrite
    * answers whether it changed anything: a switch written back as it was
    * tells no server. Read without the lock, the answer can miss a change
-   * another write makes at that moment; that write tells the servers
-   * itself, or their cached answers run out within a minute. Never throws:
-   * when the read fails, the write counts as a change.
+   * another write makes at that moment: a write that turns a provider or
+   * an attachment off, or restricts it, tells the servers itself whatever
+   * it read (the services' success hooks), and any other answer a server
+   * holds runs out within a minute. Never throws: when the read fails, the
+   * write counts as a change.
    */
   private static async workOutUnlocked(data: {
     key: WriteKey;
@@ -656,6 +679,23 @@ export default class GlobalSsoProviderChanges {
     return write;
   }
 
+  /*
+   * Takes the lock on the server's sign-in rules, works the write out from
+   * what it reads under it, and refuses it when it would strand a project.
+   *
+   * The rows are read under the lock, never before it: whether a write
+   * narrows a provider's reach depends on the provider's switch and
+   * restriction and on its other attachments, which other writes change,
+   * and so does which rows a write that names them by a filter reaches. A
+   * decision made from an earlier read could be overtaken by one of them -
+   * an attachment created, or removed, while its provider is restricted to
+   * its attached projects. Global provider and attachment writes are rare,
+   * and each holds the lock for one check and one write.
+   *
+   * The lock is kept while the check reads, page by page, and once more
+   * when it is done, so the write has the whole time; it is held for the
+   * write (afterWrite), or given back at once when the write is refused.
+   */
   private static async lockAndCheck(data: {
     key: WriteKey;
     work: () => Promise<Omit<GlobalSsoProviderWrite, "locks">>;

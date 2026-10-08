@@ -755,9 +755,11 @@ describe("live updates follow every change of access", () => {
     /*
      * The rules as they were before the write (SsoRequirementChanges.
      * rememberProjectRulesBefore / rememberServerRuleBefore, from the
-     * services' onUpdatePermitted): a rule written back as it was - an edit
-     * form, an API client or Terraform sends the whole record - is told to
-     * no server.
+     * services' onUpdatePermitted): a rule that asks for less, written back
+     * as it was - an edit form, an API client or Terraform sends the whole
+     * record - is told to no server. One that asks for more is told whatever
+     * it was: a write that asks for less takes no lock, and may land between
+     * that read and this write.
      */
     describe("a rule written back as it was", () => {
       const projectWithRule: (
@@ -776,16 +778,16 @@ describe("live updates follow every change of access", () => {
         return project;
       };
 
-      test("tells no server about a project whose rule it left as it was, and tells about one whose rule it changed", async () => {
+      test("turning Require SSO off tells no server about a project where it was off already, and tells about one where it was on", async () => {
         jest
           .spyOn(ProjectService, "findAllBy")
           .mockResolvedValue([
-            projectWithRule(PROJECT, { requireSsoForLogin: true }),
-            projectWithRule(OTHER_PROJECT, { requireSsoForLogin: false }),
+            projectWithRule(PROJECT, { requireSsoForLogin: false }),
+            projectWithRule(OTHER_PROJECT, { requireSsoForLogin: true }),
           ] as never);
 
         const update: OnUpdate<User & UserSession> = updateOf<User>({
-          requireSsoForLogin: true,
+          requireSsoForLogin: false,
         });
 
         await SsoRequirementChanges.rememberProjectRulesBefore(
@@ -801,34 +803,44 @@ describe("live updates follow every change of access", () => {
         ]);
       });
 
-      test("the provider a project requires, saved again as it is, tells nobody; another one is told", async () => {
-        jest.spyOn(ProjectService, "findAllBy").mockResolvedValue([
+      test("clearing the provider a project requires tells nobody where none was required; where one was, it is told", async () => {
+        const reads: jest.SpyInstance = jest
+          .spyOn(ProjectService, "findAllBy")
+          .mockResolvedValue([
+            projectWithRule(PROJECT, { requireSsoForLogin: true }),
+          ] as never);
+
+        const none: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
+          requireSsoWithSsoProviderId: null,
+        });
+
+        reads.mockResolvedValueOnce([
+          projectWithRule(PROJECT, { requireSsoForLogin: false }),
+        ] as never);
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          none.updateBy as never,
+        );
+        await projectHooks.onUpdateSuccess(none, [PROJECT]);
+
+        expect(announced).toEqual([]);
+
+        const cleared: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoWithSsoProviderId: null,
+        });
+
+        reads.mockResolvedValueOnce([
           projectWithRule(PROJECT, {
             requireSsoForLogin: true,
             requiredProviderId: TEAM,
           }),
         ] as never);
 
-        const same: OnUpdate<User & UserSession> = updateOf<User>({
-          requireSsoForLogin: true,
-          requireSsoWithSsoProviderId: TEAM,
-        });
-
         await SsoRequirementChanges.rememberProjectRulesBefore(
-          same.updateBy as never,
+          cleared.updateBy as never,
         );
-        await projectHooks.onUpdateSuccess(same, [PROJECT]);
-
-        expect(announced).toEqual([]);
-
-        const another: OnUpdate<User & UserSession> = updateOf<User>({
-          requireSsoWithSsoProviderId: OTHER_USER,
-        });
-
-        await SsoRequirementChanges.rememberProjectRulesBefore(
-          another.updateBy as never,
-        );
-        await projectHooks.onUpdateSuccess(another, [PROJECT]);
+        await projectHooks.onUpdateSuccess(cleared, [PROJECT]);
 
         expect(announced).toEqual([
           {
@@ -837,6 +849,48 @@ describe("live updates follow every change of access", () => {
           },
         ]);
       });
+
+      test.each([
+        ["Require SSO turned on", { requireSsoForLogin: true }],
+        ["a provider required", { requireSsoWithSsoProviderId: TEAM }],
+        [
+          "both, saved again as they are",
+          { requireSsoForLogin: true, requireSsoWithSsoProviderId: TEAM },
+        ],
+      ])(
+        "a write that asks for more - %s - is told for every project it wrote, whatever the rules were, and reads nothing before it",
+        async (_label: string, data: Record<string, unknown>) => {
+          const reads: jest.SpyInstance = jest
+            .spyOn(ProjectService, "findAllBy")
+            .mockResolvedValue([
+              projectWithRule(PROJECT, {
+                requireSsoForLogin: true,
+                requiredProviderId: TEAM,
+              }),
+            ] as never);
+
+          const update: OnUpdate<User & UserSession> = updateOf<User>(
+            data as never,
+          );
+
+          await SsoRequirementChanges.rememberProjectRulesBefore(
+            update.updateBy as never,
+          );
+          await projectHooks.onUpdateSuccess(update, [PROJECT, OTHER_PROJECT]);
+
+          expect(reads).not.toHaveBeenCalled();
+          expect(announced).toEqual([
+            {
+              kind: RealtimeAccessChangeKind.SignInRulesChanged,
+              projectId: PROJECT.toString(),
+            },
+            {
+              kind: RealtimeAccessChangeKind.SignInRulesChanged,
+              projectId: OTHER_PROJECT.toString(),
+            },
+          ]);
+        },
+      );
 
       test("when the rules cannot be read before the write, every project it wrote is told, so no change is missed", async () => {
         jest
@@ -872,23 +926,27 @@ describe("live updates follow every change of access", () => {
         expect(reads).not.toHaveBeenCalled();
       });
 
-      test("the instance-wide rule saved again as it is tells nobody; turned off, it is told", async () => {
+      test("the instance-wide rule turned off while off tells nobody; turned off while on, it is told", async () => {
         const config: GlobalConfig = new GlobalConfig();
-        config.requireSsoForLogin = true;
-        jest
+        config.requireSsoForLogin = false;
+        const reads: jest.SpyInstance = jest
           .spyOn(GlobalConfigService, "findOneBy")
           .mockResolvedValue(config as never);
 
-        const same: OnUpdate<User & UserSession> = updateOf<User>({
-          requireSsoForLogin: true,
+        const offAgain: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
         });
 
         await SsoRequirementChanges.rememberServerRuleBefore(
-          same.updateBy as never,
+          offAgain.updateBy as never,
         );
-        await instanceHooks.onUpdateSuccess(same, [TEAM]);
+        await instanceHooks.onUpdateSuccess(offAgain, [TEAM]);
 
         expect(announced).toEqual([]);
+
+        const wasOn: GlobalConfig = new GlobalConfig();
+        wasOn.requireSsoForLogin = true;
+        reads.mockResolvedValue(wasOn as never);
 
         const off: OnUpdate<User & UserSession> = updateOf<User>({
           requireSsoForLogin: false,
@@ -899,6 +957,28 @@ describe("live updates follow every change of access", () => {
         );
         await instanceHooks.onUpdateSuccess(off, [TEAM]);
 
+        expect(announced).toEqual([
+          { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+        ]);
+      });
+
+      test("the instance-wide rule turned on is told whatever it was, saved on again while on included, and reads nothing before it", async () => {
+        const config: GlobalConfig = new GlobalConfig();
+        config.requireSsoForLogin = true;
+        const reads: jest.SpyInstance = jest
+          .spyOn(GlobalConfigService, "findOneBy")
+          .mockResolvedValue(config as never);
+
+        const onAgain: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: true,
+        });
+
+        await SsoRequirementChanges.rememberServerRuleBefore(
+          onAgain.updateBy as never,
+        );
+        await instanceHooks.onUpdateSuccess(onAgain, [TEAM]);
+
+        expect(reads).not.toHaveBeenCalled();
         expect(announced).toEqual([
           { kind: RealtimeAccessChangeKind.SignInRulesChanged },
         ]);

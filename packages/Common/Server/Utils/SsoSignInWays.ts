@@ -187,6 +187,13 @@ interface LoadedGlobalProvider {
   reach: SignInReach;
 }
 
+// A global provider that is on, as a new project's check reads it.
+interface GlobalProviderSwitches {
+  providerType: GlobalSsoProviderType;
+  id: string;
+  isRestricted: boolean;
+}
+
 // The lower-case form every id is compared in.
 export function toIdString(value: unknown): string | null {
   if (!value) {
@@ -560,7 +567,8 @@ export default class SsoSignInWays {
    * (getGlobalProviderReach). A restricted one is only asked whether it has
    * an attachment at all - one that has can never reach a project that does
    * not exist yet - so the check reads one row per restricted provider, not
-   * all of their attachments, under the lock it holds.
+   * all of their attachments, and asks them all at once, under the lock it
+   * holds.
    */
   private static async readGlobalWaysToEveryProject(): Promise<Array<string>> {
     const [samlProviders, oidcProviders]: [
@@ -606,7 +614,7 @@ export default class SsoSignInWays {
       return Boolean(attachment);
     };
 
-    const ways: Array<string> = [];
+    const providers: Array<GlobalProviderSwitches> = [];
 
     for (const [providerType, rows] of [
       [SsoProviderType.GlobalSSO, samlProviders],
@@ -615,20 +623,38 @@ export default class SsoSignInWays {
       for (const row of rows) {
         const id: string | null = toIdString(row.id);
 
-        if (!id) {
-          continue;
-        }
-
-        if (
-          !row.restrictToAttachedProjects ||
-          !(await hasAttachment(providerType, new ObjectID(id)))
-        ) {
-          ways.push(wayKey(providerType, id));
+        if (id) {
+          providers.push({
+            providerType,
+            id,
+            isRestricted: Boolean(row.restrictToAttachedProjects),
+          });
         }
       }
     }
 
-    return ways;
+    // The restricted ones are asked at once, not one after another.
+    const isWayIn: Array<boolean> = await Promise.all(
+      providers.map(
+        async (provider: GlobalProviderSwitches): Promise<boolean> => {
+          return (
+            !provider.isRestricted ||
+            !(await hasAttachment(
+              provider.providerType,
+              new ObjectID(provider.id),
+            ))
+          );
+        },
+      ),
+    );
+
+    return providers
+      .filter((_provider: GlobalProviderSwitches, index: number): boolean => {
+        return isWayIn[index] === true;
+      })
+      .map((provider: GlobalProviderSwitches): string => {
+        return wayKey(provider.providerType, provider.id);
+      });
   }
 
   /*

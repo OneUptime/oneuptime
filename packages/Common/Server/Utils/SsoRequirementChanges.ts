@@ -517,11 +517,18 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * The sign-in rules an update names, as they were before it is written
-   * (rememberProjectRulesBefore, rememberServerRuleBefore), by the update:
-   * so that once it is written every server is told of a rule it changed -
-   * and not of one it wrote back as it was, as an edit form or an API client
-   * that sends a whole record does with every save.
+   * The sign-in rules an update that asks for less names, as they were
+   * before it is written (rememberProjectRulesBefore,
+   * rememberServerRuleBefore), by the update: so that once it is written
+   * every server is told of a rule it changed - and not of one it wrote
+   * back as it was, as an edit form or an API client that sends a whole
+   * record does with every save.
+   *
+   * An update that asks for more - Require SSO for Login on, or a provider
+   * required - is told whatever the rules were, and reads nothing for it
+   * (asksForMore): an update that asks for less takes no lock, so one may
+   * be written between what the other read and what it writes, and a
+   * server that heard of that one would keep its answer for a minute.
    */
   private static projectRulesBefore: WeakMap<
     UpdateBy<BaseModel>,
@@ -532,10 +539,24 @@ export default class SsoRequirementChanges {
     new WeakMap<UpdateBy<BaseModel>, boolean>();
 
   /*
-   * Before an update that names a project's Require SSO for Login, or the
-   * provider it requires, is written (ProjectService.onUpdatePermitted):
-   * the rules of the projects it reaches, as they are. Never throws: a read
-   * that fails leaves every project it writes to be told.
+   * Whether an update to a project's sign-in rules asks for more of it:
+   * Require SSO for Login turned on, or a provider required - saved again
+   * as it was included.
+   */
+  private static asksForMore(written: Record<string, unknown>): boolean {
+    return (
+      written["requireSsoForLogin"] === true ||
+      Boolean(written["requireSsoWithSsoProviderId"])
+    );
+  }
+
+  /*
+   * Before an update that asks less of a project's sign-in - Require SSO
+   * for Login off, or the provider it requires cleared - is written
+   * (ProjectService.onUpdatePermitted): the rules of the projects it
+   * reaches, as they are. One that asks for more reads nothing: it is told
+   * whatever they were. Never throws: a read that fails leaves every
+   * project it writes to be told.
    */
   public static async rememberProjectRulesBefore(
     updateBy: UpdateBy<Project>,
@@ -549,6 +570,10 @@ export default class SsoRequirementChanges {
       written["requireSsoForLogin"] === undefined &&
       written["requireSsoWithSsoProviderId"] === undefined
     ) {
+      return;
+    }
+
+    if (SsoRequirementChanges.asksForMore(written)) {
       return;
     }
 
@@ -596,10 +621,13 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * Once the update is written (ProjectService.onUpdateSuccess): those of
-   * the projects it wrote whose Require SSO for Login, or required
-   * provider, it changed - as the switch and the id are stored. A project
-   * whose rule was not read before counts, so a change is never missed.
+   * Once the update is written (ProjectService.onUpdateSuccess): the
+   * projects it wrote that every server is told of - those whose Require
+   * SSO for Login, or required provider, it changed, as the switch and the
+   * id are stored. A project whose rule was not read before counts, so a
+   * change is never missed: every project a write that asks for more wrote
+   * counts that way, since nothing is read before it
+   * (rememberProjectRulesBefore).
    */
   public static takeProjectsWhoseRuleChanged(
     updateBy: UpdateBy<Project>,
@@ -646,9 +674,10 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * Before an update that names the server's Require SSO for Login is
-   * written (GlobalConfigService.onUpdatePermitted): the rule as it is.
-   * Never throws: a read that fails leaves the write to be told.
+   * Before an update that turns the server's Require SSO for Login off is
+   * written (GlobalConfigService.onUpdatePermitted): the rule as it is. One
+   * that turns it on reads nothing: it is told whatever the rule was. Never
+   * throws: a read that fails leaves the write to be told.
    */
   public static async rememberServerRuleBefore(
     updateBy: UpdateBy<GlobalConfig>,
@@ -658,7 +687,10 @@ export default class SsoRequirementChanges {
       unknown
     >;
 
-    if (written["requireSsoForLogin"] === undefined) {
+    if (
+      written["requireSsoForLogin"] === undefined ||
+      written["requireSsoForLogin"] === true
+    ) {
       return;
     }
 
@@ -690,7 +722,9 @@ export default class SsoRequirementChanges {
   /*
    * Once the update is written (GlobalConfigService.onUpdateSuccess):
    * whether it changed the server's Require SSO for Login, as the switch is
-   * stored. One whose rule was not read before counts as a change.
+   * stored. One whose rule was not read before counts as a change: turning
+   * it on always does, since nothing is read before it
+   * (rememberServerRuleBefore) - saved on again while on included.
    */
   public static takeWhetherServerRuleChanged(
     updateBy: UpdateBy<GlobalConfig>,

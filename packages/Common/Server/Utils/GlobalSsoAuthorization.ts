@@ -111,6 +111,35 @@ export function doAttachmentsGovernProject(
 }
 
 /*
+ * Whether a write to a global provider, or to one of its project
+ * attachments, may let it sign fewer people in: it turns it off, or
+ * restricts the provider to its attached projects. Such a write is told to
+ * every server whatever it read before it was written: a write that turns a
+ * provider or an attachment on, or lifts the restriction, takes no lock, so
+ * one may have been written between what this one read and what it wrote.
+ */
+export function isGlobalProviderNarrowing(data: unknown): boolean {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  // Only the write's own fields count, never ones it inherits.
+  const writes: (column: string, value: boolean) => boolean = (
+    column: string,
+    value: boolean,
+  ): boolean => {
+    return (
+      Object.prototype.hasOwnProperty.call(data, column) &&
+      (data as Record<string, unknown>)[column] === value
+    );
+  };
+
+  return (
+    writes("isEnabled", false) || writes("restrictToAttachedProjects", true)
+  );
+}
+
+/*
  * Whether an attachment added, turned off or removed changes who these
  * providers sign in. Only a provider that is on and restricted to its
  * attached projects reads its attachments (doAttachmentsGovernProject); for

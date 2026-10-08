@@ -123,6 +123,12 @@ describe("the Global SSO guide", () => {
         "They reach every app server at once, as turning **Require SSO for Login** off does: people can sign in with the provider straight away.",
       );
     });
+
+    it("says an app server can take up to a minute to follow only when another change to the same provider is saved at that very moment", () => {
+      expect(section).toContain(
+        "Only when another change to the same provider is saved at that very moment can an app server take up to a minute to follow.",
+      );
+    });
   });
 
   describe("enforcing SSO", () => {
@@ -284,7 +290,7 @@ describe("the upgrade notes", () => {
       "While the whole server requires SSO for login, creating a project needs a global SSO provider that is on and signs people in to every project, since a new project has no provider of its own yet; without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.",
     );
     expect(page).toContain(
-      "now reach every app server at once, as changes that end sign-ins already did: nobody waits up to a minute for another server to notice.",
+      "now reach every app server at once, as changes that end sign-ins already did, rather than when another server's cached answer runs out a minute later.",
     );
     expect(page).toContain(
       "[SSO](/docs/identity/sso#requiring-sso-for-your-project) and [Global SSO](/docs/identity/global-sso#enforcing-sso).",

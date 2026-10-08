@@ -12,6 +12,7 @@ import {
   GlobalProviderTrust,
   announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
+  isGlobalProviderNarrowing,
   globalProviderCacheKey,
   globalSsoProviderTrustCache,
   loadTrustOnce,
@@ -141,10 +142,19 @@ export class Service extends DatabaseService<Model> {
      * provider, once. The sign-ins it gave stop counting where it no longer
      * signs people in, and the live updates already open are asked again;
      * people it now signs in are let in at once, not when another server's
-     * cached answer runs out. A switch written back as it was - an edit form
-     * sends every field it shows - changed nothing, and tells no server.
+     * cached answer runs out.
+     *
+     * A write that turns it off or restricts it is told whatever was read
+     * under the lock: one that turns it on or lifts the restriction takes
+     * no lock, and may have been written between that read and this write.
+     * One that turns it on or opens it, written back as it was - an edit
+     * form sends every field it shows - changed nothing, and tells no
+     * server.
      */
-    if (updatedItemIds.length > 0 && changedReach) {
+    if (
+      updatedItemIds.length > 0 &&
+      (changedReach || isGlobalProviderNarrowing(onUpdate.updateBy.data))
+    ) {
       announceGlobalSignInChange();
     }
 

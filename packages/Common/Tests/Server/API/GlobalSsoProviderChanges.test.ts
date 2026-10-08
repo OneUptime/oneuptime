@@ -20,6 +20,9 @@ import { clearGlobalSsoAuthorizationCaches } from "../../../Server/Utils/GlobalS
 import logger from "../../../Server/Utils/Logger";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import { SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE } from "../../../Server/Utils/ProjectSsoProviderChanges";
+import SsoSignInWays, {
+  GlobalProviderAttachmentRows,
+} from "../../../Server/Utils/SsoSignInWays";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
   RealtimeAccessChangeKind,
@@ -841,6 +844,74 @@ describe.each([
       expect(announced).toEqual([]);
     });
 
+    test("saving one as it is reads none of its attachments: it signs the same people in; turning it on reads them", async () => {
+      const attachmentReads: jest.SpyInstance = getJestSpyOn(
+        GlobalProviderAttachmentRows,
+        "read",
+      );
+
+      await expect(
+        updateProvider(kind, {
+          isEnabled: true,
+          restrictToAttachedProjects: false,
+          name: "Okta (renamed)",
+        }),
+      ).resolves.toBe("done");
+
+      expect(attachmentReads).not.toHaveBeenCalled();
+
+      providerRow(kind)!["isEnabled"] = false;
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(attachmentReads).toHaveBeenCalledTimes(1);
+    });
+
+    test("turning it off is told to every server even when it was read as off: one turned on in between - turning on takes no lock - is turned off by this write", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      const findStrandedProjects: typeof SsoSignInWays.findStrandedProjects =
+        SsoSignInWays.findStrandedProjects.bind(SsoSignInWays);
+      jest
+        .spyOn(SsoSignInWays, "findStrandedProjects")
+        .mockImplementation(
+          async (
+            ...args: Parameters<typeof SsoSignInWays.findStrandedProjects>
+          ): ReturnType<typeof SsoSignInWays.findStrandedProjects> => {
+            // Turned on by a write that takes no lock, after this one read it.
+            providerRow(kind)!["isEnabled"] = true;
+            return await findStrandedProjects(...args);
+          },
+        );
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        "done",
+      );
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(false);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("restricting one read as restricted already is told to every server all the same", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+      projects = [project(ACME, "Acme")];
+
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: true }),
+      ).resolves.toBe("done");
+
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
     test("turning it on is told to every server once, so none keeps refusing the people it signs in", async () => {
       providerRow(kind)!["isEnabled"] = false;
 
@@ -1537,15 +1608,33 @@ describe.each([
       ]);
     });
 
-    test("saving an attachment that is on as on again tells nobody", async () => {
+    test("saving an attachment that is on as on again tells nobody, and reads nothing more for it", async () => {
       kind.attachmentTable().rows = [
         attachmentRow(kind, ATTACHED_TO_ACME, ACME),
       ];
+      const attachmentReads: jest.SpyInstance = getJestSpyOn(
+        GlobalProviderAttachmentRows,
+        "read",
+      );
 
       await expect(
         updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: true }),
       ).resolves.toBe("done");
       expect(announced).toEqual([]);
+      expect(attachmentReads).not.toHaveBeenCalled();
+    });
+
+    test("turning an attachment off that was read as off already is told to every server all the same: one turned on in between takes no lock", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+      ];
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: false }),
+      ).resolves.toBe("done");
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
     });
   });
 

@@ -554,8 +554,8 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   attachment on, lifting a global provider's restriction to its attached
   projects, and turning Require SSO for Login off, for a project or for the
   whole server, now reach every app server at once, as changes that end
-  sign-ins already did: nobody waits up to a minute for another server to
-  notice. See
+  sign-ins already did, rather than when another server's cached answer
+  runs out a minute later. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
 - **A record you may not read can no longer be changed or deleted, and a

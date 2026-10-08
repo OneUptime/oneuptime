@@ -11,6 +11,7 @@ import {
   GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderTrust,
   clearGlobalSsoAuthorizationCaches,
+  isGlobalProviderNarrowing,
 } from "../../../Server/Utils/GlobalSsoAuthorization";
 import GlobalSsoProviderChanges from "../../../Server/Utils/GlobalSsoProviderChanges";
 import RealtimeAccessChanges, {
@@ -1322,8 +1323,11 @@ describe.each(HOOK_SUITES)(
  * holds again, as their joins were. Whether an update changed it is
  * GlobalSsoProviderChanges.afterWrite's answer, worked out before the write
  * (pinned in GlobalSsoProviderChanges.test.ts): here it is given. A write
- * that changes nothing about who it signs in - a new certificate, a new
- * name, a switch written back as it was - is not announced.
+ * that turns a provider or an attachment off, or restricts it, is announced
+ * whatever that answer is: one that turns it on takes no lock, and may land
+ * between what the other read and what it wrote. A write that changes
+ * nothing about who it signs in - a new certificate, a new name, turned on
+ * or opened again while it was so - is not announced.
  */
 
 interface AnnouncementCase {
@@ -1397,6 +1401,22 @@ function providerAnnouncementCases(
       hookName: "onUpdateSuccess",
       args: updateSuccess({ restrictToAttachedProjects: true }),
       changedReach: true,
+      announces: true,
+    },
+    {
+      label: `${name}: turned off when it was read as off already - told whatever was read: one turned on a moment before took no lock`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: false, name: "Renamed" }),
+      changedReach: false,
+      announces: true,
+    },
+    {
+      label: `${name}: restricted when it was read as restricted already - told whatever was read`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ restrictToAttachedProjects: true }),
+      changedReach: false,
       announces: true,
     },
     {
@@ -1537,6 +1557,26 @@ describe("write hooks that change who a global provider signs in tell every serv
       );
     },
   );
+
+  test("only the write's own fields count as turning a provider off or restricting it, never ones it inherits", () => {
+    const inherited: Record<string, unknown> = Object.create({
+      isEnabled: false,
+      restrictToAttachedProjects: true,
+    }) as Record<string, unknown>;
+
+    expect(isGlobalProviderNarrowing(inherited)).toBe(false);
+    expect(isGlobalProviderNarrowing({ isEnabled: false })).toBe(true);
+    expect(
+      isGlobalProviderNarrowing({ restrictToAttachedProjects: true }),
+    ).toBe(true);
+    expect(isGlobalProviderNarrowing({ isEnabled: true })).toBe(false);
+    expect(
+      isGlobalProviderNarrowing({ restrictToAttachedProjects: false }),
+    ).toBe(false);
+    expect(isGlobalProviderNarrowing({ isEnabled: "false" })).toBe(false);
+    expect(isGlobalProviderNarrowing(null)).toBe(false);
+    expect(isGlobalProviderNarrowing(undefined)).toBe(false);
+  });
 
   test("a server that hears it forgets what it knew of the global providers", async () => {
     const trust: jest.SpyInstance = spyOnQuery(GlobalSsoService, "findOneBy");
@@ -1806,21 +1846,48 @@ describe.each(ATTACHMENT_ANNOUNCEMENT_SUITES)(
       },
     );
 
-    test.each([
-      ["turned off", false],
-      ["turned on", true],
-    ])(
-      "an attachment %s is not told when that changed nothing - a provider that signs people in to every project, or a switch written back as it was",
-      async (_label: string, isEnabled: boolean) => {
-        jest
-          .spyOn(GlobalSsoProviderChanges, "afterWrite")
-          .mockResolvedValue(false);
+    test("an attachment turned on that changed nothing - turned on again while on - is not told, and nothing is read for it", async () => {
+      jest
+        .spyOn(GlobalSsoProviderChanges, "afterWrite")
+        .mockResolvedValue(false);
+      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
 
-        await updated({ isEnabled: isEnabled }, [ObjectID.generate()]);
+      await updated({ isEnabled: true }, [ObjectID.generate()]);
 
-        expectAnnounced(false);
-      },
-    );
+      expectAnnounced(false);
+      expect(rows).not.toHaveBeenCalled();
+      expect(trust).not.toHaveBeenCalled();
+    });
+
+    test("an attachment turned off is told for a restricted provider whatever was read under the lock, its provider read by the ids written", async () => {
+      jest
+        .spyOn(GlobalSsoProviderChanges, "afterWrite")
+        .mockResolvedValue(false);
+      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
+      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+      const attachmentId: ObjectID = ObjectID.generate();
+
+      await updated({ isEnabled: false }, [attachmentId]);
+
+      expectAnnounced(true);
+
+      const args: DatabaseCallArgs = callArgs(rows, 0);
+      expect(args.select).toEqual({ _id: true, [suite.idColumn]: true });
+      expect(args.props).toEqual({ isRoot: true });
+      expect(JSON.stringify(args.query)).toContain(attachmentId.toString());
+    });
+
+    test("an attachment turned off that changed nothing is not told for a provider that signs people in to every project", async () => {
+      jest
+        .spyOn(GlobalSsoProviderChanges, "afterWrite")
+        .mockResolvedValue(false);
+      trustByProvider.set(PROVIDER_ID.toString(), EVERY_PROJECT);
+      stubAttachmentRows([PROVIDER_ID]);
+
+      await updated({ isEnabled: false }, [ObjectID.generate()]);
+
+      expectAnnounced(false);
+    });
 
     test("an attachment turned on by an update that wrote no row is not told, and nothing is read for it", async () => {
       const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
