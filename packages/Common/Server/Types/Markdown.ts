@@ -1,4 +1,4 @@
-import { Marked, Renderer, marked } from "marked";
+import { Marked, MarkedOptions, Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
 import {
@@ -792,7 +792,7 @@ export default class Markdown {
 
   private static blogRenderer: Renderer | null = null;
   private static docsRenderer: Renderer | null = null;
-  private static docsMarked: Marked | null = null;
+  private static docsMarkedOptions: MarkedOptions | null = null;
   private static emailRenderer: Renderer | null = null;
   private static blogValidationRenderer: Renderer | null = null;
 
@@ -875,12 +875,14 @@ export default class Markdown {
 
     /*
      * The docs have block components of their own (steps, tabs, cards,
-     * collapsible sections and callouts - see MarkdownDocsExtensions.ts),
-     * registered on an instance of their own so the blog, email and the rest
-     * keep reading ":::" as text.
+     * collapsible sections and callouts - see MarkdownDocsExtensions.ts).
+     * They are passed with each docs render rather than registered on
+     * marked, so the blog, email and the rest keep reading ":::" as text,
+     * and docs rendering still goes through marked like every other type.
      */
     if (contentType === MarkdownContentType.Docs && renderer) {
-      return await Markdown.getDocsMarked().parse(markdown, {
+      return await marked(markdown, {
+        ...Markdown.getDocsMarkedOptions(),
         renderer: renderer,
       });
     }
@@ -892,12 +894,22 @@ export default class Markdown {
     return htmlBody;
   }
 
-  private static getDocsMarked(): Marked {
-    if (this.docsMarked === null) {
-      this.docsMarked = new Marked(docsMarkdownExtensions);
+  /*
+   * marked's own processed form of the docs extensions - the tokenizers,
+   * renderers and the hook that resets per-page ids - taken from an instance
+   * that has them registered, to pass with each docs render.
+   */
+  private static getDocsMarkedOptions(): MarkedOptions {
+    if (this.docsMarkedOptions === null) {
+      const defaults: MarkedOptions = new Marked(docsMarkdownExtensions)
+        .defaults;
+      this.docsMarkedOptions = {
+        extensions: defaults.extensions ?? null,
+        hooks: defaults.hooks ?? null,
+      };
     }
 
-    return this.docsMarked;
+    return this.docsMarkedOptions;
   }
 
   /*
