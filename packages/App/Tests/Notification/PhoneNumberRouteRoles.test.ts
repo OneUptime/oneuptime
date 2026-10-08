@@ -29,7 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * Who may use each incoming call policy phone-number route, through the
@@ -282,7 +282,7 @@ async function call(
     userTenantAccessPermission: tenantPermissionsFor(PROJECT_ID, roleCase.rows),
   } as unknown as OneUptimeRequest;
 
-  const next: jest.Mock = jest.fn();
+  const next: Mock = jest.fn();
 
   sendErrorResponse.mockClear();
 
