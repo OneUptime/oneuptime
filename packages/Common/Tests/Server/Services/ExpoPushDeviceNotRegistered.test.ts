@@ -973,7 +973,7 @@ describe("a page not pushed to a device that is not verified", () => {
         PushDeviceType.Web,
       ),
     ).toBe(
-      "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods in that browser.",
+      "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods > Push in that browser.",
     );
   });
 

@@ -174,7 +174,7 @@ export default class PushNotificationService {
       return "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.";
     }
 
-    return "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods in that browser.";
+    return "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods > Push in that browser.";
   }
 
   /*

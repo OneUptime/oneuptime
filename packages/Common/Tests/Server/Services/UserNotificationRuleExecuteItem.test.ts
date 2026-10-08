@@ -882,7 +882,7 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       [
         "a browser",
         "web",
-        "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods in that browser.",
+        "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods > Push in that browser.",
       ],
     ])(
       "a page not pushed to %s that no longer receives notifications says how to register it again",
