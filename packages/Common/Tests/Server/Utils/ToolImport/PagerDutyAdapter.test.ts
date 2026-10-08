@@ -504,9 +504,9 @@ describe("PagerDutyAdapter: what a PagerDuty account becomes", () => {
   });
 
   test("services keep their owner team, and a disabled one starts unticked with a note", async () => {
-    const snapshot: ToolImportSnapshot = await read();
+    const services: Array<ImportedService> = (await read()).services;
 
-    expect(snapshot.services).toEqual<Array<ImportedService>>([
+    expect(services).toEqual([
       {
         sourceId: CHECKOUT_SERVICE_ID,
         name: "Checkout API",

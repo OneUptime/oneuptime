@@ -23,11 +23,11 @@ import ToolImportSource from "../../../Types/ToolImport/ToolImportSource";
 
 describe("readToolImportApiUrl: a tool's API address, as a person pastes it", () => {
   test("Grafana Cloud's OnCall API URL keeps its path", () => {
-    expect(
-      readToolImportApiUrl(
-        "  https://oncall-prod-us-central-0.grafana.net/oncall  ",
-      ),
-    ).toEqual<ToolImportApiAddress>({
+    const address: ToolImportApiAddress | null = readToolImportApiUrl(
+      "  https://oncall-prod-us-central-0.grafana.net/oncall  ",
+    );
+
+    expect(address).toEqual({
       url: "https://oncall-prod-us-central-0.grafana.net/oncall",
       origin: "https://oncall-prod-us-central-0.grafana.net",
       basePath: "/oncall",

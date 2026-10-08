@@ -20,6 +20,7 @@ import { TOOL_IMPORT_BRANDS } from "../../FeatureSet/Dashboard/src/Components/To
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import {
   getToolImportSourceDefinition,
+  ToolImportCredentialField,
   ToolImportRegion,
 } from "Common/Types/ToolImport/ToolImportCatalog";
 import {
@@ -202,6 +203,63 @@ describe("every tool says how to make its key", () => {
     expect(
       TOOL_IMPORT_TOOL_COPY[ToolImportSource.IncidentIo].keySteps.join(" "),
     ).toContain("none that create, edit or manage");
+    // PagerDuty and Splunk On-Call have a read-only key; Grafana OnCall's token reads.
+    expect(
+      TOOL_IMPORT_TOOL_COPY[ToolImportSource.PagerDuty].keySteps.join(" "),
+    ).toContain("tick Read-only API Key");
+    expect(
+      TOOL_IMPORT_TOOL_COPY[ToolImportSource.SplunkOnCall].keySteps.join(" "),
+    ).toContain("with Read-only ticked");
+
+    for (const source of AllToolImportSources) {
+      expect({
+        source,
+        promise: TOOL_IMPORT_TOOL_COPY[source].keySteps.some(
+          (step: string): boolean => {
+            return step.includes(
+              `The import never changes anything in ${getToolImportSourceDefinition(source).title}.`,
+            );
+          },
+        ),
+      }).toEqual({ source, promise: true });
+    }
+  });
+
+  test.each(AllToolImportSources)(
+    "%s has a label for each thing it asks for besides the key, and only those",
+    (source: ToolImportSource) => {
+      const fields: Array<ToolImportCredentialField> =
+        getToolImportSourceDefinition(source).credentialFields;
+      const copy: (typeof TOOL_IMPORT_TOOL_COPY)[ToolImportSource] =
+        TOOL_IMPORT_TOOL_COPY[source];
+      const title: string = getToolImportSourceDefinition(source).title;
+
+      expect(Boolean(copy.keyIdLabel)).toBe(
+        fields.includes(ToolImportCredentialField.ApiKeyId),
+      );
+      expect(Boolean(copy.apiUrlLabel)).toBe(
+        fields.includes(ToolImportCredentialField.ApiUrl),
+      );
+
+      // Each label names the tool, as the key's does.
+      for (const label of [copy.keyIdLabel, copy.apiUrlLabel]) {
+        if (label) {
+          expect(label).toContain(title);
+        }
+      }
+    },
+  );
+
+  test("Splunk On-Call's steps say where the API ID is; Grafana OnCall's where the API URL and tokens are", () => {
+    expect(
+      TOOL_IMPORT_TOOL_COPY[ToolImportSource.SplunkOnCall].keySteps.join(" "),
+    ).toContain("Your API ID is shown above your API keys.");
+    expect(
+      TOOL_IMPORT_TOOL_COPY[ToolImportSource.GrafanaOnCall].keySteps.join(" "),
+    ).toContain("Copy the OnCall API URL shown there");
+    expect(
+      TOOL_IMPORT_TOOL_COPY[ToolImportSource.GrafanaOnCall].keySteps.join(" "),
+    ).toContain("Under API tokens, create a token");
   });
 });
 
@@ -223,6 +281,8 @@ describe("every sentence is a key the locales have", () => {
       return [
         copy.description,
         copy.keyLabel,
+        ...(copy.keyIdLabel ? [copy.keyIdLabel] : []),
+        ...(copy.apiUrlLabel ? [copy.apiUrlLabel] : []),
         ...copy.keySteps,
         ...(copy.regionQuestion ? [copy.regionQuestion] : []),
         ...Object.values(copy.regions || {}).flatMap(
@@ -281,6 +341,63 @@ describe("the server's own messages are the ones the page translates", () => {
 });
 
 describe("a note reads as a sentence", () => {
+  test("the notes PagerDuty, Splunk On-Call and Grafana OnCall add read whole, with their values", () => {
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.RotationTimezoneConverted, {
+          rotation: "Office hours",
+          timezone: "UTC",
+        }),
+        ENGLISH,
+        "Grafana OnCall",
+      ),
+    ).toBe(
+      "Office hours keeps UTC time. Its hours come over in the schedule's time zone as they are today, so they can move by an hour when daylight saving time changes.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.ShiftBasedSchedulesNotRead),
+        ENGLISH,
+        "PagerDuty",
+      ),
+    ).toBe(
+      "PagerDuty's shift-based schedules cannot be read yet, so they are not shown. Create them in OneUptime.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.RotationApproximated, {
+          rotation: "Weekday days",
+        }),
+        ENGLISH,
+        "Splunk On-Call",
+      ),
+    ).toContain("Weekday days hands over in a way a OneUptime layer cannot");
+
+    for (const code of [
+      ToolImportNoteCode.RotationOneOff,
+      ToolImportNoteCode.ScheduleFromCalendarLink,
+      ToolImportNoteCode.PolicyWebhookStep,
+      ToolImportNoteCode.PolicyRunsAnotherPolicy,
+      ToolImportNoteCode.PolicyResolvesAlert,
+      ToolImportNoteCode.PolicyEmailAddress,
+      ToolImportNoteCode.PolicyUserGroup,
+      ToolImportNoteCode.PolicyDeclaresIncident,
+      ToolImportNoteCode.PolicyConditionalStep,
+      ToolImportNoteCode.PolicyScheduleNotRead,
+    ]) {
+      const sentence: string = describeToolImportNote(
+        makeToolImportNote(code, { rotation: "Launch day" }),
+        ENGLISH,
+        "Grafana OnCall",
+      );
+
+      expect({ code, filled: !sentence.includes("{{") }).toEqual({
+        code,
+        filled: true,
+      });
+    }
+  });
+
   test("values go in as they are, with the tool's name", () => {
     expect(
       describeToolImportNote(

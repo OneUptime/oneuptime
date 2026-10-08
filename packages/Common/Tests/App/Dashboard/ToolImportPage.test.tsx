@@ -422,6 +422,223 @@ describe("starting an import", () => {
       body: { source: "IncidentIo", region: "", apiKey: API_KEY },
     });
   });
+
+  test("PagerDuty asks which region the account is in, and sends the one picked with the key", async () => {
+    answerRun(
+      RUN_ID,
+      details(
+        runView({
+          source: ToolImportSource.PagerDuty,
+          status: ToolImportRunStatus.Reading,
+        }),
+      ),
+    );
+
+    await renderPage();
+    await pickTool(ToolImportSource.PagerDuty);
+
+    expect(screen.getByText("Where is your PagerDuty account?")).toBeVisible();
+    expect(regionRadio("US").checked).toBe(true);
+    expect(
+      screen.getByText("You sign in at yourcompany.eu.pagerduty.com."),
+    ).toBeVisible();
+    expect(screen.queryByTestId("tool-import-api-key-id")).toBeNull();
+    expect(screen.queryByTestId("tool-import-api-url")).toBeNull();
+
+    fireEvent.click(regionRadio("EU"));
+    fireEvent.change(screen.getByTestId("tool-import-api-key"), {
+      target: { value: API_KEY },
+    });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+
+    await screen.findByTestId("tool-import-progress", {}, WAIT);
+    expect(server.posts).toEqual([
+      {
+        route: "/tool-import/read",
+        body: { source: "PagerDuty", region: "EU", apiKey: API_KEY },
+      },
+    ]);
+  });
+
+  test("Splunk On-Call asks for its API ID before the key, checks both, and sends both", async () => {
+    answerRun(
+      RUN_ID,
+      details(
+        runView({
+          source: ToolImportSource.SplunkOnCall,
+          status: ToolImportRunStatus.Reading,
+        }),
+      ),
+    );
+
+    await renderPage();
+    await pickTool(ToolImportSource.SplunkOnCall);
+
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+
+    const id: HTMLInputElement = screen.getByTestId(
+      "tool-import-api-key-id",
+    ) as HTMLInputElement;
+    const key: HTMLInputElement = screen.getByTestId(
+      "tool-import-api-key",
+    ) as HTMLInputElement;
+
+    // The ID comes first, is a plain field, and is named for the tool.
+    expect(
+      id.compareDocumentPosition(key) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(id).toHaveAttribute("type", "text");
+    expect(key).toHaveAttribute("type", "password");
+    expect(screen.getByLabelText("Splunk On-Call API ID")).toBe(id);
+    expect(screen.getByLabelText("Splunk On-Call API key")).toBe(key);
+
+    // Nothing given: both are asked for, and nothing is sent.
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+    expect(
+      await screen.findByText("Paste your Splunk On-Call API ID.", {}, WAIT),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Paste your Splunk On-Call API key."),
+    ).toBeVisible();
+
+    fireEvent.change(id, { target: { value: "two words" } });
+    fireEvent.change(key, { target: { value: API_KEY } });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+    expect(
+      await screen.findByText(
+        "That does not look like your Splunk On-Call API ID. Paste the ID on its own.",
+        {},
+        WAIT,
+      ),
+    ).toBeVisible();
+    expect(server.posts).toEqual([]);
+
+    fireEvent.change(id, { target: { value: " 8f2a6c1e " } });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+
+    await screen.findByTestId("tool-import-progress", {}, WAIT);
+    expect(server.posts).toEqual([
+      {
+        route: "/tool-import/read",
+        body: {
+          source: "SplunkOnCall",
+          region: "",
+          apiKey: API_KEY,
+          apiKeyId: "8f2a6c1e",
+        },
+      },
+    ]);
+    expect(document.body.innerHTML).not.toContain(API_KEY);
+  });
+
+  test("Grafana OnCall asks for its API URL, with Grafana Cloud's as the example, and sends it with the key", async () => {
+    answerRun(
+      RUN_ID,
+      details(
+        runView({
+          source: ToolImportSource.GrafanaOnCall,
+          status: ToolImportRunStatus.Reading,
+        }),
+      ),
+    );
+
+    await renderPage();
+    await pickTool(ToolImportSource.GrafanaOnCall);
+
+    const url: HTMLInputElement = screen.getByLabelText(
+      "Grafana OnCall API URL",
+    ) as HTMLInputElement;
+
+    expect(url).toBe(screen.getByTestId("tool-import-api-url"));
+    expect(url).toHaveAttribute(
+      "placeholder",
+      "https://oncall-prod-us-central-0.grafana.net/oncall",
+    );
+    expect(url).toHaveAttribute("type", "url");
+    expect(screen.getByLabelText("Grafana OnCall API key")).toBe(
+      screen.getByTestId("tool-import-api-key"),
+    );
+
+    fireEvent.change(url, { target: { value: "oncall.example.com" } });
+    fireEvent.change(screen.getByTestId("tool-import-api-key"), {
+      target: { value: API_KEY },
+    });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+    expect(
+      await screen.findByText(
+        "That does not look like your Grafana OnCall API URL. Copy it from Grafana OnCall's settings.",
+        {},
+        WAIT,
+      ),
+    ).toBeVisible();
+    expect(server.posts).toEqual([]);
+
+    fireEvent.change(url, {
+      target: {
+        value: "https://oncall-prod-us-central-0.grafana.net/oncall ",
+      },
+    });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+
+    await screen.findByTestId("tool-import-progress", {}, WAIT);
+    expect(server.posts).toEqual([
+      {
+        route: "/tool-import/read",
+        body: {
+          source: "GrafanaOnCall",
+          region: "",
+          apiKey: API_KEY,
+          apiUrl: "https://oncall-prod-us-central-0.grafana.net/oncall",
+        },
+      },
+    ]);
+  });
+
+  test("trying a failed read again keeps the address and the ID given, never the key", async () => {
+    const failed: ToolImportRunView = runView({
+      source: ToolImportSource.GrafanaOnCall,
+      status: ToolImportRunStatus.Failed,
+      error: "Grafana OnCall host oncall.acme.example could not be reached.",
+    });
+    answerRun(RUN_ID, details(failed));
+
+    await renderPage();
+    await pickTool(ToolImportSource.GrafanaOnCall);
+
+    fireEvent.change(screen.getByTestId("tool-import-api-url"), {
+      target: { value: "https://oncall.acme.example" },
+    });
+    fireEvent.change(screen.getByTestId("tool-import-api-key"), {
+      target: { value: API_KEY },
+    });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+
+    expect(
+      await screen.findByText(
+        "Grafana OnCall host oncall.acme.example could not be reached.",
+        {},
+        WAIT,
+      ),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByTestId("tool-import-try-again"));
+
+    await screen.findByTestId("tool-import-connect", {}, WAIT);
+    expect(
+      (screen.getByTestId("tool-import-api-url") as HTMLInputElement).value,
+    ).toBe("https://oncall.acme.example");
+    expect(
+      (screen.getByTestId("tool-import-api-key") as HTMLInputElement).value,
+    ).toBe("");
+    expect(document.body.innerHTML).not.toContain(API_KEY);
+
+    // Another tool starts empty.
+    fireEvent.click(screen.getByTestId("tool-import-back"));
+    await pickTool(ToolImportSource.SplunkOnCall);
+    expect(
+      (screen.getByTestId("tool-import-api-key-id") as HTMLInputElement).value,
+    ).toBe("");
+  });
 });
 
 describe("a run from read to report", () => {

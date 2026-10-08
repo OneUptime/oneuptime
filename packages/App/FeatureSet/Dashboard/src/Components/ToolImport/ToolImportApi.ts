@@ -127,16 +127,33 @@ export async function listToolImportRuns(): Promise<Array<ToolImportRunView>> {
     });
 }
 
+/*
+ * What the read is sent: the tool, its region and the key - and, for a tool
+ * that needs them, the key's ID (Splunk On-Call) or its API's address
+ * (Grafana OnCall). A field the tool does not use is not sent.
+ */
 export async function startToolImportRead(data: {
   source: ToolImportSource;
   region: string;
   apiKey: string;
+  apiKeyId?: string | undefined;
+  apiUrl?: string | undefined;
 }): Promise<string> {
-  const body: JSONObject = await postJson(TOOL_IMPORT_ROUTES.read, {
+  const request: JSONObject = {
     source: data.source,
     region: data.region,
     apiKey: data.apiKey,
-  });
+  };
+
+  if (data.apiKeyId !== undefined) {
+    request["apiKeyId"] = data.apiKeyId;
+  }
+
+  if (data.apiUrl !== undefined) {
+    request["apiUrl"] = data.apiUrl;
+  }
+
+  const body: JSONObject = await postJson(TOOL_IMPORT_ROUTES.read, request);
 
   if (typeof body["runId"] !== "string") {
     throw new Error(
