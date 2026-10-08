@@ -999,8 +999,19 @@ describe("IRCClient — something that is not an IRC server", () => {
   });
 
   test("a PING whose token would break the PONG line is not answered", async () => {
+    /*
+     * Sent once the client's NICK and USER have arrived, so they are on
+     * record before the client hangs up on this PING.
+     */
     const fakeServer: FakeIRCServer = await start({
-      greeting: ["PING :abc\rQUIT :injected"],
+      onMessage: (message: FakeIRCMessage, connection: FakeIRCConnection) => {
+        if (message.command === "USER") {
+          connection.send("PING :abc\rQUIT :injected");
+          return true;
+        }
+
+        return false;
+      },
     });
 
     const error: Error = await sendAndGetError(options(fakeServer));
