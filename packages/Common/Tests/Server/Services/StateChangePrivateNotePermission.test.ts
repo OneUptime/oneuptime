@@ -49,6 +49,7 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
 import {
   afterEach,
   beforeEach,
@@ -156,9 +157,14 @@ const ALERT_CASE: TimelineCase = {
     { role: "Project Member", allow: [Permission.ProjectMember] },
     { role: "Alert Admin", allow: [Permission.AlertAdmin] },
     { role: "Alert Member", allow: [Permission.AlertMember] },
+    /*
+     * A state change and its note are created only under an alert their
+     * creator may read: the narrowest role reads alerts too.
+     */
     {
-      role: "Create Alert State Timeline and Create Alert Internal Note",
+      role: "Read Alert, Create Alert State Timeline and Create Alert Internal Note",
       allow: [
+        Permission.ReadAlert,
         Permission.CreateAlertStateTimeline,
         Permission.CreateAlertInternalNote,
       ],
@@ -166,8 +172,8 @@ const ALERT_CASE: TimelineCase = {
   ],
   rolesThatMayNot: [
     {
-      role: "Create Alert State Timeline only",
-      allow: [Permission.CreateAlertStateTimeline],
+      role: "Read Alert and Create Alert State Timeline only",
+      allow: [Permission.ReadAlert, Permission.CreateAlertStateTimeline],
     },
     {
       role: "Alert Member, with Create Alert Internal Note blocked",
@@ -240,8 +246,9 @@ const ALERT_EPISODE_CASE: TimelineCase = {
     { role: "Alert Admin", allow: [Permission.AlertAdmin] },
     { role: "Alert Member", allow: [Permission.AlertMember] },
     {
-      role: "Create Alert Episode State Timeline and Create Alert Episode Internal Note",
+      role: "Read Alert Episode, Create Alert Episode State Timeline and Create Alert Episode Internal Note",
       allow: [
+        Permission.ReadAlertEpisode,
         Permission.CreateAlertEpisodeStateTimeline,
         Permission.CreateAlertEpisodeInternalNote,
       ],
@@ -249,8 +256,11 @@ const ALERT_EPISODE_CASE: TimelineCase = {
   ],
   rolesThatMayNot: [
     {
-      role: "Create Alert Episode State Timeline only",
-      allow: [Permission.CreateAlertEpisodeStateTimeline],
+      role: "Read Alert Episode and Create Alert Episode State Timeline only",
+      allow: [
+        Permission.ReadAlertEpisode,
+        Permission.CreateAlertEpisodeStateTimeline,
+      ],
     },
     {
       role: "Alert Member, with Create Alert Episode Internal Note blocked",
@@ -326,8 +336,9 @@ const INCIDENT_EPISODE_CASE: TimelineCase = {
     { role: "Incident Admin", allow: [Permission.IncidentAdmin] },
     { role: "Incident Member", allow: [Permission.IncidentMember] },
     {
-      role: "Create Incident Episode State Timeline and Create Incident Episode Internal Note",
+      role: "Read Incident Episode, Create Incident Episode State Timeline and Create Incident Episode Internal Note",
       allow: [
+        Permission.ReadIncidentEpisode,
         Permission.CreateIncidentEpisodeStateTimeline,
         Permission.CreateIncidentEpisodeInternalNote,
       ],
@@ -335,8 +346,11 @@ const INCIDENT_EPISODE_CASE: TimelineCase = {
   ],
   rolesThatMayNot: [
     {
-      role: "Create Incident Episode State Timeline only",
-      allow: [Permission.CreateIncidentEpisodeStateTimeline],
+      role: "Read Incident Episode and Create Incident Episode State Timeline only",
+      allow: [
+        Permission.ReadIncidentEpisode,
+        Permission.CreateIncidentEpisodeStateTimeline,
+      ],
     },
     {
       role: "Incident Member, with Create Incident Episode Internal Note blocked",
@@ -475,6 +489,13 @@ beforeEach(() => {
    */
   mockProjectStates();
   stubProjectDirectory({});
+  /*
+   * The alert, episode or incident a change is made to is one the caller
+   * may read: a member who is no project admin is looked up with the rule
+   * for private records (CreatePermission.checkParentPermission), answered
+   * here as found.
+   */
+  stubReadableParents();
   lock = getJestSpyOn(Semaphore, "lock").mockResolvedValue({
     key: "state-change",
   });
@@ -924,7 +945,7 @@ describe.each(TIMELINE_CASES)(
       expect(String(note["createdByUserId"])).toBe(USER_ID.toString());
     });
 
-    test("the narrowest role that may - the two create permissions - changes the state and posts the note", async () => {
+    test("the narrowest role that may - the two create permissions, and a read of the event - changes the state and posts the note", async () => {
       const narrowest: RoleCase =
         timelineCase.rolesThatMayPost[
           timelineCase.rolesThatMayPost.length - 1

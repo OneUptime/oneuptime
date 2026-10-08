@@ -1912,19 +1912,27 @@ describePostgres("Databases SQL against Postgres", () => {
     function scopedProps(
       scope: PermissionScope,
       labelIds: Array<ObjectID> = [],
+      readScope: { scope: PermissionScope; labelIds: Array<ObjectID> } = {
+        scope,
+        labelIds,
+      },
     ): DatabaseCommonInteractionProps {
       const permissions: Array<UserPermission> = [
-        Permission.EditDatabaseServer,
-        Permission.ReadDatabaseServer,
-      ].map((permission: Permission): UserPermission => {
-        return {
-          permission,
+        {
+          permission: Permission.EditDatabaseServer,
           labelIds,
           scope,
           isBlockPermission: false,
           _type: "UserPermission",
-        };
-      });
+        },
+        {
+          permission: Permission.ReadDatabaseServer,
+          labelIds: readScope.labelIds,
+          scope: readScope.scope,
+          isBlockPermission: false,
+          _type: "UserPermission",
+        },
+      ];
       return {
         userId: userId,
         tenantId: projectId,
@@ -1988,12 +1996,15 @@ describePostgres("Databases SQL against Postgres", () => {
         }),
       ).toEqual(["orders-replica.example.com:5432"]);
 
+      // A database their read does not reach reads like one that does not exist.
       await expect(
         DatabaseServerEndpointService.create({
           data: alias(theirs, "hijack.example.com"),
           props: scopedProps(PermissionScope.Labels, [teamA]),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      ).rejects.toThrow(
+        `references records that are not in this project: Database "${theirs.toString()}"`,
+      );
       expect(await endpointsOf(theirs)).toHaveLength(1);
 
       // The owner of a colliding endpoint is not named to someone who cannot read it.
@@ -2027,8 +2038,48 @@ describePostgres("Databases SQL against Postgres", () => {
           data: alias(notOwned, "not-owned-replica.example.com"),
           props: scopedProps(PermissionScope.Owned),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      ).rejects.toThrow(
+        `references records that are not in this project: Database "${notOwned.toString()}"`,
+      );
       expect(await endpointsOf(notOwned)).toHaveLength(0);
+    });
+
+    test("an editor who may read every database but edit their label's adds aliases to those only", async () => {
+      const teamA: ObjectID = await insertRow("Label", {
+        projectId: projectId,
+        name: "team-a-editors",
+      });
+      const ours: ObjectID = await insertDatabase({
+        name: "orders (editable)",
+      });
+      const readOnly: ObjectID = await insertDatabase({
+        name: "payments (read only)",
+      });
+      await link("DatabaseServerLabel", {
+        databaseServerId: ours,
+        labelId: teamA,
+      });
+
+      const editorProps: DatabaseCommonInteractionProps = scopedProps(
+        PermissionScope.Labels,
+        [teamA],
+        { scope: PermissionScope.All, labelIds: [] },
+      );
+
+      await DatabaseServerEndpointService.create({
+        data: alias(ours, "orders-editable-replica.example.com"),
+        props: editorProps,
+      });
+      expect(await endpointsOf(ours)).toHaveLength(1);
+
+      // A database they may read but not edit: the service's own answer.
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: alias(readOnly, "payments-read-only-replica.example.com"),
+          props: editorProps,
+        }),
+      ).rejects.toThrow("you do not have permission to edit it");
+      expect(await endpointsOf(readOnly)).toHaveLength(0);
     });
 
     test("a relation object cannot point an alias at another project's database", async () => {

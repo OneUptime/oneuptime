@@ -57,6 +57,12 @@ This network device references records that are not in this project: Network Sit
 
 People are checked by membership: someone who is not a member of the project is refused the same way. A global probe, which every project can use, counts as your project's. Changing a resource checks only the IDs the change adds, so a resource that names something that has since gone can still be saved.
 
+A record read through another one - an incident's or an alert's notes and state timeline, a status page's announcements, domains and groups - must also name one you may read, by the rule a read of it follows: an incident outside the labels or owners your permission to read incidents reaches, carrying a label a block on reading incidents takes away, or marked private without you among its owners, directly or through a team (project owners and admins see every private incident, alert and episode), is refused with the same `400`, and nothing is written. Each status page an announcement names must be one you may read, and a key whose permission to read status pages reaches only some of them must name at least one. A permission to create such a record needs one to read the record it is created under; without one, the create is refused with a `422` that names the permissions that would let it in:
+
+```text
+You do not have permissions to create Incident Internal Note. It is read through its Incident, and you need one of these permissions to read Incidents: …
+```
+
 A record can be named in two ways: by its ID field (`monitorId`), or by the relation (`"monitor": { "_id": "…" }`), which is what the dashboard's forms send. Send one of them. If a request sends both, they must name the same record: a request whose two disagree — two different IDs, or an ID and an empty value — is refused with a `400` that names both fields:
 
 ```text

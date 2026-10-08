@@ -795,14 +795,26 @@ describe("DatabaseService's login check honours Permission.Public per request ty
       );
     });
 
+    /*
+     * Its login check lets an anonymous create through, but a subscriber
+     * belongs to a status page, and a record read through another one is
+     * created only by someone who may read that one: an anonymous caller
+     * gets the 401 reading the status page would give them, before any
+     * hook. A visitor subscribing on the status page itself is created by
+     * the page's own sign-up route, as root
+     * (StatusPageSubscriberService.createFromStatusPageSignUp).
+     */
     it.each(ANONYMOUS_CALLERS)(
-      "create lets $name through to onBeforeCreate - a status page visitor subscribing has no session",
+      "create refuses $name with a 401 before onBeforeCreate - it cannot read the status page",
       async (caller: CallerFixture) => {
-        await expect(
+        await expectNotAuthenticated(
           operationNamed("create").run(service, copyProps(caller.props)),
-        ).rejects.toThrow(HOOK_REACHED);
+          DatabaseRequestType.Read,
+          "Status Page",
+        );
 
-        expect(hooks.onBeforeCreate).toHaveBeenCalledTimes(1);
+        expect(hooks.onBeforeCreate).not.toHaveBeenCalled();
+        expect(getRepository).not.toHaveBeenCalled();
       },
     );
 

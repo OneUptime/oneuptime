@@ -24,7 +24,15 @@ import UserType from "../../../Types/UserType";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import { getJestSpyOn } from "../../Spy";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * WHO DID SOMETHING TO A RECORD IS FOR ONEUPTIME TO SAY.
@@ -634,6 +642,16 @@ describe("a write names nobody even as the same person, or as a clear", () => {
 describe("the creator of a record, end to end", () => {
   class PastTheStamp extends Error {}
 
+  /*
+   * The incident a note is created under is one its creator may read: a
+   * member who is no project admin is looked up with the rule for private
+   * incidents (CreatePermission.checkParentPermission), answered here as
+   * found.
+   */
+  beforeEach(() => {
+    stubReadableParents();
+  });
+
   async function inserted(
     values: Record<string, unknown>,
     props: DatabaseCommonInteractionProps,
@@ -717,9 +735,13 @@ describe("the creator of a record, end to end", () => {
   });
 
   test("a person who holds only the note's own create permission is not refused for the stamp", async () => {
+    // A note is created under an incident its creator may read.
     const row: Record<string, unknown> = await inserted(
       {},
-      personProps([Permission.CreateIncidentInternalNote]),
+      personProps([
+        Permission.CreateIncidentInternalNote,
+        Permission.ReadProjectIncident,
+      ]),
     );
 
     expect(String(row["createdByUserId"])).toBe(USER_ID.toString());

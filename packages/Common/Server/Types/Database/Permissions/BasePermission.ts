@@ -342,7 +342,7 @@ export default class BasePermission {
    *   - a caller who may read none of the parent's records - who holds none
    *     of its read permissions, or whose block with no labels takes one of
    *     them away - reaches none of the records read through them, and is
-   *     refused (checkParentIsReadable). A model whose shipped readers do not
+   *     refused (isHeldToParentRead). A model whose shipped readers do not
    *     read the parent (isParentReadOptional: an incident's links to
    *     alerts, telemetry rules of a service, a person's notification log)
    *     is read by its own rule when the caller holds none of them; a block
@@ -400,12 +400,8 @@ export default class BasePermission {
     const parentModelType: { new (): BaseModel } =
       tableColumnMetadata.modelType;
 
-    BasePermission.checkParentIsReadable(
-      modelType,
-      parentModelType,
-      props,
-      type,
-    );
+    // Refuses a caller who may read none of the parents. See the helper.
+    BasePermission.isHeldToParentRead(modelType, parentModelType, props, type);
 
     query = await BasePermission.addParentOwnedScopeToQuery({
       modelType: modelType,
@@ -639,24 +635,29 @@ export default class BasePermission {
   }
 
   /*
-   * Refuses a caller who may read none of the records `modelType`'s rows
-   * are read through: one of the parent's read permissions taken away by a
-   * block with no labels - as reading the parent's own table is refused -
-   * or none of them held (nor the parent's read wildcard). A permission on
-   * the rows alone (Read Incident Internal Note, with no permission on
-   * incidents) reaches none of them.
+   * Whether a caller is held to reading the records `modelType`'s rows are
+   * read through, refusing one who may read none of them: one of the
+   * parent's read permissions taken away by a block with no labels - as
+   * reading the parent's own table is refused - or none of them held (nor
+   * the parent's read wildcard). A permission on the rows alone (Read
+   * Incident Internal Note, with no permission on incidents) reaches none
+   * of them. True for a caller who holds one: the parent's read rule then
+   * holds them to the parents it reaches, on a read, an update and a delete
+   * (addParentAccessToQuery) and on a create (CreatePermission
+   * .checkParentPermission).
    *
    * A model whose shipped readers do not read the parent
    * (CanAccessIfCanReadOn's isParentReadOptional - an incident's links to
    * alerts, read by alert responders) is read by its own read rule when the
-   * caller holds no permission to read the parent; a block still refuses.
+   * caller holds no permission to read the parent: false. A block still
+   * refuses.
    */
-  private static checkParentIsReadable(
+  public static isHeldToParentRead(
     modelType: { new (): BaseModel },
     parentModelType: { new (): BaseModel },
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
-  ): void {
+  ): boolean {
     const parentReadPermissions: Array<Permission> =
       TablePermission.getTablePermission(
         parentModelType,
@@ -685,10 +686,13 @@ export default class BasePermission {
           parentModelType,
           DatabaseRequestType.Read,
         ),
-      }) ||
-      model.isParentReadOptional
+      })
     ) {
-      return;
+      return true;
+    }
+
+    if (model.isParentReadOptional) {
+      return false;
     }
 
     throw new NotAuthorizedException(

@@ -549,6 +549,62 @@ export class Service extends ProjectReferencesService<StatusPage> {
     };
   }
 
+  /*
+   * The owners picked when a status page is created are added once the
+   * whole create has returned, not in onCreateSuccess: by then the creator
+   * owns the page (DatabaseService.create makes them an owner after the
+   * success hook), so a teammate whose read of status pages reaches only the
+   * ones they own adds them as themselves, with the same checks as adding
+   * them by hand - an owner row is created only under a page its creator may
+   * read (CreatePermission.checkParentPermission). In the background, as
+   * before: a failure is logged, and the page is kept.
+   */
+  @CaptureSpan()
+  public override async create(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<StatusPage> {
+    const createdItem: StatusPage = await super.create(createBy);
+
+    if (!createBy.props.ignoreHooks) {
+      this.addOwnersPickedOnCreate(createBy, createdItem);
+    }
+
+    return createdItem;
+  }
+
+  // See create.
+  private addOwnersPickedOnCreate(
+    createBy: CreateBy<StatusPage>,
+    createdItem: StatusPage,
+  ): void {
+    const ownerUsers: Array<ObjectID> =
+      (createBy.miscDataProps?.["ownerUsers"] as Array<ObjectID>) || [];
+    const ownerTeams: Array<ObjectID> =
+      (createBy.miscDataProps?.["ownerTeams"] as Array<ObjectID>) || [];
+
+    if (
+      !createdItem.projectId ||
+      !createdItem.id ||
+      (ownerUsers.length === 0 && ownerTeams.length === 0)
+    ) {
+      return;
+    }
+
+    this.addOwners(
+      createdItem.projectId,
+      createdItem.id,
+      ownerUsers,
+      ownerTeams,
+      false,
+      createBy.props,
+    ).catch((error: Error) => {
+      logger.error(`Error in StatusPageService owner assignment: ${error}`, {
+        projectId: createdItem.projectId?.toString(),
+        statusPageId: createdItem.id?.toString(),
+      } as LogAttributes);
+    });
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<StatusPage>,
@@ -562,32 +618,6 @@ export class Service extends ProjectReferencesService<StatusPage> {
         project_id: createdItem.projectId?.toString() || "",
       },
     });
-
-    // Execute owner assignment asynchronously
-    if (
-      createdItem.projectId &&
-      createdItem.id &&
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      // Run owner assignment in background without blocking
-      this.addOwners(
-        createdItem.projectId!,
-        createdItem.id!,
-        (onCreate.createBy.miscDataProps!["ownerUsers"] as Array<ObjectID>) ||
-          [],
-        (onCreate.createBy.miscDataProps!["ownerTeams"] as Array<ObjectID>) ||
-          [],
-        false,
-        onCreate.createBy.props,
-      ).catch((error: Error) => {
-        logger.error(`Error in StatusPageService owner assignment: ${error}`, {
-          projectId: createdItem.projectId?.toString(),
-          statusPageId: createdItem.id?.toString(),
-        } as LogAttributes);
-      });
-    }
 
     /*
      * Apply label rules first so rule-added labels are persisted before owner

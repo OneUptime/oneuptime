@@ -28,13 +28,18 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
 
 /*
  * The records these tests name are their project's own: the services check
- * every reference against the project (ProjectReferencesService).
+ * every reference against the project (ProjectReferencesService). And the
+ * incident a note is created under is one its creator may read: a member
+ * who is no project admin is looked up with the rule for private incidents
+ * (CreatePermission.checkParentPermission), answered here as found.
  */
 beforeEach(() => {
   stubProjectDirectory({});
+  stubReadableParents();
 });
 
 /*
@@ -112,9 +117,16 @@ const rootProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
   return { isRoot: true };
 };
 
-// A member whose only way in is the public note create permission.
+/*
+ * A member whose only way in is the public note create permission, and a
+ * read of the incident the note is posted on: a note is created only under
+ * an incident its creator may read.
+ */
 const noteCreatorProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
-  return memberProps([Permission.CreateIncidentPublicNote]);
+  return memberProps([
+    Permission.CreateIncidentPublicNote,
+    Permission.ReadProjectIncident,
+  ]);
 };
 
 type IncidentWithFlagFunction = (
