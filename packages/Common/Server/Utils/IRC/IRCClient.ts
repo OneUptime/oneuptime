@@ -374,6 +374,9 @@ class IRCSession {
   private isPastDeadline: boolean = false;
   private softWaitEnders: Set<() => void> = new Set<() => void>();
 
+  // Nothing more is read: the connection ended after the message was delivered.
+  private isInputClosed: boolean = false;
+
   private nicknameIndex: number = 0;
   private nickname: string;
 
@@ -902,18 +905,27 @@ class IRCSession {
     this.send({ command: "PING", trailing: token });
 
     await this.waitFor((message: IRCMessage): boolean => {
-      return (
+      const isPong: boolean =
         message.command === "PONG" &&
-        message.params[message.params.length - 1] === token
-      );
+        message.params[message.params.length - 1] === token;
+
+      /*
+       * Delivered from this moment - set here, not after the await, so a
+       * line that came in the same packet as the PONG (an ERROR closing
+       * the link) is read in that light.
+       */
+      if (isPong) {
+        this.phase = Phase.Settling;
+      }
+
+      return isPong;
     });
 
     /*
      * Unless a bouncer answered the PING itself, without waiting for the
      * network: so listen a moment longer for a refusal, which still fails
-     * the step. Running out of time now does not.
+     * the step. Running out of time now, or the connection ending, does not.
      */
-    this.phase = Phase.Settling;
 
     await this.waitAWhile(
       this.options.refusalGraceInMs ?? IRC_DEFAULT_REFUSAL_GRACE_IN_MS,
@@ -1048,18 +1060,20 @@ class IRCSession {
 
     const line: string = IRCMessageUtil.build(data);
 
-    this.socket?.write(`${line}\r\n`, "utf8");
+    if (this.socket && !this.socket.destroyed) {
+      this.socket.write(`${line}\r\n`, "utf8");
+    }
   }
 
   private onData(chunk: Buffer): void {
-    if (this.failure || this.isFinished) {
+    if (this.failure || this.isFinished || this.isInputClosed) {
       return;
     }
 
     this.incomingBytes += chunk.length;
 
     if (this.incomingBytes > MAX_INCOMING_BYTES) {
-      this.fail(
+      this.endConnection(
         new IRCError(
           `The IRC server ${this.serverName} sent more than OneUptime reads from one connection.`,
         ),
@@ -1080,13 +1094,13 @@ class IRCSession {
       }
 
       if (line.length > MAX_INCOMING_LINE_BYTES) {
-        this.fail(this.getNotIrcError());
+        this.endConnection(this.getNotIrcError());
         return;
       }
 
       this.onLine(line.toString("utf8"));
 
-      if (this.failure || this.isFinished) {
+      if (this.failure || this.isFinished || this.isInputClosed) {
         return;
       }
 
@@ -1094,7 +1108,7 @@ class IRCSession {
     }
 
     if (this.incoming.length > MAX_INCOMING_LINE_BYTES) {
-      this.fail(this.getNotIrcError());
+      this.endConnection(this.getNotIrcError());
     }
   }
 
@@ -1107,7 +1121,7 @@ class IRCSession {
     const message: IRCMessage | null = IRCMessageUtil.parse(line);
 
     if (!message) {
-      this.fail(this.getNotIrcError());
+      this.endConnection(this.getNotIrcError());
       return;
     }
 
@@ -1123,12 +1137,9 @@ class IRCSession {
         return;
       }
 
+      // How a server closes a link: after the message is delivered, a close.
       if (message.command === "ERROR") {
-        if (this.phase === Phase.Quitting) {
-          return;
-        }
-
-        this.fail(
+        this.endConnection(
           new IRCError(
             `The IRC server closed the connection: ${IRCClient.describeReply(message)}.`,
           ),
@@ -1158,7 +1169,9 @@ class IRCSession {
       }
     } catch (error) {
       // A PING token that cannot be echoed back on one line.
-      this.fail(error instanceof IRCError ? error : this.getNotIrcError());
+      this.endConnection(
+        error instanceof IRCError ? error : this.getNotIrcError(),
+      );
       return;
     }
 
@@ -1167,13 +1180,7 @@ class IRCSession {
   }
 
   private onConnectionLost(error: Error | null): void {
-    if (this.isFinished || this.failure || this.phase === Phase.Quitting) {
-      return;
-    }
-
-    // After the PONG the message is delivered; a closed connection ends the wait.
-    if (this.phase === Phase.Settling) {
-      this.endSoftWaits();
+    if (this.isFinished || this.failure || this.isInputClosed) {
       return;
     }
 
@@ -1187,7 +1194,7 @@ class IRCSession {
         : "";
 
     if (error) {
-      this.fail(
+      this.endConnection(
         new IRCError(
           `Lost the connection to the IRC server ${this.serverName}: ${error.message}.${tlsHint}`,
         ),
@@ -1196,7 +1203,7 @@ class IRCSession {
     }
 
     if (!this.hasHeardIRC) {
-      this.fail(
+      this.endConnection(
         new IRCError(
           `The IRC server ${this.serverName} closed the connection without a word.${tlsHint}`,
         ),
@@ -1204,11 +1211,29 @@ class IRCSession {
       return;
     }
 
-    this.fail(
+    this.endConnection(
       new IRCError(
         `The IRC server ${this.serverName} closed the connection while ${this.describePhase()}.`,
       ),
     );
+  }
+
+  /*
+   * The connection has ended, or can no longer be read: closed, reset, an
+   * ERROR, or something that is not IRC. Until the PONG, that fails the
+   * message. After it the message is delivered, whatever becomes of the
+   * connection - an ERROR closing the link is how most servers end one - so
+   * it only ends the wait for a late refusal, and the step takes Success.
+   */
+  private endConnection(error: Error): void {
+    if (this.phase === Phase.Settling || this.phase === Phase.Quitting) {
+      this.isInputClosed = true;
+      this.destroySockets();
+      this.endSoftWaits();
+      return;
+    }
+
+    this.fail(error);
   }
 
   /*
@@ -1337,8 +1362,13 @@ class IRCSession {
 
     this.timers.clear();
 
+    this.destroySockets();
+  }
+
+  private destroySockets(): void {
     for (const socket of [this.socket, this.rawSocket]) {
       if (socket && !socket.destroyed) {
+        // A late error on a socket nobody listens to would crash the process.
         socket.on("error", () => {});
         socket.destroy();
       }

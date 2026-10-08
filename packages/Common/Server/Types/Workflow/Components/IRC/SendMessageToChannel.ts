@@ -271,16 +271,8 @@ export default class SendMessageToChannel extends ComponentCode {
       throw new BadDataException("IRC message not found.");
     }
 
-    // Whatever nickname it goes out as, a message with no line to send has none.
-    const hasLine: boolean =
-      IRCMessageText.prepare({
-        text: rawText,
-        maxBytesPerLine: IRCMessageText.getMaxTextBytes({
-          nickname: nickname,
-          target: target,
-        }),
-        maxLines: 1,
-      }).lines.length > 0;
+    // Whatever nickname it goes out as, a message that shows nothing sends nothing.
+    const hasLine: boolean = IRCMessageText.hasVisibleText(rawText);
 
     if (!hasLine) {
       throw new BadDataException(

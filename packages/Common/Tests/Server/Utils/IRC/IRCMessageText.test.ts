@@ -345,6 +345,20 @@ describe("IRCMessageText.prepare — what is not sent costs nothing", () => {
     expect(Date.now() - startedAt).toBeLessThan(5000);
   });
 
+  test.each([
+    ["formatting codes", "\u0002"],
+    ["no-break spaces", "\u00a0"],
+    ["ideographic spaces", "\u3000"],
+  ])(
+    "a long run of %s before what shows is passed over too",
+    (_label: string, blank: string) => {
+      const startedAt: number = Date.now();
+
+      expect(prepare(`${blank.repeat(4_000_000)}x`).lines).toEqual(["x"]);
+      expect(Date.now() - startedAt).toBeLessThan(5000);
+    },
+  );
+
   test("characters taken out do not push what follows them out of the message", () => {
     expect(prepare(`${"\u001b".repeat(7000)}IMPORTANT\nend`)).toEqual({
       lines: ["IMPORTANT", "end"],
@@ -360,6 +374,31 @@ describe("IRCMessageText.prepare — what is not sent costs nothing", () => {
 
   test("so is a line of Unicode white space", () => {
     expect(prepare("\u00a0\u3000\u2003\nreal").lines).toEqual(["real"]);
+  });
+});
+
+describe("IRCMessageText.hasVisibleText", () => {
+  test("is whether prepare would send a line", () => {
+    for (const [text, expected] of [
+      ["", false],
+      [" \n\t\r\n", false],
+      ["\u0001\u0000\u007f", false],
+      ["\u0002\u000f\u001f", false],
+      ["\u00a0\u3000\ufeff", false],
+      ["a", true],
+      ["\u0002bold\u0002", true],
+      ["🚀", true],
+      [`${" ".repeat(1_000_000)}x`, true],
+    ] as Array<[string, boolean]>) {
+      expect({
+        text: text.substring(0, 20),
+        visible: IRCMessageText.hasVisibleText(text),
+      }).toEqual({
+        text: text.substring(0, 20),
+        visible: expected,
+      });
+      expect(prepare(text).lines.length > 0).toBe(expected);
+    }
   });
 });
 

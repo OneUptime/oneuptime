@@ -1039,14 +1039,147 @@ describe("IRCClient — a refusal after the PONG, as through a bouncer", () => {
     expect(result.linesSent).toBe(1);
   });
 
+  /*
+   * "ERROR :Closing Link" is how Solanum, InspIRCd and UnrealIRCd end a
+   * link. After the PONG the message is in the channel, so the step takes
+   * Success - an Error there could have a retry post it twice.
+   */
+  test.each([
+    ["in the same packet as the PONG", 0],
+    ["a moment after the PONG", 100],
+  ])(
+    "an ERROR closing the link %s does not undo a delivered message",
+    async (_label: string, delayInMs: number) => {
+      const closing: string =
+        "ERROR :Closing Link: client.fake.test (K-Lined: spam)";
+      const fakeServer: FakeIRCServer = await start({
+        onMessage: (message: FakeIRCMessage, connection: FakeIRCConnection) => {
+          if (message.command !== "PING") {
+            return false;
+          }
+
+          const pong: string = `:${SERVER_NAME} PONG ${SERVER_NAME} :${message.params[0]}`;
+
+          if (delayInMs === 0) {
+            connection.send(`${pong}\r\n${closing}`);
+            connection.close();
+          } else {
+            connection.send(pong);
+            setTimeout(() => {
+              connection.send(closing);
+              connection.close();
+            }, delayInMs);
+          }
+
+          return true;
+        },
+      });
+
+      const result: IRCSendResult = await IRCClient.sendMessage(
+        options(fakeServer, { refusalGraceInMs: 1000 }),
+      );
+
+      expect(result.linesSent).toBe(1);
+    },
+  );
+
+  test("bytes that are not IRC after the PONG do not undo it either", async () => {
+    const fakeServer: FakeIRCServer = await start({
+      onMessage: (message: FakeIRCMessage, connection: FakeIRCConnection) => {
+        if (message.command !== "PING") {
+          return false;
+        }
+
+        connection.send(
+          `:${SERVER_NAME} PONG ${SERVER_NAME} :${message.params[0]}\r\nHTTP/1.1 400 Bad Request`,
+        );
+        return true;
+      },
+    });
+
+    const result: IRCSendResult = await IRCClient.sendMessage(
+      options(fakeServer, { refusalGraceInMs: 1000 }),
+    );
+
+    expect(result.linesSent).toBe(1);
+  });
+
+  test("a refusal after the PONG still fails, though the link closes behind it", async () => {
+    const fakeServer: FakeIRCServer = await start({
+      onMessage: (message: FakeIRCMessage, connection: FakeIRCConnection) => {
+        if (message.command !== "PING") {
+          return false;
+        }
+
+        connection.send(
+          [
+            `:${SERVER_NAME} PONG ${SERVER_NAME} :${message.params[0]}`,
+            `:${SERVER_NAME} 404 ${connection.nickname} #ops :Cannot send to nick/channel`,
+            "ERROR :Closing Link: client.fake.test (Client Quit)",
+          ].join("\r\n"),
+        );
+        connection.close();
+        return true;
+      },
+    });
+
+    const error: Error = await sendAndGetError(
+      options(fakeServer, { refusalGraceInMs: 1000 }),
+    );
+
+    expect(error.message).toBe(
+      "Could not send to #ops: Cannot send to nick/channel.",
+    );
+  });
+
   test("by default, for a second", () => {
     expect(IRC_DEFAULT_REFUSAL_GRACE_IN_MS).toBe(1000);
   });
 });
 
 describe("IRCClient — pacing, so the server does not take it for a flood", () => {
+  /*
+   * Recorded on the client, in the order it acts: when the server reads its
+   * lines tells nothing on a busy machine, where it reads several at once.
+   * The pauses are the client's own timers of the pacing interval.
+   */
   test("sends a burst at once, then waits between lines", async () => {
     const fakeServer: FakeIRCServer = await start();
+    const events: Array<string> = [];
+    const writtenAt: Array<number> = [];
+
+    const realWrite: typeof net.Socket.prototype.write =
+      net.Socket.prototype.write;
+
+    jest.spyOn(net.Socket.prototype, "write").mockImplementation(function (
+      this: net.Socket,
+      ...writeArgs: Array<unknown>
+    ): boolean {
+      const line: string = String(writeArgs[0]).trim();
+
+      if (line.startsWith("PRIVMSG")) {
+        events.push(line);
+        writtenAt.push(Date.now());
+      }
+
+      return (realWrite as (...realArgs: Array<unknown>) => boolean).apply(
+        this,
+        writeArgs,
+      );
+    } as never);
+
+    const realSetTimeout: typeof setTimeout = global.setTimeout;
+
+    jest.spyOn(global, "setTimeout").mockImplementation(((
+      handler: () => void,
+      delay?: number,
+    ): ReturnType<typeof setTimeout> => {
+      if (delay === 150) {
+        events.push("pause");
+      }
+
+      return realSetTimeout(handler, delay);
+    }) as never);
 
     await IRCClient.sendMessage(
       options(fakeServer, {
@@ -1055,21 +1188,25 @@ describe("IRCClient — pacing, so the server does not take it for a flood", () 
       }),
     );
 
-    const times: Array<number> = fakeServer.lines
-      .filter((entry: FakeIRCLine) => {
-        return entry.line.startsWith("PRIVMSG");
-      })
-      .map((entry: FakeIRCLine) => {
-        return entry.receivedAt;
-      });
+    expect(events).toEqual([
+      "PRIVMSG #ops :1",
+      "PRIVMSG #ops :2",
+      "pause",
+      "PRIVMSG #ops :3",
+      "pause",
+      "PRIVMSG #ops :4",
+      "pause",
+      "PRIVMSG #ops :5",
+    ]);
 
-    expect(times).toHaveLength(5);
-    expect(times[1]! - times[0]!).toBeLessThan(100);
-
-    for (let index: number = 2; index < times.length; index++) {
-      // Timers fire a little early or late; the gap is still the pace.
-      expect(times[index]! - times[index - 1]!).toBeGreaterThanOrEqual(120);
+    // A timer fires late on a busy machine, never much early.
+    for (let index: number = 2; index < writtenAt.length; index++) {
+      expect(writtenAt[index]! - writtenAt[index - 1]!).toBeGreaterThanOrEqual(
+        140,
+      );
     }
+
+    expect(linesSent(fakeServer)).toContain("PRIVMSG #ops :5");
   });
 
   test("by default, four lines at once and then one a second", () => {

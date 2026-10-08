@@ -165,6 +165,21 @@ export default class IRCMessageText {
   }
 
   /*
+   * Whether the message shows anything at all - whether prepare() would give
+   * it a line - at the cost of one scan, which stops at the first character
+   * that shows.
+   */
+  public static hasVisibleText(text: string): boolean {
+    for (let index: number = 0; index < text.length; index++) {
+      if (!IRCMessageText.isBlankCode(text.charCodeAt(index))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
    * One line of the message, with every character IRC cannot carry taken out
    * and a tab made a space. IRC's formatting codes stay.
    */
@@ -221,9 +236,9 @@ export default class IRCMessageText {
   /*
    * text[start, end) cut into pieces of at most maxBytes bytes, no more than
    * maxPieces of them. A piece ends at the last space before the limit when
-   * that leaves it at least half full, and loses the spaces it ends with;
-   * otherwise it is cut at the limit, between two characters. Blank pieces
-   * are dropped.
+   * that leaves it at least half full; otherwise it is cut at the limit,
+   * between two characters. A piece that is cut loses the white space it
+   * ends with, and blank pieces are dropped.
    *
    * Reads one character at a time and keeps no more than one piece in hand,
    * so a long line costs what its first maxPieces pieces cost, and a run of
@@ -242,6 +257,8 @@ export default class IRCMessageText {
     let current: string = "";
     let currentBytes: number = 0;
     let isCurrentBlank: boolean = true;
+    // A blank run too long for one piece is being passed over.
+    let isSkippingBlankRun: boolean = false;
 
     const addPiece: (piece: string) => void = (piece: string): void => {
       if (!IRCMessageText.isBlankText(piece)) {
@@ -263,12 +280,29 @@ export default class IRCMessageText {
         continue;
       }
 
-      const isSpace: boolean = code === SPACE_CODE || code === TAB;
-
-      if (isSpace && isCurrentBlank && currentBytes >= data.maxBytes) {
-        index++;
-        continue;
+      /*
+       * A run of blank characters - spaces, formatting codes, NBSP - longer
+       * than a piece can hold shows nothing, wherever it is cut. Once the
+       * blank piece in hand is full, the rest of the run is passed over
+       * rather than added to it a character at a time, and what shows next
+       * starts a piece of its own, without the run in front of it.
+       */
+      if (isCurrentBlank && IRCMessageText.isBlankCode(code)) {
+        if (
+          isSkippingBlankRun ||
+          currentBytes + IRCMessageText.getCodePointBytes(code) > data.maxBytes
+        ) {
+          isSkippingBlankRun = true;
+          index++;
+          continue;
+        }
+      } else if (isSkippingBlankRun) {
+        current = "";
+        currentBytes = 0;
+        isSkippingBlankRun = false;
       }
+
+      const isSpace: boolean = code === SPACE_CODE || code === TAB;
 
       // One whole character: both halves of a surrogate pair together.
       let character: string = isSpace ? SPACE : text.charAt(index);
@@ -303,7 +337,8 @@ export default class IRCMessageText {
           addPiece(current.substring(0, lastSpace).trimEnd());
           current = current.substring(lastSpace + 1);
         } else {
-          addPiece(current);
+          // White space at the end of a piece shows nothing, here too.
+          addPiece(current.trimEnd());
           current = "";
         }
 
