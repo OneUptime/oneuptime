@@ -153,6 +153,13 @@ export default class CriteriaFilterUtil {
         text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";
       }
 
+      const resultValuePath: string | undefined =
+        criteriaFilter?.customCodeMonitorOptions?.resultValuePath?.trim();
+
+      if (resultValuePath && criteriaFilter?.checkOn === CheckOn.ResultValue) {
+        text += "at " + resultValuePath + " ";
+      }
+
       if (criteriaFilter?.snmpMonitorOptions?.interfaceName) {
         text +=
           "on interface " +

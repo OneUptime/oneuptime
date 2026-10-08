@@ -402,21 +402,22 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           criteriaFilter?.checkOn === CheckOn.ResultValue && (
             <div className="mt-1">
               <FieldLabelElement
-                title="Field path (optional)"
-                description="Target a field inside an object/array result, e.g. status, cpu_busy_percent, or data.items[0].value. Leave blank to compare the whole result value."
+                title="Field Path (Optional)"
+                description="Compare one field of the data your script returns instead of the whole value - for example status, cpu_busy_percent or data.items[0].value. Use dots for nested fields and [n] for array items. Leave empty to compare the whole result."
               />
 
               <Input
-                placeholder={
-                  "e.g. status or cpu_busy_percent or data.items[0].value"
+                placeholder="status or data.items[0].value"
+                value={
+                  criteriaFilter?.customCodeMonitorOptions?.resultValuePath ||
+                  ""
                 }
-                value={criteriaFilter?.customCodeMonitorOptions?.resultValuePath?.toString()}
                 onChange={(value: string) => {
                   props.onChange?.({
                     ...criteriaFilter,
                     customCodeMonitorOptions: {
                       ...criteriaFilter?.customCodeMonitorOptions,
-                      resultValuePath: value,
+                      resultValuePath: value || undefined,
                     },
                   });
                 }}
