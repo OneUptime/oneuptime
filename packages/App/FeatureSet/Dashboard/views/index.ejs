@@ -330,8 +330,32 @@
           }
         });
 
-        // Listen for controlled change (when SW takes control)
+        /*
+         * A new version of the service worker taking over from the one that
+         * served this page: reload, so the page runs the code that version
+         * serves. The first worker to take control of a page that loaded
+         * without one is not that. Nothing on the page is stale, and a reload
+         * throws away whatever the user is doing: Register Device (Push
+         * Notifications) is what installs the worker, so every first
+         * registration was reloaded away before it was saved.
+         */
+        let serviceWorkerController = navigator.serviceWorker.controller;
+        let isReloadingForNewServiceWorker = false;
+
         navigator.serviceWorker.addEventListener('controllerchange', function() {
+          const previousController = serviceWorkerController;
+          serviceWorkerController = navigator.serviceWorker.controller;
+
+          if (!previousController) {
+            console.log('OneUptime PWA: Service worker now controls this page');
+            return;
+          }
+
+          if (isReloadingForNewServiceWorker) {
+            return;
+          }
+
+          isReloadingForNewServiceWorker = true;
           console.log('OneUptime PWA: New service worker took control');
           window.location.reload();
         });
