@@ -160,55 +160,66 @@ function discoveryStepTitles(): Array<string> {
   const start: number = source.indexOf("const DISCOVERY_SCAN_FORM_STEPS");
   const end: number = source.indexOf("];", start);
 
-  return Array.from(
-    source.slice(start, end).matchAll(STEP_TITLE_PATTERN),
-  ).map((match: RegExpMatchArray): string => {
-    return match[1]!;
-  });
+  return Array.from(source.slice(start, end).matchAll(STEP_TITLE_PATTERN)).map(
+    (match: RegExpMatchArray): string => {
+      return match[1]!;
+    },
+  );
 }
 
 const STEP_TITLE_PATTERN: RegExp = /\{ title: "([^"]+)", id: "/g;
 
 // The Add Site steps, from the Sites list's create form.
 function addSiteStepTitles(): Array<string> {
-  const source: string = readRepoFile(`${DASHBOARD}/Pages/NetworkSite/Sites.tsx`);
+  const source: string = readRepoFile(
+    `${DASHBOARD}/Pages/NetworkSite/Sites.tsx`,
+  );
   const start: number = source.indexOf("formSteps={[");
   const end: number = source.indexOf("]}", start);
 
-  return Array.from(
-    source.slice(start, end).matchAll(STEP_TITLE_PATTERN),
-  ).map((match: RegExpMatchArray): string => {
-    return match[1]!;
-  });
+  return Array.from(source.slice(start, end).matchAll(STEP_TITLE_PATTERN)).map(
+    (match: RegExpMatchArray): string => {
+      return match[1]!;
+    },
+  );
 }
 
 describe("the device guide adds a device the way the dashboard does", () => {
-  test.each(LANGUAGES)("%s: by Add Device, not Create Network Device", (language: string) => {
-    const guide: string = readGuide(language, DEVICE_GUIDE);
+  test.each(LANGUAGES)(
+    "%s: by Add Device, not Create Network Device",
+    (language: string) => {
+      const guide: string = readGuide(language, DEVICE_GUIDE);
 
-    expect(`${ADD_DEVICE_CREATE_VERB} ${ADD_DEVICE_SINGULAR_NAME}`).toBe(
-      "Add Device",
-    );
-    expect(guide).toContain(bold("Add Device"));
-    // The diagnostic permission keeps its name; the button does not.
-    expect(guide).not.toMatch(OLD_CREATE_BUTTON);
-  });
+      expect(`${ADD_DEVICE_CREATE_VERB} ${ADD_DEVICE_SINGULAR_NAME}`).toBe(
+        "Add Device",
+      );
+      expect(guide).toContain(bold("Add Device"));
+      // The diagnostic permission keeps its name; the button does not.
+      expect(guide).not.toMatch(OLD_CREATE_BUTTON);
+    },
+  );
 
-  test.each(LANGUAGES)("%s: no longer walks the three steps the form had", (language: string) => {
-    const guide: string = readGuide(language, DEVICE_GUIDE);
+  test.each(LANGUAGES)(
+    "%s: no longer walks the three steps the form had",
+    (language: string) => {
+      const guide: string = readGuide(language, DEVICE_GUIDE);
 
-    for (const oldHeading of OLD_DEVICE_STEP_HEADINGS[language]!) {
-      expect(guide).not.toContain(oldHeading);
-    }
-  });
+      for (const oldHeading of OLD_DEVICE_STEP_HEADINGS[language]!) {
+        expect(guide).not.toContain(oldHeading);
+      }
+    },
+  );
 
-  test.each(LANGUAGES)("%s: names the two folds and the opt-in as the form does", (language: string) => {
-    const guide: string = readGuide(language, DEVICE_GUIDE);
+  test.each(LANGUAGES)(
+    "%s: names the two folds and the opt-in as the form does",
+    (language: string) => {
+      const guide: string = readGuide(language, DEVICE_GUIDE);
 
-    expect(guide).toContain(bold(ADD_DEVICE_SNMP_SECTION.title));
-    expect(guide).toContain(bold(ADD_DEVICE_MORE_FIELDS.title));
-    expect(guide).toContain(`| ${ADD_DEVICE_PING_MONITOR_TITLE} |`);
-  });
+      expect(guide).toContain(bold(ADD_DEVICE_SNMP_SECTION.title));
+      expect(guide).toContain(bold(ADD_DEVICE_MORE_FIELDS.title));
+      expect(guide).toContain(`| ${ADD_DEVICE_PING_MONITOR_TITLE} |`);
+    },
+  );
 
   test("en: says the name may be left for the hostname to fill", () => {
     const guide: string = readGuide("en", DEVICE_GUIDE);
@@ -243,61 +254,70 @@ const OLD_DEVICE_STEP_HEADINGS: Record<string, Array<string>> = {
 };
 
 describe("the device guide opens on the Overview's verdict", () => {
-  test.each(LANGUAGES)("%s: every verdict it quotes is one the Overview says", (language: string) => {
-    const verdicts: Array<string> = documentedVerdicts(
-      readGuide(language, DEVICE_GUIDE),
-      OVERVIEW_HEADING[language]!,
-    );
+  test.each(LANGUAGES)(
+    "%s: every verdict it quotes is one the Overview says",
+    (language: string) => {
+      const verdicts: Array<string> = documentedVerdicts(
+        readGuide(language, DEVICE_GUIDE),
+        OVERVIEW_HEADING[language]!,
+      );
 
-    expect(verdicts.length).toBeGreaterThan(0);
+      expect(verdicts.length).toBeGreaterThan(0);
 
-    for (const verdict of verdicts) {
-      expect({ verdict, kind: verdictKindOf(verdict) }).not.toEqual({
-        verdict,
-        kind: null,
-      });
-    }
-  });
+      for (const verdict of verdicts) {
+        expect({ verdict, kind: verdictKindOf(verdict) }).not.toEqual({
+          verdict,
+          kind: null,
+        });
+      }
+    },
+  );
 
-  test.each(LANGUAGES)("%s: it quotes every kind of verdict, worst news first", (language: string) => {
-    const kinds: Array<NetworkHealthVerdictKind | null> = documentedVerdicts(
-      readGuide(language, DEVICE_GUIDE),
-      OVERVIEW_HEADING[language]!,
-    ).map(verdictKindOf);
+  test.each(LANGUAGES)(
+    "%s: it quotes every kind of verdict, worst news first",
+    (language: string) => {
+      const kinds: Array<NetworkHealthVerdictKind | null> = documentedVerdicts(
+        readGuide(language, DEVICE_GUIDE),
+        OVERVIEW_HEADING[language]!,
+      ).map(verdictKindOf);
 
-    // The ladder getNetworkHealthVerdict climbs, in its order.
-    expect(kinds).toEqual([
-      NetworkHealthVerdictKind.DevicesDown,
-      NetworkHealthVerdictKind.SitesUnhealthy,
-      NetworkHealthVerdictKind.InterfacesDown,
-      NetworkHealthVerdictKind.SnmpFailing,
-      NetworkHealthVerdictKind.Waiting,
-      NetworkHealthVerdictKind.Healthy,
-    ]);
-  });
+      // The ladder getNetworkHealthVerdict climbs, in its order.
+      expect(kinds).toEqual([
+        NetworkHealthVerdictKind.DevicesDown,
+        NetworkHealthVerdictKind.SitesUnhealthy,
+        NetworkHealthVerdictKind.InterfacesDown,
+        NetworkHealthVerdictKind.SnmpFailing,
+        NetworkHealthVerdictKind.Waiting,
+        NetworkHealthVerdictKind.Healthy,
+      ]);
+    },
+  );
 
-  test.each(LANGUAGES)("%s: names the two ways in and the alerting link", (language: string) => {
-    const guide: string = readGuide(language, DEVICE_GUIDE);
-    const getStarted: string = readRepoFile(
-      `${DASHBOARD}/Components/Network/NetworkGetStarted.tsx`,
-    );
-    const hero: string = readRepoFile(
-      `${DASHBOARD}/Components/Network/NetworkHealthHero.tsx`,
-    );
+  test.each(LANGUAGES)(
+    "%s: names the two ways in and the alerting link",
+    (language: string) => {
+      const guide: string = readGuide(language, DEVICE_GUIDE);
+      const getStarted: string = readRepoFile(
+        `${DASHBOARD}/Components/Network/NetworkGetStarted.tsx`,
+      );
+      const hero: string = readRepoFile(
+        `${DASHBOARD}/Components/Network/NetworkHealthHero.tsx`,
+      );
 
-    for (const label of ["Discover devices", "Add one device"]) {
-      expect(getStarted).toContain(`title: "${label}"`);
-      expect(guide).toContain(bold(label));
-    }
+      for (const label of ["Discover devices", "Add one device"]) {
+        expect(getStarted).toContain(`title: "${label}"`);
+        expect(guide).toContain(bold(label));
+      }
 
-    for (const label of ["Discover Devices", "Add Device"]) {
-      expect(hero).toContain(`title="${label}"`);
-      expect(guide).toContain(bold(label));
-    }
+      for (const label of ["Discover Devices", "Add Device"]) {
+        expect(hero).toContain(`title="${label}"`);
+        expect(guide).toContain(bold(label));
+      }
 
-    expect(hero).toContain('translator.translateText("Set up alerts")');
-    expect(guide).toContain(bold("Set up alerts"));
-  });
+      expect(hero).toContain('translator.translateText("Set up alerts")');
+      expect(guide).toContain(bold("Set up alerts"));
+    },
+  );
 });
 
 describe("the guides' menu paths lead somewhere", () => {
@@ -322,35 +342,45 @@ describe("the guides' menu paths lead somewhere", () => {
         [language, SITES_GUIDE],
       ];
     }),
-  )("%s %s: every Network -> section -> page is in that section", (language: string, guide: string) => {
-    const paths: Array<[string, string]> = menuPathsIn(
-      readGuide(language, guide),
-      MENU_ARROW[language]!,
-    );
+  )(
+    "%s %s: every Network -> section -> page is in that section",
+    (language: string, guide: string) => {
+      const paths: Array<[string, string]> = menuPathsIn(
+        readGuide(language, guide),
+        MENU_ARROW[language]!,
+      );
 
-    for (const [section, item] of paths) {
-      expect({ section, item, found: menu.get(section)?.includes(item) }).toEqual({
-        section,
-        item,
-        found: true,
+      for (const [section, item] of paths) {
+        expect({
+          section,
+          item,
+          found: menu.get(section)?.includes(item),
+        }).toEqual({
+          section,
+          item,
+          found: true,
+        });
+      }
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: the device guide reaches Auto Import Rules and Device Topology by their sections",
+    (language: string) => {
+      const paths: Array<string> = menuPathsIn(
+        readGuide(language, DEVICE_GUIDE),
+        MENU_ARROW[language]!,
+      ).map(([section, item]: [string, string]): string => {
+        return `${section} / ${item}`;
       });
-    }
-  });
 
-  test.each(LANGUAGES)("%s: the device guide reaches Auto Import Rules and Device Topology by their sections", (language: string) => {
-    const paths: Array<string> = menuPathsIn(
-      readGuide(language, DEVICE_GUIDE),
-      MENU_ARROW[language]!,
-    ).map(([section, item]: [string, string]): string => {
-      return `${section} / ${item}`;
-    });
-
-    expect(paths).toContain("Rules / Auto Import Rules");
-    expect(paths).toContain("Topology / Device Topology");
-    expect(paths).not.toContain("Settings / Auto Import Rules");
-    expect(paths).not.toContain("Network Map / Topology");
-    expect(paths).not.toContain("Discovery / Discovery Scans");
-  });
+      expect(paths).toContain("Rules / Auto Import Rules");
+      expect(paths).toContain("Topology / Device Topology");
+      expect(paths).not.toContain("Settings / Auto Import Rules");
+      expect(paths).not.toContain("Network Map / Topology");
+      expect(paths).not.toContain("Discovery / Discovery Scans");
+    },
+  );
 });
 
 describe("the device guide starts a scan the way the dashboard does", () => {
@@ -358,18 +388,21 @@ describe("the device guide starts a scan the way the dashboard does", () => {
     expect(discoveryStepTitles()).toEqual(["Scan Target", "SNMP Credentials"]);
   });
 
-  test.each(LANGUAGES)("%s: Start Scan, the two steps, and More fields", (language: string) => {
-    const guide: string = readGuide(language, DEVICE_GUIDE);
+  test.each(LANGUAGES)(
+    "%s: Start Scan, the two steps, and More fields",
+    (language: string) => {
+      const guide: string = readGuide(language, DEVICE_GUIDE);
 
-    expect(guide).toContain(bold("Start Scan"));
-    expect(guide).not.toContain("Create Discovery Scan");
+      expect(guide).toContain(bold("Start Scan"));
+      expect(guide).not.toContain("Create Discovery Scan");
 
-    for (const step of discoveryStepTitles()) {
-      expect(guide).toContain(bold(step));
-    }
+      for (const step of discoveryStepTitles()) {
+        expect(guide).toContain(bold(step));
+      }
 
-    expect(guide).toContain(bold("Repeat this scan"));
-  });
+      expect(guide).toContain(bold("Repeat this scan"));
+    },
+  );
 });
 
 describe("the sites guide adds a site the way the dashboard does", () => {
@@ -381,19 +414,24 @@ describe("the sites guide adds a site the way the dashboard does", () => {
     ]);
   });
 
-  test.each(LANGUAGES)("%s: Add Site with its steps, Add Child Site, and the Map", (language: string) => {
-    const guide: string = readGuide(language, SITES_GUIDE);
+  test.each(LANGUAGES)(
+    "%s: Add Site with its steps, Add Child Site, and the Map",
+    (language: string) => {
+      const guide: string = readGuide(language, SITES_GUIDE);
 
-    expect(guide).toContain(bold("Add Site"));
-    expect(guide).toContain(bold("Add Child Site"));
+      expect(guide).toContain(bold("Add Site"));
+      expect(guide).toContain(bold("Add Child Site"));
 
-    for (const step of addSiteStepTitles()) {
-      expect(guide).toContain(bold(step));
-    }
+      for (const step of addSiteStepTitles()) {
+        expect(guide).toContain(bold(step));
+      }
 
-    // The location is no longer a step of its own.
-    expect(guide).not.toContain(bold("Location"));
-    expect(guide).toContain(bold("More fields"));
-    expect(guide).toContain(`${bold("Network")} ${MENU_ARROW[language]} ${bold("Map")}`);
-  });
+      // The location is no longer a step of its own.
+      expect(guide).not.toContain(bold("Location"));
+      expect(guide).toContain(bold("More fields"));
+      expect(guide).toContain(
+        `${bold("Network")} ${MENU_ARROW[language]} ${bold("Map")}`,
+      );
+    },
+  );
 });

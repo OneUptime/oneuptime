@@ -671,9 +671,7 @@ describe("Editing a discovery scan after it was created", () => {
     expect(editFieldNamed("isNetbiosLookupEnabled").sectionTitle).toBe(
       "Device names",
     );
-    expect(editFieldNamed("useShortDeviceNames").sectionTitle).toBe(
-      undefined,
-    );
+    expect(editFieldNamed("useShortDeviceNames").sectionTitle).toBe(undefined);
     expect(editFieldKeys().indexOf("useShortDeviceNames")).toBe(
       editFieldKeys().indexOf("isNetbiosLookupEnabled") + 1,
     );

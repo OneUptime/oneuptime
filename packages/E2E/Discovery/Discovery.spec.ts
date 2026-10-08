@@ -633,7 +633,9 @@ test("Discover Devices from elsewhere opens Start New Scan at once, and leaves t
 
   const modal: Locator = page.getByTestId("modal");
   await expect(modal).toBeVisible();
-  await expect(modal.getByText("Start New Scan", { exact: true })).toBeVisible();
+  await expect(
+    modal.getByText("Start New Scan", { exact: true }),
+  ).toBeVisible();
 
   await expect
     .poll((): string => {
@@ -662,7 +664,9 @@ test("a scan walks two steps, and a ping sweep is one page", async ({
   await page.getByRole("button", { name: "Start Scan" }).first().click();
 
   const modal: Locator = page.getByTestId("modal");
-  await expect(modal.getByText("Start New Scan", { exact: true })).toBeVisible();
+  await expect(
+    modal.getByText("Start New Scan", { exact: true }),
+  ).toBeVisible();
 
   const progress: Locator = modal.getByRole("navigation", {
     name: "Progress",
@@ -679,7 +683,9 @@ test("a scan walks two steps, and a ping sweep is one page", async ({
     name: /More fields/,
   });
   await expect(moreFields).toHaveAttribute("aria-expanded", "false");
-  await expect(modal.getByPlaceholder("Router Discovery - Region 1100")).toBeHidden();
+  await expect(
+    modal.getByPlaceholder("Router Discovery - Region 1100"),
+  ).toBeHidden();
 
   const snmpSwitch: Locator = modal.getByRole("switch", {
     name: START_SCAN_SNMP_SWITCH,
@@ -710,7 +716,9 @@ test("Start New Scan fits a narrow screen", async ({
   await page.goto(`${route}?open=discover-devices`);
 
   const modal: Locator = page.getByTestId("modal");
-  await expect(modal.getByText("Start New Scan", { exact: true })).toBeVisible();
+  await expect(
+    modal.getByText("Start New Scan", { exact: true }),
+  ).toBeVisible();
 
   const scrollWidth: number = await page.evaluate((): number => {
     return document.documentElement.scrollWidth;

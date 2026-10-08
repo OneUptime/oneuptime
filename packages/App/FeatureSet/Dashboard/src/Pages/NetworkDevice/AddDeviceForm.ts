@@ -84,8 +84,9 @@ export const ADD_DEVICE_CREDENTIAL_PROFILE_DESCRIPTION: string = translationKey(
   "Or use a saved set of credentials that other devices share. Credentials typed above win when both are set; the device's site can carry a default set too.",
 );
 
-export const ADD_DEVICE_CREDENTIAL_PROFILE_PLACEHOLDER: string =
-  translationKey("No saved credentials");
+export const ADD_DEVICE_CREDENTIAL_PROFILE_PLACEHOLDER: string = translationKey(
+  "No saved credentials",
+);
 
 /*
  * "Also": the device has a status without it. "For incidents": what it adds.
@@ -114,12 +115,16 @@ function readText(values: FormValuesRecord, key: string): string {
     return "";
   }
 
-  if (typeof value === "object" && "value" in (value as object)) {
-    return String((value as { value: unknown }).value ?? "").trim();
-  }
+  if (typeof value === "object") {
+    const record: Record<string, unknown> = value as Record<string, unknown>;
 
-  if (typeof value === "object" && "_id" in (value as object)) {
-    return String((value as { _id: unknown })._id ?? "").trim();
+    if ("value" in record) {
+      return String(record["value"] ?? "").trim();
+    }
+
+    if ("_id" in record) {
+      return String(record["_id"] ?? "").trim();
+    }
   }
 
   return String(value).trim();

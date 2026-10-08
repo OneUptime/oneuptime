@@ -2136,7 +2136,11 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
     const sectionDescription: string =
       fieldNamed("isSnmpEnabled").description || "";
 
-    expect(sectionDescription.indexOf("Every scan pings each address in the range to find what is alive")).toBe(0);
+    expect(
+      sectionDescription.indexOf(
+        "Every scan pings each address in the range to find what is alive",
+      ),
+    ).toBe(0);
     /*
      * Name and vendor, NOT model: the sweep reads the SNMP system group
      * (sysName / sysDescr / sysObjectId), and a device's model arrives later
@@ -2875,8 +2879,7 @@ describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", (
   test("the Device names section describes NetBIOS in the naming order", async () => {
     await renderPage();
 
-    const sectionDescription: string =
-      fieldNamed(KEY).sectionDescription || "";
+    const sectionDescription: string = fieldNamed(KEY).sectionDescription || "";
 
     const reverseDns: number = sectionDescription.indexOf("reverse-DNS name");
     const netbios: number = sectionDescription.indexOf("NetBIOS name");

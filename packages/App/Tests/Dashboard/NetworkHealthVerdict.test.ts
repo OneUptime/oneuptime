@@ -179,14 +179,11 @@ describe("getNetworkHealthVerdict - counts the API could get wrong", () => {
     ["negative", -3],
     ["NaN", Number.NaN],
     ["infinite", Number.POSITIVE_INFINITY],
-  ])(
-    "a %s down count reads as none",
-    (_label: string, value: number): void => {
-      const verdict: NetworkHealthVerdict = verdictFor({ devicesDown: value });
+  ])("a %s down count reads as none", (_label: string, value: number): void => {
+    const verdict: NetworkHealthVerdict = verdictFor({ devicesDown: value });
 
-      expect(verdict.kind).toBe(NetworkHealthVerdictKind.Healthy);
-    },
-  );
+    expect(verdict.kind).toBe(NetworkHealthVerdictKind.Healthy);
+  });
 
   test("a fractional count is rounded down, never up", () => {
     const verdict: NetworkHealthVerdict = verdictFor({ devicesDown: 2.9 });
@@ -332,8 +329,10 @@ describe("the copy", () => {
 
   test("the headlines end without a full stop, the lines with one", () => {
     for (const kind of ALL_KINDS) {
-      const copy: { headline: NetworkHealthPlural; detail: NetworkHealthPlural } =
-        NETWORK_HEALTH_COPY[kind];
+      const copy: {
+        headline: NetworkHealthPlural;
+        detail: NetworkHealthPlural;
+      } = NETWORK_HEALTH_COPY[kind];
 
       expect(copy.headline.one.endsWith(".")).toBe(false);
       expect(copy.headline.other.endsWith(".")).toBe(false);

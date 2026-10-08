@@ -276,11 +276,7 @@ function idOf(value: unknown): string {
 
 beforeEach(() => {
   capturedModels = [];
-  window.history.replaceState(
-    null,
-    "",
-    "/dashboard/network-devices/discovery",
-  );
+  window.history.replaceState(null, "", "/dashboard/network-devices/discovery");
 });
 
 afterEach(() => {

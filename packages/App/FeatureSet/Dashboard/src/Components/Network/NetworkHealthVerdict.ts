@@ -85,7 +85,8 @@ export const NETWORK_HEALTH_COPY: Record<
     },
     detail: {
       one: "Its probe or monitor cannot reach it. It is listed first under Devices needing attention.",
-      other: "Their probes or monitors cannot reach them. They are listed first under Devices needing attention.",
+      other:
+        "Their probes or monitors cannot reach them. They are listed first under Devices needing attention.",
     },
   },
   [NetworkHealthVerdictKind.SitesUnhealthy]: {
@@ -95,7 +96,8 @@ export const NETWORK_HEALTH_COPY: Record<
     },
     detail: {
       one: "Every device answers, but a site's health is not operational. See Sites needing attention.",
-      other: "Every device answers, but a site's health is not operational. See Sites needing attention.",
+      other:
+        "Every device answers, but a site's health is not operational. See Sites needing attention.",
     },
   },
   [NetworkHealthVerdictKind.InterfacesDown]: {
@@ -105,7 +107,8 @@ export const NETWORK_HEALTH_COPY: Record<
     },
     detail: {
       one: "Every device answers, but a port is dark. The device is listed under Devices needing attention.",
-      other: "Every device answers, but ports are dark. The devices are listed under Devices needing attention.",
+      other:
+        "Every device answers, but ports are dark. The devices are listed under Devices needing attention.",
     },
   },
   [NetworkHealthVerdictKind.SnmpFailing]: {
@@ -115,7 +118,8 @@ export const NETWORK_HEALTH_COPY: Record<
     },
     detail: {
       one: "It answers ping, but its SNMP walk is failing, so its interfaces and health are not being refreshed. Check its SNMP credentials.",
-      other: "They answer ping, but their SNMP walks are failing, so their interfaces and health are not being refreshed. Check their SNMP credentials.",
+      other:
+        "They answer ping, but their SNMP walks are failing, so their interfaces and health are not being refreshed. Check their SNMP credentials.",
     },
   },
   [NetworkHealthVerdictKind.Waiting]: {
@@ -125,7 +129,8 @@ export const NETWORK_HEALTH_COPY: Record<
     },
     detail: {
       one: "{{count}} device was added. Its probe checks it within a few minutes.",
-      other: "{{count}} devices were added. Their probe checks them within a few minutes.",
+      other:
+        "{{count}} devices were added. Their probe checks them within a few minutes.",
     },
   },
   [NetworkHealthVerdictKind.Healthy]: {
@@ -135,7 +140,8 @@ export const NETWORK_HEALTH_COPY: Record<
     },
     detail: {
       one: "Every device answers, no interface is down and every site is healthy.",
-      other: "Every device answers, no interface is down and every site is healthy.",
+      other:
+        "Every device answers, no interface is down and every site is healthy.",
     },
   },
 };

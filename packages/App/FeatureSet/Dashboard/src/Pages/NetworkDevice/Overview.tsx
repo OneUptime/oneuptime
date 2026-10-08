@@ -102,22 +102,23 @@ const NetworkOverview: FunctionComponent<
    * Read apart from the page's own data, and allowed to fail on its own: a
    * line about alerting is never worth an error page.
    */
-  const fetchEnabledAlertPolicyCount: (projectId: ObjectID) => Promise<void> =
-    async (projectId: ObjectID): Promise<void> => {
-      try {
-        const count: number = await ModelAPI.count<NetworkAlertPolicy>({
-          modelType: NetworkAlertPolicy,
-          query: {
-            projectId: projectId,
-            isEnabled: true,
-          },
-        });
+  const fetchEnabledAlertPolicyCount: (
+    projectId: ObjectID,
+  ) => Promise<void> = async (projectId: ObjectID): Promise<void> => {
+    try {
+      const count: number = await ModelAPI.count<NetworkAlertPolicy>({
+        modelType: NetworkAlertPolicy,
+        query: {
+          projectId: projectId,
+          isEnabled: true,
+        },
+      });
 
-        setEnabledAlertPolicyCount(count);
-      } catch {
-        setEnabledAlertPolicyCount(null);
-      }
-    };
+      setEnabledAlertPolicyCount(count);
+    } catch {
+      setEnabledAlertPolicyCount(null);
+    }
+  };
 
   const fetchOverviewData: PromiseVoidFunction = async (): Promise<void> => {
     try {

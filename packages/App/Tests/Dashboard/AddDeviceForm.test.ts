@@ -112,9 +112,9 @@ describe("hasSnmpCredentials", () => {
   test("a saved credential profile is credentials, whatever else is set", () => {
     const profileId: string = "aaaaaaaa-0000-4000-8000-000000000001";
 
-    expect(hasSnmpCredentials(values({ snmpCredentialProfile: profileId }))).toBe(
-      true,
-    );
+    expect(
+      hasSnmpCredentials(values({ snmpCredentialProfile: profileId })),
+    ).toBe(true);
     // Picked as a dropdown option, or as the related record.
     expect(
       hasSnmpCredentials(
@@ -266,7 +266,9 @@ describe("the form's words", () => {
 
   test("the Ping monitor option points at Alert Policies for many devices", () => {
     expect(ADD_DEVICE_PING_MONITOR_DESCRIPTION).toContain("Alert Policies");
-    expect(ADD_DEVICE_PING_MONITOR_DESCRIPTION).toContain("counts towards your plan");
+    expect(ADD_DEVICE_PING_MONITOR_DESCRIPTION).toContain(
+      "counts towards your plan",
+    );
   });
 
   test("no on-screen question is phrased in protocol jargon", () => {

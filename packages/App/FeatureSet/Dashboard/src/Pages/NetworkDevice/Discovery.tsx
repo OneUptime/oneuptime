@@ -40,6 +40,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import ModelField, {
   CustomElementProps,
+  FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -65,7 +66,6 @@ import {
 import ScanModeUtil, {
   ScanMethodLabel,
 } from "Common/Utils/NetworkDiscovery/ScanModeUtil";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   getDefaultProbeId,

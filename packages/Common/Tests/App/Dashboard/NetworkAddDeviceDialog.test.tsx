@@ -295,10 +295,7 @@ function toggleFold(title: string): void {
 
 // The dropdown of the field with this title.
 function comboboxOf(title: string): HTMLElement {
-  let node: HTMLElement | null = getByTextOutsideFoldedHeaders(
-    dialog(),
-    title,
-  );
+  let node: HTMLElement | null = getByTextOutsideFoldedHeaders(dialog(), title);
 
   while (node) {
     const combobox: HTMLElement | null =
@@ -439,8 +436,7 @@ describe("the Add Device dialog is one page", () => {
       within(dialog()).getByPlaceholderText(NAME_PLACEHOLDER);
 
     expect(
-      hostname.compareDocumentPosition(name) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      hostname.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -552,10 +548,9 @@ describe("the More fields fold", () => {
     );
     expect(label).toBeVisible();
 
-    const checkbox: HTMLInputElement = within(dialog()).getByRole(
-      "checkbox",
-      { name: "Also create a Ping monitor for incidents" },
-    ) as HTMLInputElement;
+    const checkbox: HTMLInputElement = within(dialog()).getByRole("checkbox", {
+      name: "Also create a Ping monitor for incidents",
+    }) as HTMLInputElement;
 
     expect(checkbox).toBeVisible();
     expect(checkbox.checked).toBe(false);

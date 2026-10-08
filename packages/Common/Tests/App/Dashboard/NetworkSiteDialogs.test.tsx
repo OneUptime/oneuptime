@@ -308,10 +308,7 @@ function moreFields(): HTMLElement {
 
 // The dropdown of the field with this title.
 function comboboxOf(title: string): HTMLElement {
-  let node: HTMLElement | null = getByTextOutsideFoldedHeaders(
-    dialog(),
-    title,
-  );
+  let node: HTMLElement | null = getByTextOutsideFoldedHeaders(dialog(), title);
 
   while (node) {
     const combobox: HTMLElement | null =
@@ -442,7 +439,9 @@ describe("Add Site", () => {
     await openAddSite();
 
     expect(comboboxOf("Site Type")).toBeVisible();
-    expect(within(dialog()).getByPlaceholderText(NAME_PLACEHOLDER)).toBeVisible();
+    expect(
+      within(dialog()).getByPlaceholderText(NAME_PLACEHOLDER),
+    ).toBeVisible();
     expect(
       within(dialog()).getByText(SITE_TYPE_FIELD_DESCRIPTION),
     ).toBeVisible();
@@ -518,7 +517,9 @@ describe("Add Child Site", () => {
     await openAddChildSite();
 
     expect(comboboxOf("Site Type")).toBeVisible();
-    expect(within(dialog()).getByPlaceholderText(NAME_PLACEHOLDER)).toBeVisible();
+    expect(
+      within(dialog()).getByPlaceholderText(NAME_PLACEHOLDER),
+    ).toBeVisible();
     expect(listedNames(moreFields())).toEqual([
       "Address",
       "Latitude",

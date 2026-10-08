@@ -145,9 +145,7 @@ describe("the alert-policy line", () => {
   });
 
   test("a failed read hides the line rather than failing the page", () => {
-    expect(OVERVIEW).toContain(
-      "} catch { setEnabledAlertPolicyCount(null); }",
-    );
+    expect(OVERVIEW).toContain("} catch { setEnabledAlertPolicyCount(null); }");
   });
 
   test("the hero leaves the line out when the count is unknown", () => {

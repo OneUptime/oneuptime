@@ -848,7 +848,9 @@ describe("the create form's SNMP fold", () => {
     expect(profile.fieldType).toBe(FormFieldSchemaType.Dropdown);
     expect(profile.dropdownModal?.type).toBe(NetworkSnmpCredentialProfile);
     expect(profile.description).toContain("typed above win");
-    expect(profile.placeholder?.toLowerCase()).toContain("no saved credentials");
+    expect(profile.placeholder?.toLowerCase()).toContain(
+      "no saved credentials",
+    );
     // Somewhere to go when the list is empty, which it is until one is made.
     expect(profile.sideLink?.text).toBe("Manage credential profiles");
   });

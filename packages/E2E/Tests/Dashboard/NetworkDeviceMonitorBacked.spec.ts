@@ -497,9 +497,9 @@ test.describe.skip(
       expect(stored.monitoringMethod).toEqual(PROBE_POLLED_METHOD);
       expect(stored.probeId).not.toEqual("");
 
-      await expect(deviceRow({ page, name: UNROUTABLE_HOSTNAME })).toBeVisible(
-        { timeout: 30000 },
-      );
+      await expect(deviceRow({ page, name: UNROUTABLE_HOSTNAME })).toBeVisible({
+        timeout: 30000,
+      });
     });
 
     test("ticking the Ping monitor opt-in creates and binds one on save", async ({

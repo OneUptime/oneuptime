@@ -124,9 +124,7 @@ describe("NetworkDeviceService names a device without a name after its address",
     );
 
     expect(
-      (result.createBy.data as unknown as Record<string, unknown>)[
-        "hostname"
-      ],
+      (result.createBy.data as unknown as Record<string, unknown>)["hostname"],
     ).toBe("10.20.30.44");
   });
 

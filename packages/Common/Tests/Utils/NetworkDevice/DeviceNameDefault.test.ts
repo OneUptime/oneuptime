@@ -45,9 +45,9 @@ describe("getDeviceNameForCreate", () => {
   });
 
   test("a hostname name keeps its case and its dots", () => {
-    expect(getDeviceNameForCreate(undefined, "Core-SW-01.Corp.Example.com")).toBe(
-      "Core-SW-01.Corp.Example.com",
-    );
+    expect(
+      getDeviceNameForCreate(undefined, "Core-SW-01.Corp.Example.com"),
+    ).toBe("Core-SW-01.Corp.Example.com");
   });
 
   test.each([
@@ -67,19 +67,20 @@ describe("getDeviceNameForCreate", () => {
   );
 
   test("a value that is not text is read as text, never thrown on", () => {
-    expect(
-      getDeviceNameForCreate(42 as unknown as string, "10.0.0.1"),
-    ).toBe("42");
-    expect(
-      getDeviceNameForCreate(undefined, 1234 as unknown as string),
-    ).toBe("1234");
+    expect(getDeviceNameForCreate(42 as unknown as string, "10.0.0.1")).toBe(
+      "42",
+    );
+    expect(getDeviceNameForCreate(undefined, 1234 as unknown as string)).toBe(
+      "1234",
+    );
   });
 });
 
 describe("fillDeviceNameOnCreate", () => {
   test("names a payload with no name after its hostname, in place", () => {
-    const data: { name?: string | undefined; hostname?: string | undefined } =
-      { hostname: "10.0.0.7" };
+    const data: { name?: string | undefined; hostname?: string | undefined } = {
+      hostname: "10.0.0.7",
+    };
 
     fillDeviceNameOnCreate(data);
 
@@ -88,8 +89,10 @@ describe("fillDeviceNameOnCreate", () => {
   });
 
   test("names a payload with a blank name after its hostname", () => {
-    const data: { name?: string | undefined; hostname?: string | undefined } =
-      { name: "  ", hostname: " 10.0.0.7 " };
+    const data: { name?: string | undefined; hostname?: string | undefined } = {
+      name: "  ",
+      hostname: " 10.0.0.7 ",
+    };
 
     fillDeviceNameOnCreate(data);
 
@@ -97,8 +100,10 @@ describe("fillDeviceNameOnCreate", () => {
   });
 
   test("only trims a name that was given, and leaves the hostname alone", () => {
-    const data: { name?: string | undefined; hostname?: string | undefined } =
-      { name: " edge-fw ", hostname: " 10.0.0.7 " };
+    const data: { name?: string | undefined; hostname?: string | undefined } = {
+      name: " edge-fw ",
+      hostname: " 10.0.0.7 ",
+    };
 
     fillDeviceNameOnCreate(data);
 
@@ -122,8 +127,10 @@ describe("fillDeviceNameOnCreate", () => {
   });
 
   test("leaves a blank name in place when the hostname is blank too", () => {
-    const data: { name?: string | undefined; hostname?: string | undefined } =
-      { name: "", hostname: "" };
+    const data: { name?: string | undefined; hostname?: string | undefined } = {
+      name: "",
+      hostname: "",
+    };
 
     fillDeviceNameOnCreate(data);
 

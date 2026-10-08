@@ -301,7 +301,12 @@ describe("the verdict, worst news first", () => {
   });
 
   test("then interfaces down", async () => {
-    await renderOverview({ total: 12, up: 12, interfacesDown: 5, snmpFailing: 1 });
+    await renderOverview({
+      total: 12,
+      up: 12,
+      interfacesDown: 5,
+      snmpFailing: 1,
+    });
 
     expect(hero()).toHaveAttribute("data-tone", "warning");
     expect(headline()).toBe("5 interfaces are down");
@@ -347,9 +352,9 @@ describe("the verdict, worst news first", () => {
     await renderOverview({ total: 40, up: 38, pending: 2 });
 
     expect(headline()).toBe("All 38 devices are up");
-    expect(
-      screen.getByTestId("network-health-pending-note"),
-    ).toHaveTextContent("2 more are waiting for their first check.");
+    expect(screen.getByTestId("network-health-pending-note")).toHaveTextContent(
+      "2 more are waiting for their first check.",
+    );
   });
 
   test("the verdict sits above the tiles it sums up", async () => {

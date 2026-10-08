@@ -227,22 +227,25 @@ describe.each(SURFACES)(
      */
     if (!surface.foldedUnder) {
       test("places the field right after the hostname field", () => {
-      const callIndex: number = indexOfMatch(ANY_CALL, source);
-      expect(callIndex).toBeGreaterThan(-1);
+        const callIndex: number = indexOfMatch(ANY_CALL, source);
+        expect(callIndex).toBeGreaterThan(-1);
 
-      const hostnameIndex: number = lastHostnameFieldBefore(source, callIndex);
-      expect(hostnameIndex).toBeGreaterThan(-1);
+        const hostnameIndex: number = lastHostnameFieldBefore(
+          source,
+          callIndex,
+        );
+        expect(hostnameIndex).toBeGreaterThan(-1);
 
-      /*
-       * Nothing else declared between the two: the segment after the
-       * hostname literal up to the call holds the rest of the hostname
-       * field and no other field's opening.
-       */
-      const between: string = source.slice(
-        hostnameIndex + "field: {".length,
-        callIndex,
-      );
-      expect(between).not.toMatch(ANY_FIELD_LITERAL);
+        /*
+         * Nothing else declared between the two: the segment after the
+         * hostname literal up to the call holds the rest of the hostname
+         * field and no other field's opening.
+         */
+        const between: string = source.slice(
+          hostnameIndex + "field: {".length,
+          callIndex,
+        );
+        expect(between).not.toMatch(ANY_FIELD_LITERAL);
       });
     }
 

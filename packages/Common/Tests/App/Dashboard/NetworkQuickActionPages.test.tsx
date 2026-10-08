@@ -328,7 +328,8 @@ describe("Devices, opened with ?open=add-device", () => {
 
   test("the address it leaves behind opens nothing", async () => {
     await renderAt(`${DEVICES_PATH}?open=add-device`, NetworkDevicesPage);
-    const leftBehind: string = window.location.pathname + window.location.search;
+    const leftBehind: string =
+      window.location.pathname + window.location.search;
     cleanup();
     mockTableProps = [];
 

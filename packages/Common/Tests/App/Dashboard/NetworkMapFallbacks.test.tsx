@@ -164,17 +164,17 @@ async function renderMapAt(search: string): Promise<void> {
 beforeEach(() => {
   childrenAnswer = {};
   mapAnswer = {};
-  postSpy = jest
-    .spyOn(API, "post")
-    .mockImplementation((async (options: { url: unknown }) => {
-      const url: string = String(options.url);
+  postSpy = jest.spyOn(API, "post").mockImplementation((async (options: {
+    url: unknown;
+  }) => {
+    const url: string = String(options.url);
 
-      return new HTTPResponse<JSONObject>(
-        200,
-        url.includes("/network-site/children") ? childrenAnswer : mapAnswer,
-        {},
-      );
-    }) as never);
+    return new HTTPResponse<JSONObject>(
+      200,
+      url.includes("/network-site/children") ? childrenAnswer : mapAnswer,
+      {},
+    );
+  }) as never);
 });
 
 afterEach(() => {
