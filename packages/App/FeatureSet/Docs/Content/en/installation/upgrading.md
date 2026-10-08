@@ -864,7 +864,7 @@ API, SSO, or the Slack and Microsoft Teams apps.
     `ProjectMember` and the runbook roles approve such plans once
     `ReadRunbookCredential` is added to their team.
   See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types),
-  [Run Rules on Existing Resources](/docs/configuration/run-rules-now#permissions)
+  [Run Rules on Existing Resources](/docs/configuration/run-rules-now#before-you-begin)
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **Who owns a resource, and a setting that holds credentials, are named
   only by someone who may read them.** The owners of every resource - on-call
