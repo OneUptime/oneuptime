@@ -209,14 +209,14 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("says turning Require SSO for Login off lets members back in straight away", () => {
+  it("says turning Require SSO for Login off lets members back in straight away, unless it is turned on again at that very moment", () => {
     const section: string = sectionOf(
       page,
       "## Requiring SSO for Your Project",
     );
 
     expect(section).toContain(
-      "Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password straight away.",
+      "Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password straight away - unless someone turns it on again at that very moment, when an app server can take up to a minute to follow.",
     );
   });
 
@@ -291,6 +291,9 @@ describe("the upgrade notes", () => {
     );
     expect(page).toContain(
       "now reach every app server at once, as changes that end sign-ins already did, rather than when another server's cached answer runs out a minute later.",
+    );
+    expect(page).toContain(
+      "Only when two changes to the same setting are saved at the very same moment can an app server still take up to a minute to follow.",
     );
     expect(page).toContain(
       "[SSO](/docs/identity/sso#requiring-sso-for-your-project) and [Global SSO](/docs/identity/global-sso#enforcing-sso).",

@@ -1846,48 +1846,31 @@ describe.each(ATTACHMENT_ANNOUNCEMENT_SUITES)(
       },
     );
 
-    test("an attachment turned on that changed nothing - turned on again while on - is not told, and nothing is read for it", async () => {
-      jest
-        .spyOn(GlobalSsoProviderChanges, "afterWrite")
-        .mockResolvedValue(false);
-      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+    test.each([
+      ["turned on again while on", { isEnabled: true }],
+      [
+        "turned off, of a provider that signs people in to every project",
+        { isEnabled: false },
+      ],
+      [
+        "moved, of a provider that signs people in to every project",
+        { projectId: PROJECT_A },
+      ],
+    ])(
+      "an attachment %s - afterWrite's answer is that nothing changed - is not told, and nothing is read for it once it is written",
+      async (_label: string, data: Record<string, unknown>) => {
+        jest
+          .spyOn(GlobalSsoProviderChanges, "afterWrite")
+          .mockResolvedValue(false);
+        const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
 
-      await updated({ isEnabled: true }, [ObjectID.generate()]);
+        await updated(data, [ObjectID.generate()]);
 
-      expectAnnounced(false);
-      expect(rows).not.toHaveBeenCalled();
-      expect(trust).not.toHaveBeenCalled();
-    });
-
-    test("an attachment turned off is told for a restricted provider whatever was read under the lock, its provider read by the ids written", async () => {
-      jest
-        .spyOn(GlobalSsoProviderChanges, "afterWrite")
-        .mockResolvedValue(false);
-      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
-      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
-      const attachmentId: ObjectID = ObjectID.generate();
-
-      await updated({ isEnabled: false }, [attachmentId]);
-
-      expectAnnounced(true);
-
-      const args: DatabaseCallArgs = callArgs(rows, 0);
-      expect(args.select).toEqual({ _id: true, [suite.idColumn]: true });
-      expect(args.props).toEqual({ isRoot: true });
-      expect(JSON.stringify(args.query)).toContain(attachmentId.toString());
-    });
-
-    test("an attachment turned off that changed nothing is not told for a provider that signs people in to every project", async () => {
-      jest
-        .spyOn(GlobalSsoProviderChanges, "afterWrite")
-        .mockResolvedValue(false);
-      trustByProvider.set(PROVIDER_ID.toString(), EVERY_PROJECT);
-      stubAttachmentRows([PROVIDER_ID]);
-
-      await updated({ isEnabled: false }, [ObjectID.generate()]);
-
-      expectAnnounced(false);
-    });
+        expectAnnounced(false);
+        expect(rows).not.toHaveBeenCalled();
+        expect(trust).not.toHaveBeenCalled();
+      },
+    );
 
     test("an attachment turned on by an update that wrote no row is not told, and nothing is read for it", async () => {
       const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);

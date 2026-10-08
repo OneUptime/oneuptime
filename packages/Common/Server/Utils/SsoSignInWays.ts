@@ -174,6 +174,9 @@ export const STRANDED_PROJECTS_NAMED: number = 3;
 // How many projects are read at a time.
 const PROJECT_PAGE_SIZE: number = 500;
 
+// How many restricted global providers a new project's check asks at once.
+const ATTACHMENT_CHECKS_AT_ONCE: number = 10;
+
 interface CandidateProject {
   id: string;
   name: string;
@@ -567,8 +570,8 @@ export default class SsoSignInWays {
    * (getGlobalProviderReach). A restricted one is only asked whether it has
    * an attachment at all - one that has can never reach a project that does
    * not exist yet - so the check reads one row per restricted provider, not
-   * all of their attachments, and asks them all at once, under the lock it
-   * holds.
+   * all of their attachments, and asks them a few at a time
+   * (ATTACHMENT_CHECKS_AT_ONCE), under the lock it holds.
    */
   private static async readGlobalWaysToEveryProject(): Promise<Array<string>> {
     const [samlProviders, oidcProviders]: [
@@ -633,20 +636,33 @@ export default class SsoSignInWays {
       }
     }
 
-    // The restricted ones are asked at once, not one after another.
-    const isWayIn: Array<boolean> = await Promise.all(
-      providers.map(
-        async (provider: GlobalProviderSwitches): Promise<boolean> => {
-          return (
-            !provider.isRestricted ||
-            !(await hasAttachment(
-              provider.providerType,
-              new ObjectID(provider.id),
-            ))
-          );
-        },
-      ),
-    );
+    /*
+     * The restricted ones are asked a few at a time, not one after another
+     * and not all at once.
+     */
+    const isWayIn: Array<boolean> = [];
+
+    for (
+      let start: number = 0;
+      start < providers.length;
+      start += ATTACHMENT_CHECKS_AT_ONCE
+    ) {
+      isWayIn.push(
+        ...(await Promise.all(
+          providers
+            .slice(start, start + ATTACHMENT_CHECKS_AT_ONCE)
+            .map(async (provider: GlobalProviderSwitches): Promise<boolean> => {
+              return (
+                !provider.isRestricted ||
+                !(await hasAttachment(
+                  provider.providerType,
+                  new ObjectID(provider.id),
+                ))
+              );
+            }),
+        )),
+      );
+    }
 
     return providers
       .filter((_provider: GlobalProviderSwitches, index: number): boolean => {

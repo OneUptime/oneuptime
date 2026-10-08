@@ -555,7 +555,9 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   projects, and turning Require SSO for Login off, for a project or for the
   whole server, now reach every app server at once, as changes that end
   sign-ins already did, rather than when another server's cached answer
-  runs out a minute later. See
+  runs out a minute later. Only when two changes to the same setting are
+  saved at the very same moment can an app server still take up to a
+  minute to follow. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
 - **A record you may not read can no longer be changed or deleted, and a

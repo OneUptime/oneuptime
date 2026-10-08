@@ -78,8 +78,10 @@ import SsoSignInWays, {
  * (announceGlobalSignInChange): told when the write changed where a
  * provider signs people in (afterWrite) - narrowed or widened - and not
  * when it turned a provider or an attachment on, or opened one, that was so
- * already. A write that turns one off or restricts it is told whatever it
- * read (isGlobalProviderNarrowing): a write that turns one on takes no
+ * already. A write that turns a provider off or restricts it is told
+ * whatever it read (isGlobalProviderNarrowing), and so is one that turns an
+ * attachment off or moves it, touching a provider restricted to its attached
+ * projects (touchesRestrictedProvider): a write that turns one on takes no
  * lock, and may land between what it read and what it wrote.
  */
 
@@ -98,6 +100,14 @@ export interface GlobalSsoProviderWrite {
    * failed): it counts as a change, so every server is told.
    */
   isReachUnknown?: boolean | undefined;
+  /*
+   * A write that turns attachments off or moves them, and touches - before
+   * or after - a provider restricted to its attached projects, as read
+   * under the lock: it counts as a change whatever else it read, since an
+   * attachment turned on takes no lock and may land between that read and
+   * the write.
+   */
+  touchesRestrictedProvider?: boolean | undefined;
 }
 
 // A global provider, as these hooks read it.
@@ -476,6 +486,10 @@ export default class GlobalSsoProviderChanges {
         )
       : null;
 
+    // Turned on, in place: it only widens, and is never refused.
+    const isTurnedOnInPlace: boolean =
+      isEnabled !== false && !writesProvider && !writesProject;
+
     const work: () => Promise<
       Omit<GlobalSsoProviderWrite, "locks">
     > = async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
@@ -487,6 +501,23 @@ export default class GlobalSsoProviderChanges {
           limit: data.updateBy.limit,
           skip: data.updateBy.skip,
         });
+
+      /*
+       * Turned off or moved: told whatever else was read when a provider it
+       * touches - the one each attachment leaves, and the one it moves to -
+       * is restricted to its attached projects.
+       */
+      const touchesRestrictedProvider: boolean = isTurnedOnInPlace
+        ? false
+        : await GlobalSsoProviderChanges.touchesRestrictedProvider({
+            providerType: data.providerType,
+            providerIds: [
+              ...matched.map((row: AttachmentRow): string | null => {
+                return row.providerId;
+              }),
+              ...(writesProvider && matched.length > 0 ? [newProviderId] : []),
+            ],
+          });
 
       const before: Array<AttachmentRow> = [];
       const after: Array<AttachmentRow> = [];
@@ -520,11 +551,12 @@ export default class GlobalSsoProviderChanges {
           before,
           after,
         }),
+        touchesRestrictedProvider,
       };
     };
 
     // Turned on, in place: never refused, so no lock.
-    if (isEnabled !== false && !writesProvider && !writesProject) {
+    if (isTurnedOnInPlace) {
       return await GlobalSsoProviderChanges.workOutUnlocked({
         key: keyOf(data.updateBy),
         work,
@@ -579,8 +611,11 @@ export default class GlobalSsoProviderChanges {
    * people in is answered, for the service to tell every server: as read
    * under the lock, or - for one that only lets a provider sign more people
    * in - as worked out without it, a switch written back as it was
-   * changing nothing. A write that names neither switch changed nothing
-   * there; nor did one that failed, whatever it answers. Never throws.
+   * changing nothing. An attachment turned off or moved that touches a
+   * provider restricted to its attached projects counts whatever was read
+   * (touchesRestrictedProvider). A write that names neither switch changed
+   * nothing there; nor did one that failed, whatever it answers. Never
+   * throws.
    */
   public static async afterWrite<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
@@ -596,6 +631,7 @@ export default class GlobalSsoProviderChanges {
     return Boolean(
       write &&
         (write.isReachUnknown ||
+          write.touchesRestrictedProvider ||
           write.reachChanges.some(
             (change: GlobalProviderReachChange): boolean => {
               return !GlobalSsoProviderChanges.isSameReach(
@@ -823,6 +859,44 @@ export default class GlobalSsoProviderChanges {
     }
 
     return changes;
+  }
+
+  /*
+   * Whether any of these providers is restricted to its attached projects,
+   * on or off - one that is off may be turned on, under no lock, before the
+   * write lands. One that cannot be named (null) or is not found counts as
+   * restricted, so a missing row never keeps a change quiet.
+   */
+  private static async touchesRestrictedProvider(data: {
+    providerType: GlobalSsoProviderType;
+    providerIds: Array<string | null>;
+  }): Promise<boolean> {
+    const ids: Set<string> = new Set<string>();
+
+    for (const providerId of data.providerIds) {
+      if (!providerId) {
+        return true;
+      }
+
+      ids.add(providerId);
+    }
+
+    if (ids.size === 0) {
+      return false;
+    }
+
+    const providers: Array<GlobalProviderRow> =
+      await GlobalSsoProviderChanges.readProvidersById({
+        providerType: data.providerType,
+        ids: Array.from(ids),
+      });
+
+    return (
+      providers.length < ids.size ||
+      providers.some((provider: GlobalProviderRow): boolean => {
+        return provider.restrictToAttachedProjects;
+      })
+    );
   }
 
   private static isSameReach(a: SignInReach, b: SignInReach): boolean {

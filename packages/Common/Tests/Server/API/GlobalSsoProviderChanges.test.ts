@@ -1636,6 +1636,49 @@ describe.each([
         { kind: RealtimeAccessChangeKind.SignInRulesChanged },
       ]);
     });
+
+    test("moving an attachment that was read as off is told to every server all the same: one turned on in between takes no lock", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_ACME, { projectId: GAMMA }),
+      ).resolves.toBe("done");
+      expect(kind.attachmentTable().rows[0]!["projectId"]).toBe(GAMMA);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("moving an attachment that was read as off to a provider that signs people in to every project is told all the same: the provider it leaves is restricted", async () => {
+      kind.providerTable().rows.push({
+        _id: OTHER_PROVIDER,
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      });
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+
+      await expect(
+        kind.attachmentService.updateBy({
+          query: { _id: ATTACHED_TO_ACME },
+          data: { [kind.providerColumn]: OTHER_PROVIDER } as never,
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+      expect(kind.attachmentTable().rows[0]![kind.providerColumn]).toBe(
+        OTHER_PROVIDER,
+      );
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
   });
 
   test("a hard delete of an attachment of a provider that signs people in to every project gives the lock back, and tells no server anything", async () => {
@@ -1657,6 +1700,22 @@ describe.each([
       `delete:${ATTACHED_TO_ACME}`,
       `release:${SERVER_LOCK}`,
     ]);
+    expect(announced).toEqual([]);
+  });
+
+  test("an attachment of a provider that signs people in to every project, turned off or moved while it was off, tells nobody", async () => {
+    projects = [project(ACME, "Acme"), project(BETA, "Beta")];
+    kind.attachmentTable().rows = [
+      attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+    ];
+
+    await expect(
+      updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: false }),
+    ).resolves.toBe("done");
+    await expect(
+      updateAttachment(kind, ATTACHED_TO_ACME, { projectId: BETA }),
+    ).resolves.toBe("done");
+
     expect(announced).toEqual([]);
   });
 

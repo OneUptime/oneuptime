@@ -7,7 +7,6 @@ import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import GlobalOidcService from "./GlobalOidcService";
 import Query from "../Types/Database/Query";
-import QueryHelper from "../Types/Database/QueryHelper";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -21,7 +20,6 @@ import {
   announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
   isAnyAttachedProviderRestricted,
-  isGlobalProviderNarrowing,
   doAttachmentsGovernProject,
   globalProviderCacheKey,
   globalSsoAttachmentsCache,
@@ -265,21 +263,14 @@ export class Service extends DatabaseService<Model> {
      * as adding it. The people it lets in are let in at once on every
      * server.
      *
-     * One turned off is told for a provider restricted to its attached
-     * projects whatever was read under the lock: turning one on takes no
-     * lock, and may have been written between that read and this write. One
-     * turned on again while on changed nothing, and tells no server.
+     * One turned off or moved is told whatever was read under the lock when
+     * a provider it touches - the one it leaves, or the one it moves to - is
+     * restricted to its attached projects (GlobalSsoProviderChanges.
+     * afterWrite): turning one on takes no lock, and may have been written
+     * between that read and this write. One turned on again while on
+     * changed nothing, and tells no server.
      */
-    if (
-      updatedItemIds.length > 0 &&
-      (changedReach ||
-        (isGlobalProviderNarrowing(onUpdate.updateBy.data) &&
-          (await this.isAnyProviderRestricted(
-            await this.readProviderIds({
-              _id: QueryHelper.any(updatedItemIds),
-            } as Query<Model>),
-          ))))
-    ) {
+    if (updatedItemIds.length > 0 && changedReach) {
       announceGlobalSignInChange();
     }
 
