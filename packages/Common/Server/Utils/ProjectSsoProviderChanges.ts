@@ -660,11 +660,12 @@ export default class ProjectSsoProviderChanges {
    * another LOCK_TIMEOUT_IN_MS. Never throws. A lock found gone can no
    * longer refuse the write, which may already be under way: it is said
    * loudly, and kept no more. One that cannot be kept for want of Valkey
-   * is tried again next round. Past WRITE_KEEP_LIMIT_IN_MS nothing more is
-   * kept.
+   * is tried again next round, and a round still waiting on Valkey is not
+   * started again. Past WRITE_KEEP_LIMIT_IN_MS nothing more is kept - a
+   * round that never came back included.
    */
   private static async keepWhileWritten(keeper: WriteKeeper): Promise<void> {
-    if (keeper.isStopped || keeper.isKeeping) {
+    if (keeper.isStopped) {
       return;
     }
 
@@ -675,6 +676,10 @@ export default class ProjectSsoProviderChanges {
           WRITE_KEEP_LIMIT_IN_MS / 1000,
         )} seconds after its check; its locks are no longer kept, and run out.`,
       );
+      return;
+    }
+
+    if (keeper.isKeeping) {
       return;
     }
 
@@ -703,11 +708,9 @@ export default class ProjectSsoProviderChanges {
           continue;
         }
 
-        keeper.locks = keeper.locks.filter(
-          (kept: SemaphoreMutex): boolean => {
-            return kept !== lock;
-          },
-        );
+        keeper.locks = keeper.locks.filter((kept: SemaphoreMutex): boolean => {
+          return kept !== lock;
+        });
         ProjectSsoProviderChanges.writeKeepers.delete(lock);
 
         logger.error(
