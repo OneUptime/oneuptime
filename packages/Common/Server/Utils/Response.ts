@@ -43,9 +43,11 @@ export const CALENDAR_RESPONSE_FILE_NAME: string = "oneuptime-on-call.ics";
 /*
  * The response headers a calendar feed carries, as a shape the API and its
  * tests can share. `etag` may be passed bare or already quoted; the helper
- * emits the quoted strong form either way. `lastModified` is the newest
- * change to anything the feed was built from, and is what a client's
- * If-Modified-Since is compared against.
+ * emits the quoted strong form either way. `lastModified` is when the body
+ * was produced (rendered, or answered empty), and is what a client's
+ * If-Modified-Since is compared against: a feed's body changes without any
+ * edit to its schedules - the window rolls every day - so the schedules' last
+ * edit would answer 304 to a body the client has never seen.
  */
 export interface CalendarResponseData {
   body: string;
