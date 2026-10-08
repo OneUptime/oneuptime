@@ -258,6 +258,11 @@ export default class OnCallCalendarFeedUrls {
       return PRIVATE_IPV6_PREFIX_PATTERN.test(address) ? withoutPort : null;
     }
 
+    // An IPv6 address written without brackets (no port can follow it).
+    if (name.includes(":")) {
+      return PRIVATE_IPV6_PREFIX_PATTERN.test(name) ? withoutPort : null;
+    }
+
     const ipv4: RegExpMatchArray | null = name.match(IPV4_LITERAL_PATTERN);
 
     if (ipv4) {

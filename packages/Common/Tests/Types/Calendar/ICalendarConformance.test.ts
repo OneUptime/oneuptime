@@ -406,7 +406,7 @@ describe("ICalendar.serialize conforms whatever the text holds", () => {
   }
 
   test.each(
-    hostileTexts.map((text: string, index: number) => {
+    hostileTexts.map((text: string, index: number): [number, string] => {
       return [index, text];
     }),
   )(
