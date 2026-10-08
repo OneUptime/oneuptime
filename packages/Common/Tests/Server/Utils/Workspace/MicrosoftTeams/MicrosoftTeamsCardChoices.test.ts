@@ -1371,7 +1371,10 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
       return new Monitor();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getMonitorChoices(projectId, MEMBER_PROPS);
+      return MicrosoftTeamsCardChoices.getMonitorChoices(
+        projectId,
+        MEMBER_PROPS,
+      );
     },
     sort: { name: SortOrder.Ascending },
     cap: 250,
@@ -1397,7 +1400,10 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
       return new OnCallDutyPolicy();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getOnCallDutyPolicyChoices(projectId, MEMBER_PROPS);
+      return MicrosoftTeamsCardChoices.getOnCallDutyPolicyChoices(
+        projectId,
+        MEMBER_PROPS,
+      );
     },
     sort: { name: SortOrder.Ascending },
     cap: 100,
@@ -1425,7 +1431,10 @@ const UNCOUNTED_FETCHERS: Array<OrderedFetcherCase> = [
       return new IncidentSeverity();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getIncidentSeverityChoices(projectId, MEMBER_PROPS);
+      return MicrosoftTeamsCardChoices.getIncidentSeverityChoices(
+        projectId,
+        MEMBER_PROPS,
+      );
     },
     sort: { order: SortOrder.Ascending },
     cap: 50,
@@ -1439,7 +1448,10 @@ const UNCOUNTED_FETCHERS: Array<OrderedFetcherCase> = [
       return new MonitorStatus();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId, MEMBER_PROPS);
+      return MicrosoftTeamsCardChoices.getMonitorStatusChoices(
+        projectId,
+        MEMBER_PROPS,
+      );
     },
     sort: { priority: SortOrder.Ascending },
     cap: 50,

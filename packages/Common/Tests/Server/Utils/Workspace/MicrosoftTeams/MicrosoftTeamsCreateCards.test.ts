@@ -802,7 +802,10 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
     ];
 
     const result: MicrosoftTeamsNewIncidentFormChoices =
-      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS);
+      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+        PROJECT_ID,
+        MEMBER_PROPS,
+      );
 
     for (const spy of spies) {
       expect(spy).toHaveBeenCalledTimes(1);
@@ -843,7 +846,10 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
       .mockResolvedValue(listOf(SMALL_POLICY_ROWS));
 
     await expect(
-      MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS),
+      MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+        PROJECT_ID,
+        MEMBER_PROPS,
+      ),
     ).rejects.toThrow("Connection terminated unexpectedly");
   });
 
@@ -851,7 +857,10 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
     serveHugeProject();
 
     const choices: MicrosoftTeamsNewIncidentFormChoices =
-      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS);
+      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+        PROJECT_ID,
+        MEMBER_PROPS,
+      );
 
     expect(choices.monitors.choices).toHaveLength(
       MICROSOFT_TEAMS_MAX_MONITOR_CHOICES,
@@ -872,7 +881,10 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
   test("reads each list once, capped, sorted as the card says, names and ids only", async () => {
     const reads: ProjectReads = serveHugeProject();
 
-    await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS);
+    await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+      PROJECT_ID,
+      MEMBER_PROPS,
+    );
 
     // The notes under these three say "Showing the first N of M ..., by name".
     expectOneRead({
@@ -1640,7 +1652,10 @@ describe("a list the fetchers read only in part", () => {
     });
 
     const choices: MicrosoftTeamsNewIncidentFormChoices =
-      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS);
+      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+        PROJECT_ID,
+        MEMBER_PROPS,
+      );
 
     const card: JSONObject =
       MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
@@ -2697,11 +2712,10 @@ describe("a list entry whose name is cut where an emoji sits", () => {
 
     const card: JSONObject =
       MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
-        choices:
-          await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
-            PROJECT_ID,
-            MEMBER_PROPS,
-          ),
+        choices: await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+          PROJECT_ID,
+          MEMBER_PROPS,
+        ),
         budgetInBytes: FIRST_BUDGET,
       });
 
@@ -2740,7 +2754,10 @@ describe("the legacy builders, which read the project themselves", () => {
     serveHugeProject();
 
     const card: JSONObject =
-      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID, MEMBER_PROPS);
+      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(
+        PROJECT_ID,
+        MEMBER_PROPS,
+      );
 
     expectWithinBudget(card, FIRST_BUDGET);
     expect(getChoices(card, "incidentSeverity")).toHaveLength(5);
@@ -2764,11 +2781,10 @@ describe("the legacy builders, which read the project themselves", () => {
     // The card the bot would send first for the same lists.
     expect(card).toEqual(
       MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
-        choices:
-          await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
-            PROJECT_ID,
-            MEMBER_PROPS,
-          ),
+        choices: await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+          PROJECT_ID,
+          MEMBER_PROPS,
+        ),
         budgetInBytes: FIRST_BUDGET,
       }),
     );
@@ -2778,9 +2794,13 @@ describe("the legacy builders, which read the project themselves", () => {
     serveHugeProject();
 
     const card: JSONObject =
-      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID, MEMBER_PROPS, {
-        initialTitle: "  Checkout is down  ",
-      });
+      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(
+        PROJECT_ID,
+        MEMBER_PROPS,
+        {
+          initialTitle: "  Checkout is down  ",
+        },
+      );
 
     expectWithinBudget(card, FIRST_BUDGET);
     expect(getInputOrFail(card, "incidentTitle")["value"]).toBe(
@@ -2792,7 +2812,10 @@ describe("the legacy builders, which read the project themselves", () => {
     serveSmallProject();
 
     const card: JSONObject =
-      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID, MEMBER_PROPS);
+      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(
+        PROJECT_ID,
+        MEMBER_PROPS,
+      );
 
     expect(getChoices(card, "incidentSeverity")).toEqual(
       listOf(SEVERITY_ROWS).choices,

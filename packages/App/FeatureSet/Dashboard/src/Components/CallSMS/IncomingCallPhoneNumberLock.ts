@@ -63,13 +63,14 @@ const getLock: (data: {
    * A master admin holds everything, and before the snapshot has landed
    * there is nothing honest to say: either way the button is offered.
    */
-  if (User.isMasterAdmin() || !PermissionGate.hasPermissionSnapshot(data.options)) {
+  if (
+    User.isMasterAdmin() ||
+    !PermissionGate.hasPermissionSnapshot(data.options)
+  ) {
     return NOT_LOCKED;
   }
 
-  const held: HeldPermissions = PermissionGate.getHeldPermissions(
-    data.options,
-  );
+  const held: HeldPermissions = PermissionGate.getHeldPermissions(data.options);
 
   if (IncomingCallPhoneNumberAccess.mayDo(held, data.actions)) {
     return NOT_LOCKED;

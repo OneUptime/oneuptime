@@ -108,9 +108,8 @@ export default class IncomingCallPhoneNumberAccess {
           return HeldPermissionsUtil.holdsModelPermission(held, {
             isOperationalResource: need.model.isOperationalResource,
             operation: need.operation,
-            modelPermissions: IncomingCallPhoneNumberAccess.getPermissions(
-              need,
-            ),
+            modelPermissions:
+              IncomingCallPhoneNumberAccess.getPermissions(need),
           });
         })
       );

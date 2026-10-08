@@ -100,11 +100,10 @@ export default class MicrosoftTeamsCreateCommands {
     let choices: MicrosoftTeamsNewIncidentFormChoices;
 
     try {
-      choices =
-        await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
-          projectId,
-          props,
-        );
+      choices = await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+        projectId,
+        props,
+      );
     } catch (error) {
       await this.replyFormCouldNotLoad({
         turnContext: turnContext,

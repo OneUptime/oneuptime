@@ -1385,7 +1385,9 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
       "in a $name, a sender who may not create it is told so, and no form is posted",
       async (conversation: SharedConversation): Promise<void> => {
         const refusal: string = `You do not have permission to ${profile.kind === "incident" ? "declare an incident" : "create a scheduled maintenance event"}.`;
-        assertCanCreateSpy.mockRejectedValue(new NotAuthorizedException(refusal));
+        assertCanCreateSpy.mockRejectedValue(
+          new NotAuthorizedException(refusal),
+        );
 
         const teams: FakeTeams = await runCommand({
           profile: profile,
@@ -1930,9 +1932,9 @@ describe("create incident", (): void => {
     expectSends(teams, { attempted: 1, delivered: 1 });
     const reply: string = theDeliveredText(teams);
     expect(reply).toBe((refusal as NotAuthorizedException).message);
-    expect(reply.startsWith("You do not have permission to declare an incident.")).toBe(
-      true,
-    );
+    expect(
+      reply.startsWith("You do not have permission to declare an incident."),
+    ).toBe(true);
     expect(incidentChoicesSpy).not.toHaveBeenCalled();
     expect(errorLogSpy).not.toHaveBeenCalled();
   });

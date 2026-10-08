@@ -318,7 +318,9 @@ export default class SlackAlertEpisodeActions {
         requester: data.slackRequest,
         modelType: OnCallDutyPolicyExecutionLog,
         action: "execute an on-call policy for this alert episode",
-        resources: [{ service: AlertEpisodeService, id: new ObjectID(actionValue) }],
+        resources: [
+          { service: AlertEpisodeService, id: new ObjectID(actionValue) },
+        ],
       });
 
     if (!props) {

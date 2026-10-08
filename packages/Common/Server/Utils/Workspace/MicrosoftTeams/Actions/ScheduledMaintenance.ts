@@ -760,12 +760,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
     try {
       props = await WorkspaceActionAuthorization.getProjectMemberProps({
-        userId: await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(
-          {
+        userId:
+          await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
             teamsUserId: teamsRequest.userId || "",
             projectId: teamsRequest.projectId,
-          },
-        ),
+          }),
         projectId: teamsRequest.projectId,
       });
     } catch (error) {

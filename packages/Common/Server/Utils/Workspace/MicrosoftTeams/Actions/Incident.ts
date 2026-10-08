@@ -554,7 +554,9 @@ export default class MicrosoftTeamsIncidentActions {
         props: databaseProps,
         modelType: OnCallDutyPolicyExecutionLog,
         action: "execute an on-call policy for this incident",
-        resources: [{ service: IncidentService, id: new ObjectID(actionValue) }],
+        resources: [
+          { service: IncidentService, id: new ObjectID(actionValue) },
+        ],
       });
 
       // Send the input card
@@ -1161,18 +1163,20 @@ export default class MicrosoftTeamsIncidentActions {
 
     try {
       props = await WorkspaceActionAuthorization.getProjectMemberProps({
-        userId: await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(
-          {
+        userId:
+          await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
             teamsUserId: teamsRequest.userId || "",
             projectId: teamsRequest.projectId,
-          },
-        ),
+          }),
         projectId: teamsRequest.projectId,
       });
     } catch (error) {
-      logger.debug("No new incident card for a Teams user who is not a member", {
-        projectId: teamsRequest.projectId.toString(),
-      });
+      logger.debug(
+        "No new incident card for a Teams user who is not a member",
+        {
+          projectId: teamsRequest.projectId.toString(),
+        },
+      );
       logger.debug(error);
       return;
     }

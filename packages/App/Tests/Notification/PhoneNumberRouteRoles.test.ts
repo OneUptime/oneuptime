@@ -309,7 +309,12 @@ describe("phone-number routes take the incoming call policy's roles", () => {
 
   for (const roleCase of ROLES) {
     for (const route of ROUTES) {
-      cases.push([roleCase.role, `${route.method} ${route.route}`, roleCase, route]);
+      cases.push([
+        roleCase.role,
+        `${route.method} ${route.route}`,
+        roleCase,
+        route,
+      ]);
     }
   }
 

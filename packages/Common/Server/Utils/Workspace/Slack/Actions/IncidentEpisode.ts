@@ -319,7 +319,9 @@ export default class SlackIncidentEpisodeActions {
         requester: data.slackRequest,
         modelType: OnCallDutyPolicyExecutionLog,
         action: "execute an on-call policy for this incident episode",
-        resources: [{ service: IncidentEpisodeService, id: new ObjectID(actionValue) }],
+        resources: [
+          { service: IncidentEpisodeService, id: new ObjectID(actionValue) },
+        ],
       });
 
     if (!props) {

@@ -168,11 +168,7 @@ describe("requireModelPermission asks every operation of its model's own list", 
       ],
       "passed",
     ],
-    [
-      "a role on neither list",
-      [Permission.IncidentMember],
-      "refused",
-    ],
+    ["a role on neither list", [Permission.IncidentMember], "refused"],
     [
       "only a block row",
       [permissionRow(Permission.SettingsAdmin, { isBlock: true })],
@@ -207,9 +203,9 @@ describe("requireModelPermission asks every operation of its model's own list", 
   });
 
   test("a master admin is let through", async () => {
-    expect(
-      (await run(guard, { userType: UserType.MasterAdmin })).result,
-    ).toBe("passed");
+    expect((await run(guard, { userType: UserType.MasterAdmin })).result).toBe(
+      "passed",
+    );
   });
 
   test("a request that names no project is refused", async () => {
@@ -260,16 +256,18 @@ describe("requireModelPermission asks every operation of its model's own list", 
 });
 
 describe("requireModelPermission and an operational resource's wildcard", () => {
-  const readMonitors: MiddlewareFunction = UserMiddleware.requireModelPermission(
-    {
+  const readMonitors: MiddlewareFunction =
+    UserMiddleware.requireModelPermission({
       operations: [{ model: new Monitor(), operation: "read" }],
-    },
-  ) as MiddlewareFunction;
+    }) as MiddlewareFunction;
 
   test("the model's wildcard opens its operation", async () => {
     expect(
-      (await run(readMonitors, { rows: [Permission.ReadAllOperationalResources] }))
-        .result,
+      (
+        await run(readMonitors, {
+          rows: [Permission.ReadAllOperationalResources],
+        })
+      ).result,
     ).toBe("passed");
   });
 
@@ -309,9 +307,9 @@ describe("requireModelPermission with nothing to ask", () => {
     expect((await run(guard, { rows: [Permission.ProjectOwner] })).result).toBe(
       "refused",
     );
-    expect(
-      (await run(guard, { userType: UserType.MasterAdmin })).result,
-    ).toBe("passed");
+    expect((await run(guard, { userType: UserType.MasterAdmin })).result).toBe(
+      "passed",
+    );
   });
 });
 

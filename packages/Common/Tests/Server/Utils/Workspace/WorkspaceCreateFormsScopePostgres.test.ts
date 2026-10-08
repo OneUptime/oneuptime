@@ -9,9 +9,12 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
 });
 
 // The data source below is built here; the app's own needs no migrations.
-jest.mock("../../../../Server/Infrastructure/Postgres/DataSourceOptions", () => {
-  return {};
-});
+jest.mock(
+  "../../../../Server/Infrastructure/Postgres/DataSourceOptions",
+  () => {
+    return {};
+  },
+);
 
 import Entities from "../../../../Models/DatabaseModels/Index";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -417,9 +420,7 @@ describePostgres(
         .mockReturnValue(database);
 
       // Permissions are read from the tables every time: nothing is cached.
-      jest
-        .spyOn(GlobalCache, "getJSONObject")
-        .mockResolvedValue(null as never);
+      jest.spyOn(GlobalCache, "getJSONObject").mockResolvedValue(null as never);
       jest.spyOn(GlobalCache, "setJSON").mockResolvedValue(undefined as never);
       jest
         .spyOn(GlobalCache, "deleteKey")
@@ -531,13 +532,7 @@ describePostgres(
           [paymentsLabelId],
           false,
         ],
-        [
-          searchPolicyId,
-          projectId,
-          SEARCH_POLICY_NAME,
-          [searchLabelId],
-          false,
-        ],
+        [searchPolicyId, projectId, SEARCH_POLICY_NAME, [searchLabelId], false],
         [
           archivedPaymentsPolicyId,
           projectId,
@@ -738,9 +733,7 @@ describePostgres(
         labels?: Array<ObjectID>;
       },
     ): ExpressRequest {
-      const options: (
-        ids: Array<ObjectID>,
-      ) => Array<{ value: string }> = (
+      const options: (ids: Array<ObjectID>) => Array<{ value: string }> = (
         ids: Array<ObjectID>,
       ): Array<{ value: string }> => {
         return ids.map((id: ObjectID): { value: string } => {
@@ -784,9 +777,7 @@ describePostgres(
                   },
                   onCallDutyPolicies: {
                     onCallDutyPolicies: {
-                      selected_options: options(
-                        named.onCallDutyPolicies || [],
-                      ),
+                      selected_options: options(named.onCallDutyPolicies || []),
                     },
                   },
                   labels: {
@@ -820,7 +811,8 @@ describePostgres(
           continue;
         }
 
-        const dropdown: WorkspaceDropdownBlock = block as WorkspaceDropdownBlock;
+        const dropdown: WorkspaceDropdownBlock =
+          block as WorkspaceDropdownBlock;
         dropdowns[dropdown.blockId] = dropdown.options
           .map((option: { label: string }) => {
             return option.label;
@@ -847,7 +839,9 @@ describePostgres(
       });
     }
 
-    function choiceTitles(choices: Array<MicrosoftTeamsCardChoice>): Array<string> {
+    function choiceTitles(
+      choices: Array<MicrosoftTeamsCardChoice>,
+    ): Array<string> {
       return choices
         .map((choice: MicrosoftTeamsCardChoice): string => {
           return choice.title;
@@ -939,7 +933,11 @@ describePostgres(
 
         expect(shownDropdowns()).toEqual({
           incidentSeverity: ["Critical", "Minor"],
-          incidentMonitors: ["Checkout API", SEARCH_MONITOR_NAME, "Status page"],
+          incidentMonitors: [
+            "Checkout API",
+            SEARCH_MONITOR_NAME,
+            "Status page",
+          ],
           monitorStatus: ["Offline", "Operational"],
           onCallDutyPolicies: ["Payments on-call", SEARCH_POLICY_NAME],
           labels: ["payments", "search"],
@@ -1132,7 +1130,10 @@ describePostgres(
 
       async function submitCard(
         userId: ObjectID,
-        named: { monitors: Array<ObjectID>; onCallDutyPolicies?: Array<ObjectID> },
+        named: {
+          monitors: Array<ObjectID>;
+          onCallDutyPolicies?: Array<ObjectID>;
+        },
         turnContext: TurnContext,
       ): Promise<void> {
         const value: JSONObject = {

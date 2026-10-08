@@ -326,11 +326,11 @@ const registeredModelPermissionChecks: Array<{
   UserMiddleware.requireModelPermission as unknown as AnyMock
 ).mock.calls.map((call: Array<any>) => {
   return {
-    operations: (
-      call[0].operations as Array<IncomingCallPhoneNumberNeed>
-    ).map((need: IncomingCallPhoneNumberNeed): string => {
-      return `${need.operation} ${need.model.tableName}`;
-    }),
+    operations: (call[0].operations as Array<IncomingCallPhoneNumberNeed>).map(
+      (need: IncomingCallPhoneNumberNeed): string => {
+        return `${need.operation} ${need.model.tableName}`;
+      },
+    ),
     refusal: call[0].refusal as string,
   };
 });

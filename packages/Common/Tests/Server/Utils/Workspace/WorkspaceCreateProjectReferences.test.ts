@@ -737,9 +737,7 @@ function directMessageTexts(
   );
 }
 
-function slackRequest(
-  viewValues: SlackRequest["viewValues"],
-): SlackRequest {
+function slackRequest(viewValues: SlackRequest["viewValues"]): SlackRequest {
   return {
     isAuthorized: true,
     userId: USER_ID,
@@ -828,7 +826,9 @@ describe("Slack: SubmitNewIncident", (): void => {
       const texts: Array<string> = directMessageTexts(directMessages);
       expect(texts).toHaveLength(1);
       expect(texts[0]).toContain("Could not declare the incident: ");
-      expect(texts[0]).toContain("references records that are not in this project");
+      expect(texts[0]).toContain(
+        "references records that are not in this project",
+      );
       for (const identifying of reference.identifying) {
         expect(texts[0]).not.toContain(identifying);
       }

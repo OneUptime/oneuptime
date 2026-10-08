@@ -265,7 +265,9 @@ function stubLists(refused: Array<string> = []): Array<ListRead> {
 
         return entry.rowNames.map((name: string): DatabaseBaseModel => {
           const row: DatabaseBaseModel = new (
-            entry.service as unknown as { modelType: new () => DatabaseBaseModel }
+            entry.service as unknown as {
+              modelType: new () => DatabaseBaseModel;
+            }
           ).modelType();
           row._id = ObjectID.generate().toString();
           row.setValue("name", name);
@@ -471,9 +473,13 @@ describe("the New Incident form is filled in as the member", (): void => {
             return read.list;
           })
           .sort(),
-      ).toEqual(
-        ["labels", "monitorStatuses", "monitors", "onCallPolicies", "severities"],
-      );
+      ).toEqual([
+        "labels",
+        "monitorStatuses",
+        "monitors",
+        "onCallPolicies",
+        "severities",
+      ]);
       expectReadAsTheMember(reads);
 
       // Archived policies page no one, so they are not offered.
@@ -605,7 +611,9 @@ describe("the New Scheduled Maintenance form is filled in as the member", (): vo
     const created: ScheduledMaintenance = new ScheduledMaintenance();
     created.id = ObjectID.generate();
     const createSpy: SpyInstance<typeof ScheduledMaintenanceService.create> =
-      jest.spyOn(ScheduledMaintenanceService, "create").mockResolvedValue(created);
+      jest
+        .spyOn(ScheduledMaintenanceService, "create")
+        .mockResolvedValue(created);
 
     await SlackScheduledMaintenanceActions.submitNewScheduledMaintenance(
       handlerArgs(SlackActionType.SubmitNewScheduledMaintenance, "", {
@@ -739,7 +747,8 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
       expect(ephemeral).toHaveBeenCalledTimes(1);
       expect(
         (
-          ephemeral.mock.calls[0]![0].messageBlocks[0] as WorkspacePayloadMarkdown
+          ephemeral.mock.calls[0]![0]
+            .messageBlocks[0] as WorkspacePayloadMarkdown
         ).text,
       ).toBe(
         "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",

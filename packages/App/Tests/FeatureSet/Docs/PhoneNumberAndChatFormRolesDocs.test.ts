@@ -106,7 +106,9 @@ function rolesFor(action: IncomingCallPhoneNumberAction): Array<string> {
 function permissionsFor(action: IncomingCallPhoneNumberAction): Array<string> {
   return IncomingCallPhoneNumberAccess.getNeeds(action).flatMap(
     (need: IncomingCallPhoneNumberNeed): Array<string> => {
-      return permissionTitles(IncomingCallPhoneNumberAccess.getPermissions(need));
+      return permissionTitles(
+        IncomingCallPhoneNumberAccess.getPermissions(need),
+      );
     },
   );
 }
@@ -184,7 +186,9 @@ describe("Docs: who can add and release an incoming call policy's phone numbers"
     }
 
     expect(text).toContain("A team's block with no labels");
-    expect(text).toContain("**Add Phone Number** and **Release** stay on the page, locked");
+    expect(text).toContain(
+      "**Add Phone Number** and **Release** stay on the page, locked",
+    );
     expect(text).toContain("so it needs no billing permission");
   });
 });
@@ -207,8 +211,18 @@ describe("Docs: Slack's and Microsoft Teams' create forms act as the member", ()
   );
 
   test.each([
-    { name: "Slack", text: (): string => slack },
-    { name: "Microsoft Teams", text: (): string => teams },
+    {
+      name: "Slack",
+      text: (): string => {
+        return slack;
+      },
+    },
+    {
+      name: "Microsoft Teams",
+      text: (): string => {
+        return teams;
+      },
+    },
   ])(
     "$name names exactly the roles that may declare an incident or create a scheduled maintenance event",
     (row: { text: () => string }) => {
@@ -223,8 +237,18 @@ describe("Docs: Slack's and Microsoft Teams' create forms act as the member", ()
   );
 
   test.each([
-    { name: "Slack", text: (): string => slack },
-    { name: "Microsoft Teams", text: (): string => teams },
+    {
+      name: "Slack",
+      text: (): string => {
+        return slack;
+      },
+    },
+    {
+      name: "Microsoft Teams",
+      text: (): string => {
+        return teams;
+      },
+    },
   ])(
     "$name says the lists hold what the member may read, and a submit names only what they may name",
     (row: { text: () => string }) => {
@@ -242,8 +266,18 @@ describe("Docs: Slack's and Microsoft Teams' create forms act as the member", ()
   );
 
   test.each([
-    { name: "Slack", text: (): string => slack },
-    { name: "Microsoft Teams", text: (): string => teams },
+    {
+      name: "Slack",
+      text: (): string => {
+        return slack;
+      },
+    },
+    {
+      name: "Microsoft Teams",
+      text: (): string => {
+        return teams;
+      },
+    },
   ])(
     "$name names exactly the roles that may execute an on-call policy",
     (row: { text: () => string }) => {

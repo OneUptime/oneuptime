@@ -94,7 +94,8 @@ function policyListCalls(): Array<PolicyListCall> {
         file: path.relative(WORKSPACE_DIR, file),
         line: source.slice(0, match.index).split("\n").length,
         // findReadable lists, countReadable counts.
-        method: match[1] || (readMethod === "countReadable" ? "countBy" : "findBy"),
+        method:
+          match[1] || (readMethod === "countReadable" ? "countBy" : "findBy"),
         args: args,
       });
     }

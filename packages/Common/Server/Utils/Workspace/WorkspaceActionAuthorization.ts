@@ -278,7 +278,9 @@ export default class WorkspaceActionAuthorization {
    * out. A refused read counts none.
    */
   @CaptureSpan()
-  public static async countReadable<TBaseModel extends DatabaseBaseModel>(data: {
+  public static async countReadable<
+    TBaseModel extends DatabaseBaseModel,
+  >(data: {
     service: DatabaseService<TBaseModel>;
     props: DatabaseCommonInteractionProps;
     query: Query<TBaseModel>;

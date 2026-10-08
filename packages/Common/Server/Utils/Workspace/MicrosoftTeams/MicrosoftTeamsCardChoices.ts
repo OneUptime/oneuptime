@@ -299,8 +299,8 @@ export default class MicrosoftTeamsCardChoices {
     projectId: ObjectID,
     props: DatabaseCommonInteractionProps,
   ): Promise<MicrosoftTeamsCardChoiceList> {
-    const labels: Array<Label> = await WorkspaceActionAuthorization.findReadable(
-      {
+    const labels: Array<Label> =
+      await WorkspaceActionAuthorization.findReadable({
         service: LabelService,
         props: props,
         query: {
@@ -314,8 +314,7 @@ export default class MicrosoftTeamsCardChoices {
           name: SortOrder.Ascending,
         },
         limit: MICROSOFT_TEAMS_MAX_LABEL_CHOICES,
-      },
-    );
+      });
 
     return {
       choices: this.toChoices(labels),

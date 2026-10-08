@@ -897,7 +897,9 @@ describe("what a Teams user without a linked account is told (the real lookup; o
         // One reply: where to connect the account, and no form posted for the channel.
         expect(turn.replies).toEqual([connectYourAccount(command.purpose)]);
         for (const reply of turn.replies) {
-          expect(reply).not.toContain(MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE);
+          expect(reply).not.toContain(
+            MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
+          );
         }
 
         // The sender was looked up; nobody's lists were read.
