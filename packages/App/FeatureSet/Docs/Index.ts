@@ -2,6 +2,10 @@ import { ContentPath, StaticPath, ViewsPath } from "./Utils/Config";
 import LlmsTxtUtil from "./Utils/LlmsTxt";
 import DocsNav, { NavGroup, NavLink } from "./Utils/Nav";
 import DocsRender from "./Utils/Render";
+import DocsSearchIndex, {
+  DocsSearchEntry,
+  summarizeDocsPage,
+} from "./Utils/SearchIndex";
 import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGES,
@@ -129,6 +133,33 @@ const DocsFeatureSet: FeatureSet = {
           res.setHeader("Content-Type", "text/plain; charset=utf-8");
           res.setHeader("Cache-Control", "public, max-age=600");
           return Response.sendTextResponse(req, res, content);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * The search index for one language: every page's title, group,
+     * summary and section headings (Utils/SearchIndex.ts). The search box
+     * fetches it the first time it opens. Registered before the two-segment
+     * legacy redirect below, which would otherwise take the address for a
+     * page called "<lang>.json".
+     */
+    app.get(
+      "/docs/search-index/:lang.json",
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const lang: string = req.params["lang"] || "";
+          if (!isSupportedDocsLanguage(lang)) {
+            res.status(404);
+            return res.json([]);
+          }
+          const index: Array<DocsSearchEntry> =
+            await DocsSearchIndex.getIndex(lang);
+          res.setHeader("Cache-Control", "public, max-age=600");
+          return res.json(index);
         } catch (err) {
           logger.error(err);
           return next(err);
@@ -465,25 +496,32 @@ const DocsFeatureSet: FeatureSet = {
 
           contentInMarkdown = DocsPlaceholders.render(contentInMarkdown, lang);
 
-          const renderedContent: string =
-            await DocsRender.render(contentInMarkdown);
+          const renderedContent: string = await DocsRender.render(
+            contentInMarkdown,
+            { lang: lang, contentLang: content.lang },
+          );
 
           /*
            * Match against the canonical English nav so we can find the
            * category/link regardless of which language is being rendered.
+           * The match is exact: a substring match resolved a page to any
+           * earlier link whose URL merely contained its path.
            */
+          const pageUrl: string = `/docs/${fullPath}`;
+          const isCurrentPage: (link: NavLink) => boolean = (
+            link: NavLink,
+          ): boolean => {
+            return link.url.toLocaleLowerCase() === pageUrl;
+          };
+
           const currentCategory: NavGroup | undefined = DocsNav.find(
             (category: NavGroup) => {
-              return category.links.find((link: NavLink) => {
-                return link.url.toLocaleLowerCase().includes(fullPath);
-              });
+              return category.links.find(isCurrentPage);
             },
           );
 
           const currentNavLink: NavLink | undefined =
-            currentCategory?.links.find((link: NavLink) => {
-              return link.url.toLocaleLowerCase().includes(fullPath);
-            });
+            currentCategory?.links.find(isCurrentPage);
 
           if (!currentCategory || !currentNavLink) {
             res.status(404);
@@ -521,7 +559,7 @@ const DocsFeatureSet: FeatureSet = {
           }
 
           const currentIndex: number = flatLinks.findIndex((item: FlatLink) => {
-            return item.link.url.toLocaleLowerCase().includes(fullPath);
+            return isCurrentPage(item.link);
           });
 
           const prevRaw: FlatLink | null =
@@ -570,6 +608,7 @@ const DocsFeatureSet: FeatureSet = {
             contentDir: getDocsLanguageDirection(content.lang),
             category: localizedCategory,
             link: localizedLink,
+            pageDescription: summarizeDocsPage(content.markdown).description,
             githubPath: fullPath,
             enableGoogleTagManager: GoogleTagManagerEnabled,
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,

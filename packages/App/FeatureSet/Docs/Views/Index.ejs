@@ -4,6 +4,7 @@
     <%- include('./Partials/Head.ejs', {
         enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
         link: typeof link !== 'undefined' ? link : null,
+        pageDescription: typeof pageDescription !== 'undefined' ? pageDescription : null,
         t: t,
         lang: lang
     }) %>
@@ -89,7 +90,7 @@
     </div>
 
     <%- include('./Partials/SearchModal.ejs', { t: t }) %>
-    <%- include('./Partials/Scripts.ejs', { nav: nav, t: t }) %>
+    <%- include('./Partials/Scripts.ejs', { nav: nav, t: t, lang: lang }) %>
 </body>
 
 </html>

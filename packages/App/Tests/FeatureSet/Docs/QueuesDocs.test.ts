@@ -894,8 +894,8 @@ describe("Queues docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("lists the page in the Telemetry group, right after Databases", (): void => {
-      const links: Array<NavLink> = navGroup("Telemetry").links;
+    it("lists the page in the Infrastructure Agents group, right after Databases", (): void => {
+      const links: Array<NavLink> = navGroup("Infrastructure Agents").links;
       const index: number = links.findIndex((link: NavLink): boolean => {
         return link.url === PAGE_URL;
       });

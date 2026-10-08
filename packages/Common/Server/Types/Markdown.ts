@@ -1,6 +1,11 @@
-import { Renderer, marked } from "marked";
+import { Marked, Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
+import {
+  DOCS_CALLOUT_TYPES,
+  docsMarkdownExtensions,
+  renderDocsCallout,
+} from "./MarkdownDocsExtensions";
 import SafeHtml from "../../Types/SafeHtml";
 import {
   InlineImageDataUri,
@@ -618,6 +623,7 @@ export default class Markdown {
 
   private static blogRenderer: Renderer | null = null;
   private static docsRenderer: Renderer | null = null;
+  private static docsMarked: Marked | null = null;
   private static emailRenderer: Renderer | null = null;
   private static blogValidationRenderer: Renderer | null = null;
 
@@ -666,11 +672,31 @@ export default class Markdown {
       return held.restore(emailBody);
     }
 
+    /*
+     * The docs have block components of their own (steps, tabs, cards,
+     * collapsible sections and callouts - see MarkdownDocsExtensions.ts),
+     * registered on an instance of their own so the blog, email and the rest
+     * keep reading ":::" as text.
+     */
+    if (contentType === MarkdownContentType.Docs && renderer) {
+      return await Markdown.getDocsMarked().parse(markdown, {
+        renderer: renderer,
+      });
+    }
+
     const htmlBody: string = await marked(markdown, {
       renderer: renderer,
     });
 
     return htmlBody;
+  }
+
+  private static getDocsMarked(): Marked {
+    if (this.docsMarked === null) {
+      this.docsMarked = new Marked(docsMarkdownExtensions);
+    }
+
+    return this.docsMarked;
   }
 
   /*
@@ -1302,54 +1328,46 @@ export default class Markdown {
     };
 
     renderer.blockquote = function (quote) {
+      /*
+       * GitHub's alert syntax - "> [!NOTE]" on the first line - names the
+       * kind of callout without a word in any language, so a translated page
+       * keeps it as written and the label is put into the page's language
+       * (see renderDocsCallout). The older "> **Note:**" form still works.
+       */
+      const alertMatch: RegExpMatchArray | null = quote.match(
+        /^\s*<p>\[!(NOTE|TIP|INFO|IMPORTANT|WARNING|CAUTION|DANGER)\][ \t]*(?:\n|<br>)?/i,
+      );
+
+      if (alertMatch) {
+        const body: string = quote
+          .slice(alertMatch[0].length)
+          // "[!NOTE]" alone on its line leaves an empty paragraph behind.
+          .replace(/^\s*<\/p>/, "");
+
+        return renderDocsCallout({
+          type: alertMatch[1]!.toLowerCase(),
+          title: null,
+          bodyHtml: body.trim().startsWith("<") ? body : `<p>${body}`,
+        });
+      }
+
       const calloutMatch: RegExpMatchArray | null = quote.match(
-        /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution):?<\/strong>/i,
+        /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution|Important):?<\/strong>/i,
       );
 
       if (calloutMatch) {
         const type: string = calloutMatch[1]!.toLowerCase();
-        const configMap: Record<string, { icon: string; label: string }> = {
-          note: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Note",
-          },
-          info: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Info",
-          },
-          tip: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>`,
-            label: "Tip",
-          },
-          warning: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>`,
-            label: "Warning",
-          },
-          caution: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>`,
-            label: "Caution",
-          },
-          danger: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Danger",
-          },
-        };
-
-        const config: { icon: string; label: string } =
-          configMap[type] || configMap["note"]!;
 
         const content: string = quote.replace(
-          /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution):?<\/strong>\s*/i,
+          /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution|Important):?<\/strong>\s*/i,
           "<p>",
         );
 
-        return `<div class="docs-callout docs-callout--${type}">
-          <div class="docs-callout__head">
-            <svg class="docs-callout__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">${config.icon}</svg>
-            <span class="docs-callout__label">${config.label}</span>
-          </div>
-          <div class="docs-callout__body">${content}</div>
-        </div>`;
+        return renderDocsCallout({
+          type: DOCS_CALLOUT_TYPES.includes(type) ? type : "note",
+          title: null,
+          bodyHtml: content,
+        });
       }
 
       return `<blockquote class="docs-quote">${quote}</blockquote>`;
@@ -1385,7 +1403,18 @@ export default class Markdown {
     };
 
     renderer.code = function (code, language) {
-      const lang: string = (language || "").trim().toLowerCase();
+      /*
+       * The info string is the language, optionally followed by a title:
+       * ```bash title="install.sh"
+       */
+      const info: string = (language || "").trim();
+      const lang: string = (info.split(/\s+/)[0] || "").toLowerCase();
+      const titleMatch: RegExpMatchArray | null = info.match(
+        /\btitle=(?:"([^"]*)"|'([^']*)')/,
+      );
+      const title: string = titleMatch
+        ? (titleMatch[1] ?? titleMatch[2] ?? "").trim()
+        : "";
 
       if (lang === "mermaid") {
         /*
@@ -1393,7 +1422,10 @@ export default class Markdown {
          * the diagram identical while making sure a `<` in a node label can
          * never be parsed as markup.
          */
-        return `<div class="docs-diagram"><div class="mermaid">${Markdown.escapeHtml(code)}</div></div>`;
+        const caption: string = title
+          ? `<p class="docs-diagram__caption">${Markdown.escapeHtml(title)}</p>`
+          : "";
+        return `<div class="docs-diagram"><div class="mermaid">${Markdown.escapeHtml(code)}</div>${caption}</div>`;
       }
 
       const escaped: string = Markdown.escapeHtml(code);
@@ -1409,15 +1441,18 @@ export default class Markdown {
        * without scripting it would be a dead control with an English name.
        * The bar reserves its height either way, so nothing shifts.
        */
+      const titleHtml: string = title
+        ? `<span class="docs-code__title">${Markdown.escapeHtml(title)}</span>`
+        : "";
       const bar: string = `<div class="docs-code__bar">
-          <span class="docs-code__lang">${label || ""}</span>
+          ${titleHtml}<span class="docs-code__lang">${label || ""}</span>
           <button type="button" class="docs-code__copy" data-copy-code hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             <span class="docs-code__copy-text"></span>
           </button>
         </div>`;
 
-      return `<div class="docs-code"${lang ? ` data-language="${lang}"` : ""}>${bar}<pre><code class="${codeClass}">${escaped}</code></pre></div>`;
+      return `<div class="docs-code"${lang ? ` data-language="${Markdown.escapeHtml(lang)}"` : ""}>${bar}<pre><code class="${Markdown.escapeHtml(codeClass)}">${escaped}</code></pre></div>`;
     };
 
     renderer.heading = function (text, level) {

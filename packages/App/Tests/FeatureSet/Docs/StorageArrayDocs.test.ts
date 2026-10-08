@@ -461,8 +461,8 @@ describe("Storage Array docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("lists the monitor page in the Monitor group, right after the Ceph monitor", (): void => {
-      const urls: Array<string> = navGroup("Monitor").links.map(
+    it("lists the monitor page in the Infrastructure Monitors group, right after the Ceph monitor", (): void => {
+      const urls: Array<string> = navGroup("Infrastructure Monitors").links.map(
         (link: NavLink): string => {
           return link.url;
         },
@@ -474,8 +474,8 @@ describe("Storage Array docs", (): void => {
       expect(urls[index - 1]).toBe("/docs/monitor/ceph-monitor");
     });
 
-    it("lists the agent page in the Telemetry group, right after the Ceph agent", (): void => {
-      const urls: Array<string> = navGroup("Telemetry").links.map(
+    it("lists the agent page in the Infrastructure Agents group, right after the Ceph agent", (): void => {
+      const urls: Array<string> = navGroup("Infrastructure Agents").links.map(
         (link: NavLink): string => {
           return link.url;
         },
@@ -489,8 +489,8 @@ describe("Storage Array docs", (): void => {
 
     it("uses the product's titles", (): void => {
       const titles: Array<string> = [
-        ...navGroup("Monitor").links,
-        ...navGroup("Telemetry").links,
+        ...navGroup("Infrastructure Monitors").links,
+        ...navGroup("Infrastructure Agents").links,
       ].map((link: NavLink): string => {
         return link.title;
       });
