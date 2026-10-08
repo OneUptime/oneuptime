@@ -49,6 +49,12 @@ import PlatformMetricUnitUtil from "../../../../Utils/Monitor/PlatformMetricUnit
 import PlatformResourceIdentity from "../../../../Utils/Monitor/PlatformResourceIdentity";
 import { describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * The "Affected Resources" list of a GROUPED Kubernetes monitor is built
  * from the series the matched criteria actually breached, not from the
@@ -1229,7 +1235,7 @@ type EvaluatorPrivate = {
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-  }) => Promise<string | null>;
+  }) => Promise<MarkdownText | null>;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -1296,7 +1302,7 @@ describe("Kubernetes grouped monitor: a series that matched with no data", () =>
     const firing: MonitorCriteriaInstance = criteriaOf(step).firing;
     const criteriaId: string = firing.data!.id!.toString();
 
-    const context: string | null =
+    const context: string | null = textOf(
       await Evaluator.buildKubernetesRootCauseContext({
         dataToProcess: workerResponse({ step: step, series: [] }),
         monitorStep: step,
@@ -1315,7 +1321,8 @@ describe("Kubernetes grouped monitor: a series that matched with no data", () =>
             breachingValues: [88.5, 91.25, 90],
           }),
         ],
-      });
+      }),
+    );
 
     const section: string = affectedResourcesSection(context || "");
 

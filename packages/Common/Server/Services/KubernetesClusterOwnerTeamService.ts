@@ -10,6 +10,7 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import KubernetesClusterService from "./KubernetesClusterService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -86,10 +87,11 @@ export class Service extends ProjectReferencesService<Model> {
         kubernetesClusterFeedEventType:
           KubernetesClusterFeedEventType.OwnerTeamRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
-          projectId,
-          kubernetesClusterId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+            projectId,
+            kubernetesClusterId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -127,10 +129,11 @@ export class Service extends ProjectReferencesService<Model> {
           kubernetesClusterFeedEventType:
             KubernetesClusterFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
-            projectId,
-            kubernetesClusterId,
-          )}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+              projectId,
+              kubernetesClusterId,
+            )}.`.toString(),
           userId: createdByUserId || undefined,
         });
       }

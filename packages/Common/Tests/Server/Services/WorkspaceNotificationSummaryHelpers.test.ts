@@ -17,6 +17,7 @@ import NotificationRuleCondition, {
 import WorkspaceNotificationSummaryItem from "../../../Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
 import { describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The block builders these helpers feed need a database; the helpers
  * themselves are pure, so reach them directly. They are private statics on
@@ -30,8 +31,8 @@ type ValuesMap = {
 
 type StaticHelpers = {
   formatDuration: (totalMinutes: number) => string;
-  bold: (text: string) => string;
-  link: (url: string, text: string) => string;
+  bold: (text: string) => MarkdownText;
+  link: (url: string, text: string) => MarkdownText;
   has: (
     items: Array<WorkspaceNotificationSummaryItem>,
     item: WorkspaceNotificationSummaryItem,
@@ -126,13 +127,13 @@ describe("WorkspaceNotificationSummaryService markdown helpers", () => {
    * Getting these wrong renders literal asterisks in the channel.
    */
   test("bold uses double asterisks", () => {
-    expect(helpers.bold("Incidents")).toBe("**Incidents**");
+    expect(helpers.bold("Incidents").toString()).toBe("**Incidents**");
   });
 
   test("link uses markdown link syntax, not Slack's own", () => {
-    expect(helpers.link("https://example.com/incident/1", "Disk full")).toBe(
-      "[Disk full](https://example.com/incident/1)",
-    );
+    expect(
+      helpers.link("https://example.com/incident/1", "Disk full").toString(),
+    ).toBe("[Disk full](https://example.com/incident/1)");
   });
 });
 

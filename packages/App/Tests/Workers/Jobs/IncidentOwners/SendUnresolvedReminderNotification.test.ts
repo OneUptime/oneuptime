@@ -173,6 +173,7 @@ import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/IncidentOwners/SendUnresolvedReminderNotification";
 
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 interface IncidentServiceMock {
   findAllBy: jest.Mock;
   updateOneById: jest.Mock;
@@ -317,7 +318,9 @@ describe("IncidentOwner:SendUnresolvedReminderNotification worker", () => {
     reminderRuleService.findMatchingRule.mockResolvedValue(rule);
     projectService.getOwners.mockResolvedValue([]);
     notificationService.sendUserNotification.mockResolvedValue(undefined);
-    userService.getUserMarkdownString.mockResolvedValue("[Owner](profile)");
+    userService.getUserMarkdownString.mockResolvedValue(
+      FeedMarkdown.asMarkdown("[Owner](profile)"),
+    );
     feedService.createIncidentFeedItem.mockResolvedValue(undefined);
   });
 

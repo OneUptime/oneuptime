@@ -16,7 +16,6 @@ import {
   getMonitorTypeCriteriaValidationError,
   isMonitorTypeCriteriaValue,
 } from "../../Utils/Rules/MonitorTypeRuleCriteria";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import {
   getRuleCriteriaValidationError,
   isValidRuleCriteria,
@@ -39,6 +38,10 @@ import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdo
 import logger, { LogAttributes } from "../Utils/Logger";
 import MonitorRulePatternValidator from "../Utils/Rules/MonitorRulePatternValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Everything a hook needs to validate a rule, describe it in the SLO feed,
@@ -63,9 +66,9 @@ const RULE_SNAPSHOT_SELECT: Select<Model> = {
 };
 
 type BuildRuleFeedSentenceFunction = (data: {
-  sloLink: string;
-  ruleName: string;
-}) => string;
+  sloLink: MarkdownText;
+  ruleName: MarkdownText;
+}) => MarkdownText;
 
 interface RuleUpdateCarryForward {
   rulesBeforeUpdate: Array<Model>;
@@ -178,12 +181,12 @@ export class Service extends ProjectReferencesService<Model> {
       displayColor: Green500,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       buildFeedInfoInMarkdown: (data: {
-        sloLink: string;
-        ruleName: string;
-      }): string => {
+        sloLink: MarkdownText;
+        ruleName: MarkdownText;
+      }): MarkdownText => {
         return rule.isEnabled === false
-          ? `🧩 Added monitor rule ${data.ruleName} to ${data.sloLink}. It was added disabled, so it does not attach any monitors yet.`
-          : `🧩 Added monitor rule ${data.ruleName} to ${data.sloLink}. Monitors it matches are attached to this SLO.`;
+          ? mdText`🧩 Added monitor rule ${data.ruleName} to ${data.sloLink}. It was added disabled, so it does not attach any monitors yet.`
+          : mdText`🧩 Added monitor rule ${data.ruleName} to ${data.sloLink}. Monitors it matches are attached to this SLO.`;
       },
       moreInformationInMarkdown: await this.describeRuleForFeed(rule),
     });
@@ -423,10 +426,10 @@ export class Service extends ProjectReferencesService<Model> {
         displayColor: Red500,
         userId: onDelete.deleteBy.props.userId,
         buildFeedInfoInMarkdown: (data: {
-          sloLink: string;
-          ruleName: string;
-        }): string => {
-          return `🗑️ Removed monitor rule ${data.ruleName} from ${data.sloLink}. Monitors only this rule attached are detached; monitors attached by hand, or matched by another enabled rule, stay.`;
+          sloLink: MarkdownText;
+          ruleName: MarkdownText;
+        }): MarkdownText => {
+          return mdText`🗑️ Removed monitor rule ${data.ruleName} from ${data.sloLink}. Monitors only this rule attached are detached; monitors attached by hand, or matched by another enabled rule, stay.`;
         },
       });
     }
@@ -847,17 +850,17 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const details: Array<string> = [];
+    const details: Array<MarkdownText> = [];
 
     if (isNameChanged) {
       details.push(
-        `- **Name:** ${this.formatRuleName(previous.name)} → ${this.formatRuleName(current.name)}`,
+        mdText`**Name:** ${this.formatRuleName(previous.name)} → ${this.formatRuleName(current.name)}`,
       );
     }
 
     if (isDescriptionChanged) {
       details.push(
-        `- **Description:** ${
+        mdText`**Description:** ${
           !previous.description
             ? "added"
             : !current.description
@@ -869,7 +872,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (isEnabledChanged) {
       details.push(
-        `- **Status:** ${wasEnabled ? "Enabled" : "Disabled"} → ${isEnabled ? "Enabled" : "Disabled"}`,
+        mdText`**Status:** ${wasEnabled ? "Enabled" : "Disabled"} → ${isEnabled ? "Enabled" : "Disabled"}`,
       );
     }
 
@@ -880,20 +883,16 @@ export class Service extends ProjectReferencesService<Model> {
       ]);
 
       details.push(
-        `- **Match criteria (before):** ${escapeMarkdownInline(
-          describeSloMonitorRuleCriteria({
-            rule: previous,
-            labelNameById: labelNameById,
-          }),
-        )}`,
+        mdText`**Match criteria (before):** ${describeSloMonitorRuleCriteria({
+          rule: previous,
+          labelNameById: labelNameById,
+        })}`,
       );
       details.push(
-        `- **Match criteria (now):** ${escapeMarkdownInline(
-          describeSloMonitorRuleCriteria({
-            rule: current,
-            labelNameById: labelNameById,
-          }),
-        )}`,
+        mdText`**Match criteria (now):** ${describeSloMonitorRuleCriteria({
+          rule: current,
+          labelNameById: labelNameById,
+        })}`,
       );
     }
 
@@ -909,25 +908,25 @@ export class Service extends ProjectReferencesService<Model> {
       displayColor: Gray500,
       userId: data.userId,
       buildFeedInfoInMarkdown: (sentence: {
-        sloLink: string;
-        ruleName: string;
-      }): string => {
+        sloLink: MarkdownText;
+        ruleName: MarkdownText;
+      }): MarkdownText => {
         if (isOnlyEnabledChanged) {
           return isEnabled
-            ? `▶️ Enabled monitor rule ${sentence.ruleName} on ${sentence.sloLink}. Monitors it matches are attached to this SLO again.`
-            : `⏸️ Disabled monitor rule ${sentence.ruleName} on ${sentence.sloLink}. Monitors only this rule attached are detached.`;
+            ? mdText`▶️ Enabled monitor rule ${sentence.ruleName} on ${sentence.sloLink}. Monitors it matches are attached to this SLO again.`
+            : mdText`⏸️ Disabled monitor rule ${sentence.ruleName} on ${sentence.sloLink}. Monitors only this rule attached are detached.`;
         }
 
-        return `🧩 Updated monitor rule ${sentence.ruleName} on ${sentence.sloLink}.`;
+        return mdText`🧩 Updated monitor rule ${sentence.ruleName} on ${sentence.sloLink}.`;
       },
-      moreInformationInMarkdown: details.join("\n"),
+      moreInformationInMarkdown: FeedMarkdown.bulletList(details).toString(),
     });
   }
 
   /*
    * Posts one rule event to the rule's SLO feed. The rule name and everything
-   * else user-controlled is escaped here, once, at the point it becomes
-   * markdown. Never throws: the rule is already saved, and a feed item that
+   * else user-controlled is placed as text (mdText), once, at the point it
+   * becomes markdown. Never throws: the rule is already saved, and a feed item that
    * could not be written must not fail the write it describes.
    */
   private async postRuleFeedItem(data: {
@@ -945,7 +944,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     try {
-      const sloLink: string =
+      const sloLink: MarkdownText =
         await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: rule.projectId,
           sloId: rule.serviceLevelObjectiveId,
@@ -957,10 +956,12 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: rule.projectId,
           serviceLevelObjectiveFeedEventType: data.eventType,
           displayColor: data.displayColor,
-          feedInfoInMarkdown: data.buildFeedInfoInMarkdown({
-            sloLink: sloLink,
-            ruleName: this.formatRuleName(rule.name),
-          }),
+          feedInfoInMarkdown: data
+            .buildFeedInfoInMarkdown({
+              sloLink: sloLink,
+              ruleName: this.formatRuleName(rule.name),
+            })
+            .toString(),
           moreInformationInMarkdown:
             data.moreInformationInMarkdown || undefined,
           userId: data.userId || undefined,
@@ -974,11 +975,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
-  // "**Production APIs**" - escaped, bold, and never an empty pair of stars.
-  private formatRuleName(name: string | undefined): string {
-    const escapedName: string = escapeMarkdownInline(name).trim();
+  // "**Production APIs**" - placed as text, bold, and never an empty pair of stars.
+  private formatRuleName(name: string | undefined): MarkdownText {
+    const trimmedName: string = (name || "").trim();
 
-    return escapedName ? `**${escapedName}**` : "**an unnamed rule**";
+    return trimmedName
+      ? mdText`**${trimmedName}**`
+      : mdText`**an unnamed rule**`;
   }
 
   /*
@@ -986,8 +989,8 @@ export class Service extends ProjectReferencesService<Model> {
    * is on, and what it matches in words.
    */
   private async describeRuleForFeed(rule: Model): Promise<string> {
-    const lines: Array<string> = [
-      `- **Status:** ${rule.isEnabled === false ? "Disabled" : "Enabled"}`,
+    const lines: Array<MarkdownText> = [
+      mdText`**Status:** ${rule.isEnabled === false ? "Disabled" : "Enabled"}`,
     ];
 
     try {
@@ -996,24 +999,20 @@ export class Service extends ProjectReferencesService<Model> {
       );
 
       lines.push(
-        `- **Match criteria:** ${escapeMarkdownInline(
-          describeSloMonitorRuleCriteria({
-            rule: rule,
-            labelNameById: labelNameById,
-          }),
-        )}`,
+        mdText`**Match criteria:** ${describeSloMonitorRuleCriteria({
+          rule: rule,
+          labelNameById: labelNameById,
+        })}`,
       );
     } catch (error) {
       logger.error(`Error describing SLO monitor rule criteria: ${error}`);
     }
 
     if (rule.description) {
-      lines.push(
-        `- **Description:** ${escapeMarkdownInline(rule.description)}`,
-      );
+      lines.push(mdText`**Description:** ${rule.description}`);
     }
 
-    return lines.join("\n");
+    return FeedMarkdown.bulletList(lines).toString();
   }
 
   /*

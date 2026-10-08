@@ -13,10 +13,10 @@ import Email from "../../../../Types/Email";
 import ObjectID from "../../../../Types/ObjectID";
 import Phone from "../../../../Types/Phone";
 import StatusPageSubscriberNotificationMethod from "../../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import { escapeMarkdownInline } from "../../../../Utils/Markdown/MarkdownEscape";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 /*
  * The per-send record the incident and episode subscriber jobs keep: it
  * decides whether an email or SMS goes to an address already sent it in this
@@ -580,15 +580,15 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
     const markdown: string = record.toMarkdown();
 
     expect(markdown).toContain("**\\*Internal\\* \\[ops\\]**");
-    expect(markdown).toContain('Subject: "Line one Line \\_two\\_ \\<b\\>".');
+    expect(markdown).toContain('Subject: "Line one Line \\_two\\_ \\<b>".');
     expect(markdown.split("\n")).toHaveLength(3);
   });
 
   /*
    * The jobs put this record and the custom field values sent into one feed
-   * item, and the custom field half escapes with the shared helper
-   * (escapeMarkdownInline). Both halves escape by the same rule, so a name
-   * is never a link or an image in one half and text in the other.
+   * item, and the custom field half is written with the shared builder
+   * (mdText). Both halves escape by the same rule, so a name is never a link
+   * or an image in one half and text in the other.
    */
   test("escapes page names, excluded pages and subjects as the shared feed helper does", () => {
     const record: SubscriberNotificationDeliveryRecord =
@@ -612,14 +612,15 @@ describe("SubscriberNotificationDeliveryRecord.toMarkdown", () => {
 
     const markdown: string = record.toMarkdown();
 
-    expect(markdown).toContain(`**${escapeMarkdownInline(name)}**`);
+    expect(markdown).toContain(mdText`**${name}**`.toString());
     expect(markdown).toContain(
-      `Subject: "${escapeMarkdownInline("[Acme] Checkout - down (EU)!")}".`,
+      mdText`Subject: "${"[Acme] Checkout - down (EU)!"}".`.toString(),
     );
     expect(markdown).toContain(
-      escapeMarkdownInline("Site 07 ![x](https://t.example/q.png)"),
+      mdText`, ${"Site 07 ![x](https://t.example/q.png)"}`.toString().slice(2),
     );
-    expect(markdown).not.toContain("](https://");
+    // Every "]" is escaped, so none ends a link's words.
+    expect(markdown).not.toMatch(/(?<!\\)\]\(https:\/\//);
   });
 
   test("a page goes by its name, then its public title", () => {

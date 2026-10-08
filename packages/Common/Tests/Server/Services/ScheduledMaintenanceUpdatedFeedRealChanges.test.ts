@@ -1003,7 +1003,7 @@ describe("each real change adds its own line, once", () => {
 
     // Each name is plain text inside its link's own text.
     expect(markdown).toContain(
-      `${RESOURCES_HEADING}:\n\n- [Host web\\-01](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_1})\n- [Host web\\-02](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_2})\n`,
+      `${RESOURCES_HEADING}:\n\n- [Host web-01](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_1})\n- [Host web-02](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_2})\n`,
     );
     // The status it changes its monitors to was sent back unchanged.
     expect(markdown).not.toContain(MONITOR_STATUS_HEADING);

@@ -20,6 +20,16 @@ If the generated migration builds an index (`CREATE INDEX`) or adds a foreign ke
 
 Clickhouse migrations are written manually. Please write the migration code in DataMigrations and follow the same pattern as other migrations.
 
+### Feed and chat Markdown
+
+Feed items and Slack / Microsoft Teams messages are Markdown with people's text in them: names, titles, labels, rule names. Write that Markdown with the `mdText` tag from `packages/Common/Utils/Markdown/FeedMarkdown.ts`. It escapes every value for where it sits (a sentence, a link's words or address, a code span, a table row, the start of a line), and places a `MarkdownText` (built with `mdText` or a `FeedMarkdown` helper) as it is, so nothing is escaped twice.
+
+- Join pieces with `FeedMarkdown.join` / `bulletList` / `numberedList`, not `Array.join` or `+`, and never turn a `MarkdownText` into a string to place it again.
+- Markdown a person wrote goes in with `FeedMarkdown.asMarkdown`, OneUptime AI's with `FeedMarkdown.aiWritten` (`aiWrittenForTeams` for the Teams bot), and text from outside OneUptime with `FeedMarkdown.writtenOutside` / `reportedValue`.
+- Only `packages/Common/Utils/Markdown/` imports `MarkdownEscape` or `UntrustedMarkdown`.
+
+`FeedAndChatPlainTextEscapedGuard` (packages/Common/Tests/Server/Services) enforces this for every feed and chat sink, including `ee/Server`.
+
 ### After you make a change.
 
 Do not lint the entire project. Only lint the files you have modified by passing their paths explicitly to `npx eslint --fix` from the root. Do not run `npm run lint`, `npm run fix-lint`, or `npm run fix`, as these commands lint the entire project.

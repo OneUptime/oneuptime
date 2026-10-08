@@ -48,6 +48,7 @@ import {
   resolveAlertSeverityIdForProject,
   resolveIncidentSeverityIdForProject,
 } from "../SecurityEventAlerting";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The threat-intel matcher: every minute, join each enabled feed's ACTIVE
@@ -447,7 +448,8 @@ export default class ThreatIntelMatcher {
       fingerprint: this.buildFingerprint(feed.id!, matchGroup.indicatorValue),
       title: `[Threat Intel] ${feed.name} — ${matchGroup.indicatorValue}`,
       description: this.buildMatchDescription(data),
-      rootCause: `Threat intel feed "${feed.name}" indicator matched security events.`,
+      rootCause:
+        mdText`Threat intel feed "${feed.name}" indicator matched security events.`.toString(),
     };
   }
 

@@ -1,5 +1,4 @@
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentMember";
 import IncidentFeedService from "./IncidentFeedService";
@@ -20,6 +19,7 @@ import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import IncidentRoleService from "./IncidentRoleService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -176,7 +176,8 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.IncidentMemberRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👤 Removed **${escapeMarkdownValue(user.name.toString())}** (${escapeMarkdownValue(user.email?.toString())}) as **${escapeMarkdownValue(roleName)}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
+            feedInfoInMarkdown:
+              mdText`👤 Removed **${user.name.toString()}** (${user.email?.toString()}) as **${roleName}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`.toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -237,12 +238,11 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: projectId,
           incidentFeedEventType: IncidentFeedEventType.IncidentMemberAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👤 Added **${await UserService.getUserMarkdownString(
-            {
+          feedInfoInMarkdown:
+            mdText`👤 Added **${await UserService.getUserMarkdownString({
               userId: userId,
               projectId: projectId,
-            },
-          )}** as **${escapeMarkdownValue(roleName)}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
+            })}** as **${roleName}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`.toString(),
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

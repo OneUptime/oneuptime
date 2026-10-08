@@ -118,10 +118,7 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
+
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -180,6 +177,10 @@ import StartingStageUtil, {
 import ResolvedStateUtil from "../../Utils/ResolvedState";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * How an update changed an incident's status page scope, for its feed item.
@@ -3288,12 +3289,11 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (declaredByUserId && !createBy.data.rootCause) {
-      createBy.data.rootCause = `Incident created by ${await UserService.getUserMarkdownString(
-        {
+      createBy.data.rootCause =
+        mdText`Incident created by ${await UserService.getUserMarkdownString({
           userId: declaredByUserId,
           projectId: projectId,
-        },
-      )}`;
+        })}`.toString();
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
@@ -4276,7 +4276,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     for (const statusPage of statusPages) {
       // A page name is free text: kept from turning into a link or an image.
-      markdown += `- [${escapeMarkdownInline(statusPage.name || "Untitled status page")}](${(await StatusPageService.getStatusPageLinkInDashboard(incident.projectId!, statusPage.id!)).toString()})\n`;
+      markdown += mdText`- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(incident.projectId!, statusPage.id!)).toString()})\n`;
     }
 
     return markdown;
@@ -4302,21 +4302,22 @@ export class Service extends ProjectReferencesService<Model> {
        * is not a mention, while "Site 03 - payments (EU)" reads unchanged.
        * The description stays Markdown: that is what it is written in.
        */
-      let feedInfoInMarkdown: string = `#### 🚨 Incident ${incidentNumberDisplay} Created:
+      let feedInfoInMarkdown: string =
+        mdText`#### 🚨 Incident ${incidentNumberDisplay} Created:
         
-**${escapeMarkdownValue(incident.title || "No title provided.")}**:
+**${incident.title || "No title provided."}**:
 
-${incident.description || "No description provided."}
+${FeedMarkdown.asMarkdown(incident.description || "No description provided.")}
 
-`;
+`.toString();
 
       // The state and severity names are plain text, escaped as the title is.
       if (incident.currentIncidentState?.name) {
-        feedInfoInMarkdown += `🔴 **Incident State**: ${escapeMarkdownValue(incident.currentIncidentState.name)} \n\n`;
+        feedInfoInMarkdown += mdText`🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
       }
 
       if (incident.incidentSeverity?.name) {
-        feedInfoInMarkdown += `⚠️ **Severity**: ${escapeMarkdownValue(incident.incidentSeverity.name)} \n\n`;
+        feedInfoInMarkdown += mdText`⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
       }
 
       /*
@@ -4341,7 +4342,7 @@ ${incident.description || "No description provided."}
           projectId: incident.projectId!,
           resources: resources,
         })) {
-          feedInfoInMarkdown += `${resourceLine}\n`;
+          feedInfoInMarkdown += mdText`${resourceLine}\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
@@ -4354,19 +4355,19 @@ ${incident.description || "No description provided."}
       }
 
       if (incident.rootCause) {
-        feedInfoInMarkdown += `\n
+        feedInfoInMarkdown += mdText`\n
 📄 **Root Cause**:
 
-${incident.rootCause || "No root cause provided."}
+${FeedMarkdown.asMarkdown(incident.rootCause || "No root cause provided.")}
 
 `;
       }
 
       if (incident.remediationNotes) {
-        feedInfoInMarkdown += `\n 
+        feedInfoInMarkdown += mdText`\n 
 🎯 **Remediation Notes**:
 
-${incident.remediationNotes || "No remediation notes provided."}
+${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes provided.")}
 
 
 `;
@@ -4790,8 +4791,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
       const postmortemFeedMarkdown: string =
         IncidentPostmortemPublication.hasNote(noteValue)
-          ? `**📘 Postmortem Note updated for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n${noteValue}`
-          : `**📘 Postmortem Note cleared for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n_No postmortem note provided._`;
+          ? mdText`**📘 Postmortem Note updated for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n${FeedMarkdown.asMarkdown(noteValue)}`.toString()
+          : mdText`**📘 Postmortem Note cleared for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n_No postmortem note provided._`.toString();
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: data.incidentId,
@@ -5273,22 +5274,24 @@ ${incident.remediationNotes || "No remediation notes provided."}
         }
 
         let shouldAddIncidentFeed: boolean = false;
-        let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
+        let feedInfoInMarkdown: string =
+          mdText`**[${incidentLabel}](${incidentLink.toString()}) was updated.**`.toString();
 
         /*
          * A line for each of the title, root cause, description, remediation
          * notes and labels the update really changed: writing back what the
          * incident holds - every save of a card sends its fields - adds none.
          */
-        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
-          written: updatedIncidentData,
-          changes: fieldChanges,
-          projectId: projectId,
-          recordName: "Incident",
-        });
+        const fieldsMarkdown: MarkdownText =
+          await EventFieldChange.getFeedMarkdown({
+            written: updatedIncidentData,
+            changes: fieldChanges,
+            projectId: projectId,
+            recordName: "Incident",
+          });
 
-        if (fieldsMarkdown) {
-          feedInfoInMarkdown += fieldsMarkdown;
+        if (!fieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += fieldsMarkdown.toString();
           shouldAddIncidentFeed = true;
         }
 
@@ -5307,8 +5310,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
             });
 
           if (incidentSeverity) {
-            feedInfoInMarkdown += `\n\n**⚠️ Incident Severity**:
-${escapeMarkdownValue(incidentSeverity.name)}
+            feedInfoInMarkdown += mdText`\n\n**⚠️ Incident Severity**:
+${incidentSeverity.name}
 `;
 
             shouldAddIncidentFeed = true;
@@ -5456,7 +5459,7 @@ ${escapeMarkdownValue(incidentSeverity.name)}
 
               // Each name is plain text inside its link's own text.
               for (const monitor of monitorsRemoved) {
-                feedInfoInMarkdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += mdText`- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -5489,7 +5492,7 @@ ${escapeMarkdownValue(incidentSeverity.name)}
               feedInfoInMarkdown += `\n\n**🌎 Monitors Added**:\n`;
 
               for (const monitor of monitorsAdded) {
-                feedInfoInMarkdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += mdText`- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -5545,7 +5548,7 @@ ${escapeMarkdownValue(incidentSeverity.name)}
                 });
 
               if (oldMonitorStatus && newMonitorStatus) {
-                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${escapeMarkdownValue(oldMonitorStatus.name)} to ${escapeMarkdownValue(newMonitorStatus.name)}`;
+                feedInfoInMarkdown += mdText`\n\n**🔄 Monitor Status Changed**:\n- **From** ${oldMonitorStatus.name} to ${newMonitorStatus.name}`;
                 shouldAddIncidentFeed = true;
               }
             }
@@ -5787,10 +5790,12 @@ ${escapeMarkdownValue(incidentSeverity.name)}
         },
       });
 
-      const statusPageLines: (ids: Array<string>) => Promise<string> = async (
+      const statusPageLines: (
         ids: Array<string>,
-      ): Promise<string> => {
-        let lines: string = "";
+      ) => Promise<MarkdownText> = async (
+        ids: Array<string>,
+      ): Promise<MarkdownText> => {
+        const lines: Array<MarkdownText> = [];
 
         for (const id of ids) {
           const statusPage: StatusPage | undefined = statusPages.find(
@@ -5801,25 +5806,27 @@ ${escapeMarkdownValue(incidentSeverity.name)}
 
           if (!statusPage) {
             // Deleted since: its name is gone with it.
-            lines += `- A deleted status page\n`;
+            lines.push(mdText`- A deleted status page\n`);
             continue;
           }
 
           // A page name is free text: kept from turning into a link or an image.
-          lines += `- [${escapeMarkdownInline(statusPage.name || "Untitled status page")}](${(await StatusPageService.getStatusPageLinkInDashboard(data.projectId, statusPage.id!)).toString()})\n`;
+          lines.push(
+            mdText`- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(data.projectId, statusPage.id!)).toString()})\n`,
+          );
         }
 
-        return lines;
+        return FeedMarkdown.join(lines, "");
       };
 
       let markdown: string = "";
 
       if (change.addedStatusPageIds.length > 0) {
-        markdown += `\n\n**📣 Status Pages Added**:\n${await statusPageLines(change.addedStatusPageIds)}`;
+        markdown += mdText`\n\n**📣 Status Pages Added**:\n${await statusPageLines(change.addedStatusPageIds)}`;
       }
 
       if (change.removedStatusPageIds.length > 0) {
-        markdown += `\n\n**🔕 Status Pages Removed**:\n${await statusPageLines(change.removedStatusPageIds)}`;
+        markdown += mdText`\n\n**🔕 Status Pages Removed**:\n${await statusPageLines(change.removedStatusPageIds)}`;
       }
 
       markdown += change.isScoped

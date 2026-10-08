@@ -4,7 +4,6 @@ import OneUptimeDate from "../../../Types/Date";
 import EventInterval from "../../../Types/Events/EventInterval";
 import Recurring from "../../../Types/Events/Recurring";
 import ObjectID from "../../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import StatusPageService from "../../Services/StatusPageService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import ReferenceChange from "../Database/ReferenceChange";
@@ -13,6 +12,10 @@ import EventFieldChange, {
   EventValuesBeforeUpdate,
   SCHEDULED_MAINTENANCE_FIELDS,
 } from "../EventFieldChange";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * WHAT AN UPDATE REALLY CHANGES ON A SCHEDULED MAINTENANCE EVENT.
@@ -299,67 +302,76 @@ export default class ScheduledMaintenanceFieldChange {
    * The feed item's lines for the title, the window, the description and
    * the reminders before the event an update changed, in that order - the
    * order the feed has always listed them in - each showing the value the
-   * update wrote; "" when it changed none of them. The labels, the affected
-   * resources and the status pages are the service's to add, after them.
+   * update wrote; empty when it changed none of them. The labels, the
+   * affected resources and the status pages are the service's to add, after
+   * them.
    */
   public static getFeedMarkdown(data: {
     written: Record<string, unknown> | null | undefined;
     changes: ScheduledMaintenanceFieldSet;
-  }): string {
+  }): MarkdownText {
     const written: Record<string, unknown> = data.written || {};
-    let markdown: string = "";
+    const lines: Array<MarkdownText> = [];
 
     if (data.changes.textColumns.includes("title")) {
-      markdown += EventFieldChange.getTextMarkdown({
-        column: "title",
-        value: written["title"],
-        recordName: "Scheduled Maintenance",
-        isMarkdown: false,
-      });
-    }
-
-    for (const column of data.changes.timeColumns) {
-      markdown += this.getTimeMarkdown({
-        column: column,
-        value: written[column],
-      });
-    }
-
-    if (data.changes.textColumns.includes("description")) {
-      markdown += EventFieldChange.getTextMarkdown({
-        column: "description",
-        value: written["description"],
-        recordName: "Scheduled Maintenance",
-        isMarkdown:
-          SCHEDULED_MAINTENANCE_FIELDS.markdownColumns.includes("description"),
-      });
-    }
-
-    if (data.changes.remindersBeforeTheEvent) {
-      markdown += this.getRemindersMarkdown(
-        written[REMINDERS_BEFORE_THE_EVENT_COLUMN],
+      lines.push(
+        EventFieldChange.getTextMarkdown({
+          column: "title",
+          value: written["title"],
+          recordName: "Scheduled Maintenance",
+          isMarkdown: false,
+        }),
       );
     }
 
-    return markdown;
+    for (const column of data.changes.timeColumns) {
+      lines.push(
+        this.getTimeMarkdown({
+          column: column,
+          value: written[column],
+        }),
+      );
+    }
+
+    if (data.changes.textColumns.includes("description")) {
+      lines.push(
+        EventFieldChange.getTextMarkdown({
+          column: "description",
+          value: written["description"],
+          recordName: "Scheduled Maintenance",
+          isMarkdown:
+            SCHEDULED_MAINTENANCE_FIELDS.markdownColumns.includes(
+              "description",
+            ),
+        }),
+      );
+    }
+
+    if (data.changes.remindersBeforeTheEvent) {
+      lines.push(
+        this.getRemindersMarkdown(written[REMINDERS_BEFORE_THE_EVENT_COLUMN]),
+      );
+    }
+
+    return FeedMarkdown.join(lines, "");
   }
 
   /*
    * "Shown on Status Pages" for the feed item: the pages the event is shown
    * on after the update, by name, read within its project - or, when the
-   * update took it off every page, that it did. "" when none of the pages
-   * it names can be read (deleted since, say).
+   * update took it off every page, that it did. Empty when none of the
+   * pages it names can be read (deleted since, say).
    */
   public static async getStatusPagesMarkdown(data: {
     writtenStatusPages: unknown;
     projectId: ObjectID;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     const statusPageIds: Array<string> = ReferenceChange.normalizeList(
       data.writtenStatusPages,
     );
 
     if (statusPageIds.length === 0) {
-      return `\n\n**Shown on Status Pages**: \n${this.noStatusPagesLine}\n`;
+      return mdText`\n\n**Shown on Status Pages**: \n${this.noStatusPagesLine}\n`;
     }
 
     const statusPages: Array<StatusPage> = await StatusPageService.findBy({
@@ -389,25 +401,21 @@ export default class ScheduledMaintenanceFieldChange {
       });
 
     if (names.length === 0) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
-    return `\n\n**Shown on Status Pages**:\n\n${names
-      .map((name: string): string => {
-        return `- ${escapeMarkdownValue(name)}`;
-      })
-      .join("\n")}\n`;
+    return mdText`\n\n**Shown on Status Pages**:\n\n${FeedMarkdown.bulletList(names)}\n`;
   }
 
   private static getTimeMarkdown(data: {
     column: ScheduledMaintenanceTimeColumn;
     value: unknown;
-  }): string {
+  }): MarkdownText {
     const instant: number | null = EventFieldChange.toInstant(data.value);
     const heading: string =
       data.column === "startsAt" ? "Starts At" : "Ends At";
 
-    return `\n\n**${heading}**: \n${
+    return mdText`\n\n**${heading}**: \n${
       instant === null
         ? "No time provided."
         : OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
@@ -422,7 +430,7 @@ export default class ScheduledMaintenanceFieldChange {
    * ("1 Day", "2 Hours"), longest before the event first - or, when the
    * update took every one off, that it did.
    */
-  private static getRemindersMarkdown(writtenList: unknown): string {
+  private static getRemindersMarkdown(writtenList: unknown): MarkdownText {
     const keys: Array<string> = this.normalizeReminderList(writtenList).filter(
       (key: string): boolean => {
         return this.getReminderSortValue(key) !== Number.MAX_SAFE_INTEGER;
@@ -430,14 +438,14 @@ export default class ScheduledMaintenanceFieldChange {
     );
 
     if (keys.length === 0) {
-      return `\n\n**Notify Subscribers Before Event Starts**: \n${this.noRemindersLine}\n`;
+      return mdText`\n\n**Notify Subscribers Before Event Starts**: \n${this.noRemindersLine}\n`;
     }
 
-    return `\n\n**Notify Subscribers Before Event Starts**:\n\n${keys
-      .map((key: string): string => {
-        return `- ${this.getReminderText(key)}`;
-      })
-      .join("\n")}\n`;
+    return mdText`\n\n**Notify Subscribers Before Event Starts**:\n\n${FeedMarkdown.bulletList(
+      keys.map((key: string): string => {
+        return this.getReminderText(key);
+      }),
+    )}\n`;
   }
 
   // "1 Day", "2 Hours": a reminder's key as the dashboard words it.

@@ -41,8 +41,8 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
 import logger from "../Logger";
-import { neutralizeUntrustedValue } from "../../../Utils/Markdown/UntrustedMarkdown";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Path segments that resolve to the object prototype when a dotted series
  * label key is walked as a nested property path. See the fold in
@@ -817,7 +817,7 @@ export default class MonitorTemplateUtil {
    * an incoming request or email, a certificate's fields, a device's SNMP
    * values, a series' labels. Each such text - every string anywhere in the
    * map, and every key, since {{responseBody}} places a whole object as
-   * JSON - is neutralized (neutralizeUntrustedValue): wherever the template
+   * JSON - is neutralized (FeedMarkdown.reportedValue): wherever the template
    * places it, in a sentence or inside the author's own code span or block,
    * it reads exactly as sent, and no renderer finds a mention, a link, an
    * image, a diagram or an HTML tag in it. Numbers and booleans stay what
@@ -895,7 +895,7 @@ export default class MonitorTemplateUtil {
   // Every string in `value` neutralized, object keys included.
   private static neutralizeReportedValue(value: JSONValue): JSONValue {
     if (typeof value === "string") {
-      return neutralizeUntrustedValue(value);
+      return FeedMarkdown.reportedValue(value);
     }
 
     if (Array.isArray(value)) {
@@ -908,7 +908,7 @@ export default class MonitorTemplateUtil {
       const neutralized: JSONObject = {};
 
       for (const [key, item] of Object.entries(value as JSONObject)) {
-        const neutralizedKey: string = neutralizeUntrustedValue(key);
+        const neutralizedKey: string = FeedMarkdown.reportedValue(key);
 
         // Two keys that read the same: the first one wins, as in JSON.
         if (Object.prototype.hasOwnProperty.call(neutralized, neutralizedKey)) {

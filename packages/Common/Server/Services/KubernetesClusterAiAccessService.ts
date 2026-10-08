@@ -76,6 +76,7 @@ import RunnerService, {
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import crypto from "crypto";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The agent Runner's name for a cluster, and the Runner name column bound.
@@ -2440,23 +2441,26 @@ class KubernetesClusterAiAccessServiceClass {
 
       if (data.bindingState === "first_bind") {
         displayColor = Green500;
-        feedInfoInMarkdown = `🤖 The in-cluster Runner **${runnerName}** registered from the Kubernetes agent chart (${writes}) and was bound as this cluster's AI access Runner. AI investigation is on; AI remediation is ${this.describeRemediationMode(
-          data.appliedRemediationMode,
-        )}.`;
+        feedInfoInMarkdown =
+          mdText`🤖 The in-cluster Runner **${runnerName}** registered from the Kubernetes agent chart (${writes}) and was bound as this cluster's AI access Runner. AI investigation is on; AI remediation is ${this.describeRemediationMode(
+            data.appliedRemediationMode,
+          )}.`.toString();
       } else if (
         data.bindingState === "bound_keeping_operator_settings" &&
         data.hasAiAgent &&
         !data.cluster.aiAccessConfiguredAt
       ) {
         displayColor = Green500;
-        feedInfoInMarkdown = `🤖 The in-cluster Runner **${runnerName}** ${registered} from the Kubernetes agent chart (${writes}) while this cluster's Kubernetes AI agent is offline, and was bound so AI works through it: no Runner was bound here before and AI had not run kubectl here yet. No AI setting was changed. The Kubernetes AI agent takes over again as soon as it is back online.`;
+        feedInfoInMarkdown =
+          mdText`🤖 The in-cluster Runner **${runnerName}** ${registered} from the Kubernetes agent chart (${writes}) while this cluster's Kubernetes AI agent is offline, and was bound so AI works through it: no Runner was bound here before and AI had not run kubectl here yet. No AI setting was changed. The Kubernetes AI agent takes over again as soon as it is back online.`.toString();
       } else if (data.bindingState === "bound_keeping_operator_settings") {
         displayColor = Green500;
-        feedInfoInMarkdown = `🤖 The in-cluster Runner **${runnerName}** ${registered} from the Kubernetes agent chart (${writes}) and was bound as this cluster's AI access Runner. AI access had already been configured on the cluster's AI agent page, so no AI setting was changed: AI investigation with kubectl is ${
-          data.cluster.isAiInvestigationEnabled === true ? "on" : "off"
-        } and AI remediation is ${this.describeRemediationMode(
-          data.cluster.aiRemediationMode,
-        )}, as an operator chose.`;
+        feedInfoInMarkdown =
+          mdText`🤖 The in-cluster Runner **${runnerName}** ${registered} from the Kubernetes agent chart (${writes}) and was bound as this cluster's AI access Runner. AI access had already been configured on the cluster's AI agent page, so no AI setting was changed: AI investigation with kubectl is ${
+            data.cluster.isAiInvestigationEnabled === true ? "on" : "off"
+          } and AI remediation is ${this.describeRemediationMode(
+            data.cluster.aiRemediationMode,
+          )}, as an operator chose.`.toString();
       } else if (
         data.bindingState === "left_unbound_by_operator" &&
         data.hasAiAgent &&
@@ -2468,15 +2472,19 @@ class KubernetesClusterAiAccessServiceClass {
          * unbound is most likely the agent's own — not an operator's
          * doing. Say that, and where AI access comes back from.
          */
-        feedInfoInMarkdown = `🤖 The in-cluster Runner **${runnerName}** ${registered} (${writes}) while this cluster's Kubernetes AI agent is offline, and was left unbound: AI has already run kubectl on this cluster (through its Kubernetes AI agent, or a Runner that is no longer bound), and a registering Runner is never bound over that history. No AI setting was changed. AI reaches this cluster again when its Kubernetes AI agent is back online: check the agent's pod with \`${getAiAgentLogsCommand(
-          data.aiAgentPodNamespace,
-        )}\`, or upgrade the Kubernetes agent chart again.`;
+        feedInfoInMarkdown =
+          mdText`🤖 The in-cluster Runner **${runnerName}** ${registered} (${writes}) while this cluster's Kubernetes AI agent is offline, and was left unbound: AI has already run kubectl on this cluster (through its Kubernetes AI agent, or a Runner that is no longer bound), and a registering Runner is never bound over that history. No AI setting was changed. AI reaches this cluster again when its Kubernetes AI agent is back online: check the agent's pod with \`${getAiAgentLogsCommand(
+            data.aiAgentPodNamespace,
+          )}\`, or upgrade the Kubernetes agent chart again.`.toString();
       } else if (data.bindingState === "left_unbound_by_operator") {
-        feedInfoInMarkdown = `🤖 The in-cluster Runner **${runnerName}** ${registered} (${writes}), but no Runner is bound to this cluster although one was before (or AI already ran kubectl here) — the binding was cleared by an operator, or the Runner it was bound to was deleted — so it was left unbound and no AI switch was changed. Upgrade the Kubernetes agent chart to use the Kubernetes AI agent instead.`;
+        feedInfoInMarkdown =
+          mdText`🤖 The in-cluster Runner **${runnerName}** ${registered} (${writes}), but no Runner is bound to this cluster although one was before (or AI already ran kubectl here) — the binding was cleared by an operator, or the Runner it was bound to was deleted — so it was left unbound and no AI switch was changed. Upgrade the Kubernetes agent chart to use the Kubernetes AI agent instead.`.toString();
       } else if (data.bindingState === "bound_to_other_runner") {
-        feedInfoInMarkdown = `🤖 The in-cluster Runner **${runnerName}** ${registered} (${writes}), but this cluster is bound to a different Runner in the dashboard, so it was not used.`;
+        feedInfoInMarkdown =
+          mdText`🤖 The in-cluster Runner **${runnerName}** ${registered} (${writes}), but this cluster is bound to a different Runner in the dashboard, so it was not used.`.toString();
       } else if (data.reKeyAdmission === "continuity") {
-        feedInfoInMarkdown = `🔑 The in-cluster Runner **${runnerName}** re-registered and its key was rotated (${writes}). It presented its current key, so this is the same Runner.`;
+        feedInfoInMarkdown =
+          mdText`🔑 The in-cluster Runner **${runnerName}** re-registered and its key was rotated (${writes}). It presented its current key, so this is the same Runner.`.toString();
       } else {
         /*
          * A re-key without proof is what a restarted pod looks like — and
@@ -2484,7 +2492,8 @@ class KubernetesClusterAiAccessServiceClass {
          * Said plainly, so an unexpected one stands out from a restart.
          */
         displayColor = Yellow500;
-        feedInfoInMarkdown = `🔑 The in-cluster Runner **${runnerName}** ${registered} (${writes}). That is expected when the agent's Runner pod restarts or is upgraded. If it did not, someone holding this project's telemetry ingestion key registered in its place: disable that key and delete this Runner so the agent registers afresh.`;
+        feedInfoInMarkdown =
+          mdText`🔑 The in-cluster Runner **${runnerName}** ${registered} (${writes}). That is expected when the agent's Runner pod restarts or is upgraded. If it did not, someone holding this project's telemetry ingestion key registered in its place: disable that key and delete this Runner so the agent registers afresh.`.toString();
       }
 
       await KubernetesClusterFeedService.createKubernetesClusterFeedItem({
@@ -2494,12 +2503,15 @@ class KubernetesClusterAiAccessServiceClass {
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
         displayColor,
         feedInfoInMarkdown,
-        moreInformationInMarkdown: [
-          `**Runner**: ${runnerName} (${data.runner.id?.toString() || "?"})`,
-          `**Cluster identifier**: \`${data.posture.clusterIdentifier || ""}\``,
-          `**kubectl**: ${data.posture.kubectlVersion || "not detected"}`,
-          `**Agent chart**: ${data.posture.agentChartVersion || "unknown"}`,
-        ].join("\n\n"),
+        moreInformationInMarkdown: FeedMarkdown.join(
+          [
+            mdText`**Runner**: ${runnerName} (${data.runner.id?.toString() || "?"})`,
+            mdText`**Cluster identifier**: \`${data.posture.clusterIdentifier || ""}\``,
+            mdText`**kubectl**: ${data.posture.kubectlVersion || "not detected"}`,
+            mdText`**Agent chart**: ${data.posture.agentChartVersion || "unknown"}`,
+          ],
+          "\n\n",
+        ).toString(),
       });
     } catch (error) {
       logger.error(

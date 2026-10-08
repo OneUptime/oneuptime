@@ -123,11 +123,10 @@ import AIService, {
 } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../../../Utils/Markdown/MarkdownEscape";
-import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
@@ -146,7 +145,7 @@ const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
 
 /*
  * A line (already trimmed) that opens or closes a fence: three or more
- * backticks or tildes - as leniently as neutralizeAiWrittenMarkdown finds
+ * backticks or tildes - as leniently as FeedMarkdown.aiWritten finds
  * one, so code that keeps its characters there is shown as code here.
  */
 const MESSAGE_CARD_FENCE_PATTERN: RegExp = /^(`{3,}|~{3,})/;
@@ -178,6 +177,11 @@ const getMessageCardFenceOpening: GetMessageCardFenceOpeningFunction = (
 
 type EscapeMessageCardCodeFunction = (text: string) => string;
 
+type EscapeMessageCardCellFunction = (cell: string) => string;
+
+// A table row's cells: split at each "|" that is not escaped.
+const MESSAGE_CARD_CELL_SEPARATOR_PATTERN: RegExp = /(?<!\\)\|/;
+
 /*
  * A line of fenced code as a MessageCard section shows it: the characters
  * HTML would read escaped, so "<img ...>" or a comment in it is text.
@@ -189,6 +193,20 @@ const escapeMessageCardCode: EscapeMessageCardCodeFunction = (
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+};
+
+/*
+ * A table cell in a MessageCard's HTML table. Teams reads no Markdown
+ * inside the table, so the cell's Markdown escapes are undone - the text
+ * reads as written - and what HTML would read is escaped: a "<img ...>" in a
+ * name stays those characters.
+ */
+const escapeMessageCardCell: EscapeMessageCardCellFunction = (
+  cell: string,
+): string => {
+  return escapeMessageCardCode(
+    cell.replace(MARKDOWN_BACKSLASH_ESCAPE_PATTERN, "$1"),
+  );
 };
 
 // Microsoft Teams apps should always be single-tenant
@@ -702,7 +720,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         // Parse header row
         const headerLine: string = lines[0] || "";
         const headers: Array<string> = headerLine
-          .split("|")
+          .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
           .map((cell: string) => {
             return cell.trim();
           })
@@ -720,14 +738,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         // Header row
         html += "<tr>";
         for (const header of headers) {
-          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${header}</strong></th>`;
+          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${escapeMessageCardCell(header)}</strong></th>`;
         }
         html += "</tr>";
 
         // Data rows
         for (const row of dataRows) {
           const cells: Array<string> = row
-            .split("|")
+            .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
             .map((cell: string) => {
               return cell.trim();
             })
@@ -741,7 +759,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
           html += "<tr>";
           for (const cell of cells) {
-            html += `<td style="border: 1px solid #ddd; padding: 8px;">${cell}</td>`;
+            html += `<td style="border: 1px solid #ddd; padding: 8px;">${escapeMessageCardCell(cell)}</td>`;
           }
           html += "</tr>";
         }
@@ -898,7 +916,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           name.toLowerCase() === "description" ||
           name.toLowerCase() === "note"
         ) {
-          bodyTextParts.push(`**${name}:** ${value}`);
+          // Both parts come out of the Markdown line: they stay Markdown.
+          bodyTextParts.push(
+            mdText`**${FeedMarkdown.asMarkdown(name)}:** ${FeedMarkdown.asMarkdown(value)}`.toString(),
+          );
         } else {
           facts.push({ name: name, value: value });
         }
@@ -3927,24 +3948,24 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
        * The answer is written from telemetry, which can carry text meant to
        * steer the model, and it is posted to a chat: it stays the Markdown
        * the model wrote, with no image, no link whose words hide where it
-       * goes, no HTML tag and no mention in it (neutralizeAiWrittenMarkdown).
-       * A citation's label is text.
+       * goes, no HTML tag and no mention in it, fenced code included
+       * (FeedMarkdown.aiWrittenForTeams). A citation's label is text.
        */
-      let replyText: string = neutralizeAiWrittenMarkdown(
+      let replyText: MarkdownText = FeedMarkdown.aiWrittenForTeams(
         result.contentInMarkdown,
       );
 
       // Build a compact "Sources" footer from the server-minted citations.
       if (result.citations && result.citations.length > 0) {
-        const sourceLines: Array<string> = result.citations.map(
-          (citation: AIChatCitation) => {
-            return `• ${escapeMarkdownValue(citation.label)} (${citation.rowCount} rows)`;
+        const sourceLines: Array<MarkdownText> = result.citations.map(
+          (citation: AIChatCitation): MarkdownText => {
+            return mdText`• ${FeedMarkdown.textWithCode(citation.label)} (${citation.rowCount} rows)`;
           },
         );
-        replyText += `\n\n**Sources**\n${sourceLines.join("\n")}`;
+        replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;
       }
 
-      await turnContext.sendActivity(replyText);
+      await turnContext.sendActivity(replyText.toString());
       logger.debug("AI Ops answer sent successfully using TurnContext", {
         projectId: projectId.toString(),
       });
@@ -3966,7 +3987,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * first few names, then how many more. An event can cover hundreds of
    * monitors, and listing them all made the reply too large for Teams.
    */
-  public static formatAffectedMonitorNames(monitors: Array<Monitor>): string {
+  public static formatAffectedMonitorNames(
+    monitors: Array<Monitor>,
+  ): MarkdownText {
     const names: Array<string> = monitors
       .map((monitor: Monitor) => {
         return monitor.name || "";
@@ -3975,17 +3998,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return Boolean(name);
       });
 
-    // Each name is plain text, placed into the summary's Markdown.
-    const shownNames: Array<string> = names
-      .slice(0, MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES)
-      .map((name: string): string => {
-        return escapeMarkdownValue(name);
-      });
+    // Each name is plain text, placed into the summary's Markdown as text.
+    const shownNames: Array<string> = names.slice(
+      0,
+      MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES,
+    );
     const notShownCount: number = names.length - shownNames.length;
 
     return notShownCount > 0
-      ? `${shownNames.join(", ")} and ${notShownCount} more`
-      : shownNames.join(", ");
+      ? mdText`${FeedMarkdown.join(shownNames)} and ${notShownCount} more`
+      : FeedMarkdown.join(shownNames);
   }
 
   // Helper methods for bot commands
@@ -4069,9 +4091,10 @@ Currently, there are no active incidents in the system. All services are operati
 If you need to report an incident or check historical incidents, please visit the OneUptime dashboard.`;
       }
 
-      let message: string = `**Active Incidents** (${activeIncidents.length})
+      let message: string =
+        mdText`**Active Incidents** (${activeIncidents.length})
 
-`;
+`.toString();
 
       for (const incident of activeIncidents) {
         const severity: string = incident.incidentSeverity?.name || "Unknown";
@@ -4102,24 +4125,24 @@ If you need to report an incident or check historical incidents, please visit th
          * image. Escaping brackets alone is not enough there: marked, for
          * one, undoes "\[" and "\]" in a link's text before reading it.
          */
-        message += `${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${escapeMarkdownInline(incident.title)}](${incidentUrl.toString()})**
-• **Severity:** ${escapeMarkdownValue(severity)}
-• **Status:** ${escapeMarkdownValue(state)}
+        message += mdText`${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
+• **Severity:** ${severity}
+• **Status:** ${state}
 • **Declared:** ${declaredAtText}
 `;
 
         if (incident.monitors && incident.monitors.length > 0) {
-          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
             incident.monitors,
           )}\n`;
         }
 
         if (incident.description) {
           const desc: string = incident.description.replace(/\s+/g, " ");
-          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `• [Open in Dashboard](${incidentUrl.toString()})\n\n`;
+        message += mdText`• [Open in Dashboard](${incidentUrl.toString()})\n\n`;
       }
 
       return message;
@@ -4187,9 +4210,10 @@ When maintenance is scheduled, you'll see details here including:
 Check back later for upcoming maintenance windows.`;
       }
 
-      let message: string = `**Scheduled Maintenance Events** (${scheduledEvents.length})
+      let message: string =
+        mdText`**Scheduled Maintenance Events** (${scheduledEvents.length})
 
-`;
+`.toString();
 
       for (const event of scheduledEvents) {
         const state: string =
@@ -4208,24 +4232,24 @@ Check back later for upcoming maintenance windows.`;
           );
 
         // The title inside the link's text, escaped as an incident's is.
-        message += `🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${escapeMarkdownInline(event.title)}](${eventUrl.toString()})**
-• **Status:** ${escapeMarkdownValue(state)}
+        message += mdText`🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
+• **Status:** ${state}
 • **Starts:** ${startTime}
 • **Ends:** ${endTime}
 `;
 
         if (event.monitors && event.monitors.length > 0) {
-          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
             event.monitors,
           )}\n`;
         }
 
         if (event.description) {
           const desc: string = event.description.replace(/\s+/g, " ");
-          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `• [View Event](${eventUrl.toString()})\n\n`;
+        message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
       }
 
       return message;
@@ -4292,9 +4316,10 @@ When maintenance is in progress, you'll see details here including:
 All systems are currently operating normally.`;
       }
 
-      let message: string = `**Ongoing Maintenance Events** (${ongoingEvents.length})
+      let message: string =
+        mdText`**Ongoing Maintenance Events** (${ongoingEvents.length})
 
-`;
+`.toString();
 
       for (const event of ongoingEvents) {
         const state: string =
@@ -4313,24 +4338,24 @@ All systems are currently operating normally.`;
           );
 
         // The title inside the link's text, escaped as an incident's is.
-        message += `🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${escapeMarkdownInline(event.title)}](${eventUrl.toString()})**
-• **Status:** ${escapeMarkdownValue(state)}
+        message += mdText`🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
+• **Status:** ${state}
 • **Started:** ${startTime}
 • **Expected End:** ${endTime}
 `;
 
         if (event.monitors && event.monitors.length > 0) {
-          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
             event.monitors,
           )}\n`;
         }
 
         if (event.description) {
           const desc: string = event.description.replace(/\s+/g, " ");
-          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `• [View Event](${eventUrl.toString()})\n\n`;
+        message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
       }
 
       return message;
@@ -4409,9 +4434,9 @@ When alerts are triggered, you'll see details here including:
 All monitoring checks are passing normally.`;
       }
 
-      let message: string = `**Active Alerts** (${activeAlerts.length})
+      let message: string = mdText`**Active Alerts** (${activeAlerts.length})
 
-`;
+`.toString();
 
       for (const alert of activeAlerts) {
         const severity: string = alert.alertSeverity?.name || "Unknown";
@@ -4431,22 +4456,22 @@ All monitoring checks are passing normally.`;
          * Markdown character in it is escaped, as an incident's title is
          * above. The severity, state and monitor names are plain text too.
          */
-        message += `⚠️ **[Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber}: ${escapeMarkdownInline(alert.title)}](${alertUrl.toString()})**
-• **Severity:** ${escapeMarkdownValue(severity)}
-• **Status:** ${escapeMarkdownValue(state)}
+        message += mdText`⚠️ **[Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
+• **Severity:** ${severity}
+• **Status:** ${state}
 • **Triggered:** ${createdAt}
 `;
 
         if (alert.monitor?.name) {
-          message += `• **Monitor:** ${escapeMarkdownValue(alert.monitor.name)}\n`;
+          message += mdText`• **Monitor:** ${alert.monitor.name}\n`;
         }
 
         if (alert.description) {
           const desc: string = alert.description.replace(/\s+/g, " ");
-          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `• [Open in Dashboard](${alertUrl.toString()})\n\n`;
+        message += mdText`• [Open in Dashboard](${alertUrl.toString()})\n\n`;
       }
 
       return message;

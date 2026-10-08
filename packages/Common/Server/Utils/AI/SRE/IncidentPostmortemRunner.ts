@@ -10,7 +10,7 @@ import AIService from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
+import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * AI SRE — auto-draft postmortem on resolve (Phase 3, "close the loop").
@@ -129,13 +129,13 @@ export default class AIIncidentPostmortemRunner {
        * incident and previewed in its feed as the Markdown the model wrote,
        * with nothing in it that acts on its own: no chat mention, no image
        * or diagram, no link whose words hide where it goes, no HTML tag
-       * (neutralizeAiWrittenMarkdown).
+       * (FeedMarkdown.aiWritten).
        */
-      const draft: string = neutralizeAiWrittenMarkdown(
+      const draft: string = FeedMarkdown.aiWritten(
         await IncidentService.generatePostmortemFromAI({
           incidentId,
         }),
-      );
+      ).toString();
 
       if (!draft || !draft.trim()) {
         return;
@@ -154,10 +154,11 @@ export default class AIIncidentPostmortemRunner {
         projectId,
         incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
         displayColor: Blue500,
-        feedInfoInMarkdown: `## 🧠 AI — Draft Postmortem\n\nOneUptime AI drafted a postmortem for incident #${incident.incidentNumber} from the incident timeline and telemetry. It has been saved on the incident for you to review and edit.`,
+        feedInfoInMarkdown:
+          mdText`## 🧠 AI — Draft Postmortem\n\nOneUptime AI drafted a postmortem for incident #${incident.incidentNumber} from the incident timeline and telemetry. It has been saved on the incident for you to review and edit.`.toString(),
         moreInformationInMarkdown:
           draft.length > MAX_FEED_PREVIEW_CHARS
-            ? `${draft.substring(0, MAX_FEED_PREVIEW_CHARS)}\n\n…(truncated — the full draft is saved on the incident.)`
+            ? mdText`${FeedMarkdown.asMarkdown(draft.substring(0, MAX_FEED_PREVIEW_CHARS))}\n\n…(truncated — the full draft is saved on the incident.)`.toString()
             : draft,
         workspaceNotification: {
           sendWorkspaceNotification: true,

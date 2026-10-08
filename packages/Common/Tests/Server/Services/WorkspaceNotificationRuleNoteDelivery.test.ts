@@ -35,6 +35,7 @@ import WorkspaceMessagePayload, {
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import API from "../../../Utils/API";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * "When you post a private note or a public note, it does not post it to an
  * incident channel or an alert channel" — the whole path, from the feed item a
@@ -106,7 +107,7 @@ beforeEach((): void => {
 
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("**Jane Doe**");
+    .mockResolvedValue(FeedMarkdown.asMarkdown("**Jane Doe**"));
 
   // The incident's own channels, one per workspace.
   jest

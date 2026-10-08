@@ -14,7 +14,6 @@ import Model from "../../Models/DatabaseModels/AlertEpisode";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -69,6 +68,7 @@ import StartingStageUtil, {
 } from "../../Utils/StartingStage";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The two names of an episode's state, ID column first. A write may name it
@@ -560,14 +560,15 @@ export class Service extends ProjectReferencesService<Model> {
      * image, raw HTML, a chat mention or a link that hides where it goes.
      * The description stays Markdown.
      */
-    let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
+    let feedInfoInMarkdown: string =
+      mdText`#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
 
-**${escapeMarkdownValue(episode.title || "No title provided.")}**
+**${episode.title || "No title provided."}**
 
-`;
+`.toString();
 
     if (episode.description) {
-      feedInfoInMarkdown += `${episode.description}\n\n`;
+      feedInfoInMarkdown += mdText`${FeedMarkdown.asMarkdown(episode.description)}\n\n`;
     }
 
     if (episode.isManuallyCreated) {
@@ -679,11 +680,11 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
-      feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
+      feedInfoInMarkdown += mdText`The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
 
       // Each policy name is plain text.
       for (const policyName of policyNames) {
-        feedInfoInMarkdown += `- ${escapeMarkdownValue(policyName)}\n`;
+        feedInfoInMarkdown += mdText`- ${policyName}\n`;
       }
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({

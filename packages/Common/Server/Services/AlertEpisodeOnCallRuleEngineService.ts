@@ -10,7 +10,11 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -210,36 +214,24 @@ class AlertEpisodeOnCallRuleEngineServiceClass {
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${escapeMarkdownValue(ruleNames[0])}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${escapeMarkdownValue(n)}**`;
-              })
-              .join(", ");
-
-      const policiesPart: string =
-        policyNames.length > 0
-          ? policyNames
-              .map((n: string) => {
-                return `\n- ${escapeMarkdownValue(n)}`;
-              })
-              .join("")
-          : "\n- (no named policies)";
-
-      const feedInfoInMarkdown: string = `📞 **Alert Episode On-Call Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAttached the following on-call ${
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "📞",
+          ruleKind: "Alert Episode On-Call Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAttached the following on-call ${
         policyNames.length === 1 ? "policy" : "policies"
-      } to the episode:${policiesPart}`;
+      } to the episode:\n${FeedMarkdown.bulletList(policyNames, {
+        whenEmpty: "(no named policies)",
+      })}`;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id,
         projectId: episode.projectId,
         alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(

@@ -36,6 +36,12 @@ import { getPodmanAlertTemplateById } from "../../../../Types/Monitor/PodmanAler
 import { getIoTAlertTemplateById } from "../../../../Types/Monitor/IotAlertTemplates";
 import { describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * UNIT-CARRYING ROOT CAUSE FOR HOST, DOCKER, PODMAN AND IOT MONITORS.
  *
@@ -671,7 +677,7 @@ describe("platform root cause without a metric context", () => {
       monitorStep: MonitorStep;
       monitor: Monitor;
       criteriaInstance?: MonitorCriteriaInstance;
-    }) => Promise<string | null>;
+    }) => Promise<MarkdownText | null>;
   };
 
   test("names the step's first query and adds no Metric Details", async () => {
@@ -696,19 +702,21 @@ describe("platform root cause without a metric context", () => {
     monitor.projectId = ObjectID.generate();
     monitor.monitorType = MonitorType.Host;
 
-    const context: string | null = await (
-      MonitorCriteriaEvaluator as unknown as EvaluatorPrivate
-    ).buildRootCauseContext({
-      dataToProcess: {
-        monitorId: ObjectID.generate(),
-        projectId: monitor.projectId,
-        metricViewConfig: MonitorStep.getMetricsViewConfig(monitorStep)!,
-        metricResult: [],
-      },
-      monitorStep,
-      monitor,
-      criteriaInstance,
-    });
+    const context: string | null = textOf(
+      await (
+        MonitorCriteriaEvaluator as unknown as EvaluatorPrivate
+      ).buildRootCauseContext({
+        dataToProcess: {
+          monitorId: ObjectID.generate(),
+          projectId: monitor.projectId,
+          metricViewConfig: MonitorStep.getMetricsViewConfig(monitorStep)!,
+          metricResult: [],
+        },
+        monitorStep,
+        monitor,
+        criteriaInstance,
+      }),
+    );
 
     expect(context).toBe(
       "**Host Details**\n- Host: web-01\n- Metric: `system.cpu.load_average.1m`",

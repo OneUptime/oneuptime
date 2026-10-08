@@ -2004,14 +2004,16 @@ describe("'show ...' replies name ten affected monitors, then how many more", ()
 
 describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
   test("no monitors: an empty string", () => {
-    expect(MicrosoftTeamsUtil.formatAffectedMonitorNames([])).toBe("");
+    expect(MicrosoftTeamsUtil.formatAffectedMonitorNames([]).toString()).toBe(
+      "",
+    );
   });
 
   test("one monitor: its name", () => {
     expect(
       MicrosoftTeamsUtil.formatAffectedMonitorNames(
         monitorsNamed(["Checkout API"]),
-      ),
+      ).toString(),
     ).toBe("Checkout API");
   });
 
@@ -2019,7 +2021,9 @@ describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
     const names: Array<string> = numberedNames(10);
 
     expect(
-      MicrosoftTeamsUtil.formatAffectedMonitorNames(monitorsNamed(names)),
+      MicrosoftTeamsUtil.formatAffectedMonitorNames(
+        monitorsNamed(names),
+      ).toString(),
     ).toBe(names.join(", "));
   });
 
@@ -2027,7 +2031,9 @@ describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
     const names: Array<string> = numberedNames(11);
 
     expect(
-      MicrosoftTeamsUtil.formatAffectedMonitorNames(monitorsNamed(names)),
+      MicrosoftTeamsUtil.formatAffectedMonitorNames(
+        monitorsNamed(names),
+      ).toString(),
     ).toBe(`${names.slice(0, 10).join(", ")} and 1 more`);
   });
 
@@ -2036,7 +2042,7 @@ describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
 
     const line: string = MicrosoftTeamsUtil.formatAffectedMonitorNames(
       monitorsNamed(names),
-    );
+    ).toString();
 
     expect(line).toBe(`${names.slice(0, 10).join(", ")} and 1490 more`);
     expect(line).not.toContain("Monitor 0011");
@@ -2047,14 +2053,14 @@ describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
     expect(
       MicrosoftTeamsUtil.formatAffectedMonitorNames(
         monitorsNamed(["", "Checkout API", undefined, "Payments", ""]),
-      ),
+      ).toString(),
     ).toBe("Checkout API, Payments");
 
     const tenNamed: Array<string> = numberedNames(10);
     expect(
       MicrosoftTeamsUtil.formatAffectedMonitorNames(
         monitorsNamed([...tenNamed, "", undefined, "", undefined, ""]),
-      ),
+      ).toString(),
     ).toBe(tenNamed.join(", "));
 
     const twelveNamed: Array<string> = numberedNames(12);
@@ -2067,7 +2073,7 @@ describe("MicrosoftTeamsUtil.formatAffectedMonitorNames", () => {
           ...twelveNamed.slice(5),
           "",
         ]),
-      ),
+      ).toString(),
     ).toBe(`${twelveNamed.slice(0, 10).join(", ")} and 2 more`);
   });
 });

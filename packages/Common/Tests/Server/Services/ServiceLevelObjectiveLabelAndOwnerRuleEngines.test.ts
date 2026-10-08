@@ -37,6 +37,7 @@ import RuleCriteria, {
 } from "../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../Utils/Rules/RuleEngineLimits";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * SLO label and owner rules - what is specific to SLOs.
  *
@@ -222,7 +223,7 @@ beforeEach(() => {
   jest.spyOn(logger, "debug").mockImplementation(() => {});
   linkSpy = jest
     .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-    .mockResolvedValue(SLO_LINK);
+    .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK));
   feedSpy = jest
     .spyOn(
       ServiceLevelObjectiveFeedService,
@@ -613,7 +614,7 @@ describe("ServiceLevelObjectiveLabelRuleEngineService", () => {
 
       const more: string = feedPayloads()[0]!.moreInformationInMarkdown!;
       expect(more).toBe(
-        "**Label rules that matched**: **\\!\\[x\\]\\(https://tracker.example/p.png\\) \\*\\*bold\\*\\***",
+        "**Label rules that matched**: **!\\[x\\](https://tracker.example/p.png) \\*\\*bold\\*\\***",
       );
       expect(more).not.toContain("![x](");
     });
@@ -1080,7 +1081,7 @@ describe("ServiceLevelObjectiveOwnerRuleEngineService", () => {
       const payload: FeedPayload = feedPayloads()[0]!;
       expect(payload.feedInfoInMarkdown).toContain("by 2 owner rules.");
       expect(payload.moreInformationInMarkdown).toBe(
-        "**Owner rules that matched**: **\\[a\\]\\(b\\)**, **Plain**",
+        "**Owner rules that matched**: **\\[a\\](b)**, **Plain**",
       );
     });
 

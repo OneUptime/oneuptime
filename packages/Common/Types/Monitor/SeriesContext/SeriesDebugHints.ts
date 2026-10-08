@@ -1,11 +1,11 @@
 import { JSONObject } from "../../JSON";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
-import {
-  neutralizeChatControlSequences,
-  neutralizeChatLinkSequences,
-} from "../../../Utils/Markdown/MarkdownEscape";
 
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 // Any run of line breaks inside one command.
 const COMMAND_LINE_BREAK_PATTERN: RegExp = /[\r\n]+/g;
 
@@ -800,10 +800,10 @@ export default class SeriesDebugHints {
    * can concatenate unconditionally.
    *
    * Each command names values from the telemetry (quoteForShell), and sits
-   * on one line of its fenced block: a line break in a value would let the
-   * value close the fence and go on as Markdown, so it becomes a space. A
-   * chat mention in a value is broken (neutralizeChatControlSequences):
-   * Slack reads one even inside code.
+   * on one line of its fenced block: a line break in a value would end the
+   * list item and its block, so it becomes a space. mdText places the
+   * command as code: the fence is longer than any in it, and a chat mention
+   * or Slack link in a value is broken - Slack reads both even inside code.
    */
   public static buildMarkdownBlock(input: {
     monitorType: MonitorType | undefined;
@@ -822,23 +822,18 @@ export default class SeriesDebugHints {
 
     const maxCommands: number = input.maxCommands ?? 6;
 
-    const lines: Array<string> = commands
+    const lines: Array<MarkdownText> = commands
       .slice(0, Math.max(maxCommands, 1))
-      .map((command: SeriesDebugCommand) => {
-        /*
-         * One line, so a label value cannot end the code block; and no
-         * mention or link for Slack, which reads code as it is (a quoted
-         * value is the only place a "<" can come from).
-         */
-        const commandLine: string = neutralizeChatLinkSequences(
-          neutralizeChatControlSequences(
-            command.command.replace(COMMAND_LINE_BREAK_PATTERN, " "),
-          ),
+      .map((command: SeriesDebugCommand): MarkdownText => {
+        // One line, so a label value cannot end the list item or its block.
+        const commandLine: string = command.command.replace(
+          COMMAND_LINE_BREAK_PATTERN,
+          " ",
         );
 
-        return `- ${command.purpose}:\n  \`\`\`\n  ${commandLine}\n  \`\`\``;
+        return mdText`- ${command.purpose}:\n  \`\`\`\n  ${commandLine}\n  \`\`\``;
       });
 
-    return `**Start here**\n${lines.join("\n")}`;
+    return mdText`**Start here**\n${FeedMarkdown.join(lines, "\n")}`.toString();
   }
 }

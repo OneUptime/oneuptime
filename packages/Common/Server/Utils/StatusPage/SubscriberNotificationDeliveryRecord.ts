@@ -5,13 +5,16 @@ import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import StatusPageSubscriberUnsubscribe from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
-import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
 import logger, { EXTERNAL_FAULT, LogAttributes } from "../Logger";
 import {
   ExcludedStatusPage,
   StatusPageExclusionReason,
 } from "./StatusPageExclusion";
 import SubscriberNotificationTiming from "./SubscriberNotificationTiming";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * What one subscriber send - an incident created, a state change, a public
@@ -456,20 +459,23 @@ export default class SubscriberNotificationDeliveryRecord {
    * send touched no status page at all.
    */
   public toMarkdown(): string {
-    const sections: Array<string> = [];
+    const sections: Array<MarkdownText> = [];
 
     if (this.deliveries.length > 0) {
-      const lines: Array<string> = this.deliveries.map(
-        (delivery: StatusPageDelivery): string => {
-          return `- **${escapeMarkdownInline(delivery.statusPageName)}**: ${this.describeDelivery(delivery)}`;
+      // A page's name and the subject its email went out with are text.
+      const lines: Array<MarkdownText> = this.deliveries.map(
+        (delivery: StatusPageDelivery): MarkdownText => {
+          return mdText`**${delivery.statusPageName}**: ${this.describeDelivery(delivery)}`;
         },
       );
 
-      sections.push(`**Status pages:**\n\n${lines.join("\n")}`);
+      sections.push(
+        mdText`**Status pages:**\n\n${FeedMarkdown.bulletList(lines)}`,
+      );
 
       if (this.dedupeEmailAndSms) {
         sections.push(
-          "Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.",
+          mdText`Email and SMS were sent once per address across these status pages, because this is limited to specific status pages. Someone subscribed on more than one of them got the message of the first page in this list.`,
         );
       }
     }
@@ -483,10 +489,8 @@ export default class SubscriberNotificationDeliveryRecord {
           return excluded.reason === reason;
         })
         .map((excluded: ExcludedStatusPage): string => {
-          return escapeMarkdownInline(
-            SubscriberNotificationDeliveryRecord.getStatusPageName(
-              excluded.statusPage,
-            ),
+          return SubscriberNotificationDeliveryRecord.getStatusPageName(
+            excluded.statusPage,
           );
         });
 
@@ -498,11 +502,11 @@ export default class SubscriberNotificationDeliveryRecord {
       const more: number = names.length - listed.length;
 
       sections.push(
-        `**Not sent to ${names.length} ${names.length === 1 ? EXCLUSION_HEADINGS[reason].one : EXCLUSION_HEADINGS[reason].many}:** ${listed.join(", ")}${more > 0 ? `, and ${more} more` : ""}.`,
+        mdText`**Not sent to ${names.length} ${names.length === 1 ? EXCLUSION_HEADINGS[reason].one : EXCLUSION_HEADINGS[reason].many}:** ${FeedMarkdown.join(listed)}${more > 0 ? mdText`, and ${more} more` : ""}.`,
       );
     }
 
-    return sections.join("\n\n");
+    return FeedMarkdown.join(sections, "\n\n").toString();
   }
 
   /*
@@ -713,8 +717,9 @@ export default class SubscriberNotificationDeliveryRecord {
       text += ` Not sent again to ${alreadySent.join(" and ")} already sent it through another status page.`;
     }
 
+    // Plain text: toMarkdown places the whole line, the subject included.
     if (delivery.subject !== undefined) {
-      text += ` Subject: "${escapeMarkdownInline(delivery.subject)}".`;
+      text += ` Subject: "${delivery.subject}".`;
     }
 
     return text;

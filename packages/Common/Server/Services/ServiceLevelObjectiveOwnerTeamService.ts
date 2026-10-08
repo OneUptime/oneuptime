@@ -3,7 +3,6 @@ import Model from "../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import Team from "../../Models/DatabaseModels/Team";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -16,6 +15,7 @@ import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import TeamService from "./TeamService";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 const SLO_OWNER_TEAM_SUBJECT: string = "SLO owner team";
 
@@ -146,7 +146,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       try {
-        const teamName: string | null = await this.getEscapedTeamName(teamId);
+        const teamName: string | null = await this.getTeamName(teamId);
 
         if (!teamName) {
           continue;
@@ -159,12 +159,13 @@ export class Service extends DatabaseService<Model> {
             serviceLevelObjectiveFeedEventType:
               ServiceLevelObjectiveFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${teamName}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
-              {
-                projectId: projectId,
-                sloId: serviceLevelObjectiveId,
-              },
-            )}.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${teamName}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
+                {
+                  projectId: projectId,
+                  sloId: serviceLevelObjectiveId,
+                },
+              )}.`.toString(),
             userId: deletedByUserId || undefined,
           },
         );
@@ -196,7 +197,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      const teamName: string | null = await this.getEscapedTeamName(teamId);
+      const teamName: string | null = await this.getTeamName(teamId);
 
       if (!teamName) {
         return createdItem;
@@ -209,12 +210,13 @@ export class Service extends DatabaseService<Model> {
           serviceLevelObjectiveFeedEventType:
             ServiceLevelObjectiveFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${teamName}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
-            {
-              projectId: projectId,
-              sloId: serviceLevelObjectiveId,
-            },
-          )}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Added team **${teamName}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
+              {
+                projectId: projectId,
+                sloId: serviceLevelObjectiveId,
+              },
+            )}.`.toString(),
           userId: createdByUserId || undefined,
         },
       );
@@ -228,8 +230,11 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
-  // Null when the team is gone or has no name, so no half-empty item is posted.
-  private async getEscapedTeamName(teamId: ObjectID): Promise<string | null> {
+  /*
+   * The team's name, plain text the feed item places as text (mdText). Null
+   * when the team is gone or has no name, so no half-empty item is posted.
+   */
+  private async getTeamName(teamId: ObjectID): Promise<string | null> {
     const team: Team | null = await TeamService.findOneById({
       id: teamId,
       select: {
@@ -240,7 +245,7 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    const teamName: string = escapeMarkdownInline(team?.name || "").trim();
+    const teamName: string = (team?.name || "").trim();
 
     return teamName || null;
   }

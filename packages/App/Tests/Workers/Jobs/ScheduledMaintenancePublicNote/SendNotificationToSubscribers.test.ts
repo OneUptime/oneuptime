@@ -2519,7 +2519,7 @@ describe("ScheduledMaintenancePublicNote: a note posted with a state change name
       }),
     );
     expect(sentTeams()[0]).toContain(
-      StateChangeNoteMessage.getChatStatusLine(COMPLETED),
+      StateChangeNoteMessage.getChatStatusLine(COMPLETED).toString(),
     );
   });
 });

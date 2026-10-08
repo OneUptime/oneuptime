@@ -108,7 +108,10 @@ import RemediationCommandToolkit, {
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
-import { escapeMarkdownValue } from "../../../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -811,7 +814,8 @@ export default class RemediationExecutionRunner {
       if (deletedClusterRound) {
         await this.settleNoneApplicable({
           suggestion,
-          rationaleMarkdown: `The Kubernetes cluster "${escapeMarkdownValue(deletedClusterRound.clusterName)}" was deleted before OneUptime AI could remediate it. Nothing was run or proposed.`,
+          rationaleMarkdown:
+            mdText`The Kubernetes cluster "${deletedClusterRound.clusterName}" was deleted before OneUptime AI could remediate it. Nothing was run or proposed.`.toString(),
         });
         await this.completeRunQuietly(aiRunId);
         return;
@@ -852,9 +856,8 @@ export default class RemediationExecutionRunner {
 
           await this.settleNoneApplicable({
             suggestion,
-            rationaleMarkdown: `OneUptime AI can no longer remediate cluster "${escapeMarkdownValue(
-              clusterTarget?.clusterName || "(deleted)",
-            )}"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI agent page (AI → Agent).`,
+            rationaleMarkdown:
+              mdText`OneUptime AI can no longer remediate cluster "${clusterTarget?.clusterName || "(deleted)"}"${firstGap ? mdText`: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI agent page (AI → Agent).`.toString(),
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -959,9 +962,8 @@ export default class RemediationExecutionRunner {
 
           await this.settleNoneApplicable({
             suggestion,
-            rationaleMarkdown: `OneUptime AI can no longer remediate ${noun} "${escapeMarkdownValue(
-              resourceTarget?.resourceName || "(deleted)",
-            )}"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the ${noun}'s AI agent page (AI → AI agent).`,
+            rationaleMarkdown:
+              mdText`OneUptime AI can no longer remediate ${noun} "${resourceTarget?.resourceName || "(deleted)"}"${firstGap ? mdText`: ${firstGap}` : ""}. Nothing was run or proposed. Review the ${noun}'s AI agent page (AI → AI agent).`.toString(),
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -1333,7 +1335,8 @@ export default class RemediationExecutionRunner {
         fromStatus: AutoRemediationSuggestionStatus.Planning,
         set: {
           status: AutoRemediationSuggestionStatus.AutoExecuted,
-          rationaleMarkdown: `The AI remediation run was interrupted (${data.reason}). The commands recorded on this suggestion DID run — review them and their outputs. Verification proceeds on the usual window.`,
+          rationaleMarkdown:
+            mdText`The AI remediation run was interrupted (${data.reason}). The commands recorded on this suggestion DID run — review them and their outputs. Verification proceeds on the usual window.`.toString(),
           commandPlan: AiRemediationCommandPlanUtil.toJSON(plan),
           verificationStatus: AutoRemediationVerificationStatus.Pending,
           verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
@@ -1350,7 +1353,7 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion,
-      markdown: `⚡ **${this.describeSource(suggestion)}: the AI command run was interrupted after executing ${
+      markdown: mdText`⚡ **${this.describeSource(suggestion)}: the AI command run was interrupted after executing ${
         plan.commands.filter((command: AiRemediationCommand) => {
           return command.execution !== undefined;
         }).length
@@ -1386,7 +1389,7 @@ export default class RemediationExecutionRunner {
     );
 
     const rationaleMarkdown: string = data.downgradeNote
-      ? `${data.downgradeNote}\n\n${analysisRationale}`
+      ? mdText`${FeedMarkdown.asMarkdown(data.downgradeNote)}\n\n${FeedMarkdown.asMarkdown(analysisRationale)}`.toString()
       : analysisRationale;
 
     const sourceLabel: string = this.describeSource(suggestion);
@@ -1460,7 +1463,7 @@ export default class RemediationExecutionRunner {
 
       await this.postFeedItem({
         suggestion,
-        markdown: `⚡ **${sourceLabel}: AI executed ${executedCommands.length} command(s).** Review the actions and reasoning on the suggestion; verification is watching the monitors and will roll back if the service does not recover.`,
+        markdown: mdText`⚡ **${sourceLabel}: AI executed ${executedCommands.length} command(s).** Review the actions and reasoning on the suggestion; verification is watching the monitors and will roll back if the service does not recover.`,
         pingWorkspace: true,
       });
       return;
@@ -1500,7 +1503,7 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion,
-      markdown: `⚡ **${sourceLabel}: AI composed a ${proposedPlan.commands.length}-command remediation plan.** Review the exact commands and reasoning, then approve with one click to run them.`,
+      markdown: mdText`⚡ **${sourceLabel}: AI composed a ${proposedPlan.commands.length}-command remediation plan.** Review the exact commands and reasoning, then approve with one click to run them.`,
       pingWorkspace: true,
     });
   }
@@ -1554,8 +1557,8 @@ export default class RemediationExecutionRunner {
       await this.settleNoneApplicable({
         suggestion,
         rationaleMarkdown: isResourceRound
-          ? `${live.withdrawnReason} Review the ${this.describeSuggestionResourceNoun(suggestion)}'s AI agent page (AI → AI agent).\n\n${data.rationaleMarkdown}`
-          : `${live.withdrawnReason} Review the cluster's AI agent page (AI → Agent).\n\n${data.rationaleMarkdown}`,
+          ? mdText`${live.withdrawnReason} Review the ${this.describeSuggestionResourceNoun(suggestion)}'s AI agent page (AI → AI agent).\n\n${FeedMarkdown.asMarkdown(data.rationaleMarkdown)}`.toString()
+          : mdText`${live.withdrawnReason} Review the cluster's AI agent page (AI → Agent).\n\n${FeedMarkdown.asMarkdown(data.rationaleMarkdown)}`.toString(),
       });
       return;
     }
@@ -1583,9 +1586,9 @@ export default class RemediationExecutionRunner {
       executionStatus: AiRemediationPlanExecutionStatus.NotStarted,
     };
 
-    const reasons: Array<string> = kept.map(
-      (entry: RemediationCommandNeedingApproval) => {
-        return `- \`${entry.command.command}\` — ${entry.reason}.`;
+    const reasons: Array<MarkdownText> = kept.map(
+      (entry: RemediationCommandNeedingApproval): MarkdownText => {
+        return mdText`\`${entry.command.command}\` — ${entry.reason}.`;
       },
     );
 
@@ -1593,7 +1596,7 @@ export default class RemediationExecutionRunner {
       ? "change(s)"
       : "kubectl change(s)";
 
-    const note: string = `OneUptime AI did not run the following ${changeWords} on its own, and proposes them here for one-click approval:\n${reasons.join("\n")}`;
+    const note: MarkdownText = mdText`OneUptime AI did not run the following ${changeWords} on its own, and proposes them here for one-click approval:\n${FeedMarkdown.bulletList(reasons)}`;
 
     suggestion.executionMode = AutoRemediationExecutionMode.Suggest;
     suggestion.autoResolveOnRecovery = false;
@@ -1619,7 +1622,8 @@ export default class RemediationExecutionRunner {
         fromStatus: AutoRemediationSuggestionStatus.Planning,
         set: {
           status: AutoRemediationSuggestionStatus.Suggested,
-          rationaleMarkdown: `${note}\n\n${data.rationaleMarkdown}`,
+          rationaleMarkdown:
+            mdText`${note}\n\n${FeedMarkdown.asMarkdown(data.rationaleMarkdown)}`.toString(),
           commandPlan: AiRemediationCommandPlanUtil.toJSON(plan),
         },
       });
@@ -1633,7 +1637,7 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion,
-      markdown: `⚡ **${this.describeSource(suggestion)}: AI needs your approval for ${commands.length} ${changeWords} it did not run on its own.** Review the exact command(s) and reasoning, then approve with one click to run them.`,
+      markdown: mdText`⚡ **${this.describeSource(suggestion)}: AI needs your approval for ${commands.length} ${changeWords} it did not run on its own.** Review the exact command(s) and reasoning, then approve with one click to run them.`,
       pingWorkspace: true,
     });
   }
@@ -1930,7 +1934,7 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion: data.suggestion,
-      markdown: `⚡ **${this.describeSource(data.suggestion)}: AI did not find a safe command remediation.** Nothing was run or proposed — see the reasoning on the suggestion.`,
+      markdown: mdText`⚡ **${this.describeSource(data.suggestion)}: AI did not find a safe command remediation.** Nothing was run or proposed — see the reasoning on the suggestion.`,
       pingWorkspace: false,
     });
   }
@@ -2369,10 +2373,10 @@ export default class RemediationExecutionRunner {
      * are Markdown: the resource's name, as its agent reported it, and the
      * name of another round are text there.
      */
-    const label: string = `${noun} "${escapeMarkdownValue(resource.resourceName)}"`;
+    const label: string = `${noun} "${resource.resourceName}"`;
 
-    let note: string;
-    let feedMarkdown: string;
+    let note: MarkdownText;
+    let feedMarkdown: MarkdownText;
 
     if (
       resolution.downgradedByModeChange &&
@@ -2382,32 +2386,32 @@ export default class RemediationExecutionRunner {
       const modeLabel: string = this.describeResourceRemediationMode(
         resource.aiRemediationMode,
       );
-      note = `The AI remediation mode of ${label} changed to "${modeLabel}" after this follow-up round was started as unattended remediation. "${modeLabel}" runs only a signal's first round on its own and asks for approval of every follow-up round, so this round was downgraded to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of ${label} was changed to "${modeLabel}" after this follow-up round was announced as unattended, and "${modeLabel}" asks for approval of every follow-up round, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = mdText`The AI remediation mode of ${label} changed to "${modeLabel}" after this follow-up round was started as unattended remediation. "${modeLabel}" runs only a signal's first round on its own and asks for approval of every follow-up round, so this round was downgraded to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of ${label} was changed to "${modeLabel}" after this follow-up round was announced as unattended, and "${modeLabel}" asks for approval of every follow-up round, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else if (resolution.downgradedByModeChange) {
       const modeLabel: string = this.describeResourceRemediationMode(
         resource.aiRemediationMode,
       );
-      note = `The AI remediation mode of ${label} changed to "${modeLabel}" after this round was started as unattended remediation, so this round was downgraded to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of ${label} was changed to "${modeLabel}" after this round was announced as unattended, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = mdText`The AI remediation mode of ${label} changed to "${modeLabel}" after this round was started as unattended remediation, so this round was downgraded to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of ${label} was changed to "${modeLabel}" after this round was announced as unattended, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else if (resolution.downgradedByInFlightRound) {
       const holder: string = resolution.inFlightRound
         ? `another OneUptime AI round on ${label}${
             resolution.inFlightRound.ruleNameSnapshot
-              ? ` (${escapeMarkdownValue(resolution.inFlightRound.ruleNameSnapshot)})`
+              ? ` (${resolution.inFlightRound.ruleNameSnapshot})`
               : ""
           } ${resolution.inFlightRound.description}`
         : `OneUptime AI could not confirm that no other AI round is changing ${label}`;
-      note = `This round was started as unattended remediation, but ${holder}; two unattended fixes on one ${noun} would verify and roll back on top of each other, so this round was downgraded to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** ${capitalizeFirst(
+      note = mdText`This round was started as unattended remediation, but ${holder}; two unattended fixes on one ${noun} would verify and roll back on top of each other, so this round was downgraded to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** ${capitalizeFirst(
         holder,
       )}, so OneUptime AI proposes this round instead of running a second unattended fix on the same ${noun}. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else if (resolution.breakerCheckFailed) {
-      note = `The hourly circuit breaker for ${label} could not be checked, so this round was downgraded from unattended remediation to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix needs your approval.** The hourly circuit breaker for ${label} could not be checked, so OneUptime AI will not run anything unattended this round. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = mdText`The hourly circuit breaker for ${label} could not be checked, so this round was downgraded from unattended remediation to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: this fix needs your approval.** The hourly circuit breaker for ${label} could not be checked, so OneUptime AI will not run anything unattended this round. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else {
-      note = `The hourly circuit breaker for ${label} tripped: it already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so this round was downgraded from unattended remediation to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: the hourly circuit breaker tripped, so this fix needs your approval.** ${capitalizeFirst(
+      note = mdText`The hourly circuit breaker for ${label} tripped: it already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so this round was downgraded from unattended remediation to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: the hourly circuit breaker tripped, so this fix needs your approval.** ${capitalizeFirst(
         label,
       )} already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
     }
@@ -2437,7 +2441,7 @@ export default class RemediationExecutionRunner {
       pingWorkspace: false,
     });
 
-    return note;
+    return note.toString();
   }
 
   // The resource's mode in the words its AI agent page uses.
@@ -2603,35 +2607,35 @@ export default class RemediationExecutionRunner {
      * are Markdown: the cluster's name, as its agent reported it, and the
      * name of another round are text there.
      */
-    const clusterName: string = escapeMarkdownValue(cluster.clusterName);
+    const clusterName: string = cluster.clusterName;
 
-    let note: string;
-    let feedMarkdown: string;
+    let note: MarkdownText;
+    let feedMarkdown: MarkdownText;
 
     if (resolution.downgradedByModeChange) {
       const modeLabel: string = this.describeRemediationMode(
         cluster.remediationMode,
       );
-      note = `The AI remediation mode of cluster "${clusterName}" changed to "${modeLabel}" after this round was started as unattended remediation, so this round was downgraded to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of cluster "${clusterName}" was changed to "${modeLabel}" after this round was announced as unattended, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = mdText`The AI remediation mode of cluster "${clusterName}" changed to "${modeLabel}" after this round was started as unattended remediation, so this round was downgraded to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of cluster "${clusterName}" was changed to "${modeLabel}" after this round was announced as unattended, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else if (resolution.downgradedByInFlightRound) {
       const holder: string = resolution.inFlightRound
         ? `another OneUptime AI round on cluster "${clusterName}"${
             resolution.inFlightRound.ruleNameSnapshot
-              ? ` (${escapeMarkdownValue(resolution.inFlightRound.ruleNameSnapshot)})`
+              ? ` (${resolution.inFlightRound.ruleNameSnapshot})`
               : ""
           } ${resolution.inFlightRound.description}`
         : `OneUptime AI could not confirm that no other AI round is changing cluster "${clusterName}"`;
-      note = `This round was started as unattended remediation, but ${holder}; two unattended fixes on one cluster would verify and roll back on top of each other, so this round was downgraded to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** ${
+      note = mdText`This round was started as unattended remediation, but ${holder}; two unattended fixes on one cluster would verify and roll back on top of each other, so this round was downgraded to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** ${
         holder.charAt(0).toUpperCase() + holder.slice(1)
       }, so OneUptime AI proposes this round instead of running a second unattended fix on the same cluster. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else if (resolution.breakerCheckFailed) {
-      note = `The hourly circuit breaker for cluster "${clusterName}" could not be checked, so this round was downgraded from unattended remediation to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix needs your approval.** The hourly circuit breaker for cluster "${clusterName}" could not be checked, so OneUptime AI will not run anything unattended this round. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = mdText`The hourly circuit breaker for cluster "${clusterName}" could not be checked, so this round was downgraded from unattended remediation to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: this fix needs your approval.** The hourly circuit breaker for cluster "${clusterName}" could not be checked, so OneUptime AI will not run anything unattended this round. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else {
-      note = `The hourly circuit breaker for cluster "${clusterName}" tripped: it already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so this round was downgraded from unattended remediation to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: the hourly circuit breaker tripped, so this fix needs your approval.** Cluster "${clusterName}" already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = mdText`The hourly circuit breaker for cluster "${clusterName}" tripped: it already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so this round was downgraded from unattended remediation to a plan for approval.`;
+      feedMarkdown = mdText`⚡ **${this.describeSource(suggestion)}: the hourly circuit breaker tripped, so this fix needs your approval.** Cluster "${clusterName}" already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
     }
 
     suggestion.executionMode = AutoRemediationExecutionMode.Suggest;
@@ -2659,7 +2663,7 @@ export default class RemediationExecutionRunner {
       pingWorkspace: false,
     });
 
-    return note;
+    return note.toString();
   }
 
   // The mode in the words the cluster's AI page uses.
@@ -3253,9 +3257,9 @@ export default class RemediationExecutionRunner {
    * A cluster round whose cluster was deleted (the link is nulled) is still
    * a cluster round, never "Auto Remediation Rule ...".
    *
-   * Only ever placed into a feed item's Markdown: the round's name - a rule's
-   * name, or one naming a cluster or a resource as its agent reported it - is
-   * escaped, so it reads as written.
+   * Plain text: the round's name - a rule's name, or one naming a cluster or
+   * a resource as its agent reported it - goes into a feed item's Markdown
+   * as text (mdText), so it reads as written.
    */
   private static describeSource(suggestion: AutoRemediationSuggestion): string {
     if (
@@ -3263,17 +3267,13 @@ export default class RemediationExecutionRunner {
       (!suggestion.autoRemediationRuleId &&
         parseClusterRoundNameSnapshot(suggestion.ruleNameSnapshot))
     ) {
-      return escapeMarkdownValue(
-        suggestion.ruleNameSnapshot || "AI remediation for cluster",
-      );
+      return suggestion.ruleNameSnapshot || "AI remediation for cluster";
     }
     // A resource round names its resource, never a rule.
     if (isResourceRemediationRound(suggestion)) {
-      return escapeMarkdownValue(
-        suggestion.ruleNameSnapshot || "AI remediation",
-      );
+      return suggestion.ruleNameSnapshot || "AI remediation";
     }
-    return `Auto Remediation Rule "${escapeMarkdownValue(suggestion.ruleNameSnapshot || "Auto Remediation Rule")}"`;
+    return `Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}"`;
   }
 
   private static async completeRunQuietly(aiRunId: ObjectID): Promise<void> {
@@ -3304,7 +3304,7 @@ export default class RemediationExecutionRunner {
 
   private static async postFeedItem(data: {
     suggestion: AutoRemediationSuggestion;
-    markdown: string;
+    markdown: MarkdownText;
     pingWorkspace: boolean;
   }): Promise<void> {
     try {
@@ -3314,7 +3314,7 @@ export default class RemediationExecutionRunner {
           projectId: data.suggestion.projectId,
           incidentFeedEventType: IncidentFeedEventType.AutoRemediation,
           displayColor: Indigo500,
-          feedInfoInMarkdown: data.markdown,
+          feedInfoInMarkdown: data.markdown.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
           },
@@ -3325,7 +3325,7 @@ export default class RemediationExecutionRunner {
           projectId: data.suggestion.projectId,
           alertFeedEventType: AlertFeedEventType.AutoRemediation,
           displayColor: Indigo500,
-          feedInfoInMarkdown: data.markdown,
+          feedInfoInMarkdown: data.markdown.toString(),
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
           },
