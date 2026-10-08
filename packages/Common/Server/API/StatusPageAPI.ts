@@ -131,6 +131,7 @@ import StatusPageSubscriberNotificationTemplateService, {
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
 import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
 import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import StatusPageSubscriberResources from "../Utils/StatusPage/StatusPageSubscriberResources";
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
@@ -3788,6 +3789,39 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException(
         "Subscribers are not allowed to choose event types for this status page.",
       );
+    }
+
+    /*
+     * A visitor picks from the resources this page shows them - the
+     * resources route above - so the resources a sign-up or a change names
+     * must be resources of this page that the page shows: not another
+     * page's, nor one whose monitor is archived. Any other id is answered as
+     * one that matches nothing (StatusPageSubscriberResources), every kind
+     * of subscriber alike. A change asks only about the resources it adds,
+     * so a subscription keeps what it names already. The subscriber service
+     * holds every write, the team's too, to the page's resources.
+     */
+    const namedResourceIds: Array<string> =
+      StatusPageSubscriberResources.getNamedIds(
+        req.body.data["statusPageResources"],
+      );
+
+    if (namedResourceIds.length > 0) {
+      const heldResourceIds: Array<string> =
+        isUpdate && statusPageSubscriber.id
+          ? await StatusPageSubscriberResources.getHeldIds(
+              statusPageSubscriber.id,
+            )
+          : [];
+
+      await StatusPageSubscriberResources.assertOnPage({
+        statusPageId: objectId,
+        ids: StatusPageSubscriberResources.getAdded({
+          named: namedResourceIds,
+          held: heldResourceIds,
+        }),
+        shownToVisitorsOnly: true,
+      });
     }
 
     statusPageSubscriber.statusPageId = objectId;

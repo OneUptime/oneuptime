@@ -2,14 +2,11 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import HeldPermissionsUtil from "Common/Types/HeldPermissions";
 import CommonAPI from "Common/Server/API/CommonAPI";
-import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
-import TablePermission from "Common/Server/Types/Database/Permissions/TablePermission";
 import DatabaseRequestType from "Common/Server/Types/BaseDatabase/DatabaseRequestType";
+import RuleRunPermission from "Common/Server/Utils/Rules/RuleRun/RuleRunPermission";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -33,7 +30,7 @@ import {
   LabelRuleRunResult,
   SiteAssignmentRuleRunResult,
 } from "Common/Types/NetworkAutomation/RuleRunResult";
-import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 /*
  * ------------------------------------------------------------------
@@ -63,55 +60,31 @@ import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/Da
  * All of these mutate network devices, so all demand the permission to
  * update the rule AND a matching NetworkDevice permission — update for
  * the rules that edit devices, CREATE for auto-import, which makes new
- * ones. The required sets are read off the models' own
+ * ones. A run reaches every device of the project, so each permission
+ * must reach the whole project, as every rule's Run now asks
+ * (RuleRunPermission). The required sets are read off the models' own
  * @TableAccessControl rather than restated here, so an ACL edit on
  * either model cannot drift from what these endpoints enforce.
  * ------------------------------------------------------------------
  */
 
 /*
- * Every check below reads the caller's permissions the way every permission
- * check reads them (CallerPermission): only an allow row grants - a team's
- * block row is never a grant - and a block with no labels on a model's list
- * takes the operation away, as it does on the CRUD path. The model's own
- * list is asked, so an operational resource accepts its
- * *AllOperationalResources wildcard too.
+ * Every check below is the one a rule's Run now asks everywhere
+ * (RuleRunPermission.assertMayChangeEveryRecord): a run reaches every
+ * network device of the project - it walks them all, or imports from every
+ * scan - so the caller must be allowed to do what it does to every one of
+ * them. That is a grant that reaches the whole project (a permission limited
+ * to some labels, or to owned devices, reaches only those), no block on the
+ * model's list - refused with the message that names it - and, for the
+ * models whose records carry labels (network devices, monitors), no block on
+ * some labels either: the run would change the devices carrying them too.
+ * The model's own list is asked, so an operational resource accepts its
+ * *AllOperationalResources wildcard. A master admin may, as the write path
+ * lets them.
  */
-function holdsModelPermission(
-  props: DatabaseCommonInteractionProps,
-  model: DatabaseBaseModel,
-  operation: "create" | "update",
-): boolean {
-  return CallerPermission.holdsModelPermission(props, {
-    model: model,
-    operation: operation,
-  });
-}
-
-/*
- * The allow half alone, where a check of its own follows that refuses a
- * block with the message naming it (checkTableLevelBlockPermissions).
- */
-function isGrantedModelPermission(
-  props: DatabaseCommonInteractionProps,
-  model: DatabaseBaseModel,
-  operation: "create" | "update",
-): boolean {
-  return CallerPermission.isGrantedAny(
-    props,
-    CallerPermission.getModelPermissions(model, operation),
-    {
-      wildcard: HeldPermissionsUtil.getModelWildcard({
-        isOperationalResource: model.isOperationalResource,
-        operation: operation,
-      }),
-    },
-  );
-}
-
 function assertCanRunRule(data: {
   props: DatabaseCommonInteractionProps;
-  ruleModel: DatabaseBaseModel;
+  ruleModelType: DatabaseBaseModelType;
   ruleLabel: string;
   /*
    * What running this rule does to the inventory: site/label rules EDIT
@@ -121,15 +94,12 @@ function assertCanRunRule(data: {
    */
   deviceWriteKind?: "update" | "create";
 }): void {
-  if (data.props.isMasterAdmin) {
-    return;
-  }
-
-  if (!holdsModelPermission(data.props, data.ruleModel, "update")) {
-    throw new NotAuthorizedException(
-      `You do not have permission to run ${data.ruleLabel}.`,
-    );
-  }
+  RuleRunPermission.assertMayChangeEveryRecord({
+    props: data.props,
+    modelType: data.ruleModelType,
+    requestType: DatabaseRequestType.Update,
+    message: `You do not have permission to run ${data.ruleLabel}.`,
+  });
 
   /*
    * Running a rule writes to devices. Without this a role allowed to author
@@ -137,38 +107,22 @@ function assertCanRunRule(data: {
    * through a rule, which is exactly the permission it does not have.
    */
   if (data.deviceWriteKind === "create") {
-    if (!isGrantedModelPermission(data.props, new NetworkDevice(), "create")) {
-      throw new NotAuthorizedException(
-        `You do not have permission to create network devices, which running ${data.ruleLabel} does. Missing permission: ${PermissionHelper.getTitle(
-          Permission.CreateNetworkDevice,
-        )}.`,
-      );
-    }
-
-    /*
-     * The Allow check above is only half the ACL: every real BaseAPI create
-     * also refuses a caller whose team BLOCK list carries the create
-     * permission (CreatePermission.checkCreateBlockPermissions). Reuse that
-     * exact enforcement so a block-listed user cannot create devices by
-     * proxy through a rule run. (The isMasterAdmin early-return above
-     * mirrors the BaseAPI path's own bypass.)
-     */
-    TablePermission.checkTableLevelBlockPermissions(
-      NetworkDevice,
-      data.props,
-      DatabaseRequestType.Create,
-    );
+    RuleRunPermission.assertMayChangeEveryRecord({
+      props: data.props,
+      modelType: NetworkDevice,
+      requestType: DatabaseRequestType.Create,
+      message: `You do not have permission to create network devices anywhere in this project, which running ${data.ruleLabel} does.`,
+    });
 
     return;
   }
 
-  if (!holdsModelPermission(data.props, new NetworkDevice(), "update")) {
-    throw new NotAuthorizedException(
-      `You do not have permission to update network devices, which running ${data.ruleLabel} does. Missing permission: ${PermissionHelper.getTitle(
-        Permission.EditNetworkDevice,
-      )}.`,
-    );
-  }
+  RuleRunPermission.assertMayChangeEveryRecord({
+    props: data.props,
+    modelType: NetworkDevice,
+    requestType: DatabaseRequestType.Update,
+    message: `You do not have permission to edit every network device in this project, which running ${data.ruleLabel} does.`,
+  });
 }
 
 /*
@@ -176,31 +130,19 @@ function assertCanRunRule(data: {
  * inventory record is available it creates an active Network Device monitor.
  * The worker runs that operation as root, but a human pressing Run Now must
  * not gain Monitor-create access through a rule when their role explicitly
- * lacks it. Kept separate from assertCanRunRule because device-only import
- * rules retain their existing permission contract.
+ * lacks it - and the run creates monitors for devices across the whole
+ * project, so a permission limited to some labels is not enough either.
+ * Kept separate from assertCanRunRule because device-only import rules
+ * retain their existing permission contract.
  */
 function assertCanCreateMonitor(props: DatabaseCommonInteractionProps): void {
-  if (props.isMasterAdmin) {
-    return;
-  }
-
-  if (!isGrantedModelPermission(props, new Monitor(), "create")) {
-    throw new NotAuthorizedException(
-      `You do not have permission to create monitors, which running this auto-import rule does. Missing permission: ${PermissionHelper.getTitle(
-        Permission.CreateProjectMonitor,
-      )}.`,
-    );
-  }
-
-  /*
-   * Match BaseAPI's create path in both directions: a broad ProjectAdmin
-   * grant does not override a team's explicit block on Monitor creation.
-   */
-  TablePermission.checkTableLevelBlockPermissions(
-    Monitor,
-    props,
-    DatabaseRequestType.Create,
-  );
+  RuleRunPermission.assertMayChangeEveryRecord({
+    props: props,
+    modelType: Monitor,
+    requestType: DatabaseRequestType.Create,
+    message:
+      "You do not have permission to create monitors anywhere in this project, which running this auto-import rule does.",
+  });
 }
 
 /*
@@ -266,7 +208,7 @@ export default class NetworkRuleRunAPI {
 
           assertCanRunRule({
             props: props,
-            ruleModel: new NetworkSiteAssignmentRule(),
+            ruleModelType: NetworkSiteAssignmentRule,
             ruleLabel: "site assignment rules",
           });
 
@@ -311,7 +253,7 @@ export default class NetworkRuleRunAPI {
 
           assertCanRunRule({
             props: props,
-            ruleModel: new NetworkDeviceAutoImportRule(),
+            ruleModelType: NetworkDeviceAutoImportRule,
             ruleLabel: "auto-import rules",
             deviceWriteKind: "create",
           });
@@ -406,7 +348,7 @@ export default class NetworkRuleRunAPI {
 
           assertCanRunRule({
             props: props,
-            ruleModel: new NetworkDeviceLabelRule(),
+            ruleModelType: NetworkDeviceLabelRule,
             ruleLabel: "network device label rules",
           });
 

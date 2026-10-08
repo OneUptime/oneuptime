@@ -6,8 +6,11 @@ import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageM
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
-import Permission from "../../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+  HeldPermissionsOptions,
+} from "../../../../Types/HeldPermissions";
+import Permission, { PermissionHelper } from "../../../../Types/Permission";
 import {
   RuleRunType,
   RuleRunTypeMetadata,
@@ -38,7 +41,15 @@ import RuleRunRegistry, {
  *
  * A grant limited to specific labels, or to owned resources, is not enough: a
  * run reaches every resource in the project (or, for an SLO monitor rule, any
- * SLO's rules), not just the labelled or owned ones.
+ * SLO's rules), not just the labelled or owned ones. For the same reason a
+ * team's block on some labels takes the run away: the run would change the
+ * records carrying those labels too, which the block keeps the caller from
+ * changing anywhere else.
+ *
+ * The network automation rules' Run now (site assignment, device label and
+ * auto import rules: App/FeatureSet/BaseAPI/API/NetworkRuleRun) reaches every
+ * network device of the project the same way, and asks the same question
+ * here (assertMayChangeEveryRecord).
  */
 
 /*
@@ -68,6 +79,13 @@ const SYNC_RULE_MODEL_TYPES: Record<SyncRuleRunType, DatabaseBaseModelType> = {
  *
  * Then no block with no labels on the model's list, refused with the message
  * that names it (checkTableLevelBlockPermissions), as a normal API write is.
+ *
+ * And, for a model whose records carry labels (an access control column: a
+ * monitor, an incident, a network device, ...), no block with labels either
+ * (labelledBlocksRefuse): the run changes every record, those carrying the
+ * blocked labels included, where the CRUD path would leave them out. A model
+ * whose records carry no labels (the rules, the owner rows) is not narrowed
+ * by such a block anywhere, so it does not refuse here either.
  */
 function requirePermission(data: {
   props: DatabaseCommonInteractionProps;
@@ -81,15 +99,18 @@ function requirePermission(data: {
       ? model.getCreatePermissions()
       : model.getUpdatePermissions()) || [];
 
-  if (
-    !CallerPermission.isGrantedAny(data.props, required, {
-      projectWideOnly: true,
-      wildcard: HeldPermissionsUtil.getModelWildcard({
-        isOperationalResource: model.isOperationalResource,
-        operation: data.requestType,
-      }),
-    })
-  ) {
+  const carriesLabels: boolean = Boolean(model.getAccessControlColumn());
+
+  const options: HeldPermissionsOptions = {
+    projectWideOnly: true,
+    wildcard: HeldPermissionsUtil.getModelWildcard({
+      isOperationalResource: model.isOperationalResource,
+      operation: data.requestType,
+    }),
+    labelledBlocksRefuse: carriesLabels,
+  };
+
+  if (!CallerPermission.isGrantedAny(data.props, required, options)) {
     throw new NotAuthorizedException(data.message);
   }
 
@@ -98,6 +119,26 @@ function requirePermission(data: {
     data.props,
     data.requestType,
   );
+
+  if (!carriesLabels) {
+    return;
+  }
+
+  const held: HeldPermissions = CallerPermission.getHeld(data.props);
+
+  const blockedForSomeLabels: Permission | undefined = required.find(
+    (permission: Permission): boolean => {
+      return held.blockedForSomeLabels.includes(permission);
+    },
+  );
+
+  if (blockedForSomeLabels) {
+    throw new NotAuthorizedException(
+      `${data.message} ${PermissionHelper.getTitle(
+        blockedForSomeLabels,
+      )} is in your team's permission block list for some labels.`,
+    );
+  }
 }
 
 export default class RuleRunPermission {
@@ -159,5 +200,27 @@ export default class RuleRunPermission {
         message: `You do not have permission to add owners to ${meta.resourcePlural}, which running this rule does.`,
       });
     }
+  }
+
+  /*
+   * The same question for a run outside the registry - a network automation
+   * rule's Run now, which edits or imports network devices and creates
+   * monitors across the whole project: may the caller do `requestType` on
+   * every record of `modelType` in the project? A project-wide grant (or the
+   * model's wildcard), no block on the model's list, and - for a model whose
+   * records carry labels - no block on some labels either; refused with
+   * `message`. A master admin may, as the write path lets them.
+   */
+  public static assertMayChangeEveryRecord(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    requestType: DatabaseRequestType.Create | DatabaseRequestType.Update;
+    message: string;
+  }): void {
+    if (data.props.isMasterAdmin) {
+      return;
+    }
+
+    requirePermission(data);
   }
 }

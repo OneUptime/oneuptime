@@ -72,6 +72,7 @@ import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../Utils/StatusPage/StatusPageEmailLogo";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StatusPageSubscriberResources from "../Utils/StatusPage/StatusPageSubscriberResources";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -283,6 +284,20 @@ export class Service extends ProjectReferencesService<Model> {
       } as LogAttributes);
       throw new BadDataException("Project ID is required.");
     }
+
+    /*
+     * The resources it names are resources of its own status page
+     * (StatusPageSubscriberResources), answered like an id that matches
+     * nothing - after the project check above (super.onBeforeCreate), which
+     * answers the same, and before anything else here reads a record.
+     */
+    await StatusPageSubscriberResources.assertOnPage({
+      statusPageId: data.data.statusPageId,
+      ids: StatusPageSubscriberResources.getNamedIds(
+        data.data.statusPageResources,
+      ),
+      shownToVisitorsOnly: false,
+    });
 
     const projectId: ObjectID = data.data.projectId;
     logger.debug(`Project ID: ${projectId}`, {
@@ -678,6 +693,9 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
+    // The resources it adds are its page's. See checkResourcesOnPages.
+    await this.checkResourcesOnPages(updateBy);
+
     const isUnsubscribed: unknown = (
       updateBy.data as unknown as JSONObject | undefined
     )?.["isUnsubscribed"];
@@ -713,6 +731,55 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward };
+  }
+
+  /*
+   * An update that names resources may add only resources of each changed
+   * subscriber's own status page (StatusPageSubscriberResources): what a
+   * subscriber names already is left alone, so the dashboard and the manage
+   * subscription page, which send the whole list back on every save, never
+   * lock a subscription against editing. The subscribers are read as
+   * OneUptime through the update's own query - pinned to the request's
+   * project, since hooks run before the framework scopes the query - so a
+   * subscriber the update cannot reach says nothing.
+   */
+  private async checkResourcesOnPages(updateBy: UpdateBy<Model>): Promise<void> {
+    const named: Array<string> = StatusPageSubscriberResources.getNamedIds(
+      (updateBy.data as unknown as JSONObject | undefined)?.[
+        StatusPageSubscriberResources.RESOURCES_COLUMN
+      ],
+    );
+
+    if (named.length === 0) {
+      return;
+    }
+
+    const subscribers: Array<Model> = await this.findBy({
+      query: {
+        ...updateBy.query,
+        ...(updateBy.props.tenantId
+          ? { projectId: updateBy.props.tenantId }
+          : {}),
+      },
+      select: {
+        _id: true,
+        statusPageId: true,
+        statusPageResources: {
+          _id: true,
+        },
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    await StatusPageSubscriberResources.assertUpdateOnPages({
+      subscribers: subscribers,
+      named: named,
+    });
   }
 
   @CaptureSpan()
@@ -2050,7 +2117,14 @@ Stay informed about service availability! 🚀`.toString();
         slackIncomingWebhookUrl: true,
         microsoftTeamsIncomingWebhookUrl: true,
         isSubscribedToAllResources: true,
-        statusPageResources: true,
+        /*
+         * With each resource's page: a subscriber is told about an event
+         * only through resources of its own page (shouldSendNotification).
+         */
+        statusPageResources: {
+          _id: true,
+          statusPageId: true,
+        },
         isSubscribedToAllEventTypes: true,
         statusPageEventTypes: true,
         // Every sender puts this subscriber's unsubscribe link in its message.
@@ -2469,12 +2543,37 @@ Stay informed about service availability! 🚀`.toString();
         "Subscriber can choose resources and is not subscribed to all resources.",
         { statusPageId: data.statusPage?.id?.toString() } as LogAttributes,
       );
+      /*
+       * Only resources of this status page count, on either side: a
+       * subscription names its own page's resources (StatusPageSubscriber
+       * Resources refuses any other on every write), and one saved before
+       * that was checked is told nothing through a resource of another page.
+       * The senders hand over the event's resources on this page already.
+       */
+      const statusPageId: ObjectID | string | undefined =
+        data.statusPage.id || data.statusPage._id;
+
       const subscriberResourceIds: Array<string> =
-        data.subscriber.statusPageResources?.map(
-          (resource: StatusPageResource) => {
+        data.subscriber.statusPageResources
+          ?.filter((resource: StatusPageResource): boolean => {
+            return StatusPageSubscriberResources.isOnPage(
+              resource,
+              statusPageId,
+            );
+          })
+          .map((resource: StatusPageResource) => {
             return resource.id?.toString() as string;
+          }) || [];
+
+      const eventResourcesOnPage: Array<StatusPageResource> =
+        data.statusPageResources.filter(
+          (resource: StatusPageResource): boolean => {
+            return StatusPageSubscriberResources.isOnPage(
+              resource,
+              statusPageId,
+            );
           },
-        ) || [];
+        );
 
       logger.debug(`Subscriber Resource IDs: ${subscriberResourceIds}`, {
         statusPageId: data.statusPage?.id?.toString(),
@@ -2488,7 +2587,7 @@ Stay informed about service availability! 🚀`.toString();
         } as LogAttributes);
         shouldSendNotificationForResource = false;
       } else {
-        for (const resource of data.statusPageResources) {
+        for (const resource of eventResourcesOnPage) {
           logger.debug(`Checking resource: ${resource.id}`, {
             statusPageId: data.statusPage?.id?.toString(),
           } as LogAttributes);

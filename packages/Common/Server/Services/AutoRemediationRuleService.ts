@@ -13,6 +13,22 @@ import Runner from "../../Models/DatabaseModels/Runner";
 import AutoRemediationAction, {
   isAutoRemediationAction,
 } from "../../Types/AutoRemediation/AutoRemediationAction";
+import AiRemediationCredentialUse, {
+  RuleCommandSettings,
+  RuleCommandSettingsChange,
+} from "../Utils/AutoRemediation/AiRemediationCredentialUse";
+
+/*
+ * The columns that decide whether, and where, a rule runs OneUptime AI's
+ * commands without asking (AiRemediationCredentialUse).
+ */
+const COMMAND_SETTINGS_COLUMNS: Array<keyof RuleCommandSettings> = [
+  "remediationAction",
+  "aiComposesCommands",
+  "executionMode",
+  "commandAllowlist",
+  "commandRunners",
+];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -39,6 +55,17 @@ export class Service extends ProjectReferencesService<Model> {
     createBy.data.remediationAction = Service.getRemediationActionOnCreate(
       createBy.data,
     );
+
+    /*
+     * A rule that runs OneUptime AI's commands without asking is saved only
+     * by someone who may read runbook credentials: its commands may run over
+     * SSH with any credential assigned to its Runners, and nobody approves
+     * them (AiRemediationCredentialUse).
+     */
+    AiRemediationCredentialUse.assertMaySaveRules({
+      props: createBy.props,
+      changes: [{ before: null, after: createBy.data }],
+    });
 
     const agentRunners: Array<Runner> =
       await RunnerService.findKubernetesAgentRunners(
@@ -86,6 +113,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     Service.assertRemediationAction(data["remediationAction"]);
 
+    // Who may let OneUptime AI's commands run without asking. See the helper.
+    await this.checkCommandsWithoutAsking(updateBy);
+
     const agentRunners: Array<Runner> =
       await RunnerService.findKubernetesAgentRunners(data["commandRunners"]);
 
@@ -127,6 +157,76 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * An update may leave a rule running OneUptime AI's commands without
+   * asking more widely than it did - turn it on, add an allowlist pattern,
+   * reach more Runners - only when its caller may read runbook credentials
+   * (AiRemediationCredentialUse). Only a real change counts: the dashboard's
+   * rule form posts every field, so an edit that keeps what a rule already
+   * runs keeps it. The rules are read as OneUptime through the update's own
+   * query, pinned to the request's project (hooks run before the framework
+   * scopes it), and only when the update writes one of the settings at all.
+   */
+  private async checkCommandsWithoutAsking(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
+
+    const writesSettings: boolean = COMMAND_SETTINGS_COLUMNS.some(
+      (column: keyof RuleCommandSettings): boolean => {
+        return data[column] !== undefined;
+      },
+    );
+
+    if (
+      !writesSettings ||
+      AiRemediationCredentialUse.mayUseCredentials(updateBy.props)
+    ) {
+      return;
+    }
+
+    const rules: Array<Model> = await this.findBy({
+      query: {
+        ...updateBy.query,
+        ...(updateBy.props.tenantId
+          ? { projectId: updateBy.props.tenantId }
+          : {}),
+      },
+      select: {
+        _id: true,
+        remediationAction: true,
+        aiComposesCommands: true,
+        executionMode: true,
+        commandAllowlist: true,
+        commandRunners: { _id: true },
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    AiRemediationCredentialUse.assertMaySaveRules({
+      props: updateBy.props,
+      changes: rules.map((rule: Model): RuleCommandSettingsChange => {
+        const after: RuleCommandSettings = {
+          remediationAction: rule.remediationAction,
+          aiComposesCommands: rule.aiComposesCommands,
+          executionMode: rule.executionMode,
+          commandAllowlist: rule.commandAllowlist,
+          commandRunners: rule.commandRunners,
+        };
+
+        for (const column of COMMAND_SETTINGS_COLUMNS) {
+          if (data[column] !== undefined) {
+            (after as unknown as JSONObject)[column] = data[column];
+          }
+        }
+
+        return { before: rule, after: after };
+      }),
+    });
   }
 
   /*
