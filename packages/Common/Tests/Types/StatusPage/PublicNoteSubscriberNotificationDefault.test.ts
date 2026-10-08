@@ -1866,3 +1866,141 @@ describe("PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMainte
     });
   });
 });
+
+/*
+ * A state of the project's own counts by its place
+ * (Common/Utils/ScheduledMaintenanceStart): placed between Ongoing and Ended
+ * ("Verifying") the event is in progress there, placed after Ended
+ * ("Reviewing") it is over. So moving a quietly created event by hand into
+ * "Verifying" from Scheduled starts it, as the move into Ongoing does, and
+ * the form starts ticked when "Event Ongoing" would have announced the
+ * start; moving it into "Reviewing" from an in-progress state ends it, and
+ * follows "Event Ended". A move that is neither - on from Ongoing to
+ * "Verifying", on from Ended to "Reviewing" - follows the created setting.
+ */
+describe("a move into a state of the project's own, placed by the project's list", () => {
+  const states: Array<ScheduledMaintenanceTargetState> = [
+    { _id: "s1", order: 1, isScheduledState: true } as ScheduledMaintenanceTargetState,
+    { _id: "s2", order: 2 },
+    { _id: "s3", order: 3, isOngoingState: true },
+    { _id: "s4", order: 4 },
+    { _id: "s5", order: 5, isEndedState: true },
+    { _id: "s6", order: 6 },
+    { _id: "s7", order: 7, isResolvedState: true },
+  ];
+
+  const scheduled: ScheduledMaintenanceTargetState = states[0]!;
+  const confirmed: ScheduledMaintenanceTargetState = states[1]!;
+  const ongoing: ScheduledMaintenanceTargetState = states[2]!;
+  const verifying: ScheduledMaintenanceTargetState = states[3]!;
+  const ended: ScheduledMaintenanceTargetState = states[4]!;
+  const reviewing: ScheduledMaintenanceTargetState = states[5]!;
+
+  // Created quietly; "Event Ongoing" and "Event Ended" each set as given.
+  function quietEvent(
+    ongoingSetting: boolean,
+    endedSetting: boolean,
+  ): ScheduledMaintenanceStateChangeSubscriberNotificationSetting {
+    return {
+      shouldStatusPageSubscribersBeNotifiedOnEventCreated: false,
+      shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+        ongoingSetting,
+      shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+        endedSetting,
+    };
+  }
+
+  function startsTicked(
+    event: ScheduledMaintenanceStateChangeSubscriberNotificationSetting,
+    from: ScheduledMaintenanceTargetState | undefined,
+    into: ScheduledMaintenanceTargetState,
+  ): boolean {
+    return PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
+      event,
+      // The target as the form holds it: its id, without its place.
+      { _id: into._id },
+      { states: states, currentState: from ? { _id: from._id } : undefined },
+    );
+  }
+
+  test.each([
+    ["from Scheduled", scheduled],
+    ["from a state of its own before Ongoing", confirmed],
+    ["as its first state", undefined],
+  ] as Array<[string, ScheduledMaintenanceTargetState | undefined]>)(
+    "into Verifying %s is the start: it follows Event Ongoing",
+    (_label: string, from: ScheduledMaintenanceTargetState | undefined) => {
+      expect(startsTicked(quietEvent(true, false), from, verifying)).toBe(
+        true,
+      );
+      expect(startsTicked(quietEvent(false, true), from, verifying)).toBe(
+        false,
+      );
+    },
+  );
+
+  test("into Verifying on from Ongoing starts nothing: it follows the created setting", () => {
+    expect(startsTicked(quietEvent(true, true), ongoing, verifying)).toBe(
+      false,
+    );
+  });
+
+  test.each([
+    ["from Ongoing", ongoing],
+    ["from Verifying", verifying],
+  ] as Array<[string, ScheduledMaintenanceTargetState]>)(
+    "into Reviewing %s is the end: it follows Event Ended",
+    (_label: string, from: ScheduledMaintenanceTargetState) => {
+      expect(startsTicked(quietEvent(false, true), from, reviewing)).toBe(
+        true,
+      );
+      expect(startsTicked(quietEvent(true, false), from, reviewing)).toBe(
+        false,
+      );
+    },
+  );
+
+  test("into Reviewing on from Ended ends nothing: it follows the created setting", () => {
+    expect(startsTicked(quietEvent(true, true), ended, reviewing)).toBe(
+      false,
+    );
+  });
+
+  test("into a state of its own before Ongoing announces nothing", () => {
+    expect(startsTicked(quietEvent(true, true), scheduled, confirmed)).toBe(
+      false,
+    );
+  });
+
+  test("without the project's list, a state of its own announces nothing, as before", () => {
+    expect(
+      PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
+        quietEvent(true, true),
+        { _id: verifying._id },
+      ),
+    ).toBe(false);
+  });
+
+  test("the built-in states answer by their flags, whatever the move", () => {
+    expect(startsTicked(quietEvent(true, false), verifying, ongoing)).toBe(
+      true,
+    );
+    expect(
+      PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
+        quietEvent(false, true),
+        ended,
+        { states: states, currentState: { _id: scheduled._id } },
+      ),
+    ).toBe(true);
+  });
+
+  test("an event created loudly keeps notifying on every move", () => {
+    expect(
+      PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
+        { shouldStatusPageSubscribersBeNotifiedOnEventCreated: true },
+        { _id: confirmed._id },
+        { states: states, currentState: { _id: scheduled._id } },
+      ),
+    ).toBe(true);
+  });
+});

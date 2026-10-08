@@ -67,6 +67,16 @@ export interface ScheduledMaintenanceTimelineRow {
   startsAt?: Date | string | null | undefined;
 }
 
+// Where an event is in its life, by the state it is in (getPhase).
+export enum ScheduledMaintenancePhaseOfState {
+  // Scheduled, or a state of the project's own placed before Ongoing.
+  NotStarted = "not-started",
+  // Ongoing, or a state of the project's own between Ongoing and Ended.
+  InProgress = "in-progress",
+  // Ended, Completed, or a state of the project's own placed after Ended.
+  Over = "over",
+}
+
 // The built-in states an event is in once it has started, by their flags.
 const STARTED_FLAGS: Array<string> = [
   "isOngoingState",
@@ -241,6 +251,30 @@ export default class ScheduledMaintenanceStartUtil {
     state: unknown;
   }): boolean {
     return this.hasStarted(data) && !this.isInProgress(data);
+  }
+
+  /*
+   * Where an event in `state` is in its life: not started, in progress or
+   * over - the three lists a status page shows and the three kinds the
+   * Dashboard's header tells apart. Null for no state.
+   */
+  public static getPhase(data: {
+    states: Array<unknown>;
+    state: unknown;
+  }): ScheduledMaintenancePhaseOfState | null {
+    if (!data.state || typeof data.state !== "object") {
+      return null;
+    }
+
+    if (this.isInProgress(data)) {
+      return ScheduledMaintenancePhaseOfState.InProgress;
+    }
+
+    if (this.hasStarted(data)) {
+      return ScheduledMaintenancePhaseOfState.Over;
+    }
+
+    return ScheduledMaintenancePhaseOfState.NotStarted;
   }
 
   // The project's states an event is in progress in, in the order given.
