@@ -9,6 +9,7 @@ import { DashboardRoute } from "../../ServiceRoute";
 import User from "../../Models/DatabaseModels/User";
 import DatabaseConfig from "../DatabaseConfig";
 import MailService from "../Services/MailService";
+import ProductBrandingText from "./ProductBrandingText";
 import UserService from "../Services/UserService";
 import logger from "./Logger";
 
@@ -67,7 +68,7 @@ export default class TwoFactorBackupCodeNotification {
 
     await MailService.sendMail({
       toEmail: user.email,
-      subject: "Backup codes were created for your OneUptime account",
+      subject: `Backup codes were created for your ${ProductBrandingText.getProductName()} account`,
       isSubjectLiteral: true,
       templateType: EmailTemplateType.TwoFactorBackupCodesCreated,
       vars: {

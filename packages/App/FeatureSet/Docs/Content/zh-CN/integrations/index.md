@@ -51,6 +51,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [GitLab](/docs/integrations/gitlab)                                   | 出站           | 为事件开一个 GitLab issue。                                    |
 | [Discord](/docs/integrations/discord)                                 | 出站           | 把事件更新发到 Discord 频道。                                  |
 | [Telegram](/docs/integrations/telegram)                               | 出站           | 把事件更新发到 Telegram 聊天。                                 |
+| [IRC](/docs/integrations/irc)                                         | 出站           | 把事件更新发到 IRC 频道。                                      |
 | [Slack](/docs/workspace-connections/slack)                            | 双向           | 原生工作区连接——频道、告警和值班。                             |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | 双向           | 原生工作区连接。                                               |
 

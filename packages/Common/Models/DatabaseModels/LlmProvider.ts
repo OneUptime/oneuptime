@@ -9,7 +9,6 @@ import TableBillingAccessControl from "../../Types/Database/AccessControl/TableB
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
-import IsPermissionsIf from "../../Types/Database/IsPermissionsIf";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -30,7 +29,6 @@ import { JSONObject } from "../../Types/JSON";
   update: PlanType.Growth,
   delete: PlanType.Free,
 })
-@IsPermissionsIf(Permission.Public, "projectId", null)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/llm-provider"))
 @SlugifyColumn("name", "slug")
@@ -54,8 +52,14 @@ import { JSONObject } from "../../Types/JSON";
     Permission.SettingsMember,
     Permission.CreateProjectLlm,
   ],
+  /*
+   * The project's members who may see its settings: a provider's base URL,
+   * model and parameters are its own configuration, never anyone's at all.
+   * The shared global providers are listed to signed-in members by
+   * LlmProviderAPI's global-llms route (their name, description and price
+   * only), and the chat's provider picker by AIChatAPI's providers route.
+   */
   read: [
-    Permission.Public,
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
@@ -92,7 +96,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -125,7 +138,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -149,7 +171,16 @@ export default class LlmProvider extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [],
   })
   @TableColumn({
@@ -176,7 +207,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -242,7 +282,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -275,7 +324,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -308,7 +366,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -340,7 +407,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [],
   })
   @TableColumn({
@@ -375,7 +451,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [],
   })
   @TableColumn({
@@ -516,7 +601,16 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -545,7 +639,16 @@ export default class LlmProvider extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLlm,
+    ],
     update: [],
   })
   @TableColumn({

@@ -12,6 +12,7 @@ import EnterpriseServerModule, {
   EnterpriseLicensingProvider,
 } from "../../../Server/Enterprise/EnterpriseServerModule";
 import type { ExpressRouter } from "../../../Server/Utils/Express";
+import type { ProductBranding } from "../../../Types/Branding/ProductBranding";
 import { setTestBillingEnabled } from "./TestBillingFlag";
 
 /*
@@ -144,6 +145,11 @@ export interface FakeEnterpriseModuleOptions {
   // Defaults to a fresh spy recorder; pass null for "ee without a recorder".
   auditLogRecorder?: AuditLogRecorder | null | undefined;
   version?: string | undefined;
+  /*
+   * What getProductBranding() answers: how the installation names and shows
+   * itself. Defaults to null (OneUptime's own).
+   */
+  productBranding?: ProductBranding | null | undefined;
 }
 
 class FakeLicensingProvider implements EnterpriseLicensingProvider {
@@ -220,6 +226,9 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
   public apiRouters: Array<ExpressRouter>;
   public adminHealthRouter: ExpressRouter | null;
   public auditLogRecorder: AuditLogRecorder | null;
+  public productBranding: ProductBranding | null;
+  // When set, getProductBranding throws it.
+  public productBrandingError: Error | undefined = undefined;
   public initCount: number = 0;
   public registerWorkerJobsCount: number = 0;
 
@@ -233,6 +242,15 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
       options.auditLogRecorder === undefined
         ? createAuditLogRecorderSpy()
         : options.auditLogRecorder;
+    this.productBranding = options.productBranding || null;
+  }
+
+  public getProductBranding(): ProductBranding | null {
+    if (this.productBrandingError) {
+      throw this.productBrandingError;
+    }
+
+    return this.productBranding;
   }
 
   public async init(): Promise<void> {

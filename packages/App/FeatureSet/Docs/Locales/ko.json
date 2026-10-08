@@ -222,6 +222,7 @@
     "GitLab": "GitLab",
     "Discord": "Discord",
     "Telegram": "Telegram",
+    "IRC": "IRC",
     "Custom Probes": "사용자 지정 프로브",
     "Incoming Request Ingress": "수신 요청 Ingress",
     "OpenTelemetry": "OpenTelemetry",

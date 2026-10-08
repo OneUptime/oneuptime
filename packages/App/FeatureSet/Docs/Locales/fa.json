@@ -221,6 +221,7 @@
     "GitLab": "GitLab",
     "Discord": "Discord",
     "Telegram": "Telegram",
+    "IRC": "IRC",
     "Custom Probes": "پراب‌های سفارشی",
     "Incoming Request Ingress": "ورودی درخواست‌های دریافتی",
     "OpenTelemetry": "OpenTelemetry",

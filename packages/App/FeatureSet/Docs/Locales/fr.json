@@ -222,6 +222,7 @@
     "GitLab": "GitLab",
     "Discord": "Discord",
     "Telegram": "Telegram",
+    "IRC": "IRC",
     "Custom Probes": "Sondes personnalisées",
     "Incoming Request Ingress": "Ingress de requêtes entrantes",
     "OpenTelemetry": "OpenTelemetry",

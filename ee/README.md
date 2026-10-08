@@ -34,15 +34,16 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 
 | Path | What it is |
 | --- | --- |
-| `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
+| `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers, WhiteLabel. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
 | `Server/Identity/` | SCIM provisioning for projects and status pages. Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`, SCIM only), so it refuses while SCIM is not active. Single sign-on (SAML, OIDC, global SSO and "Require SSO for login") is not here: it is core, Apache-2.0, in `packages/App/FeatureSet/Identity`, and served in every edition. |
 | `Server/TeamCompliance/` | Team compliance settings and the compliance status route. |
 | `Server/AuditLog/` | The audit-log recorder behind `EnterpriseEdition.getAuditLogRecorder()`. |
 | `Server/License/` | The license client: signed-license format (`LicenseToken.ts`), trusted signing keys (`TrustedLicenseKeys.ts`), the license snapshot, activation, refresh, seats and the daily license sync, including the seat arithmetic (`EnterpriseLicenseSeats.ts`) and the license-response mapper (`EnterpriseLicenseSync.ts`). Only the `SeatUsage` type stays in core. |
 | `Server/LicenseServer/` | The license server that oneuptime.com runs. Mounted only when billing is enabled. |
 | `Server/AdminHealth/` | The live OneUptime Health dashboards (overview, queues, Valkey, logs, ClickHouse cluster, telemetry ingestion, Postgres cluster and activity) and the query console, served by one router mounted ahead of core's. Core keeps the every-edition routes, the probes they share (`App/API/AdminHealthProbes.ts`) and a 402 fallback for each enterprise path. |
+| `Server/WhiteLabel/` | White-labelling: whether the license allows it, the settings, their routes and the branding handed to core. See [White-labelling](#white-labelling). |
 | `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation) and the probes they read: `InstanceHealth/PostgresHealth.ts` and the counter deltas in `InstanceHealth/RedisHealth.ts`. The Redis INFO read stays in core, because the admin health API uses it too. |
-| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). |
+| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). `AdminDashboard/WhiteLabel/` holds Settings > White Label. |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
 | `Tests/Server`, `Tests/UI` | The two jest projects in `jest.config.js`. |
 
@@ -418,6 +419,121 @@ OneUptime Cloud (`BILLING_ENABLED=true`) must run the Enterprise image.
   reason.
 - With billing on, the license server routes (`/api/enterprise-license/...`)
   are mounted, and plan checks (not the license) gate enterprise features.
+
+## White-labelling
+
+A license can let the customer white-label their own installation: replace
+OneUptime's name and logo with theirs. It is for resellers, and it is not
+advertised anywhere - no public docs, no Home site, no release notes, no
+mention in the product of an installation whose license does not allow it.
+This section is the documentation. `Tests/Server/WhiteLabel/WhiteLabelStaysInEnterprise.test.ts`
+keeps it that way: outside `ee/`, the words for it appear only in the schema
+of the license switch.
+
+### On oneuptime.com (the license server)
+
+**Can be white-labelled** on the license form (Admin Dashboard > Enterprise
+Licenses, create or edit) is `EnterpriseLicense.canBeWhiteLabelled`, off by
+default. The license list shows a **White-label** badge beside the license
+type.
+
+The switch travels in the signed license token only, as the claim
+`canBeWhiteLabelled: true`: the token `/validate` and `/report-user-count`
+return, and the offline token. A license without the switch gets exactly the
+token it got before the switch existed - no claim at all, not even `false` -
+and the JSON answers never name it, on or off. So an installation learns it
+only by verifying a token signed for a license that has it, and nobody can
+grant it without the signing key.
+
+That means it needs EdDSA signing (see the key ceremony below): a license
+server still issuing legacy HS256 tokens cannot give anyone white-labelling,
+because no installation can verify those. The switch reaches a customer's
+installation at its next license refresh: the daily usage report, or
+**Refresh license** in its edition dialog. An offline installation needs a new
+offline token.
+
+### On the customer's installation
+
+`Server/WhiteLabel/WhiteLabelEntitlement.ts` decides, synchronously and on
+every ask, from the license this process holds. Allowed only when ALL hold:
+
+- self-hosted (billing off): OneUptime Cloud is never white-labelled;
+- the license token is **verified** - signed by a key this build trusts.
+  An unverified legacy license, a token signed by an unknown key, a tampered
+  or malformed token, a token bound to another instance and the unlicensed
+  trial never allow it;
+- the license is usable: valid, or expired and inside its 30-day grace
+  period (nothing changes until grace ends, as for every enterprise feature);
+- the token carries `canBeWhiteLabelled: true`.
+
+Everything else is no, and an unknown license state (not read yet) is no.
+
+While it is allowed, **Admin Dashboard > Settings > White Label** (master
+admins) sets:
+
+| Setting | What it changes |
+| --- | --- |
+| Product name (up to 50 characters, no line breaks or `< > { }`) | Every place the product names itself: page titles, the sign-in pages, the product's own sentences in every language (the Dashboard, Accounts and status pages replace "OneUptime" as a word in every translated string, interpolated values included), emails (header, footer, sign-off, subjects, the templates' own sentences), SMS, voice calls and push notifications, "Powered by" on status pages and public dashboards, `llms.txt`, server-rendered pages, the web app manifest. With a name set, the Dashboard footer and the sign-in page also drop OneUptime's support and legal links and the edition pill. |
+| Website (optional, http or https) | Where "Powered by <name>" links, in emails and on status pages and public dashboards. Without it the line has no link. |
+| Logo for light backgrounds (PNG, JPEG, GIF, WebP or SVG, up to 512 KB) | The Dashboard and Admin Dashboard headers, the sign-in pages, form pages without a logo of their own, server-rendered pages, and the top of emails when it is a PNG, JPEG or GIF (many mail clients draw neither SVG nor WebP; the product name stands in). |
+| Logo for dark backgrounds (optional, same rules) | The headers in dark mode; without it the light-background logo is used. |
+| Browser tab icon (PNG, JPEG, GIF, WebP, SVG or ICO, up to 128 KB) | The favicon of every frontend and server-rendered page, the web app manifest's icon, and web push notifications' icon. |
+
+Uploads are typed from their own bytes, never from the browser's claim; an SVG
+with scripts, event handlers, embedded HTML, `javascript:` or entity
+declarations is refused. Stored values are read back under the same rules, so
+a value that would not pass today is never served.
+
+What deliberately stays OneUptime: the Admin Dashboard's own sentences and its
+edition dialog (where the installation's operators manage the OneUptime
+license - a license notice names its licensor), the public docs and the API
+reference served at `/docs` and `/reference`, the license emails oneuptime.com
+sends, the mobile app, Slack, Microsoft Teams and other workspace messages,
+WhatsApp messages (their templates are approved with Meta under the operator's
+own account), and every command, package, image and URL (`oneuptime`,
+`ONEUPTIME_*`, `oneuptime.com`).
+
+### How it is wired
+
+- **Schema (core):** `EnterpriseLicense.canBeWhiteLabelled`, and
+  `GlobalConfig.branding*` (name, website, the three images as `data:` URLs,
+  the time of the last change). `GlobalConfigService` refuses writes to the
+  branding columns from anyone but OneUptime itself and drops them from every
+  read that is not, so a value stored while white-labelling was allowed is
+  never served by the generic API once it is not.
+- **The routes (`Server/WhiteLabel/API/WhiteLabelAPI.ts`):**
+  `GET`/`PUT /api/branding/settings` (master admins) and the public image
+  routes `/api/branding/logo`, `/dark-logo` and `/favicon`. Every route starts
+  with the license gate, which passes a request on (`next("route")`) before
+  anything else looks at it, so an installation whose license does not allow
+  white-labelling answers exactly what it answers for a path that does not
+  exist. An image that is not set answers the same.
+- **What core shows:** the module's `getProductBranding()` hands core a
+  neutral `ProductBranding` (`packages/Common/Types/Branding/ProductBranding.ts`),
+  or `null` while it is not allowed. Core puts it in env.js
+  (`PRODUCT_BRANDING`, absent while `null`), in the index pages and
+  server-rendered pages (`ProductBrandingViewVariables`), in emails
+  (`EmailBranding.ts`, the `brandName` helpers) and in paging messages
+  (`ProductBrandingText`). Core never says what the branding is for.
+- **The settings page (`AdminDashboard/WhiteLabel/`):** an Enterprise settings
+  page (`SettingsPages`, `SettingsSideMenuItems`). It knows whether white-labelling
+  is allowed from env.js alone, so an installation whose license does not
+  allow it never sends a request that names it. Its text is English only: it
+  stays out of the shared locale files, which ship to every installation.
+- **Caching:** the settings are read at boot and cached for 30 seconds per
+  process (`WhiteLabelProvider.ts`); a save refreshes the process that served
+  it at once, and every other process within 30 seconds. Pages pick changes up
+  on their next load.
+
+### When the license changes
+
+Turning the switch off on oneuptime.com takes effect at the installation's
+next license refresh: the new token has no claim, so white-labelling stops,
+and the product shows OneUptime's name and logo again at once - pages on
+their next load, emails and messages from the next one sent. The settings are
+kept, not deleted, and come back as they were if the license gets the switch
+again. The same happens when the license lapses past its grace period, and
+comes back when it is renewed.
 
 ## Contributing
 

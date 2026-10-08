@@ -12,8 +12,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * creates anything twice. Both tables are new, so their indexes and foreign
  * keys are built while nothing writes to them.
  */
-export class AddToolImportTables1800000000000 implements MigrationInterface {
-  public name: string = "AddToolImportTables1800000000000";
+export class AddToolImportTables1800300000000 implements MigrationInterface {
+  public name: string = "AddToolImportTables1800300000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
