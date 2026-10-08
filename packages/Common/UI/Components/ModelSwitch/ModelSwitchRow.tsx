@@ -21,10 +21,12 @@ import {
   subscribeToModelSwitchSaved,
 } from "./ModelSwitchEvents";
 import {
+  getModelSwitchWrite,
   getPlanNeededToChangeColumn,
   getPlanNeededToFlipSwitch,
-  getStoredValueForSwitch,
   getSwitchPlanLeftover,
+  MODEL_SWITCH_CHILDREN_CLASS_NAME,
+  ModelSwitchChild,
   ModelSwitchColumn,
   SWITCH_PLAN_LEFTOVER_COPY,
   SWITCH_PLAN_LOCKED_COPY,
@@ -77,6 +79,10 @@ import React, {
  * - Another place on the screen that saves the same column (a banner's
  *   "Turn monitoring on" button) is heard through ModelSwitchEvents, and the
  *   switch follows it; this one announces its own saves the same way.
+ * - A switch can have switches of its own under it (childSwitches): they
+ *   turn on and off with it, in the same request as its own column, and are
+ *   drawn under its name only while it is on (childrenWhileOn) - with it off
+ *   they would change nothing. ModelSwitchesCard draws them.
  *
  * ModelSwitchCard reads the column and draws this row in a card. A page
  * that already holds the record draws the row itself.
@@ -150,7 +156,62 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * permission's reason comes first.
    */
   lockedReason?: string | undefined;
+  /*
+   * The switches that belong to this one ("Open a fix pull request when an
+   * investigation finds a code change" under "Fix new incidents
+   * automatically"). Turning this one on turns every one of them on, and
+   * turning it off turns them off, in the same request as its own column:
+   * a refused save leaves all of them as they were. Each column saved is
+   * announced, and the switch locks for someone who may not change one of
+   * them - the server would refuse the whole save.
+   */
+  childSwitches?: Array<ModelSwitchChild> | undefined;
+  /*
+   * What to draw under the switch's name while it is on: the rows of its
+   * child switches. They come once a change to on is saved - not while it
+   * is being saved or asked about, so nothing under it can be flipped while
+   * the save that sets them is out - and go at once when it is turned off.
+   */
+  childrenWhileOn?: ReactNode | undefined;
 }
+
+/*
+ * Whether the switch may be flipped, and if not, why: the first of the
+ * columns it writes - its own, then its child switches' - that may not be
+ * changed. The server checks every column of a write, so one of them
+ * refuses them all.
+ */
+const getSwitchUpdateGate: (data: {
+  model: BaseModel;
+  column: string;
+  childSwitches?: Array<ModelSwitchChild> | undefined;
+}) => PermissionGateResult = (data: {
+  model: BaseModel;
+  column: string;
+  childSwitches?: Array<ModelSwitchChild> | undefined;
+}): PermissionGateResult => {
+  const ownGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
+    data.model,
+    data.column,
+  );
+
+  if (!ownGate.isAllowed) {
+    return ownGate;
+  }
+
+  for (const child of data.childSwitches || []) {
+    const childGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
+      data.model,
+      child.column,
+    );
+
+    if (!childGate.isAllowed) {
+      return childGate;
+    }
+  }
+
+  return ownGate;
+};
 
 export enum ModelSwitchSaveState {
   Idle = "Idle",
@@ -205,10 +266,11 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
 
   const modelIdString: string = props.modelId.toString();
 
-  const updateGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
-    model,
-    props.column,
-  );
+  const updateGate: PermissionGateResult = getSwitchUpdateGate({
+    model: model,
+    column: props.column,
+    childSwitches: props.childSwitches,
+  });
 
   const planNeeded: PlanType | null = getPlanNeededToChangeColumn(
     model,
@@ -257,9 +319,12 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     setSaveState(ModelSwitchSaveState.Saving);
     setError("");
 
-    const stored: boolean = getStoredValueForSwitch({
+    // Its own column, and its child switches' set the same way.
+    const write: Record<string, boolean> = getModelSwitchWrite({
+      column: props.column,
       isOn: value,
       isInverted: props.isInverted,
+      childSwitches: props.childSwitches,
     });
 
     const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
@@ -268,21 +333,27 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
       await modelAPI.updateById<TBaseModel>({
         modelType: props.modelType,
         id: props.modelId,
-        data: {
-          [props.column]: stored,
-        } as JSONObject,
+        data: write as JSONObject,
       });
 
       isBusyRef.current = false;
       setSaveState(ModelSwitchSaveState.Saved);
 
-      announceModelSwitchSaved({
-        modelType: props.modelType,
-        modelId: props.modelId,
-        column: props.column,
-        value: stored,
-        source: source,
-      });
+      // Its own column first, then each child switch's.
+      for (const column of [
+        props.column,
+        ...(props.childSwitches || []).map((child: ModelSwitchChild) => {
+          return child.column;
+        }),
+      ]) {
+        announceModelSwitchSaved({
+          modelType: props.modelType,
+          modelId: props.modelId,
+          column: column,
+          value: Boolean(write[column]),
+          source: source,
+        });
+      }
 
       props.onSaved?.(value);
     } catch (err) {
@@ -441,7 +512,17 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     saveState === ModelSwitchSaveState.Saving ||
     saveState === ModelSwitchSaveState.Saved;
 
-  return (
+  /*
+   * The child switches, while the switch is on and no change to it is out:
+   * a change to on brings them once it is saved, already on.
+   */
+  const isShowingChildren: boolean =
+    Boolean(props.childrenWhileOn) &&
+    isOn &&
+    saveState !== ModelSwitchSaveState.Saving &&
+    saveState !== ModelSwitchSaveState.Confirming;
+
+  const switchRow: ReactElement = (
     /*
      * The "Saved" status and the plan's pill sit to the right of the
      * switch's text from sm up. On a phone they go under the text, lined up
@@ -515,6 +596,34 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
         <></>
       )}
     </div>
+  );
+
+  if (!props.childrenWhileOn) {
+    return switchRow;
+  }
+
+  return (
+    <>
+      {switchRow}
+      {isShowingChildren ? (
+        /*
+         * A group named for the switch it belongs to, so a screen reader
+         * entering it hears whose switches these are.
+         */
+        <div
+          role="group"
+          aria-label={translator.translateText(props.title)}
+          className={MODEL_SWITCH_CHILDREN_CLASS_NAME}
+          data-testid={
+            props.dataTestId ? `${props.dataTestId}-children` : undefined
+          }
+        >
+          {props.childrenWhileOn}
+        </div>
+      ) : (
+        <></>
+      )}
+    </>
   );
 };
 

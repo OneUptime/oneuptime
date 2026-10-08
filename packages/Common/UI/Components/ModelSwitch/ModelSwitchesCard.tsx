@@ -10,6 +10,7 @@ import ModelSwitchRow, { ModelSwitchConfirmation } from "./ModelSwitchRow";
 import {
   getColumnBooleanDefault,
   isModelSwitchOn,
+  ModelSwitchChild,
   ModelSwitchColumn,
 } from "./ModelSwitchUtil";
 import React, {
@@ -44,9 +45,17 @@ import { useCardRuledListClassName } from "../Card/CardSurface";
  * first where the page says so, moves back with the server's reason when a
  * save is refused, and follows a save of its column made anywhere else on
  * the screen (ModelSwitchEvents).
+ *
+ * A switch can have switches of its own (`children`): the pull requests
+ * OneUptime AI opens, under "Fix new incidents automatically". They are
+ * drawn under its name, hanging from it, only while it is on - with it off
+ * they would change nothing - and they turn on with it and off with it, in
+ * the same save as its own column (ModelSwitchRow's childSwitches). While
+ * it is on, each one is flipped on its own.
  */
 
-export interface ModelSwitchesCardSwitch<TBaseModel extends BaseModel> {
+// A switch on the card, or one under another switch.
+export interface ModelSwitchesCardChildSwitch<TBaseModel extends BaseModel> {
   column: ModelSwitchColumn<TBaseModel>;
   // The switch's name and its sentences, in English, as on ModelSwitchRow.
   title: string;
@@ -62,6 +71,32 @@ export interface ModelSwitchesCardSwitch<TBaseModel extends BaseModel> {
    */
   dataTestId: string;
 }
+
+export interface ModelSwitchesCardSwitch<TBaseModel extends BaseModel>
+  extends ModelSwitchesCardChildSwitch<TBaseModel> {
+  /*
+   * The switches that belong to this one, in the order they are drawn under
+   * it (`${dataTestId}-children`). One level: they have none of their own.
+   */
+  children?: Array<ModelSwitchesCardChildSwitch<TBaseModel>> | undefined;
+}
+
+// Every switch of the card, in drawn order: each followed by the ones under it.
+export const getModelSwitchesInOrder: <TBaseModel extends BaseModel>(
+  switches: Array<ModelSwitchesCardSwitch<TBaseModel>>,
+) => Array<ModelSwitchesCardChildSwitch<TBaseModel>> = <
+  TBaseModel extends BaseModel,
+>(
+  switches: Array<ModelSwitchesCardSwitch<TBaseModel>>,
+): Array<ModelSwitchesCardChildSwitch<TBaseModel>> => {
+  return switches.flatMap(
+    (
+      definition: ModelSwitchesCardSwitch<TBaseModel>,
+    ): Array<ModelSwitchesCardChildSwitch<TBaseModel>> => {
+      return [definition, ...(definition.children || [])];
+    },
+  );
+};
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -93,7 +128,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   dataTestId: string;
 }
 
-// Where each switch is when the record is read, by column.
+// Where each switch is, by column: as read, then as each one moves.
 type SwitchPositions = Record<string, boolean>;
 
 const ModelSwitchesCard: <TBaseModel extends BaseModel>(
@@ -114,9 +149,13 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
 
   const modelIdString: string = props.modelId.toString();
 
+  // Every switch, the ones under another switch too.
+  const allSwitches: Array<ModelSwitchesCardChildSwitch<TBaseModel>> =
+    getModelSwitchesInOrder(props.switches);
+
   // The columns, as one string, so a new array of the same switches is no change.
-  const columnsKey: string = props.switches
-    .map((definition: ModelSwitchesCardSwitch<TBaseModel>): string => {
+  const columnsKey: string = allSwitches
+    .map((definition: ModelSwitchesCardChildSwitch<TBaseModel>): string => {
       return definition.column;
     })
     .join(",");
@@ -134,7 +173,7 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
       ...((props.select || {}) as Record<string, unknown>),
     };
 
-    for (const definition of props.switches) {
+    for (const definition of allSwitches) {
       select[definition.column] = true;
     }
 
@@ -156,7 +195,7 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
         const model: TBaseModel = new props.modelType();
         const readPositions: SwitchPositions = {};
 
-        for (const definition of props.switches) {
+        for (const definition of allSwitches) {
           readPositions[definition.column] = isModelSwitchOn({
             stored: (item as unknown as Record<string, unknown>)[
               definition.column
@@ -169,7 +208,7 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
         setPositions(readPositions);
         props.onLoaded?.(item);
 
-        for (const definition of props.switches) {
+        for (const definition of allSwitches) {
           props.onChange?.(
             definition.column,
             Boolean(readPositions[definition.column]),
@@ -195,6 +234,100 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
       readRef.current += 1;
     };
   }, [modelIdString, columnsKey]);
+
+  /*
+   * Where a switch is now: the rows under a switch come and go with it, and
+   * each comes back where it was last left - or on, once the switch it
+   * belongs to was turned on.
+   */
+  const remember: (column: string, isOn: boolean) => void = (
+    column: string,
+    isOn: boolean,
+  ): void => {
+    setPositions(
+      (current: SwitchPositions | null): SwitchPositions | null => {
+        return current ? { ...current, [column]: isOn } : current;
+      },
+    );
+  };
+
+  const renderRow: (data: {
+    definition: ModelSwitchesCardChildSwitch<TBaseModel>;
+    initialValue: boolean;
+    children?: Array<ModelSwitchesCardChildSwitch<TBaseModel>> | undefined;
+  }) => ReactElement = (data: {
+    definition: ModelSwitchesCardChildSwitch<TBaseModel>;
+    initialValue: boolean;
+    children?: Array<ModelSwitchesCardChildSwitch<TBaseModel>> | undefined;
+  }): ReactElement => {
+    const definition: ModelSwitchesCardChildSwitch<TBaseModel> =
+      data.definition;
+    const children: Array<ModelSwitchesCardChildSwitch<TBaseModel>> =
+      data.children || [];
+
+    return (
+      <ModelSwitchRow<TBaseModel>
+        /*
+         * Keyed on the record too, so a switch read for one record never
+         * shows on the next one's card.
+         */
+        key={`${modelIdString}-${definition.column}`}
+        modelType={props.modelType}
+        modelId={props.modelId}
+        column={definition.column}
+        initialValue={data.initialValue}
+        title={definition.title}
+        getDescription={definition.getDescription}
+        note={definition.note}
+        isInverted={definition.isInverted}
+        getConfirmation={definition.getConfirmation}
+        modelAPI={props.modelAPI}
+        childSwitches={
+          children.length > 0
+            ? children.map(
+                (
+                  child: ModelSwitchesCardChildSwitch<TBaseModel>,
+                ): ModelSwitchChild => {
+                  return {
+                    column: child.column,
+                    isInverted: child.isInverted,
+                  };
+                },
+              )
+            : undefined
+        }
+        childrenWhileOn={
+          children.length > 0
+            ? children.map(
+                (
+                  child: ModelSwitchesCardChildSwitch<TBaseModel>,
+                ): ReactElement => {
+                  return renderRow({
+                    definition: child,
+                    initialValue: Boolean(positions?.[child.column]),
+                  });
+                },
+              )
+            : undefined
+        }
+        onChange={(isOn: boolean): void => {
+          remember(definition.column, isOn);
+          props.onChange?.(definition.column, isOn);
+        }}
+        onSaved={(isOn: boolean): void => {
+          // The switches under it were saved with it, set the same way.
+          for (const child of children) {
+            remember(child.column, isOn);
+            props.onChange?.(child.column, isOn);
+            props.onSaved?.(child.column, isOn);
+          }
+
+          props.onSaved?.(definition.column, isOn);
+        }}
+        dataTestId={definition.dataTestId}
+      />
+    );
+  };
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
@@ -230,25 +363,11 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
                  */
                 key={`${modelIdString}-${definition.column}`}
               >
-                <ModelSwitchRow<TBaseModel>
-                  modelType={props.modelType}
-                  modelId={props.modelId}
-                  column={definition.column}
-                  initialValue={Boolean(positions[definition.column])}
-                  title={definition.title}
-                  getDescription={definition.getDescription}
-                  note={definition.note}
-                  isInverted={definition.isInverted}
-                  getConfirmation={definition.getConfirmation}
-                  modelAPI={props.modelAPI}
-                  onChange={(isOn: boolean): void => {
-                    props.onChange?.(definition.column, isOn);
-                  }}
-                  onSaved={(isOn: boolean): void => {
-                    props.onSaved?.(definition.column, isOn);
-                  }}
-                  dataTestId={definition.dataTestId}
-                />
+                {renderRow({
+                  definition: definition,
+                  initialValue: Boolean(positions[definition.column]),
+                  children: definition.children,
+                })}
               </div>
             );
           },

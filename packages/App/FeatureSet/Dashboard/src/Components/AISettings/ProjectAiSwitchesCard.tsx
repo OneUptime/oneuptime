@@ -1,6 +1,7 @@
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
 import ModelSwitchesCard, {
+  ModelSwitchesCardChildSwitch,
   ModelSwitchesCardSwitch,
 } from "Common/UI/Components/ModelSwitch/ModelSwitchesCard";
 import { ModelSwitchColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
@@ -19,6 +20,10 @@ import {
  * behaviours take Project Owner or Project Admin, narrower than the
  * Project table's update list, which also lets Edit Project and Manage
  * Billing in.
+ *
+ * A switch with switches of its own - "Fix new incidents automatically" and
+ * the two pull requests under it - draws them under its name while it is
+ * on, and turns them on and off with it in the same save.
  */
 
 export interface ComponentProps {
@@ -27,6 +32,23 @@ export interface ComponentProps {
   switches: Array<ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>>;
   dataTestId: string;
 }
+
+// One switch as the shared card draws it, from the page's words.
+const toCardSwitch: (
+  definition: ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>,
+) => ModelSwitchesCardChildSwitch<Project> = (
+  definition: ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>,
+): ModelSwitchesCardChildSwitch<Project> => {
+  return {
+    column: definition.column,
+    title: definition.title,
+    getDescription: (): string => {
+      return definition.description;
+    },
+    note: definition.note,
+    dataTestId: getProjectAiSwitchTestId(definition.column),
+  };
+};
 
 const ProjectAiSwitchesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,13 +70,8 @@ const ProjectAiSwitchesCard: FunctionComponent<ComponentProps> = (
           definition: ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>,
         ): ModelSwitchesCardSwitch<Project> => {
           return {
-            column: definition.column,
-            title: definition.title,
-            getDescription: (): string => {
-              return definition.description;
-            },
-            note: definition.note,
-            dataTestId: getProjectAiSwitchTestId(definition.column),
+            ...toCardSwitch(definition),
+            children: definition.children?.map(toCardSwitch),
           };
         },
       )}

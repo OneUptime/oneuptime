@@ -177,18 +177,18 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * applyNewProjectAiDefaults). Every boolean AI feature switch on Project
  * belongs here; Enable AI is not listed because its column already defaults
  * to true. A switch added to Project later is added here too, or new
- * projects get it off - which is what the two automatic-fix switches
- * (enableAutomaticIncidentRemediation, enableAutomaticAlertRemediation)
- * want: fixing changes infrastructure, so a project turns it on itself.
+ * projects get it off - which is what fixing wants: the two automatic-fix
+ * switches (enableAutomaticIncidentRemediation,
+ * enableAutomaticAlertRemediation) change infrastructure, so a project turns
+ * them on itself, and the pull-request switches under them
+ * (enableAutomaticIncidentCodeFixes, enableIncidentInstrumentationFixTasks
+ * and their alert twins) are part of fixing: they open pull requests only
+ * while fixing is on, and come on with it (Types/AI/AutomaticFixSwitches).
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
   | "enableAutomaticAlertInvestigation"
   | "enableAutomaticPostmortemDraft"
-  | "enableIncidentInstrumentationFixTasks"
-  | "enableAlertInstrumentationFixTasks"
-  | "enableAutomaticIncidentCodeFixes"
-  | "enableAutomaticAlertCodeFixes"
   | "enableAiInsights"
   | "enableInsightFixTasks"
   | "autoArchiveNonActionableExceptions";
@@ -198,10 +198,6 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableAutomaticIncidentInvestigation",
     "enableAutomaticAlertInvestigation",
     "enableAutomaticPostmortemDraft",
-    "enableIncidentInstrumentationFixTasks",
-    "enableAlertInstrumentationFixTasks",
-    "enableAutomaticIncidentCodeFixes",
-    "enableAutomaticAlertCodeFixes",
     "enableAiInsights",
     "enableInsightFixTasks",
     "autoArchiveNonActionableExceptions",

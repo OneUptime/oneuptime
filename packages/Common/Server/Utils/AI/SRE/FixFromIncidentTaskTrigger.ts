@@ -9,6 +9,14 @@ import CodeFixTaskContext, {
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  AutomaticFixPullRequest,
+  AutomaticFixPullRequestBlocker,
+  getAutomaticFixPullRequestBlocker,
+  getAutomaticFixPullRequestSelect,
+  getAutomaticFixSignal,
+} from "../../../../Types/AI/AutomaticFixSwitches";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
@@ -32,11 +40,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * stale or forged client cannot turn a non-code investigation into a PR.
  *
  * AUTOMATIC: for projects with the subject lane's incident or alert
- * automatic-code-fix setting on (on for new projects; a project that
- * existed before keeps its own value, and unset reads as off), an
- * investigation that ends with a POSITIVE code-fix classification (per the
- * structured G6 signal, never a regex over the analysis prose) enqueues the
- * same FixFromIncident task with no human click. Confidence alone is not
+ * automatic-code-fix setting on, under its fixing switch ("Fix new
+ * incidents automatically" or alerts) - the pull request is one of the ways
+ * OneUptime AI fixes, so it opens only while fixing is on
+ * (Types/AI/AutomaticFixSwitches); both start off, and unset reads as off -
+ * an investigation that ends with a POSITIVE code-fix classification (per
+ * the structured G6 signal, never a regex over the analysis prose) enqueues
+ * the same FixFromIncident task with no human click. Confidence alone is not
  * sufficient: operational and other non-code causes do not open PRs. Like its
  * InstrumentationTaskTrigger sibling it runs only after the Recommended
  * decision and snapshot are durable, and it never throws. The PR opens ready
@@ -45,7 +55,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  */
 
 export interface AutoFixTaskGateInput {
-  // The project row with enableAi + the subject lane's opt-in selected.
+  /*
+   * The project row with enableAi, the subject lane's fixing switch and its
+   * code-fix opt-in selected.
+   */
   project: Project | null;
   // Exactly one subject selects the incident or alert opt-in.
   incidentId?: ObjectID | undefined;
@@ -255,10 +268,11 @@ export default class FixFromIncidentTaskTrigger {
 
   /*
    * The pure trigger decision for the AUTOMATIC form, separated from IO so
-   * it can be tested directly: the project's setting (=== true), a repository
-   * the agent can actually open a PR against, and the per-subject dedupe
-   * guard. The caller has already established and durably persisted the
-   * code-fix-recommended investigation prerequisite.
+   * it can be tested directly: the project's fixing switch and its code-fix
+   * setting (both === true), a repository the agent can actually open a PR
+   * against, and the per-subject dedupe guard. The caller has already
+   * established and durably persisted the code-fix-recommended investigation
+   * prerequisite.
    */
   public static shouldAutoEnqueueFixTask(
     input: AutoFixTaskGateInput,
@@ -271,25 +285,46 @@ export default class FixFromIncidentTaskTrigger {
       return { enqueue: false, reason: "AI is disabled for the project" };
     }
 
-    /*
-     * Strictly === true — the column defaults to false, so unset/legacy
-     * rows never enqueue. New projects get it on from ProjectService.
-     */
-    if (Boolean(input.incidentId) === Boolean(input.alertId)) {
+    const signal: AutoRemediationTriggerEntity | null = getAutomaticFixSignal(
+      {
+        incidentId: input.incidentId,
+        alertId: input.alertId,
+      },
+    );
+
+    if (!signal) {
       return {
         enqueue: false,
         reason: "exactly one incident or alert subject is required",
       };
     }
 
-    const automaticCodeFixesEnabled: boolean = input.incidentId
-      ? input.project.enableAutomaticIncidentCodeFixes === true
-      : input.project.enableAutomaticAlertCodeFixes === true;
+    const signalLabel: "incident" | "alert" =
+      signal === AutoRemediationTriggerEntity.Incident ? "incident" : "alert";
 
-    if (!automaticCodeFixesEnabled) {
+    /*
+     * Strictly === true for both switches: the columns default to false, so
+     * unset/legacy rows never enqueue. The pull request is part of fixing,
+     * so it waits for the fixing switch as well as its own.
+     */
+    const blocker: AutomaticFixPullRequestBlocker | null =
+      getAutomaticFixPullRequestBlocker({
+        project: input.project,
+        signal,
+        pullRequest: AutomaticFixPullRequest.CodeFix,
+      });
+
+    if (blocker === AutomaticFixPullRequestBlocker.FixOff) {
       return {
         enqueue: false,
-        reason: `project has not opted in to automatic ${input.incidentId ? "incident" : "alert"} code fixes`,
+        reason: `project has fixing new ${signalLabel}s automatically off, and its fix pull requests open only while it is on`,
+      };
+    }
+
+    if (blocker === AutomaticFixPullRequestBlocker.PullRequestOff) {
+      return {
+        enqueue: false,
+        reason: `project has not opted in to automatic ${signalLabel} code fixes`,
       };
     }
 
@@ -338,7 +373,13 @@ export default class FixFromIncidentTaskTrigger {
     const { projectId } = data;
 
     try {
-      if (Boolean(data.incidentId) === Boolean(data.alertId)) {
+      const signal: AutoRemediationTriggerEntity | null =
+        getAutomaticFixSignal({
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        });
+
+      if (!signal) {
         return;
       }
 
@@ -356,17 +397,16 @@ export default class FixFromIncidentTaskTrigger {
         return;
       }
 
+      // Enable AI, the lane's fixing switch and its code-fix switch.
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
-        select: data.incidentId
-          ? {
-              enableAi: true,
-              enableAutomaticIncidentCodeFixes: true,
-            }
-          : {
-              enableAi: true,
-              enableAutomaticAlertCodeFixes: true,
-            },
+        select: {
+          enableAi: true,
+          ...getAutomaticFixPullRequestSelect(
+            signal,
+            AutomaticFixPullRequest.CodeFix,
+          ),
+        },
         props: { isRoot: true },
       });
 
