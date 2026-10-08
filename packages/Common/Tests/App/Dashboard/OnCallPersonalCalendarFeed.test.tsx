@@ -277,6 +277,7 @@ const status: StatusFunction = (
     urls: null,
     hostWarning: null,
     protocolWarning: null,
+    privateHost: null,
     ...overrides,
   };
 };
