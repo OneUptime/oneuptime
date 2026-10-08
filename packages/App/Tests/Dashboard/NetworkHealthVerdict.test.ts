@@ -241,6 +241,8 @@ describe("getPendingNoteCount", () => {
   });
 });
 
+const SNMP_WORD: RegExp = /\bSNMP\b/;
+
 describe("the copy", () => {
   const ALL_KINDS: Array<NetworkHealthVerdictKind> = Object.values(
     NetworkHealthVerdictKind,
@@ -282,6 +284,22 @@ describe("the copy", () => {
     ]) {
       expect(NETWORK_HEALTH_COPY[kind].headline.other).toContain("{{count}}");
     }
+  });
+
+  /*
+   * A device is down when its probe cannot reach it OR when the monitor
+   * bound to it reports it offline - the same two causes the attention list
+   * under the hero names. A line that blamed the probe alone would be false
+   * for every monitor-backed device in it.
+   */
+  test("the devices-down line names the probe and the monitor alike", () => {
+    const detail: NetworkHealthPlural =
+      NETWORK_HEALTH_COPY[NetworkHealthVerdictKind.DevicesDown].detail;
+
+    expect(detail.one).toContain("probe or monitor");
+    expect(detail.other).toContain("probes or monitors");
+    expect(detail.one).not.toMatch(SNMP_WORD);
+    expect(detail.other).not.toMatch(SNMP_WORD);
   });
 
   test("the waiting line counts the devices it is waiting for", () => {

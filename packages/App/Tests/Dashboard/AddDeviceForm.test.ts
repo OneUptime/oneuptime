@@ -27,7 +27,7 @@ import {
  * The Add Device form's own logic and words (AddDeviceForm.ts): the SNMP
  * fold, what it says while nothing is set, when a device counts as having
  * credentials, and the name a device gets when none is typed. The form
- * itself is rendered in Common/Tests/App/Dashboard/NetworkAddDeviceForm.test.tsx.
+ * itself is rendered in Common/Tests/App/Dashboard/NetworkAddDeviceDialog.test.tsx.
  */
 
 function values(record: Record<string, unknown>): FormValues<NetworkDevice> {

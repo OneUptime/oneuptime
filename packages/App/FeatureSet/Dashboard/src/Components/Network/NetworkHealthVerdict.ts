@@ -84,8 +84,8 @@ export const NETWORK_HEALTH_COPY: Record<
       other: "{{count}} devices are down",
     },
     detail: {
-      one: "Its probe cannot reach it. It is listed first under Devices needing attention.",
-      other: "Their probes cannot reach them. They are listed first under Devices needing attention.",
+      one: "Its probe or monitor cannot reach it. It is listed first under Devices needing attention.",
+      other: "Their probes or monitors cannot reach them. They are listed first under Devices needing attention.",
     },
   },
   [NetworkHealthVerdictKind.SitesUnhealthy]: {
