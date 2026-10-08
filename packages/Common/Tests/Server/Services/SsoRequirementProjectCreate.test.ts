@@ -35,6 +35,12 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import {
+  COMMIT_STATEMENT,
+  INSERT_STATEMENT,
+  clientTimeout,
+  connectionLost,
+} from "../TestingUtils/StatementFailures";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -119,6 +125,8 @@ let creatorIsMasterAdmin: boolean;
 let events: Array<string>;
 let saved: Array<Project>;
 let saveFails: boolean;
+// What the database fails the project's write with, when it does - as TypeORM hands it on.
+let saveFailsWith: Error | null;
 let lockBusy: boolean;
 let locksUnreachable: boolean;
 let lostLocks: Array<string>;
@@ -240,6 +248,7 @@ beforeEach(() => {
   events = [];
   saved = [];
   saveFails = false;
+  saveFailsWith = null;
   lockBusy = false;
   locksUnreachable = false;
   lostLocks = [];
@@ -272,6 +281,10 @@ beforeEach(() => {
   getJestSpyOn(ProjectService, "getRepository").mockReturnValue({
     save: async (project: Project): Promise<Project> => {
       whileSaving?.();
+
+      if (saveFailsWith) {
+        throw saveFailsWith;
+      }
 
       if (saveFails) {
         throw new Error("The database could not write the project");
@@ -720,6 +733,39 @@ describe("the lock the check holds", () => {
     );
 
     expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("an INSERT the client stopped waiting for is rolled back with the create's own transaction: the lock is given back at once, and other creates go on", async () => {
+    saveFailsWith = clientTimeout(INSERT_STATEMENT);
+
+    await expect(create("member")).rejects.toThrow("Query read timeout");
+
+    expect(saved).toEqual([]);
+    expect(lockEvents()).toEqual([
+      `lock:${SERVER_LOCK}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+    expect(keptForWrite()).toEqual([false]);
+
+    saveFailsWith = null;
+
+    await expect(create("member")).resolves.toBe("created");
+  });
+
+  test("a create whose COMMIT went unanswered may have landed: the lock is kept until the database would have cancelled it", async () => {
+    saveFailsWith = connectionLost(COMMIT_STATEMENT);
+
+    await expect(create("member")).rejects.toThrow(
+      "Connection terminated unexpectedly",
+    );
+
+    expect(lockEvents()).toEqual([`lock:${SERVER_LOCK}`]);
+    expect(keptForWrite()).toEqual([true]);
+
+    // Stops keeping it, so nothing outlives the test.
+    await ProjectSsoProviderChanges.releaseSignInChange(
+      Array.from(lockObjects.values()) as never,
+    );
   });
 
   test("is given back once only, when the create succeeds", async () => {

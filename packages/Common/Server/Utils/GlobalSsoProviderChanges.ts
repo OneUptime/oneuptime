@@ -18,6 +18,7 @@ import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "./Database/RelationIdUtil";
 import logger from "./Logger";
+import { StatementContext } from "./Database/StatementOutcome";
 import ProjectSsoProviderChanges, {
   SignInChangeRecheck,
 } from "./ProjectSsoProviderChanges";
@@ -728,15 +729,62 @@ export default class GlobalSsoProviderChanges {
   }
 
   /*
-   * Once the write has failed (the error hooks, with what failed): its lock
-   * is given back, once - unless the database may still apply the write,
-   * when it is kept until the database would have cancelled it
-   * (ProjectSsoProviderChanges.giveBackAfterFailedWrite). Nobody is told:
-   * nothing was written. Never throws.
+   * Once an update or a delete has failed (the error hooks, with what
+   * failed): its lock is given back, once - unless the database may still
+   * apply the write, when it is kept until the database would have
+   * cancelled it (ProjectSsoProviderChanges.giveBackAfterFailedWrite).
+   * Nobody is told: nothing was written. Never throws.
    */
   public static async afterFailedWrite<TModel extends BaseModel>(
-    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+    written: UpdateBy<TModel> | DeleteBy<TModel>,
     error: unknown,
+  ): Promise<void> {
+    await GlobalSsoProviderChanges.giveBackAfterFailure(written, {
+      error,
+    });
+  }
+
+  /*
+   * The same once a create - an attachment - has failed (onCreateError):
+   * written by save(), in a transaction of its own, it can still land only
+   * when its COMMIT went unanswered. Never throws.
+   */
+  public static async afterFailedCreate<TModel extends BaseModel>(
+    createBy: CreateBy<TModel>,
+    error: unknown,
+  ): Promise<void> {
+    await GlobalSsoProviderChanges.giveBackAfterFailure(createBy, {
+      error,
+      context: { inOwnTransaction: true },
+    });
+  }
+
+  // Gives a write's lock back, once.
+  public static async release(
+    write: GlobalSsoProviderWrite | null | undefined,
+  ): Promise<void> {
+    if (!write) {
+      return;
+    }
+
+    await ProjectSsoProviderChanges.releaseSignInChange(
+      GlobalSsoProviderChanges.takeLocks(write),
+    );
+  }
+
+  // The write's lock, which it holds no more: given back by whoever takes it.
+  private static takeLocks(
+    write: GlobalSsoProviderWrite,
+  ): Array<SemaphoreMutex> {
+    const locks: Array<SemaphoreMutex> = write.locks || [];
+    write.locks = undefined;
+    return locks;
+  }
+
+  // A failed write's lock, given back once - or kept while the write may still land.
+  private static async giveBackAfterFailure<TModel extends BaseModel>(
+    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+    failure: { error: unknown; context?: StatementContext | undefined },
   ): Promise<void> {
     const key: WriteKey = keyOf(written);
     const write: GlobalSsoProviderWrite | undefined =
@@ -748,24 +796,11 @@ export default class GlobalSsoProviderChanges {
       return;
     }
 
-    const locks: Array<SemaphoreMutex> = write.locks || [];
-    write.locks = undefined;
-
-    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(locks, error);
-  }
-
-  // Gives a write's lock back, once.
-  public static async release(
-    write: GlobalSsoProviderWrite | null | undefined,
-  ): Promise<void> {
-    if (!write) {
-      return;
-    }
-
-    const locks: Array<SemaphoreMutex> = write.locks || [];
-    write.locks = undefined;
-
-    await ProjectSsoProviderChanges.releaseSignInChange(locks);
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      GlobalSsoProviderChanges.takeLocks(write),
+      failure.error,
+      failure.context,
+    );
   }
 
   /*
@@ -868,25 +903,26 @@ export default class GlobalSsoProviderChanges {
       await GlobalSsoProviderChanges.lockWorkAndCheck(data.work);
 
     const locks: Array<SemaphoreMutex> = write.locks || [];
+    write.locks = locks;
 
     // The same check, from the start: what the write changes is worked out again, here.
-    write.recheck = async (): Promise<Array<SemaphoreMutex>> => {
+    const recheck: SignInChangeRecheck = async (): Promise<
+      Array<SemaphoreMutex>
+    > => {
       const again: GlobalSsoProviderWrite =
         await GlobalSsoProviderChanges.lockWorkAndCheck(data.work);
 
       write.reachChanges = again.reachChanges;
+      write.isReachUnknown = again.isReachUnknown;
       write.touchesRestrictedProvider = again.touchesRestrictedProvider;
 
       return again.locks || [];
     };
 
-    try {
-      // Checked: the lock is kept for the write until it is done.
-      await ProjectSsoProviderChanges.holdForWrite(locks, write.recheck);
-    } catch (err) {
-      await ProjectSsoProviderChanges.releaseSignInChange(locks);
-      throw err;
-    }
+    write.recheck = recheck;
+
+    // Checked: the lock is kept for the write until it is done.
+    await ProjectSsoProviderChanges.holdCheckedForWrite(locks, recheck);
 
     GlobalSsoProviderChanges.writes.set(data.key, write);
 

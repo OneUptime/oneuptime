@@ -47,6 +47,11 @@ import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
 import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
+  COMMIT_STATEMENT,
+  INSERT_STATEMENT,
+  clientTimeout,
+} from "../TestingUtils/StatementFailures";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -158,6 +163,9 @@ let lostLockObjects: Set<{ key: string }> = new Set<{ key: string }>();
 
 // The database refuses every write of this kind it is asked for.
 let failing: "update" | "delete" | "save" | null = null;
+
+// What an INSERT fails with instead, as TypeORM hands it on.
+let saveFailsWith: Error | null = null;
 
 // The locks Semaphore.lock handed out, by key, the last of each.
 let lockObjects: Map<string, { key: string }> = new Map<
@@ -314,6 +322,10 @@ const stubTable: (
       return { affected: gone.length };
     },
     save: async (data: BaseModel): Promise<BaseModel> => {
+      if (saveFailsWith) {
+        throw saveFailsWith;
+      }
+
       if (failing === "save") {
         throw new Error("The database could not insert the row");
       }
@@ -677,6 +689,7 @@ beforeEach(() => {
   lostLocks = [];
   lostLockObjects = new Set<{ key: string }>();
   failing = null;
+  saveFailsWith = null;
   lockObjects = new Map<string, { key: string }>();
   whileWriting = null;
 
@@ -1518,6 +1531,35 @@ describe.each([
 
       expect(kind.attachmentTable().created).toEqual([]);
       expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
+    });
+
+    test("an attachment whose INSERT the client stopped waiting for is rolled back with its own transaction: the lock is given back at once", async () => {
+      projects = [project(BETA, "Beta")];
+      saveFailsWith = clientTimeout(INSERT_STATEMENT);
+
+      await expect(attach(kind, BETA)).rejects.toThrow("Query read timeout");
+
+      expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
+    });
+
+    test("an attachment whose COMMIT went unanswered may have landed: the lock is kept until the database would have cancelled it", async () => {
+      projects = [project(BETA, "Beta")];
+      saveFailsWith = clientTimeout(COMMIT_STATEMENT);
+
+      await expect(attach(kind, BETA)).rejects.toThrow("Query read timeout");
+
+      expect(events).toEqual([`lock:${SERVER_LOCK}`]);
+
+      const serverLock: { key: string } = lockObjects.get(SERVER_LOCK)!;
+
+      expect(
+        ProjectSsoProviderChanges.isKeptForWrite(serverLock as never),
+      ).toBe(true);
+
+      // Stops keeping it, so nothing outlives the test.
+      await ProjectSsoProviderChanges.releaseSignInChange([
+        serverLock,
+      ] as never);
     });
 
     test("turning an attachment off that the database fails to write gives the lock back", async () => {

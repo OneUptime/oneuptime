@@ -19,15 +19,17 @@ import path from "path";
  * database may still apply it (Server/Utils/Database/StatementOutcome). The
  * locks are then kept until the database would have cancelled it
  * (ProjectSsoProviderChanges.giveBackAfterFailedWrite), so the helpers have
- * to know what failed. Every error hook of a service whose writes are
- * checked hands its `error` to one of them:
+ * to know what failed - and whether it was a create, which runs in a
+ * transaction of its own and can still land only by its COMMIT. Every
+ * error hook of a service whose writes are checked hands its `error` to one
+ * of them:
  *
  *   - ProjectService and GlobalConfigService (Require SSO for Login):
  *     SsoRequirementChanges.afterFailedUpdate / afterFailedProjectCreate;
  *   - a project's SAML and OIDC providers: ProjectSsoProviderChanges.
  *     afterFailedWrite;
  *   - the global providers and their attachments: GlobalSsoProviderChanges.
- *     afterFailedWrite.
+ *     afterFailedWrite, and afterFailedCreate for an attachment's create.
  *
  * None of them gives the locks back with the helpers the success hooks use,
  * which do not know what failed.
@@ -80,13 +82,23 @@ const ERROR_HOOKS: Array<{
   },
   {
     file: "GlobalSsoProjectService.ts",
-    hooks: ["onUpdateError", "onDeleteError", "onCreateError"],
+    hooks: ["onUpdateError", "onDeleteError"],
+    helper: /GlobalSsoProviderChanges\.afterFailedWrite/,
+  },
+  {
+    file: "GlobalSsoProjectService.ts",
+    hooks: ["onCreateError"],
+    helper: /GlobalSsoProviderChanges\.afterFailedCreate/,
+  },
+  {
+    file: "GlobalOidcProjectService.ts",
+    hooks: ["onUpdateError", "onDeleteError"],
     helper: /GlobalSsoProviderChanges\.afterFailedWrite/,
   },
   {
     file: "GlobalOidcProjectService.ts",
-    hooks: ["onUpdateError", "onDeleteError", "onCreateError"],
-    helper: /GlobalSsoProviderChanges\.afterFailedWrite/,
+    hooks: ["onCreateError"],
+    helper: /GlobalSsoProviderChanges\.afterFailedCreate/,
   },
 ];
 
@@ -140,26 +152,45 @@ describe.each(ERROR_HOOKS)(
 describe("the helpers decide by what failed", () => {
   const UTILS_DIR: string = path.join(COMMON_DIR, "Server", "Utils");
 
+  // Each helper, and the method of its own it gives the locks back through.
   test.each([
-    ["SsoRequirementChanges.ts", "afterFailedUpdate"],
-    ["SsoRequirementChanges.ts", "afterFailedProjectCreate"],
-    ["ProjectSsoProviderChanges.ts", "afterFailedWrite"],
-    ["GlobalSsoProviderChanges.ts", "afterFailedWrite"],
+    ["SsoRequirementChanges.ts", "afterFailedUpdate", "release"],
+    ["SsoRequirementChanges.ts", "afterFailedProjectCreate", "release"],
+    ["ProjectSsoProviderChanges.ts", "afterFailedWrite", "release"],
+    ["GlobalSsoProviderChanges.ts", "afterFailedWrite", "giveBackAfterFailure"],
+    [
+      "GlobalSsoProviderChanges.ts",
+      "afterFailedCreate",
+      "giveBackAfterFailure",
+    ],
   ])(
     "%s %s takes what failed and leaves the decision to giveBackAfterFailedWrite",
-    (file: string, method: string) => {
+    (file: string, method: string, through: string) => {
       const classSource: ClassSource = readClassSource(
         path.join(UTILS_DIR, file),
       );
-      const reached: string = [
-        methodText(classSource, method),
-        methodText(classSource, "releaseAfterFailure"),
-      ].join("\n");
+      const text: string = methodText(classSource, method);
 
-      expect(methodText(classSource, method)).toMatch(/error: unknown/);
-      expect(reached).toMatch(
+      expect(text).toMatch(/error: unknown/);
+      // What failed is handed on, by name.
+      expect(callArguments(text, new RegExp(`\\.${through}`))[0]).toMatch(
+        /\berror\b/,
+      );
+      expect(methodText(classSource, through)).toMatch(
         /ProjectSsoProviderChanges\.giveBackAfterFailedWrite\s*\(/,
       );
+    },
+  );
+
+  test.each([
+    ["SsoRequirementChanges.ts", "afterFailedProjectCreate"],
+    ["GlobalSsoProviderChanges.ts", "afterFailedCreate"],
+  ])(
+    "%s %s says the create runs in a transaction of its own",
+    (file: string, method: string) => {
+      expect(
+        methodText(readClassSource(path.join(UTILS_DIR, file)), method),
+      ).toMatch(/inOwnTransaction:\s*true/);
     },
   );
 });

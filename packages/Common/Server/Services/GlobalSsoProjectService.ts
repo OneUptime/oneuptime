@@ -222,9 +222,9 @@ export class Service extends DatabaseService<Model> {
    * when the create fails once its check ran - refused after it, at the
    * INSERT, or in onCreateSuccess before it gave the lock back:
    * DatabaseService.create hands every failure after onBeforeCreate to this
-   * hook, with what onBeforeCreate handed back. An INSERT the database may
-   * still apply keeps the lock until it would have cancelled it
-   * (GlobalSsoProviderChanges.afterFailedWrite).
+   * hook, with what onBeforeCreate handed back. A create the database may
+   * still apply - its COMMIT went unanswered - keeps the lock until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedCreate).
    */
   @CaptureSpan()
   protected override async onCreateError(
@@ -232,7 +232,10 @@ export class Service extends DatabaseService<Model> {
     onCreate?: OnCreate<Model> | undefined,
   ): Promise<Exception> {
     if (onCreate) {
-      await GlobalSsoProviderChanges.afterFailedWrite(onCreate.createBy, error);
+      await GlobalSsoProviderChanges.afterFailedCreate(
+        onCreate.createBy,
+        error,
+      );
     }
 
     return error;

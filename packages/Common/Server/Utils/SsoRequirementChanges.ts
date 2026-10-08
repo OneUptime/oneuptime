@@ -8,6 +8,7 @@ import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import { StatementContext } from "./Database/StatementOutcome";
 import ProjectSsoProviderChanges, {
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
   SignInChangeRecheck,
@@ -236,7 +237,7 @@ export default class SsoRequirementChanges {
      * rule under the lock on the server's sign-in rules, which this write
      * then holds (SsoSignInWays.dependsOnServerRules).
      */
-    if (asked.requireSsoForLogin !== true && !asked.requiredProviderId) {
+    if (!SsoRequirementChanges.asksForMore(asked)) {
       return null;
     }
 
@@ -426,9 +427,9 @@ export default class SsoRequirementChanges {
     updateBy: UpdateBy<TModel>,
     error: unknown,
   ): Promise<void> {
-    await SsoRequirementChanges.releaseAfterFailure(
+    await SsoRequirementChanges.release(
       updateBy as unknown as UpdateBy<BaseModel>,
-      error,
+      { error },
     );
   }
 
@@ -452,8 +453,11 @@ export default class SsoRequirementChanges {
   /*
    * Once a project's create has failed after the check (ProjectService.
    * onCreateError, with what failed): the lock its check took is given back,
-   * once - unless the database may still apply the INSERT, when it is kept
-   * until the database would have cancelled it. Never throws.
+   * once - unless the database may still apply the create, when it is kept
+   * until the database would have cancelled it. A project is written by
+   * save(), in a transaction of its own, so only a COMMIT that went
+   * unanswered may still land: an INSERT the client stopped waiting for is
+   * rolled back. Never throws.
    */
   public static async afterFailedProjectCreate(
     createBy: CreateBy<Project> | null | undefined,
@@ -463,9 +467,9 @@ export default class SsoRequirementChanges {
       return;
     }
 
-    await SsoRequirementChanges.releaseAfterFailure(
+    await SsoRequirementChanges.release(
       createBy as unknown as CreateBy<BaseModel>,
-      error,
+      { error, context: { inOwnTransaction: true } },
     );
   }
 
@@ -496,10 +500,9 @@ export default class SsoRequirementChanges {
    * Require SSO for Login turned on, or a provider required - saved again
    * as it was included.
    */
-  private static asksForMore(written: Record<string, unknown>): boolean {
+  private static asksForMore(asked: ProjectRuleAsked): boolean {
     return (
-      written["requireSsoForLogin"] === true ||
-      Boolean(written["requireSsoWithSsoProviderId"])
+      asked.requireSsoForLogin === true || Boolean(asked.requiredProviderId)
     );
   }
 
@@ -526,7 +529,11 @@ export default class SsoRequirementChanges {
       return;
     }
 
-    if (SsoRequirementChanges.asksForMore(written)) {
+    if (
+      SsoRequirementChanges.asksForMore(
+        SsoRequirementChanges.getProjectRuleAsked(updateBy),
+      )
+    ) {
       return;
     }
 
@@ -972,15 +979,10 @@ export default class SsoRequirementChanges {
     key: UpdateBy<BaseModel> | CreateBy<BaseModel>;
     write: SsoRequirementWrite;
   }): Promise<SsoRequirementWrite> {
-    try {
-      await ProjectSsoProviderChanges.holdForWrite(
-        data.write.locks,
-        data.write.recheck,
-      );
-    } catch (err) {
-      await ProjectSsoProviderChanges.releaseSignInChange(data.write.locks);
-      throw err;
-    }
+    await ProjectSsoProviderChanges.holdCheckedForWrite(
+      data.write.locks,
+      data.write.recheck,
+    );
 
     SsoRequirementChanges.writes.set(data.key, data.write);
 
@@ -988,32 +990,15 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * Gives back the locks of a write that failed, once - or, when the
-   * database may still apply it, keeps them until it would have cancelled
-   * it (ProjectSsoProviderChanges.giveBackAfterFailedWrite).
+   * Gives a write's locks back, once - after a failed write, unless the
+   * database may still apply it, when they are kept until it would have
+   * cancelled it (ProjectSsoProviderChanges.giveBackAfterFailedWrite).
    */
-  private static async releaseAfterFailure(
-    key: UpdateBy<BaseModel> | CreateBy<BaseModel>,
-    error: unknown,
-  ): Promise<void> {
-    const write: SsoRequirementWrite | undefined =
-      SsoRequirementChanges.writes.get(key);
-
-    if (!write) {
-      return;
-    }
-
-    SsoRequirementChanges.writes.delete(key);
-
-    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
-      write.locks,
-      error,
-    );
-  }
-
-  // Gives a write's locks back, once.
   private static async release(
     key: UpdateBy<BaseModel> | CreateBy<BaseModel>,
+    failure?:
+      | { error: unknown; context?: StatementContext | undefined }
+      | undefined,
   ): Promise<void> {
     const write: SsoRequirementWrite | undefined =
       SsoRequirementChanges.writes.get(key);
@@ -1023,6 +1008,15 @@ export default class SsoRequirementChanges {
     }
 
     SsoRequirementChanges.writes.delete(key);
+
+    if (failure) {
+      await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+        write.locks,
+        failure.error,
+        failure.context,
+      );
+      return;
+    }
 
     await ProjectSsoProviderChanges.releaseSignInChange(write.locks);
   }

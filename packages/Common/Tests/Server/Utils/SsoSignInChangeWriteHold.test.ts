@@ -32,6 +32,9 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
 import { StoredRow, rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
+  COMMIT_STATEMENT,
+  INSERT_STATEMENT,
+  SELECT_STATEMENT,
   cancelledByDatabase,
   clientTimeout,
   connectionLost,
@@ -846,7 +849,7 @@ describe("a write the database may still apply keeps its locks until the databas
     expect(keeps).toHaveLength(roundsIn(ABANDONED_WRITE_HOLD_IN_MS) - 1);
   });
 
-  test("a lock found gone while it is kept for such a write is said, and kept no more", async () => {
+  test("a lock found gone while it is kept for such a write is said, in its own words, and kept no more", async () => {
     const project: SemaphoreMutex = lock("project");
 
     await ProjectSsoProviderChanges.holdForWrite([project]);
@@ -860,8 +863,79 @@ describe("a write the database may still apply keeps its locks until the databas
 
     expect(isKept(project)).toBe(false);
     expect(errors).toEqual([
-      "SSO sign-in change: a lock was lost while its change was being written; another change to who can sign in may have been written at the same time.",
+      "SSO sign-in change: a lock was lost while its write, failed without an answer from the database, may still land; another change to who can sign in may be checked before it does.",
     ]);
+  });
+
+  test("a lock found gone while the write ran is not kept again once the write fails without an answer: it was said once, and is nobody's to keep", async () => {
+    const project: SemaphoreMutex = lock("project");
+    const server: SemaphoreMutex = lock("server");
+
+    await ProjectSsoProviderChanges.holdForWrite([project, server]);
+
+    lost.add("server");
+    await nextRound();
+
+    expect(errors).toHaveLength(1);
+
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [project, server],
+      clientTimeout(),
+    );
+
+    expect(isKept(project)).toBe(true);
+    expect(isKept(server)).toBe(false);
+
+    keeps = [];
+    await nextRound();
+    await nextRound();
+
+    expect(keeps).toEqual(["project", "project"]);
+    expect(errors).toHaveLength(1);
+    expect(released).toEqual([]);
+  });
+
+  test("a read the client stopped waiting for - the check's own, or one once the write was done - applied nothing: the locks are given back at once", async () => {
+    const project: SemaphoreMutex = lock("project");
+
+    await ProjectSsoProviderChanges.holdForWrite([project]);
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [project],
+      clientTimeout(SELECT_STATEMENT),
+    );
+
+    expect(released).toEqual(["project"]);
+    expect(isKept(project)).toBe(false);
+    expect(warnings).toEqual([]);
+  });
+
+  test("a create, in a transaction of its own: an INSERT the client stopped waiting for is rolled back, and the locks are given back at once", async () => {
+    const server: SemaphoreMutex = lock("server");
+
+    await ProjectSsoProviderChanges.holdForWrite([server]);
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [server],
+      clientTimeout(INSERT_STATEMENT),
+      { inOwnTransaction: true },
+    );
+
+    expect(released).toEqual(["server"]);
+    expect(isKept(server)).toBe(false);
+  });
+
+  test("a create whose COMMIT went unanswered may have landed: its locks are kept until the database would have cancelled it", async () => {
+    const server: SemaphoreMutex = lock("server");
+
+    await ProjectSsoProviderChanges.holdForWrite([server]);
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [server],
+      connectionLost(COMMIT_STATEMENT),
+      { inOwnTransaction: true },
+    );
+
+    expect(released).toEqual([]);
+    expect(isKept(server)).toBe(true);
+    expect(warnings).toEqual([KEPT_FOR_ABANDONED_WRITE]);
   });
 
   test("the database answered - it cancelled the statement at its own timeout: nothing was written, and the locks are given back at once", async () => {

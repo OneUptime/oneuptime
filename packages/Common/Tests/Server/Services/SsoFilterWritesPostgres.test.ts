@@ -944,7 +944,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
         const failure: unknown = await failureOfSave();
 
         expect((failure as Error | null)?.message).toBe("Query read timeout");
-        expect(StatementOutcome.isUnknown(failure)).toBe(true);
+        expect(StatementOutcome.mayStillApply(failure)).toBe(true);
 
         // Not given back, and kept alive: the database may still apply the write.
         expect(heldLocks.has(projectId)).toBe(true);
@@ -996,7 +996,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
         expect((failure as Error | null)?.message).toBe(
           "canceling statement due to statement timeout",
         );
-        expect(StatementOutcome.isUnknown(failure)).toBe(false);
+        expect(StatementOutcome.mayStillApply(failure)).toBe(false);
         expect(Array.from(heldLocks)).toEqual([]);
 
         await letGo(holder);

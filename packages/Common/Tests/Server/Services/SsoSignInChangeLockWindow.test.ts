@@ -28,6 +28,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import InMemoryLocks, { InMemoryLock } from "../TestingUtils/InMemoryLocks";
 import {
+  SELECT_STATEMENT,
   cancelledByDatabase,
   clientTimeout,
   connectionLost,
@@ -937,6 +938,19 @@ describe("a write the database never answered keeps its locks until the database
 
     expect(locks.eventsOf("release")).toEqual([]);
     expect(keptForWrite(ACME)).toBe(true);
+  });
+
+  test("a read whose answer never came - one the write makes before its UPDATE - applied nothing: the locks are given back at once", async () => {
+    nextProjectWriteFails = clientTimeout(SELECT_STATEMENT);
+
+    await expect(saveProject({ requireSsoForLogin: true })).rejects.toThrow(
+      "Query read timeout",
+    );
+
+    expect(locks.eventsOf("release")).toEqual([`release:${ACME}`]);
+    expect(locks.isHeld(ACME)).toBe(false);
+
+    await expect(deleteSamlProvider()).resolves.toBe(LAST_SSO_PROVIDER_MESSAGE);
   });
 
   test("the database answered with an error of its own - it cancelled the statement at its timeout: nothing was written, and the locks are given back at once", async () => {
