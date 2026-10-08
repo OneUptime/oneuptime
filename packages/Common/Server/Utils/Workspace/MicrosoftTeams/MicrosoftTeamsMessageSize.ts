@@ -1,5 +1,6 @@
 import { JSONObject } from "../../../../Types/JSON";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
+import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
 
 /*
  * How big a message Microsoft Teams takes from a bot.
@@ -28,6 +29,21 @@ export const MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES: ReadonlyArray<number> =
 
 // Budget for a plain text reply, such as "show active incidents".
 export const MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES: number = 40 * 1024;
+
+/*
+ * The most of one markdown text - a description, a note or a root cause in
+ * a notification - a message carries, as Teams counts it: Microsoft's
+ * "keep a bot message within 80 KB". A response body or a log a
+ * description template placed can be megabytes, which Teams would refuse,
+ * and which the card builder's regular expressions cannot read safely: a
+ * longer text is cut to this (cutToLength) and ends with
+ * MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.
+ */
+export const MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES: number = 80 * 1024;
+
+// Ends a markdown text cut to fit - the words a cut Slack message ends with.
+export const MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE: string =
+  "\n\n_… (truncated — see OneUptime for the full text)_";
 
 const DEFAULT_TRUNCATION_NOTE: string =
   "…\n\n_This reply was shortened to fit in Microsoft Teams. Open OneUptime to see everything._";
@@ -109,6 +125,29 @@ export default class MicrosoftTeamsMessageSize {
     }
 
     return undefined;
+  }
+
+  /*
+   * A markdown text a notification carries, within
+   * MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES: as it is when it fits,
+   * else cut (cutToLength: at a line break where there is one near the end)
+   * and followed by MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.
+   */
+  public static fitMarkdownText(text: string): string {
+    const maxLength: number = Math.floor(
+      MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES / 2,
+    );
+
+    if (text.length <= maxLength) {
+      return text;
+    }
+
+    return (
+      cutToLength(
+        text,
+        maxLength - MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.length,
+      ).trimEnd() + MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE
+    );
   }
 
   /*

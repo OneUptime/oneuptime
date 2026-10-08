@@ -508,3 +508,37 @@ export const hasOverLongLine: (text: string) => boolean = (
 
   return false;
 };
+
+/*
+ * `text` cut to at most `maxLength` characters, for a channel that can take
+ * no more: at the last line break in the second half of what fits, so a
+ * line of Markdown is not split where it can be helped, else between whole
+ * characters - never between the two halves of a surrogate pair, such as
+ * an emoji. Text that fits is returned as it is.
+ */
+export const cutToLength: (text: string, maxLength: number) => string = (
+  text: string,
+  maxLength: number,
+): string => {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  const lastLineBreak: number = text.lastIndexOf("\n", maxLength);
+
+  if (lastLineBreak > maxLength / 2) {
+    return text.slice(0, lastLineBreak);
+  }
+
+  let end: number = Math.max(0, maxLength);
+
+  if (
+    end > 0 &&
+    isHighSurrogate(text.charCodeAt(end - 1)) &&
+    isLowSurrogate(text.charCodeAt(end))
+  ) {
+    end--;
+  }
+
+  return text.slice(0, end);
+};

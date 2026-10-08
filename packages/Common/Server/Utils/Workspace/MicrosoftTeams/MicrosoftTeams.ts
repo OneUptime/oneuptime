@@ -785,10 +785,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     /*
      * An incoming webhook's card cannot carry a screenshot's base64 (and a
      * Teams webhook refuses a message that large): an image whose address
-     * is a data: URL is its alt text.
+     * is a data: URL is its alt text. A text longer than a message can
+     * carry - a response body or a log of megabytes - is cut, with a note
+     * (fitMarkdownText): Teams would refuse it, and the regular expressions
+     * below cannot read megabytes safely.
      */
     const markdownWithoutInlineImages: string =
-      ChatInlineImages.toText(markdown);
+      MicrosoftTeamsMessageSize.fitMarkdownText(
+        ChatInlineImages.toText(markdown),
+      );
 
     // First, convert markdown tables to HTML
     const markdownWithHtmlTables: string = this.convertMarkdownTablesToHtml(
@@ -3088,7 +3093,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   /*
    * A text block. An image whose address is a data: URL - a screenshot in a
    * description - is its alt text here: sendMessage shows it as an image of
-   * its own before a markdown block gets here (WorkspaceInlineImages).
+   * its own before a markdown block gets here (WorkspaceInlineImages). A
+   * text longer than a message can carry is cut, with a note
+   * (fitMarkdownText).
    */
   @CaptureSpan()
   public static override getMarkdownBlock(data: {
@@ -3096,7 +3103,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): JSONObject {
     return {
       type: "TextBlock",
-      text: ChatInlineImages.toText(data.payloadMarkdownBlock.text),
+      text: MicrosoftTeamsMessageSize.fitMarkdownText(
+        ChatInlineImages.toText(data.payloadMarkdownBlock.text),
+      ),
       wrap: true,
       markdown: true,
     };
