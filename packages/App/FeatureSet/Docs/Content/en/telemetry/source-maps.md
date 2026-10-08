@@ -49,7 +49,7 @@ When you open an exception, OneUptime looks up the maps uploaded for that except
 
 ## Before you begin
 
-- A **Server** telemetry ingestion key, from **Project Settings → Telemetry & APM → Ingestion Keys**. See [Create an ingestion key](/docs/telemetry/open-telemetry#create-an-ingestion-key).
+- A **Server** telemetry ingestion key, from **Project Settings → Telemetry & APM → Ingestion Keys**. See [Create an ingestion key](/docs/telemetry/open-telemetry#step-1-create-telemetry-ingestion-token).
 - A web app that already sends exceptions to OneUptime with the OpenTelemetry web SDK — see [Browser Setup](/docs/rum/browser-setup).
 - A build that writes source maps, with `sourcesContent` included (the default for most bundlers) if you want source snippets around each frame.
 

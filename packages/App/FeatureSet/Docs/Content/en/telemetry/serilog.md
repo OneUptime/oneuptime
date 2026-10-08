@@ -250,7 +250,7 @@ OneUptime detects these attributes and rolls the error into the **Exceptions** (
 
 If your application is also instrumented with the OpenTelemetry .NET SDK for traces, Serilog log events emitted inside an active span are automatically stamped with the current `TraceId` and `SpanId` (this is part of the sink's default `IncludedData`). That lets OneUptime link a log line directly to the trace it happened in, so you can jump from a log to the surrounding request and back.
 
-To send traces and metrics as well, see the .NET setup in the [OpenTelemetry quickstart](/docs/telemetry/open-telemetry#quickstart).
+To send traces and metrics as well, add the OpenTelemetry .NET SDK: see [Configure the telemetry service in your application](/docs/telemetry/open-telemetry#configure-the-telemetry-service-in-your-application).
 
 ## Troubleshooting
 
