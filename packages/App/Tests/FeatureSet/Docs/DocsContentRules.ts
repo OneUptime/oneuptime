@@ -1,21 +1,26 @@
-import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import DocsNav, { NavGroup } from "../../../FeatureSet/Docs/Utils/Nav";
 import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import {
   DOCS_LANGUAGES,
+  DocsContainerProblem,
   DocsContainerUse,
   DocsFence,
   DocsHeading,
   DocsLink,
   DocsPageLink,
+  NOT_PAGE_CATEGORIES,
   STATIC_DIR,
   ScannedPage,
+  anchorsOfScanned,
   decodeAnchor,
   listPages,
+  navPagesOf,
   parseDocsLink,
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
+import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
@@ -92,17 +97,7 @@ export class DocsReader {
   // Every page the nav serves, in nav order.
   public navPages(): Array<DocsPage> {
     if (!this.navPagesCache) {
-      this.navPagesCache = this.corpus.nav.flatMap(
-        (group: NavGroup): Array<DocsPage> => {
-          return group.links
-            .filter((link: NavLink): boolean => {
-              return link.url.startsWith("/docs/");
-            })
-            .map((link: NavLink): DocsPage => {
-              return link.url.slice("/docs/".length);
-            });
-        },
-      );
+      this.navPagesCache = navPagesOf(this.corpus.nav);
     }
     return this.navPagesCache;
   }
@@ -130,21 +125,9 @@ export class DocsReader {
     return scanned;
   }
 
-  /*
-   * The anchors a page's headings produce, as the page is served: line 1 is
-   * its title, which the docs show above the page from the nav, with no
-   * anchor - so a link to the title's anchor goes nowhere.
-   */
+  // The anchors of a page as it is served: never its title's (anchorsOfScanned).
   public anchors(lang: string, page: DocsPage): Set<string> {
-    return new Set(
-      this.scan(lang, page)
-        .headings.filter((heading: DocsHeading): boolean => {
-          return heading.line !== 1;
-        })
-        .map((heading: DocsHeading): string => {
-          return heading.slug;
-        }),
-    );
+    return anchorsOfScanned(this.scan(lang, page));
   }
 }
 
@@ -220,13 +203,47 @@ export const languagesOfScope: (
 const TITLE_LINE: RegExp = /^#\s+\S/;
 const TITLE_MARKER: RegExp = /^#\s+/;
 const EXTERNAL_URL: RegExp = /^https?:\/\//;
-const RELATIVE_OR_FILE_LINK: RegExp =
-  /^(?:\.{1,2}\/|[a-z0-9-]+\/[a-z0-9-]+\.md\b)/i;
+// A URL that names its scheme: https:, mailto:, tel: ...
+const URL_SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:/i;
 const MARKDOWN_FILE_LINK: RegExp = /\.md(?:#|$)/;
+// /docs, or anything under it.
+const DOCS_ADDRESS: RegExp = /^\/docs(?:[/?#]|$)/;
+const TRAILING_SLASH: RegExp = /\/$/;
+// Files the docs serve at /docs/<name>, besides pages.
+const NOT_PAGE_FILES: Array<string> = ["llms.txt", "llms-full.txt"];
 const ABSOLUTE_DOCS_LINK: RegExp =
   /^https?:\/\/(?:www\.)?oneuptime\.com\/docs\//;
 const QUERY_OR_HASH: RegExp = /[?#]/;
 const NOT_A_WORD: RegExp = /[^a-z0-9]+/;
+// Words any two titles may share without being about the same thing.
+const STOP_WORDS: Array<string> = [
+  "a",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "by",
+  "for",
+  "from",
+  "how",
+  "in",
+  "into",
+  "is",
+  "it",
+  "its",
+  "of",
+  "on",
+  "or",
+  "the",
+  "to",
+  "using",
+  "via",
+  "vs",
+  "with",
+  "you",
+  "your",
+];
 const ENDS_IN_IES: RegExp = /ies$/;
 const ENDS_IN_ES: RegExp = /es$/;
 const ENDS_IN_S: RegExp = /s$/;
@@ -256,7 +273,7 @@ const titleWords: (text: string) => Set<string> = (
 ): Set<string> => {
   const words: Set<string> = new Set();
   for (const word of text.toLowerCase().split(NOT_A_WORD)) {
-    if (word.length < 2 || word === "the" || word === "and") {
+    if (word.length < 2 || STOP_WORDS.includes(word)) {
       continue;
     }
     words.add(word);
@@ -330,6 +347,31 @@ export const shapeOf: (scanned: ScannedPage) => DocsPageShape = (
         return link.target;
       }),
   };
+};
+
+/*
+ * Whether a /docs address is one the docs serve that is not a page: the docs
+ * home, a language's home, llms.txt, static files, Markdown copies and the
+ * search index.
+ */
+const isDocsAddressNotAPage: (
+  target: string,
+  languages: Array<string>,
+) => boolean = (target: string, languages: Array<string>): boolean => {
+  const address: string = (target.split(QUERY_OR_HASH)[0] || "").replace(
+    TRAILING_SLASH,
+    "",
+  );
+  if (address === "/docs") {
+    return true;
+  }
+  const rest: string = address.slice("/docs/".length);
+  const first: string = rest.split("/")[0] || "";
+  return (
+    languages.includes(rest) ||
+    NOT_PAGE_FILES.includes(rest) ||
+    NOT_PAGE_CATEGORIES.includes(first)
+  );
 };
 
 // A link from a page into a docs page, and the page and anchor it names.
@@ -459,7 +501,7 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
               page: page,
               lang: "en",
               line: 1,
-              detail: `is titled "${title}", and its nav link "${link.title}" (in ${group.title})`,
+              detail: `is titled "${title}", which shares no word with its nav link "${link.title}" or its group "${group.title}"`,
             });
           }
         }
@@ -515,7 +557,7 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
           return docs
             .scan(lang, page)
             .containerProblems.map(
-              (problem: { line: number; problem: string }): DocsRuleFailure => {
+              (problem: DocsContainerProblem): DocsRuleFailure => {
                 return {
                   page: page,
                   lang: lang,
@@ -558,7 +600,24 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
       const failures: Array<DocsRuleFailure> = [];
 
       for (const page of docs.pages(lang)) {
-        for (const { link, target } of docsLinksOf(docs.scan(lang, page))) {
+        for (const link of docs.scan(lang, page).links) {
+          if (!DOCS_ADDRESS.test(link.target)) {
+            continue;
+          }
+
+          const target: DocsPageLink | null = parseDocsLink(link.target);
+          if (!target) {
+            if (!isDocsAddressNotAPage(link.target, docs.corpus.languages)) {
+              failures.push({
+                page: page,
+                lang: lang,
+                line: link.line,
+                detail: `-> ${link.target} (not a docs page: link as /docs/<category>/<page>)`,
+              });
+            }
+            continue;
+          }
+
           if (!navPages.has(target.page)) {
             failures.push({
               page: page,
@@ -629,7 +688,7 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
   },
   {
     id: "images",
-    title: "show only images that exist",
+    title: "show only images and files that exist",
     scope: "every-language",
     suite: "content",
     check: (docs: DocsReader, lang: string): Array<DocsRuleFailure> => {
@@ -637,23 +696,31 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
 
       for (const page of docs.pages(lang)) {
         for (const link of docs.scan(lang, page).links) {
-          if (!link.isImage || EXTERNAL_URL.test(link.target)) {
+          if (EXTERNAL_URL.test(link.target)) {
             continue;
           }
 
+          /*
+           * Every link into /docs/static/ - an image, a reference-style
+           * image's definition, a file to download - names a file there.
+           */
           if (!link.target.startsWith("/docs/static/")) {
-            failures.push({
-              page: page,
-              lang: lang,
-              line: link.line,
-              detail: `-> ${link.target} (images are served from /docs/static/images/)`,
-            });
+            if (link.isImage) {
+              failures.push({
+                page: page,
+                lang: lang,
+                line: link.line,
+                detail: `-> ${link.target} (images are served from /docs/static/images/)`,
+              });
+            }
             continue;
           }
 
-          const file: string =
+          // As the server reads it: "my%20shot.png" is the file "my shot.png".
+          const file: string = decodeAnchor(
             link.target.slice("/docs/static/".length).split(QUERY_OR_HASH)[0] ||
-            "";
+              "",
+          );
 
           if (!docs.corpus.staticFileExists(file)) {
             failures.push({
@@ -679,11 +746,20 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
 
       for (const page of docs.pages(lang)) {
         for (const link of docs.scan(lang, page).links) {
-          if (
-            RELATIVE_OR_FILE_LINK.test(link.target) ||
-            (MARKDOWN_FILE_LINK.test(link.target) &&
-              !EXTERNAL_URL.test(link.target))
-          ) {
+          /*
+           * A link without a scheme that does not start with "/" or "#" is
+           * read against the page's own address ("/docs/de/cli/index"), so
+           * "authentication" or "./authentication.md" lands on a 404.
+           */
+          const relative: boolean =
+            !link.target.startsWith("/") &&
+            !link.target.startsWith("#") &&
+            !URL_SCHEME.test(link.target);
+          const markdownFile: boolean =
+            MARKDOWN_FILE_LINK.test(link.target) &&
+            !EXTERNAL_URL.test(link.target);
+
+          if (relative || markdownFile) {
             failures.push({
               page: page,
               lang: lang,
@@ -866,9 +942,14 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
 
       return docs.corpus.nav
         .filter((group: NavGroup): boolean => {
-          return !group.links.some((link: NavLink): boolean => {
-            return linked.has(link.url.slice("/docs/".length));
-          });
+          // A group of links to other sites has nothing in the docs to reach.
+          const pages: Array<DocsPage> = navPagesOf([group]);
+          return (
+            pages.length > 0 &&
+            !pages.some((page: DocsPage): boolean => {
+              return linked.has(page);
+            })
+          );
         })
         .map((group: NavGroup): DocsRuleFailure => {
           return {
@@ -1062,4 +1143,45 @@ export const checkRule: (
 export const NOTHING_CHANGED: DocsRatchetReport = {
   newFailures: [],
   nowPassing: [],
+};
+
+export interface DocsContentSuite {
+  suite: DocsRuleSuite;
+  // The languages to describe, each with the rules of the suite that read it.
+  languages: Array<string>;
+  // The describe block's name, "%s" being the language.
+  name: string;
+  known: DocsKnownFailures;
+  docs?: DocsReader | undefined;
+}
+
+/*
+ * A content suite: in each language, one test per rule of the suite that
+ * reads it, expecting the rule's failures to be exactly the known ones.
+ */
+export const describeContentRules: (options: DocsContentSuite) => void = (
+  options: DocsContentSuite,
+): void => {
+  const docs: DocsReader = options.docs || new DocsReader(DOCS_CORPUS);
+
+  describe.each(options.languages)(options.name, (lang: string) => {
+    const rules: Array<DocsContentRule> = DOCS_CONTENT_RULES.filter(
+      (rule: DocsContentRule): boolean => {
+        return (
+          rule.suite === options.suite &&
+          languagesOfScope(docs, rule.scope).includes(lang)
+        );
+      },
+    );
+
+    it.each(
+      rules.map((rule: DocsContentRule): [string, DocsContentRule] => {
+        return [rule.title, rule];
+      }),
+    )("%s", async (_title: string, rule: DocsContentRule) => {
+      expect(await checkRule(docs, rule, lang, options.known)).toEqual(
+        NOTHING_CHANGED,
+      );
+    });
+  });
 };

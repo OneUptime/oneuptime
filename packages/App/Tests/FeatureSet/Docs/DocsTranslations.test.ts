@@ -1,14 +1,6 @@
-import {
-  DOCS_CONTENT_RULES,
-  DOCS_CORPUS,
-  DocsContentRule,
-  DocsReader,
-  NOTHING_CHANGED,
-  checkRule,
-} from "./DocsContentRules";
+import { describeContentRules } from "./DocsContentRules";
 import { TRANSLATED_LANGUAGES } from "./DocsContentSupport";
 import { DOCS_KNOWN_FAILURES } from "./DocsKnownFailures";
-import { describe, expect, it } from "@jest/globals";
 
 /*
  * Every page is in every language, and each translation says what the
@@ -25,28 +17,14 @@ import { describe, expect, it } from "@jest/globals";
  *
  * A page that was untranslated or had drifted when these tests were
  * committed is listed in DocsKnownFailures.ts ("translated", "sameShape"),
- * with its languages; the list only shrinks. A translation's title line is
- * checked with every other page's, in DocsContentIntegrity.
+ * with its languages; the list only shrinks. A translation's title line,
+ * links, components and headings are checked with every other page's, in
+ * DocsContentIntegrity.
  */
 
-const docs: DocsReader = new DocsReader(DOCS_CORPUS);
-
-const TRANSLATION_RULES: Array<DocsContentRule> = DOCS_CONTENT_RULES.filter(
-  (rule: DocsContentRule): boolean => {
-    return rule.suite === "translations";
-  },
-);
-
-describe.each(TRANSLATED_LANGUAGES)("the %s docs", (lang: string) => {
-  it.each(
-    TRANSLATION_RULES.map(
-      (rule: DocsContentRule): [string, DocsContentRule] => {
-        return [rule.title, rule];
-      },
-    ),
-  )("%s", async (_title: string, rule: DocsContentRule) => {
-    expect(await checkRule(docs, rule, lang, DOCS_KNOWN_FAILURES)).toEqual(
-      NOTHING_CHANGED,
-    );
-  });
+describeContentRules({
+  suite: "translations",
+  languages: TRANSLATED_LANGUAGES,
+  name: "the %s docs",
+  known: DOCS_KNOWN_FAILURES,
 });

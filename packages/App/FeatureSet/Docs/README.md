@@ -313,8 +313,9 @@ language, to the rules in `Tests/FeatureSet/Docs/DocsContentRules.ts`:
   line;
 - components are written so the renderer draws them, and nothing is left on
   the page as raw `:::`, `@tab` or `[!NOTE]`;
-- links land on a page in the nav and on a heading it has, images exist, and
-  no two headings of a page share an anchor;
+- links land on a page in the nav and on a heading it has (never the title on
+  line 1, which has no anchor), images and files under `/docs/static/` exist,
+  no link is relative, and no two headings of a page share an anchor;
 - code samples are closed, and in English they name their language; English
   headings never skip a level, and Getting Started links into every nav group;
 - every English page is translated, and each translation keeps its English

@@ -22,12 +22,16 @@ import {
   DOCS_LANGUAGES,
   DocsPageLink,
   TRANSLATED_LANGUAGES,
+  anchorsOfScanned,
   decodeAnchor,
+  navPagesOf,
   parseDocsLink,
   scanMarkdown,
 } from "./DocsContentSupport";
 import { DOCS_KNOWN_FAILURES } from "./DocsKnownFailures";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The content rules and their ratchet, proven on pages written here: each
@@ -327,9 +331,36 @@ describe("the rules, on pages written here", () => {
           nav: navFor("Website Monitor", "Monitor"),
         }),
       ).toEqual([
-        'monitor/website-monitor:1 is titled "Billing", and its nav link "Website Monitor" (in Monitor)',
+        'monitor/website-monitor:1 is titled "Billing", which shares no word with its nav link "Website Monitor" or its group "Monitor"',
       ]);
     });
+
+    it.each([
+      [
+        "Introduction to Kubernetes",
+        "Connect to Slack",
+        "Workspace Connections",
+      ],
+      ["How to use the API", "Install on Linux", "Mobile & Desktop Apps"],
+      ["Sign in with your SSO", "Set up for the CLI", "Developers"],
+    ])(
+      'reports "%s" under the nav link "%s" (%s): words like "to" and "the" are not a topic',
+      async (title: string, linkTitle: string, groupTitle: string) => {
+        expect(
+          await failuresOf("titleMatchesNav", {
+            pages: { en: { "monitor/website-monitor": md("# " + title) } },
+            nav: navFor(linkTitle, groupTitle),
+          }),
+        ).toEqual([
+          "monitor/website-monitor:1 is titled " +
+            JSON.stringify(title) +
+            ", which shares no word with its nav link " +
+            JSON.stringify(linkTitle) +
+            " or its group " +
+            JSON.stringify(groupTitle),
+        ]);
+      },
+    );
 
     it("leaves a page without a title line to the title rule", async () => {
       const fake: FakeDocs = {
@@ -506,6 +537,29 @@ describe("the rules, on pages written here", () => {
       ]);
     });
 
+    it("reads a link that names a language as its page, and reports a /docs address that is no page", async () => {
+      expect(
+        await failuresOf("pageLinks", {
+          pages: {
+            en: {
+              "a/one": md("# One", "", "## Setup"),
+              "a/two": md(
+                "# Two",
+                "[de](/docs/de/a/one#setup) [gone](/docs/de/a/one#gone) [zh](/docs/zh-CN/a/none)",
+                "[category](/docs/a) [deep](/docs/a/one/extra) [home](/docs) [home too](/docs/) [german](/docs/de)",
+                "[llms](/docs/llms.txt) [all](/docs/llms-full.txt) [raw](/docs/as-markdown/a/one) [index](/docs/search-index/en.json) [file](/docs/static/images/x.png)",
+              ),
+            },
+          },
+        }),
+      ).toEqual([
+        "a/two:2 -> /docs/de/a/one#gone (the en page has no heading with that anchor)",
+        "a/two:2 -> /docs/zh-CN/a/none (no such page)",
+        "a/two:3 -> /docs/a (not a docs page: link as /docs/<category>/<page>)",
+        "a/two:3 -> /docs/a/one/extra (not a docs page: link as /docs/<category>/<page>)",
+      ]);
+    });
+
     it("reports a link to a page's title: line 1 is shown from the nav, with no anchor", async () => {
       expect(
         await failuresOf("pageLinks", {
@@ -584,6 +638,30 @@ describe("the rules, on pages written here", () => {
       ).toEqual([
         "a/one:4 -> /docs/static/images/gone.png (no such file in Static/)",
         "a/one:5 -> images/ok.png (images are served from /docs/static/images/)",
+        "a/one:7 -> /docs/static/images/gone.png (no such file in Static/)",
+      ]);
+    });
+
+    it("reads a file name as the server does, and checks reference-style images and files to download", async () => {
+      expect(
+        await failuresOf("images", {
+          pages: {
+            en: {
+              "a/one": md(
+                "# One",
+                "![shot](/docs/static/images/my%20shot.png)",
+                "![screen][screen]",
+                "[Download the agent](/docs/static/files/agent.zip)",
+                "",
+                "[screen]: /docs/static/images/missing.png",
+              ),
+            },
+          },
+          staticFiles: ["images/my shot.png"],
+        }),
+      ).toEqual([
+        "a/one:4 -> /docs/static/files/agent.zip (no such file in Static/)",
+        "a/one:6 -> /docs/static/images/missing.png (no such file in Static/)",
       ]);
     });
   });
@@ -608,6 +686,27 @@ describe("the rules, on pages written here", () => {
         "a/one:2 -> ../cli/index (link as /docs/<category>/<page>)",
         "a/one:2 -> monitor/website-monitor.md (link as /docs/<category>/<page>)",
         "a/one:3 -> /docs/monitor/website-monitor.md#x (link as /docs/<category>/<page>)",
+      ]);
+    });
+
+    it("reports any link read against the page's own address, and none with a scheme, a / or a #", async () => {
+      expect(
+        await failuresOf("noRelativeLinks", {
+          pages: {
+            en: {
+              "a/one": md(
+                "# One",
+                "[a](monitor/website-monitor) [b](website-monitor) [c](docs/monitor/index) [d](www.example.com)",
+                "[e](mailto:hello@example.com) [f](tel:+15555550100) [g](#setup) [h](/docs/monitor/index) [i](/reference)",
+              ),
+            },
+          },
+        }),
+      ).toEqual([
+        "a/one:2 -> monitor/website-monitor (link as /docs/<category>/<page>)",
+        "a/one:2 -> website-monitor (link as /docs/<category>/<page>)",
+        "a/one:2 -> docs/monitor/index (link as /docs/<category>/<page>)",
+        "a/one:2 -> www.example.com (link as /docs/<category>/<page>)",
       ]);
     });
   });
@@ -801,6 +900,14 @@ describe("the rules, on pages written here", () => {
         title: "Status Pages",
         section: "Incident Response",
         links: [{ title: "Overview", url: "/docs/status-pages/index" }],
+      },
+      // Links to other sites only: nothing in the docs to reach, never reported.
+      {
+        title: "Community",
+        section: "Get Started",
+        links: [
+          { title: "GitHub", url: "https://github.com/OneUptime/oneuptime" },
+        ],
       },
     ];
 
@@ -1307,6 +1414,22 @@ describe("the known-failures list", () => {
     expect(TRANSLATED_LANGUAGES).toEqual(DOCS_LANGUAGES.slice(1));
     expect(TRANSLATED_LANGUAGES).toHaveLength(16);
   });
+
+  it("writes its languages out, so a language the docs add later is never excused", () => {
+    const source: string = fs.readFileSync(
+      path.join(__dirname, "DocsKnownFailures.ts"),
+      "utf8",
+    );
+
+    for (const derived of [
+      "DocsContentSupport",
+      "SUPPORTED_DOCS_LANGUAGE_CODES",
+      "DOCS_LANGUAGES",
+      "TRANSLATED_LANGUAGES",
+    ]) {
+      expect(source).not.toContain(derived);
+    }
+  });
 });
 
 describe("anchors, as the docs render them", () => {
@@ -1394,5 +1517,63 @@ describe("reading docs links", () => {
     expect(parseDocsLink("/docs/a/b")).toEqual({ page: "a/b", anchor: null });
     expect(parseDocsLink("/docs/static/images/x.png")).toBeNull();
     expect(parseDocsLink("https://oneuptime.com/docs/a/b")).toBeNull();
+  });
+
+  it("reads a link that names a language as the page it is, and nothing deeper or shallower", () => {
+    expect(parseDocsLink("/docs/de/a/b#x")).toEqual({
+      page: "a/b",
+      anchor: "x",
+    });
+    expect(parseDocsLink("/docs/zh-TW/a/b/")).toEqual({
+      page: "a/b",
+      anchor: null,
+    });
+    expect(parseDocsLink("/docs/a/b?lang=de#x")).toEqual({
+      page: "a/b",
+      anchor: "x",
+    });
+    expect(parseDocsLink("/docs/a/b/c")).toBeNull();
+    expect(parseDocsLink("/docs/a")).toBeNull();
+    expect(parseDocsLink("/docs/as-markdown/a/b")).toBeNull();
+    expect(parseDocsLink("/docs/search-index/en.json")).toBeNull();
+  });
+
+  it("reads a page's anchors as it is served: never its title's, never a '#' in code", () => {
+    expect(
+      Array.from(
+        anchorsOfScanned(
+          scanMarkdown(
+            md(
+              "# Monitors",
+              "## Setup",
+              "```bash",
+              "# a comment",
+              "```",
+              "### Setup again",
+            ),
+          ),
+        ),
+      ),
+    ).toEqual(["setup", "setup-again"]);
+  });
+
+  it("lists the docs pages a nav serves, in nav order, and none of its other links", () => {
+    expect(
+      navPagesOf([
+        {
+          title: "B",
+          section: "Get Started",
+          links: [
+            { title: "Two", url: "/docs/b/two" },
+            { title: "Site", url: "https://oneuptime.com" },
+          ],
+        },
+        {
+          title: "A",
+          section: "Get Started",
+          links: [{ title: "One", url: "/docs/a/one" }],
+        },
+      ]),
+    ).toEqual(["b/two", "a/one"]);
   });
 });

@@ -1,15 +1,6 @@
-import {
-  DOCS_CONTENT_RULES,
-  DOCS_CORPUS,
-  DocsContentRule,
-  DocsReader,
-  NOTHING_CHANGED,
-  checkRule,
-  languagesOfScope,
-} from "./DocsContentRules";
+import { describeContentRules } from "./DocsContentRules";
 import { DOCS_LANGUAGES } from "./DocsContentSupport";
 import { DOCS_KNOWN_FAILURES } from "./DocsKnownFailures";
-import { describe, expect, it } from "@jest/globals";
 
 /*
  * Every page in every language, held to the rules a reader relies on:
@@ -22,10 +13,11 @@ import { describe, expect, it } from "@jest/globals";
  *   - components are written so the renderer reads them - known names,
  *     closed, tabs inside a tab set - and nothing is left on the page as raw
  *     ":::" text;
- *   - every link to another docs page, every #anchor and every image leads
- *     somewhere, and no two headings share an anchor;
+ *   - every link to another docs page, every #anchor, every image and file
+ *     leads somewhere, and no two headings share an anchor;
  *   - every code sample is closed, and in English declares its language;
- *     English headings never skip a level.
+ *     English headings never skip a level, and Getting Started links into
+ *     every nav group.
  *
  * The rules are in DocsContentRules.ts. A page that failed a rule when these
  * tests were committed is listed in DocsKnownFailures.ts, with the languages
@@ -35,28 +27,9 @@ import { describe, expect, it } from "@jest/globals";
  * entry).
  */
 
-const docs: DocsReader = new DocsReader(DOCS_CORPUS);
-
-const CONTENT_RULES: Array<DocsContentRule> = DOCS_CONTENT_RULES.filter(
-  (rule: DocsContentRule): boolean => {
-    return rule.suite === "content";
-  },
-);
-
-describe.each(DOCS_LANGUAGES)("%s pages", (lang: string) => {
-  const rules: Array<DocsContentRule> = CONTENT_RULES.filter(
-    (rule: DocsContentRule): boolean => {
-      return languagesOfScope(docs, rule.scope).includes(lang);
-    },
-  );
-
-  it.each(
-    rules.map((rule: DocsContentRule): [string, DocsContentRule] => {
-      return [rule.title, rule];
-    }),
-  )("%s", async (_title: string, rule: DocsContentRule) => {
-    expect(await checkRule(docs, rule, lang, DOCS_KNOWN_FAILURES)).toEqual(
-      NOTHING_CHANGED,
-    );
-  });
+describeContentRules({
+  suite: "content",
+  languages: DOCS_LANGUAGES,
+  name: "%s pages",
+  known: DOCS_KNOWN_FAILURES,
 });

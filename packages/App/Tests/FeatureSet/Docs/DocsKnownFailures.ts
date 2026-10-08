@@ -1,5 +1,4 @@
 import { DocsKnownFailures } from "./DocsContentRules";
-import { DOCS_LANGUAGES, TRANSLATED_LANGUAGES } from "./DocsContentSupport";
 
 /*
  * The docs pages that broke a content rule when the rules were committed
@@ -27,10 +26,10 @@ import { DOCS_LANGUAGES, TRANSLATED_LANGUAGES } from "./DocsContentSupport";
  *   title                        line 1 is "# Title", the only "# " heading
  *   components                   components are known, closed and nested
  *   codeClosed                   every code sample is closed
- *   pageLinks                    links land on nav pages and their headings
+ *   pageLinks                    /docs links land on nav pages and headings
  *   inPageAnchors                #anchors land on a heading of the page
- *   images                       every image is a file under Static/
- *   noRelativeLinks              no "./page.md" or "category/page.md" links
+ *   images                       images and /docs/static/ files exist
+ *   noRelativeLinks              no relative links ("./page.md", "page")
  *   rendered                     no raw ":::", "@tab" or "[!NOTE]" is shown
  *   uniqueHeadings               no two headings of a page share an anchor
  *   codeLanguage                 every English code sample names a language
@@ -41,9 +40,31 @@ import { DOCS_LANGUAGES, TRANSLATED_LANGUAGES } from "./DocsContentSupport";
  *   sameShape                    a translation keeps its English page's shape
  */
 
+/*
+ * The languages as they were when the list was frozen, written out: a
+ * language the docs add later is never excused by an entry made before it
+ * existed.
+ */
 const EN: Array<string> = ["en"];
-const EVERY_LANGUAGE: Array<string> = [...DOCS_LANGUAGES];
-const EVERY_TRANSLATION: Array<string> = [...TRANSLATED_LANGUAGES];
+const EVERY_TRANSLATION: Array<string> = [
+  "de",
+  "fr",
+  "es",
+  "it",
+  "pt",
+  "nl",
+  "da",
+  "no",
+  "sv",
+  "ru",
+  "ja",
+  "ko",
+  "zh-CN",
+  "zh-TW",
+  "hi",
+  "fa",
+];
+const EVERY_LANGUAGE: Array<string> = [...EN, ...EVERY_TRANSLATION];
 
 // A set of languages without some of them; each one left out must be in it.
 const except: (
