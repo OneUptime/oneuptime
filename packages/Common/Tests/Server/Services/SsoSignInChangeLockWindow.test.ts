@@ -28,6 +28,11 @@ import ObjectID from "../../../Types/ObjectID";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import InMemoryLocks, { InMemoryLock } from "../TestingUtils/InMemoryLocks";
 import {
+  cancelledByDatabase,
+  clientTimeout,
+  connectionLost,
+} from "../TestingUtils/StatementFailures";
+import {
   InMemoryTable,
   StoredRow,
   useInMemoryTable,
@@ -41,8 +46,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { DatabaseError } from "pg";
-import { QueryFailedError } from "typeorm";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
@@ -294,32 +297,6 @@ const keptForWrite: (key: string) => boolean = (key: string): boolean => {
 
   return Boolean(
     holder && ProjectSsoProviderChanges.isKeptForWrite(holder as never),
-  );
-};
-
-// A statement the client stopped waiting for: node-postgres' own query timeout.
-const clientTimeout: () => QueryFailedError = (): QueryFailedError => {
-  return new QueryFailedError(
-    'UPDATE "Project" SET "requireSsoForLogin" = $1 WHERE "_id" = $2',
-    [],
-    new Error("Query read timeout"),
-  );
-};
-
-// A statement the database cancelled at its own statement timeout, and said so.
-const cancelledByDatabase: () => QueryFailedError = (): QueryFailedError => {
-  const answer: DatabaseError = new DatabaseError(
-    "canceling statement due to statement timeout",
-    0,
-    "error",
-  );
-  answer.severity = "ERROR";
-  answer.code = "57014";
-
-  return new QueryFailedError(
-    'UPDATE "Project" SET "requireSsoForLogin" = $1 WHERE "_id" = $2',
-    [],
-    answer,
   );
 };
 
@@ -958,11 +935,7 @@ describe("a write the database never answered keeps its locks until the database
   });
 
   test("the connection was lost while the statement ran: kept the same way", async () => {
-    nextProjectWriteFails = new QueryFailedError(
-      'UPDATE "Project" SET "requireSsoForLogin" = $1 WHERE "_id" = $2',
-      [],
-      new Error("Connection terminated unexpectedly"),
-    );
+    nextProjectWriteFails = connectionLost();
 
     await expect(saveProject({ requireSsoForLogin: true })).rejects.toThrow(
       "Connection terminated unexpectedly",

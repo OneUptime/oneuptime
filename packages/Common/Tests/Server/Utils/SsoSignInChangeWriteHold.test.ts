@@ -9,13 +9,20 @@ import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
 import ProjectSsoProviderChanges, {
+  ABANDONED_WRITE_HOLD_IN_MS,
+  ABANDONED_WRITE_MARGIN_IN_MS,
+  LAST_SSO_PROVIDER_MESSAGE,
   LOCK_TIMEOUT_IN_MS,
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
   WRITE_KEEP_INTERVAL_IN_MS,
   WRITE_KEEP_LIMIT_IN_MS,
+  getAbandonedWriteHoldInMs,
   getWriteKeepLimitInMs,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
-import { PostgresQueryTimeoutMs } from "../../../Server/EnvironmentConfig";
+import {
+  PostgresQueryTimeoutMs,
+  PostgresStatementTimeoutMs,
+} from "../../../Server/EnvironmentConfig";
 import ProjectSso from "../../../Models/DatabaseModels/ProjectSso";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
@@ -24,6 +31,11 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
 import { StoredRow, rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
+import {
+  cancelledByDatabase,
+  clientTimeout,
+  connectionLost,
+} from "../TestingUtils/StatementFailures";
 import {
   afterEach,
   beforeEach,
@@ -42,7 +54,13 @@ import timers from "timers";
  *     and keeps them alive while the write runs - every
  *     WRITE_KEEP_INTERVAL_IN_MS, at most WRITE_KEEP_LIMIT_IN_MS - until
  *     releaseSignInChange gives them back. A lock found gone right before
- *     the write refuses it; one found gone while it runs is said loudly;
+ *     the write is taken again, with every other, and the change checked
+ *     again under them (its recheck) - or, with nothing to check it again,
+ *     refuses it; one found gone while it runs is said loudly;
+ *   - giveBackAfterFailedWrite gives the locks of a failed write back at
+ *     once, unless the database never answered its statement, which may
+ *     still land: they are then kept until the database would have
+ *     cancelled it (ABANDONED_WRITE_HOLD_IN_MS), and left to run out;
  *   - writeOnlyTheRowsRead holds a write that names its rows by a filter to
  *     the rows its check read: by their ids, or - for a delete that read
  *     none - to rows deleted before, which only a hard delete reaches.
@@ -526,6 +544,386 @@ describe("a checked sign-in change holds its locks for its write", () => {
     // Set to something that is not a number: still a limit, never none.
     expect(getWriteKeepLimitInMs(Number.NaN)).toBe(60_000);
     expect(getWriteKeepLimitInMs(Number.POSITIVE_INFINITY)).toBe(60_000);
+  });
+});
+
+describe("a lock found gone right before the write is taken again, and the change checked again", () => {
+  const TAKEN_AGAIN: string =
+    "SSO sign-in change: a lock was gone right before the change was written; it is taken again, and the change checked again.";
+
+  type Recheck = () => Promise<Array<SemaphoreMutex>>;
+
+  test("every lock the change holds is given back, the change checked again under the locks it takes then, and those kept alive for the write", async () => {
+    const project: SemaphoreMutex = lock("project");
+    const server: SemaphoreMutex = lock("server");
+    const locks: Array<SemaphoreMutex> = [project, server];
+    lost.add("server");
+
+    let retaken: Array<SemaphoreMutex> = [];
+    const recheck: jest.Mock<Recheck> = jest.fn<Recheck>(
+      async (): Promise<Array<SemaphoreMutex>> => {
+        // Taken again: Valkey holds them for this change once more.
+        lost.delete("server");
+        retaken = [lock("project"), lock("server")];
+        return retaken;
+      },
+    );
+
+    await expect(
+      refusalOf(ProjectSsoProviderChanges.holdForWrite(locks, recheck)),
+    ).resolves.toBe("done");
+
+    expect(recheck).toHaveBeenCalledTimes(1);
+    // Both given back - the one still held too - before the change was checked again.
+    expect(released).toEqual(["project", "server"]);
+    expect(keeps).toEqual(["project", "server", "project", "server"]);
+    // `locks` holds the locks taken again now, for whoever gives them back.
+    expect(locks).toHaveLength(2);
+    expect(locks[0]).toBe(retaken[0]);
+    expect(locks[1]).toBe(retaken[1]);
+    expect(isKept(project)).toBe(false);
+    expect(isKept(server)).toBe(false);
+    expect(isKept(retaken[0]!)).toBe(true);
+    expect(isKept(retaken[1]!)).toBe(true);
+    expect(warnings).toEqual([TAKEN_AGAIN]);
+    expect(errors).toEqual([]);
+
+    keeps = [];
+    await nextRound();
+
+    expect(keeps).toEqual(["project", "server"]);
+
+    await ProjectSsoProviderChanges.releaseSignInChange(locks);
+
+    expect(isKept(retaken[0]!)).toBe(false);
+  });
+
+  test("the locks an earlier step held stop being kept alive: only those taken again are, once a round", async () => {
+    const project: SemaphoreMutex = lock("project");
+
+    // Held once the check was done.
+    await ProjectSsoProviderChanges.holdForWrite([project]);
+    lost.add("project");
+
+    const locks: Array<SemaphoreMutex> = [project];
+
+    await ProjectSsoProviderChanges.holdForWrite(
+      locks,
+      async (): Promise<Array<SemaphoreMutex>> => {
+        lost.delete("project");
+        return [lock("project")];
+      },
+    );
+
+    expect(locks[0]).not.toBe(project);
+    expect(isKept(project)).toBe(false);
+    expect(isKept(locks[0]!)).toBe(true);
+
+    keeps = [];
+    await nextRound();
+
+    expect(keeps).toEqual(["project"]);
+  });
+
+  test("checked again, the change is refused: the refusal stands, nothing is held, and `locks` holds none", async () => {
+    const project: SemaphoreMutex = lock("project");
+    const server: SemaphoreMutex = lock("server");
+    const locks: Array<SemaphoreMutex> = [project, server];
+    lost.add("project");
+
+    await expect(
+      refusalOf(
+        ProjectSsoProviderChanges.holdForWrite(
+          locks,
+          async (): Promise<Array<SemaphoreMutex>> => {
+            // Having given back what it took.
+            throw new BadDataException(LAST_SSO_PROVIDER_MESSAGE);
+          },
+        ),
+      ),
+    ).resolves.toBe(LAST_SSO_PROVIDER_MESSAGE);
+
+    expect(locks).toEqual([]);
+    expect(released).toEqual(["project", "server"]);
+    expect(isKept(project)).toBe(false);
+    expect(isKept(server)).toBe(false);
+
+    keeps = [];
+    await nextRound();
+    await nextRound();
+
+    expect(keeps).toEqual([]);
+  });
+
+  test("a lock taken again and found gone again refuses the write: checked again once only, and the locks taken again are given back", async () => {
+    const project: SemaphoreMutex = lock("project");
+    const locks: Array<SemaphoreMutex> = [project];
+    lost.add("project");
+
+    const recheck: jest.Mock<Recheck> = jest.fn<Recheck>(
+      async (): Promise<Array<SemaphoreMutex>> => {
+        // Still lost: Valkey keeps losing it.
+        return [lock("project")];
+      },
+    );
+
+    await expect(
+      refusalOf(ProjectSsoProviderChanges.holdForWrite(locks, recheck)),
+    ).resolves.toBe(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
+
+    expect(recheck).toHaveBeenCalledTimes(1);
+    expect(locks).toEqual([]);
+    // The one found gone, then the one taken again.
+    expect(released).toEqual(["project", "project"]);
+    expect(keeps).toEqual(["project", "project"]);
+
+    keeps = [];
+    await nextRound();
+
+    expect(keeps).toEqual([]);
+  });
+
+  test("checked again, the change holds no lock - its rows are gone, or Valkey could not be reached - and the write goes on holding none", async () => {
+    const project: SemaphoreMutex = lock("project");
+    const locks: Array<SemaphoreMutex> = [project];
+    lost.add("project");
+
+    await expect(
+      refusalOf(
+        ProjectSsoProviderChanges.holdForWrite(
+          locks,
+          async (): Promise<Array<SemaphoreMutex>> => {
+            return [];
+          },
+        ),
+      ),
+    ).resolves.toBe("done");
+
+    expect(locks).toEqual([]);
+
+    keeps = [];
+    await nextRound();
+
+    expect(keeps).toEqual([]);
+  });
+
+  test("Valkey that cannot be reached when the write is held: the change is not checked again, and the write goes on", async () => {
+    const project: SemaphoreMutex = lock("project");
+    valkeyDown = true;
+
+    const recheck: jest.Mock<Recheck> = jest.fn<Recheck>(
+      async (): Promise<Array<SemaphoreMutex>> => {
+        return [];
+      },
+    );
+
+    await expect(
+      refusalOf(ProjectSsoProviderChanges.holdForWrite([project], recheck)),
+    ).resolves.toBe("done");
+
+    expect(recheck).not.toHaveBeenCalled();
+    expect(isKept(project)).toBe(true);
+  });
+});
+
+describe("a write the database may still apply keeps its locks until the database would have cancelled it", () => {
+  const KEPT_FOR_ABANDONED_WRITE: string =
+    "SSO sign-in change: its write failed without an answer from the database, which may still apply it; its locks are kept 40 seconds, until the database would have cancelled it, and then run out.";
+  const CAN_NO_LONGER_LAND: string =
+    "SSO sign-in change: the write that failed without an answer from the database can no longer land; its locks are no longer kept, and run out.";
+
+  // The rounds of keeping in this long.
+  const roundsIn: (ms: number) => number = (ms: number): number => {
+    return ms / WRITE_KEEP_INTERVAL_IN_MS;
+  };
+
+  test("the client stopped waiting for its statement: the locks are not given back, and are kept alive the statement timeout and a margin from then - past the write's own limit - and then left to run out", async () => {
+    const project: SemaphoreMutex = lock("project");
+    const server: SemaphoreMutex = lock("server");
+
+    await ProjectSsoProviderChanges.holdForWrite([project, server]);
+
+    // The statement runs until the client stops waiting for it: 35 seconds, by default.
+    for (let round: number = 0; round < roundsIn(35_000); round++) {
+      await nextRound();
+    }
+
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [project, server],
+      clientTimeout(),
+    );
+
+    expect(released).toEqual([]);
+    expect(warnings).toEqual([KEPT_FOR_ABANDONED_WRITE]);
+    expect(isKept(project)).toBe(true);
+
+    // Kept past a minute from the check, until 40 seconds from the failure.
+    for (
+      let round: number = 1;
+      round < roundsIn(ABANDONED_WRITE_HOLD_IN_MS);
+      round++
+    ) {
+      await nextRound();
+    }
+
+    expect(isKept(project)).toBe(true);
+    expect(isKept(server)).toBe(true);
+
+    keeps = [];
+    await nextRound();
+
+    expect(keeps).toEqual([]);
+    expect(isKept(project)).toBe(false);
+    expect(isKept(server)).toBe(false);
+    // Never given back, and never said as a write still under way.
+    expect(released).toEqual([]);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([KEPT_FOR_ABANDONED_WRITE, CAN_NO_LONGER_LAND]);
+
+    await nextRound();
+    await nextRound();
+
+    expect(keeps).toEqual([]);
+    expect(warnings).toHaveLength(2);
+  });
+
+  test("failed soon after its check, it is kept until the later of the two: the write's own limit stands", async () => {
+    const project: SemaphoreMutex = lock("project");
+
+    await ProjectSsoProviderChanges.holdForWrite([project]);
+    await nextRound();
+    await nextRound();
+
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [project],
+      connectionLost(),
+    );
+
+    // Five seconds in: 45 seconds from now is sooner than a minute from the check.
+    for (
+      let round: number = 3;
+      round < roundsIn(WRITE_KEEP_LIMIT_IN_MS);
+      round++
+    ) {
+      await nextRound();
+    }
+
+    expect(isKept(project)).toBe(true);
+
+    await nextRound();
+
+    expect(isKept(project)).toBe(false);
+    expect(released).toEqual([]);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([KEPT_FOR_ABANDONED_WRITE, CAN_NO_LONGER_LAND]);
+  });
+
+  test("a lock no longer kept alive when its write failed is kept alive from then, as long", async () => {
+    const project: SemaphoreMutex = lock("project");
+
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [project],
+      clientTimeout(),
+    );
+
+    expect(isKept(project)).toBe(true);
+    expect(released).toEqual([]);
+
+    for (
+      let round: number = 1;
+      round < roundsIn(ABANDONED_WRITE_HOLD_IN_MS);
+      round++
+    ) {
+      await nextRound();
+    }
+
+    expect(keeps).toHaveLength(roundsIn(ABANDONED_WRITE_HOLD_IN_MS) - 1);
+    expect(isKept(project)).toBe(true);
+
+    await nextRound();
+
+    expect(isKept(project)).toBe(false);
+    expect(keeps).toHaveLength(roundsIn(ABANDONED_WRITE_HOLD_IN_MS) - 1);
+  });
+
+  test("a lock found gone while it is kept for such a write is said, and kept no more", async () => {
+    const project: SemaphoreMutex = lock("project");
+
+    await ProjectSsoProviderChanges.holdForWrite([project]);
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [project],
+      clientTimeout(),
+    );
+
+    lost.add("project");
+    await nextRound();
+
+    expect(isKept(project)).toBe(false);
+    expect(errors).toEqual([
+      "SSO sign-in change: a lock was lost while its change was being written; another change to who can sign in may have been written at the same time.",
+    ]);
+  });
+
+  test("the database answered - it cancelled the statement at its own timeout: nothing was written, and the locks are given back at once", async () => {
+    const project: SemaphoreMutex = lock("project");
+
+    await ProjectSsoProviderChanges.holdForWrite([project]);
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [project],
+      cancelledByDatabase(),
+    );
+
+    expect(released).toEqual(["project"]);
+    expect(isKept(project)).toBe(false);
+    expect(warnings).toEqual([]);
+  });
+
+  test("refused before any statement was sent: the locks are given back at once", async () => {
+    const project: SemaphoreMutex = lock("project");
+
+    await ProjectSsoProviderChanges.holdForWrite([project]);
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [project],
+      new BadDataException("Refused."),
+    );
+
+    expect(released).toEqual(["project"]);
+    expect(isKept(project)).toBe(false);
+  });
+
+  test("a change that holds no lock keeps nothing, and says nothing", async () => {
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+      [],
+      clientTimeout(),
+    );
+
+    await nextRound();
+
+    expect(keeps).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
+  test("kept the database's statement timeout and a margin; with none set, as long as a write is kept", () => {
+    // The defaults: the database cancels a statement after 30 seconds.
+    expect(PostgresStatementTimeoutMs).toBe(30_000);
+    expect(ABANDONED_WRITE_MARGIN_IN_MS).toBe(10_000);
+    expect(ABANDONED_WRITE_HOLD_IN_MS).toBe(40_000);
+
+    expect(getAbandonedWriteHoldInMs(30_000, 35_000)).toBe(40_000);
+    expect(getAbandonedWriteHoldInMs(120_000, 125_000)).toBe(130_000);
+
+    // Longer than the statement may run, whatever it is set to.
+    for (const statementTimeoutMs of [1, 30_000, 300_000]) {
+      expect(
+        getAbandonedWriteHoldInMs(statementTimeoutMs, statementTimeoutMs + 5_000),
+      ).toBeGreaterThan(statementTimeoutMs);
+    }
+
+    // None set - 0 is Postgres' "no timeout" - or not a number: as long as a write is kept.
+    expect(getAbandonedWriteHoldInMs(0, 35_000)).toBe(60_000);
+    expect(getAbandonedWriteHoldInMs(-1, 35_000)).toBe(60_000);
+    expect(getAbandonedWriteHoldInMs(Number.NaN, 35_000)).toBe(60_000);
+    expect(getAbandonedWriteHoldInMs(0, 300_000)).toBe(325_000);
   });
 });
 

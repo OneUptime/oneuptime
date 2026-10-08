@@ -7,8 +7,9 @@ import GlobalSsoService from "../../../Server/Services/GlobalSsoService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import StatementOutcome from "../../../Server/Utils/Database/StatementOutcome";
 import logger from "../../../Server/Utils/Logger";
-import {
+import ProjectSsoProviderChanges, {
   PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
@@ -29,7 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { DataSource } from "typeorm";
+import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
 
 /*
  * A SIGN-IN CHANGE THAT NAMES ITS ROWS BY A FILTER WRITES EXACTLY THE ROWS
@@ -55,7 +56,13 @@ import { DataSource } from "typeorm";
  *   - Require SSO for Login turned on for projects named by a filter: a
  *     project created between the two reads refuses the write, and nothing
  *     is written; one that comes to match the filter after the locked read
- *     keeps its rule.
+ *     keeps its rule;
+ *   - a Require SSO for Login save whose UPDATE does not finish in time:
+ *     one the client stopped waiting for keeps its lock - and lands once the
+ *     row is free, after the save was reported as failed - while one the
+ *     database cancelled at its statement timeout writes nothing, and gives
+ *     its lock back at once (StatementOutcome tells them apart from the
+ *     errors node-postgres and TypeORM really throw).
  *
  * The locks are held in memory (Semaphore stubbed, as in
  * ProjectCreateSsoWayInPostgres); SsoProviderChangesValkey keeps real ones.
@@ -113,6 +120,9 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
 
   // The locks taken and not yet given back (Semaphore, held in memory).
   let heldLocks: Set<string>;
+
+  // Every lock handed out, as it was handed out.
+  let handedOut: Array<{ key: string }>;
 
   const query: (sql: string, parameters?: Array<unknown>) => Promise<any> = (
     sql: string,
@@ -268,8 +278,11 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
     }
   };
 
-  beforeAll(async () => {
-    database = new DataSource({
+  // A pool on the test's schema, with whatever else node-postgres is given.
+  const optionsWith: (extra?: Record<string, unknown>) => DataSourceOptions = (
+    extra?: Record<string, unknown>,
+  ): DataSourceOptions => {
+    return {
       type: "postgres",
       host: process.env["SSO_FILTER_WRITES_TEST_DATABASE_HOST"] || "localhost",
       port: Number(
@@ -284,8 +297,12 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
       entities: Entities,
       schema,
       synchronize: false,
-      extra: { options: `-c search_path=${schema},public` },
-    });
+      extra: { options: `-c search_path=${schema},public`, ...(extra || {}) },
+    };
+  };
+
+  beforeAll(async () => {
+    database = new DataSource(optionsWith());
     await database.initialize();
     await query(`CREATE SCHEMA "${schema}"`);
 
@@ -316,6 +333,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
     onLock = null;
     onKeep = null;
     heldLocks = new Set<string>();
+    handedOut = [];
 
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
@@ -362,7 +380,10 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
       }
 
       heldLocks.add(data.key);
-      return { key: data.key };
+
+      const mutex: { key: string } = { key: data.key };
+      handedOut.push(mutex);
+      return mutex;
     }) as never);
     getJestSpyOn(Semaphore, "release").mockImplementation((async (mutex: {
       key: string;
@@ -820,6 +841,168 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
 
       expect(createdLater).not.toBe("");
       expect(rows.get(createdLater)?.["requireSsoForLogin"]).toBe(false);
+    });
+  });
+
+  /*
+   * node-postgres' own query timeout (DATABASE_QUERY_TIMEOUT_MS) stops
+   * waiting for a statement without cancelling it: the database runs it on,
+   * and may commit it after the save was reported as failed. So the save's
+   * lock is kept - never given back - until the database would have
+   * cancelled it; a statement the database cancelled itself, and said so,
+   * wrote nothing, and its lock goes back at once. Each save runs on a pool
+   * of its own with the timeouts it needs (as the app's pool is given them,
+   * DataSourceOptions), its UPDATE held behind the project's row, which
+   * another connection holds meanwhile.
+   */
+  describe("a Require SSO for Login save whose UPDATE does not finish in time", () => {
+    const NAME: string = "Acme Slow";
+
+    const pools: Array<DataSource> = [];
+
+    afterAll(async () => {
+      for (const pool of pools) {
+        if (pool.isInitialized) {
+          await pool.destroy();
+        }
+      }
+    });
+
+    // The pool the services run on, with these timeouts.
+    const runOnPoolWith: (timeouts: {
+      statement_timeout: number;
+      query_timeout: number;
+    }) => Promise<void> = async (timeouts: {
+      statement_timeout: number;
+      query_timeout: number;
+    }): Promise<void> => {
+      const pool: DataSource = new DataSource(optionsWith(timeouts));
+      await pool.initialize();
+      pools.push(pool);
+
+      jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(pool);
+    };
+
+    // Another connection takes the project's row, and holds it until told.
+    const holdRow: (projectId: string) => Promise<QueryRunner> = async (
+      projectId: string,
+    ): Promise<QueryRunner> => {
+      const holder: QueryRunner = database.createQueryRunner();
+      await holder.connect();
+      await holder.startTransaction();
+      await holder.query(
+        `SELECT "_id" FROM "${schema}"."Project" WHERE "_id" = $1 FOR UPDATE`,
+        [projectId],
+      );
+
+      return holder;
+    };
+
+    const letGo: (holder: QueryRunner) => Promise<void> = async (
+      holder: QueryRunner,
+    ): Promise<void> => {
+      if (holder.isTransactionActive) {
+        await holder.commitTransaction();
+      }
+
+      if (!holder.isReleased) {
+        await holder.release();
+      }
+    };
+
+    const failureOfSave: () => Promise<unknown> =
+      async (): Promise<unknown> => {
+        try {
+          await ProjectService.updateBy({
+            query: { name: NAME },
+            data: { requireSsoForLogin: true },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: { isRoot: true },
+          });
+        } catch (err) {
+          return err;
+        }
+
+        return null;
+      };
+
+    const ruleOf: (projectId: string) => Promise<unknown> = async (
+      projectId: string,
+    ): Promise<unknown> => {
+      return (await rowsOf("Project")).get(projectId)?.["requireSsoForLogin"];
+    };
+
+    test("the client stopped waiting for it: the project's lock is kept, not given back - and the write lands once the row is free", async () => {
+      const projectId: string = await addProject(NAME);
+      await addProjectSaml({ projectId, name: "Okta", isEnabled: true });
+
+      await runOnPoolWith({ statement_timeout: 20_000, query_timeout: 1_000 });
+      const holder: QueryRunner = await holdRow(projectId);
+
+      try {
+        const failure: unknown = await failureOfSave();
+
+        expect((failure as Error | null)?.message).toBe("Query read timeout");
+        expect(StatementOutcome.isUnknown(failure)).toBe(true);
+
+        // Not given back, and kept alive: the database may still apply the write.
+        expect(heldLocks.has(projectId)).toBe(true);
+
+        const projectLock: { key: string } | undefined = handedOut.find(
+          (mutex: { key: string }): boolean => {
+            return mutex.key === projectId;
+          },
+        );
+
+        expect(
+          ProjectSsoProviderChanges.isKeptForWrite(projectLock as never),
+        ).toBe(true);
+        expect(await ruleOf(projectId)).toBe(false);
+
+        // The row is free: the UPDATE the client gave up on runs on, and lands.
+        await letGo(holder);
+
+        let rule: unknown = false;
+
+        for (let attempt: number = 0; attempt < 50 && rule !== true; attempt++) {
+          await new Promise<void>((resolve: () => void): void => {
+            setTimeout(resolve, 100);
+          });
+          rule = await ruleOf(projectId);
+        }
+
+        expect(rule).toBe(true);
+      } finally {
+        await letGo(holder);
+        await ProjectSsoProviderChanges.releaseSignInChange(
+          handedOut as never,
+        );
+      }
+    });
+
+    test("the database cancelled it at its statement timeout, and said so: nothing is written, and the lock goes back at once", async () => {
+      const projectId: string = await addProject(NAME);
+      await addProjectSaml({ projectId, name: "Okta", isEnabled: true });
+
+      await runOnPoolWith({ statement_timeout: 1_000, query_timeout: 20_000 });
+      const holder: QueryRunner = await holdRow(projectId);
+
+      try {
+        const failure: unknown = await failureOfSave();
+
+        expect((failure as Error | null)?.message).toBe(
+          "canceling statement due to statement timeout",
+        );
+        expect(StatementOutcome.isUnknown(failure)).toBe(false);
+        expect(Array.from(heldLocks)).toEqual([]);
+
+        await letGo(holder);
+
+        expect(await ruleOf(projectId)).toBe(false);
+      } finally {
+        await letGo(holder);
+      }
     });
   });
 });
