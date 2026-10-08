@@ -1,135 +1,162 @@
 # SMTP Configuration
 
-OneUptime supports sending emails via custom SMTP servers with three authentication methods:
+Send OneUptime's email through your own mail server. A project adds SMTP configs that its status pages send their email with, and a self-hosted installation sets the server OneUptime itself sends everything else from. Both support three ways of signing in:
 
-- **Username and Password** - Traditional SMTP authentication
-- **OAuth 2.0** - Modern authentication for Microsoft 365 and Google Workspace
-- **None** - For relay servers that don't require authentication
+- **Username and Password**: traditional SMTP authentication.
+- **OAuth 2.0**: for Microsoft 365 and Google Workspace, where basic authentication is often turned off.
+- **None**: for relay servers that don't require authentication.
 
-The first section below shows where each setting is. The rest of this guide covers OAuth 2.0 authentication for Microsoft 365 and Google Workspace.
+```mermaid title="Which mail server sends what"
+flowchart TB
+    SP["A status page's email"] --> Q{"Custom SMTP Config<br/>picked for the page?"}
+    Q -->|"Yes"| P["The project's SMTP config"]
+    Q -->|"No"| D["OneUptime's own mail server"]
+    E["All other OneUptime email"] --> D
+```
+
+On a self-hosted installation, OneUptime's own mail server is the one set in the Admin Dashboard. A status page picks its SMTP config on its **Subscriber Settings** page, in the **Custom SMTP** card.
+
+:::cards
+- [Add a mail server](#adding-an-smtp-server): Two steps, with everything else folded away.
+- [Microsoft 365](#microsoft-365-configuration): OAuth with an Entra app registration.
+- [Google Workspace](#google-workspace-configuration): OAuth with a service account.
+- [Troubleshooting](#troubleshooting): Common errors and what they mean.
+:::
 
 ## Adding an SMTP Server
 
-Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the same things, in two steps:
+Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **Custom SMTP Configs** card. On a self-hosted installation, the server OneUptime itself sends from is set on **Admin Dashboard > Settings > Emails**, in the **Custom Email and SMTP Settings** card. Both forms ask for the same things, in two steps.
 
-1. **Server**: the **Name** (project configs only), **Hostname**, **Port** (a new config starts on `587`), **Username** and **Password**.
-2. **Sender**: the **From Email** and **From Name** your emails come from.
+:::steps
+### Open the form
 
-Everything else is folded under **More fields** at the end of the Server step. While it is folded, its header says how mail is sent, for example "Mail is sent over SMTP, signing in with the username and password. TLS is required."
+:::tabs
+@tab Project
+On **Project Settings > Notifications > Notification Settings**, click **Create SMTP Config** in the **Custom SMTP Configs** card.
+@tab Self-hosted instance
+In the Admin Dashboard, open **Settings > Emails**. In the **Email Server Settings** card, set **Email Server Type** to `Custom SMTP`, then click **Edit SMTP Config** in the **Custom Email and SMTP Settings** card.
+:::
+
+### Fill in the Server step
+
+On the **Server** step, enter the **Name** (project configs only), **Hostname**, **Port** (a new project config starts on `587`), **Username** and **Password**.
+
+### Check More fields
+
+Everything else is folded under **More fields** at the end of the **Server** step. While it is folded, its header says how mail is sent, for example "Mail is sent over SMTP, signing in with the username and password. TLS is required." Open it only if you need to change one of the settings in the table below.
+
+### Fill in the Sender step
+
+On the **Sender** step, enter the **From Email** and **From Name** your emails come from. Your server must allow sending from that address.
+
+### Save and send a test email
+
+Save the config. Once a project config is saved, **Send Test Email** on its row checks that it works. It needs permission to add SMTP configs: **Project Owner**, **Project Admin**, or **Create SMTP Config** and **Read SMTP Config** in a custom role. On OneUptime Cloud it also needs the **Growth** plan, like adding a config. For anyone else it is locked, and its tooltip says what it takes.
+
+The test asks for an **Email** address to send to, yours to start with. Check that the message arrives.
+:::
+
+These are the settings under **More fields**:
 
 | Field                   | What it does                                                                                                                                                                                                                              |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Transport**           | `SMTP` (the default), or `Microsoft Graph` for a Microsoft 365 tenant that has SMTP AUTH turned off. Picking Microsoft Graph hides the hostname, port, username and password, and shows the OAuth fields.                                 |
 | **Require TLS**         | On for a new project config. Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted. |
 | **Authentication Type** | `Username and Password` (the default), `OAuth`, or `None` for a relay that needs no sign-in.                                                                                                                                              |
-| **OAuth fields**        | Provider type, client ID, client secret, token URL and scope, shown once OAuth or Microsoft Graph is picked.                                                                                                                              |
+| **OAuth fields**        | **OAuth Provider Type**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth Token URL** and **OAuth Scope**, shown once OAuth or Microsoft Graph is picked.                                                                            |
 | **Description**         | A note for your team (project configs only).                                                                                                                                                                                              |
 
 **Microsoft Graph.** Open **More fields**, set **Transport** to `Microsoft Graph`, and fill in an Azure app that has the **Mail.Send** application permission: its client ID and client secret, the token URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` and the scope `https://graph.microsoft.com/.default`. Mail is sent from the **From Email** mailbox, which must be a licensed mailbox in your tenant.
 
-Once a project config is saved, **Send Test Email** on its row checks that it works. It needs permission to add SMTP configs: **Project Owner**, **Project Admin**, or **Create SMTP Config** and **Read SMTP Config** in a custom role. On OneUptime Cloud it also needs the **Growth** plan, like adding a config. For anyone else it is locked, and its tooltip says what it takes.
+> [!NOTE]
+> On OneUptime Cloud, a project's mail server must be reachable over the internet: a host that resolves to a private or internal address is refused. On a self-hosted installation, private addresses are allowed unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`; loopback and link-local addresses are always refused. The instance's own mail server is not checked this way.
 
 ## OAuth 2.0 Authentication
 
-OAuth 2.0 provides a more secure way to authenticate with email servers, especially for enterprise environments that have disabled basic authentication. OneUptime supports two OAuth grant types:
+OAuth 2.0 lets OneUptime sign in to your mail server without a password, which enterprise mail services increasingly require. OneUptime supports two OAuth grant types:
 
-- **Client Credentials** - Used by Microsoft 365 and most OAuth providers
-- **JWT Bearer** - Used by Google Workspace service accounts
+- **Client Credentials**: used by Microsoft 365 and most OAuth providers.
+- **JWT Bearer**: used by Google Workspace service accounts.
 
-### Required Fields for OAuth
+```mermaid title="How OneUptime signs in with OAuth"
+sequenceDiagram
+    participant O as OneUptime
+    participant T as Token URL
+    participant M as Mail server
+    O->>T: Request an access token
+    T-->>O: Access token
+    Note over O: Cached, and renewed<br/>before it expires
+    O->>M: Sign in with the token
+    O->>M: Send the email
+```
 
-When configuring SMTP with OAuth authentication in OneUptime, you'll need:
+**Authentication Type** and the OAuth fields are under **More fields** on the form's Server step. To sign in with OAuth, fill in:
 
-| Field                   | Description                                                                         |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| **Hostname**            | SMTP server address                                                                 |
-| **Port**                | SMTP port (typically 587 for STARTTLS or 465 for implicit TLS)                      |
-| **Username**            | The email address to send from                                                      |
-| **Authentication Type** | Select "OAuth"                                                                      |
-| **OAuth Provider Type** | Select "Client Credentials" for Microsoft 365, or "JWT Bearer" for Google Workspace |
-| **Client ID**           | Application/Client ID from your OAuth provider (for Google: service account email)  |
-| **Client Secret**       | Client secret from your OAuth provider (for Google: private key)                    |
-| **Token URL**           | OAuth token endpoint URL                                                            |
-| **Scope**               | Required OAuth scope(s) for SMTP access                                             |
+| Field                     | Description                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| **Hostname**              | SMTP server address                                                                 |
+| **Port**                  | SMTP port (typically 587 for STARTTLS or 465 for implicit TLS)                      |
+| **Username**              | The email address of the mailbox that sends                                         |
+| **Authentication Type**   | `OAuth`                                                                             |
+| **OAuth Provider Type**   | `Client Credentials` for Microsoft 365, or `JWT Bearer` for Google Workspace        |
+| **OAuth Client ID**       | Application (client) ID from your OAuth provider (for Google: service account email) |
+| **OAuth Client Secret**   | Client secret from your OAuth provider (for Google: the private key)                |
+| **OAuth Token URL**       | Your provider's OAuth token endpoint                                                |
+| **OAuth Scope**           | The OAuth scope that grants SMTP access                                             |
 
-**Authentication Type** and the OAuth fields are under **More fields** on the form's Server step.
-
----
+OneUptime caches OAuth tokens and renews them automatically before they expire.
 
 ## Microsoft 365 Configuration
 
-To use OAuth with Microsoft 365/Exchange Online, you need to register an application in Microsoft Entra (Azure AD) and configure the appropriate permissions.
+To use OAuth with Microsoft 365 (Exchange Online), register an application in Microsoft Entra, give it permission to send mail over SMTP, and allow it to use the mailbox you send from.
 
-### Step 1: Register an Application in Microsoft Entra
+:::steps
+### Register an application in Microsoft Entra
 
-1. Sign in to the [Microsoft Entra admin center](https://entra.microsoft.com)
-2. Navigate to **Identity** > **Applications** > **App registrations**
-3. Click **New registration**
-4. Enter a name for your application (e.g., "OneUptime SMTP")
-5. For **Supported account types**, select "Accounts in this organizational directory only"
-6. Leave **Redirect URI** blank (not needed for client credentials flow)
-7. Click **Register**
+1. Sign in to the [Microsoft Entra admin center](https://entra.microsoft.com).
+2. Go to **Identity** > **Applications** > **App registrations** and click **New registration**.
+3. Enter a name (for example, "OneUptime SMTP"), select "Accounts in this organizational directory only", and leave **Redirect URI** blank.
+4. Click **Register**.
 
-After registration, note the following values from the **Overview** page:
+On the **Overview** page, note the **Application (client) ID** (your client ID) and the **Directory (tenant) ID** (for the token URL).
 
-- **Application (client) ID** - This is your Client ID
-- **Directory (tenant) ID** - You'll need this for the Token URL
+### Create a client secret
 
-### Step 2: Create a Client Secret
+1. In your app registration, go to **Certificates & secrets** and click **New client secret**.
+2. Add a description, select an expiration period and click **Add**.
+3. **Copy the secret value immediately**: it is not shown again.
 
-1. In your app registration, go to **Certificates & secrets**
-2. Click **New client secret**
-3. Add a description and select an expiration period
-4. Click **Add**
-5. **Copy the secret value immediately** - it won't be shown again
+### Add the SMTP permission
 
-### Step 3: Add SMTP API Permissions
+1. Go to **API permissions** and click **Add a permission**.
+2. Select **APIs my organization uses**, then search for and select **Office 365 Exchange Online**.
+3. Select **Application permissions**, check **SMTP.SendAsApp**, and click **Add permissions**.
+4. Click **Grant admin consent for [your organization]** (this needs admin privileges).
 
-1. Go to **API permissions**
-2. Click **Add a permission**
-3. Select **APIs my organization uses**
-4. Search for and select **Office 365 Exchange Online**
-5. Select **Application permissions**
-6. Find and check **SMTP.SendAsApp**
-7. Click **Add permissions**
-8. Click **Grant admin consent for [your organization]** (requires admin privileges)
+### Register the service principal in Exchange Online
 
-### Step 4: Register Service Principal in Exchange Online
-
-Before your application can send emails, you must register the service principal in Exchange Online and grant mailbox permissions.
-
-1. Install the Exchange Online PowerShell module:
+Before the application can send email, register its service principal in Exchange Online and give it access to the mailbox you send from:
 
 ```powershell
+# Install and load the Exchange Online module, then connect
 Install-Module -Name ExchangeOnlineManagement -Force
-```
-
-2. Connect to Exchange Online:
-
-```powershell
 Import-Module ExchangeOnlineManagement
 Connect-ExchangeOnline -Organization <your-tenant-id>
-```
 
-3. Register the service principal (use the Object ID from **Enterprise Applications**, not App Registrations):
-
-```powershell
-# Find the Object ID in Microsoft Entra > Enterprise Applications > Your App > Object ID
+# Register the service principal. Use the Object ID from
+# Microsoft Entra > Enterprise Applications > your app (not App Registrations)
 New-ServicePrincipal -AppId <application-client-id> -ObjectId <enterprise-app-object-id>
-```
 
-4. Grant the service principal permission to send as a specific mailbox:
-
-```powershell
-# Grant full mailbox access to the service principal
+# Give the service principal access to the sending mailbox
 Add-MailboxPermission -Identity "sender@yourdomain.com" -User <service-principal-id> -AccessRights FullAccess
 ```
 
-> **Note:** Use `Add-MailboxPermission` (not `Add-RecipientPermission`). `Add-RecipientPermission` only grants `SendAs` on the recipient and is not sufficient for the service principal to send mail via SMTP with OAuth — you will get an authentication/permission error at send time. `Add-MailboxPermission` with `FullAccess` is the command that actually works.
+> [!IMPORTANT]
+> Use `Add-MailboxPermission`, not `Add-RecipientPermission`. `Add-RecipientPermission` only grants `SendAs` on the recipient, which is not enough for the service principal to send mail over SMTP with OAuth: sending fails with an authentication or permission error.
 
-### Step 5: Configure in OneUptime
+### Create the SMTP config in OneUptime
 
-In OneUptime, create or edit an SMTP configuration with these settings:
+Create or edit an SMTP config with these settings, replacing `<tenant-id>` with your **Directory (tenant) ID**:
 
 | Field               | Value                                                                        |
 | ------------------- | ---------------------------------------------------------------------------- |
@@ -138,80 +165,68 @@ In OneUptime, create or edit an SMTP configuration with these settings:
 | Username            | The email address you granted permissions to (e.g., `sender@yourdomain.com`) |
 | Authentication Type | `OAuth`                                                                      |
 | OAuth Provider Type | `Client Credentials`                                                         |
-| Client ID           | Your Application (client) ID from Step 1                                     |
-| Client Secret       | The secret value from Step 2                                                 |
-| Token URL           | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`            |
-| Scope               | `https://outlook.office365.com/.default`                                     |
+| OAuth Client ID     | Your **Application (client) ID**                                             |
+| OAuth Client Secret | The client secret value                                                      |
+| OAuth Token URL     | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`            |
+| OAuth Scope         | `https://outlook.office365.com/.default`                                     |
 | From Email          | Same as Username                                                             |
 | Require TLS         | On                                                                           |
 
-Replace `<tenant-id>` with your Directory (tenant) ID from Step 1.
-
----
+Then use **Send Test Email** to check it.
+:::
 
 ## Google Workspace Configuration
 
-Google Workspace requires a **service account** with domain-wide delegation to send emails on behalf of users. This is necessary because Google's SMTP servers don't support direct OAuth client credentials flow for Gmail.
+Google Workspace needs a **service account** with domain-wide delegation, which sends email on behalf of a user in your domain. Google's SMTP servers don't support a plain client credentials flow for Gmail.
 
-### Prerequisites
+### Before you begin with Google Workspace
 
-- Google Workspace account (not regular Gmail - consumer Gmail accounts don't support this)
-- Super Admin access to Google Workspace Admin Console
-- Access to Google Cloud Console
+- A Google Workspace account. Consumer Gmail accounts don't support this.
+- Super Admin access to the Google Workspace Admin Console.
+- Access to the Google Cloud Console.
 
-### Step 1: Create a Google Cloud Project
+:::steps
+### Create a Google Cloud project
 
-1. Go to the [Google Cloud Console](https://console.cloud.google.com)
-2. Click the project dropdown and select **New Project**
-3. Enter a project name and click **Create**
-4. Select your new project
+1. Go to the [Google Cloud Console](https://console.cloud.google.com).
+2. Click the project dropdown and select **New Project**.
+3. Enter a project name, click **Create**, and select your new project.
 
-### Step 2: Enable the Gmail API
+### Enable the Gmail API
 
-1. Go to **APIs & Services** > **Library**
-2. Search for "Gmail API"
-3. Click **Gmail API** and then **Enable**
+1. Go to **APIs & Services** > **Library**.
+2. Search for "Gmail API", click **Gmail API** and then **Enable**.
 
-### Step 3: Create a Service Account
+### Create a service account
 
-1. Go to **APIs & Services** > **Credentials**
-2. Click **Create Credentials** > **Service account**
-3. Enter a name and description for the service account
-4. Click **Create and Continue**
-5. Skip the optional steps and click **Done**
+1. Go to **APIs & Services** > **Credentials**.
+2. Click **Create Credentials** > **Service account**.
+3. Enter a name and description, click **Create and Continue**, skip the optional steps and click **Done**.
 
-### Step 4: Create Service Account Keys
+### Create a service account key
 
-1. Click on the service account you just created
-2. Go to the **Keys** tab
-3. Click **Add Key** > **Create new key**
-4. Select **JSON** and click **Create**
-5. Save the downloaded JSON file securely - it contains:
-   - `client_id` - Your Client ID
-   - `private_key` - Your Client Secret (the private key)
+1. Click the service account you just created and go to the **Keys** tab.
+2. Click **Add Key** > **Create new key**, select **JSON** and click **Create**.
+3. Store the downloaded JSON file securely. Its `client_email` is your OAuth client ID, and its `private_key` your OAuth client secret.
 
-### Step 5: Enable Domain-Wide Delegation
+### Enable domain-wide delegation
 
-1. In the service account details, click **Show Advanced Settings**
-2. Note the **Client ID** (numerical ID)
-3. Check **Enable Google Workspace Domain-wide Delegation**
-4. Click **Save**
+1. In the service account details, click **Show Advanced Settings**.
+2. Note the numerical **Client ID**.
+3. Check **Enable Google Workspace Domain-wide Delegation** and click **Save**.
 
-### Step 6: Authorize the Service Account in Google Workspace Admin
+### Authorize the service account in Google Workspace Admin
 
-1. Sign in to [Google Workspace Admin Console](https://admin.google.com)
-2. Go to **Security** > **Access and data control** > **API Controls**
-3. Click **Manage Domain Wide Delegation**
-4. Click **Add new**
-5. Enter the **Client ID** from Step 5
-6. For **OAuth Scopes**, enter: `https://mail.google.com/`
-7. Click **Authorize**
+1. Sign in to the [Google Workspace Admin Console](https://admin.google.com).
+2. Go to **Security** > **Access and data control** > **API Controls** and click **Manage Domain Wide Delegation**.
+3. Click **Add new**, enter the numerical **Client ID** from the previous step, and for **OAuth Scopes** enter `https://mail.google.com/`.
+4. Click **Authorize**.
 
-Note: It may take a few minutes to 24 hours for the delegation to propagate.
+The delegation can take from a few minutes up to 24 hours to take effect.
 
-### Step 7: Configure in OneUptime
+### Create the SMTP config for Google Workspace
 
-In OneUptime, create or edit an SMTP configuration with these settings:
+Create or edit an SMTP config with these settings:
 
 | Field               | Value                                                                                                                                          |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -220,29 +235,31 @@ In OneUptime, create or edit an SMTP configuration with these settings:
 | Username            | The Google Workspace email address to send from (e.g., `notifications@yourdomain.com`). This user will be impersonated by the service account. |
 | Authentication Type | `OAuth`                                                                                                                                        |
 | OAuth Provider Type | `JWT Bearer`                                                                                                                                   |
-| Client ID           | The `client_email` from your service account JSON (e.g., `your-service@your-project.iam.gserviceaccount.com`)                                  |
-| Client Secret       | The `private_key` from your service account JSON (the entire key including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`)      |
-| Token URL           | `https://oauth2.googleapis.com/token`                                                                                                          |
-| Scope               | `https://mail.google.com/`                                                                                                                     |
+| OAuth Client ID     | The `client_email` from your service account JSON (e.g., `your-service@your-project.iam.gserviceaccount.com`)                                  |
+| OAuth Client Secret | The `private_key` from your service account JSON (the entire key including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`)      |
+| OAuth Token URL     | `https://oauth2.googleapis.com/token`                                                                                                          |
+| OAuth Scope         | `https://mail.google.com/`                                                                                                                     |
 | From Email          | Same as Username                                                                                                                               |
 | Require TLS         | On                                                                                                                                             |
 
-**Important:** For Google (JWT Bearer), the Client ID is the **service account email** (`client_email`), NOT the numerical `client_id`. The service account will impersonate the user specified in the Username field to send emails.
+Then use **Send Test Email** to check it.
+:::
 
----
+> [!IMPORTANT]
+> For Google (JWT Bearer), the **OAuth Client ID** is the **service account email** (`client_email`), not the numerical `client_id`. The service account impersonates the user in **Username** to send email.
 
 ## Troubleshooting
 
-### Microsoft 365
+### Microsoft 365 errors
 
 | Issue                                           | Solution                                                                           |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------- |
 | "Authentication unsuccessful"                   | Verify the service principal is registered in Exchange and has mailbox permissions |
-| "AADSTS700016: Application not found"           | Check that the Client ID is correct and the app exists in your tenant              |
-| "AADSTS7000215: Invalid client secret"          | Regenerate the client secret - it may have expired                                 |
+| "AADSTS700016: Application not found"           | Check that the client ID is correct and the app exists in your tenant              |
+| "AADSTS7000215: Invalid client secret"          | Create a new client secret: the old one may have expired                           |
 | "The mailbox is not enabled for this operation" | Run `Add-MailboxPermission` to grant access to the mailbox                         |
 
-### Google Workspace
+### Google Workspace errors
 
 | Issue                                               | Solution                                                              |
 | --------------------------------------------------- | --------------------------------------------------------------------- |
@@ -251,33 +268,43 @@ In OneUptime, create or edit an SMTP configuration with these settings:
 | "access_denied"                                     | Check that the scope `https://mail.google.com/` is authorized         |
 | "Domain policy has disabled third-party Drive apps" | Enable API access in Google Workspace Admin > Security > API Controls |
 
-### General
+### Other problems
 
-- **Test your configuration**: Use the "Send Test Email" button in OneUptime to verify your setup
-- **Check logs**: Review OneUptime logs for detailed error messages
-- **Token caching**: OneUptime caches OAuth tokens and refreshes them automatically before expiry
+:::details "Cannot send email. Please check your SMTP config."
+**Send Test Email** says this when a server that signs in with a username and password does not take the email. Check the **Hostname**, **Port**, **Username** and **Password**. If your server does not offer TLS, or its certificate is not valid for its hostname, turn **Require TLS** off under **More fields** and try again. On a self-hosted installation, the OneUptime logs have the server's own error.
+:::
 
----
+:::details "Cannot send email with OAuth authentication"
+The OAuth sign-in failed, and the message ends with the error your provider returned. Check the **OAuth Client ID**, **OAuth Client Secret**, **OAuth Token URL** and **OAuth Scope**, that the application has the permissions above, and that admin consent was granted. If your Microsoft 365 tenant has SMTP AUTH turned off, set **Transport** to `Microsoft Graph` instead.
+:::
 
-## Security Best Practices
+:::details "SMTP server host … is not allowed"
+OneUptime refused to connect to the project's mail server, and the message names the host and the reason. On OneUptime Cloud, a hostname that resolves to a private, loopback or link-local address is refused: use the mail server's public hostname.
+:::
 
-1. **Rotate secrets regularly**: Set calendar reminders to rotate client secrets before they expire
-2. **Use dedicated service accounts**: Create separate credentials for OneUptime rather than sharing with other applications
-3. **Principle of least privilege**: Only grant the minimum permissions needed (SMTP.SendAsApp for Microsoft, mail.google.com scope for Google)
-4. **Monitor usage**: Review email logs and OAuth application sign-ins for unusual activity
-5. **Secure storage**: Never commit client secrets to version control
+:::details The test email does not arrive
+Check the **From Email**: your server must allow sending from it. Then look in the recipient's spam folder, and in your mail server's logs for the attempt.
+:::
 
----
+## Security best practices
 
-## Additional Resources
+- **Rotate secrets regularly.** Set reminders to replace client secrets before they expire.
+- **Use dedicated credentials.** Create separate credentials for OneUptime rather than sharing them with other applications.
+- **Grant the least privilege.** Only grant what sending needs: **SMTP.SendAsApp** for Microsoft, the `https://mail.google.com/` scope for Google.
+- **Monitor usage.** Review email logs and OAuth application sign-ins for unusual activity.
+- **Store secrets securely.** Never commit client secrets to version control.
 
-### Microsoft 365
+## Further reading
 
-- [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
-- [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
+- Microsoft: [Authenticate an IMAP, POP or SMTP connection using OAuth](https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth)
+- Microsoft: [Register an application with Microsoft identity platform](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app)
+- Google: [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
+- Google: [Gmail API Documentation](https://developers.google.com/gmail/api)
+- Google: [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)
 
-### Google Workspace
+## Next steps
 
-- [Using OAuth 2.0 for Server to Server Applications](https://developers.google.com/identity/protocols/oauth2/service-account)
-- [Gmail API Documentation](https://developers.google.com/gmail/api)
-- [XOAUTH2 Protocol](https://developers.google.com/gmail/imap/xoauth2-protocol)
+:::cards
+- [Notification Email Rollup](/docs/emails/notification-rollup): How OneUptime batches bursts of owner email.
+- [Subscribers & Announcements](/docs/status-pages/subscribers): Send a status page's subscriber email through a project's SMTP config.
+:::

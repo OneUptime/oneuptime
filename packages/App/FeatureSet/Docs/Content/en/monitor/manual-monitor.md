@@ -1,35 +1,53 @@
 # Manual Monitor
 
-Manual monitoring allows you to create monitors whose status is managed entirely by hand or through the API. OneUptime does not perform any automated checks — you control the monitor status directly.
+A Manual monitor has no automatic checks: its status is whatever you set, in the dashboard or through the API. Use it to represent something OneUptime cannot check itself — a third-party dependency, a physical system, a business process — on your status pages and in your incidents.
 
-## Overview
+## When to use a manual monitor
 
-Manual monitors are placeholders that you update yourself. This is useful for:
+| Use case                 | Description                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| Third-party services     | Track the status of external services you depend on but cannot monitor directly |
+| Physical infrastructure  | Represent hardware or physical systems without network monitoring               |
+| Business processes       | Track non-technical processes that affect service status                        |
+| API-driven status        | Let external tools update monitor status via the OneUptime API                  |
+| Status page placeholders | Show components on your status page that are managed outside OneUptime          |
 
-- Integrating with external monitoring tools that update status via the OneUptime API
-- Tracking services or systems that cannot be monitored automatically
-- Managing incidents for components without automated health checks
-- Representing third-party dependencies whose status you track manually
+## How it works
+
+A manual monitor has no monitoring interval, probes or criteria. Its status stays as you set it until you, or a tool using the API, change it — and the new status shows wherever the monitor does.
+
+```mermaid title="Who changes a manual monitor's status"
+flowchart TB
+    you["You, in the dashboard"] --> status["Monitor status"]
+    tool["A tool, through the API"] --> status
+    status --> pages["Status pages"]
+    status --> history["Status history and uptime"]
+```
 
 ## Creating a Manual Monitor
 
-1. Go to **Monitors** in the OneUptime Dashboard
-2. Click **Create Monitor**
-3. Select **Manual** as the monitor type
-4. Enter a name and description for the monitor
+:::steps
+### Start a new monitor
 
-## How It Works
+Go to **Monitors** and click **Create Monitor**.
 
-Manual monitors do not have monitoring intervals, probes, or automated criteria evaluation. The monitor status remains as you set it until you change it.
+### Choose Manual
 
-### Updating Status
+Under **Monitor Type**, click **More monitor types** and pick **Manual** under **Other**.
+
+### Name it and create it
+
+Enter a **Name** — and a **Description** under **More fields**, if you like — then click **Create Monitor**. A Manual monitor needs nothing more, so it is created from this first step.
+:::
+
+## Updating Status
 
 You can update the status of a manual monitor in two ways:
 
-- **Dashboard** — Change the monitor status directly from the OneUptime Dashboard
-- **API** — Update the monitor status programmatically using the OneUptime API
+- **Dashboard** — Change the monitor status directly from the OneUptime Dashboard.
+- **API** — Update the monitor status programmatically using the OneUptime API.
 
-### Incidents and Alerts
+## Incidents and Alerts
 
 You can create incidents and alerts against manual monitors just like any other monitor type. This allows you to:
 
@@ -37,12 +55,10 @@ You can create incidents and alerts against manual monitors just like any other 
 - Create incidents manually when issues are reported
 - Use manual monitors on status pages to communicate status to users
 
-## When to Use Manual Monitors
+## Next steps
 
-| Use Case                 | Description                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------- |
-| Third-party services     | Track the status of external services you depend on but cannot monitor directly |
-| Physical infrastructure  | Represent hardware or physical systems without network monitoring               |
-| Business processes       | Track non-technical processes that affect service status                        |
-| API-driven status        | Let external tools update monitor status via the OneUptime API                  |
-| Status page placeholders | Show components on your status page that are managed outside OneUptime          |
+:::cards
+- [Creating a Monitor](/docs/monitor/create-monitor): The monitor types that check things for you.
+- [External Status Page Monitor](/docs/monitor/external-status-page-monitor): Follow a provider's status page automatically instead.
+- [Status Pages](/docs/status-pages/index): Show the monitor's status to your customers.
+:::

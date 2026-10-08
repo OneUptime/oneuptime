@@ -1,12 +1,92 @@
 # Upgrading OneUptime
 
-This guide covers how to safely upgrade your self-hosted OneUptime installation.
+Upgrade a self-hosted OneUptime — Docker Compose, or Kubernetes with Helm — to a newer release. Follow the procedure below, and read the notes for every major version between the one you run and the one you are moving to.
 
-## General Guidance
+:::cards
+- [How to upgrade](#how-to-upgrade): The procedure, for Docker Compose and Kubernetes.
+- [Notes for each version](#find-the-notes-for-your-version): What each major version asks of you, at a glance.
+- [Community and Enterprise Edition images](#community-and-enterprise-edition-images): Which image to run from 14 on.
+- [Upgrading from OneUptime 13 → 14](#upgrading-from-oneuptime-13-14): The newest major version.
+:::
 
-- Upgrade step-by-step across major versions (for example, 6 → 7 → 8). Do not skip major versions.
-- You can leapfrog minor/patch versions (for example, 8.1 → 8.4) as long as you follow the release notes.
-- Always take backups before upgrading, and validate you can restore them.
+## How to upgrade
+
+Three rules keep an upgrade safe:
+
+- **Upgrade one major version at a time** (for example 6 → 7 → 8). Do not skip a major version.
+- **Skip minor and patch releases as you like** (for example 8.1 → 8.4), as long as you follow their release notes.
+- **Back up before every upgrade**, and check that you can restore the backup.
+
+```mermaid title="Upgrade one major version at a time"
+flowchart TB
+    Find["Find your version"] --> Backup["Back up your data"]
+    Backup --> Read["Read the next version's notes"]
+    Read --> Upgrade["Upgrade to that version"]
+    Upgrade --> Check["Check the new version"]
+    Check --> Target{"Reached your target?"}
+    Target -->|No| Backup
+    Target -->|Yes| Done["Done"]
+```
+
+:::steps
+### Find your current version
+
+As a master admin, open the edition label in the Admin Dashboard's header: **This installation** shows the version you run. The instance also reports it at `/version`:
+
+```bash
+curl http://localhost/version
+```
+
+Replace `http://localhost` with your instance's address. The answer is JSON, such as `{"version":"14.0.22","commit":"..."}`.
+
+### Back up your data
+
+Back up PostgreSQL, and ClickHouse if you need its telemetry. On Docker Compose, see [Back up and restore](/docs/installation/docker-compose#back-up-and-restore). On Kubernetes, use your volume snapshots or the chart's CloudNativePG backups.
+
+### Read the notes for the next major version
+
+Find them in [the table below](#find-the-notes-for-your-version), and do what they ask before you upgrade: some steps, such as renaming Helm values, have to happen first.
+
+### Run the upgrade
+
+:::tabs
+@tab Docker Compose
+```bash
+git checkout release
+git pull
+npm run update
+```
+`npm run update` adds new settings to your `config.env` without changing yours, pulls the new images and restarts OneUptime.
+@tab Kubernetes
+```bash
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+Use your own release name and values file. The chart runs the database migrations in a Job of its own before the new pods serve traffic.
+:::
+
+### Check the new version
+
+On Docker Compose, `npm run update` ends with **OneUptime is up!** On Kubernetes, wait until every pod is `Running` and ready:
+
+```bash
+kubectl get pods -n <namespace>
+```
+
+Then check your version again, as in the first step. If you have not reached your target version yet, go back to [Back up your data](#back-up-your-data) and take the next major version.
+:::
+
+### Find the notes for your version
+
+| Upgrade | What you must do |
+| --- | --- |
+| [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. |
+| [12 → 13](#upgrading-from-oneuptime-12-13) | Usually nothing: Redis becomes Valkey, and the old setting names keep working. Running Docker Compose by hand? Add `--remove-orphans`. Using a cache of your own? Read [If you run your own cache](#if-you-run-your-own-cache). |
+| [11 → 12](#upgrading-from-oneuptime-11-12) | Redeploy Runbook Agents as Runners. On Docker Compose, set `ONEUPTIME_RUNNER_KEY`. On Helm, rename `aiAgent:` to `runner:`. Re-grant Runner permissions that API keys held directly. |
+| [10 → 11](#upgrading-from-oneuptime-10-11) | SCIM and team compliance settings need the Enterprise Edition. To keep your telemetry history, rename the old ClickHouse tables before you upgrade. |
+| [9 → 10](#upgrading-from-oneuptime-9-10) | Nothing. |
+| [8 → 9](#upgrading-from-oneuptime-8-9) | On Helm, remove `oneuptimeIngress` overrides from your values. |
+| [7 → 8](#upgrading-from-oneuptime-7-8) | On Helm, move to the new values structure for Postgres, Redis and ClickHouse. Back up first. |
 
 ## Community and Enterprise Edition images
 
@@ -218,7 +298,7 @@ for the full state table.
 
 ### Docker Compose: pick the image tag
 
-```
+```bash
 git checkout release # Please make sure you're on release branch.
 git pull
 npm run update
@@ -239,7 +319,7 @@ npm run update
 
 ### Helm: pick the image type
 
-```
+```bash
 helm repo update
 helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
@@ -264,6 +344,12 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ### Other changes in 14
 
+These change how OneUptime behaves after the upgrade, and most need no
+action. Read them if you use custom roles or API keys built from single
+permissions, custom incident, alert or maintenance states, Terraform or the
+API, SSO, or the Slack and Microsoft Teams apps.
+
+:::details Read the other changes in 14
 - **OTLP ingest acknowledges a batch only after the queue accepts it.** 13
   replied `200` first and enqueued afterwards, so a batch the queue rejected was
   lost silently. 14 answers `503` with `Telemetry queue unavailable. Please
@@ -832,6 +918,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
   self-hosted installs no longer serve.
+:::
 
 ### Workflow steps act as a Project Admin
 
@@ -1148,7 +1235,8 @@ would have run before.
 - Your enterprise configuration is not touched by running 14, so a rollback
   finds it as it was.
 
-> Tip: on the Enterprise Edition, activate the license on the day you upgrade
+> [!TIP]
+> On the Enterprise Edition, activate the license on the day you upgrade
 > rather than at the end of the trial. Activation is what keeps SCIM
 > provisioning and audit logging running, and the trial is counted from this
 > upgrade, not from your original install date.
@@ -1214,7 +1302,7 @@ matter to you.
 
 The standard update is all you need:
 
-```
+```bash
 git checkout release # Please make sure you're on release branch.
 git pull
 npm run update
@@ -1237,7 +1325,7 @@ npm run update
 
 ### Helm upgrades
 
-```
+```bash
 helm repo update
 helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
@@ -1432,10 +1520,12 @@ The **Settings → AI → AI Agents** page is gone and the `oneuptime/ai-agent`
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
+:::steps
 1. Create a Runner under **Runbooks → Runners** and install it with the
    command from **Show setup instructions**.
 2. Enable **Runs AI Code Fixes** on it. The change is picked up on the next
    heartbeat.
+:::
 
 Old AI Agent credentials still boot the new `oneuptime/runner` image
 through a legacy fallback (code fixes only, with a logged warning telling
@@ -1539,7 +1629,8 @@ command execution** setting and the per-Runner **Runs AI Remediation Commands**
 capability must both be enabled, and only runbooks/rules you configure for
 it participate. Upgrading changes nothing here.
 
-> Tip: as with every major upgrade, back up Postgres before upgrading (a
+> [!TIP]
+> As with every major upgrade, back up Postgres before upgrading (a
 > rollback to v11 means restoring that backup), test in staging first, and
 > upgrade step-by-step — 11 → 12, do not skip from older majors.
 
@@ -1616,13 +1707,14 @@ ingested after the upgrade lands in them immediately, and history fills
 back in naturally as time passes. The old tables are **dropped
 automatically** during the upgrade to reclaim their disk — if you want
 the option of carrying history forward, rename them **before**
-upgrading (Step 0 below).
+upgrading ([Before upgrading, rename the old tables](#before-upgrading-rename-the-old-tables)).
 
+> [!IMPORTANT]
 > **Already on 11.0.0 or 11.0.1?** Those releases kept the old tables
 > (they drained via TTL, and the copy could be run "any time after the
 > upgrade"). Any later update **drops them at boot**. If you still want
-> the history copy and have not done it yet, run Step 0 below before
-> applying the update.
+> the history copy and have not done it yet, rename the old tables
+> ([Before upgrading, rename the old tables](#before-upgrading-rename-the-old-tables)) before applying the update.
 
 ### Who needs to do anything
 
@@ -1631,7 +1723,7 @@ upgrading (Step 0 below).
   do. Telemetry pages simply show data from the upgrade moment onward;
   the old tables are dropped during the upgrade.
 - **Upgrades that want pre-upgrade telemetry visible:** rename the old
-  tables **before** the upgrade (Step 0 below), then run the manual copy
+  tables **before** the upgrade ([Before upgrading, rename the old tables](#before-upgrading-rename-the-old-tables)), then run the manual copy
   any time after it.
 
 As always: upgrade major versions step-by-step (10 → 11, do not skip),
@@ -1639,7 +1731,7 @@ and take backups of Postgres and ClickHouse before upgrading.
 
 ### Optional: carry telemetry history forward
 
-Step 0 runs **before the upgrade**; everything from Step 1 on runs
+The first step runs **before the upgrade**; every step after it runs
 **after the upgrade has fully booted** (the new tables and their
 materialized views must exist). Connect directly on your ClickHouse
 host — the native protocol has no HTTP timeouts, so multi-hour statements
@@ -1664,7 +1756,9 @@ Good to know before starting:
   automatically (each copied row re-feeds the rollup materialized views)
   — this makes the metric copy slower than the others; run it last.
 
-#### Step 0 — before upgrading, rename the old tables
+:::details The copy, step by step
+:::steps
+#### Before upgrading, rename the old tables
 
 The upgrade drops the old tables at boot, so move the ones you want to
 copy from out of its reach first. Stop OneUptime (scale the deployment
@@ -1688,13 +1782,14 @@ RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup
 
 Then upgrade and let OneUptime boot fully before continuing.
 
+> [!WARNING]
 > If you roll back to v10 after renaming (v10 recreates empty old-name
 > tables at boot), rename the `_backup` tables back to their original
 > names before restarting v10 — otherwise telemetry ingested during the
 > rollback lands in the recreated tables and is dropped at the eventual
 > upgrade.
 
-#### Step 1 — list the source partitions
+#### List the source partitions
 
 Each old table has at most 16 partitions. For each source table:
 
@@ -1702,13 +1797,13 @@ Each old table has at most 16 partitions. For each source table:
 SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
 ```
 
-#### Step 2 — generate the copy statement
+#### Generate the copy statement
 
 Column sets can differ slightly between installations (older deployments
 may lack recently added columns), so generate the statement from your
 live schema rather than copy-pasting a fixed one. Set `src` and `dst` in
 the `WITH` clause to one of the table pairs from the table above (the
-source carries the `_backup` suffix from Step 0), and run:
+source carries the `_backup` suffix from the first step), and run:
 
 ```sql
 WITH 'LogItemV2_backup' AS src, 'LogItemV3' AS dst
@@ -1738,26 +1833,27 @@ fly, orders rows deterministically so a retry produces identical,
 deduplicatable blocks, and lifts the execution-time and partition-count
 limits that a statement this size needs.
 
-#### Step 3 — run it, one partition at a time
+#### Run it, one partition at a time
 
 Take the generated statement and substitute `{PARTITION}` (it appears
-twice — in the `WHERE` and in the token) with each partition id from
-Step 1. Run the statements one at a time, then repeat Steps 1–3 for each
-table pair.
+twice — in the `WHERE` and in the token) with each partition id you
+listed. Run the statements one at a time, then list, generate and run
+again for each table pair.
 
-> Note: if a source table was skipped in Step 0 because it did not exist
-> on your installation, Step 1 fails with `UNKNOWN_TABLE` for that pair —
+> [!NOTE]
+> If a source table did not exist on your installation, the first step
+> skipped it, and listing its partitions fails with `UNKNOWN_TABLE` —
 > simply skip the pair; there is no history of that type to copy.
 
 If a statement fails partway, re-run the **same** statement promptly —
 already-committed blocks deduplicate. If re-running much later, compare
-row counts first (Step 5).
+row counts first ([Verify the copy](#verify-the-copy)).
 
-#### Step 4 (optional) — per-host metric rollup history
+#### Optional: copy the per-host metric rollups
 
 Copied raw metric rows rebuild the service-level rollups automatically,
 but not the **per-host** rollup (old rows have no host entity key). The
-renamed old rollup table from Step 0 is the only source for this
+old rollup table you renamed in the first step is the only source for this
 history; carry it forward by computing the new key from the hostname:
 
 ```sql
@@ -1784,7 +1880,7 @@ be silently skipped or double-counted. (Edge case: hostnames containing
 a different key than the application; ignore unless you know you have
 such hosts.)
 
-#### Step 5 — verify
+#### Verify the copy
 
 Compare totals per table pair (the new table also contains post-upgrade
 rows, so it should be greater than or equal to the old one):
@@ -1795,7 +1891,7 @@ SELECT
   (SELECT count() FROM LogItemV3) AS new_rows;
 ```
 
-#### Step 6 — drop the backups
+#### Drop the backups
 
 The renamed tables keep their retention TTL, so they drain and shrink by
 themselves — but once you are satisfied with the copy, drop them to
@@ -1815,14 +1911,17 @@ DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_d
 
 (`max_table_size_to_drop = 0` lifts the server's 50 GB drop protection
 for that one statement.)
+:::
+:::
 
-> Tip: as with every major upgrade, test in a staging environment first
+> [!TIP]
+> As with every major upgrade, test in a staging environment first
 > and confirm telemetry is flowing into the new tables before relying on
 > the copy in production.
 
 ## Upgrading from OneUptime 9 → 10
 
-No changes that require manual action. Just follow the standard upgrade process.
+No changes need manual action: follow [How to upgrade](#how-to-upgrade).
 
 ## Upgrading from OneUptime 8 → 9
 
@@ -1841,4 +1940,14 @@ If you're running on Kubernetes, there are important breaking changes:
 - These changes are not backward compatible. You must follow the new structure in the Helm chart `values.yaml`.
 - Backup your data (Postgres, ClickHouse, and any persistent volumes) before upgrading.
 
-> Tip: Test the upgrade in a staging environment first. Confirm your workloads are healthy and data is intact before upgrading production.
+> [!TIP]
+> Test the upgrade in a staging environment first. Confirm your workloads are healthy and data is intact before upgrading production.
+
+## Next steps
+
+:::cards
+- [Docker Compose](/docs/installation/docker-compose): Install, back up and update a single-server instance.
+- [Enterprise Edition](/docs/self-hosted/enterprise): The editions, the license and switching between them.
+- [Sizing & Capacity Planning](/docs/installation/sizing): Plan resources before your install grows.
+- [Self-Hosted Architecture](/docs/self-hosted/architecture): How the components fit together.
+:::
