@@ -14,10 +14,12 @@ import Exception from "Common/Types/Exception/Exception";
  * words and its error code, which is what Twilio's documentation is indexed
  * by.
  *
- * Twilio refusing the request (a 4xx: a number it will not reach, an account
- * that may not, credentials it does not accept) is the account's setup, not
- * a defect of ours, so it is a user error. Twilio failing (a 5xx) keeps its
- * words, but is not.
+ * Only Twilio REFUSING the request (a 4xx: a number it will not reach, an
+ * account that may not, credentials it does not accept) is translated: that
+ * is the account's setup, something a person can act on, and a user error,
+ * not a defect of ours. Twilio FAILING (a 5xx) is left as it was - an outage
+ * on their side, classified and alerted on as before - and the person is
+ * told to try again in a moment (ChannelVerification.getSendFailureReason).
  */
 
 export enum TwilioSendKind {
@@ -52,7 +54,7 @@ export default class TwilioSendError {
    * (no Twilio account, the project's settings) already say what they mean.
    */
   public static toSendError(error: unknown, kind: TwilioSendKind): unknown {
-    if (!TwilioSendError.isTwilioRestError(error)) {
+    if (!TwilioSendError.isTwilioRestError(error) || error.status >= 500) {
       return error;
     }
 
@@ -69,6 +71,6 @@ export default class TwilioSendError {
       }${code}.`,
     );
 
-    return error.status < 500 ? exception.asUserError() : exception;
+    return exception.asUserError();
   }
 }

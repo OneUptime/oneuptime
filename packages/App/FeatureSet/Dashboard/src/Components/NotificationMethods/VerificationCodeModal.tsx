@@ -116,13 +116,18 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
     route: string,
     data?: JSONObject,
   ): Promise<ApiResponse> => {
+    /*
+     * User scoped: the server loads the row as OneUptime and compares its
+     * owner with the caller. projectId rides in the body, where the
+     * project middleware reads it.
+     */
     return API.post({
       url: URL.fromString(APP_API_URL.toString()).addRoute(
         `${definition.apiRoute}${route}`,
       ),
       data: {
         ...(data || {}),
-        projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
+        projectId: ProjectUtil.getCurrentProjectId()!,
         itemId: itemId,
       },
     });
