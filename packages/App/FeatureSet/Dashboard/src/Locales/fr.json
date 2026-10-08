@@ -26676,5 +26676,10 @@
   "{{name}} is behind {{count}} different problems": "{{name}} est à l'origine de {{count}} problèmes différents",
   "{{name}} is behind {{count}} different problems_one": "{{name}} est à l'origine de {{count}} problème",
   "{{title}} has stopped": "{{title}} a cessé",
-  "{{title}} keeps coming back": "{{title}} revient sans cesse"
+  "{{title}} keeps coming back": "{{title}} revient sans cesse",
+  "Compare one field of the data your script returns instead of the whole value - for example status, cpu_busy_percent or data.items[0].value. Use dots for nested fields and [n] for array items. Leave empty to compare the whole result.": "Compare one field of the data your script returns instead of the whole value - for example status, cpu_busy_percent or data.items[0].value. Use dots for nested fields and [n] for array items. Leave empty to compare the whole result.",
+  "Field Path (Optional)": "Field Path (Optional)",
+  "Not receiving notifications": "Not receiving notifications",
+  "This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to.": "This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to.",
+  "status or data.items[0].value": "status or data.items[0].value"
 }
