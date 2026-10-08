@@ -57,9 +57,9 @@ export const MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE: string =
   "Monitor Status cannot be same as previous status.";
 
 /*
- * Thrown by create() when the per-monitor mutex cannot be acquired. The timeline
- * write is refused rather than performed unlocked - see the comment on the lock
- * acquisition below. Probe ingest call sites match on this to log and skip
+ * Thrown by create() (its onBeforeCreate) when the per-monitor mutex cannot be
+ * acquired. The timeline write is refused rather than performed unlocked - see
+ * lockMonitor below. Probe ingest call sites match on this to log and skip
  * instead of failing the whole ingest run.
  */
 export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
@@ -1035,6 +1035,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       throw new BadDataException("monitorId is null");
     }
 
+    /*
+     * The status, checked before the monitor's lock is taken: a write naming
+     * a status that is not the project's is refused without waiting on, or
+     * holding up, the monitor's other status changes.
+     */
+    const monitorStatusId: ObjectID = await this.checkMonitorStatus(createBy);
+
     const logAttributes: LogAttributes = {
       projectId: createBy.data.projectId?.toString(),
       monitorId: monitorId.toString(),
@@ -1056,7 +1063,12 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
 
     try {
       const onCreate: OnCreate<MonitorStatusTimeline> =
-        await this.buildOnCreate(createBy, monitorId, logAttributes);
+        await this.buildOnCreate(
+          createBy,
+          monitorId,
+          monitorStatusId,
+          logAttributes,
+        );
 
       onCreate.carryForward.mutex = mutex;
 
@@ -1100,36 +1112,12 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   }
 
   /*
-   * Body of onBeforeCreate, split out to keep the null-narrowing of monitorId in
-   * one place: it is passed in already narrowed so it can never reach a query as
-   * undefined, which would widen the query to every monitor.
+   * The status the write names, under either of its names (the two must
+   * agree), held to the project.
    */
-  private async buildOnCreate(
+  private async checkMonitorStatus(
     createBy: CreateBy<MonitorStatusTimeline>,
-    monitorId: ObjectID,
-    logAttributes: LogAttributes,
-  ): Promise<OnCreate<MonitorStatusTimeline>> {
-    if (!createBy.data.startsAt) {
-      createBy.data.startsAt = OneUptimeDate.getCurrentDate();
-    }
-
-    // Who made the change, under either name of it: see CreatedByUser.
-    const changedByUserId: ObjectID | null = CreatedByUser.getId(
-      createBy.data,
-      createBy.props,
-    );
-
-    if (changedByUserId && !createBy.data.rootCause) {
-      createBy.data.rootCause =
-        mdText`Monitor status created by ${await UserService.getUserMarkdownString(
-          {
-            userId: changedByUserId,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`.toString();
-    }
-
-    // Under either of its names; the two must agree.
+  ): Promise<ObjectID> {
     const monitorStatusId: ObjectID | null = RelationIdUtil.readConsistent(
       createBy.data as unknown as Record<string, unknown>,
       ["monitorStatusId", "monitorStatus"],
@@ -1167,6 +1155,40 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         },
       ],
     });
+
+    return monitorStatusId;
+  }
+
+  /*
+   * Body of onBeforeCreate, split out to keep the null-narrowing of monitorId in
+   * one place: it is passed in already narrowed so it can never reach a query as
+   * undefined, which would widen the query to every monitor.
+   */
+  private async buildOnCreate(
+    createBy: CreateBy<MonitorStatusTimeline>,
+    monitorId: ObjectID,
+    monitorStatusId: ObjectID,
+    logAttributes: LogAttributes,
+  ): Promise<OnCreate<MonitorStatusTimeline>> {
+    if (!createBy.data.startsAt) {
+      createBy.data.startsAt = OneUptimeDate.getCurrentDate();
+    }
+
+    // Who made the change, under either name of it: see CreatedByUser.
+    const changedByUserId: ObjectID | null = CreatedByUser.getId(
+      createBy.data,
+      createBy.props,
+    );
+
+    if (changedByUserId && !createBy.data.rootCause) {
+      createBy.data.rootCause =
+        mdText`Monitor status created by ${await UserService.getUserMarkdownString(
+          {
+            userId: changedByUserId,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`.toString();
+    }
 
     const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
       query: {
@@ -1496,7 +1518,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * alerts and post workspace notifications), and holding the lock across that
    * would serialise every concurrent status write for this monitor behind it -
    * past the semaphore's acquire timeout, refuse it. Only the predecessor
-   * read -> INSERT -> predecessor close needs the lock (see create()).
+   * read -> INSERT -> predecessor close needs the lock (see onBeforeCreate).
    *
    * Ordering note: two status writes for the same monitor bridge in release
    * order, and a bridge carries the status of ITS row. Probe results for one

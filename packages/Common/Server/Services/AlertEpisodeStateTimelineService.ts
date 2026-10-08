@@ -239,8 +239,6 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       throw new BadDataException("alertEpisodeId is null");
     }
 
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
-
     if (!createdItem.alertStateId) {
       throw new BadDataException("alertStateId is null");
     }
@@ -404,7 +402,7 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       }
     }
 
-    await StateChangeLock.giveBack(mutex, {
+    await StateChangeLock.giveBackFor(onCreate, {
       projectId: createdItem.projectId?.toString(),
       alertEpisodeId: createdItem.alertEpisodeId?.toString(),
     } as LogAttributes);

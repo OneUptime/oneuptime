@@ -223,6 +223,25 @@ describe("MonitorStatusTimelineService's per-monitor mutex", () => {
 
       expect(lockMock).not.toHaveBeenCalled();
     });
+
+    it("takes no lock for a status that is not the project's, and refuses the change", async () => {
+      // The project has no monitor status by that id.
+      stubProjectDirectory({
+        projectId: PROJECT_ID,
+        records: { MonitorStatus: [] },
+      });
+
+      await expect(hooks.onBeforeCreate(makeCreateBy())).rejects.toThrow(
+        "Monitor Status",
+      );
+
+      /*
+       * Refused before the lock: a bad id holds up none of the monitor's
+       * other status changes.
+       */
+      expect(lockMock).not.toHaveBeenCalled();
+      expect(buildOnCreateSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe("onCreateSuccess gives it back", () => {

@@ -76,17 +76,29 @@ export default class StateChangeLock {
 
   /*
    * The lock a state change's create carried forward from onBeforeCreate,
-   * given back: for onCreateError, which is handed no create when the
-   * change failed before the hook ran (nothing was locked then).
+   * given back - by onCreateSuccess, or by onCreateError, which is handed no
+   * create when the change failed before the hook ran (nothing was locked
+   * then).
+   *
+   * Once: the create carries no lock afterwards. A success hook that gave
+   * the lock back and then failed - a note that could not be posted once
+   * the change was saved - reaches onCreateError with the same create, which
+   * then has nothing left to give back.
    */
   public static async giveBackFor<TBaseModel extends BaseModel>(
     onCreate: OnCreate<TBaseModel> | undefined,
     logAttributes: LogAttributes,
   ): Promise<void> {
-    await StateChangeLock.giveBack(
-      StateChangeLock.carriedForward(onCreate),
-      logAttributes,
-    );
+    const mutex: SemaphoreMutex | null =
+      StateChangeLock.carriedForward(onCreate);
+
+    if (!mutex) {
+      return;
+    }
+
+    (onCreate!.carryForward as { mutex?: SemaphoreMutex | null }).mutex = null;
+
+    await StateChangeLock.giveBack(mutex, logAttributes);
   }
 
   // The lock in a create's carryForward, if it carries one.

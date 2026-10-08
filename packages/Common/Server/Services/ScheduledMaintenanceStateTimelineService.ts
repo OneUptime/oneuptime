@@ -403,8 +403,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
     onCreate: OnCreate<ScheduledMaintenanceStateTimeline>,
     createdItem: ScheduledMaintenanceStateTimeline,
   ): Promise<ScheduledMaintenanceStateTimeline> {
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
-
     if (!createdItem.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
     }
@@ -519,7 +517,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       });
     }
 
-    await StateChangeLock.giveBack(mutex, {
+    await StateChangeLock.giveBackFor(onCreate, {
       projectId: createdItem.projectId?.toString(),
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString(),
     } as LogAttributes);
