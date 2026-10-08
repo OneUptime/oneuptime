@@ -782,19 +782,17 @@ describe("phone-number discovery names a config only its caller may read", () =>
   test.each(ROUTES)(
     "%s answers a caller whose block with no labels takes the settings read away the same way",
     async (route: string, body: Record<string, unknown>): Promise<void> => {
-      commonApi.getDatabaseCommonInteractionProps
-        .mockReset()
-        .mockResolvedValue(
-          memberProps([
-            Permission.ProjectMember,
-            {
-              _type: "UserPermission",
-              permission: Permission.ReadProjectCallSMSConfig,
-              labelIds: [],
-              isBlockPermission: true,
-            },
-          ]),
-        );
+      commonApi.getDatabaseCommonInteractionProps.mockReset().mockResolvedValue(
+        memberProps([
+          Permission.ProjectMember,
+          {
+            _type: "UserPermission",
+            permission: Permission.ReadProjectCallSMSConfig,
+            labelIds: [],
+            isBlockPermission: true,
+          },
+        ]),
+      );
 
       const result: Invocation = await invoke("post", route, { body });
 

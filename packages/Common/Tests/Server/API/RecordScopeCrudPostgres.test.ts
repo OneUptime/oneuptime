@@ -6301,9 +6301,7 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
             productionOwnerRowId.toString(),
           );
 
-          expectNotFound(
-            await getItem(data.path, homeUser, stagingOwnerRowId),
-          );
+          expectNotFound(await getItem(data.path, homeUser, stagingOwnerRowId));
         });
 
         test("adds an owner only to a record carrying the label", async () => {

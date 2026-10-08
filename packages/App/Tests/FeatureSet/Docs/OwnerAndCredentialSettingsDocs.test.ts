@@ -156,10 +156,10 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
       const page: string = permissionsPage(language);
       const owners: Array<string> = sectionParagraphs(page, OWNERS_SECTION);
 
-      expect([language, owners[owners.length - 1]!.startsWith(OWNERS[language]!)]).toEqual([
+      expect([
         language,
-        true,
-      ]);
+        owners[owners.length - 1]!.startsWith(OWNERS[language]!),
+      ]).toEqual([language, true]);
       expect([language, countOf(page, OWNERS[language]!)]).toEqual([
         language,
         1,
@@ -260,10 +260,14 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
       expect([sentence, section.includes(sentence)]).toEqual([sentence, true]);
     }
 
-    // The owners after the records read through another one, the settings
-    // after the one record a write names.
+    /*
+     * The owners after the records read through another one, the settings
+     * after the one record a write names.
+     */
     expect(section.indexOf("The owners of a resource - ")).toBeGreaterThan(
-      section.indexOf("A change that moves such a record follows the same rule"),
+      section.indexOf(
+        "A change that moves such a record follows the same rule",
+      ),
     );
     expect(section.indexOf("The owners of a resource - ")).toBeLessThan(
       section.indexOf("The records a create or a change lists"),
@@ -346,8 +350,10 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
       const line: string = lines[found[0]!]!;
       const next: string = lines[found[0]! + 1] || "";
 
-      // The next line is the one record a write names, then a create under
-      // a readable record.
+      /*
+       * The next line is the one record a write names, then a create under
+       * a readable record.
+       */
       expect([
         language,
         next.startsWith("- **") &&

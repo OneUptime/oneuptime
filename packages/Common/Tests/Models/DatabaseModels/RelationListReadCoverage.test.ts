@@ -594,9 +594,7 @@ describe("a setting that holds credentials is named only by a caller who may rea
 
       expect(RelationListPermission.isReadPerRecord(modelType)).toBe(false);
       expect(RelationListPermission.isHeldToTableRead(modelType)).toBe(true);
-      expect(RelationListPermission.isNamedOnlyWhenRead(modelType)).toBe(
-        true,
-      );
+      expect(RelationListPermission.isNamedOnlyWhenRead(modelType)).toBe(true);
     },
   );
 

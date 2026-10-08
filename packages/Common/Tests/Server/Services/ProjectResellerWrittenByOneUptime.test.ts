@@ -23,7 +23,9 @@ import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserTenantAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
@@ -415,11 +417,9 @@ describe("creating a project (the API's create) with billing off", () => {
 
 describe("a project created from a reseller's promo code (the sign-up a reseller sends people to)", () => {
   beforeEach(() => {
-    findPromoCode.mockImplementation(
-      async (): Promise<PromoCode | null> => {
-        return resellerPromoCode();
-      },
-    );
+    findPromoCode.mockImplementation(async (): Promise<PromoCode | null> => {
+      return resellerPromoCode();
+    });
   });
 
   test("records the promo code's reseller, plan and license, written by OneUptime", async () => {
@@ -457,9 +457,9 @@ describe("a project created from a reseller's promo code (the sign-up a reseller
     expect(carryForward.resellerFromPromoCode?.resellerId?.toString()).toBe(
       RESELLER_ID.toString(),
     );
-    expect(
-      carryForward.resellerFromPromoCode?.resellerPlanId?.toString(),
-    ).toBe(RESELLER_PLAN_ID.toString());
+    expect(carryForward.resellerFromPromoCode?.resellerPlanId?.toString()).toBe(
+      RESELLER_PLAN_ID.toString(),
+    );
     expect(carryForward.resellerFromPromoCode?.resellerLicenseId).toBe(
       LICENSE_ID,
     );
@@ -586,7 +586,9 @@ describe("changing where a project was bought (the API's update)", () => {
         member(PROJECT_ROLES),
         DatabaseRequestType.Update,
       );
-    }).toThrow("User is not allowed to update on resellerPlanId column of Project");
+    }).toThrow(
+      "User is not allowed to update on resellerPlanId column of Project",
+    );
   });
 
   test("is refused when clearing them too", () => {

@@ -129,7 +129,9 @@ async function assertCallerMayNameConfig(req: ExpressRequest): Promise<void> {
   const databaseProps: DatabaseCommonInteractionProps =
     await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-  if (!RelationListPermission.mayReadTable(ProjectCallSMSConfig, databaseProps)) {
+  if (
+    !RelationListPermission.mayReadTable(ProjectCallSMSConfig, databaseProps)
+  ) {
     throw new BadDataException(
       "Project Call/SMS Config not found for this project",
     );

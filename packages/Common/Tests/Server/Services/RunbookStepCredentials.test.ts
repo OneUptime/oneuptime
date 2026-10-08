@@ -19,7 +19,14 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import UserType from "../../../Types/UserType";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { getJestSpyOn } from "../../Spy";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");
@@ -44,10 +51,7 @@ const CREDENTIAL_A: string = "0193c0de-dddd-4aaa-8bbb-0000000000c1";
 const CREDENTIAL_B: string = "0193c0de-dddd-4aaa-8bbb-0000000000c2";
 const RUNNER: string = "0193c0de-dddd-4aaa-8bbb-0000000000e1";
 
-const row: (
-  permission: Permission,
-  isBlock?: boolean,
-) => UserPermission = (
+const row: (permission: Permission, isBlock?: boolean) => UserPermission = (
   permission: Permission,
   isBlock?: boolean,
 ): UserPermission => {
@@ -117,10 +121,7 @@ const kubernetesStep: (credentialId: unknown) => Record<string, unknown> = (
   };
 };
 
-const bashStep: () => Record<string, unknown> = (): Record<
-  string,
-  unknown
-> => {
+const bashStep: () => Record<string, unknown> = (): Record<string, unknown> => {
   return {
     id: ObjectID.generate().toString(),
     order: 3,
@@ -136,7 +137,8 @@ type RunbookInternals = {
   getJsonReferenceColumns: () => Array<JsonReferenceColumn>;
 };
 
-const internals: RunbookInternals = RunbookService as unknown as RunbookInternals;
+const internals: RunbookInternals =
+  RunbookService as unknown as RunbookInternals;
 
 const createRunbook: (
   steps: Array<Record<string, unknown>>,
@@ -366,10 +368,7 @@ describe("changing a runbook's steps", () => {
     storedSteps = [sshStep(CREDENTIAL_A)];
 
     expect(
-      await updateRunbook(
-        [sshStep(CREDENTIAL_A), bashStep()],
-        RUNBOOK_ADMIN,
-      ),
+      await updateRunbook([sshStep(CREDENTIAL_A), bashStep()], RUNBOOK_ADMIN),
     ).toBeUndefined();
   });
 

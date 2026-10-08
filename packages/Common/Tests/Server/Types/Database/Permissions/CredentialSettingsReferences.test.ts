@@ -108,7 +108,9 @@ const member: (
         projectId: projectId,
         permissions: permissions.map(
           (permission: Permission | UserPermission): UserPermission => {
-            return typeof permission === "string" ? row(permission) : permission;
+            return typeof permission === "string"
+              ? row(permission)
+              : permission;
           },
         ),
       },
@@ -248,9 +250,7 @@ describe("the settings that hold credentials", () => {
     "%p, read as a whole table and holding no credentials, is left to the project check",
     (modelType: { new (): BaseModel }) => {
       expect(RelationListPermission.isHeldToTableRead(modelType)).toBe(false);
-      expect(RelationListPermission.isNamedOnlyWhenRead(modelType)).toBe(
-        false,
-      );
+      expect(RelationListPermission.isNamedOnlyWhenRead(modelType)).toBe(false);
     },
   );
 
@@ -294,9 +294,7 @@ describe("the settings that hold credentials", () => {
       VideoCallConnection,
     ],
     [ApiKeyPermission, "apiKey", "apiKeyId", ApiKey],
-  ] as Array<
-    [{ new (): BaseModel }, string, string, { new (): BaseModel }]
-  >)(
+  ] as Array<[{ new (): BaseModel }, string, string, { new (): BaseModel }]>)(
     "%p.%s is held to the read of the setting it names, under both of its names",
     (
       modelType: { new (): BaseModel },
@@ -601,7 +599,11 @@ describe("the SNMP credentials a device or site is polled with", () => {
 
 describe("the video call provider a meeting starts through", () => {
   test.each([
-    [IncidentVideoCall, Permission.CreateIncidentVideoCall, Permission.IncidentMember],
+    [
+      IncidentVideoCall,
+      Permission.CreateIncidentVideoCall,
+      Permission.IncidentMember,
+    ],
     [AlertVideoCall, Permission.CreateAlertVideoCall, Permission.AlertMember],
   ] as Array<[{ new (): BaseModel }, Permission, Permission]>)(
     "%p: the responders who start calls read the providers; a role that only starts calls does not",
@@ -630,10 +632,7 @@ describe("the video call provider a meeting starts through", () => {
         await check({
           modelType: modelType,
           data: { videoCallConnectionId: VIDEO_A },
-          props: member([
-            createPermission,
-            Permission.ReadVideoCallConnection,
-          ]),
+          props: member([createPermission, Permission.ReadVideoCallConnection]),
         }),
       ).toBeUndefined();
     },
@@ -649,7 +648,9 @@ describe("the API key a permission is granted to", () => {
     });
 
     expect(refusal).toBeInstanceOf(UnreadableReferenceException);
-    expect((refusal as Error).message).toMatch(refusedFor("Api Key", API_KEY_A));
+    expect((refusal as Error).message).toMatch(
+      refusedFor("Api Key", API_KEY_A),
+    );
   });
 
   test("is named by one who reads them", async () => {

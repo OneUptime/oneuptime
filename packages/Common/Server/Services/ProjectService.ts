@@ -826,7 +826,11 @@ export class ProjectService extends ProjectReferencesService<Model> {
     >;
 
     if (reseller.resellerId) {
-      RelationIdUtil.stamp(row, ["resellerId", "reseller"], reseller.resellerId);
+      RelationIdUtil.stamp(
+        row,
+        ["resellerId", "reseller"],
+        reseller.resellerId,
+      );
     }
 
     if (reseller.resellerPlanId) {
