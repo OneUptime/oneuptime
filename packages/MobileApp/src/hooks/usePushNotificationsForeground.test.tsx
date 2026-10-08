@@ -179,6 +179,27 @@ describe("Push registration runs again when the app comes back from the backgrou
     }
   });
 
+  /*
+   * The start of the app asks for notification permission, as it always
+   * did. Coming back from the background registers without asking, so
+   * switching to the app never brings the prompt back; a permission granted
+   * in the system settings meanwhile is still picked up.
+   */
+  test("only the start of the app asks for notification permission", async () => {
+    await renderAndWaitForFirstRegistration();
+
+    await changeAppState(["background", "active"]);
+
+    await waitFor(() => {
+      expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length * 2);
+    });
+
+    expect(getToken.mock.calls).toEqual([
+      [{ askForPermission: true }],
+      [{ askForPermission: false }],
+    ]);
+  });
+
   test("every return from the background registers again", async () => {
     await renderAndWaitForFirstRegistration();
 

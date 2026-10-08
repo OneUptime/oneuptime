@@ -99,13 +99,21 @@ export function usePushNotifications(navigationRef: unknown): void {
 
     let cancelled: boolean = false;
 
+    /*
+     * Asked for when the app starts. Coming back from the background
+     * registers without asking (requestPermissionsAndGetToken).
+     */
+    const askForPermission: boolean = returnsToForeground === 0;
+
     const register: () => Promise<void> = async (): Promise<void> => {
       let token: string | null = null;
       let attempt: number = 0;
 
       // Retry obtaining the push token
       while (!token && attempt < MAX_RETRIES && !cancelled) {
-        token = await requestPermissionsAndGetToken();
+        token = await requestPermissionsAndGetToken({
+          askForPermission: askForPermission,
+        });
         if (!token && !cancelled) {
           attempt++;
           if (attempt < MAX_RETRIES) {
