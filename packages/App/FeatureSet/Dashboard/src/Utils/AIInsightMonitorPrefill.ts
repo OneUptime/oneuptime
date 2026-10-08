@@ -88,8 +88,8 @@ export const AI_INSIGHT_MONITOR_QUERY_PARAM: string = "aiInsightId";
 /*
  * Detector constants, mirrored because Common/Server is server-only. The
  * Common suite pins every one of them to the detector it copies
- * (AIInsightMonitorPrefillDetectorParity.test.ts): a detector retuned
- * without this file would otherwise seed monitors on the old rule.
+ * (Tests/App/Dashboard/AIInsightMonitorPrefillContracts.test.ts): a detector
+ * retuned without this file would otherwise seed monitors on the old rule.
  */
 
 // ErrorLogSpikeDetector: ERROR_LOG_SPIKE_MIN_RECENT_COUNT / _MIN_MULTIPLIER.
@@ -333,9 +333,16 @@ export function getStableExceptionMessageFragment(
     }
   });
 
-  if (best.length > MAX_EXCEPTION_MESSAGE_FRAGMENT_LENGTH) {
-    best = best
-      .substring(0, MAX_EXCEPTION_MESSAGE_FRAGMENT_LENGTH)
+  /*
+   * Cut on characters, not UTF-16 units: half an emoji's surrogate pair
+   * reaches the database as U+FFFD, which no raw message contains.
+   */
+  const characters: Array<string> = Array.from(best);
+
+  if (characters.length > MAX_EXCEPTION_MESSAGE_FRAGMENT_LENGTH) {
+    best = characters
+      .slice(0, MAX_EXCEPTION_MESSAGE_FRAGMENT_LENGTH)
+      .join("")
       .replace(FRAGMENT_EDGE_REGEX, "");
   }
 

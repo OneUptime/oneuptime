@@ -517,6 +517,24 @@ describe("getStableExceptionMessageFragment", () => {
     expect(message).toContain(fragment);
   });
 
+  test("a long run is cut between characters, never inside one", () => {
+    /*
+     * 199 letters then an emoji: a cut by UTF-16 units would keep the
+     * emoji's first half only, which reaches the database as U+FFFD.
+     */
+    const message: string = `${"a".repeat(
+      Prefill.MAX_EXCEPTION_MESSAGE_FRAGMENT_LENGTH - 1,
+    )}\u{1F680}${"b".repeat(50)}`;
+    const fragment: string = Prefill.getStableExceptionMessageFragment(message);
+
+    expect(Array.from(fragment)).toHaveLength(
+      Prefill.MAX_EXCEPTION_MESSAGE_FRAGMENT_LENGTH,
+    );
+    expect(fragment.endsWith("\u{1F680}")).toBe(true);
+    expect(message.startsWith(fragment)).toBe(true);
+    expect(fragment).not.toMatch(/[\uD800-\uDBFF]$/);
+  });
+
   test("whatever it returns is a piece of the sanitized message", () => {
     const messages: Array<string> = [
       "Violation of PRIMARY KEY constraint 'F98950_PK'. Cannot insert duplicate key in object 'dbo.F98950'. The duplicate key value is (<NUMBER>).",
