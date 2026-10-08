@@ -551,7 +551,7 @@ const NetworkOverview: FunctionComponent<
           description="Scans of an address range that find devices to add."
           rightElement={
             <Button
-              title="Start a Scan"
+              title="Start Scan"
               icon={IconProp.Search}
               buttonStyle={ButtonStyleType.OUTLINE}
               onClick={() => {

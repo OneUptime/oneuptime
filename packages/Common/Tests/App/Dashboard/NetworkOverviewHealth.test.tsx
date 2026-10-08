@@ -461,7 +461,7 @@ describe("the ways to bring more in", () => {
       ),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Start a Scan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start Scan" }));
 
     expect(navigatedTo()).toEqual([DISCOVER_DEVICES_PATH]);
   });
