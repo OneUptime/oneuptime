@@ -67,6 +67,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
+import { stubRowsCallerMayWrite } from "../../Server/TestingUtils/RowsCallerMayWrite";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
@@ -2050,13 +2051,21 @@ describe("the Runner pages and RunnerService agree on agent rows", () => {
   }
 
   function serveRunnerRow(row: RowCase["row"]): void {
-    jest.spyOn(RunnerService, "findBy").mockResolvedValue([
-      {
-        id: RUNNER_ROW_ID,
-        _id: RUNNER_ROW_ID.toString(),
-        ...row,
-      } as unknown as Runner,
-    ]);
+    const runner: Runner = {
+      id: RUNNER_ROW_ID,
+      _id: RUNNER_ROW_ID.toString(),
+      ...row,
+    } as unknown as Runner;
+
+    /*
+     * The hook judges the rows the update writes: the editor may write this
+     * one (the update path's read, which a direct hook call skips), and the
+     * hook's own read of it answers with it.
+     */
+    stubRowsCallerMayWrite(RunnerService, () => {
+      return [runner];
+    });
+    jest.spyOn(RunnerService, "findBy").mockResolvedValue([runner]);
   }
 
   async function serverRefusal(
