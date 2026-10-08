@@ -68,10 +68,19 @@ function onCallGroup(): NavGroup {
 
 describe("Schedule Timeline docs page", () => {
   describe("navigation", () => {
-    it("is linked from the On Call group, first", () => {
+    it("is linked from the On Call group, right after the schedules it draws", () => {
       const links: Array<NavLink> = onCallGroup().links;
+      const index: number = links.findIndex((link: NavLink): boolean => {
+        return link.url === PAGE_URL;
+      });
 
-      expect(links[0]).toEqual({ title: PAGE_TITLE, url: PAGE_URL });
+      expect(links[index]).toEqual({ title: PAGE_TITLE, url: PAGE_URL });
+      expect(links[index - 1]?.title).toBe("On-Call Schedules");
+      expect(
+        links.filter((link: NavLink): boolean => {
+          return link.url === PAGE_URL;
+        }),
+      ).toHaveLength(1);
     });
 
     it("has a nav title in every docs language", () => {

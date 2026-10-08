@@ -4,6 +4,13 @@ The Database Health Monitor connects to PostgreSQL, MySQL, or Microsoft SQL Serv
 
 You write no SQL. The probe runs a fixed set of read-only catalog queries chosen by engine, and reports a small set of named numbers.
 
+:::cards
+- [Create a monitoring user](#create-a-monitoring-user): The grants each engine needs. This is the step that matters most.
+- [Create the monitor](#create-a-database-health-monitor): Point a probe at the database and pick what to collect.
+- [Metrics collected](#metrics-collected): Every series, with the engines that report it.
+- [Set up criteria](#setting-up-criteria): Alert on connections, blocking, lag and wraparound.
+:::
+
 ## Database Health or SQL Query?
 
 The two database monitor types answer different questions and are meant to be used together.
@@ -20,9 +27,11 @@ If you want to alert on a business condition, use the SQL Query Monitor. If you 
 
 ## Supported databases
 
-- **PostgreSQL** (default port `5432`)
-- **MySQL** (default port `3306`)
-- **Microsoft SQL Server** (default port `1433`)
+| Database | Default port |
+|---|---|
+| **PostgreSQL** | `5432` |
+| **MySQL** | `3306` |
+| **Microsoft SQL Server** | `1433` |
 
 Azure SQL Database and Azure SQL Managed Instance connect as **Microsoft SQL Server**. They take different grants — see [Create a monitoring user](#create-a-monitoring-user).
 
@@ -36,12 +45,29 @@ On every check, a probe:
 
 1. Connects to the database with the credentials you configure.
 2. Runs one lightweight probe query. **This is the only statement whose failure can take the monitor offline.**
-3. Runs the catalog queries for each enabled [metric group](#metric-groups), each one inside a read-only transaction and under a statement timeout.
+3. Runs the catalog queries for each enabled [metric group](#metric-groups), one at a time, each under a statement timeout.
 4. Reports the numbers it collected, plus a note for each group it could not collect and why.
+
+```mermaid title="One check, and the only step that can take the monitor offline"
+flowchart TB
+    connect["Connect to the database"] --> probe{"Probe query OK?"}
+    probe -->|No| offline["Monitor offline"]
+    probe -->|Yes| groups["Run each metric group"]
+    groups --> group{"Group collected?"}
+    group -->|Yes| metrics["Metrics reported"]
+    group -->|No| issue["Metrics absent, issue noted"]
+    metrics --> criteria["Criteria evaluated"]
+    issue --> criteria
+```
 
 Only named numeric aggregates are sent to OneUptime. No query text, no rows from your tables, and no schema names leave your network — the queries read the engine's own statistics views (`pg_stat_activity`, `performance_schema.global_status`, `sys.dm_exec_sessions` and friends), never your data.
 
 Because the check runs from a probe, the database only needs to be reachable from the probe. Put a [custom probe](/docs/probe/custom-probe) inside your network and OneUptime never needs a route to the database at all.
+
+## Before you begin
+
+- A **probe** with network access to the database host and port. Use a OneUptime-hosted probe if the database is reachable from the internet, or a [custom probe](/docs/probe/custom-probe) inside your network if it is not.
+- A **monitoring user**, created as described in the next section, and its connection details.
 
 ## Create a monitoring user
 
@@ -58,7 +84,8 @@ GRANT pg_monitor TO oneuptime_health;
 
 `pg_monitor` is a built-in role (PostgreSQL 10 and later) that grants read access to the statistics and monitoring views. It grants no access to your tables.
 
-> **Why `pg_monitor` is not optional on PostgreSQL.** Without it, `pg_stat_activity` does not fail — it succeeds and returns only the monitoring session's own row. Connection counts would read `1`, blocked sessions `0`, and replication lag `0`, forever, on a server that is actually on fire. So the probe checks `pg_has_role(current_user, 'pg_monitor', 'member')` **before** it runs those queries, and when the answer is no it reports the Connections, Activity, Locks, Replication and Maintenance groups as unavailable with the `GRANT` you need. Reporting nothing is the honest answer; reporting `1` is not.
+> [!IMPORTANT]
+> **Why `pg_monitor` is not optional on PostgreSQL.** Without it, `pg_stat_activity` does not fail — it succeeds and returns only the monitoring session's own row. Connection counts would read `1`, blocked sessions `0`, and replication lag `0`, forever, on a server that is actually on fire. So the probe checks **before** it runs those queries that the login is a member of `pg_monitor` (or `pg_read_all_stats`), or a superuser. When it is none of these, the probe reports the Connections, Activity and Locks groups as unavailable with the `GRANT` you need. Reporting nothing is the honest answer; reporting `1` is not.
 
 On a managed service where `pg_monitor` is unavailable, `pg_read_all_stats` covers the same views. On Amazon RDS, `GRANT rds_superuser` is not needed — `GRANT pg_monitor TO oneuptime_health;` works as a member of `rds_superuser`.
 
@@ -93,6 +120,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 
 Run from any other database, `GRANT VIEW SERVER STATE` fails with Msg 4621, "Permissions at the server scope can only be granted when the current database is master".
 
+> [!WARNING]
 > **Read access to your tables is not enough.** A login that can only read data — `db_datareader`, or any other "read access" role — can connect and gets database size, and nothing else. SQL Server refuses the views the monitor reads with `The user does not have permission to perform this action.` (Msg 297). The message before it names what was refused: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` on 2022) for the server views, including transaction log space and tempdb free space, or Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` on 2022) for the replication view. The monitor stays online, reports the Connections, Activity, Throughput, Locks, Storage and Replication groups as missing a grant, and shows the `GRANT` above next to them. `VIEW SERVER STATE` covers all of them.
 >
 > Two views do not refuse: without the grant, `sys.dm_exec_sessions` and `sys.dm_exec_requests` quietly show only the monitor's own session. The monitor never reads them on their own — always alongside a view that does refuse — so a missing grant can never be recorded as "1 connection".
@@ -127,39 +155,66 @@ The probe recognises Azure SQL Database by `SERVERPROPERTY('EngineEdition')` rat
 - **Connections are per database.** With `VIEW DATABASE STATE`, Azure SQL Database shows only the monitored database's sessions, so Connections counts that database rather than the logical server. Monitor each database you care about.
 - **TempDB Free Space in an elastic pool is the pool's.** The databases in a pool share one tempdb.
 
-## Prerequisites
+## Create a Database Health monitor
 
-- A **probe** with network access to the database host and port. Use a OneUptime-hosted probe if the database is reachable from the internet, or a [custom probe](/docs/probe/custom-probe) inside your network if it is not.
-- A **monitoring user** created as above, and its connection details.
+:::steps
+### Start a new monitor
+
+Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, click **More monitor types** and pick **Database Health** under **Database Monitoring**, or type `health` in the search box. Enter a **Name**, then click **Next**.
+
+### Enter the connection details
+
+Pick the **Database Type**, then fill in the host, port, database name and the monitoring user's credentials. Reference the password as a [Monitor Secret](#using-a-monitor-secret-for-the-password) rather than typing it. Every field is described in [Configuration](#configuration).
+
+### Choose what to collect
+
+Leave every group under **Metric Groups** on unless you have a reason to turn one off — see [Metric groups](#metric-groups).
+
+### Test the connection
+
+Click **Test Monitor** to run one check before you save, and read what it collected.
+
+### Set the criteria
+
+Review the criteria the monitor starts with and add your own — see [Setting up criteria](#setting-up-criteria). Then click **Next**.
+
+### Pick probes and create
+
+Select the **Probes** that can reach the database and a **Monitoring Interval**, then click **Create Monitor**.
+:::
 
 ## Configuration
 
-Create a monitor and choose **Database Health** as the monitor type, then fill in:
-
-- **Database Type** — PostgreSQL, MySQL, or Microsoft SQL Server. Choosing a type sets the default port and decides which queries run.
-- **Host** — the database host reachable from the probe (for example `db.internal`).
-- **Port** — the database port.
-- **Database Name** — the database to connect to. Database-scoped metrics (size, cache hit ratio, temp spill) are reported for this database; server-scoped metrics (connections, uptime, replication) are reported for the whole server — except on Azure SQL Database, where connections are counted for the monitored database only.
-- **Use Windows Integrated Authentication** — Microsoft SQL Server only. Authenticate with the identity of the probe process instead of a username and password. See [Windows Integrated Authentication](/docs/monitor/sql-monitor#windows-integrated-authentication) on the SQL Query Monitor page — the setup is identical.
-- **Username** — the monitoring user.
-- **Password** — the password. Reference a [Monitor Secret](/docs/monitor/monitor-secrets) with `{{monitorSecrets.name}}` rather than typing it in plain text (see [Using a Monitor Secret](#using-a-monitor-secret-for-the-password)).
-- **Use SSL/TLS** — connect over TLS. When enabled you can turn off **Verify server certificate** for a self-signed certificate.
-- **Collected Metric Groups** — which groups to run. All are on by default; see [Metric groups](#metric-groups).
+| Field | What to enter |
+|---|---|
+| **Database Type** | PostgreSQL, MySQL, or Microsoft SQL Server. Choosing a type sets the default port and decides which queries run. |
+| **Host** | The database host reachable from the probe (for example `db.internal`). |
+| **Port** | The database port. |
+| **Database Name** | The database to connect to. Database-scoped metrics (size, cache hit ratio, temp spill) are reported for this database; server-scoped metrics (connections, uptime, replication) are reported for the whole server — except on Azure SQL Database, where connections are counted for the monitored database only. |
+| **Use Windows Integrated Authentication** | Microsoft SQL Server only. Authenticate with the identity of the probe process instead of a username and password. See [Windows Integrated Authentication](/docs/monitor/sql-monitor#windows-integrated-authentication) on the SQL Query Monitor page — the setup is identical. |
+| **Username** | The monitoring user. Required unless you use Windows Integrated Authentication. |
+| **Password** | The password. Reference a [Monitor Secret](/docs/monitor/monitor-secrets) with `{{monitorSecrets.name}}` rather than typing it in plain text (see [Using a Monitor Secret](#using-a-monitor-secret-for-the-password)). |
+| **Use SSL/TLS** | Connect over TLS. When enabled you can turn off **Verify server certificate** for a self-signed certificate. |
+| **Metric Groups** | Which groups to run: Connections, Activity, Throughput, Locks and Blocking, Storage, Replication and Maintenance. All are on by default; see [Metric groups](#metric-groups). The monitor's details list them as **Collected Metric Groups**. |
 
 ### More fields
 
-- **Connection Timeout (ms)** — how long to wait to establish a connection. Default `10000`, maximum `30000`.
-- **Statement Timeout (ms)** — the cap on any single catalog query. Default `10000`, maximum `60000`. The default is deliberately tighter than the SQL Query Monitor's: these queries return in milliseconds on a healthy server, so if `pg_stat_activity` takes ten seconds the useful signal is "this server is in trouble", not a longer wait.
+| Field | Default | Maximum | What it limits |
+|---|---|---|---|
+| **Connection Timeout (ms)** | `10000` | `30000` | How long to wait to establish a connection. |
+| **Statement Timeout (ms)** | `10000` | `60000` | The cap on any single catalog query. |
 
-Collection as a whole is also bounded. If the enabled groups have not finished within the collection budget, the check returns with what it has and records every remaining group as timed out — a slow server produces a partial result, never a missing check.
+The statement timeout default is deliberately tighter than the SQL Query Monitor's: these queries return in milliseconds on a healthy server, so if `pg_stat_activity` takes ten seconds the useful signal is "this server is in trouble", not a longer wait. A value above the maximum is lowered to the maximum.
 
 ## Using a Monitor Secret for the password
 
 So the password is never stored in plain text on the monitor:
 
-1. Go to OneUptime Dashboard → Monitors → Settings → Secrets → Create Monitor Secret.
-2. Create a secret (for example `dbPassword`) and grant this monitor access to it.
-3. In the Password field, enter `{{monitorSecrets.dbPassword}}`.
+:::steps
+1. Go to **Monitors → Settings → Secrets** and create a [Monitor Secret](/docs/monitor/monitor-secrets).
+2. Name it (for example `dbPassword`) and give this monitor access to it.
+3. In the monitor's **Password** field, enter `{{monitorSecrets.dbPassword}}`.
+:::
 
 The secret is resolved server-side before the configuration is handed to a probe. The Host, Username, and Database Name fields accept the same reference. Credentials are never written to logs, monitor feeds, or alert templates.
 
@@ -179,7 +234,7 @@ A group is one unit you switch on or off, and the unit a missing grant is report
 
 On Azure SQL Database, read `VIEW DATABASE STATE` wherever this table says `VIEW SERVER STATE` — or `##MS_ServerStateReader##` on Basic, S0, S1 and elastic pools. See [Azure SQL Database](#azure-sql-database).
 
-Turning a group off is silent: no metrics, no collection issue, no alert. It is the right move in two cases.
+Turning a group off is silent: no metrics, no collection issue, no alert. It is the right move in two cases:
 
 - **You cannot get the grant.** Turning the group off stops the collection issue from recurring on every check.
 - **The queries are too expensive.** On MySQL, **Storage** is the usual candidate: database size comes from summing `information_schema.TABLES`, which on a schema with tens of thousands of tables is not free and runs on every check. Turn it off, or move that monitor to a five-minute interval.
@@ -190,13 +245,16 @@ Clearing every group is not a way to collect nothing — an empty list is normal
 
 **A missing grant never takes the monitor offline.** This is the single most important behaviour of this monitor type, and it is worth stating precisely.
 
-- **The connection fails**, or the probe query fails — bad credentials, refused connection, TLS failure, connect timeout. The monitor goes **offline**. `Database Is Online` is false, and whatever incident and on-call policy you attached to it fires.
-- **A group cannot run** — a missing grant, a disabled `performance_schema`, a statement timeout. The monitor **stays online**. The metrics that group could not read are **absent**, not zero. No chart line is drawn, no threshold on those series can match, and no incident can be raised from them. The check records one collection issue naming the group, the reason, and — where there is one — the exact `GRANT` to run, which is shown on the monitor's summary and counted in **Metric Groups Failed**.
-- **The engine cannot produce a metric at all** — stock MySQL has no deadlock counter; SQL Server leaves its connection ceiling unlimited by default so a "used percent" would be meaningless; PostgreSQL only populates I/O timing when `track_io_timing` is on. The metric is simply absent. This is **not** a collection issue, does not count toward Metric Groups Failed, and is not something to fix. See the Engines column in [Metrics collected](#metrics-collected).
+| What fails | Monitor status | What you see |
+|---|---|---|
+| **The connection**, or the probe query — bad credentials, refused connection, TLS failure, connect timeout | **Offline** | `Database Is Online` is false, and whatever incident and on-call policy you attached to it fires. |
+| **A group** — a missing grant, a disabled `performance_schema`, a statement timeout | **Stays online** | The metrics that group could not read are **absent**, not zero. No chart line is drawn, no threshold on those series can match, and no incident can be raised from them. The check records one collection issue naming the group, the reason, and — where there is one — the exact `GRANT` to run, which is shown on the monitor's summary and counted in **Metric Groups Failed**. |
+| **The engine cannot produce a metric at all** — stock MySQL has no deadlock counter; SQL Server leaves its connection ceiling unlimited by default so a "used percent" would be meaningless | **Stays online** | The metric is simply absent. This is **not** a collection issue, does not count toward Metric Groups Failed, and is not something to fix. See the Engines column in [Metrics collected](#metrics-collected). |
 
 Absent always means absent. A value that was not measured is never reported as `0`, because a chart of fabricated zeroes is worse than a gap — you can see a gap.
 
-To alert on lost visibility, use `Database Collection Error`, or a threshold on **Metric Groups Failed**. Make both of them alerts rather than incidents: a revoked grant is a ticket, not a page.
+> [!TIP]
+> To alert on lost visibility, use `Database Collection Error`, or a threshold on **Metric Groups Failed**. Make both of them alerts rather than incidents: a revoked grant is a ticket, not a page.
 
 ### "The user does not have permission to perform this action"
 
@@ -264,7 +322,7 @@ Stock MySQL exposes no deadlock counter of any kind, which is why Deadlocks is P
 | **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
 | **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
 
-PostgreSQL only fills in I/O read and write time when `track_io_timing` is on. It is off by default, so those two series are commonly absent on a fully-granted PostgreSQL server. That is a server setting, not a permissions problem.
+PostgreSQL only measures I/O read and write time when `track_io_timing` is on. It is off by default, and then PostgreSQL reports both as `0` — so on PostgreSQL a flat zero in those two series usually means "not measured", not "fast". That is a server setting, not a permissions problem.
 
 ### Storage
 
@@ -281,7 +339,7 @@ PostgreSQL only fills in I/O read and write time when `track_io_timing` is on. I
 | Metric | Series | Group | Engines |
 |---|---|---|---|
 | **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL, SQL Server |
+| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
 | **Replication Lag (Bytes)** (bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
 | **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
 | **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
@@ -300,24 +358,29 @@ Lag in seconds reads as zero on an idle primary even when a replica is far behin
 | **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
 | **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
 
-**Transaction ID Used** deserves a criterion on every PostgreSQL monitor you create. PostgreSQL refuses all writes when it reaches 100%, recovery means a single-user-mode vacuum with the database down, and almost nobody watches it. Alert well below the cliff — 80% leaves days of headroom on most workloads.
+> [!IMPORTANT]
+> **Transaction ID Used** deserves a criterion on every PostgreSQL monitor you create. PostgreSQL refuses all writes when it reaches 100%, recovery means a single-user-mode vacuum with the database down, and almost nobody watches it. Alert well below the cliff — 80% leaves days of headroom on most workloads.
 
 Counters ending in `total` are cumulative since the server started. Compare two points in time to get a rate; a single value is only meaningful against its own history, and it resets to zero when the server restarts (which **Uptime** will show you).
 
 ## Setting up criteria
 
-- **Database Is Online** — whether the database was reachable and the probe query succeeded. This is the offline criterion the monitor is created with, and it is the only check that reflects reachability.
-- **Database Metric** — pick a metric, then compare it. The metric picker offers only the metrics your selected engine can produce, so you cannot build a criterion that would sit permanently unmet (one exception: the Replication metrics are offered for Microsoft SQL Server, but are never collected on Azure SQL Database). If the metric was not collected on a check — the group failed, or the engine does not report it — the filter does not match, and does not match "false" either: it is skipped. A permissions problem cannot page anyone.
-- **Database Collection Error** — the collection issue summary for the check. Alert when it is not empty to catch lost visibility, or use Contains to watch for one specific group or one named grant.
-- **JavaScript Expression** — full control. See [JavaScript Expressions](/docs/monitor/javascript-expression).
+| Filter type | What it checks |
+|---|---|
+| **Database Is Online** | Whether the database was reachable and the probe query succeeded. This is the offline criterion the monitor is created with, and it is the only check that reflects reachability. |
+| **Database Metric** | Pick a metric, then compare it: Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, Equal To or Not Equal To. The metric picker offers only the metrics your selected engine can produce, so you cannot build a criterion that would sit permanently unmet (one exception: the Replication metrics offered for Microsoft SQL Server are never collected on Azure SQL Database). If the metric was not collected on a check — the group failed, or the engine does not report it — the filter does not match, and does not match "false" either: it is skipped. A permissions problem cannot page anyone. |
+| **Database Collection Error** | The collection issue summary for the check, one "group: message" per unavailable group. Alert when it is not empty to catch lost visibility, or use Contains to watch for one specific group. |
+| **JavaScript Expression** | Full control. See [JavaScript Expressions](/docs/monitor/javascript-expression). |
 
 Thresholds are whole numbers. Write `90`, not `90.5` — percentages and seconds are compared as integers.
+
+**Database Is Online** and **Database Metric** can be checked over time: tick **Evaluate this criteria over a period of time**, then pick how to **Evaluate** the values (for example **All Values**) and **For the last (in minutes)**. Over time, the filter's **If No Data** setting decides what a missing value means; keep it on **Ignore** so a missing grant still cannot page anyone.
 
 ### JavaScript expression variables
 
 For a Database Health monitor the expression has access to:
 
-| Variable | Type | |
+| Variable | Type | Description |
 |---|---|---|
 | `isOnline` | boolean | Whether the connection and the probe query both succeeded |
 | `engineVersion` | string | The version string the server reported (on SQL Server, the bare `ProductVersion`; the monitor summary names the platform beside it) |
@@ -330,15 +393,23 @@ For a Database Health monitor the expression has access to:
 {{isOnline}} === true && {{collectedGroups}}.length >= 5
 ```
 
+To read one metric in an expression, index the whole `metrics` object — the series names contain dots, so they cannot go inside the braces:
+
+```javascript
+{{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
+```
+
 For a threshold on a single metric, reach for **Database Metric** rather than an expression: it resolves the series for you, only offers what your engine can produce, and skips the check when the value was not collected instead of comparing against nothing.
 
 ### Example: a PostgreSQL primary
 
-- **Criteria: Offline** — `Database Is Online` is `false`.
-- **Criteria: Degraded** — `Database Metric` → Connections Used is greater than `90`, evaluated over 5 minutes with All Values so a single spike does not page.
-- **Criteria: Degraded** — `Database Metric` → Transaction ID Used is greater than `80`.
-- **Criteria: Degraded** — `Database Metric` → Blocked Sessions is greater than `0`, over 5 minutes.
-- **Criteria: Online** — `Database Is Online` is `true`.
+| Order | Criteria | Filter |
+|---|---|---|
+| 1 | **Offline** | `Database Is Online` is `false`. |
+| 2 | **Degraded** | `Database Metric` → Connections Used is greater than `90`, evaluated over 5 minutes with All Values so a single spike does not page. |
+| 3 | **Degraded** | `Database Metric` → Transaction ID Used is greater than `80`. |
+| 4 | **Degraded** | `Database Metric` → Blocked Sessions is greater than `0`, over 5 minutes. |
+| 5 | **Online** | `Database Is Online` is `true`. |
 
 Criteria are evaluated top to bottom and the first match wins, so list the alerting criteria first and the healthy one last.
 
@@ -351,4 +422,13 @@ Attach an on-call policy to the offline criterion, and leave anything derived fr
 - **One monitor per instance, not per database**, unless you specifically want per-database size and cache metrics — otherwise you multiply the server-scoped queries for no new information. Azure SQL Database is the exception: it reports connections per database, so monitor each database there.
 - **Alert on rates, not on counters.** Anything ending in `total` only climbs, so a "greater than" threshold on it fires once and never recovers. Chart it, or compare it across a window.
 - **Prefer a Monitor Secret over a plain-text password.** The credential then stays encrypted at rest and never appears on the monitor.
-- The monitor never writes. Every query is a read against a statistics view, in a read-only transaction where the engine supports one. Anything it cannot read is reported as a missing metric, never as an outage.
+- **The monitor never writes.** Every query is a read against a statistics view — on PostgreSQL inside a read-only transaction, on MySQL in a read-only session. Anything it cannot read is reported as a missing metric, never as an outage.
+
+## Next steps
+
+:::cards
+- [SQL Query Monitor](/docs/monitor/sql-monitor): Alert on your own query's result, next to the server's health.
+- [Databases](/docs/telemetry/databases): See each database's metrics, logs and callers on one page.
+- [Monitor Secrets](/docs/monitor/monitor-secrets): Keep the monitoring user's password encrypted.
+- [Custom Probe](/docs/probe/custom-probe): Reach a database inside your network.
+:::

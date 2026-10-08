@@ -67,6 +67,22 @@ const DocsNav: NavGroup[] = [
         title: "Getting Started",
         url: "/docs/introduction/getting-started",
       },
+      {
+        title: "Quickstart",
+        url: "/docs/introduction/quickstart",
+      },
+      {
+        title: "Core Concepts",
+        url: "/docs/introduction/core-concepts",
+      },
+      {
+        title: "Home Page & Shortcuts",
+        url: "/docs/introduction/home",
+      },
+      {
+        title: "Your Account",
+        url: "/docs/introduction/your-account",
+      },
     ],
   },
   {
@@ -80,6 +96,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "Monitor Templates",
         url: "/docs/monitor/monitor-templates",
+      },
+      {
+        title: "Monitor Criteria & Statuses",
+        url: "/docs/monitor/criteria-and-statuses",
+      },
+      {
+        title: "Monitor Groups",
+        url: "/docs/monitor/monitor-groups",
       },
       {
         title: "Website Monitor",
@@ -334,8 +358,34 @@ const DocsNav: NavGroup[] = [
         url: "/docs/incidents/linked-alerts",
       },
       {
+        title: "Postmortems",
+        url: "/docs/incidents/postmortems",
+      },
+      {
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
+      },
+    ],
+  },
+  {
+    title: "Alerts",
+    section: "Incident Response",
+    links: [
+      {
+        title: "Alerts Overview",
+        url: "/docs/alerts/index",
+      },
+      {
+        title: "Alert States & Severities",
+        url: "/docs/alerts/states-and-severities",
+      },
+      {
+        title: "Alert Episodes & Grouping Rules",
+        url: "/docs/alerts/episodes",
+      },
+      {
+        title: "Alert Rules & Settings",
+        url: "/docs/alerts/settings",
       },
     ],
   },
@@ -344,8 +394,12 @@ const DocsNav: NavGroup[] = [
     section: "Incident Response",
     links: [
       {
-        title: "Schedule Timeline",
-        url: "/docs/on-call/schedule-timeline",
+        title: "On-Call Overview",
+        url: "/docs/on-call/index",
+      },
+      {
+        title: "On-Call Policies",
+        url: "/docs/on-call/policies",
       },
       {
         title: "Escalation Rules",
@@ -354,6 +408,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "On-Call Schedules",
         url: "/docs/on-call/schedules",
+      },
+      {
+        title: "Schedule Timeline",
+        url: "/docs/on-call/schedule-timeline",
+      },
+      {
+        title: "User Overrides",
+        url: "/docs/on-call/user-overrides",
       },
       {
         title: "Calendar Feeds",
@@ -366,6 +428,32 @@ const DocsNav: NavGroup[] = [
       {
         title: "Phone Number Whitelist",
         url: "/docs/on-call/phone-number-whitelist",
+      },
+      {
+        title: "Readiness & Reports",
+        url: "/docs/on-call/readiness",
+      },
+    ],
+  },
+  {
+    title: "Notifications",
+    section: "Incident Response",
+    links: [
+      {
+        title: "How OneUptime Reaches You",
+        url: "/docs/notifications/index",
+      },
+      {
+        title: "Notification Methods",
+        url: "/docs/notifications/notification-methods",
+      },
+      {
+        title: "Personal On-Call Rules",
+        url: "/docs/notifications/on-call-rules",
+      },
+      {
+        title: "Notification Settings",
+        url: "/docs/notifications/notification-settings",
       },
     ],
   },
@@ -400,6 +488,32 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Scheduled Maintenance",
+    section: "Incident Response",
+    links: [
+      {
+        title: "Scheduled Maintenance Overview",
+        url: "/docs/scheduled-maintenance/index",
+      },
+      {
+        title: "Creating Maintenance Events",
+        url: "/docs/scheduled-maintenance/creating-events",
+      },
+      {
+        title: "Maintenance States",
+        url: "/docs/scheduled-maintenance/states",
+      },
+      {
+        title: "Templates & Recurring Events",
+        url: "/docs/scheduled-maintenance/templates",
+      },
+      {
+        title: "Maintenance Rules & Settings",
+        url: "/docs/scheduled-maintenance/settings",
+      },
+    ],
+  },
+  {
     title: "Workspace Connections",
     section: "Incident Response",
     links: [
@@ -426,6 +540,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/open-telemetry",
       },
       {
+        title: "Ingestion Keys",
+        url: "/docs/telemetry/ingestion-keys",
+      },
+      {
+        title: "Data Retention",
+        url: "/docs/telemetry/data-retention",
+      },
+      {
         title: "Search Syntax",
         url: "/docs/telemetry/search-syntax",
       },
@@ -434,8 +556,36 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/charts-and-time-ranges",
       },
       {
+        title: "Service Catalog",
+        url: "/docs/telemetry/services",
+      },
+      {
+        title: "Logs Explorer",
+        url: "/docs/telemetry/logs-explorer",
+      },
+      {
+        title: "Traces Explorer",
+        url: "/docs/telemetry/traces-explorer",
+      },
+      {
+        title: "Metrics Explorer",
+        url: "/docs/telemetry/metrics-explorer",
+      },
+      {
+        title: "Exception Tracking",
+        url: "/docs/telemetry/exceptions",
+      },
+      {
+        title: "Topology",
+        url: "/docs/telemetry/topology",
+      },
+      {
         title: "Log Pipelines",
         url: "/docs/telemetry/log-pipelines",
+      },
+      {
+        title: "Drop Filters & Scrub Rules",
+        url: "/docs/telemetry/drop-filters-and-scrub-rules",
       },
       {
         title: "Continuous Profiling",
@@ -1035,6 +1185,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/permissions/index",
       },
       {
+        title: "Inviting People",
+        url: "/docs/permissions/inviting-people",
+      },
+      {
         title: "Permission Reference",
         url: "/docs/permissions/reference",
       },
@@ -1062,6 +1216,18 @@ const DocsNav: NavGroup[] = [
     title: "Configuration",
     section: "Administration",
     links: [
+      {
+        title: "Project Settings",
+        url: "/docs/configuration/project-settings",
+      },
+      {
+        title: "Billing & Usage",
+        url: "/docs/configuration/billing",
+      },
+      {
+        title: "Audit Logs",
+        url: "/docs/configuration/audit-logs",
+      },
       {
         title: "IP Addresses",
         url: "/docs/configuration/ip-addresses",

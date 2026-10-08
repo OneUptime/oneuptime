@@ -172,13 +172,14 @@ function onCallGroup(): NavGroup {
 
 describe("the On-Call Schedules docs page", () => {
   describe("in the nav", () => {
-    it("is linked from the On Call group, after the timeline and the escalation rules", () => {
+    it("is linked from the On Call group, right after the escalation rules", () => {
       const links: Array<NavLink> = onCallGroup().links;
 
-      // Both keep their places (their own pages pin them).
-      expect(links[0]?.title).toBe("Schedule Timeline");
-      expect(links[1]?.title).toBe("Escalation Rules");
-      expect(links[2]).toEqual({ title: PAGE_TITLE, url: PAGE_URL });
+      // The overview, the policies and their escalation rules come first.
+      expect(links[0]?.title).toBe("On-Call Overview");
+      expect(links[1]?.title).toBe("On-Call Policies");
+      expect(links[2]?.title).toBe("Escalation Rules");
+      expect(links[3]).toEqual({ title: PAGE_TITLE, url: PAGE_URL });
       expect(
         links.filter((link: NavLink): boolean => {
           return link.url === PAGE_URL;

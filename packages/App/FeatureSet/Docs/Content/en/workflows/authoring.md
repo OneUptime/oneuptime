@@ -1,6 +1,8 @@
 # Authoring a Workflow
 
-To create a workflow, open **Workflows** and click **Create Workflow**. The **Create a workflow** dialog asks how you want to start, then for a name. A template that needs settings of its own, such as a Slack webhook URL, asks for them in one more step.
+You build a workflow in its **Builder**: a canvas where you add blocks, connect them and fill in their settings. This page walks through creating a workflow, [adding blocks](#add-blocks), [connecting](#connecting-blocks) and [configuring](#configuring-a-block) them, [passing values between them](#using-values-from-earlier-blocks), and [turning the workflow on](#turning-it-on).
+
+To create a workflow, open **Workflows** and click **Create Workflow**. The **Create a workflow** dialog asks how you want to start, then for a name. A template that needs settings of its own, such as a Slack webhook URL, asks for them in one more step and saves them as workflow variables, so you can change them later without editing the workflow.
 
 Choose how to begin:
 
@@ -15,27 +17,31 @@ Workflows are created switched off, so nothing runs until you turn them on. A ne
 
 A workflow from scratch opens with a single dashed block reading **Choose what starts this workflow**. That block is the starting point — click it to pick a trigger. A workflow created from a template opens with its blocks already in place.
 
-Every workflow has exactly one **trigger** at the top. Everything else is a **component** that does something. Adding a second trigger replaces the first, and deleting the last one puts the dashed placeholder back.
+Every workflow has exactly one **trigger** at the top. Everything else is a **component** that does something. To change the trigger, delete it: the dashed placeholder comes back in its place, and clicking it lets you pick another. Deleting a block deletes its lines too, so connect the new trigger to the first block again.
 
-Adding blocks:
+Changes save automatically. A pill in the toolbar tracks it: **Saving…** while the change is in flight, then **Saved**, or **Could not save** if it didn't work. The canvas has no Save button and no separate publish step.
 
-- **The trigger** — click the dashed placeholder block. A panel titled **Add Trigger** opens.
-- **Everything else** — click **Add Component** in the toolbar above the canvas. The same panel opens, titled **Add Component**.
+## Add blocks
+
+| To add          | Click                                              | Panel that opens  |
+| --------------- | -------------------------------------------------- | ----------------- |
+| The trigger     | The dashed placeholder block                       | **Add Trigger**   |
+| Any other block | **Add Component**, in the toolbar above the canvas | **Add Component** |
 
 Both panels open on the blocks most workflows use, under **Popular**, followed by the other built-in blocks. Under **OneUptime resources**, click a resource such as **Incident** to see what you can do with it; **Browse all resources** lists every one. Or search: type a few words, such as `create incident`, and the closest match comes first. Press `/` to jump to the search box, the arrow keys to move through the results, and **Enter** to add the highlighted block. Clicking a block adds it.
 
-A new block lands below the lowest block on the canvas, and a new trigger takes the old one's place at the top. The new block is selected, and if it landed out of view, the canvas scrolls just far enough to show it. Its settings don't open by themselves: click the block when you're ready to set it up. Until its required settings are filled in, it says **Click to set up**. Drag blocks wherever you like; the canvas snaps to a grid as you go. Block positions are saved, so the next person sees the same arrangement you left behind.
+A new block lands below the lowest block on the canvas, and a new trigger takes the dashed block's place at the top. The new block is selected, and if it landed out of view, the canvas scrolls just far enough to show it. Its settings don't open by themselves: click the block when you're ready to set it up. Until its required settings are filled in, it says **Click to set up**.
 
-Changes save automatically. A pill in the toolbar tracks it: **Saving…** while the change is in flight, then **Saved**, or **Could not save** if it didn't work. There is no Save button and no separate publish step.
+Drag blocks wherever you like; the canvas snaps to a grid as you go. Block positions are saved, so the next person sees the same arrangement you left behind.
 
 ## What's on a block
 
-| Field                         | What it does                                                                                                                                                                                                                                    |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Identifier** (under **ID**) | The short id shown on the block, like `log-1`. This is how other blocks refer to this one, so renaming it breaks every `{{local.components.…}}` reference pointing at it. The block's heading is the component's own name and can't be changed. |
+| Field                         | What it does                                                                                                                                                                                                                                                                                       |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Identifier** (under **ID**) | The short ID shown on the block, like `log-1`. This is how other blocks refer to this one, so renaming it breaks every `{{local.components.…}}` reference pointing at it. The block's heading is the component's own name and can't be changed.                                                  |
 | **Settings**                  | What the block needs to do its job — a URL, a Slack channel, a message body. Optional fields are labelled **(Optional)**; everything else is required. An on/off switch carries neither, because it always holds a value. Less-used settings are folded under **More fields**, whose header names them and shows the ones that are set. |
-| **Input**                     | The dot on the top edge, where lines come in from earlier blocks. Triggers don't have one — nothing runs before them.                                                                                       |
-| **Outputs**                   | The dots along the bottom edge, labelled just above them, where lines go out to the next blocks. Many blocks have separate **Success** and **Error** outputs so you can handle both cases.                  |
+| **Input**                     | The dot on the top edge, where lines come in from earlier blocks. Triggers don't have one — nothing runs before them.                                                                                                                                                                              |
+| **Outputs**                   | The dots along the bottom edge, labelled just above them, where lines go out to the next blocks. Many blocks have separate **Success** and **Error** outputs so you can handle both cases.                                                                                                         |
 
 ## Connecting blocks
 
@@ -45,11 +51,32 @@ Drag from a dot on the bottom of one block down to the dot on the top of the nex
 - If you connect from **Error**, the next block only runs when the earlier one failed.
 - If you don't connect an output, that path just stops.
 
-You can connect one output to several blocks. All of them run — but one after another, in a single queue, not in parallel. Don't rely on the order between branches, and don't count on them overlapping in time. Each block runs at most once per run, so a loop back to an earlier block won't run it twice.
+```mermaid title="Only the output a block takes leads anywhere"
+flowchart TB
+    hook["Webhook"] -->|"Out"| check{"If / Else"}
+    check -->|"Yes"| post["API Post (JSON)"]
+    check -->|"No"| ends(["Nothing connected, so the run ends"])
+    post -->|"Success"| slack["Send Message to Slack"]
+    post -->|"Error"| log["Log"]
+```
+
+You can connect one output to several blocks. All of them run — but one after another, in a single queue, not in parallel. Don't rely on the order between branches, and don't count on them overlapping in time.
+
+Each block runs at most once per run. A line that leads back to a block that has already run stops the run with an error, so a workflow can't loop.
 
 ## Configuring a block
 
-Click a block to open its settings in a dialog, or move to it with **Tab** and press **Enter**. Each setting has the right kind of input. Anything you write in words — a message, a prompt, a value to log — gets a box that grows as you type, and **Enter** starts a new line. Short values such as a URL, an ID or a subject line stay on one line. Code and HTML get a code editor, JSON a JSON editor, and on/off settings a switch with its name beside it: click the switch or its name to turn it on or off. Fill it in and click **Save**.
+Click a block to open its settings in a dialog, or move to it with **Tab** and press **Enter**. Fill in the settings and click **Save**.
+
+Each setting has the input its value needs:
+
+| The setting holds                           | You get                                                                     |
+| ------------------------------------------- | --------------------------------------------------------------------------- |
+| Words: a message, a prompt, a value to log  | A box that grows as you type. **Enter** starts a new line.                  |
+| A short value: a URL, an ID, a subject line | A single line.                                                              |
+| Code or HTML                                | A code editor.                                                              |
+| JSON                                        | A JSON editor.                                                              |
+| On or off                                   | A switch with its name beside it. Click the switch or its name to flip it. |
 
 The dialog opens on what you most likely came for. For a **Webhook** trigger that is its URL, with a **Copy URL** button, the methods it accepts and an example request. For a **Manual** trigger it is how the workflow gets started. Every other block opens on its settings. A block with no settings has no **Settings** section at all.
 
@@ -83,22 +110,35 @@ A chip turns amber when what it reads isn't there: a block that was renamed or d
 
 The Builder checks the whole graph every time you change it, and reports what it finds in a pill in the toolbar. Click the pill to open **Problems with this workflow**, which lists each issue and jumps you to the block responsible. On the canvas, a block whose required settings are still empty says **Click to set up**, and a block with any other problem carries a badge in its corner: red for an error, amber for a warning. Hover the badge to read what's wrong.
 
-It catches the mistakes that are otherwise invisible until a run goes wrong — no trigger, two blocks sharing an id, a dot inside an id, a block nothing connects to, a required setting left empty, malformed JSON, spaces inside `{{ }}`, and references to a step or return value that doesn't exist.
+It catches the mistakes that are otherwise invisible until a run goes wrong:
 
-One thing it can't check: whether a variable name exists. A block's settings can — a reference to a variable that doesn't exist shows there as an amber chip. Anywhere else, a renamed variable only shows up in the run log.
+- a workflow with no trigger;
+- two blocks sharing an ID, or an ID with a dot in it;
+- a block nothing connects to;
+- a required setting left empty;
+- malformed JSON;
+- spaces inside `{{ }}`;
+- references to a step or a return value that doesn't exist.
+
+One thing it can't check: whether a variable name exists. A block's settings can — a reference to a variable that doesn't exist shows there as an amber chip. Anywhere else, a renamed variable only shows up in the run's log.
 
 ## Your first workflow
 
-The quickest way to feel out the canvas:
+The quickest way to feel out the canvas is a two-block workflow you start by hand:
 
+:::steps
 1. Click the dashed placeholder block, then click **Manual** in the **Add Trigger** panel.
 2. Click **Add Component**, then click **Log** under **Popular**. The new block lands below the trigger. Connect the trigger's **Execute** dot down to the Log block's input dot.
-3. Click the Log block, which says **Click to set up**, and type `Hello from ` in its **Value**. Click **{ }**, click the arrow beside **JSON** under **Manual**, type `name` and click **Insert**. The setting shows **Manual › JSON › name**, and saves `{{local.components.manual-1.returnValues.value.name}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block.
+3. Click the Log block, which says **Click to set up**, and type `Hello from ` in its **Value**. Click **{ }**, then click **JSON** under **Manual**. The setting shows **Manual › JSON**, and saves `{{local.components.manual-1.returnValues.value}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block. Click **Save**.
 4. Switch **Enabled** on, at the top of the Builder. A disabled workflow can't be run at all, not even by hand; if you skip this, **Run Workflow** asks to turn it on first.
 5. Back on the **Builder**, click **Run Workflow**, put `{ "name": "Ada" }` in the **JSON** field, click **Run Workflow Manually**, and confirm with **Run**.
-6. A **Workflow Run** panel opens by itself and follows the run. The log shows `Value:` followed by `Hello from Ada`.
+6. A **Workflow Run** panel opens by itself and follows the run. The log shows `Value:` followed by `Hello from { "name": "Ada" }`.
+:::
 
 That cycle — add, connect, configure, run, read the log — is how you'll build every workflow.
+
+> [!TIP]
+> JSON typed into **Run Workflow** reaches the Manual trigger as the text you typed. To read one field of it, such as `name`, add a **Text to JSON** block, put the trigger's **JSON** in its **Text**, and read the field from that block's **JSON**: `{{local.components.text-to-json-1.returnValues.json.name}}`.
 
 ## Turning it on
 
@@ -106,9 +146,16 @@ New workflows start disabled, and so does any workflow you duplicate or import. 
 
 The **Enabled** switch is at the top of the **Builder**, next to **Add Component** and **Run Workflow**. It is also on the workflow's **Overview** page: click **Edit Workflow** on the **Workflow Details** card, which shows the current state as a green **Enabled** or red **Disabled** pill. Only people who can edit the workflow can turn it on or off; anyone else sees the switch greyed out.
 
-A disabled workflow can't run at all: its trigger is ignored, and so are **Run Workflow** and **Run just this step**. Run it, or one of its blocks, while it's off and the Builder asks **Turn on this workflow?** instead. **Turn on and run** (or **Turn on and run step**) turns the workflow on and then runs what you asked for, with the values you gave. So the order is: build it, test it with **Run Workflow**, read the run log, and switch **Enabled** back off if you're not ready for its trigger to fire. To test a single block without running the whole thing, use **Run just this step** in that block's settings.
+A disabled workflow can't run at all, however it is started:
 
-Anything else that starts a disabled workflow is turned away with the same advice. A call to its webhook URL gets HTTP 400 and "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again." An **Execute Workflow** block that calls it takes its **Error** path, and the error names the workflow it called.
+| Started by                                          | While the workflow is off                                                                                                                                                   |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Its trigger: a schedule, a OneUptime event or an email | Ignored.                                                                                                                                                                 |
+| **Run Workflow** or **Run just this step**          | The Builder asks **Turn on this workflow?** instead. **Turn on and run** (or **Turn on and run step**) turns the workflow on and then runs what you asked for, with the values you gave. |
+| A call to its webhook URL                           | Refused with HTTP 400 and "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                      |
+| Another workflow's **Execute Workflow** block       | That block takes its **Error** path, and the error names the workflow it called.                                                                                            |
+
+So the order is: build it, test it with **Run Workflow**, read the run's log, and switch **Enabled** back off if you're not ready for its trigger to fire. To test a single block without running the whole thing, use **Run just this step** in that block's settings.
 
 To pause a workflow without deleting it, switch **Enabled** off. No new runs start. A run that is mid-execution finishes, but one parked on a **Sleep** block is cancelled when it wakes and recorded as an error.
 
@@ -120,9 +167,11 @@ To pause a workflow without deleting it, switch **Enabled** off. No new runs sta
 - There's no way to duplicate a single block. **Duplicate Workflow** on the workflow's **Settings** page copies the whole thing. The copy's name is filled in, numbered past the project's workflows ("Nightly Sync" is copied as "Nightly Sync 2"), and the copy opens, disabled.
 - Stack blocks top to bottom so they read in the direction they run — inputs are on the top edge, outputs on the bottom, so the flow naturally goes downward.
 
-## Where to read next
+## Next steps
 
-- [Triggers](/docs/workflows/triggers) — the four ways a workflow can start.
-- [Components](/docs/workflows/components) — every block you can add.
-- [Variables](/docs/workflows/variables) — moving data between blocks.
-- [Runs](/docs/workflows/runs-and-logs) — checking what happened.
+:::cards
+- [Triggers](/docs/workflows/triggers): The five ways a workflow can start.
+- [Components](/docs/workflows/components): Every block you can add, with its settings and outputs.
+- [Variables](/docs/workflows/variables): Move data between blocks, and keep secrets out of them.
+- [Runs](/docs/workflows/runs-and-logs): Check what each run did, step by step.
+:::

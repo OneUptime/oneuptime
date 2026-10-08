@@ -1,0 +1,282 @@
+{
+ "monitor-core-a": [
+  "monitor/create-monitor",
+  "monitor/monitor-templates",
+  "monitor/website-monitor",
+  "monitor/api-monitor",
+  "monitor/ping-monitor",
+  "monitor/ip-monitor",
+  "monitor/port-monitor",
+  "monitor/dns-monitor",
+  "monitor/dnssec-monitor",
+  "monitor/ssl-certificate-monitor",
+  "monitor/domain-monitor"
+ ],
+ "monitor-core-b": [
+  "monitor/custom-code-monitor",
+  "monitor/sql-monitor",
+  "monitor/database-health-monitor",
+  "monitor/synthetic-monitor",
+  "monitor/incoming-request-monitor",
+  "monitor/incoming-email-monitor",
+  "monitor/external-status-page-monitor",
+  "monitor/manual-monitor",
+  "monitor/javascript-expression",
+  "monitor/incident-alert-templating",
+  "monitor/monitor-secrets"
+ ],
+ "infra-monitors-a": [
+  "monitor/server-monitor",
+  "monitor/network-device-monitor",
+  "monitor/network-sites",
+  "monitor/network-vendor-guides",
+  "monitor/kubernetes-monitor",
+  "monitor/kubernetes-agent"
+ ],
+ "infra-monitors-b": [
+  "monitor/docker-monitor",
+  "monitor/host-monitor",
+  "monitor/podman-monitor",
+  "monitor/proxmox-monitor",
+  "monitor/docker-swarm-monitor",
+  "monitor/ceph-monitor",
+  "monitor/storage-array-monitor",
+  "monitor/iot-device-monitor",
+  "monitor/vmware-monitor"
+ ],
+ "telemetry-monitors-slo-probe": [
+  "monitor/logs-monitor",
+  "monitor/metrics-monitor",
+  "monitor/traces-monitor",
+  "monitor/exceptions-monitor",
+  "monitor/profiles-monitor",
+  "slo/introduction",
+  "slo/monitor-rules",
+  "slo/error-budget",
+  "slo/burn-rate-alerts",
+  "slo/metrics",
+  "slo/feed-and-audit-logs",
+  "slo/label-and-owner-rules",
+  "probe/custom-probe",
+  "probe/incoming-request-ingress"
+ ],
+ "incidents": [
+  "incidents/index",
+  "incidents/declaring-incidents",
+  "incidents/states-and-severities",
+  "incidents/notes-owners-and-feed",
+  "incidents/linked-alerts",
+  "incidents/settings"
+ ],
+ "oncall-workspace": [
+  "on-call/schedule-timeline",
+  "on-call/escalation-rules",
+  "on-call/schedules",
+  "on-call/calendar-feeds",
+  "on-call/incoming-call-policy",
+  "on-call/phone-number-whitelist",
+  "workspace-connections/slack",
+  "workspace-connections/microsoft-teams",
+  "workspace-connections/video-calls"
+ ],
+ "status-pages": [
+  "status-pages/index",
+  "status-pages/resources-and-groups",
+  "status-pages/branding-and-domains",
+  "status-pages/subscribers",
+  "status-pages/one-status-page-per-audience",
+  "status-pages/public-api"
+ ],
+ "telemetry-core": [
+  "telemetry/open-telemetry",
+  "telemetry/search-syntax",
+  "telemetry/charts-and-time-ranges",
+  "telemetry/log-pipelines",
+  "telemetry/profiles",
+  "telemetry/source-maps",
+  "telemetry/serilog",
+  "telemetry/fluentbit",
+  "telemetry/fluentd",
+  "telemetry/syslog",
+  "telemetry/log-recording-rules"
+ ],
+ "agents-a": [
+  "telemetry/host-otel-collector",
+  "telemetry/kubernetes-agent",
+  "telemetry/kubernetes-cost"
+ ],
+ "agents-b": [
+  "telemetry/docker-host",
+  "telemetry/iot-devices",
+  "telemetry/podman-host",
+  "telemetry/proxmox",
+  "telemetry/ceph",
+  "telemetry/storage-arrays",
+  "telemetry/docker-swarm",
+  "telemetry/vmware"
+ ],
+ "agents-c": [
+  "telemetry/databases",
+  "telemetry/queues",
+  "telemetry/serverless-functions"
+ ],
+ "cloud": [
+  "telemetry/cloud-environments",
+  "telemetry/cloud-aws-ecs",
+  "telemetry/cloud-gcp-cloud-run",
+  "telemetry/cloud-azure-container-apps",
+  "telemetry/cloud-other-platforms",
+  "telemetry/cloud-troubleshooting",
+  "telemetry/cloud-resources"
+ ],
+ "ai-observability-security": [
+  "telemetry/ai-llm-observability",
+  "telemetry/ai-coding-assistants",
+  "telemetry/claude-code",
+  "telemetry/cursor",
+  "telemetry/openai-codex",
+  "telemetry/gemini-cli-and-copilot",
+  "telemetry/ai-gateways",
+  "telemetry/ai-agent-circuit-breaker",
+  "telemetry/security-events",
+  "telemetry/threat-intelligence"
+ ],
+ "rum": [
+  "rum/index",
+  "rum/browser-setup",
+  "rum/mobile-setup",
+  "rum/web-vitals",
+  "rum/applications",
+  "telemetry/session-replay",
+  "rum/session-replay-troubleshooting",
+  "rum/troubleshooting"
+ ],
+ "dashboards-inventory": [
+  "dashboards/index",
+  "dashboards/authoring",
+  "dashboards/widgets",
+  "dashboards/variables",
+  "dashboards/sharing",
+  "dashboards/configuration",
+  "inventory/overview",
+  "inventory/custom-fields",
+  "inventory/cmdb-sync"
+ ],
+ "runbooks-forms": [
+  "runbooks/index",
+  "runbooks/authoring",
+  "runbooks/rules",
+  "runbooks/running",
+  "runbooks/agents",
+  "runbooks/credentials",
+  "runbooks/configuration",
+  "forms/index",
+  "forms/building",
+  "forms/on-submit",
+  "forms/sharing-and-security"
+ ],
+ "workflows": [
+  "workflows/index",
+  "workflows/authoring",
+  "workflows/triggers",
+  "workflows/components",
+  "workflows/variables",
+  "workflows/runs-and-logs",
+  "workflows/configuration"
+ ],
+ "ai": [
+  "ai/ask-ai",
+  "ai/ai-sre",
+  "ai/infrastructure-ai-agents",
+  "ai/ai-agent",
+  "ai/github-app",
+  "ai/llm-provider",
+  "ai/mcp-server"
+ ],
+ "integrations-a": [
+  "integrations/index",
+  "integrations/zabbix",
+  "integrations/jira",
+  "integrations/pagerduty",
+  "integrations/opsgenie",
+  "integrations/servicenow",
+  "integrations/microsoft-dynamics-365",
+  "integrations/prometheus-alertmanager",
+  "integrations/grafana",
+  "integrations/datadog",
+  "integrations/google-secops"
+ ],
+ "integrations-b": [
+  "integrations/microsoft-sentinel",
+  "integrations/microsoft-defender-xdr",
+  "integrations/crowdstrike-falcon",
+  "integrations/splunk",
+  "integrations/elastic-security",
+  "integrations/aws-security-hub",
+  "integrations/okta",
+  "integrations/github",
+  "integrations/gitlab",
+  "integrations/discord",
+  "integrations/telegram"
+ ],
+ "api-cli": [
+  "api-reference/api-reference",
+  "cli/index",
+  "cli/authentication",
+  "cli/resource-operations",
+  "cli/output-formats",
+  "cli/scripting",
+  "cli/command-reference"
+ ],
+ "terraform": [
+  "terraform/index",
+  "terraform/quick-start",
+  "terraform/complete-guide",
+  "terraform/monitor-steps",
+  "terraform/examples",
+  "terraform/importing-resources",
+  "terraform/troubleshooting",
+  "terraform/self-hosted",
+  "terraform/registry",
+  "terraform/opentofu"
+ ],
+ "admin": [
+  "permissions/index",
+  "permissions/reference",
+  "identity/sso",
+  "identity/global-sso",
+  "identity/scim",
+  "configuration/ip-addresses",
+  "configuration/label-and-owner-rules",
+  "configuration/label-rule-import-export",
+  "configuration/run-rules-now",
+  "emails/smtp",
+  "emails/notification-rollup"
+ ],
+ "apps": [
+  "mobile-desktop-apps/index",
+  "mobile-desktop-apps/android-installation",
+  "mobile-desktop-apps/ios-installation",
+  "mobile-desktop-apps/windows-installation",
+  "mobile-desktop-apps/macos-installation",
+  "mobile-desktop-apps/linux-installation",
+  "mobile-desktop-apps/faq-troubleshooting"
+ ],
+ "installation": [
+  "installation/local-development",
+  "installation/docker-compose",
+  "installation/upgrading",
+  "installation/sizing"
+ ],
+ "self-hosted": [
+  "self-hosted/slack-integration",
+  "self-hosted/microsoft-teams-integration",
+  "self-hosted/twilio-integration",
+  "self-hosted/github-integration",
+  "self-hosted/push-notifications",
+  "self-hosted/sendgrid-inbound-email",
+  "self-hosted/private-network-access",
+  "self-hosted/architecture",
+  "self-hosted/enterprise"
+ ]
+}
