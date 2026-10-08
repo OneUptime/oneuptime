@@ -6,7 +6,15 @@ import ObjectID from "../../../Types/ObjectID";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -153,5 +161,134 @@ describe("executePolicy and an archived on-call policy", () => {
       /paged no one/,
     );
     expect(ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE).toMatch(/Unarchive/);
+  });
+});
+
+/*
+ * The same rule on every other way an execution is asked for: the log a
+ * record's Execute On-Call Policy creates - from the dashboard, the API,
+ * Slack or Microsoft Teams, made with the asker's own props - goes through
+ * the log service's create hooks. For an archived policy they write the log
+ * as the same error, and start nothing after it.
+ */
+describe("an execution log created for an archived on-call policy", () => {
+  type BeforeCreateResult = {
+    createBy: { data: OnCallDutyPolicyExecutionLog };
+    carryForward: unknown;
+  };
+
+  type Hooks = {
+    onBeforeCreate: (createBy: unknown) => Promise<BeforeCreateResult>;
+    onCreateSuccess: (
+      onCreate: unknown,
+      createdItem: OnCallDutyPolicyExecutionLog,
+    ) => Promise<OnCallDutyPolicyExecutionLog>;
+  };
+
+  const hooks: Hooks = OnCallDutyPolicyExecutionLogService as unknown as Hooks;
+
+  function requested(): OnCallDutyPolicyExecutionLog {
+    const log: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
+    log.projectId = PROJECT_ID;
+    log.onCallDutyPolicyId = POLICY_ID;
+    log.triggeredByIncidentId = INCIDENT_ID;
+    log.userNotificationEventType = UserNotificationEventType.IncidentCreated;
+    return log;
+  }
+
+  // A member's request, as the dashboard and the chat actions make it.
+  const memberProps: { userId: ObjectID; tenantId: ObjectID } = {
+    userId: new ObjectID("0c000000-0000-4000-8000-000000000004"),
+    tenantId: PROJECT_ID,
+  };
+
+  beforeEach(() => {
+    // The records the log names belong to the project (checked elsewhere).
+    jest.spyOn(ProjectReferenceCheck, "validateCreate").mockResolvedValue();
+  });
+
+  test("is written as an error that says the policy is archived", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(policy(true));
+
+    const onCreate: BeforeCreateResult = await hooks.onBeforeCreate({
+      data: requested(),
+      props: memberProps,
+    });
+
+    expect(onCreate.createBy.data.status).toBe(OnCallDutyPolicyStatus.Error);
+    expect(onCreate.createBy.data.statusMessage).toBe(
+      ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+    );
+    expect(onCreate.carryForward).toEqual({ isPolicyArchived: true });
+  });
+
+  test("reads the policy's archive flag as OneUptime, under either name of the policy", async () => {
+    const findOneById: SpyInstance<typeof OnCallDutyPolicyService.findOneById> =
+      jest
+        .spyOn(OnCallDutyPolicyService, "findOneById")
+        .mockResolvedValue(policy(true));
+
+    const named: OnCallDutyPolicyExecutionLog = requested();
+    delete named.onCallDutyPolicyId;
+    named.onCallDutyPolicy = policy(undefined);
+
+    const onCreate: BeforeCreateResult = await hooks.onBeforeCreate({
+      data: named,
+      props: memberProps,
+    });
+
+    expect(onCreate.createBy.data.status).toBe(OnCallDutyPolicyStatus.Error);
+    const lookup: { id: ObjectID; props: { isRoot?: boolean } } = findOneById
+      .mock.calls[0]![0] as unknown as {
+      id: ObjectID;
+      props: { isRoot?: boolean };
+    };
+    expect(lookup.id.toString()).toBe(POLICY_ID.toString());
+    expect(lookup.props.isRoot).toBe(true);
+  });
+
+  test("a live policy's log is scheduled, as before", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(policy(false));
+
+    const onCreate: BeforeCreateResult = await hooks.onBeforeCreate({
+      data: requested(),
+      props: memberProps,
+    });
+
+    expect(onCreate.createBy.data.status).toBe(
+      OnCallDutyPolicyStatus.Scheduled,
+    );
+    expect(onCreate.createBy.data.statusMessage).toBe("Scheduled.");
+    expect(onCreate.carryForward).toEqual({ isPolicyArchived: false });
+  });
+
+  test("starts no escalation and posts nothing after an archived policy's log is saved", async () => {
+    const policyRead: SpyInstance<typeof OnCallDutyPolicyService.findOneById> =
+      jest.spyOn(OnCallDutyPolicyService, "findOneById");
+    const update: SpyInstance<
+      typeof OnCallDutyPolicyExecutionLogService.updateOneById
+    > = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    const saved: OnCallDutyPolicyExecutionLog = requested();
+    saved.id = ObjectID.generate();
+
+    const result: OnCallDutyPolicyExecutionLog = await hooks.onCreateSuccess(
+      {
+        createBy: { data: saved, props: memberProps },
+        carryForward: { isPolicyArchived: true },
+      },
+      saved,
+    );
+
+    expect(result).toBe(saved);
+    expect(policyRead).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 });

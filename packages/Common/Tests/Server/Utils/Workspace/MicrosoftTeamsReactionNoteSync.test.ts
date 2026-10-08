@@ -64,6 +64,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
@@ -79,6 +80,12 @@ import {
 
 const projectId: ObjectID = ObjectID.generate();
 const oneUptimeUserId: ObjectID = ObjectID.generate();
+
+// The member's own props, as WorkspaceActionAuthorization.authorize builds them.
+const memberProps: DatabaseCommonInteractionProps = {
+  userId: oneUptimeUserId,
+  tenantId: projectId,
+};
 const incidentId: ObjectID = ObjectID.generate();
 
 const TEAM_ID: string = "team-graph-id";
@@ -570,7 +577,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
 
     authorizeSpy = jest
       .spyOn(WorkspaceActionAuthorization, "authorize")
-      .mockResolvedValue({ userId: oneUptimeUserId });
+      .mockResolvedValue(memberProps);
 
     saveSpy = jest
       .spyOn(WorkspaceReactionNote, "saveNote")
@@ -617,13 +624,15 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       resources: [{ service: IncidentService, id: incidentId }],
     });
 
+    // Saved with the member's own props: the note is theirs.
     expect(saveSpy).toHaveBeenCalledWith({
       resource: watchedChannel().resource,
       noteType: WorkspaceNoteType.Private,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       sourceMessageKey: `${CHANNEL_ID}:1700000000200`,
     });
+    expect(saveSpy.mock.calls[0]![0].props).toBe(memberProps);
 
     expect(replySpy).toHaveBeenCalledWith({
       projectId: projectId,

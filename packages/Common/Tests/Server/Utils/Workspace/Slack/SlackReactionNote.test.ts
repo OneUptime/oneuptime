@@ -38,6 +38,7 @@ import WorkspaceReactionNote, {
 } from "../../../../../Server/Utils/Workspace/WorkspaceReactionNote";
 import URL from "../../../../../Types/API/URL";
 import ObjectID from "../../../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
@@ -50,6 +51,12 @@ import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 const projectId: ObjectID = ObjectID.generate();
 const secondProjectId: ObjectID = ObjectID.generate();
 const oneUptimeUserId: ObjectID = ObjectID.generate();
+
+// The member's own props, as SlackActionAuthorization.authorize builds them.
+const memberProps: DatabaseCommonInteractionProps = {
+  userId: oneUptimeUserId,
+  tenantId: projectId,
+};
 const incidentId: ObjectID = ObjectID.generate();
 
 const TEAM_ID: string = "T0WORKSPACE";
@@ -121,7 +128,7 @@ beforeEach((): void => {
 
   authorizeSpy = jest
     .spyOn(SlackActionAuthorization, "authorize")
-    .mockResolvedValue({ userId: oneUptimeUserId });
+    .mockResolvedValue(memberProps);
 
   fetchSpy = jest
     .spyOn(SlackUtil, "getMessageDetailsByTimestamp")
@@ -149,13 +156,15 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
   test("a pin saves the message as a private note and confirms in the thread", async () => {
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
+    // Saved with the member's own props: the note is theirs.
     expect(saveSpy).toHaveBeenCalledWith({
       resource: incidentResource(),
       noteType: WorkspaceNoteType.Private,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       sourceMessageKey: `${CHANNEL_ID}:${MESSAGE_TS}`,
     });
+    expect(saveSpy.mock.calls[0]![0].props).toBe(memberProps);
 
     expect(threadReplySpy).toHaveBeenCalledWith({
       authToken: "xoxb-" + projectId.toString(),
@@ -412,7 +421,7 @@ describe("REGRESSION: Slack episode channels (never worked before)", () => {
     expect(addSpy).toHaveBeenCalledWith({
       incidentEpisodeId: episode.id,
       projectId: projectId,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       postedFromSlackMessageId: `${CHANNEL_ID}:${MESSAGE_TS}`,
     });
@@ -565,7 +574,7 @@ describe("SlackReactionNoteActions.getReactionDataFromPinEvent", () => {
     expect(saveSpy.mock.calls[0]![0]).toEqual({
       resource: incidentResource(),
       noteType: WorkspaceNoteType.Private,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       // Same key as a 📌 on the same message, so both together save once.
       sourceMessageKey: `${CHANNEL_ID}:${MESSAGE_TS}`,
