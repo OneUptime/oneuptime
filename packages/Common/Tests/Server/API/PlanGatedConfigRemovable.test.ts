@@ -449,6 +449,15 @@ beforeEach(() => {
       return config;
     }) as never,
   );
+  // The projects a change names are read together, by id (SsoSignInWays).
+  getJestSpyOn(ProjectService, "findBy").mockImplementation(
+    async (): Promise<Array<Project>> => {
+      const project: Project = new Project();
+      project.id = PROJECT_ID;
+      project.requireSsoForLogin = false;
+      return [project];
+    },
+  );
 
   getJestSpyOn(ProjectService, "getCurrentPlan").mockImplementation(
     async (): Promise<{
@@ -518,17 +527,23 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
   });
 
   /*
-   * What switching a provider off writes: the switch alone - and, for a
-   * project's own provider, which ends the sign-ins it gave, when it was
-   * turned off, which OneUptime writes itself
-   * (Utils/ProjectSsoProviderChanges).
+   * What switching a provider off writes: the switch alone - and, since
+   * turning any SSO provider off ends the sign-ins it gave, when it was
+   * turned off, which OneUptime writes itself (Utils/SsoSignInsEnded): a
+   * project's provider by the app's clock, a status page's provider by the
+   * database's own, worked out in the write (an SQL expression here).
    */
   const switchedOff: (provider: Subject) => Record<string, unknown> = (
     provider: Subject,
   ): Record<string, unknown> => {
-    return provider === SAML_PROVIDER || provider === OIDC_PROVIDER
-      ? { isEnabled: false, signInsEndedAt: expect.any(Date) }
-      : { isEnabled: false };
+    return {
+      isEnabled: false,
+      signInsEndedAt:
+        provider === STATUS_PAGE_SAML_PROVIDER ||
+        provider === STATUS_PAGE_OIDC_PROVIDER
+          ? expect.any(Function)
+          : expect.any(Date),
+    };
   };
 
   test("every provider can be read", async () => {

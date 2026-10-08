@@ -3,12 +3,12 @@ import Model from "../../Models/DatabaseModels/GlobalOidc";
 import ObjectID from "../../Types/ObjectID";
 import { fillOidcProviderDefaults } from "../../Types/SSO/OidcProviderDefaults";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Exception from "../../Types/Exception/Exception";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import {
-  GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderTrust,
   announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
@@ -17,6 +17,9 @@ import {
   globalSsoProviderTrustCache,
   loadTrustOnce,
 } from "../Utils/GlobalSsoAuthorization";
+import GlobalSsoProviderChanges from "../Utils/GlobalSsoProviderChanges";
+import SsoSignInsEnded from "../Utils/SsoSignInsEnded";
+import SsoProviderType from "../../Types/SSO/SsoProviderType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -25,8 +28,9 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * What the SSO-enforcement middleware needs to know about this provider:
-   * whether it is still usable at all, and whether the admin opted it into
-   * attachment-scoped access.
+   * whether it is still usable at all, whether the admin opted it into
+   * attachment-scoped access, and when it was last turned off - a sign-in
+   * it gave before then no longer counts (Utils/SsoSignInsEnded).
    *
    * Called on every authenticated request against an SSO-enforced project, so
    * the answer is cached for 60s and concurrent misses share one query.
@@ -53,28 +57,25 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           isEnabled: true,
           restrictToAttachedProjects: true,
+          signInsEndedAt: true,
         },
         props: { isRoot: true },
       });
 
       /*
        * A deleted provider and a disabled one are the same answer: no. Both
-       * are cached, so a revoked provider does not cost a query per request.
+       * are cached (loadTrustOnce), so a revoked provider does not cost a
+       * query per request.
        */
-      const trust: GlobalProviderTrust = {
+      return {
         isUsable: Boolean(provider && provider.isEnabled),
         restrictToAttachedProjects: Boolean(
           provider && provider.restrictToAttachedProjects,
         ),
+        signInsEndedAtMs: SsoSignInsEnded.toSignInsEndedAtMs(
+          provider?.signInsEndedAt,
+        ),
       };
-
-      globalSsoProviderTrustCache.set(
-        key,
-        trust,
-        GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
-      );
-
-      return trust;
     });
   }
 
@@ -95,7 +96,32 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     clearGlobalSsoAuthorizationCaches();
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Once every permission check has passed: turning the provider off, or
+   * restricting it to its attached projects, is refused when it would leave
+   * a project that requires SSO with no provider to sign in with, and holds
+   * the lock on the server's sign-in rules until it is written or fails
+   * (Utils/GlobalSsoProviderChanges). Turning it off writes when, in the
+   * same write: the sign-ins it gave end.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await GlobalSsoProviderChanges.beforeProviderUpdate<Model>({
+      providerType: SsoProviderType.GlobalOIDC,
+      service: this,
+      updateBy: updateBy,
+    });
+
+    await GlobalSsoProviderChanges.beforeProviderWrite<Model>({
+      service: this,
+      updateBy: updateBy,
+    });
   }
 
   @CaptureSpan()
@@ -103,16 +129,24 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // Written: the lock is given back before anything else.
+    const changedReach: boolean = await GlobalSsoProviderChanges.afterWrite(
+      onUpdate.updateBy,
+    );
+
     clearGlobalSsoAuthorizationCaches();
 
     /*
-     * Turned off, or restricted to its attached projects: the sign-ins it
-     * gave stop counting where it no longer signs people in, and the live
-     * updates already open are asked again on every server.
+     * Turned off, or restricted to its attached projects - or turned on -
+     * where that changes where it signs people in, as read under the lock:
+     * the sign-ins it gave stop counting where it no longer signs people
+     * in, and the live updates already open are asked again on every
+     * server. A write that turns it off or restricts it is told whatever
+     * was read.
      */
     if (
       updatedItemIds.length > 0 &&
-      isGlobalProviderNarrowing(onUpdate.updateBy.data)
+      (changedReach || isGlobalProviderNarrowing(onUpdate.updateBy.data))
     ) {
       announceGlobalSignInChange();
     }
@@ -120,11 +154,36 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
+  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+    }
+
+    return error;
+  }
+
+  /*
+   * Deleting the provider is refused when it would leave a project that
+   * requires SSO with no provider to sign in with
+   * (Utils/GlobalSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     clearGlobalSsoAuthorizationCaches();
+
+    await GlobalSsoProviderChanges.beforeProviderDelete<Model>({
+      providerType: SsoProviderType.GlobalOIDC,
+      service: this,
+      deleteBy: deleteBy,
+    });
+
     return { deleteBy, carryForward: null };
   }
 
@@ -133,10 +192,51 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
+    // Deleted: the lock is given back before anything else.
+    await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+
     clearGlobalSsoAuthorizationCaches();
 
     // A deleted provider vouches for nobody: asked again on every server.
     if (itemIdsBeforeDelete.length > 0) {
+      announceGlobalSignInChange();
+    }
+
+    return onDelete;
+  }
+
+  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  @CaptureSpan()
+  protected override async onDeleteError(
+    error: Exception,
+    onDelete?: OnDelete<Model> | undefined,
+  ): Promise<Exception> {
+    if (onDelete) {
+      await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+    }
+
+    return error;
+  }
+
+  /*
+   * A hard delete (the retention job's purge) runs no onDeleteSuccess: the
+   * lock its check took is given back here, and every server is told only
+   * when it changed where a provider signs people in, as read under the
+   * lock (GlobalSsoProviderChanges.afterHardDelete). A purge of rows
+   * deleted long ago tells no server anything.
+   */
+  @CaptureSpan()
+  protected override async onHardDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    if (
+      await GlobalSsoProviderChanges.afterHardDelete(
+        onDelete.deleteBy,
+        itemIdsBeforeDelete,
+      )
+    ) {
+      clearGlobalSsoAuthorizationCaches();
       announceGlobalSignInChange();
     }
 

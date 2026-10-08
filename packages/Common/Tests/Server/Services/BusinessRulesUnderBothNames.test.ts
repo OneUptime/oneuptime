@@ -26,6 +26,7 @@ import UserIncomingCallNumberService from "../../../Server/Services/UserIncoming
 import UserPushService from "../../../Server/Services/UserPushService";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
+import GlobalSsoProviderChanges from "../../../Server/Utils/GlobalSsoProviderChanges";
 import RelationIdUtil from "../../../Server/Utils/Database/RelationIdUtil";
 import SubscriberTemplateIncidentRecordAccess from "../../../Server/Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -688,6 +689,17 @@ describe.each([
       team.projectId = projectId;
       return team;
     }
+
+    beforeEach(() => {
+      /*
+       * Moving an attachment to a project is also checked, under a lock, for
+       * the projects that require SSO (GlobalSsoProviderChanges, pinned in
+       * GlobalSsoProviderChanges.test.ts); here only the teams are.
+       */
+      jest
+        .spyOn(GlobalSsoProviderChanges, "beforeAttachmentUpdate")
+        .mockResolvedValue(null as never);
+    });
 
     test("teams of another project than the one named by the relation are refused", async () => {
       jest

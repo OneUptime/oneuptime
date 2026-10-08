@@ -25,6 +25,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Includes from "../../../Types/BaseDatabase/Includes";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
@@ -67,6 +68,9 @@ import { DataSource, Logger } from "typeorm";
  *     internal note).
  *   - A read across projects applies each project's own grants and blocks
  *     to that project's rows.
+ *   - A record read through a parent - an alert's note, a status page's
+ *     announcement - is created only under a parent its creator may read,
+ *     a private alert only by the people it names and by project admins.
  *   - An AI insight follows the service it names.
  *   - The work per request does not grow with the rows it reads.
  *
@@ -2920,6 +2924,460 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       });
     },
   );
+
+  /*
+   * A RECORD READ THROUGH A PARENT IS CREATED ONLY UNDER A PARENT ITS
+   * CREATOR MAY READ (CreatePermission.checkParentPermission): through the
+   * create route, the parent a note or an announcement names - by its key
+   * under either name, or through the announcement's join table - is one a
+   * read of the parent's table finds for the caller, or the create is
+   * refused like one naming a record that does not exist, and nothing is
+   * written.
+   */
+  describe("a record read through a parent, created", () => {
+    // What the records this block creates begin with, to clear them after.
+    const CREATED_NOTE_MARKER: string = "Created under a parent";
+
+    const NOTE_PERMISSIONS: Array<PermissionRow> = [
+      { permission: Permission.CreateAlertInternalNote },
+      { permission: Permission.ReadAlertInternalNote },
+    ];
+
+    const ANNOUNCEMENT_PERMISSIONS: Array<PermissionRow> = [
+      { permission: Permission.CreateStatusPageAnnouncement },
+      { permission: Permission.ReadStatusPageAnnouncement },
+    ];
+
+    // The member owns the staging alert and no other (see the setup above).
+
+    afterAll(async () => {
+      await database.query(
+        `DELETE FROM "${schema}"."AlertInternalNote" WHERE "note" LIKE $1`,
+        [`${CREATED_NOTE_MARKER}%`],
+      );
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    // A note's text: findable afterwards whether or not it was written.
+    const noteText: () => string = (): string => {
+      return `${CREATED_NOTE_MARKER} ${ObjectID.generate().toString()}`;
+    };
+
+    const notesWithText: (text: string) => Promise<number> = async (
+      text: string,
+    ): Promise<number> => {
+      const rows: Array<{ count: string }> = await database.query(
+        `SELECT COUNT(*) AS "count" FROM "${schema}"."AlertInternalNote" WHERE "note" = $1`,
+        [text],
+      );
+
+      return Number(rows[0]?.count || 0);
+    };
+
+    const createNote: (
+      caller: Caller,
+      parent: JSONObject,
+      text: string,
+    ) => Promise<Outcome> = async (
+      caller: Caller,
+      parent: JSONObject,
+      text: string,
+    ): Promise<Outcome> => {
+      return await send({
+        uri: "/alert-internal-note",
+        caller: caller,
+        body: {
+          data: JSONFunctions.serialize({ ...parent, note: text }),
+        },
+      });
+    };
+
+    // The refusal of a parent the caller may not read: that of a missing one.
+    const expectRefusedAsMissing: (
+      outcome: Outcome,
+      field: string,
+      id: ObjectID,
+    ) => void = (outcome: Outcome, field: string, id: ObjectID): void => {
+      expect(outcome.error).toBeInstanceOf(BadDataException);
+      expect((outcome.error as Error).message).toContain(
+        `references records that are not in this project: ${field} "${id.toString()}".`,
+      );
+      expect(outcome.item).toBeUndefined();
+    };
+
+    describe.each([
+      ["a team member", "team"],
+      ["an API key", "apiKey"],
+    ] as Array<[string, "team" | "apiKey"]>)(
+      "%s whose read of alerts is limited to a label",
+      (_name: string, kind: "team" | "apiKey") => {
+        const callerWith: (
+          rows: Array<PermissionRow>,
+        ) => Promise<Caller> = async (
+          rows: Array<PermissionRow>,
+        ): Promise<Caller> => {
+          if (kind === "team") {
+            await setTeamPermissions(homeTeamId, homeProjectId, rows);
+            return homeUser;
+          }
+
+          return { kind: "apiKey", apiKey: await createApiKey(rows) };
+        };
+
+        test.each([
+          ["by its ID column", "alertId"],
+          ["by its relation", "alert"],
+        ])(
+          "creates a note on an alert carrying the label, named %s, and nowhere else",
+          async (_naming: string, name: string) => {
+            const caller: Caller = await callerWith([
+              {
+                permission: Permission.ReadAlert,
+                labelIds: [productionLabelId],
+              },
+              ...NOTE_PERMISSIONS,
+            ]);
+
+            const named: (alertId: ObjectID) => JSONObject = (
+              alertId: ObjectID,
+            ): JSONObject => {
+              return name === "alertId"
+                ? { alertId: alertId }
+                : { alert: { _id: alertId.toString() } };
+            };
+
+            const text: string = noteText();
+            const created: Outcome = await createNote(
+              caller,
+              named(productionAlertId),
+              text,
+            );
+
+            expect(created.error).toBeUndefined();
+            expect(created.item?.id).toBeDefined();
+            expect(await notesWithText(text)).toBe(1);
+
+            for (const alertId of [
+              stagingAlertId,
+              unlabelledAlertId,
+              // Another project's alert reads exactly like a missing one.
+              otherLabelledAlertId,
+              ObjectID.generate(),
+            ]) {
+              const refusedText: string = noteText();
+              const refused: Outcome = await createNote(
+                caller,
+                named(alertId),
+                refusedText,
+              );
+
+              expectRefusedAsMissing(refused, "Alert", alertId);
+              expect(await notesWithText(refusedText)).toBe(0);
+            }
+          },
+        );
+      },
+    );
+
+    test("the two names of the parent must agree", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadAlert, labelIds: [productionLabelId] },
+        ...NOTE_PERMISSIONS,
+      ]);
+
+      const text: string = noteText();
+      const refused: Outcome = await createNote(
+        homeUser,
+        {
+          alertId: productionAlertId,
+          alert: { _id: stagingAlertId.toString() },
+        },
+        text,
+      );
+
+      expect(refused.error).toBeInstanceOf(BadDataException);
+      expect(await notesWithText(text)).toBe(0);
+    });
+
+    test("a member whose read of alerts reaches only what they own creates notes on owned alerts only", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadAlert, scope: PermissionScope.Owned },
+        ...NOTE_PERMISSIONS,
+      ]);
+
+      const text: string = noteText();
+      const created: Outcome = await createNote(
+        homeUser,
+        { alertId: stagingAlertId },
+        text,
+      );
+
+      expect(created.error).toBeUndefined();
+      expect(await notesWithText(text)).toBe(1);
+
+      for (const alertId of [productionAlertId, unlabelledAlertId]) {
+        const refusedText: string = noteText();
+        const refused: Outcome = await createNote(
+          homeUser,
+          { alertId: alertId },
+          refusedText,
+        );
+
+        expectRefusedAsMissing(refused, "Alert", alertId);
+        expect(await notesWithText(refusedText)).toBe(0);
+      }
+    });
+
+    test("a block with labels on reading alerts leaves out the alerts carrying them", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadAlert },
+        {
+          permission: Permission.ReadAlert,
+          isBlock: true,
+          labelIds: [stagingLabelId],
+        },
+        ...NOTE_PERMISSIONS,
+      ]);
+
+      for (const alertId of [productionAlertId, unlabelledAlertId]) {
+        const text: string = noteText();
+        const created: Outcome = await createNote(
+          homeUser,
+          { alertId: alertId },
+          text,
+        );
+
+        expect(created.error).toBeUndefined();
+        expect(await notesWithText(text)).toBe(1);
+      }
+
+      const refusedText: string = noteText();
+      const refused: Outcome = await createNote(
+        homeUser,
+        { alertId: stagingAlertId },
+        refusedText,
+      );
+
+      expectRefusedAsMissing(refused, "Alert", stagingAlertId);
+      expect(await notesWithText(refusedText)).toBe(0);
+    });
+
+    test("a member who reads every alert creates notes on any of the project's alerts", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+
+      for (const alertId of [
+        productionAlertId,
+        stagingAlertId,
+        unlabelledAlertId,
+      ]) {
+        const text: string = noteText();
+        const created: Outcome = await createNote(
+          homeUser,
+          { alertId: alertId },
+          text,
+        );
+
+        expect(created.error).toBeUndefined();
+        expect(await notesWithText(text)).toBe(1);
+      }
+    });
+
+    test("a private alert takes notes from the people it names and from who sees every private alert", async () => {
+      // A member who reads every alert, on alerts marked private.
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+      await database.query(
+        `UPDATE "${schema}"."Alert" SET "isPrivate" = true WHERE "_id" IN ($1, $2)`,
+        [stagingAlertId.toString(), productionAlertId.toString()],
+      );
+
+      try {
+        // The member owns the staging alert, so it names them.
+        const text: string = noteText();
+        const created: Outcome = await createNote(
+          homeUser,
+          { alertId: stagingAlertId },
+          text,
+        );
+
+        expect(created.error).toBeUndefined();
+        expect(await notesWithText(text)).toBe(1);
+
+        // The production alert names nobody they are: it reads like a missing one.
+        const refusedText: string = noteText();
+        const refused: Outcome = await createNote(
+          homeUser,
+          { alertId: productionAlertId },
+          refusedText,
+        );
+
+        expectRefusedAsMissing(refused, "Alert", productionAlertId);
+        expect(await notesWithText(refusedText)).toBe(0);
+
+        // A project admin sees every private alert.
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          { permission: Permission.ProjectAdmin },
+        ]);
+
+        const adminText: string = noteText();
+        const adminCreated: Outcome = await createNote(
+          homeUser,
+          { alertId: productionAlertId },
+          adminText,
+        );
+
+        expect(adminCreated.error).toBeUndefined();
+        expect(await notesWithText(adminText)).toBe(1);
+      } finally {
+        await database.query(
+          `UPDATE "${schema}"."Alert" SET "isPrivate" = false WHERE "_id" IN ($1, $2)`,
+          [stagingAlertId.toString(), productionAlertId.toString()],
+        );
+      }
+    });
+
+    test("a member who may read no alert creates no note, and is told what to ask for", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, NOTE_PERMISSIONS);
+
+      const text: string = noteText();
+      const refused: Outcome = await createNote(
+        homeUser,
+        { alertId: productionAlertId },
+        text,
+      );
+
+      expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+      expect((refused.error as Error).message).toContain(
+        "It is read through its Alert, and you need one of these permissions to read Alerts:",
+      );
+      expect(await notesWithText(text)).toBe(0);
+    });
+
+    describe("an announcement, through its status pages", () => {
+      const announcementsWithTitle: (title: string) => Promise<number> = async (
+        title: string,
+      ): Promise<number> => {
+        const rows: Array<{ count: string }> = await database.query(
+          `SELECT COUNT(*) AS "count" FROM "${schema}"."StatusPageAnnouncement" WHERE "title" = $1`,
+          [title],
+        );
+
+        return Number(rows[0]?.count || 0);
+      };
+
+      const createAnnouncement: (
+        statusPageIds: Array<ObjectID>,
+        title: string,
+      ) => Promise<Outcome> = async (
+        statusPageIds: Array<ObjectID>,
+        title: string,
+      ): Promise<Outcome> => {
+        return await send({
+          uri: "/status-page-announcement",
+          caller: homeUser,
+          body: {
+            data: JSONFunctions.serialize({
+              title: title,
+              description: "Synthetic announcement",
+              showAnnouncementAt: new Date(),
+              statusPages: statusPageIds.map(
+                (statusPageId: ObjectID): JSONObject => {
+                  return { _id: statusPageId.toString() };
+                },
+              ),
+            }),
+          },
+        });
+      };
+
+      afterAll(async () => {
+        const rows: Array<{ _id: string }> = await database.query(
+          `SELECT "_id" FROM "${schema}"."StatusPageAnnouncement" WHERE "title" LIKE $1`,
+          [`${CREATED_NOTE_MARKER}%`],
+        );
+
+        for (const createdRow of rows) {
+          await removeRows([
+            [
+              "AnnouncementStatusPage",
+              "announcementId",
+              new ObjectID(createdRow._id),
+            ],
+            ["StatusPageAnnouncement", "_id", new ObjectID(createdRow._id)],
+          ]);
+        }
+      });
+
+      test("is created only on status pages the caller may read, each of them", async () => {
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          {
+            permission: Permission.ReadProjectStatusPage,
+            labelIds: [productionLabelId],
+          },
+          ...ANNOUNCEMENT_PERMISSIONS,
+        ]);
+
+        const title: string = noteText();
+        const created: Outcome = await createAnnouncement(
+          [productionStatusPageId],
+          title,
+        );
+
+        expect(created.error).toBeUndefined();
+        expect(await announcementsWithTitle(title)).toBe(1);
+
+        for (const statusPageIds of [
+          [stagingStatusPageId],
+          // One page it may read does not carry a page it may not.
+          [productionStatusPageId, stagingStatusPageId],
+        ]) {
+          const refusedTitle: string = noteText();
+          const refused: Outcome = await createAnnouncement(
+            statusPageIds,
+            refusedTitle,
+          );
+
+          expectRefusedAsMissing(refused, "Status Pages", stagingStatusPageId);
+          expect(await announcementsWithTitle(refusedTitle)).toBe(0);
+        }
+      });
+
+      test("on no status page, only by a caller whose read reaches every page", async () => {
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          {
+            permission: Permission.ReadProjectStatusPage,
+            labelIds: [productionLabelId],
+          },
+          ...ANNOUNCEMENT_PERMISSIONS,
+        ]);
+
+        const refusedTitle: string = noteText();
+        const refused: Outcome = await createAnnouncement([], refusedTitle);
+
+        expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+        expect((refused.error as Error).message).toBe(
+          "A Status Page Announcement you create must belong to a Status Page you can read: your access to Status Pages covers only some of them.",
+        );
+        expect(await announcementsWithTitle(refusedTitle)).toBe(0);
+
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          { permission: Permission.ReadProjectStatusPage },
+          ...ANNOUNCEMENT_PERMISSIONS,
+        ]);
+
+        const title: string = noteText();
+        const created: Outcome = await createAnnouncement([], title);
+
+        expect(created.error).toBeUndefined();
+        expect(await announcementsWithTitle(title)).toBe(1);
+      });
+    });
+  });
 
   /*
    * A READ ACROSS PROJECTS (the home page's alerts of every project): each

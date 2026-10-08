@@ -248,6 +248,7 @@ describe("GlobalSsoService", () => {
     const trust: GlobalProviderTrust = {
       isUsable: false,
       restrictToAttachedProjects: false,
+      signInsEndedAtMs: null,
     };
 
     globalSsoProviderTrustCache.set("sso:cached-provider", trust, 60000);

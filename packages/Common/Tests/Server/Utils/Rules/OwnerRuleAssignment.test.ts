@@ -7,7 +7,10 @@ import OwnerRuleAssignment, {
   OwnersToAssign,
 } from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
-import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import {
+  ProjectScopedReferenceException,
+  UnreadableParentException,
+} from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import {
   ProjectDirectoryStub,
@@ -368,6 +371,17 @@ describe("OwnerRuleAssignment.createOwner", () => {
         code: "23503",
         detail: 'Key (teamId)=(x) is not present in table "Team".',
       },
+    ],
+    /*
+     * The resource the owner is added to is one the caller may not read
+     * (CreatePermission.checkParentPermission): their access, not a stale
+     * owner, so it is not skipped like a team of another project.
+     */
+    [
+      "the refusal of a resource the caller may not read",
+      new UnreadableParentException(
+        'This monitor owner team references records that are not in this project: Monitor "x". Please pick values from this project and try again.',
+      ),
     ],
   ])("rethrows %s", async (_label: string, failure: unknown) => {
     const create: jest.Mock = jest.fn(async () => {

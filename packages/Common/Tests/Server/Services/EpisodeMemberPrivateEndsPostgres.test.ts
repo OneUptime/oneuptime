@@ -56,8 +56,13 @@ interface Kind {
   // The member's columns, as its model names them.
   recordIdColumn: "incidentId" | "alertId";
   episodeIdColumn: "incidentEpisodeId" | "alertEpisodeId";
-  // The refusals for a record, or an episode, the caller cannot see.
-  hiddenRecord: string;
+  /*
+   * The refusals for a record, or an episode, the caller cannot see. The
+   * record is the one a member row is created under, so one the caller may
+   * not read is answered like one that does not exist, naming it, before the
+   * episode's own checks run (CreatePermission.checkParentPermission).
+   */
+  hiddenRecord: (recordId: ObjectID) => string;
   hiddenEpisode: string;
 }
 
@@ -70,8 +75,9 @@ const KINDS: Array<Kind> = [
     memberModel: IncidentEpisodeMember,
     recordIdColumn: "incidentId",
     episodeIdColumn: "incidentEpisodeId",
-    hiddenRecord:
-      "The incident to add does not exist in this project, or you do not have access to it.",
+    hiddenRecord: (recordId: ObjectID): string => {
+      return `This incident episode member references records that are not in this project: Incident "${recordId.toString()}". Please pick values from this project and try again.`;
+    },
     hiddenEpisode:
       "The episode to add the incident to does not exist in this project, or you do not have access to it.",
   },
@@ -83,8 +89,9 @@ const KINDS: Array<Kind> = [
     memberModel: AlertEpisodeMember,
     recordIdColumn: "alertId",
     episodeIdColumn: "alertEpisodeId",
-    hiddenRecord:
-      "The alert to add does not exist in this project, or you do not have access to it.",
+    hiddenRecord: (recordId: ObjectID): string => {
+      return `This alert episode member references records that are not in this project: Alert "${recordId.toString()}". Please pick values from this project and try again.`;
+    },
     hiddenEpisode:
       "The episode to add the alert to does not exist in this project, or you do not have access to it.",
   },
@@ -470,7 +477,7 @@ describePostgres(
               props,
             );
 
-            expect(refusal?.message).toBe(kind.hiddenRecord);
+            expect(refusal?.message).toBe(kind.hiddenRecord(recordId));
           }
         }
 

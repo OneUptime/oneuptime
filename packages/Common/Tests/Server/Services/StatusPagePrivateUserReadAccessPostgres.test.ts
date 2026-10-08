@@ -49,9 +49,16 @@ describePostgres("private status page authorization against Postgres", () => {
     });
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
+    /*
+     * The session is read with the page's SAML and OIDC providers joined in
+     * (StatusPagePrivateUserSessionService.addSignInRule): they are cloned
+     * too, and stay empty - these sessions name no provider.
+     */
     for (const table of [
       "StatusPagePrivateUser",
       "StatusPagePrivateUserSession",
+      "StatusPageSSO",
+      "StatusPageOIDC",
     ]) {
       await database.query(
         `CREATE TABLE "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,

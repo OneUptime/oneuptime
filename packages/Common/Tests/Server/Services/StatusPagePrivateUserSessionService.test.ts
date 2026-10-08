@@ -335,6 +335,81 @@ describe("StatusPagePrivateUserSessionService sign-in and login-code exchange", 
     },
   );
 
+  /*
+   * A session an SSO provider signed in names that provider, so it counts
+   * only while the provider vouches for it (addSignInRule): turning it off
+   * or deleting it ends the session. A password sign-in names none.
+   */
+  test.each([
+    ["SAML", "statusPageSsoId"],
+    ["OIDC", "statusPageOidcId"],
+  ])(
+    "a session the page's %s provider signed in names it",
+    async (_label: string, column: string) => {
+      const service: Service = new Service();
+      const ids: SessionIds = buildIds();
+      const providerId: ObjectID = ObjectID.generate();
+      const create: jest.SpyInstance = getJestSpyOn(
+        service,
+        "create",
+      ).mockImplementation(
+        async (
+          request: CreateBy<StatusPagePrivateUserSession>,
+        ): Promise<StatusPagePrivateUserSession> => {
+          request.data.id = ids.sessionId;
+          return request.data;
+        },
+      );
+
+      await service.createLoginCodeSession({
+        projectId: ids.projectId,
+        statusPageId: ids.statusPageId,
+        statusPagePrivateUserId: ids.privateUserId,
+        [column]: providerId,
+      });
+
+      const written: Record<string, unknown> = (
+        create.mock.calls[0]![0] as CreateBy<StatusPagePrivateUserSession>
+      ).data as unknown as Record<string, unknown>;
+
+      expect(String(written[column])).toBe(providerId.toString());
+      expect(
+        written[
+          column === "statusPageSsoId" ? "statusPageOidcId" : "statusPageSsoId"
+        ],
+      ).toBeUndefined();
+    },
+  );
+
+  test("a password sign-in names no provider", async () => {
+    const service: Service = new Service();
+    const ids: SessionIds = buildIds();
+    const create: jest.SpyInstance = getJestSpyOn(
+      service,
+      "create",
+    ).mockImplementation(
+      async (
+        request: CreateBy<StatusPagePrivateUserSession>,
+      ): Promise<StatusPagePrivateUserSession> => {
+        request.data.id = ids.sessionId;
+        return request.data;
+      },
+    );
+
+    await service.createSession({
+      projectId: ids.projectId,
+      statusPageId: ids.statusPageId,
+      statusPagePrivateUserId: ids.privateUserId,
+    });
+
+    const written: StatusPagePrivateUserSession = (
+      create.mock.calls[0]![0] as CreateBy<StatusPagePrivateUserSession>
+    ).data;
+
+    expect(written.statusPageSsoId).toBeUndefined();
+    expect(written.statusPageOidcId).toBeUndefined();
+  });
+
   test("does not record a sign-in when session creation fails", async () => {
     const service: Service = new Service();
     const ids: SessionIds = buildIds();

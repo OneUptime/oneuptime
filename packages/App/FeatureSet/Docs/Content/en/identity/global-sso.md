@@ -50,11 +50,31 @@ Configuring a global provider does not force anyone to use it; password login st
 - **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global). See [Requiring SSO for Your Project](/docs/identity/sso#requiring-sso-for-your-project).
 - **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** switch that forces SSO for every user across the instance. It asks you to confirm before it turns on, and saves as soon as you do. Master admins remain exempt so they cannot be locked out.
 
+Turning **Require SSO for Login** on needs an SSO provider that signs people in, so nobody is locked out by it:
+
+- For the whole instance, every project that does not require SSO itself needs one: one of its own SAML or OIDC providers that is on, or a global provider that is on and signs people in to it. While a project has none, turning the switch on is refused, and the message names the projects (or, when there are many, the first few and how many). Turn on a global provider, or a provider in those projects, first. A project that requires a specific provider needs that one: while it is off, deleted, or does not sign people in to the project, the message names the project apart - turn that provider on, or require another one there, first.
+- For a project, the same is asked of that project, and of the provider it requires when it requires one.
+
+Turning it off is never refused.
+
 ## Turning a provider off or deleting it
 
-Turning a global provider off, deleting it, or restricting it to its attached projects ends the sign-ins it gave where it no longer signs people in. Where SSO is required, people who signed in with it have to sign in with SSO again at their next request, and the pages they have open stop receiving live updates at once.
+Turning a global provider off, deleting it, or restricting it to its attached projects ends the sign-ins it gave where it no longer signs people in. Where SSO is required, people who signed in with it have to sign in with SSO again at their next request, the pages they have open stop receiving live updates at once, and an MCP client someone connected after signing in with it stops working in the project.
+
+Turning the provider on again does not bring those sign-ins back: people sign in with it again. A provider that was already off when you upgraded counts as turned off at the upgrade.
 
 A new certificate or client secret, other URLs or a new name keep everyone signed in.
+
+### Every project that requires SSO keeps a way in
+
+A project that requires SSO, itself or because the whole instance does, always keeps a provider people can sign in to it with. So these changes are refused while they would leave such a project with no provider at all, or take away the provider it requires:
+
+- turning a global provider off, deleting it, or restricting it to its attached projects;
+- for a provider restricted to its attached projects: attaching its first project (until then it signs people in to every project), turning an attachment off, moving it to another project or provider, or removing it.
+
+The message names the projects, or the first few and how many there are. Turn on another provider for them first, one of their own or a global one, or turn off **Require SSO for Login** there. A project that requires this very provider is named apart: require another provider there, or turn off **Require SSO for Login**, first. Changes that let a provider sign more people in - turning it or an attachment on, lifting the restriction - are never refused.
+
+Two changes to who can sign in are checked one after the other. If another one is being saved at the same moment and takes longer than usual - turning on **Require SSO for Login** for the whole instance reads every project - a change is refused with "Another change to who can sign in with SSO is being saved. Try again in a moment.": save it again.
 
 ## Related
 
