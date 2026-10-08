@@ -1072,10 +1072,13 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       windowStart: "2026-08-24T00:00:00.000Z",
       generatedAt: "2026-09-22T10:00:00.000Z",
       totals: {
+        occurrences: 1,
         investigations: 1,
         completedInvestigations: 1,
         failedInvestigations: 0,
         activeInvestigations: 0,
+        confirmedFindings: 0,
+        rejectedFindings: 0,
         problems: 1,
         recurringProblems: 0,
         fixes: 0,
@@ -1083,7 +1086,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         failedCommands: 0,
         timedOutCommands: 0,
       },
-      attention: [],
+      insights: [],
       problems: [],
       hotspots: [],
       fixOutcomes: {

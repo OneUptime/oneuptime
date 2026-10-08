@@ -2857,10 +2857,13 @@ describe("ResourceAiAccessAPI", () => {
       windowStart: "2026-08-24T00:00:00.000Z",
       generatedAt: "2026-09-22T10:00:00.000Z",
       totals: {
+        occurrences: 0,
         investigations: 0,
         completedInvestigations: 0,
         failedInvestigations: 0,
         activeInvestigations: 0,
+        confirmedFindings: 0,
+        rejectedFindings: 0,
         problems: 0,
         recurringProblems: 0,
         fixes: 0,
@@ -2868,7 +2871,7 @@ describe("ResourceAiAccessAPI", () => {
         failedCommands: 0,
         timedOutCommands: 0,
       },
-      attention: [],
+      insights: [],
       problems: [],
       hotspots: [],
       fixOutcomes: {
