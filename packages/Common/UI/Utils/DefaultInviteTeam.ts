@@ -1,10 +1,15 @@
 import Team from "../../Models/DatabaseModels/Team";
 import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import {
+  CanGrantAllFunction,
+  InviteTeam,
+  InviteTeamPermissionRow,
+  pickDefaultInviteTeam,
+} from "../../Types/Team/DefaultInviteTeamRule";
 import GrantablePermission from "./GrantablePermission";
 import ModelAPI, { ListResult } from "./ModelAPI/ModelAPI";
 
@@ -47,7 +52,6 @@ import ModelAPI, { ListResult } from "./ModelAPI/ModelAPI";
  * teams, a slow server - only means nothing is picked.
  */
 
-export const MEMBERS_TEAM_NAME: string = "Members";
 
 /*
  * Long enough for the two small lists below on a slow connection, short
@@ -56,20 +60,20 @@ export const MEMBERS_TEAM_NAME: string = "Members";
  */
 export const DEFAULT_INVITE_TEAM_LOOKUP_TIMEOUT_MS: number = 3000;
 
-export interface InviteTeam {
-  id: string;
-  name: string;
-}
-
-export interface InviteTeamPermissionRow {
-  teamId: string;
-  permission: Permission;
-  isBlockPermission: boolean;
-  scope?: PermissionScope | undefined;
-}
-
-// Whether the person adding someone may hand on all of these permissions.
-export type CanGrantAllFunction = (permissions: Array<Permission>) => boolean;
+/*
+ * The rule itself is React-free in Common/Types/Team/DefaultInviteTeamRule,
+ * where the server reads it too (an import from another tool invites people
+ * on the same team). It is re-exported here, where the dashboards import it.
+ */
+export {
+  MEMBERS_TEAM_NAME,
+  pickDefaultInviteTeam,
+} from "../../Types/Team/DefaultInviteTeamRule";
+export type {
+  CanGrantAllFunction,
+  InviteTeam,
+  InviteTeamPermissionRow,
+} from "../../Types/Team/DefaultInviteTeamRule";
 
 /*
  * The signed-in user's own permissions, as the server reads them for a
@@ -79,98 +83,6 @@ export const canSignedInUserGrantAll: CanGrantAllFunction = (
   permissions: Array<Permission>,
 ): boolean => {
   return GrantablePermission.canCurrentUserGrantAll(permissions);
-};
-
-type IsMembersNameFunction = (name: string) => boolean;
-
-const isMembersName: IsMembersNameFunction = (name: string): boolean => {
-  return name.trim().toLowerCase() === MEMBERS_TEAM_NAME.toLowerCase();
-};
-
-type PickDefaultInviteTeamFunction = (data: {
-  // Every team in the project, oldest first.
-  teams: Array<InviteTeam>;
-  // Every permission row of those teams, allows and blocks.
-  permissionRows: Array<InviteTeamPermissionRow>;
-  // Whether the person adding someone may hand on all of these permissions.
-  canGrantAll: CanGrantAllFunction;
-}) => InviteTeam | null;
-
-export const pickDefaultInviteTeam: PickDefaultInviteTeamFunction = (data: {
-  teams: Array<InviteTeam>;
-  permissionRows: Array<InviteTeamPermissionRow>;
-  canGrantAll: CanGrantAllFunction;
-}): InviteTeam | null => {
-  const rowsOf: (teamId: string) => Array<InviteTeamPermissionRow> = (
-    teamId: string,
-  ): Array<InviteTeamPermissionRow> => {
-    return data.permissionRows.filter(
-      (row: InviteTeamPermissionRow): boolean => {
-        return row.teamId === teamId;
-      },
-    );
-  };
-
-  /*
-   * ProjectMember for the whole project. A label or Owned scope makes the
-   * team a narrower one, made on purpose for some people, and a block on
-   * ProjectMember undoes it.
-   */
-  const isMembersTeam: (team: InviteTeam) => boolean = (
-    team: InviteTeam,
-  ): boolean => {
-    const rows: Array<InviteTeamPermissionRow> = rowsOf(team.id);
-
-    const holdsProjectMember: boolean = rows.some(
-      (row: InviteTeamPermissionRow): boolean => {
-        return (
-          !row.isBlockPermission &&
-          row.permission === Permission.ProjectMember &&
-          row.scope === PermissionScope.All
-        );
-      },
-    );
-
-    const blocksProjectMember: boolean = rows.some(
-      (row: InviteTeamPermissionRow): boolean => {
-        return (
-          row.isBlockPermission && row.permission === Permission.ProjectMember
-        );
-      },
-    );
-
-    return holdsProjectMember && !blocksProjectMember;
-  };
-
-  const membersTeams: Array<InviteTeam> = data.teams.filter(isMembersTeam);
-
-  let candidates: Array<InviteTeam> = [
-    ...membersTeams.filter((team: InviteTeam): boolean => {
-      return isMembersName(team.name);
-    }),
-    ...membersTeams.filter((team: InviteTeam): boolean => {
-      return !isMembersName(team.name);
-    }),
-  ];
-
-  if (candidates.length === 0) {
-    candidates = data.teams.filter((team: InviteTeam): boolean => {
-      return isMembersName(team.name);
-    });
-  }
-
-  // Every row the team has, allow or block, is handed on with it.
-  const canInviteTo: (team: InviteTeam) => boolean = (
-    team: InviteTeam,
-  ): boolean => {
-    return data.canGrantAll(
-      rowsOf(team.id).map((row: InviteTeamPermissionRow): Permission => {
-        return row.permission;
-      }),
-    );
-  };
-
-  return candidates.find(canInviteTo) || null;
 };
 
 type FetchDefaultInviteTeamFunction = (data: {
