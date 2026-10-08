@@ -129,6 +129,7 @@ import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInv
 import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
 import NormalizeListOrder from "./NormalizeListOrder";
 import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInTheirUnit";
+import MaterializeAttributeValuesIndexOnLogTable from "./MaterializeAttributeValuesIndexOnLogTable";
 import SetFileVisibilityFromPublishedRecords from "./SetFileVisibilityFromPublishedRecords";
 import SetWorkspaceSummaryTimezones from "./SetWorkspaceSummaryTimezones";
 import AddTelemetryServiceMetricsPermissions from "./AddTelemetryServiceMetricsPermissions";
@@ -602,6 +603,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so it sits before the last slot.
    */
   new RewriteMeasurementPointsInTheirUnit(),
+  /*
+   * Builds idx_attribute_values (bloom filter over log attribute values) for
+   * log parts written before boot schema-sync added it, so attribute-filtered
+   * log searches skip old granules too instead of timing out on long time
+   * ranges. Background mutation; best-effort, never halts the chain.
+   * Idempotent. It needs only the table boot schema-sync creates, so it sits
+   * here rather than in the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new MaterializeAttributeValuesIndexOnLogTable(),
   /*
    * A file is public exactly while a record shows it to everyone, or while
    * it is a probe's or an AI agent's icon: images published records show
