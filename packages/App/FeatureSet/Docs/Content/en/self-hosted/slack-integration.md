@@ -26,6 +26,10 @@ Connect your self-hosted OneUptime project to Slack to send notifications and us
 4. Apply the configuration and wait for OneUptime to restart. If Slack's Events URL verification failed before the signing secret was configured, retry it now.
 5. Return to **Settings > Slack Integration**, select **Connect to Slack**, and authorize the app. Connect your personal Slack account in OneUptime when using actions that require a user identity.
 
+### Images in messages
+
+Incident and alert descriptions can carry screenshots - a synthetic monitor's, for one (see [Showing a screenshot](/docs/monitor/incident-alert-templating#showing-a-screenshot)). OneUptime shows them in Slack messages by uploading each one to your workspace as a private file, which needs the `files:write` bot scope. The generated manifest includes it. If you created your Slack app from an older manifest, add `files:write` under **OAuth & Permissions > Bot Token Scopes** (or update the app from the current manifest), then select **Connect to Slack** again in **Settings > Slack Integration** so the new scope is granted. Until then, each screenshot is shown as its alt text.
+
 ## Network access for self-hosted deployments
 
 ### Traffic direction and endpoints
