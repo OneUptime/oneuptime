@@ -154,6 +154,8 @@ Eiere har to oppgaver:
 
 Eierskap alene gir ingenting. Å eie en overvåker gir ikke rett til å redigere den med mindre et av teamene dine også har en overvåkertillatelse. Eierskap snevrer inn tilgang; det utvider den aldri.
 
+Hvem som eier en ressurs, leses gjennom ressursen. Eierne av en overvåker eller av en annen ressurs vises, leses, legges til og fjernes bare av noen som kan lese ressursen, og en tillatelse for eiere alene når ikke eierne av noen ressurs du ikke kan lese.
+
 ## Etiketter
 
 Etiketter er prosjektomfattende merkelapper du setter på ressurser. De har to formål: filtrering og gruppering i dashbordet, og begrensning av tillatelser som beskrevet over.
@@ -205,6 +207,8 @@ For en innlogget bruker, i rekkefølge:
 Hvert felt i en post leses med postens egen lesetillatelse: en tillatelse for en annen type post åpner det aldri. Noen felt er bevisst snevrere. Hemmeligheter leses bare av personer som kan redigere eller administrere posten de hører til, for eksempel en monitors nøkler for innkommende forespørsler og innkommende e-post og dens serveragentnøkkel, eller et arbeidsflyts webhook- og e-postnøkler. Å se opptaket av en øktavspilling krever **Watch Session Replays**, ikke bare **List Session Replays**. Telemetri leses signal for signal: **Read Telemetry Service Log** leser logger, **Read Telemetry Service Traces** leser sporinger, og **Read Telemetry Service Metrics** leser metrikker, metrikkdiagrammer inkludert.
 
 Felt følger samme regel. En blokkering uten etiketter på tillatelsen til et felt fjerner feltet, og for en driftsressurs åpner den tilsvarende **All Operational Resources**-tillatelsen hvert felt som alle som kan lese eller endre posten, kan åpne — men ikke et felt som er bevisst snevrere, som en hemmelig nøkkel.
+
+En innstilling som inneholder påloggingsinformasjon, angis bare av noen som kan lese den. En oppretting eller en endring angir en SMTP-server, en leverandør for anrop og SMS, påloggingsinformasjon for runbooks, SNMP-påloggingsinformasjon, en videosamtaletilkobling eller en API-nøkkel – som SMTP-serveren en statusside sender e-post med, eller påloggingsinformasjonen et runbook-steg kjører med – bare når du kan lese den typen innstilling; en du ikke kan lese, avvises som om den ikke fantes, mens en post beholder den den allerede angir. Å søke etter numre å kjøpe hos en leverandør for anrop og SMS, eller vise numrene den eier, krever den samme lesetilgangen.
 
 Den samme regelen avgjør alt annet som spør om du har en tillatelse: handlinger som ikke er en enkel lesing eller skriving — å legge til SMS-, samtale- eller AI-kreditt, betale en faktura eller teste en varslingsregel — og knappene OneUptime viser. En knapp du ikke får bruke, vises låst og sier hvorfor; er en blokkering i et av teamene dine årsaken, navngir den den blokkerte tillatelsen.
 

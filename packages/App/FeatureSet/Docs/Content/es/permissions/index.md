@@ -154,6 +154,8 @@ Los propietarios cumplen dos funciones:
 
 La propiedad por sí sola no concede nada. Ser propietario de un monitor no le permite editarlo salvo que algún equipo suyo tenga además un permiso sobre monitores. La propiedad acota el acceso; nunca lo amplía.
 
+Quién es propietario de un recurso se lee a través del recurso. Los propietarios de un monitor o de cualquier otro recurso solo los lista, lee, añade y elimina alguien que puede leer ese recurso, y un permiso solo sobre los propietarios no alcanza a los propietarios de ningún recurso que usted no pueda leer.
+
 ## Etiquetas
 
 Las etiquetas son marcas de ámbito de proyecto que adjunta a los recursos. Sirven para dos cosas: filtrar y agrupar en el panel, y restringir permisos como se ha descrito.
@@ -205,6 +207,8 @@ Para un usuario que ha iniciado sesión, en orden:
 Cada campo de un registro se lee con el permiso de lectura del propio registro: un permiso de otro tipo de registro nunca lo abre. Algunos campos son más restringidos a propósito. Los secretos solo los leen las personas que pueden editar o administrar el registro al que pertenecen, como las claves de solicitudes entrantes y de correo entrante de un monitor y la clave de su agente de servidor, o las claves de webhook y de correo entrante de un flujo de trabajo. Ver la grabación de una reproducción de sesión requiere **Watch Session Replays**, no solo **List Session Replays**. La telemetría se lee señal por señal: **Read Telemetry Service Log** lee los logs, **Read Telemetry Service Traces** lee las trazas y **Read Telemetry Service Metrics** lee las métricas, incluidos los gráficos de métricas.
 
 Los campos siguen la misma regla. Un bloqueo sin etiquetas sobre el permiso de un campo retira ese campo, y en un recurso operativo el permiso **All Operational Resources** correspondiente abre cada campo que puede abrir cualquiera que pueda leer o modificar el registro, pero no un campo más restringido a propósito, como una clave secreta.
+
+Una configuración que contiene credenciales solo la nombra quien puede leerla. Una creación o un cambio nombra un servidor SMTP, un proveedor de llamadas y SMS, una credencial de runbook, credenciales SNMP, una conexión de videollamada o una clave de API —como el servidor SMTP con el que una página de estado envía correos, o la credencial con la que se ejecuta un paso de runbook— solo cuando usted puede leer ese tipo de configuración; una que no puede leer se rechaza como si no existiera, mientras que un registro conserva la que ya nombra. Buscar números para comprar en un proveedor de llamadas y SMS, o listar los números que posee, requiere la misma lectura.
 
 La misma regla decide todo lo demás que pregunta si tiene un permiso: las acciones que no son una simple lectura o escritura —añadir crédito de SMS, llamadas o IA, pagar una factura o probar una regla de notificación— y los botones que muestra OneUptime. Un botón que no puede usar aparece bloqueado y dice por qué; cuando el motivo es un bloqueo en uno de sus equipos, nombra el permiso bloqueado.
 

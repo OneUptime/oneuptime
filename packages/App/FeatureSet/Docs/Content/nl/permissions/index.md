@@ -154,6 +154,8 @@ Eigenaren doen twee dingen:
 
 Eigendom op zich verleent niets. Eigenaar van een monitor zijn geeft geen bewerkrecht, tenzij een van uw teams ook een monitormachtiging heeft. Eigendom perkt toegang in; het verruimt die nooit.
 
+Wie eigenaar is van een resource, wordt gelezen via die resource. De eigenaren van een monitor of van een andere resource worden alleen weergegeven, gelezen, toegevoegd en verwijderd door iemand die die resource mag lezen, en een machtiging voor alleen eigenaren bereikt de eigenaren van geen enkele resource die u niet mag lezen.
+
 ## Labels
 
 Labels zijn projectbrede markeringen die u aan resources hangt. Ze dienen twee doelen: filteren en groeperen in het dashboard, en het beperken van machtigingen zoals hierboven beschreven.
@@ -205,6 +207,8 @@ Voor een ingelogde gebruiker, op volgorde:
 Elk veld van een record wordt gelezen met de eigen leesmachtiging van dat record: een machtiging voor een ander soort record opent het nooit. Sommige velden zijn bewust beperkter. Geheimen worden alleen gelezen door wie het record mag bewerken of beheren waar ze bij horen, zoals de sleutels voor inkomende verzoeken en inkomende e-mail van een monitor en zijn serveragentsleutel, of de webhook- en e-mailsleutels van een workflow. De opname van een sessieherhaling bekijken vraagt **Watch Session Replays**, niet alleen **List Session Replays**. Telemetrie wordt per signaal gelezen: **Read Telemetry Service Log** leest logs, **Read Telemetry Service Traces** leest traces en **Read Telemetry Service Metrics** leest metrics, metriekgrafieken inbegrepen.
 
 Velden volgen dezelfde regel. Een blokkade zonder labels op de machtiging van een veld haalt dat veld weg, en bij een operationele resource opent de bijpassende machtiging **All Operational Resources** elk veld dat iedereen mag openen die het record mag lezen of wijzigen — maar niet een veld dat bewust beperkter is, zoals een geheime sleutel.
+
+Een instelling met inloggegevens wordt alleen genoemd door iemand die haar mag lezen. Een aanmaak of een wijziging noemt een SMTP-server, een aanbieder voor bellen en sms, runbook-inloggegevens, SNMP-inloggegevens, een videogesprekverbinding of een API-sleutel — zoals de SMTP-server waarmee een statuspagina e-mail verstuurt, of de inloggegevens waarmee een runbookstap draait — alleen als u dat soort instelling mag lezen; een die u niet mag lezen, wordt geweigerd alsof die niet bestaat, terwijl een record de instelling houdt die het al noemt. Bij een aanbieder voor bellen en sms zoeken naar nummers om te kopen, of de nummers weergeven die hij bezit, vraagt dezelfde leesmachtiging.
 
 Dezelfde regel beslist over al het andere dat vraagt of u een machtiging heeft: acties die geen gewone lees- of schrijfactie zijn — sms-, bel- of AI-tegoed toevoegen, een factuur betalen of een meldingsregel testen — en de knoppen die OneUptime toont. Een knop die u niet mag gebruiken wordt vergrendeld getoond en zegt waarom; is een blokkade in een van uw teams de reden, dan noemt hij de geblokkeerde machtiging.
 
