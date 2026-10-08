@@ -446,7 +446,9 @@ export default class OpsGenieAdapter implements ToolImportAdapter {
         }
       });
 
-      const ownerTeamId: string = asString(asRecord(schedule["ownerTeam"])["id"]);
+      const ownerTeamId: string = asString(
+        asRecord(schedule["ownerTeam"])["id"],
+      );
       const isEnabled: boolean = asBoolean(schedule["enabled"], true);
 
       if (!isEnabled) {

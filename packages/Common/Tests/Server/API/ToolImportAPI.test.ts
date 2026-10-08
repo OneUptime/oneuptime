@@ -1,5 +1,4 @@
 import { mockRouter } from "./Helpers";
-import "../../../Server/API/ToolImportAPI";
 import { ToolImportAPIAccess } from "../../../Server/API/ToolImportAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
@@ -171,7 +170,8 @@ async function call(
   data: { params?: Dictionary<string>; body?: JSONObject } = {},
 ): Promise<{ thrown: unknown; payload: Record<string, unknown> | undefined }> {
   const next: jest.Mock = jest.fn();
-  const sender: jest.Mock = Response.sendJsonObjectResponse as unknown as jest.Mock;
+  const sender: jest.Mock =
+    Response.sendJsonObjectResponse as unknown as jest.Mock;
   sender.mockClear();
 
   await route(method, uri).handlerFunction(
@@ -332,7 +332,10 @@ describe("ToolImportAPI: reading a tool", () => {
   });
 
   test("someone who may create only on-call policies may read: the rest is skipped in the preview", async () => {
-    callerProps = propsWith([Permission.CreateProjectOnCallDutyPolicy, Permission.CreateProjectOnCallDutyPolicyEscalationRule]);
+    callerProps = propsWith([
+      Permission.CreateProjectOnCallDutyPolicy,
+      Permission.CreateProjectOnCallDutyPolicyEscalationRule,
+    ]);
     (ToolImportRunExecutor.startRead as jest.Mock).mockResolvedValue(
       ObjectID.generate(),
     );
@@ -460,10 +463,8 @@ describe("ToolImportAPI: one import", () => {
     // Read pinned to the caller's project.
     expect(
       (
-        (ToolImportRunService.findOneBy as jest.Mock).mock.calls[0]![0] as Record<
-          string,
-          Record<string, unknown>
-        >
+        (ToolImportRunService.findOneBy as jest.Mock).mock
+          .calls[0]![0] as Record<string, Record<string, unknown>>
       )["query"],
     ).toEqual({ _id: mine.id!.toString(), projectId: PROJECT_ID });
   });
@@ -537,10 +538,12 @@ describe("ToolImportAPI: one import", () => {
       (payload!["report"] as { items: Array<unknown> }).items,
     ).toHaveLength(1);
     expect(
-      ((payload!["run"] as Record<string, unknown>)["counts"] as Record<
-        string,
-        number
-      >)["Created"],
+      (
+        (payload!["run"] as Record<string, unknown>)["counts"] as Record<
+          string,
+          number
+        >
+      )["Created"],
     ).toBe(1);
   });
 

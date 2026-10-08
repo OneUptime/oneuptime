@@ -67,9 +67,9 @@ describe("ToolImportCatalog", () => {
   });
 
   test("Opsgenie is read from its US or EU host, picked by region, never typed", () => {
-    expect(getToolImportSourceDefinition(ToolImportSource.OpsGenie).hosts).toEqual(
-      [OPSGENIE_US_HOST, OPSGENIE_EU_HOST],
-    );
+    expect(
+      getToolImportSourceDefinition(ToolImportSource.OpsGenie).hosts,
+    ).toEqual([OPSGENIE_US_HOST, OPSGENIE_EU_HOST]);
     expect(
       resolveToolImportRegion(ToolImportSource.OpsGenie, undefined)?.host,
     ).toBe(OPSGENIE_US_HOST);
@@ -94,7 +94,9 @@ describe("ToolImportCatalog", () => {
     );
 
     expect(region?.host).toBe(INCIDENT_IO_HOST);
-    expect(resolveToolImportRegion(ToolImportSource.IncidentIo, "EU")).toBeNull();
+    expect(
+      resolveToolImportRegion(ToolImportSource.IncidentIo, "EU"),
+    ).toBeNull();
   });
 
   test("the key goes in each tool's documented header", () => {
@@ -130,7 +132,9 @@ describe("ToolImportSource, kinds and statuses", () => {
       ToolImportResourceKindOrder[ToolImportResourceKindOrder.length - 1],
     ).toBe(ToolImportResourceKind.OnCallPolicy);
     expect(
-      ToolImportResourceKindOrder.indexOf(ToolImportResourceKind.OnCallSchedule),
+      ToolImportResourceKindOrder.indexOf(
+        ToolImportResourceKind.OnCallSchedule,
+      ),
     ).toBeLessThan(
       ToolImportResourceKindOrder.indexOf(ToolImportResourceKind.OnCallPolicy),
     );
@@ -212,8 +216,10 @@ describe("readToolImportSelection: what a start request may send", () => {
   test("no team invites nobody", () => {
     for (const inviteTeamId of [undefined, null, ""]) {
       expect(
-        readToolImportSelection({ selectedKeys: [], inviteTeamId: inviteTeamId })
-          .inviteTeamId,
+        readToolImportSelection({
+          selectedKeys: [],
+          inviteTeamId: inviteTeamId,
+        }).inviteTeamId,
       ).toBeNull();
     }
   });
@@ -240,7 +246,11 @@ describe("readToolImportSelection: what a start request may send", () => {
   test("refuses more keys than an import could ever have", () => {
     const keys: Array<string> = [];
 
-    for (let index: number = 0; index <= MAX_TOOL_IMPORT_SELECTED_KEYS; index++) {
+    for (
+      let index: number = 0;
+      index <= MAX_TOOL_IMPORT_SELECTED_KEYS;
+      index++
+    ) {
       keys.push(`Person:${index}`);
     }
 
@@ -312,8 +322,20 @@ describe("readToolImportReport: a stored report, read back", () => {
     expect(
       readToolImportReport({
         items: [
-          { key: "Monitor:a", kind: "Monitor", sourceId: "a", name: "x", outcome: "Created" },
-          { key: "Team:a", kind: "Team", sourceId: "a", name: "x", outcome: "Exploded" },
+          {
+            key: "Monitor:a",
+            kind: "Monitor",
+            sourceId: "a",
+            name: "x",
+            outcome: "Created",
+          },
+          {
+            key: "Team:a",
+            kind: "Team",
+            sourceId: "a",
+            name: "x",
+            outcome: "Exploded",
+          },
           "nonsense",
         ],
       }).items,

@@ -99,7 +99,8 @@ export const INCIDENT_IO_SCHEDULES: Array<Record<string, unknown>> = [
     annotations: {},
     created_at: "2024-08-17T13:28:57.801578Z",
     updated_at: "2024-08-17T13:28:57.801578Z",
-    permalink: "https://app.incident.io/acme/on-call/schedules/01G0J1EXE7AXZ2C93K61WBPYEH",
+    permalink:
+      "https://app.incident.io/acme/on-call/schedules/01G0J1EXE7AXZ2C93K61WBPYEH",
     config: {
       rotations: [
         {
@@ -141,7 +142,8 @@ export const INCIDENT_IO_SCHEDULES: Array<Record<string, unknown>> = [
     annotations: {},
     created_at: "2024-08-17T13:28:57.801578Z",
     updated_at: "2024-08-17T13:28:57.801578Z",
-    permalink: "https://app.incident.io/acme/on-call/schedules/01G0J1EXE7AXZ2C93K61WBPYEJ",
+    permalink:
+      "https://app.incident.io/acme/on-call/schedules/01G0J1EXE7AXZ2C93K61WBPYEJ",
     config: {
       rotations: [
         {
@@ -250,7 +252,10 @@ export const INCIDENT_IO_ESCALATION_PATHS: Array<Record<string, unknown>> = [
                 ],
                 900,
                 {
-                  round_robin_config: { enabled: true, rotate_after_seconds: 60 },
+                  round_robin_config: {
+                    enabled: true,
+                    rotate_after_seconds: 60,
+                  },
                 },
               ),
             },
@@ -273,7 +278,10 @@ export const INCIDENT_IO_ESCALATION_PATHS: Array<Record<string, unknown>> = [
         repeat: { repeat_times: 3, to_node: "node-level-1" },
       },
     ],
-    repeat_config: { repeat_after_seconds: 1800, delay_repeat_on_activity: false },
+    repeat_config: {
+      repeat_after_seconds: 1800,
+      delay_repeat_on_activity: false,
+    },
     working_hours: [],
   },
   {
@@ -495,7 +503,12 @@ export function incidentIoRoutes(): Array<FixtureRoute> {
           identity: {
             name: "OneUptime import",
             dashboard_url: "https://app.incident.io/acme",
-            roles: ["viewer", "schedules_reader", "on_call_viewer", "catalog_viewer"],
+            roles: [
+              "viewer",
+              "schedules_reader",
+              "on_call_viewer",
+              "catalog_viewer",
+            ],
           },
         }),
       ],
@@ -517,9 +530,17 @@ export function incidentIoRoutes(): Array<FixtureRoute> {
                 name: "Platform",
               },
               members: [
-                { id: LISA_ID, name: "Lisa Karlin Curtis", email: "lisa@incident.io" },
+                {
+                  id: LISA_ID,
+                  name: "Lisa Karlin Curtis",
+                  email: "lisa@incident.io",
+                },
                 { id: RORY_ID, name: "Rory Bain", email: "rory@incident.io" },
-                { id: "01UNKNOWNUSER000000000000", name: "Someone", email: "x@y.z" },
+                {
+                  id: "01UNKNOWNUSER000000000000",
+                  name: "Someone",
+                  email: "x@y.z",
+                },
               ],
             },
           ]),
@@ -556,8 +577,18 @@ export function incidentIoRoutes(): Array<FixtureRoute> {
       answers: [
         json(
           page("custom_field_options", [
-            option("01OPT00000000000000000000B", AFFECTED_AREA_FIELD_ID, "Billing", 20),
-            option("01OPT00000000000000000000A", AFFECTED_AREA_FIELD_ID, "Product", 10),
+            option(
+              "01OPT00000000000000000000B",
+              AFFECTED_AREA_FIELD_ID,
+              "Billing",
+              20,
+            ),
+            option(
+              "01OPT00000000000000000000A",
+              AFFECTED_AREA_FIELD_ID,
+              "Product",
+              10,
+            ),
           ]),
         ),
       ],
@@ -591,7 +622,11 @@ export function incidentIoRoutes(): Array<FixtureRoute> {
         json({
           ...(page("catalog_entries", [
             catalogEntry("01FCNDV6P870EA6S7TK1DSYCE1", SERVICE_TYPE_ID, "API"),
-            catalogEntry("01FCNDV6P870EA6S7TK1DSYCE2", SERVICE_TYPE_ID, "Web app"),
+            catalogEntry(
+              "01FCNDV6P870EA6S7TK1DSYCE2",
+              SERVICE_TYPE_ID,
+              "Web app",
+            ),
             catalogEntry(
               "01FCNDV6P870EA6S7TK1DSYCE3",
               SERVICE_TYPE_ID,

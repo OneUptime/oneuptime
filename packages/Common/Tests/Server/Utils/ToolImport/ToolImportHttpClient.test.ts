@@ -35,7 +35,10 @@ interface Harness {
 }
 
 function harness(
-  routes: Array<{ path: string; answers: Array<ToolImportHttpResponse | Error> }>,
+  routes: Array<{
+    path: string;
+    answers: Array<ToolImportHttpResponse | Error>;
+  }>,
   overrides: Partial<ToolImportHttpClientOptions> = {},
 ): Harness {
   const api: FixtureApi = new FixtureApi(routes);
@@ -61,7 +64,9 @@ function harness(
   return { client, api, sleep, clock };
 }
 
-async function failure(promise: Promise<unknown>): Promise<ToolImportHttpError> {
+async function failure(
+  promise: Promise<unknown>,
+): Promise<ToolImportHttpError> {
   try {
     await promise;
   } catch (error) {
@@ -133,7 +138,12 @@ describe("ToolImportHttpClient: where it may go", () => {
       {
         path: "/x",
         answers: [
-          { statusCode: 200, bodyText: "<html>", bodyJson: undefined, headers: {} },
+          {
+            statusCode: 200,
+            bodyText: "<html>",
+            bodyJson: undefined,
+            headers: {},
+          },
         ],
       },
     ]);
@@ -149,10 +159,7 @@ describe("ToolImportHttpClient: slowing down when the tool says to", () => {
     const { client, sleep } = harness([
       {
         path: "/x",
-        answers: [
-          json({}, 429, { "retry-after": "7" }),
-          json({ ok: true }),
-        ],
+        answers: [json({}, 429, { "retry-after": "7" }), json({ ok: true })],
       },
     ]);
 
@@ -283,14 +290,19 @@ describe("ToolImportHttpClient: failures", () => {
 
     expect(error.kind).toBe(ToolImportHttpErrorKind.Unavailable);
     expect(error.statusCode).toBe(502);
-    expect(error.message).toBe("Tool kept failing (HTTP 502). Try again later.");
+    expect(error.message).toBe(
+      "Tool kept failing (HTTP 502). Try again later.",
+    );
     expect(sleep.waits).toEqual([1000, 2000, 4000]);
     expect(api.requests).toHaveLength(4);
   });
 
   test("a server error that recovers is not an error", async () => {
     const { client } = harness([
-      { path: "/x", answers: [json({}, 503, { "retry-after": "2" }), json({ ok: 1 })] },
+      {
+        path: "/x",
+        answers: [json({}, 503, { "retry-after": "2" }), json({ ok: 1 })],
+      },
     ]);
 
     expect(await client.getJson("/x")).toEqual({ ok: 1 });
@@ -312,18 +324,30 @@ describe("ToolImportHttpClient: failures", () => {
   });
 
   test.each([
-    [401, ToolImportHttpErrorKind.Unauthorized, "Tool did not accept the API key"],
-    [403, ToolImportHttpErrorKind.Forbidden, "The API key may not read this from Tool"],
+    [
+      401,
+      ToolImportHttpErrorKind.Unauthorized,
+      "Tool did not accept the API key",
+    ],
+    [
+      403,
+      ToolImportHttpErrorKind.Forbidden,
+      "The API key may not read this from Tool",
+    ],
     [404, ToolImportHttpErrorKind.NotFound, "Tool could not find this"],
-    [422, ToolImportHttpErrorKind.Rejected, "Tool refused the request (HTTP 422)"],
-    [301, ToolImportHttpErrorKind.Rejected, "Tool refused the request (HTTP 301)"],
+    [
+      422,
+      ToolImportHttpErrorKind.Rejected,
+      "Tool refused the request (HTTP 422)",
+    ],
+    [
+      301,
+      ToolImportHttpErrorKind.Rejected,
+      "Tool refused the request (HTTP 301)",
+    ],
   ] as Array<[number, ToolImportHttpErrorKind, string]>)(
     "HTTP %i is %s",
-    async (
-      status: number,
-      kind: ToolImportHttpErrorKind,
-      message: string,
-    ) => {
+    async (status: number, kind: ToolImportHttpErrorKind, message: string) => {
       const { client, api } = harness([
         { path: "/x", answers: [json({ message: "nope" }, status)] },
       ]);
@@ -361,7 +385,9 @@ describe("ToolImportHttpClient: failures", () => {
       },
     ]);
 
-    const first: ToolImportHttpError = await failure(opsgenie.client.getJson("/x"));
+    const first: ToolImportHttpError = await failure(
+      opsgenie.client.getJson("/x"),
+    );
     const second: ToolImportHttpError = await failure(
       incidentIo.client.getJson("/x"),
     );
@@ -388,10 +414,9 @@ describe("ToolImportHttpClient: failures", () => {
 
 describe("ToolImportHttpClient: its budget", () => {
   test("a read stops at its request budget", async () => {
-    const { client, api } = harness(
-      [{ path: "/x", answers: [json({})] }],
-      { maxRequests: 2 },
-    );
+    const { client, api } = harness([{ path: "/x", answers: [json({})] }], {
+      maxRequests: 2,
+    });
 
     await client.getJson("/x");
     await client.getJson("/x");
@@ -414,7 +439,9 @@ describe("ToolImportHttpClient: its budget", () => {
     const error: ToolImportHttpError = await failure(client.getJson("/x"));
 
     expect(error.kind).toBe(ToolImportHttpErrorKind.BudgetExhausted);
-    expect(error.message).toBe("Reading Tool took too long, so it was stopped.");
+    expect(error.message).toBe(
+      "Reading Tool took too long, so it was stopped.",
+    );
   });
 
   test("retries count against the budget too", async () => {
@@ -495,12 +522,12 @@ describe("createToolImportTransport: the production transport", () => {
     expect(config["timeout"]).toBe(1234);
     expect(config["maxContentLength"]).toBe(TOOL_IMPORT_MAX_RESPONSE_BYTES);
     expect(config["url"]).toBe("https://api.opsgenie.com/v2/users?limit=1");
-    expect(
-      (config["validateStatus"] as (status: number) => boolean)(500),
-    ).toBe(true);
-    expect(
-      (config["headers"] as Record<string, string>)["Authorization"],
-    ).toBe("GenieKey k");
+    expect((config["validateStatus"] as (status: number) => boolean)(500)).toBe(
+      true,
+    );
+    expect((config["headers"] as Record<string, string>)["Authorization"]).toBe(
+      "GenieKey k",
+    );
     expect(
       (config["headers"] as Record<string, string>)["User-Agent"],
     ).toContain("OneUptime");

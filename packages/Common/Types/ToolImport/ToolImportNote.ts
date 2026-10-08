@@ -129,7 +129,11 @@ export function readToolImportNotes(value: unknown): Array<ToolImportNote> {
     const rawValues: unknown = (entry as Record<string, unknown>)["values"];
     const values: Record<string, ToolImportNoteValue> = {};
 
-    if (rawValues && typeof rawValues === "object" && !Array.isArray(rawValues)) {
+    if (
+      rawValues &&
+      typeof rawValues === "object" &&
+      !Array.isArray(rawValues)
+    ) {
       for (const [key, item] of Object.entries(
         rawValues as Record<string, unknown>,
       )) {

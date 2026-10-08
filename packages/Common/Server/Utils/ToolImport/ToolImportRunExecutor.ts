@@ -45,7 +45,10 @@ import { redactLogString } from "../LogRedaction";
 import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorization";
 import ToolImportAdapterRegistry from "./ToolImportAdapterRegistry";
 import ToolImportApplier, { toErrorMessage } from "./ToolImportApplier";
-import { createToolImportTransport, ToolImportTransport } from "./ToolImportHttpClient";
+import {
+  createToolImportTransport,
+  ToolImportTransport,
+} from "./ToolImportHttpClient";
 import {
   buildToolImportPlan,
   ToolImportAccess,
@@ -170,6 +173,10 @@ export default class ToolImportRunExecutor {
 
     try {
       await this.assertNoActiveRun(data.projectId);
+      await this.discardPreviewsOf({
+        projectId: data.projectId,
+        userId: data.userId,
+      });
 
       const run: ToolImportRun = new ToolImportRun();
       run.projectId = data.projectId;
@@ -270,7 +277,9 @@ export default class ToolImportRunExecutor {
     const run: ToolImportRun = await this.getOwnRun(data);
 
     if (run.status !== ToolImportRunStatus.ReadyToReview) {
-      throw new BadDataException("Only a preview that was not started can be discarded.");
+      throw new BadDataException(
+        "Only a preview that was not started can be discarded.",
+      );
     }
 
     await ToolImportRunService.updateOneById({
@@ -297,7 +306,9 @@ export default class ToolImportRunExecutor {
     const snapshot: ToolImportSnapshot | null = this.readSnapshot(data.run);
 
     if (!snapshot || !data.run.source) {
-      throw new BadDataException("There is nothing to preview for this import.");
+      throw new BadDataException(
+        "There is nothing to preview for this import.",
+      );
     }
 
     const props: DatabaseCommonInteractionProps = await CallerPlan.withPlan(
@@ -402,16 +413,15 @@ export default class ToolImportRunExecutor {
         },
       };
 
-      const snapshot: ToolImportSnapshot = await ToolImportAdapterRegistry.getAdapter(
-        run.source!,
-      ).read(
-        {
-          source: run.source!,
-          apiKey: apiKey,
-          region: run.region || "",
-        },
-        context,
-      );
+      const snapshot: ToolImportSnapshot =
+        await ToolImportAdapterRegistry.getAdapter(run.source!).read(
+          {
+            source: run.source!,
+            apiKey: apiKey,
+            region: run.region || "",
+          },
+          context,
+        );
 
       await ToolImportRunService.updateOneById({
         id: run.id!,
@@ -647,6 +657,40 @@ export default class ToolImportRunExecutor {
   }
 
   /*
+   * One preview per person: reading a tool again discards the previews
+   * they never started, and what was read for them.
+   */
+  private static async discardPreviewsOf(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<void> {
+    const previews: Array<ToolImportRun> = await ToolImportRunService.findBy({
+      query: {
+        projectId: data.projectId,
+        createdByUserId: data.userId,
+        status: ToolImportRunStatus.ReadyToReview,
+      },
+      select: { _id: true },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    for (const preview of previews) {
+      await ToolImportRunService.updateOneById({
+        id: preview.id!,
+        data: {
+          status: ToolImportRunStatus.Cancelled,
+          snapshot: null,
+          apiKey: null,
+          completedAt: new Date(),
+        },
+        props: { isRoot: true },
+      });
+    }
+  }
+
+  /*
    * A run of the project that the person started. Anyone else's is not
    * found: only the person who read a tool sees its preview and starts it.
    */
@@ -678,7 +722,10 @@ export default class ToolImportRunExecutor {
     return run;
   }
 
-  public static isReviewExpired(run: ToolImportRun, now: Date = new Date()): boolean {
+  public static isReviewExpired(
+    run: ToolImportRun,
+    now: Date = new Date(),
+  ): boolean {
     const readyAt: Date | undefined = run.updatedAt || run.createdAt;
 
     return Boolean(
@@ -715,9 +762,7 @@ export default class ToolImportRunExecutor {
           progress: null,
           completedAt: new Date(),
           ...(options.clearSnapshot ? { snapshot: null } : {}),
-          ...(options.report
-            ? { report: options.report as never }
-            : {}),
+          ...(options.report ? { report: options.report as never } : {}),
         },
         props: { isRoot: true },
       });
@@ -784,9 +829,14 @@ class ProgressWriter {
     force: boolean,
   ): Promise<void> {
     const now: number = Date.now();
-    const isLast: boolean = progress.total > 0 && progress.done >= progress.total;
+    const isLast: boolean =
+      progress.total > 0 && progress.done >= progress.total;
 
-    if (!force && !isLast && now - this.lastWriteAt < PROGRESS_WRITE_INTERVAL_MS) {
+    if (
+      !force &&
+      !isLast &&
+      now - this.lastWriteAt < PROGRESS_WRITE_INTERVAL_MS
+    ) {
       return;
     }
 

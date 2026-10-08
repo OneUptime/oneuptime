@@ -72,12 +72,15 @@ jest.mock("../../../../Server/Infrastructure/Semaphore", () => {
     SemaphoreLockTimeoutError: class extends Error {},
   };
 });
-jest.mock("../../../../Server/Utils/Workspace/WorkspaceActionAuthorization", () => {
-  return {
-    __esModule: true,
-    default: { getProjectMemberProps: jest.fn() },
-  };
-});
+jest.mock(
+  "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization",
+  () => {
+    return {
+      __esModule: true,
+      default: { getProjectMemberProps: jest.fn() },
+    };
+  },
+);
 jest.mock("../../../../Server/Utils/Billing/CallerPlan", () => {
   const actual: { default: Record<string, unknown> } = jest.requireActual(
     "../../../../Server/Utils/Billing/CallerPlan",
@@ -96,12 +99,15 @@ jest.mock("../../../../Server/Utils/Billing/CallerPlan", () => {
 
   return { __esModule: true, default: CallerPlanWithTestProps };
 });
-jest.mock("../../../../Server/Utils/ToolImport/ToolImportProjectStateReader", () => {
-  return {
-    __esModule: true,
-    default: { readState: jest.fn(), readAccess: jest.fn() },
-  };
-});
+jest.mock(
+  "../../../../Server/Utils/ToolImport/ToolImportProjectStateReader",
+  () => {
+    return {
+      __esModule: true,
+      default: { readState: jest.fn(), readAccess: jest.fn() },
+    };
+  },
+);
 jest.mock("../../../../Server/Utils/ToolImport/ToolImportApplier", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../Server/Utils/ToolImport/ToolImportApplier",
@@ -164,7 +170,9 @@ class Runs {
 
       if (expected instanceof Includes) {
         return (expected.values as Array<unknown>)
-          .map((value: unknown) => String(value))
+          .map((value: unknown) => {
+            return String(value);
+          })
           .includes(String(actual));
       }
 
@@ -221,7 +229,9 @@ class Runs {
           .filter((candidate: Record<string, unknown>) => {
             return this.matches(candidate, args.query);
           })
-          .map((row: Record<string, unknown>) => this.toModel(row));
+          .map((row: Record<string, unknown>) => {
+            return this.toModel(row);
+          });
       },
     );
 
@@ -272,10 +282,26 @@ describe("ToolImportRunExecutor.validateReadRequest", () => {
   });
 
   test.each([
-    ["an unknown tool", { source: "PagerDuty", region: "", apiKey: "k" }, "Choose a tool to import from."],
-    ["a region the tool does not have", { source: "OpsGenie", region: "MARS", apiKey: "k" }, "Choose one of Opsgenie's regions."],
-    ["an empty key", { source: "OpsGenie", region: "US", apiKey: "   " }, "Paste your Opsgenie API key."],
-    ["a key that is not text", { source: "OpsGenie", region: "US", apiKey: 12345 }, "Paste your Opsgenie API key."],
+    [
+      "an unknown tool",
+      { source: "PagerDuty", region: "", apiKey: "k" },
+      "Choose a tool to import from.",
+    ],
+    [
+      "a region the tool does not have",
+      { source: "OpsGenie", region: "MARS", apiKey: "k" },
+      "Choose one of Opsgenie's regions.",
+    ],
+    [
+      "an empty key",
+      { source: "OpsGenie", region: "US", apiKey: "   " },
+      "Paste your Opsgenie API key.",
+    ],
+    [
+      "a key that is not text",
+      { source: "OpsGenie", region: "US", apiKey: 12345 },
+      "Paste your Opsgenie API key.",
+    ],
     [
       "a key with spaces in it",
       { source: "OpsGenie", region: "US", apiKey: "two words" },
@@ -323,9 +349,9 @@ describe("ToolImportRunExecutor.startRead", () => {
       { runId: runId.toString() },
       { attempts: 1 },
     );
-    expect(JSON.stringify((Queue.addJob as jest.Mock).mock.calls)).not.toContain(
-      OPSGENIE_KEY,
-    );
+    expect(
+      JSON.stringify((Queue.addJob as jest.Mock).mock.calls),
+    ).not.toContain(OPSGENIE_KEY);
     expect(Semaphore.release).toHaveBeenCalled();
   });
 
@@ -376,6 +402,42 @@ describe("ToolImportRunExecutor.startRead", () => {
       status: ToolImportRunStatus.Failed,
       apiKey: null,
     });
+  });
+
+  test("reading again discards the person's earlier previews and what was read for them, not anyone else's", async () => {
+    const mine: string = runs.add({
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: { people: [] },
+    });
+    const theirs: string = runs.add({
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: { people: [] },
+      createdByUserId: OTHER_USER_ID,
+    });
+    const finished: string = runs.add({
+      status: ToolImportRunStatus.Completed,
+      report: { items: [] },
+    });
+
+    const runId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      source: ToolImportSource.OpsGenie,
+      region: "US",
+      apiKey: OPSGENIE_KEY,
+    });
+
+    expect(runs.get(mine)).toMatchObject({
+      status: ToolImportRunStatus.Cancelled,
+      snapshot: null,
+      apiKey: null,
+    });
+    expect(runs.get(theirs)).toMatchObject({
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: { people: [] },
+    });
+    expect(runs.get(finished)["status"]).toBe(ToolImportRunStatus.Completed);
+    expect(runs.get(runId)["status"]).toBe(ToolImportRunStatus.Reading);
   });
 
   test("a job that cannot be queued fails the run, and clears its key", async () => {
@@ -441,8 +503,14 @@ describe("ToolImportRunExecutor: the worker reads", () => {
     await ToolImportRunExecutor.executeRun(new ObjectID(runId));
 
     const kinds: Array<unknown> = runs.updates
-      .filter((update) => update.data["progress"])
-      .map((update) => (update.data["progress"] as JSONObject)["kind"]);
+      .filter(
+        (update: { id: string; data: Record<string, unknown> }): boolean => {
+          return Boolean(update.data["progress"]);
+        },
+      )
+      .map((update: { id: string; data: Record<string, unknown> }): unknown => {
+        return (update.data["progress"] as JSONObject)["kind"];
+      });
 
     expect(kinds).toEqual([
       ToolImportResourceKind.Person,
@@ -602,7 +670,9 @@ describe("ToolImportRunExecutor: the person starts it", () => {
 
   test("a preview older than a day expires instead of starting", async () => {
     const runId: string = readyRun({
-      updatedAt: new Date(Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 1000),
+      updatedAt: new Date(
+        Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 1000,
+      ),
     });
 
     await expect(
@@ -684,7 +754,11 @@ describe("ToolImportRunExecutor: the person starts it", () => {
     });
 
     expect(plan).toBeDefined();
-    expect(result.items.map((item) => item.key)).toEqual(["Person:alice"]);
+    expect(
+      result.items.map((item: { key: string }): string => {
+        return item.key;
+      }),
+    ).toEqual(["Person:alice"]);
     expect(ToolImportProjectStateReader.readAccess).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       props: PROPS,
@@ -722,9 +796,9 @@ describe("ToolImportRunExecutor: the worker imports, as the person", () => {
   }
 
   beforeEach(() => {
-    (WorkspaceActionAuthorization.getProjectMemberProps as jest.Mock).mockResolvedValue(
-      PROPS,
-    );
+    (
+      WorkspaceActionAuthorization.getProjectMemberProps as jest.Mock
+    ).mockResolvedValue(PROPS);
     (ToolImportProjectStateReader.readState as jest.Mock).mockResolvedValue(
       projectState(),
     );
@@ -739,19 +813,25 @@ describe("ToolImportRunExecutor: the worker imports, as the person", () => {
 
     await ToolImportRunExecutor.executeRun(new ObjectID(runId));
 
-    expect(WorkspaceActionAuthorization.getProjectMemberProps).toHaveBeenCalledWith(
-      { userId: expect.anything(), projectId: expect.anything() },
-    );
+    expect(
+      WorkspaceActionAuthorization.getProjectMemberProps,
+    ).toHaveBeenCalledWith({
+      userId: expect.anything(),
+      projectId: expect.anything(),
+    });
 
-    const input: Record<string, unknown> = (ToolImportApplier.apply as jest.Mock)
-      .mock.calls[0]![0] as Record<string, unknown>;
+    const input: Record<string, unknown> = (
+      ToolImportApplier.apply as jest.Mock
+    ).mock.calls[0]![0] as Record<string, unknown>;
 
     expect(input["props"]).toBe(PROPS);
     expect(input["selection"]).toEqual({
       selectedKeys: ["Person:alice"],
       inviteTeamId: TEAM_ID,
     });
-    expect((input["plan"] as ToolImportPlan).items[0]!.key).toBe("Person:alice");
+    expect((input["plan"] as ToolImportPlan).items[0]!.key).toBe(
+      "Person:alice",
+    );
 
     expect(runs.get(runId)).toMatchObject({
       status: ToolImportRunStatus.Completed,
@@ -767,16 +847,17 @@ describe("ToolImportRunExecutor: the worker imports, as the person", () => {
 
     await ToolImportRunExecutor.executeRun(new ObjectID(runId));
 
-    const input: Record<string, unknown> = (ToolImportApplier.apply as jest.Mock)
-      .mock.calls[0]![0] as Record<string, unknown>;
+    const input: Record<string, unknown> = (
+      ToolImportApplier.apply as jest.Mock
+    ).mock.calls[0]![0] as Record<string, unknown>;
 
     expect((input["selection"] as JSONObject)["inviteTeamId"]).toBeNull();
   });
 
   test("someone who left the project since is not imported for", async () => {
-    (WorkspaceActionAuthorization.getProjectMemberProps as jest.Mock).mockRejectedValue(
-      new NotAuthorizedException("not a member"),
-    );
+    (
+      WorkspaceActionAuthorization.getProjectMemberProps as jest.Mock
+    ).mockRejectedValue(new NotAuthorizedException("not a member"));
 
     const runId: string = importingRun(TEAM_ID);
 
@@ -785,7 +866,8 @@ describe("ToolImportRunExecutor: the worker imports, as the person", () => {
     expect(ToolImportApplier.apply).not.toHaveBeenCalled();
     expect(runs.get(runId)).toMatchObject({
       status: ToolImportRunStatus.Failed,
-      error: "You are no longer a member of this project, so the import was stopped.",
+      error:
+        "You are no longer a member of this project, so the import was stopped.",
       snapshot: null,
     });
   });
@@ -828,7 +910,9 @@ describe("ToolImportRunExecutor.sweepStaleRuns", () => {
     const oldPreview: string = runs.add({
       status: ToolImportRunStatus.ReadyToReview,
       snapshot: snapshot(),
-      updatedAt: new Date(now.getTime() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 1000),
+      updatedAt: new Date(
+        now.getTime() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 1000,
+      ),
     });
     const freshPreview: string = runs.add({
       status: ToolImportRunStatus.ReadyToReview,
@@ -873,10 +957,14 @@ describe("ToolImportRunExecutor: small rules", () => {
 
   test("a preview is old after a day", () => {
     const run: ToolImportRun = new ToolImportRun();
-    run.updatedAt = new Date(Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS + 60_000);
+    run.updatedAt = new Date(
+      Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS + 60_000,
+    );
     expect(ToolImportRunExecutor.isReviewExpired(run)).toBe(false);
 
-    run.updatedAt = new Date(Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 60_000);
+    run.updatedAt = new Date(
+      Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 60_000,
+    );
     expect(ToolImportRunExecutor.isReviewExpired(run)).toBe(true);
   });
 

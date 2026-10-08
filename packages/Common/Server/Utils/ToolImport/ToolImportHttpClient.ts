@@ -171,7 +171,10 @@ export default class ToolImportHttpClient {
    * GET `path` (relative to the tool's base URL) with `query`, and return
    * the parsed JSON body. Throws ToolImportHttpError.
    */
-  public async getJson(path: string, query?: ToolImportQuery): Promise<unknown> {
+  public async getJson(
+    path: string,
+    query?: ToolImportQuery,
+  ): Promise<unknown> {
     const url: string = this.buildUrl(path, query);
     let rateLimitRetries: number = 0;
     let failureRetries: number = 0;

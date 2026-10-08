@@ -168,9 +168,7 @@ export function cleanDescription(value: unknown): string | undefined {
 export function cleanEmail(value: unknown): string | null {
   const email: string = asString(value).toLowerCase();
 
-  return email && email.length <= 100 && EMAIL_SHAPE.test(email)
-    ? email
-    : null;
+  return email && email.length <= 100 && EMAIL_SHAPE.test(email) ? email : null;
 }
 
 // An ISO 8601 time, or null when the value is not a time.
@@ -241,10 +239,7 @@ export function capRecords<T>(data: {
   notes: Array<ToolImportNote>;
   hasMore?: boolean | undefined;
 }): Array<T> {
-  if (
-    data.records.length > TOOL_IMPORT_MAX_RECORDS_PER_KIND ||
-    data.hasMore
-  ) {
+  if (data.records.length > TOOL_IMPORT_MAX_RECORDS_PER_KIND || data.hasMore) {
     data.notes.push(
       makeToolImportNote(ToolImportNoteCode.ReadLimitReached, {
         kind: data.kind,

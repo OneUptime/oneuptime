@@ -197,13 +197,17 @@ export function readToolImportSelection(value: unknown): ToolImportSelection {
 
   for (const rawKey of rawKeys) {
     if (typeof rawKey !== "string" || rawKey.length > MAX_KEY_LENGTH) {
-      throw new BadDataException("An item that was chosen is not one of the import's.");
+      throw new BadDataException(
+        "An item that was chosen is not one of the import's.",
+      );
     }
 
     const kind: string = rawKey.split(":")[0] || "";
 
     if (!isToolImportResourceKind(kind) || rawKey.length <= kind.length + 1) {
-      throw new BadDataException("An item that was chosen is not one of the import's.");
+      throw new BadDataException(
+        "An item that was chosen is not one of the import's.",
+      );
     }
 
     if (!seen.has(rawKey)) {

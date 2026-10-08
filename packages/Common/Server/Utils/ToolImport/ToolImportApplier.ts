@@ -260,13 +260,15 @@ class ApplyRun {
          * same name): it names what that one became.
          */
         const first: ToolImportPlanItem | undefined =
-          this.input.plan.items.find((candidate: ToolImportPlanItem): boolean => {
-            return (
-              candidate.kind === item.kind &&
-              candidate.key !== item.key &&
-              item.references.includes(candidate.key)
-            );
-          });
+          this.input.plan.items.find(
+            (candidate: ToolImportPlanItem): boolean => {
+              return (
+                candidate.kind === item.kind &&
+                candidate.key !== item.key &&
+                item.references.includes(candidate.key)
+              );
+            },
+          );
 
         recordIds = first ? this.getResolved(first.kind, first.sourceId) : [];
         this.resolve(item.kind, item.sourceId, recordIds);
@@ -569,7 +571,14 @@ class ApplyRun {
 
     await this.complete(record);
     this.resolve(item.kind, item.sourceId, [teamId]);
-    this.report(item, ToolImportOutcome.Created, [teamId], undefined, null, notes);
+    this.report(
+      item,
+      ToolImportOutcome.Created,
+      [teamId],
+      undefined,
+      null,
+      notes,
+    );
   }
 
   // ---- Services.
@@ -734,12 +743,11 @@ class ApplyRun {
       );
     }
 
-    const created: IncidentCustomField = await IncidentCustomFieldService.create(
-      {
+    const created: IncidentCustomField =
+      await IncidentCustomFieldService.create({
         data: field,
         props: this.input.props,
-      },
-    );
+      });
 
     await this.finishSimple(item, created.id!);
   }
@@ -877,12 +885,16 @@ class ApplyRun {
         owner.onCallDutyPolicyScheduleId = created.id!;
         owner.teamId = new ObjectID(team.id);
 
-        await this.addPart(groupIndex === 0 ? notes : [], team.name, async () => {
-          await OnCallDutyPolicyScheduleOwnerTeamService.create({
-            data: owner,
-            props: this.input.props,
-          });
-        });
+        await this.addPart(
+          groupIndex === 0 ? notes : [],
+          team.name,
+          async () => {
+            await OnCallDutyPolicyScheduleOwnerTeamService.create({
+              data: owner,
+              props: this.input.props,
+            });
+          },
+        );
       }
 
       await this.complete(record);
@@ -906,7 +918,10 @@ class ApplyRun {
   // ---- Escalation policies.
 
   private async createPolicy(item: ToolImportPlanItem): Promise<void> {
-    const source: ImportedPolicy = this.find(this.input.snapshot.policies, item);
+    const source: ImportedPolicy = this.find(
+      this.input.snapshot.policies,
+      item,
+    );
     const notes: Array<ToolImportNote> = [];
     const maxLevels: number = this.input.isLimitedToOneLevelPerPolicy
       ? 1
@@ -917,28 +932,26 @@ class ApplyRun {
       userIds: Array<string>;
       teamIds: Array<string>;
       scheduleIds: Array<string>;
-    }> = source.levels
-      .slice(0, maxLevels)
-      .map((level: ImportedPolicyLevel) => {
-        return {
-          level: level,
-          userIds: this.resolveTargets(
-            ToolImportResourceKind.Person,
-            level.personSourceIds,
-            notes,
-          ),
-          teamIds: this.resolveTargets(
-            ToolImportResourceKind.Team,
-            level.teamSourceIds,
-            notes,
-          ),
-          scheduleIds: this.resolveTargets(
-            ToolImportResourceKind.OnCallSchedule,
-            level.scheduleSourceIds,
-            notes,
-          ),
-        };
-      });
+    }> = source.levels.slice(0, maxLevels).map((level: ImportedPolicyLevel) => {
+      return {
+        level: level,
+        userIds: this.resolveTargets(
+          ToolImportResourceKind.Person,
+          level.personSourceIds,
+          notes,
+        ),
+        teamIds: this.resolveTargets(
+          ToolImportResourceKind.Team,
+          level.teamSourceIds,
+          notes,
+        ),
+        scheduleIds: this.resolveTargets(
+          ToolImportResourceKind.OnCallSchedule,
+          level.scheduleSourceIds,
+          notes,
+        ),
+      };
+    });
 
     const pagesAnyone: boolean = levels.some(
       (level: {
@@ -947,7 +960,9 @@ class ApplyRun {
         scheduleIds: Array<string>;
       }): boolean => {
         return (
-          level.userIds.length + level.teamIds.length + level.scheduleIds.length >
+          level.userIds.length +
+            level.teamIds.length +
+            level.scheduleIds.length >
           0
         );
       },
@@ -997,7 +1012,9 @@ class ApplyRun {
       } = levels[index]!;
 
       if (
-        level.userIds.length + level.teamIds.length + level.scheduleIds.length ===
+        level.userIds.length +
+          level.teamIds.length +
+          level.scheduleIds.length ===
         0
       ) {
         notes.push(
@@ -1037,7 +1054,10 @@ class ApplyRun {
       order++;
     }
 
-    for (const team of this.resolveOwnerTeams(source.ownerTeamSourceIds, notes)) {
+    for (const team of this.resolveOwnerTeams(
+      source.ownerTeamSourceIds,
+      notes,
+    )) {
       const owner: OnCallDutyPolicyOwnerTeam = new OnCallDutyPolicyOwnerTeam();
       owner.projectId = this.input.projectId;
       owner.onCallDutyPolicyId = created.id!;
@@ -1085,8 +1105,8 @@ class ApplyRun {
     sourceId: string,
     recordIds: Array<string>,
   ): void {
-    const byKind: Map<string, Array<string>> =
-      this.resolved.get(kind) || new Map<string, Array<string>>();
+    const byKind: Map<string, Array<string>> = this.resolved.get(kind) ||
+    new Map<string, Array<string>>();
     const existing: Array<string> = byKind.get(sourceId) || [];
 
     for (const id of recordIds) {

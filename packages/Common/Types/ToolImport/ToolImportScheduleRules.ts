@@ -167,8 +167,9 @@ export function getRestrictionCoverage(
     to: number,
   ): void => {
     for (let minute: number = from; minute < to; minute++) {
-      coverage[((minute % MINUTES_PER_WEEK) + MINUTES_PER_WEEK) % MINUTES_PER_WEEK] =
-        1;
+      coverage[
+        ((minute % MINUTES_PER_WEEK) + MINUTES_PER_WEEK) % MINUTES_PER_WEEK
+      ] = 1;
     }
   };
 
@@ -357,8 +358,7 @@ export function isGroupSourceIdOf(
   scheduleSourceId: string,
 ): boolean {
   return (
-    sourceId === scheduleSourceId ||
-    sourceId.startsWith(`${scheduleSourceId}#`)
+    sourceId === scheduleSourceId || sourceId.startsWith(`${scheduleSourceId}#`)
   );
 }
 
@@ -566,7 +566,8 @@ export function getConcurrentLayerOrder(data: {
     return [];
   }
 
-  const turns: number = people.length / greatestCommonDivisor(people.length, count);
+  const turns: number =
+    people.length / greatestCommonDivisor(people.length, count);
   const order: Array<string> = [];
 
   for (let turn: number = 0; turn < turns; turn++) {

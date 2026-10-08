@@ -172,6 +172,28 @@ describe("ToolImportPlanner: people", () => {
     expect(item(result, "Person:member").action).toBe(ToolImportAction.Match);
     expect(result.inviteTeams).toEqual([]);
   });
+
+  test("with no team the person may add people to, nobody new is offered an invitation", () => {
+    const result: ToolImportPlan = plan(
+      {
+        people: [person("new"), person("member")],
+        teams: [team("t", "Platform", ["new"])],
+      },
+      projectState({
+        memberUserIdsByEmail: new Map([["member@example.com", "user-member"]]),
+      }),
+      fullAccess({ inviteTeams: [], defaultInviteTeamId: null }),
+    );
+
+    expect(item(result, "Person:new")).toMatchObject({
+      action: ToolImportAction.Skip,
+      isSelectable: false,
+      reason: { code: ToolImportNoteCode.PersonNotInvited },
+    });
+    expect(item(result, "Person:member").action).toBe(ToolImportAction.Match);
+    // The team still comes over, with the members who are in the project.
+    expect(item(result, "Team:t").action).toBe(ToolImportAction.Create);
+  });
 });
 
 describe("ToolImportPlanner: teams and other named records", () => {
@@ -331,7 +353,10 @@ describe("ToolImportPlanner: teams and other named records", () => {
 
   test("two items of a kind whose names are unique in a project: the second is matched to the first", () => {
     const result: ToolImportPlan = plan({
-      incidentSeverities: [severity("a", "Major", 1), severity("b", "major", 2)],
+      incidentSeverities: [
+        severity("a", "Major", 1),
+        severity("b", "major", 2),
+      ],
     });
 
     expect(item(result, "IncidentSeverity:a").action).toBe(
@@ -501,12 +526,7 @@ describe("ToolImportPlanner: escalation policies", () => {
     expect(item(result, "OnCallPolicy:p")).toMatchObject({
       action: ToolImportAction.Create,
       summary: { levelCount: 2, repeatTimes: 2 },
-      references: [
-        "OnCallSchedule:s",
-        "Person:a",
-        "Team:t",
-        "Team:owners",
-      ],
+      references: ["OnCallSchedule:s", "Person:a", "Team:t", "Team:owners"],
     });
   });
 
@@ -532,7 +552,10 @@ describe("ToolImportPlanner: escalation policies", () => {
     const result: ToolImportPlan = plan(
       {
         policies: [
-          policy("p", "Platform", [level({ people: ["a"] }), level({ people: ["b"] })]),
+          policy("p", "Platform", [
+            level({ people: ["a"] }),
+            level({ people: ["b"] }),
+          ]),
           policy("q", "One level", [level({ people: ["a"] })]),
         ],
       },
@@ -582,11 +605,36 @@ describe("ToolImportPlanner: incident settings", () => {
     const result: ToolImportPlan = plan(
       {
         incidentStates: [
-          incidentState("triage", "Triage", ImportedIncidentStateKind.Created, "triage"),
-          incidentState("live", "Fixing", ImportedIncidentStateKind.InProgress, "live"),
-          incidentState("ack", "acknowledged", ImportedIncidentStateKind.InProgress, "live"),
-          incidentState("closed", "Closed", ImportedIncidentStateKind.Resolved, "closed"),
-          incidentState("learn", "Post-incident", ImportedIncidentStateKind.NotNeeded, "learning"),
+          incidentState(
+            "triage",
+            "Triage",
+            ImportedIncidentStateKind.Created,
+            "triage",
+          ),
+          incidentState(
+            "live",
+            "Fixing",
+            ImportedIncidentStateKind.InProgress,
+            "live",
+          ),
+          incidentState(
+            "ack",
+            "acknowledged",
+            ImportedIncidentStateKind.InProgress,
+            "live",
+          ),
+          incidentState(
+            "closed",
+            "Closed",
+            ImportedIncidentStateKind.Resolved,
+            "closed",
+          ),
+          incidentState(
+            "learn",
+            "Post-incident",
+            ImportedIncidentStateKind.NotNeeded,
+            "learning",
+          ),
         ],
       },
       projectState({
@@ -689,7 +737,11 @@ describe("ToolImportPlanner: the plan as a whole", () => {
       people: [person("a")],
     });
 
-    expect(result.items.map((entry: ToolImportPlanItem) => entry.key)).toEqual([
+    expect(
+      result.items.map((entry: ToolImportPlanItem) => {
+        return entry.key;
+      }),
+    ).toEqual([
       "Person:a",
       "Team:t2",
       "Team:t1",
@@ -717,7 +769,9 @@ describe("ToolImportPlanner: the plan as a whole", () => {
         values: { kind: ToolImportResourceKind.Service },
       },
     ]);
-    expect(result.inviteTeams).toEqual([{ id: "team-members", name: "Members" }]);
+    expect(result.inviteTeams).toEqual([
+      { id: "team-members", name: "Members" },
+    ]);
     expect(result.defaultInviteTeamId).toBe("team-members");
   });
 
@@ -732,7 +786,9 @@ describe("ToolImportPlanner: the plan as a whole", () => {
 
     const result: ToolImportPlan = plan({ incidentSeverities: severities });
     const created: Array<ToolImportPlanItem> = result.items.filter(
-      (entry: ToolImportPlanItem) => entry.action === ToolImportAction.Create,
+      (entry: ToolImportPlanItem) => {
+        return entry.action === ToolImportAction.Create;
+      },
     );
 
     expect(created).toHaveLength(limit);
@@ -750,15 +806,17 @@ describe("ToolImportPlanner: the plan as a whole", () => {
     ];
 
     for (let index: number = 0; index < limit; index++) {
-      roles.push(role(`r${index}`, `Role ${index}`, ImportedIncidentRoleKind.Custom));
+      roles.push(
+        role(`r${index}`, `Role ${index}`, ImportedIncidentRoleKind.Custom),
+      );
     }
 
     const result: ToolImportPlan = plan({ incidentRoles: roles });
 
     expect(
-      result.items.filter(
-        (entry: ToolImportPlanItem) => entry.action === ToolImportAction.Create,
-      ),
+      result.items.filter((entry: ToolImportPlanItem) => {
+        return entry.action === ToolImportAction.Create;
+      }),
     ).toHaveLength(limit);
   });
 

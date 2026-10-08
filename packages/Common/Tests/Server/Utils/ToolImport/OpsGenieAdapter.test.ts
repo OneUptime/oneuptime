@@ -164,9 +164,9 @@ describe("OpsGenieAdapter: what an Opsgenie account becomes", () => {
 
     expect(api.callsTo(`/v2/teams/${PLATFORM_TEAM_ID}`)).toHaveLength(1);
     expect(
-      api.callsTo(`/v2/teams/${PLATFORM_TEAM_ID}`)[0]!.searchParams.get(
-        "identifierType",
-      ),
+      api
+        .callsTo(`/v2/teams/${PLATFORM_TEAM_ID}`)[0]!
+        .searchParams.get("identifierType"),
     ).toBe("id");
   });
 
@@ -197,10 +197,11 @@ describe("OpsGenieAdapter: what an Opsgenie account becomes", () => {
 
     const snapshot: ToolImportSnapshot = await read(api);
 
-    expect(snapshot.teams.map((team: { name: string }) => team.name)).toEqual([
-      "Platform",
-      "Payments",
-    ]);
+    expect(
+      snapshot.teams.map((team: { name: string }) => {
+        return team.name;
+      }),
+    ).toEqual(["Platform", "Payments"]);
     expect(snapshot.teams[1]!.memberSourceIds).toEqual([]);
     expect(snapshot.schedules).toHaveLength(2);
   });
@@ -276,7 +277,9 @@ describe("OpsGenieAdapter: what an Opsgenie account becomes", () => {
     );
 
     expect(
-      schedule.rotations.map((rotation: ImportedRotation) => rotation.name),
+      schedule.rotations.map((rotation: ImportedRotation) => {
+        return rotation.name;
+      }),
     ).toEqual(["Business hours", "After hours"]);
     expect(schedule.notes).toContainEqual({
       code: ToolImportNoteCode.RotationEnded,
@@ -291,7 +294,9 @@ describe("OpsGenieAdapter: what an Opsgenie account becomes", () => {
     );
 
     expect(schedule.isEnabled).toBe(false);
-    expect(codes(schedule.notes)).toContain(ToolImportNoteCode.TurnedOffInSource);
+    expect(codes(schedule.notes)).toContain(
+      ToolImportNoteCode.TurnedOffInSource,
+    );
     // An unknown zone is passed on as named: the preview says what it becomes.
     expect(schedule.timezone).toBe("Mars/Olympus_Mons");
     expect(schedule.ownerTeamSourceIds).toEqual([]);
@@ -348,7 +353,9 @@ describe("OpsGenieAdapter: what an Opsgenie account becomes", () => {
         query: { expand: "rotation" },
         answers: [
           json({
-            data: [{ id: "s-lazy", name: "Lazy", timezone: "UTC", enabled: true }],
+            data: [
+              { id: "s-lazy", name: "Lazy", timezone: "UTC", enabled: true },
+            ],
             took: 0.1,
             requestId: "r",
           }),
@@ -636,7 +643,9 @@ describe("OpsGenieAdapter: when Opsgenie says no", () => {
   test("a refused key stops the read with what to check, and never repeats the key", async () => {
     const api: FixtureApi = opsGenieApi().add({
       path: "/v2/account",
-      answers: [json(opsGenieError(401, `Key ${OPSGENIE_KEY} is invalid`), 401)],
+      answers: [
+        json(opsGenieError(401, `Key ${OPSGENIE_KEY} is invalid`), 401),
+      ],
     });
 
     let error: unknown = undefined;

@@ -73,8 +73,10 @@ export class ApplierWorld {
       IncidentCustomField: IncidentCustomFieldService,
       OnCallDutyPolicySchedule: OnCallDutyPolicyScheduleService,
       OnCallDutyPolicyScheduleLayer: OnCallDutyPolicyScheduleLayerService,
-      OnCallDutyPolicyScheduleLayerUser: OnCallDutyPolicyScheduleLayerUserService,
-      OnCallDutyPolicyScheduleOwnerTeam: OnCallDutyPolicyScheduleOwnerTeamService,
+      OnCallDutyPolicyScheduleLayerUser:
+        OnCallDutyPolicyScheduleLayerUserService,
+      OnCallDutyPolicyScheduleOwnerTeam:
+        OnCallDutyPolicyScheduleOwnerTeamService,
       OnCallDutyPolicy: OnCallDutyPolicyService,
       OnCallDutyPolicyEscalationRule: OnCallDutyPolicyEscalationRuleService,
       OnCallDutyPolicyOwnerTeam: OnCallDutyPolicyOwnerTeamService,

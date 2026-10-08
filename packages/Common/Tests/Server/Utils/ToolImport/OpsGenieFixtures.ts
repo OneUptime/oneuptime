@@ -337,7 +337,10 @@ export function opsGenieRoutes(): Array<FixtureRoute> {
         json(envelope(OPSGENIE_SCHEDULES, { expandable: ["rotation"] })),
       ],
     },
-    { path: "/v2/escalations", answers: [json(envelope(OPSGENIE_ESCALATIONS))] },
+    {
+      path: "/v2/escalations",
+      answers: [json(envelope(OPSGENIE_ESCALATIONS))],
+    },
     {
       path: "/v1/services",
       answers: [

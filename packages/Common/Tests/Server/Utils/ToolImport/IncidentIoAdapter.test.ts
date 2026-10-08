@@ -18,11 +18,16 @@ import {
 import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
 import {
   ImportedIncidentCustomField,
+  ImportedIncidentRole,
   ImportedIncidentRoleKind,
+  ImportedIncidentSeverity,
+  ImportedIncidentState,
   ImportedIncidentStateKind,
   ImportedPolicy,
+  ImportedPolicyLevel,
   ImportedRotation,
   ImportedSchedule,
+  ImportedService,
   ToolImportSnapshot,
 } from "../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
@@ -505,9 +510,11 @@ describe("IncidentIoAdapter: what an incident.io organisation becomes", () => {
 
     const policy: ImportedPolicy = (await read(api)).policies[0]!;
 
-    expect(policy.levels.map((level) => level.escalateAfterMinutes)).toEqual([
-      2, 30,
-    ]);
+    expect(
+      policy.levels.map((level: ImportedPolicyLevel) => {
+        return level.escalateAfterMinutes;
+      }),
+    ).toEqual([2, 30]);
     expect(codes(policy.notes)).toEqual([
       ToolImportNoteCode.PolicyWorkingHours,
       ToolImportNoteCode.PolicyLevelRepeats,
@@ -523,7 +530,7 @@ describe("IncidentIoAdapter: what an incident.io organisation becomes", () => {
     const snapshot: ToolImportSnapshot = await read();
 
     expect(
-      snapshot.incidentSeverities.map((severity) => {
+      snapshot.incidentSeverities.map((severity: ImportedIncidentSeverity) => {
         return [severity.name, severity.order];
       }),
     ).toEqual([
@@ -537,7 +544,7 @@ describe("IncidentIoAdapter: what an incident.io organisation becomes", () => {
     const snapshot: ToolImportSnapshot = await read();
 
     expect(
-      snapshot.incidentStates.map((state) => {
+      snapshot.incidentStates.map((state: ImportedIncidentState) => {
         return [state.name, state.kind, state.sourceCategory];
       }),
     ).toEqual([
@@ -554,7 +561,7 @@ describe("IncidentIoAdapter: what an incident.io organisation becomes", () => {
     const snapshot: ToolImportSnapshot = await read();
 
     expect(
-      snapshot.incidentRoles.map((role) => {
+      snapshot.incidentRoles.map((role: ImportedIncidentRole) => {
         return [role.name, role.kind, role.description];
       }),
     ).toEqual([
@@ -605,9 +612,9 @@ describe("IncidentIoAdapter: what an incident.io organisation becomes", () => {
 
     // A field whose choices come from the catalog has no options to read.
     expect(
-      api
-        .callsTo("/v1/custom_field_options")
-        .map((url: URL) => url.searchParams.get("custom_field_id")),
+      api.callsTo("/v1/custom_field_options").map((url: URL) => {
+        return url.searchParams.get("custom_field_id");
+      }),
     ).toEqual([AFFECTED_AREA_FIELD_ID, CUSTOMERS_FIELD_ID]);
   });
 
@@ -616,7 +623,7 @@ describe("IncidentIoAdapter: what an incident.io organisation becomes", () => {
     const snapshot: ToolImportSnapshot = await read(api);
 
     expect(
-      snapshot.services.map((service) => {
+      snapshot.services.map((service: ImportedService) => {
         return service.name;
       }),
     ).toEqual(["API", "Web app"]);
@@ -631,28 +638,31 @@ describe("IncidentIoAdapter: the requests it makes", () => {
 
     for (const request of api.requests) {
       expect(new URL(request.url).host).toBe(INCIDENT_IO_HOST);
-      expect(request.headers["Authorization"]).toBe(`Bearer ${INCIDENT_IO_KEY}`);
+      expect(request.headers["Authorization"]).toBe(
+        `Bearer ${INCIDENT_IO_KEY}`,
+      );
     }
   });
 
   test("lists are followed page by page through pagination_meta.after", async () => {
-    const api: FixtureApi = incidentIoApi()
-      .add({
-        path: "/v2/users",
-        answers: [
-          (_request: unknown, url: URL) => {
-            return url.searchParams.get("after") === "cursor-2"
-              ? json(page("users", INCIDENT_IO_USERS.slice(2)))
-              : json(page("users", INCIDENT_IO_USERS.slice(0, 2), "cursor-2"));
-          },
-        ],
-      });
+    const api: FixtureApi = incidentIoApi().add({
+      path: "/v2/users",
+      answers: [
+        (_request: unknown, url: URL) => {
+          return url.searchParams.get("after") === "cursor-2"
+            ? json(page("users", INCIDENT_IO_USERS.slice(2)))
+            : json(page("users", INCIDENT_IO_USERS.slice(0, 2), "cursor-2"));
+        },
+      ],
+    });
 
     const snapshot: ToolImportSnapshot = await read(api);
 
     expect(snapshot.people).toHaveLength(4);
     expect(
-      api.callsTo("/v2/users").map((url: URL) => url.searchParams.get("after")),
+      api.callsTo("/v2/users").map((url: URL) => {
+        return url.searchParams.get("after");
+      }),
     ).toEqual([null, "cursor-2"]);
   });
 

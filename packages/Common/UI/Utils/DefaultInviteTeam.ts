@@ -52,7 +52,6 @@ import ModelAPI, { ListResult } from "./ModelAPI/ModelAPI";
  * teams, a slow server - only means nothing is picked.
  */
 
-
 /*
  * Long enough for the two small lists below on a slow connection, short
  * enough that a form never feels stuck: past it the form opens with nothing

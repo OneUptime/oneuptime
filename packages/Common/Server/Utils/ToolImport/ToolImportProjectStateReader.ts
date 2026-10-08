@@ -139,9 +139,9 @@ export default class ToolImportProjectStateReader {
       Array<ToolImportExistingRecord>
     > = new Map<ToolImportResourceKind, Array<ToolImportExistingRecord>>();
 
-    for (const [kind, target] of Object.entries(TOOL_IMPORT_KIND_TARGETS) as Array<
-      [ToolImportResourceKind, KindTarget]
-    >) {
+    for (const [kind, target] of Object.entries(
+      TOOL_IMPORT_KIND_TARGETS,
+    ) as Array<[ToolImportResourceKind, KindTarget]>) {
       existingByKind.set(
         kind,
         await this.readNamedRecords(target.service, data.projectId),
@@ -172,9 +172,13 @@ export default class ToolImportProjectStateReader {
     });
 
     const toExisting: (
-      record: { _id?: string | undefined; name?: string | undefined } | undefined,
+      record:
+        | { _id?: string | undefined; name?: string | undefined }
+        | undefined,
     ) => ToolImportExistingRecord | null = (
-      record: { _id?: string | undefined; name?: string | undefined } | undefined,
+      record:
+        | { _id?: string | undefined; name?: string | undefined }
+        | undefined,
     ): ToolImportExistingRecord | null => {
       return record?._id
         ? { id: record._id.toString(), name: record.name || "" }
@@ -270,7 +274,10 @@ export default class ToolImportProjectStateReader {
     projectId: ObjectID;
     source: ToolImportSource;
     memberUserIds: Set<string>;
-    existingByKind: Map<ToolImportResourceKind, Array<ToolImportExistingRecord>>;
+    existingByKind: Map<
+      ToolImportResourceKind,
+      Array<ToolImportExistingRecord>
+    >;
   }): Promise<Array<ToolImportPreviousRecord>> {
     const records: Array<ToolImportRecord> =
       await ToolImportRecordService.findBy({
@@ -342,9 +349,9 @@ export default class ToolImportProjectStateReader {
     const createRefusals: Map<ToolImportResourceKind, ToolImportNote | null> =
       new Map<ToolImportResourceKind, ToolImportNote | null>();
 
-    for (const [kind, target] of Object.entries(TOOL_IMPORT_KIND_TARGETS) as Array<
-      [ToolImportResourceKind, KindTarget]
-    >) {
+    for (const [kind, target] of Object.entries(
+      TOOL_IMPORT_KIND_TARGETS,
+    ) as Array<[ToolImportResourceKind, KindTarget]>) {
       createRefusals.set(
         kind,
         this.getCreateRefusal(target.createModels, data.props),
@@ -373,10 +380,12 @@ export default class ToolImportProjectStateReader {
       });
     }
 
-    const inviteTeams: { teams: Array<ToolImportInviteTeam>; defaultId: string | null } =
-      inviteRefusal
-        ? { teams: [], defaultId: null }
-        : await this.readInviteTeams(data);
+    const inviteTeams: {
+      teams: Array<ToolImportInviteTeam>;
+      defaultId: string | null;
+    } = inviteRefusal
+      ? { teams: [], defaultId: null }
+      : await this.readInviteTeams(data);
 
     return {
       createRefusals: createRefusals,
@@ -436,7 +445,10 @@ export default class ToolImportProjectStateReader {
   private static async readInviteTeams(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<{ teams: Array<ToolImportInviteTeam>; defaultId: string | null }> {
+  }): Promise<{
+    teams: Array<ToolImportInviteTeam>;
+    defaultId: string | null;
+  }> {
     const teams: Array<Team> = await TeamService.findBy({
       query: { projectId: data.projectId },
       select: { _id: true, name: true, createdAt: true },
@@ -468,7 +480,9 @@ export default class ToolImportProjectStateReader {
 
     const grantable: Array<InviteTeam> = teams
       .filter((team: Team): boolean => {
-        return Boolean(team.id) && !refused.has(team.id!.toString().toLowerCase());
+        return (
+          Boolean(team.id) && !refused.has(team.id!.toString().toLowerCase())
+        );
       })
       .map((team: Team): InviteTeam => {
         return { id: team.id!.toString(), name: team.name || "" };

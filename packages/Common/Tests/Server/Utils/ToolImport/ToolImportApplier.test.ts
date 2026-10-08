@@ -44,7 +44,7 @@ import {
   ToolImportSnapshot,
 } from "../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
-import { ApplierWorld } from "./ToolImportApplierWorld";
+import { ApplierWorld, RecordedCreate } from "./ToolImportApplierWorld";
 import {
   AFTER_HOURS,
   BUSINESS_HOURS,
@@ -129,7 +129,12 @@ function account(): ToolImportSnapshot {
     ],
     incidentSeverities: [severity("critical", "SEV1", 1)],
     incidentStates: [
-      incidentState("fixing", "Fixing", ImportedIncidentStateKind.InProgress, "live"),
+      incidentState(
+        "fixing",
+        "Fixing",
+        ImportedIncidentStateKind.InProgress,
+        "live",
+      ),
     ],
     incidentRoles: [
       role("comms", "Communications", ImportedIncidentRoleKind.Custom),
@@ -178,8 +183,12 @@ async function runImport(data: {
   const selected: Array<string> = data.selectedKeys
     ? data.selectedKeys(plan)
     : plan.items
-        .filter((item: ToolImportPlanItem) => item.isSelectable)
-        .map((item: ToolImportPlanItem) => item.key);
+        .filter((item: ToolImportPlanItem) => {
+          return item.isSelectable;
+        })
+        .map((item: ToolImportPlanItem) => {
+          return item.key;
+        });
 
   const progress: Array<ToolImportProgress> = [];
 
@@ -205,9 +214,14 @@ async function runImport(data: {
   return { report, plan, progress };
 }
 
-function outcomeOf(report: ToolImportReport, key: string): ToolImportReportItem {
+function outcomeOf(
+  report: ToolImportReport,
+  key: string,
+): ToolImportReportItem {
   const found: ToolImportReportItem | undefined = report.items.find(
-    (item: ToolImportReportItem) => item.key === key,
+    (item: ToolImportReportItem) => {
+      return item.key === key;
+    },
   );
 
   if (!found) {
@@ -228,8 +242,10 @@ describe("ToolImportApplier: a whole import", () => {
 
     const invites: Array<{ email: unknown; teamId: string | undefined }> = world
       .createsOf("TeamMember")
-      .filter((create) => create.miscDataProps?.["email"])
-      .map((create) => {
+      .filter((create: RecordedCreate) => {
+        return create.miscDataProps?.["email"];
+      })
+      .map((create: RecordedCreate) => {
         return {
           email: create.miscDataProps?.["email"],
           name: create.miscDataProps?.["name"],
@@ -276,8 +292,12 @@ describe("ToolImportApplier: a whole import", () => {
 
     const members: Array<string | undefined> = world
       .createsOf("TeamMember")
-      .filter((create) => !create.miscDataProps)
-      .map((create) => (create.data as TeamMember).userId?.toString());
+      .filter((create: RecordedCreate) => {
+        return !create.miscDataProps;
+      })
+      .map((create: RecordedCreate) => {
+        return (create.data as TeamMember).userId?.toString();
+      });
 
     expect(members).toEqual([
       world.userIdFor("alice@example.com"),
@@ -287,7 +307,9 @@ describe("ToolImportApplier: a whole import", () => {
 
     for (const member of world
       .createsOf("TeamMember")
-      .filter((create) => !create.miscDataProps)) {
+      .filter((create: RecordedCreate) => {
+        return !create.miscDataProps;
+      })) {
       expect((member.data as TeamMember).teamId?.toString()).toBe(
         created.id!.toString(),
       );
@@ -307,19 +329,21 @@ describe("ToolImportApplier: a whole import", () => {
     const schedules: Array<OnCallDutyPolicySchedule> =
       world.dataOf<OnCallDutyPolicySchedule>("OnCallDutyPolicySchedule");
 
-    expect(schedules.map((created) => created.name)).toEqual([
-      "Primary",
-      "Primary (shadow)",
-      "Hours",
-    ]);
+    expect(
+      schedules.map((created: OnCallDutyPolicySchedule) => {
+        return created.name;
+      }),
+    ).toEqual(["Primary", "Primary (shadow)", "Hours"]);
     expect(schedules[0]!.timezone).toBe("Europe/Istanbul");
     expect(schedules[2]!.timezone).toBe("Europe/London");
 
     const layers: Array<OnCallDutyPolicyScheduleLayer> =
-      world.dataOf<OnCallDutyPolicyScheduleLayer>("OnCallDutyPolicyScheduleLayer");
+      world.dataOf<OnCallDutyPolicyScheduleLayer>(
+        "OnCallDutyPolicyScheduleLayer",
+      );
 
     expect(
-      layers.map((layer) => {
+      layers.map((layer: OnCallDutyPolicyScheduleLayer) => {
         return {
           schedule: layer.onCallDutyPolicyScheduleId?.toString(),
           name: layer.name,
@@ -363,12 +387,15 @@ describe("ToolImportApplier: a whole import", () => {
       layer: OnCallDutyPolicyScheduleLayer,
     ) => {
       return layerUsers
-        .filter(
-          (user) =>
+        .filter((user: OnCallDutyPolicyScheduleLayerUser) => {
+          return (
             user.onCallDutyPolicyScheduleLayerId?.toString() ===
-            layer.id!.toString(),
-        )
-        .map((user) => [user.userId?.toString(), user.order]);
+            layer.id!.toString()
+          );
+        })
+        .map((user: OnCallDutyPolicyScheduleLayerUser) => {
+          return [user.userId?.toString(), user.order];
+        });
     };
 
     expect(usersOf(layers[0]!)).toEqual([
@@ -394,7 +421,7 @@ describe("ToolImportApplier: a whole import", () => {
     const teamId: string = world.dataOf<Team>("Team")[0]!.id!.toString();
     const owners: Array<Record<string, unknown>> = world
       .dataOf("OnCallDutyPolicyScheduleOwnerTeam")
-      .map((owner) => {
+      .map((owner: unknown) => {
         return {
           schedule: (
             owner as unknown as { onCallDutyPolicyScheduleId: ObjectID }
@@ -423,19 +450,21 @@ describe("ToolImportApplier: a whole import", () => {
     expect(created.repeatPolicyIfNoOneAcknowledges).toBe(true);
     expect(created.repeatPolicyIfNoOneAcknowledgesNoOfTimes).toBe(2);
 
-    const rules = world.createsOf("OnCallDutyPolicyEscalationRule");
+    const rules: Array<RecordedCreate> = world.createsOf(
+      "OnCallDutyPolicyEscalationRule",
+    );
     const schedules: Array<OnCallDutyPolicySchedule> =
       world.dataOf<OnCallDutyPolicySchedule>("OnCallDutyPolicySchedule");
     const teamId: string = world.dataOf<Team>("Team")[0]!.id!.toString();
 
     const ids: (value: unknown) => Array<string> = (value: unknown) => {
-      return ((value as Array<ObjectID>) || []).map((id: ObjectID) =>
-        id.toString(),
-      );
+      return ((value as Array<ObjectID>) || []).map((id: ObjectID) => {
+        return id.toString();
+      });
     };
 
     expect(
-      rules.map((rule) => {
+      rules.map((rule: RecordedCreate) => {
         const data: OnCallDutyPolicyEscalationRule =
           rule.data as OnCallDutyPolicyEscalationRule;
 
@@ -481,7 +510,8 @@ describe("ToolImportApplier: a whole import", () => {
     const world: ApplierWorld = new ApplierWorld();
     await runImport({});
 
-    const createdService: ServiceModel = world.dataOf<ServiceModel>("Service")[0]!;
+    const createdService: ServiceModel =
+      world.dataOf<ServiceModel>("Service")[0]!;
     expect(createdService.name).toBe("Checkout");
     expect(createdService.description).toBe("Takes the money");
     expect(world.dataOf("ServiceOwnerTeam")).toHaveLength(1);
@@ -503,7 +533,8 @@ describe("ToolImportApplier: a whole import", () => {
     expect(createdState.order).toBeUndefined();
     expect(createdState.color?.toString()).toMatch(/^#[0-9a-f]{6}$/i);
 
-    const createdRole: IncidentRole = world.dataOf<IncidentRole>("IncidentRole")[0]!;
+    const createdRole: IncidentRole =
+      world.dataOf<IncidentRole>("IncidentRole")[0]!;
     expect(createdRole).toMatchObject({
       name: "Communications",
       isPrimaryRole: false,
@@ -511,8 +542,9 @@ describe("ToolImportApplier: a whole import", () => {
       canAssignMultipleUsers: false,
     });
 
-    const createdField: IncidentCustomField =
-      world.dataOf<IncidentCustomField>("IncidentCustomField")[0]!;
+    const createdField: IncidentCustomField = world.dataOf<IncidentCustomField>(
+      "IncidentCustomField",
+    )[0]!;
     expect(createdField).toMatchObject({
       name: "Affected Area",
       customFieldType: CustomFieldType.Dropdown,
@@ -524,9 +556,12 @@ describe("ToolImportApplier: a whole import", () => {
     const world: ApplierWorld = new ApplierWorld();
     await runImport({});
 
-    const order: Array<string> = world.creates.map((create) => create.service);
-    const first: (service: string) => number = (service: string) =>
-      order.indexOf(service);
+    const order: Array<string> = world.creates.map((create: RecordedCreate) => {
+      return create.service;
+    });
+    const first: (service: string) => number = (service: string) => {
+      return order.indexOf(service);
+    };
 
     expect(first("TeamMember")).toBe(0);
     expect(first("Team")).toBeLessThan(first("Service"));
@@ -571,9 +606,9 @@ describe("ToolImportApplier: a whole import", () => {
     new ApplierWorld();
     const { progress, plan } = await runImport({});
 
-    const total: number = plan.items.filter(
-      (item: ToolImportPlanItem) => item.isSelectable,
-    ).length;
+    const total: number = plan.items.filter((item: ToolImportPlanItem) => {
+      return item.isSelectable;
+    }).length;
 
     expect(progress[0]).toEqual({ done: 0, total: total, kind: undefined });
     expect(progress[progress.length - 1]!.done).toBe(total);
@@ -591,9 +626,15 @@ describe("ToolImportApplier: what was not ticked, and what was not brought over"
     const { report } = await runImport({
       selectedKeys: (plan: ToolImportPlan) => {
         return plan.items
-          .filter((item: ToolImportPlanItem) => item.isSelectable)
-          .map((item: ToolImportPlanItem) => item.key)
-          .filter((key: string) => key !== "Person:bob" && key !== "OnCallSchedule:primary");
+          .filter((item: ToolImportPlanItem) => {
+            return item.isSelectable;
+          })
+          .map((item: ToolImportPlanItem) => {
+            return item.key;
+          })
+          .filter((key: string) => {
+            return key !== "Person:bob" && key !== "OnCallSchedule:primary";
+          });
       },
     });
 
@@ -602,12 +643,21 @@ describe("ToolImportApplier: what was not ticked, and what was not brought over"
       reason: { code: ToolImportNoteCode.NotSelected },
     });
     expect(outcomeOf(report, "Team:platform").notes).toEqual([
-      { code: ToolImportNoteCode.PersonLeftOut, values: { name: "bob@example.com" } },
+      {
+        code: ToolImportNoteCode.PersonLeftOut,
+        values: { name: "bob@example.com" },
+      },
     ]);
     expect(outcomeOf(report, "OnCallPolicy:escalation").notes).toEqual(
       expect.arrayContaining([
-        { code: ToolImportNoteCode.ScheduleLeftOut, values: { name: "Primary" } },
-        { code: ToolImportNoteCode.PersonLeftOut, values: { name: "bob@example.com" } },
+        {
+          code: ToolImportNoteCode.ScheduleLeftOut,
+          values: { name: "Primary" },
+        },
+        {
+          code: ToolImportNoteCode.PersonLeftOut,
+          values: { name: "bob@example.com" },
+        },
         { code: ToolImportNoteCode.PolicyLevelLeftOut, values: { level: 1 } },
       ]),
     );
@@ -626,20 +676,31 @@ describe("ToolImportApplier: what was not ticked, and what was not brought over"
     const { report } = await runImport({ inviteTeamId: null });
 
     expect(
-      world.createsOf("TeamMember").filter((create) => create.miscDataProps),
+      world.createsOf("TeamMember").filter((create: RecordedCreate) => {
+        return create.miscDataProps;
+      }),
     ).toEqual([]);
     expect(outcomeOf(report, "Person:alice")).toMatchObject({
       outcome: ToolImportOutcome.Skipped,
       reason: { code: ToolImportNoteCode.PersonNotInvited },
     });
 
-    const hours: ToolImportReportItem = outcomeOf(report, "OnCallSchedule:hours");
+    const hours: ToolImportReportItem = outcomeOf(
+      report,
+      "OnCallSchedule:hours",
+    );
 
     expect(hours.outcome).toBe(ToolImportOutcome.Created);
     expect(hours.notes).toEqual(
       expect.arrayContaining([
-        { code: ToolImportNoteCode.RotationNobody, values: { rotation: "business" } },
-        { code: ToolImportNoteCode.RotationNobody, values: { rotation: "after" } },
+        {
+          code: ToolImportNoteCode.RotationNobody,
+          values: { rotation: "business" },
+        },
+        {
+          code: ToolImportNoteCode.RotationNobody,
+          values: { rotation: "after" },
+        },
       ]),
     );
 
@@ -647,7 +708,9 @@ describe("ToolImportApplier: what was not ticked, and what was not brought over"
     expect(
       world
         .dataOf<OnCallDutyPolicyScheduleLayer>("OnCallDutyPolicyScheduleLayer")
-        .map((layer) => layer.name),
+        .map((layer: OnCallDutyPolicyScheduleLayer) => {
+          return layer.name;
+        }),
     ).toEqual(["shadow"]);
   });
 
@@ -659,13 +722,20 @@ describe("ToolImportApplier: what was not ticked, and what was not brought over"
         policies: [policy("lonely", "Lonely", [level({ people: ["ghost"] })])],
       }),
       state: projectState(),
-      selectedKeys: () => ["OnCallPolicy:lonely"],
+      selectedKeys: () => {
+        return ["OnCallPolicy:lonely"];
+      },
     });
 
     expect(outcomeOf(report, "OnCallPolicy:lonely")).toMatchObject({
       outcome: ToolImportOutcome.Skipped,
       reason: { code: ToolImportNoteCode.NothingToPage },
-      notes: [{ code: ToolImportNoteCode.PersonLeftOut, values: { name: "ghost@example.com" } }],
+      notes: [
+        {
+          code: ToolImportNoteCode.PersonLeftOut,
+          values: { name: "ghost@example.com" },
+        },
+      ],
     });
     expect(world.createsOf("OnCallDutyPolicy")).toEqual([]);
   });
@@ -693,17 +763,23 @@ describe("ToolImportApplier: what was not ticked, and what was not brought over"
       }),
     });
 
-    const rule = world.createsOf("OnCallDutyPolicyEscalationRule")[0]!;
+    const rule: RecordedCreate = world.createsOf(
+      "OnCallDutyPolicyEscalationRule",
+    )[0]!;
 
     expect(
       (rule.miscDataProps?.["onCallSchedules"] as Array<ObjectID>).map(
-        (id: ObjectID) => id.toString(),
+        (id: ObjectID) => {
+          return id.toString();
+        },
       ),
     ).toEqual([existingScheduleId]);
     expect(
       world
         .dataOf<OnCallDutyPolicySchedule>("OnCallDutyPolicySchedule")
-        .map((created) => created.name),
+        .map((created: OnCallDutyPolicySchedule) => {
+          return created.name;
+        }),
     ).toEqual(["Hours"]);
   });
 
@@ -711,7 +787,10 @@ describe("ToolImportApplier: what was not ticked, and what was not brought over"
     const world: ApplierWorld = new ApplierWorld();
     const { report } = await runImport({
       snapshot: snapshot({
-        incidentSeverities: [severity("a", "Major", 1), severity("b", "MAJOR", 2)],
+        incidentSeverities: [
+          severity("a", "Major", 1),
+          severity("b", "MAJOR", 2),
+        ],
       }),
       state: projectState(),
     });
@@ -779,7 +858,7 @@ describe("ToolImportApplier: when OneUptime refuses", () => {
   test("someone invited by somebody else while the import ran is matched, not failed", async () => {
     const world: ApplierWorld = new ApplierWorld().refuse(
       "TeamMember",
-      (data) => {
+      (data: unknown): Error | null => {
         return (data as TeamMember).userId
           ? null
           : new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
@@ -790,7 +869,9 @@ describe("ToolImportApplier: when OneUptime refuses", () => {
     const { report } = await runImport({
       snapshot: snapshot({ people: [person("alice")] }),
       state: projectState(),
-      selectedKeys: () => ["Person:alice"],
+      selectedKeys: () => {
+        return ["Person:alice"];
+      },
     });
 
     expect(outcomeOf(report, "Person:alice")).toMatchObject({
@@ -808,7 +889,9 @@ describe("ToolImportApplier: when OneUptime refuses", () => {
     const { report } = await runImport({
       snapshot: snapshot({ people: [person("alice")] }),
       state: projectState(),
-      selectedKeys: () => ["Person:alice"],
+      selectedKeys: () => {
+        return ["Person:alice"];
+      },
     });
 
     expect(outcomeOf(report, "Person:alice")).toMatchObject({
@@ -864,7 +947,9 @@ describe("ToolImportApplier: never twice", () => {
         world.createsOf("OnCallDutyPolicyEscalationRule")[1]!.miscDataProps?.[
           "teams"
         ] as Array<ObjectID>
-      ).map((id: ObjectID) => id.toString()),
+      ).map((id: ObjectID) => {
+        return id.toString();
+      }),
     ).toEqual([teamId]);
   });
 
@@ -887,7 +972,9 @@ describe("ToolImportApplier: never twice", () => {
     expect(
       world
         .dataOf<OnCallDutyPolicySchedule>("OnCallDutyPolicySchedule")
-        .map((created) => created.name),
+        .map((created: OnCallDutyPolicySchedule) => {
+          return created.name;
+        }),
     ).toEqual(["Primary", "Primary (shadow)"]);
   });
 
@@ -956,11 +1043,12 @@ describe("ToolImportApplier: never twice", () => {
     });
 
     expect(
-      secondPlan.items.filter(
-        (item: ToolImportPlanItem) =>
+      secondPlan.items.filter((item: ToolImportPlanItem) => {
+        return (
           item.action === ToolImportAction.Create ||
-          item.action === ToolImportAction.Invite,
-      ),
+          item.action === ToolImportAction.Invite
+        );
+      }),
     ).toEqual([]);
 
     jest.restoreAllMocks();
@@ -971,11 +1059,12 @@ describe("ToolImportApplier: never twice", () => {
     expect(second.creates).toEqual([]);
     expect(
       secondRun.report.items
-        .filter((item: ToolImportReportItem) => item.kind !== ToolImportResourceKind.Person)
-        .every(
-          (item: ToolImportReportItem) =>
-            item.outcome === ToolImportOutcome.AlreadyImported,
-        ),
+        .filter((item: ToolImportReportItem) => {
+          return item.kind !== ToolImportResourceKind.Person;
+        })
+        .every((item: ToolImportReportItem) => {
+          return item.outcome === ToolImportOutcome.AlreadyImported;
+        }),
     ).toBe(true);
   });
 });

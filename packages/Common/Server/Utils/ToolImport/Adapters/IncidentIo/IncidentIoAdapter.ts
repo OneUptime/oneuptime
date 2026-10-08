@@ -448,8 +448,10 @@ export default class IncidentIoAdapter implements ToolImportAdapter {
 
       const scheduleNotes: Array<ToolImportNote> = [];
       const rotations: Array<ImportedRotation> = [];
-      const versionsById: Map<string, Array<Record<string, unknown>>> =
-        new Map<string, Array<Record<string, unknown>>>();
+      const versionsById: Map<string, Array<Record<string, unknown>>> = new Map<
+        string,
+        Array<Record<string, unknown>>
+      >();
 
       for (const rawRotation of asArray(
         asRecord(schedule["config"])["rotations"],
@@ -608,11 +610,11 @@ export default class IncidentIoAdapter implements ToolImportAdapter {
         : asArray(current["working_interval"]),
     );
 
-    const layers: Array<Record<string, unknown>> = asArray(current["layers"]).map(
-      (layer: unknown): Record<string, unknown> => {
-        return asRecord(layer);
-      },
-    );
+    const layers: Array<Record<string, unknown>> = asArray(
+      current["layers"],
+    ).map((layer: unknown): Record<string, unknown> => {
+      return asRecord(layer);
+    });
 
     if (layers.length <= 1) {
       return [
@@ -672,9 +674,7 @@ export default class IncidentIoAdapter implements ToolImportAdapter {
    * else one weekly window per interval. An interval that ends before it
    * starts runs past midnight into the next day.
    */
-  private toRestriction(
-    intervals: Array<unknown>,
-  ): ImportedRestriction | null {
+  private toRestriction(intervals: Array<unknown>): ImportedRestriction | null {
     const windows: Array<ImportedWeeklyWindow> = [];
 
     for (const rawInterval of intervals) {
@@ -810,9 +810,11 @@ export default class IncidentIoAdapter implements ToolImportAdapter {
         return asRecord(type);
       })
       .filter((type: Record<string, unknown>): boolean => {
-        return asArray(type["categories"]).some((category: unknown): boolean => {
-          return asString(category).toLowerCase() === "service";
-        });
+        return asArray(type["categories"]).some(
+          (category: unknown): boolean => {
+            return asString(category).toLowerCase() === "service";
+          },
+        );
       });
 
     const services: Array<ImportedService> = [];
@@ -881,8 +883,13 @@ export default class IncidentIoAdapter implements ToolImportAdapter {
         return Boolean(asString(raw["id"]));
       })
       .sort(
-        (first: Record<string, unknown>, second: Record<string, unknown>): number => {
-          return (asNumber(second["rank"]) || 0) - (asNumber(first["rank"]) || 0);
+        (
+          first: Record<string, unknown>,
+          second: Record<string, unknown>,
+        ): number => {
+          return (
+            (asNumber(second["rank"]) || 0) - (asNumber(first["rank"]) || 0)
+          );
         },
       );
 
@@ -917,13 +924,21 @@ export default class IncidentIoAdapter implements ToolImportAdapter {
         return Boolean(asString(raw["id"]));
       })
       .sort(
-        (first: Record<string, unknown>, second: Record<string, unknown>): number => {
-          return (asNumber(first["rank"]) || 0) - (asNumber(second["rank"]) || 0);
+        (
+          first: Record<string, unknown>,
+          second: Record<string, unknown>,
+        ): number => {
+          return (
+            (asNumber(first["rank"]) || 0) - (asNumber(second["rank"]) || 0)
+          );
         },
       );
 
     return raws.map(
-      (status: Record<string, unknown>, index: number): ImportedIncidentState => {
+      (
+        status: Record<string, unknown>,
+        index: number,
+      ): ImportedIncidentState => {
         const category: string = asString(status["category"]).toLowerCase();
 
         return {
@@ -989,7 +1004,9 @@ export default class IncidentIoAdapter implements ToolImportAdapter {
     for (const field of raws) {
       const sourceId: string = asString(field["id"]);
       const type: string = asString(field["field_type"]).toLowerCase();
-      const isFromCatalog: boolean = Boolean(asString(field["catalog_type_id"]));
+      const isFromCatalog: boolean = Boolean(
+        asString(field["catalog_type_id"]),
+      );
       const fieldType: CustomFieldType | null = toCustomFieldType(type);
       const notes: Array<ToolImportNote> = [];
       let options: Array<string> = [];
@@ -1190,7 +1207,11 @@ class PathFlattener {
 
         const toNode: string = asString(repeat["to_node"]);
 
-        if (toNode && this.firstLevelNodeId && toNode !== this.firstLevelNodeId) {
+        if (
+          toNode &&
+          this.firstLevelNodeId &&
+          toNode !== this.firstLevelNodeId
+        ) {
           this.note(ToolImportNoteCode.PolicyRepeatsFromLater);
         }
 

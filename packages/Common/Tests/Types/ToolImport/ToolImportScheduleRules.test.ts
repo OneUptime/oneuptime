@@ -103,9 +103,12 @@ describe("ToolImportScheduleRules: times of day, days and zones", () => {
     ["24:00", 1440],
     ["09:00:30", 540],
     [" 17:30 ", 1050],
-  ] as Array<[string, number]>)("%s is %i minutes", (text: string, minutes: number) => {
-    expect(parseTimeOfDay(text)).toBe(minutes);
-  });
+  ] as Array<[string, number]>)(
+    "%s is %i minutes",
+    (text: string, minutes: number) => {
+      expect(parseTimeOfDay(text)).toBe(minutes);
+    },
+  );
 
   test.each(["24:01", "25:00", "12:60", "noon", "", "-1:00"])(
     "%j is not a time",
@@ -227,7 +230,9 @@ describe("ToolImportScheduleRules: how a schedule's rotations share OneUptime sc
 
     expect(
       groups.map((group: Array<ImportedRotation>) => {
-        return group.map((item: ImportedRotation) => item.name);
+        return group.map((item: ImportedRotation) => {
+          return item.name;
+        });
       }),
     ).toEqual([["Business", "After"]]);
   });
@@ -240,7 +245,9 @@ describe("ToolImportScheduleRules: how a schedule's rotations share OneUptime sc
 
     expect(
       groups.map((group: Array<ImportedRotation>) => {
-        return group.map((item: ImportedRotation) => item.name);
+        return group.map((item: ImportedRotation) => {
+          return item.name;
+        });
       }),
     ).toEqual([["Primary"], ["Shadow"]]);
   });
@@ -254,7 +261,9 @@ describe("ToolImportScheduleRules: how a schedule's rotations share OneUptime sc
 
     expect(
       groups.map((group: Array<ImportedRotation>) => {
-        return group.map((item: ImportedRotation) => item.name);
+        return group.map((item: ImportedRotation) => {
+          return item.name;
+        });
       }),
     ).toEqual([["Business", "After"], ["Always"]]);
   });
@@ -278,9 +287,14 @@ describe("ToolImportScheduleRules: how a schedule's rotations share OneUptime sc
     const groups: Array<Array<ImportedRotation>> =
       groupRotationsIntoSchedules(hourly);
 
-    expect(groups.map((group: Array<ImportedRotation>) => group.length)).toEqual(
-      [TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE, 24 - TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE],
-    );
+    expect(
+      groups.map((group: Array<ImportedRotation>) => {
+        return group.length;
+      }),
+    ).toEqual([
+      TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE,
+      24 - TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE,
+    ]);
   });
 
   test("the first schedule keeps the name; the others add the rotation's", () => {
@@ -533,15 +547,17 @@ describe("ToolImportScheduleRules: the layer, through the on-call engine", () =>
   }
 
   test("the layer starts when the rotation started and hands off one turn later", () => {
-    const layer: OnCallDutyPolicyScheduleLayer = buildLayerFromImportedRotation({
-      rotation: rotation({ name: "Weekly" }),
-      scheduleId: SCHEDULE_ID,
-      projectId: PROJECT_ID,
-      name: "Weekly",
-      order: 2,
-      timezone: ZONE,
-      reference: new Date("2026-10-08T12:00:00Z"),
-    });
+    const layer: OnCallDutyPolicyScheduleLayer = buildLayerFromImportedRotation(
+      {
+        rotation: rotation({ name: "Weekly" }),
+        scheduleId: SCHEDULE_ID,
+        projectId: PROJECT_ID,
+        name: "Weekly",
+        order: 2,
+        timezone: ZONE,
+        reference: new Date("2026-10-08T12:00:00Z"),
+      },
+    );
 
     expect(layer.name).toBe("Weekly");
     expect(layer.order).toBe(2);
@@ -556,18 +572,20 @@ describe("ToolImportScheduleRules: the layer, through the on-call engine", () =>
   });
 
   test("the person on call now is the one whose turn it is in the other tool", () => {
-    const layer: OnCallDutyPolicyScheduleLayer = buildLayerFromImportedRotation({
-      rotation: rotation({
+    const layer: OnCallDutyPolicyScheduleLayer = buildLayerFromImportedRotation(
+      {
+        rotation: rotation({
+          name: "Weekly",
+          participantSourceIds: ["alice", "bob"],
+        }),
+        scheduleId: SCHEDULE_ID,
+        projectId: PROJECT_ID,
         name: "Weekly",
-        participantSourceIds: ["alice", "bob"],
-      }),
-      scheduleId: SCHEDULE_ID,
-      projectId: PROJECT_ID,
-      name: "Weekly",
-      order: 1,
-      timezone: ZONE,
-      reference: new Date("2026-10-08T12:00:00Z"),
-    });
+        order: 1,
+        timezone: ZONE,
+        reference: new Date("2026-10-08T12:00:00Z"),
+      },
+    );
 
     const start: number = Date.parse("2024-02-05T06:00:00Z");
     const week: number = 7 * 24 * 60 * 60 * 1000;
@@ -586,18 +604,20 @@ describe("ToolImportScheduleRules: the layer, through the on-call engine", () =>
   });
 
   test("a restricted layer is on call in its hours, in the schedule's zone, and nobody is outside them", () => {
-    const layer: OnCallDutyPolicyScheduleLayer = buildLayerFromImportedRotation({
-      rotation: rotation({
+    const layer: OnCallDutyPolicyScheduleLayer = buildLayerFromImportedRotation(
+      {
+        rotation: rotation({
+          name: "Business hours",
+          restriction: BUSINESS_HOURS,
+        }),
+        scheduleId: SCHEDULE_ID,
+        projectId: PROJECT_ID,
         name: "Business hours",
-        restriction: BUSINESS_HOURS,
-      }),
-      scheduleId: SCHEDULE_ID,
-      projectId: PROJECT_ID,
-      name: "Business hours",
-      order: 1,
-      timezone: ZONE,
-      reference: new Date("2026-10-08T12:00:00Z"),
-    });
+        order: 1,
+        timezone: ZONE,
+        reference: new Date("2026-10-08T12:00:00Z"),
+      },
+    );
 
     /*
      * One window from Monday 09:00 to Friday 17:00 in Istanbul (UTC+3), as
@@ -615,18 +635,20 @@ describe("ToolImportScheduleRules: the layer, through the on-call engine", () =>
   });
 
   test("a daily window keeps the layer on call those hours every day, in the schedule's zone", () => {
-    const layer: OnCallDutyPolicyScheduleLayer = buildLayerFromImportedRotation({
-      rotation: rotation({
+    const layer: OnCallDutyPolicyScheduleLayer = buildLayerFromImportedRotation(
+      {
+        rotation: rotation({
+          name: "Nights",
+          restriction: { type: "Daily", startTime: "22:00", endTime: "06:30" },
+        }),
+        scheduleId: SCHEDULE_ID,
+        projectId: PROJECT_ID,
         name: "Nights",
-        restriction: { type: "Daily", startTime: "22:00", endTime: "06:30" },
-      }),
-      scheduleId: SCHEDULE_ID,
-      projectId: PROJECT_ID,
-      name: "Nights",
-      order: 1,
-      timezone: ZONE,
-      reference: new Date("2026-10-08T12:00:00Z"),
-    });
+        order: 1,
+        timezone: ZONE,
+        reference: new Date("2026-10-08T12:00:00Z"),
+      },
+    );
 
     // 23:00 and 05:00 in Istanbul are night; 12:00 is not.
     expect(onCallAt(layer, new Date("2026-10-08T20:00:00Z"))).not.toBeNull();

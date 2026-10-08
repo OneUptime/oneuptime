@@ -263,11 +263,9 @@ class PlanBuilder {
         );
         return;
       case ToolImportResourceKind.IncidentState:
-        this.snapshot.incidentStates.forEach(
-          (state: ImportedIncidentState) => {
-            this.planIncidentState(state);
-          },
-        );
+        this.snapshot.incidentStates.forEach((state: ImportedIncidentState) => {
+          this.planIncidentState(state);
+        });
         return;
       case ToolImportResourceKind.IncidentRole:
         this.snapshot.incidentRoles.forEach((role: ImportedIncidentRole) => {
@@ -310,10 +308,7 @@ class PlanBuilder {
     }
 
     if (!person.isActive) {
-      this.skip(
-        base,
-        makeToolImportNote(ToolImportNoteCode.PersonDeactivated),
-      );
+      this.skip(base, makeToolImportNote(ToolImportNoteCode.PersonDeactivated));
       return;
     }
 
@@ -331,6 +326,17 @@ class PlanBuilder {
 
     if (this.access.inviteRefusal) {
       this.skip(base, this.access.inviteRefusal);
+      return;
+    }
+
+    /*
+     * Someone new joins the project through a team, and the person may
+     * only add people to teams whose permissions they could grant. With
+     * no such team, nobody can be invited, and the preview says so rather
+     * than offering an invitation the import would not send.
+     */
+    if (this.access.inviteTeams.length === 0) {
+      this.skip(base, makeToolImportNote(ToolImportNoteCode.PersonNotInvited));
       return;
     }
 
@@ -539,7 +545,9 @@ class PlanBuilder {
     }
 
     for (const teamId of schedule.ownerTeamSourceIds) {
-      references.push(getToolImportItemKey(ToolImportResourceKind.Team, teamId));
+      references.push(
+        getToolImportItemKey(ToolImportResourceKind.Team, teamId),
+      );
     }
 
     const item: ToolImportPlanItem | null = this.planNamed({
@@ -555,7 +563,11 @@ class PlanBuilder {
       references: uniqueKeys(references),
     });
 
-    if (item && item.action === ToolImportAction.Create && !schedule.isEnabled) {
+    if (
+      item &&
+      item.action === ToolImportAction.Create &&
+      !schedule.isEnabled
+    ) {
       item.isSelectedByDefault = false;
     }
   }
@@ -591,7 +603,9 @@ class PlanBuilder {
 
     for (const level of policy.levels) {
       for (const id of level.personSourceIds) {
-        references.push(getToolImportItemKey(ToolImportResourceKind.Person, id));
+        references.push(
+          getToolImportItemKey(ToolImportResourceKind.Person, id),
+        );
       }
       for (const id of level.teamSourceIds) {
         references.push(getToolImportItemKey(ToolImportResourceKind.Team, id));
@@ -604,7 +618,9 @@ class PlanBuilder {
     }
 
     for (const teamId of policy.ownerTeamSourceIds) {
-      references.push(getToolImportItemKey(ToolImportResourceKind.Team, teamId));
+      references.push(
+        getToolImportItemKey(ToolImportResourceKind.Team, teamId),
+      );
     }
 
     this.planNamed({
@@ -639,9 +655,7 @@ class PlanBuilder {
     const previous: ToolImportPreviousRecord | undefined =
       this.state.previousRecords.find(
         (record: ToolImportPreviousRecord): boolean => {
-          return (
-            record.kind === data.kind && record.sourceId === data.sourceId
-          );
+          return record.kind === data.kind && record.sourceId === data.sourceId;
         },
       );
 
