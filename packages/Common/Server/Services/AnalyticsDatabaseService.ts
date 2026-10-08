@@ -33,6 +33,7 @@ import {
   getQuerySettings,
   TimeoutOverflowMode,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import { readJSONResponse } from "../Utils/AnalyticsDatabase/QueryResponse";
 import {
   getDistributedDdlTaskTimeoutSeconds,
   getStorageTableName,
@@ -960,7 +961,10 @@ export default class AnalyticsDatabaseService<
       } as LogAttributes);
 
       const responseJSON: ResponseJSON<JSONObject> =
-        await dbResult.json<JSONObject>();
+        await readJSONResponse<JSONObject>({
+          resultSet: dbResult,
+          subject: `The ${this.getQuerySubjectName()} chart query`,
+        });
 
       const items: Array<JSONObject> = responseJSON.data
         ? responseJSON.data
@@ -1176,7 +1180,10 @@ export default class AnalyticsDatabaseService<
       } as LogAttributes);
 
       const responseJSON: ResponseJSON<JSONObject> =
-        await dbResult.json<JSONObject>();
+        await readJSONResponse<JSONObject>({
+          resultSet: dbResult,
+          subject: `The ${this.getQuerySubjectName()} search`,
+        });
 
       const jsonItems: Array<JSONObject> = responseJSON.data;
 
@@ -1465,6 +1472,11 @@ export default class AnalyticsDatabaseService<
     aggregateBy: AggregateBy<TBaseModel>,
   ): TimeoutOverflowMode {
     return aggregateBy.timeoutOverflowMode === "throw" ? "throw" : "break";
+  }
+
+  // What a read of this table is called in an error, e.g. "log".
+  private getQuerySubjectName(): string {
+    return (this.model.singularName || "data").toLowerCase();
   }
 
   public toAggregateStatement(aggregateBy: AggregateBy<TBaseModel>): {
@@ -1935,8 +1947,9 @@ export default class AnalyticsDatabaseService<
      * Defense in depth: cap find-query runtime below the ClickHouse
      * client's 58s request_timeout. The LIMIT clause keeps most queries
      * fast, but complex WHERE filters (e.g. parentSpanId IS NULL) on
-     * wide time ranges can still cause long scans. 'break' mode returns
-     * partial results rather than throwing.
+     * wide time ranges can still cause long scans. When 'break' stops the
+     * query, the body usually arrives empty or cut off rather than as
+     * partial rows; _findBy reports that through readJSONResponse.
      */
     statement.append(
       getQuerySettings({
