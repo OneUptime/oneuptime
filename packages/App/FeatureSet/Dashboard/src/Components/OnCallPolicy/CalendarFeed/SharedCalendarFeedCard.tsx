@@ -411,6 +411,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
         <FeedDeploymentWarnings
           hostWarning={status.hostWarning}
           protocolWarning={status.protocolWarning}
+          privateHost={status.privateHost}
           idPrefix={idPrefix}
         />
         {/*
@@ -464,6 +465,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
             urls={status.urls}
             hostWarning={status.hostWarning}
             protocolWarning={status.protocolWarning}
+            privateHost={status.privateHost}
             lastRenderTruncated={status.lastRenderTruncated}
             idPrefix={idPrefix}
           />

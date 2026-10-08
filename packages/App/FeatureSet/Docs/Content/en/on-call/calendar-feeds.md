@@ -35,10 +35,9 @@ The 43-character token in the path is the only credential — there is no login,
 ## Your personal feed
 
 1. Open **User Settings** > **Calendar Feed** in the project whose shifts you want. Personal feeds are per project: a second project gets a second link and a second calendar.
-2. Click **Generate calendar link**. The card **Subscribe to your on-call shifts** now shows the `https://` link and three buttons:
-   - **Google Calendar** opens Google Calendar with the link pre-filled.
-   - **Apple / other apps** opens the `webcals://` form of the link, which macOS, iOS and most desktop apps hand straight to their subscribe dialog.
-   - **Copy webcal link** copies that same `webcal(s)://` link — the one classic Outlook for Windows needs.
+2. Click **Generate calendar link**. The card **Subscribe to your on-call shifts** now offers one subscribe flow:
+   - **Add to your calendar**: **Google Calendar** opens Google Calendar, which asks whether to add the calendar. **Apple Calendar / Outlook** opens the `webcal://` form of the link in the app your computer or phone subscribes with — Apple Calendar on a Mac, iPhone or iPad, Outlook on Windows.
+   - **Or copy the link**: **Copy link** copies the `https://` link for any other app that can subscribe to a calendar by URL. The link stays hidden on the page until you click to reveal it.
 3. Subscribe in your calendar app using the per-app steps below.
 
 Settings on the same card:
@@ -66,30 +65,32 @@ Use the `https://` link unless the app asks for `webcal`; the scheme section bel
 
 ### Google Calendar (web)
 
-1. In Google Calendar on the web, next to **Other calendars** click **+** > **From URL**.
-2. Paste the `https://` link and click **Add calendar**. The **Google Calendar** button in OneUptime does the same with the link pre-filled.
+1. Click **Google Calendar** in OneUptime. Google Calendar opens and asks whether to add the calendar; click **Add**.
+2. Or, in Google Calendar on the web, next to **Other calendars** click **+** > **From URL**, paste the link (**Copy link** in OneUptime) and click **Add calendar**.
 
-Google fetches the feed **from Google's servers**, roughly every 8 to 24 hours and sometimes longer. There is no refresh button for subscribed calendars, and Google ignores the refresh hints in the feed. The calendar's name and time zone are read **only when you first subscribe**: renaming a schedule later does not rename the calendar in Google — remove and re-add it if the name matters. Google drops reminders carried in calendar files, so set default notifications on that calendar in Google's settings, or better, use OneUptime's own reminders. If Google reports that it could not fetch the URL, make sure you pasted the `https://` form rather than `webcal://`, and append `?nocache=1` to make it look again (OneUptime ignores unknown query parameters, so the feed itself is unchanged). The Google Calendar app on Android and iOS cannot subscribe by URL; add the link on a computer and it appears on the phone.
+The **Google Calendar** button opens Google's add-by-URL page, `https://calendar.google.com/calendar/r?cid=` followed by the `webcal://` form of the link, percent-encoded. That page only takes the `webcal://` form: with the `https://` form in it, Google answers "Unable to add calendar. Check the URL." **From URL** takes either form.
+
+Google fetches the feed **from Google's servers**, so the OneUptime server must be reachable from the internet — OneUptime Cloud always is; for a self-hosted install see Troubleshooting. The first fetch usually happens within minutes of subscribing; after that Google refreshes roughly every 8 to 24 hours and sometimes longer. There is no refresh button for subscribed calendars, and Google ignores the refresh hints in the feed. The feed page's status line says **Last fetched … by Google Calendar** once Google has read the link. The calendar's name and time zone are read **only when you first subscribe**: renaming a schedule later does not rename the calendar in Google — remove and re-add it if the name matters. Google drops reminders carried in calendar files, so set default notifications on that calendar in Google's settings, or better, use OneUptime's own reminders. Google remembers an address it could not read: after fixing whatever stopped it, add the link again with `?nocache=1` appended (OneUptime ignores unknown query parameters, so the feed itself is unchanged) or regenerate the link. The Google Calendar app on Android and iOS cannot subscribe by URL; add the link on a computer and it appears on the phone.
 
 ### Outlook on the web and Outlook.com
 
 1. Open **Calendar** > **Add calendar** > **Subscribe from web**.
-2. Paste the `https://` link, give the calendar a name and click **Import**.
+2. Paste the `https://` link (**Copy link** in OneUptime), give the calendar a name and click **Import**.
 
 Outlook fetches **from Microsoft's servers**: about every 3 hours for Outlook.com and every 4 to 6 hours for work and school accounts, sometimes more than a day. The interval is fixed and there is no manual refresh. Subscribe here rather than in the desktop app if you want the calendar on your phone and in Outlook on the web as well — subscriptions created in classic Outlook for Windows stay on that PC. The new Outlook for Windows and Outlook for Mac use the same **Add calendar** > **Subscribe from web** dialog.
 
 ### Classic Outlook for Windows
 
-1. In OneUptime click **Copy webcal link**.
-2. In Outlook, open **File** > **Account Settings** > **Account Settings** > **Internet Calendars** > **New**, paste the `webcals://` link and click **Add**. Opening a `webcal` link in a browser also works on a PC where Outlook is installed; Windows has no `webcal` handler otherwise.
+1. On a PC where Outlook is installed, click **Apple Calendar / Outlook** in OneUptime. Windows hands the `webcal://` link to Outlook, which asks whether to add the internet calendar. Windows has no `webcal` handler without Outlook.
+2. Or, in Outlook, open **File** > **Account Settings** > **Account Settings** > **Internet Calendars** > **New**, paste the link (**Copy link** in OneUptime) and click **Add**.
 
-Do **not** open the `https://…/shifts.ics` link itself in classic Outlook: it imports a one-time snapshot that never updates. Only `webcal://` and `webcals://` create a subscription.
+Do **not** open the `https://…/shifts.ics` link itself in classic Outlook: it imports a one-time snapshot that never updates. Opening the `webcal://` link, or adding the address under **Internet Calendars**, creates a subscription.
 
 The feed is refreshed on **Send/Receive** (F9, or the interval under Send/Receive Groups). The subscription's settings have an **Update Limit** checkbox: with it checked, Outlook refreshes no faster than the interval the publisher suggests. OneUptime suggests one hour (`X-PUBLISHED-TTL:PT1H`), so the feed refreshes about hourly. Feeds without that hint never refresh while the box is checked; OneUptime's carry it, so you can leave the box on. Classic Outlook fetches the feed **from your PC** and validates the server's certificate.
 
 ### Apple Calendar on macOS
 
-1. Click **Apple / other apps** in OneUptime, or in Calendar choose **File** > **New Calendar Subscription** and paste the link.
+1. Click **Apple Calendar / Outlook** in OneUptime, or in Calendar choose **File** > **New Calendar Subscription** and paste the link.
 2. In the subscribe sheet set **Auto-refresh** — every 5 minutes, 15 minutes, hour, day or week (hourly is the default) — and choose **iCloud** under **Location** so the calendar also appears on your iPhone and iPad and keeps refreshing on that schedule.
 
 macOS fetches the feed **from your Mac**, so it works for an install on a private network as long as the Mac can reach it. A self-signed or internal-CA certificate must be trusted in the macOS keychain first. **Remove alerts** is checked by default in that sheet; it makes no difference here because the feed carries no alarms.
@@ -117,7 +118,7 @@ Neither the Google Calendar app nor Samsung Calendar can subscribe to a URL. Add
 | Google Calendar (From URL)        | 8–24 hours, sometimes longer                        | Google's servers    | No manual refresh; ignores refresh hints; name and time zone read at first subscribe only |
 | Outlook.com                       | About 3 hours                                       | Microsoft's servers | Fixed; can exceed 24 hours                                                                |
 | Outlook on the web (work, school) | About 4–6 hours                                     | Microsoft's servers | Fixed; no user control                                                                    |
-| Classic Outlook for Windows       | On Send/Receive; about hourly with **Update Limit** | Your PC             | Needs a `webcal` link; does not sync to phone or web                                      |
+| Classic Outlook for Windows       | On Send/Receive; about hourly with **Update Limit** | Your PC             | Subscribe through the `webcal` link; does not sync to phone or web                        |
 | Apple Calendar (macOS)            | 5 minutes to weekly, default hourly                 | Your Mac            | Store in iCloud to reach iPhone and iPad                                                  |
 | Apple Calendar (iOS only)         | Per **Fetch New Data**, battery-gated               | Your phone          | Subscribe on a Mac for reliability                                                        |
 | Thunderbird                       | 1–60 minutes                                        | Your computer       |                                                                                           |
@@ -126,13 +127,17 @@ Neither the Google Calendar app nor Samsung Calendar can subscribe to a URL. Add
 
 OneUptime itself serves fresh data: an edit to a layer, a rotation, an override or a policy attachment invalidates the feed at once, and responses are cached for at most five minutes. The wait you see is the calendar app's, not the server's. OneUptime suggests hourly refresh through `REFRESH-INTERVAL` and `X-PUBLISHED-TTL`; only classic Outlook takes the hint, and only with **Update Limit** on — Apple Calendar, Thunderbird and the rest refresh at the interval you set per calendar.
 
-## https, webcal and webcals
+## https and webcal links
 
-All three point at the same feed. `webcal://` and `webcals://` are the `http://` and `https://` link with the scheme renamed, so that the operating system opens a calendar app instead of a browser; `webcals` is the encrypted one and is what OneUptime offers when `HTTP_PROTOCOL` is `https`.
+Both point at the same feed. `webcal://` is the link with its scheme renamed, so that the operating system opens a calendar app instead of a browser; the app then fetches the feed over `https://` when the server serves https, as Apple Calendar and Google Calendar do.
 
-- Google Calendar, Outlook on the web, Thunderbird and Fastmail want the `https://` form.
-- Apple Calendar and classic Outlook for Windows subscribe from a `webcal(s)://` link; in classic Outlook the `https://` form is a one-time import.
-- `webcal://` without the `s` is unencrypted and sends the token in clear text on every fetch. If your install still runs on plain `http`, the dashboard shows a warning next to the link; switch to `https` before sharing links widely.
+- **Copy link** gives the `https://` form. Google Calendar's **From URL**, Outlook on the web, Thunderbird and Fastmail take it.
+- **Apple Calendar / Outlook** opens the `webcal://` form: Apple Calendar and classic Outlook for Windows subscribe from it. In classic Outlook, opening the `https://` form instead is a one-time import.
+- **Google Calendar** carries the `webcal://` form inside Google's add-by-URL link, the only form that page takes.
+- OneUptime no longer hands out `webcals://`: iOS does not open it ("the address is invalid"), and Google does not take it either. A calendar you already subscribed to with a `webcals://` link keeps working.
+- If your install still runs on plain `http`, the feed is fetched in clear text, token included, and the dashboard shows a warning next to the link; switch to `https` before sharing links widely.
+
+Feed URLs never redirect. They answer `200` on whichever scheme reaches OneUptime, because the app cannot tell which scheme the calendar app used when TLS ends in front of it — on OneUptime Cloud, or behind your own load balancer or CDN — and a redirect there points back at the same URL. Send plain `http` to `https` on the proxy that terminates TLS, the one hop that knows.
 
 ## Reminders and reassignment notices
 
@@ -208,13 +213,17 @@ Nothing needs to be switched on: feeds work on every install. Four environment v
 
 Also relevant:
 
-- **`HOST` and `HTTP_PROTOCOL`** build the links. If `HOST` is empty or `localhost`, or `HTTP_PROTOCOL` is `http`, the feed page shows a warning and the links will not work from outside.
+- **`HOST` and `HTTP_PROTOCOL`** build the links. If `HOST` is empty or `localhost`, or `HTTP_PROTOCOL` is `http`, the feed page shows a warning and the links will not work from outside. If `HOST` is a private address — `10.x`, `172.16–31.x`, `192.168.x`, a name without a dot such as a container name, or a name under `.internal`, `.local`, `.lan` and the like — the page says Google Calendar and Outlook on the web cannot reach the link; apps on a computer in the same network still can.
 - **`TRUSTED_PROXY_HOPS`** decides which address the per-address limit counts. The default `1` is right for the stock Docker Compose and Helm layouts; add one for every proxy of your own — a CDN, WAF or load balancer — that appends to `X-Forwarded-For`, otherwise every calendar client looks like the same address and shares one budget. See [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) in the chart documentation.
 - **Redis** backs the caches and the rate limiter. Both degrade gracefully: without Redis, feeds still render, only more slowly, and the limiter lets requests through.
 - In the Helm chart's split mode (`worker.enabled: true`) feeds render on the API tier, so size that tier for a burst of calendar clients polling at the top of the hour.
 - The Nginx access-log exemption shown above is part of the shipped `packages/Nginx/default.conf.template`; keep it if you customise the template.
 
 ## Troubleshooting
+
+**Google Calendar says "Unable to add calendar. Check the URL."** Older OneUptime versions put the `https://` form of the link into the **Google Calendar** button, and Google's add-by-URL page only takes the `webcal://` form. Reload the feed page and click **Google Calendar** again, or add the link under **Other calendars** > **+** > **From URL**.
+
+**Google Calendar shows the calendar but no shifts.** First check the feed page's status line. **Last fetched … by Google Calendar** means Google read the link: open the link in a browser and look at what it serves — an empty calendar states its reason in `X-WR-CALDESC` (see "The calendar is empty" below). **Not fetched yet** means Google could not read it: from a machine outside your network, `curl -sI <link>` must answer `200` with `Content-Type: text/calendar` straight away. A redirect, a login page, a firewall or a bot check in front of OneUptime stops Google's fetcher; so did a redirect loop in older OneUptime versions, on installs with `PROVISION_SSL=true` whose TLS ends in front of Nginx. Once it answers `200`, add the link again with `?nocache=1` appended so Google reads it afresh.
 
 **Nothing has fetched the link, or "Could not fetch the URL".** Google Calendar, Outlook on the web, Fastmail and Proton fetch **from their own servers**, so the OneUptime host must be reachable from the public internet with a certificate they trust. An install on a private network, behind a VPN, or with an internal certificate authority is unreachable to them no matter what you paste. Apple Calendar, Thunderbird and classic Outlook fetch from the device, so they work wherever the device can open the dashboard — after trusting the certificate on that device if it is self-signed. The feed page's status line tells you whether anything has fetched the link yet; `curl -I` against the link from outside your network is the quickest check. Letting OneUptime _reach_ private networks — [Private Network Access](/docs/self-hosted/private-network-access) — is a different matter and does not help here.
 

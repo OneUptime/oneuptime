@@ -4,6 +4,7 @@ import {
   DocsPageLink,
   NAV_PAGES,
   anchorsOf,
+  decodeAnchor,
   listPages,
   parseDocsLink,
   scanPage,
@@ -57,7 +58,7 @@ describe("English docs pages", () => {
         const target: DocsPageLink | null = link.target.startsWith("#")
           ? {
               page: page,
-              anchor: decodeURIComponent(link.target.slice(1)),
+              anchor: decodeAnchor(link.target.slice(1)),
             }
           : parseDocsLink(link.target);
 
@@ -214,7 +215,7 @@ describe("docs links in the product", () => {
         return (
           link.anchor !== null &&
           NAV_PAGES.includes(link.page) &&
-          !anchorsOf("en", link.page).has(decodeURIComponent(link.anchor))
+          !anchorsOf("en", link.page).has(decodeAnchor(link.anchor))
         );
       })
       .map((link: ProductDocsLink): string => {

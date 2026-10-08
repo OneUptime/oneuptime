@@ -303,3 +303,36 @@ npm run docs:localize-anchors
 # Every locale file has every key.
 npm run i18n:validate
 ```
+
+### The content rules
+
+`DocsContentIntegrity` and `DocsTranslations` hold every page, in every
+language, to the rules in `Tests/FeatureSet/Docs/DocsContentRules.ts`:
+
+- the nav and the files agree, and each page has one title, on its first
+  line;
+- components are written so the renderer draws them, and nothing is left on
+  the page as raw `:::`, `@tab` or `[!NOTE]`;
+- links land on a page in the nav and on a heading it has (never the title on
+  line 1, which has no anchor), images and files under `/docs/static/` exist,
+  no link is relative, and no two headings of a page share an anchor;
+- code samples are closed, and in English they name their language; English
+  headings never skip a level, and Getting Started links into every nav group;
+- every English page is translated, and each translation keeps its English
+  page's shape: the same heading levels, code languages, components (with
+  their tabs and steps), callouts, `{{PLACEHOLDERS}}`, linked pages and
+  images.
+
+So a change to an English page's shape (a section, a code sample, a
+component, a link to another page) is made in its translations in the same
+change.
+
+The pages that broke a rule when these tests were added are listed, with the
+languages they broke it in, in `Tests/FeatureSet/Docs/DocsKnownFailures.ts`.
+That list only shrinks:
+
+- When you rewrite or translate a page, delete its block. The suites fail on
+  every entry that passes now, and say what to delete:
+  `monitor/website-monitor passes "sameShape" in de now: delete "de" ...`.
+- Never add an entry. A page that breaks a rule it kept fails the suites with
+  its line and what is wrong: fix the page.
