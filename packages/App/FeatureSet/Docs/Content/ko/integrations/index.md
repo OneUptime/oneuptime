@@ -51,6 +51,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [GitLab](/docs/integrations/gitlab)                                   | 아웃바운드              | 인시던트에 대한 GitLab 이슈를 엽니다.                                         |
 | [Discord](/docs/integrations/discord)                                 | 아웃바운드              | 인시던트 업데이트를 Discord 채널에 게시합니다.                                |
 | [Telegram](/docs/integrations/telegram)                               | 아웃바운드              | 인시던트 업데이트를 Telegram 채팅으로 전송합니다.                             |
+| [IRC](/docs/integrations/irc)                                         | 아웃바운드              | 인시던트 업데이트를 IRC 채널에 게시합니다.                                   |
 | [Slack](/docs/workspace-connections/slack)                            | 양방향                  | 네이티브 워크스페이스 연결 — 채널, 알림, 온콜.                                |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | 양방향                  | 네이티브 워크스페이스 연결.                                                   |
 

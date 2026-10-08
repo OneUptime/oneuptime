@@ -51,6 +51,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [GitLab](/docs/integrations/gitlab)                                   | Ausgehend               | Für einen Vorfall ein GitLab-Issue öffnen.                                            |
 | [Discord](/docs/integrations/discord)                                 | Ausgehend               | Vorfallsaktualisierungen in einen Discord-Kanal posten.                               |
 | [Telegram](/docs/integrations/telegram)                               | Ausgehend               | Vorfallsaktualisierungen an einen Telegram-Chat senden.                               |
+| [IRC](/docs/integrations/irc)                                         | Ausgehend               | Vorfallsaktualisierungen in einen IRC-Kanal posten.                                   |
 | [Slack](/docs/workspace-connections/slack)                            | Beides                  | Native Workspace-Verbindung – Kanäle, Alarme und Rufbereitschaft.                     |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Beides                  | Native Workspace-Verbindung.                                                          |
 

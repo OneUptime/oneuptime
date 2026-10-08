@@ -51,6 +51,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [GitLab](/docs/integrations/gitlab)                                   | आउटबाउंड             | किसी incident के लिए एक GitLab issue खोलें।                                               |
 | [Discord](/docs/integrations/discord)                                 | आउटबाउंड             | Discord चैनल पर incident updates पोस्ट करें।                                              |
 | [Telegram](/docs/integrations/telegram)                               | आउटबाउंड             | Telegram chat में incident updates भेजें।                                                 |
+| [IRC](/docs/integrations/irc)                                         | आउटबाउंड             | IRC चैनल पर incident updates पोस्ट करें।                                                  |
 | [Slack](/docs/workspace-connections/slack)                            | दोनों                | Native workspace connection — channels, alerts, और on-call।                               |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | दोनों                | Native workspace connection।                                                              |
 

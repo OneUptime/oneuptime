@@ -51,6 +51,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [GitLab](/docs/integrations/gitlab)                                   | Utgående                 | Åpne en GitLab-sak for en hendelse.                                                 |
 | [Discord](/docs/integrations/discord)                                 | Utgående                 | Poste hendelsesoppdateringer til en Discord-kanal.                                  |
 | [Telegram](/docs/integrations/telegram)                               | Utgående                 | Sende hendelsesoppdateringer til en Telegram-chat.                                  |
+| [IRC](/docs/integrations/irc)                                         | Utgående                 | Poste hendelsesoppdateringer til en IRC-kanal.                                      |
 | [Slack](/docs/workspace-connections/slack)                            | Begge                    | Innebygd arbeidsområdetilkobling — kanaler, varsler og vaktordning.                 |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Begge                    | Innebygd arbeidsområdetilkobling.                                                   |
 
