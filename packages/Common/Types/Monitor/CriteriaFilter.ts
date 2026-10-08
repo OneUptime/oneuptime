@@ -204,6 +204,19 @@ export interface DatabaseMonitorOptions {
   metricType?: MonitorMetricType | undefined;
 }
 
+export interface CustomCodeMonitorOptions {
+  /*
+   * For CheckOn.ResultValue (custom code / synthetic monitors): the field
+   * inside an object/array result the filter compares against. Supports dot
+   * notation and [index] array brackets (e.g. "status", "cpu_busy_percent",
+   * "data.items[0].value", "results[2].status"). Object keys containing a
+   * literal dot are not addressable - only "[index]" reaches into arrays.
+   * Empty/undefined means "compare the whole result value" - the historical
+   * behavior for primitive results, so this stays backward compatible.
+   */
+  resultValuePath?: string | undefined;
+}
+
 export enum EvaluateOverTimeType {
   Average = "Average",
   Sum = "Sum",
@@ -313,6 +326,7 @@ export interface CriteriaFilter {
   metricMonitorOptions?: MetricMonitorOptions | undefined;
   snmpMonitorOptions?: SnmpMonitorOptions | undefined;
   databaseMonitorOptions?: DatabaseMonitorOptions | undefined;
+  customCodeMonitorOptions?: CustomCodeMonitorOptions | undefined;
   filterType: FilterType | undefined;
   value: string | number | undefined;
   evaluateOverTime?: boolean | undefined;
@@ -594,6 +608,9 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   }).optional(),
   databaseMonitorOptions: Zod.object({
     metricType: Zod.string().optional(),
+  }).optional(),
+  customCodeMonitorOptions: Zod.object({
+    resultValuePath: Zod.string().optional(),
   }).optional(),
   filterType: Zod.string().optional(),
   value: Zod.union([Zod.string(), Zod.number()]).optional(),

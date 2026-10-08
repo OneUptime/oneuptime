@@ -732,7 +732,9 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
-          i.value === FilterType.GreaterThanOrEqualTo
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.True ||
+          i.value === FilterType.False
         );
       });
     }
