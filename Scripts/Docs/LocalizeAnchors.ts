@@ -6,13 +6,21 @@
  * from the English page - `](#default-criteria)` - points at a heading the
  * German page does not have. The page still renders; the link goes nowhere.
  *
- * Translations keep the English page's headings in the same order (the
- * DocsTranslations tests hold them to it), so the heading an English anchor
+ * A translation keeps the English page's shape - the same headings at the
+ * same levels, with the same code samples under them, in the same order (the
+ * docs translation tests hold it to that) - so the heading an English anchor
  * names has a counterpart at the same position in the translation. This
  * rewrites every anchor in a translated page that its target page does not
  * have, in-page links and links to other pages alike, to the anchor of that
  * counterpart. A link whose target page is not translated is left alone: the
  * reader lands on the English copy, which has the English anchor.
+ *
+ * Counting headings is not enough to know they line up: a stale translation
+ * can have as many headings as the English page in another order, and
+ * mapping by position would send a link to the wrong section. So a target
+ * whose translation does not have the English page's shape is not mapped:
+ * the link is reported, and left as it is, until that page is translated
+ * again.
  *
  * To run:
  *   npm run docs:localize-anchors            (report what would change)
@@ -20,16 +28,16 @@
  *
  * --lang <code> and --page <category/page> (each repeatable) limit it to
  * some languages or pages - translators working side by side each rewrite
- * only their own files.
+ * only their own files. DOCS_CONTENT_DIR points it at another content
+ * directory (the tests use one of their own).
  */
-import slugify from "../../packages/Common/Server/Types/MarkdownSlugify";
+import { slugifyMarkdownHeading } from "../../packages/Common/Server/Types/MarkdownSlugify";
 import * as fs from "fs";
 import * as path from "path";
 
-const CONTENT_DIR: string = path.resolve(
-  __dirname,
-  "../../packages/App/FeatureSet/Docs/Content",
-);
+const CONTENT_DIR: string = process.env["DOCS_CONTENT_DIR"]
+  ? path.resolve(process.env["DOCS_CONTENT_DIR"])
+  : path.resolve(__dirname, "../../packages/App/FeatureSet/Docs/Content");
 const DEFAULT_LANGUAGE: string = "en";
 const APPLY: boolean = process.argv.includes("--apply");
 
@@ -49,17 +57,27 @@ const valuesOf: (flag: string) => Array<string> = (
 const ONLY_LANGUAGES: Array<string> = valuesOf("--lang");
 const ONLY_PAGES: Array<string> = valuesOf("--page").map(
   (page: string): string => {
-    return page.replace(/\.md$/, "");
+    return page.replace(/^\/?(?:docs\/)?/, "").replace(/\.md$/, "");
   },
 );
 
-const FENCE: RegExp = /^ {0,3}(`{3,}|~{3,})/;
+const FENCE: RegExp = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+const HEADING: RegExp = /^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/;
+const ANCHOR_LINK: RegExp =
+  /\]\((\/docs\/([a-z0-9-]+)\/([a-z0-9-]+))?#([^)\s]+)\)/g;
 
-// The anchors of a page's headings, in order, outside fenced code.
-const headingAnchors: (markdown: string) => Array<string> = (
+interface Heading {
+  anchor: string;
+  level: number;
+  // The languages of the code samples between this heading and the next.
+  code: Array<string>;
+}
+
+// A page's headings, in order, outside fenced code.
+const readHeadings: (markdown: string) => Array<Heading> = (
   markdown: string,
-): Array<string> => {
-  const anchors: Array<string> = [];
+): Array<Heading> => {
+  const headings: Array<Heading> = [];
   let fence: string | null = null;
 
   for (const line of markdown.split("\n")) {
@@ -68,6 +86,11 @@ const headingAnchors: (markdown: string) => Array<string> = (
       const marker: string = fenceMatch[1]!;
       if (fence === null) {
         fence = marker;
+        const language: string =
+          (fenceMatch[2] || "").trim().split(/\s+/)[0] || "";
+        if (headings.length > 0) {
+          headings[headings.length - 1]!.code.push(language.toLowerCase());
+        }
       } else if (marker[0] === fence[0] && marker.length >= fence.length) {
         fence = null;
       }
@@ -76,15 +99,28 @@ const headingAnchors: (markdown: string) => Array<string> = (
     if (fence !== null) {
       continue;
     }
-    const heading: RegExpMatchArray | null = line.match(
-      /^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/,
-    );
+    const heading: RegExpMatchArray | null = line.match(HEADING);
     if (heading) {
-      anchors.push(slugify(heading[2]!.trim()));
+      headings.push({
+        anchor: slugifyMarkdownHeading(heading[2]!.trim()),
+        level: heading[1]!.length,
+        code: [],
+      });
     }
   }
 
-  return anchors;
+  return headings;
+};
+
+// What two copies of a page must share for their headings to line up.
+const shapeOf: (headings: Array<Heading>) => string = (
+  headings: Array<Heading>,
+): string => {
+  return headings
+    .map((heading: Heading): string => {
+      return `${heading.level}[${heading.code.join(",")}]`;
+    })
+    .join(" ");
 };
 
 const pageFile: (lang: string, page: string) => string = (
@@ -111,7 +147,9 @@ const listPages: (lang: string) => Array<string> = (
       if (entry.isDirectory()) {
         walk(full);
       } else if (entry.name.endsWith(".md")) {
-        pages.push(path.relative(root, full).replace(/\.md$/, ""));
+        pages.push(
+          path.relative(root, full).split(path.sep).join("/").slice(0, -3),
+        );
       }
     }
   };
@@ -119,35 +157,51 @@ const listPages: (lang: string) => Array<string> = (
   return pages.sort();
 };
 
-/*
- * English anchor -> this language's anchor, for one page; null when the page
- * has no translation or its headings do not line up with the English ones.
- */
-const anchorMapCache: Map<string, Map<string, string> | null> = new Map();
+// An anchor as the heading slug it names; as written when it is not valid percent-encoding.
+const decodeAnchor: (raw: string) => string = (raw: string): string => {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
 
-const anchorMap: (lang: string, page: string) => Map<string, string> | null = (
+/*
+ * English anchor -> this language's anchor, for one page. "untranslated"
+ * when the page has no copy in this language (or no English copy), "stale"
+ * when the copy does not have the English page's shape.
+ */
+type AnchorMap = Map<string, string> | "untranslated" | "stale";
+
+const anchorMapCache: Map<string, AnchorMap> = new Map();
+
+const anchorMap: (lang: string, page: string) => AnchorMap = (
   lang: string,
   page: string,
-): Map<string, string> | null => {
+): AnchorMap => {
   const key: string = `${lang}/${page}`;
-  if (anchorMapCache.has(key)) {
-    return anchorMapCache.get(key)!;
+  const cached: AnchorMap | undefined = anchorMapCache.get(key);
+  if (cached !== undefined) {
+    return cached;
   }
 
   const english: string | null = readIfExists(pageFile(DEFAULT_LANGUAGE, page));
   const translated: string | null = readIfExists(pageFile(lang, page));
-  let map: Map<string, string> | null = null;
+  let map: AnchorMap = "untranslated";
 
   if (english !== null && translated !== null) {
-    const from: Array<string> = headingAnchors(english);
-    const to: Array<string> = headingAnchors(translated);
-    if (from.length === to.length) {
-      map = new Map();
-      from.forEach((anchor: string, index: number): void => {
-        if (!map!.has(anchor)) {
-          map!.set(anchor, to[index]!);
+    const from: Array<Heading> = readHeadings(english);
+    const to: Array<Heading> = readHeadings(translated);
+    if (shapeOf(from) === shapeOf(to)) {
+      const pairs: Map<string, string> = new Map();
+      from.forEach((heading: Heading, index: number): void => {
+        if (!pairs.has(heading.anchor)) {
+          pairs.set(heading.anchor, to[index]!.anchor);
         }
       });
+      map = pairs;
+    } else {
+      map = "stale";
     }
   }
 
@@ -165,15 +219,18 @@ interface Change {
 const changes: Array<Change> = [];
 const unresolved: Array<string> = [];
 
-for (const lang of fs.readdirSync(CONTENT_DIR)) {
-  if (
-    lang === DEFAULT_LANGUAGE ||
-    !fs.statSync(path.join(CONTENT_DIR, lang)).isDirectory() ||
-    (ONLY_LANGUAGES.length > 0 && !ONLY_LANGUAGES.includes(lang))
-  ) {
-    continue;
-  }
+const languages: Array<string> = fs
+  .readdirSync(CONTENT_DIR)
+  .filter((lang: string): boolean => {
+    return (
+      lang !== DEFAULT_LANGUAGE &&
+      fs.statSync(path.join(CONTENT_DIR, lang)).isDirectory() &&
+      (ONLY_LANGUAGES.length === 0 || ONLY_LANGUAGES.includes(lang))
+    );
+  })
+  .sort();
 
+for (const lang of languages) {
   for (const page of listPages(lang)) {
     if (ONLY_PAGES.length > 0 && !ONLY_PAGES.includes(page)) {
       continue;
@@ -181,7 +238,11 @@ for (const lang of fs.readdirSync(CONTENT_DIR)) {
 
     const file: string = pageFile(lang, page);
     const markdown: string = fs.readFileSync(file, "utf8");
-    const ownAnchors: Set<string> = new Set(headingAnchors(markdown));
+    const ownAnchors: Set<string> = new Set(
+      readHeadings(markdown).map((heading: Heading): string => {
+        return heading.anchor;
+      }),
+    );
     let fence: string | null = null;
 
     const lines: Array<string> = markdown
@@ -202,7 +263,7 @@ for (const lang of fs.readdirSync(CONTENT_DIR)) {
         }
 
         return line.replace(
-          /\]\((\/docs\/([a-z0-9-]+)\/([a-z0-9-]+))?#([^)\s]+)\)/g,
+          ANCHOR_LINK,
           (
             whole: string,
             target: string | undefined,
@@ -210,10 +271,11 @@ for (const lang of fs.readdirSync(CONTENT_DIR)) {
             pageName: string | undefined,
             rawAnchor: string,
           ): string => {
-            const anchor: string = decodeURIComponent(rawAnchor);
+            const anchor: string = decodeAnchor(rawAnchor);
             const targetPage: string = target
               ? `${category}/${pageName}`
               : page;
+            const where: string = `${lang}/${page}.md:${index + 1} -> ${target || ""}#${anchor}`;
 
             // The copy the reader lands on: this language's, if there is one.
             const landing: string | null = readIfExists(
@@ -226,17 +288,27 @@ for (const lang of fs.readdirSync(CONTENT_DIR)) {
             const landingAnchors: Set<string> =
               targetPage === page
                 ? ownAnchors
-                : new Set(headingAnchors(landing));
+                : new Set(
+                    readHeadings(landing).map((heading: Heading): string => {
+                      return heading.anchor;
+                    }),
+                  );
             if (landingAnchors.has(anchor)) {
               return whole;
             }
 
-            const mapped: string | undefined = anchorMap(lang, targetPage)?.get(
-              anchor,
-            );
+            const map: AnchorMap = anchorMap(lang, targetPage);
+            if (map === "stale") {
+              unresolved.push(
+                `${where} (the ${lang} copy of ${targetPage} does not have the English page's headings and code samples: translate it again first)`,
+              );
+              return whole;
+            }
+            const mapped: string | undefined =
+              map === "untranslated" ? undefined : map.get(anchor);
             if (!mapped) {
               unresolved.push(
-                `${lang}/${page}.md:${index + 1} -> ${target || ""}#${anchor}`,
+                `${where} (no heading of the English ${targetPage} has this anchor)`,
               );
               return whole;
             }
@@ -274,7 +346,7 @@ console.log(
 if (unresolved.length > 0) {
   // eslint-disable-next-line no-console
   console.error(
-    `\n${unresolved.length} anchor(s) could not be matched to a heading - the translation's headings do not line up with the English page's:\n`,
+    `\n${unresolved.length} anchor(s) could not be matched to a heading, and were left as they are:\n`,
   );
   for (const line of unresolved) {
     // eslint-disable-next-line no-console
