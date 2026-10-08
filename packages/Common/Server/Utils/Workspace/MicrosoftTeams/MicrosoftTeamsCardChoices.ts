@@ -12,6 +12,8 @@ import LabelService from "../../../Services/LabelService";
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
 import OnCallDutyPolicyService from "../../../Services/OnCallDutyPolicyService";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
+import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
 
 /*
@@ -24,6 +26,9 @@ import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
  * severities and monitor statuses in their own order), and fitCardToBudget()
  * shortens the long lists until the card fits a size budget. Whatever is
  * left off is named on the card, so the user knows to add it in OneUptime.
+ *
+ * Each list is read as the member the form is for (WorkspaceActionAuthorization
+ * .findReadable), so it offers - and counts - only what they may read.
  */
 
 // A type, not an interface, so a list of them is a JSONValue on a card.
@@ -221,50 +226,56 @@ export default class MicrosoftTeamsCardChoices {
     return `Showing the first ${shownCount} of ${totalCount} ${data.pluralNoun}, by name. ${data.addLaterHint}`;
   }
 
+  /*
+   * Every list below is read as the member a form is for, with their own
+   * props (WorkspaceActionAuthorization.findReadable): it offers only the
+   * records they may read, and counts only those, as the same list in
+   * OneUptime does. A list they may not read at all is empty.
+   */
   public static async getMonitorChoices(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<MicrosoftTeamsCardChoiceList> {
-    const monitors: Array<Monitor> = await MonitorService.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-      },
-      sort: {
-        name: SortOrder.Ascending,
-      },
-      limit: MICROSOFT_TEAMS_MAX_MONITOR_CHOICES,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const monitors: Array<Monitor> =
+      await WorkspaceActionAuthorization.findReadable({
+        service: MonitorService,
+        props: props,
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        limit: MICROSOFT_TEAMS_MAX_MONITOR_CHOICES,
+      });
 
     return {
       choices: this.toChoices(monitors),
       totalCount:
         monitors.length < MICROSOFT_TEAMS_MAX_MONITOR_CHOICES
           ? monitors.length
-          : (
-              await MonitorService.countBy({
-                query: {
-                  projectId: projectId,
-                },
-                props: {
-                  isRoot: true,
-                },
-              })
-            ).toNumber(),
+          : await WorkspaceActionAuthorization.countReadable({
+              service: MonitorService,
+              props: props,
+              query: {
+                projectId: projectId,
+              },
+            }),
     };
   }
 
   public static async getMonitorStatusChoices(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<MicrosoftTeamsCardChoiceList> {
     const monitorStatuses: Array<MonitorStatus> =
-      await MonitorStatusService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: MonitorStatusService,
+        props: props,
         query: {
           projectId: projectId,
         },
@@ -276,10 +287,6 @@ export default class MicrosoftTeamsCardChoices {
           priority: SortOrder.Ascending,
         },
         limit: MICROSOFT_TEAMS_MAX_MONITOR_STATUS_CHOICES,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
       });
 
     const choices: Array<MicrosoftTeamsCardChoice> =
@@ -290,48 +297,49 @@ export default class MicrosoftTeamsCardChoices {
 
   public static async getLabelChoices(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<MicrosoftTeamsCardChoiceList> {
-    const labels: Array<Label> = await LabelService.findBy({
-      query: {
-        projectId: projectId,
+    const labels: Array<Label> = await WorkspaceActionAuthorization.findReadable(
+      {
+        service: LabelService,
+        props: props,
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        limit: MICROSOFT_TEAMS_MAX_LABEL_CHOICES,
       },
-      select: {
-        _id: true,
-        name: true,
-      },
-      sort: {
-        name: SortOrder.Ascending,
-      },
-      limit: MICROSOFT_TEAMS_MAX_LABEL_CHOICES,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       choices: this.toChoices(labels),
       totalCount:
         labels.length < MICROSOFT_TEAMS_MAX_LABEL_CHOICES
           ? labels.length
-          : (
-              await LabelService.countBy({
-                query: {
-                  projectId: projectId,
-                },
-                props: {
-                  isRoot: true,
-                },
-              })
-            ).toNumber(),
+          : await WorkspaceActionAuthorization.countReadable({
+              service: LabelService,
+              props: props,
+              query: {
+                projectId: projectId,
+              },
+            }),
     };
   }
 
   public static async getIncidentSeverityChoices(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<MicrosoftTeamsCardChoiceList> {
     const severities: Array<IncidentSeverity> =
-      await IncidentSeverityService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: IncidentSeverityService,
+        props: props,
         query: {
           projectId: projectId,
         },
@@ -343,10 +351,6 @@ export default class MicrosoftTeamsCardChoices {
           order: SortOrder.Ascending,
         },
         limit: MICROSOFT_TEAMS_MAX_SEVERITY_CHOICES,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
       });
 
     const choices: Array<MicrosoftTeamsCardChoice> = this.toChoices(severities);
@@ -356,9 +360,12 @@ export default class MicrosoftTeamsCardChoices {
 
   public static async getOnCallDutyPolicyChoices(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<MicrosoftTeamsCardChoiceList> {
     const policies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: projectId,
           // Archived policies page no one, so they are not offered.
@@ -372,10 +379,6 @@ export default class MicrosoftTeamsCardChoices {
           name: SortOrder.Ascending,
         },
         limit: MICROSOFT_TEAMS_MAX_ON_CALL_POLICY_CHOICES,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
       });
 
     return {
@@ -383,18 +386,15 @@ export default class MicrosoftTeamsCardChoices {
       totalCount:
         policies.length < MICROSOFT_TEAMS_MAX_ON_CALL_POLICY_CHOICES
           ? policies.length
-          : (
-              await OnCallDutyPolicyService.countBy({
-                query: {
-                  projectId: projectId,
-                  // The total counts what the list offers: live policies.
-                  isArchived: false,
-                },
-                props: {
-                  isRoot: true,
-                },
-              })
-            ).toNumber(),
+          : await WorkspaceActionAuthorization.countReadable({
+              service: OnCallDutyPolicyService,
+              props: props,
+              query: {
+                projectId: projectId,
+                // The total counts what the list offers: live policies.
+                isArchived: false,
+              },
+            }),
     };
   }
 }

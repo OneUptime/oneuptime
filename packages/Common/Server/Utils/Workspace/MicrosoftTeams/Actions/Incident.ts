@@ -546,14 +546,26 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
+      /*
+       * Asked as the submit asks it, before the card is shown, and the card
+       * then offers the policies the member may read.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this incident",
+        resources: [{ service: IncidentService, id: new ObjectID(actionValue) }],
+      });
+
       // Send the input card
       const card: JSONObject | null = await this.buildExecuteOnCallPolicyCard(
         actionValue,
         projectId,
+        databaseProps,
       );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
         );
         return;
       }
@@ -729,7 +741,7 @@ export default class MicrosoftTeamsIncidentActions {
       try {
         createdIncident = await this.createIncidentInProject({
           projectId,
-          oneUptimeUserId,
+          props: databaseProps,
           title,
           description,
           severityId,
@@ -835,13 +847,18 @@ export default class MicrosoftTeamsIncidentActions {
   }
 
   /*
-   * Every id below comes from the submitted card, not from the form we sent,
-   * and the incident is created as root. So they are checked against the
-   * linked project before anything is created.
+   * Every id below comes from the submitted card, not from the form we sent.
+   * The incident is declared by the member the Teams account is connected
+   * to, with their own props, as they would declare it in OneUptime: they
+   * must be allowed to declare incidents, and every record the card names -
+   * the monitors, on-call policies, labels, severity and monitor status -
+   * must be one they may name. IncidentService checks those on the create
+   * itself, and a record they may not read is answered like one that is not
+   * in the project (ProjectScopedReferenceException).
    */
   private static async createIncidentInProject(data: {
     projectId: ObjectID;
-    oneUptimeUserId: ObjectID;
+    props: DatabaseCommonInteractionProps;
     title: string;
     description: string;
     severityId: string;
@@ -867,21 +884,11 @@ export default class MicrosoftTeamsIncidentActions {
         ? new ObjectID(data.monitorStatusId)
         : undefined;
 
-    await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject({
-      projectId: projectId,
-      subject: "incident",
-      monitorIds: monitorIdArray,
-      labelIds: labelIdArray,
-      onCallDutyPolicyIds: policyIdArray,
-      monitorStatusId: monitorStatusId,
-    });
-
-    // Create the incident
+    // Create the incident, credited to the member who declares it.
     const incident: Incident = new Incident();
     incident.title = data.title;
     incident.description = data.description;
     incident.projectId = projectId;
-    incident.createdByUserId = data.oneUptimeUserId;
     incident.incidentSeverityId = new ObjectID(data.severityId);
     incident.rootCause = `Incident created via Microsoft Teams`;
 
@@ -923,9 +930,7 @@ export default class MicrosoftTeamsIncidentActions {
     // Save the incident
     const createdIncident: Incident = await IncidentService.create({
       data: incident,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     logger.debug(
@@ -992,9 +997,13 @@ export default class MicrosoftTeamsIncidentActions {
   private static async buildExecuteOnCallPolicyCard(
     incidentId: string,
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<JSONObject | null> {
+    // The policies the member may read, with their own permissions.
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: projectId,
           // Archived policies page no one, so they are not offered.
@@ -1004,11 +1013,7 @@ export default class MicrosoftTeamsIncidentActions {
           name: true,
           _id: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: 50,
-        skip: 0,
       });
 
     const choices: Array<{ title: string; value: string }> = onCallPolicies
@@ -1135,9 +1140,34 @@ export default class MicrosoftTeamsIncidentActions {
       return;
     }
 
+    /*
+     * The card lists what the member the Teams account is connected to may
+     * read; nobody else's lists are built.
+     */
+    let props: DatabaseCommonInteractionProps;
+
+    try {
+      props = await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(
+          {
+            teamsUserId: teamsRequest.userId || "",
+            projectId: teamsRequest.projectId,
+          },
+        ),
+        projectId: teamsRequest.projectId,
+      });
+    } catch (error) {
+      logger.debug("No new incident card for a Teams user who is not a member", {
+        projectId: teamsRequest.projectId.toString(),
+      });
+      logger.debug(error);
+      return;
+    }
+
     // Build the adaptive card with form fields
     const card: JSONObject = await this.buildNewIncidentCard(
       teamsRequest.projectId,
+      props,
     );
 
     /*
@@ -1204,16 +1234,22 @@ export default class MicrosoftTeamsIncidentActions {
     }
 
     try {
-      // Get OneUptime user ID
+      // Declared as the member the Teams account is connected to.
       const oneUptimeUserId: ObjectID =
         await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
           teamsUserId: userId,
           projectId: projectId,
         });
 
+      const props: DatabaseCommonInteractionProps =
+        await WorkspaceActionAuthorization.getProjectMemberProps({
+          userId: oneUptimeUserId,
+          projectId: projectId,
+        });
+
       await this.createIncidentInProject({
         projectId,
-        oneUptimeUserId,
+        props,
         title,
         description,
         severityId,
@@ -1234,9 +1270,13 @@ export default class MicrosoftTeamsIncidentActions {
     }
   }
 
-  // Every list the "Create New Incident" card offers, read for one project.
+  /*
+   * Every list the "Create New Incident" card offers, read in one project as
+   * the member the card is for (`props`): only what they may read.
+   */
   public static async getNewIncidentFormChoices(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<MicrosoftTeamsNewIncidentFormChoices> {
     const [severities, monitors, monitorStatuses, labels, onCallDutyPolicies]: [
       MicrosoftTeamsCardChoiceList,
@@ -1245,11 +1285,11 @@ export default class MicrosoftTeamsIncidentActions {
       MicrosoftTeamsCardChoiceList,
       MicrosoftTeamsCardChoiceList,
     ] = await Promise.all([
-      MicrosoftTeamsCardChoices.getIncidentSeverityChoices(projectId),
-      MicrosoftTeamsCardChoices.getMonitorChoices(projectId),
-      MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId),
-      MicrosoftTeamsCardChoices.getLabelChoices(projectId),
-      MicrosoftTeamsCardChoices.getOnCallDutyPolicyChoices(projectId),
+      MicrosoftTeamsCardChoices.getIncidentSeverityChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getMonitorChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getLabelChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getOnCallDutyPolicyChoices(projectId, props),
     ]);
 
     return {
@@ -1268,10 +1308,11 @@ export default class MicrosoftTeamsIncidentActions {
    */
   public static async buildNewIncidentCard(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
     options?: { initialTitle?: string | undefined } | undefined,
   ): Promise<JSONObject> {
     return this.buildNewIncidentCardForBudget({
-      choices: await this.getNewIncidentFormChoices(projectId),
+      choices: await this.getNewIncidentFormChoices(projectId, props),
       budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
       initialTitle: options?.initialTitle,
     });

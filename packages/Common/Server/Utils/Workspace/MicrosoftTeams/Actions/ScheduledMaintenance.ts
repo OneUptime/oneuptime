@@ -276,7 +276,6 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         scheduledMaintenanceObj.title = title;
         scheduledMaintenanceObj.description = description;
         scheduledMaintenanceObj.projectId = request.projectId;
-        scheduledMaintenanceObj.createdByUserId = new ObjectID(request.userId);
         scheduledMaintenanceObj.startsAt = startsAt;
         scheduledMaintenanceObj.endsAt = endsAt;
 
@@ -287,6 +286,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             await this.createScheduledMaintenanceInProject({
               scheduledMaintenance: scheduledMaintenanceObj,
               projectId: request.projectId,
+              props: databaseProps,
               monitorIds,
               monitorStatusId,
               labelIds,
@@ -752,9 +752,37 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       return;
     }
 
+    /*
+     * The card lists what the member the Teams account is connected to may
+     * read; nobody else's lists are built.
+     */
+    let props: DatabaseCommonInteractionProps;
+
+    try {
+      props = await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId(
+          {
+            teamsUserId: teamsRequest.userId || "",
+            projectId: teamsRequest.projectId,
+          },
+        ),
+        projectId: teamsRequest.projectId,
+      });
+    } catch (error) {
+      logger.debug(
+        "No new scheduled maintenance card for a Teams user who is not a member",
+        {
+          projectId: teamsRequest.projectId.toString(),
+        },
+      );
+      logger.debug(error);
+      return;
+    }
+
     // Build the adaptive card with form fields
     const card: JSONObject = await this.buildNewScheduledMaintenanceCard(
       teamsRequest.projectId,
+      props,
     );
 
     /*
@@ -825,10 +853,16 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     }
 
     try {
-      // Get OneUptime user ID
+      // Created as the member the Teams account is connected to.
       const oneUptimeUserId: ObjectID =
         await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
           teamsUserId: userId,
+          projectId: projectId,
+        });
+
+      const props: DatabaseCommonInteractionProps =
+        await WorkspaceActionAuthorization.getProjectMemberProps({
+          userId: oneUptimeUserId,
           projectId: projectId,
         });
 
@@ -838,13 +872,13 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       scheduledMaintenance.title = title;
       scheduledMaintenance.description = description;
       scheduledMaintenance.projectId = projectId;
-      scheduledMaintenance.createdByUserId = oneUptimeUserId;
       scheduledMaintenance.startsAt = OneUptimeDate.fromString(startDate);
       scheduledMaintenance.endsAt = OneUptimeDate.fromString(endDate);
 
       await this.createScheduledMaintenanceInProject({
         scheduledMaintenance,
         projectId,
+        props,
         monitorIds,
         monitorStatusId,
         labelIds,
@@ -912,13 +946,19 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   }
 
   /*
-   * Every id below comes from the submitted card, not from the form we sent,
-   * and the event is created as root. So they are checked against the linked
-   * project before anything is created.
+   * Every id below comes from the submitted card, not from the form we sent.
+   * The event is created by the member the Teams account is connected to,
+   * with their own props, as they would create it in OneUptime: they must be
+   * allowed to create events, and every record the card names - the
+   * monitors, labels and monitor status - must be one they may name.
+   * ScheduledMaintenanceService checks those on the create itself, and a
+   * record they may not read is answered like one that is not in the
+   * project (ProjectScopedReferenceException).
    */
   private static async createScheduledMaintenanceInProject(data: {
     scheduledMaintenance: ScheduledMaintenance;
     projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
     monitorIds: string;
     monitorStatusId: string;
     labelIds: string;
@@ -935,14 +975,6 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       data.monitorStatusId && monitorIdArray.length > 0
         ? new ObjectID(data.monitorStatusId)
         : undefined;
-
-    await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject({
-      projectId: projectId,
-      subject: "scheduled maintenance event",
-      monitorIds: monitorIdArray,
-      labelIds: labelIdArray,
-      monitorStatusId: monitorStatusId,
-    });
 
     if (monitorIdArray.length > 0) {
       scheduledMaintenance.monitors = monitorIdArray.map((id: ObjectID) => {
@@ -976,9 +1008,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     const createdScheduledMaintenance: ScheduledMaintenance =
       await ScheduledMaintenanceService.create({
         data: scheduledMaintenance,
-        props: {
-          isRoot: true,
-        },
+        props: data.props,
       });
 
     logger.debug(
@@ -993,18 +1023,23 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     return createdScheduledMaintenance;
   }
 
-  // Every list the "Create New Scheduled Maintenance" card offers.
+  /*
+   * Every list the "Create New Scheduled Maintenance" card offers, read in
+   * one project as the member the card is for (`props`): only what they may
+   * read.
+   */
   public static async getNewScheduledMaintenanceFormChoices(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<MicrosoftTeamsNewScheduledMaintenanceFormChoices> {
     const [monitors, monitorStatuses, labels]: [
       MicrosoftTeamsCardChoiceList,
       MicrosoftTeamsCardChoiceList,
       MicrosoftTeamsCardChoiceList,
     ] = await Promise.all([
-      MicrosoftTeamsCardChoices.getMonitorChoices(projectId),
-      MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId),
-      MicrosoftTeamsCardChoices.getLabelChoices(projectId),
+      MicrosoftTeamsCardChoices.getMonitorChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId, props),
+      MicrosoftTeamsCardChoices.getLabelChoices(projectId, props),
     ]);
 
     return {
@@ -1021,6 +1056,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
    */
   public static async buildNewScheduledMaintenanceCard(
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
     options?:
       | {
           initialTitle?: string | undefined;
@@ -1029,7 +1065,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       | undefined,
   ): Promise<JSONObject> {
     return this.buildNewScheduledMaintenanceCardForBudget({
-      choices: await this.getNewScheduledMaintenanceFormChoices(projectId),
+      choices: await this.getNewScheduledMaintenanceFormChoices(
+        projectId,
+        props,
+      ),
       budgetInBytes: MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES[0]!,
       initialTitle: options?.initialTitle,
       timezone: options?.timezone,
