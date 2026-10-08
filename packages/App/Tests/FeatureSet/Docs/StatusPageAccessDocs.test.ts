@@ -119,7 +119,7 @@ describe("the English status pages guide", () => {
   it("has the IP allowlist under More settings, with its Scale plan", () => {
     expect(section).toContain("\n### IP allowlist\n");
     expect(section).toContain(
-      "Under **More settings** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column)",
+      "Under **More settings** on **Access**, the **IP Allowlist** section (the `ipWhitelist` column)",
     );
     expect(section).toContain(
       "While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds.",

@@ -323,6 +323,14 @@ export default class CriteriaNameUtil {
       subject += ` ${oid}`;
     }
 
+    // Criteria on two fields of one result would otherwise share a name.
+    const resultValuePath: string | undefined =
+      criteriaFilter.customCodeMonitorOptions?.resultValuePath?.trim();
+
+    if (resultValuePath && checkOn === CheckOn.ResultValue) {
+      subject += ` at ${resultValuePath}`;
+    }
+
     const interfaceName: string | undefined =
       criteriaFilter.snmpMonitorOptions?.interfaceName?.trim();
 

@@ -603,6 +603,16 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   minute to follow. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
+- **Saving Require SSO for Login on again is checked as turning it on is.**
+  A save that sends Require SSO for Login on - for a project or for the
+  whole server - or names the provider a project requires is now checked
+  even when the setting has that value already, as the API, Terraform and
+  other tools that send every setting with each save do. While no provider
+  would sign people in there, or the provider a project requires is off,
+  such a save is refused with the message turning it on gives, whatever
+  else it changes: turn a provider on, or turn the setting off, first.
+  Turning it off and clearing the required provider are never refused. See
+  [SSO](/docs/identity/sso#requiring-sso-for-your-project).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
@@ -725,6 +735,38 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   they own, as a status page's and a service's are. Roles and API keys whose
   permissions reach the whole project work as before; give a custom role or
   an API key restricted to labels the read of the records it names. See
+  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
+  and [Users, Teams & Permissions](/docs/permissions/index).
+- **Who owns a resource, and a setting that holds credentials, are named
+  only by someone who may read them.** The owners of every resource - on-call
+  policies and schedules, monitor groups, dashboards, incoming call
+  policies, workflows, runbooks, probes, hosts and clusters, SLOs and the
+  rest - are now listed, read, added and removed through the resource they
+  own, as a monitor's, a status page's and a service's are: a role or an API
+  key restricted to labels reaches the owners of the resources carrying its
+  labels, a block with labels on reading the resource leaves out their
+  owners, and a permission on owners alone reaches none. The owners of
+  incoming call policies now take the policy's own roles (`SettingsAdmin`,
+  `SettingsMember`, `SettingsViewer`) instead of the on-call ones. A create or
+  a change that names an SMTP server, a call and SMS provider, a runbook
+  credential, SNMP credentials, a video call connection or an API key - a
+  status page's SMTP server or call and SMS provider, an incoming call
+  policy's provider, the credential a Kubernetes cluster gives OneUptime AI,
+  a network device's or site's SNMP credentials, a video call's connection,
+  an API key permission's key, the credential of a runbook's SSH and
+  Kubernetes steps - needs a permission to read that kind of setting, and
+  is otherwise refused with the `400` that names the field and the ID; a
+  change that keeps the setting a record names already is not asked about.
+  A role that edits status pages but cannot read the project's SMTP servers
+  or call and SMS providers, such as `StatusPageAdmin`, no longer picks one
+  for a status page; a runbook author needs `ReadRunbookCredential` to name a
+  credential in a step. Searching for numbers to buy, and listing the numbers
+  a call and SMS provider owns, take the same read of the provider they
+  name. Where a project was bought - its reseller, its reseller plan and its
+  license - is set by OneUptime alone: a create of a project that sends
+  `resellerId`, `resellerPlanId`, `resellerLicenseId` or their relations is
+  refused with a `400` that names the field, as a change of them already was.
+  See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a

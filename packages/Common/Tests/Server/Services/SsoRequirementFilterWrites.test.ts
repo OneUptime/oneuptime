@@ -89,8 +89,11 @@ let samlProviders: InMemoryTable;
 let events: Array<string>;
 let announced: Array<RealtimeAccessChange>;
 
-// The locks found lost from now on, by key.
+// The locks found lost from now on, by key: those taken again are lost too.
 let lostLocks: Array<string>;
+
+// The locks found lost, as they were handed out: those taken again are not.
+let lostLockObjects: Set<{ key: string }>;
 
 // The locks Semaphore.lock handed out, by key, the last of each.
 let lockObjects: Map<string, { key: string }>;
@@ -180,6 +183,7 @@ beforeEach(() => {
   events = [];
   announced = [];
   lostLocks = [];
+  lostLockObjects = new Set<{ key: string }>();
   lockObjects = new Map<string, { key: string }>();
   whileWaitingForLock = null;
   whileCharging = null;
@@ -259,7 +263,10 @@ beforeEach(() => {
     key: string;
   }): Promise<boolean> => {
     events.push(`keep:${mutex.key}`);
-    return !lostLocks.includes(mutex.key);
+    return (
+      !lostLocks.includes(mutex.key) &&
+      !lostLockObjects.has(mutex as { key: string })
+    );
   }) as never);
 
   getJestSpyOn(RealtimeAccessChanges, "announce").mockImplementation(((
@@ -346,7 +353,7 @@ describe("Require SSO for Login written to projects named by a filter", () => {
     expect(lockObjects.size).toBe(0);
   });
 
-  test("a write that asks nothing more of the projects it read - they require SSO already - is held to them too", async () => {
+  test("a write that saves back the rule the projects have - they require SSO already - is checked, held to them, and keeps their locks until they are written", async () => {
     projects.get(ACME_EU)!["requireSsoForLogin"] = true;
     projects.get(ACME_US)!["requireSsoForLogin"] = true;
 
@@ -354,14 +361,35 @@ describe("Require SSO for Login written to projects named by a filter", () => {
       projects.rows.push(projectRow(CREATED_LATER, GROUP));
     };
 
-    await requireSsoForGroup();
+    await expect(requireSsoForGroup()).resolves.toBe(2);
 
     expect(ruleOf(CREATED_LATER)).toBe(false);
     expect(writtenProjects()).not.toContain(CREATED_LATER);
-    // Nothing to check: the locks went back once the projects were read under them.
-    expect(events.indexOf(`release:${SECOND_LOCKED}`)).toBeLessThan(
+    // Held through the charge and the writes, and given back once they are done.
+    const lastWrite: number = events.lastIndexOf(`write:${ACME_US}`);
+
+    expect(events.indexOf(`release:${FIRST_LOCKED}`)).toBeGreaterThan(
       events.indexOf("charge"),
     );
+    expect(events.indexOf(`release:${SECOND_LOCKED}`)).toBeGreaterThan(
+      lastWrite,
+    );
+  });
+
+  test("a write that saves back the rule the projects have is refused when one of them has no way in, and nothing is written", async () => {
+    projects.get(ACME_EU)!["requireSsoForLogin"] = true;
+    projects.get(ACME_US)!["requireSsoForLogin"] = true;
+    samlProviders.rows = samlProviders.rows.filter(
+      (row: StoredRow): boolean => {
+        return String(row["projectId"]) !== ACME_US;
+      },
+    );
+
+    await expect(requireSsoForGroup()).resolves.toBe(
+      NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE,
+    );
+
+    expect(writtenProjects()).toEqual([]);
   });
 
   test("a project of the filter that has no way in is still refused, and nothing is written", async () => {
@@ -426,7 +454,40 @@ describe("the locks of a Require SSO for Login write are kept for it, until it i
     expect(keptForWrite()).toEqual([false, false]);
   });
 
-  test("a lock lost while the auto recharge was charged refuses the write: nothing is written, and the locks are given back", async () => {
+  test("a lock lost while the auto recharge was charged is taken again, with the other, and the projects read and checked again under them: the write goes through", async () => {
+    whileCharging = (): void => {
+      lostLockObjects.add(lockObjects.get(SECOND_LOCKED)!);
+    };
+
+    await expect(requireSsoForGroup()).resolves.toBe(2);
+
+    expect(ruleOf(ACME_EU)).toBe(true);
+    expect(ruleOf(ACME_US)).toBe(true);
+    expect(writtenProjects().sort()).toEqual([ACME_EU, ACME_US].sort());
+
+    const charged: number = events.indexOf("charge");
+
+    expect(events.slice(charged)).toEqual([
+      "charge",
+      // Right before the write: one is gone.
+      `keep:${FIRST_LOCKED}`,
+      `keep:${SECOND_LOCKED}`,
+      // Both given back, taken again in order, the projects read again, and kept.
+      `release:${FIRST_LOCKED}`,
+      `release:${SECOND_LOCKED}`,
+      `lock:${FIRST_LOCKED}`,
+      `lock:${SECOND_LOCKED}`,
+      `keep:${FIRST_LOCKED}`,
+      `keep:${SECOND_LOCKED}`,
+      `write:${ACME_EU}`,
+      `write:${ACME_US}`,
+      `release:${FIRST_LOCKED}`,
+      `release:${SECOND_LOCKED}`,
+    ]);
+    expect(keptForWrite()).toEqual([false, false]);
+  });
+
+  test("a lock lost while the auto recharge was charged, and lost again once taken again, refuses the write: nothing is written, and nothing is held", async () => {
     whileCharging = (): void => {
       lostLocks = [SECOND_LOCKED];
     };

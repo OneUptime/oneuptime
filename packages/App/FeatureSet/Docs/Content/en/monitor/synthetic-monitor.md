@@ -133,6 +133,10 @@ return {
 };
 ```
 
+### Alerting on the returned data
+
+Whatever the script returns as `data` is the monitor's **Result Value**, which a criteria can compare. When `data` is an object or an array, fill in **Field Path** on the Result Value filter to compare one field of it — for example `status`, `timings.loadTime` or `errors[0].message`. The filter is checked against the data from every browser and screen size the monitor runs on, and matches when any of them does. See [Alerting on the returned data](/docs/monitor/custom-code-monitor#alerting-on-the-returned-data) for how paths and conditions work.
+
 ### Using Monitor Secrets
 
 #### Adding a secret

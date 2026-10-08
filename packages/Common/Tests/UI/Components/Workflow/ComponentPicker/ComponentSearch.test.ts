@@ -474,6 +474,15 @@ describe("hand-written steps and resources together", () => {
     expect(titles(ACTIONS, "send slack message")[0]).toBe(
       "Send Message to Slack",
     );
+    expect(titles(ACTIONS, "irc")[0]).toBe("Send Message to IRC");
+    expect(titles(ACTIONS, "internet relay chat")[0]).toBe(
+      "Send Message to IRC",
+    );
+    expect(titles(ACTIONS, "send to libera chat")[0]).toBe(
+      "Send Message to IRC",
+    );
+    expect(titles(ACTIONS, "oftc")).toEqual(["Send Message to IRC"]);
+    expect(titles(ACTIONS, "send irc message")[0]).toBe("Send Message to IRC");
     expect(titles(ACTIONS, "resolve incident")[0]).toBe("Update One Incident");
     expect(titles(ACTIONS, "open an incident")[0]).toBe("Create One Incident");
 

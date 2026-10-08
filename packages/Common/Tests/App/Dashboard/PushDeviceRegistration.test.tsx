@@ -111,22 +111,37 @@ const SUBSCRIPTION_JSON: JSONObject = {
   keys: { p256dh: "BNcR", auth: "tBHI" },
 };
 
+// What the push service hands this browser once it has dropped the first one.
+const FRESH_SUBSCRIPTION_JSON: JSONObject = {
+  endpoint: "https://fcm.googleapis.com/fcm/send/this-browser-again",
+  expirationTime: null,
+  keys: { p256dh: "BFrE", auth: "sHAg" },
+};
+
 interface BrowserStandIn {
   permission: NotificationPermission;
   promptAnswer: NotificationPermission;
   requestPermission: jest.Mock;
   register: jest.Mock;
   subscribe: jest.Mock;
+  unsubscribe: jest.Mock;
+  // What the page told OneUptime's service worker.
+  workerMessages: jest.Mock;
 }
 
 let browser: BrowserStandIn;
 let devices: Array<UserPush>;
 
-function device(id: string, name: string): UserPush {
+function device(
+  id: string,
+  name: string,
+  isVerified: boolean = true,
+): UserPush {
   const model: UserPush = new UserPush();
   model.id = new ObjectID(id);
   model.deviceName = name;
   model.isCriticalAlertEnabled = false;
+  model.isVerified = isVerified;
   return model;
 }
 
@@ -143,14 +158,32 @@ function defineOn(target: unknown, name: string, value: unknown): void {
  * and notifications, with OneUptime's worker installing on request.
  */
 function standInForTheBrowser(): BrowserStandIn {
+  let isDropped: boolean = false;
+
+  const unsubscribe: jest.Mock = jest.fn(async (): Promise<boolean> => {
+    isDropped = true;
+    return true;
+  });
+
   const subscription: Record<string, unknown> = {
     endpoint: SUBSCRIPTION_JSON["endpoint"],
     options: { applicationServerKey: null },
     toJSON: (): JSONObject => {
       return SUBSCRIPTION_JSON;
     },
+    unsubscribe: unsubscribe,
+  };
+
+  const freshSubscription: Record<string, unknown> = {
+    endpoint: FRESH_SUBSCRIPTION_JSON["endpoint"],
+    options: { applicationServerKey: null },
+    toJSON: (): JSONObject => {
+      return FRESH_SUBSCRIPTION_JSON;
+    },
     unsubscribe: jest.fn(),
   };
+
+  const workerMessages: jest.Mock = jest.fn();
 
   const registration: Record<string, unknown> = {
     scope: "http://localhost/dashboard/",
@@ -159,13 +192,14 @@ function standInForTheBrowser(): BrowserStandIn {
     active: {
       scriptURL: "http://localhost/dashboard/sw.js",
       state: "activated",
+      postMessage: workerMessages,
     },
     pushManager: {
       getSubscription: async (): Promise<null> => {
         return null;
       },
       subscribe: jest.fn(async (): Promise<unknown> => {
-        return subscription;
+        return isDropped ? freshSubscription : subscription;
       }),
     },
   };
@@ -182,6 +216,8 @@ function standInForTheBrowser(): BrowserStandIn {
     }),
     subscribe: (registration["pushManager"] as { subscribe: jest.Mock })
       .subscribe,
+    unsubscribe: unsubscribe,
+    workerMessages: workerMessages,
   };
 
   defineOn(window, "isSecureContext", true);
@@ -220,6 +256,7 @@ function signIn(): void {
 function answerPosts(answers: {
   register?: () => HTTPResponse<JSONObject>;
   testNotification?: () => HTTPResponse<JSONObject>;
+  subscriptionChange?: () => HTTPResponse<JSONObject> | HTTPErrorResponse;
 }): void {
   postMock.mockImplementation(async (request: any): Promise<unknown> => {
     const url: string = request.url.toString();
@@ -235,7 +272,21 @@ function answerPosts(answers: {
               success: true,
               deviceId: NEW_DEVICE_ID,
               alreadyRegistered: false,
+              isVerified: true,
             },
+            {},
+          );
+        })
+      )();
+    }
+
+    if (url.endsWith("/user-push/subscription-change")) {
+      return (
+        answers.subscriptionChange ||
+        ((): HTTPResponse<JSONObject> => {
+          return new HTTPResponse<JSONObject>(
+            200,
+            { success: true, devicesUpdated: 1 },
             {},
           );
         })
@@ -266,6 +317,19 @@ function registerCalls(): Array<any> {
     })
     .filter((request: any) => {
       return request.url.toString().endsWith("/user-push/register");
+    });
+}
+
+function subscriptionChanges(): Array<any> {
+  return postMock.mock.calls
+    .map((call: Array<any>) => {
+      return call[0];
+    })
+    .filter((request: any) => {
+      return request.url.toString().endsWith("/user-push/subscription-change");
+    })
+    .map((request: any) => {
+      return request.data;
     });
 }
 
@@ -531,6 +595,161 @@ describe("registering this browser", () => {
     expect(await screen.findByText("Project ID is invalid")).toBeVisible();
     expect(modalTitle()).toBe("Register Device for Push Notifications");
   });
+});
+
+/*
+ * A subscription renewed when the browser replaces it (pushsubscriptionchange
+ * in sw.js.template) needs the server's VAPID key, which the service worker
+ * cannot read for itself.
+ */
+test("a registered browser's service worker is told the server's push key", async () => {
+  render(<PushMethods />);
+
+  const dialog: HTMLElement = await openRegisterDialog();
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Register Device" }),
+  );
+
+  await waitFor(() => {
+    expect(modalTitle()).toBe("Browser Registered");
+  });
+
+  expect(browser.workerMessages).toHaveBeenCalledWith({
+    type: "PUSH_CONFIGURATION",
+    vapidPublicKey:
+      "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U",
+  });
+});
+
+/*
+ * The push service answered a page to this browser with 404 or 410, so its
+ * device was marked as no longer receiving notifications - while the browser
+ * still holds the dead subscription and would hand it to Register Device
+ * again.
+ */
+describe("a browser whose push subscription the push service no longer accepts", () => {
+  function alreadyRegisteredButGone(): HTTPResponse<JSONObject> {
+    return new HTTPResponse<JSONObject>(
+      200,
+      {
+        success: true,
+        deviceId: NEW_DEVICE_ID,
+        alreadyRegistered: true,
+        isVerified: false,
+      },
+      {},
+    );
+  }
+
+  test("registering it again gets a new subscription, and the device it already has carries it", async () => {
+    answerPosts({ register: alreadyRegisteredButGone });
+
+    render(<PushMethods />);
+
+    const dialog: HTMLElement = await openRegisterDialog();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Register Device" }),
+    );
+
+    // Not "already registered": it did not work, and now it does.
+    await waitFor(() => {
+      expect(modalTitle()).toBe("Browser Registered");
+    });
+
+    expect(browser.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(browser.unsubscribe.mock.invocationCallOrder[0]!).toBeLessThan(
+      browser.subscribe.mock.invocationCallOrder[1]!,
+    );
+    expect(subscriptionChanges()).toEqual([
+      {
+        oldDeviceToken: JSON.stringify(SUBSCRIPTION_JSON),
+        newDeviceToken: JSON.stringify(FRESH_SUBSCRIPTION_JSON),
+      },
+    ]);
+    // The device it had, renewed: nothing new is registered.
+    expect(registerCalls()).toHaveLength(1);
+  });
+
+  test("a renewal the server refuses is shown, and the dialog stays open", async () => {
+    answerPosts({
+      register: alreadyRegisteredButGone,
+      subscriptionChange: (): HTTPErrorResponse => {
+        return new HTTPErrorResponse(
+          400,
+          { message: "Web push subscription endpoint must use https." },
+          {},
+        );
+      },
+    });
+
+    render(<PushMethods />);
+
+    const dialog: HTMLElement = await openRegisterDialog();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Register Device" }),
+    );
+
+    expect(
+      await within(dialog).findByText(
+        "Web push subscription endpoint must use https.",
+      ),
+    ).toBeInTheDocument();
+    expect(modalTitle()).toBe("Register Device for Push Notifications");
+  });
+
+  test("a renewal that changed no device is not passed off as success", async () => {
+    answerPosts({
+      register: alreadyRegisteredButGone,
+      subscriptionChange: (): HTTPResponse<JSONObject> => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { success: true, devicesUpdated: 0 },
+          {},
+        );
+      },
+    });
+
+    render(<PushMethods />);
+
+    const dialog: HTMLElement = await openRegisterDialog();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Register Device" }),
+    );
+
+    expect(
+      await within(dialog).findByText(
+        "This browser's push subscription could not be renewed. Reload the page and register this browser again.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+test("a device that no longer receives notifications says so in the list", async () => {
+  devices = [
+    device(PHONE_DEVICE_ID, "iPhone 14 Pro Max"),
+    device(NEW_DEVICE_ID, "Firefox on Linux", false),
+  ];
+
+  render(<PushMethods />);
+
+  const goneRow: HTMLElement = (
+    await screen.findByText("Firefox on Linux")
+  ).closest("tr")!;
+  const workingRow: HTMLElement = screen
+    .getByText("iPhone 14 Pro Max")
+    .closest("tr")!;
+
+  expect(
+    within(goneRow).getByText("Not receiving notifications"),
+  ).toBeInTheDocument();
+  expect(
+    within(workingRow).queryByText("Not receiving notifications"),
+  ).toBeNull();
+
+  // Read with the list: a column of its own is not needed to know it.
+  const listRequest: { select: Record<string, unknown> } = getListMock.mock
+    .calls[0]![0] as never;
+  expect(listRequest.select["isVerified"]).toBe(true);
 });
 
 describe("when this browser cannot be registered, the dialog says why and what to do", () => {

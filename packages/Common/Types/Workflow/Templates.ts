@@ -444,6 +444,41 @@ const DISCORD_WEBHOOK_URL: WorkflowTemplateVariable = {
   isSecret: true,
 };
 
+/*
+ * IRC has no webhook URL to paste: the step connects to a server and joins a
+ * channel. Neither is secret. The formats catch the two mistakes people make
+ * most - a URL or a port in the server, a channel without its "#" - and the
+ * step itself checks the rest when it runs.
+ */
+const IRC_SERVER: WorkflowTemplateVariable = {
+  name: "ircServer",
+  title: "IRC Server",
+  description:
+    "The host name of the IRC server, such as irc.libera.chat. The step connects over TLS, on port 6697.",
+  placeholder: "irc.libera.chat",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
+    message:
+      "Enter only the server's host name, such as irc.libera.chat, without irc:// or a port.",
+  },
+};
+
+const IRC_CHANNEL: WorkflowTemplateVariable = {
+  name: "ircChannel",
+  title: "IRC Channel",
+  description:
+    "The channel to post in. The step joins it, posts the message and leaves.",
+  placeholder: "#ops",
+  required: true,
+  isSecret: false,
+  format: {
+    pattern: /^[#&][^\s,]+$/,
+    message: "Enter a channel that starts with #, such as #ops.",
+  },
+};
+
 /** The select every incident trigger uses. Anything referenced below must be in here. */
 const INCIDENT_SELECT: JSONObject = {
   _id: true,
@@ -6634,6 +6669,68 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         },
         {
           fromComponentId: "discord-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-created-irc",
+    name: "Tell IRC when an incident opens",
+    description:
+      "Posts a short incident summary to an IRC channel the moment the incident is declared.",
+    teaches:
+      "How a message of several lines reaches a chat that takes one line at a time.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.Chat,
+    workflowName: "Notify IRC on new incident",
+    workflowDescription:
+      "Posts to an IRC channel whenever an incident is created in this project.",
+    variables: [IRC_SERVER, IRC_CHANNEL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "irc-1",
+          metadataId: ComponentID.IRCSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            server: "{{local.variables.ircServer}}",
+            channel: "{{local.variables.ircChannel}}",
+            // Each line is an IRC message of its own.
+            text: [
+              "🚨 Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared: {{local.components.incident-on-create-1.returnValues.model.title}}",
+              "Severity: {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}} | State: {{local.components.incident-on-create-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ IRC could not deliver the incident notification: {{local.components.irc-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "irc-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "irc-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
         },

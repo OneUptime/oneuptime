@@ -25,6 +25,7 @@ import Filter from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import Pagination from "../Pagination/Pagination";
 import TableBody from "./TableBody";
+import { useIsCardSection } from "../Card/CardSurface";
 import TableHeader from "./TableHeader";
 import TableSkeletonRows from "./TableSkeletonRows";
 import Columns from "./Types/Columns";
@@ -179,6 +180,7 @@ const Table: TableFunction = <T extends GenericObject>(
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const translator: Translator = useTranslator();
+  const isCardSection: boolean = useIsCardSection();
   /*
    * The filter bar and the bulk-action bar are handed the English labels:
    * each puts them into whole translated sentences of its own ("3 Monitors
@@ -697,9 +699,16 @@ const Table: TableFunction = <T extends GenericObject>(
         {/*
          * The footer sits flush on the card's rounded bottom edge. Clipped to
          * the same curve, so the pagination bar's square white corners do not
-         * paint over the card's corners and border.
+         * paint over the card's corners and border. A section of a card
+         * (CardSections) has square corners, and the divider under it runs
+         * straight: its footer is square too.
          */}
-        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl overflow-hidden">
+        <div
+          className={`bg-gray-50 text-right md:-mx-6 -mb-6 overflow-hidden${
+            isCardSection ? "" : " rounded-b-xl"
+          }`}
+          data-testid="table-footer"
+        >
           {!isPaginationHidden && (
             <Pagination
               singularLabel={translatedSingularLabel}

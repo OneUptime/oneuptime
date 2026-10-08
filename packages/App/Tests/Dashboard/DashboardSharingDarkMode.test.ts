@@ -33,6 +33,18 @@ const FILES: Array<string> = [
     "DashboardSharingCard.tsx",
   ),
   path.join(DASHBOARD_SRC, "Pages", "Dashboards", "View", "Sharing.tsx"),
+  // The card's ruled, edge-to-edge body takes its classes from here.
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Common",
+    "UI",
+    "Components",
+    "Card",
+    "CardSurface.ts",
+  ),
 ];
 
 const THEME_CSS_PATH: string = path.join(

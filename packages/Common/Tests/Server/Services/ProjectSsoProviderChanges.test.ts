@@ -187,6 +187,12 @@ let lostLocks: Array<string> = [];
  */
 let locksLostFromKeep: number | null = null;
 
+/*
+ * At these keeps only (counted from 1), the lock is found lost: one that ran
+ * out, or that Valkey lost, once - a lock taken again after it is held.
+ */
+let locksLostAtKeeps: Array<number> = [];
+
 // The locks Semaphore.lock handed out, by key, the last of each.
 let lockObjects: Map<string, { key: string }> = new Map<
   string,
@@ -587,6 +593,7 @@ beforeEach(() => {
   kept = [];
   lostLocks = [];
   locksLostFromKeep = null;
+  locksLostAtKeeps = [];
   lockObjects = new Map<string, { key: string }>();
   whileWriting = null;
   writesFail = false;
@@ -652,6 +659,10 @@ beforeEach(() => {
     kept.push(mutex.key);
 
     if (locksLostFromKeep !== null && kept.length >= locksLostFromKeep) {
+      return false;
+    }
+
+    if (locksLostAtKeeps.includes(kept.length)) {
       return false;
     }
 
@@ -2386,6 +2397,10 @@ describe("the locks of a change are kept for its write, until it is done", () =>
       kept.push(mutex.key);
       events.push(`keep:${mutex.key}`);
 
+      if (locksLostAtKeeps.includes(kept.length)) {
+        return false;
+      }
+
       return !(locksLostFromKeep !== null && kept.length >= locksLostFromKeep);
     }) as never);
   };
@@ -2449,9 +2464,37 @@ describe("the locks of a change are kept for its write, until it is done", () =>
   );
 
   test.each(KINDS)(
-    "%s: a lock lost after the check, by the time the update is written, refuses it: nothing is written, nobody is told, and the lock is given back",
+    "%s: a lock lost after the check, by the time the update is written, is taken again and the row read and checked again under it: the update is written",
     async (_label: string, kind: ProviderKind) => {
-      // Kept once its check is done; gone right before the write.
+      recordKeeps();
+      // Kept once its check is done; gone right before the write, once.
+      locksLostAtKeeps = [2];
+
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      expect(rowOf(kind)!.isEnabled).toBe(false);
+      // Turned off in the same write that says when its sign-ins ended.
+      expect(signInsEndedAtOf(kind)).not.toBeNull();
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `keep:${PROJECT_ID.toString()}`,
+        // Gone right before the write: given back, taken again, checked again, kept.
+        `keep:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+        `lock:${PROJECT_ID.toString()}`,
+        `keep:${PROJECT_ID.toString()}`,
+        `write:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+      expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
+      expect(keptForWrite()).toEqual([false]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a lock lost after the check, and lost again once taken again, refuses the update: nothing is written, nobody is told, and nothing is held",
+    async (_label: string, kind: ProviderKind) => {
+      // Kept once its check is done; gone right before the write, and gone again once taken again.
       locksLostFromKeep = 2;
 
       await expect(refusalOf(turnOff(kind))).resolves.toBe(
@@ -2465,24 +2508,49 @@ describe("the locks of a change are kept for its write, until it is done", () =>
       expect(events).toEqual([
         `lock:${PROJECT_ID.toString()}`,
         `release:${PROJECT_ID.toString()}`,
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
       ]);
       expect(keptForWrite()).toEqual([false]);
     },
   );
 
   test.each(KINDS)(
-    "%s: the last provider's write is refused the same way when the lock on the server's rules is lost before it",
+    "%s: the last provider's write, whose lock on the server's rules is lost before it, is checked again under both locks taken again, and refused when the project now has no other way in",
     async (_label: string, kind: ProviderKind) => {
       rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
-      // Kept before the page of projects and once the check is done; gone right before the write.
-      locksLostFromKeep = 6;
+      // Kept before the page of projects and once the check is done; gone right before the write, once.
+      locksLostAtKeeps = [6];
+      // Meanwhile, while the lock was gone, the project came to require SSO.
+      const keeps: SpyInstance = getJestSpyOn(Semaphore, "keepLock");
+      const keepLock: (...args: Array<unknown>) => Promise<boolean> =
+        keeps.getMockImplementation() as unknown as (
+          ...args: Array<unknown>
+        ) => Promise<boolean>;
+
+      keeps.mockImplementation((async (
+        ...args: Array<unknown>
+      ): Promise<boolean> => {
+        const isKept: boolean = await keepLock(...args);
+
+        if (!isKept) {
+          project.requireSsoForLogin = true;
+        }
+
+        return isKept;
+      }) as never);
 
       await expect(refusalOf(turnOff(kind))).resolves.toBe(
-        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+        LAST_SSO_PROVIDER_MESSAGE,
       );
 
       expect(kind.writes()).toEqual([]);
       expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
+        // Gone right before the write: both given back, taken again in order, and checked again.
+        `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
         `lock:${PROJECT_ID.toString()}`,
         `lock:${SERVER_LOCK}`,
         `release:${PROJECT_ID.toString()}`,
@@ -2493,7 +2561,26 @@ describe("the locks of a change are kept for its write, until it is done", () =>
   );
 
   test.each(KINDS)(
-    "%s: a delete whose lock is lost once its check is done is refused before anything is deleted",
+    "%s: a delete whose lock is lost once its check is done is taken again, the row read and checked again, and deleted",
+    async (_label: string, kind: ProviderKind) => {
+      locksLostAtKeeps = [1];
+
+      await expect(remove(kind)).resolves.toBe(1);
+
+      expect(deleted).toEqual([kind.id.toString()]);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        // Gone once the check is done: given back, taken again, and checked again.
+        `release:${PROJECT_ID.toString()}`,
+        `lock:${PROJECT_ID.toString()}`,
+        `delete:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete whose lock is lost once its check is done, and lost again once taken again, is refused before anything is deleted",
     async (_label: string, kind: ProviderKind) => {
       locksLostFromKeep = 1;
 
@@ -2504,6 +2591,8 @@ describe("the locks of a change are kept for its write, until it is done", () =>
       expect(deleted).toEqual([]);
       expect(rowOf(kind)).toBeDefined();
       expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
         `lock:${PROJECT_ID.toString()}`,
         `release:${PROJECT_ID.toString()}`,
       ]);

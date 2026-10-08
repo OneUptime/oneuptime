@@ -680,6 +680,358 @@ describe("CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet", () =
     });
   });
 
+  describe("CheckOn.ResultValue with resultValuePath (object / array results)", () => {
+    test("top-level numeric path above the threshold → met and names the path", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({
+          result: {
+            status: "UP",
+            cpu_busy_percent: 42,
+            memory_used_percent: 70,
+          },
+        }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 40,
+          customCodeMonitorOptions: { resultValuePath: "cpu_busy_percent" },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("cpu_busy_percent");
+      expect(result).toContain("above the 40 threshold");
+    });
+
+    test("top-level numeric path below the threshold → not met", async () => {
+      expect(
+        await evaluate(
+          buildResponse({
+            result: {
+              status: "UP",
+              cpu_busy_percent: 42,
+              memory_used_percent: 70,
+            },
+          }),
+          {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.GreaterThan,
+            value: 90,
+            customCodeMonitorOptions: { resultValuePath: "cpu_busy_percent" },
+          },
+        ),
+      ).toBeNull();
+    });
+
+    test("top-level string path with EqualTo → met", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({
+          result: {
+            status: "UP",
+            cpu_busy_percent: 42,
+            memory_used_percent: 70,
+          },
+        }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.EqualTo,
+          value: "UP",
+          customCodeMonitorOptions: { resultValuePath: "status" },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("status");
+      expect(result).toContain("equal to");
+    });
+
+    test("top-level string path with EqualTo and a different value → not met", async () => {
+      expect(
+        await evaluate(
+          buildResponse({
+            result: {
+              status: "UP",
+              cpu_busy_percent: 42,
+              memory_used_percent: 70,
+            },
+          }),
+          {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.EqualTo,
+            value: "DOWN",
+            customCodeMonitorOptions: { resultValuePath: "status" },
+          },
+        ),
+      ).toBeNull();
+    });
+
+    test("boolean path with True → met", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({ result: { healthy: true } }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.True,
+          value: undefined,
+          customCodeMonitorOptions: { resultValuePath: "healthy" },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("healthy");
+    });
+
+    test("boolean path with False against a true value → not met", async () => {
+      expect(
+        await evaluate(buildResponse({ result: { healthy: true } }), {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.False,
+          value: undefined,
+          customCodeMonitorOptions: { resultValuePath: "healthy" },
+        }),
+      ).toBeNull();
+    });
+
+    test("nested path with a dot and an array index → met", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({
+          result: { data: { items: [{ value: 5 }, { value: 99 }] } },
+        }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          customCodeMonitorOptions: {
+            resultValuePath: "data.items[1].value",
+          },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("data.items[1].value");
+    });
+
+    test("array-root path with an index then a key → met", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({
+          result: {
+            results: [{ status: "ok" }, { status: "ok" }, { status: "bad" }],
+          },
+        }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.EqualTo,
+          value: "bad",
+          customCodeMonitorOptions: { resultValuePath: "results[2].status" },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("results[2].status");
+    });
+
+    test("path into a top-level array result → met", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({ result: [{ status: "UP" }] }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.EqualTo,
+          value: "UP",
+          customCodeMonitorOptions: { resultValuePath: "[0].status" },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("[0].status");
+    });
+
+    test("a missing path segment resolves to undefined → IsEmpty matches", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({
+          result: {
+            status: "UP",
+            cpu_busy_percent: 42,
+          },
+        }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.IsEmpty,
+          value: undefined,
+          customCodeMonitorOptions: { resultValuePath: "disk_used_percent" },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("empty");
+    });
+
+    test("a missing path segment → a numeric compare does not fire (null)", async () => {
+      expect(
+        await evaluate(
+          buildResponse({
+            result: {
+              status: "UP",
+              cpu_busy_percent: 42,
+            },
+          }),
+          {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.GreaterThan,
+            value: 0,
+            customCodeMonitorOptions: {
+              resultValuePath: "disk_used_percent",
+            },
+          },
+        ),
+      ).toBeNull();
+    });
+
+    test("an out-of-range array index resolves to undefined → numeric compare is null", async () => {
+      expect(
+        await evaluate(buildResponse({ result: { items: [{ value: 1 }] } }), {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+          customCodeMonitorOptions: { resultValuePath: "items[5].value" },
+        }),
+      ).toBeNull();
+    });
+
+    test("an empty path with a primitive result keeps the existing behavior", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({ result: 42 }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 40,
+          customCodeMonitorOptions: { resultValuePath: "" },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      // No path → the message is not prefixed with "Result value at".
+      expect(result).not.toContain("Result value at");
+    });
+
+    test("full example: status Equal To UP → met", async () => {
+      expect(
+        await evaluate(
+          buildResponse({
+            result: {
+              status: "UP",
+              cpu_busy_percent: 42,
+              memory_used_percent: 70,
+            },
+          }),
+          {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.EqualTo,
+            value: "UP",
+            customCodeMonitorOptions: { resultValuePath: "status" },
+          },
+        ),
+      ).toBeTruthy();
+    });
+
+    test("full example: cpu_busy_percent Greater Than 90 → not met", async () => {
+      expect(
+        await evaluate(
+          buildResponse({
+            result: {
+              status: "UP",
+              cpu_busy_percent: 42,
+              memory_used_percent: 70,
+            },
+          }),
+          {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.GreaterThan,
+            value: 90,
+            customCodeMonitorOptions: { resultValuePath: "cpu_busy_percent" },
+          },
+        ),
+      ).toBeNull();
+    });
+
+    test.each(["constructor", "toString", "__proto__", "hasOwnProperty"])(
+      "a path naming the inherited member %s resolves to nothing",
+      async (resultValuePath: string) => {
+        const response: CustomCodeMonitorResponse = buildResponse({
+          result: { status: "UP" },
+        });
+
+        expect(
+          await evaluate(response, {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.IsNotEmpty,
+            value: undefined,
+            customCodeMonitorOptions: { resultValuePath },
+          }),
+        ).toBeNull();
+
+        expect(
+          await evaluate(response, {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.IsEmpty,
+            value: undefined,
+            customCodeMonitorOptions: { resultValuePath },
+          }),
+        ).toBeTruthy();
+      },
+    );
+
+    test("a field the script returned under an inherited member's name is still read", async () => {
+      expect(
+        await evaluate(buildResponse({ result: { constructor: "custom" } }), {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.EqualTo,
+          value: "custom",
+          customCodeMonitorOptions: { resultValuePath: "constructor" },
+        }),
+      ).toBeTruthy();
+    });
+
+    test("a path into a primitive result resolves to nothing", async () => {
+      expect(
+        await evaluate(buildResponse({ result: 42 }), {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+          customCodeMonitorOptions: { resultValuePath: "status" },
+        }),
+      ).toBeNull();
+    });
+
+    test("spaces around the path are ignored in the lookup and the message", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({ result: { status: "DOWN" } }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.EqualTo,
+          value: "DOWN",
+          customCodeMonitorOptions: { resultValuePath: "  status " },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain('Result value at "status":');
+    });
+
+    test("a whitespace-only path compares the whole result, as no path does", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({ result: 42 }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 40,
+          customCodeMonitorOptions: { resultValuePath: "   " },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).not.toContain("Result value at");
+    });
+  });
+
   describe("unhandled CheckOns", () => {
     test("a non custom-code CheckOn returns null", async () => {
       expect(
