@@ -617,6 +617,16 @@ describe("the pages that call project-scoped custom routes", () => {
  * than left as a comment.
  */
 describe("user-scoped notification endpoints carry projectId in the body", () => {
+  /*
+   * Requests about the signed-in user's browser rather than one project, so
+   * they carry no projectId: a browser's renewed push subscription moves every
+   * device the user registered with the old one - one per project they are a
+   * member of - and the route takes the user from the session
+   * (UserPushAPI's subscription-change). DashboardRequestsNameTheirProject
+   * excuses the same route, and only it.
+   */
+  const USER_LEVEL_ROUTES: Array<string> = ["/user-push/subscription-change"];
+
   const USER_SCOPED: Array<{ page: Array<string>; route: string }> = [
     {
       page: ["Components", "NotificationMethods", "Push.tsx"],
@@ -647,7 +657,12 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
       const file: string = path.join(DASHBOARD_SRC, ...page);
       const matching: Array<RawApiCall> = readRawApiCalls(file).filter(
         (call: RawApiCall) => {
-          return call.body.includes(route);
+          return (
+            call.body.includes(route) &&
+            !USER_LEVEL_ROUTES.some((userLevelRoute: string): boolean => {
+              return call.body.includes(userLevelRoute);
+            })
+          );
         },
       );
 
@@ -657,6 +672,33 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
         expect(call.body).toContain(
           "projectId: ProjectUtil.getCurrentProjectId()!",
         );
+      }
+    },
+  );
+
+  /*
+   * The user-level routes are left out above because they are still asked
+   * for: a route that went away, or started naming a project, would leave a
+   * stale exception behind.
+   */
+  test.each(USER_LEVEL_ROUTES)(
+    "Push.tsx still requests %s, and names no project in it",
+    (userLevelRoute: string) => {
+      const calls: Array<RawApiCall> = readRawApiCalls(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "NotificationMethods",
+          "Push.tsx",
+        ),
+      ).filter((call: RawApiCall): boolean => {
+        return call.body.includes(userLevelRoute);
+      });
+
+      expect(calls.length).toBeGreaterThan(0);
+
+      for (const call of calls) {
+        expect(call.body).not.toContain("projectId");
       }
     },
   );

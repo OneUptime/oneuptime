@@ -58,7 +58,7 @@
 लगभग हर text फ़ील्ड वेरिएबल लेता है:
 
 - किसी API block का URL।
-- Slack, Teams, Discord, Telegram, ईमेल का संदेश।
+- Slack, Teams, Discord, Telegram, IRC, ईमेल का संदेश।
 - ईमेल का विषय और उसकी body।
 - Headers और body के फ़ील्ड (string मानों के भीतर)।
 - किसी **If / Else** block के दोनों पक्ष।

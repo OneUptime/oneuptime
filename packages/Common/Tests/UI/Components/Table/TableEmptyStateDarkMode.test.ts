@@ -230,7 +230,12 @@ describe("the empty state in the dark theme", () => {
     const listCode: string = readCode("Components/List/List.tsx");
 
     expect(tableCode).toContain('"border-t border-gray-200 "');
-    expect(listCode).toContain('"-mb-6 h-6 rounded-b-xl bg-gray-50"');
+    /*
+     * The list's grey runs on to the card's rounded bottom edge - or, in a
+     * section of a card (CardSections), to its square one.
+     */
+    expect(listCode).toContain("`-mb-6 h-6 bg-gray-50${");
+    expect(listCode).toContain('" rounded-b-xl"');
 
     for (const token of ["border-gray-200", "bg-gray-50"]) {
       expect([token, isRemapped(token)]).toEqual([token, true]);

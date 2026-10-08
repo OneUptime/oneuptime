@@ -183,6 +183,39 @@ A Custom Code monitor's criteria can check:
 
 The defaults mark the monitor online when **Error** is empty, and offline — with an incident that resolves itself when the script succeeds again — when it is not. In incident and alert templates, the run is available as `{{result}}`, `{{scriptError}}`, `{{logMessages}}` and `{{executionTimeInMs}}`: see [Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating).
 
+### Alerting on the returned data
+
+Whatever the script returns as `data` is the monitor's **Result Value**, and a criteria can compare it — for example _Result Value is Equal To `UP`_.
+
+When `data` is an object or an array, fill in **Field Path** on the Result Value filter to compare one field of it instead of the whole value. Use dots for nested fields and `[n]` for array items:
+
+```javascript
+const response = await axios.get("https://api.example.com/health");
+
+return {
+  data: {
+    status: response.data.status, // "UP"
+    cpu_busy_percent: response.data.cpu, // 42
+    healthy: response.data.healthy, // true
+    checks: response.data.checks, // [{ name: "db", latency: 12 }]
+  },
+};
+```
+
+| Field Path | Compares | Example condition |
+| --- | --- | --- |
+| `status` | `"UP"` | Not Equal To `UP` |
+| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `healthy` | `true` | False |
+| `checks[0].latency` | `12` | Greater Than `500` |
+
+Add one filter per field you want to check; each can have its own condition and value.
+
+- Leave **Field Path** empty to compare the whole value, as for a script that returns a single number or string.
+- Greater Than, Less Than and the other number conditions only match a number, so return a field as `42`, not `"42"`. True and False only match a boolean.
+- A field that is not in the returned data — a missing key, or an array index past the end — compares as empty: **Is Empty** matches it, and no other condition does.
+- A field whose name contains a dot cannot be addressed by a path.
+
 ## Modules available in the script
 
 | Name | What it is |

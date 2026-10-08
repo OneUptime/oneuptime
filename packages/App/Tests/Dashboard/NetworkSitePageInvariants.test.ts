@@ -432,7 +432,7 @@ describe("the Network Map follows the drill", () => {
 });
 
 /*
- * The sidebar's "Network Map" entry has to take the user back to the top of
+ * The sidebar's "Map" entry has to take the user back to the top of
  * the map from any drill depth. The drill position lives in the query string,
  * and Navigation.navigate() swallows any navigation whose target is already
  * the current page — a judgement it makes on the pathname alone. So a bare
@@ -554,11 +554,11 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
    * whole fix, so pin it here. Without this, "simplifying" the menu back to the
    * bare route restores the dead link with the suite still green.
    */
-  test("the Network Map menu entry is wired to that route, not the bare one", () => {
+  test("the Map menu entry is wired to that route, not the bare one", () => {
     /*
-     * The map entry now lives in the shared Network side menu (both the
-     * Devices and Sites sections render it), so that is where the wiring
-     * must hold.
+     * The map entry lives in the shared Network side menu (both the Devices
+     * and Sites sections render it), among the everyday pages, titled "Map"
+     * there - so that is where the wiring must hold.
      */
     const source: string = readSource(
       "Components",
@@ -567,7 +567,7 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
     );
 
     const mapEntry: RegExpMatchArray | null = source.match(
-      /title: "Network Map", to: ([^,]+?),/,
+      /title: "Map", to: ([^,]+?),/,
     );
 
     expect(mapEntry).not.toBeNull();

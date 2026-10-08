@@ -126,6 +126,10 @@ Browser permissions are limited to geolocation and notifications. Clipboard, cam
 
 Data returned from the script is serialized to JSON before it is stored: in plain objects and arrays, `NaN` and `Infinity` become `null`, `undefined` properties and functions are dropped, and `Date` objects become ISO strings — the same way `JSON.stringify` handles them. Class instances and other non-plain objects are dropped entirely. A `BigInt` becomes a string. A result that is circular, nested more than 30 levels deep, or larger than 5 MB fails the run instead.
 
+### Alerting on the returned data
+
+Whatever the script returns as `data` is the monitor's **Result Value**, which a criteria can compare. When `data` is an object or an array, fill in **Field Path** on the Result Value filter to compare one field of it — for example `status`, `timings.loadTime` or `errors[0].message`. The filter is checked against the data from every browser and screen size the monitor runs on, and matches when any of them does. See [Alerting on the returned data](/docs/monitor/custom-code-monitor#alerting-on-the-returned-data) for how paths and conditions work.
+
 ## Screenshots
 
 A pre-declared `screenshots` object is available in the script context. Assign screenshots to it at any point in the script — these screenshots are captured **even if the script throws** (including assertion failures, timeouts, or unexpected errors), so you can see exactly what the page looked like when the run failed. Captured screenshots appear in the OneUptime Dashboard for that specific monitor run.

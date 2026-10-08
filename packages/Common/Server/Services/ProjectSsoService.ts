@@ -121,7 +121,12 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  // Deleting a provider that is on ends the sign-ins it gave, as turning it off does.
+  /*
+   * Deleting a provider that is on ends the sign-ins it gave, as turning it
+   * off does. A delete - a hard delete included - reaches only the
+   * providers its check read under the lock, and rows deleted before
+   * (Utils/ProjectSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
@@ -150,23 +155,6 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A hard delete (the retention job's purge) also removes rows deleted
-   * long ago, which the sign-in check never reads - they sign nobody in -
-   * so the check is told it is one (Utils/ProjectSsoProviderChanges).
-   */
-  @CaptureSpan()
-  public override async hardDeleteBy(
-    deleteBy: DeleteBy<Model>,
-  ): Promise<number> {
-    return await ProjectSsoProviderChanges.runHardDelete(
-      deleteBy,
-      (): Promise<number> => {
-        return super.hardDeleteBy(deleteBy);
-      },
-    );
-  }
-
-  /*
    * A hard delete (the retention job's purge) runs no onDeleteSuccess, so
    * it is handed on to it: the locks its check took are given back, and the
    * projects of the providers it deleted that were on are told.
@@ -179,7 +167,11 @@ export class Service extends DatabaseService<Model> {
     return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
   }
 
-  // An update that failed, or was refused, once it held its locks: they are given back.
+  /*
+   * An update that failed, or was refused, once it held its locks: they are
+   * given back - or, when the database may still apply it, kept until it
+   * would have cancelled it (Utils/ProjectSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
@@ -187,6 +179,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Exception> {
     await ProjectSsoProviderChanges.afterFailedWrite(
       onUpdate?.carryForward as ProjectSsoProviderWrite | null | undefined,
+      error,
     );
 
     return error;
@@ -200,6 +193,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Exception> {
     await ProjectSsoProviderChanges.afterFailedWrite(
       onDelete?.carryForward as ProjectSsoProviderWrite | null | undefined,
+      error,
     );
 
     return error;

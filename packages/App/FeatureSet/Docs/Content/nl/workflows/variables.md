@@ -58,7 +58,7 @@ Lokale variabelen bestaan alleen tijdens de huidige run. Elke nieuwe run begint 
 Bijna elk tekstveld accepteert variabelen:
 
 - De URL op een API-blok.
-- De berichttekst op Slack, Teams, Discord, Telegram en E-mail.
+- De berichttekst op Slack, Teams, Discord, Telegram, IRC en E-mail.
 - Het onderwerp en de body van een e-mail.
 - Header- en bodyvelden (binnen stringwaarden).
 - Beide zijden van een blok **If / Else**.

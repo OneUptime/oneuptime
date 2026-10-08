@@ -62,7 +62,7 @@ Header links are for navigation; footer links are for the fine print, such as le
 
 ### More settings
 
-The last section of the page is folded under **More settings**, because few people change what is in it. Folded, its header names its four cards — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with: a default bar color other than the green every page starts with, any bar color rule, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it.
+The last section of the page is folded under **More settings**, because few people ever change what is in it. Folded, its header names its four sections — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with: a default bar color other than the green every page starts with, any bar color rule, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it: it is one card, the four sections one under the other, each with its own title and button, separated by dividers.
 
 **History chart colors.** These are the only built-in color controls on a status page.
 

@@ -27,6 +27,7 @@ import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog
 import PushNotificationLogService from "./PushNotificationLogService";
 import PushStatus from "../../Types/PushNotification/PushStatus";
 import AndroidNotificationChannel from "../../Types/PushNotification/AndroidNotificationChannel";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 /*
  * The push services the browsers actually use. A Web Push subscription is a
@@ -436,13 +437,111 @@ export default class PushNotificationService {
       logger.error(`Failed to send web push notification: ${error.message}`);
       logger.error(error);
 
-      // If the subscription is no longer valid, remove it
-      if (error.statusCode === 410 || error.statusCode === 404) {
-        logger.info("Removing invalid web push subscription");
-        // You would implement removal logic here
+      if (PushNotificationService.isGoneWebPushSubscription(error)) {
+        await PushNotificationService.stopSendingToGoneWebPushSubscription(
+          deviceToken,
+        );
+
+        throw new Error(
+          `The push service no longer accepts this browser's subscription (HTTP ${error.statusCode}): it expired or was revoked. The device is marked as not receiving notifications; register the browser again to receive them.`,
+        );
       }
 
       throw error;
+    }
+  }
+
+  /*
+   * How a push service says a subscription is gone for good: 404 (it expired,
+   * or there never was one) or 410 (the browser unsubscribed, or notifications
+   * were blocked). Every other refusal - 403 for a subscription made with
+   * another VAPID key, 413, 429, a 5xx - says nothing about the subscription
+   * itself, and leaves the device as it is.
+   */
+  public static isGoneWebPushSubscription(error: unknown): boolean {
+    const statusCode: unknown = (error as { statusCode?: unknown } | null)
+      ?.statusCode;
+
+    return statusCode === 404 || statusCode === 410;
+  }
+
+  /*
+   * Stop sending to the devices registered with a gone subscription (see
+   * UserPushService.markWebPushSubscriptionAsGone). They used to stay as they
+   * were, so every later page went to the dead subscription and failed there.
+   * The send has failed either way: a failure to mark the devices is logged,
+   * and does not take the place of the send's own error.
+   */
+  private static async stopSendingToGoneWebPushSubscription(
+    deviceToken: string,
+  ): Promise<void> {
+    try {
+      const markedCount: number =
+        await UserPushService.markWebPushSubscriptionAsGone({
+          deviceToken: deviceToken,
+        });
+
+      logger.info(
+        `Web push subscription is gone: ${markedCount} device(s) marked as not receiving notifications.`,
+      );
+    } catch (markError) {
+      logger.error(
+        `Could not mark the devices of a gone web push subscription: ${markError}`,
+      );
+    }
+  }
+
+  /*
+   * A browser push subscription as the Dashboard and its service worker send
+   * it (PushSubscription.toJSON(), stringified): an endpoint at one of the
+   * browser push services, and the two keys a notification is encrypted
+   * with. Checked when a browser reports a new subscription, so a device is
+   * never renewed with one that could not be delivered to.
+   */
+  public static assertIsWebPushSubscription(deviceToken: unknown): void {
+    if (!deviceToken || typeof deviceToken !== "string") {
+      throw new BadDataException("A web push subscription is required.");
+    }
+
+    let subscription: unknown;
+
+    try {
+      subscription = JSON.parse(deviceToken);
+    } catch {
+      throw new BadDataException("The web push subscription is not JSON.");
+    }
+
+    if (
+      !subscription ||
+      typeof subscription !== "object" ||
+      Array.isArray(subscription)
+    ) {
+      throw new BadDataException(
+        "The web push subscription is not a subscription.",
+      );
+    }
+
+    try {
+      PushNotificationService.assertWebPushEndpointIsAllowed(
+        (subscription as JSONObject)["endpoint"],
+      );
+    } catch (error) {
+      throw new BadDataException((error as Error).message);
+    }
+
+    const keys: unknown = (subscription as JSONObject)["keys"];
+
+    if (
+      !keys ||
+      typeof keys !== "object" ||
+      !(keys as JSONObject)["p256dh"] ||
+      typeof (keys as JSONObject)["p256dh"] !== "string" ||
+      !(keys as JSONObject)["auth"] ||
+      typeof (keys as JSONObject)["auth"] !== "string"
+    ) {
+      throw new BadDataException(
+        "The web push subscription is missing the keys notifications are encrypted with.",
+      );
     }
   }
 

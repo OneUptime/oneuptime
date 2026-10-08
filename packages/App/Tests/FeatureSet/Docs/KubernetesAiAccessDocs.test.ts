@@ -576,7 +576,7 @@ describe("the AI SRE page's cluster-access section", () => {
     expect(section).toContain("Kubernetes → cluster → AI");
     expect(section).toContain("- **Agent** — the cluster's **AI agent** page");
     expect(section).toContain(
-      "- **Insights** — the cluster's **AI Insights** page: what OneUptime AI has learned about the cluster from its own work there, and what deserves your attention (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)).",
+      "- **Insights** — the cluster's **AI Insights** page: what OneUptime AI found out about the cluster — what keeps going wrong and why, and what to do about it (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)).",
     );
     expect(section).toContain(
       "- **Logs** — the cluster's **AI Logs** page: everything OneUptime AI did on the cluster, newest first (see [Everything AI did on a cluster](#everything-ai-did-on-a-cluster)).",
@@ -639,26 +639,64 @@ describe("the AI SRE page's cluster-access section", () => {
     );
   });
 
-  it("describes the AI Insights page as derived from what OneUptime recorded, not as a list", () => {
+  it("describes the AI Insights page as what is worth knowing, derived from what OneUptime recorded, not as a list", () => {
     const insights: string = getSection(
       section,
       "### What AI learned on a cluster",
     );
 
     expect(insights).toContain("**AI Insights** page (AI → Insights)");
-    for (const card of [
+    expect(insights).toContain(
+      "not a record of what AI did, but what it found out",
+    );
+    // The page's cards, in the page's order: what AI found first, what it did last.
+    const cards: Array<string> = insights
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- **");
+      })
+      .map((line: string): string => {
+        return line.split(" — ")[0]!;
+      });
+    expect(cards).toEqual([
+      "- **What OneUptime AI found**",
+      "- **Other problems**",
+      "- **Where problems happen**",
+      "- **Spotted before anything paged**",
+      "- **What OneUptime AI did here**",
+    ]);
+    // The old cards that read like a log of AI's work are gone.
+    for (const oldCard of [
       "- **Needs attention**",
       "- **Last 30 days**",
       "- **Problems OneUptime AI investigated**",
       "- **Hotspots**",
-      "- **Fixes**",
       "- **Preventive insights**",
     ]) {
-      expect(insights).toContain(card);
+      expect(insights).not.toContain(oldCard);
+    }
+    for (const worthKnowing of [
+      "a problem that keeps coming back",
+      "getting worse",
+      "the time of day it tends to start",
+      "the first step its report suggests",
+      "a risk spotted before anything paged",
+      "linked to its own page in the cluster",
+      "what AI fixed on its own and whether the fix held",
+      "a problem that kept coming back and stopped after a fix",
+      "When nothing stands out, the page says so.",
+    ]) {
+      expect(insights).toContain(worthKnowing);
     }
     expect(insights).toContain("no model is called to build it");
     expect(insights).toContain(
+      "the words that are AI's own (a finding, a suggested step) were written by the investigation that found them",
+    );
+    expect(insights).toContain(
       "it only names incidents and alerts they may read",
+    );
+    expect(insights).toContain(
+      "With **Enable AI** off for the project, or no LLM provider OneUptime AI can use, the page says so at the top",
     );
     // The chronological list is the AI Logs page's, not this one's.
     expect(insights).not.toContain("every kubectl command");
@@ -1289,7 +1327,7 @@ describe("the Kubernetes agent page's pointers to the AI pages", () => {
     const page: string = read(KUBERNETES_AGENT_PAGE);
 
     expect(page).toContain(
-      "Everything AI did with it is on the cluster's **AI Logs** page (AI → Logs), and what AI learned there — the problems it keeps investigating, what it found, how its fixes turned out — on the **AI Insights** page (AI → Insights).",
+      "Everything AI did with it is on the cluster's **AI Logs** page (AI → Logs), and what is worth knowing about the cluster — the problems that keep coming back and why, the node or workload behind most of them, what AI fixed — on the **AI Insights** page (AI → Insights).",
     );
     expect(page).not.toContain(
       "What AI did with it is on the cluster's **AI Insights** page",

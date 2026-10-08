@@ -58,7 +58,7 @@ Lokala variabler finns bara under den pågående körningen. Varje ny körning b
 Nästan varje textfält tar emot variabler:
 
 - URL:en på ett API-block.
-- Meddelandetexten på Slack, Teams, Discord, Telegram, Email.
+- Meddelandetexten på Slack, Teams, Discord, Telegram, IRC, Email.
 - Ämnet och brödtexten i ett e-postmeddelande.
 - Header- och body-fält (inuti strängvärden).
 - Båda sidorna av ett **If / Else**-block.

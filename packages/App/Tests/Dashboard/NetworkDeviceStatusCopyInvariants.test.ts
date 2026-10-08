@@ -147,9 +147,12 @@ describe("the counts describe both kinds of device", () => {
   test("the Overview's attention card does not attribute every outage to an SNMP poll", () => {
     const overview: string = readCode("Pages", "NetworkDevice", "Overview.tsx");
 
-    expect(overview).toContain(
-      "the last poll, or the bound monitor, could not reach them",
-    );
+    /*
+     * In the plain words the Overview speaks now: a device is down when its
+     * probe OR its monitor cannot reach it - never "the SNMP poll failed".
+     */
+    expect(overview).toContain("their probe or monitor cannot reach them");
+    expect(overview).not.toMatch(/SNMP poll (failed|could not)/);
     expect(overview).toContain("Monitor reports offline");
     expect(overview).toContain("device.isMonitorBacked");
   });
@@ -248,8 +251,16 @@ describe("the forms explain the method and the hostname the same way", () => {
    * The device Overview no longer asks for the hostname: a device's details
    * are edited in one place, its Settings page.
    */
+  /*
+   * The surfaces where a device of EITHER kind can be in front of the
+   * reader. The Add Device form is not one of them: it only ever creates
+   * probe-polled devices, and says so in its own plain sentence (below).
+   */
   const HOSTNAME_SURFACES: Array<{ name: string; parts: Array<string> }> = [
-    ...REGISTRATION_SURFACES,
+    {
+      name: 'the topology "Add to Monitoring" dialog',
+      parts: ["Components", "Topology", "AddNeighborToMonitoringModal.tsx"],
+    },
     {
       name: "the device Settings form",
       parts: ["Pages", "NetworkDevice", "View", "Settings.tsx"],

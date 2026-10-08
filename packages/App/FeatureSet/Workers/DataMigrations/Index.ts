@@ -136,6 +136,7 @@ import HideImagesOfPrivateIncidents from "./HideImagesOfPrivateIncidents";
 import HideImagesOfHiddenRecordNotes from "./HideImagesOfHiddenRecordNotes";
 import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncements";
 import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMembers";
+import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -697,6 +698,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * No ordering requirement, so it sits before the last slot.
    */
   new RemoveProjectAccessOfFormerMembers(),
+  /*
+   * Fills in the ids the steps of API-written monitors and templates never got
+   * (steps, criteria, incident and alert templates), so their probe results
+   * show on the monitor page and their incidents can auto-resolve. Only adds
+   * what is missing, and has no ordering requirement, so it sits before the
+   * last slot AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   */
+  new AddMissingIdsToMonitorSteps(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

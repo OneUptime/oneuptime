@@ -518,3 +518,307 @@ describe("InvestigationReportSummary.getForRuns", () => {
     ]);
   });
 });
+
+/*
+ * What OneUptime AI would do about a problem that keeps coming back: the
+ * first step its report's Suggested next steps section names. The AI
+ * Insights page leads a recurring problem with it, as plain text.
+ */
+describe("InvestigationReportSummary.getFirstStep", () => {
+  test.each([
+    [
+      "- Roll back to v2.4.0.\n- Then check the registry.",
+      "Roll back to v2.4.0.",
+    ],
+    ["* Roll back to v2.4.0.\n* Then check.", "Roll back to v2.4.0."],
+    ["+ Roll back to v2.4.0.", "Roll back to v2.4.0."],
+    ["1. Roll back to v2.4.0.\n2. Then check.", "Roll back to v2.4.0."],
+    ["1) Roll back to v2.4.0.\n2) Then check.", "Roll back to v2.4.0."],
+  ])("the first item of %j", (markdown: string, expected: string) => {
+    expect(InvestigationReportSummary.getFirstStep(markdown)).toBe(expected);
+  });
+
+  test("keeps the lines that continue the first item, up to the next item", () => {
+    expect(
+      InvestigationReportSummary.getFirstStep(
+        [
+          "- Raise the memory limit of deployment api",
+          "  to 1Gi, then watch its heap.",
+          "- Then look at the release.",
+        ].join("\n"),
+      ),
+    ).toBe(
+      "Raise the memory limit of deployment api to 1Gi, then watch its heap.",
+    );
+  });
+
+  test("stops at a blank line after the first item", () => {
+    expect(
+      InvestigationReportSummary.getFirstStep(
+        ["- Raise the limit.", "", "A paragraph after the list."].join("\n"),
+      ),
+    ).toBe("Raise the limit.");
+  });
+
+  test("a section written as prose is its first paragraph", () => {
+    expect(
+      InvestigationReportSummary.getFirstStep(
+        [
+          "",
+          "Roll the deployment back to v2.4.0,",
+          "then pin the image tag.",
+          "",
+          "Afterwards, add an alert on ErrImagePull.",
+        ].join("\n"),
+      ),
+    ).toBe("Roll the deployment back to v2.4.0, then pin the image tag.");
+  });
+
+  test("reads Windows line endings like any other", () => {
+    expect(
+      InvestigationReportSummary.getFirstStep(
+        "- Raise the limit.\r\n- Then check.",
+      ),
+    ).toBe("Raise the limit.");
+  });
+
+  test("a list after an introduction is still read from its first item", () => {
+    expect(
+      InvestigationReportSummary.getFirstStep(
+        ["In order:", "- Raise the limit.", "- Then check."].join("\n"),
+      ),
+    ).toBe("Raise the limit.");
+  });
+});
+
+describe("InvestigationReportSummary.nextStepFromReport", () => {
+  function reportWithSteps(steps: string): string {
+    return brandedReport(
+      [
+        `**Summary** — ${SUMMARY}`,
+        "",
+        "**Most likely root cause** — The image tag does not exist [C1].",
+        "",
+        "**Suggested next steps**",
+        steps,
+      ].join("\n"),
+    );
+  }
+
+  test("reads the first suggested step of a posted report, without the server's evidence list or footer", () => {
+    expect(
+      InvestigationReportSummary.nextStepFromReport(
+        brandedReport(structuredAnalysis(SUMMARY)),
+      ),
+    ).toBe("Roll the deployment back to v2.4.0.");
+  });
+
+  test("drops citation markers and the space they leave, and flattens markdown", () => {
+    expect(
+      InvestigationReportSummary.nextStepFromReport(
+        reportWithSteps(
+          "- Roll **checkout** back to `v2.4.0` [C1].\n- Pin the tag [C2].",
+        ),
+      ),
+    ).toBe("Roll checkout back to v2.4.0.");
+  });
+
+  test("nothing for a report without the section, or nothing usable in it", () => {
+    expect(
+      InvestigationReportSummary.nextStepFromReport(
+        brandedReport(`**Summary** — ${SUMMARY}`),
+      ),
+    ).toBeNull();
+    expect(InvestigationReportSummary.nextStepFromReport("")).toBeNull();
+    expect(InvestigationReportSummary.nextStepFromReport("   ")).toBeNull();
+    expect(InvestigationReportSummary.nextStepFromReport(undefined)).toBeNull();
+    expect(InvestigationReportSummary.nextStepFromReport(null)).toBeNull();
+  });
+
+  test(`a step shorter than ${MIN_TLDR_CHARS} characters is not worth showing`, () => {
+    expect(
+      InvestigationReportSummary.nextStepFromReport(reportWithSteps("- Wait.")),
+    ).toBeNull();
+  });
+
+  test(`a long step is capped at ${MAX_TLDR_CHARS} characters on a word boundary`, () => {
+    const step: string | null = InvestigationReportSummary.nextStepFromReport(
+      reportWithSteps(`- ${"Raise the memory limit again ".repeat(30)}`),
+    );
+
+    expect(step!.length).toBeLessThanOrEqual(MAX_TLDR_CHARS);
+    expect(step!.endsWith("…")).toBe(true);
+  });
+
+  test("text that looks like markup stays text: nothing is turned into HTML", () => {
+    expect(
+      InvestigationReportSummary.nextStepFromReport(
+        reportWithSteps(
+          "- Remove the <script>alert(1)</script> from the page.",
+        ),
+      ),
+    ).toBe("Remove the <script>alert(1)</script> from the page.");
+  });
+});
+
+describe("InvestigationReportSummary.getConclusionsForRuns", () => {
+  let incidentFeedFind: jest.SpyInstance;
+  let alertFeedFind: jest.SpyInstance;
+
+  beforeEach(() => {
+    incidentFeedFind = jest
+      .spyOn(IncidentFeedService, "findBy")
+      .mockResolvedValue([]);
+    alertFeedFind = jest
+      .spyOn(AlertFeedService, "findBy")
+      .mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function report(
+    aiRunId: ObjectID,
+    incidentId: ObjectID,
+    markdown: string,
+  ): IncidentFeed {
+    return {
+      aiRunId,
+      incidentId,
+      feedInfoInMarkdown: markdown,
+    } as unknown as IncidentFeed;
+  }
+
+  test("what each run's report concluded: its Summary and its first suggested step", async () => {
+    incidentFeedFind.mockResolvedValue([
+      report(RUN_A, INCIDENT_ID, brandedReport(structuredAnalysis(SUMMARY))),
+    ]);
+
+    const conclusions: Map<
+      string,
+      { summary?: string | undefined; nextStep?: string | undefined }
+    > = await InvestigationReportSummary.getConclusionsForRuns({
+      projectId: PROJECT_ID,
+      runs: [{ aiRunId: RUN_A, incidentId: INCIDENT_ID }],
+    });
+
+    expect(conclusions.get(RUN_A.toString())).toEqual({
+      summary: SUMMARY,
+      nextStep: "Roll the deployment back to v2.4.0.",
+    });
+  });
+
+  test("is read the way summaries are: the run's own RootCause item on its own subject, in this project, as root", async () => {
+    await InvestigationReportSummary.getConclusionsForRuns({
+      projectId: PROJECT_ID,
+      runs: [
+        { aiRunId: RUN_A, incidentId: INCIDENT_ID },
+        { aiRunId: RUN_B, alertId: ALERT_ID },
+      ],
+    });
+
+    const incidentCall: {
+      query: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    } = incidentFeedFind.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    };
+    expect(incidentCall.query["projectId"]).toBe(PROJECT_ID);
+    expect(incidentCall.query["incidentFeedEventType"]).toBe(
+      IncidentFeedEventType.RootCause,
+    );
+    expect(idsIn(incidentCall.query["aiRunId"])).toEqual([RUN_A.toString()]);
+    expect(incidentCall.props).toEqual({ isRoot: true });
+
+    const alertCall: { query: Record<string, unknown> } = alertFeedFind.mock
+      .calls[0]![0] as { query: Record<string, unknown> };
+    expect(alertCall.query["alertFeedEventType"]).toBe(
+      AlertFeedEventType.RootCause,
+    );
+    expect(idsIn(alertCall.query["aiRunId"])).toEqual([RUN_B.toString()]);
+  });
+
+  test("a report that says only one of them gives that one; one that says neither leaves the run out", async () => {
+    incidentFeedFind.mockResolvedValue([
+      report(RUN_A, INCIDENT_ID, brandedReport(`**Summary** — ${SUMMARY}`)),
+      report(RUN_B, INCIDENT_ID, "   "),
+    ]);
+
+    const conclusions: Map<
+      string,
+      { summary?: string | undefined; nextStep?: string | undefined }
+    > = await InvestigationReportSummary.getConclusionsForRuns({
+      projectId: PROJECT_ID,
+      runs: [
+        { aiRunId: RUN_A, incidentId: INCIDENT_ID },
+        { aiRunId: RUN_B, incidentId: INCIDENT_ID },
+      ],
+    });
+
+    expect(conclusions.get(RUN_A.toString())).toEqual({ summary: SUMMARY });
+    expect(conclusions.has(RUN_B.toString())).toBe(false);
+  });
+
+  test("each part comes from the first report that says it", async () => {
+    incidentFeedFind.mockResolvedValue([
+      report(RUN_A, INCIDENT_ID, brandedReport(`**Summary** — ${SUMMARY}`)),
+      report(
+        RUN_A,
+        INCIDENT_ID,
+        brandedReport(
+          structuredAnalysis(
+            "A second summary for the same run never replaces the first one.",
+          ),
+        ),
+      ),
+    ]);
+
+    const conclusions: Map<
+      string,
+      { summary?: string | undefined; nextStep?: string | undefined }
+    > = await InvestigationReportSummary.getConclusionsForRuns({
+      projectId: PROJECT_ID,
+      runs: [{ aiRunId: RUN_A, incidentId: INCIDENT_ID }],
+    });
+
+    expect(conclusions.get(RUN_A.toString())).toEqual({
+      summary: SUMMARY,
+      nextStep: "Roll the deployment back to v2.4.0.",
+    });
+  });
+
+  test("a report on another subject than the run's is never read as the run's", async () => {
+    incidentFeedFind.mockResolvedValue([
+      report(
+        RUN_A,
+        OTHER_INCIDENT_ID,
+        brandedReport(structuredAnalysis(SUMMARY)),
+      ),
+    ]);
+
+    const conclusions: Map<
+      string,
+      { summary?: string | undefined; nextStep?: string | undefined }
+    > = await InvestigationReportSummary.getConclusionsForRuns({
+      projectId: PROJECT_ID,
+      runs: [{ aiRunId: RUN_A, incidentId: INCIDENT_ID }],
+    });
+
+    expect(conclusions.size).toBe(0);
+  });
+
+  test("asks nothing for no runs", async () => {
+    expect(
+      (
+        await InvestigationReportSummary.getConclusionsForRuns({
+          projectId: PROJECT_ID,
+          runs: [],
+        })
+      ).size,
+    ).toBe(0);
+    expect(incidentFeedFind).not.toHaveBeenCalled();
+    expect(alertFeedFind).not.toHaveBeenCalled();
+  });
+});

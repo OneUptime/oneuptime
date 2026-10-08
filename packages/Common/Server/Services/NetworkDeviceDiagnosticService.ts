@@ -90,6 +90,17 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A diagnostic its caller names no probe for runs on the device's own
+   * (onBeforeCreate): copied from the device the write names, which its
+   * caller may read, and assigned to the device by someone allowed to. A
+   * probe the caller names is asked about as theirs
+   * (DatabaseService.checkNamedLists).
+   */
+  protected override getReferencesFilledFromNamedRecords(): Array<string> {
+    return ["probe"];
+  }
+
+  /*
    * Fill in everything the probe needs from the device, and refuse anything
    * the probe could not run.
    *

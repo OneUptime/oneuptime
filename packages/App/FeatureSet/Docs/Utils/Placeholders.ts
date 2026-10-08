@@ -8,7 +8,9 @@ import {
   getScopeExemptRolesMarkdown,
 } from "./PermissionsTable";
 import { DEFAULT_DOCS_LANGUAGE } from "./I18n";
-import { IpWhitelist } from "Common/Server/EnvironmentConfig";
+import { AppVersion, IpWhitelist } from "Common/Server/EnvironmentConfig";
+import fs from "fs";
+import path from "path";
 
 /*
  * Server-side substitution of `{{TOKEN}}` placeholders in docs markdown.
@@ -30,6 +32,87 @@ import { IpWhitelist } from "Common/Server/EnvironmentConfig";
  */
 
 export const IP_WHITELIST_PLACEHOLDER: string = "{{IP_WHITELIST}}";
+
+/*
+ * The Terraform provider's version tracks the platform's: provider 14.x is
+ * generated from OneUptime 14.x. Written down, the constraint in the
+ * Terraform pages went stale - they kept recommending ~> 11.0 three majors
+ * later, which installs a provider that old - so it is filled in from the
+ * version of the OneUptime that serves the page. A self-hosted instance's
+ * docs therefore recommend the provider that matches it.
+ */
+export const TERRAFORM_PROVIDER_VERSION_PLACEHOLDER: string =
+  "{{TERRAFORM_PROVIDER_VERSION}}";
+export const TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER: string =
+  "{{TERRAFORM_PROVIDER_MAJOR}}";
+
+const MAJOR_VERSION_PATTERN: RegExp = new RegExp("^v?(\\d+)\\.\\d+");
+
+/*
+ * The release's version: APP_VERSION in a built image, else the version of
+ * this package (kept in step with the repository's VERSION file).
+ */
+function getPlatformVersion(): string | null {
+  if (MAJOR_VERSION_PATTERN.test(AppVersion)) {
+    return AppVersion;
+  }
+
+  let directory: string = __dirname;
+
+  for (let depth: number = 0; depth < 8; depth++) {
+    const candidate: string = path.join(directory, "package.json");
+
+    if (fs.existsSync(candidate)) {
+      try {
+        const version: unknown = JSON.parse(
+          fs.readFileSync(candidate, "utf-8"),
+        ).version;
+
+        if (
+          typeof version === "string" &&
+          MAJOR_VERSION_PATTERN.test(version)
+        ) {
+          return version;
+        }
+      } catch {
+        // An unreadable package.json is skipped like a missing one.
+      }
+    }
+
+    const parent: string = path.dirname(directory);
+
+    if (parent === directory) {
+      break;
+    }
+
+    directory = parent;
+  }
+
+  return null;
+}
+
+// "14" for 14.0.21; null when there is no version to read.
+export function getTerraformProviderMajorVersion(
+  version: string | null = getPlatformVersion(),
+): string | null {
+  const match: RegExpMatchArray | null = version
+    ? version.match(MAJOR_VERSION_PATTERN)
+    : null;
+
+  return match ? match[1]! : null;
+}
+
+/*
+ * "~> 14.0". Without a version to read - which a deployed instance always
+ * has - the newest provider, rather than a guessed major.
+ */
+export function getTerraformProviderVersionConstraint(
+  version: string | null = getPlatformVersion(),
+): string {
+  const major: string | null = getTerraformProviderMajorVersion(version);
+
+  return major ? `~> ${major}.0` : ">= 1.0";
+}
 
 function getIpWhitelistMarkdown(): string {
   if (!IpWhitelist) {
@@ -79,6 +162,22 @@ export default class DocsPlaceholders {
     }
 
     let content: string = markdown;
+
+    if (content.includes(TERRAFORM_PROVIDER_VERSION_PLACEHOLDER)) {
+      content = replaceAll(
+        content,
+        TERRAFORM_PROVIDER_VERSION_PLACEHOLDER,
+        getTerraformProviderVersionConstraint(),
+      );
+    }
+
+    if (content.includes(TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER)) {
+      content = replaceAll(
+        content,
+        TERRAFORM_PROVIDER_MAJOR_PLACEHOLDER,
+        getTerraformProviderMajorVersion() || "N",
+      );
+    }
 
     if (content.includes(IP_WHITELIST_PLACEHOLDER)) {
       content = replaceAll(

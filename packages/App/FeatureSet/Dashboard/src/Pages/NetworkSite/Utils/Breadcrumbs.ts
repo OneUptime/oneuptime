@@ -60,8 +60,7 @@ export function getNetworkSiteBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_MAP, [
       "Project",
       "Network",
-      "Topology",
-      "Network Map",
+      "Map",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_ASSIGNMENT_RULES, [
       "Project",

@@ -8,13 +8,17 @@ import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
+import path from "path";
 
 export class DataSourceGenerator {
   private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
 
+  private providerName: string;
+
   public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
     this.spec = spec;
+    this.providerName = config.providerName;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
@@ -27,6 +31,18 @@ export class DataSourceGenerator {
     // Generate each data source
     for (const dataSource of dataSources) {
       await this.generateDataSource(dataSource);
+    }
+
+    // Lookup helpers shared by every data source, and their tests.
+    for (const fileName of ["lookup.go", "lookup_test.go"]) {
+      const content: string = this.fileGenerator.readTemplateFile(
+        path.join(__dirname, "..", "StaticFiles", fileName),
+      );
+      await this.fileGenerator.writeFileInDir(
+        "internal/provider",
+        fileName,
+        content,
+      );
     }
 
     // Update provider.go to include data sources
@@ -80,6 +96,8 @@ export class DataSourceGenerator {
       needsSortImport ? '\n    "sort"' : "",
     ].join("");
 
+    const legacyName: string | undefined = dataSource.legacyName;
+
     return `package provider
 
 import (
@@ -99,10 +117,27 @@ var _ datasource.DataSource = &${dataSourceTypeName}DataSource{}
 func New${dataSourceTypeName}DataSource() datasource.DataSource {
     return &${dataSourceTypeName}DataSource{}
 }
-
+${
+  legacyName
+    ? `
+// New${dataSourceTypeName}LegacyDataSource registers this data source under the
+// name it had before type names kept mixed-case words whole,
+// ${this.providerName}_${legacyName}. Deprecated.
+func New${dataSourceTypeName}LegacyDataSource() datasource.DataSource {
+    return &${dataSourceTypeName}DataSource{isLegacyAlias: true}
+}
+`
+    : ""
+}
 // ${dataSourceTypeName}DataSource defines the data source implementation.
 type ${dataSourceTypeName}DataSource struct {
-    client *Client
+    client *Client${
+      legacyName
+        ? `
+    // Registered under the name this data source had before.
+    isLegacyAlias bool`
+        : ""
+    }
 }
 
 // ${dataSourceTypeName}DataSourceModel describes the data source data model.
@@ -110,17 +145,32 @@ type ${dataSourceTypeName}DataSourceModel struct {
 ${this.generateModelFields(dataSource)}
 }
 
-func (d *${dataSourceTypeName}DataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *${dataSourceTypeName}DataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {${
+      legacyName
+        ? `
+    if d.isLegacyAlias {
+        resp.TypeName = req.ProviderTypeName + "_${legacyName}"
+        return
+    }`
+        : ""
+    }
     resp.TypeName = req.ProviderTypeName + "_${dataSource.name}"
 }
 
 func (d *${dataSourceTypeName}DataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
     resp.Schema = schema.Schema{
-        MarkdownDescription: "${GoCodeGenerator.escapeString(dataSource.description || "")} Look up an existing ${dataSource.name} by \`id\` or by \`name\`.",
+        MarkdownDescription: "${GoCodeGenerator.escapeString(this.getMarkdownDescription(dataSource))}",
 
         Attributes: map[string]schema.Attribute{
 ${this.generateSchemaAttributes(dataSource)}
         },
+    }${
+      legacyName
+        ? `
+    if d.isLegacyAlias {
+        resp.Schema.DeprecationMessage = "${GoCodeGenerator.escapeString(`${this.providerName}_${legacyName} has been renamed to ${this.providerName}_${dataSource.name}. Use the new name; the old one keeps working until then.`)}"
+    }`
+        : ""
     }
 }
 
@@ -193,22 +243,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
   }
 
   private sanitizeAttributeName(name: string): string {
-    // List of reserved attribute names in Terraform
-    const reservedNames: string[] = [
-      "count",
-      "for_each",
-      "provider",
-      "lifecycle",
-      "depends_on",
-      "connection",
-      "provisioner",
-    ];
-
-    if (reservedNames.includes(name)) {
-      return `${name}_value`;
-    }
-
-    return name;
+    return StringUtils.toTerraformAttributeName(name);
   }
 
   private generateSchemaAttribute(_name: string, attr: any): string {
@@ -248,12 +283,55 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
   }
 
   /*
+   * What the data source's page says it does: the model's description, then
+   * how to look one up.
+   */
+  public getMarkdownDescription(dataSource: TerraformDataSource): string {
+    const filters: Array<string> = this.getLookupFilterNames(dataSource);
+    const description: string = (dataSource.description || "").trim();
+    const lookup: string =
+      filters.length > 0
+        ? `Look up an existing ${dataSource.name.replace(/_/g, " ")} by \`id\`, or by any of its other arguments (${filters
+            .slice(0, 3)
+            .map((name: string) => {
+              return `\`${name}\``;
+            })
+            .join(
+              ", ",
+            )}${filters.length > 3 ? ", ..." : ""}): each one set must match, and exactly one ${dataSource.name.replace(/_/g, " ")} may match them all.`
+        : `Look up an existing ${dataSource.name.replace(/_/g, " ")} by \`id\`.`;
+
+    return description ? `${description} ${lookup}` : lookup;
+  }
+
+  private getLookupFilterNames(dataSource: TerraformDataSource): Array<string> {
+    return Object.entries(dataSource.schema)
+      .filter(([, attr]: [string, TerraformAttribute]) => {
+        return Boolean(attr.isLookupFilter);
+      })
+      .map(([name]: [string, TerraformAttribute]) => {
+        return this.sanitizeAttributeName(name);
+      })
+      .sort((a: string, b: string) => {
+        // name first: it is what most lookups use.
+        if (a === "name") {
+          return -1;
+        }
+        if (b === "name") {
+          return 1;
+        }
+        return a.localeCompare(b);
+      });
+  }
+
+  /*
    * The read flow:
-   *   - exactly one of id/name must be set, enforced with a clear error
-   *   - id  -> POST {crud}/{id}/get-item with a full select
-   *   - name -> POST {crud}/get-list with query {name}, limit 2; exactly one
-   *     match required — zero or multiple matches are errors, never silently
-   *     empty state or an arbitrary first item
+   *   - `id` set -> get-item (or, without a get endpoint, a list filtered by
+   *     _id), with a full select
+   *   - otherwise every other argument set in configuration is a filter on
+   *     get-list, limit 2: exactly one match is required. Zero or several
+   *     matches are errors, never empty state or an arbitrary first item.
+   *   - `id` together with filters is an error, as is neither.
    *
    * Both paths post through the client's select-dropping helpers, so a column
    * the server rejects (permission-gated, or unknown to an older deployment)
@@ -265,8 +343,36 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
   ): string {
     const readOperation: any = dataSource.operations.read;
     const listOperation: any = dataSource.operations.list;
+    const label: string = dataSource.name.replace(/_/g, " ");
 
     const selectParam: string = this.generateSelectParameter(dataSource);
+
+    const filterAssignments: string = Object.entries(dataSource.schema)
+      .filter(([, attr]: [string, TerraformAttribute]) => {
+        return Boolean(attr.isLookupFilter);
+      })
+      .map(([name, attr]: [string, TerraformAttribute]) => {
+        const sanitizedName: string = this.sanitizeAttributeName(name);
+        const fieldName: string = StringUtils.toPascalCase(sanitizedName);
+        const apiFieldName: string = attr.apiFieldName || name;
+        let value: string;
+        let shown: string;
+        if (attr.type === "number") {
+          value = `lookupNumber(data.${fieldName})`;
+          shown = `data.${fieldName}.ValueBigFloat().String()`;
+        } else if (attr.type === "bool") {
+          value = `data.${fieldName}.ValueBool()`;
+          shown = `fmt.Sprintf("%t", data.${fieldName}.ValueBool())`;
+        } else {
+          value = `data.${fieldName}.ValueString()`;
+          shown = `fmt.Sprintf("%q", data.${fieldName}.ValueString())`;
+        }
+        return `    if !data.${fieldName}.IsNull() && !data.${fieldName}.IsUnknown() {
+        filters["${apiFieldName}"] = ${value}
+        filterNames = append(filterNames, "${sanitizedName} = "+${shown})
+    }`;
+      })
+      .join("\n");
 
     const readById: string = readOperation
       ? `
@@ -277,7 +383,7 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
             return
         }
         if httpResp.StatusCode == http.StatusNotFound {
-            resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No ${dataSource.name} found with id %q.", data.Id.ValueString()))
+            resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No ${label} found with id %q.", data.Id.ValueString()))
             return
         }
         var itemResponse map[string]interface{}
@@ -290,16 +396,19 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
         } else {
             item = itemResponse
         }`
-      : `
-        resp.Diagnostics.AddError("Lookup Not Supported", "${dataSource.name} cannot be looked up by id: the API exposes no get endpoint. Use the name filter instead.")
+      : listOperation
+        ? `
+        // No get endpoint: find it in the list by id.
+        filters["_id"] = data.Id.ValueString()
+        filterNames = append(filterNames, fmt.Sprintf("id = %q", data.Id.ValueString()))`
+        : `
+        resp.Diagnostics.AddError("Lookup Not Supported", "${dataSource.name} cannot be looked up: the API exposes no get or list endpoint for it.")
         return`;
 
-    const readByName: string = listOperation
+    const readByFilters: string = listOperation
       ? `
         listBody := map[string]interface{}{
-            "query": map[string]interface{}{
-                "name": data.Name.ValueString(),
-            },
+            "query":  filters,
             "select": selectParam,
             // limit 2 is enough to detect ambiguity without paging.
             "limit": 2,
@@ -316,11 +425,11 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
         }
         items, _ := listResponse["data"].([]interface{})
         if len(items) == 0 {
-            resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No ${dataSource.name} found with name %q.", data.Name.ValueString()))
+            resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No ${label} matches %s.", describeLookup(filterNames)))
             return
         }
         if len(items) > 1 {
-            resp.Diagnostics.AddError("Ambiguous Match", fmt.Sprintf("More than one ${dataSource.name} matches name %q. Use the id attribute to disambiguate.", data.Name.ValueString()))
+            resp.Diagnostics.AddError("Ambiguous Match", fmt.Sprintf("More than one ${label} matches %s. Set more arguments to narrow the lookup down to one, or look it up by id.", describeLookup(filterNames)))
             return
         }
         first, ok := items[0].(map[string]interface{})
@@ -330,16 +439,30 @@ ${this.generateReadMethod(dataSource, dataSourceVarName)}
         }
         item = first`
       : `
-        resp.Diagnostics.AddError("Lookup Not Supported", "${dataSource.name} cannot be looked up by name: the API exposes no list endpoint. Use the id filter instead.")
+        resp.Diagnostics.AddError("Lookup Not Supported", "${dataSource.name} can only be looked up by id: the API exposes no list endpoint for it.")
         return`;
 
+    const idUsesList: boolean = !readOperation && Boolean(listOperation);
+
     return `
-    hasId := !data.Id.IsNull() && data.Id.ValueString() != ""
-    hasName := !data.Name.IsNull() && data.Name.ValueString() != ""
-    if hasId == hasName {
+    hasId := !data.Id.IsNull() && !data.Id.IsUnknown() && data.Id.ValueString() != ""
+
+    // Every other argument set in configuration narrows the lookup.
+    filters := map[string]interface{}{}
+    filterNames := []string{}
+${filterAssignments}
+
+    if hasId && len(filters) > 0 {
         resp.Diagnostics.AddError(
             "Invalid Lookup",
-            "Exactly one of \`id\` or \`name\` must be set to look up a ${dataSource.name}.",
+            "Look the ${label} up either by \`id\` or by its other arguments, not both.",
+        )
+        return
+    }
+    if !hasId && len(filters) == 0 {
+        resp.Diagnostics.AddError(
+            "Invalid Lookup",
+            "Set \`id\`, or at least one other argument to look the ${label} up by.",
         )
         return
     }
@@ -350,7 +473,8 @@ ${selectParam}
 
     var item map[string]interface{}
     if hasId {${readById}
-    } else {${readByName}
+    }
+    if ${idUsesList ? "item == nil" : "!hasId"} {${readByFilters}
     }
 
     // Update the model with response data
@@ -582,6 +706,25 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
       })
       .join("\n");
 
+    const renamed: Array<TerraformDataSource> = dataSources.filter(
+      (dataSource: TerraformDataSource) => {
+        return Boolean(dataSource.legacyName);
+      },
+    );
+
+    const legacyFunctions: string = renamed
+      .map((dataSource: TerraformDataSource) => {
+        return `        New${StringUtils.toPascalCase(dataSource.name)}LegacyDataSource,`;
+      })
+      .join("\n");
+
+    const legacyEntries: string = renamed
+      .map((dataSource: TerraformDataSource) => {
+        const typeName: string = StringUtils.toPascalCase(dataSource.name);
+        return `    {Name: "${dataSource.name}", LegacyName: "${dataSource.legacyName}", New: New${typeName}DataSource, NewLegacy: New${typeName}LegacyDataSource},`;
+      })
+      .join("\n");
+
     const dataSourceListContent: string = `package provider
 
 import (
@@ -591,8 +734,21 @@ import (
 // GetDataSources returns all available data sources
 func GetDataSources() []func() datasource.DataSource {
     return []func() datasource.DataSource{
-${dataSourceFunctions}
+${dataSourceFunctions}${
+      legacyFunctions
+        ? `
+        // Deprecated aliases: the names these data sources had before type
+        // names kept mixed-case words whole.
+${legacyFunctions}`
+        : ""
     }
+    }
+}
+
+// legacyDataSourceAliases pairs each renamed data source with the alias that
+// keeps its old name working.
+var legacyDataSourceAliases = []legacyDataSourceAlias{
+${legacyEntries}
 }
 `;
 

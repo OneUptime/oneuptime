@@ -121,9 +121,20 @@ export class Service extends DatabaseService<Model> {
      * attachments decide - so nothing after the lock here can fail and keep
      * it.
      */
+    const providerIds: Array<ObjectID | null> = await this.readProviderIds(
+      deleteBy.query,
+    );
+
+    /*
+     * Right before the delete, the lock is kept once more and kept alive
+     * while it is written: one lost by now refuses the delete, and is given
+     * back (GlobalSsoProviderChanges.holdForWrite).
+     */
+    await GlobalSsoProviderChanges.holdForWrite(deleteBy);
+
     return {
       deleteBy,
-      carryForward: await this.readProviderIds(deleteBy.query),
+      carryForward: providerIds,
     };
   }
 
@@ -162,14 +173,18 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
-  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  /*
+   * Failed, or refused, once its hooks ran: the lock it held is given back -
+   * or, when the database may still apply the write, kept until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedWrite).
+   */
   @CaptureSpan()
   protected override async onDeleteError(
     error: Exception,
     onDelete?: OnDelete<Model> | undefined,
   ): Promise<Exception> {
     if (onDelete) {
-      await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+      await GlobalSsoProviderChanges.afterFailedWrite(onDelete.deleteBy, error);
     }
 
     return error;
@@ -204,16 +219,26 @@ export class Service extends DatabaseService<Model> {
    * An attachment is checked, under the lock on the server's sign-in rules,
    * once every permission and clash check has passed (onCreatePermitted).
    * The lock is given back once it is written (onCreateSuccess), and here
-   * whatever happened after the check: a create that fails at the INSERT,
-   * or in a step just before it, runs no other hook.
+   * when the create fails once its check ran - refused after it, at the
+   * INSERT, or in onCreateSuccess before it gave the lock back:
+   * DatabaseService.create hands every failure after onBeforeCreate to this
+   * hook, with what onBeforeCreate handed back. A create the database may
+   * still apply - its COMMIT went unanswered - keeps the lock until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedCreate).
    */
   @CaptureSpan()
-  public override async create(createBy: CreateBy<Model>): Promise<Model> {
-    try {
-      return await super.create(createBy);
-    } finally {
-      await GlobalSsoProviderChanges.afterWrite(createBy);
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onCreate) {
+      await GlobalSsoProviderChanges.afterFailedCreate(
+        onCreate.createBy,
+        error,
+      );
     }
+
+    return error;
   }
 
   /*
@@ -277,14 +302,18 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  /*
+   * Failed, or refused, once its hooks ran: the lock it held is given back -
+   * or, when the database may still apply the write, kept until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedWrite).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+      await GlobalSsoProviderChanges.afterFailedWrite(onUpdate.updateBy, error);
     }
 
     return error;
@@ -380,7 +409,7 @@ export class Service extends DatabaseService<Model> {
    * project to this one, refused when that would leave a project that
    * requires SSO with no provider to sign in with
    * (Utils/GlobalSsoProviderChanges). The lock it holds is given back once
-   * the attachment is written, or the create fails (create).
+   * the attachment is written, or the create fails (onCreateError).
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
