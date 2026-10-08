@@ -40,6 +40,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
@@ -93,6 +94,7 @@ import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectVa
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
   ProjectScopedReference,
+  ProjectScopedReferenceException,
   ProjectScopedRelation,
   resolveReferenceId,
   resolveReferenceIds,
@@ -2069,6 +2071,14 @@ ${createdItem.description?.trim() || "No description provided."}
       })
       .then(async () => {
         try {
+          /*
+           * The monitor's first status row is part of creating it, as an
+           * incident's first state is: OneUptime writes it, for the person
+           * who created the monitor (still its creator). Written as them, it
+           * would be held to their read of the monitor, which a creator
+           * whose read reaches only what they own gets once the create
+           * returns (DatabaseService.autoOwnerOnCreate).
+           */
           return await this.changeMonitorStatus(
             createdItem.projectId!,
             [createdItem.id!],
@@ -2076,7 +2086,10 @@ ${createdItem.description?.trim() || "No description provided."}
             false, // notifyOwners = false
             "This status was created when the monitor was created.",
             undefined,
-            onCreate.createBy.props,
+            {
+              isRoot: true,
+              userId: onCreate.createBy.props.userId,
+            },
           );
         } catch (error) {
           logger.error(
@@ -3648,8 +3661,8 @@ ${createdItem.description?.trim() || "No description provided."}
   }
 
   /*
-   * Creates one status timeline row, absorbing the two error classes that are
-   * recoverable per monitor so one monitor cannot abort a caller's loop over
+   * Creates one status timeline row, absorbing the error classes that are
+   * decided per monitor so one monitor cannot abort a caller's loop over
    * many (incident resolve, scheduled maintenance end, incident create with
    * changeMonitorStatusTo):
    *
@@ -3667,6 +3680,12 @@ ${createdItem.description?.trim() || "No description provided."}
    *     self-heal. If all attempts fail, log and continue: for probed monitors
    *     the next probe result recreates the transition, and failing the caller
    *     outright would strand its remaining monitors instead.
+   *
+   *   - a row the caller may not write: a person's change - an incident they
+   *     declare or edit - writes as them, and a monitor their read of
+   *     monitors does not reach takes no row from them (CreatePermission
+   *     .checkParentPermission). That monitor keeps its status; the others
+   *     are still changed.
    *
    * Every other error still propagates.
    */
@@ -3718,6 +3737,18 @@ ${createdItem.description?.trim() || "No description provided."}
         if (isLockError) {
           logger.error(
             `changeMonitorStatus: could not acquire the status timeline lock for monitor ${data.monitorId.toString()} after ${maxAttempts} attempt(s); skipping this status change. The monitor keeps its current status.`,
+            logAttributes,
+          );
+          return;
+        }
+
+        // A row the caller may not write. See the comment above.
+        if (
+          err instanceof ProjectScopedReferenceException ||
+          err instanceof NotAuthorizedException
+        ) {
+          logger.warn(
+            `changeMonitorStatus: monitor ${data.monitorId.toString()} keeps its status, as this change may not write it: ${err.message}`,
             logAttributes,
           );
           return;
