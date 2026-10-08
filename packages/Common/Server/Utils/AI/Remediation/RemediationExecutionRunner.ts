@@ -1065,7 +1065,14 @@ export default class RemediationExecutionRunner {
           return;
         }
 
-        const allowlistPatterns: Array<string> = this.normalizeAllowlist(
+        /*
+         * The allowlist column is jsonb, and the dashboard's JSON field can
+         * save it as a real array or a JSON string holding one. Anything that
+         * is not a usable pattern list reads as empty - nothing auto-executes,
+         * the safe direction - the same reading that decides who may save a
+         * rule that runs without asking (CommandAllowlist).
+         */
+        const allowlistPatterns: Array<string> = CommandAllowlist.normalize(
           rule.commandAllowlist,
         );
 
@@ -1945,17 +1952,6 @@ export default class RemediationExecutionRunner {
    * Gates + mode
    * ------------------------------------------------------------------
    */
-
-  /*
-   * The allowlist column is jsonb, and the dashboard's JSON field can save
-   * it as either a real array or a JSON string containing one. Anything
-   * that is not a usable pattern list normalizes to empty — which means
-   * nothing auto-executes, the safe direction. The same reading decides
-   * who may save a rule that runs without asking (CommandAllowlist).
-   */
-  public static normalizeAllowlist(value: unknown): Array<string> {
-    return CommandAllowlist.normalize(value);
-  }
 
   /*
    * The project switch a round must still pass when it runs. Null when it
