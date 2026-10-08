@@ -1,5 +1,13 @@
+import {
+  CONNECT_LINK_INVALID,
+  getConnectCallbackMessageKey,
+} from "../../../FeatureSet/Dashboard/src/Utils/Workspace/ConnectCallbackMessage";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import { PermissionHelper } from "Common/Types/Permission";
+import {
+  ConnectCallbackError,
+  ConnectProvider,
+} from "Common/Types/Workspace/ConnectCallback";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -16,8 +24,10 @@ import path from "path";
  *    from the model;
  *  - the link works once, for 15 minutes, in the browser that started it.
  *
- * The English guide's troubleshooting quotes the two refusals word for word,
- * read here from the server's own constants.
+ * The English guide's troubleshooting quotes what Code Repositories says when
+ * GitHub sends the browser back unconnected, word for word, read here from
+ * the page's own sentences - and the start's permission refusal from the
+ * server's constant.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -137,13 +147,38 @@ describe("the self-hosted GitHub guide, in every language", () => {
 });
 
 describe("the English guide's troubleshooting", () => {
-  test("quotes the refusal of a link that cannot be used, as the server words it", () => {
-    const message: string = serverMessage("GITHUB_CONNECT_LINK_MESSAGE");
-    const quoted: string =
-      "This GitHub connection link is invalid, has expired, or has already been used";
+  /*
+   * GitHub sends the browser back to Code Repositories with a code, and the
+   * page says the sentence for it (ConnectCallbackMessage): the guide quotes
+   * the first sentence of each, as the page words it.
+   */
+  test.each([
+    ConnectCallbackError.LinkInvalid,
+    ConnectCallbackError.GitHubNoAuthorization,
+    ConnectCallbackError.GitHubNotVerified,
+    ConnectCallbackError.GitHubNoInstallation,
+    ConnectCallbackError.NotConfigured,
+    ConnectCallbackError.CouldNotFinish,
+  ])(
+    "quotes what Code Repositories says for %s, as the page words it",
+    (code: ConnectCallbackError) => {
+      const message: string = getConnectCallbackMessageKey(
+        ConnectProvider.GitHub,
+        code,
+      );
+      const firstSentence: string = message.includes(". ")
+        ? `${message.split(". ")[0]}.`
+        : message;
 
-    expect(message.startsWith(quoted)).toBe(true);
-    expect(readGuide("en")).toContain(`**"${quoted}":**`);
+      expect(readGuide("en")).toContain(`**"${firstSentence}`);
+    },
+  );
+
+  test("quotes the whole sentence for a link that cannot be used", () => {
+    expect(CONNECT_LINK_INVALID).toBe(
+      "This connection link is invalid, has expired, or has already been used. Please start again.",
+    );
+    expect(readGuide("en")).toContain(`**"${CONNECT_LINK_INVALID}":**`);
   });
 
   test("quotes the refusal of someone who may not connect, as the server words it", () => {

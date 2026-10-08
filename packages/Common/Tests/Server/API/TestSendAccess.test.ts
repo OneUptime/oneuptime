@@ -646,14 +646,37 @@ describe("the plan, on OneUptime Cloud (billing on)", () => {
     expect((answer as Error).message).toBe(GROWTH_REFUSAL);
   });
 
-  test("a master admin is held to the plan too", async () => {
+  /*
+   * One rule (CallerPlan): a server admin acting in a project is held to no
+   * plan, on a request as on every other path, so an operator can always
+   * fix a project. Their request carries no plan, and no plan is read for it.
+   */
+  test("a master admin is held to no plan, and none is read for them", async () => {
     currentPlan = PlanType.Free;
+    // The spy beforeEach set up, with its calls so far forgotten.
+    const readPlan: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ProjectService,
+      "getCurrentPlan",
+    );
+    readPlan.mockClear();
 
     const answer: TestSendCaller | Error = await askToSendSummaryTest(
       requestFrom(OWNER, { masterAdmin: true }),
     );
 
+    expect(answer).not.toBeInstanceOf(Error);
+    expect(readPlan).not.toHaveBeenCalled();
+  });
+
+  test("someone who is not a master admin on that plan is still refused with the plan's name", async () => {
+    currentPlan = PlanType.Free;
+
+    const answer: TestSendCaller | Error = await askToSendSummaryTest(
+      requestFrom(OWNER),
+    );
+
     expect(answer).toBeInstanceOf(PaymentRequiredException);
+    expect((answer as Error).message).toBe(GROWTH_REFUSAL);
   });
 });
 

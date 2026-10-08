@@ -36,13 +36,14 @@ import ObjectID from "../../Types/ObjectID";
  * (assertMayFinish), before anything is written: the callback learns the
  * project and the person only from that state (WorkspaceOAuthState), never
  * from the redirect, and the state proves nothing about what they may still
- * do. Two differences, both deliberate. The credential (2) is asked at the
- * start only: the callback acts for the person, through their browser, and
- * carries no credential of its own. And the plan (3) is read at the start as
- * every request to the project reads it, and at the callback as everything
- * that acts for a stored person reads it (CallerPlan) - which holds no server
- * admin to a plan, as adding a code repository by hand holds none.
- * Tests/Server/API/GitHubConnectPermission pins both.
+ * do. One difference, deliberate: the credential (2) is asked at the start
+ * only, as the callback acts for the person, through their browser, and
+ * carries no credential of its own. The plan (3) is read at the start as
+ * every request to the project reads it (CommonAPI), and at the callback as
+ * everything that acts for a stored person reads it - both by CallerPlan's
+ * one rule, which holds no server admin to a plan, as adding a code
+ * repository by hand holds none. Tests/Server/API/GitHubConnectPermission
+ * pins both.
  */
 
 /*
@@ -51,22 +52,6 @@ import ObjectID from "../../Types/ObjectID";
  */
 export const GITHUB_CONNECT_PERMISSION_MESSAGE: string =
   "You do not have permission to add code repositories to this project.";
-
-/*
- * What the callback says when the state it was handed cannot be spent:
- * unknown, already used, expired, issued for another flow, or brought back by
- * a browser other than the one that started the connection.
- */
-export const GITHUB_CONNECT_LINK_MESSAGE: string =
-  "This GitHub connection link is invalid, has expired, or has already been used. Please connect GitHub again from Code Repositories in your OneUptime project.";
-
-/*
- * What the callback says when something other than an answer stopped it once
- * the state was spent - a read or a write that failed. The error itself is
- * logged, never shown.
- */
-export const GITHUB_CONNECT_FAILED_MESSAGE: string =
-  "OneUptime could not finish connecting GitHub. Please connect GitHub again from Code Repositories in your OneUptime project.";
 
 // Who is connecting, once the rule has let them.
 export interface GitHubConnectCaller {

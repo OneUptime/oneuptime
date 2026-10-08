@@ -344,7 +344,8 @@ export default class TestSendAccess {
 
     const currentPlan: PlanType | undefined = data.props.currentPlan;
 
-    if (!IsBillingEnabled) {
+    // No plan holds OneUptime itself or a server admin (CallerPlan's one rule).
+    if (!IsBillingEnabled || CallerPlan.isHeldToNoPlan(data.props)) {
       return;
     }
 

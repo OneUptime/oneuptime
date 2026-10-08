@@ -203,17 +203,25 @@ export function httpGet(data: {
   port: number;
   path: string;
   headers?: http.OutgoingHttpHeaders | undefined;
+  timeoutMs?: number | undefined;
 }): Promise<ProbeResponse> {
   return httpRequest({ ...data, method: "GET" });
 }
 
-// Like httpGet, for any method; a `body` is sent as JSON.
+/*
+ * Like httpGet, for any method; a `body` is sent as JSON.
+ *
+ * `timeoutMs` fails the request when no answer has come back by then, so a
+ * route that never answers - an async handler whose rejection Express 4 does
+ * not catch - fails its test plainly instead of waiting out jest's timeout.
+ */
 export function httpRequest(data: {
   port: number;
   method: string;
   path: string;
   headers?: http.OutgoingHttpHeaders | undefined;
   body?: unknown;
+  timeoutMs?: number | undefined;
 }): Promise<ProbeResponse> {
   const payload: string | undefined =
     data.body === undefined ? undefined : JSON.stringify(data.body);
@@ -280,6 +288,16 @@ export function httpRequest(data: {
       request.on("error", (error: Error) => {
         return reject(error);
       });
+
+      if (data.timeoutMs !== undefined) {
+        request.setTimeout(data.timeoutMs, () => {
+          request.destroy(
+            new Error(
+              `${data.method} ${data.path} was not answered within ${data.timeoutMs} ms`,
+            ),
+          );
+        });
+      }
 
       if (payload !== undefined) {
         request.write(payload);

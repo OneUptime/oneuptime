@@ -110,6 +110,8 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
     "the prefix an exception's own pages hang off; the Exceptions product is offered",
   [PageMap.INVENTORY_VIEW_ROOT]:
     "the prefix an item's own pages hang off; it forwards to All Items, which is offered",
+  [PageMap.CONNECT_RETURN]:
+    "where a Slack, Microsoft Teams or GitHub connection comes back: it passes the browser on to that provider's page",
   [PageMap.AUTOMATION_SCRIPTS]: "in RouteMap, but no page is mounted there",
   [PageMap.REPORTS]: "in RouteMap, but no page is mounted there",
   [PageMap.ERROR_TRACKER]: "in RouteMap, but no page is mounted there",

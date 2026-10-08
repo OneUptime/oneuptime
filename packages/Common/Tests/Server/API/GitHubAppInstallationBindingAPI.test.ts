@@ -13,11 +13,12 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import { mockRouter } from "./Helpers";
+import URL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import BadRequestException from "../../../Types/Exception/BadRequestException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
+import { ConnectStartPage } from "../../../Types/Workspace/ConnectCallback";
 import {
   afterEach,
   beforeAll,
@@ -52,6 +53,8 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
       unknown
     >),
     GitHubAppName: "oneuptime-test-app",
+    GitHubAppClientId: "Iv1.github-client-id",
+    GitHubAppClientSecret: "github-client-secret",
   };
 });
 
@@ -89,15 +92,31 @@ const REMOVED_LIST_REPOSITORIES_ROUTE: string =
   "/github/repositories/:projectId/:installationId";
 const REMOVED_CONNECT_ROUTE: string = "/github/repository/connect";
 
-function thrownError(): Error | undefined {
-  const sendErrorResponse: jest.Mock =
-    Response.sendErrorResponse as unknown as jest.Mock;
+/*
+ * Where the callback sent the browser (ConnectCallback.route answers every
+ * way it ends with a redirect, never an error response).
+ */
+function answeredAt(): string | undefined {
+  const redirect: jest.Mock = Response.redirect as unknown as jest.Mock;
 
-  if (sendErrorResponse.mock.calls.length === 0) {
+  expect(
+    (Response.sendErrorResponse as unknown as jest.Mock).mock.calls,
+  ).toEqual([]);
+
+  if (redirect.mock.calls.length === 0) {
     return undefined;
   }
 
-  return sendErrorResponse.mock.calls[0]![2] as Error;
+  return (redirect.mock.calls[0]![2] as URL).toString();
+}
+
+// The code the callback answered with, or null when it connected.
+function answeredWith(): string | null {
+  const location: string | undefined = answeredAt();
+
+  expect(location).toBeDefined();
+
+  return new globalThis.URL(location!).searchParams.get("error");
 }
 
 async function callRoute(data: {
@@ -228,6 +247,7 @@ describe("GitHub App installation binding", () => {
         flow: WorkspaceOAuthFlow.GitHubAppInstall,
         projectId: projectId,
         userId: userId,
+        startPage: ConnectStartPage.ProjectSettings,
       });
 
       // And that person may still add code repositories to it.
@@ -263,7 +283,10 @@ describe("GitHub App installation binding", () => {
         query: callbackQuery(),
       });
 
-      expect(thrownError()).toBeUndefined();
+      expect(answeredWith()).toBeNull();
+      expect(answeredAt()).toContain(
+        `/${projectId.toString()}/code-repository?installation_id=${victimInstallationId}`,
+      );
       expect(updateProjectSpy).toHaveBeenCalledTimes(1);
 
       const updateArgs: {
@@ -314,7 +337,8 @@ describe("GitHub App installation binding", () => {
         query: callbackQuery(),
       });
 
-      expect(thrownError()).toBeInstanceOf(BadDataException);
+      expect(answeredWith()).toBe("github-not-verified");
+      expect(answeredAt()).not.toContain("does not have access");
       expect(updateProjectSpy).not.toHaveBeenCalled();
       expect(importSpy).not.toHaveBeenCalled();
     });
@@ -329,7 +353,7 @@ describe("GitHub App installation binding", () => {
         query: query,
       });
 
-      expect(thrownError()).toBeInstanceOf(BadDataException);
+      expect(answeredWith()).toBe("github-no-authorization");
       expect(verifySpy).not.toHaveBeenCalled();
       expect(updateProjectSpy).not.toHaveBeenCalled();
       expect(importSpy).not.toHaveBeenCalled();
@@ -383,7 +407,7 @@ describe("GitHub App installation binding", () => {
         query: callbackQuery(),
       });
 
-      expect(thrownError()).toBeInstanceOf(NotAuthorizedException);
+      expect(answeredWith()).toBe("no-permission");
       expect(verifySpy).not.toHaveBeenCalled();
       expect(updateProjectSpy).not.toHaveBeenCalled();
       expect(importSpy).not.toHaveBeenCalled();
@@ -429,7 +453,8 @@ describe("GitHub App installation binding", () => {
 
       await callRoute({ method: "GET", uri: CALLBACK_ROUTE, query: query });
 
-      expect(thrownError()).toBeInstanceOf(BadRequestException);
+      expect(answeredWith()).toBe("link-invalid");
+      expect(answeredAt()).toContain("/connect-return?provider=github");
       expect(finishSpy).not.toHaveBeenCalled();
       expect(updateProjectSpy).not.toHaveBeenCalled();
     });
@@ -443,7 +468,7 @@ describe("GitHub App installation binding", () => {
         query: callbackQuery(),
       });
 
-      expect(thrownError()).toBeInstanceOf(BadRequestException);
+      expect(answeredWith()).toBe("link-invalid");
       expect(finishSpy).not.toHaveBeenCalled();
       expect(verifySpy).not.toHaveBeenCalled();
       expect(updateProjectSpy).not.toHaveBeenCalled();
@@ -458,7 +483,9 @@ describe("GitHub App installation binding", () => {
         query: callbackQuery(),
       });
 
-      expect(thrownError()).toBeInstanceOf(BadRequestException);
+      // Not the person's doing: "could not finish", on the Dashboard.
+      expect(answeredWith()).toBe("could-not-finish");
+      expect(answeredAt()).toContain("/connect-return?provider=github");
       expect(finishSpy).not.toHaveBeenCalled();
       expect(updateProjectSpy).not.toHaveBeenCalled();
     });
@@ -469,7 +496,7 @@ describe("GitHub App installation binding", () => {
 
       await callRoute({ method: "GET", uri: CALLBACK_ROUTE, query: query });
 
-      expect(thrownError()).toBeInstanceOf(BadDataException);
+      expect(answeredWith()).toBe("github-no-installation");
       expect(updateProjectSpy).not.toHaveBeenCalled();
     });
   });

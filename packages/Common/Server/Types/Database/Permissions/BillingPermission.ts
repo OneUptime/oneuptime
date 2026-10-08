@@ -85,6 +85,11 @@ export default class BillingPermissions {
       return;
     }
 
+    // No plan holds OneUptime itself or a server admin (CallerPlan's one rule).
+    if (CallerPlan.isHeldToNoPlan(props)) {
+      return;
+    }
+
     const model: BaseModel = new modelType();
 
     /*

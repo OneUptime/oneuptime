@@ -195,7 +195,12 @@ export default class ColumnPermissions {
         });
       }
 
-      if (IsBillingEnabled && model.getColumnBillingAccessControl(key)) {
+      if (
+        IsBillingEnabled &&
+        model.getColumnBillingAccessControl(key) &&
+        // No plan holds OneUptime itself or a server admin (CallerPlan).
+        !CallerPlan.isHeldToNoPlan(props)
+      ) {
         /*
          * A paid feature can always be switched off: a create or update that
          * puts a plan-gated column back to its default - the feature off,

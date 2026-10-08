@@ -6,14 +6,13 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
-import BadRequestException from "../../Types/Exception/BadRequestException";
 import Exception from "../../Types/Exception/Exception";
-import ServerException from "../../Types/Exception/ServerException";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import {
-  DashboardClientUrl,
+  GitHubAppClientId,
+  GitHubAppClientSecret,
   GitHubAppName,
   HomeClientUrl,
 } from "../EnvironmentConfig";
@@ -27,17 +26,22 @@ import CodeRepositoryService, {
 } from "../Services/CodeRepositoryService";
 import ProjectService from "../Services/ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
-import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
 import GitHubConnectAccess, {
-  GITHUB_CONNECT_FAILED_MESSAGE,
-  GITHUB_CONNECT_LINK_MESSAGE,
   GitHubConnectCaller,
 } from "./GitHubConnectAccess";
+import ConnectCallback, {
+  ConnectCallbackFinish,
+  ConnectCallbackRefusal,
+} from "./ConnectCallback";
+import {
+  ConnectCallbackError,
+  ConnectProvider,
+} from "../../Types/Workspace/ConnectCallback";
 
 export default class GitHubAPI {
   /*
@@ -173,46 +177,56 @@ export default class GitHubAPI {
      * may still add code repositories to that project (GitHubConnectAccess),
      * GitHub returned an installation and an authorization code, and the code
      * proves the GitHub account completing the redirect controls that
-     * installation.
+     * installation. ConnectCallback.route answers every way this can end on
+     * Code Repositories, with a code - never with what GitHub or a failed
+     * read said.
      */
     router.get(
       "/github/auth/callback",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          let stateRecord: WorkspaceOAuthStateRecord | null = null;
+      ConnectCallback.route({
+        provider: ConnectProvider.GitHub,
+        /*
+         * "Redirect on update": once an installation is changed on GitHub
+         * itself, GitHub sends the browser here with no state of ours. There
+         * is nothing to connect - the installation webhooks keep the
+         * repositories in sync - so the browser goes to Code Repositories,
+         * with nothing to refuse.
+         */
+        isProviderRedirect: (req: ExpressRequest): boolean => {
+          return (
+            !req.query["state"] &&
+            req.query["setup_action"]?.toString() === "update"
+          );
+        },
+        spendState: (
+          req: ExpressRequest,
+        ): Promise<WorkspaceOAuthStateRecord | null> => {
+          return WorkspaceOAuthState.consume({
+            req,
+            state: req.query["state"]?.toString(),
+            flows: [WorkspaceOAuthFlow.GitHubAppInstall],
+          });
+        },
+        askAgain: (record: WorkspaceOAuthStateRecord): Promise<void> => {
+          return GitHubConnectAccess.assertMayFinish(record);
+        },
+        refusedAs: ConnectCallbackError.NoPermission,
+        finish: async (data: ConnectCallbackFinish): Promise<void> => {
+          const { req, record } = data;
+          const projectId: ObjectID = record.projectId;
 
-          try {
-            stateRecord = await WorkspaceOAuthState.consume({
-              req,
-              state: req.query["state"]?.toString(),
-              flows: [WorkspaceOAuthFlow.GitHubAppInstall],
-            });
-          } catch (stateError) {
-            logger.error(
-              stateError,
-              getLogAttributesFromRequest(req as OneUptimeRequest),
+          if (!GitHubAppClientId || !GitHubAppClientSecret) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.NotConfigured,
+              "GITHUB_APP_CLIENT_ID or GITHUB_APP_CLIENT_SECRET is not set, so no installation can be verified.",
             );
           }
 
-          if (!stateRecord) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadRequestException(GITHUB_CONNECT_LINK_MESSAGE),
-            );
-          }
+          const providerError: ConnectCallbackRefusal | null =
+            ConnectCallback.refusalOfProviderError(req);
 
-          const projectId: string = stateRecord.projectId.toString();
-
-          try {
-            await GitHubConnectAccess.assertMayFinish(stateRecord);
-          } catch (refusal) {
-            // A refusal is answered as it is; anything else is an error.
-            if (refusal instanceof Exception) {
-              return Response.sendErrorResponse(req, res, refusal);
-            }
-
-            throw refusal;
+          if (providerError) {
+            throw providerError;
           }
 
           // GitHub sends installation_id in query params after app installation
@@ -220,12 +234,9 @@ export default class GitHubAPI {
             req.query["installation_id"]?.toString();
 
           if (!installationId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "Installation ID is required. Please install the GitHub App first.",
-              ),
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.GitHubNoInstallation,
+              `GitHub sent no installation back (setup_action: ${String(req.query["setup_action"] || "none")}).`,
             );
           }
 
@@ -250,12 +261,9 @@ export default class GitHubAPI {
           const oauthCode: string | undefined = req.query["code"]?.toString();
 
           if (!oauthCode) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                'GitHub did not return an authorization code, so this installation could not be verified. Please enable "Request user authorization (OAuth) during installation" in the GitHub App settings and install again.',
-              ),
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.GitHubNoAuthorization,
+              'GitHub sent no authorization code back: "Request user authorization (OAuth) during installation" must be on in the GitHub App settings.',
             );
           }
 
@@ -265,8 +273,12 @@ export default class GitHubAPI {
               installationId: installationId,
             });
           } catch (verificationError) {
+            /*
+             * Whatever GitHub or the request said is logged here and never
+             * shown: the page is told the installation was not verified.
+             */
             logger.error(
-              `GitHub Auth Callback: refusing to bind installation ${installationId} to project ${projectId} — could not verify the installing user controls it.`,
+              `GitHub Auth Callback: refusing to bind installation ${installationId} to project ${projectId.toString()} — could not verify the installing user controls it.`,
               getLogAttributesFromRequest(req as OneUptimeRequest),
             );
             logger.error(
@@ -274,14 +286,9 @@ export default class GitHubAPI {
               getLogAttributesFromRequest(req as OneUptimeRequest),
             );
 
-            return Response.sendErrorResponse(
-              req,
-              res,
-              verificationError instanceof Error
-                ? new BadDataException(verificationError.message)
-                : new BadDataException(
-                    "Could not verify this GitHub App installation.",
-                  ),
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.GitHubNotVerified,
+              `The GitHub account completing the redirect was not verified to control installation ${installationId}.`,
             );
           }
 
@@ -290,7 +297,7 @@ export default class GitHubAPI {
            * This allows reuse when connecting additional repositories
            */
           await ProjectService.updateOneById({
-            id: new ObjectID(projectId),
+            id: projectId,
             data: {
               gitHubAppInstallationId: installationId,
             },
@@ -308,17 +315,17 @@ export default class GitHubAPI {
           try {
             const importResult: ImportReposFromInstallationResult =
               await CodeRepositoryService.importReposFromInstallation({
-                projectId: new ObjectID(projectId),
+                projectId: projectId,
                 installationId: installationId,
               });
 
             logger.info(
-              `GitHub App installation ${installationId}: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId}`,
+              `GitHub App installation ${installationId}: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId.toString()}`,
               getLogAttributesFromRequest(req as OneUptimeRequest),
             );
           } catch (importError) {
             logger.error(
-              `GitHub Auth Callback: Failed to import repositories from installation ${installationId} into project ${projectId}:`,
+              `GitHub Auth Callback: Failed to import repositories from installation ${installationId} into project ${projectId.toString()}:`,
               getLogAttributesFromRequest(req as OneUptimeRequest),
             );
             logger.error(
@@ -327,30 +334,10 @@ export default class GitHubAPI {
             );
           }
 
-          // Redirect back to dashboard with installation ID
-          const redirectUrl: string = `${DashboardClientUrl.toString()}/${projectId}/code-repository?installation_id=${installationId}`;
-
-          return Response.redirect(req, res, URL.fromString(redirectUrl));
-        } catch (error) {
-          logger.error(
-            "GitHub Auth Callback Error:",
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          logger.error(
-            error,
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-
-          // Logged above; the browser is told plainly, never the raw error.
-          return Response.sendErrorResponse(
-            req,
-            res,
-            error instanceof Exception
-              ? error
-              : new ServerException(GITHUB_CONNECT_FAILED_MESSAGE),
-          );
-        }
-      },
+          // Back to Code Repositories, which shows the connection was made.
+          data.backToPage({ installation_id: installationId });
+        },
+      }),
     );
 
     /*

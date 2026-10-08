@@ -1,8 +1,6 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
-import ProjectService from "../Services/ProjectService";
 import { ExpressRequest, OneUptimeRequest } from "../Utils/Express";
+import CallerPlan from "../Utils/Billing/CallerPlan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import UserType from "../../Types/UserType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
@@ -457,20 +455,20 @@ export default class CommonAPI {
       props.isMultiTenantRequest = true;
     }
 
-    if (IsBillingEnabled && props.tenantId) {
-      const plan: {
-        plan: PlanType | null;
-        isSubscriptionUnpaid: boolean;
-      } = await ProjectService.getCurrentPlan(props.tenantId!);
-      props.currentPlan = plan.plan || undefined;
-      props.isSubscriptionUnpaid = plan.isSubscriptionUnpaid;
-    }
-
     // check for root permissions.
 
     if (props.userType === UserType.MasterAdmin) {
       props.isMasterAdmin = true;
     }
+
+    /*
+     * The plan the request is held to, by the one rule every path follows
+     * (CallerPlan): its project's, read here for everyone a plan holds - and
+     * never for a server admin, whom no plan holds, so an operator can always
+     * fix a project. Billing off: nothing is read.
+     */
+    const heldProps: DatabaseCommonInteractionProps =
+      await CallerPlan.withPlan(props);
 
     // Add context attributes to the current span for observability
     SpanUtil.addAttributesToCurrentSpan({
@@ -482,6 +480,6 @@ export default class CommonAPI {
         : {}),
     });
 
-    return props;
+    return heldProps;
   }
 }
