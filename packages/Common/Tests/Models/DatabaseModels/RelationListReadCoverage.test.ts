@@ -415,7 +415,12 @@ const modelNamed: (table: string) => ModelType = (table: string): ModelType => {
 
 describe("every single reference a write may name a record in", () => {
   test("the sweep covers the references a write may name a record in", () => {
-    expect(WRITABLE_REFERENCES.length).toBeGreaterThan(300);
+    /*
+     * The resource an owner row names is the record it is read through
+     * (OwnerTablesReadThroughResource.test.ts), so the parent rule holds it
+     * and it is not swept here.
+     */
+    expect(WRITABLE_REFERENCES.length).toBeGreaterThan(250);
   });
 
   test("a reference to records read one by one is held to the caller's read", () => {
@@ -511,6 +516,17 @@ describe("every single reference a write may name a record in", () => {
     ["IncidentTemplateOwnerTeam", "incidentTemplate"],
     ["ScheduledMaintenanceTemplateOwnerUser", "scheduledMaintenanceTemplate"],
     ["ScheduledMaintenanceTemplateOwnerTeam", "scheduledMaintenanceTemplate"],
+    // Every other owner table too (OwnerTablesReadThroughResource.test.ts).
+    ["HostOwnerUser", "host"],
+    ["KubernetesClusterOwnerTeam", "kubernetesCluster"],
+    ["OnCallDutyPolicyOwnerUser", "onCallDutyPolicy"],
+    ["OnCallDutyPolicyScheduleOwnerTeam", "onCallDutyPolicySchedule"],
+    ["IncomingCallPolicyOwnerUser", "incomingCallPolicy"],
+    ["DashboardOwnerTeam", "dashboard"],
+    ["ProbeOwnerUser", "probe"],
+    ["AIAgentOwnerTeam", "aiAgent"],
+    ["IncidentEpisodeOwnerUser", "incidentEpisode"],
+    ["WorkflowOwnerTeam", "workflow"],
   ])(
     "the owners in %s are read through the %s they own, as the parent rule holds them",
     (table: string, parent: string) => {
