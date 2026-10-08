@@ -350,4 +350,33 @@ describe("holdBackForViewer - what is shown as text", () => {
       expect([line, heldBack.showAsText]).toEqual([line, true]);
     }
   });
+
+  test("what is held back does not count, what is left does: too much left is shown as text", () => {
+    // A paragraph of plain lines (held back) and a table (left in).
+    const plainLines: string =
+      "2026-10-08T10:00:00Z INFO request served\n".repeat(
+        Math.ceil((4 * MIB) / 40),
+      );
+    const table: string = `| Host | State |\n| --- | --- |\n${"| web-01 | down |\n".repeat(
+      Math.ceil((2 * MAX_PARSED_MARKDOWN_LENGTH) / 18),
+    )}`;
+
+    const heldBack: ReturnType<typeof holdBackForViewer> = holdBackForViewer(
+      `${plainLines}\n${table}`,
+    );
+
+    expect(heldBack.held.length).toBeGreaterThan(0);
+    expect(heldBack.markdown.length).toBeGreaterThan(
+      MAX_PARSED_MARKDOWN_LENGTH,
+    );
+    expect(heldBack.showAsText).toBe(true);
+
+    // The same paragraph with a table that fits is read as Markdown.
+    const fits: ReturnType<typeof holdBackForViewer> = holdBackForViewer(
+      `${plainLines}\n| Host | State |\n| --- | --- |\n| web-01 | down |\n`,
+    );
+
+    expect(fits.held.length).toBeGreaterThan(0);
+    expect(fits.showAsText).toBe(false);
+  });
 });
