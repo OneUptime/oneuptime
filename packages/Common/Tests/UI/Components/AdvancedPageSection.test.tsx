@@ -6,9 +6,13 @@ import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { computeAccessibleDescription } from "dom-accessibility-api";
 import AdvancedPageSection, {
+  ADVANCED_PAGE_SECTION_SECTIONS_TEST_ID,
   ADVANCED_PAGE_SECTION_TEST_ID,
 } from "../../../UI/Components/AdvancedPageSection/AdvancedPageSection";
+import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import Card from "../../../UI/Components/Card/Card";
 import { foldedSectionItem } from "../../../UI/Components/FoldedSection/FoldedSectionItem";
+import IconProp from "../../../Types/Icon/IconProp";
 import {
   MORE_FIELDS_SECTION_TITLE,
   MORE_SETTINGS_SECTION_TITLE,
@@ -31,12 +35,19 @@ import {
  *   - its description says what it is for, under the title once open - and
  *     folded too on a page that names no cards;
  *   - a page that cannot say which card is set says "Configured";
- *   - it is a card of its own on the page, spaced like the cards around it.
+ *   - it is a card of its own on the page, spaced like the cards around it;
+ *   - open, it is ONE card: every card in it is a section of it, with a
+ *     divider across the whole card above it and no frame of its own.
  */
 
 afterEach(() => {
   cleanup();
 });
+
+// The parts of a box: a shadow, rounded corners, a border all round.
+const SHADOW: RegExp = /^shadow(-(sm|md|lg|xl|2xl))?$/;
+const ROUNDED: RegExp = /^rounded(-(sm|md|lg|xl|2xl))?$/;
+const EDGE: RegExp = /^(border|border-2|ring-1|ring-2)$/;
 
 function header(): HTMLElement {
   return screen.getByRole("button", { name: MORE_SETTINGS_SECTION_TITLE });
@@ -329,17 +340,193 @@ describe("AdvancedPageSection", () => {
     );
   });
 
-  test("frames the cards in it with its own padding, not their page margins", () => {
-    renderSection();
+  /*
+   * "More Settings should look like one card instead of a card inside of a
+   * card, and it should have dividers." Its header is the card; every card
+   * in it is a section of that card - a divider across the whole card above
+   * it, and no border, rounded corners, shadow or gap of its own.
+   */
+  describe("is one card, not cards inside a card", () => {
+    async function openWithCards(): Promise<UserEvent> {
+      render(
+        <AdvancedPageSection
+          description="Which incidents are investigated, and limits."
+          items={[
+            foldedSectionItem("Investigation rules"),
+            foldedSectionItem("Investigation limits"),
+            foldedSectionItem("Daily limits"),
+          ]}
+        >
+          <Card
+            title="Investigation rules"
+            description="With no rule, every new incident is investigated."
+            buttons={[
+              {
+                title: "Create Investigation Rule",
+                buttonStyle: ButtonStyleType.NORMAL,
+                icon: IconProp.Add,
+                onClick: (): void => {},
+              },
+            ]}
+          >
+            <div data-testid="rules-body">rules</div>
+          </Card>
+          <Card title="Investigation limits">
+            <div>limits</div>
+          </Card>
+          <Card title="Daily limits">
+            <div>daily</div>
+          </Card>
+        </AdvancedPageSection>,
+      );
 
-    const cards: HTMLElement = screen.getByTestId("block-permissions-card")
-      .parentElement as HTMLElement;
+      const user: UserEvent = userEvent.setup({ delay: null });
 
-    // A card's margin under it is for the next card on the page.
-    expect(cards).toHaveClass("[&_[data-testid=card]]:mb-0");
-    // Two cards in here still sit a card's gap apart.
-    expect(cards).toHaveClass("space-y-5");
-    expect(body()).toContainElement(cards);
+      await user.click(header());
+
+      return user;
+    }
+
+    function section(): HTMLElement {
+      return screen.getByTestId(ADVANCED_PAGE_SECTION_TEST_ID);
+    }
+
+    /*
+     * Every element in it that draws a box of its own, as a card's frame
+     * does: a shadow, or rounded corners on a border all round. A clip
+     * (rounded corners alone) and a divider (a top border) are not boxes.
+     */
+    function framesIn(root: HTMLElement): Array<HTMLElement> {
+      return Array.from(root.querySelectorAll<HTMLElement>("*")).filter(
+        (element: HTMLElement): boolean => {
+          const tokens: Array<string> = Array.from(element.classList);
+
+          const hasShadow: boolean = tokens.some((token: string): boolean => {
+            return SHADOW.test(token);
+          });
+          const isRounded: boolean = tokens.some((token: string): boolean => {
+            return ROUNDED.test(token);
+          });
+          const hasEdge: boolean = tokens.some((token: string): boolean => {
+            return EDGE.test(token);
+          });
+
+          return hasShadow || (isRounded && hasEdge);
+        },
+      );
+    }
+
+    test("only its own frame is drawn: the cards in it have none", async () => {
+      await openWithCards();
+
+      const frames: Array<HTMLElement> = framesIn(section()).filter(
+        (element: HTMLElement): boolean => {
+          // A button is a control, not a box around content.
+          return element.tagName !== "BUTTON" && !element.closest("button");
+        },
+      );
+
+      expect(frames).toEqual([screen.getByTestId("folded-section")]);
+      expect(screen.getByTestId("folded-section")).toHaveClass(
+        "rounded-xl",
+        "shadow-sm",
+        "border",
+        "border-gray-200",
+      );
+    });
+
+    test("each card in it is a section, with a divider across the whole card above it", async () => {
+      await openWithCards();
+
+      const sections: Array<HTMLElement> = within(section()).getAllByTestId(
+        "card",
+      );
+
+      expect(
+        sections.map((card: HTMLElement): string | null => {
+          return within(card).getByTestId("card-details-heading").textContent;
+        }),
+      ).toEqual(["Investigation rules", "Investigation limits", "Daily limits"]);
+
+      for (const card of sections) {
+        expect(card).toHaveAttribute("data-card-surface", "section");
+        expect(card).toHaveClass("border-t", "border-gray-200");
+        expect(card).not.toHaveClass("mb-5");
+        expect(card).not.toHaveClass("rounded-xl");
+        expect(card).not.toHaveClass("shadow-sm");
+      }
+    });
+
+    test("the sections sit straight under its header, in its body", async () => {
+      await openWithCards();
+
+      const sections: HTMLElement = screen.getByTestId(
+        ADVANCED_PAGE_SECTION_SECTIONS_TEST_ID,
+      );
+
+      expect(body()).toContainElement(sections);
+      expect(
+        within(sections)
+          .getAllByTestId("card")
+          .every((card: HTMLElement): boolean => {
+            return card.parentElement === sections;
+          }),
+      ).toBe(true);
+    });
+
+    test("its body adds no padding and no rule: the first section's divider is the line under the header", async () => {
+      await openWithCards();
+
+      const content: HTMLElement = body().firstElementChild as HTMLElement;
+
+      expect(content.getAttribute("class") || "").toBe("");
+      expect(content).toContainElement(
+        screen.getByTestId(ADVANCED_PAGE_SECTION_SECTIONS_TEST_ID),
+      );
+      expect(within(section()).getAllByTestId("card")[0]).toHaveClass(
+        "border-t",
+      );
+    });
+
+    test("its body is rounded with its frame, so the last section ends on the card's curve", async () => {
+      await openWithCards();
+
+      expect(body()).toHaveClass("rounded-b-xl", "overflow-hidden");
+    });
+
+    test("a section keeps its header actions, at its right edge", async () => {
+      await openWithCards();
+
+      const rules: HTMLElement = within(section()).getAllByTestId("card")[0]!;
+      const actions: HTMLElement =
+        within(rules).getByTestId("card-header-actions");
+
+      expect(actions).toHaveClass("ml-auto", "justify-end");
+      expect(
+        within(actions).getByRole("button", {
+          name: "Create Investigation Rule",
+        }),
+      ).toBeInTheDocument();
+      expect(within(rules).getByTestId("rules-body")).toBeInTheDocument();
+    });
+
+    test("folded, the sections stay mounted out of sight, and the header still names them", () => {
+      render(
+        <AdvancedPageSection
+          items={[foldedSectionItem("Investigation rules")]}
+          description="Which incidents are investigated."
+        >
+          <Card title="Investigation rules" />
+        </AdvancedPageSection>,
+      );
+
+      expect(header()).toHaveAttribute("aria-expanded", "false");
+      expect(body()).toHaveClass("max-h-0", "opacity-0", "invisible");
+      expect(body()).toContainElement(screen.getByTestId("card"));
+      expect(screen.getByTestId("folded-section-contents")).toHaveTextContent(
+        "Investigation rules",
+      );
+    });
   });
 
   test("takes a test id of its own for a page with more than one", () => {

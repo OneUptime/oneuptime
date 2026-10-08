@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 import * as React from "react";
 import fs from "fs";
@@ -218,7 +224,11 @@ jest.mock(
   },
 );
 
-import MicrosoftTeamsIntegration from "../../../../App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegration";
+import MicrosoftTeamsIntegration, {
+  MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION,
+  MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID,
+  MICROSOFT_TEAMS_SETUP_GUIDE_TITLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegration";
 import MicrosoftTeamsIntegrationDocumentation from "../../../../App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation";
 
 type ReadFileFunction = (filePath: string) => string;
@@ -409,6 +419,113 @@ describe("MicrosoftTeamsIntegration setup guide availability", () => {
     });
 
     expect(screen.queryByText(SETUP_GUIDE_TITLE)).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * "More Settings should look like one card instead of a card inside of a
+ * card ... Please do this everywhere in the project." The setup guide's fold
+ * held the whole guide card inside a card-styled fold. It is folded the way a
+ * page's More settings is now - one card, the guide its section.
+ */
+describe("MicrosoftTeamsIntegration setup guide is one card", () => {
+  const GUIDE_CARD_TITLE: string =
+    "Integrating Microsoft Teams with your OneUptime Project";
+
+  // A card's frame: the white box, its border, rounded corners and shadow.
+  const FRAME_TOKENS: Array<string> = [
+    "bg-white",
+    "border",
+    "border-gray-200",
+    "rounded-xl",
+    "shadow-sm",
+  ];
+
+  function framesIn(root: HTMLElement): Array<HTMLElement> {
+    return [root, ...Array.from(root.querySelectorAll<HTMLElement>("*"))].filter(
+      (element: HTMLElement): boolean => {
+        return FRAME_TOKENS.every((token: string): boolean => {
+          return element.classList.contains(token);
+        });
+      },
+    );
+  }
+
+  async function guide(): Promise<HTMLElement> {
+    await renderIntegration({
+      billingEnabled: false,
+      isProjectConnected: true,
+      isUserConnected: true,
+      isAdminConsentGranted: true,
+    });
+
+    return await screen.findByTestId(MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID);
+  }
+
+  test("the only card frame in it is the fold's own", async () => {
+    const root: HTMLElement = await guide();
+    const frames: Array<HTMLElement> = framesIn(root);
+
+    expect(frames).toHaveLength(1);
+    expect(frames[0]).toHaveAttribute("data-testid", "folded-section");
+  });
+
+  test("the guide is a section of it, with a divider above it and no frame of its own", async () => {
+    const root: HTMLElement = await guide();
+    const cards: Array<HTMLElement> = within(root).getAllByTestId("card");
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toHaveAttribute("data-card-surface", "section");
+    expect(cards[0]).toHaveClass("border-t", "border-gray-200");
+    expect(cards[0]).not.toHaveClass("mb-5");
+    expect(
+      within(cards[0]!).getByTestId("card-details-heading"),
+    ).toHaveTextContent(GUIDE_CARD_TITLE);
+  });
+
+  test("it is a real button that starts folded and says what is in it", async () => {
+    const root: HTMLElement = await guide();
+    const header: HTMLElement = within(root).getByRole("button", {
+      name: SETUP_GUIDE_TITLE,
+    });
+
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(within(root).getByTestId("collapsible-section-summary")).toHaveTextContent(
+      MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION,
+    );
+    expect(MICROSOFT_TEAMS_SETUP_GUIDE_TITLE).toBe(SETUP_GUIDE_TITLE);
+  });
+
+  test("it opens to the guide, and folds again", async () => {
+    const root: HTMLElement = await guide();
+    const header: HTMLElement = within(root).getByRole("button", {
+      name: SETUP_GUIDE_TITLE,
+    });
+    const body: HTMLElement = document.getElementById(
+      header.getAttribute("aria-controls") as string,
+    ) as HTMLElement;
+
+    expect(body).toHaveClass("invisible");
+
+    fireEvent.click(header);
+
+    expect(header).toHaveAttribute("aria-expanded", "true");
+    expect(body).not.toHaveClass("invisible");
+    expect(body).toHaveClass("rounded-b-xl", "overflow-hidden");
+
+    fireEvent.click(header);
+
+    expect(header).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("drawn on its own, the guide is a card with its frame, as before", async () => {
+    render(<MicrosoftTeamsIntegrationDocumentation />);
+
+    const card: HTMLElement = await screen.findByTestId("card");
+
+    expect(card).not.toHaveAttribute("data-card-surface");
+    expect(card).toHaveClass("mb-5");
+    expect(card.firstElementChild).toHaveClass("rounded-xl", "shadow-sm");
   });
 });
 
