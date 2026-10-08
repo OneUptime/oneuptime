@@ -73,6 +73,7 @@
   },
   "navGroups": {
     "Introduction": "はじめに",
+    "Moving to OneUptime": "OneUptime への移行",
     "Installation": "インストール",
     "Mobile & Desktop Apps": "モバイル & デスクトップ アプリ",
     "Configuration": "設定",
@@ -108,6 +109,8 @@
   },
   "navLinks": {
     "Getting Started": "はじめに",
+    "Moving from Opsgenie": "Opsgenie からの移行",
+    "Moving from incident.io": "incident.io からの移行",
     "Local Development": "ローカル開発",
     "Docker Compose": "Docker Compose",
     "Upgrading": "アップグレード",

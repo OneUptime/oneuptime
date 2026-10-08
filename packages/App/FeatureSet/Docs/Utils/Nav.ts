@@ -69,6 +69,25 @@ const DocsNav: NavGroup[] = [
       },
     ],
   },
+  /*
+   * One page per tool that Project Settings > Import from another tool
+   * brings a team over from (Common/Types/ToolImport/ToolImportCatalog's
+   * docsPath).
+   */
+  {
+    title: "Moving to OneUptime",
+    section: "Get Started",
+    links: [
+      {
+        title: "Moving from Opsgenie",
+        url: "/docs/moving-to-oneuptime/opsgenie",
+      },
+      {
+        title: "Moving from incident.io",
+        url: "/docs/moving-to-oneuptime/incident-io",
+      },
+    ],
+  },
   {
     title: "Monitor",
     section: "Monitoring",

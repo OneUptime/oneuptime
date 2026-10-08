@@ -73,6 +73,7 @@
   },
   "navGroups": {
     "Introduction": "परिचय",
+    "Moving to OneUptime": "OneUptime पर आना",
     "Installation": "स्थापना",
     "Mobile & Desktop Apps": "मोबाइल और डेस्कटॉप ऐप",
     "Configuration": "कॉन्फ़िगरेशन",
@@ -108,6 +109,8 @@
   },
   "navLinks": {
     "Getting Started": "शुरू करना",
+    "Moving from Opsgenie": "Opsgenie से आना",
+    "Moving from incident.io": "incident.io से आना",
     "Local Development": "स्थानीय विकास",
     "Docker Compose": "Docker Compose",
     "Upgrading": "अपग्रेड करना",
