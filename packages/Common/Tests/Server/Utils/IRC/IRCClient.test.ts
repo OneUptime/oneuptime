@@ -54,7 +54,9 @@ const NICKNAMES: Array<string> = [
 
 let server: FakeIRCServer | undefined;
 
-async function start(options: FakeIRCServerOptions = {}): Promise<FakeIRCServer> {
+async function start(
+  options: FakeIRCServerOptions = {},
+): Promise<FakeIRCServer> {
   server = await startFakeIRCServer(options);
   return server;
 }
@@ -92,11 +94,11 @@ async function sendAndGetError(sendOptions: IRCSendOptions): Promise<Error> {
 function trust(certificate: TestCertificate): void {
   const realConnect: typeof tls.connect = tls.connect;
 
-  jest
-    .spyOn(tls, "connect")
-    .mockImplementation(((connectOptions: tls.ConnectionOptions) => {
-      return realConnect({ ...connectOptions, ca: [certificate.cert] });
-    }) as never);
+  jest.spyOn(tls, "connect").mockImplementation(((
+    connectOptions: tls.ConnectionOptions,
+  ) => {
+    return realConnect({ ...connectOptions, ca: [certificate.cert] });
+  }) as never);
 }
 
 afterEach(async () => {
@@ -568,13 +570,19 @@ describe("IRCClient — SASL", () => {
 
     const pieces: Array<string> = linesSent(fakeServer)
       .filter((line: string) => {
-        return line.startsWith("AUTHENTICATE ") && line !== "AUTHENTICATE PLAIN";
+        return (
+          line.startsWith("AUTHENTICATE ") && line !== "AUTHENTICATE PLAIN"
+        );
       })
       .map((line: string) => {
         return line.substring("AUTHENTICATE ".length);
       });
 
-    expect(pieces.map((piece: string) => piece.length)).toEqual([400, 400, 1]);
+    expect(
+      pieces.map((piece: string) => {
+        return piece.length;
+      }),
+    ).toEqual([400, 400, 1]);
     expect(pieces[2]).toBe("+");
     expect(Buffer.from(pieces.slice(0, 2).join(""), "base64").toString()).toBe(
       `${longSasl.username}\0${longSasl.username}\0${longSasl.password}`,
@@ -616,7 +624,10 @@ describe("IRCClient — joining the channel", () => {
     ["474", "Cannot join channel (+b) - you are banned"],
     ["473", "Cannot join channel (+i) - you must be invited"],
     ["471", "Cannot join channel (+l) - channel is full, try again later"],
-    ["477", "You need to be identified to a registered account to join this channel"],
+    [
+      "477",
+      "You need to be identified to a registered account to join this channel",
+    ],
     ["403", "No such channel"],
     ["405", "You have joined too many channels"],
     ["470", "Forwarding to another channel"],
@@ -682,7 +693,11 @@ describe("IRCClient — the server refuses the message", () => {
     ["401", "alice", "No such nick/channel"],
     ["486", "alice", "You must log in with services to message this user"],
     ["716", "alice", "is in +g mode (server-side ignore.)"],
-    ["531", "alice", "You are not permitted to send private messages to this user"],
+    [
+      "531",
+      "alice",
+      "You are not permitted to send private messages to this user",
+    ],
   ])(
     "reply %s for a message to %s fails with the server's reason",
     async (numeric: string, target: string, reason: string) => {
@@ -705,7 +720,9 @@ describe("IRCClient — the server refuses the message", () => {
 
     const error: Error = await sendAndGetError(options(fakeServer));
 
-    expect(error.message).toBe("Could not send to #ops: Message looks like spam.");
+    expect(error.message).toBe(
+      "Could not send to #ops: Message looks like spam.",
+    );
   });
 
   test("stops sending at the first refusal", async () => {
@@ -1193,7 +1210,9 @@ describe("IRCClient — TLS", () => {
       options(fakeServer, { useTls: true }),
     );
 
-    expect(error.message).toContain("is not trusted: Hostname/IP does not match");
+    expect(error.message).toContain(
+      "is not trusted: Hostname/IP does not match",
+    );
     expect(fakeServer.lines).toEqual([]);
   });
 
@@ -1309,7 +1328,10 @@ describe("IRCClient helpers", () => {
       "reply 404",
     );
     expect(
-      IRCClient.describeReply({ command: "404", params: ["OneUptime", "\u0003"] }),
+      IRCClient.describeReply({
+        command: "404",
+        params: ["OneUptime", "\u0003"],
+      }),
     ).toBe("reply 404");
   });
 });

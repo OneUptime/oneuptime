@@ -184,7 +184,10 @@ describe("Send Message to IRC — the step", () => {
     expect(upFront).toEqual(["server", "channel", "text"]);
 
     for (const argument of metadata.arguments) {
-      expect({ id: argument.id, required: isArgumentRequired(argument, {}) }).toEqual({
+      expect({
+        id: argument.id,
+        required: isArgumentRequired(argument, {}),
+      }).toEqual({
         id: argument.id,
         required: upFront.includes(argument.id),
       });
@@ -221,7 +224,11 @@ describe("Send Message to IRC — the step", () => {
         return argument.id;
       });
 
-    expect(sensitive).toEqual(["channel-key", "server-password", "sasl-password"]);
+    expect(sensitive).toEqual([
+      "channel-key",
+      "server-password",
+      "sasl-password",
+    ]);
   });
 
   test("says where it goes next, and why on Error", () => {
@@ -364,17 +371,20 @@ describe("Send Message to IRC — reading the settings", () => {
       "   ",
       "IRC Server not found. Enter the host name of the IRC server, such as irc.libera.chat.",
     ],
-  ])("IRC Server with %s is refused", (_label: string, value: string, message: string) => {
-    expect(settingsError({ server: value })).toBe(message);
-  });
+  ])(
+    "IRC Server with %s is refused",
+    (_label: string, value: string, message: string) => {
+      expect(settingsError({ server: value })).toBe(message);
+    },
+  );
 
   test("an IRC Server too long to be a host name is refused", () => {
     expect(settingsError({ server: `${"a".repeat(300)}.com` })).toBe(
       "IRC Server is too long to be a host name.",
     );
-    expect(
-      settingsError({ server: `${"a.".repeat(126)}com` }),
-    ).toMatch(/is not a valid host name\.$/);
+    expect(settingsError({ server: `${"a.".repeat(126)}com` })).toMatch(
+      /is not a valid host name\.$/,
+    );
     expect(settingsError({ server: `${"a".repeat(64)}.com` })).toMatch(
       /is not a valid host name\.$/,
     );
@@ -392,7 +402,9 @@ describe("Send Message to IRC — reading the settings", () => {
     expect(settingsFor({ nickname: "  deploy-bot " }).nickname).toBe(
       "deploy-bot",
     );
-    expect(settingsFor({ nickname: "   " }).nickname).toBe(IRC_DEFAULT_NICKNAME);
+    expect(settingsFor({ nickname: "   " }).nickname).toBe(
+      IRC_DEFAULT_NICKNAME,
+    );
     expect(settingsError({ nickname: "deploy bot" })).toMatch(
       /^"deploy bot" is not a valid IRC nickname\./,
     );
@@ -434,9 +446,9 @@ describe("Send Message to IRC — reading the settings", () => {
     expect(settingsFor({ "channel-key": " hunter2\n" }).channelKey).toBe(
       "hunter2",
     );
-    expect(settingsFor({ channel: "alice", "channel-key": "hunter2" }).channelKey).toBe(
-      undefined,
-    );
+    expect(
+      settingsFor({ channel: "alice", "channel-key": "hunter2" }).channelKey,
+    ).toBe(undefined);
 
     const message: string = settingsError({ "channel-key": "hunter 2" });
 
@@ -487,9 +499,9 @@ describe("Send Message to IRC — reading the settings", () => {
   });
 
   test("Message Text from a reference that holds an object or a number is sent as text", () => {
-    expect(settingsFor({ text: { status: "down", count: 2 } }).text.lines).toEqual([
-      '{"status":"down","count":2}',
-    ]);
+    expect(
+      settingsFor({ text: { status: "down", count: 2 } }).text.lines,
+    ).toEqual(['{"status":"down","count":2}']);
     expect(settingsFor({ text: 42 }).text.lines).toEqual(["42"]);
   });
 
@@ -529,9 +541,9 @@ describe("Send Message to IRC — how long it may take", () => {
     expect(SendMessageToChannel.getTimeoutInMs(makeRun().options)).toBe(
       IRC_MAX_STEP_TIME_IN_MS,
     );
-    expect(SendMessageToChannel.getTimeoutInMs(makeRun(10 * 60_000).options)).toBe(
-      IRC_MAX_STEP_TIME_IN_MS,
-    );
+    expect(
+      SendMessageToChannel.getTimeoutInMs(makeRun(10 * 60_000).options),
+    ).toBe(IRC_MAX_STEP_TIME_IN_MS);
   });
 
   test("inside what is left of the workflow's time, with a margin", () => {
@@ -686,7 +698,9 @@ describe("Send Message to IRC — what the run does with it", () => {
       makeRun().options,
     );
 
-    expect(sentOptions().addresses).toEqual([{ address: "10.0.0.5", family: 4 }]);
+    expect(sentOptions().addresses).toEqual([
+      { address: "10.0.0.5", family: 4 },
+    ]);
 
     setEnvironment("DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES", "true");
     sendSpy.mockClear();
@@ -702,7 +716,9 @@ describe("Send Message to IRC — what the run does with it", () => {
 
   test("what the IRC server refused takes Error, in the client's words", async () => {
     sendSpy.mockRejectedValue(
-      new IRCError("Could not join #ops: Cannot join channel (+b) - you are banned."),
+      new IRCError(
+        "Could not join #ops: Cannot join channel (+b) - you are banned.",
+      ),
     );
     const run: LoggedRun = makeRun();
 
@@ -713,7 +729,8 @@ describe("Send Message to IRC — what the run does with it", () => {
 
     expect(result).toEqual({
       returnValues: {
-        error: "Could not join #ops: Cannot join channel (+b) - you are banned.",
+        error:
+          "Could not join #ops: Cannot join channel (+b) - you are banned.",
       },
       executePort: expect.objectContaining({ id: "error" }),
     });
@@ -838,7 +855,9 @@ describe("Send Message to IRC — whole runs against an IRC server", () => {
     }
   });
 
-  async function start(options: FakeIRCServerOptions = {}): Promise<FakeIRCServer> {
+  async function start(
+    options: FakeIRCServerOptions = {},
+  ): Promise<FakeIRCServer> {
     server = await startFakeIRCServer(options);
     return server;
   }
@@ -846,11 +865,11 @@ describe("Send Message to IRC — whole runs against an IRC server", () => {
   function trustCertificate(): void {
     const realConnect: typeof tls.connect = tls.connect;
 
-    jest
-      .spyOn(tls, "connect")
-      .mockImplementation(((connectOptions: tls.ConnectionOptions) => {
-        return realConnect({ ...connectOptions, ca: [certificate.cert] });
-      }) as never);
+    jest.spyOn(tls, "connect").mockImplementation(((
+      connectOptions: tls.ConnectionOptions,
+    ) => {
+      return realConnect({ ...connectOptions, ca: [certificate.cert] });
+    }) as never);
   }
 
   test("posts a message over TLS, every line of it, and takes Success", async () => {
@@ -931,7 +950,11 @@ describe("Send Message to IRC — whole runs against an IRC server", () => {
     expect(run.logged).toContain('Signed in with SASL as "deploy".');
 
     for (const line of run.logged) {
-      for (const secret of ["bouncer-pass", "correct horse battery", "hunter2"]) {
+      for (const secret of [
+        "bouncer-pass",
+        "correct horse battery",
+        "hunter2",
+      ]) {
         expect(line).not.toContain(secret);
       }
     }
@@ -939,7 +962,8 @@ describe("Send Message to IRC — whole runs against an IRC server", () => {
 
   test("a refusal from the server takes Error with the server's reason", async () => {
     const fakeServer: FakeIRCServer = await start({
-      joinReply: ":irc.fake.test 474 {nick} #ops :Cannot join channel (+b) - you are banned",
+      joinReply:
+        ":irc.fake.test 474 {nick} #ops :Cannot join channel (+b) - you are banned",
     });
     const run: LoggedRun = makeRun();
 
@@ -1019,7 +1043,9 @@ describe("Send Message to IRC — whole runs against an IRC server", () => {
     );
 
     expect(result.executePort?.id).toBe("success");
-    expect(linesSent(fakeServer)).toContain("PRIVMSG alice :Your deploy finished");
+    expect(linesSent(fakeServer)).toContain(
+      "PRIVMSG alice :Your deploy finished",
+    );
     expect(
       linesSent(fakeServer).some((line: string) => {
         return line.startsWith("JOIN");

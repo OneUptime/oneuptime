@@ -50,7 +50,11 @@ describe("IRCMessageUtil.parse — what a server sends", () => {
       {
         source: "s",
         command: "474",
-        params: ["nick", "#ops", "Cannot join channel (+b) - see: https://example.com"],
+        params: [
+          "nick",
+          "#ops",
+          "Cannot join channel (+b) - see: https://example.com",
+        ],
       },
     ],
     [
@@ -81,7 +85,11 @@ describe("IRCMessageUtil.parse — what a server sends", () => {
     [
       "a list of capabilities over several lines",
       ":s CAP * LS * :multi-prefix sasl=PLAIN",
-      { source: "s", command: "CAP", params: ["*", "LS", "*", "multi-prefix sasl=PLAIN"] },
+      {
+        source: "s",
+        command: "CAP",
+        params: ["*", "LS", "*", "multi-prefix sasl=PLAIN"],
+      },
     ],
   ])("reads %s", (_label: string, line: string, expected: IRCMessage) => {
     expect(IRCMessageUtil.parse(line)).toEqual(expected);
@@ -121,9 +129,9 @@ describe("IRCMessageUtil.build — what the client sends", () => {
         trailing: "Deploy finished: all green",
       }),
     ).toBe("PRIVMSG #ops :Deploy finished: all green");
-    expect(IRCMessageUtil.build({ command: "CAP", middle: ["LS", "302"] })).toBe(
-      "CAP LS 302",
-    );
+    expect(
+      IRCMessageUtil.build({ command: "CAP", middle: ["LS", "302"] }),
+    ).toBe("CAP LS 302");
     expect(IRCMessageUtil.build({ command: "QUIT" })).toBe("QUIT");
   });
 
@@ -154,7 +162,9 @@ describe("IRCMessageUtil.build — what the client sends", () => {
           middle: ["#ops"],
           trailing: trailing,
         });
-      }).toThrow("The last parameter of PRIVMSG would break the IRC line it is in.");
+      }).toThrow(
+        "The last parameter of PRIVMSG would break the IRC line it is in.",
+      );
     },
   );
 

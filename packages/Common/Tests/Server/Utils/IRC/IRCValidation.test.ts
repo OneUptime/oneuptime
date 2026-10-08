@@ -151,7 +151,10 @@ describe("IRCValidation.getChannelKeyProblem", () => {
 describe("IRCValidation.getCredentialProblem", () => {
   test("takes spaces and symbols, which a password may have", () => {
     expect(
-      IRCValidation.getCredentialProblem("correct horse: battery!", "SASL Password"),
+      IRCValidation.getCredentialProblem(
+        "correct horse: battery!",
+        "SASL Password",
+      ),
     ).toBeNull();
   });
 

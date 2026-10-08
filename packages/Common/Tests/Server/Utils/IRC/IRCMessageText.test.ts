@@ -52,7 +52,9 @@ describe("IRCMessageText.prepare — lines", () => {
   });
 
   test("keeps spaces inside a line as typed", () => {
-    expect(prepare("  indented   text  ").lines).toEqual(["  indented   text  "]);
+    expect(prepare("  indented   text  ").lines).toEqual([
+      "  indented   text  ",
+    ]);
   });
 
   test("never lets a CR, LF or NUL into a line", () => {
@@ -95,9 +97,12 @@ describe("IRCMessageText.sanitizeLine — characters", () => {
 
 describe("IRCMessageText.prepare — long lines", () => {
   test("cuts a long line between words, each piece within the limit", () => {
-    const words: string = Array.from({ length: 120 }, (_: unknown, index: number) => {
-      return `word${index}`;
-    }).join(" ");
+    const words: string = Array.from(
+      { length: 120 },
+      (_: unknown, index: number) => {
+        return `word${index}`;
+      },
+    ).join(" ");
 
     const lines: Array<string> = prepare(words).lines;
 
@@ -153,7 +158,17 @@ describe("IRCMessageText.prepare — long lines", () => {
   });
 
   test("whatever the text, no line is over the limit or has a line break", () => {
-    const alphabet: Array<string> = ["a", " ", "é", "部", "🚀", "\n", "\r", "\t", "\u0002"];
+    const alphabet: Array<string> = [
+      "a",
+      " ",
+      "é",
+      "部",
+      "🚀",
+      "\n",
+      "\r",
+      "\t",
+      "\u0002",
+    ];
     let seed: number = 42;
 
     const random: () => number = (): number => {
@@ -184,9 +199,12 @@ describe("IRCMessageText.prepare — long lines", () => {
 
 describe("IRCMessageText.prepare — too many lines", () => {
   test("a message of exactly the limit is sent whole", () => {
-    const text: string = Array.from({ length: 15 }, (_: unknown, index: number) => {
-      return `line ${index + 1}`;
-    }).join("\n");
+    const text: string = Array.from(
+      { length: 15 },
+      (_: unknown, index: number) => {
+        return `line ${index + 1}`;
+      },
+    ).join("\n");
 
     expect(prepare(text)).toEqual({
       lines: text.split("\n"),
@@ -195,9 +213,12 @@ describe("IRCMessageText.prepare — too many lines", () => {
   });
 
   test("a longer one keeps the first lines and says it was cut", () => {
-    const text: string = Array.from({ length: 40 }, (_: unknown, index: number) => {
-      return `line ${index + 1}`;
-    }).join("\n");
+    const text: string = Array.from(
+      { length: 40 },
+      (_: unknown, index: number) => {
+        return `line ${index + 1}`;
+      },
+    ).join("\n");
 
     const prepared: PreparedIRCText = prepare(text);
 
@@ -299,10 +320,18 @@ describe("IRCMessageText.getMaxTextBytes", () => {
 
   test("refuses limits nothing could be sent within", () => {
     expect(() => {
-      return IRCMessageText.prepare({ text: "x", maxBytesPerLine: 8, maxLines: 1 });
+      return IRCMessageText.prepare({
+        text: "x",
+        maxBytesPerLine: 8,
+        maxLines: 1,
+      });
     }).toThrow();
     expect(() => {
-      return IRCMessageText.prepare({ text: "x", maxBytesPerLine: 400, maxLines: 0 });
+      return IRCMessageText.prepare({
+        text: "x",
+        maxBytesPerLine: 400,
+        maxLines: 0,
+      });
     }).toThrow();
   });
 });

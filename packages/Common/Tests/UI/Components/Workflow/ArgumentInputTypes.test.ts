@@ -169,6 +169,11 @@ const MULTI_LINE_TEXT_ARGUMENTS: Array<[string, ComponentID, string]> = [
     "text",
   ],
   [
+    "Send Message to IRC → Message Text",
+    ComponentID.IRCSendMessageToChannel,
+    "text",
+  ],
+  [
     "Generate Text with AI → System Instructions",
     ComponentID.AIGenerateText,
     "system-prompt",
@@ -297,6 +302,54 @@ const SINGLE_LINE_ARGUMENTS: Array<
     ComponentID.SlackSendMessageToChannel,
     "webhook-url",
     FormFieldSchemaType.URL,
+  ],
+  [
+    "Send Message to IRC → IRC Server",
+    ComponentID.IRCSendMessageToChannel,
+    "server",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Send Message to IRC → Channel",
+    ComponentID.IRCSendMessageToChannel,
+    "channel",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Send Message to IRC → Nickname",
+    ComponentID.IRCSendMessageToChannel,
+    "nickname",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Send Message to IRC → Port",
+    ComponentID.IRCSendMessageToChannel,
+    "port",
+    FormFieldSchemaType.Number,
+  ],
+  [
+    "Send Message to IRC → Disable TLS",
+    ComponentID.IRCSendMessageToChannel,
+    "disable-tls",
+    FormFieldSchemaType.Toggle,
+  ],
+  [
+    "Send Message to IRC → Channel Key",
+    ComponentID.IRCSendMessageToChannel,
+    "channel-key",
+    FormFieldSchemaType.Password,
+  ],
+  [
+    "Send Message to IRC → Server Password",
+    ComponentID.IRCSendMessageToChannel,
+    "server-password",
+    FormFieldSchemaType.Password,
+  ],
+  [
+    "Send Message to IRC → SASL Password",
+    ComponentID.IRCSendMessageToChannel,
+    "sasl-password",
+    FormFieldSchemaType.Password,
   ],
   ["API Get → URL", ComponentID.ApiGet, "url", FormFieldSchemaType.URL],
   [
@@ -545,6 +598,7 @@ describe("Rules that hold for every workflow argument", () => {
       ComponentID.MicrosoftTeamsSendMessageToChannel,
       ComponentID.DiscordSendMessageToChannel,
       ComponentID.TelegramSendMessageToChat,
+      ComponentID.IRCSendMessageToChannel,
     ]) {
       expect(findArgument(componentId, "text").type).toBe(
         ComponentInputType.LongText,

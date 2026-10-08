@@ -32,7 +32,7 @@ export interface FakeIRCConnection {
   // The nickname the client registered or is registering as.
   nickname: string;
   // What TLS was asked for by name (SNI), on a TLS connection.
-  servername: string | false | undefined;
+  servername: string | false | null | undefined;
 }
 
 export interface FakeIRCSaslAccount {
@@ -85,7 +85,7 @@ export interface FakeIRCServer {
   // Every line the client sent, without its CRLF.
   lines: Array<FakeIRCLine>;
   // The SNI of each TLS connection.
-  servernames: Array<string | false | undefined>;
+  servernames: Array<string | false | null | undefined>;
   connectionCount: () => number;
   close: () => Promise<void>;
 }
@@ -115,7 +115,7 @@ export const startFakeIRCServer: (
   options: FakeIRCServerOptions = {},
 ): Promise<FakeIRCServer> => {
   const lines: Array<FakeIRCLine> = [];
-  const servernames: Array<string | false | undefined> = [];
+  const servernames: Array<string | false | null | undefined> = [];
   const sockets: Set<net.Socket> = new Set<net.Socket>();
   let connectionCount: number = 0;
 
@@ -127,7 +127,7 @@ export const startFakeIRCServer: (
     });
     socket.on("error", () => {});
 
-    const servername: string | false | undefined =
+    const servername: string | false | null | undefined =
       socket instanceof tls.TLSSocket ? socket.servername : undefined;
 
     if (socket instanceof tls.TLSSocket) {
@@ -186,7 +186,10 @@ export const startFakeIRCServer: (
         return;
       }
 
-      if (options.password !== undefined && passwordGiven !== options.password) {
+      if (
+        options.password !== undefined &&
+        passwordGiven !== options.password
+      ) {
         send(`:${SERVER_NAME} 464 ${target()} :Password incorrect`);
         send("ERROR :Closing Link: (Bad Password)");
         socket.end();
@@ -194,10 +197,16 @@ export const startFakeIRCServer: (
       }
 
       isRegistered = true;
-      send(`:${SERVER_NAME} 001 ${nickname} :Welcome to the Fake IRC Network ${nickname}`);
+      send(
+        `:${SERVER_NAME} 001 ${nickname} :Welcome to the Fake IRC Network ${nickname}`,
+      );
       send(`:${SERVER_NAME} 002 ${nickname} :Your host is ${SERVER_NAME}`);
-      send(`:${SERVER_NAME} 005 ${nickname} CHANTYPES=# NICKLEN=30 :are supported by this server`);
-      send(`:${SERVER_NAME} 375 ${nickname} :- ${SERVER_NAME} Message of the day -`);
+      send(
+        `:${SERVER_NAME} 005 ${nickname} CHANTYPES=# NICKLEN=30 :are supported by this server`,
+      );
+      send(
+        `:${SERVER_NAME} 375 ${nickname} :- ${SERVER_NAME} Message of the day -`,
+      );
       send(`:${SERVER_NAME} 372 ${nickname} :- Be nice.`);
       send(`:${SERVER_NAME} 376 ${nickname} :End of /MOTD command.`);
     };
@@ -236,7 +245,9 @@ export const startFakeIRCServer: (
               send(`:${SERVER_NAME} CAP * LS * :account-notify extended-join`);
               send(`:${SERVER_NAME} CAP * LS :server-time ${sasl}`.trimEnd());
             } else {
-              send(`:${SERVER_NAME} CAP * LS :multi-prefix ${sasl} server-time`);
+              send(
+                `:${SERVER_NAME} CAP * LS :multi-prefix ${sasl} server-time`,
+              );
             }
           } else if (subcommand === "REQ") {
             const requested: string = message.params[1] || "";
@@ -283,7 +294,9 @@ export const startFakeIRCServer: (
             send(
               `:${SERVER_NAME} 900 ${target()} ${target()}!u@h ${options.sasl.username} :You are now logged in as ${options.sasl.username}`,
             );
-            send(`:${SERVER_NAME} 903 ${target()} :SASL authentication successful`);
+            send(
+              `:${SERVER_NAME} 903 ${target()} :SASL authentication successful`,
+            );
           } else {
             send(`:${SERVER_NAME} 904 ${target()} :SASL authentication failed`);
           }
@@ -300,7 +313,9 @@ export const startFakeIRCServer: (
           const wanted: string = message.params[0] || "";
 
           if ((options.erroneousNicknames || []).includes(wanted)) {
-            send(`:${SERVER_NAME} 432 ${target()} ${wanted} :Erroneous Nickname`);
+            send(
+              `:${SERVER_NAME} 432 ${target()} ${wanted} :Erroneous Nickname`,
+            );
             return;
           }
 
@@ -363,9 +378,15 @@ export const startFakeIRCServer: (
           send(
             `:${options.joinEchoNickname || nickname}!~oneuptime@client.fake.test JOIN ${channel}`,
           );
-          send(`:${SERVER_NAME} 332 ${nickname} ${channel} :Where the work happens`);
-          send(`:${SERVER_NAME} 353 ${nickname} = ${channel} :${nickname} @alice bob`);
-          send(`:${SERVER_NAME} 366 ${nickname} ${channel} :End of /NAMES list.`);
+          send(
+            `:${SERVER_NAME} 332 ${nickname} ${channel} :Where the work happens`,
+          );
+          send(
+            `:${SERVER_NAME} 353 ${nickname} = ${channel} :${nickname} @alice bob`,
+          );
+          send(
+            `:${SERVER_NAME} 366 ${nickname} ${channel} :End of /NAMES list.`,
+          );
           return;
         }
 
@@ -379,7 +400,9 @@ export const startFakeIRCServer: (
         }
 
         case "QUIT": {
-          send(`ERROR :Closing Link: client.fake.test (Quit: ${message.params[0] || ""})`);
+          send(
+            `ERROR :Closing Link: client.fake.test (Quit: ${message.params[0] || ""})`,
+          );
           socket.end();
           return;
         }
@@ -405,7 +428,10 @@ export const startFakeIRCServer: (
   };
 
   const server: net.Server = options.tls
-    ? tls.createServer({ key: options.tls.key, cert: options.tls.cert }, onSocket)
+    ? tls.createServer(
+        { key: options.tls.key, cert: options.tls.cert },
+        onSocket,
+      )
     : net.createServer(onSocket);
 
   // A client that does not speak TLS to a TLS server is not a test failure.
@@ -443,6 +469,9 @@ export const linesSent: (server: FakeIRCServer) => Array<string> = (
   server: FakeIRCServer,
 ): Array<string> => {
   return server.lines.map((entry: FakeIRCLine) => {
-    return entry.line.replace(/^PING :oneuptime-[0-9a-f]{16}$/, "PING :<token>");
+    return entry.line.replace(
+      /^PING :oneuptime-[0-9a-f]{16}$/,
+      "PING :<token>",
+    );
   });
 };

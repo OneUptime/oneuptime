@@ -64,7 +64,7 @@ const objectIdentifier: (dotted: string) => Buffer = (
     let rest: number = Math.floor(part / 128);
 
     while (rest > 0) {
-      base128.unshift((rest % 128) | 0x80);
+      base128.unshift(rest % 128 | 0x80);
       rest = Math.floor(rest / 128);
     }
 
@@ -108,10 +108,10 @@ export const createTestCertificate: (data: {
   dnsNames?: Array<string> | undefined;
   ipAddresses?: Array<string> | undefined;
 }): TestCertificate => {
-  const keys: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync(
-    "ec",
-    { namedCurve: "prime256v1" },
-  );
+  const keys: { publicKey: crypto.KeyObject; privateKey: crypto.KeyObject } =
+    crypto.generateKeyPairSync("ec", {
+    namedCurve: "prime256v1",
+  });
 
   const name: Buffer = sequence(
     set(
