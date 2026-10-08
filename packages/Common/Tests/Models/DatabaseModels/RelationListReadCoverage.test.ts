@@ -1,6 +1,7 @@
 import RelationListPermission, {
   CheckedRelationList,
 } from "../../../Server/Types/Database/Permissions/RelationListPermission";
+import RelationNames from "../../../Server/Utils/Database/RelationNames";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
@@ -255,5 +256,366 @@ describe("the shared paths ask it", () => {
 
     expect(helper).toContain("heldIdsByColumn");
     expect(helper).toContain("await this.checkNamedLists({");
+  });
+});
+
+/*
+ * THE ONE RECORD A WRITE NAMES IN A FIELD OF ITS OWN IS HELD TO THE
+ * CALLER'S READ TOO, OR IS A RECORD EVERY MEMBER READS.
+ *
+ * An alert's monitor, a status page resource's monitor, a cost budget's
+ * service, a run's incident: a create or an update that names one record in
+ * a field of its own, under either of the reference's names, names only a
+ * record its caller may read (RelationListPermission.getCheckedReferences,
+ * asked in the same shared path as the lists). This sweeps every single
+ * reference a create or an update may write, on every model - but the
+ * project, which the tenant check holds, and the parent a model is read
+ * through, which the parent rule holds:
+ *
+ *   - a reference to a record read one by one is held to the read;
+ *   - every other reference names records read as a whole table. Those
+ *     models are pinned below with the reason the project reference check
+ *     (or the check named) is their answer; a new one fails this test until
+ *     it is weighed and added, and one that comes to be read one by one is
+ *     checked from then on and fails this test until it is removed.
+ *
+ * References to records read one by one that the rule leaves out on purpose
+ * may only shrink - and there are none.
+ */
+
+const PROJECT_SETTING: string =
+  "A project setting read as a whole table: no label, owner or parent narrows a read of it, so a read reaches every one of the project's records or none of them, and the reference check holds the record named to the project.";
+
+const NOTIFICATION_METHOD: string =
+  "A person's own notification method: a notification rule names only methods of the person it belongs to (UserNotificationRuleService's method-ownership check), whatever a read of the table reaches.";
+
+const RESELLER: string =
+  "OneUptime's own resellers and their plans, not a project's records: a project names them as it is created (ProjectService, from a reseller's promo code).";
+
+// The models a single reference may name without the caller's read of them, and why.
+const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
+  User: "People are held to membership of the project (ProjectScopedReferenceValidator), not to a read of the user table.",
+  Team: "Every member reads the project's teams; the reference check refuses another project's team.",
+  File: "A record points only at its own project's files (FileOwnership), checked on every create and update.",
+  AlertSeverity: PROJECT_SETTING,
+  IncidentSeverity: PROJECT_SETTING,
+  AlertState: PROJECT_SETTING,
+  IncidentState: PROJECT_SETTING,
+  ScheduledMaintenanceState: PROJECT_SETTING,
+  MonitorStatus: PROJECT_SETTING,
+  IncidentRole: PROJECT_SETTING,
+  AlertGroupingRule: PROJECT_SETTING,
+  IncidentGroupingRule: PROJECT_SETTING,
+  IncidentSlaRule: PROJECT_SETTING,
+  LogPipeline: PROJECT_SETTING,
+  TracePipeline: PROJECT_SETTING,
+  NetworkDeviceOidTemplate: PROJECT_SETTING,
+  NetworkDeviceRole: PROJECT_SETTING,
+  NetworkSiteType: PROJECT_SETTING,
+  NetworkSnmpCredentialProfile: PROJECT_SETTING,
+  ProjectCallSMSConfig: PROJECT_SETTING,
+  ProjectSMTPConfig: PROJECT_SETTING,
+  StatusPageSubscriberNotificationTemplate: PROJECT_SETTING,
+  VideoCallConnection: PROJECT_SETTING,
+  Domain: PROJECT_SETTING,
+  ApiKey: PROJECT_SETTING,
+  RunbookCredential: PROJECT_SETTING,
+  UserCall: NOTIFICATION_METHOD,
+  UserEmail: NOTIFICATION_METHOD,
+  UserMicrosoftTeams: NOTIFICATION_METHOD,
+  UserPush: NOTIFICATION_METHOD,
+  UserSMS: NOTIFICATION_METHOD,
+  UserSlack: NOTIFICATION_METHOD,
+  UserTelegram: NOTIFICATION_METHOD,
+  UserWebhook: NOTIFICATION_METHOD,
+  UserWhatsApp: NOTIFICATION_METHOD,
+  Reseller: RESELLER,
+  "Reseller Plan": RESELLER,
+};
+
+// References to records read one by one the rule leaves out. May only shrink - and is empty.
+const REFERENCES_LEFT_OUT: Array<string> = [];
+
+interface WritableReference {
+  name: string;
+  modelType: ModelType;
+  relation: string;
+  idColumn: string;
+  referencedModelType: ModelType;
+}
+
+function getWritableReferences(): Array<WritableReference> {
+  const references: Array<WritableReference> = [];
+
+  for (const modelType of AllModelTypes as Array<ModelType>) {
+    const model: BaseModel = new modelType();
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    const isWritable: (column: string) => boolean = (
+      column: string,
+    ): boolean => {
+      return (
+        (accessControl[column]?.create || []).length > 0 ||
+        (accessControl[column]?.update || []).length > 0
+      );
+    };
+
+    for (const reference of RelationNames.getSingleRelations(model)) {
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(reference.relation);
+
+      if (
+        !metadata?.modelType ||
+        reference.relation === model.canAccessIfCanReadOn ||
+        !(isWritable(reference.relation) || isWritable(reference.idColumn))
+      ) {
+        continue;
+      }
+
+      references.push({
+        name: `${model.tableName}.${reference.relation}`,
+        modelType: modelType,
+        relation: reference.relation,
+        idColumn: reference.idColumn,
+        referencedModelType: metadata.modelType as ModelType,
+      });
+    }
+  }
+
+  return references;
+}
+
+const WRITABLE_REFERENCES: Array<WritableReference> = getWritableReferences();
+
+const isReferenceChecked: (reference: WritableReference) => boolean = (
+  reference: WritableReference,
+): boolean => {
+  return RelationListPermission.getCheckedReferences(reference.modelType).some(
+    (checked: CheckedRelationList): boolean => {
+      return (
+        checked.column === reference.relation &&
+        checked.idColumn === reference.idColumn
+      );
+    },
+  );
+};
+
+const modelNamed: (table: string) => ModelType = (table: string): ModelType => {
+  const found: ModelType | undefined = (AllModelTypes as Array<ModelType>).find(
+    (modelType: ModelType): boolean => {
+      return new modelType().tableName === table;
+    },
+  );
+
+  expect(found).toBeDefined();
+
+  return found!;
+};
+
+describe("every single reference a write may name a record in", () => {
+  test("the sweep covers the references a write may name a record in", () => {
+    expect(WRITABLE_REFERENCES.length).toBeGreaterThan(300);
+  });
+
+  test("a reference to records read one by one is held to the caller's read", () => {
+    const unchecked: Array<string> = WRITABLE_REFERENCES.filter(
+      (reference: WritableReference): boolean => {
+        return (
+          RelationListPermission.isReadPerRecord(
+            reference.referencedModelType,
+          ) && !isReferenceChecked(reference)
+        );
+      },
+    ).map((reference: WritableReference): string => {
+      return reference.name;
+    });
+
+    expect(unchecked.sort()).toEqual([...REFERENCES_LEFT_OUT].sort());
+  });
+
+  test("every other reference names records read as a whole table, for the reason given", () => {
+    const tables: Set<string> = new Set<string>();
+
+    for (const reference of WRITABLE_REFERENCES) {
+      if (isReferenceChecked(reference)) {
+        continue;
+      }
+
+      tables.add(new reference.referencedModelType().tableName || "");
+    }
+
+    expect(Array.from(tables).sort()).toEqual(
+      Object.keys(REFERENCED_AS_A_WHOLE_TABLE).sort(),
+    );
+  });
+
+  test("a model read as a whole table is not one read one by one", () => {
+    for (const table of Object.keys(REFERENCED_AS_A_WHOLE_TABLE)) {
+      expect([
+        table,
+        RelationListPermission.isReadPerRecord(modelNamed(table)),
+      ]).toEqual([table, false]);
+    }
+  });
+
+  test("every reason is given", () => {
+    for (const table of Object.keys(REFERENCED_AS_A_WHOLE_TABLE)) {
+      expect(REFERENCED_AS_A_WHOLE_TABLE[table]!.length).toBeGreaterThan(40);
+    }
+  });
+
+  test.each([
+    ["Alert", "monitor"],
+    ["StatusPageResource", "monitor"],
+    ["StatusPageResource", "monitorGroup"],
+    ["MonitorGroupResource", "monitor"],
+    ["NetworkDevice", "monitor"],
+    ["NetworkSiteLink", "monitor"],
+    ["NetworkDeviceLink", "monitor"],
+    ["RunbookExecution", "runbook"],
+    ["RunbookExecution", "incident"],
+    ["RunbookExecution", "alert"],
+    ["RunbookExecution", "scheduledMaintenance"],
+    ["RumSessionPin", "incident"],
+    ["RumSessionPin", "alert"],
+    ["LlmCostBudget", "service"],
+    ["ProxmoxCluster", "cephCluster"],
+    ["IncomingCallPolicyEscalationRule", "incomingCallPolicy"],
+    ["MonitorProbe", "probe"],
+  ])(
+    "%s.%s is held to the read of the record it names, under both of its names",
+    (table: string, relation: string) => {
+      const reference: WritableReference | undefined = WRITABLE_REFERENCES.find(
+        (each: WritableReference): boolean => {
+          return each.name === `${table}.${relation}`;
+        },
+      );
+
+      expect(reference).toBeDefined();
+      expect(reference!.idColumn).toBe(`${relation}Id`);
+      expect(isReferenceChecked(reference!)).toBe(true);
+    },
+  );
+
+  test.each([
+    ["MonitorOwnerUser", "monitor"],
+    ["MonitorOwnerTeam", "monitor"],
+    ["IncidentOwnerUser", "incident"],
+    ["IncidentOwnerTeam", "incident"],
+    ["AlertOwnerUser", "alert"],
+    ["AlertOwnerTeam", "alert"],
+    ["ScheduledMaintenanceOwnerUser", "scheduledMaintenance"],
+    ["ScheduledMaintenanceOwnerTeam", "scheduledMaintenance"],
+    ["IncidentTemplateOwnerUser", "incidentTemplate"],
+    ["IncidentTemplateOwnerTeam", "incidentTemplate"],
+    ["ScheduledMaintenanceTemplateOwnerUser", "scheduledMaintenanceTemplate"],
+    ["ScheduledMaintenanceTemplateOwnerTeam", "scheduledMaintenanceTemplate"],
+  ])(
+    "the owners in %s are read through the %s they own, as the parent rule holds them",
+    (table: string, parent: string) => {
+      const modelType: ModelType = modelNamed(table);
+
+      expect(new modelType().canAccessIfCanReadOn).toBe(parent);
+      expect(
+        WRITABLE_REFERENCES.some((reference: WritableReference): boolean => {
+          return reference.name === `${table}.${parent}`;
+        }),
+      ).toBe(false);
+    },
+  );
+});
+
+/*
+ * DatabaseService asks again once a create's or an update's hooks have run,
+ * on the records a hook named besides what the caller sent (a template's
+ * monitors and status pages), before anything is written; and an incident
+ * declared from a template asks before it takes its number.
+ */
+describe("the records a hook names are asked about too", () => {
+  const read: (relative: string) => string = (relative: string): string => {
+    return fs.readFileSync(path.resolve(__dirname, relative), "utf8");
+  };
+
+  const databaseService: string = read(
+    "../../../Server/Services/DatabaseService.ts",
+  );
+
+  const bodyOf: (source: string, signature: string) => string = (
+    source: string,
+    signature: string,
+  ): string => {
+    const start: number = source.indexOf(signature);
+    expect(start).toBeGreaterThan(-1);
+    return source.slice(start, start + 20000);
+  };
+
+  test("a create asks after its hooks about what they named besides, before its scope and its save", () => {
+    const create: string = bodyOf(
+      databaseService,
+      "public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {",
+    );
+
+    const hooks: number = create.indexOf(
+      "await this._onBeforeCreate(createBy)",
+    );
+    const after: number = create.indexOf(
+      "askedIds: DatabaseService.namedIdsAskedOn.get(createBy) || {},",
+    );
+    const scope: number = create.indexOf("await this.checkCreateScope({");
+    const save: number = create.indexOf(
+      "await this.getRepository().save(createBy.data)",
+    );
+
+    expect(hooks).toBeGreaterThan(-1);
+    expect(after).toBeGreaterThan(hooks);
+    expect(scope).toBeGreaterThan(after);
+    expect(save).toBeGreaterThan(scope);
+  });
+
+  test("an update asks after its hooks, before it writes", () => {
+    const update: string = bodyOf(
+      databaseService,
+      "private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {",
+    );
+
+    const hooks: number = update.indexOf("await this.onBeforeUpdate(updateBy)");
+    const after: number = update.indexOf(
+      "await this.checkUpdateNamedRecordsAfterHooks(",
+    );
+
+    expect(hooks).toBeGreaterThan(-1);
+    expect(after).toBeGreaterThan(hooks);
+  });
+
+  test("an incident declared from a template asks before it takes its number", () => {
+    const incidentService: string = read(
+      "../../../Server/Services/IncidentService.ts",
+    );
+
+    const start: number = incidentService.indexOf(
+      "protected override async onBeforeCreate(",
+    );
+    expect(start).toBeGreaterThan(-1);
+
+    // The whole hook, up to the next method of the service.
+    const end: number = incidentService.indexOf(
+      "\n  protected override async ",
+      start + 1,
+    );
+    const hook: string = incidentService.slice(
+      start,
+      end > start ? end : undefined,
+    );
+
+    const asks: number = hook.indexOf(
+      "await this.checkRecordsNamedSoFar(createBy);",
+    );
+    const number: number = hook.indexOf(
+      "ProjectService.incrementAndGetIncidentCounter(",
+    );
+
+    expect(asks).toBeGreaterThan(-1);
+    expect(number).toBeGreaterThan(asks);
   });
 });

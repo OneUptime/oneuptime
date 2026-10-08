@@ -1,6 +1,8 @@
 import RunbookAPI from "../../../FeatureSet/Runbook/API/Runbook";
 import RunRunbook from "../../../FeatureSet/Runbook/Services/RunRunbook";
 import CommonAPI from "Common/Server/API/CommonAPI";
+import DatabaseService from "Common/Server/Services/DatabaseService";
+import IncidentService from "Common/Server/Services/IncidentService";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
@@ -8,6 +10,9 @@ import {
   RUNBOOK_ADVANCE_PERMISSIONS,
   RUNBOOK_EXECUTE_PERMISSIONS,
 } from "Common/Server/Utils/Runbook/RunbookExecutePermission";
+import { UnreadableReferenceException } from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
@@ -1342,6 +1347,135 @@ describe("Runbook execution routes require an authorized member of the runbook's
 
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
       expectNothingExecutedOrMutated();
+    });
+  });
+
+  /*
+   * The run is written as OneUptime once its caller is known, so the record
+   * it is linked to is held to the caller's read here: an incident whose
+   * labels, owners or people keep it from them is answered like one that
+   * does not exist, and nothing runs.
+   */
+  describe("the incident a run is linked to", () => {
+    const PRODUCTION: ObjectID = ObjectID.generate();
+    let incidentId: ObjectID;
+    let readableIncidents: Array<string>;
+    let incidentReads: Array<Array<string>>;
+
+    function runnerReadingIncidents(labels: Array<ObjectID>): void {
+      mockProps({
+        tenantId: callerProjectId,
+        userId: callerUserId,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [callerProjectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: callerProjectId,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.RunbookMember,
+                labelIds: [],
+                isBlockPermission: false,
+              },
+              {
+                _type: "UserPermission",
+                permission: Permission.ReadProjectIncident,
+                labelIds: labels,
+                isBlockPermission: false,
+              },
+            ],
+          },
+        },
+      });
+    }
+
+    function linkedRun(): Promise<RouteCallResult> {
+      return callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+        body: { incidentId: incidentId.toString() },
+      });
+    }
+
+    beforeEach(() => {
+      incidentId = ObjectID.generate();
+      readableIncidents = [];
+      incidentReads = [];
+
+      mockRunbookInProject(callerProjectId);
+
+      // The incident is the project's.
+      jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue({ projectId: callerProjectId } as unknown as Incident);
+
+      // The incidents the caller's own read finds.
+      jest
+        .spyOn(DatabaseService as never, "findReadableParentIds")
+        .mockImplementation((async (lookup: {
+          parentModelType: { new (): BaseModel };
+          ids: Array<string>;
+        }): Promise<Array<string>> => {
+          if (new lookup.parentModelType().tableName !== "Incident") {
+            return lookup.ids;
+          }
+
+          incidentReads.push(lookup.ids);
+
+          return lookup.ids.filter((id: string): boolean => {
+            return readableIncidents.includes(id.toLowerCase());
+          });
+        }) as never);
+    });
+
+    test("a runner whose read of incidents reaches the incident links the run to it", async () => {
+      runnerReadingIncidents([PRODUCTION]);
+      readableIncidents = [incidentId.toString().toLowerCase()];
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(incidentReads).toEqual([[incidentId.toString()]]);
+      expect(executionCreateSpy).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          executionCreateSpy.mock.calls[0]![0] as { data: RunbookExecution }
+        ).data.incidentId?.toString(),
+      ).toBe(incidentId.toString());
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a runner whose read of incidents leaves it out is answered as if it did not exist, and nothing runs", async () => {
+      runnerReadingIncidents([PRODUCTION]);
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeInstanceOf(UnreadableReferenceException);
+      expect((result.thrownToNext as Error).message).toBe(
+        `This runbook execution references records that are not in this project: Incident "${incidentId.toString()}". Please pick values from this project and try again.`,
+      );
+      expect(incidentReads).toEqual([[incidentId.toString()]]);
+      expectNothingExecutedOrMutated();
+    });
+
+    test("a runner who reads every incident is still asked as themselves: an incident private to others is not theirs to link", async () => {
+      runnerReadingIncidents([]);
+
+      // Private to its own people: the runner's read does not find it.
+      const refused: RouteCallResult = await linkedRun();
+
+      expect(refused.thrownToNext).toBeInstanceOf(UnreadableReferenceException);
+      expect(incidentReads).toEqual([[incidentId.toString()]]);
+      expectNothingExecutedOrMutated();
+
+      // One their read finds is linked.
+      readableIncidents = [incidentId.toString().toLowerCase()];
+
+      const linked: RouteCallResult = await linkedRun();
+
+      expect(linked.thrownToNext).toBeUndefined();
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
     });
   });
 });
