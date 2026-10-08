@@ -88,7 +88,7 @@ Stuur een bericht naar een Telegram-chat met een bottoken en een chat-ID.
 
 ## IRC
 
-Stuur een bericht naar een IRC-kanaal, of naar één persoon, op elk IRC-netwerk: Libera.Chat, OFTC of je eigen server. Het blok maakt verbinding via TLS, gaat het kanaal in, stuurt het bericht en verlaat het weer.
+Stuur een bericht naar een IRC-kanaal op elk IRC-netwerk: Libera.Chat, OFTC of je eigen server. Het blok maakt verbinding via TLS, gaat het kanaal in, stuurt het bericht en verlaat het weer.
 
 Vul **IRC Server** (alleen de hostnaam, bijvoorbeeld `irc.libera.chat`), **Channel** (bijvoorbeeld `#ops`) en **Message Text** in. Elke regel gaat als een eigen IRC-bericht, hooguit 15 regels. De optionele instellingen omvatten de bijnaam, de poort, een serverwachtwoord en **SASL Username** en **SASL Password** voor netwerken die inloggen vereisen.
 

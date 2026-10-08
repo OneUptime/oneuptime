@@ -413,15 +413,21 @@ describe("Send Message to IRC — reading the settings", () => {
     );
   });
 
-  test("Channel: a channel is joined, a nickname is messaged", () => {
+  test("Channel: a channel, which the step joins", () => {
     expect(settingsFor({ channel: " #ops " })).toMatchObject({
       target: "#ops",
       joinChannel: true,
     });
-    expect(settingsFor({ channel: "alice" })).toMatchObject({
-      target: "alice",
-      joinChannel: false,
-    });
+    expect(settingsFor({ channel: "&local" }).target).toBe("&local");
+  });
+
+  test("Channel: a nickname is refused, not sent a private message", () => {
+    // "ops" for "#ops" would reach whoever holds the nickname "ops".
+    for (const nickname of ["ops", "alice", "NickServ"]) {
+      expect(settingsError({ channel: nickname })).toBe(
+        `"${nickname}" is not a channel. A channel starts with #, such as #ops.`,
+      );
+    }
   });
 
   test("Channel: missing or unusable says what to enter", () => {
@@ -432,7 +438,7 @@ describe("Send Message to IRC — reading the settings", () => {
       /is not a valid IRC channel name/,
     );
     expect(settingsError({ channel: "ops team" })).toBe(
-      'Channel "ops team" is neither a channel, which starts with #, nor a nickname.',
+      '"ops team" is not a channel. A channel starts with #, such as #ops.',
     );
   });
 
@@ -446,9 +452,6 @@ describe("Send Message to IRC — reading the settings", () => {
     expect(settingsFor({ "channel-key": " hunter2\n" }).channelKey).toBe(
       "hunter2",
     );
-    expect(
-      settingsFor({ channel: "alice", "channel-key": "hunter2" }).channelKey,
-    ).toBe(undefined);
 
     const message: string = settingsError({ "channel-key": "hunter 2" });
 
@@ -1028,28 +1031,20 @@ describe("Send Message to IRC — whole runs against an IRC server", () => {
     ).toBe(false);
   });
 
-  test("a message to one person is sent without joining a channel", async () => {
+  test("a channel typed without its # is refused before anything connects", async () => {
     const fakeServer: FakeIRCServer = await start();
 
-    const result: RunReturnType = await new SendMessageToChannel().run(
-      {
-        server: HOST_NAME,
-        port: fakeServer.port,
-        "disable-tls": true,
-        channel: "alice",
-        text: "Your deploy finished",
-      },
-      makeRun().options,
-    );
+    const error: Error = await runAndGetThrown({
+      server: HOST_NAME,
+      port: fakeServer.port,
+      "disable-tls": true,
+      channel: "ops",
+      text: "Database is down",
+    });
 
-    expect(result.executePort?.id).toBe("success");
-    expect(linesSent(fakeServer)).toContain(
-      "PRIVMSG alice :Your deploy finished",
+    expect(error.message).toBe(
+      '"ops" is not a channel. A channel starts with #, such as #ops.',
     );
-    expect(
-      linesSent(fakeServer).some((line: string) => {
-        return line.startsWith("JOIN");
-      }),
-    ).toBe(false);
+    expect(fakeServer.connectionCount()).toBe(0);
   });
 });

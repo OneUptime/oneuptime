@@ -81,12 +81,12 @@ Send a message to a Telegram chat using a bot token and chat ID.
 
 ## IRC
 
-Post a message to an IRC channel, or to one person, on any IRC network: Libera.Chat, OFTC, or a server of your own. IRC has no webhooks, so the block connects to the server itself, joins the channel, sends the message and leaves.
+Post a message to an IRC channel on any IRC network: Libera.Chat, OFTC, or a server of your own. IRC has no webhooks, so the block connects to the server itself, joins the channel, sends the message and leaves.
 
 **Settings**:
 
 - **IRC Server** — the server's host name, such as `irc.libera.chat`. Just the name: no `ircs://`, and no port.
-- **Channel** — the channel to post in, such as `#ops`. A nickname works too, to message one person; the block then joins nothing.
+- **Channel** — the channel to post in, such as `#ops`. It has to be a channel: a nickname typed here is refused rather than sent a private message.
 - **Message Text** — the text to send. Each line goes out as an IRC message of its own, and a long line is split to fit. A message is sent as at most 15 IRC lines: a longer one is cut short, and its last line says so. IRC has no Markdown, so the text is sent as typed; IRC's own formatting codes, such as bold and colours, work.
 
 Under **More fields**:
@@ -103,6 +103,8 @@ Under **More fields**:
 
 - **Success** — fires once the server has taken every line. The block checks this by asking the server to answer a ping after the last line: a server answers in order, so any refusal of the message comes back first.
 - **Error** — fires when the server can't be reached, refuses the connection, the nickname, a password or the channel, or refuses the message. Passes along why, in the server's own words where it gave them. A missing **IRC Server**, **Channel** or **Message Text**, or a setting that could never work, stops the run instead.
+
+Each run of the block is a connection of its own, and IRC networks limit how often one address may connect: a burst of messages can be refused with a reason such as "Reconnecting too fast", and takes **Error** like any other refusal. For a workflow that can fire many times a minute, gather what it has to say into one message, or send it through a server of your own.
 
 Keep the passwords in [secret global variables](/docs/workflows/variables#global-variables) and use the variable in the setting; they're hidden in run logs either way. Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, a server on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach an IRC server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`.
 

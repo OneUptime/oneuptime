@@ -88,7 +88,7 @@ Send en melding til en Telegram-chat med et bot-token og en chat-ID.
 
 ## IRC
 
-Send en melding til en IRC-kanal, eller til én person, på et hvilket som helst IRC-nettverk: Libera.Chat, OFTC eller din egen server. Blokken kobler til over TLS, blir med i kanalen, sender meldingen og forlater den igjen.
+Send en melding til en IRC-kanal på et hvilket som helst IRC-nettverk: Libera.Chat, OFTC eller din egen server. Blokken kobler til over TLS, blir med i kanalen, sender meldingen og forlater den igjen.
 
 Fyll inn **IRC Server** (bare vertsnavnet, for eksempel `irc.libera.chat`), **Channel** (for eksempel `#ops`) og **Message Text**. Hver linje sendes som en egen IRC-melding, høyst 15 linjer. De valgfrie innstillingene dekker kallenavn, port, et serverpassord og **SASL Username** og **SASL Password** for nettverk som krever innlogging.
 

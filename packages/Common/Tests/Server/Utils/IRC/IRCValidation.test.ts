@@ -86,8 +86,21 @@ describe("IRCValidation.getChannelProblem", () => {
       'Channel "#" has no name after its # prefix.',
     );
     expect(IRCValidation.getChannelProblem("ops")).toBe(
-      '"ops" is not a channel. A channel starts with #.',
+      '"ops" is not a channel. A channel starts with #, such as #ops.',
     );
+    expect(IRCValidation.getChannelProblem("")).toBe("Channel is empty.");
+  });
+
+  /*
+   * "ops" typed for "#ops" would otherwise go to whoever holds the nickname
+   * "ops" on the network, as a private message.
+   */
+  test("refuses a nickname, rather than messaging that person", () => {
+    for (const nickname of ["alice", "ops", "NickServ", "[ops]"]) {
+      expect(IRCValidation.getChannelProblem(nickname)).toBe(
+        `"${nickname}" is not a channel. A channel starts with #, such as #ops.`,
+      );
+    }
   });
 
   test("measures the length in bytes, as the server does", () => {
@@ -104,29 +117,15 @@ describe("IRCValidation.getChannelProblem", () => {
   });
 });
 
-describe("IRCValidation.getTargetProblem", () => {
-  test("a channel or a nickname", () => {
-    expect(IRCValidation.getTargetProblem("#ops")).toBeNull();
-    expect(IRCValidation.getTargetProblem("alice")).toBeNull();
-  });
-
-  test("anything else says what it should be", () => {
-    expect(IRCValidation.getTargetProblem("")).toBe("Channel is empty.");
-    expect(IRCValidation.getTargetProblem("ops team")).toBe(
-      'Channel "ops team" is neither a channel, which starts with #, nor a nickname.',
-    );
-    expect(IRCValidation.getTargetProblem("#ops team")).toMatch(
-      /is not a valid IRC channel name/,
-    );
-  });
-
-  test("tells channels from nicknames by their prefix", () => {
+describe("IRCValidation.isChannel", () => {
+  test("tells a channel by its prefix", () => {
     for (const channel of ["#a", "&a", "+a", "!a"]) {
       expect(IRCValidation.isChannel(channel)).toBe(true);
     }
 
     expect(IRCValidation.isChannel("alice")).toBe(false);
     expect(IRCValidation.isChannel("[ops]")).toBe(false);
+    expect(IRCValidation.isChannel("")).toBe(false);
   });
 });
 

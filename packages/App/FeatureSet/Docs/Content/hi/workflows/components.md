@@ -88,7 +88,7 @@ bot token और chat ID की मदद से किसी Telegram chat म�
 
 ## IRC
 
-किसी भी IRC network पर, चाहे Libera.Chat हो, OFTC हो या आपका अपना server, किसी IRC channel में या किसी एक व्यक्ति को संदेश भेजिए। यह block TLS से connect होता है, channel join करता है, संदेश भेजता है और फिर निकल जाता है।
+किसी भी IRC network पर, चाहे Libera.Chat हो, OFTC हो या आपका अपना server, किसी IRC channel में संदेश भेजिए। यह block TLS से connect होता है, channel join करता है, संदेश भेजता है और फिर निकल जाता है।
 
 **IRC Server** (सिर्फ़ host name, जैसे `irc.libera.chat`), **Channel** (जैसे `#ops`) और **Message Text** भरिए। हर line अलग IRC संदेश बनकर जाती है, ज़्यादा से ज़्यादा 15 lines। Optional settings में nickname, port, server password, और login माँगने वाले networks के लिए **SASL Username** और **SASL Password** हैं।
 

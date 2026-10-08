@@ -88,7 +88,7 @@ Envia uma mensagem para um chat do Telegram usando um token de bot e o ID do cha
 
 ## IRC
 
-Envia uma mensagem para um canal de IRC, ou para uma só pessoa, em qualquer rede IRC: Libera.Chat, OFTC ou um servidor próprio. O bloco se conecta por TLS, entra no canal, envia a mensagem e sai.
+Envia uma mensagem para um canal de IRC em qualquer rede IRC: Libera.Chat, OFTC ou um servidor próprio. O bloco se conecta por TLS, entra no canal, envia a mensagem e sai.
 
 Preencha **IRC Server** (só o nome do host, por exemplo `irc.libera.chat`), **Channel** (por exemplo `#ops`) e **Message Text**. Cada linha é enviada como uma mensagem de IRC separada, no máximo 15 linhas. As configurações opcionais cobrem o apelido, a porta, uma senha do servidor e **SASL Username** e **SASL Password** para as redes que exigem login.
 

@@ -268,7 +268,7 @@ export const getIRCDocumentation: MessagingDocumentationFunction = (
   context: ComponentDocumentationContext,
 ): ComponentDocumentation => {
   return {
-    summary: "Posts a message to an IRC channel, or to one person.",
+    summary: "Posts a message to an IRC channel.",
     steps: [
       "Enter the server in **IRC Server**, such as `irc.libera.chat`, and the channel in **Channel**, such as `#ops`.",
       "Write the message in **Message Text**. Each line is sent as an IRC message of its own.",
@@ -307,13 +307,19 @@ export const getIRCDocumentation: MessagingDocumentationFunction = (
         title: "Joining, and the nickname",
         paragraphs: [
           "Most channels only take messages from their members, so the step joins the channel before it posts and leaves straight after. Where a channel takes messages from outside, turn on **Send Without Joining** and the channel does not see the step come and go.",
-          `The step posts as \`${IRC_DEFAULT_NICKNAME}\` unless **Nickname** says otherwise. When the nickname is taken, it adds an underscore or a number. A nickname works in **Channel** too, to message one person.`,
+          `The step posts as \`${IRC_DEFAULT_NICKNAME}\` unless **Nickname** says otherwise. When the nickname is taken, it adds an underscore or a number.`,
         ],
       },
       {
         title: "Formatting",
         paragraphs: [
           "IRC has no Markdown: the message is sent exactly as typed. IRC's own formatting codes, such as bold and colours, work.",
+        ],
+      },
+      {
+        title: "Many messages at once",
+        paragraphs: [
+          "Each run of the step is a connection of its own, and IRC networks limit how often one address may connect. A burst of messages can be refused, with a reason such as `Reconnecting too fast`, and takes **Error**. Where a workflow fires many times a minute, gather what it has to say into one message.",
         ],
       },
       {

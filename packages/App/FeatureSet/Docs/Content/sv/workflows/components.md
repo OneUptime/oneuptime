@@ -88,7 +88,7 @@ Skicka ett meddelande till en Telegram-chatt med hjälp av en bot-token och ett 
 
 ## IRC
 
-Skicka ett meddelande till en IRC-kanal, eller till en enda person, i vilket IRC-nätverk som helst: Libera.Chat, OFTC eller en egen server. Blocket ansluter över TLS, går med i kanalen, skickar meddelandet och lämnar den igen.
+Skicka ett meddelande till en IRC-kanal i vilket IRC-nätverk som helst: Libera.Chat, OFTC eller en egen server. Blocket ansluter över TLS, går med i kanalen, skickar meddelandet och lämnar den igen.
 
 Fyll i **IRC Server** (bara värdnamnet, till exempel `irc.libera.chat`), **Channel** (till exempel `#ops`) och **Message Text**. Varje rad skickas som ett eget IRC-meddelande, högst 15 rader. De valfria inställningarna täcker smeknamn, port, ett serverlösenord samt **SASL Username** och **SASL Password** för nätverk som kräver inloggning.
 

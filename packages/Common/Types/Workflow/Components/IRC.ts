@@ -44,8 +44,7 @@ const components: Array<ComponentMetadata> = [
       {
         id: "channel",
         name: "Channel",
-        description:
-          "Channel to post in, such as #ops. A nickname works too, to message one person.",
+        description: "Channel to post in, such as #ops.",
         type: ComponentInputType.Text,
         required: true,
         placeholder: "#ops",

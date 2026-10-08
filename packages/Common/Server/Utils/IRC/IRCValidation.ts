@@ -83,8 +83,16 @@ export default class IRCValidation {
    * one RFC 2812 forbids by name.
    */
   public static getChannelProblem(channel: string): string | null {
+    if (channel.length === 0) {
+      return "Channel is empty.";
+    }
+
+    /*
+     * A nickname is not taken in its place: "ops" typed for "#ops" would
+     * send the message to whoever holds that nickname on the network.
+     */
     if (!IRCValidation.isChannel(channel)) {
-      return `${IRCValidation.quote(channel)} is not a channel. A channel starts with #.`;
+      return `${IRCValidation.quote(channel)} is not a channel. A channel starts with #, such as #ops.`;
     }
 
     if (IRCMessageText.getByteLength(channel) > IRC_CHANNEL_MAX_BYTES) {
@@ -97,23 +105,6 @@ export default class IRCValidation {
 
     if (IRCValidation.hasSpaceCommaOrControl(channel)) {
       return `Channel ${IRCValidation.quote(channel)} is not a valid IRC channel name. A channel name cannot hold spaces, commas or control characters.`;
-    }
-
-    return null;
-  }
-
-  // A channel to post in, or the nickname of one person to message.
-  public static getTargetProblem(target: string): string | null {
-    if (target.length === 0) {
-      return "Channel is empty.";
-    }
-
-    if (IRCValidation.isChannel(target)) {
-      return IRCValidation.getChannelProblem(target);
-    }
-
-    if (IRCValidation.getNicknameProblem(target)) {
-      return `Channel ${IRCValidation.quote(target)} is neither a channel, which starts with #, nor a nickname.`;
     }
 
     return null;

@@ -88,7 +88,7 @@ Microsoft Teams 채널에 메시지를 게시합니다.
 
 ## IRC
 
-Libera.Chat, OFTC 또는 직접 운영하는 서버 등 어떤 IRC 네트워크에서든 IRC 채널이나 한 사람에게 메시지를 보냅니다. 이 블록은 TLS로 연결해 채널에 들어가 메시지를 보낸 뒤 나옵니다.
+Libera.Chat, OFTC 또는 직접 운영하는 서버 등 어떤 IRC 네트워크에서든 IRC 채널에 메시지를 보냅니다. 이 블록은 TLS로 연결해 채널에 들어가 메시지를 보낸 뒤 나옵니다.
 
 **IRC Server**(호스트 이름만, 예: `irc.libera.chat`), **Channel**(예: `#ops`), **Message Text**를 입력합니다. 각 줄은 별도의 IRC 메시지로 보내지며 최대 15줄입니다. 선택 설정에서는 닉네임, 포트, 서버 비밀번호, 그리고 로그인이 필요한 네트워크를 위한 **SASL Username**과 **SASL Password**를 지정할 수 있습니다.
 

@@ -206,12 +206,11 @@ export default class SendMessageToChannel extends ComponentCode {
       );
     }
 
-    SendMessageToChannel.check(IRCValidation.getTargetProblem(target));
+    SendMessageToChannel.check(IRCValidation.getChannelProblem(target));
 
-    const isChannel: boolean = IRCValidation.isChannel(target);
-
-    const joinChannel: boolean =
-      isChannel && !SendMessageToChannel.isOn(args["send-without-joining"]);
+    const joinChannel: boolean = !SendMessageToChannel.isOn(
+      args["send-without-joining"],
+    );
 
     // A key opens a channel to JOIN, and nothing else uses it.
     const channelKey: string | undefined = joinChannel
