@@ -2,6 +2,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
 import ProjectSso from "../../../Models/DatabaseModels/ProjectSso";
 import User from "../../../Models/DatabaseModels/User";
+import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectSSOService from "../../../Server/Services/ProjectSsoService";
 import UserService from "../../../Server/Services/UserService";
@@ -11,7 +12,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
-import { describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * WHY THIS FILE EXISTS.
@@ -146,8 +147,23 @@ function payloadWithIdDeleted<T extends BaseModel>(
 }
 
 describe("create and read responses keep their _id", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test("a project owner creating and then listing a tenant-scoped model (the incident's shape; the create path's tenant guard already covered this one)", async () => {
     mockRepository(ProjectSCIMService, ProjectSCIM, { name: "listed scim" });
+
+    /*
+     * SCIM is an Enterprise Edition model. With billing off and no
+     * Enterprise module loaded - the Community Edition - its create is
+     * refused before anything is saved, so this case would test the edition
+     * check instead of the ids. With billing on, as CI runs it, that check
+     * is skipped and this changes nothing.
+     */
+    jest
+      .spyOn(EnterpriseEdition, "isFeatureAvailableSync")
+      .mockReturnValue(true);
 
     const savedItem: ProjectSCIM = await ProjectSCIMService.create({
       data: payloadWithIdDeleted<ProjectSCIM>(
