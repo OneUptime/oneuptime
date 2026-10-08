@@ -31,8 +31,8 @@ import {
  * index: HELD_OPEN + index + HELD_CLOSE. Any already in the text are held
  * back too, so every one the parser sees is one the viewer put there.
  */
-const HELD_OPEN: string = "";
-const HELD_CLOSE: string = "";
+const HELD_OPEN: string = "\uE005";
+const HELD_CLOSE: string = "\uE006";
 const HELD_OPEN_CODE: number = 0xe005;
 const HELD_CLOSE_CODE: number = 0xe006;
 
