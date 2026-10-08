@@ -6,14 +6,17 @@ import path from "path";
  * An archived on-call policy pages no one, so Slack and Microsoft Teams must
  * not offer it. Every "Execute on-call policy" picker - on an incident, an
  * alert, an incident episode and an alert episode, in both apps - reads the
- * project's policies with its own OnCallDutyPolicyService.findBy, and the
- * Teams card choices count them for "showing N of M". Each of those reads
- * must leave archived policies out; one that forgot would offer a policy
- * that, when picked, records "Not executed: archived" instead of paging.
+ * project's policies the member may read (WorkspaceActionAuthorization
+ * .findReadable with OnCallDutyPolicyService), and the Teams card choices
+ * count them for "showing N of M" (countReadable). Each of those reads must
+ * leave archived policies out; one that forgot would offer a policy that,
+ * when picked, records "Not executed: archived" instead of paging.
  *
  * This guard reads the workspace sources and checks every such read. New
- * pickers are covered automatically: any OnCallDutyPolicyService list or
- * count call under Server/Utils/Workspace must carry `isArchived: false`.
+ * pickers are covered automatically: any list or count of on-call policies
+ * under Server/Utils/Workspace - OnCallDutyPolicyService.findBy / countBy,
+ * or findReadable / countReadable over OnCallDutyPolicyService - must carry
+ * `isArchived: false`.
  */
 
 const WORKSPACE_DIR: string = path.resolve(
@@ -21,7 +24,11 @@ const WORKSPACE_DIR: string = path.resolve(
   "../../../../Server/Utils/Workspace",
 );
 
-const LIST_CALL: RegExp = /OnCallDutyPolicyService\.(findBy|countBy)\(/g;
+const LIST_CALL: RegExp =
+  /(?:OnCallDutyPolicyService\.(findBy|countBy)|WorkspaceActionAuthorization\.(findReadable|countReadable))\(/g;
+
+// A findReadable / countReadable call reads on-call policies when it names their service.
+const READS_POLICIES: RegExp = /service:\s*OnCallDutyPolicyService\b/;
 
 const LEAVES_ARCHIVED_OUT: RegExp = /isArchived:\s*false/;
 
@@ -75,12 +82,20 @@ function policyListCalls(): Array<PolicyListCall> {
 
     for (const match of source.matchAll(LIST_CALL)) {
       const open: number = match.index! + match[0].length - 1;
+      const args: string = callArguments(source, open);
+      const readMethod: string | undefined = match[2];
+
+      // A member's read of some other list (monitors, labels, ...).
+      if (readMethod && !READS_POLICIES.test(args)) {
+        continue;
+      }
 
       calls.push({
         file: path.relative(WORKSPACE_DIR, file),
         line: source.slice(0, match.index).split("\n").length,
-        method: match[1]!,
-        args: callArguments(source, open),
+        // findReadable lists, countReadable counts.
+        method: match[1] || (readMethod === "countReadable" ? "countBy" : "findBy"),
+        args: args,
       });
     }
   }

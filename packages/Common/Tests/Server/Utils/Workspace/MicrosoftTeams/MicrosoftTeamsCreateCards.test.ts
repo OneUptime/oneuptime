@@ -78,11 +78,18 @@ import MicrosoftTeamsTimezone, {
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "5d7c9a2e-1f3b-4c6d-8e9f-0a1b2c3d4e5f",
 );
+
+// The member a card is for: every list is read with their own props.
+const MEMBER_PROPS: DatabaseCommonInteractionProps = {
+  userId: new ObjectID("5d7c9a2e-0000-4c6d-8e9f-0a1b2c3d4e60"),
+  tenantId: PROJECT_ID,
+};
 
 const CREATE_INCIDENT_URL: string = `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/incidents/create`;
 const CREATE_MAINTENANCE_URL: string = `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/scheduled-maintenance-events/create`;
@@ -396,7 +403,7 @@ function expectOneRead(data: {
     sort: data.sort,
     limit: data.limit,
     skip: 0,
-    props: { isRoot: true },
+    props: MEMBER_PROPS,
   });
   expect(data.reads[0]!.select).toEqual({ _id: true, name: true });
 }
@@ -795,11 +802,12 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
     ];
 
     const result: MicrosoftTeamsNewIncidentFormChoices =
-      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID);
+      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS);
 
     for (const spy of spies) {
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith(PROJECT_ID);
+      // Read in the project, as the member the card is for.
+      expect(spy).toHaveBeenCalledWith(PROJECT_ID, MEMBER_PROPS);
     }
 
     // Each list under its own key: a swap would offer monitors as severities.
@@ -835,7 +843,7 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
       .mockResolvedValue(listOf(SMALL_POLICY_ROWS));
 
     await expect(
-      MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID),
+      MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS),
     ).rejects.toThrow("Connection terminated unexpectedly");
   });
 
@@ -843,7 +851,7 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
     serveHugeProject();
 
     const choices: MicrosoftTeamsNewIncidentFormChoices =
-      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID);
+      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS);
 
     expect(choices.monitors.choices).toHaveLength(
       MICROSOFT_TEAMS_MAX_MONITOR_CHOICES,
@@ -864,7 +872,7 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
   test("reads each list once, capped, sorted as the card says, names and ids only", async () => {
     const reads: ProjectReads = serveHugeProject();
 
-    await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID);
+    await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS);
 
     // The notes under these three say "Showing the first N of M ..., by name".
     expectOneRead({
@@ -923,11 +931,13 @@ describe("MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFo
     const result: MicrosoftTeamsNewScheduledMaintenanceFormChoices =
       await MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
         PROJECT_ID,
+        MEMBER_PROPS,
       );
 
     for (const spy of spies) {
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith(PROJECT_ID);
+      // Read in the project, as the member the card is for.
+      expect(spy).toHaveBeenCalledWith(PROJECT_ID, MEMBER_PROPS);
     }
 
     // A maintenance event has no severity and pages no on-call policy.
@@ -958,6 +968,7 @@ describe("MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFo
     await expect(
       MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
         PROJECT_ID,
+        MEMBER_PROPS,
       ),
     ).rejects.toThrow("Connection terminated unexpectedly");
   });
@@ -968,6 +979,7 @@ describe("MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFo
     const choices: MicrosoftTeamsNewScheduledMaintenanceFormChoices =
       await MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
         PROJECT_ID,
+        MEMBER_PROPS,
       );
 
     expect(choices.monitors.choices).toHaveLength(
@@ -1243,6 +1255,7 @@ describe("MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget, huge proj
       const choices: MicrosoftTeamsNewIncidentFormChoices =
         await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
           PROJECT_ID,
+          MEMBER_PROPS,
         );
 
       const card: JSONObject =
@@ -1316,6 +1329,7 @@ describe("MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget, huge proj
       const choices: MicrosoftTeamsNewIncidentFormChoices =
         await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
           PROJECT_ID,
+          MEMBER_PROPS,
         );
 
       for (const budget of NON_ZERO_BUDGETS) {
@@ -1442,6 +1456,7 @@ describe("MicrosoftTeamsScheduledMaintenanceActions.buildNewScheduledMaintenance
       const choices: MicrosoftTeamsNewScheduledMaintenanceFormChoices =
         await MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
           PROJECT_ID,
+          MEMBER_PROPS,
         );
 
       const card: JSONObject =
@@ -1506,6 +1521,7 @@ describe("MicrosoftTeamsScheduledMaintenanceActions.buildNewScheduledMaintenance
       const choices: MicrosoftTeamsNewScheduledMaintenanceFormChoices =
         await MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
           PROJECT_ID,
+          MEMBER_PROPS,
         );
 
       for (const budget of NON_ZERO_BUDGETS) {
@@ -1624,7 +1640,7 @@ describe("a list the fetchers read only in part", () => {
     });
 
     const choices: MicrosoftTeamsNewIncidentFormChoices =
-      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID);
+      await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(PROJECT_ID, MEMBER_PROPS);
 
     const card: JSONObject =
       MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget({
@@ -1664,6 +1680,7 @@ describe("a list the fetchers read only in part", () => {
     const choices: MicrosoftTeamsNewScheduledMaintenanceFormChoices =
       await MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
         PROJECT_ID,
+        MEMBER_PROPS,
       );
 
     const card: JSONObject =
@@ -2683,6 +2700,7 @@ describe("a list entry whose name is cut where an emoji sits", () => {
         choices:
           await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
             PROJECT_ID,
+            MEMBER_PROPS,
           ),
         budgetInBytes: FIRST_BUDGET,
       });
@@ -2707,6 +2725,7 @@ describe("a list entry whose name is cut where an emoji sits", () => {
           choices:
             await MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
               PROJECT_ID,
+              MEMBER_PROPS,
             ),
           budgetInBytes: FIRST_BUDGET,
         },
@@ -2721,7 +2740,7 @@ describe("the legacy builders, which read the project themselves", () => {
     serveHugeProject();
 
     const card: JSONObject =
-      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID);
+      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID, MEMBER_PROPS);
 
     expectWithinBudget(card, FIRST_BUDGET);
     expect(getChoices(card, "incidentSeverity")).toHaveLength(5);
@@ -2748,6 +2767,7 @@ describe("the legacy builders, which read the project themselves", () => {
         choices:
           await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
             PROJECT_ID,
+            MEMBER_PROPS,
           ),
         budgetInBytes: FIRST_BUDGET,
       }),
@@ -2758,7 +2778,7 @@ describe("the legacy builders, which read the project themselves", () => {
     serveHugeProject();
 
     const card: JSONObject =
-      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID, {
+      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID, MEMBER_PROPS, {
         initialTitle: "  Checkout is down  ",
       });
 
@@ -2772,7 +2792,7 @@ describe("the legacy builders, which read the project themselves", () => {
     serveSmallProject();
 
     const card: JSONObject =
-      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID);
+      await MicrosoftTeamsIncidentActions.buildNewIncidentCard(PROJECT_ID, MEMBER_PROPS);
 
     expect(getChoices(card, "incidentSeverity")).toEqual(
       listOf(SEVERITY_ROWS).choices,
@@ -2798,6 +2818,7 @@ describe("the legacy builders, which read the project themselves", () => {
     const card: JSONObject =
       await MicrosoftTeamsScheduledMaintenanceActions.buildNewScheduledMaintenanceCard(
         PROJECT_ID,
+        MEMBER_PROPS,
       );
 
     expectWithinBudget(card, FIRST_BUDGET);
@@ -2832,6 +2853,7 @@ describe("the legacy builders, which read the project themselves", () => {
           choices:
             await MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
               PROJECT_ID,
+              MEMBER_PROPS,
             ),
           budgetInBytes: FIRST_BUDGET,
         },
@@ -2845,6 +2867,7 @@ describe("the legacy builders, which read the project themselves", () => {
     const card: JSONObject =
       await MicrosoftTeamsScheduledMaintenanceActions.buildNewScheduledMaintenanceCard(
         PROJECT_ID,
+        MEMBER_PROPS,
         { initialTitle: " Database upgrade ", timezone: "Asia/Kolkata" },
       );
 
@@ -2865,6 +2888,7 @@ describe("the legacy builders, which read the project themselves", () => {
     const card: JSONObject =
       await MicrosoftTeamsScheduledMaintenanceActions.buildNewScheduledMaintenanceCard(
         PROJECT_ID,
+        MEMBER_PROPS,
       );
 
     expect(getChoices(card, "scheduledMaintenanceMonitors")).toEqual(

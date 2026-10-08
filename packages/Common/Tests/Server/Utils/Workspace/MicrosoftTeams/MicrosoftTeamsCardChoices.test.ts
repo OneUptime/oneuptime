@@ -27,6 +27,9 @@ import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 
 /*
  * Pins MicrosoftTeamsCardChoices: the choice lists behind the Microsoft Teams
@@ -74,6 +77,15 @@ import PositiveNumber from "../../../../../Types/PositiveNumber";
 const PROJECT_ID: ObjectID = new ObjectID(
   "6f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
 );
+
+/*
+ * The member a card is for, as getProjectMemberProps resolves them: every
+ * list is read with their own props, so it offers only what they may read.
+ */
+const MEMBER_PROPS: DatabaseCommonInteractionProps = {
+  userId: new ObjectID("5e000000-0000-4000-8000-0000000000aa"),
+  tenantId: PROJECT_ID,
+};
 
 const INCIDENT_ADD_LATER_HINT: string =
   "You can add them to the incident in OneUptime after it is created.";
@@ -1345,7 +1357,7 @@ function expectedFindBy(fetcher: FetcherCase): JSONObject {
     sort: fetcher.sort,
     limit: fetcher.cap,
     skip: 0,
-    props: { isRoot: true },
+    props: MEMBER_PROPS,
   };
 }
 
@@ -1359,7 +1371,7 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
       return new Monitor();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getMonitorChoices(projectId);
+      return MicrosoftTeamsCardChoices.getMonitorChoices(projectId, MEMBER_PROPS);
     },
     sort: { name: SortOrder.Ascending },
     cap: 250,
@@ -1372,7 +1384,7 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
       return new Label();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getLabelChoices(projectId);
+      return MicrosoftTeamsCardChoices.getLabelChoices(projectId, MEMBER_PROPS);
     },
     sort: { name: SortOrder.Ascending },
     cap: 100,
@@ -1385,7 +1397,7 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
       return new OnCallDutyPolicy();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getOnCallDutyPolicyChoices(projectId);
+      return MicrosoftTeamsCardChoices.getOnCallDutyPolicyChoices(projectId, MEMBER_PROPS);
     },
     sort: { name: SortOrder.Ascending },
     cap: 100,
@@ -1413,7 +1425,7 @@ const UNCOUNTED_FETCHERS: Array<OrderedFetcherCase> = [
       return new IncidentSeverity();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getIncidentSeverityChoices(projectId);
+      return MicrosoftTeamsCardChoices.getIncidentSeverityChoices(projectId, MEMBER_PROPS);
     },
     sort: { order: SortOrder.Ascending },
     cap: 50,
@@ -1427,7 +1439,7 @@ const UNCOUNTED_FETCHERS: Array<OrderedFetcherCase> = [
       return new MonitorStatus();
     },
     fetch: (projectId: ObjectID): Promise<MicrosoftTeamsCardChoiceList> => {
-      return MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId);
+      return MicrosoftTeamsCardChoices.getMonitorStatusChoices(projectId, MEMBER_PROPS);
     },
     sort: { priority: SortOrder.Ascending },
     cap: 50,
@@ -1450,7 +1462,7 @@ describe("MicrosoftTeamsCardChoices fetchers", () => {
 
   for (const fetcher of COUNTED_FETCHERS) {
     describe(fetcher.method, () => {
-      test(`reads the project's ${fetcher.pluralNoun} once: _id and name, by name, at most ${fetcher.cap}, as root`, async () => {
+      test(`reads the project's ${fetcher.pluralNoun} once: _id and name, by name, at most ${fetcher.cap}, as the member the card is for`, async () => {
         const rows: Array<NamedRow> = rowsNamed(3, fetcher.pluralNoun);
         const spies: ReadSpies = stubReads(fetcher, { rows: rows });
 
@@ -1485,7 +1497,7 @@ describe("MicrosoftTeamsCardChoices fetchers", () => {
         );
         expect(onlyArgumentOf(spies.countBy)).toStrictEqual({
           query: { projectId: PROJECT_ID, ...(fetcher.extraQuery || {}) },
-          props: { isRoot: true },
+          props: MEMBER_PROPS,
         });
         expect(list.choices).toStrictEqual(choicesFor(rows));
         expect(list.totalCount).toBe(1234);
@@ -1554,10 +1566,53 @@ describe("MicrosoftTeamsCardChoices fetchers", () => {
 
         expect(onlyArgumentOf(spies.countBy)).toStrictEqual({
           query: { projectId: PROJECT_ID, ...(fetcher.extraQuery || {}) },
-          props: { isRoot: true },
+          props: MEMBER_PROPS,
         });
         expect(list.choices).toStrictEqual(choicesFor(rows.slice(1)));
         expect(list.totalCount).toBe(1234);
+      });
+
+      test("offers none of the list to a member who may not read it, or whose plan does not include it", async () => {
+        for (const refusal of [
+          new NotAuthorizedException("You do not have permissions to read it."),
+          new PaymentRequiredException("Not on your plan."),
+        ]) {
+          jest.restoreAllMocks();
+
+          const spies: ReadSpies = stubReads(fetcher, { rows: [] });
+          spies.findBy.mockRejectedValue(refusal);
+
+          expect(await fetcher.fetch(PROJECT_ID)).toStrictEqual({
+            choices: [],
+            totalCount: 0,
+          });
+          expect(spies.countBy).not.toHaveBeenCalled();
+        }
+      });
+
+      test("a count refused for the member counts none, and the card still shows what was read", async () => {
+        const rows: Array<NamedRow> = rowsNamed(
+          fetcher.cap,
+          fetcher.pluralNoun,
+        );
+        const spies: ReadSpies = stubReads(fetcher, { rows: rows });
+        spies.countBy.mockRejectedValue(
+          new NotAuthorizedException("You do not have permissions to read it."),
+        );
+
+        const list: MicrosoftTeamsCardChoiceList =
+          await fetcher.fetch(PROJECT_ID);
+
+        expect(list.choices).toStrictEqual(choicesFor(rows));
+        expect(list.totalCount).toBe(0);
+        // The note under the list takes the larger of the two: nothing is said to be left off.
+        expect(
+          MicrosoftTeamsCardChoices.getNotShownNote({
+            list: list,
+            pluralNoun: fetcher.pluralNoun,
+            addLaterHint: "",
+          }),
+        ).toBeNull();
       });
 
       test("fails when the list or its count cannot be read", async () => {
@@ -1584,7 +1639,7 @@ describe("MicrosoftTeamsCardChoices fetchers", () => {
 
   for (const fetcher of UNCOUNTED_FETCHERS) {
     describe(fetcher.method, () => {
-      test(`reads the project's ${fetcher.pluralNoun} once: _id and name, in their own order, at most ${fetcher.cap}, as root`, async () => {
+      test(`reads the project's ${fetcher.pluralNoun} once: _id and name, in their own order, at most ${fetcher.cap}, as the member the card is for`, async () => {
         const rows: Array<NamedRow> = rowsNamed(4, fetcher.pluralNoun);
         const spies: ReadSpies = stubReads(fetcher, { rows: rows });
 

@@ -41,9 +41,10 @@ import moment from "moment-timezone";
  * why.
  *
  * And what the review of that fix changed, pinned here end to end as well:
- * the sender of a create command is checked before the form only in a
- * personal chat (in a channel or group chat anyone there may submit it, and
- * the submit checks whoever does); the maintenance form names the zone its
+ * the form is filled in as the sender of a create command, wherever they ask
+ * (a personal chat, a channel or a group chat): they are checked before the
+ * form, its lists are the ones they may read, and the submit is made as
+ * whoever submits it, with their own permissions; the maintenance form names the zone its
  * times are read in, a submit is read in that zone first, and a reply read at
  * a bare UTC offset says so; a start that has just gone by (five minutes at
  * most) begins now; a submit pointing at a record the project does not have
@@ -182,8 +183,8 @@ import MicrosoftTeamsReplies, {
   MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
-import WorkspaceProjectReferenceValidator from "../../../../Server/Utils/Workspace/WorkspaceProjectReferenceValidator";
 import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import { UnreadableReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import Redis from "../../../../Server/Infrastructure/Redis";
@@ -2203,16 +2204,26 @@ describe("'create maintenance' (#4111)", () => {
     ]);
 
     /*
-     * Anyone in the chat may submit it, and the submit checks whoever does,
-     * so the one who asked is not checked first.
+     * The form is filled in as the one who asked for it, in a group chat too:
+     * they are checked first, and its lists are the ones they may read.
+     * Whoever submits it is checked as themselves.
      */
     expect(
       MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId,
-    ).not.toHaveBeenCalled();
+    ).toHaveBeenCalledTimes(1);
     expect(
       WorkspaceActionAuthorization.getProjectMemberProps,
-    ).not.toHaveBeenCalled();
-    expect(WorkspaceActionAuthorization.assertCanCreate).not.toHaveBeenCalled();
+    ).toHaveBeenCalledTimes(1);
+    expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
+      1,
+    );
+    const monitorRead: { props: DatabaseCommonInteractionProps } = (
+      MonitorService.findBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as { props: DatabaseCommonInteractionProps };
+    expect(monitorRead.props).toEqual({
+      userId: ONEUPTIME_USER_ID,
+      tenantId: projectId,
+    });
     expect(outerConsoleErrorCalls).toEqual([]);
     expect(loggedErrors).toEqual([]);
   });
@@ -2323,7 +2334,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
       conversationId: CHANNEL_CONVERSATION_ID,
     },
   ])(
-    "'$command' in a $conversation, from a sender every check would refuse: the form is posted for everyone there, and nobody is looked up",
+    "'$command' in a $conversation, from a sender without a connected account: told where to connect it, and no form is posted for everyone there",
     async (sharedChat: SharedChatCase) => {
       stubProjectData({ monitors: 5 });
       // Each check would refuse this sender, were it asked.
@@ -2362,21 +2373,26 @@ describe("who is checked before the form (#4111 review): the sender of a persona
 
       expect(view.httpStatuses).toEqual([200]);
       expect(view.refused).toEqual([]);
+      // One text bubble, in the chat it was asked in: where to connect the account.
       expect(
         view.bubbles.map((call: ConnectorCall) => {
-          return [call.kind, call.label, call.conversationId];
+          return [call.kind, call.conversationId];
         }),
-      ).toEqual([["card", sharedChat.heading, sharedChat.conversationId]]);
-      expect(view.bubbles[0]!.activityIdInPath).toBe(activityId);
+      ).toEqual([["text", sharedChat.conversationId]]);
+      expect(view.bubbles[0]!.label).toMatch(
+        /^To (create incidents|schedule maintenance) from Microsoft Teams, first connect your Microsoft Teams account to OneUptime/,
+      );
       expect(
         MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId,
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledTimes(1);
       expect(
         WorkspaceActionAuthorization.getProjectMemberProps,
       ).not.toHaveBeenCalled();
       expect(
         WorkspaceActionAuthorization.assertCanCreate,
       ).not.toHaveBeenCalled();
+      // Nobody's lists were read for everyone there.
+      expect(MonitorService.findBy).not.toHaveBeenCalled();
       expect(loggedErrors).toEqual([]);
     },
   );
@@ -2456,23 +2472,35 @@ describe("who is checked before the form (#4111 review): the sender of a persona
     expect(loggedErrors).toEqual([]);
   });
 
-  test("'create incident' in a personal chat asks for membership only (deliberate, see the incident submit tests): a read-only Viewer gets the form", async () => {
+  test("'create incident' in a personal chat from a member who may not declare an incident (a read-only Viewer): told why by the real permission check, once, before the form", async () => {
     stubProjectData({ monitors: 5 });
     useRealMembershipCheck([Permission.Viewer]);
 
     const view: TeamsView = viewOf(
       await deliverLikeTeams(
         buildMessageActivity({
-          id: nextActivityId("personal-incident-membership-only"),
+          id: nextActivityId("personal-incident-no-permission"),
           text: "create incident",
         }),
       ),
     );
 
     expect(view.httpStatuses).toEqual([200]);
-    expect(labelsOf(view.bubbles)).toEqual(["Create New Incident"]);
+    // The same refusal a submit would get (see the incident submit tests).
+    expect(labelsOf(view.bubbles)).toEqual([
+      "You do not have permission to declare an incident. You do not have permissions to create Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident",
+    ]);
     expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
-    expect(WorkspaceActionAuthorization.assertCanCreate).not.toHaveBeenCalled();
+    expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: Incident,
+        action: "declare an incident",
+      }),
+    );
+    expect(MonitorService.findBy).not.toHaveBeenCalled();
     expect(loggedErrors).toEqual([]);
   });
 
@@ -3155,12 +3183,16 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
       created.id = CREATED_INCIDENT_ID;
       return Promise.resolve(created);
     });
-    jest
-      .spyOn(
-        WorkspaceProjectReferenceValidator,
-        "validateReferencesBelongToProject",
-      )
-      .mockResolvedValue(undefined);
+  }
+
+  // The props the incident was created with: the submitter's own.
+  function createdIncidentProps(): DatabaseCommonInteractionProps {
+    const createSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      IncidentService,
+      "create",
+    );
+    const firstCall: Array<unknown> | undefined = createSpy.mock.calls[0];
+    return (firstCall?.[0] as { props: DatabaseCommonInteractionProps }).props;
   }
 
   function createdIncidentData(): Incident {
@@ -3218,9 +3250,12 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     expect(incident.title).toBe("Checkout API returns 502");
     expect(incident.description).toBe("Customers cannot pay.");
     expect(incident.projectId?.toString()).toBe(projectId.toString());
-    expect(incident.createdByUserId?.toString()).toBe(
-      ONEUPTIME_USER_ID.toString(),
-    );
+    // Declared as the member who submitted it: their props, and the create credits them.
+    expect(createdIncidentProps()).toEqual({
+      userId: ONEUPTIME_USER_ID,
+      tenantId: projectId,
+    });
+    expect(incident.createdByUserId).toBeUndefined();
     expect(incident.incidentSeverityId?.toString()).toBe(
       opened.project.severities[0]!._id,
     );
@@ -3470,34 +3505,14 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     expect(outerConsoleErrorCalls).toEqual([]);
   });
 
-  test("a submit that carries another project's monitor (a tampered card): the real reference check refuses it, and the one '❌' reply says so in fixed words that never name that monitor; nothing is created and the form stays, HTTP 200", async () => {
+  test("a submit that carries a monitor its member may not name (a tampered card: another project's, or one outside their read): the create, made as the member, refuses it, and the one '❌' reply says so in fixed words that never name that monitor; nothing is created and the form stays, HTTP 200", async () => {
     const opened: OpenedIncidentForm = await openIncidentForm();
-    stubIncidentCreate();
-    // The reference check itself runs; only the records it reads are stubbed.
+    const foreignMonitorId: ObjectID = ObjectID.generate();
+    // What the create's own reference check answers such a monitor with.
+    const reason: string = `This incident references records that are not in this project: Monitor "${foreignMonitorId.toString()}". Please pick values from this project and try again.`;
     jest
-      .spyOn(
-        WorkspaceProjectReferenceValidator,
-        "validateReferencesBelongToProject",
-      )
-      .mockRestore();
-    const offeredMonitor: Monitor = new Monitor();
-    offeredMonitor.id = new ObjectID(opened.project.monitors[0]!._id);
-    offeredMonitor.name = opened.project.monitors[0]!.name;
-    offeredMonitor.projectId = projectId;
-    const foreignMonitor: Monitor = new Monitor();
-    foreignMonitor.id = ObjectID.generate();
-    foreignMonitor.name = "Payments API";
-    foreignMonitor.projectId = ObjectID.generate();
-    jest
-      .spyOn(MonitorService, "findBy")
-      .mockResolvedValue([offeredMonitor, foreignMonitor]);
-    const pickedStatus: MonitorStatus = new MonitorStatus();
-    pickedStatus.id = new ObjectID(opened.project.monitorStatuses[2]!._id);
-    pickedStatus.name = opened.project.monitorStatuses[2]!.name;
-    pickedStatus.projectId = projectId;
-    jest
-      .spyOn(MonitorStatusService, "findBy")
-      .mockResolvedValue([pickedStatus]);
+      .spyOn(IncidentService, "create")
+      .mockRejectedValue(new UnreadableReferenceException(reason));
 
     const deliveries: Array<DeliveryRecord> = await deliverLikeTeams(
       buildCardSubmitActivity({
@@ -3506,13 +3521,12 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
         value: {
           ...filledInIncidentForm(opened),
           // A monitor the form offered, and one it never could have.
-          incidentMonitors: `${opened.project.monitors[0]!._id},${foreignMonitor.id!.toString()}`,
+          incidentMonitors: `${opened.project.monitors[0]!._id},${foreignMonitorId.toString()}`,
         },
       }),
     );
     const view: TeamsView = viewOf(deliveries);
 
-    // master: "❌ Failed to create incident. Please try again." and no reason.
     expect(view.httpStatuses).toEqual([200]);
     expect(
       deliveries[0]!.calls.map((call: ConnectorCall) => {
@@ -3528,23 +3542,34 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     expect(MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE).toBe(
       "One of the values you picked (a monitor, label, on-call policy, severity or status) is not available in this project any more. Please pick it again.",
     );
-    // The other project's monitor is named to nobody in the chat.
+    // The monitor is named to nobody in the chat.
     for (const call of deliveries[0]!.calls) {
-      expect(JSON.stringify(call.label)).not.toContain("Payments API");
+      expect(JSON.stringify(call.label)).not.toContain(
+        foreignMonitorId.toString(),
+      );
     }
-    // Nothing was created, and the form was left for a corrected submit.
-    expect(IncidentService.create).not.toHaveBeenCalled();
+    // Asked once, as the member, with every id the card carried; refused, so the form stays.
+    expect(IncidentService.create).toHaveBeenCalledTimes(1);
+    expect(createdIncidentProps()).toEqual({
+      userId: ONEUPTIME_USER_ID,
+      tenantId: projectId,
+    });
+    expect(
+      (createdIncidentData().monitors || []).map((monitor: Monitor) => {
+        return monitor.id?.toString();
+      }),
+    ).toEqual([opened.project.monitors[0]!._id, foreignMonitorId.toString()]);
     expect(view.deletes).toEqual([]);
     /*
      * The operator log has its id - never its name - with the class it was
      * refused as: a BadDataException with the same message API callers get.
      */
-    const reason: string = `This incident references records that are not in this project: Monitor "${foreignMonitor.id!.toString()}". Please pick values from this project and try again.`;
     expect(loggedErrors).toEqual([
-      `Could not create an incident from Microsoft Teams: ProjectScopedReferenceException: ${reason}`,
+      `Could not create an incident from Microsoft Teams: UnreadableReferenceException: ${reason}`,
       `Error: ${reason}`,
     ]);
     const refusal: unknown = loggedErrorCalls[1]?.message;
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
     expect(refusal).toBeInstanceOf(ProjectScopedReferenceException);
     expect(refusal).toBeInstanceOf(BadDataException);
     expectFailureLogged({
@@ -3628,16 +3653,13 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
   });
 
   /*
-   * DELIBERATE, not an oversight: creating an incident from chat asks for
-   * membership of the project, not for permission to create incidents. Slack
-   * has the same policy, written down with its auth ("anyone in the company
-   * can create incident", Server/Utils/Workspace/Slack/Actions/Auth.ts), and
-   * commit 7ac7a3a03f, which put every other chat write behind the member's
-   * own permissions, left incident creation as it was. A scheduled
-   * maintenance event does need the permission (see the maintenance submit
-   * tests). Change the product decision there before changing this.
+   * Declaring an incident from chat takes what declaring one in OneUptime
+   * takes: the submitter's own permission to declare incidents, asked as
+   * them (it used to take membership only, by an earlier product decision
+   * the maintainer has since changed). A scheduled maintenance event takes
+   * its own permission the same way (see the maintenance submit tests).
    */
-  test("a member whose role may not create incidents (a read-only Viewer) still creates one from the form: the real membership check runs, the permission check does not", async () => {
+  test("a member whose role may not declare incidents (a read-only Viewer) is refused by the real permission check: one reply that says why, nothing created, the form stays, HTTP 200", async () => {
     const opened: OpenedIncidentForm = await openIncidentForm();
     stubIncidentCreate();
     useRealMembershipCheck([Permission.Viewer]);
@@ -3660,10 +3682,13 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
         return [call.method, call.label, call.connectorStatus];
       }),
     ).toEqual([
-      ["POST", incidentCreatedConfirmation(), 200],
-      ["DELETE", opened.formId, 200],
+      [
+        "POST",
+        "You do not have permission to declare an incident. You do not have permissions to create Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident",
+        200,
+      ],
     ]);
-    expect(IncidentService.create).toHaveBeenCalledTimes(1);
+    expect(IncidentService.create).not.toHaveBeenCalled();
     // Membership was read from the database, for this user in this project.
     expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
     expect(TeamMemberService.findBy).toHaveBeenCalledWith(
@@ -3675,21 +3700,43 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
         },
       }),
     );
-    expect(WorkspaceActionAuthorization.assertCanCreate).not.toHaveBeenCalled();
-
-    // Not for want of a check that would refuse this member: it would.
-    const viewerProps: DatabaseCommonInteractionProps =
-      await WorkspaceActionAuthorization.getProjectMemberProps({
-        userId: ONEUPTIME_USER_ID,
-        projectId: projectId,
-      });
-    await expect(
-      WorkspaceActionAuthorization.assertCanCreate({
-        props: viewerProps,
+    expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
         modelType: Incident,
-        action: "create an incident",
+        action: "declare an incident",
       }),
-    ).rejects.toBeInstanceOf(NotAuthorizedException);
+    );
+    // A refusal written for the user, not a fault for an operator.
+    expect(loggedErrors).toEqual([]);
+  });
+
+  test("a member whose role may declare incidents (an Incident Member) creates one, as themselves, from the form", async () => {
+    const opened: OpenedIncidentForm = await openIncidentForm();
+    stubIncidentCreate();
+    useRealMembershipCheck([Permission.IncidentMember]);
+
+    const deliveries: Array<DeliveryRecord> = await deliverLikeTeams(
+      buildCardSubmitActivity({
+        id: nextActivityId("submit-incident-member"),
+        replyToId: opened.formId,
+        value: filledInIncidentForm(opened),
+      }),
+    );
+
+    expect(
+      deliveries[0]!.calls.map((call: ConnectorCall) => {
+        return [call.method, call.label, call.connectorStatus];
+      }),
+    ).toEqual([
+      ["POST", incidentCreatedConfirmation(), 200],
+      ["DELETE", opened.formId, 200],
+    ]);
+    expect(IncidentService.create).toHaveBeenCalledTimes(1);
+    // The member's own props, as the membership check built them.
+    expect(createdIncidentProps().userId?.toString()).toBe(
+      ONEUPTIME_USER_ID.toString(),
+    );
+    expect(createdIncidentProps().isRoot).toBeUndefined();
     expect(loggedErrors).toEqual([]);
   });
 
@@ -3766,12 +3813,6 @@ describe("submitting the maintenance form: start and end are read in the zone th
       created.id = CREATED_MAINTENANCE_ID;
       return Promise.resolve(created);
     });
-    jest
-      .spyOn(
-        WorkspaceProjectReferenceValidator,
-        "validateReferencesBelongToProject",
-      )
-      .mockResolvedValue(undefined);
   }
 
   function createdMaintenanceData(): ScheduledMaintenance {
@@ -3864,9 +3905,14 @@ describe("submitting the maintenance form: start and end are read in the zone th
     expect(maintenance.endsAt?.toISOString()).toBe(endsAt.toISOString());
     expect(maintenance.title).toBe("Database Upgrade Window");
     expect(maintenance.projectId?.toString()).toBe(projectId.toString());
-    expect(maintenance.createdByUserId?.toString()).toBe(
-      ONEUPTIME_USER_ID.toString(),
-    );
+    // Created as the member who submitted it: the create credits them.
+    expect(maintenance.createdByUserId).toBeUndefined();
+    expect(
+      (
+        (ScheduledMaintenanceService.create as unknown as jest.Mock).mock
+          .calls[0]![0] as { props: DatabaseCommonInteractionProps }
+      ).props,
+    ).toEqual({ userId: ONEUPTIME_USER_ID, tenantId: projectId });
     expect(
       (maintenance.monitors || []).map((monitor: Monitor) => {
         return monitor.id?.toString();
@@ -4079,18 +4125,13 @@ describe("submitting the maintenance form: start and end are read in the zone th
     },
   );
 
-  test("a submit that picks a label deleted since the form was sent: the real reference check refuses it, and the one '❌' reply says so in fixed words; nothing is created, HTTP 200", async () => {
-    stubMaintenanceCreate();
-    // The reference check itself runs; only the records it reads are stubbed.
-    jest
-      .spyOn(
-        WorkspaceProjectReferenceValidator,
-        "validateReferencesBelongToProject",
-      )
-      .mockRestore();
-    // The label is gone: the check finds no record for it.
-    jest.spyOn(LabelService, "findBy").mockResolvedValue([]);
+  test("a submit that picks a label deleted since the form was sent: the create's own reference check refuses it, and the one '❌' reply says so in fixed words; nothing is created, HTTP 200", async () => {
     const deletedLabelId: string = ObjectID.generate().toString();
+    const reason: string = `This scheduled maintenance event references records that are not in this project: Label "${deletedLabelId}". Please pick values from this project and try again.`;
+    // What the create, made as the member, answers a label the project no longer has.
+    jest
+      .spyOn(ScheduledMaintenanceService, "create")
+      .mockRejectedValue(new ProjectScopedReferenceException(reason));
     const day: string = moment
       .tz(SENDER_TIMEZONE)
       .add(7, "days")
@@ -4124,8 +4165,16 @@ describe("submitting the maintenance form: start and end are read in the zone th
         200,
       ],
     ]);
-    expect(ScheduledMaintenanceService.create).not.toHaveBeenCalled();
-    const reason: string = `This scheduled maintenance event references records that are not in this project: Label "${deletedLabelId}". Please pick values from this project and try again.`;
+    // Asked once, with the label, and refused: nothing was made.
+    expect(ScheduledMaintenanceService.create).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (ScheduledMaintenanceService.create as unknown as jest.Mock).mock
+          .calls[0]![0] as { data: ScheduledMaintenance }
+      ).data.labels?.map((label: Label) => {
+        return label.id?.toString();
+      }),
+    ).toEqual([deletedLabelId]);
     expect(loggedErrors).toEqual([
       `Could not create a scheduled maintenance event from Microsoft Teams: ProjectScopedReferenceException: ${reason}`,
       `Error: ${reason}`,

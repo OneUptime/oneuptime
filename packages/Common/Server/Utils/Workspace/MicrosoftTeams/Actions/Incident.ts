@@ -736,6 +736,19 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
+      /*
+       * Declared by the member who submits the card, as they would declare
+       * it in OneUptime: someone who may not declare incidents is told so
+       * (handleBotInvokeActivity answers the refusal) before anything is
+       * read or created. The create below checks it again, with every
+       * record the card names.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: Incident,
+        action: "declare an incident",
+      });
+
       let createdIncident: Incident;
 
       try {
