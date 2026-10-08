@@ -167,7 +167,11 @@ export class Service extends DatabaseService<Model> {
     return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
   }
 
-  // An update that failed, or was refused, once it held its locks: they are given back.
+  /*
+   * An update that failed, or was refused, once it held its locks: they are
+   * given back - or, when the database may still apply it, kept until it
+   * would have cancelled it (Utils/ProjectSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
@@ -175,6 +179,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Exception> {
     await ProjectSsoProviderChanges.afterFailedWrite(
       onUpdate?.carryForward as ProjectSsoProviderWrite | null | undefined,
+      error,
     );
 
     return error;
@@ -188,6 +193,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Exception> {
     await ProjectSsoProviderChanges.afterFailedWrite(
       onDelete?.carryForward as ProjectSsoProviderWrite | null | undefined,
+      error,
     );
 
     return error;

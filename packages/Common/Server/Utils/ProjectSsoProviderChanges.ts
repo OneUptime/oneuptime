@@ -6,7 +6,10 @@ import Semaphore, {
   SemaphoreLockTimeoutError,
   SemaphoreMutex,
 } from "../Infrastructure/Semaphore";
-import { PostgresQueryTimeoutMs } from "../EnvironmentConfig";
+import {
+  PostgresQueryTimeoutMs,
+  PostgresStatementTimeoutMs,
+} from "../EnvironmentConfig";
 import DatabaseService from "../Services/DatabaseService";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -14,6 +17,7 @@ import QueryUtil from "../Types/Database/QueryUtil";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import StatementOutcome from "./Database/StatementOutcome";
 import logger from "./Logger";
 import { And, Equal, FindOperator } from "typeorm";
 import ProjectSsoProviderStanding, {
@@ -69,11 +73,15 @@ import SsoSignInWays, {
  *     (SsoSignInWays.dependsOnServerRules);
  *   - its locks are kept once more right before the write and kept alive
  *     while it is written, however long that takes, so it never lands once
- *     they could have run out: a lock found gone by then refuses the write
- *     instead (holdForWrite);
+ *     they could have run out: a lock found gone by then is taken again,
+ *     with the others, and the change checked again under them - refused
+ *     only when a lock cannot be taken, or the change no longer passes
+ *     (holdForWrite);
  *   - a write that fails once it holds a lock gives it back
- *     (afterFailedWrite, the services' error hooks); a lock nobody gives
- *     back runs out (LOCK_TIMEOUT_IN_MS).
+ *     (afterFailedWrite, the services' error hooks) - unless the database
+ *     may still apply it: then its locks are kept until the database would
+ *     have cancelled it (giveBackAfterFailedWrite). A lock nobody gives back
+ *     runs out (LOCK_TIMEOUT_IN_MS).
  *
  * Any other change - a new certificate or client secret, other addresses,
  * other teams, a new name - leaves the sign-ins the provider gave as they
@@ -104,18 +112,41 @@ export interface ProjectSsoProviderWrite {
    * or fails (afterFailedWrite).
    */
   locks?: Array<SemaphoreMutex> | undefined;
+  /*
+   * The write's check, run again from the start should a lock be found gone
+   * right before the write (holdForWrite): it reads the rows again, under
+   * the locks taken again, and works out the write again in this record.
+   */
+  recheck?: SignInChangeRecheck | undefined;
 }
+
+/*
+ * A change's check, run again from the start: its locks taken again - in the
+ * order every change takes them - what it names read again under them, and
+ * the change checked again. Answers the locks it then holds, none when its
+ * rows are gone. Throws - having given back whatever it took - when a lock
+ * cannot be taken, or the change is now refused.
+ */
+export type SignInChangeRecheck = () => Promise<Array<SemaphoreMutex>>;
 
 /*
  * The locks of a change being written, kept alive until it is done
  * (holdForWrite): every WRITE_KEEP_INTERVAL_IN_MS, for at most
- * WRITE_KEEP_LIMIT_IN_MS.
+ * WRITE_KEEP_LIMIT_IN_MS from its check - or, once its write failed in a way
+ * that leaves the database to finish it, until the database would have
+ * cancelled it (keepUntilAbandonedWriteEnds).
  */
 interface WriteKeeper {
   // The locks still kept: one found gone is kept no more.
   locks: Array<SemaphoreMutex>;
   timer: ReturnType<typeof setInterval>;
-  startedAtMs: number;
+  // Nothing is kept from then on.
+  keepUntilMs: number;
+  /*
+   * Its write failed, and the database may still apply it: the locks are no
+   * longer the change's to give back, and run out once nothing keeps them.
+   */
+  isAbandoned: boolean;
   // Given back, or past the limit: nothing more is kept.
   isStopped: boolean;
   // A keep is under way: the next tick waits for it.
@@ -189,6 +220,43 @@ export const getWriteKeepLimitInMs: (queryTimeoutMs: number) => number = (
 };
 
 export const WRITE_KEEP_LIMIT_IN_MS: number = getWriteKeepLimitInMs(
+  PostgresQueryTimeoutMs,
+);
+
+/*
+ * The time a statement still running when its client stopped waiting for it
+ * may need to be cancelled by the database, and the cancel to land, on top
+ * of the database's statement timeout.
+ */
+export const ABANDONED_WRITE_MARGIN_IN_MS: number = 10_000;
+
+/*
+ * How long a change keeps its locks once its write failed without the
+ * database answering - the client stopped waiting for the statement
+ * (DATABASE_QUERY_TIMEOUT_MS) or lost the connection while it ran - from
+ * that moment (keepUntilAbandonedWriteEnds): the database may still be
+ * running the statement, and only its own statement timeout
+ * (DATABASE_STATEMENT_TIMEOUT_MS) ends it. So the locks are kept that long,
+ * and a margin, and then left to run out: no other change to who can sign in
+ * is checked while the statement could still land. Behind a connection pooler
+ * that drops the timeout the app asks for (PgBouncer), that bound holds only
+ * when the database role has a statement_timeout of its own (HelmChart/Docs/
+ * Postgres.md). A statement timeout that is not set, or not a number, bounds
+ * nothing: the locks are kept as long as a write is (getWriteKeepLimitInMs).
+ */
+export const getAbandonedWriteHoldInMs: (
+  statementTimeoutMs: number,
+  queryTimeoutMs: number,
+) => number = (statementTimeoutMs: number, queryTimeoutMs: number): number => {
+  if (!Number.isFinite(statementTimeoutMs) || statementTimeoutMs <= 0) {
+    return getWriteKeepLimitInMs(queryTimeoutMs);
+  }
+
+  return statementTimeoutMs + ABANDONED_WRITE_MARGIN_IN_MS;
+};
+
+export const ABANDONED_WRITE_HOLD_IN_MS: number = getAbandonedWriteHoldInMs(
+  PostgresStatementTimeoutMs,
   PostgresQueryTimeoutMs,
 );
 
@@ -323,12 +391,13 @@ export default class ProjectSsoProviderChanges {
 
   /*
    * The last step before an update is written (the service's
-   * onUpdatePermitted, once every permission check has passed): an update
-   * that turns a provider off writes when, in the same write
-   * (SsoSignInsEnded.stampWhenTurnedOff), using what beforeUpdate found
-   * under the lock, or - for an update that did not pass it - the rows now.
-   * Then the locks beforeUpdate took are kept for the write
-   * (holdForWrite): one found gone by now refuses it.
+   * onUpdatePermitted, once every permission check has passed): the locks
+   * beforeUpdate took are kept for the write (holdForWrite) - one found gone
+   * by now is taken again, with the others, and the rows read and checked
+   * again under them - and then an update that turns a provider off writes
+   * when, in the same write (SsoSignInsEnded.stampWhenTurnedOff), using what
+   * was found under the locks, or - for an update that did not pass
+   * beforeUpdate - the rows now.
    */
   public static async beforeWrite<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
@@ -339,15 +408,15 @@ export default class ProjectSsoProviderChanges {
         data.updateBy as unknown as UpdateBy<BaseModel>,
       );
 
+    if (write?.locks) {
+      await ProjectSsoProviderChanges.holdForWrite(write.locks, write.recheck);
+    }
+
     await SsoSignInsEnded.stampWhenTurnedOff({
       service: data.service,
       updateBy: data.updateBy,
       turnsOneOff: write ? write.takenAway.length > 0 : undefined,
     });
-
-    if (write?.locks) {
-      await ProjectSsoProviderChanges.holdForWrite(write.locks);
-    }
   }
 
   // After an update (onUpdateSuccess): the providers' projects, announced.
@@ -418,17 +487,23 @@ export default class ProjectSsoProviderChanges {
 
   /*
    * After an update or delete that failed once its before-hook had run
-   * (onUpdateError, onDeleteError): nothing was written, so nobody is told,
-   * and its locks are given back at once rather than left to run out.
+   * (onUpdateError, onDeleteError, with what failed): nothing was written,
+   * so nobody is told, and its locks are given back at once rather than left
+   * to run out - unless the database may still apply the write, when they
+   * are kept until it would have cancelled it (giveBackAfterFailedWrite).
    */
   public static async afterFailedWrite(
     write: ProjectSsoProviderWrite | null | undefined,
+    error: unknown,
   ): Promise<void> {
     if (!write) {
       return;
     }
 
-    await ProjectSsoProviderChanges.release(write);
+    const locks: Array<SemaphoreMutex> = write.locks || [];
+    write.locks = undefined;
+
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(locks, error);
   }
 
   /*
@@ -582,9 +657,19 @@ export default class ProjectSsoProviderChanges {
    * change to the same projects or rules comes between: one that wants them
    * meanwhile waits, and is refused if it waits too long.
    *
-   * A lock found gone by now - it ran out, or Valkey lost it - refuses the
-   * write, as one found gone while the check read does: another change may
-   * hold it, and what this one read may no longer be true. When Valkey
+   * A lock found gone by now - it ran out after a slow step, or Valkey lost
+   * it - means another change may have come between, and what this one read
+   * may no longer be true. So, with `recheck`, every lock the change holds is
+   * given back and taken again, in the order every change takes them, and
+   * the change is checked again under them (retakeAndRecheck): the write
+   * goes on when the check still passes, and is refused only when a lock
+   * cannot be taken - another change holds it longer than a change waits -
+   * or the change no longer passes, or a lock is gone again by the time it
+   * is checked. `locks` then holds the locks taken again - none, when the
+   * change is refused - for whoever gives them back. A step between the
+   * check and the write that has done something already - a card charged for
+   * auto recharge - is not undone by a refusal, and never causes one on its
+   * own. Without `recheck`, a lock found gone refuses the write. When Valkey
    * cannot be reached the write goes on, as a change does when it could not
    * lock at all.
    *
@@ -594,21 +679,19 @@ export default class ProjectSsoProviderChanges {
    */
   public static async holdForWrite(
     locks: Array<SemaphoreMutex>,
+    recheck?: SignInChangeRecheck | undefined,
   ): Promise<void> {
     try {
       await ProjectSsoProviderChanges.keepSignInChange(locks);
     } catch (err) {
-      // Refused: none of its locks is kept alive any more.
-      for (const lock of locks) {
-        const keeper: WriteKeeper | undefined =
-          ProjectSsoProviderChanges.writeKeepers.get(lock);
+      // Gone: none of its locks is kept alive any more.
+      ProjectSsoProviderChanges.stopKeepingLocks(locks);
 
-        if (keeper) {
-          ProjectSsoProviderChanges.stopKeeping(keeper);
-        }
+      if (!recheck) {
+        throw err;
       }
 
-      throw err;
+      await ProjectSsoProviderChanges.retakeAndRecheck(locks, recheck);
     }
 
     const unkept: Array<SemaphoreMutex> = locks.filter(
@@ -621,9 +704,155 @@ export default class ProjectSsoProviderChanges {
       return;
     }
 
+    /*
+     * Kept alive from here - the check - through the write's statements,
+     * until they are given back. What no keeping prevents is Valkey itself
+     * losing a lock it keeps: a restart that keeps no data, a failover to a
+     * replica the lock had not reached yet, an eviction. A lock lost that
+     * way before the write is found by the keep right before it, and taken
+     * again with the change checked again (retakeAndRecheck); one lost once
+     * the write is under way can only be said (keepWhileWritten): no step
+     * runs between the last keep and the statement that could stop Valkey
+     * losing it then, so DatabaseService needs no hook of its own there.
+     */
+    ProjectSsoProviderChanges.startKeeping(unkept, {
+      keepUntilMs: Date.now() + WRITE_KEEP_LIMIT_IN_MS,
+      isAbandoned: false,
+    });
+  }
+
+  /*
+   * Gives back the locks of a change, and stops keeping them first. Never
+   * throws: a lock not given back runs out.
+   */
+  public static async releaseSignInChange(
+    locks: Array<SemaphoreMutex>,
+  ): Promise<void> {
+    ProjectSsoProviderChanges.stopKeepingLocks(locks);
+
+    for (const lock of locks) {
+      try {
+        await Semaphore.release(lock);
+      } catch (err) {
+        logger.warn("SSO sign-in change: could not give a lock back.");
+        logger.warn(err);
+      }
+    }
+  }
+
+  /*
+   * Once the write of a checked change failed (the services' error hooks,
+   * with what failed): its locks are given back at once - unless the
+   * database may still apply the write. A statement whose client stopped
+   * waiting for it (DATABASE_QUERY_TIMEOUT_MS), or lost the connection while
+   * it ran, may still be running, and land, after it was reported as failed
+   * (StatementOutcome). Its locks are then kept until the database would
+   * have cancelled it (keepUntilAbandonedWriteEnds), so no other change to
+   * who can sign in is checked against rows it may still change. Never
+   * throws.
+   */
+  public static async giveBackAfterFailedWrite(
+    locks: Array<SemaphoreMutex>,
+    error: unknown,
+  ): Promise<void> {
+    if (locks.length > 0 && StatementOutcome.isUnknown(error)) {
+      ProjectSsoProviderChanges.keepUntilAbandonedWriteEnds(locks);
+      return;
+    }
+
+    await ProjectSsoProviderChanges.releaseSignInChange(locks);
+  }
+
+  /*
+   * The locks of a change whose write the database may still apply, after
+   * the client was told it failed: never given back, they are kept alive
+   * ABANDONED_WRITE_HOLD_IN_MS from now - the database's statement timeout,
+   * and a margin - and then left to run out (LOCK_TIMEOUT_IN_MS later).
+   * Never throws.
+   */
+  public static keepUntilAbandonedWriteEnds(
+    locks: Array<SemaphoreMutex>,
+  ): void {
+    const keepUntilMs: number = Date.now() + ABANDONED_WRITE_HOLD_IN_MS;
+
+    logger.warn(
+      `SSO sign-in change: its write failed without an answer from the database, which may still apply it; its locks are kept ${Math.round(
+        ABANDONED_WRITE_HOLD_IN_MS / 1000,
+      )} seconds, until the database would have cancelled it, and then run out.`,
+    );
+
+    const unkept: Array<SemaphoreMutex> = [];
+
+    for (const lock of locks) {
+      const keeper: WriteKeeper | undefined =
+        ProjectSsoProviderChanges.writeKeepers.get(lock);
+
+      if (!keeper || keeper.isStopped) {
+        unkept.push(lock);
+        continue;
+      }
+
+      keeper.isAbandoned = true;
+      keeper.keepUntilMs = Math.max(keeper.keepUntilMs, keepUntilMs);
+    }
+
+    if (unkept.length > 0) {
+      ProjectSsoProviderChanges.startKeeping(unkept, {
+        keepUntilMs,
+        isAbandoned: true,
+      });
+    }
+  }
+
+  // Whether a lock is being kept alive for a change that is being written (holdForWrite).
+  public static isKeptForWrite(lock: SemaphoreMutex): boolean {
+    return ProjectSsoProviderChanges.writeKeepers.has(lock);
+  }
+
+  /*
+   * A lock of a checked change found gone right before its write
+   * (holdForWrite): every lock the change still holds is given back, so that
+   * all of them are taken again in the order every change takes them - the
+   * projects', then the one on the server's sign-in rules - and none waits
+   * for another while holding one; the change is then checked again from the
+   * start under them (`recheck`), and its locks kept once more. `locks` ends
+   * holding the locks taken again. Throws when a lock cannot be taken, the
+   * change no longer passes, or a lock taken again is gone already: then
+   * `locks` holds none, and nothing is held.
+   */
+  private static async retakeAndRecheck(
+    locks: Array<SemaphoreMutex>,
+    recheck: SignInChangeRecheck,
+  ): Promise<void> {
+    logger.warn(
+      "SSO sign-in change: a lock was gone right before the change was written; it is taken again, and the change checked again.",
+    );
+
+    const given: Array<SemaphoreMutex> = locks.splice(0, locks.length);
+    await ProjectSsoProviderChanges.releaseSignInChange(given);
+
+    // Taken again, and checked again under them: refused, it has given back what it took.
+    const retaken: Array<SemaphoreMutex> = await recheck();
+
+    try {
+      await ProjectSsoProviderChanges.keepSignInChange(retaken);
+    } catch (err) {
+      await ProjectSsoProviderChanges.releaseSignInChange(retaken);
+      throw err;
+    }
+
+    locks.push(...retaken);
+  }
+
+  // Keeps these locks alive, every WRITE_KEEP_INTERVAL_IN_MS, until the time given.
+  private static startKeeping(
+    locks: Array<SemaphoreMutex>,
+    data: { keepUntilMs: number; isAbandoned: boolean },
+  ): void {
     const keeper: WriteKeeper = {
-      locks: unkept,
-      startedAtMs: Date.now(),
+      locks: locks,
+      keepUntilMs: data.keepUntilMs,
+      isAbandoned: data.isAbandoned,
       isStopped: false,
       isKeeping: false,
       timer: setInterval((): void => {
@@ -638,18 +867,13 @@ export default class ProjectSsoProviderChanges {
     // Never keeps the process alive on its own.
     keeper.timer.unref?.();
 
-    for (const lock of unkept) {
+    for (const lock of locks) {
       ProjectSsoProviderChanges.writeKeepers.set(lock, keeper);
     }
   }
 
-  /*
-   * Gives back the locks of a change, and stops keeping them first. Never
-   * throws: a lock not given back runs out.
-   */
-  public static async releaseSignInChange(
-    locks: Array<SemaphoreMutex>,
-  ): Promise<void> {
+  // Keeps these locks alive no more, whichever keeper keeps them.
+  private static stopKeepingLocks(locks: Array<SemaphoreMutex>): void {
     for (const lock of locks) {
       const keeper: WriteKeeper | undefined =
         ProjectSsoProviderChanges.writeKeepers.get(lock);
@@ -658,20 +882,6 @@ export default class ProjectSsoProviderChanges {
         ProjectSsoProviderChanges.stopKeeping(keeper);
       }
     }
-
-    for (const lock of locks) {
-      try {
-        await Semaphore.release(lock);
-      } catch (err) {
-        logger.warn("SSO sign-in change: could not give a lock back.");
-        logger.warn(err);
-      }
-    }
-  }
-
-  // Whether a lock is being kept alive for a change that is being written (holdForWrite).
-  public static isKeptForWrite(lock: SemaphoreMutex): boolean {
-    return ProjectSsoProviderChanges.writeKeepers.has(lock);
   }
 
   /*
@@ -680,16 +890,26 @@ export default class ProjectSsoProviderChanges {
    * longer refuse the write, which may already be under way: it is said
    * loudly, and kept no more. One that cannot be kept for want of Valkey
    * is tried again next round, and a round still waiting on Valkey is not
-   * started again. Past WRITE_KEEP_LIMIT_IN_MS nothing more is kept - a
-   * round that never came back included.
+   * started again. Past the time the keeper keeps them until - its check's
+   * WRITE_KEEP_LIMIT_IN_MS, or, for a write the database may still apply,
+   * the end of ABANDONED_WRITE_HOLD_IN_MS - nothing more is kept, a round
+   * that never came back included.
    */
   private static async keepWhileWritten(keeper: WriteKeeper): Promise<void> {
     if (keeper.isStopped) {
       return;
     }
 
-    if (Date.now() - keeper.startedAtMs >= WRITE_KEEP_LIMIT_IN_MS) {
+    if (Date.now() >= keeper.keepUntilMs) {
       ProjectSsoProviderChanges.stopKeeping(keeper);
+
+      if (keeper.isAbandoned) {
+        logger.warn(
+          "SSO sign-in change: the write that failed without an answer from the database can no longer land; its locks are no longer kept, and run out.",
+        );
+        return;
+      }
+
       logger.error(
         `SSO sign-in change: still being written ${Math.round(
           WRITE_KEEP_LIMIT_IN_MS / 1000,
@@ -789,7 +1009,9 @@ export default class ProjectSsoProviderChanges {
    * right before an update, which has a later hook (beforeWrite) - and held
    * until it is done (afterUpdate, afterDelete) or fails
    * (afterFailedWrite), or given back at once when it is refused or reaches
-   * no row. Without Valkey the write still reads and checks, unlocked.
+   * no row. A lock found gone by then is taken again, and the rows read and
+   * checked again under the locks, into the same write (`recheck`). Without
+   * Valkey the write still reads and checks, unlocked.
    */
   private static async lockReadAndCheck<TModel extends BaseModel>(data: {
     providerType: ProjectSsoProviderType;
@@ -797,6 +1019,52 @@ export default class ProjectSsoProviderChanges {
     // The update or delete, narrowed here to the rows it read under the locks.
     write: UpdateBy<TModel> | DeleteBy<TModel>;
     // A delete, which - as a hard delete - also reaches rows deleted before.
+    isDelete: boolean;
+    decide: (rows: Array<ProjectSsoProviderRow>) => ProjectSsoProviderWrite;
+  }): Promise<ProjectSsoProviderWrite> {
+    const write: ProjectSsoProviderWrite =
+      await ProjectSsoProviderChanges.lockReadAndCheckRows(data);
+
+    const locks: Array<SemaphoreMutex> | undefined = write.locks;
+
+    // Nothing it writes is there: nothing to hold.
+    if (!locks) {
+      return write;
+    }
+
+    // The same check, from the start: what the write does is worked out again, here.
+    write.recheck = async (): Promise<Array<SemaphoreMutex>> => {
+      const again: ProjectSsoProviderWrite =
+        await ProjectSsoProviderChanges.lockReadAndCheckRows(data);
+
+      write.takenAway = again.takenAway;
+      write.turnedOn = again.turnedOn;
+
+      return again.locks || [];
+    };
+
+    try {
+      // Checked: its locks are kept for the write until it is done.
+      await ProjectSsoProviderChanges.holdForWrite(locks, write.recheck);
+    } catch (err) {
+      await ProjectSsoProviderChanges.releaseSignInChange(locks);
+      throw err;
+    }
+
+    return write;
+  }
+
+  /*
+   * The check of lockReadAndCheck, run once more should a lock be found
+   * gone before the write: the rows read, their projects locked, the rows
+   * read again under the locks and checked, the write held to them. What it
+   * answers holds the locks it took - none when nothing it names is there -
+   * which it gives back when it throws.
+   */
+  private static async lockReadAndCheckRows<TModel extends BaseModel>(data: {
+    providerType: ProjectSsoProviderType;
+    service: DatabaseService<TModel>;
+    write: UpdateBy<TModel> | DeleteBy<TModel>;
     isDelete: boolean;
     decide: (rows: Array<ProjectSsoProviderRow>) => ProjectSsoProviderWrite;
   }): Promise<ProjectSsoProviderWrite> {
@@ -896,9 +1164,6 @@ export default class ProjectSsoProviderChanges {
           },
         });
       }
-
-      // Checked: its locks are kept for the write until it is done.
-      await ProjectSsoProviderChanges.holdForWrite(locks);
 
       return write;
     } catch (err) {

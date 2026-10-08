@@ -56,9 +56,16 @@ const HOOKS_THAT_TAKE: Array<string> = ["onBeforeCreate", "onCreatePermitted"];
 const TAKES_A_LOCK: RegExp =
   /\b(Semaphore\.lock|StateChangeLock\.take|SsoRequirementChanges\.beforeProjectCreate|ProjectSsoProviderChanges\.lockSignInChange|GlobalSsoProviderChanges\.beforeAttachmentCreate)\s*\(/;
 
-// Giving one back.
+/*
+ * Giving one back. A sign-in change's lock is handed back after a failed
+ * create through the helpers that give it back - or, when the database may
+ * still apply the INSERT, keep it until it would have cancelled it, and then
+ * let it run out (SsoRequirementChanges.afterFailedProjectCreate,
+ * GlobalSsoProviderChanges.afterFailedWrite; SsoFailedWriteLocksGuard holds
+ * every error hook of a sign-in change to handing them what failed).
+ */
 const GIVES_IT_BACK: RegExp =
-  /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange|GlobalSsoProviderChanges\.afterWrite)\s*\(/;
+  /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|SsoRequirementChanges\.afterFailedProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange|GlobalSsoProviderChanges\.afterWrite|GlobalSsoProviderChanges\.afterFailedWrite)\s*\(/;
 
 // onCreateError takes what onBeforeCreate handed back.
 const ERROR_HOOK_TAKES_THE_CREATE: RegExp =

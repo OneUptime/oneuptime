@@ -18,7 +18,9 @@ import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "./Database/RelationIdUtil";
 import logger from "./Logger";
-import ProjectSsoProviderChanges from "./ProjectSsoProviderChanges";
+import ProjectSsoProviderChanges, {
+  SignInChangeRecheck,
+} from "./ProjectSsoProviderChanges";
 import SsoSignInsEnded from "./SsoSignInsEnded";
 import SsoSignInWays, {
   GlobalProviderAttachmentRows,
@@ -67,10 +69,12 @@ import SsoSignInWays, {
  *     delete has no later hook than onBeforeDelete, and takes it last
  *     there), kept while the check reads, kept alive while the write runs
  *     (ProjectSsoProviderChanges.holdForWrite) - so the write never lands
- *     once it could have run out, and is refused when it was lost before -
- *     and given back as soon as the write is done (afterWrite, first in the
- *     success hooks; afterHardDelete for a hard delete, which runs none of
- *     them) or fails (the error hooks). A write that only lets a provider
+ *     once it could have run out: lost before it, the lock is taken again
+ *     and the write read and checked again under it - and given back as
+ *     soon as the write is done (afterWrite, first in the success hooks;
+ *     afterHardDelete for a hard delete, which runs none of them) or fails
+ *     (afterFailedWrite, the error hooks: kept on until the database would
+ *     have cancelled a write it may still apply). A write that only lets a provider
  *     sign more people in - turning it or an attachment on, lifting the
  *     restriction - takes no lock and is never refused; where it moves the
  *     provider is worked out all the same, unlocked (workOutUnlocked). One
@@ -121,6 +125,13 @@ export interface GlobalSsoProviderWrite {
    * the write.
    */
   touchesRestrictedProvider?: boolean | undefined;
+  /*
+   * The write's check, run again from the start should its lock be found
+   * gone right before the write (ProjectSsoProviderChanges.holdForWrite):
+   * the rows read again under the lock taken again, and the write worked out
+   * again in this record.
+   */
+  recheck?: SignInChangeRecheck | undefined;
 }
 
 // A global provider, as these hooks read it.
@@ -716,6 +727,33 @@ export default class GlobalSsoProviderChanges {
     return changedReach && deletedIds.length > 0;
   }
 
+  /*
+   * Once the write has failed (the error hooks, with what failed): its lock
+   * is given back, once - unless the database may still apply the write,
+   * when it is kept until the database would have cancelled it
+   * (ProjectSsoProviderChanges.giveBackAfterFailedWrite). Nobody is told:
+   * nothing was written. Never throws.
+   */
+  public static async afterFailedWrite<TModel extends BaseModel>(
+    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+    error: unknown,
+  ): Promise<void> {
+    const key: WriteKey = keyOf(written);
+    const write: GlobalSsoProviderWrite | undefined =
+      GlobalSsoProviderChanges.writes.get(key);
+
+    GlobalSsoProviderChanges.writes.delete(key);
+
+    if (!write) {
+      return;
+    }
+
+    const locks: Array<SemaphoreMutex> = write.locks || [];
+    write.locks = undefined;
+
+    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(locks, error);
+  }
+
   // Gives a write's lock back, once.
   public static async release(
     write: GlobalSsoProviderWrite | null | undefined,
@@ -734,10 +772,11 @@ export default class GlobalSsoProviderChanges {
    * The last step of a service that does more once its check is done - an
    * attachment's delete reads the providers it detaches, under the lock -
    * right before the write: the lock is kept once more
-   * (ProjectSsoProviderChanges.holdForWrite), and one found gone by now
-   * refuses the write, giving back whatever it still holds: a delete's
-   * before-hook has no error hook after it that could. A write that holds
-   * no lock goes on.
+   * (ProjectSsoProviderChanges.holdForWrite). One found gone by now is taken
+   * again, and the write read and checked again under it; refused - the
+   * lock cannot be taken, or the write no longer passes - it gives back
+   * whatever it still holds: a delete's before-hook has no error hook after
+   * it that could. A write that holds no lock goes on.
    */
   public static async holdForWrite<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
@@ -750,7 +789,7 @@ export default class GlobalSsoProviderChanges {
     }
 
     try {
-      await ProjectSsoProviderChanges.holdForWrite(write.locks);
+      await ProjectSsoProviderChanges.holdForWrite(write.locks, write.recheck);
     } catch (err) {
       await GlobalSsoProviderChanges.afterWrite(written);
       throw err;
@@ -816,12 +855,54 @@ export default class GlobalSsoProviderChanges {
    * The lock is kept while the check reads, page by page, and from then on
    * kept alive for the write (ProjectSsoProviderChanges.holdForWrite) until
    * it is done (afterWrite), or given back at once when the write is
-   * refused. A lock found gone when the check is done refuses the write.
+   * refused. A lock found gone once the check is done, or right before the
+   * write, is taken again and the write worked out and checked again under
+   * it (`recheck`): refused only when the lock cannot be taken, or the write
+   * no longer passes.
    */
   private static async lockAndCheck(data: {
     key: WriteKey;
     work: () => Promise<Omit<GlobalSsoProviderWrite, "locks">>;
   }): Promise<GlobalSsoProviderWrite> {
+    const write: GlobalSsoProviderWrite =
+      await GlobalSsoProviderChanges.lockWorkAndCheck(data.work);
+
+    const locks: Array<SemaphoreMutex> = write.locks || [];
+
+    // The same check, from the start: what the write changes is worked out again, here.
+    write.recheck = async (): Promise<Array<SemaphoreMutex>> => {
+      const again: GlobalSsoProviderWrite =
+        await GlobalSsoProviderChanges.lockWorkAndCheck(data.work);
+
+      write.reachChanges = again.reachChanges;
+      write.touchesRestrictedProvider = again.touchesRestrictedProvider;
+
+      return again.locks || [];
+    };
+
+    try {
+      // Checked: the lock is kept for the write until it is done.
+      await ProjectSsoProviderChanges.holdForWrite(locks, write.recheck);
+    } catch (err) {
+      await ProjectSsoProviderChanges.releaseSignInChange(locks);
+      throw err;
+    }
+
+    GlobalSsoProviderChanges.writes.set(data.key, write);
+
+    return write;
+  }
+
+  /*
+   * The check of lockAndCheck, run once more should its lock be found gone
+   * before the write: the lock on the server's sign-in rules taken, the
+   * write worked out from what is read under it, and refused when it would
+   * strand a project. What it answers holds the lock, which it gives back
+   * when it throws.
+   */
+  private static async lockWorkAndCheck(
+    work: () => Promise<Omit<GlobalSsoProviderWrite, "locks">>,
+  ): Promise<GlobalSsoProviderWrite> {
     const locks: Array<SemaphoreMutex> =
       await ProjectSsoProviderChanges.lockSignInChange({
         projectIds: [],
@@ -830,7 +911,7 @@ export default class GlobalSsoProviderChanges {
 
     try {
       const write: GlobalSsoProviderWrite = {
-        ...(await data.work()),
+        ...(await work()),
         locks,
       };
 
@@ -849,11 +930,6 @@ export default class GlobalSsoProviderChanges {
       if (stranded.count > 0) {
         throw new BadDataException(getGlobalChangeRefusalMessage(stranded));
       }
-
-      // Checked: the lock is kept for the write until it is done.
-      await ProjectSsoProviderChanges.holdForWrite(locks);
-
-      GlobalSsoProviderChanges.writes.set(data.key, write);
 
       return write;
     } catch (err) {
