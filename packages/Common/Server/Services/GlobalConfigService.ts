@@ -478,7 +478,9 @@ export class Service extends DatabaseService<Model> {
    * signs people in to every project that does not require SSO itself
    * (Utils/SsoRequirementChanges): checked once the caller has passed every
    * permission check, under the lock on the server's sign-in rules, held
-   * until the write is done (onUpdateSuccess).
+   * until the write is done (onUpdateSuccess) - kept once more right before
+   * it, and kept alive while it is written (SsoRequirementChanges.
+   * beforeWrite).
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -488,6 +490,8 @@ export class Service extends DatabaseService<Model> {
 
     // What the rule is now, so turning it off is told only when it was on.
     await SsoRequirementChanges.rememberServerRuleBefore(updateBy);
+
+    await SsoRequirementChanges.beforeWrite(updateBy);
   }
 
   // An update that failed once it held the lock: it is given back.

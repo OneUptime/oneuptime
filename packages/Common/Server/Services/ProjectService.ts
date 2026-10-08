@@ -1060,8 +1060,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
    *     and, when the project would rely on more than its own providers that
    *     are on, the lock on the server's sign-in rules - held until the
    *     write is done (onUpdateSuccess) or fails (onUpdateError, a charge
-   *     below that fails included), and before anything is charged below;
-   *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn).
+   *     below that fails included), and before anything is charged below.
+   *     An update that names its projects by a filter writes only the
+   *     projects read under those locks;
+   *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn);
+   *   - last, right before the write, the locks of the check are kept once
+   *     more, and kept alive while it is written: one lost by now - the
+   *     charge took long - refuses the write rather than let it land
+   *     unprotected (SsoRequirementChanges.beforeWrite).
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -1073,6 +1079,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await SsoRequirementChanges.rememberProjectRulesBefore(updateBy);
 
     await this.chargeAutoRechargeTurnedOn(updateBy);
+
+    await SsoRequirementChanges.beforeWrite(updateBy);
   }
 
   /*

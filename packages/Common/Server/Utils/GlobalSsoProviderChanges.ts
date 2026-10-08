@@ -65,14 +65,27 @@ import SsoSignInWays, {
  *     read and what it writes. It is taken once every permission check has
  *     passed (the services' onUpdatePermitted and onCreatePermitted; a
  *     delete has no later hook than onBeforeDelete, and takes it last
- *     there), kept while the check reads, and given back as soon as the
- *     write is done (afterWrite, first in the success hooks; afterHardDelete
- *     for a hard delete, which runs none of them) or fails (the error
- *     hooks). A write that only lets a provider sign more people in -
- *     turning it or an attachment on, lifting the restriction - takes no
- *     lock and is never refused; where it moves the provider is worked out
- *     all the same, unlocked (workOutUnlocked). One that writes neither
- *     switch - a new certificate, a new name - reads nothing.
+ *     there), kept while the check reads, kept alive while the write runs
+ *     (ProjectSsoProviderChanges.holdForWrite) - so the write never lands
+ *     once it could have run out, and is refused when it was lost before -
+ *     and given back as soon as the write is done (afterWrite, first in the
+ *     success hooks; afterHardDelete for a hard delete, which runs none of
+ *     them) or fails (the error hooks). A write that only lets a provider
+ *     sign more people in - turning it or an attachment on, lifting the
+ *     restriction - takes no lock and is never refused; where it moves the
+ *     provider is worked out all the same, unlocked (workOutUnlocked). One
+ *     that writes neither switch - a new certificate, a new name - reads
+ *     nothing;
+ *   - a write that names its providers or attachments by a filter writes
+ *     exactly the rows its hooks read (ProjectSsoProviderChanges.
+ *     writeOnlyTheRowsRead): a row that comes to match the filter
+ *     afterwards - created, renamed, turned on or attached a moment later -
+ *     was never checked, nor worked out, and is left alone. A delete,
+ *     a hard delete included, reaches no other row that is there, only rows
+ *     deleted before, which sign nobody in. A write that only lets more
+ *     people in and whose rows could not be read goes on with its own
+ *     filter - nothing about it is checked - and every server is told
+ *     (workOutUnlocked).
  *
  * Every server hearing of the change is the services' part
  * (announceGlobalSignInChange): told when the write changed where a
@@ -232,25 +245,37 @@ export default class GlobalSsoProviderChanges {
     const work: () => Promise<
       Omit<GlobalSsoProviderWrite, "locks">
     > = async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-      /*
-       * Only the providers whose switches the write changes: one it leaves
-       * as it was - an edit form sends every switch it shows - signs the
-       * same people in after it, and its attachments are not read.
-       */
-      const providers: Array<GlobalProviderRow> = (
+      const read: Array<GlobalProviderRow> =
         await GlobalSsoProviderChanges.readProviders({
           service: data.service,
           query: data.updateBy.query,
           limit: data.updateBy.limit,
           skip: data.updateBy.skip,
-        })
-      ).filter((provider: GlobalProviderRow): boolean => {
-        return (
-          (isEnabled !== undefined && isEnabled !== provider.isEnabled) ||
-          (restrictToAttachedProjects !== undefined &&
-            restrictToAttachedProjects !== provider.restrictToAttachedProjects)
-        );
+        });
+
+      // The write goes to exactly the providers read here.
+      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
+        service: data.service,
+        write: data.updateBy,
+        rowIds: ProjectSsoProviderChanges.idsOf(read),
+        isDelete: false,
       });
+
+      /*
+       * Only the providers whose switches the write changes: one it leaves
+       * as it was - an edit form sends every switch it shows - signs the
+       * same people in after it, and its attachments are not read.
+       */
+      const providers: Array<GlobalProviderRow> = read.filter(
+        (provider: GlobalProviderRow): boolean => {
+          return (
+            (isEnabled !== undefined && isEnabled !== provider.isEnabled) ||
+            (restrictToAttachedProjects !== undefined &&
+              restrictToAttachedProjects !==
+                provider.restrictToAttachedProjects)
+          );
+        },
+      );
 
       if (providers.length === 0) {
         return { reachChanges: [] };
@@ -348,6 +373,17 @@ export default class GlobalSsoProviderChanges {
             limit: data.deleteBy.limit,
             skip: data.deleteBy.skip,
           });
+
+        /*
+         * The delete goes to exactly the providers read here, under the
+         * lock - and rows deleted before, which a hard delete purges.
+         */
+        ProjectSsoProviderChanges.writeOnlyTheRowsRead({
+          service: data.service,
+          write: data.deleteBy,
+          rowIds: ProjectSsoProviderChanges.idsOf(providers),
+          isDelete: true,
+        });
 
         const attachments: Map<
           string,
@@ -502,6 +538,14 @@ export default class GlobalSsoProviderChanges {
           skip: data.updateBy.skip,
         });
 
+      // The write goes to exactly the attachments read here.
+      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
+        service: data.service,
+        write: data.updateBy,
+        rowIds: ProjectSsoProviderChanges.idsOf(matched),
+        isDelete: false,
+      });
+
       /*
        * Turned off or moved: told whatever else was read when a provider it
        * touches - the one each attachment leaves, and the one it moves to -
@@ -592,6 +636,17 @@ export default class GlobalSsoProviderChanges {
             skip: data.deleteBy.skip,
           });
 
+        /*
+         * The delete goes to exactly the attachments read here, under the
+         * lock - and rows deleted before, which a hard delete purges.
+         */
+        ProjectSsoProviderChanges.writeOnlyTheRowsRead({
+          service: data.service,
+          write: data.deleteBy,
+          rowIds: ProjectSsoProviderChanges.idsOf(matched),
+          isDelete: true,
+        });
+
         return {
           reachChanges:
             await GlobalSsoProviderChanges.getAttachmentReachChanges({
@@ -675,6 +730,33 @@ export default class GlobalSsoProviderChanges {
     await ProjectSsoProviderChanges.releaseSignInChange(locks);
   }
 
+  /*
+   * The last step of a service that does more once its check is done - an
+   * attachment's delete reads the providers it detaches, under the lock -
+   * right before the write: the lock is kept once more
+   * (ProjectSsoProviderChanges.holdForWrite), and one found gone by now
+   * refuses the write, giving back whatever it still holds: a delete's
+   * before-hook has no error hook after it that could. A write that holds
+   * no lock goes on.
+   */
+  public static async holdForWrite<TModel extends BaseModel>(
+    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+  ): Promise<void> {
+    const write: GlobalSsoProviderWrite | undefined =
+      GlobalSsoProviderChanges.writes.get(keyOf(written));
+
+    if (!write?.locks || write.locks.length === 0) {
+      return;
+    }
+
+    try {
+      await ProjectSsoProviderChanges.holdForWrite(write.locks);
+    } catch (err) {
+      await GlobalSsoProviderChanges.afterWrite(written);
+      throw err;
+    }
+  }
+
   // The write a before-hook worked out, for tests and the success hooks.
   public static getWrite<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
@@ -691,8 +773,11 @@ export default class GlobalSsoProviderChanges {
    * another write makes at that moment: a write that turns a provider or
    * an attachment off, or restricts it, tells the servers itself whatever
    * it read (the services' success hooks), and any other answer a server
-   * holds runs out within a minute. Never throws: when the read fails, the
-   * write counts as a change.
+   * holds runs out within a minute. Never throws: when working it out
+   * fails, the write counts as a change, and every server is told. One whose
+   * rows could not be read at all goes on with its own filter: nothing about
+   * a write that only lets more people in is checked, and every server asks
+   * again whatever it reaches.
    */
   private static async workOutUnlocked(data: {
     key: WriteKey;
@@ -728,9 +813,10 @@ export default class GlobalSsoProviderChanges {
    * its attached projects. Global provider and attachment writes are rare,
    * and each holds the lock for one check and one write.
    *
-   * The lock is kept while the check reads, page by page, and once more
-   * when it is done, so the write has the whole time; it is held for the
-   * write (afterWrite), or given back at once when the write is refused.
+   * The lock is kept while the check reads, page by page, and from then on
+   * kept alive for the write (ProjectSsoProviderChanges.holdForWrite) until
+   * it is done (afterWrite), or given back at once when the write is
+   * refused. A lock found gone when the check is done refuses the write.
    */
   private static async lockAndCheck(data: {
     key: WriteKey;
@@ -764,7 +850,8 @@ export default class GlobalSsoProviderChanges {
         throw new BadDataException(getGlobalChangeRefusalMessage(stranded));
       }
 
-      await ProjectSsoProviderChanges.keepSignInChange(locks);
+      // Checked: the lock is kept for the write until it is done.
+      await ProjectSsoProviderChanges.holdForWrite(locks);
 
       GlobalSsoProviderChanges.writes.set(data.key, write);
 

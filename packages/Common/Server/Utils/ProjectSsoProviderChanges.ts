@@ -6,13 +6,16 @@ import Semaphore, {
   SemaphoreLockTimeoutError,
   SemaphoreMutex,
 } from "../Infrastructure/Semaphore";
+import { PostgresQueryTimeoutMs } from "../EnvironmentConfig";
 import DatabaseService from "../Services/DatabaseService";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
+import QueryUtil from "../Types/Database/QueryUtil";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "./Logger";
+import { And, Equal, FindOperator } from "typeorm";
 import ProjectSsoProviderStanding, {
   PROVIDER_NOT_FOUND,
   ProjectSsoProviderStandingValue,
@@ -54,14 +57,20 @@ import SsoSignInWays, {
  *     writes at once cannot each take away what the other counted on, and
  *     none can miss a provider another turned on a moment before. It writes
  *     exactly the providers it read under the lock: one that comes to match
- *     its filter afterwards is left alone (lockReadAndCheck). One that
- *     leaves a project none of its own providers on, or takes away the one
- *     it requires, also holds the lock on the server's sign-in rules
+ *     its filter afterwards is left alone, and a delete - a hard delete
+ *     included - reaches no other provider that is there, only rows deleted
+ *     before, which sign nobody in (lockReadAndCheck, writeOnlyTheRowsRead).
+ *     One that leaves a project none of its own providers on, or takes away
+ *     the one it requires, also holds the lock on the server's sign-in rules
  *     (lockSignInChange): the project then relies on the global providers
  *     and the server's Require SSO for Login, which global changes write
  *     under that lock. One that leaves the project a provider of its own
  *     keeps a way in whatever those are, and holds only the project's lock
  *     (SsoSignInWays.dependsOnServerRules);
+ *   - its locks are kept once more right before the write and kept alive
+ *     while it is written, however long that takes, so it never lands once
+ *     they could have run out: a lock found gone by then refuses the write
+ *     instead (holdForWrite);
  *   - a write that fails once it holds a lock gives it back
  *     (afterFailedWrite, the services' error hooks); a lock nobody gives
  *     back runs out (LOCK_TIMEOUT_IN_MS).
@@ -97,6 +106,22 @@ export interface ProjectSsoProviderWrite {
   locks?: Array<SemaphoreMutex> | undefined;
 }
 
+/*
+ * The locks of a change being written, kept alive until it is done
+ * (holdForWrite): every WRITE_KEEP_INTERVAL_IN_MS, for at most
+ * WRITE_KEEP_LIMIT_IN_MS.
+ */
+interface WriteKeeper {
+  // The locks still kept: one found gone is kept no more.
+  locks: Array<SemaphoreMutex>;
+  timer: ReturnType<typeof setInterval>;
+  startedAtMs: number;
+  // Given back, or past the limit: nothing more is kept.
+  isStopped: boolean;
+  // A keep is under way: the next tick waits for it.
+  isKeeping: boolean;
+}
+
 export const LAST_SSO_PROVIDER_MESSAGE: string =
   "This project requires SSO, and this is the last SSO provider people can sign in to it with. Turn off Require SSO for Login first, so people can still sign in.";
 
@@ -114,20 +139,58 @@ export const SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE: string =
 
 /*
  * How long a lock lasts from when it was taken, or last kept
- * (keepSignInChange): a read, a check and one write. A check that reads
- * many projects keeps its locks page by page, so it never outlives them; a
- * lock its holder stops keeping - its write failed half way, and nothing
- * gave it back - runs out this long after.
+ * (keepSignInChange): a read and a check. A check that reads many projects
+ * keeps its locks page by page, and a write keeps them while it is written
+ * (holdForWrite), so neither outlives them; a lock its holder stops keeping
+ * - its write failed half way, and nothing gave it back - runs out this
+ * long after.
  */
-const LOCK_TIMEOUT_IN_MS: number = 10_000;
+export const LOCK_TIMEOUT_IN_MS: number = 10_000;
 
 /*
  * How long a write waits for a lock: longer than a lock nobody keeps lasts,
  * so one a failed write never gave back runs out before a write waiting for
  * it gives up. A write that waits on a long check another change keeps
- * going is refused instead ("try again in a moment").
+ * going, or on another change being written, is refused instead ("try
+ * again in a moment").
  */
 const LOCK_WAIT_IN_MS: number = 15_000;
+
+/*
+ * How often the locks of a change are kept while it is written
+ * (holdForWrite): well inside LOCK_TIMEOUT_IN_MS, so a keep that comes a few
+ * seconds late - a busy server, a slow Valkey - still lands before the lock
+ * would run out.
+ */
+export const WRITE_KEEP_INTERVAL_IN_MS: number = 2_500;
+
+/*
+ * The longest the locks of a change are kept alive while it is written, from
+ * its check on: as long as the client waits for any one statement
+ * (PostgresQueryTimeoutMs - DATABASE_QUERY_TIMEOUT_MS, by default a little
+ * after the database's DATABASE_STATEMENT_TIMEOUT_MS), with time to spare
+ * for the steps between the check and the write - and a minute at the
+ * least. So a write that is still going is held to the end, whatever the
+ * timeouts are set to; one stuck longer than that - a step after its
+ * statements that never returns - is no longer kept, and its locks run out
+ * LOCK_TIMEOUT_IN_MS later, rather than holding every other change to who
+ * can sign in waiting. Every change gives its locks back once it is written
+ * or has failed, well before this. A timeout that is not a number counts as
+ * none set: a minute.
+ */
+export const getWriteKeepLimitInMs: (queryTimeoutMs: number) => number = (
+  queryTimeoutMs: number,
+): number => {
+  if (!Number.isFinite(queryTimeoutMs)) {
+    return 60_000;
+  }
+
+  return Math.max(60_000, queryTimeoutMs + 25_000);
+};
+
+export const WRITE_KEEP_LIMIT_IN_MS: number = getWriteKeepLimitInMs(
+  PostgresQueryTimeoutMs,
+);
 
 const LOCK_NAMESPACE: string = "ProjectSsoProviderChanges.keepAWayIn";
 
@@ -150,10 +213,12 @@ export default class ProjectSsoProviderChanges {
     ProjectSsoProviderWrite
   > = new WeakMap<UpdateBy<BaseModel>, ProjectSsoProviderWrite>();
 
-  // The hard deletes running now (runHardDelete), by the DeleteBy they were given.
-  private static hardDeletes: WeakSet<DeleteBy<BaseModel>> = new WeakSet<
-    DeleteBy<BaseModel>
-  >();
+  /*
+   * The changes being written now whose locks are kept alive until they are
+   * given back (holdForWrite), by each lock they keep.
+   */
+  private static writeKeepers: WeakMap<SemaphoreMutex, WriteKeeper> =
+    new WeakMap<SemaphoreMutex, WriteKeeper>();
 
   /*
    * Whether a project SAML or OIDC provider vouches for the sign-ins it gave
@@ -233,7 +298,7 @@ export default class ProjectSsoProviderChanges {
         providerType: data.providerType,
         service: data.service,
         write: data.updateBy,
-        isHardDelete: false,
+        isDelete: false,
         decide: (
           rows: Array<ProjectSsoProviderRow>,
         ): ProjectSsoProviderWrite => {
@@ -262,6 +327,8 @@ export default class ProjectSsoProviderChanges {
    * that turns a provider off writes when, in the same write
    * (SsoSignInsEnded.stampWhenTurnedOff), using what beforeUpdate found
    * under the lock, or - for an update that did not pass it - the rows now.
+   * Then the locks beforeUpdate took are kept for the write
+   * (holdForWrite): one found gone by now refuses it.
    */
   public static async beforeWrite<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
@@ -277,6 +344,10 @@ export default class ProjectSsoProviderChanges {
       updateBy: data.updateBy,
       turnsOneOff: write ? write.takenAway.length > 0 : undefined,
     });
+
+    if (write?.locks) {
+      await ProjectSsoProviderChanges.holdForWrite(write.locks);
+    }
   }
 
   // After an update (onUpdateSuccess): the providers' projects, announced.
@@ -299,10 +370,11 @@ export default class ProjectSsoProviderChanges {
   }
 
   /*
-   * Before a delete (onBeforeDelete, with the rows the caller may delete):
-   * the providers it takes away that were on, read under the projects'
-   * lock, refused when that would leave a project that requires SSO with
-   * no provider to sign in with.
+   * Before a delete (onBeforeDelete, with the rows the caller may delete -
+   * its last step, so its locks are kept for the write here): the providers
+   * it takes away that were on, read under the projects' lock, refused when
+   * that would leave a project that requires SSO with no provider to sign
+   * in with.
    */
   public static async beforeDelete<TModel extends BaseModel>(data: {
     providerType: ProjectSsoProviderType;
@@ -313,9 +385,7 @@ export default class ProjectSsoProviderChanges {
       providerType: data.providerType,
       service: data.service,
       write: data.deleteBy,
-      isHardDelete: ProjectSsoProviderChanges.hardDeletes.has(
-        data.deleteBy as unknown as DeleteBy<BaseModel>,
-      ),
+      isDelete: true,
       decide: (rows: Array<ProjectSsoProviderRow>): ProjectSsoProviderWrite => {
         return {
           takenAway: rows.filter((row: ProjectSsoProviderRow): boolean => {
@@ -502,10 +572,93 @@ export default class ProjectSsoProviderChanges {
     }
   }
 
-  // Gives back the locks of a change. Never throws: a lock not given back runs out.
+  /*
+   * The last step before a checked change is written: its locks are kept
+   * once more, and then kept alive while the write runs, until they are
+   * given back once it is done or has failed (releaseSignInChange). So the
+   * write never lands once its locks could have run out - however long the
+   * database takes over it, or whatever runs between the check and the
+   * write (a charge to the payment provider, another read) - and no other
+   * change to the same projects or rules comes between: one that wants them
+   * meanwhile waits, and is refused if it waits too long.
+   *
+   * A lock found gone by now - it ran out, or Valkey lost it - refuses the
+   * write, as one found gone while the check read does: another change may
+   * hold it, and what this one read may no longer be true. When Valkey
+   * cannot be reached the write goes on, as a change does when it could not
+   * lock at all.
+   *
+   * Called again for the same locks - right before the write, after an
+   * earlier step held them - it keeps them once more, and they are kept
+   * alive only once.
+   */
+  public static async holdForWrite(
+    locks: Array<SemaphoreMutex>,
+  ): Promise<void> {
+    try {
+      await ProjectSsoProviderChanges.keepSignInChange(locks);
+    } catch (err) {
+      // Refused: none of its locks is kept alive any more.
+      for (const lock of locks) {
+        const keeper: WriteKeeper | undefined =
+          ProjectSsoProviderChanges.writeKeepers.get(lock);
+
+        if (keeper) {
+          ProjectSsoProviderChanges.stopKeeping(keeper);
+        }
+      }
+
+      throw err;
+    }
+
+    const unkept: Array<SemaphoreMutex> = locks.filter(
+      (lock: SemaphoreMutex): boolean => {
+        return !ProjectSsoProviderChanges.writeKeepers.has(lock);
+      },
+    );
+
+    if (unkept.length === 0) {
+      return;
+    }
+
+    const keeper: WriteKeeper = {
+      locks: unkept,
+      startedAtMs: Date.now(),
+      isStopped: false,
+      isKeeping: false,
+      timer: setInterval((): void => {
+        ProjectSsoProviderChanges.keepWhileWritten(keeper).catch(
+          (err: unknown): void => {
+            logger.warn(err);
+          },
+        );
+      }, WRITE_KEEP_INTERVAL_IN_MS),
+    };
+
+    // Never keeps the process alive on its own.
+    keeper.timer.unref?.();
+
+    for (const lock of unkept) {
+      ProjectSsoProviderChanges.writeKeepers.set(lock, keeper);
+    }
+  }
+
+  /*
+   * Gives back the locks of a change, and stops keeping them first. Never
+   * throws: a lock not given back runs out.
+   */
   public static async releaseSignInChange(
     locks: Array<SemaphoreMutex>,
   ): Promise<void> {
+    for (const lock of locks) {
+      const keeper: WriteKeeper | undefined =
+        ProjectSsoProviderChanges.writeKeepers.get(lock);
+
+      if (keeper) {
+        ProjectSsoProviderChanges.stopKeeping(keeper);
+      }
+    }
+
     for (const lock of locks) {
       try {
         await Semaphore.release(lock);
@@ -516,24 +669,91 @@ export default class ProjectSsoProviderChanges {
     }
   }
 
-  /*
-   * Runs a hard delete of providers - the service's hardDeleteBy, which the
-   * retention job's purge calls - known as one to beforeDelete while it
-   * runs: unlike every other write, it also reaches rows deleted before,
-   * which no read here sees (writeOnlyTheRowsRead).
-   */
-  public static async runHardDelete<TModel extends BaseModel>(
-    deleteBy: DeleteBy<TModel>,
-    hardDelete: () => Promise<number>,
-  ): Promise<number> {
-    const key: DeleteBy<BaseModel> = deleteBy as unknown as DeleteBy<BaseModel>;
+  // Whether a lock is being kept alive for a change that is being written (holdForWrite).
+  public static isKeptForWrite(lock: SemaphoreMutex): boolean {
+    return ProjectSsoProviderChanges.writeKeepers.has(lock);
+  }
 
-    ProjectSsoProviderChanges.hardDeletes.add(key);
+  /*
+   * One round of keeping the locks of a change being written: each lasts
+   * another LOCK_TIMEOUT_IN_MS. Never throws. A lock found gone can no
+   * longer refuse the write, which may already be under way: it is said
+   * loudly, and kept no more. One that cannot be kept for want of Valkey
+   * is tried again next round, and a round still waiting on Valkey is not
+   * started again. Past WRITE_KEEP_LIMIT_IN_MS nothing more is kept - a
+   * round that never came back included.
+   */
+  private static async keepWhileWritten(keeper: WriteKeeper): Promise<void> {
+    if (keeper.isStopped) {
+      return;
+    }
+
+    if (Date.now() - keeper.startedAtMs >= WRITE_KEEP_LIMIT_IN_MS) {
+      ProjectSsoProviderChanges.stopKeeping(keeper);
+      logger.error(
+        `SSO sign-in change: still being written ${Math.round(
+          WRITE_KEEP_LIMIT_IN_MS / 1000,
+        )} seconds after its check; its locks are no longer kept, and run out.`,
+      );
+      return;
+    }
+
+    if (keeper.isKeeping) {
+      return;
+    }
+
+    keeper.isKeeping = true;
 
     try {
-      return await hardDelete();
+      for (const lock of [...keeper.locks]) {
+        if (keeper.isStopped) {
+          return;
+        }
+
+        let isKept: boolean = true;
+
+        try {
+          isKept = await Semaphore.keepLock(lock);
+        } catch (err) {
+          logger.warn(
+            "SSO sign-in change: could not keep a lock while its change was written; trying again.",
+          );
+          logger.warn(err);
+          continue;
+        }
+
+        // Given back while this round ran: the change is done.
+        if (isKept || keeper.isStopped) {
+          continue;
+        }
+
+        keeper.locks = keeper.locks.filter((kept: SemaphoreMutex): boolean => {
+          return kept !== lock;
+        });
+        ProjectSsoProviderChanges.writeKeepers.delete(lock);
+
+        logger.error(
+          "SSO sign-in change: a lock was lost while its change was being written; another change to who can sign in may have been written at the same time.",
+        );
+      }
+
+      if (keeper.locks.length === 0) {
+        ProjectSsoProviderChanges.stopKeeping(keeper);
+      }
     } finally {
-      ProjectSsoProviderChanges.hardDeletes.delete(key);
+      keeper.isKeeping = false;
+    }
+  }
+
+  // Keeps a change's locks no more: given back, or past the limit.
+  private static stopKeeping(keeper: WriteKeeper): void {
+    keeper.isStopped = true;
+    clearInterval(keeper.timer);
+
+    for (const lock of keeper.locks) {
+      if (ProjectSsoProviderChanges.writeKeepers.get(lock) === keeper) {
+        ProjectSsoProviderChanges.writeKeepers.delete(lock);
+      }
     }
   }
 
@@ -552,8 +772,9 @@ export default class ProjectSsoProviderChanges {
    * (writeOnlyTheRowsRead): a row that comes to match its filter later - a
    * provider created, renamed or turned on a moment after - was never
    * checked, and is left alone; a write whose rows read under the locks are
-   * none writes nothing. No write turns off or deletes a provider its check
-   * did not read under a lock.
+   * none writes nothing that is there, a hard delete included, which may
+   * only purge rows deleted before. No write turns off or deletes a
+   * provider its check did not read under a lock.
    *
    * A write that takes a provider away is checked. When a project it
    * touches would be left none of its own providers on, or loses the one it
@@ -564,18 +785,19 @@ export default class ProjectSsoProviderChanges {
    * own whatever the server's rules are, and the write needs no check and
    * no other lock (SsoSignInWays.dependsOnServerRules).
    *
-   * The locks are held until the write is done (afterUpdate, afterDelete)
-   * or fails (afterFailedWrite), or given back at once when it is refused
-   * or reaches no row. Without Valkey the write still reads and checks,
-   * unlocked.
+   * The locks are kept for the write from here (holdForWrite) - again
+   * right before an update, which has a later hook (beforeWrite) - and held
+   * until it is done (afterUpdate, afterDelete) or fails
+   * (afterFailedWrite), or given back at once when it is refused or reaches
+   * no row. Without Valkey the write still reads and checks, unlocked.
    */
   private static async lockReadAndCheck<TModel extends BaseModel>(data: {
     providerType: ProjectSsoProviderType;
     service: DatabaseService<TModel>;
     // The update or delete, narrowed here to the rows it read under the locks.
     write: UpdateBy<TModel> | DeleteBy<TModel>;
-    // A hard delete: it also reaches rows deleted before, which no read sees.
-    isHardDelete: boolean;
+    // A delete, which - as a hard delete - also reaches rows deleted before.
+    isDelete: boolean;
     decide: (rows: Array<ProjectSsoProviderRow>) => ProjectSsoProviderWrite;
   }): Promise<ProjectSsoProviderWrite> {
     const readNow: () => Promise<
@@ -597,9 +819,10 @@ export default class ProjectSsoProviderChanges {
     // It reaches no provider: nothing to lock or check, and nothing to write.
     if (lockedProjectIds.length === 0) {
       ProjectSsoProviderChanges.writeOnlyTheRowsRead({
+        service: data.service,
         write: data.write,
-        rows: [],
-        isHardDelete: data.isHardDelete,
+        rowIds: [],
+        isDelete: data.isDelete,
       });
 
       return { takenAway: [], turnedOn: [] };
@@ -631,9 +854,10 @@ export default class ProjectSsoProviderChanges {
       }
 
       ProjectSsoProviderChanges.writeOnlyTheRowsRead({
+        service: data.service,
         write: data.write,
-        rows,
-        isHardDelete: data.isHardDelete,
+        rowIds: ProjectSsoProviderChanges.idsOf(rows),
+        isDelete: data.isDelete,
       });
 
       // Nothing it writes is there: nothing to check, and nothing to hold.
@@ -671,9 +895,10 @@ export default class ProjectSsoProviderChanges {
             await ProjectSsoProviderChanges.keepSignInChange(locks);
           },
         });
-
-        await ProjectSsoProviderChanges.keepSignInChange(locks);
       }
+
+      // Checked: its locks are kept for the write until it is done.
+      await ProjectSsoProviderChanges.holdForWrite(locks);
 
       return write;
     } catch (err) {
@@ -683,36 +908,47 @@ export default class ProjectSsoProviderChanges {
   }
 
   /*
-   * Holds a write to the rows read under its locks, by their ids, on top of
-   * its own filter: a row that matches the filter only later was never
-   * checked, and one that stops matching it is left alone too. Its window
-   * becomes those rows. A write that read none under its locks writes
-   * nothing.
+   * Holds a write to the rows its check read under its locks, by their ids,
+   * on top of its own filter: a row that matches the filter only later was
+   * never checked, and one that stops matching it is left alone too. Its
+   * window becomes those rows. A write that read none under its locks
+   * writes nothing.
    *
-   * Except a hard delete that read no row: the retention job's purge
-   * removes rows deleted long ago, which no read here sees and which sign
-   * nobody in, so it keeps its filter. One that read rows is held to them
-   * like any other write, and the rows deleted before that it also matched
-   * are purged on its next pass.
+   * A delete that read none may still reach rows deleted before - only a
+   * hard delete does: the retention job's purge removes them a month on -
+   * which no read here sees and which sign nobody in, but no other row: its
+   * filter is held to rows deleted before (deletedAt set), together with
+   * whatever it asks of deletedAt itself. One that read rows is held to
+   * them like any other write; rows deleted before that it also matched are
+   * purged on its next pass.
+   *
+   * Every sign-in change that names its rows by a filter writes through
+   * here: a project's providers (lockReadAndCheck), the global providers
+   * and their attachments (GlobalSsoProviderChanges), and the projects
+   * whose Require SSO for Login is turned on (SsoRequirementChanges).
    */
-  private static writeOnlyTheRowsRead<TModel extends BaseModel>(data: {
+  public static writeOnlyTheRowsRead<TModel extends BaseModel>(data: {
+    service: DatabaseService<TModel>;
     write: UpdateBy<TModel> | DeleteBy<TModel>;
-    rows: Array<ProjectSsoProviderRow>;
-    isHardDelete: boolean;
+    // The rows the change read under its locks, and checked.
+    rowIds: Array<string>;
+    isDelete: boolean;
   }): void {
-    if (data.isHardDelete && data.rows.length === 0) {
-      return;
-    }
-
-    const ids: Array<string> = data.rows.map(
-      (row: ProjectSsoProviderRow): string => {
-        return row.id;
-      },
-    );
+    const ids: Array<string> = data.rowIds;
 
     const toTheRowsRead: (query: Query<TModel>) => Query<TModel> = (
       query: Query<TModel>,
     ): Query<TModel> => {
+      if (ids.length === 0 && data.isDelete) {
+        return {
+          ...query,
+          deletedAt: ProjectSsoProviderChanges.onlyRowsDeletedBefore(
+            data.service,
+            query,
+          ),
+        } as Query<TModel>;
+      }
+
       return {
         ...query,
         _id: QueryHelper.any(ids),
@@ -732,6 +968,48 @@ export default class ProjectSsoProviderChanges {
       data.write.skip = 0;
       data.write.limit = ids.length;
     }
+  }
+
+  // The ids of the rows a check read, to hold its write to (writeOnlyTheRowsRead).
+  public static idsOf(rows: Array<{ id: string }>): Array<string> {
+    return rows.map((row: { id: string }): string => {
+      return row.id;
+    });
+  }
+
+  /*
+   * A delete's condition on deletedAt that reaches only rows deleted before:
+   * deletedAt is set, and - when the delete asks something of deletedAt
+   * itself, as the retention job's purge asks for rows deleted a month ago
+   * - that too.
+   */
+  private static onlyRowsDeletedBefore<TModel extends BaseModel>(
+    service: DatabaseService<TModel>,
+    query: Query<TModel>,
+  ): FindOperator<unknown> {
+    const deletedBefore: FindOperator<unknown> = QueryHelper.notNull();
+    const asked: unknown = (query as Record<string, unknown>)["deletedAt"];
+
+    if (asked === undefined) {
+      return deletedBefore;
+    }
+
+    // What it asks, as the database is asked it: a value, or one of the query types.
+    const askedOfDatabase: unknown =
+      asked instanceof FindOperator
+        ? asked
+        : (
+            QueryUtil.serializeQuery(service.modelType, {
+              deletedAt: asked,
+            } as Query<TModel>) as Record<string, unknown>
+          )["deletedAt"];
+
+    return And(
+      askedOfDatabase instanceof FindOperator
+        ? (askedOfDatabase as FindOperator<unknown>)
+        : Equal(askedOfDatabase),
+      deletedBefore,
+    );
   }
 
   // The providers a write takes away, by project, as the check reads them.
