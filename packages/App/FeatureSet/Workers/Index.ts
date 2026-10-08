@@ -195,6 +195,16 @@ import "./Jobs/Runbook/TimeoutStuckExecutions";
  */
 import "./Jobs/StatusPageSubscriber/TimeoutStuckNotifications";
 
+/*
+ * Imports from another tool (Project Settings > Import from another tool).
+ * Load-bearing like every import here: the first registers the job a read
+ * or an import is queued as - without it the run waits in Reading or
+ * Importing until the sweep fails it - and the second is that sweep, which
+ * also clears the API key of a read a dead worker left behind.
+ */
+import "./Jobs/ToolImport/RunToolImport";
+import "./Jobs/ToolImport/SweepStaleToolImports";
+
 // Probes
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";

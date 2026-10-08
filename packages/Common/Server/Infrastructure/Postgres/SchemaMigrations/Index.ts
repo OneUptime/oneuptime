@@ -66,6 +66,7 @@ import { AddGlobalAndStatusPageSsoSignInsEndedAt1799900000000 } from "./17999000
 import { EndSignInsOfGlobalAndStatusPageSsoProvidersAlreadyOff1799910000000 } from "./1799910000000-EndSignInsOfGlobalAndStatusPageSsoProvidersAlreadyOff";
 import { EndStatusPageSsoSessionsWithoutProvider1799920000000 } from "./1799920000000-EndStatusPageSsoSessionsWithoutProvider";
 import { AddInstanceBranding1800200000000 } from "./1800200000000-AddInstanceBranding";
+import { AddToolImportTables1800300000000 } from "./1800300000000-AddToolImportTables";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1332,4 +1333,5 @@ export default [
   EndSignInsOfGlobalAndStatusPageSsoProvidersAlreadyOff1799910000000,
   EndStatusPageSsoSessionsWithoutProvider1799920000000,
   AddInstanceBranding1800200000000,
+  AddToolImportTables1800300000000,
 ];

@@ -8,8 +8,11 @@
     "Offline",
     "Runbook: {{name}}",
     "Runner",
+    "Start import",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
-    "{{count}} match"
+    "teams",
+    "{{count}} match",
+    "{{count}} rotation"
   ]
 }
