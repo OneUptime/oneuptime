@@ -59,7 +59,10 @@ import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ServerException from "../../../Types/Exception/ServerException";
-import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  stubGenericReferenceCheck,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
 
 const MONITOR_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -230,6 +233,11 @@ describe("MonitorStatusTimelineService's per-monitor mutex", () => {
         projectId: PROJECT_ID,
         records: { MonitorStatus: [] },
       });
+      /*
+       * The generic check every service runs first lets it through: the
+       * refusal is the monitor's own check of the status it writes.
+       */
+      stubGenericReferenceCheck();
 
       await expect(hooks.onBeforeCreate(makeCreateBy())).rejects.toThrow(
         "Monitor Status",
