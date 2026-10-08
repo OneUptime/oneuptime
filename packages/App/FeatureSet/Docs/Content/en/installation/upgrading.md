@@ -677,6 +677,31 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   `WorkflowMember` above did. **Create Team** is no longer offered to
   `ProjectMember`, `SettingsAdmin` and `SettingsMember`: a team's name
   takes `ProjectAdmin` or **Create Team**, so they could never create one.
+- **Connecting Slack, Microsoft Teams or GitHub that does not finish says
+  why, on the page it started from.** A connection that failed while
+  finishing - a token exchange Slack refused, a read or a write that
+  failed - could leave the browser waiting with no answer at all; a
+  refused Slack or GitHub connection ended on a bare error page, and the
+  Microsoft Teams and GitHub ones could show what Microsoft or GitHub had
+  answered. Now the browser always goes back to the page the
+  connection started from - Slack or Microsoft Teams in Project Settings
+  or in your own User Settings, GitHub on Code Repositories - which says,
+  in your language, that it was not connected and why, with its Connect
+  button right there. What the provider answered is in the server log
+  only. A link that can no longer be used goes to
+  `/dashboard/connect-return`, which opens the provider's page in the
+  project you have open. Nothing to configure: the redirect URLs of the
+  Slack app, the Microsoft app registration and the GitHub App stay the
+  same. See [Slack](/docs/self-hosted/slack-integration#troubleshooting),
+  [Microsoft Teams](/docs/self-hosted/microsoft-teams-integration#connecting-did-not-finish)
+  and [GitHub](/docs/self-hosted/github-integration#troubleshooting).
+- **A server admin is held to no plan inside a project.** Where billing is
+  on, a request a server admin made in a project through the API's own
+  routes - a test notification, starting a GitHub connection - was held to
+  the project's plan, while creating records never was. One rule now holds
+  everywhere: a server admin acting in a project is held to no plan, and
+  everyone else to the project's. Installs with billing off, the
+  self-hosted default, see no change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

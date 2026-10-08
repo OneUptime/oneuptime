@@ -371,6 +371,12 @@ abstract class Navigation {
     options?: {
       openInNewTab?: boolean | undefined;
       forceNavigate?: boolean | undefined;
+      /*
+       * In place of the current history entry, for a page that only passes
+       * the browser on: Back then skips it instead of landing on it and
+       * being passed on again.
+       */
+      replace?: boolean | undefined;
     },
   ): void {
     const finalUrl: string = to.toString();
@@ -405,7 +411,11 @@ abstract class Navigation {
       to instanceof Route &&
       !this.isCurrentRoute(to, { caseSensitive: true })
     ) {
-      this.navigateHook(finalUrl);
+      if (options?.replace) {
+        this.navigateHook(finalUrl, { replace: true });
+      } else {
+        this.navigateHook(finalUrl);
+      }
     }
 
     // if its an external link outside of react.

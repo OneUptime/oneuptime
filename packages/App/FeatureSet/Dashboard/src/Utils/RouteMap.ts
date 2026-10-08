@@ -2064,6 +2064,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.MY_ON_CALL_POLICIES]: new Route(`/dashboard/my-on-call-policies`),
 
+  // Common/Types/Workspace/ConnectCallback's CONNECT_RETURN_PATH, under /dashboard.
+  [PageMap.CONNECT_RETURN]: new Route(`/dashboard/connect-return`),
+
   [PageMap.INCIDENT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW]

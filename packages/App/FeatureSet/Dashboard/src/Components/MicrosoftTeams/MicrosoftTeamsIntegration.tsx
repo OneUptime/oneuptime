@@ -45,11 +45,25 @@ import MicrosoftTeamsChannelsCard from "./MicrosoftTeamsChannelsCard";
 import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ConnectCallbackNotice, {
+  ConnectCallbackNoticeState,
+  useConnectCallbackNotice,
+} from "../Workspace/ConnectCallbackNotice";
+import {
+  CONNECT_START_PAGE_QUERY_PARAM,
+  ConnectProvider,
+  ConnectStartPage,
+} from "Common/Types/Workspace/ConnectCallback";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
   onDisconnected: VoidFunction;
   hideProjectCards?: boolean | undefined; // hide project-level cards (e.g. on User Settings)
+  /*
+   * The page this is on, which Microsoft sends the browser back to: the
+   * project's settings unless said otherwise.
+   */
+  startPage?: ConnectStartPage | undefined;
 }
 
 const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
@@ -57,6 +71,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [error, setError] = React.useState<ReactElement | null>(null);
+
+  // What a connection that came back unmade says (?error=).
+  const connectCallback: ConnectCallbackNoticeState = useConnectCallbackNotice({
+    provider: ConnectProvider.MicrosoftTeams,
+  });
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -209,23 +228,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    // if this page has a query param with error, then there was the error in authentication.
-    const error: string | null = Navigation.getQueryStringByName("error");
-
-    if (error) {
-      setError(
-        <div>
-          {translator.translateText(
-            "There was an error while connecting with Microsoft Teams. Please try again.",
-          )}
-          <br />
-          {translator.translateTemplate("Error: {{error}}", { error: error })}
-        </div>,
-      );
-      setIsLoading(false);
-      return;
-    }
-
+    /*
+     * A connection that came back unmade is said above the page
+     * (connectCallback), which loads as usual, its Connect button right
+     * there to try again. What Microsoft said is never shown: the callback
+     * sends a code, not words.
+     */
     loadItems().catch((error: Exception) => {
       setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
     });
@@ -236,7 +244,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <Fragment>
+        <ConnectCallbackNotice state={connectCallback} />
+        <ErrorMessage message={error} />
+      </Fragment>
+    );
   }
 
   let cardTitle: string = "";
@@ -302,7 +315,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get<JSONObject>({
-          url: URL.fromURL(APP_API_URL).addRoute(route),
+          // Microsoft sends the browser back to this page.
+          url: URL.fromURL(APP_API_URL)
+            .addRoute(route)
+            .addQueryParam(
+              CONNECT_START_PAGE_QUERY_PARAM,
+              props.startPage || ConnectStartPage.ProjectSettings,
+            ),
           headers: ModelAPI.getCommonHeaders(),
         });
 
@@ -521,11 +540,18 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   }
 
   if (!MicrosoftTeamsAppClientId) {
-    return <MicrosoftTeamsIntegrationDocumentation />;
+    return (
+      <Fragment>
+        <ConnectCallbackNotice state={connectCallback} />
+        <MicrosoftTeamsIntegrationDocumentation />
+      </Fragment>
+    );
   }
 
   return (
     <Fragment>
+      <ConnectCallbackNotice state={connectCallback} />
+
       <div className="mt-6">
         <Card
           title={

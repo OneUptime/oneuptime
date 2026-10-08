@@ -15,6 +15,10 @@ import path from "path";
  *  2. Before anything is written, the callback asks the start's question
  *     again, of the person the state names, as they are now
  *     (WorkspaceOAuthCallbackAccess, GitHubConnectAccess).
+ *  3. Every way it can end is answered, on the page the connection started
+ *     from, with a code - never left without an answer, never a bare error
+ *     page, never what a provider said: the callback is registered through
+ *     ConnectCallback.route, the one outer catch, and answers nothing itself.
  *
  * This reads the route files and holds every start and callback to those
  * rules, and every route that spends a state to this list, so a new connect
@@ -94,20 +98,28 @@ const SPENDS_A_STATE: RegExp =
 interface Callback {
   file: string;
   path: string;
+  // The page it answers on (ConnectProvider).
+  provider: string;
   // The flows its state may have been issued for.
   flows: Array<string>;
   // What it asks of the person the state names.
   asksAgain: string;
+  // What a refusal of that question tells the page.
+  refusedAs: string;
   // The first call of each thing it writes, or asks of the provider.
   writes: Array<string>;
+  // The helpers it hands its finishing to, which must not answer either.
+  helpers?: Array<string> | undefined;
 }
 
 const CALLBACKS: Array<Callback> = [
   {
     file: "GitHubAPI.ts",
     path: "/github/auth/callback",
+    provider: "ConnectProvider.GitHub",
     flows: ["WorkspaceOAuthFlow.GitHubAppInstall"],
     asksAgain: "GitHubConnectAccess.assertMayFinish(",
+    refusedAs: "ConnectCallbackError.NoPermission",
     writes: [
       "GitHubUtil.assertUserControlsInstallation(",
       "ProjectService.updateOneById(",
@@ -117,9 +129,11 @@ const CALLBACKS: Array<Callback> = [
   {
     file: "SlackAPI.ts",
     path: "/slack/auth/:projectId/:userId",
+    provider: "ConnectProvider.Slack",
     flows: ["WorkspaceOAuthFlow.SlackInstall"],
     asksAgain:
       "WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(",
+    refusedAs: "ConnectCallbackError.NoPermission",
     writes: [
       "API.post(",
       "WorkspaceProjectAuthTokenService.refreshAuthToken(",
@@ -129,15 +143,19 @@ const CALLBACKS: Array<Callback> = [
   {
     file: "SlackAPI.ts",
     path: "/slack/auth/:projectId/:userId/user",
+    provider: "ConnectProvider.Slack",
     flows: ["WorkspaceOAuthFlow.SlackUserSignIn"],
     asksAgain: "WorkspaceOAuthCallbackAccess.assertStartedByIsMember(",
+    refusedAs: "ConnectCallbackError.NotAMember",
     writes: ["API.post(", "WorkspaceUserAuthTokenService.refreshAuthToken("],
   },
   {
     file: "MicrosoftTeamsAPI.ts",
     path: "/microsoft-teams/auth",
+    provider: "ConnectProvider.MicrosoftTeams",
     flows: ["WorkspaceOAuthFlow.MicrosoftTeamsUserSignIn"],
     asksAgain: "WorkspaceOAuthCallbackAccess.assertStartedByIsMember(",
+    refusedAs: "ConnectCallbackError.NotAMember",
     writes: [
       "API.post<JSONObject>(",
       "WorkspaceUserAuthTokenService.refreshAuthToken(",
@@ -147,16 +165,19 @@ const CALLBACKS: Array<Callback> = [
   {
     file: "MicrosoftTeamsAPI.ts",
     path: "/microsoft-teams/admin-consent/callback",
+    provider: "ConnectProvider.MicrosoftTeams",
     flows: [
       "WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent",
       "WorkspaceOAuthFlow.MicrosoftTeamsAdminConsentSignIn",
     ],
     asksAgain:
       "WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(",
+    refusedAs: "ConnectCallbackError.NoPermission",
     writes: [
       "MicrosoftTeamsAPI.continueAdminConsentWithSignIn(",
       "MicrosoftTeamsAPI.completeAdminConsent(",
     ],
+    helpers: ["continueAdminConsentWithSignIn", "completeAdminConsent"],
   },
 ];
 
@@ -310,7 +331,7 @@ describe("the GitHub App installation", () => {
     expect(body).not.toMatch(/req\.query\[\s*"projectId"\s*\]/);
     expect(body).not.toMatch(/req\.query\[\s*"userId"\s*\]/);
     expect(body).not.toMatch(/req\.params\[/);
-    expect(body).toContain("stateRecord.projectId");
+    expect(body).toContain("record.projectId");
   });
 
   test("the old navigation route that started it is gone", () => {
@@ -322,5 +343,118 @@ describe("the GitHub App installation", () => {
 
     expect(paths).not.toContain("/github/auth/install");
     expect(paths).toContain("/github/install-url");
+  });
+});
+
+/*
+ * The body of a static helper of `file` - from its declaration to the next
+ * member - for checking what a callback hands its finishing to.
+ */
+function helperBody(file: string, name: string): string {
+  const code: string = readCode(file);
+  const start: number = code.search(
+    new RegExp(
+      `private static async ${name}\\(|public static async ${name}\\(`,
+    ),
+  );
+
+  expect([file, name, start >= 0]).toEqual([file, name, true]);
+
+  const rest: string = code.slice(start + 1);
+  const next: number = rest.search(/\n {2}(private|public|protected) /);
+
+  return rest.slice(0, next >= 0 ? next : rest.length);
+}
+
+// Writing something into the page's ?error= by hand.
+const ERROR_PARAM_WRITE: RegExp = /addQueryParam\(\s*"error"/;
+
+// What only ConnectCallback may do: answer with an error, or put a word of a provider's on the page.
+const ANSWERS_ITSELF: Array<RegExp> = [
+  /Response\.sendErrorResponse\(/,
+  ERROR_PARAM_WRITE,
+  /req\.query\[\s*"error"\s*\]/,
+  /req\.query\[\s*"error_description"\s*\]/,
+  /res\.status\(/,
+];
+
+describe("every connect callback answers through the one outer catch", () => {
+  test.each(CALLBACKS)(
+    "$path is registered through ConnectCallback.route, for its own page",
+    (callback: Callback) => {
+      const body: string = routeOf(callback.file, callback.path).body;
+
+      // The handler IS ConnectCallback.route: nothing runs outside its catch.
+      const pathLiteral: string = `"${callback.path}",`;
+      const afterPath: string = body
+        .slice(body.indexOf(pathLiteral) + pathLiteral.length)
+        .trimStart();
+
+      expect(body.startsWith("router.get(")).toBe(true);
+      expect(afterPath.startsWith("ConnectCallback.route({")).toBe(true);
+      expect(body).toContain(`provider: ${callback.provider},`);
+      expect(body).toContain(`refusedAs: ${callback.refusedAs},`);
+    },
+  );
+
+  test.each(CALLBACKS)(
+    "$path spends its state, asks again and finishes, in that order, inside the route",
+    (callback: Callback) => {
+      expectBefore(routeOf(callback.file, callback.path).body, "spendState:", [
+        "askAgain:",
+        "finish:",
+      ]);
+      expectBefore(routeOf(callback.file, callback.path).body, "askAgain:", [
+        "finish:",
+      ]);
+    },
+  );
+
+  test.each(CALLBACKS)(
+    "$path answers nothing itself: no error page, no provider's words on the page",
+    (callback: Callback) => {
+      const bodies: Array<string> = [
+        routeOf(callback.file, callback.path).body,
+        ...(callback.helpers || []).map((helper: string) => {
+          return helperBody(callback.file, helper);
+        }),
+      ];
+
+      for (const body of bodies) {
+        for (const pattern of ANSWERS_ITSELF) {
+          expect([callback.path, pattern.source, pattern.test(body)]).toEqual([
+            callback.path,
+            pattern.source,
+            false,
+          ]);
+        }
+      }
+    },
+  );
+
+  test("no file of a connect callback puts anything but a code in ?error=", () => {
+    for (const file of [
+      "SlackAPI.ts",
+      "MicrosoftTeamsAPI.ts",
+      "GitHubAPI.ts",
+    ]) {
+      expect([file, ERROR_PARAM_WRITE.test(readCode(file))]).toEqual([
+        file,
+        false,
+      ]);
+    }
+  });
+
+  test("a provider's own error is read in one place, and only as a code", () => {
+    const connectCallback: string = readCode("ConnectCallback.ts");
+
+    expect(connectCallback).toContain('req.query["error"]');
+    expect(connectCallback).toContain('"access_denied"');
+
+    for (const callback of CALLBACKS) {
+      expect(routeOf(callback.file, callback.path).body).toContain(
+        "ConnectCallback.refusalOfProviderError(",
+      );
+    }
   });
 });

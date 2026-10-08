@@ -420,7 +420,12 @@ export default class ModelPermission {
       const billingAccessControl: ColumnBillingAccessControl | null =
         model.getColumnBillingAccessControl(key);
 
-      if (IsBillingEnabled && billingAccessControl) {
+      if (
+        IsBillingEnabled &&
+        billingAccessControl &&
+        // No plan holds OneUptime itself or a server admin (CallerPlan).
+        !CallerPlan.isHeldToNoPlan(props)
+      ) {
         /*
          * A paid feature can always be switched off: a create or update that
          * puts a plan-gated column back to its default needs no plan - the
@@ -1769,6 +1774,11 @@ export default class ModelPermission {
     /// Check billing permissions.
 
     if (!IsBillingEnabled) {
+      return;
+    }
+
+    // No plan holds OneUptime itself or a server admin (CallerPlan's one rule).
+    if (CallerPlan.isHeldToNoPlan(props)) {
       return;
     }
 

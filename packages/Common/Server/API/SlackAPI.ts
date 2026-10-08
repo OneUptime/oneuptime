@@ -11,7 +11,6 @@ import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
   AppApiClientUrl,
-  DashboardClientUrl,
   Host,
   HttpProtocol,
   SlackAppClientId,
@@ -71,9 +70,24 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
 import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
+import ConnectCallback, {
+  ConnectCallbackFinish,
+  ConnectCallbackRefusal,
+} from "./ConnectCallback";
+import ConnectCallbackUtil, {
+  CONNECT_START_PAGE_QUERY_PARAM,
+  ConnectCallbackError,
+  ConnectProvider,
+} from "../../Types/Workspace/ConnectCallback";
 import OneUptimeDate from "../../Types/Date";
 import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import { neutralizeAiWrittenMarkdown } from "../../Utils/Markdown/UntrustedMarkdown";
+
+// The Slack app this server connects with.
+interface SlackAppCredentials {
+  clientId: string;
+  clientSecret: string;
+}
 
 export default class SlackAPI {
   /*
@@ -180,7 +194,9 @@ export default class SlackAPI {
 
   /*
    * Spends the `state` Slack hands back and returns the project and user it
-   * was issued for, or null when the callback must be refused.
+   * was issued for, or null when the callback must be refused. A state that
+   * cannot be read at all throws, and is answered as such
+   * (ConnectCallback.route).
    *
    * The ids in the redirect path are only there because Slack matches
    * redirect URIs by prefix; they are never used. They must still agree with
@@ -190,18 +206,12 @@ export default class SlackAPI {
     req: ExpressRequest;
     flow: WorkspaceOAuthFlow;
   }): Promise<WorkspaceOAuthStateRecord | null> {
-    let stateRecord: WorkspaceOAuthStateRecord | null = null;
-
-    try {
-      stateRecord = await WorkspaceOAuthState.consume({
+    const stateRecord: WorkspaceOAuthStateRecord | null =
+      await WorkspaceOAuthState.consume({
         req: data.req,
         state: data.req.query["state"]?.toString(),
         flows: [data.flow],
       });
-    } catch (err) {
-      logger.error(err, getLogAttributesFromRequest(data.req as any));
-      return null;
-    }
 
     if (!stateRecord) {
       return null;
@@ -220,6 +230,83 @@ export default class SlackAPI {
     }
 
     return stateRecord;
+  }
+
+  /*
+   * The Slack app this server connects with. A connection cannot be finished
+   * without its client secret, so a server missing either is refused as one
+   * that is not set up.
+   */
+  private static getAppCredentials(): SlackAppCredentials {
+    if (!SlackAppClientId || !SlackAppClientSecret) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.NotConfigured,
+        "SLACK_APP_CLIENT_ID or SLACK_APP_CLIENT_SECRET is not set.",
+      );
+    }
+
+    return {
+      clientId: SlackAppClientId,
+      clientSecret: SlackAppClientSecret,
+    };
+  }
+
+  /*
+   * The body of what Slack's token endpoint answered, or a refusal when it
+   * did not answer with a token: an HTTP error, or a body whose `ok` is not
+   * true. What Slack said goes to the log, never to the browser.
+   */
+  private static getTokenResponseBody(
+    response: HTTPErrorResponse | HTTPResponse<JSONObject>,
+  ): JSONObject {
+    if (response instanceof HTTPErrorResponse) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.CouldNotFinish,
+        `Slack answered the token request with HTTP ${response.statusCode}.`,
+      );
+    }
+
+    const body: JSONObject = response.data || {};
+
+    if (body["ok"] !== true) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.CouldNotFinish,
+        `Slack refused the token request: ${String(body["error"] || "no reason given")}.`,
+      );
+    }
+
+    return body;
+  }
+
+  /*
+   * The claims of the ID token Slack's token endpoint answered with. Its
+   * signature is not checked, and need not be: it came straight from Slack
+   * over TLS, in exchange for a code and this app's client secret (OpenID
+   * Connect Core 3.1.3.7). A token that is missing or cannot be read is
+   * refused.
+   */
+  private static getIdTokenClaims(idToken: unknown): JSONObject {
+    const payload: string | undefined =
+      typeof idToken === "string" ? idToken.split(".")[1] : undefined;
+
+    let claims: unknown = null;
+
+    if (payload) {
+      try {
+        claims = JSON.parse(Buffer.from(payload, "base64").toString("utf8"));
+      } catch {
+        claims = null;
+      }
+    }
+
+    if (!claims || typeof claims !== "object" || Array.isArray(claims)) {
+      throw new ConnectCallbackRefusal(
+        ConnectCallbackError.CouldNotFinish,
+        "Slack returned no ID token that can be read.",
+      );
+    }
+
+    return claims as JSONObject;
   }
 
   public getRouter(): ExpressRouter {
@@ -289,6 +376,9 @@ export default class SlackAPI {
             flow: WorkspaceOAuthFlow.SlackInstall,
             projectId: projectId,
             userId: userId,
+            startPage: ConnectCallbackUtil.readStartPage(
+              req.query[CONNECT_START_PAGE_QUERY_PARAM],
+            ),
           });
 
           const scopes: JSONObject = (
@@ -343,6 +433,9 @@ export default class SlackAPI {
             flow: WorkspaceOAuthFlow.SlackUserSignIn,
             projectId: projectId,
             userId: userId,
+            startPage: ConnectCallbackUtil.readStartPage(
+              req.query[CONNECT_START_PAGE_QUERY_PARAM],
+            ),
           });
 
           const authorizationUrl: string = `https://slack.com/openid/connect/authorize?response_type=code&scope=${encodeURIComponent(
@@ -362,516 +455,302 @@ export default class SlackAPI {
       },
     );
 
-    // this is project specific auth endpoint.
+    /*
+     * Where Slack sends the browser back once OneUptime is installed into a
+     * workspace. ConnectCallback.route spends the state, asks again, and
+     * answers every way this can end on the Slack page the install started
+     * from - with a code, never with what Slack or a failed read said.
+     */
     router.get(
       "/slack/auth/:projectId/:userId",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        if (!SlackAppClientId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Slack App Client ID is not set"),
-          );
-        }
-
-        if (!SlackAppClientSecret) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Slack App Client Secret is not set"),
-          );
-        }
-
-        const stateRecord: WorkspaceOAuthStateRecord | null =
-          await SlackAPI.consumeStateForCallback({
+      ConnectCallback.route({
+        provider: ConnectProvider.Slack,
+        spendState: (
+          req: ExpressRequest,
+        ): Promise<WorkspaceOAuthStateRecord | null> => {
+          return SlackAPI.consumeStateForCallback({
             req,
             flow: WorkspaceOAuthFlow.SlackInstall,
           });
-
-        if (!stateRecord) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
-          );
-        }
-
+        },
         // Whoever started the install may still connect the project.
-        try {
-          await WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
+        askAgain: (record: WorkspaceOAuthStateRecord): Promise<void> => {
+          return WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
             {
-              record: stateRecord,
+              record: record,
               errorMessage: SlackAPI.CONNECT_PERMISSION_MESSAGE,
             },
           );
-        } catch (refusal) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            WorkspaceOAuthCallbackAccess.answerFor(refusal),
+        },
+        refusedAs: ConnectCallbackError.NoPermission,
+        finish: async (data: ConnectCallbackFinish): Promise<void> => {
+          const { req, record } = data;
+          const credentials: SlackAppCredentials = SlackAPI.getAppCredentials();
+
+          const providerError: ConnectCallbackRefusal | null =
+            ConnectCallback.refusalOfProviderError(req);
+
+          if (providerError) {
+            throw providerError;
+          }
+
+          // Slack returns the code on a successful install.
+          const code: string | undefined = req.query["code"]?.toString();
+
+          if (!code) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Slack sent no authorization code back.",
+            );
+          }
+
+          /*
+           * Neither the token request nor the token response is logged: the
+           * request carries the app client secret and the authorization
+           * code, and the response carries the bot and user access tokens.
+           */
+          logger.debug(
+            "Exchanging Slack authorization code for an access token.",
+            getLogAttributesFromRequest(req as any),
           );
-        }
 
-        const projectId: string = stateRecord.projectId.toString();
-        const userId: string = stateRecord.userId.toString();
+          const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.post({
+              url: URL.fromString("https://slack.com/api/oauth.v2.access"),
+              data: {
+                code: code,
+                client_id: credentials.clientId,
+                client_secret: credentials.clientSecret,
+                redirect_uri: SlackAPI.getInstallRedirectUri({
+                  projectId: record.projectId,
+                  userId: record.userId,
+                }),
+              },
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            });
 
-        // if there's an error query param.
-        const error: string | undefined = req.query["error"]?.toString();
+          const responseBody: JSONObject =
+            SlackAPI.getTokenResponseBody(response);
 
-        const slackIntegrationPageUrl: URL = URL.fromString(
-          DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/slack-integration`,
-        );
+          /*
+           * ReponseBody is in this format.
+           *   {
+           *     "ok": true,
+           *     "access_token": "sample-token",
+           *     "token_type": "bot",
+           *     "scope": "commands,incoming-webhook",
+           *     "bot_user_id": "U0KRQLJ9H",
+           *     "app_id": "A0KRD7HC3",
+           *     "team": {
+           *         "name": "Slack Pickleball Team",
+           *         "id": "T9TK3CUKW"
+           *     },
+           *     "enterprise": {
+           *         "name": "slack-pickleball",
+           *         "id": "E12345678"
+           *     },
+           *     "authed_user": {
+           *         "id": "U1234",
+           *         "scope": "chat:write",
+           *         "access_token": "sample-token",
+           *         "token_type": "user"
+           *     }
+           * }
+           */
 
-        if (error) {
-          return Response.redirect(
-            req,
-            res,
-            slackIntegrationPageUrl.addQueryParam("error", error),
-          );
-        }
+          const team: JSONObject | undefined = responseBody["team"] as
+            | JSONObject
+            | undefined;
+          const authedUser: JSONObject | undefined = responseBody[
+            "authed_user"
+          ] as JSONObject | undefined;
 
-        // slack returns the code on successful auth.
-        const code: string | undefined = req.query["code"]?.toString();
+          const slackTeamId: string | undefined = team?.["id"]?.toString();
+          const slackTeamName: string | undefined = team?.["name"]?.toString();
+          const slackBotAccessToken: string | undefined =
+            responseBody["access_token"]?.toString();
+          const botUserId: string | undefined =
+            responseBody["bot_user_id"]?.toString();
+          const slackUserId: string | undefined =
+            authedUser?.["id"]?.toString();
+          const slackUserAccessToken: string | undefined =
+            authedUser?.["access_token"]?.toString();
 
-        if (!code) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
-        }
-
-        // get access token from slack api.
-
-        const requestBody: JSONObject = {
-          code: code,
-          client_id: SlackAppClientId,
-          client_secret: SlackAppClientSecret,
-          redirect_uri: SlackAPI.getInstallRedirectUri({
-            projectId: stateRecord.projectId,
-            userId: stateRecord.userId,
-          }),
-        };
-
-        /*
-         * Neither the token request nor the token response is logged: the
-         * request carries the app client secret and the authorization code,
-         * and the response carries the bot and user access tokens.
-         */
-        logger.debug(
-          "Exchanging Slack authorization code for an access token.",
-          getLogAttributesFromRequest(req as any),
-        );
-
-        // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
-
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post({
-            url: URL.fromString("https://slack.com/api/oauth.v2.access"),
-            data: requestBody,
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
+          await WorkspaceProjectAuthTokenService.refreshAuthToken({
+            projectId: record.projectId,
+            workspaceType: WorkspaceType.Slack,
+            authToken: slackBotAccessToken || "",
+            workspaceProjectId: slackTeamId || "",
+            miscData: {
+              teamId: slackTeamId || "",
+              teamName: slackTeamName || "",
+              botUserId: botUserId || "",
             },
           });
 
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
+          await WorkspaceUserAuthTokenService.refreshAuthToken({
+            projectId: record.projectId,
+            userId: record.userId,
+            workspaceType: WorkspaceType.Slack,
+            authToken: slackUserAccessToken || "",
+            workspaceUserId: slackUserId || "",
+            miscData: {
+              userId: slackUserId || "",
+            },
+          });
 
-        const responseBody: JSONObject = response.data;
-
-        logger.debug(
-          "Slack token exchange completed. ok: " + String(responseBody["ok"]),
-          getLogAttributesFromRequest(req as any),
-        );
-
-        let slackTeamId: string | undefined = undefined;
-        let slackBotAccessToken: string | undefined = undefined;
-        let slackUserId: string | undefined = undefined;
-        let slackTeamName: string | undefined = undefined;
-        let botUserId: string | undefined = undefined;
-        let slackUserAccessToken: string | undefined = undefined;
-
-        /*
-         * ReponseBody is in this format.
-         *   {
-         *     "ok": true,
-         *     "access_token": "sample-token",
-         *     "token_type": "bot",
-         *     "scope": "commands,incoming-webhook",
-         *     "bot_user_id": "U0KRQLJ9H",
-         *     "app_id": "A0KRD7HC3",
-         *     "team": {
-         *         "name": "Slack Pickleball Team",
-         *         "id": "T9TK3CUKW"
-         *     },
-         *     "enterprise": {
-         *         "name": "slack-pickleball",
-         *         "id": "E12345678"
-         *     },
-         *     "authed_user": {
-         *         "id": "U1234",
-         *         "scope": "chat:write",
-         *         "access_token": "sample-token",
-         *         "token_type": "user"
-         *     }
-         * }
-         */
-
-        if (responseBody["ok"] !== true) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
-        }
-
-        if (
-          responseBody["team"] &&
-          (responseBody["team"] as JSONObject)["id"]
-        ) {
-          slackTeamId = (responseBody["team"] as JSONObject)["id"]?.toString();
-        }
-
-        if (responseBody["access_token"]) {
-          slackBotAccessToken = responseBody["access_token"]?.toString();
-        }
-
-        if (
-          responseBody["authed_user"] &&
-          (responseBody["authed_user"] as JSONObject)["id"]
-        ) {
-          slackUserId = (responseBody["authed_user"] as JSONObject)[
-            "id"
-          ]?.toString();
-        }
-
-        if (
-          responseBody["authed_user"] &&
-          (responseBody["authed_user"] as JSONObject)["access_token"]
-        ) {
-          slackUserAccessToken = (responseBody["authed_user"] as JSONObject)[
-            "access_token"
-          ]?.toString();
-        }
-
-        if (
-          responseBody["team"] &&
-          (responseBody["team"] as JSONObject)["name"]
-        ) {
-          slackTeamName = (responseBody["team"] as JSONObject)[
-            "name"
-          ]?.toString();
-        }
-
-        if (responseBody["bot_user_id"]) {
-          botUserId = responseBody["bot_user_id"]?.toString();
-        }
-
-        await WorkspaceProjectAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectId),
-          workspaceType: WorkspaceType.Slack,
-          authToken: slackBotAccessToken || "",
-          workspaceProjectId: slackTeamId || "",
-          miscData: {
-            teamId: slackTeamId || "",
-            teamName: slackTeamName || "",
-            botUserId: botUserId || "",
-          },
-        });
-
-        await WorkspaceUserAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectId),
-          userId: new ObjectID(userId),
-          workspaceType: WorkspaceType.Slack,
-          authToken: slackUserAccessToken || "",
-          workspaceUserId: slackUserId || "",
-          miscData: {
-            userId: slackUserId || "",
-          },
-        });
-
-        // return back to dashboard after successful auth.
-        Response.redirect(req, res, slackIntegrationPageUrl);
-      },
+          data.backToPage();
+        },
+      }),
     );
 
-    // this is user specific auth endpoint to sign in to slack.
+    /*
+     * Where Slack sends the browser back once someone has signed in with
+     * Slack, to link their Slack account in a project already connected to a
+     * Slack workspace. Answered like the install above.
+     */
     router.get(
       "/slack/auth/:projectId/:userId/user",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        if (!SlackAppClientId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Slack App Client ID is not set"),
-          );
-        }
-
-        if (!SlackAppClientSecret) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Slack App Client Secret is not set"),
-          );
-        }
-
-        const stateRecord: WorkspaceOAuthStateRecord | null =
-          await SlackAPI.consumeStateForCallback({
+      ConnectCallback.route({
+        provider: ConnectProvider.Slack,
+        spendState: (
+          req: ExpressRequest,
+        ): Promise<WorkspaceOAuthStateRecord | null> => {
+          return SlackAPI.consumeStateForCallback({
             req,
             flow: WorkspaceOAuthFlow.SlackUserSignIn,
           });
-
-        if (!stateRecord) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
-          );
-        }
-
+        },
         // Whoever started the sign-in is still a member of the project.
-        try {
-          await WorkspaceOAuthCallbackAccess.assertStartedByIsMember({
-            record: stateRecord,
+        askAgain: (record: WorkspaceOAuthStateRecord): Promise<void> => {
+          return WorkspaceOAuthCallbackAccess.assertStartedByIsMember({
+            record: record,
           });
-        } catch (refusal) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            WorkspaceOAuthCallbackAccess.answerFor(refusal),
-          );
-        }
+        },
+        refusedAs: ConnectCallbackError.NotAMember,
+        finish: async (data: ConnectCallbackFinish): Promise<void> => {
+          const { req, record } = data;
+          const credentials: SlackAppCredentials = SlackAPI.getAppCredentials();
 
-        const projectId: string = stateRecord.projectId.toString();
-        const userId: string = stateRecord.userId.toString();
+          const providerError: ConnectCallbackRefusal | null =
+            ConnectCallback.refusalOfProviderError(req);
 
-        // if there's an error query param.
-        const error: string | undefined = req.query["error"]?.toString();
+          if (providerError) {
+            throw providerError;
+          }
 
-        const slackIntegrationPageUrl: URL = URL.fromString(
-          DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/slack-integration`,
-        );
+          // Slack returns the code on a successful sign-in.
+          const code: string | undefined = req.query["code"]?.toString();
 
-        if (error) {
-          return Response.redirect(
-            req,
-            res,
-            slackIntegrationPageUrl.addQueryParam("error", error),
-          );
-        }
+          if (!code) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Slack sent no authorization code back.",
+            );
+          }
 
-        // slack returns the code on successful auth.
-        const code: string | undefined = req.query["code"]?.toString();
-
-        if (!code) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
-        }
-
-        // get access token from slack api.
-
-        const requestBody: JSONObject = {
-          code: code,
-          client_id: SlackAppClientId,
-          client_secret: SlackAppClientSecret,
-          redirect_uri: SlackAPI.getUserSignInRedirectUri({
-            projectId: stateRecord.projectId,
-            userId: stateRecord.userId,
-          }),
-        };
-
-        // Same as above: the body holds the client secret and the auth code.
-        logger.debug(
-          "Exchanging Slack authorization code for a user token.",
-          getLogAttributesFromRequest(req as any),
-        );
-
-        // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
-
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post({
-            url: URL.fromString("https://slack.com/api/openid.connect.token"),
-            data: requestBody,
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const responseBody: JSONObject = response.data;
-
-        logger.debug(
-          "Slack user token exchange completed. ok: " +
-            String(responseBody["ok"]),
-          getLogAttributesFromRequest(req as any),
-        );
-
-        if (
-          responseBody["id_token"] &&
-          typeof responseBody["id_token"] === "string" &&
-          responseBody["id_token"].split(".").length > 0
-        ) {
-          const idToken: string = responseBody["id_token"];
-          const decodedIdToken: JSONObject = JSON.parse(
-            Buffer.from(
-              (idToken.split(".")?.[1] as string) || "",
-              "base64",
-            ).toString("utf8"),
-          );
-          // The decoded ID token is identity material; only the fact is logged.
+          // Same as above: the body holds the client secret and the auth code.
           logger.debug(
-            "Decoded Slack ID token.",
+            "Exchanging Slack authorization code for a user token.",
             getLogAttributesFromRequest(req as any),
           );
-          responseBody["id_token"] = decodedIdToken;
-        }
 
-        const idToken: JSONObject | undefined = responseBody[
-          "id_token"
-        ] as JSONObject;
+          const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.post({
+              url: URL.fromString("https://slack.com/api/openid.connect.token"),
+              data: {
+                code: code,
+                client_id: credentials.clientId,
+                client_secret: credentials.clientSecret,
+                redirect_uri: SlackAPI.getUserSignInRedirectUri({
+                  projectId: record.projectId,
+                  userId: record.userId,
+                }),
+              },
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            });
 
-        /*
-         * Example of Response Body
-         * {
-         *   "iss": "https://slack.com",
-         *   "sub": "U123ABC456",
-         *   "aud": "25259531569.1115258246291",
-         *   "exp": 1626874955,
-         *   "iat": 1626874655,
-         *   "auth_time": 1626874655,
-         *   "nonce": "abcd",
-         *   "at_hash": "abc...123",
-         *   "https://slack.com/team_id": "T0123ABC456",
-         *   "https://slack.com/user_id": "U123ABC456",
-         *   "email": "alice@example.com",
-         *   "email_verified": true,
-         *   "date_email_verified": 1622128723,
-         *   "locale": "en-US",
-         *   "name": "Alice",
-         *   "given_name": "",
-         *   "family_name": "",
-         *   "https://slack.com/team_image_230": "https://secure.gravatar.com/avatar/bc.png",
-         *   "https://slack.com/team_image_default": true
-         * }
-         */
+          const responseBody: JSONObject =
+            SlackAPI.getTokenResponseBody(response);
 
-        /*
-         * check if the team id matches the project id.
-         * get project auth.
-         */
+          /*
+           * The ID token's claims, e.g.
+           * {
+           *   "iss": "https://slack.com",
+           *   "sub": "U123ABC456",
+           *   "https://slack.com/team_id": "T0123ABC456",
+           *   "https://slack.com/user_id": "U123ABC456",
+           *   "email": "alice@example.com",
+           *   ...
+           * }
+           */
+          const idToken: JSONObject = SlackAPI.getIdTokenClaims(
+            responseBody["id_token"],
+          );
 
-        const projectAuth: WorkspaceProjectAuthToken | null =
-          await WorkspaceProjectAuthTokenService.findOneBy({
-            query: {
-              projectId: new ObjectID(projectId),
-              workspaceType: WorkspaceType.Slack,
-            },
-            select: {
-              workspaceProjectId: true,
-              miscData: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          // The project's Slack workspace, which the account must belong to.
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.findOneBy({
+              query: {
+                projectId: record.projectId,
+                workspaceType: WorkspaceType.Slack,
+              },
+              select: {
+                workspaceProjectId: true,
+                miscData: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
-        // cehck if the workspace project id is same as the team id.
-        if (projectAuth) {
-          logger.debug(
-            "Project Auth: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            projectAuth.workspaceProjectId,
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            "Response Team ID: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            idToken["https://slack.com/team_id"],
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            "Response User ID: ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            idToken["https://slack.com/user_id"],
-            getLogAttributesFromRequest(req as any),
-          );
+          if (!projectAuth) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.SlackNotInstalled,
+              "The project is not connected to a Slack workspace.",
+            );
+          }
 
           if (
             projectAuth.workspaceProjectId?.toString() !==
             idToken["https://slack.com/team_id"]?.toString()
           ) {
-            const teamName: string | undefined = (
-              projectAuth.miscData as SlackMiscData
-            )?.teamName;
-
-            // send error response.
-            return Response.redirect(
-              req,
-              res,
-              slackIntegrationPageUrl.addQueryParam(
-                "error",
-                "Looks like you are trying to sign in to a different slack workspace. Please try again and sign in to the workspace " +
-                  teamName,
-              ),
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.SlackOtherWorkspace,
+              "The Slack account belongs to a different workspace from the project's.",
             );
           }
-        } else {
-          // send error response.
-          return Response.redirect(
-            req,
-            res,
-            slackIntegrationPageUrl.addQueryParam(
-              "error",
-              "Looks like this OneUptime project is not connected to any slack workspace. Please try again and sign in to the workspace",
-            ),
-          );
-        }
 
-        const authToken: string | undefined =
-          responseBody["access_token"]?.toString();
-        const slackUserId: string | undefined =
-          idToken["https://slack.com/user_id"]?.toString();
+          const authToken: string | undefined =
+            responseBody["access_token"]?.toString();
+          const slackUserId: string | undefined =
+            idToken["https://slack.com/user_id"]?.toString();
 
-        if (!slackUserId) {
-          return Response.redirect(
-            req,
-            res,
-            slackIntegrationPageUrl.addQueryParam(
-              "error",
-              "Unfortunately, we were unable to get your slack user id. Please try again.",
-            ),
-          );
-        }
+          if (!slackUserId) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Slack's ID token named no Slack user.",
+            );
+          }
 
-        await WorkspaceUserAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectId),
-          userId: new ObjectID(userId),
-          workspaceType: WorkspaceType.Slack,
-          authToken: authToken || "",
-          workspaceUserId: slackUserId || "",
-          miscData: {
-            userId: slackUserId || "",
-          },
-        });
+          await WorkspaceUserAuthTokenService.refreshAuthToken({
+            projectId: record.projectId,
+            userId: record.userId,
+            workspaceType: WorkspaceType.Slack,
+            authToken: authToken || "",
+            workspaceUserId: slackUserId,
+            miscData: {
+              userId: slackUserId,
+            },
+          });
 
-        // return back to dashboard after successful auth.
-        Response.redirect(req, res, slackIntegrationPageUrl);
-      },
+          data.backToPage();
+        },
+      }),
     );
 
     router.post(
