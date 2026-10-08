@@ -510,7 +510,11 @@ describe("an Expo push token Expo says is gone, sent through the push relay", ()
   test.each([
     ["a 410 with no body worth reading", 410, {}],
     ["a 410 from a proxy, as text", 410, { data: "<html>Gone</html>" }],
-    ["a 410 naming another Expo error", 410, { details: { error: "ExpoError" } }],
+    [
+      "a 410 naming another Expo error",
+      410,
+      { details: { error: "ExpoError" } },
+    ],
     [
       "a 410 whose code is spelled differently",
       410,
@@ -522,7 +526,11 @@ describe("an Expo push token Expo says is gone, sent through the push relay", ()
       410,
       { details: [{ error: EXPO_DEVICE_NOT_REGISTERED }] },
     ],
-    ["a 410 with Expo's code at the top level", 410, { error: EXPO_DEVICE_NOT_REGISTERED }],
+    [
+      "a 410 with Expo's code at the top level",
+      410,
+      { error: EXPO_DEVICE_NOT_REGISTERED },
+    ],
     [
       "Expo's code in a 400",
       400,
@@ -679,9 +687,9 @@ describe("the relay's own send (sendRelayPushNotification)", () => {
 
 describe("the relay's answer for a gone token", () => {
   test("410 Gone, with Expo's code where Expo's own error ticket has it, and a sentence", () => {
-    expect(PushNotificationService.RELAY_DEVICE_NOT_REGISTERED_STATUS_CODE).toBe(
-      410,
-    );
+    expect(
+      PushNotificationService.RELAY_DEVICE_NOT_REGISTERED_STATUS_CODE,
+    ).toBe(410);
     expect(PushNotificationService.getRelayDeviceNotRegisteredAnswer()).toEqual(
       {
         message:
@@ -925,9 +933,12 @@ describe("what a failed send says", () => {
     ["an Error with no message", new Error(""), "Error"],
     ["nothing", undefined, "Failed to send push notification"],
     ["null", null, "Failed to send push notification"],
-  ])("a device's reason from %s", (_name: string, reason: unknown, said: string) => {
-    expect(PushNotificationService.getFailureReason(reason)).toBe(said);
-  });
+  ])(
+    "a device's reason from %s",
+    (_name: string, reason: unknown, said: string) => {
+      expect(PushNotificationService.getFailureReason(reason)).toBe(said);
+    },
+  );
 
   test("the push token is taken out of a message about a send to it, wherever it appears", () => {
     expect(

@@ -477,7 +477,9 @@ export default class PushNotificationService {
           ? UserNotificationStatus.Sent
           : UserNotificationStatus.Error;
       const statusMessage: string =
-        successCount > 0 ? "Push notification sent successfully" : failureMessage;
+        successCount > 0
+          ? "Push notification sent successfully"
+          : failureMessage;
 
       await UserOnCallLogTimelineService.updateOneById({
         id: options.userOnCallLogTimelineId,
@@ -964,7 +966,9 @@ export default class PushNotificationService {
          * relay path could not tell a gone token from an outage, and the
          * device stayed verified as on the direct path.
          */
-        if (PushNotificationService.isRelayDeviceNotRegisteredAnswer(response)) {
+        if (
+          PushNotificationService.isRelayDeviceNotRegisteredAnswer(response)
+        ) {
           await PushNotificationService.stopSendingToGoneExpoPushToken(
             expoPushToken,
           );

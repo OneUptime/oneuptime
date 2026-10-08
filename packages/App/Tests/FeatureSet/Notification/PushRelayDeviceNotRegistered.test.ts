@@ -177,13 +177,13 @@ function loadSelfHostedServer(): SelfHostedServer {
     loaded = {
       environment: environment,
       PushNotificationService:
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
         require("Common/Server/Services/PushNotificationService").default,
       UserPushService:
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
         require("Common/Server/Services/UserPushService").default,
       PushNotificationLogService:
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
         require("Common/Server/Services/PushNotificationLogService").default,
     };
   });

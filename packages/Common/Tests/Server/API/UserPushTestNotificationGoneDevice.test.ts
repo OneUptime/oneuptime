@@ -168,8 +168,9 @@ describe("POST /user-push/:deviceId/test-notification to a device that no longer
       device["deviceType"] = deviceType;
       device["isVerified"] = false;
 
-      const send: SpyInstance<typeof PushNotificationService.sendPushNotification> =
-        jest.spyOn(PushNotificationService, "sendPushNotification");
+      const send: SpyInstance<
+        typeof PushNotificationService.sendPushNotification
+      > = jest.spyOn(PushNotificationService, "sendPushNotification");
 
       const answer: Answer = await sendTestNotification();
 

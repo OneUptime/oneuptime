@@ -232,7 +232,9 @@ router.post(
        */
       if (err instanceof ExpoDeviceNotRegisteredError) {
         res
-          .status(PushNotificationService.RELAY_DEVICE_NOT_REGISTERED_STATUS_CODE)
+          .status(
+            PushNotificationService.RELAY_DEVICE_NOT_REGISTERED_STATUS_CODE,
+          )
           .json(PushNotificationService.getRelayDeviceNotRegisteredAnswer());
         return;
       }
