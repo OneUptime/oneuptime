@@ -193,7 +193,7 @@ describe("the device list does not describe a monitor-backed device as broken", 
 
     const cardDescription: string = sliceBetween({
       code: code,
-      from: 'title: "Network Devices"',
+      from: 'title: "Devices"',
       to: "showViewIdButton",
     });
 

@@ -149,6 +149,11 @@ export interface OverviewFleet {
   down: number;
   pending: number;
   interfacesDown: number;
+  /*
+   * Devices that answer ping while their SNMP walk fails, counted whole
+   * (the attention list shows at most eight). Zero from an older server.
+   */
+  snmpFailing: number;
 }
 
 export interface OverviewAttentionDevice {
@@ -221,6 +226,7 @@ export async function fetchNetworkOverview(): Promise<NetworkOverviewSummary> {
       down: readNumber(fleetJson, "down"),
       pending: readNumber(fleetJson, "pending"),
       interfacesDown: readNumber(fleetJson, "interfacesDown"),
+      snmpFailing: readNumber(fleetJson, "snmpFailing"),
     },
     siteCount: readNumber(json, "siteCount"),
     unhealthySiteCount: readNumber(json, "unhealthySiteCount"),

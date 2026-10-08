@@ -576,7 +576,7 @@ describe("the AI SRE page's cluster-access section", () => {
     expect(section).toContain("Kubernetes → cluster → AI");
     expect(section).toContain("- **Agent** — the cluster's **AI agent** page");
     expect(section).toContain(
-      "- **Insights** — the cluster's **AI Insights** page: what OneUptime AI has learned about the cluster from its own work there, and what deserves your attention (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)).",
+      "- **Insights** — the cluster's **AI Insights** page: what OneUptime AI found out about the cluster — what keeps going wrong and why, and what to do about it (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)).",
     );
     expect(section).toContain(
       "- **Logs** — the cluster's **AI Logs** page: everything OneUptime AI did on the cluster, newest first (see [Everything AI did on a cluster](#everything-ai-did-on-a-cluster)).",
@@ -639,26 +639,64 @@ describe("the AI SRE page's cluster-access section", () => {
     );
   });
 
-  it("describes the AI Insights page as derived from what OneUptime recorded, not as a list", () => {
+  it("describes the AI Insights page as what is worth knowing, derived from what OneUptime recorded, not as a list", () => {
     const insights: string = getSection(
       section,
       "### What AI learned on a cluster",
     );
 
     expect(insights).toContain("**AI Insights** page (AI → Insights)");
-    for (const card of [
+    expect(insights).toContain(
+      "not a record of what AI did, but what it found out",
+    );
+    // The page's cards, in the page's order: what AI found first, what it did last.
+    const cards: Array<string> = insights
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- **");
+      })
+      .map((line: string): string => {
+        return line.split(" — ")[0]!;
+      });
+    expect(cards).toEqual([
+      "- **What OneUptime AI found**",
+      "- **Other problems**",
+      "- **Where problems happen**",
+      "- **Spotted before anything paged**",
+      "- **What OneUptime AI did here**",
+    ]);
+    // The old cards that read like a log of AI's work are gone.
+    for (const oldCard of [
       "- **Needs attention**",
       "- **Last 30 days**",
       "- **Problems OneUptime AI investigated**",
       "- **Hotspots**",
-      "- **Fixes**",
       "- **Preventive insights**",
     ]) {
-      expect(insights).toContain(card);
+      expect(insights).not.toContain(oldCard);
+    }
+    for (const worthKnowing of [
+      "a problem that keeps coming back",
+      "getting worse",
+      "the time of day it tends to start",
+      "the first step its report suggests",
+      "a risk spotted before anything paged",
+      "linked to its own page in the cluster",
+      "what AI fixed on its own and whether the fix held",
+      "a problem that kept coming back and stopped after a fix",
+      "When nothing stands out, the page says so.",
+    ]) {
+      expect(insights).toContain(worthKnowing);
     }
     expect(insights).toContain("no model is called to build it");
     expect(insights).toContain(
+      "the words that are AI's own (a finding, a suggested step) were written by the investigation that found them",
+    );
+    expect(insights).toContain(
       "it only names incidents and alerts they may read",
+    );
+    expect(insights).toContain(
+      "With **Enable AI** off for the project, or no LLM provider OneUptime AI can use, the page says so at the top",
     );
     // The chronological list is the AI Logs page's, not this one's.
     expect(insights).not.toContain("every kubectl command");
@@ -984,8 +1022,12 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(enabling).not.toContain("**off by default**. To enable them");
   });
 
-  it("says the other AI features on the page are on for new projects too", () => {
+  it("says postmortem drafts and AI Insights are on for new projects too, and fixing with its pull requests is not", () => {
+    expect(enabling).toContain("So are postmortem drafts and AI Insights.");
     expect(enabling).toContain(
+      "Fixing starts off, and so do the pull requests that are part of it",
+    );
+    expect(enabling).not.toContain(
       "So is every other AI feature on this page: postmortem drafts, automatic code fixes and AI Insights.",
     );
   });
@@ -1019,12 +1061,22 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
       "enableAutomaticIncidentInvestigation",
       "enableAutomaticAlertInvestigation",
       "enableAutomaticPostmortemDraft",
-      "enableAutomaticIncidentCodeFixes",
-      "enableAutomaticAlertCodeFixes",
       "enableAiInsights",
       "enableInsightFixTasks",
     ]) {
       expect(list).toContain(`"${column}"`);
+    }
+
+    // Fixing, and the pull requests that are part of it, start off.
+    for (const column of [
+      "enableAutomaticIncidentRemediation",
+      "enableAutomaticAlertRemediation",
+      "enableAutomaticIncidentCodeFixes",
+      "enableAutomaticAlertCodeFixes",
+      "enableIncidentInstrumentationFixTasks",
+      "enableAlertInstrumentationFixTasks",
+    ]) {
+      expect(list).not.toContain(`"${column}"`);
     }
 
     expect(body).toContain("of NEW_PROJECT_AI_DEFAULT_COLUMNS");
@@ -1065,18 +1117,22 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(postmortem).not.toMatch(/off by default/i);
   });
 
-  it("says automatic code fixes and AI Insights are on for new projects", () => {
+  it("says automatic code fixes are part of fixing and start off, and AI Insights is on for new projects", () => {
     const codeFixes: string = getSection(page, "## Automatic code fixes");
     const insights: string = getSection(
       page,
       "## Insights — proactive detection",
     );
 
-    expect(codeFixes).toContain("**on by default for new projects**");
+    expect(codeFixes).toContain(
+      "is part of fixing: it sits under **Fix new incidents automatically** on **Incidents > AI > Settings**",
+    );
+    expect(codeFixes).toContain("Both start **off**, for new projects too");
+    expect(codeFixes).not.toContain("**on by default for new projects**");
+    expect(codeFixes).not.toContain("set independently");
     expect(insights).toContain(
       "All three settings are **on by default for new projects**",
     );
-    expect(codeFixes).not.toMatch(/off by default/i);
     expect(insights).not.toMatch(/off by default/i);
   });
 
@@ -1289,7 +1345,7 @@ describe("the Kubernetes agent page's pointers to the AI pages", () => {
     const page: string = read(KUBERNETES_AGENT_PAGE);
 
     expect(page).toContain(
-      "Everything AI did with it is on the cluster's **AI Logs** page (AI → Logs), and what AI learned there — the problems it keeps investigating, what it found, how its fixes turned out — on the **AI Insights** page (AI → Insights).",
+      "Everything AI did with it is on the cluster's **AI Logs** page (AI → Logs), and what is worth knowing about the cluster — the problems that keep coming back and why, the node or workload behind most of them, what AI fixed — on the **AI Insights** page (AI → Insights).",
     );
     expect(page).not.toContain(
       "What AI did with it is on the cluster's **AI Insights** page",

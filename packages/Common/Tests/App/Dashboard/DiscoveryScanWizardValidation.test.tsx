@@ -82,6 +82,13 @@ type CapturedFormField = {
   sectionTitle?: string | undefined;
   sectionDescription?: string | undefined;
   hideOptionalLabel?: boolean | undefined;
+  /*
+   * The fold a field sits in: the new-scan form's More fields (the name,
+   * the naming switches and the schedule), so the form asks three things.
+   */
+  collapsibleSection?:
+    | { id: string; title: string; listFieldsWhileFolded?: boolean | undefined }
+    | undefined;
   onChange?:
     | ((
         value: boolean,
@@ -633,13 +640,6 @@ function sectionKeys(args: {
   return keys;
 }
 
-function whatToCheckSectionKeys(): Array<string> {
-  return sectionKeys({
-    stepId: STEP_SCAN_TARGET,
-    sectionTitle: "What to check",
-  });
-}
-
 function stepNamed(id: string): CapturedFormStep {
   const step: CapturedFormStep | undefined =
     capturedTableProps?.formSteps?.find(
@@ -819,14 +819,109 @@ describe("Create Network Device Discovery Scan wizard", () => {
     capturedTableProps = null;
   });
 
-  test("is still a three-step wizard", async () => {
+  /*
+   * Two steps, and one for a ping sweep: what to scan (with its More fields
+   * fold - the name, the naming switches and the schedule), then the
+   * credentials, only when the scan reads SNMP. The schedule used to be a
+   * third step every scan walked through to reach the button.
+   */
+  test("is a two-step wizard: what to scan, then the credentials", async () => {
     await renderPage();
 
     expect(
       capturedTableProps?.formSteps?.map((step: CapturedFormStep): string => {
         return step.id;
       }),
-    ).toEqual([STEP_SCAN_TARGET, STEP_SNMP, STEP_SCHEDULE]);
+    ).toEqual([STEP_SCAN_TARGET, STEP_SNMP]);
+  });
+
+  test("has no Schedule step any more", async () => {
+    await renderPage();
+
+    expect(
+      capturedTableProps?.formSteps?.map((step: CapturedFormStep): string => {
+        return step.id;
+      }),
+    ).not.toContain(STEP_SCHEDULE);
+  });
+
+  /*
+   * The three questions a scan is defined by are the only things on the
+   * first step that are not folded: what to sweep, from which probe, and
+   * whether to read what answers over SNMP.
+   */
+  test("asks three things on the first step, and folds the rest", async () => {
+    await renderPage();
+
+    const onFirstStep: Array<CapturedFormField> = (
+      capturedTableProps?.formFields || []
+    ).filter((field: CapturedFormField): boolean => {
+      return field.stepId === STEP_SCAN_TARGET;
+    });
+
+    expect(
+      onFirstStep
+        .filter((field: CapturedFormField): boolean => {
+          return !field.collapsibleSection;
+        })
+        .map(fieldKeyOf),
+    ).toEqual(["cidr", "probe", "isSnmpEnabled"]);
+
+    expect(
+      onFirstStep
+        .filter((field: CapturedFormField): boolean => {
+          return Boolean(field.collapsibleSection);
+        })
+        .map(fieldKeyOf),
+    ).toEqual([
+      "name",
+      "isNetbiosLookupEnabled",
+      "useShortDeviceNames",
+      "isRecurring",
+      "rescanIntervalInMinutes",
+    ]);
+  });
+
+  test("folds them under one More fields section, at the end of the step", async () => {
+    await renderPage();
+
+    const onFirstStep: Array<CapturedFormField> = (
+      capturedTableProps?.formFields || []
+    ).filter((field: CapturedFormField): boolean => {
+      return field.stepId === STEP_SCAN_TARGET;
+    });
+    const folded: Array<CapturedFormField> = onFirstStep.filter(
+      (field: CapturedFormField): boolean => {
+        return Boolean(field.collapsibleSection);
+      },
+    );
+
+    // One section object: BasicForm joins consecutive fields by its id.
+    expect(
+      new Set(
+        folded.map((field: CapturedFormField): unknown => {
+          return field.collapsibleSection;
+        }),
+      ).size,
+    ).toBe(1);
+    expect(folded[0]!.collapsibleSection!.title).toBe("More fields");
+    expect(folded[0]!.collapsibleSection!.listFieldsWhileFolded).toBe(true);
+
+    // Consecutive, and last: nothing on the step after the fold.
+    const firstFolded: number = onFirstStep.indexOf(folded[0]!);
+    expect(onFirstStep.slice(firstFolded)).toEqual(folded);
+  });
+
+  /*
+   * The project's one custom probe, when it has exactly one: a question with
+   * one possible answer is not a question.
+   */
+  test("starts on the project's only custom probe", async () => {
+    await renderPage();
+
+    expect(fieldNamed("probe").defaultValue).toBe(
+      "22222222-2222-4222-8222-222222222222",
+    );
   });
 
   test("every field names a step that the wizard actually declares", async () => {
@@ -952,7 +1047,7 @@ describe("Scan Target is validated on the Scan Target step", () => {
   });
 });
 
-describe("Rescan Interval is validated on the Schedule step", () => {
+describe("Rescan Interval is validated where it is asked, under More fields", () => {
   beforeEach(() => {
     capturedTableProps = null;
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
@@ -965,13 +1060,35 @@ describe("Rescan Interval is validated on the Schedule step", () => {
     capturedTableProps = null;
   });
 
-  test("the field carries a validator and lives on the last step", async () => {
+  /*
+   * On the first step, folded with the repeat switch it belongs to: a
+   * fold opens by itself when a field in it fails validation, so a bad
+   * interval is never hidden behind its header.
+   */
+  test("the field carries a validator and lives on the first step, folded", async () => {
     await renderPage();
 
     const field: CapturedFormField = fieldNamed("rescanIntervalInMinutes");
 
-    expect(field.stepId).toBe(STEP_SCHEDULE);
+    expect(field.stepId).toBe(STEP_SCAN_TARGET);
+    expect(field.collapsibleSection?.title).toBe("More fields");
+    expect(field.collapsibleSection).toBe(
+      fieldNamed("isRecurring").collapsibleSection,
+    );
     expect(typeof field.customValidation).toBe("function");
+  });
+
+  test("follows the repeat switch, under its own Schedule heading", async () => {
+    await renderPage();
+
+    const declared: Array<string> = (capturedTableProps?.formFields || []).map(
+      fieldKeyOf,
+    );
+
+    expect(fieldNamed("isRecurring").sectionTitle).toBe("Schedule");
+    expect(declared.indexOf("rescanIntervalInMinutes")).toBe(
+      declared.indexOf("isRecurring") + 1,
+    );
   });
 
   test("it only reveals itself once the scan is set to repeat", async () => {
@@ -1337,14 +1454,37 @@ describe("Name is collected by the wizard", () => {
     capturedTableProps = null;
   });
 
-  test("is the first thing the wizard asks for, on the first step", async () => {
+  /*
+   * Asked on the first step, as the first of More fields - not first on the
+   * page any more (issue #3391 put it there): someone sweeping one subnet
+   * needs no name, and the list shows the scan target when there is none.
+   * Someone running many scans opens More fields, where it is the first
+   * field.
+   */
+  test("is the first of More fields, on the first step", async () => {
     await renderPage();
 
-    const fields: Array<CapturedFormField> =
-      capturedTableProps?.formFields || [];
+    const folded: Array<CapturedFormField> = (
+      capturedTableProps?.formFields || []
+    ).filter((field: CapturedFormField): boolean => {
+      return (
+        field.stepId === STEP_SCAN_TARGET && Boolean(field.collapsibleSection)
+      );
+    });
 
-    expect(fieldKeyOf(fields[0] as CapturedFormField)).toBe("name");
+    expect(fieldKeyOf(folded[0] as CapturedFormField)).toBe("name");
     expect(fieldNamed("name").stepId).toBe(STEP_SCAN_TARGET);
+  });
+
+  test("comes after the three questions that define the scan", async () => {
+    await renderPage();
+
+    const declared: Array<string> = (capturedTableProps?.formFields || []).map(
+      fieldKeyOf,
+    );
+
+    expect(declared.slice(0, 3)).toEqual(["cidr", "probe", "isSnmpEnabled"]);
+    expect(declared.indexOf("name")).toBe(3);
   });
 
   /*
@@ -1977,7 +2117,11 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
     expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
     expect(field.required).toBe(false);
     expect(field.hideOptionalLabel).toBe(true);
-    expect(field.sectionTitle).toBe("What to check");
+    /*
+     * No "What to check" heading any more: on a step of three questions
+     * the toggle's own words are enough.
+     */
+    expect(field.sectionTitle).toBeUndefined();
   });
 
   /*
@@ -1986,15 +2130,17 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
    * an operator who turns it off has no way to know a ping sweep still happens
    * and still finds things, which is the entire feature #3445 adds.
    */
-  test("the section says the ping sweep happens either way, before asking about SNMP", async () => {
+  test("the toggle says the ping sweep happens either way, before asking about SNMP", async () => {
     await renderPage();
 
     const sectionDescription: string =
-      fieldNamed("isSnmpEnabled").sectionDescription || "";
+      fieldNamed("isSnmpEnabled").description || "";
 
-    expect(sectionDescription).toContain(
-      "Every scan pings each address in the range to find what is alive",
-    );
+    expect(
+      sectionDescription.indexOf(
+        "Every scan pings each address in the range to find what is alive",
+      ),
+    ).toBe(0);
     /*
      * Name and vendor, NOT model: the sweep reads the SNMP system group
      * (sysName / sysDescr / sysObjectId), and a device's model arrives later
@@ -2025,17 +2171,16 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
    * without a heading of its own fails here rather than quietly reading as
    * one more thing the probe sends.
    */
-  test("the toggle opens its section, which holds only what the probe sends, and precedes every field it gates", async () => {
+  test("the toggle is the last question on screen, and precedes every field it gates", async () => {
     await renderPage();
 
     const declared: Array<string> = (capturedTableProps?.formFields || []).map(
       fieldKeyOf,
     );
 
-    expect(whatToCheckSectionKeys()).toEqual([
-      "isSnmpEnabled",
-      "isNetbiosLookupEnabled",
-    ]);
+    // Target, probe, the toggle - then the More fields fold.
+    expect(declared.indexOf("isSnmpEnabled")).toBe(2);
+    expect(fieldNamed(declared[3]!).collapsibleSection).toBeDefined();
 
     const toggleIndex: number = declared.indexOf("isSnmpEnabled");
 
@@ -2115,12 +2260,11 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
    * out from under it — the deadlock described at the top of this file, moved
    * to a step nobody was thinking about.
    */
-  test("only the middle step can remove itself", async () => {
+  test("only the SNMP step can remove itself", async () => {
     await renderPage();
 
     expect(typeof stepNamed(STEP_SNMP).showIf).toBe("function");
     expect(stepNamed(STEP_SCAN_TARGET).showIf).toBeUndefined();
-    expect(stepNamed(STEP_SCHEDULE).showIf).toBeUndefined();
   });
 
   /*
@@ -2433,16 +2577,19 @@ describe("Short device names are asked on the Scan Target step (issue #3678)", (
    * NetBIOS lookup, since issue #3677) so the step still ends with its yes/no
    * questions, each under the heading that explains it.
    */
-  test("it opens a section of its own, directly after the What to check questions", async () => {
+  /*
+   * Under the Device names heading inside More fields, right after the
+   * NetBIOS lookup: both are about what an imported host is called.
+   */
+  test("it sits under the Device names heading in More fields, after the NetBIOS lookup", async () => {
     await renderPage();
 
     const field: CapturedFormField = fieldNamed(KEY);
 
-    expect(field.sectionTitle).toBe("Device names");
-    expect(field.sectionTitle).not.toBe(
-      fieldNamed("isSnmpEnabled").sectionTitle,
-    );
-    expect(field.sectionDescription || "").toContain("reverse-DNS name");
+    expect(field.collapsibleSection?.title).toBe("More fields");
+    expect(
+      sectionKeys({ stepId: STEP_SCAN_TARGET, sectionTitle: "Device names" }),
+    ).toEqual(["isNetbiosLookupEnabled", KEY]);
 
     const declared: Array<string> = (capturedTableProps?.formFields || []).map(
       fieldKeyOf,
@@ -2451,12 +2598,6 @@ describe("Short device names are asked on the Scan Target step (issue #3678)", (
     expect(declared.indexOf(KEY)).toBe(
       declared.indexOf("isNetbiosLookupEnabled") + 1,
     );
-    expect(declared.indexOf("isNetbiosLookupEnabled")).toBe(
-      declared.indexOf("isSnmpEnabled") + 1,
-    );
-    expect(
-      sectionKeys({ stepId: STEP_SCAN_TARGET, sectionTitle: "Device names" }),
-    ).toEqual([KEY]);
   });
 
   /*
@@ -2618,25 +2759,28 @@ describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", (
    * declares it, so a NetBIOS toggle declared after useShortDeviceNames would
    * read as a naming preference that sends nothing.
    */
-  test("it follows the method question inside What to check, before the Device names section", async () => {
+  /*
+   * The heading of the naming switches inside More fields: the NetBIOS name
+   * is one of the names a host can be given, in the order the heading
+   * spells out. Its description still says it puts a packet on the wire.
+   */
+  test("it opens the Device names heading in More fields, before the short-names switch", async () => {
     await renderPage();
 
     const field: CapturedFormField = fieldNamed(KEY);
 
-    expect(field.sectionTitle).toBeUndefined();
-    expect(whatToCheckSectionKeys()).toEqual(["isSnmpEnabled", KEY]);
+    expect(field.collapsibleSection?.title).toBe("More fields");
+    expect(field.sectionTitle).toBe("Device names");
 
     const declared: Array<string> = (capturedTableProps?.formFields || []).map(
       fieldKeyOf,
     );
 
-    expect(declared.indexOf(KEY)).toBe(declared.indexOf("isSnmpEnabled") + 1);
+    expect(declared.indexOf(KEY)).toBe(declared.indexOf("name") + 1);
     expect(declared.indexOf(KEY)).toBeLessThan(
       declared.indexOf("useShortDeviceNames"),
     );
-    expect(
-      sectionKeys({ stepId: STEP_SCAN_TARGET, sectionTitle: "Device names" }),
-    ).not.toContain(KEY);
+    expect(field.description || "").toContain("UDP 137");
   });
 
   /*
@@ -2735,8 +2879,7 @@ describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", (
   test("the Device names section describes NetBIOS in the naming order", async () => {
     await renderPage();
 
-    const sectionDescription: string =
-      fieldNamed("useShortDeviceNames").sectionDescription || "";
+    const sectionDescription: string = fieldNamed(KEY).sectionDescription || "";
 
     const reverseDns: number = sectionDescription.indexOf("reverse-DNS name");
     const netbios: number = sectionDescription.indexOf("NetBIOS name");

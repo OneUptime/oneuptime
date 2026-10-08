@@ -46,6 +46,12 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "../../../Models/DatabaseModels/Project";
+import {
+  AUTOMATIC_FIX_SWITCH_COLUMNS,
+  AutomaticFixSwitchColumns,
+  getAutomaticFixPullRequestColumns,
+} from "../../../Types/AI/AutomaticFixSwitches";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -54,6 +60,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
+import { getSwitchesInDrawnOrder } from "../../../UI/Components/ModelSwitch/ModelSwitchOrder";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -136,21 +143,24 @@ function grant(permissions: Array<Permission>): void {
   } as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>);
 }
 
-// A project that never touched a setting: AI on, the behaviours as given.
+/*
+ * A project that never touched a setting: AI on, the behaviours as given.
+ * Fixing starts off, even for a new project, and so do the pull requests
+ * that are part of it.
+ */
 function projectWith(values: Record<string, unknown>): Record<string, unknown> {
   return {
     _id: PROJECT_ID,
     enableAi: true,
     enableAutomaticIncidentInvestigation: true,
-    // Fixing starts off, even for a new project.
     enableAutomaticIncidentRemediation: false,
     enableAutomaticPostmortemDraft: true,
-    enableAutomaticIncidentCodeFixes: true,
-    enableIncidentInstrumentationFixTasks: true,
+    enableAutomaticIncidentCodeFixes: false,
+    enableIncidentInstrumentationFixTasks: false,
     enableAutomaticAlertInvestigation: true,
     enableAutomaticAlertRemediation: false,
-    enableAutomaticAlertCodeFixes: true,
-    enableAlertInstrumentationFixTasks: true,
+    enableAutomaticAlertCodeFixes: false,
+    enableAlertInstrumentationFixTasks: false,
     enableAiInsights: true,
     enableInsightFixTasks: true,
     autoArchiveNonActionableExceptions: true,
@@ -390,9 +400,10 @@ function detailValue(title: string): string {
 
 describe("Incidents → AI → Settings", () => {
   test("every AI behaviour is a switch, in order, with what the project has", async () => {
+    // Fixing off: the pull requests under it are not offered, whatever they hold.
     stored = projectWith({
       enableAutomaticPostmortemDraft: false,
-      enableIncidentInstrumentationFixTasks: false,
+      enableAutomaticIncidentCodeFixes: true,
     });
 
     openIncidentPage();
@@ -413,14 +424,12 @@ describe("Incidents → AI → Settings", () => {
       "Investigate new incidents",
       "Fix new incidents automatically",
       "Draft a postmortem when an incident resolves",
-      "Open a fix pull request when an investigation finds a code change",
-      "Open a pull request that adds missing telemetry",
     ]);
     expect(
       switches.map((control: HTMLElement): string | null => {
         return control.getAttribute("aria-checked");
       }),
-    ).toEqual(["true", "false", "false", "true", "false"]);
+    ).toEqual(["true", "false", "false"]);
 
     expect(
       screen.getByText(AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle),
@@ -474,7 +483,50 @@ describe("Incidents → AI → Settings", () => {
     ).toHaveTextContent("You do not have permission to update this Project.");
   });
 
+  test("with fixing on, its two pull requests hang under it, and the postmortem follows", async () => {
+    stored = projectWith({
+      enableAutomaticIncidentRemediation: true,
+      enableAutomaticIncidentCodeFixes: true,
+      enableIncidentInstrumentationFixTasks: false,
+    });
+
+    openIncidentPage();
+    await findSwitch(
+      getProjectAiSwitchTestId("enableAutomaticIncidentCodeFixes"),
+    );
+
+    const switches: Array<HTMLElement> = switchesIn(
+      AI_LANE_SWITCHES_TEST_ID[AiLane.Incident],
+    );
+
+    expect(
+      switches.map((control: HTMLElement): string => {
+        return nameOf(control);
+      }),
+    ).toEqual([
+      "Investigate new incidents",
+      "Fix new incidents automatically",
+      "Open a fix pull request when an investigation finds a code change",
+      "Open a pull request that adds missing telemetry",
+      "Draft a postmortem when an incident resolves",
+    ]);
+    expect(
+      switches.map((control: HTMLElement): string | null => {
+        return control.getAttribute("aria-checked");
+      }),
+    ).toEqual(["true", "true", "true", "false", "true"]);
+    expect(
+      titlesOf(getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Incident])),
+    ).toEqual(
+      switches.map((control: HTMLElement): string => {
+        return nameOf(control);
+      }),
+    );
+  });
+
   test("the fix pull request switches say what they need", async () => {
+    stored = projectWith({ enableAutomaticIncidentRemediation: true });
+
     openIncidentPage();
     await findSwitch(
       getProjectAiSwitchTestId("enableAutomaticIncidentCodeFixes"),
@@ -528,7 +580,7 @@ describe("Incidents → AI → Settings", () => {
     expect(setChips(advancedHeader())).toEqual([]);
   });
 
-  test("flipping Fix new incidents automatically saves that column alone", async () => {
+  test("turning on Fix new incidents automatically saves it and both its pull requests on, in one save", async () => {
     openIncidentPage();
 
     const fix: HTMLElement = await findSwitch(
@@ -539,7 +591,13 @@ describe("Incidents → AI → Settings", () => {
 
     await press(fix);
 
-    expect(updates()).toEqual([{ enableAutomaticIncidentRemediation: true }]);
+    expect(updates()).toEqual([
+      {
+        enableAutomaticIncidentRemediation: true,
+        enableAutomaticIncidentCodeFixes: true,
+        enableIncidentInstrumentationFixTasks: true,
+      },
+    ]);
   });
 
   test.each([
@@ -783,8 +841,10 @@ describe("Incidents → AI → Settings", () => {
         ]);
       }
 
-      // No AI switch rides along with a limit.
-      for (const definition of AI_LANE_SWITCHES[AiLane.Incident]) {
+      // No AI switch rides along with a limit, nor one under a switch.
+      for (const definition of getSwitchesInDrawnOrder(
+        AI_LANE_SWITCHES[AiLane.Incident],
+      )) {
         expect(posted[definition.column]).toBeUndefined();
       }
     },
@@ -792,10 +852,16 @@ describe("Incidents → AI → Settings", () => {
 
   test("a Project Admin may flip every switch and edit every limit", async () => {
     grant([...BASE_PERMISSIONS, Permission.ProjectAdmin]);
+    // Fixing on, so the pull requests under it are drawn too.
+    stored = projectWith({ enableAutomaticIncidentRemediation: true });
 
     openIncidentPage();
     await findSwitch(
-      getProjectAiSwitchTestId("enableAutomaticIncidentInvestigation"),
+      getProjectAiSwitchTestId("enableAutomaticIncidentCodeFixes"),
+    );
+
+    expect(switchesIn(AI_LANE_SWITCHES_TEST_ID[AiLane.Incident])).toHaveLength(
+      5,
     );
 
     for (const control of switchesIn(
@@ -832,11 +898,17 @@ describe("Incidents → AI → Settings", () => {
     "%s sees every switch locked, and every Edit locked, with why",
     async (permission: Permission) => {
       grant([...BASE_PERMISSIONS, permission]);
+      // Fixing on, so the pull requests under it are drawn - locked too.
+      stored = projectWith({ enableAutomaticIncidentRemediation: true });
 
       openIncidentPage();
       await findSwitch(
-        getProjectAiSwitchTestId("enableAutomaticIncidentInvestigation"),
+        getProjectAiSwitchTestId("enableAutomaticIncidentCodeFixes"),
       );
+
+      expect(
+        switchesIn(AI_LANE_SWITCHES_TEST_ID[AiLane.Incident]),
+      ).toHaveLength(5);
 
       for (const control of switchesIn(
         AI_LANE_SWITCHES_TEST_ID[AiLane.Incident],
@@ -888,12 +960,14 @@ describe("Incidents → AI → Settings", () => {
 
 describe("Alerts → AI → Settings", () => {
   test("its switches are the alert behaviours, with no postmortem", async () => {
-    stored = projectWith({ enableAutomaticAlertCodeFixes: false });
+    stored = projectWith({
+      enableAutomaticAlertRemediation: true,
+      enableAutomaticAlertCodeFixes: false,
+      enableAlertInstrumentationFixTasks: true,
+    });
 
     openAlertPage();
-    await findSwitch(
-      getProjectAiSwitchTestId("enableAutomaticAlertInvestigation"),
-    );
+    await findSwitch(getProjectAiSwitchTestId("enableAutomaticAlertCodeFixes"));
 
     const switches: Array<HTMLElement> = switchesIn(
       AI_LANE_SWITCHES_TEST_ID[AiLane.Alert],
@@ -913,8 +987,25 @@ describe("Alerts → AI → Settings", () => {
       switches.map((control: HTMLElement): string | null => {
         return control.getAttribute("aria-checked");
       }),
-    ).toEqual(["true", "false", "false", "true"]);
+    ).toEqual(["true", "true", "false", "true"]);
     expect(document.body).not.toHaveTextContent(/postmortem/i);
+  });
+
+  test("with fixing off, it offers only investigating and fixing", async () => {
+    stored = projectWith({ enableAlertInstrumentationFixTasks: true });
+
+    openAlertPage();
+    await findSwitch(
+      getProjectAiSwitchTestId("enableAutomaticAlertInvestigation"),
+    );
+
+    expect(
+      switchesIn(AI_LANE_SWITCHES_TEST_ID[AiLane.Alert]).map(
+        (control: HTMLElement): string => {
+          return nameOf(control);
+        },
+      ),
+    ).toEqual(["Investigate new alerts", "Fix new alerts automatically"]);
   });
 
   test("flipping a switch saves the alert column alone", async () => {
@@ -946,7 +1037,7 @@ describe("Alerts → AI → Settings", () => {
     );
   });
 
-  test("flipping Fix new alerts automatically saves the alert column alone", async () => {
+  test("turning on Fix new alerts automatically saves it and both alert pull requests on, and no incident column", async () => {
     openAlertPage();
 
     await press(
@@ -955,7 +1046,13 @@ describe("Alerts → AI → Settings", () => {
       ),
     );
 
-    expect(updates()).toEqual([{ enableAutomaticAlertRemediation: true }]);
+    expect(updates()).toEqual([
+      {
+        enableAutomaticAlertRemediation: true,
+        enableAutomaticAlertCodeFixes: true,
+        enableAlertInstrumentationFixTasks: true,
+      },
+    ]);
   });
 
   test("an alert rule counts on the alert page, with the alert tables", async () => {
@@ -1017,6 +1114,330 @@ describe("Alerts → AI → Settings", () => {
     expect(detailValue("Daily Alert AI Token Limit")).toBe("No limit");
     expect(detailValue("Daily Alert AI Fix Task Limit")).toBe("No limit");
   });
+});
+
+/*
+ * "The two dots below should be auto-turned on when the 'Fix new alerts
+ * automatically' is turned on, and it should actually be a child of 'Fix
+ * new alerts automatically'. Can you please do this for incidents as
+ * well?" - the maintainer.
+ *
+ * On both pages the two pull-request switches are part of fixing: drawn in
+ * a group under "Fix new incidents (alerts) automatically" only while it is
+ * on, turned on and off with it in one save, and each flipped on its own
+ * while it is on. The columns come from the rule the server reads
+ * (Common/Types/AI/AutomaticFixSwitches), so the page and the server cannot
+ * drift apart.
+ */
+interface FixLane {
+  lane: AiLane;
+  signal: AutoRemediationTriggerEntity;
+  otherSignal: AutoRemediationTriggerEntity;
+  fixTitle: string;
+  open: () => void;
+}
+
+const FIX_LANES: Array<[string, FixLane]> = [
+  [
+    "Incidents",
+    {
+      lane: AiLane.Incident,
+      signal: AutoRemediationTriggerEntity.Incident,
+      otherSignal: AutoRemediationTriggerEntity.Alert,
+      fixTitle: "Fix new incidents automatically",
+      open: openIncidentPage,
+    },
+  ],
+  [
+    "Alerts",
+    {
+      lane: AiLane.Alert,
+      signal: AutoRemediationTriggerEntity.Alert,
+      otherSignal: AutoRemediationTriggerEntity.Incident,
+      fixTitle: "Fix new alerts automatically",
+      open: openAlertPage,
+    },
+  ],
+];
+
+const PULL_REQUEST_TITLES: Array<string> = [
+  "Open a fix pull request when an investigation finds a code change",
+  "Open a pull request that adds missing telemetry",
+];
+
+function fixColumnsOf(signal: AutoRemediationTriggerEntity): {
+  fix: string;
+  pullRequests: Array<string>;
+} {
+  const columns: AutomaticFixSwitchColumns =
+    AUTOMATIC_FIX_SWITCH_COLUMNS[signal];
+
+  return {
+    fix: columns.fix,
+    pullRequests: getAutomaticFixPullRequestColumns(signal),
+  };
+}
+
+// The three columns of a lane, all set one way.
+function allThree(
+  signal: AutoRemediationTriggerEntity,
+  isOn: boolean,
+): Record<string, boolean> {
+  const columns: { fix: string; pullRequests: Array<string> } =
+    fixColumnsOf(signal);
+  const values: Record<string, boolean> = { [columns.fix]: isOn };
+
+  for (const column of columns.pullRequests) {
+    values[column] = isOn;
+  }
+
+  return values;
+}
+
+function checkedOf(column: string): string | null {
+  return screen
+    .getByTestId(getProjectAiSwitchTestId(column))
+    .getAttribute("aria-checked");
+}
+
+function childrenGroupOf(fixColumn: string): HTMLElement | null {
+  return screen.queryByTestId(
+    `${getProjectAiSwitchTestId(fixColumn)}-children`,
+  );
+}
+
+describe("the pull requests are part of fixing", () => {
+  test.each(FIX_LANES)(
+    "%s: the page nests the switches the server's rule names, and nowhere else",
+    (_name: string, lane: FixLane) => {
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+      const fix: ProjectAiSwitchDefinition<string> | undefined =
+        AI_LANE_SWITCHES[lane.lane].find(
+          (definition: ProjectAiSwitchDefinition<string>): boolean => {
+            return definition.column === columns.fix;
+          },
+        );
+
+      expect(fix?.title).toBe(lane.fixTitle);
+      expect(
+        (fix?.children || []).map(
+          (child: ProjectAiSwitchDefinition<string>): string => {
+            return child.column;
+          },
+        ),
+      ).toEqual(columns.pullRequests);
+      expect(titlesOf(fix?.children || [])).toEqual(PULL_REQUEST_TITLES);
+
+      // Not a switch of their own on the page any more.
+      const topLevel: Array<string> = AI_LANE_SWITCHES[lane.lane].map(
+        (definition: ProjectAiSwitchDefinition<string>): string => {
+          return definition.column;
+        },
+      );
+      for (const column of columns.pullRequests) {
+        expect(topLevel).not.toContain(column);
+      }
+
+      // Only the fix switch has switches under it.
+      for (const definition of AI_LANE_SWITCHES[lane.lane]) {
+        if (definition.column !== columns.fix) {
+          expect([definition.column, definition.children]).toEqual([
+            definition.column,
+            undefined,
+          ]);
+        }
+      }
+    },
+  );
+
+  test.each(FIX_LANES)(
+    "%s: with fixing on they hang in a group named for it, under its row",
+    async (_name: string, lane: FixLane) => {
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+      stored = projectWith(allThree(lane.signal, true));
+
+      lane.open();
+      await findSwitch(getProjectAiSwitchTestId(columns.pullRequests[0]!));
+
+      const group: HTMLElement = screen.getByRole("group", {
+        name: lane.fixTitle,
+      });
+
+      expect(group).toBe(childrenGroupOf(columns.fix));
+      expect(
+        within(group)
+          .getAllByRole("switch")
+          .map((control: HTMLElement): string => {
+            return nameOf(control);
+          }),
+      ).toEqual(PULL_REQUEST_TITLES);
+      // Under the fix switch's own row, not inside it.
+      expect(
+        screen.getByTestId(`${getProjectAiSwitchTestId(columns.fix)}-row`)
+          .nextElementSibling,
+      ).toBe(group);
+    },
+  );
+
+  test.each(FIX_LANES)(
+    "%s: with fixing off they are not offered, even when one was left on",
+    async (_name: string, lane: FixLane) => {
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+      // An older project: a pull-request switch on under fixing that is off.
+      stored = projectWith({ [columns.pullRequests[0]!]: true });
+
+      lane.open();
+      await findSwitch(getProjectAiSwitchTestId(columns.fix));
+      await flush();
+
+      expect(childrenGroupOf(columns.fix)).toBeNull();
+      for (const column of columns.pullRequests) {
+        expect(
+          screen.queryByTestId(getProjectAiSwitchTestId(column)),
+        ).toBeNull();
+      }
+    },
+  );
+
+  test.each(FIX_LANES)(
+    "%s: turning fixing on is one save that turns both pull requests on, and they appear on",
+    async (_name: string, lane: FixLane) => {
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+
+      lane.open();
+      await press(await findSwitch(getProjectAiSwitchTestId(columns.fix)));
+
+      expect(updates()).toEqual([allThree(lane.signal, true)]);
+
+      // Nothing of the other kind of signal rides along.
+      const other: { fix: string; pullRequests: Array<string> } = fixColumnsOf(
+        lane.otherSignal,
+      );
+      for (const column of [other.fix, ...other.pullRequests]) {
+        expect(updates()[0]![column]).toBeUndefined();
+      }
+
+      expect(childrenGroupOf(columns.fix)).not.toBeNull();
+      for (const column of columns.pullRequests) {
+        expect([column, checkedOf(column)]).toEqual([column, "true"]);
+      }
+      expect(
+        screen.getByTestId(`${getProjectAiSwitchTestId(columns.fix)}-status`),
+      ).toHaveTextContent("Saved");
+    },
+  );
+
+  test.each(FIX_LANES)(
+    "%s: turning fixing off is one save that turns all three off, and the pull requests go",
+    async (_name: string, lane: FixLane) => {
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+      stored = projectWith(allThree(lane.signal, true));
+
+      lane.open();
+      await findSwitch(getProjectAiSwitchTestId(columns.pullRequests[0]!));
+      await press(screen.getByTestId(getProjectAiSwitchTestId(columns.fix)));
+
+      expect(updates()).toEqual([allThree(lane.signal, false)]);
+      expect(childrenGroupOf(columns.fix)).toBeNull();
+      expect(checkedOf(columns.fix)).toBe("false");
+    },
+  );
+
+  test.each(FIX_LANES)(
+    "%s: while fixing is on, each pull request is flipped on its own and saves its column alone",
+    async (_name: string, lane: FixLane) => {
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+      stored = projectWith(allThree(lane.signal, true));
+
+      lane.open();
+      const second: string = columns.pullRequests[1]!;
+      await press(await findSwitch(getProjectAiSwitchTestId(second)));
+
+      expect(updates()).toEqual([{ [second]: false }]);
+      expect(checkedOf(second)).toBe("false");
+      expect(checkedOf(columns.pullRequests[0]!)).toBe("true");
+      expect(checkedOf(columns.fix)).toBe("true");
+    },
+  );
+
+  test.each(FIX_LANES)(
+    "%s: a refused turn-on leaves all three as they were, says why, and offers nothing under it",
+    async (_name: string, lane: FixLane) => {
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+      updateByIdSpy.mockImplementation(async (): Promise<never> => {
+        throw new Error("AI is disabled for this project.");
+      });
+
+      lane.open();
+      await press(await findSwitch(getProjectAiSwitchTestId(columns.fix)));
+
+      // One write was tried, and the server kept all three off.
+      expect(updates()).toEqual([allThree(lane.signal, true)]);
+      for (const column of [columns.fix, ...columns.pullRequests]) {
+        expect([column, stored[column]]).toEqual([column, false]);
+      }
+      expect(checkedOf(columns.fix)).toBe("false");
+      expect(childrenGroupOf(columns.fix)).toBeNull();
+      expect(
+        screen.getByTestId(`${getProjectAiSwitchTestId(columns.fix)}-row`),
+      ).toHaveTextContent("AI is disabled for this project.");
+    },
+  );
+
+  test.each(FIX_LANES)(
+    "%s: off and on again, both pull requests come back on, the one turned off by hand too",
+    async (_name: string, lane: FixLane) => {
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+      stored = projectWith(allThree(lane.signal, true));
+
+      lane.open();
+      await press(
+        await findSwitch(getProjectAiSwitchTestId(columns.pullRequests[0]!)),
+      );
+      await press(screen.getByTestId(getProjectAiSwitchTestId(columns.fix)));
+      await press(screen.getByTestId(getProjectAiSwitchTestId(columns.fix)));
+
+      for (const column of columns.pullRequests) {
+        expect([column, checkedOf(column)]).toEqual([column, "true"]);
+      }
+      expect(stored).toEqual(
+        expect.objectContaining(allThree(lane.signal, true)),
+      );
+    },
+  );
+
+  test.each(FIX_LANES)(
+    "%s: a Viewer reads them under fixing, locked",
+    async (_name: string, lane: FixLane) => {
+      grant([...BASE_PERMISSIONS, Permission.Viewer]);
+      const columns: { fix: string; pullRequests: Array<string> } =
+        fixColumnsOf(lane.signal);
+      stored = projectWith(allThree(lane.signal, true));
+
+      lane.open();
+      await findSwitch(getProjectAiSwitchTestId(columns.pullRequests[0]!));
+
+      for (const column of [columns.fix, ...columns.pullRequests]) {
+        expect([
+          column,
+          screen
+            .getByTestId(getProjectAiSwitchTestId(column))
+            .getAttribute("aria-disabled"),
+        ]).toEqual([column, "true"]);
+      }
+
+      await press(screen.getByTestId(getProjectAiSwitchTestId(columns.fix)));
+      expect(updateByIdSpy).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("AI → Insights → Settings", () => {

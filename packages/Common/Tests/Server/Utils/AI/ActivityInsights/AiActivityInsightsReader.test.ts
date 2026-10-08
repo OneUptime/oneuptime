@@ -227,7 +227,10 @@ describe("AiActivityInsightsReader.read", () => {
       },
     ]);
 
-    // Linked subjects: the caller's labels leave out the hidden incident.
+    /*
+     * Linked subjects, read whole: the caller's labels leave out the hidden
+     * incident, which the run names but the caller cannot read by id either.
+     */
     incidentFind.mockImplementation(async (args: unknown) => {
       const query: Record<string, unknown> = (
         args as { query: Record<string, unknown> }
@@ -237,7 +240,16 @@ describe("AiActivityInsightsReader.read", () => {
       ).select;
 
       if (query["kubernetesClusters"]) {
-        return [{ id: INCIDENT_ID }];
+        return [
+          {
+            id: INCIDENT_ID,
+            title: "Checkout is down",
+            incidentNumber: 42,
+            incidentNumberWithPrefix: "INC-42",
+            seriesLabels: { "k8s.namespace.name": "shop" },
+            createdAt: minutesAgo(12),
+          },
+        ];
       }
 
       // The monitors of the readable incidents, as root.
@@ -245,16 +257,7 @@ describe("AiActivityInsightsReader.read", () => {
         return [{ id: INCIDENT_ID, monitors: [{ id: INCIDENT_MONITOR_ID }] }];
       }
 
-      return idsIn(query["_id"]).includes(INCIDENT_ID.toString())
-        ? [
-            {
-              id: INCIDENT_ID,
-              title: "Checkout is down",
-              incidentNumber: 42,
-              seriesLabels: { "k8s.namespace.name": "shop" },
-            },
-          ]
-        : [];
+      return [];
     });
 
     alertFind.mockImplementation(async (args: unknown) => {
@@ -431,8 +434,9 @@ describe("AiActivityInsightsReader.read", () => {
     expect(incidentFeedFind).not.toHaveBeenCalled();
     expect(alertFeedFind).not.toHaveBeenCalled();
     expect(insights.totals.investigations).toBe(0);
+    expect(insights.totals.occurrences).toBe(0);
     expect(insights.problems).toEqual([]);
-    expect(insights.attention).toEqual([]);
+    expect(insights.insights).toEqual([]);
     expect(insights.isPartial).toBe(false);
   });
 
@@ -494,21 +498,64 @@ describe("AiActivityInsightsReader.read", () => {
     expect(serialized).not.toContain("A triage finding.");
   });
 
-  test("reads the subjects' titles and series identity under the caller's props, their monitors as root", async () => {
+  test("reads the linked incidents and alerts whole under the caller's props, with when each was created", async () => {
     serveMonth();
 
     await AiActivityInsightsReader.read(scope(), NOW);
 
+    for (const spy of [incidentFind, alertFind]) {
+      const linked: Array<unknown> = spy.mock.calls.find(
+        (call: Array<unknown>): boolean => {
+          return Boolean(queryOf(call)["kubernetesClusters"]);
+        },
+      )!;
+
+      expect(isCaller(linked)).toBe(true);
+      expect((linked[0] as { select: Record<string, unknown> }).select).toEqual(
+        expect.objectContaining({
+          _id: true,
+          createdAt: true,
+          title: true,
+          seriesLabels: true,
+        }),
+      );
+    }
+
+    const linkedAlerts: Array<unknown> = alertFind.mock.calls.find(
+      (call: Array<unknown>): boolean => {
+        return Boolean(queryOf(call)["kubernetesClusters"]);
+      },
+    )!;
+    expect(
+      (linkedAlerts[0] as { select: Record<string, unknown> }).select,
+    ).toEqual(
+      expect.objectContaining({ monitorId: true, alertNumberWithPrefix: true }),
+    );
+  });
+
+  test("reads the runs' other subjects by id under the caller's props, and the monitors of every readable incident as root", async () => {
+    serveMonth();
+
+    await AiActivityInsightsReader.read(scope(), NOW);
+
+    // The linked incident is not read again: only the one a run names.
     const titleRead: Array<unknown> = incidentFind.mock.calls.find(
       (call: Array<unknown>): boolean => {
-        return Boolean(
-          (call[0] as { select: Record<string, unknown> }).select["title"],
-        );
+        return Boolean(queryOf(call)["_id"]) && !isRoot(call);
       },
     )!;
     expect(isCaller(titleRead)).toBe(true);
-    expect(idsIn(queryOf(titleRead)["_id"]).sort()).toEqual(
-      [INCIDENT_ID.toString(), HIDDEN_INCIDENT_ID.toString()].sort(),
+    expect(idsIn(queryOf(titleRead)["_id"])).toEqual([
+      HIDDEN_INCIDENT_ID.toString(),
+    ]);
+    expect(
+      (titleRead[0] as { select: Record<string, unknown> }).select,
+    ).toEqual(
+      expect.objectContaining({
+        title: true,
+        seriesLabels: true,
+        createdAt: true,
+      }),
     );
 
     // Monitors only of the incidents the caller could read.
@@ -552,6 +599,7 @@ describe("AiActivityInsightsReader.read", () => {
     expect(replica.title).toBe("Replica mismatch");
     expect(replica.isRecurring).toBe(true);
     expect(replica.subjectCount).toBe(2);
+    expect(replica.occurrenceCount).toBe(2);
     expect(replica.latestSubject).toEqual({
       kind: "alert",
       id: ALERT_ID.toString(),
@@ -575,12 +623,33 @@ describe("AiActivityInsightsReader.read", () => {
       expect.objectContaining({
         name: "Namespace",
         value: "shop",
+        occurrenceCount: 3,
         investigationCount: 3,
+        problemCount: 2,
       }),
     ]);
   });
 
-  test("a finding whose TL;DR call failed comes from its report, read only for that run, as root", async () => {
+  test("everything that came up here is the linked incidents and alerts, and the investigated ones", async () => {
+    serveMonth();
+
+    const insights: AiActivityInsights = await AiActivityInsightsReader.read(
+      scope(),
+      NOW,
+    );
+
+    // The linked incident (with its prefixed number), and the two alerts.
+    expect(insights.totals.occurrences).toBe(3);
+    const incidentProblem: AiActivityProblem = insights.problems.find(
+      (problem: AiActivityProblem): boolean => {
+        return problem.latestSubject.kind === "incident";
+      },
+    )!;
+    expect(incidentProblem.latestSubject.numberWithPrefix).toBe("INC-42");
+    expect(incidentProblem.firstSeenAt).toBe(minutesAgo(12).toISOString());
+  });
+
+  test("each problem's newest completed investigation's report is read, as root: its Summary when the TL;DR call failed, and its first suggested step", async () => {
     serveMonth();
 
     const insights: AiActivityInsights = await AiActivityInsightsReader.read(
@@ -607,12 +676,49 @@ describe("AiActivityInsightsReader.read", () => {
     )!;
     expect(incidentProblem.latestFinding!.source).toBe("tldr");
 
-    // Only the alert run lacked a TL;DR.
-    expect(incidentFeedFind).not.toHaveBeenCalled();
+    // One report per problem: the incident's run for its step, the alert's for both.
+    expect(idsIn(queryOf(incidentFeedFind.mock.calls[0]!)["aiRunId"])).toEqual([
+      RUN_INCIDENT.toString(),
+    ]);
     expect(idsIn(queryOf(alertFeedFind.mock.calls[0]!)["aiRunId"])).toEqual([
       RUN_ALERT.toString(),
     ]);
     expect(isRoot(alertFeedFind.mock.calls[0]!)).toBe(true);
+    expect(isRoot(incidentFeedFind.mock.calls[0]!)).toBe(true);
+    // The private incident's run is never asked about.
+    expect(JSON.stringify(incidentFeedFind.mock.calls)).not.toContain(
+      RUN_HIDDEN.toString(),
+    );
+  });
+
+  test("a problem's suggested step is the first one its report names, with no citation markers", async () => {
+    serveMonth();
+    incidentFeedFind.mockResolvedValue([
+      {
+        aiRunId: RUN_INCIDENT,
+        incidentId: INCIDENT_ID,
+        feedInfoInMarkdown:
+          "**Summary** — The checkout database ran out of connections [C1].\n\n**Suggested next steps**\n- Raise the pool to 50 connections [C2].\n- Then look at the slow query.",
+      },
+    ]);
+
+    const insights: AiActivityInsights = await AiActivityInsightsReader.read(
+      scope(),
+      NOW,
+    );
+
+    const incidentProblem: AiActivityProblem = insights.problems.find(
+      (problem: AiActivityProblem): boolean => {
+        return problem.latestSubject.kind === "incident";
+      },
+    )!;
+    // The TL;DR stays the finding; the report adds the step.
+    expect(incidentProblem.latestFinding!.text).toBe(
+      "The checkout database ran out of connections.",
+    );
+    expect(incidentProblem.latestNextStep).toBe(
+      "Raise the pool to 50 connections.",
+    );
   });
 
   test("reads the window's fixes as root — the scope's own rounds and those whose commands ran here — without rationale or plan", async () => {
@@ -652,7 +758,7 @@ describe("AiActivityInsightsReader.read", () => {
     );
   });
 
-  test("links attention to readable incidents and alerts only", async () => {
+  test("links insights to readable incidents and alerts only", async () => {
     serveMonth();
 
     const insights: AiActivityInsights = await AiActivityInsightsReader.read(
@@ -660,10 +766,22 @@ describe("AiActivityInsightsReader.read", () => {
       NOW,
     );
 
-    const serialized: string = JSON.stringify(insights.attention);
+    const serialized: string = JSON.stringify(insights.insights);
     // The failed fix's alert is readable; the waiting fix's incident is not.
     expect(serialized).toContain(ALERT_ID.toString());
     expect(serialized).not.toContain(HIDDEN_INCIDENT_ID.toString());
+  });
+
+  test("reads when a person approved each fix, never its rationale or plan", async () => {
+    serveMonth();
+
+    await AiActivityInsightsReader.read(scope(), NOW);
+
+    for (const call of suggestionFind.mock.calls) {
+      expect((call[0] as { select: Record<string, unknown> }).select).toEqual(
+        expect.objectContaining({ approvedAt: true }),
+      );
+    }
   });
 
   test("a role that may not read incidents or alerts at all sees only subjectless runs", async () => {

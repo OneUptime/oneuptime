@@ -34,6 +34,7 @@ import {
 import {
   childTypeLabelFor,
   isUnitLevelFor,
+  opensDeviceTopology,
 } from "../../Components/NetworkSite/SiteMapViewModel";
 import StatusChipGroup, {
   StatusChipOption,
@@ -51,27 +52,23 @@ import {
   summarizeSiteHealth,
 } from "../../Components/NetworkSite/SiteHealthFilter";
 import NetworkTopologyLiveView from "../../Components/Topology/NetworkTopologyLiveView";
+import NetworkTopologyExplorer from "../../Components/Topology/NetworkTopologyExplorer";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import { Slate500 } from "Common/Types/BrandColors";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { APP_API_URL } from "Common/UI/Config";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import React, {
   Fragment,
   FunctionComponent,
@@ -349,9 +346,19 @@ const NetworkSiteMap: FunctionComponent<
    * customer can rename ("Unit" → "Store", "Restaurant", "Tower"), so a
    * string comparison would silently stop opening device topologies the
    * moment somebody edited the label. The flag travels on every breadcrumb
-   * entry and defaults to false, so an untyped site reads as a container.
+   * entry and defaults to false, so an untyped site reads as a container -
+   * unless it has no sites under it and devices of its own, when it opens
+   * those devices too (opensDeviceTopology).
    */
-  const isUnitView: boolean = Boolean(currentSite && currentSite.isUnitLevel);
+  const isUnitView: boolean = Boolean(
+    currentSite &&
+      childrenData &&
+      opensDeviceTopology({
+        isUnitLevel: currentSite.isUnitLevel,
+        childSiteCount: childrenData.children.length,
+        ownDeviceCount: childrenData.ownDeviceStats.total,
+      }),
+  );
 
   // The unit view's embedded topology polls itself — skip our poll there.
   const isUnitViewRef: React.MutableRefObject<boolean> =
@@ -812,42 +819,21 @@ const NetworkSiteMap: FunctionComponent<
   const rootLinks: Array<SiteLinkView> = levelLinks;
 
   /*
-   * "No network sites yet" is a claim about the PROJECT, so it is decided on
-   * the unfiltered lists. A search that matches nothing must not tell a
-   * customer with a thousand stores that they have never created one — that
-   * case is the map's own "nothing matches" state, further down.
+   * No sites: there is nothing to put on a geographic map - but a project
+   * with no sites can still have a whole network of devices, and "No network
+   * sites yet" told it there was nothing to see. So the Map draws the
+   * devices instead: the device topology, as Device Topology does for a
+   * project without sites, with a note that grouping devices into sites puts
+   * them on this map by location (NetworkTopologyExplorer). The project's
+   * first site brings the geographic map back on the next refresh.
+   *
+   * Decided on the unfiltered lists: it is a claim about the PROJECT. A
+   * search that matches nothing must not hand a customer with a thousand
+   * stores the device graph - that case is the map's own "nothing matches"
+   * state, further down.
    */
   if (allLevelSites.length === 0 && allPinnedSites.length === 0) {
-    return (
-      <Card title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
-        {/* EmptyState ships 13rem of vertical padding for a full-page
-         * placeholder; inside a card that reads as a hole, so trim it. */}
-        <div className="-my-28">
-          <EmptyState
-            id="network-map-empty"
-            icon={IconProp.Globe}
-            title="No network sites yet"
-            description={
-              <span className="mx-auto block max-w-md">
-                {translator.translateText(
-                  "Model your network as a hierarchy — regions, franchisees, markets, units — and this page becomes a drill-down map of all of it, from the whole country down to the switch in one store.",
-                )}
-              </span>
-            }
-            footer={
-              <Link
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.NETWORK_SITES] as Route,
-                )}
-                className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-              >
-                {translator.translateText("Create your first network site")}
-              </Link>
-            }
-          />
-        </div>
-      </Card>
-    );
+    return <NetworkTopologyExplorer />;
   }
 
   return (

@@ -603,6 +603,16 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   minute to follow. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
+- **Saving Require SSO for Login on again is checked as turning it on is.**
+  A save that sends Require SSO for Login on - for a project or for the
+  whole server - or names the provider a project requires is now checked
+  even when the setting has that value already, as the API, Terraform and
+  other tools that send every setting with each save do. While no provider
+  would sign people in there, or the provider a project requires is off,
+  such a save is refused with the message turning it on gives, whatever
+  else it changes: turn a provider on, or turn the setting off, first.
+  Turning it off and clearing the required provider are never refused. See
+  [SSO](/docs/identity/sso#requiring-sso-for-your-project).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
@@ -1083,10 +1093,12 @@ Terraform configurations that set `enableAutoRemediation` or
 ### New projects start with every AI feature on
 
 A project created after the upgrade starts with every AI feature switched on,
-not only automatic incident and alert investigation: postmortem drafts,
-automatic code fixes and instrumentation fixes (Incidents or Alerts →
-AI → Settings), and AI Insights with its fix pull requests and auto-archiving
-of expected-denial exceptions (AI → Insights → Settings).
+not only automatic incident and alert investigation: postmortem drafts
+(Incidents → AI → Settings), and AI Insights with its fix pull requests and
+auto-archiving of expected-denial exceptions (AI → Insights → Settings). The
+pull requests OneUptime AI opens for incidents and alerts are part of fixing,
+which starts off; see [The pull-request switches are part of
+fixing](#the-pull-request-switches-are-part-of-fixing).
 
 Projects that already exist keep the settings they have; the upgrade switches
 nothing on. On also does not mean running: each feature still needs an LLM
@@ -1216,6 +1228,39 @@ API clients and Terraform configurations can turn fixing on with the project's
 with in its `remediationAction` (`OneUptimeAI` or `Runbooks`). A rule created
 without one, with runbooks and no AI setting, is a **Runbooks** rule, as it
 would have run before.
+
+### The pull-request switches are part of fixing
+
+**Open a fix pull request when an investigation finds a code change** and
+**Open a pull request that adds missing telemetry** (Incidents or Alerts →
+AI → Settings) now sit under **Fix new incidents automatically** (or
+**Fix new alerts automatically**). They are shown only while fixing is on,
+turning fixing on turns both on, and turning it off turns both off. While
+fixing is on, either one can be turned off on its own.
+
+What changes after the upgrade:
+
+- A pull request opens on its own only while fixing is on as well as its
+  own switch. A project that had a pull-request switch on and fixing off
+  stops opening those pull requests by itself. Turn fixing on to get them
+  back. To keep OneUptime AI from changing your clusters or hosts, keep
+  **Fixes** off on their **AI agent** pages (the default) and add no auto
+  remediation rule.
+- The upgrade changes no stored setting. A pull-request switch that was on
+  under fixing that was off stays on and waits; the settings page shows it
+  once fixing is turned on, and turning fixing on turns it on anyway.
+- A new project starts with the pull-request switches off, like fixing.
+  Investigations, postmortem drafts and AI Insights still start on.
+- **Open Fix PR from this analysis** on an investigation is unchanged: it
+  needs neither switch.
+
+API clients and Terraform configurations keep their fields
+(`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`,
+`enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, or
+`enable_automatic_incident_code_fixes` and the rest in Terraform). The
+server stores what they write, and does not turn the pull-request fields on
+or off with `enableAutomaticIncidentRemediation` (or the alert field): set
+all three in one request to turn fixing on with its pull requests.
 
 ### Verify the edition and the license
 

@@ -1215,8 +1215,8 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
             No network topology discovered yet.
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Add network devices and enable interface monitoring — LLDP and CDP
-            neighbors appear here as devices report them.
+            Add your devices and they appear here. Devices read over SNMP are
+            linked to the neighbours they report.
           </p>
           {props.emptyStateFooter ? (
             <p className="mt-3">{props.emptyStateFooter}</p>
