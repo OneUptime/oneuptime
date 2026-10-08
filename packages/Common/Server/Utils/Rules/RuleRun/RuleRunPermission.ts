@@ -106,16 +106,46 @@ function requirePermission(data: {
 
   const carriesLabels: boolean = Boolean(model.getAccessControlColumn());
 
+  const wildcard: Permission | null = HeldPermissionsUtil.getModelWildcard({
+    isOperationalResource: model.isOperationalResource,
+    operation: data.requestType,
+  });
+
   const options: HeldPermissionsOptions = {
     projectWideOnly: true,
-    wildcard: HeldPermissionsUtil.getModelWildcard({
-      isOperationalResource: model.isOperationalResource,
-      operation: data.requestType,
-    }),
+    wildcard: wildcard,
     labelledBlocksRefuse: carriesLabels,
   };
 
+  const held: HeldPermissions = CallerPermission.getHeld(data.props);
+
+  // A block with labels on `permission`: the same answer wherever it is.
+  const refuseBlockedForSomeLabels: (permission: Permission) => never = (
+    permission: Permission,
+  ): never => {
+    throw new NotAuthorizedException(
+      `${data.message} ${PermissionHelper.getTitle(
+        permission,
+      )} is in your team's permission block list for some labels.`,
+    );
+  };
+
   if (!CallerPermission.isGrantedAny(data.props, required, options)) {
+    /*
+     * Held through the wildcard alone, which a block with labels takes away
+     * for a run: said as a block on the permission itself is said.
+     */
+    if (
+      wildcard &&
+      carriesLabels &&
+      CallerPermission.isGrantedAny(data.props, required, {
+        ...options,
+        labelledBlocksRefuse: false,
+      })
+    ) {
+      refuseBlockedForSomeLabels(wildcard);
+    }
+
     throw new NotAuthorizedException(
       data.missingPermission
         ? `${data.message} Missing permission: ${PermissionHelper.getTitle(
@@ -135,20 +165,23 @@ function requirePermission(data: {
     return;
   }
 
-  const held: HeldPermissions = CallerPermission.getHeld(data.props);
+  /*
+   * What is left after the table check above, which refuses a block with no
+   * labels: a block with labels on one of the model's own permissions.
+   */
+  const refusingBlocks: Array<Permission> =
+    HeldPermissionsUtil.getRefusingBlocks(held, {
+      labelledBlocksRefuse: true,
+    });
 
-  const blockedForSomeLabels: Permission | undefined = required.find(
+  const blocked: Permission | undefined = required.find(
     (permission: Permission): boolean => {
-      return held.blockedForSomeLabels.includes(permission);
+      return refusingBlocks.includes(permission);
     },
   );
 
-  if (blockedForSomeLabels) {
-    throw new NotAuthorizedException(
-      `${data.message} ${PermissionHelper.getTitle(
-        blockedForSomeLabels,
-      )} is in your team's permission block list for some labels.`,
-    );
+  if (blocked) {
+    refuseBlockedForSomeLabels(blocked);
   }
 }
 

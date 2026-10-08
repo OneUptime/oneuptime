@@ -604,7 +604,7 @@ describe("RuleRunPermission.assertCanRun - blocks on some labels", () => {
     }).not.toThrow();
   });
 
-  it("refuses the operational wildcard when a block on some labels takes it away", () => {
+  it("refuses the operational wildcard when a block on some labels takes it away, saying so as for the permission itself", () => {
     expect(() => {
       assertCanRun(
         RuleRunType.MonitorLabelRule,
@@ -613,6 +613,22 @@ describe("RuleRunPermission.assertCanRun - blocks on some labels", () => {
             Permission.EditMonitorLabelRule,
             Permission.EditAllOperationalResources,
           ],
+          labelledBlockedPermissions: [Permission.EditAllOperationalResources],
+        }),
+      );
+    }).toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to edit every monitor in this project, which running this rule does. Edit All Operational Resources is in your team's permission block list for some labels.",
+      ),
+    );
+  });
+
+  it("still says what is missing when the wildcard is not held at all", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorLabelRule,
+        propsWith({
+          permissions: [Permission.EditMonitorLabelRule],
           labelledBlockedPermissions: [Permission.EditAllOperationalResources],
         }),
       );
