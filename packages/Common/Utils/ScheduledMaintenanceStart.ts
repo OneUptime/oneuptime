@@ -1,8 +1,10 @@
+import ObjectID from "../Types/ObjectID";
 import {
   STATE_LISTS,
   StateListDefinition,
   StateListRow,
   StateListType,
+  getStateListBuiltInRows,
   getStateListReachedBuiltIn,
   toStateListRow,
 } from "./StateOrder";
@@ -34,10 +36,36 @@ import {
  * and Ended, such as "Verifying". That is where an event holds its monitors
  * - paused, in its Change Monitor Status to - and the move into such a state
  * from one where the event had not started is its start, whichever of them
- * it moves into.
+ * it moves into (getStartRows). An event that has started and is no longer
+ * in progress is over (hasEnded): ended, completed, or in a state of the
+ * project's own placed after Ended, such as "Reviewing" - and the move into
+ * such a state from one in progress is its end (getEndRows).
+ *
+ * EVERY "IS THIS EVENT IN PROGRESS RIGHT NOW" IS ASKED HERE. What a status
+ * page lists as ongoing, which network sites and which telemetry series a
+ * maintenance window silences, whose burn-rate alerts an SLO holds back, the
+ * Dashboard's Ongoing lists, badges and header, the measurements' "ongoing
+ * state entered" and the job that ends an event at its end time all read
+ * this rule - on the server through ScheduledMaintenanceStateService
+ * (getInProgressScheduledMaintenanceStateIds), which turns it into the ids
+ * of the states a query asks for. Reading the ongoing flag on its own is
+ * what left an event moved on to "Verifying" half in progress: holding its
+ * monitors, yet missing from its status page's overview and silencing
+ * nothing else. The flag still marks THE ongoing state - the one the start
+ * at an event's time and Mark as Ongoing move it into - and getOngoingState
+ * finds it. OneInProgressRuleGuard keeps every other read of it out.
  *
  * No database and no React in it, so both sides read the same rule.
  */
+
+/*
+ * A row of an event's state timeline, as the edge readers take it: the
+ * state it moved into, and when.
+ */
+export interface ScheduledMaintenanceTimelineRow {
+  stateId?: ObjectID | string | null | undefined;
+  startsAt?: Date | string | null | undefined;
+}
 
 // The built-in states an event is in once it has started, by their flags.
 const STARTED_FLAGS: Array<string> = [
@@ -179,6 +207,169 @@ export default class ScheduledMaintenanceStartUtil {
       getStateListReachedBuiltIn(DEFINITION, placed.rows, placed.row) ===
       ONGOING_FLAG
     );
+  }
+
+  /*
+   * Whether an event in `state` is over, from the state alone: true for a
+   * state flagged ended or completed, false for one flagged scheduled or
+   * ongoing, and null for a state of the project's own - only its place in
+   * the project's list can tell (hasEnded).
+   */
+  public static hasEndedByFlags(state: unknown): boolean | null {
+    const inProgress: boolean | null = this.isInProgressByFlags(state);
+
+    if (inProgress === null) {
+      return null;
+    }
+
+    if (inProgress) {
+      return false;
+    }
+
+    return this.hasStartedByFlags(state);
+  }
+
+  /*
+   * Whether an event in `state` is over: it has started and is no longer in
+   * progress - in the ended or completed state, or in a state of the
+   * project's own placed after Ended ("Reviewing", "Archived"). An event
+   * moved straight from waiting into such a state is over without having
+   * run. False for a state that is none of the project's and has no place.
+   */
+  public static hasEnded(data: {
+    states: Array<unknown>;
+    state: unknown;
+  }): boolean {
+    return this.hasStarted(data) && !this.isInProgress(data);
+  }
+
+  // The project's states an event is in progress in, in the order given.
+  public static getInProgressStates<T>(data: { states: Array<T> }): Array<T> {
+    return data.states.filter((state: T): boolean => {
+      return this.isInProgress({ states: data.states, state: state });
+    });
+  }
+
+  /*
+   * The ids of getInProgressStates, as ObjectIDs: the states a query for
+   * the events in progress asks for (currentScheduledMaintenanceStateId).
+   */
+  public static getInProgressStateIds(data: {
+    states: Array<unknown>;
+  }): Array<ObjectID> {
+    return this.getInProgressStates(data)
+      .map((state: unknown): string => {
+        return toStateListRow(DEFINITION, state).id.trim();
+      })
+      .filter((id: string): boolean => {
+        return id.length > 0;
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
+  }
+
+  /*
+   * The project's ongoing state: the first state from the top flagged
+   * ongoing - the one an event's start at its time, and Mark as Ongoing,
+   * move it into. Null when the list has none (a project always keeps one;
+   * StateOrderGuard refuses deleting it).
+   */
+  public static getOngoingState<T>(data: { states: Array<T> }): T | null {
+    const rows: Array<StateListRow> = data.states.map(
+      (state: T): StateListRow => {
+        return toStateListRow(DEFINITION, state);
+      },
+    );
+
+    const ongoingRow: StateListRow | undefined = getStateListBuiltInRows(
+      DEFINITION,
+      rows,
+    )[ONGOING_FLAG];
+
+    if (!ongoingRow) {
+      return null;
+    }
+
+    const index: number = rows.indexOf(ongoingRow);
+
+    return index >= 0 ? (data.states[index] as T) : null;
+  }
+
+  /*
+   * Of an event's state timeline (any order), the rows it started with:
+   * each row in a state where it is in progress whose row before it - by
+   * startsAt - is in a state where it is not, or that has no row before it.
+   * Moving on from Ongoing to a state of the project's own after it
+   * ("Verifying") is no second start. A row in a state that is none of the
+   * project's counts as not in progress.
+   */
+  public static getStartRows<T extends ScheduledMaintenanceTimelineRow>(data: {
+    states: Array<unknown>;
+    timeline: Array<T>;
+  }): Array<T> {
+    return this.getEdgeRows({
+      timeline: data.timeline,
+      isOn: (stateId: ObjectID | string | null | undefined): boolean => {
+        return this.isInProgress({
+          states: data.states,
+          state: { _id: stateId },
+        });
+      },
+    });
+  }
+
+  /*
+   * Of an event's state timeline (any order), the rows it ended with: each
+   * row in a state where it is over (hasEnded) whose row before it is in a
+   * state where it is not. Moving on from Ended to Completed is no second
+   * end.
+   */
+  public static getEndRows<T extends ScheduledMaintenanceTimelineRow>(data: {
+    states: Array<unknown>;
+    timeline: Array<T>;
+  }): Array<T> {
+    return this.getEdgeRows({
+      timeline: data.timeline,
+      isOn: (stateId: ObjectID | string | null | undefined): boolean => {
+        return this.hasEnded({
+          states: data.states,
+          state: { _id: stateId },
+        });
+      },
+    });
+  }
+
+  // The rows of a timeline, oldest first, where `isOn` turns from off to on.
+  private static getEdgeRows<T extends ScheduledMaintenanceTimelineRow>(data: {
+    timeline: Array<T>;
+    isOn: (stateId: ObjectID | string | null | undefined) => boolean;
+  }): Array<T> {
+    const sorted: Array<T> = [...data.timeline]
+      .filter((row: T): boolean => {
+        return Boolean(row.startsAt);
+      })
+      .sort((a: T, b: T): number => {
+        return (
+          new Date(a.startsAt as Date).getTime() -
+          new Date(b.startsAt as Date).getTime()
+        );
+      });
+
+    const edges: Array<T> = [];
+    let wasOn: boolean = false;
+
+    for (const row of sorted) {
+      const isOn: boolean = data.isOn(row.stateId);
+
+      if (isOn && !wasOn) {
+        edges.push(row);
+      }
+
+      wasOn = isOn;
+    }
+
+    return edges;
   }
 
   private static isInProgressByRowFlags(row: StateListRow): boolean | null {

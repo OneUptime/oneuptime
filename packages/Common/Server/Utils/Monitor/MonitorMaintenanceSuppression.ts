@@ -7,6 +7,8 @@ import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSu
 import ObjectID from "../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
@@ -484,10 +486,13 @@ export default class MonitorMaintenanceSuppression {
    * PodmanHost / KubernetesCluster / ProxmoxCluster / VMwareVCenter /
    * CephCluster / StorageArray / DockerSwarmCluster / IoTFleet / Service /
    * DatabaseServer
-   * attached to an ongoing maintenance event in this project. Monitors
-   * attached to the event are intentionally not collected here — those are
-   * already handled upstream by the whole-monitor disable flag, which
-   * short-circuits evaluation before we ever reach per-series creation.
+   * attached to a maintenance event in progress in this project: in its
+   * project's ongoing state, or in a state of the project's own placed
+   * between Ongoing and Ended, such as "Verifying"
+   * (Common/Utils/ScheduledMaintenanceStart). Monitors attached to the
+   * event are intentionally not collected here — those are already handled
+   * upstream by the whole-monitor disable flag, which short-circuits
+   * evaluation before we ever reach per-series creation.
    */
   private static async getResourcesUnderOngoingMaintenance(
     projectId: ObjectID,
@@ -510,13 +515,21 @@ export default class MonitorMaintenanceSuppression {
       databaseServers: { ids: new Set<string>(), names: new Set<string>() },
     };
 
+    const inProgressStateIds: Array<ObjectID> =
+      await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
+        projectId,
+      );
+
+    if (inProgressStateIds.length === 0) {
+      return maintained;
+    }
+
     const ongoingEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findBy({
         query: {
           projectId: projectId,
-          currentScheduledMaintenanceState: {
-            isOngoingState: true,
-          },
+          currentScheduledMaintenanceStateId:
+            QueryHelper.any(inProgressStateIds),
         },
         select: {
           _id: true,
