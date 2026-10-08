@@ -158,6 +158,31 @@ describe("Icon eye", () => {
 });
 
 /*
+ * MapPin marks a place: the site map's pins, a session replay's location, the
+ * part of a cluster behind most of the trouble on an AI Insights page. It
+ * used to draw the pin's inner dot alone, a small empty ring.
+ */
+describe("Icon map pin", () => {
+  it("draws the pin around the dot", () => {
+    const path: string = getIconPath(IconProp.MapPin);
+
+    // The dot...
+    expect(path.startsWith("M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z")).toBe(
+      true,
+    );
+    // ...and the pin's outline, from its round head down to its point.
+    expect(path).toContain("M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25");
+    expect(path.match(/Z/g)).toHaveLength(2);
+  });
+
+  it("is not the bare dot", () => {
+    expect(getIconPath(IconProp.MapPin)).not.toBe(
+      "M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+    );
+  });
+});
+
+/*
  * Every item in a menu of the product has an icon, and an item names its
  * icon with an IconProp - so an IconProp that Icon does not draw would put an
  * empty slot back in the menu, the very gap that was closed. ClockIcon,

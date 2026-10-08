@@ -10,6 +10,7 @@ import AiActivityInsightsBuilder, {
   AiActivityCommandStats,
 } from "../ActivityInsights/AiActivityInsightsBuilder";
 import InvestigationReportSummary, {
+  InvestigationReportConclusion,
   InvestigationReportSummaryRun,
 } from "../SRE/InvestigationReportSummary";
 import IncidentAlertAiInsightsBuilder, {
@@ -33,6 +34,7 @@ import {
   INCIDENT_ALERT_AI_INSIGHTS_MAX_FIXES,
   INCIDENT_ALERT_AI_INSIGHTS_MAX_FIX_TASKS,
   INCIDENT_ALERT_AI_INSIGHTS_MAX_INVESTIGATIONS,
+  INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT,
   IncidentAlertAiInsights,
 } from "../../../../Types/AI/IncidentAlertAiInsights";
 import { IncidentAlertAiSubjectKind } from "../../../../Types/AI/IncidentAlertAiLogs";
@@ -54,15 +56,18 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  * (IncidentAlertAiLogsReader):
  *
  *   - the caller must be able to read incidents (or alerts) at all;
- *   - every investigation, fix and fix pull request counted is about an
- *     incident (or alert) the caller may read - read under the caller's
- *     props, labels and private incidents included - and the rest are left
- *     out, from the totals too;
+ *   - every incident (or alert) counted - the window's, for how often each
+ *     problem came up, and the ones AI investigated, fixed or opened a fix
+ *     pull request for - is read under the caller's props, labels and
+ *     private incidents included, and the rest are left out, from the
+ *     totals too;
  *   - AI runs are read as root (an investigation run is private to its
  *     author in the AI run table), and only statuses, dates, verdicts and
  *     the one-line finding leave, next to an incident the caller may read;
- *     a finding whose TL;DR call failed is the Summary its report opens
- *     with (InvestigationReportSummary), read as root for those runs only;
+ *     what each shown problem's newest completed investigation concluded -
+ *     the step its report suggests, and its report's Summary when it has no
+ *     TL;DR (InvestigationReportSummary) - is read as root for those runs
+ *     only;
  *   - fixes are read under the caller's props: a role that may not read
  *     auto-remediation suggestions gets no fix numbers (null), not zeros;
  *   - which monitors and services the incidents were raised for or affected
@@ -74,7 +79,8 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  *   - command counts are read as root: only counts leave.
  *
  * Bounded: the window's newest INCIDENT_ALERT_AI_INSIGHTS_MAX_* rows of each
- * kind; reaching a bound marks the insights partial.
+ * kind, and its newest INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT
+ * incidents (or alerts); reaching a bound marks the insights partial.
  */
 
 // How many of the commands of the window's investigations and fixes are counted.
@@ -93,6 +99,26 @@ export interface IncidentAlertAiInsightsReadOptions {
   props: DatabaseCommonInteractionProps;
   now?: Date | undefined;
 }
+
+// What an incident is read with, under the caller's props.
+const INCIDENT_SELECT: Record<string, boolean> = {
+  _id: true,
+  createdAt: true,
+  title: true,
+  incidentNumber: true,
+  incidentNumberWithPrefix: true,
+  seriesLabels: true,
+};
+
+// What an alert is read with, under the caller's props.
+const ALERT_SELECT: Record<string, boolean> = {
+  _id: true,
+  createdAt: true,
+  title: true,
+  alertNumber: true,
+  alertNumberWithPrefix: true,
+  seriesLabels: true,
+};
 
 async function readIfPermitted<T>(
   read: () => Promise<T>,
@@ -120,6 +146,16 @@ function getUniqueIds(
   }
 
   return Array.from(byId.values());
+}
+
+function getIdStrings(ids: Array<{ id?: ObjectID | null }>): Array<string> {
+  return ids
+    .map((row: { id?: ObjectID | null }): string => {
+      return row.id?.toString() || "";
+    })
+    .filter((id: string): boolean => {
+      return Boolean(id);
+    });
 }
 
 export default class IncidentAlertAiInsightsReader {
@@ -201,6 +237,7 @@ export default class IncidentAlertAiInsightsReader {
             status: true,
             verificationStatus: true,
             createdAt: true,
+            approvedAt: true,
             incidentId: true,
             alertId: true,
           },
@@ -214,7 +251,10 @@ export default class IncidentAlertAiInsightsReader {
 
     const suggestions: Array<AutoRemediationSuggestion> | null = fixRead.value;
 
-    // 3. The incidents (or alerts) all of it was about, as the caller may read them.
+    /*
+     * 3. The incidents (or alerts) all of it was about, and every one of the
+     * window, as the caller may read them.
+     */
     const subjectIdOfRun: (run: AIRun) => string | undefined = (
       run: AIRun,
     ): string | undefined => {
@@ -244,8 +284,12 @@ export default class IncidentAlertAiInsightsReader {
       ),
     );
 
-    const subjects: Map<string, IncidentAlertAiSubjectInput> =
-      await this.readSubjects({ options, subjectIds });
+    const read: {
+      subjects: Map<string, IncidentAlertAiSubjectInput>;
+      occurrenceIds: Array<string>;
+      isPartial: boolean;
+    } = await this.readSubjects({ options, subjectIds, windowStart });
+    const subjects: Map<string, IncidentAlertAiSubjectInput> = read.subjects;
 
     // 4. Their monitors and services, by the names the caller may read.
     const [monitorNames, serviceNames]: [
@@ -315,6 +359,7 @@ export default class IncidentAlertAiInsightsReader {
       runs.length >= INCIDENT_ALERT_AI_INSIGHTS_MAX_INVESTIGATIONS ||
       tasks.length >= INCIDENT_ALERT_AI_INSIGHTS_MAX_FIX_TASKS ||
       (suggestions || []).length >= INCIDENT_ALERT_AI_INSIGHTS_MAX_FIXES ||
+      read.isPartial ||
       commands.isPartial ||
       notInvestigated.isPartial;
 
@@ -348,6 +393,9 @@ export default class IncidentAlertAiInsightsReader {
                 status: suggestion.status,
                 verificationStatus: suggestion.verificationStatus,
                 createdAt: new Date(suggestion.createdAt!),
+                approvedAt: suggestion.approvedAt
+                  ? new Date(suggestion.approvedAt)
+                  : undefined,
                 subjectId: subjectIdOfFix(suggestion)!,
               };
             },
@@ -369,6 +417,7 @@ export default class IncidentAlertAiInsightsReader {
           };
         }),
       subjects,
+      occurrenceIds: read.occurrenceIds,
       monitorNames,
       serviceNames,
       commands: commands.stats,
@@ -377,36 +426,40 @@ export default class IncidentAlertAiInsightsReader {
       isPartial,
     };
 
-    // 7. A finding whose TL;DR call failed comes from its report.
-    await this.readReportSummaries({ projectId, input });
+    /*
+     * 7. What each shown problem's newest completed investigation concluded:
+     * the step its report suggests, and — when its TL;DR call failed — the
+     * Summary its report opens with.
+     */
+    await this.readReportConclusions({ projectId, input });
 
     return IncidentAlertAiInsightsBuilder.build(input);
   }
 
   /*
-   * The report Summary of each problem's newest completed investigation
-   * that has no TL;DR - the runs the shared builder would otherwise show no
-   * finding for (AiActivityInsightsBuilder.getRunsNeedingReportSummary). Every
-   * run here is about an incident (or alert) the caller may read.
+   * The report conclusions of each problem's newest completed investigation
+   * (AiActivityInsightsBuilder.getRunsNeedingReport): the step its report
+   * suggests, and its Summary when it has no TL;DR. Every run here is about
+   * an incident (or alert) the caller may read.
    */
-  public static async readReportSummaries(data: {
+  public static async readReportConclusions(data: {
     projectId: ObjectID;
     input: IncidentAlertAiInsightsInput;
   }): Promise<void> {
     const { input } = data;
-    const needingSummary: Set<string> = new Set<string>(
-      AiActivityInsightsBuilder.getRunsNeedingReportSummary(
+    const needingReport: Set<string> = new Set<string>(
+      AiActivityInsightsBuilder.getRunsNeedingReport(
         IncidentAlertAiInsightsBuilder.toActivityInput(input),
       ),
     );
 
-    if (needingSummary.size === 0) {
+    if (needingReport.size === 0) {
       return;
     }
 
     const runs: Array<InvestigationReportSummaryRun> = input.investigations
       .filter((run: IncidentAlertAiInvestigationInput): boolean => {
-        return needingSummary.has(run.aiRunId);
+        return needingReport.has(run.aiRunId);
       })
       .map(
         (
@@ -421,104 +474,189 @@ export default class IncidentAlertAiInsightsReader {
         },
       );
 
-    const summaries: Map<string, string> =
-      await InvestigationReportSummary.getForRuns({
+    const conclusions: Map<string, InvestigationReportConclusion> =
+      await InvestigationReportSummary.getConclusionsForRuns({
         projectId: data.projectId,
         runs,
       });
 
     for (const run of input.investigations) {
-      const summary: string | undefined = summaries.get(run.aiRunId);
+      const conclusion: InvestigationReportConclusion | undefined =
+        conclusions.get(run.aiRunId);
 
-      if (summary) {
-        run.reportSummary = summary;
+      if (!conclusion) {
+        continue;
+      }
+
+      if (conclusion.summary) {
+        run.reportSummary = conclusion.summary;
+      }
+
+      if (conclusion.nextStep) {
+        run.nextStep = conclusion.nextStep;
       }
     }
   }
 
   /*
-   * The incidents (or alerts) the rows are about, read under the caller's
-   * props, with what raised them and what they affected: an alert's monitor
-   * is its own column; an incident's monitors and either's services are
-   * relations, read as root for the ones the caller could read - they only
-   * ever become counts and, for the ones the caller may read, names.
+   * The incidents (or alerts) the page names, read under the caller's
+   * props: the window's newest ones (everything that came up), and the ones
+   * the rows are about that the window's read did not reach. With what
+   * raised them and what they affected: an alert's monitor is its own
+   * column; an incident's monitors and either's services are relations,
+   * read as root for the ones the caller could read - they only ever become
+   * counts and, for the ones the caller may read, names.
    */
   private static async readSubjects(data: {
     options: IncidentAlertAiInsightsReadOptions;
     subjectIds: Array<string>;
-  }): Promise<Map<string, IncidentAlertAiSubjectInput>> {
+    windowStart: Date;
+  }): Promise<{
+    subjects: Map<string, IncidentAlertAiSubjectInput>;
+    // The window's ones, newest first.
+    occurrenceIds: Array<string>;
+    isPartial: boolean;
+  }> {
     const { options } = data;
     const subjects: Map<string, IncidentAlertAiSubjectInput> = new Map<
       string,
       IncidentAlertAiSubjectInput
     >();
-    const ids: Array<ObjectID> = data.subjectIds.map((id: string): ObjectID => {
-      return new ObjectID(id);
-    });
+    const isIncident: boolean = options.subjectKind === "incident";
 
-    if (ids.length === 0) {
-      return subjects;
-    }
-
-    if (options.subjectKind === "incident") {
-      const incidents: Array<Incident> = await IncidentService.findBy({
-        query: { projectId: options.projectId, _id: QueryHelper.any(ids) },
-        select: {
-          _id: true,
-          createdAt: true,
-          title: true,
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-          seriesLabels: true,
-        },
-        limit: ids.length,
-        skip: 0,
-        props: options.props,
+    const readRows: (
+      query: Record<string, unknown>,
+      limit: number,
+    ) => Promise<Array<Incident | Alert>> = async (
+      query: Record<string, unknown>,
+      limit: number,
+    ): Promise<Array<Incident | Alert>> => {
+      const read: {
+        isPermitted: boolean;
+        value: Array<Incident | Alert> | null;
+      } = await readIfPermitted<Array<Incident | Alert>>(() => {
+        return isIncident
+          ? IncidentService.findBy({
+              query: { ...query, projectId: options.projectId } as never,
+              select: INCIDENT_SELECT as never,
+              sort: { createdAt: SortOrder.Descending },
+              limit,
+              skip: 0,
+              props: options.props,
+            })
+          : AlertService.findBy({
+              query: { ...query, projectId: options.projectId } as never,
+              select: ALERT_SELECT as never,
+              sort: { createdAt: SortOrder.Descending },
+              limit,
+              skip: 0,
+              props: options.props,
+            });
       });
 
-      const readableIds: Array<ObjectID> = getUniqueIds(
-        incidents.map((incident: Incident): ObjectID | null | undefined => {
-          return incident.id;
-        }),
-      );
+      return read.value || [];
+    };
 
-      const relations: Array<Incident> =
-        readableIds.length > 0
-          ? await IncidentService.findBy({
-              query: {
-                projectId: options.projectId,
-                _id: QueryHelper.any(readableIds),
-              },
-              select: {
-                _id: true,
-                monitors: { _id: true },
-                services: { _id: true },
-              },
-              limit: readableIds.length,
-              skip: 0,
-              props: { isRoot: true },
-            })
-          : [];
+    // Everything that came up in the window.
+    const windowRows: Array<Incident | Alert> = await readRows(
+      { createdAt: QueryHelper.greaterThanEqualTo(data.windowStart) },
+      INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT,
+    );
+    const occurrenceIds: Array<string> = getIdStrings(windowRows);
+    const known: Set<string> = new Set<string>(occurrenceIds);
 
-      const relationsById: Map<string, Incident> = new Map<string, Incident>();
+    // The rows' own subjects the window's read did not reach.
+    const missingIds: Array<ObjectID> = data.subjectIds
+      .filter((id: string): boolean => {
+        return !known.has(id);
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
 
-      for (const incident of relations) {
-        if (incident.id) {
-          relationsById.set(incident.id.toString(), incident);
-        }
+    const otherRows: Array<Incident | Alert> =
+      missingIds.length > 0
+        ? await readRows({ _id: QueryHelper.any(missingIds) }, missingIds.length)
+        : [];
+
+    const rows: Array<Incident | Alert> = [...windowRows, ...otherRows].filter(
+      (row: Incident | Alert): boolean => {
+        return Boolean(row.id);
+      },
+    );
+
+    if (rows.length === 0) {
+      return { subjects, occurrenceIds: [], isPartial: false };
+    }
+
+    const readableIds: Array<ObjectID> = getUniqueIds(
+      rows.map((row: Incident | Alert): ObjectID | null | undefined => {
+        return row.id;
+      }),
+    );
+
+    const relationsById: Map<string, Incident | Alert> = new Map<
+      string,
+      Incident | Alert
+    >();
+
+    const relations: Array<Incident | Alert> = isIncident
+      ? await IncidentService.findBy({
+          query: {
+            projectId: options.projectId,
+            _id: QueryHelper.any(readableIds),
+          },
+          select: {
+            _id: true,
+            monitors: { _id: true },
+            services: { _id: true },
+          },
+          limit: readableIds.length,
+          skip: 0,
+          props: { isRoot: true },
+        })
+      : await AlertService.findBy({
+          query: {
+            projectId: options.projectId,
+            _id: QueryHelper.any(readableIds),
+          },
+          select: { _id: true, monitorId: true, services: { _id: true } },
+          limit: readableIds.length,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+    for (const row of relations) {
+      if (row.id) {
+        relationsById.set(row.id.toString(), row);
+      }
+    }
+
+    const getServiceIds: (row: Incident | Alert | undefined) => Array<string> =
+      (row: Incident | Alert | undefined): Array<string> => {
+        return (row?.services || [])
+          .map((service: Service): string => {
+            return service.id?.toString() || "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          });
+      };
+
+    for (const row of rows) {
+      const id: string = row.id!.toString();
+
+      if (subjects.has(id)) {
+        continue;
       }
 
-      for (const incident of incidents) {
-        if (!incident.id) {
-          continue;
-        }
+      const related: Incident | Alert | undefined = relationsById.get(id);
 
-        const related: Incident | undefined = relationsById.get(
-          incident.id.toString(),
-        );
+      if (isIncident) {
+        const incident: Incident = row as Incident;
 
-        subjects.set(incident.id.toString(), {
-          id: incident.id.toString(),
+        subjects.set(id, {
+          id,
           createdAt: incident.createdAt
             ? new Date(incident.createdAt)
             : undefined,
@@ -529,96 +667,42 @@ export default class IncidentAlertAiInsightsReader {
               : undefined,
           numberWithPrefix: incident.incidentNumberWithPrefix || undefined,
           seriesLabels: incident.seriesLabels || undefined,
-          monitorIds: (related?.monitors || [])
+          monitorIds: ((related as Incident | undefined)?.monitors || [])
             .map((monitor: Monitor): string => {
               return monitor.id?.toString() || "";
             })
-            .filter((id: string): boolean => {
-              return Boolean(id);
+            .filter((monitorId: string): boolean => {
+              return Boolean(monitorId);
             }),
-          serviceIds: (related?.services || [])
-            .map((service: Service): string => {
-              return service.id?.toString() || "";
-            })
-            .filter((id: string): boolean => {
-              return Boolean(id);
-            }),
+          serviceIds: getServiceIds(related),
         });
-      }
 
-      return subjects;
-    }
-
-    const alerts: Array<Alert> = await AlertService.findBy({
-      query: { projectId: options.projectId, _id: QueryHelper.any(ids) },
-      select: {
-        _id: true,
-        createdAt: true,
-        title: true,
-        alertNumber: true,
-        alertNumberWithPrefix: true,
-        seriesLabels: true,
-      },
-      limit: ids.length,
-      skip: 0,
-      props: options.props,
-    });
-
-    const readableIds: Array<ObjectID> = getUniqueIds(
-      alerts.map((alert: Alert): ObjectID | null | undefined => {
-        return alert.id;
-      }),
-    );
-
-    const relations: Array<Alert> =
-      readableIds.length > 0
-        ? await AlertService.findBy({
-            query: {
-              projectId: options.projectId,
-              _id: QueryHelper.any(readableIds),
-            },
-            select: { _id: true, monitorId: true, services: { _id: true } },
-            limit: readableIds.length,
-            skip: 0,
-            props: { isRoot: true },
-          })
-        : [];
-
-    const relationsById: Map<string, Alert> = new Map<string, Alert>();
-
-    for (const alert of relations) {
-      if (alert.id) {
-        relationsById.set(alert.id.toString(), alert);
-      }
-    }
-
-    for (const alert of alerts) {
-      if (!alert.id) {
         continue;
       }
 
-      const related: Alert | undefined = relationsById.get(alert.id.toString());
+      const alert: Alert = row as Alert;
+      const monitorId: ObjectID | undefined = (related as Alert | undefined)
+        ?.monitorId;
 
-      subjects.set(alert.id.toString(), {
-        id: alert.id.toString(),
+      subjects.set(id, {
+        id,
         createdAt: alert.createdAt ? new Date(alert.createdAt) : undefined,
         title: alert.title || undefined,
         number:
           typeof alert.alertNumber === "number" ? alert.alertNumber : undefined,
         numberWithPrefix: alert.alertNumberWithPrefix || undefined,
         seriesLabels: alert.seriesLabels || undefined,
-        monitorIds: related?.monitorId ? [related.monitorId.toString()] : [],
-        serviceIds: (related?.services || [])
-          .map((service: Service): string => {
-            return service.id?.toString() || "";
-          })
-          .filter((id: string): boolean => {
-            return Boolean(id);
-          }),
+        monitorIds: monitorId ? [monitorId.toString()] : [],
+        serviceIds: getServiceIds(related),
       });
     }
 
-    return subjects;
+    return {
+      subjects,
+      occurrenceIds,
+      isPartial:
+        windowRows.length >= INCIDENT_ALERT_AI_INSIGHTS_OCCURRENCE_SCAN_LIMIT,
+    };
   }
 
   /*
