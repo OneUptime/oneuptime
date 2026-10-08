@@ -43,7 +43,28 @@ export interface MonitorCriteriaInstanceType {
   id: string;
 }
 
+/*
+ * The criteria fromJSON gave an id because the JSON had none. A caller that
+ * writes criteria without ids - the Terraform provider, or any API client -
+ * gets a fresh id on every parse, so on an update that id says nothing about
+ * which stored criteria this one is. MonitorStepsIdentityUtil reads this to
+ * hand such a criteria the stored criteria's id instead. A WeakSet, so the
+ * mark costs nothing, never reaches JSON, and a copy of the criteria (which
+ * no longer came from a parse) counts as carrying a real id.
+ */
+const criteriaWithIdGeneratedOnParse: WeakSet<MonitorCriteriaInstance> =
+  new WeakSet<MonitorCriteriaInstance>();
+
 export default class MonitorCriteriaInstance extends DatabaseProperty {
+  /*
+   * Whether this criteria's id was made up by fromJSON rather than sent.
+   */
+  public static isIdGeneratedOnParse(
+    criteria: MonitorCriteriaInstance,
+  ): boolean {
+    return criteriaWithIdGeneratedOnParse.has(criteria);
+  }
+
   /*
    * Keyword the out-of-the-box criteria for the two incoming monitor types
    * (Incoming Request and Incoming Email) look for in the payload body.
@@ -2111,8 +2132,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
 
+    const sentId: string = (json["id"] as string) || "";
+
+    if (!sentId) {
+      criteriaWithIdGeneratedOnParse.add(monitorCriteriaInstance);
+    }
+
     monitorCriteriaInstance.data = JSONFunctions.deserialize({
-      id: (json["id"] as string) || ObjectID.generate().toString(),
+      id: sentId || ObjectID.generate().toString(),
       monitorStatusId,
       filterCondition,
       changeMonitorStatus: (json["changeMonitorStatus"] as boolean) || false,

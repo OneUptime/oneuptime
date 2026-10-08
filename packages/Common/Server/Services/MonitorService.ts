@@ -116,6 +116,7 @@ import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
+import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
   ProbeMonitorsNotificationContent,
@@ -797,6 +798,17 @@ export class Service extends ProjectReferencesService<Model> {
           MONITOR_TEMPLATE_RELATION_KEYS,
           "Monitor Template",
         );
+
+      if (isMonitorStepsWritten && updateBy.data.monitorSteps) {
+        (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
+          await this.assignWrittenMonitorStepIds({
+            monitorSteps: updateBy.data.monitorSteps as
+              | MonitorSteps
+              | JSONObject,
+            matchedMonitors: monitors,
+            tenantId: updateBy.props.tenantId,
+          });
+      }
 
       for (const monitor of monitors) {
         if (isMonitorStepsWritten) {
@@ -1942,7 +1954,72 @@ export class Service extends ProjectReferencesService<Model> {
       monitorStatus.id,
     );
 
+    /*
+     * The ids inside monitorSteps are the server's to give (an API client such
+     * as the Terraform provider sends none), and steps with no default status
+     * fall back to this one, as the dashboard preselects it.
+     */
+    if (createBy.data.monitorSteps) {
+      createBy.data.monitorSteps = MonitorStepsIdentityUtil.assignIds({
+        monitorSteps: MonitorSteps.fromJSON(
+          createBy.data.monitorSteps as MonitorSteps | JSONObject,
+        ),
+        defaultMonitorStatusId: monitorStatus.id,
+      });
+    }
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * The written monitorSteps with their ids filled in, keeping the stored ids
+   * wherever the caller sent none - so a `terraform apply` that resends the
+   * steps keeps the criteria ids its open incidents point at (see
+   * MonitorStepsIdentityUtil). Only a write to a single monitor has stored
+   * steps to keep ids from; a bulk write gives every matched monitor the same
+   * steps, so it only fills in what is missing.
+   */
+  private async assignWrittenMonitorStepIds(data: {
+    monitorSteps: MonitorSteps | JSONObject;
+    matchedMonitors: Array<Model>;
+    tenantId?: ObjectID | undefined;
+  }): Promise<MonitorSteps> {
+    const monitorSteps: MonitorSteps = MonitorSteps.fromJSON(data.monitorSteps);
+    const storedMonitorSteps: MonitorSteps | undefined =
+      data.matchedMonitors.length === 1
+        ? data.matchedMonitors[0]!.monitorSteps
+        : undefined;
+
+    let defaultMonitorStatusId: ObjectID | null = null;
+
+    if (
+      !monitorSteps.data?.defaultMonitorStatusId &&
+      !storedMonitorSteps?.data?.defaultMonitorStatusId
+    ) {
+      const projectIds: Set<string> = new Set<string>(
+        data.matchedMonitors
+          .map((monitor: Model) => {
+            return monitor.projectId?.toString() || "";
+          })
+          .filter(Boolean),
+      );
+      const projectId: string | undefined =
+        data.tenantId?.toString() ||
+        (projectIds.size === 1 ? Array.from(projectIds)[0] : undefined);
+
+      if (projectId) {
+        defaultMonitorStatusId =
+          await MonitorStatusService.findDefaultOperationalStatusId(
+            new ObjectID(projectId),
+          );
+      }
+    }
+
+    return MonitorStepsIdentityUtil.assignIds({
+      monitorSteps,
+      storedMonitorSteps,
+      defaultMonitorStatusId,
+    });
   }
 
   @CaptureSpan()
