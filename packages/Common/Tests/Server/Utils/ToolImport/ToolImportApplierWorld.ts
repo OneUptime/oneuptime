@@ -30,8 +30,8 @@ import ObjectID from "../../../../Types/ObjectID";
  * import carry on. ToolImportRecord rows live in memory, so a test can
  * start from what an earlier import (or an earlier attempt) remembered.
  *
- * The Postgres suite (ToolImportApplierPostgres) runs the same import
- * against the real services and a real database.
+ * The Postgres suite (ToolImportPostgres) runs an import end to end
+ * through the real services and a real, migrated database.
  */
 
 export interface RecordedCreate {
