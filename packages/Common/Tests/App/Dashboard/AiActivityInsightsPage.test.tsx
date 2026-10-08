@@ -26,8 +26,15 @@ import {
 } from "react-router-dom";
 import AiActivityInsightsPage from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityInsightsPage";
 import {
-  getAttentionTarget,
+  AiInsightTarget,
+  AiInsightsRoutes,
+  getInsightNote,
+  getInsightTarget,
+  getMonitorRoute,
+  getOtherPreventiveInsights,
+  getOtherProblems,
   getPreventiveInsightRoute,
+  getServiceRoute,
   getSubjectRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityInsightsView";
 import {
@@ -36,8 +43,14 @@ import {
   getAiInsightsEmptyDescription,
   getAiInsightsPageSubtitle,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ActivityInsights/AiActivityInsightsData";
+import {
+  PROJECT_AI_OFF_NOTICE_TEST_ID,
+  PROJECT_AI_PROVIDER_NOTICE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import KubernetesClusterAIInsights, {
   KUBERNETES_AI_INSIGHTS_NOUN,
+  KUBERNETES_OBJECT_PAGES,
+  getKubernetesObjectRoute,
   loadKubernetesAgentHint,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Insights";
 import { loadResourceAgentHint } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiInsightsPage";
@@ -56,15 +69,19 @@ import VMwareVCenterAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pa
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import Project from "../../../Models/DatabaseModels/Project";
 import {
-  AiActivityAttentionItem,
-  AiActivityAttentionKind,
-  AiActivityAttentionSeverity,
+  AiActivityInsight,
+  AiActivityInsightKind,
+  AiActivityInsightTone,
   AiActivityInsights,
+  AiActivityPreventiveInsight,
+  AiActivityProblem,
 } from "../../../Types/AI/AiActivityInsights";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import {
   KubernetesAiRemediationMode,
@@ -77,20 +94,31 @@ import {
   ResourceAiAccessStatus,
   ResourceAiRemediationMode,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
+import Timezone from "../../../Types/Timezone";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 import {
   ALERT_ID,
   INCIDENT_ID,
   INSIGHT_ID,
+  NEXT_STEP,
   ONE_OFF_PROBLEM_KEY,
   PREVENTIVE_INSIGHT_TITLE,
   RECURRING_PROBLEM_KEY,
   RECURRING_PROBLEM_TITLE,
   REPORT_FINDING,
+  SECOND_INCIDENT_ID,
+  SECOND_INSIGHT_ID,
+  SECOND_PREVENTIVE_INSIGHT_TITLE,
+  STOPPED_INCIDENT_ID,
+  STOPPED_PROBLEM_KEY,
+  STOPPED_PROBLEM_TITLE,
   TLDR_FINDING,
+  insightOfKind,
   makeEmptyInsights,
   makeInsights,
+  makeQuietInsights,
   toBody,
 } from "./AiActivityInsightsFixtures";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
@@ -110,12 +138,15 @@ jest.mock("react-i18next", () => {
 /*
  * The AI Insights pages (AI → Insights) render for real on their real
  * routes — a Kubernetes cluster's, and each resource AI agent's resource
- * through its thin page — with the insights and access status routes
- * stubbed. They answer "what has OneUptime AI learned here, and what
- * deserves my attention?": what needs attention with a link to act on it,
- * the window at a glance, the problems AI investigated grouped by what
- * raised them with what it found, the hotspots, how fixes went and the
- * open preventive insights — and point at AI Logs for everything AI did.
+ * through its thin page — with the insights, access status and AI readiness
+ * reads stubbed. They answer "what is worth knowing about my system?", not
+ * "what did AI do?": the problem that keeps coming back, getting worse, at
+ * the same time of night, with what AI found and what it suggests and the
+ * incidents behind it; the node behind most of the trouble, linked to its
+ * own page; the fix that did not help, the one waiting, the one AI applied
+ * on its own; the risk spotted before anything paged; the problem that
+ * stopped. What AI did is a footnote at the end, and everything it did is on
+ * AI Logs.
  */
 
 const WAIT_TIMEOUT: number = 20000;
@@ -129,6 +160,7 @@ const K8S_INSIGHTS_ROUTE: string = "/kubernetes-cluster/ai-access/insights";
 const K8S_STATUS_ROUTE: string = "/kubernetes-cluster/ai-access/status";
 const RESOURCE_INSIGHTS_ROUTE: string = "/resource-ai-access/insights";
 const RESOURCE_STATUS_ROUTE: string = "/resource-ai-access/status";
+const PROVIDERS_ROUTE: string = "/ai-chat/providers";
 
 const K8S_NOT_READY_HINT: string =
   "OneUptime AI can't run kubectl on this cluster right now.";
@@ -136,8 +168,11 @@ const K8S_AUTOMATIC_OFF_HINT: string =
   "Automatic investigation is off for new incidents and alerts in this project.";
 
 const INCIDENT_HREF: string = `/dashboard/${PROJECT_ID}/incidents/${INCIDENT_ID}`;
+const SECOND_INCIDENT_HREF: string = `/dashboard/${PROJECT_ID}/incidents/${SECOND_INCIDENT_ID}`;
+const STOPPED_INCIDENT_HREF: string = `/dashboard/${PROJECT_ID}/incidents/${STOPPED_INCIDENT_ID}`;
 const ALERT_HREF: string = `/dashboard/${PROJECT_ID}/alerts/${ALERT_ID}`;
 const INSIGHT_HREF: string = `/dashboard/${PROJECT_ID}/ai/insights/${INSIGHT_ID}`;
+const SECOND_INSIGHT_HREF: string = `/dashboard/${PROJECT_ID}/ai/insights/${SECOND_INSIGHT_ID}`;
 
 const THIN_PAGES: Record<
   AiResourceType,
@@ -156,6 +191,25 @@ const THIN_PAGES: Record<
 const CEPH: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
   AiResourceType.CephCluster,
 );
+
+const USABLE_PROVIDER: JSONObject = {
+  isAIEnabledForProject: true,
+  defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
+  providers: [
+    {
+      id: "9d9d9d9d-0000-4000-8000-000000000001",
+      name: "OneUptime AI",
+      isGlobal: true,
+      isDefault: false,
+    },
+  ],
+};
+
+const NO_PROVIDER: JSONObject = {
+  isAIEnabledForProject: true,
+  defaultProviderId: null,
+  providers: [],
+};
 
 function makeK8sStatus(
   overrides: Partial<KubernetesClusterAiAccessStatus> = {},
@@ -227,6 +281,9 @@ function rejects(error: Error): Answer {
 let postSpy: ReturnType<typeof jest.spyOn>;
 let insightsAnswers: Array<Answer> = [];
 let statusAnswer: Answer = ok(makeK8sStatus());
+let providersAnswer: Answer = ok(USABLE_PROVIDER);
+// Project.enableAi, as the AI readiness read finds it.
+let isAiOn: boolean = true;
 
 function serve(insights: Answer | Array<Answer>, status?: Answer): void {
   insightsAnswers = Array.isArray(insights) ? [...insights] : [insights];
@@ -252,10 +309,11 @@ function NavigationProbe(): React.ReactElement {
   return <></>;
 }
 
-function pathFor(page: PageMap, id: string): string {
+function pathFor(page: PageMap, id: string, subId?: string): string {
   return RouteMap[page]!.toString()
     .replace(":projectId", PROJECT_ID)
-    .replace(":id", id);
+    .replace(":id", id)
+    .replace(":subModelId", subId || ":subModelId");
 }
 
 function clusterPath(page: PageMap, clusterId: string = CLUSTER_ID): string {
@@ -267,6 +325,21 @@ const K8S_LOGS_HREF: string = clusterPath(
 );
 const K8S_AGENT_HREF: string = clusterPath(
   PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT,
+);
+const NODE_3_HREF: string = pathFor(
+  PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL,
+  CLUSTER_ID,
+  "node-3",
+);
+const NAMESPACE_HREF: string = pathFor(
+  PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL,
+  CLUSTER_ID,
+  "checkout",
+);
+const POD_HREF: string = pathFor(
+  PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL,
+  CLUSTER_ID,
+  "web-7d9f-2xk",
 );
 
 function openClusterInsightsPage(): void {
@@ -336,6 +409,35 @@ function hrefOf(element: HTMLElement): string {
   return anchor.getAttribute("href") || "";
 }
 
+// The links inside an element, as "text → href".
+function linksIn(element: HTMLElement): Array<string> {
+  return Array.from(element.querySelectorAll("a")).map(
+    (anchor: HTMLAnchorElement): string => {
+      return `${anchor.textContent?.trim()} → ${anchor.getAttribute("href")}`;
+    },
+  );
+}
+
+async function findInsightItems(): Promise<Array<HTMLElement>> {
+  const list: HTMLElement = await findTestId("ai-insights-insights");
+  return within(list).getAllByTestId("ai-insights-insight");
+}
+
+async function findInsight(kind: AiActivityInsightKind): Promise<HTMLElement> {
+  const items: Array<HTMLElement> = await findInsightItems();
+  const item: HTMLElement | undefined = items.find(
+    (candidate: HTMLElement): boolean => {
+      return candidate.getAttribute("data-kind") === kind;
+    },
+  );
+
+  if (!item) {
+    throw new Error(`No ${kind} insight on the page.`);
+  }
+
+  return item;
+}
+
 async function waitForStatusRequest(route: string): Promise<void> {
   await waitFor(
     () => {
@@ -345,12 +447,21 @@ async function waitForStatusRequest(route: string): Promise<void> {
   );
 }
 
+function follows(first: HTMLElement, second: HTMLElement): boolean {
+  return Boolean(
+    first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  PermissionGate.clearPermissionPropsCache();
 
   insightsAnswers = [ok(toBody(makeInsights()))];
   statusAnswer = ok(makeK8sStatus());
+  providersAnswer = ok(USABLE_PROVIDER);
+  isAiOn = true;
 
   postSpy = jest.spyOn(API, "post");
   postSpy.mockImplementation(
@@ -374,10 +485,28 @@ beforeEach(() => {
       ) {
         return await statusAnswer();
       }
+      if (url.endsWith(PROVIDERS_ROUTE)) {
+        return await providersAnswer();
+      }
       throw new Error(`Unexpected request to ${url}`);
     },
   );
+  jest
+    .spyOn(ModelAPI, "getItem")
+    .mockImplementation(async (): Promise<Project> => {
+      return Object.assign(new Project(), {
+        _id: PROJECT_ID,
+        enableAi: isAiOn,
+      });
+    });
   jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
+  // Times in UTC, on a 24-hour clock, whatever machine runs the suite.
+  jest
+    .spyOn(OneUptimeDate, "getCurrentTimezone")
+    .mockReturnValue("UTC" as Timezone);
+  jest
+    .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+    .mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -386,7 +515,7 @@ afterEach(() => {
 });
 
 describe("the cluster's AI Insights page", () => {
-  test("is titled AI Insights, says what it is about, and points at AI Logs", async () => {
+  test("is titled AI Insights, promises what is worth knowing, and points at AI Logs", async () => {
     openClusterInsightsPage();
 
     const heading: HTMLElement = screen.getByTestId("ai-insights-page-heading");
@@ -395,7 +524,7 @@ describe("the cluster's AI Insights page", () => {
     ).toBeInTheDocument();
     expect(
       within(heading).getByText(
-        "What OneUptime AI has learned about this cluster in the last 30 days, and what deserves your attention.",
+        "What OneUptime AI found out about this cluster in the last 30 days: what keeps going wrong and why, and what to do about it.",
       ),
     ).toBeInTheDocument();
     expect(hrefOf(screen.getByTestId("ai-insights-logs-link"))).toBe(
@@ -404,12 +533,26 @@ describe("the cluster's AI Insights page", () => {
     expect(screen.getByTestId("ai-insights-logs-link")).toHaveTextContent(
       "See everything AI did in AI Logs",
     );
-    expect(await findText("Needs attention")).toBeInTheDocument();
+
+    // What it found comes first, under its own heading; what AI did, last.
+    await findTestId("ai-insights-insights");
+    const cardHeadings: Array<string> = screen
+      .getAllByTestId("card-details-heading")
+      .map((element: HTMLElement): string => {
+        return element.textContent || "";
+      });
+    expect(cardHeadings).toEqual([
+      "What OneUptime AI found",
+      "Other problems",
+      "Where problems happen",
+      "Also spotted before anything paged",
+      "What OneUptime AI did here",
+    ]);
   });
 
   test("asks the insights and status routes about this cluster", async () => {
     openClusterInsightsPage();
-    await findText("Needs attention");
+    await findTestId("ai-insights-insights");
 
     expect(postsTo(K8S_INSIGHTS_ROUTE)).toHaveLength(1);
     expect(postsTo(K8S_INSIGHTS_ROUTE)[0]!["data"]).toEqual({
@@ -438,7 +581,9 @@ describe("the cluster's AI Insights page", () => {
 
     expect(screen.getByTestId("ai-insights-loading")).toBeInTheDocument();
     expect(screen.getByText(AI_INSIGHTS_PAGE_TITLE)).toBeInTheDocument();
-    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("ai-insights-insights"),
+    ).not.toBeInTheDocument();
     await waitFor(
       () => {
         expect(answer).toBeDefined();
@@ -451,87 +596,569 @@ describe("the cluster's AI Insights page", () => {
       await Promise.resolve();
     });
 
-    expect(await findText("Needs attention")).toBeInTheDocument();
+    expect(await findTestId("ai-insights-insights")).toBeInTheDocument();
     expect(screen.queryByTestId("ai-insights-loading")).not.toBeInTheDocument();
   });
 
-  describe("with AI activity", () => {
-    test("lists what needs attention, most important first, each with where to act", async () => {
+  describe("what OneUptime AI found", () => {
+    test("leads with what is worth knowing, most important first, each in one line", async () => {
       openClusterInsightsPage();
 
-      const list: HTMLElement = await findTestId("ai-insights-attention");
-      const items: Array<HTMLElement> = within(list).getAllByTestId(
-        "ai-insights-attention-item",
-      );
+      const items: Array<HTMLElement> = await findInsightItems();
+
       expect(
         items.map((item: HTMLElement): string => {
-          return `${item.getAttribute("data-kind")}/${item.getAttribute("data-severity")}`;
+          return `${item.getAttribute("data-kind")}/${item.getAttribute("data-tone")}`;
         }),
       ).toEqual([
-        "FixesFailed/High",
-        "RecurringProblem/High",
-        "PreventiveInsight/High",
-        "InvestigationsFailed/Medium",
-        "CommandsTimedOut/Medium",
-        "Hotspot/Low",
+        "RecurringProblem/Critical",
+        "FixesDidNotHelp/Critical",
+        "RiskSpotted/Critical",
+        "FixesAwaitingApproval/Warning",
+        "Hotspot/Pattern",
+        "FixedAutomatically/Positive",
+        "ProblemStopped/Positive",
       ]);
-
-      expect(items[0]).toHaveTextContent(
-        "1 fix OneUptime AI applied did not resolve the problem it was for.",
-      );
-      expect(hrefOf(within(items[0]!).getByText("Open incident"))).toBe(
-        INCIDENT_HREF,
-      );
       expect(
-        within(items[0]!).getByRole("img", { name: "Needs attention now" }),
-      ).toBeInTheDocument();
-
-      expect(items[1]).toHaveTextContent(
-        `${RECURRING_PROBLEM_TITLE} keeps coming back: OneUptime AI investigated it 5 times in the last 30 days. 3 of those were in the last 7 days.`,
-      );
-      expect(hrefOf(within(items[1]!).getByText("Open incident"))).toBe(
-        INCIDENT_HREF,
-      );
-
-      expect(items[2]).toHaveTextContent(
-        `An open preventive insight: ${PREVENTIVE_INSIGHT_TITLE}`,
-      );
-      expect(hrefOf(within(items[2]!).getByText("Open insight"))).toBe(
-        INSIGHT_HREF,
-      );
-
-      expect(items[3]).toHaveTextContent(
-        "1 investigation failed or timed out in the last 30 days.",
-      );
-      expect(hrefOf(within(items[3]!).getByText("Open AI Logs"))).toBe(
-        K8S_LOGS_HREF,
-      );
+        items.map((item: HTMLElement): string => {
+          return within(item).getByTestId("ai-insights-insight-headline")
+            .textContent as string;
+        }),
+      ).toEqual([
+        `${RECURRING_PROBLEM_TITLE} keeps coming back`,
+        "A fix did not solve the problem it was for",
+        `Spotted before anything paged: ${PREVENTIVE_INSIGHT_TITLE}`,
+        "A fix is waiting for your approval",
+        "Node node-3 is behind 2 different problems",
+        "OneUptime AI applied a fix on its own",
+        `${STOPPED_PROBLEM_TITLE} has stopped`,
+      ]);
+      // Each tone says what it means to a screen reader.
       expect(
-        within(items[3]!).getByRole("img", { name: "Worth a look" }),
-      ).toBeInTheDocument();
-
-      expect(items[4]).toHaveTextContent(
-        "1 command OneUptime AI sent was never picked up by the agent.",
-      );
+        items.map((item: HTMLElement): string | null => {
+          return within(item)
+            .getByTestId("ai-insights-insight-icon")
+            .getAttribute("aria-label");
+        }),
+      ).toEqual([
+        "Needs attention now",
+        "Needs attention now",
+        "Needs attention now",
+        "Worth acting on",
+        "Worth knowing",
+        "Good news",
+        "Good news",
+      ]);
       expect(
-        hrefOf(within(items[4]!).getByText("Open the AI agent page")),
-      ).toBe(K8S_AGENT_HREF);
-
-      expect(items[5]).toHaveTextContent(
-        "Namespace: checkout shows up in 5 of the 8 investigations here.",
-      );
-      // A hotspot has nowhere to go.
-      expect(within(items[5]!).queryByRole("link")).not.toBeInTheDocument();
-      expect(
-        within(items[5]!).getByRole("img", { name: "Good to know" }),
+        screen.getByText(
+          "The most important first, each with what is behind it and what to do next.",
+        ),
       ).toBeInTheDocument();
     });
 
-    test("sums up the window, with what failed", async () => {
+    test("the problem that keeps coming back: getting worse, how often, when, what AI found and suggests, where, and what is behind it", async () => {
+      openClusterInsightsPage();
+
+      const item: HTMLElement = await findInsight(
+        AiActivityInsightKind.RecurringProblem,
+      );
+
+      expect(within(item).getByTestId("ai-insights-badge")).toHaveTextContent(
+        "Getting worse",
+      );
+      expect(
+        within(item).getByTestId("ai-insights-insight-facts"),
+      ).toHaveTextContent(
+        "It happened 12 times in the last 30 days. 5 of them were in the last 7 days, up from 2 the 7 days before. That is 12 of the 20 incidents and alerts on this cluster in the last 30 days.",
+      );
+      expect(
+        within(item).getByTestId("ai-insights-time-of-day"),
+      ).toHaveTextContent(
+        "It usually starts between 01:00 and 04:00 (UTC): on 9 of the 10 days it happened.",
+      );
+
+      // The investigation's own words, under labels that say whose they are.
+      expect(within(item).getByTestId("ai-insights-finding")).toHaveTextContent(
+        `What OneUptime AI found${TLDR_FINDING}`,
+      );
+      expect(
+        within(item).getByTestId("ai-insights-next-step"),
+      ).toHaveTextContent(`What it suggests${NEXT_STEP}`);
+      expect(
+        within(item).queryByText("(from the investigation's report)"),
+      ).not.toBeInTheDocument();
+
+      // Where: each part linked to its own page in the cluster.
+      expect(
+        linksIn(within(item).getByTestId("ai-insights-insight-objects")),
+      ).toEqual([
+        `Namespace: checkout → ${NAMESPACE_HREF}`,
+        `Pod: web-7d9f-2xk → ${POD_HREF}`,
+      ]);
+
+      // What is behind it: the newest incidents, and how many more.
+      const evidence: HTMLElement = within(item).getByTestId(
+        "ai-insights-evidence",
+      );
+      expect(evidence).toHaveTextContent("Behind it:");
+      expect(linksIn(evidence)).toEqual([
+        `Incident #42 → ${INCIDENT_HREF}`,
+        `Incident #40 → ${SECOND_INCIDENT_HREF}`,
+      ]);
+      expect(
+        within(evidence).getByTestId("ai-insights-evidence-more"),
+      ).toHaveTextContent("and 10 more");
+
+      // How its fixes went, and what people said of its findings.
+      expect(
+        within(item).getByTestId("ai-insights-insight-fixes"),
+      ).toHaveTextContent(
+        "3 fixes proposed · 2 applied · 1 verified · 1 did not help · 1 waiting for approval",
+      );
+      expect(
+        within(item).getByTestId("ai-insights-insight-verdicts"),
+      ).toHaveTextContent(
+        "your team confirmed 2 findings · your team rejected 1 finding · 2 findings matched the root cause recorded later",
+      );
+
+      // One next step: the newest incident behind it.
+      expect(
+        linksIn(within(item).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open incident → ${INCIDENT_HREF}`]);
+    });
+
+    test("a problem that started this week is new, and says when it started", async () => {
+      const insights: AiActivityInsights = makeInsights();
+      insights.insights[0] = {
+        ...insights.insights[0]!,
+        count: 4,
+        total: 20,
+        recentCount: 4,
+        previousCount: 0,
+        firstSeenAt: "2026-09-28T01:10:00.000Z",
+      };
+      serve(ok(toBody(insights)));
+      openClusterInsightsPage();
+
+      const item: HTMLElement = await findInsight(
+        AiActivityInsightKind.RecurringProblem,
+      );
+
+      expect(within(item).getByTestId("ai-insights-badge")).toHaveTextContent(
+        "New this week",
+      );
+      expect(
+        within(item).getByTestId("ai-insights-insight-facts"),
+      ).toHaveTextContent(/^It happened 4 times in the last 30 days\. It started /);
+    });
+
+    test("the part behind most of the trouble links to its own page in the cluster", async () => {
+      openClusterInsightsPage();
+
+      const item: HTMLElement = await findInsight(AiActivityInsightKind.Hotspot);
+
+      expect(
+        within(item).getByTestId("ai-insights-insight-facts"),
+      ).toHaveTextContent(
+        "It was part of 14 of the 20 incidents and alerts on this cluster in the last 30 days. Problems that share one place often share one cause: look there first.",
+      );
+      expect(
+        linksIn(within(item).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open node → ${NODE_3_HREF}`]);
+      expect(linksIn(within(item).getByTestId("ai-insights-evidence"))).toEqual(
+        [
+          `Alert #812 → ${ALERT_HREF}`,
+          `Incident #42 → ${INCIDENT_HREF}`,
+          `Incident #40 → ${SECOND_INCIDENT_HREF}`,
+        ],
+      );
+      expect(
+        within(item).getByTestId("ai-insights-evidence-more"),
+      ).toHaveTextContent("and 11 more");
+    });
+
+    test("the fixes: the one that did not help, the one waiting, the one AI applied on its own", async () => {
+      openClusterInsightsPage();
+
+      const didNotHelp: HTMLElement = await findInsight(
+        AiActivityInsightKind.FixesDidNotHelp,
+      );
+      expect(
+        within(didNotHelp).getByTestId("ai-insights-insight-facts"),
+      ).toHaveTextContent(
+        "OneUptime AI checked after it was applied: the problem was still there. That is 1 of the 4 fixes applied in the last 30 days.",
+      );
+      expect(
+        linksIn(within(didNotHelp).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open incident → ${INCIDENT_HREF}`]);
+      // Behind it is the one incident: nothing more to count.
+      expect(
+        within(didNotHelp).queryByTestId("ai-insights-evidence-more"),
+      ).not.toBeInTheDocument();
+
+      const waiting: HTMLElement = await findInsight(
+        AiActivityInsightKind.FixesAwaitingApproval,
+      );
+      expect(
+        within(waiting).getByTestId("ai-insights-insight-facts"),
+      ).toHaveTextContent(
+        "OneUptime AI has it ready: it runs as soon as someone approves it.",
+      );
+      expect(
+        linksIn(within(waiting).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Review the fix → ${INCIDENT_HREF}`]);
+
+      const automatic: HTMLElement = await findInsight(
+        AiActivityInsightKind.FixedAutomatically,
+      );
+      expect(
+        within(automatic).getByTestId("ai-insights-insight-facts"),
+      ).toHaveTextContent(
+        "It checked afterwards: the problem was gone. Nobody had to approve it first.",
+      );
+      expect(
+        linksIn(within(automatic).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open AI Logs → ${K8S_LOGS_HREF}`]);
+    });
+
+    test("a risk spotted before anything paged links to the finding", async () => {
+      openClusterInsightsPage();
+
+      const item: HTMLElement = await findInsight(
+        AiActivityInsightKind.RiskSpotted,
+      );
+
+      expect(
+        within(item).getByTestId("ai-insights-insight-facts"),
+      ).toHaveTextContent(
+        /^Seen 3 times so far, last .+ ago\. OneUptime AI's watch on the telemetry found it; nothing has paged anyone for it yet\.$/,
+      );
+      expect(
+        linksIn(within(item).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open insight → ${INSIGHT_HREF}`]);
+    });
+
+    test("a problem that stopped: since when, and the incident to look back at", async () => {
+      openClusterInsightsPage();
+
+      const item: HTMLElement = await findInsight(
+        AiActivityInsightKind.ProblemStopped,
+      );
+
+      expect(
+        within(item).getByTestId("ai-insights-insight-facts"),
+      ).toHaveTextContent(
+        "It happened 6 times, and not once since the fix on 12 Sep. OneUptime AI checked the fix afterwards: the problem was gone.",
+      );
+      expect(
+        linksIn(within(item).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open incident → ${STOPPED_INCIDENT_HREF}`]);
+      // Only a problem that keeps coming back wears a badge.
+      expect(
+        within(item).queryByTestId("ai-insights-badge"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("says plainly when nothing stands out, and still shows what AI looked into", async () => {
+      serve(ok(toBody(makeQuietInsights())));
+      openClusterInsightsPage();
+
+      const quiet: HTMLElement = await findTestId(
+        "ai-insights-nothing-stands-out",
+      );
+      expect(quiet).toHaveTextContent("Nothing stands out right now");
+      expect(quiet).toHaveTextContent(
+        "No problem came back three times or more, no fix needs you, and no risk is waiting. What OneUptime AI looked into is below.",
+      );
+      expect(
+        screen.queryByTestId("ai-insights-insights"),
+      ).not.toBeInTheDocument();
+
+      // Nothing is told above: every problem is listed, under "Problems".
+      expect(screen.getByText("Problems")).toBeInTheDocument();
+      expect(screen.queryByText("Other problems")).not.toBeInTheDocument();
+      expect(
+        screen
+          .getAllByTestId("ai-insights-problem")
+          .map((problem: HTMLElement): string | null => {
+            return problem.getAttribute("data-problem-key");
+          }),
+      ).toEqual([ONE_OFF_PROBLEM_KEY]);
+
+      // No parts, no risks, no fixes: no cards for them at all.
+      expect(screen.queryByText("Where problems happen")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("ai-insights-preventive-list"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("ai-insights-fixes")).not.toBeInTheDocument();
+      // The window still has activity: no empty state.
+      expect(screen.queryByTestId("ai-insights-empty")).not.toBeInTheDocument();
+      expect(screen.getByTestId("ai-insights-summary")).toBeInTheDocument();
+    });
+  });
+
+  describe("the rest of what AI looked into", () => {
+    test("the problems the insights above do not already tell, with what AI found", async () => {
+      openClusterInsightsPage();
+
+      expect(await findText("Other problems")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "The rest of what OneUptime AI looked into here, the most frequent first, with what it found and suggests.",
+        ),
+      ).toBeInTheDocument();
+
+      // The recurring and the stopped problems are told above: not again.
+      const problems: Array<HTMLElement> = screen.getAllByTestId(
+        "ai-insights-problem",
+      );
+      expect(
+        problems.map((problem: HTMLElement): string | null => {
+          return problem.getAttribute("data-problem-key");
+        }),
+      ).toEqual([ONE_OFF_PROBLEM_KEY]);
+
+      const oneOff: HTMLElement = problems[0]!;
+      expect(hrefOf(within(oneOff).getByText("Disk almost full"))).toBe(
+        ALERT_HREF,
+      );
+      expect(
+        within(oneOff).getByTestId("ai-insights-problem-count"),
+      ).toHaveTextContent(/^1 time · investigated 1 time · last seen /);
+      expect(
+        within(oneOff).queryByTestId("ai-insights-badge"),
+      ).not.toBeInTheDocument();
+      expect(
+        linksIn(within(oneOff).getByTestId("ai-insights-problem-objects")),
+      ).toEqual([`Node: node-3 → ${NODE_3_HREF}`]);
+      // Its TL;DR call failed: the finding is what its report said.
+      expect(
+        within(oneOff).getByTestId("ai-insights-finding"),
+      ).toHaveTextContent(REPORT_FINDING);
+      expect(
+        within(oneOff).getByText("(from the investigation's report)"),
+      ).toBeInTheDocument();
+      expect(
+        within(oneOff).queryByTestId("ai-insights-problem-fixes"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(oneOff).queryByTestId("ai-insights-problem-verdicts"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a problem listed with its badge, time of day, next step, fixes and verdicts, when nothing above tells it", async () => {
+      serve(ok(toBody(makeInsights({ insights: [] }))));
+      openClusterInsightsPage();
+
+      expect(await findText("Problems")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Grouped by what raised them, the most frequent first, with what OneUptime AI found and suggests.",
+        ),
+      ).toBeInTheDocument();
+      const problems: Array<HTMLElement> = screen.getAllByTestId(
+        "ai-insights-problem",
+      );
+      expect(
+        problems.map((problem: HTMLElement): string | null => {
+          return problem.getAttribute("data-problem-key");
+        }),
+      ).toEqual([RECURRING_PROBLEM_KEY, STOPPED_PROBLEM_KEY, ONE_OFF_PROBLEM_KEY]);
+
+      const recurring: HTMLElement = problems[0]!;
+      expect(hrefOf(within(recurring).getByText(RECURRING_PROBLEM_TITLE))).toBe(
+        INCIDENT_HREF,
+      );
+      expect(
+        within(recurring).getByTestId("ai-insights-badge"),
+      ).toHaveTextContent("Getting worse");
+      expect(
+        within(recurring).getByTestId("ai-insights-problem-count"),
+      ).toHaveTextContent(
+        /^12 times · 5 in the last 7 days · investigated 5 times · last seen /,
+      );
+      expect(
+        within(recurring).getByTestId("ai-insights-problem-time-of-day"),
+      ).toHaveTextContent(
+        "It usually starts between 01:00 and 04:00 (UTC): on 9 of the 10 days it happened.",
+      );
+      expect(
+        within(recurring).getByTestId("ai-insights-next-step"),
+      ).toHaveTextContent(NEXT_STEP);
+      expect(
+        within(
+          within(recurring).getByTestId("ai-insights-problem-objects"),
+        ).getByText("Namespace: checkout ×12"),
+      ).toBeInTheDocument();
+      expect(
+        within(recurring).getByTestId("ai-insights-problem-fixes"),
+      ).toHaveTextContent(
+        "3 fixes proposed · 2 applied · 1 verified · 1 did not help · 1 waiting for approval",
+      );
+      expect(
+        within(recurring).getByTestId("ai-insights-problem-verdicts"),
+      ).toHaveTextContent(/^your team confirmed 2 findings/);
+
+      // A problem that kept coming back, neither new nor worse: Recurring.
+      expect(
+        within(problems[1]!).getByTestId("ai-insights-badge"),
+      ).toHaveTextContent("Recurring");
+      // No finding yet: it says so.
+      expect(
+        within(problems[1]!).getByTestId("ai-insights-problem-no-finding"),
+      ).toHaveTextContent("No finding recorded for this problem yet.");
+    });
+
+    test("only a problem that came back wears a badge: new this week, getting worse, else recurring", async () => {
+      const insights: AiActivityInsights = makeInsights({ insights: [] });
+      // The node problem came back twice this week, and started this week.
+      insights.problems[1] = {
+        ...insights.problems[1]!,
+        firstSeenAt: "2026-09-28T04:00:00.000Z",
+        recentOccurrenceCount: 2,
+      };
+      serve(ok(toBody(insights)));
+      openClusterInsightsPage();
+
+      const problems: Array<HTMLElement> = await screen.findAllByTestId(
+        "ai-insights-problem",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      expect(
+        problems.map((problem: HTMLElement): string => {
+          return (
+            within(problem).queryByTestId("ai-insights-badge")?.textContent ||
+            ""
+          );
+        }),
+      ).toEqual([
+        "Getting worse",
+        "New this week",
+        // The disk alert came up once, this week: just listed.
+        "",
+      ]);
+    });
+
+    test("with every problem told above, there is no problems card", async () => {
+      const insights: AiActivityInsights = makeInsights();
+      insights.problems = insights.problems.slice(0, 2);
+      serve(ok(toBody(insights)));
+      openClusterInsightsPage();
+
+      await findTestId("ai-insights-insights");
+      expect(screen.queryByTestId("ai-insights-problems")).not.toBeInTheDocument();
+      expect(screen.queryByText("Other problems")).not.toBeInTheDocument();
+    });
+
+    test("where problems happen: the parts that came up the most, each linked to its own page", async () => {
+      openClusterInsightsPage();
+
+      expect(await findText("Where problems happen")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "The parts of this cluster that came up the most, and in how many different problems.",
+        ),
+      ).toBeInTheDocument();
+      const hotspots: Array<HTMLElement> = screen.getAllByTestId(
+        "ai-insights-hotspot",
+      );
+      expect(hotspots).toHaveLength(2);
+      expect(linksIn(hotspots[0]!)).toEqual([
+        `Node: node-3 → ${NODE_3_HREF}`,
+      ]);
+      expect(hotspots[0]).toHaveTextContent(
+        /14 times · 2 problems · last seen /,
+      );
+      expect(linksIn(hotspots[1]!)).toEqual([
+        `Namespace: checkout → ${NAMESPACE_HREF}`,
+      ]);
+      expect(hotspots[1]).toHaveTextContent(/12 times · 1 problem · last seen /);
+    });
+
+    test("a part the cluster has no page for is named, not linked", async () => {
+      const insights: AiActivityInsights = makeInsights();
+      insights.hotspots = [
+        {
+          name: "Mount",
+          value: "/var",
+          key: "mountpoint",
+          occurrenceCount: 4,
+          investigationCount: 2,
+          problemCount: 2,
+        },
+      ];
+      serve(ok(toBody(insights)));
+      openClusterInsightsPage();
+
+      const hotspot: HTMLElement = await findTestId("ai-insights-hotspot");
+      expect(within(hotspot).getByText("Mount: /var")).toBeInTheDocument();
+      expect(linksIn(hotspot)).toEqual([]);
+    });
+
+    test("the risks the insights above do not already name, each linked to its finding", async () => {
+      openClusterInsightsPage();
+
+      expect(
+        await findText("Also spotted before anything paged"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Open findings from OneUptime AI's watch on this cluster's own telemetry: spikes, slowdowns and drift, before they became an incident.",
+        ),
+      ).toBeInTheDocument();
+      const rows: Array<HTMLElement> = screen.getAllByTestId(
+        "ai-insights-preventive",
+      );
+      // The error-log spike is an insight above: only the other is listed.
+      expect(rows).toHaveLength(1);
+      expect(linksIn(rows[0]!)).toEqual([
+        `${SECOND_PREVENTIVE_INSIGHT_TITLE} → ${SECOND_INSIGHT_HREF}`,
+      ]);
+      expect(within(rows[0]!).getByText("Medium")).toBeInTheDocument();
+      expect(rows[0]).toHaveTextContent(/seen 1 time · last seen /);
+    });
+
+    test("with no risk named above, every open finding is listed, under its own title", async () => {
+      const insights: AiActivityInsights = makeInsights();
+      insights.insights = insights.insights.filter(
+        (item: AiActivityInsight): boolean => {
+          return item.kind !== AiActivityInsightKind.RiskSpotted;
+        },
+      );
+      serve(ok(toBody(insights)));
+      openClusterInsightsPage();
+
+      expect(
+        await findText("Spotted before anything paged"),
+      ).toBeInTheDocument();
+      expect(
+        screen
+          .getAllByTestId("ai-insights-preventive")
+          .map((row: HTMLElement): Array<string> => {
+            return linksIn(row);
+          }),
+      ).toEqual([
+        [`${PREVENTIVE_INSIGHT_TITLE} → ${INSIGHT_HREF}`],
+        [`${SECOND_PREVENTIVE_INSIGHT_TITLE} → ${SECOND_INSIGHT_HREF}`],
+      ]);
+    });
+  });
+
+  describe("what OneUptime AI did here: the footnote", () => {
+    test("comes after what it found, and sums up the window with what failed", async () => {
       openClusterInsightsPage();
 
       const summary: HTMLElement = await findTestId("ai-insights-summary");
-      expect(screen.getByText("Last 30 days")).toBeInTheDocument();
+      const found: HTMLElement = screen.getByTestId("ai-insights-insights");
+      expect(follows(found, summary)).toBe(true);
+      expect(screen.getByText("What OneUptime AI did here")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "The last 30 days at a glance. Everything it did, one step at a time, is in AI Logs.",
+        ),
+      ).toBeInTheDocument();
 
       const stat: (name: string) => HTMLElement = (
         name: string,
@@ -541,10 +1168,44 @@ describe("the cluster's AI Insights page", () => {
       expect(stat("investigations")).toHaveTextContent(
         "Investigations81 failed or timed out",
       );
-      expect(stat("problems")).toHaveTextContent("Problems21 recurring");
       expect(stat("fixes")).toHaveTextContent("Fixes41 verified");
       expect(stat("commands")).toHaveTextContent(
         "Commands372 failed, 1 never ran",
+      );
+      // A cluster has no coverage of its own.
+      expect(
+        within(summary).queryByTestId("ai-insights-stat-coverage"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("what went wrong with its own work, each with where to look, and what people confirmed", async () => {
+      openClusterInsightsPage();
+
+      const health: HTMLElement = await findTestId("ai-insights-health");
+      const notes: Array<HTMLElement> = within(health).getAllByTestId(
+        "ai-insights-health-note",
+      );
+      expect(
+        notes.map((note: HTMLElement): string | null => {
+          return note.getAttribute("data-kind");
+        }),
+      ).toEqual(["InvestigationsFailed", "CommandsTimedOut", "FindingsRejected"]);
+      expect(notes[0]).toHaveTextContent(
+        "1 investigation failed or timed out in the last 30 days.",
+      );
+      expect(linksIn(notes[0]!)).toEqual([`Open AI Logs → ${K8S_LOGS_HREF}`]);
+      expect(notes[1]).toHaveTextContent(
+        "1 command OneUptime AI sent was never picked up by the agent.",
+      );
+      expect(linksIn(notes[1]!)).toEqual([
+        `Open the AI agent page → ${K8S_AGENT_HREF}`,
+      ]);
+      expect(notes[2]).toHaveTextContent(
+        "1 finding was rejected by your team or did not match the root cause recorded later.",
+      );
+      expect(linksIn(notes[2]!)).toEqual([`Open AI Logs → ${K8S_LOGS_HREF}`]);
+      expect(within(health).getByTestId("ai-insights-trust")).toHaveTextContent(
+        "3 findings were confirmed by your team or matched the root cause recorded later.",
       );
     });
 
@@ -573,133 +1234,6 @@ describe("the cluster's AI Insights page", () => {
       ).toHaveTextContent(
         "5 investigations in the last 7 days (2 the 7 days before).",
       );
-      expect(
-        within(trend).getByText("Investigations per day"),
-      ).toBeInTheDocument();
-    });
-
-    test("groups what AI investigated into problems, with what it found and how it went", async () => {
-      openClusterInsightsPage();
-
-      expect(
-        await findText("Problems OneUptime AI investigated"),
-      ).toBeInTheDocument();
-      const problems: Array<HTMLElement> = screen.getAllByTestId(
-        "ai-insights-problem",
-      );
-      expect(
-        problems.map((problem: HTMLElement): string | null => {
-          return problem.getAttribute("data-problem-key");
-        }),
-      ).toEqual([RECURRING_PROBLEM_KEY, ONE_OFF_PROBLEM_KEY]);
-
-      const recurring: HTMLElement = problems[0]!;
-      expect(hrefOf(within(recurring).getByText(RECURRING_PROBLEM_TITLE))).toBe(
-        INCIDENT_HREF,
-      );
-      expect(
-        within(recurring).getByText(
-          /^Investigated 5 times · 4 incidents and alerts · last seen /,
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(recurring).getByTestId("ai-insights-recurring"),
-      ).toHaveTextContent("Recurring");
-      expect(
-        within(
-          within(recurring).getByTestId("ai-insights-problem-objects"),
-        ).getByText("Namespace: checkout ×5"),
-      ).toBeInTheDocument();
-      expect(
-        within(recurring).getByText("Pod: web-7d9f-2xk"),
-      ).toBeInTheDocument();
-      expect(
-        within(recurring).getByTestId("ai-insights-problem-finding"),
-      ).toHaveTextContent(`Latest finding: ${TLDR_FINDING}`);
-      expect(
-        within(recurring).queryByText("(from the investigation's report)"),
-      ).not.toBeInTheDocument();
-      expect(
-        within(recurring).getByTestId("ai-insights-problem-fixes"),
-      ).toHaveTextContent(
-        "3 fixes proposed · 2 applied · 1 verified · 1 did not help · 1 waiting for approval",
-      );
-      expect(
-        within(recurring).getByTestId("ai-insights-problem-verdicts"),
-      ).toHaveTextContent(
-        "your team confirmed 2 findings · your team rejected 1 finding · 2 findings matched the root cause recorded later",
-      );
-
-      const oneOff: HTMLElement = problems[1]!;
-      expect(hrefOf(within(oneOff).getByText("Disk almost full"))).toBe(
-        ALERT_HREF,
-      );
-      expect(
-        within(oneOff).getByText(/^Investigated 1 time · last seen /),
-      ).toBeInTheDocument();
-      expect(
-        within(oneOff).queryByTestId("ai-insights-recurring"),
-      ).not.toBeInTheDocument();
-      // Its TL;DR call failed: the finding is what its report said.
-      expect(
-        within(oneOff).getByTestId("ai-insights-problem-finding"),
-      ).toHaveTextContent(REPORT_FINDING);
-      expect(
-        within(oneOff).getByText("(from the investigation's report)"),
-      ).toBeInTheDocument();
-      expect(
-        within(oneOff).queryByText("No finding recorded for this problem yet."),
-      ).not.toBeInTheDocument();
-      expect(
-        within(oneOff).queryByTestId("ai-insights-problem-fixes"),
-      ).not.toBeInTheDocument();
-      expect(
-        within(oneOff).queryByTestId("ai-insights-problem-verdicts"),
-      ).not.toBeInTheDocument();
-    });
-
-    test("says so when a problem has no finding yet", async () => {
-      const insights: AiActivityInsights = makeInsights();
-      delete insights.problems[1]!.latestFinding;
-      serve(ok(toBody(insights)));
-      openClusterInsightsPage();
-
-      const problems: Array<HTMLElement> = await screen.findAllByTestId(
-        "ai-insights-problem",
-        {},
-        { timeout: WAIT_TIMEOUT },
-      );
-      expect(
-        within(problems[1]!).getByText(
-          "No finding recorded for this problem yet.",
-        ),
-      ).toBeInTheDocument();
-    });
-
-    test("names the hotspots, how often they showed up and in how many problems", async () => {
-      openClusterInsightsPage();
-
-      expect(await findText("Hotspots")).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          "The parts of this cluster that keep showing up in what OneUptime AI investigated.",
-        ),
-      ).toBeInTheDocument();
-      const hotspots: Array<HTMLElement> = screen.getAllByTestId(
-        "ai-insights-hotspot",
-      );
-      expect(hotspots).toHaveLength(2);
-      expect(
-        within(hotspots[0]!).getByText("Namespace: checkout"),
-      ).toBeInTheDocument();
-      expect(
-        within(hotspots[0]!).getByText(
-          /^5 investigations · 1 problem · last seen /,
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(hotspots[1]!).getByText(/^2 investigations · 2 problems/),
-      ).toBeInTheDocument();
     });
 
     test("shows where fixes ended up and whether they helped", async () => {
@@ -725,148 +1259,122 @@ describe("the cluster's AI Insights page", () => {
       );
     });
 
-    test("links the open preventive insights filed against the cluster", async () => {
+    test("nothing went wrong, nothing is said about it", async () => {
+      serve(ok(toBody(makeQuietInsights())));
       openClusterInsightsPage();
 
-      expect(await findText("Preventive insights")).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          "Open findings OneUptime AI's detectors filed against this cluster's own telemetry, before anything paged.",
-        ),
-      ).toBeInTheDocument();
-      const insights: Array<HTMLElement> = screen.getAllByTestId(
-        "ai-insights-preventive",
-      );
-      expect(insights).toHaveLength(1);
-      expect(
-        hrefOf(within(insights[0]!).getByText(PREVENTIVE_INSIGHT_TITLE)),
-      ).toBe(INSIGHT_HREF);
-      expect(within(insights[0]!).getByText("High")).toBeInTheDocument();
-      expect(
-        within(insights[0]!).getByText(/^seen 3 times · last seen /),
-      ).toBeInTheDocument();
+      await findTestId("ai-insights-summary");
+      expect(screen.queryByTestId("ai-insights-health")).not.toBeInTheDocument();
     });
 
-    test("never shows the AI Logs lists: those are on AI → Logs", async () => {
-      openClusterInsightsPage();
-      await findText("Needs attention");
-
-      expect(
-        screen.queryByTestId("ai-logs-investigation"),
-      ).not.toBeInTheDocument();
-      expect(screen.queryByTestId("ai-logs-fix")).not.toBeInTheDocument();
-      expect(
-        screen.queryByText("No summary was recorded."),
-      ).not.toBeInTheDocument();
-    });
-
-    test("says when the numbers cover only the newest of the activity", async () => {
+    test("says when the numbers cover only the newest of what happened", async () => {
       serve(ok(toBody(makeInsights({ isPartial: true }))));
       openClusterInsightsPage();
 
       expect(await findTestId("ai-insights-partial")).toHaveTextContent(
-        "There was more AI activity here than these insights read: they cover the newest of it.",
+        "There was more here than these insights read: they cover the newest of it.",
       );
       cleanup();
 
       serve(ok(toBody(makeInsights())));
       openClusterInsightsPage();
-      await findText("Needs attention");
+      await findTestId("ai-insights-summary");
       expect(
         screen.queryByTestId("ai-insights-partial"),
       ).not.toBeInTheDocument();
     });
+  });
 
-    test("says plainly when nothing needs attention, and leaves out empty cards", async () => {
-      serve(
-        ok(
-          toBody(
-            makeInsights({
-              attention: [],
-              problems: [],
-              hotspots: [],
-              preventiveInsights: [],
-              fixOutcomes: makeEmptyInsights().fixOutcomes,
-            }),
-          ),
-        ),
-      );
-      openClusterInsightsPage();
+  test("never shows the AI Logs lists: those are on AI → Logs", async () => {
+    openClusterInsightsPage();
+    await findTestId("ai-insights-insights");
 
-      expect(
-        await findTestId("ai-insights-nothing-needs-attention"),
-      ).toHaveTextContent("Nothing here needs your attention right now.");
-      expect(
-        screen.queryByTestId("ai-insights-attention"),
-      ).not.toBeInTheDocument();
-      expect(screen.getByTestId("ai-insights-no-problems")).toHaveTextContent(
-        "No incident or alert here was investigated in the last 30 days.",
-      );
-      expect(screen.getByTestId("ai-insights-no-hotspots")).toHaveTextContent(
-        "Nothing has shown up in more than one investigation yet.",
-      );
-      // No fixes and no preventive insights: no cards for them at all.
-      expect(screen.queryByTestId("ai-insights-fixes")).not.toBeInTheDocument();
-      expect(screen.queryByText("Preventive insights")).not.toBeInTheDocument();
-      // The window still has activity: no empty state.
-      expect(screen.queryByTestId("ai-insights-empty")).not.toBeInTheDocument();
-      expect(screen.getByTestId("ai-insights-summary")).toBeInTheDocument();
-    });
+    expect(
+      screen.queryByTestId("ai-logs-investigation"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ai-logs-fix")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No summary was recorded."),
+    ).not.toBeInTheDocument();
+  });
 
-    // An icon is a <div>: inside a <p> it is invalid markup React warns about.
-    test("never puts a block inside a paragraph", async () => {
-      openClusterInsightsPage();
-      await findText("Needs attention");
-      expect(document.querySelectorAll("p div, p p, p ul")).toHaveLength(0);
-      cleanup();
+  // An icon is a <div>: inside a <p> or a heading it is invalid markup React warns about.
+  test("never puts a block inside a paragraph or a heading", async () => {
+    const BLOCK_IN_TEXT: string = "p div, p p, p ul, p dl, h3 div, h3 p";
 
-      serve(ok(toBody(makeInsights({ attention: [] }))));
-      openClusterInsightsPage();
-      await findTestId("ai-insights-nothing-needs-attention");
-      expect(document.querySelectorAll("p div, p p, p ul")).toHaveLength(0);
-      cleanup();
+    openClusterInsightsPage();
+    await findTestId("ai-insights-insights");
+    expect(document.querySelectorAll(BLOCK_IN_TEXT)).toHaveLength(0);
+    cleanup();
 
-      serve(
-        ok(toBody(makeEmptyInsights())),
-        ok(makeK8sStatus({ isInvestigationReady: false })),
-      );
-      openClusterInsightsPage();
-      await findTestId("ai-insights-agent-hint");
-      expect(document.querySelectorAll("p div, p p, p ul")).toHaveLength(0);
-    });
+    serve(ok(toBody(makeQuietInsights())));
+    openClusterInsightsPage();
+    await findTestId("ai-insights-nothing-stands-out");
+    expect(document.querySelectorAll(BLOCK_IN_TEXT)).toHaveLength(0);
+    cleanup();
 
-    test("renders server text as text, never as markup", async () => {
-      const insights: AiActivityInsights = makeInsights();
-      insights.problems[0]!.title = "<img src='x' onerror='window.pwned=1'>";
-      insights.problems[0]!.latestFinding!.text =
-        "<script>window.pwned=1</script>";
-      insights.hotspots[0]!.value = "<b>checkout</b>";
-      insights.preventiveInsights[0]!.title =
-        "<a href='javascript:alert(1)'>x</a>";
-      serve(ok(toBody(insights)));
-      openClusterInsightsPage();
+    serve(
+      ok(toBody(makeEmptyInsights())),
+      ok(makeK8sStatus({ isInvestigationReady: false })),
+    );
+    openClusterInsightsPage();
+    await findTestId("ai-insights-agent-hint");
+    expect(document.querySelectorAll(BLOCK_IN_TEXT)).toHaveLength(0);
+  });
 
-      expect(
-        await findText("<img src='x' onerror='window.pwned=1'>"),
-      ).toBeInTheDocument();
-      expect(
-        screen.getAllByTestId("ai-insights-problem-finding")[0],
-      ).toHaveTextContent("<script>window.pwned=1</script>");
-      expect(
-        screen.getByText("Namespace: <b>checkout</b>"),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText("<a href='javascript:alert(1)'>x</a>"),
-      ).toBeInTheDocument();
-      expect(document.querySelector("img[src='x']")).toBeNull();
-      expect(document.querySelector("b")).toBeNull();
-      expect(document.querySelector("a[href^='javascript:']")).toBeNull();
-      expect((window as unknown as { pwned?: number }).pwned).toBeUndefined();
-    });
+  test("renders server text as text, never as markup", async () => {
+    const insights: AiActivityInsights = makeInsights();
+    insights.insights[0]!.title = "<img src='x' onerror='window.pwned=1'>";
+    insights.insights[0]!.finding!.text = "<script>window.pwned=1</script>";
+    insights.insights[0]!.nextStep = "<b>restart</b> it";
+    insights.insights[4]!.object!.value = "<i>node-3</i>";
+    insights.problems[2]!.title = "<u>disk</u>";
+    insights.hotspots[0]!.value = "<b>checkout</b>";
+    insights.preventiveInsights[1]!.title =
+      "<a href='javascript:alert(1)'>x</a>";
+    serve(ok(toBody(insights)));
+    openClusterInsightsPage();
+
+    expect(
+      await findText(
+        "<img src='x' onerror='window.pwned=1'> keeps coming back",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByTestId("ai-insights-finding")[0],
+    ).toHaveTextContent("<script>window.pwned=1</script>");
+    expect(
+      screen.getAllByTestId("ai-insights-next-step")[0],
+    ).toHaveTextContent("<b>restart</b> it");
+    const hotspot: HTMLElement = screen
+      .getAllByTestId("ai-insights-insight")
+      .find((item: HTMLElement): boolean => {
+        return item.getAttribute("data-kind") === "Hotspot";
+      })!;
+    expect(
+      within(hotspot).getByText(
+        "Node <i>node-3</i> is behind 2 different problems",
+      ),
+    ).toBeInTheDocument();
+    // No Kubernetes object has that name: no page to open, the alert instead.
+    expect(
+      linksIn(within(hotspot).getByTestId("ai-insights-next-step-link")),
+    ).toEqual([`Open alert → ${ALERT_HREF}`]);
+    expect(screen.getByText("<u>disk</u>")).toBeInTheDocument();
+    expect(screen.getByText("Node: <b>checkout</b>")).toBeInTheDocument();
+    expect(
+      screen.getByText("<a href='javascript:alert(1)'>x</a>"),
+    ).toBeInTheDocument();
+    expect(document.querySelector("img[src='x']")).toBeNull();
+    expect(document.querySelector("b")).toBeNull();
+    expect(document.querySelector("i")).toBeNull();
+    expect(document.querySelector("u")).toBeNull();
+    expect(document.querySelector("a[href^='javascript:']")).toBeNull();
+    expect((window as unknown as { pwned?: number }).pwned).toBeUndefined();
   });
 
   describe("without AI activity", () => {
-    test("shows one empty state, pointing at AI Logs for anything older", async () => {
+    test("shows one empty state that says what will show up, pointing at AI Logs for anything older", async () => {
       serve(ok(toBody(makeEmptyInsights())));
       openClusterInsightsPage();
 
@@ -888,11 +1396,14 @@ describe("the cluster's AI Insights page", () => {
       expect(
         document.getElementById("kubernetes-ai-insights-empty"),
       ).not.toBeNull();
-      // No row of zeros.
+      // No row of zeros, and no "nothing stands out" either.
       expect(
         screen.queryByTestId("ai-insights-summary"),
       ).not.toBeInTheDocument();
-      expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("ai-insights-nothing-stands-out"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("What OneUptime AI found")).not.toBeInTheDocument();
     });
 
     test("points at the AI agent page when AI cannot run kubectl here", async () => {
@@ -970,11 +1481,69 @@ describe("the cluster's AI Insights page", () => {
     openClusterInsightsPage();
 
     const hint: HTMLElement = await findTestId("ai-insights-agent-hint");
-    const attention: HTMLElement = await findText("Needs attention");
-    expect(
-      hint.compareDocumentPosition(attention) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    const found: HTMLElement = await findTestId("ai-insights-insights");
+    expect(follows(hint, found)).toBe(true);
+  });
+
+  describe("when OneUptime AI cannot work for the project", () => {
+    test("with AI off, a notice above the insights says nothing new shows up here, and who can turn it on", async () => {
+      isAiOn = false;
+      openClusterInsightsPage();
+
+      const notice: HTMLElement = await findTestId(PROJECT_AI_OFF_NOTICE_TEST_ID);
+      expect(notice).toHaveTextContent(
+        "OneUptime AI is off for this project, so nothing new is investigated or fixed, and nothing new shows up on this page.",
+      );
+      // What it found before is still worth knowing: the insights stay.
+      const found: HTMLElement = await findTestId("ai-insights-insights");
+      expect(follows(notice, found)).toBe(true);
+      expect(
+        follows(screen.getByTestId("ai-insights-page-heading"), notice),
+      ).toBe(true);
+    });
+
+    test("with no LLM provider, a notice says so, and links to where one is added", async () => {
+      providersAnswer = ok(NO_PROVIDER);
+      openClusterInsightsPage();
+
+      const notice: HTMLElement = await findTestId(
+        PROJECT_AI_PROVIDER_NOTICE_TEST_ID,
+      );
+      expect(notice).toHaveTextContent(
+        "This project has no LLM provider for OneUptime AI to use. Until it has one, nothing new is investigated, so nothing new shows up on this page.",
+      );
+      expect(hrefOf(within(notice).getByText("Add an LLM provider"))).toBe(
+        `/dashboard/${PROJECT_ID}/settings/llm-providers`,
+      );
+    });
+
+    test("with AI on and a provider, no notice", async () => {
+      openClusterInsightsPage();
+      await findTestId("ai-insights-insights");
+      await waitFor(
+        () => {
+          expect(postsTo(PROVIDERS_ROUTE)).toHaveLength(1);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      expect(
+        screen.queryByTestId(PROJECT_AI_OFF_NOTICE_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId(PROJECT_AI_PROVIDER_NOTICE_TEST_ID),
+      ).not.toBeInTheDocument();
+    });
+
+    test("an empty page with AI off says why above its empty state", async () => {
+      isAiOn = false;
+      serve(ok(toBody(makeEmptyInsights())));
+      openClusterInsightsPage();
+
+      const notice: HTMLElement = await findTestId(PROJECT_AI_OFF_NOTICE_TEST_ID);
+      const empty: HTMLElement = await findTestId("ai-insights-empty");
+      expect(follows(notice, empty)).toBe(true);
+    });
   });
 
   describe("when the insights cannot be loaded", () => {
@@ -994,7 +1563,7 @@ describe("the cluster's AI Insights page", () => {
         ),
       );
 
-      expect(await findText("Needs attention")).toBeInTheDocument();
+      expect(await findTestId("ai-insights-insights")).toBeInTheDocument();
       expect(postsTo(K8S_INSIGHTS_ROUTE)).toHaveLength(2);
       expect(screen.queryByTestId("ai-insights-error")).not.toBeInTheDocument();
     });
@@ -1050,6 +1619,9 @@ describe("the cluster's AI Insights page", () => {
             {},
           );
         }
+        if (url.endsWith(PROVIDERS_ROUTE)) {
+          return new HTTPResponse<JSONObject>(200, USABLE_PROVIDER, {});
+        }
         const clusterId: unknown = (
           (request as JSONObject)["data"] as JSONObject
         )["clusterId"];
@@ -1100,7 +1672,9 @@ describe("the cluster's AI Insights page", () => {
       await Promise.resolve();
     });
 
-    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("ai-insights-insights"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("ai-insights-empty")).toBeInTheDocument();
   });
 });
@@ -1132,6 +1706,135 @@ describe("the cluster's agent pointer, on its own", () => {
   });
 });
 
+describe("a part of the cluster, on its own page", () => {
+  beforeEach(() => {
+    goTo(clusterPath(PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS));
+  });
+
+  test.each([
+    ["k8s.node.name", "nodes"],
+    ["k8s.pod.name", "pods"],
+    ["k8s.namespace.name", "namespaces"],
+    ["k8s.deployment.name", "deployments"],
+    ["k8s.statefulset.name", "statefulsets"],
+    ["k8s.daemonset.name", "daemonsets"],
+    ["k8s.job.name", "jobs"],
+    ["k8s.cronjob.name", "cronjobs"],
+    ["k8s.container.name", "containers"],
+    ["k8s.persistentvolumeclaim.name", "pvcs"],
+    ["k8s.hpa.name", "hpas"],
+  ])("a part read from %s opens the cluster's %s page for it, by name", (key: string, segment: string) => {
+    expect(
+      getKubernetesObjectRoute(CLUSTER_ID, {
+        name: "Part",
+        value: "web-1",
+        key,
+      })!.toString(),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/${segment}/web-1`,
+    );
+  });
+
+  test("every label the table names has a page", () => {
+    for (const [key, page] of Object.entries(KUBERNETES_OBJECT_PAGES)) {
+      expect(RouteMap[page]).toBeDefined();
+      expect(
+        getKubernetesObjectRoute(CLUSTER_ID, { name: "x", value: "y", key }),
+      ).not.toBeNull();
+    }
+  });
+
+  test("a part without a label, of a label without a page, or without a cluster is named, not linked", () => {
+    expect(
+      getKubernetesObjectRoute(CLUSTER_ID, { name: "Node", value: "node-3" }),
+    ).toBeNull();
+    expect(
+      getKubernetesObjectRoute(CLUSTER_ID, {
+        name: "Mount",
+        value: "/var",
+        key: "mountpoint",
+      }),
+    ).toBeNull();
+    expect(
+      getKubernetesObjectRoute("", {
+        name: "Node",
+        value: "node-3",
+        key: "k8s.node.name",
+      }),
+    ).toBeNull();
+    expect(
+      getKubernetesObjectRoute(CLUSTER_ID, {
+        name: "Node",
+        value: "",
+        key: "k8s.node.name",
+      }),
+    ).toBeNull();
+  });
+
+  test.each([
+    ["markup", "<i>node-3</i>"],
+    ["a space", "web 1"],
+    ["a slash", "kube-system/web"],
+    ["a scheme", "javascript:alert(1)"],
+    ["capitals", "Web-1"],
+    ["a leading dash", "-web"],
+    ["a trailing dot", "web."],
+    ["a name longer than Kubernetes allows", `w${"e".repeat(252)}b`],
+  ])(
+    "a value with %s is no Kubernetes object's name: named, not linked, and never a crash",
+    (_label: string, value: string) => {
+      expect(
+        getKubernetesObjectRoute(CLUSTER_ID, {
+          name: "Pod",
+          value,
+          key: "k8s.pod.name",
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("the longest name Kubernetes allows, and a dotted one, are linked", () => {
+    const longest: string = `w${"e".repeat(251)}b`;
+
+    expect(longest).toHaveLength(253);
+    expect(
+      getKubernetesObjectRoute(CLUSTER_ID, {
+        name: "Pod",
+        value: longest,
+        key: "k8s.pod.name",
+      })!.toString(),
+    ).toBe(`/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/pods/${longest}`);
+    expect(
+      getKubernetesObjectRoute(CLUSTER_ID, {
+        name: "Node",
+        value: "ip-10-0-1-23.ec2.internal",
+        key: "k8s.node.name",
+      })!.toString(),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/nodes/ip-10-0-1-23.ec2.internal`,
+    );
+  });
+
+  test("a cluster id no route can hold links nothing, and never crashes", () => {
+    expect(
+      getKubernetesObjectRoute("<cluster>", {
+        name: "Node",
+        value: "node-3",
+        key: "k8s.node.name",
+      }),
+    ).toBeNull();
+  });
+
+  test.each(["constructor", "__proto__", "toString", "hasOwnProperty"])(
+    "a label named %s is no page of the table's",
+    (key: string) => {
+      expect(
+        getKubernetesObjectRoute(CLUSTER_ID, { name: "x", value: "y", key }),
+      ).toBeNull();
+    },
+  );
+});
+
 describe("every resource with a resource AI agent", () => {
   test.each(ALL_AI_RESOURCE_TYPES)(
     "%s: its thin page asks about this resource and links to its own AI pages",
@@ -1141,7 +1844,8 @@ describe("every resource with a resource AI agent", () => {
       statusAnswer = ok(makeResourceStatus(type));
       openResourceInsightsPage(type);
 
-      expect(await findText("Needs attention")).toBeInTheDocument();
+      const items: Array<HTMLElement> = await findInsightItems();
+      expect(items).toHaveLength(makeInsights().insights.length);
       expect(postsTo(RESOURCE_INSIGHTS_ROUTE)).toHaveLength(1);
       expect(postsTo(RESOURCE_INSIGHTS_ROUTE)[0]!["data"]).toEqual({
         resourceType: type,
@@ -1163,7 +1867,7 @@ describe("every resource with a resource AI agent", () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          `The parts of this ${descriptor.noun} that keep showing up in what OneUptime AI investigated.`,
+          `The parts of this ${descriptor.noun} that came up the most, and in how many different problems.`,
         ),
       ).toBeInTheDocument();
 
@@ -1174,14 +1878,38 @@ describe("every resource with a resource AI agent", () => {
       expect(hrefOf(screen.getByTestId("ai-insights-logs-link"))).toBe(
         logsHref,
       );
+      // A command no agent ran points at this resource's AI agent page.
       expect(hrefOf(screen.getByText("Open the AI agent page"))).toBe(
         agentHref,
       );
-      expect(hrefOf(screen.getByText("Open AI Logs"))).toBe(logsHref);
-      expect(hrefOf(screen.getByText(RECURRING_PROBLEM_TITLE))).toBe(
-        INCIDENT_HREF,
+
+      const automatic: HTMLElement = await findInsight(
+        AiActivityInsightKind.FixedAutomatically,
       );
-      expect(screen.getAllByTestId("ai-insights-problem")).toHaveLength(2);
+      expect(
+        linksIn(within(automatic).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open AI Logs → ${logsHref}`]);
+
+      // A resource's parts have no page of their own: named, not linked,
+      // and its hotspot opens the newest alert behind it instead.
+      const hotspot: HTMLElement = await findInsight(
+        AiActivityInsightKind.Hotspot,
+      );
+      expect(
+        linksIn(within(hotspot).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open alert → ${ALERT_HREF}`]);
+      const recurring: HTMLElement = await findInsight(
+        AiActivityInsightKind.RecurringProblem,
+      );
+      expect(
+        linksIn(within(recurring).getByTestId("ai-insights-insight-objects")),
+      ).toEqual([]);
+      expect(
+        within(recurring).getByText("Namespace: checkout"),
+      ).toBeInTheDocument();
+      expect(
+        linksIn(within(recurring).getByTestId("ai-insights-next-step-link")),
+      ).toEqual([`Open incident → ${INCIDENT_HREF}`]);
     },
   );
 
@@ -1233,6 +1961,9 @@ describe("every resource with a resource AI agent", () => {
             {},
           );
         }
+        if (url.endsWith(PROVIDERS_ROUTE)) {
+          return new HTTPResponse<JSONObject>(200, USABLE_PROVIDER, {});
+        }
         const resourceId: unknown = (
           (request as JSONObject)["data"] as JSONObject
         )["resourceId"];
@@ -1274,7 +2005,9 @@ describe("every resource with a resource AI agent", () => {
       await Promise.resolve();
     });
 
-    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("ai-insights-insights"),
+    ).not.toBeInTheDocument();
   });
 
   test("the resource's agent pointer says why AI cannot run commands there, or nothing", async () => {
@@ -1356,7 +2089,7 @@ describe("the page, given any scope", () => {
 
   test("reloads for another scope, never for a re-render", async () => {
     openHarness();
-    await findText("Needs attention");
+    await findTestId("ai-insights-insights");
 
     fireEvent.click(screen.getByText("re-render"));
     fireEvent.click(screen.getByText("re-render"));
@@ -1402,7 +2135,7 @@ describe("the page, given any scope", () => {
 
   test("works without an agent pointer, and a pointer that fails is left out", async () => {
     openHarness(undefined);
-    expect(await findText("Needs attention")).toBeInTheDocument();
+    expect(await findTestId("ai-insights-insights")).toBeInTheDocument();
     expect(
       screen.queryByTestId("ai-insights-agent-hint"),
     ).not.toBeInTheDocument();
@@ -1416,7 +2149,7 @@ describe("the page, given any scope", () => {
       throw new Error("status route is down");
     };
     openHarness(failing);
-    expect(await findText("Needs attention")).toBeInTheDocument();
+    expect(await findTestId("ai-insights-insights")).toBeInTheDocument();
     await waitFor(
       () => {
         expect(failingCalls).toBe(1);
@@ -1442,87 +2175,190 @@ describe("the page, given any scope", () => {
   });
 });
 
-describe("where attention items link", () => {
+describe("where each insight leads", () => {
   const LOGS: Route = new Route("/logs");
   const AGENT: Route = new Route("/agent");
+  const SETTINGS: Route = new Route("/settings");
+
+  const ROUTES: AiInsightsRoutes = { logsRoute: LOGS, agentRoute: AGENT };
 
   function target(
-    item: Partial<AiActivityAttentionItem> & { kind: AiActivityAttentionKind },
-  ): { route: string; label: string } | null {
-    const found: { route: Route; label: string } | null = getAttentionTarget(
-      {
-        severity: AiActivityAttentionSeverity.Medium,
-        count: 1,
-        ...item,
-      },
-      { logsRoute: LOGS, agentRoute: AGENT },
-    );
-    return found ? { route: found.route.toString(), label: found.label } : null;
+    item: AiActivityInsight,
+    routes: AiInsightsRoutes = ROUTES,
+  ): { route: string; label: string; values?: unknown } | null {
+    const found: AiInsightTarget | null = getInsightTarget(item, routes);
+
+    return found
+      ? {
+          route: found.route.toString(),
+          label: found.label,
+          ...(found.values ? { values: found.values } : {}),
+        }
+      : null;
+  }
+
+  function bare(
+    kind: AiActivityInsightKind,
+    overrides: Partial<AiActivityInsight> = {},
+  ): AiActivityInsight {
+    return {
+      kind,
+      tone: AiActivityInsightTone.Pattern,
+      count: 1,
+      ...overrides,
+    };
   }
 
   beforeEach(() => {
     goTo(clusterPath(PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS));
   });
 
-  test("an incident or alert to act on is linked first", () => {
-    expect(
-      target({
-        kind: AiActivityAttentionKind.FixesFailed,
-        subject: { kind: "incident", id: INCIDENT_ID },
-      }),
-    ).toEqual({ route: INCIDENT_HREF, label: "Open incident" });
-    expect(
-      target({
-        kind: AiActivityAttentionKind.FixesAwaitingApproval,
-        subject: { kind: "alert", id: ALERT_ID },
-      }),
-    ).toEqual({ route: ALERT_HREF, label: "Open alert" });
-    // Even for commands, an incident to act on wins.
-    expect(
-      target({
-        kind: AiActivityAttentionKind.CommandsTimedOut,
-        subject: { kind: "incident", id: INCIDENT_ID },
-      }),
-    ).toEqual({ route: INCIDENT_HREF, label: "Open incident" });
-  });
-
-  test("a preventive insight links to the insight, or nowhere without one", () => {
-    expect(
-      target({
-        kind: AiActivityAttentionKind.PreventiveInsight,
-        insightId: INSIGHT_ID,
-        subject: { kind: "incident", id: INCIDENT_ID },
-      }),
-    ).toEqual({ route: INSIGHT_HREF, label: "Open insight" });
-    expect(target({ kind: AiActivityAttentionKind.PreventiveInsight })).toBe(
-      null,
-    );
-  });
-
-  test("commands the agent never ran link to the AI agent page", () => {
-    expect(target({ kind: AiActivityAttentionKind.CommandsTimedOut })).toEqual({
-      route: "/agent",
-      label: "Open the AI agent page",
-    });
-  });
-
-  test("a hotspot links nowhere; everything else to AI Logs", () => {
-    expect(target({ kind: AiActivityAttentionKind.Hotspot })).toBeNull();
+  test("a problem, a fix that did not help, or a problem that stopped opens the newest incident or alert behind it", () => {
     for (const kind of [
-      AiActivityAttentionKind.FixesFailed,
-      AiActivityAttentionKind.RecurringProblem,
-      AiActivityAttentionKind.FixesAwaitingApproval,
-      AiActivityAttentionKind.InvestigationsFailed,
-      AiActivityAttentionKind.FindingsRejected,
+      AiActivityInsightKind.RecurringProblem,
+      AiActivityInsightKind.FixesDidNotHelp,
+      AiActivityInsightKind.ProblemStopped,
     ]) {
-      expect(target({ kind })).toEqual({
-        route: "/logs",
-        label: "Open AI Logs",
-      });
+      expect(
+        target(bare(kind, { subject: { kind: "incident", id: INCIDENT_ID } })),
+      ).toEqual({ route: INCIDENT_HREF, label: "Open incident" });
+      expect(
+        target(bare(kind, { subject: { kind: "alert", id: ALERT_ID } })),
+      ).toEqual({ route: ALERT_HREF, label: "Open alert" });
+      // One the reader may not read was never sent: nowhere to go.
+      expect(target(bare(kind))).toBeNull();
     }
   });
 
-  test("incidents, alerts and insights link to their own pages in this project", () => {
+  test("a fix waiting for approval is reviewed where it waits, else in AI Logs", () => {
+    expect(
+      target(
+        bare(AiActivityInsightKind.FixesAwaitingApproval, {
+          subject: { kind: "alert", id: ALERT_ID },
+        }),
+      ),
+    ).toEqual({ route: ALERT_HREF, label: "Review the fix" });
+    expect(target(bare(AiActivityInsightKind.FixesAwaitingApproval))).toEqual({
+      route: "/logs",
+      label: "Open AI Logs",
+    });
+  });
+
+  test("a part behind the trouble opens its own page when it has one", () => {
+    const route: Route = new Route("/nodes/node-3");
+
+    expect(
+      target(
+        bare(AiActivityInsightKind.Hotspot, {
+          object: { name: "Node", value: "node-3", key: "k8s.node.name" },
+          subject: { kind: "alert", id: ALERT_ID },
+        }),
+        {
+          ...ROUTES,
+          getObjectRoute: (): Route => {
+            return route;
+          },
+        },
+      ),
+    ).toEqual({
+      route: "/nodes/node-3",
+      label: "Open {{name}}",
+      values: { name: { translatableTerm: "Node", inSentence: true } },
+    });
+  });
+
+  test("a hotspot without a page of its own opens its service, its monitor, else the newest subject", () => {
+    const withoutPage: AiInsightsRoutes = {
+      ...ROUTES,
+      getObjectRoute: (): null => {
+        return null;
+      },
+    };
+
+    expect(
+      target(
+        bare(AiActivityInsightKind.Hotspot, {
+          object: { name: "Mount", value: "/var" },
+          service: { id: "77777777-0000-4000-8000-000000000001", name: "x" },
+          monitor: { id: "88888888-0000-4000-8000-000000000001", name: "y" },
+        }),
+        withoutPage,
+      ),
+    ).toEqual({
+      route: `/dashboard/${PROJECT_ID}/service/77777777-0000-4000-8000-000000000001`,
+      label: "Open service",
+    });
+    expect(
+      target(
+        bare(AiActivityInsightKind.Hotspot, {
+          monitor: { id: "88888888-0000-4000-8000-000000000001", name: "y" },
+        }),
+      ),
+    ).toEqual({
+      route: `/dashboard/${PROJECT_ID}/monitors/88888888-0000-4000-8000-000000000001`,
+      label: "Open monitor",
+    });
+    expect(
+      target(
+        bare(AiActivityInsightKind.Hotspot, {
+          object: { name: "Mount", value: "/var" },
+          subject: { kind: "alert", id: ALERT_ID },
+        }),
+        withoutPage,
+      ),
+    ).toEqual({ route: ALERT_HREF, label: "Open alert" });
+    expect(target(bare(AiActivityInsightKind.Hotspot))).toBeNull();
+  });
+
+  test("fixes applied on their own are in AI Logs", () => {
+    expect(target(bare(AiActivityInsightKind.FixedAutomatically))).toEqual({
+      route: "/logs",
+      label: "Open AI Logs",
+    });
+  });
+
+  test("a team ready for automatic fixes is sent where that is chosen: the AI agent page, else AI settings", () => {
+    expect(target(bare(AiActivityInsightKind.ReadyForAutomaticFixes))).toEqual({
+      route: "/agent",
+      label: "Choose what AI may fix on its own",
+    });
+    expect(
+      target(bare(AiActivityInsightKind.ReadyForAutomaticFixes), {
+        logsRoute: LOGS,
+        settingsRoute: SETTINGS,
+      }),
+    ).toEqual({ route: "/settings", label: "Choose what AI may fix on its own" });
+    expect(
+      target(bare(AiActivityInsightKind.ReadyForAutomaticFixes), {
+        logsRoute: LOGS,
+      }),
+    ).toBeNull();
+  });
+
+  test("a risk opens its finding, or nothing without one", () => {
+    expect(
+      target(bare(AiActivityInsightKind.RiskSpotted, { insightId: INSIGHT_ID })),
+    ).toEqual({ route: INSIGHT_HREF, label: "Open insight" });
+    expect(target(bare(AiActivityInsightKind.RiskSpotted))).toBeNull();
+  });
+
+  test("an insight of a kind this page does not know leads nowhere, and has no note", () => {
+    const unknown: AiActivityInsight = bare(
+      "SomethingNewer" as AiActivityInsightKind,
+      { subject: { kind: "incident", id: INCIDENT_ID } },
+    );
+
+    expect(target(unknown)).toBeNull();
+    expect(getInsightNote(unknown, {})).toBeNull();
+  });
+
+  test("only a skipped investigation has a note about who can act", () => {
+    for (const item of makeInsights().insights) {
+      expect(getInsightNote(item, {})).toBeNull();
+    }
+  });
+
+  test("incidents, alerts, findings, monitors and services link to their own pages in this project", () => {
     expect(
       getSubjectRoute({ kind: "incident", id: INCIDENT_ID }).toString(),
     ).toBe(INCIDENT_HREF);
@@ -1530,5 +2366,49 @@ describe("where attention items link", () => {
       ALERT_HREF,
     );
     expect(getPreventiveInsightRoute(INSIGHT_ID).toString()).toBe(INSIGHT_HREF);
+    expect(
+      getMonitorRoute("88888888-0000-4000-8000-000000000001").toString(),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/monitors/88888888-0000-4000-8000-000000000001`,
+    );
+    expect(
+      getServiceRoute("77777777-0000-4000-8000-000000000001").toString(),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/service/77777777-0000-4000-8000-000000000001`,
+    );
+  });
+});
+
+describe("what the page does not say twice", () => {
+  test("the problems an insight already tells are not listed again", () => {
+    expect(
+      getOtherProblems(makeInsights()).map(
+        (problem: AiActivityProblem): string => {
+          return problem.key;
+        },
+      ),
+    ).toEqual([ONE_OFF_PROBLEM_KEY]);
+    expect(getOtherProblems(makeInsights({ insights: [] }))).toHaveLength(3);
+    // An insight about no problem tells none.
+    expect(
+      getOtherProblems(
+        makeInsights({
+          insights: [insightOfKind(AiActivityInsightKind.Hotspot)],
+        }),
+      ),
+    ).toHaveLength(3);
+  });
+
+  test("the risks an insight already names are not listed again", () => {
+    expect(
+      getOtherPreventiveInsights(makeInsights()).map(
+        (insight: AiActivityPreventiveInsight): string => {
+          return insight.id;
+        },
+      ),
+    ).toEqual([SECOND_INSIGHT_ID]);
+    expect(
+      getOtherPreventiveInsights(makeInsights({ insights: [] })),
+    ).toHaveLength(2);
   });
 });

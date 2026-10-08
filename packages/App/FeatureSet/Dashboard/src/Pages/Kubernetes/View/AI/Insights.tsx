@@ -54,8 +54,18 @@ export const KUBERNETES_OBJECT_PAGES: Readonly<Record<string, PageMap>> = {
 };
 
 /*
+ * A Kubernetes object's name as the API server allows it (a DNS-1123
+ * subdomain: lowercase letters, digits, "-" and ".", at most 253
+ * characters). Only such a name can be a page in the cluster; a label value
+ * that is not one (it came from an alert's labels, which hold anything) is
+ * named, not linked.
+ */
+const KUBERNETES_OBJECT_NAME: RegExp = /^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$/;
+
+/*
  * A part of the cluster an insight names, on its own page in the cluster,
- * or null for a part without one (a label the page has no view of).
+ * or null for a part without one (a label the page has no view of, or a
+ * value no Kubernetes object can be named).
  */
 export function getKubernetesObjectRoute(
   clusterId: string,
@@ -67,14 +77,19 @@ export function getKubernetesObjectRoute(
       ? KUBERNETES_OBJECT_PAGES[object.key]
       : undefined;
 
-  if (!page || !clusterId || !object.value) {
+  if (!page || !clusterId || !KUBERNETES_OBJECT_NAME.test(object.value)) {
     return null;
   }
 
-  return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
-    modelId: clusterId,
-    subModelId: object.value,
-  });
+  try {
+    return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
+      modelId: clusterId,
+      subModelId: object.value,
+    });
+  } catch {
+    // A cluster id no route can hold: the part is named, not linked.
+    return null;
+  }
 }
 
 /*

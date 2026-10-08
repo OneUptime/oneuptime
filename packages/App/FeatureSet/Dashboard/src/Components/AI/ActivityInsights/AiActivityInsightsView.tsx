@@ -752,19 +752,22 @@ function ProblemRow(props: {
   const fixes: string | null = describeProblemFixes(problem);
   const verdicts: string | null = describeProblemVerdicts(problem);
   const translator: Translator = useTranslator();
-  const badge: AiInsightBadge | null =
-    getRecurringBadge({
-      firstSeenAt: problem.firstSeenAt,
-      recentCount: problem.recentOccurrenceCount,
-      previousCount: problem.previousOccurrenceCount,
-      generatedAt: props.context.generatedAt,
-    }) ||
-    (problem.isRecurring
-      ? {
-          label: translationKey("Recurring"),
-          tone: AiActivityInsightTone.Warning,
-        }
-      : null);
+  /*
+   * Only a problem that came back wears a badge: new this week, getting
+   * worse, else recurring. One that came up once is just listed - a list of
+   * them each saying "New" would say nothing.
+   */
+  const badge: AiInsightBadge | null = problem.isRecurring
+    ? getRecurringBadge({
+        firstSeenAt: problem.firstSeenAt,
+        recentCount: problem.recentOccurrenceCount,
+        previousCount: problem.previousOccurrenceCount,
+        generatedAt: props.context.generatedAt,
+      }) || {
+        label: translationKey("Recurring"),
+        tone: AiActivityInsightTone.Warning,
+      }
+    : null;
 
   return (
     <li

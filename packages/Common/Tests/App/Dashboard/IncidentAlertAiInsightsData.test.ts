@@ -1,13 +1,15 @@
 import {
   AI_INSIGHTS_FIXES_HIDDEN_NOTE,
+  AiInsightWordingContext,
   NOT_INVESTIGATED_REASONS,
-  describeAttentionDetail,
-  describeAttentionItem,
   describeCoverage,
+  describeInsightFacts,
+  describeInsightHeadline,
   describeNotInvestigatedReason,
   describeProblemCount,
   describeResourceHotspot,
   describeSubject,
+  describeSubjectShort,
   describeTrendDay,
   getFixTaskSegments,
   hasAiActivity,
@@ -18,9 +20,8 @@ import {
   AI_INSIGHTS_PAGE_SUBTITLES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentAlertAi/IncidentAlertAiInsightsPage";
 import {
-  AiActivityAttentionItem,
-  AiActivityAttentionKind,
-  AiActivityAttentionSeverity,
+  AiActivityInsight,
+  AiActivityInsightKind,
   AiActivityInsights,
   AiActivityProblem,
 } from "../../../Types/AI/AiActivityInsights";
@@ -35,14 +36,19 @@ import {
   toBody as toClusterBody,
 } from "./AiActivityInsightsFixtures";
 import {
+  GENERATED_AT,
   MONITOR_ID,
   MONITOR_NAME,
+  NEXT_STEP,
   OTHER_SUBJECT_ID,
+  RECURRING_TITLE,
   SERVICE_ID,
   SERVICE_NAME,
   SUBJECT_ID,
+  makeIncidentAlertInsightList,
   makeIncidentAlertInsights,
   makeQuietIncidentAlertInsights,
+  subjectOf,
   toBody,
 } from "./IncidentAlertAiInsightsFixtures";
 import { describe, expect, test } from "@jest/globals";
@@ -54,10 +60,11 @@ import path from "path";
  * scope's AI Insights words (AiActivityInsightsData, pinned for a cluster
  * and a resource by AiActivityInsightsData.test.ts) plus what only a whole
  * product has: how it reads the sections only these pages' bodies carry,
- * the subject's prefixed number, the problem counts in the product's own
- * noun, the two attention items only these rows can say, why incidents
- * were skipped, the monitors and services, the fix pull requests and the
- * trend for a reader who may not see fixes - in every Dashboard locale.
+ * the subject's prefixed number, the insights in the product's own noun
+ * ("OneUptime AI did not look into 8 incidents", "The Payments service is
+ * behind 2 different problems"), why incidents were skipped, the monitors
+ * and services, the fix pull requests and the trend for a reader who may
+ * not see fixes - in every Dashboard locale.
  */
 
 const ALL_REASON_CODES: Array<InvestigationNotStartedCode> = [
@@ -77,6 +84,9 @@ const ALL_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "no_run_recorded",
 ];
 
+// A sentence a reason has to read as: capitalised, one full stop at the end.
+const ONE_SENTENCE: RegExp = /^[A-Z].*\.$/;
+
 function parse(body: JSONObject): AiActivityInsights {
   const insights: AiActivityInsights | null = parseAiActivityInsights(body);
 
@@ -85,15 +95,26 @@ function parse(body: JSONObject): AiActivityInsights {
   return insights!;
 }
 
-function attentionItem(
-  overrides: Partial<AiActivityAttentionItem>,
-): AiActivityAttentionItem {
+function contextOf(
+  subjectKind: IncidentAlertAiSubjectKind,
+): AiInsightWordingContext {
   return {
-    kind: AiActivityAttentionKind.InvestigationsNotStarted,
-    severity: AiActivityAttentionSeverity.High,
-    count: 1,
-    ...overrides,
+    windowInDays: 30,
+    subjectKind,
+    noun: subjectKind,
+    generatedAt: GENERATED_AT,
   };
+}
+
+function insightOf(
+  subjectKind: IncidentAlertAiSubjectKind,
+  kind: AiActivityInsightKind,
+): AiActivityInsight {
+  return makeIncidentAlertInsightList(subjectKind).find(
+    (item: AiActivityInsight): boolean => {
+      return item.kind === kind;
+    },
+  )!;
 }
 
 describe.each(
@@ -112,7 +133,7 @@ describe.each(
     );
   });
 
-  test("a quiet window reads as nothing to show", () => {
+  test("a window AI did nothing in reads as nothing to show, with why", () => {
     const insights: AiActivityInsights = parse(
       toBody(makeQuietIncidentAlertInsights(kind)),
     );
@@ -133,17 +154,30 @@ describe.each(
     expect(insights.fixesHidden).toBe(true);
   });
 
-  test("the subject keeps its prefixed number, in a problem and in an item", () => {
+  test("the subject keeps its prefixed number, in a problem, an insight and its evidence", () => {
+    const insights: AiActivityInsights = parse(
+      toBody(makeIncidentAlertInsights(kind)),
+    );
+    const prefixed: string = kind === "incident" ? "INC-42" : "ALT-42";
+
+    expect(insights.problems[0]!.latestSubject.numberWithPrefix).toBe(prefixed);
+    expect(insights.insights[0]!.subject?.numberWithPrefix).toBe(prefixed);
+    expect(insights.insights[0]!.evidence![0]!.numberWithPrefix).toBe(prefixed);
+  });
+
+  test("an insight's monitors, service and reason are read", () => {
     const insights: AiActivityInsights = parse(
       toBody(makeIncidentAlertInsights(kind)),
     );
 
-    expect(insights.problems[0]!.latestSubject.numberWithPrefix).toBe(
-      kind === "incident" ? "INC-42" : "ALT-42",
-    );
-    expect(insights.attention[0]!.subject?.numberWithPrefix).toBe(
-      kind === "incident" ? "INC-42" : "ALT-42",
-    );
+    expect(insights.insights[0]!.monitors).toEqual([
+      { id: MONITOR_ID, name: MONITOR_NAME },
+    ]);
+    expect(insights.insights[2]!.reason).toBe("provider_missing");
+    expect(insights.insights[3]!.service).toEqual({
+      id: SERVICE_ID,
+      name: SERVICE_NAME,
+    });
   });
 });
 
@@ -185,28 +219,39 @@ describe("the sections are read defensively", () => {
         {
           id: MONITOR_ID,
           name: MONITOR_NAME,
+          occurrenceCount: 9.7,
           subjectCount: -2,
           investigationCount: "7",
           problemCount: 1.9,
         },
       ],
-      services: [{ id: SERVICE_ID, name: SERVICE_NAME, lastSeenAt: "" }],
+      services: [
+        {
+          id: SERVICE_ID,
+          name: SERVICE_NAME,
+          subjectCount: 2,
+          lastSeenAt: "",
+        },
+      ],
     });
 
     expect(insights.monitors).toEqual([
       {
         id: MONITOR_ID,
         name: MONITOR_NAME,
+        occurrenceCount: 9,
         subjectCount: 0,
         investigationCount: 0,
         problemCount: 1,
       },
     ]);
+    // A body from before occurrences were counted: its investigated ones.
     expect(insights.services).toEqual([
       {
         id: SERVICE_ID,
         name: SERVICE_NAME,
-        subjectCount: 0,
+        occurrenceCount: 2,
+        subjectCount: 2,
         investigationCount: 0,
         problemCount: 0,
       },
@@ -251,35 +296,32 @@ describe("the sections are read defensively", () => {
     expect("monitors" in insights.problems[1]!).toBe(false);
   });
 
-  test("an attention item's reason and monitor are read when sent", () => {
+  test("an insight's blank reason, and a service or monitor it cannot name, are left out", () => {
     const insights: AiActivityInsights = withBody({
-      attention: [
+      insights: [
         {
-          kind: AiActivityAttentionKind.InvestigationsNotStarted,
-          severity: AiActivityAttentionSeverity.Low,
+          kind: AiActivityInsightKind.NotInvestigated,
+          tone: "Pattern",
           count: 2,
           reason: "  ",
         },
         {
-          kind: AiActivityAttentionKind.MonitorHotspot,
-          severity: AiActivityAttentionSeverity.Low,
+          kind: AiActivityInsightKind.Hotspot,
+          tone: "Pattern",
           count: 4,
           monitor: { id: MONITOR_ID },
+          service: { name: SERVICE_NAME },
         },
       ],
     });
 
-    expect(insights.attention).toEqual([
+    expect(insights.insights).toEqual([
       {
-        kind: AiActivityAttentionKind.InvestigationsNotStarted,
-        severity: AiActivityAttentionSeverity.Low,
+        kind: AiActivityInsightKind.NotInvestigated,
+        tone: "Pattern",
         count: 2,
       },
-      {
-        kind: AiActivityAttentionKind.MonitorHotspot,
-        severity: AiActivityAttentionSeverity.Low,
-        count: 4,
-      },
+      { kind: AiActivityInsightKind.Hotspot, tone: "Pattern", count: 4 },
     ]);
   });
 
@@ -345,7 +387,7 @@ describe("hasAiActivity", () => {
   });
 });
 
-describe("describeSubject", () => {
+describe("naming an incident or alert", () => {
   test.each([
     ["incident", "INC-42", "Disk full", "Incident INC-42: Disk full"],
     ["incident", "INC-42", undefined, "Incident INC-42"],
@@ -384,138 +426,101 @@ describe("describeSubject", () => {
       describeSubject({ kind: "alert", id: SUBJECT_ID, title: "Disk full" }),
     ).toBe("Alert: Disk full");
   });
+
+  test("the links under an insight name it by its prefixed number alone", () => {
+    expect(describeSubjectShort(subjectOf("incident"))).toBe("Incident INC-42");
+    expect(describeSubjectShort(subjectOf("alert"))).toBe("Alert ALT-42");
+  });
 });
 
-describe("describeProblemCount", () => {
-  function problem(subjectCount: number): AiActivityProblem {
-    return {
+describe("a problem's line on these pages", () => {
+  test("how often it came up, this week, how often investigated", () => {
+    const problem: AiActivityProblem = {
       ...makeIncidentAlertInsights("incident").problems[0]!,
-      investigationCount: 5,
-      subjectCount,
       lastSeenAt: undefined,
     };
-  }
 
-  test.each([
-    ["incident", 4, "Investigated 5 times · 4 incidents"],
-    ["alert", 4, "Investigated 5 times · 4 alerts"],
-    [undefined, 4, "Investigated 5 times · 4 incidents and alerts"],
-  ] as Array<[IncidentAlertAiSubjectKind | undefined, number, string]>)(
-    "on the %s page, across %s subjects: %s",
-    (
-      subjectKind: IncidentAlertAiSubjectKind | undefined,
-      subjectCount: number,
-      expected: string,
-    ) => {
-      expect(describeProblemCount(problem(subjectCount), subjectKind)).toBe(
-        expected,
-      );
-    },
-  );
-
-  test("one incident is not worth saying", () => {
-    expect(describeProblemCount(problem(1), "incident")).toBe(
-      "Investigated 5 times",
+    expect(describeProblemCount(problem)).toBe(
+      "12 times · 4 in the last 7 days · investigated 5 times",
     );
   });
 });
 
-describe("what the two items only these pages have say", () => {
-  test.each([
-    [
-      "incident",
-      1,
-      "1 incident created in the last 30 days was not investigated.",
-    ],
-    [
-      "incident",
-      6,
-      "6 incidents created in the last 30 days were not investigated.",
-    ],
-    ["alert", 1, "1 alert created in the last 30 days was not investigated."],
-    ["alert", 6, "6 alerts created in the last 30 days were not investigated."],
-  ] as Array<[IncidentAlertAiSubjectKind, number, string]>)(
-    "skipped %ss, %s of them: %s",
-    (
-      subjectKind: IncidentAlertAiSubjectKind,
-      count: number,
-      expected: string,
-    ) => {
-      expect(
-        describeAttentionItem(attentionItem({ count, reason: "ai_disabled" }), {
-          windowInDays: 30,
-          subjectKind,
-        }),
-      ).toBe(expected);
+describe.each(
+  INCIDENT_ALERT_AI_SUBJECT_KINDS.map(
+    (subjectKind: IncidentAlertAiSubjectKind) => {
+      return [subjectKind];
     },
-  );
+  ),
+)("the %s page's insights, in the product's own words", (subjectKind: unknown) => {
+  const kind: IncidentAlertAiSubjectKind =
+    subjectKind as IncidentAlertAiSubjectKind;
+  const plural: string = kind === "incident" ? "incidents" : "alerts";
 
-  test("the skip's reason is the line under it, in the product's own words", () => {
-    const item: AiActivityAttentionItem = attentionItem({
-      reason: "automatic_investigation_disabled",
-    });
+  test("the headlines, in the server's order", () => {
+    expect(
+      makeIncidentAlertInsightList(kind).map(
+        (item: AiActivityInsight): string => {
+          return describeInsightHeadline(item, contextOf(kind));
+        },
+      ),
+    ).toEqual([
+      `${RECURRING_TITLE} keeps coming back`,
+      "A fix did not solve the problem it was for",
+      `OneUptime AI did not look into 8 ${plural}`,
+      `The ${SERVICE_NAME} service is behind 2 different problems`,
+      "Your team approved every fix OneUptime AI proposed here",
+    ]);
+  });
 
-    expect(describeAttentionDetail(item, { subjectKind: "incident" })).toBe(
-      "Automatic investigation of new incidents is turned off.",
-    );
-    expect(describeAttentionDetail(item, { subjectKind: "alert" })).toBe(
-      "Automatic investigation of new alerts is turned off.",
+  test("a problem that keeps coming back is a share of the product's own", () => {
+    expect(
+      describeInsightFacts(
+        insightOf(kind, AiActivityInsightKind.RecurringProblem),
+        contextOf(kind),
+      ).join(" "),
+    ).toBe(
+      `It happened 12 times in the last 30 days. 4 of them were in the last 7 days, up from 1 the 7 days before. That is 12 of the 20 ${plural} created in the last 30 days.`,
     );
   });
 
-  test("only a skip has a line under it", () => {
-    for (const kind of Object.values(AiActivityAttentionKind)) {
-      if (kind === AiActivityAttentionKind.InvestigationsNotStarted) {
-        continue;
-      }
-
-      expect(
-        describeAttentionDetail(attentionItem({ kind }), {
-          subjectKind: "incident",
-        }),
-      ).toBeNull();
-    }
+  test("what AI did not look into says why, and out of how many", () => {
+    expect(
+      describeInsightFacts(
+        insightOf(kind, AiActivityInsightKind.NotInvestigated),
+        contextOf(kind),
+      ).join(" "),
+    ).toBe(
+      `There is no LLM provider OneUptime AI can use. That is 8 of the 20 ${plural} created in the last 30 days.`,
+    );
   });
 
-  test.each([
-    [3, 12, "Database disk was behind 3 of the 12 investigations here."],
-    [1, 1, "Database disk was behind 1 of the 1 investigation here."],
-  ])(
-    "a monitor behind %s of %s investigations",
-    (count: number, total: number, expected: string) => {
-      expect(
-        describeAttentionItem(
-          attentionItem({
-            kind: AiActivityAttentionKind.MonitorHotspot,
-            severity: AiActivityAttentionSeverity.Low,
-            count,
-            total,
-            monitor: { id: MONITOR_ID, name: MONITOR_NAME },
-          }),
-          { windowInDays: 30, subjectKind: "incident" },
-        ),
-      ).toBe(expected);
-    },
-  );
+  test("the service behind the trouble was part of how many of them", () => {
+    expect(
+      describeInsightFacts(
+        insightOf(kind, AiActivityInsightKind.Hotspot),
+        contextOf(kind),
+      ).join(" "),
+    ).toBe(
+      `It was part of 7 of the 20 ${plural} created in the last 30 days. Problems that share one place often share one cause: look there first.`,
+    );
+  });
 
-  test("every kind has a sentence on these pages", () => {
-    for (const subjectKind of INCIDENT_ALERT_AI_SUBJECT_KINDS) {
-      for (const kind of Object.values(AiActivityAttentionKind)) {
-        expect(
-          describeAttentionItem(
-            attentionItem({
-              kind,
-              count: 2,
-              total: 4,
-              title: "Disk full",
-              monitor: { id: MONITOR_ID, name: MONITOR_NAME },
-              object: { name: "Pod", value: "web-1" },
-            }),
-            { windowInDays: 30, subjectKind },
-          ),
-        ).not.toBe("");
-      }
-    }
+  test("a team that approved every fix is told what letting AI fix on its own would do", () => {
+    expect(
+      describeInsightFacts(
+        insightOf(kind, AiActivityInsightKind.ReadyForAutomaticFixes),
+        contextOf(kind),
+      ).join(" "),
+    ).toBe(
+      "That is 4 fixes in the last 30 days, and none dismissed. 3 of them were checked afterwards and solved the problem. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
+    );
+  });
+
+  test("the next step its investigation suggested is the investigation's own words", () => {
+    expect(
+      insightOf(kind, AiActivityInsightKind.RecurringProblem).nextStep,
+    ).toBe(NEXT_STEP);
   });
 });
 
@@ -541,7 +546,7 @@ describe("why incidents were not investigated", () => {
       const sentence: string = describeNotInvestigatedReason(subjectKind, code);
 
       expect(sentence).toBe(NOT_INVESTIGATED_REASONS[subjectKind][code]);
-      expect(sentence).toMatch(/^[A-Z].*\.$/);
+      expect(sentence).toMatch(ONE_SENTENCE);
     },
   );
 
@@ -606,12 +611,12 @@ describe("why incidents were not investigated", () => {
 
 describe("the monitors, services, coverage and fix pull requests", () => {
   test.each([
-    ["incident", 4, "4 incidents investigated · 1 problem · last seen"],
-    ["incident", 1, "1 incident investigated · 1 problem · last seen"],
-    ["alert", 4, "4 alerts investigated · 1 problem · last seen"],
-    ["alert", 1, "1 alert investigated · 1 problem · last seen"],
+    ["incident", 9, "9 incidents · 1 problem · last seen"],
+    ["incident", 1, "1 incident · 1 problem · last seen"],
+    ["alert", 9, "9 alerts · 1 problem · last seen"],
+    ["alert", 1, "1 alert · 1 problem · last seen"],
   ] as Array<[IncidentAlertAiSubjectKind, number, string]>)(
-    "on the %s page, a hotspot in %s of them",
+    "on the %s page, a monitor that came up %s times",
     (
       subjectKind: IncidentAlertAiSubjectKind,
       count: number,
@@ -622,7 +627,8 @@ describe("the monitors, services, coverage and fix pull requests", () => {
           {
             id: MONITOR_ID,
             name: MONITOR_NAME,
-            subjectCount: count,
+            occurrenceCount: count,
+            subjectCount: 1,
             investigationCount: 7,
             problemCount: 1,
             lastSeenAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
@@ -639,13 +645,14 @@ describe("the monitors, services, coverage and fix pull requests", () => {
         {
           id: SERVICE_ID,
           name: SERVICE_NAME,
+          occurrenceCount: 7,
           subjectCount: 2,
           investigationCount: 2,
           problemCount: 2,
         },
         "incident",
       ),
-    ).toBe("2 incidents investigated · 2 problems");
+    ).toBe("7 incidents · 2 problems");
   });
 
   test.each([
@@ -758,6 +765,26 @@ describe("the monitors, services, coverage and fix pull requests", () => {
   });
 });
 
+describe("the pages' own lines", () => {
+  test("the subtitles promise what is worth knowing about the product's own", () => {
+    expect(AI_INSIGHTS_PAGE_SUBTITLES).toEqual({
+      incident:
+        "What OneUptime AI found out about your incidents in the last 30 days: what keeps going wrong and why, and what to do about it.",
+      alert:
+        "What OneUptime AI found out about your alerts in the last 30 days: what keeps going wrong and why, and what to do about it.",
+    });
+  });
+
+  test("the empty states say what will show up", () => {
+    expect(AI_INSIGHTS_EMPTY_DESCRIPTIONS.incident).toBe(
+      "When an incident is created, OneUptime AI investigates it. This page then tells you which incidents keep coming back and why, which services are behind most of them, what AI fixed on its own, and what it would fix if you let it.",
+    );
+    expect(AI_INSIGHTS_EMPTY_DESCRIPTIONS.alert).toBe(
+      "When an alert fires, OneUptime AI investigates it. This page then tells you which alerts keep coming back and why, which services are behind most of them, what AI fixed on its own, and what it would fix if you let it.",
+    );
+  });
+});
+
 describe("the words are in every Dashboard locale", () => {
   const LOCALES_DIR: string = path.join(
     __dirname,
@@ -792,16 +819,22 @@ describe("the words are in every Dashboard locale", () => {
     "{{count}} incidents_one",
     "{{count}} alerts",
     "{{count}} alerts_one",
-    "{{count}} incidents created in the last {{days}} days were not investigated.",
-    "{{count}} incidents created in the last {{days}} days were not investigated._one",
-    "{{count}} alerts created in the last {{days}} days were not investigated.",
-    "{{count}} alerts created in the last {{days}} days were not investigated._one",
-    "{{name}} was behind {{shown}} of the {{count}} investigations here.",
-    "{{name}} was behind {{shown}} of the {{count}} investigations here._one",
-    "{{count}} incidents investigated",
-    "{{count}} incidents investigated_one",
-    "{{count}} alerts investigated",
-    "{{count}} alerts investigated_one",
+    "OneUptime AI did not look into {{count}} incidents",
+    "OneUptime AI did not look into {{count}} incidents_one",
+    "OneUptime AI did not look into {{count}} alerts",
+    "OneUptime AI did not look into {{count}} alerts_one",
+    "The {{name}} service is behind {{count}} different problems",
+    "The {{name}} service is behind {{count}} different problems_one",
+    "The {{name}} monitor is behind {{count}} different problems",
+    "The {{name}} monitor is behind {{count}} different problems_one",
+    "That is {{shown}} of the {{count}} incidents created in the last {{days}} days.",
+    "That is {{shown}} of the {{count}} incidents created in the last {{days}} days._one",
+    "That is {{shown}} of the {{count}} alerts created in the last {{days}} days.",
+    "That is {{shown}} of the {{count}} alerts created in the last {{days}} days._one",
+    "It was part of {{shown}} of the {{count}} incidents created in the last {{days}} days.",
+    "It was part of {{shown}} of the {{count}} incidents created in the last {{days}} days._one",
+    "It was part of {{shown}} of the {{count}} alerts created in the last {{days}} days.",
+    "It was part of {{shown}} of the {{count}} alerts created in the last {{days}} days._one",
     "OneUptime AI investigated {{investigated}} of the {{count}} incidents created in the last 30 days.",
     "OneUptime AI investigated {{investigated}} of the {{count}} incidents created in the last 30 days._one",
     "OneUptime AI investigated {{investigated}} of the {{count}} alerts created in the last 30 days.",
@@ -812,6 +845,9 @@ describe("the words are in every Dashboard locale", () => {
     "No fix found",
     "Failed",
     "Cancelled",
+    "Monitors that keep failing",
+    "Services that keep failing",
+    "Choose what AI may fix on its own",
     ...Object.values(AI_INSIGHTS_PAGE_SUBTITLES),
     ...Object.values(AI_INSIGHTS_EMPTY_DESCRIPTIONS),
     ...INCIDENT_ALERT_AI_SUBJECT_KINDS.flatMap(
@@ -845,12 +881,14 @@ describe("the words are in every Dashboard locale", () => {
     // The sentences these pages added: none is left in English.
     expect(
       [
-        "Alert {{number}}: {{title}}",
-        "{{count}} incidents created in the last {{days}} days were not investigated.",
-        "{{count}} alerts created in the last {{days}} days were not investigated.",
-        "{{name}} was behind {{shown}} of the {{count}} investigations here.",
-        "{{date}}: {{investigations}} investigations, {{failed}} failed",
-        "Open monitor",
+        "OneUptime AI did not look into {{count}} incidents",
+        "OneUptime AI did not look into {{count}} alerts",
+        "The {{name}} service is behind {{count}} different problems",
+        "That is {{shown}} of the {{count}} incidents created in the last {{days}} days.",
+        "It was part of {{shown}} of the {{count}} alerts created in the last {{days}} days.",
+        "Choose what AI may fix on its own",
+        ...Object.values(AI_INSIGHTS_PAGE_SUBTITLES),
+        ...Object.values(AI_INSIGHTS_EMPTY_DESCRIPTIONS),
       ].filter((word: string): boolean => {
         return locale[word] === word;
       }),
@@ -863,25 +901,17 @@ describe("the words are in every Dashboard locale", () => {
     ) as Record<string, unknown>;
 
     expect(
-      english[
-        "{{count}} incidents created in the last {{days}} days were not investigated._one"
-      ],
-    ).toBe(
-      "{{count}} incident created in the last {{days}} days was not investigated.",
-    );
+      english["OneUptime AI did not look into {{count}} incidents_one"],
+    ).toBe("OneUptime AI did not look into {{count}} incident");
+    expect(
+      english["The {{name}} service is behind {{count}} different problems_one"],
+    ).toBe("The {{name}} service is behind {{count}} problem");
     expect(
       english[
-        "{{count}} alerts created in the last {{days}} days were not investigated._one"
+        "That is {{shown}} of the {{count}} alerts created in the last {{days}} days._one"
       ],
     ).toBe(
-      "{{count}} alert created in the last {{days}} days was not investigated.",
-    );
-    expect(
-      english[
-        "{{name}} was behind {{shown}} of the {{count}} investigations here._one"
-      ],
-    ).toBe(
-      "{{name}} was behind {{shown}} of the {{count}} investigation here.",
+      "That is {{shown}} of the {{count}} alert created in the last {{days}} days.",
     );
   });
 });

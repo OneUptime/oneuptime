@@ -2065,7 +2065,7 @@ export function getFixSegments(
     {
       label: translationKey("Planning"),
       value: outcomes.planning,
-      color: "bg-sky-300",
+      color: "bg-sky-400",
     },
     {
       label: translationKey("Dismissed"),
@@ -2127,7 +2127,7 @@ export function getFixTaskSegments(
     {
       label: translationKey("In progress"),
       value: outcomes.inProgress,
-      color: "bg-sky-300",
+      color: "bg-sky-400",
     },
     {
       label: translationKey("No fix found"),
