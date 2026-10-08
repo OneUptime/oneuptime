@@ -58,7 +58,7 @@
 几乎每个文本字段都接受变量：
 
 - API 方块上的 URL。
-- Slack、Teams、Discord、Telegram、电子邮件的消息文本。
+- Slack、Teams、Discord、Telegram、IRC、电子邮件的消息文本。
 - 邮件的主题和正文。
 - 头部和正文字段（在字符串值内部）。
 - **If / Else** 方块的左右两边。

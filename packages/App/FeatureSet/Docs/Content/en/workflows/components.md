@@ -79,6 +79,35 @@ Post a message to a Discord channel through an incoming webhook URL.
 
 Send a message to a Telegram chat using a bot token and chat ID.
 
+## IRC
+
+Post a message to an IRC channel on any IRC network: Libera.Chat, OFTC, or a server of your own. IRC has no webhooks, so the block connects to the server itself, joins the channel, sends the message and leaves.
+
+**Settings**:
+
+- **IRC Server** — the server's host name, such as `irc.libera.chat`. Just the name: no `ircs://`, and no port.
+- **Channel** — the channel to post in, such as `#ops`. It has to be a channel: a nickname typed here is refused rather than sent a private message.
+- **Message Text** — the text to send. Each line goes out as an IRC message of its own, and a long line is split to fit. A message is sent as at most 15 IRC lines: a longer one is cut short, and its last line says so. IRC has no Markdown, so the text is sent as typed; IRC's own formatting codes, such as bold and colours, work.
+
+Under **More fields**:
+
+- **Nickname** — who the message is from. Defaults to `OneUptime`. If the nickname is taken, the block tries it with an underscore or a number added, and then with one in place of its last characters, for a server that takes no longer nickname.
+- **Port** — defaults to `6697`, or `6667` with **Disable TLS** on.
+- **Disable TLS** — the block connects over TLS and checks the server's certificate. Turn this on only for a server that does not offer TLS; any password is then sent unencrypted. To trust a certificate from your own certificate authority, a self-hosted install sets `NODE_EXTRA_CA_CERTS` instead.
+- **Channel Key** — the key of a channel that has one (mode `+k`).
+- **Send Without Joining** — posts without joining, so the channel does not see the block come and go. Only works where the channel takes messages from outside (no mode `+n`).
+- **Server Password** — a password the server or your bouncer asks for when you connect.
+- **SASL Username** and **SASL Password** — signs in to your account on networks that use SASL, such as Libera.Chat, which requires it for connections from some cloud and VPN addresses. Fill in both or neither.
+
+**Outputs**:
+
+- **Success** — fires once the server has taken every line. The block checks this by asking the server to answer a ping after the last line: a server answers in order, so any refusal of the message comes back first. A bouncer such as ZNC answers the ping itself, so the block listens a second longer for the network's answer behind it.
+- **Error** — fires when the server can't be reached, refuses the connection, the nickname, a password or the channel, or refuses the message. Passes along why, in the server's own words where it gave them. A missing **IRC Server**, **Channel** or **Message Text**, or a setting that could never work, stops the run instead.
+
+Each run of the block is a connection of its own, and IRC networks limit how often one address may connect: a burst of messages can be refused with a reason such as "Reconnecting too fast", and takes **Error** like any other refusal. For a workflow that can fire many times a minute, gather what it has to say into one message, or send it through a server of your own.
+
+Keep the passwords in [secret global variables](/docs/workflows/variables#global-variables) and use the variable in the setting; they're hidden in run logs either way. Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, a server on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach an IRC server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`.
+
 ## Email
 
 Send an email through an SMTP server that you enter on the block.

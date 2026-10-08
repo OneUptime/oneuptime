@@ -121,7 +121,7 @@ describe("the Configuration & Safety page says what a step may do", () => {
 
   test("steps that call other systems are not changed", () => {
     expect(text).toContain(
-      "API, Email, Slack, Microsoft Teams, Discord, Telegram, Custom Code and Generate Text with AI",
+      "API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code and Generate Text with AI",
     );
   });
 });

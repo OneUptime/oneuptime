@@ -86,6 +86,12 @@ Eine Nachricht über eine Incoming-Webhook-URL in einen Discord-Kanal posten.
 
 Eine Nachricht mit einem Bot-Token und einer Chat-ID an einen Telegram-Chat senden.
 
+## IRC
+
+Eine Nachricht an einen IRC-Kanal senden, in jedem IRC-Netzwerk: Libera.Chat, OFTC oder ein eigener Server. Der Baustein verbindet sich über TLS, betritt den Kanal, sendet die Nachricht und verlässt ihn wieder.
+
+Tragen Sie **IRC Server** (nur den Hostnamen, z. B. `irc.libera.chat`), **Channel** (z. B. `#ops`) und **Message Text** ein. Jede Zeile wird als eigene IRC-Nachricht gesendet, höchstens 15 Zeilen. Die optionalen Einstellungen umfassen Nickname, Port, ein Serverpasswort sowie **SASL Username** und **SASL Password** für Netzwerke, die eine Anmeldung verlangen.
+
 ## Email
 
 Eine E-Mail über einen SMTP-Server versenden, den Sie im Baustein angeben.

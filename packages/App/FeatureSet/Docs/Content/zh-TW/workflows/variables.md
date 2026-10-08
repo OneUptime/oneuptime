@@ -58,7 +58,7 @@
 幾乎每個文字欄位都接受變數：
 
 - API 區塊上的網址。
-- Slack、Teams、Discord、Telegram、電子郵件的訊息文字。
+- Slack、Teams、Discord、Telegram、IRC、電子郵件的訊息文字。
 - 電子郵件的主旨和內文。
 - 標頭和內文欄位（在字串值裡面）。
 - **If / Else** 區塊的左右兩邊。
