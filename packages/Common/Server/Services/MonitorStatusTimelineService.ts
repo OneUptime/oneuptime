@@ -1,4 +1,7 @@
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -969,76 +972,20 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     };
   }
 
+  /*
+   * The status change itself, then what follows it once the monitor's lock
+   * is given back (onCreateSuccess): the network-site bridge and the feed
+   * item. A create that skips the hooks moved no current status and runs
+   * neither; one that fails runs neither.
+   */
   @CaptureSpan()
   public override async create(
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<MonitorStatusTimeline> {
-    /*
-     * The per-monitor mutex is owned here, around the whole create, rather than
-     * inside onBeforeCreate. DatabaseService.create() invokes onBeforeCreate and
-     * then runs validation, permission checks and the INSERT before it ever
-     * reaches onCreateSuccess, all OUTSIDE any try/catch this service can hook
-     * (onCreateError never fires for a throw raised before the INSERT). So a
-     * mutex acquired in onBeforeCreate and released in onCreateSuccess leaks on
-     * any throw in between, and a leaked redis-semaphore mutex never expires - it
-     * keeps refreshing its own Redis key for the life of the process, which would
-     * block every later create for that monitor until acquireTimeout. Holding it
-     * in a try/finally here releases it on every path.
-     *
-     * The critical section that must be serialized per monitor spans reading the
-     * predecessor row (onBeforeCreate) through closing it (onCreateSuccess), so
-     * the lock is held across the entire super.create(), not just one hook.
-     */
-    /*
-     * The monitor under either of its names (the two must agree), kept in the
-     * ID column for onBeforeCreate and the saved row: the lock is the
-     * monitor's whichever name the write used.
-     */
-    const monitorId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
-      createBy.data as unknown as Record<string, unknown>,
-      ["monitorId", "monitor"],
-      "Monitor",
-    );
+    const createdItem: MonitorStatusTimeline = await super.create(createBy);
 
-    if (createBy.props.ignoreHooks || !monitorId) {
-      // No predecessor bookkeeping runs on these paths, so no serialization is needed.
-      return await super.create(createBy);
-    }
-
-    const logAttributes: LogAttributes = {
-      projectId: createBy.data.projectId?.toString(),
-      monitorId: monitorId.toString(),
-    } as LogAttributes;
-
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: monitorId.toString(),
-        namespace: "MonitorStatusTimeline.create",
-      });
-    } catch (e) {
-      /*
-       * Fail closed. This used to fall through and INSERT UNLOCKED, which let two
-       * concurrent writers resolve the same predecessor row, both pass the
-       * same-as-previous check, and both INSERT a status row milliseconds apart.
-       * Only the later row is ever closed (the next writer resolves its
-       * predecessor with ORDER BY startsAt DESC LIMIT 1), so the earlier row is
-       * orphaned with endsAt = NULL permanently and is read back as unbounded
-       * downtime. Refusing the write is strictly safer: the monitor keeps its
-       * current status and the next probe result for the same monitor
-       * re-evaluates the same criteria and recreates the status change.
-       */
-      logger.error(e, logAttributes);
-      throw new ServerException(MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE);
-    }
-
-    let createdItem: MonitorStatusTimeline;
-
-    try {
-      createdItem = await super.create(createBy);
-    } finally {
-      await this.releaseMutex(mutex, logAttributes);
+    if (createBy.props.ignoreHooks) {
+      return createdItem;
     }
 
     /*
@@ -1060,8 +1007,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
      * HTTP (Slack/Teams) with unbounded latency, and holding the per-monitor
      * lock across them would block every concurrent status write for this
      * monitor until acquireTimeout - turning one slow webhook into refused
-     * status transitions. (The pre-fail-closed code released the lock at this
-     * same boundary, before the feed block.)
+     * status transitions.
      */
     await this.createStatusChangeFeedItem(createdItem, createBy);
 
@@ -1074,25 +1020,83 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   ): Promise<OnCreate<MonitorStatusTimeline>> {
     await super.onBeforeCreate(createBy);
 
-    if (!createBy.data.monitorId) {
+    /*
+     * The monitor under either of its names (the two must agree, whoever
+     * writes), kept in the ID column for the rest of the create and the
+     * saved row: the lock is the monitor's whichever name the write used.
+     */
+    const monitorId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["monitorId", "monitor"],
+      "Monitor",
+    );
+
+    if (!monitorId) {
       throw new BadDataException("monitorId is null");
     }
 
     const logAttributes: LogAttributes = {
       projectId: createBy.data.projectId?.toString(),
-      monitorId: createBy.data.monitorId?.toString(),
+      monitorId: monitorId.toString(),
     } as LogAttributes;
 
     /*
-     * The per-monitor mutex that serializes this read-modify-write is acquired
-     * and released in create() (see the comment there); it is held for the whole
-     * duration of this hook.
+     * The per-monitor mutex serializes this read-modify-write: the read of
+     * the predecessor here through the close of it in onCreateSuccess, so
+     * two writers for one monitor can never both resolve the same
+     * predecessor. Taken here - once DatabaseService has checked the caller,
+     * so a refused write takes no lock - and given back in onCreateSuccess
+     * once the predecessor is closed and the monitor's status written, or in
+     * onCreateError for a create refused or failed after this hook.
      */
-    return await this.buildOnCreate(
-      createBy,
-      createBy.data.monitorId,
+    const mutex: SemaphoreMutex = await this.lockMonitor(
+      monitorId,
       logAttributes,
     );
+
+    try {
+      const onCreate: OnCreate<MonitorStatusTimeline> =
+        await this.buildOnCreate(createBy, monitorId, logAttributes);
+
+      onCreate.carryForward.mutex = mutex;
+
+      return onCreate;
+    } catch (error) {
+      /*
+       * Refused by this hook, once the lock is taken: no create follows to
+       * give it back.
+       */
+      await StateChangeLock.giveBack(mutex, logAttributes);
+
+      throw error;
+    }
+  }
+
+  /*
+   * The monitor's lock, or a refusal. Fail closed: this used to fall
+   * through and INSERT UNLOCKED, which let two concurrent writers resolve
+   * the same predecessor row, both pass the same-as-previous check, and both
+   * INSERT a status row milliseconds apart. Only the later row is ever closed
+   * (the next writer resolves its predecessor with ORDER BY startsAt DESC
+   * LIMIT 1), so the earlier row is orphaned with endsAt = NULL permanently
+   * and is read back as unbounded downtime. Refusing the write is strictly
+   * safer: the monitor keeps its current status and the next probe result
+   * for the same monitor re-evaluates the same criteria and recreates the
+   * status change.
+   */
+  private async lockMonitor(
+    monitorId: ObjectID,
+    logAttributes: LogAttributes,
+  ): Promise<SemaphoreMutex> {
+    try {
+      return await Semaphore.lock({
+        key: monitorId.toString(),
+        namespace: "MonitorStatusTimeline.create",
+      });
+    } catch (e) {
+      logger.error(e, logAttributes);
+      throw new ServerException(MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE);
+    }
   }
 
   /*
@@ -1269,27 +1273,6 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   }
 
   /*
-   * Releases the per-monitor mutex. Never throws: a failed release must not mask
-   * the error we are already unwinding, and must not fail an otherwise successful
-   * create. Semaphore.release stops the refresh interval before it talks to
-   * Redis, so even if the Redis call fails the key expires on its own lockTimeout.
-   */
-  private async releaseMutex(
-    mutex: SemaphoreMutex | null | undefined,
-    logAttributes: LogAttributes,
-  ): Promise<void> {
-    if (!mutex) {
-      return;
-    }
-
-    try {
-      await Semaphore.release(mutex);
-    } catch (err) {
-      logger.error(err, logAttributes);
-    }
-  }
-
-  /*
    * Closes the status timeline row that precedes the row we just created.
    *
    * The update is conditional instead of a blind updateOneById: it only touches
@@ -1367,9 +1350,10 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     }
 
     /*
-     * Everything below runs while the per-monitor mutex acquired in create() is
-     * still held, so the read of the predecessor in onBeforeCreate and the close
-     * of it here cannot interleave with another writer for the same monitor.
+     * Everything below runs while the per-monitor mutex acquired in
+     * onBeforeCreate is still held, so the read of the predecessor there and
+     * the close of it here cannot interleave with another writer for the same
+     * monitor. It is given back at the end of this hook.
      */
 
     // update the last status as ended.
@@ -1443,6 +1427,11 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     if (!createdItem.endsAt) {
       // if this is the last status, then update the monitor status.
 
+      /*
+       * As OneUptime's own write, derived from the timeline: the permission
+       * to create the status change is the permission to change the
+       * monitor's status (StateChangeFollowOn).
+       */
       await MonitorService.updateOneBy({
         query: {
           _id: createdItem.monitorId?.toString(),
@@ -1450,7 +1439,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         data: {
           currentMonitorStatusId: createdItem.monitorStatusId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
 
       /*
@@ -1460,7 +1449,31 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
        * right after the mutex is released.
        */
     }
+
+    // The predecessor is closed and the monitor's status written.
+    await StateChangeLock.giveBackFor(onCreate, logAttributes);
+
     return createdItem;
+  }
+
+  /*
+   * A status change refused or failed once onBeforeCreate took the
+   * monitor's lock - by a check DatabaseService.create runs after the hook,
+   * at the INSERT, or in onCreateSuccess before it gave the lock back - gives
+   * it back here (StateChangeLock). Left held, every later status change for
+   * the monitor would be refused until the process ended.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<MonitorStatusTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      monitorId: onCreate?.createBy.data.monitorId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   /*

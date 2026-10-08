@@ -40,7 +40,10 @@ import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNo
 import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import IncidentAlertService from "./IncidentAlertService";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
@@ -97,17 +100,15 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         throw new BadDataException("incidentId is null");
       }
 
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.incidentId.toString(),
-          namespace: "IncidentStateTimeline.create",
-        });
-      } catch (err) {
-        logger.error(err, {
+      // The incident's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "IncidentStateTimeline.create",
+        eventId: createBy.data.incidentId,
+        logAttributes: {
           projectId: createBy.data.projectId?.toString(),
           incidentId: createBy.data.incidentId?.toString(),
-        } as LogAttributes);
-      }
+        } as LogAttributes,
+      });
 
       if (!createBy.data.startsAt) {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
@@ -369,17 +370,14 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         },
       };
     } catch (err) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            incidentId: createBy.data.incidentId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        incidentId: createBy.data.incidentId?.toString(),
+      } as LogAttributes);
 
       throw err;
     }
@@ -487,6 +485,11 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       } as LogAttributes);
     }
 
+    /*
+     * The incident's current state follows its timeline, as OneUptime's own
+     * write: the permission to create the change is the permission to change
+     * the incident's state (StateChangeFollowOn).
+     */
     if (!createdItem.endsAt) {
       await IncidentService.updateOneBy({
         query: {
@@ -495,7 +498,7 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         data: {
           currentIncidentStateId: createdItem.incidentStateId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
@@ -515,16 +518,10 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         },
       });
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          incidentId: createdItem.incidentId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBack(mutex, {
+      projectId: createdItem.projectId?.toString(),
+      incidentId: createdItem.incidentId?.toString(),
+    } as LogAttributes);
 
     /*
      * Carry the incident's new state over to its linked alerts, when the
@@ -835,6 +832,26 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
     }
 
     return createdItem;
+  }
+
+  /*
+   * A change refused or failed once onBeforeCreate took the incident's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the incident
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<IncidentStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      incidentId: onCreate?.createBy.data.incidentId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   @CaptureSpan()

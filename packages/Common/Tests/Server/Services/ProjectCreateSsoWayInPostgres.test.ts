@@ -7,7 +7,7 @@ import UserService from "../../../Server/Services/UserService";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import logger from "../../../Server/Utils/Logger";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
-import {
+import SsoRequirementChanges, {
   NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE,
   SERVER_REQUIRES_SSO_FOR_NEW_PROJECT_MESSAGE,
 } from "../../../Server/Utils/SsoRequirementChanges";
@@ -340,10 +340,16 @@ describePostgres("a project created with a way in, on Postgres", () => {
       undefined as never,
     );
     getJestSpyOn(ProductAnalytics, "capture").mockReturnValue(undefined);
+    /*
+     * Its seeding is not this suite's; what the hook does first is: give
+     * back the lock the sign-in check holds (a create that is refused or
+     * fails gives it back in onCreateError).
+     */
     getJestSpyOn(ProjectService, "onCreateSuccess").mockImplementation((async (
-      _onCreate: OnCreate<Project>,
+      onCreate: OnCreate<Project>,
       createdItem: Project,
     ): Promise<Project> => {
+      await SsoRequirementChanges.afterProjectCreate(onCreate.createBy);
       return createdItem;
     }) as never);
 
