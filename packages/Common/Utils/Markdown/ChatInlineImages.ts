@@ -47,8 +47,11 @@ import MarkdownDataUrls, {
  * a link reference definition to one goes, and an autolink to an image
  * becomes "[image]" - no chat can open a data: URL, and its base64 would
  * only fill the message.
+ *
  * Everything else - code spans and code blocks above all, byte for byte,
- * and https images, which chats show by themselves - stays as it was.
+ * and https images, which chats show by themselves - stays as it was. In
+ * split, the text's other link reference definitions are left out of the
+ * pieces and handed over on their own (linkDefinitionsMarkdown).
  *
  * Which images, links and definitions there are, and where, is read the way
  * the dashboard's Markdown parser reads them (MarkdownDataUrls), in time
@@ -67,7 +70,10 @@ export enum ChatMarkdownPieceKind {
 
 export interface ChatMarkdownText {
   kind: ChatMarkdownPieceKind.Markdown;
-  // Never empty, and without blank lines around it.
+  /*
+   * Never empty, and never starting with a blank line. It may end with
+   * blank lines: they can be a fenced code block's, which stays as it was.
+   */
   markdown: string;
 }
 
