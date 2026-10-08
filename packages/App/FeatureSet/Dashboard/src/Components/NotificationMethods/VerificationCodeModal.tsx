@@ -35,10 +35,11 @@ import {
 } from "./VerificationCodeChannels";
 
 /*
- * THE ONE PLACE A PERSON VERIFIES A NUMBER.
+ * THE ONE PLACE A PERSON VERIFIES A NUMBER OR AN ADDRESS.
  *
- * Opened by a row's Verify button, and straight after a number is added. It
- * asks the server where the number's code stands and says what is true:
+ * Opened by a row's Verify button, and straight after a number (or an email
+ * address) is added. It asks the server where the code stands and says what
+ * is true:
  *
  *   - a code is waiting: when it went out, to where, and until when it works,
  *     with the field to type it into, and "Didn't get it?" with the way to
@@ -59,12 +60,12 @@ import {
 export interface ComponentProps {
   channel: VerificationCodeChannel;
   itemId: ObjectID | string;
-  // Where the code goes, as the row shows it: the phone number.
+  // Where the code goes, as the row shows it: the number or the address.
   destination: string;
   onClose: () => void;
   /*
-   * The number is verified: the list refreshes. The dialog closes itself,
-   * or first says what else happened (a number verified for calls too).
+   * It is verified: the list refreshes. The dialog closes itself, or first
+   * says what else happened (a number verified for calls too).
    */
   onVerified: (result: JSONObject) => void;
 }

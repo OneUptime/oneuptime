@@ -59,7 +59,9 @@ jest.mock("twilio", () => {
   const actual: { twiml: unknown } = jest.requireActual("twilio") as {
     twiml: unknown;
   };
-  const client: jest.Mock & { twiml?: unknown } = jest.fn();
+  const client: ((...args: Array<unknown>) => unknown) & {
+    twiml?: unknown;
+  } = jest.fn();
   client.twiml = actual.twiml;
 
   return {
