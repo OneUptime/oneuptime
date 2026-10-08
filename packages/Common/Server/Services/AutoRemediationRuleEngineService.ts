@@ -70,7 +70,7 @@ import IncidentAlertRuleMatcher from "../Utils/Rules/IncidentAlertRuleMatcher";
 import AutoRemediationDecisionRecorder from "../Utils/AutoRemediation/AutoRemediationDecisionRecorder";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -363,11 +363,12 @@ export function doesResourceModeRunRoundUnattended(
 
 /*
  * 'Docker host "web-1"' — how a resource round names its resource in a feed
- * item. The resource's name is what its agent reported: escaped, so it reads
- * as written in the feed and in Slack and Teams.
+ * item. Plain text: the resource's name is what its agent reported, and the
+ * feed item places it as text (mdText), so it reads as written in the feed
+ * and in Slack and Teams.
  */
 function describeResourceForFeed(status: ResourceAiAccessStatus): string {
-  return `${describeResourceNoun(status.resourceType)} "${escapeMarkdownValue(status.resourceName)}"`;
+  return `${describeResourceNoun(status.resourceType)} "${status.resourceName}"`;
 }
 
 // Is `row` ordered before the reference (createdAt, then id as tie-break)?
@@ -2418,30 +2419,31 @@ class AutoRemediationRuleEngineServiceClass {
     let markdown: string;
 
     // The cluster's name, as its agent reported it, is text in the feed.
-    const clusterName: string = escapeMarkdownValue(cluster.clusterName);
+    const clusterName: string = cluster.clusterName;
 
     if (wantsUnattended && askFirstReason) {
-      markdown = `⚡ **OneUptime AI is composing ${
+      markdown = mdText`⚡ **OneUptime AI is composing ${
         data.round > 1 ? "another" : "a"
       } kubectl fix for cluster "${clusterName}"**${
         data.round > 1
-          ? ` (round ${data.round}) — the previous fix did not recover the service`
+          ? mdText` (round ${data.round}) — the previous fix did not recover the service`
           : ""
-      }. This round asks first because ${askFirstReason}: nothing runs until you approve the plan, which will appear here shortly.`;
+      }. This round asks first because ${askFirstReason}: nothing runs until you approve the plan, which will appear here shortly.`.toString();
     } else if (isBypass) {
       markdown =
         data.round > 1
-          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own: every kubectl change the policy allows, safe or riskier — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`
-          : `⚡ **OneUptime AI is fixing cluster "${clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows — safe or riskier — on its own, without asking, except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
+          ? mdText`⚡ **OneUptime AI is applying another kubectl fix on cluster "${clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own: every kubectl change the policy allows, safe or riskier — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`.toString()
+          : mdText`⚡ **OneUptime AI is fixing cluster "${clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows — safe or riskier — on its own, without asking, except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`.toString();
     } else if (isAutomatic) {
-      markdown = `⚡ **OneUptime AI is fixing cluster "${clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe changes (${KUBECTL_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the cluster's kubectl allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
-        KUBECTL_ALWAYS_ASKS_SUMMARY,
-      )}, and destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
+      markdown =
+        mdText`⚡ **OneUptime AI is fixing cluster "${clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe changes (${KUBECTL_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the cluster's kubectl allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
+          KUBECTL_ALWAYS_ASKS_SUMMARY,
+        )}, and destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`.toString();
     } else {
       markdown =
         data.round > 1
-          ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${clusterName}"** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`
-          : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`;
+          ? mdText`⚡ **OneUptime AI is composing another kubectl fix for cluster "${clusterName}"** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`.toString()
+          : mdText`⚡ **OneUptime AI is composing a kubectl fix for cluster "${clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`.toString();
     }
 
     await this.postFeedItem({
@@ -2886,27 +2888,28 @@ class AutoRemediationRuleEngineServiceClass {
     let markdown: string;
 
     if (wantsUnattended && askFirstReason) {
-      markdown = `⚡ **OneUptime AI is composing ${
+      markdown = mdText`⚡ **OneUptime AI is composing ${
         data.round > 1 ? "another" : "a"
       } fix for ${label}**${
         data.round > 1
-          ? ` (round ${data.round}) — the previous fix did not recover the service`
+          ? mdText` (round ${data.round}) — the previous fix did not recover the service`
           : ""
-      }. This round asks first because ${askFirstReason}: nothing runs until you approve the plan, which will appear here shortly.`;
+      }. This round asks first because ${askFirstReason}: nothing runs until you approve the plan, which will appear here shortly.`.toString();
     } else if (isBypass) {
       markdown =
         data.round > 1
-          ? `⚡ **OneUptime AI is applying another fix on ${label}** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this ${noun}, so the new fix runs on its own through its ${agentName}: every change the command policy allows, safe or riskier — except that ${RESOURCE_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${proposalSentence} Progress appears here.`
-          : `⚡ **OneUptime AI is fixing ${label}.** Approvals are bypassed for this ${noun}: AI is diagnosing through its ${agentName} and will apply whatever fix the command policy allows — safe or riskier — on its own, without asking, except that ${RESOURCE_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${proposalSentence} Progress appears here.`;
+          ? mdText`⚡ **OneUptime AI is applying another fix on ${label}** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this ${noun}, so the new fix runs on its own through its ${agentName}: every change the command policy allows, safe or riskier — except that ${RESOURCE_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${proposalSentence} Progress appears here.`.toString()
+          : mdText`⚡ **OneUptime AI is fixing ${label}.** Approvals are bypassed for this ${noun}: AI is diagnosing through its ${agentName} and will apply whatever fix the command policy allows — safe or riskier — on its own, without asking, except that ${RESOURCE_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${proposalSentence} Progress appears here.`.toString();
     } else if (isAutomatic) {
-      markdown = `⚡ **OneUptime AI is fixing ${label}.** Automatic remediation is on for this ${noun}: AI is diagnosing through its ${agentName} and will apply safe changes (${RESOURCE_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the ${noun}'s command allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
-        RESOURCE_ALWAYS_ASKS_SUMMARY,
-      )}, and destructive commands never run. ${proposalSentence} Progress appears here.`;
+      markdown =
+        mdText`⚡ **OneUptime AI is fixing ${label}.** Automatic remediation is on for this ${noun}: AI is diagnosing through its ${agentName} and will apply safe changes (${RESOURCE_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the ${noun}'s command allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
+          RESOURCE_ALWAYS_ASKS_SUMMARY,
+        )}, and destructive commands never run. ${proposalSentence} Progress appears here.`.toString();
     } else {
       markdown =
         data.round > 1
-          ? `⚡ **OneUptime AI is composing another fix for ${label}** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`
-          : `⚡ **OneUptime AI is composing a fix for ${label}.** Nothing runs until you approve the plan — it will appear here shortly.`;
+          ? mdText`⚡ **OneUptime AI is composing another fix for ${label}** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`.toString()
+          : mdText`⚡ **OneUptime AI is composing a fix for ${label}.** Nothing runs until you approve the plan — it will appear here shortly.`.toString();
     }
 
     await this.postFeedItem({
@@ -2991,7 +2994,8 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`,
+      markdown:
+        mdText`⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`.toString(),
       pingWorkspace: false,
     });
 
@@ -3072,7 +3076,8 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" matched.** AI is diagnosing the signal and composing remediation commands — a suggestion will appear here shortly.`,
+      markdown:
+        mdText`⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is diagnosing the signal and composing remediation commands — a suggestion will appear here shortly.`.toString(),
       pingWorkspace: false,
     });
 
@@ -3119,7 +3124,8 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" proposed runbook "${escapeMarkdownValue(data.runbook.name)}".** Review and approve it with one click to start remediation.`,
+      markdown:
+        mdText`⚡ **Auto Remediation Rule "${data.rule.name}" proposed runbook "${data.runbook.name}".** Review and approve it with one click to start remediation.`.toString(),
       pingWorkspace: true,
     });
   }
@@ -3159,7 +3165,8 @@ class AutoRemediationRuleEngineServiceClass {
       await this.postFeedItem({
         projectId: data.projectId,
         linkage: data.linkage,
-        markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" matched, but runbook "${escapeMarkdownValue(data.runbook.name)}" could not be started** (it may be disabled or have no steps).`,
+        markdown:
+          mdText`⚡ **Auto Remediation Rule "${data.rule.name}" matched, but runbook "${data.runbook.name}" could not be started** (it may be disabled or have no steps).`.toString(),
         pingWorkspace: false,
       });
       return false;
@@ -3204,7 +3211,8 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" automatically started runbook "${escapeMarkdownValue(data.runbook.name)}".** Follow its progress on the runbook execution page.`,
+      markdown:
+        mdText`⚡ **Auto Remediation Rule "${data.rule.name}" automatically started runbook "${data.runbook.name}".** Follow its progress on the runbook execution page.`.toString(),
       pingWorkspace: true,
     });
 

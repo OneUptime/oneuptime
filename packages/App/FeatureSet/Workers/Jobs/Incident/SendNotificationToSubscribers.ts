@@ -64,7 +64,10 @@ import SubscriberNotificationRunLimit, {
   SubscriberNotificationProjectSlot,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 
 // The status message of a 'created' notification that reached everyone.
 const SENT_MESSAGE: string =
@@ -229,8 +232,9 @@ RunCron(
           const incidentNumberDisplay: string =
             incident.incidentNumberWithPrefix ||
             "#" + (incident.incidentNumber?.toString() || " - ");
-          const incidentFeedText: string = `📧 **Subscriber Incident Created Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
-      Notification sent to status page subscribers because this incident was created.`;
+          const incidentFeedText: string =
+            mdText`📧 **Subscriber Incident Created Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
+      Notification sent to status page subscribers because this incident was created.`.toString();
 
           /*
            * Pending to InProgress, only if no other run has claimed it and it
@@ -549,14 +553,14 @@ RunCron(
                * the default Slack and Teams messages. The default SMS carries
                * none: it is billed by the segment.
                */
-              const slackCustomFields: string =
+              const slackCustomFields: MarkdownText =
                 pageTemplateVariables.customFieldsMarkdownLines.length > 0
-                  ? `${pageTemplateVariables.customFieldsMarkdownLines.join("\n\n")}\n\n`
-                  : "";
-              const teamsCustomFields: string =
+                  ? mdText`${FeedMarkdown.join(pageTemplateVariables.customFieldsMarkdownLines, "\n\n")}\n\n`
+                  : FeedMarkdown.empty();
+              const teamsCustomFields: MarkdownText =
                 pageTemplateVariables.customFieldsMarkdownLines.length > 0
-                  ? `${pageTemplateVariables.customFieldsMarkdownLines.join("\n")}\n`
-                  : "";
+                  ? mdText`${FeedMarkdown.join(pageTemplateVariables.customFieldsMarkdownLines, "\n")}\n`
+                  : FeedMarkdown.empty();
 
               /*
                * Every subscriber of the page, read in batches past LIMIT_MAX,
@@ -767,15 +771,16 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(incident.title || "")}
+                      markdownMessage =
+                        mdText`## 🚨 Incident - ${incident.title || ""}
 
-**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Resources Affected:** ${resourcesAffectedPlainText}
 
-**Description:** ${incident.description || ""}
+**Description:** ${FeedMarkdown.asMarkdown(incident.description || "")}
 
-${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 
@@ -818,11 +823,12 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                       ]);
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(incident.title || "")}
-**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
-**Description:** ${incident.description || ""}
-${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                      markdownMessage =
+                        mdText`## 🚨 Incident - ${incident.title || ""}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Resources Affected:** ${resourcesAffectedPlainText}
+**Description:** ${FeedMarkdown.asMarkdown(incident.description || "")}
+${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 
@@ -914,8 +920,9 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
 
           const deliveryMarkdown: string = deliveryRecord.toMarkdown();
           // The custom field values that went out, as they were sent.
-          const customFieldsSentMarkdown: string =
-            incidentTemplateVariables.getSentCustomFieldsMarkdown();
+          const customFieldsSentMarkdown: string = incidentTemplateVariables
+            .getSentCustomFieldsMarkdown()
+            .toString();
 
           /*
            * Fell short when a message failed, or the send stopped before it
@@ -936,8 +943,9 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
               incidentFeedEventType:
                 IncidentFeedEventType.SubscriberNotificationSent,
               displayColor: Red500,
-              feedInfoInMarkdown: `📧 **Subscriber Incident Created Notification Failed for some subscribers of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
-      Not every status page subscriber was sent the notification that this incident was created. Retry sends it to the status pages that were not sent it in full.`,
+              feedInfoInMarkdown:
+                mdText`📧 **Subscriber Incident Created Notification Failed for some subscribers of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
+      Not every status page subscriber was sent the notification that this incident was created. Retry sends it to the status pages that were not sent it in full.`.toString(),
               /*
                * Each status page with what was sent and what failed, and the
                * subject its email went out with; then the custom field values
@@ -986,7 +994,8 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
               incidentFeedEventType:
                 IncidentFeedEventType.SubscriberNotificationSent,
               displayColor: Yellow500,
-              feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the creation of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).`,
+              feedInfoInMarkdown:
+                mdText`📧 **No notification sent to subscribers** for the creation of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).`.toString(),
               moreInformationInMarkdown: [
                 "Subscriber notifications were skipped because every associated status page either hides incidents, is left out by this incident's status page scope, was already sent this notification, or had no matching subscribers.",
                 deliveryMarkdown,

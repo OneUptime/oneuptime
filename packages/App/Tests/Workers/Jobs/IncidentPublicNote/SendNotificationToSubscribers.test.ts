@@ -3054,7 +3054,7 @@ ${NOTE}
       );
 
       expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
-        "- **Internal Ticket:** OPS\\-4411",
+        "- **Internal Ticket:** OPS-4411",
       );
     },
   );
@@ -3457,7 +3457,7 @@ describe("IncidentPublicNote: a note posted with a state change names the state"
       }),
     );
     expect(sentSlack()[0]).toContain(
-      StateChangeNoteMessage.getChatStatusLine(RESOLVED),
+      StateChangeNoteMessage.getChatStatusLine(RESOLVED).toString(),
     );
   });
 });

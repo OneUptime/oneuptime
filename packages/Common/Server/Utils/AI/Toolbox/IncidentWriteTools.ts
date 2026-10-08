@@ -4,7 +4,6 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import IncidentService from "../../../Services/IncidentService";
@@ -18,6 +17,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
  * Resolved lazily rather than at module load: this module is pulled in through
@@ -142,9 +142,9 @@ export const CreateIncidentTool: ObservabilityTool = {
     /*
      * The model wrote the description from what it read, telemetry included:
      * it stays Markdown, but nothing in it acts on its own in the incident's
-     * feed, Slack and Teams (neutralizeAiWrittenMarkdown).
+     * feed, Slack and Teams (FeedMarkdown.aiWritten).
      */
-    incident.description = neutralizeAiWrittenMarkdown(description);
+    incident.description = FeedMarkdown.aiWritten(description).toString();
     incident.incidentSeverityId = severity.id!;
     incident.createdByUserId = userId;
     incident.rootCause = "Incident created via the OneUptime AI copilot.";

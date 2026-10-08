@@ -32,7 +32,7 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -123,8 +123,9 @@ RunCron(
         },
       });
 
-      const alertFeedText: string = `🔔 **Owner Alert Created Notification Sent**:
-      Notification sent to owners because [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`;
+      const alertFeedText: string =
+        mdText`🔔 **Owner Alert Created Notification Sent**:
+      Notification sent to owners because [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`.toString();
       let moreAlertFeedInformationInMarkdown: string = "";
 
       const alertIdentifiedDate: Date =
@@ -460,7 +461,7 @@ RunCron(
             eventType,
           });
 
-          moreAlertFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
+          moreAlertFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()})\n`;
         } catch (e) {
           logger.error("Error in sending alert created resource notification");
           logger.error(e);

@@ -69,6 +69,10 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "k8s-cluster-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -680,10 +684,10 @@ export class Service extends ProjectReferencesService<Model> {
         },
       ).length;
 
-      const note: string =
+      const note: MarkdownText =
         executedCount > 0
-          ? `**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** ${executedCount} command(s) had already run on it before; nothing was rolled back and no further command will run.`
-          : `**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** None of its kubectl commands ran, and none will.`;
+          ? mdText`**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** ${executedCount} command(s) had already run on it before; nothing was rolled back and no further command will run.`
+          : mdText`**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** None of its kubectl commands ran, and none will.`;
 
       await AutoRemediationSuggestionService.attemptStatusTransition({
         suggestionId: suggestion.id!,
@@ -695,8 +699,8 @@ export class Service extends ProjectReferencesService<Model> {
             ? { dismissedByUserId: data.deletedByUserId.toString() }
             : {}),
           rationaleMarkdown: suggestion.rationaleMarkdown
-            ? `${note}\n\n${suggestion.rationaleMarkdown}`
-            : note,
+            ? mdText`${note}\n\n${FeedMarkdown.asMarkdown(suggestion.rationaleMarkdown)}`.toString()
+            : note.toString(),
         },
       });
     } catch (error) {
@@ -1765,7 +1769,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getKubernetesClusterMarkdownLink(
     projectId: ObjectID,
     kubernetesClusterId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getKubernetesClusterName({
       kubernetesClusterId: kubernetesClusterId,
     });
@@ -1774,7 +1778,7 @@ export class Service extends ProjectReferencesService<Model> {
       kubernetesClusterId,
     );
 
-    return `[Kubernetes Cluster ${name}](${link.toString()})`;
+    return mdText`[Kubernetes Cluster ${name}](${link.toString()})`;
   }
 
   private async writeKubernetesClusterCreatedFeed(
@@ -2018,7 +2022,7 @@ export class Service extends ProjectReferencesService<Model> {
       const previous: AiAccessSettingsSnapshot | undefined =
         data.previousAiAccessSettings[kubernetesClusterId.toString()];
 
-      const changes: Array<string> = await this.describeAiAccessChanges(
+      const changes: Array<MarkdownText> = await this.describeAiAccessChanges(
         updateData,
         previous,
       );
@@ -2041,14 +2045,26 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const userMarkdown: string = updatedByUserId
-        ? (await UserService.getUserMarkdownString({
+      /*
+       * The person who made the change, as a link; a user who cannot be
+       * read is "A user", and a write without one is an API key's.
+       */
+      const userLink: MarkdownText | null = updatedByUserId
+        ? await UserService.getUserMarkdownString({
             userId: updatedByUserId,
             projectId,
-          })) || "A user"
-        : "";
+          })
+        : null;
 
-      const actor: string = userMarkdown ? `**${userMarkdown}**` : "An API key";
+      const userMarkdown: MarkdownText | null = userLink
+        ? userLink.isEmpty()
+          ? mdText`A user`
+          : userLink
+        : null;
+
+      const actor: MarkdownText = userMarkdown
+        ? mdText`**${userMarkdown}**`
+        : mdText`An API key`;
 
       /*
        * Yellow when the change lets AI do more (the same test the permission
@@ -2061,19 +2077,19 @@ export class Service extends ProjectReferencesService<Model> {
         ? Yellow500
         : Gray500;
 
-      const moreInformation: Array<string> = [
-        `**Changed by**: ${userMarkdown || "An API key (no user)"}`,
+      const moreInformation: Array<MarkdownText> = [
+        mdText`**Changed by**: ${userMarkdown || "An API key (no user)"}`,
       ];
 
       const allowlist: unknown = updateData["aiKubectlCommandAllowlist"];
 
       if (Array.isArray(allowlist) && allowlist.length > 0) {
         moreInformation.push(
-          `**kubectl allowlist**:\n\n${allowlist
-            .map((pattern: string) => {
-              return `- \`${pattern.replace(/`/g, "'")}\``;
-            })
-            .join("\n")}`,
+          mdText`**kubectl allowlist**:\n\n${FeedMarkdown.bulletList(
+            allowlist.map((pattern: string): MarkdownText => {
+              return FeedMarkdown.code(pattern.replace(/`/g, "'"));
+            }),
+          )}`,
         );
       }
 
@@ -2083,15 +2099,15 @@ export class Service extends ProjectReferencesService<Model> {
         kubernetesClusterFeedEventType:
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
         displayColor,
-        feedInfoInMarkdown: `🤖 ${actor} changed what OneUptime AI may do on ${await this.getKubernetesClusterMarkdownLink(
-          projectId,
-          kubernetesClusterId,
-        )}:\n\n${changes
-          .map((change: string) => {
-            return `- ${change}`;
-          })
-          .join("\n")}`,
-        moreInformationInMarkdown: moreInformation.join("\n\n"),
+        feedInfoInMarkdown:
+          mdText`🤖 ${actor} changed what OneUptime AI may do on ${await this.getKubernetesClusterMarkdownLink(
+            projectId,
+            kubernetesClusterId,
+          )}:\n\n${FeedMarkdown.bulletList(changes)}`.toString(),
+        moreInformationInMarkdown: FeedMarkdown.join(
+          moreInformation,
+          "\n\n",
+        ).toString(),
         userId: updatedByUserId,
       });
     }
@@ -2109,8 +2125,8 @@ export class Service extends ProjectReferencesService<Model> {
   private async describeAiAccessChanges(
     updateData: JSONObject,
     previous: AiAccessSettingsSnapshot | undefined,
-  ): Promise<Array<string>> {
-    const changes: Array<string> = [];
+  ): Promise<Array<MarkdownText>> {
+    const changes: Array<MarkdownText> = [];
 
     if (updateData["isAiInvestigationEnabled"] !== undefined) {
       const isEnabled: boolean =
@@ -2118,7 +2134,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (!previous || previous.isAiInvestigationEnabled !== isEnabled) {
         changes.push(
-          `AI investigation with kubectl turned **${isEnabled ? "on" : "off"}**`,
+          mdText`AI investigation with kubectl turned **${isEnabled ? "on" : "off"}**`,
         );
       }
     }
@@ -2130,11 +2146,11 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (!previous) {
         changes.push(
-          `AI remediation set to **${REMEDIATION_MODE_FEED_LABELS[mode]}**`,
+          mdText`AI remediation set to **${REMEDIATION_MODE_FEED_LABELS[mode]}**`,
         );
       } else if (previous.aiRemediationMode !== mode) {
         changes.push(
-          `AI remediation changed from **${
+          mdText`AI remediation changed from **${
             REMEDIATION_MODE_FEED_LABELS[previous.aiRemediationMode]
           }** to **${REMEDIATION_MODE_FEED_LABELS[mode]}**`,
         );
@@ -2152,12 +2168,12 @@ export class Service extends ProjectReferencesService<Model> {
       ) {
         changes.push(
           patterns.length === 0
-            ? "kubectl allowlist cleared"
-            : `kubectl allowlist changed to ${describePatternCount(
+            ? mdText`kubectl allowlist cleared`
+            : mdText`kubectl allowlist changed to ${describePatternCount(
                 patterns.length,
               )}${
                 previous
-                  ? ` (was ${describePatternCount(
+                  ? mdText` (was ${describePatternCount(
                       previous.aiKubectlCommandAllowlist.length,
                     )})`
                   : ""
@@ -2185,10 +2201,12 @@ export class Service extends ProjectReferencesService<Model> {
           });
 
           changes.push(
-            `Runner **${runner?.name || runnerId.toString()}** bound to run kubectl`,
+            mdText`Runner **${runner?.name || runnerId.toString()}** bound to run kubectl`,
           );
         } else {
-          changes.push("Runner cleared, so AI runs no kubectl on this cluster");
+          changes.push(
+            mdText`Runner cleared, so AI runs no kubectl on this cluster`,
+          );
         }
       }
     }
@@ -2207,9 +2225,9 @@ export class Service extends ProjectReferencesService<Model> {
         changes.push(
           credentialId
             ? previous?.aiAccessCredentialId
-              ? "Kubernetes credential changed"
-              : "Kubernetes credential bound"
-            : "Kubernetes credential cleared",
+              ? mdText`Kubernetes credential changed`
+              : mdText`Kubernetes credential bound`
+            : mdText`Kubernetes credential cleared`,
         );
       }
     }
@@ -2265,7 +2283,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getKubernetesClusterMarkdownLink(
           projectId,
           kubernetesClusterId,
@@ -2280,8 +2298,8 @@ export class Service extends ProjectReferencesService<Model> {
             : KubernetesClusterFeedEventType.KubernetesClusterRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

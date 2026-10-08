@@ -26,6 +26,7 @@ import {
   test,
 } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * An incident created with `createdIncidentTemplateId` (API callers that send
  * only the template, and the root paths that declare from one) copies the
@@ -124,7 +125,7 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("Test User" as never);
+    .mockResolvedValue(FeedMarkdown.asMarkdown("Test User") as never);
 
   templateFindOneBy = getJestMockFunction();
   templateFindOneBy.mockImplementation(() => {

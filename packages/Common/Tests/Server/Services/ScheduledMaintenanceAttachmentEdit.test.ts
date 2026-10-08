@@ -1233,10 +1233,10 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: editing the monitors of a
     // Each event records its own edit.
     expect(feedItem).toHaveBeenCalledTimes(2);
     expect(sectionLines(feedMarkdown(0), REMOVED_HEADER)).toEqual([
-      `- [checkout\\-web](${link(MONITOR_A)})`,
+      `- [checkout-web](${link(MONITOR_A)})`,
     ]);
     expect(sectionLines(feedMarkdown(1), REMOVED_HEADER)).toEqual([
-      `- [payments\\-api](${link(MONITOR_B)})`,
+      `- [payments-api](${link(MONITOR_B)})`,
     ]);
   });
 });
@@ -1282,7 +1282,7 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: what the write stored, no
 
     expect(restoredMonitorIds()).toEqual([MONITOR_A]);
     expect(sectionLines(feedMarkdown(), REMOVED_HEADER)).toEqual([
-      `- [checkout\\-web](${link(MONITOR_A)})`,
+      `- [checkout-web](${link(MONITOR_A)})`,
     ]);
     expect(feedMarkdown()).not.toContain(ADDED_HEADER);
   });
@@ -1404,7 +1404,7 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: an event in a state of th
       expectNoMonitorSideEffects();
       // The edit is still recorded.
       expect(sectionLines(feedMarkdown(), REMOVED_HEADER)).toEqual([
-        `- [payments\\-api](${link(MONITOR_B)})`,
+        `- [payments-api](${link(MONITOR_B)})`,
       ]);
     },
   );
@@ -1456,10 +1456,10 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: events that are not holdi
 
       // The edit is still recorded.
       expect(sectionLines(feedMarkdown(), REMOVED_HEADER)).toEqual([
-        `- [payments\\-api](${link(MONITOR_B)})`,
+        `- [payments-api](${link(MONITOR_B)})`,
       ]);
       expect(sectionLines(feedMarkdown(), ADDED_HEADER)).toEqual([
-        `- [search\\-api](${link(MONITOR_C)})`,
+        `- [search-api](${link(MONITOR_C)})`,
       ]);
     },
   );
@@ -1497,10 +1497,10 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: the updated feed item", (
     const markdown: string = feedMarkdown();
 
     expect(markdown).toContain(
-      `\n\n${REMOVED_HEADER}- [payments\\-api](${link(MONITOR_B)})\n`,
+      `\n\n${REMOVED_HEADER}- [payments-api](${link(MONITOR_B)})\n`,
     );
     expect(markdown).toContain(
-      `\n\n${ADDED_HEADER}- [search\\-api](${link(MONITOR_C)})\n`,
+      `\n\n${ADDED_HEADER}- [search-api](${link(MONITOR_C)})\n`,
     );
     // Removed first, as the incident feed has it.
     expect(markdown.indexOf(REMOVED_HEADER)).toBeLessThan(
@@ -1534,8 +1534,8 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: the updated feed item", (
 
     expect(feedItem).toHaveBeenCalledTimes(1);
     expect(sectionLines(feedMarkdown(), REMOVED_HEADER)).toEqual([
-      `- [checkout\\-web](${link(MONITOR_A)})`,
-      `- [payments\\-api](${link(MONITOR_B)})`,
+      `- [checkout-web](${link(MONITOR_A)})`,
+      `- [payments-api](${link(MONITOR_B)})`,
     ]);
     expect(feedMarkdown()).not.toContain(ADDED_HEADER);
     expect(feedMarkdown()).not.toContain("**Resources Affected**");
@@ -1619,11 +1619,11 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: the updated feed item", (
     const markdown: string = feedMarkdown();
 
     expect(sectionLines(markdown, "**Resources Affected**:\n\n")).toEqual([
-      `- [checkout\\-web](${link(MONITOR_A)})`,
-      `- [search\\-api](${link(MONITOR_C)})`,
+      `- [checkout-web](${link(MONITOR_A)})`,
+      `- [search-api](${link(MONITOR_C)})`,
     ]);
     expect(sectionLines(markdown, ADDED_HEADER)).toEqual([
-      `- [search\\-api](${link(MONITOR_C)})`,
+      `- [search-api](${link(MONITOR_C)})`,
     ]);
   });
 
@@ -1668,8 +1668,8 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: which detached monitors a
 
     // Both are still named in the feed: the edit detached both.
     expect(sectionLines(feedMarkdown(), REMOVED_HEADER)).toEqual([
-      `- [payments\\-api](${link(MONITOR_B)})`,
-      `- [search\\-api](${link(MONITOR_C)})`,
+      `- [payments-api](${link(MONITOR_B)})`,
+      `- [search-api](${link(MONITOR_C)})`,
     ]);
   });
 
@@ -1929,10 +1929,10 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: a failure after the write
 
     expect(feedItem).toHaveBeenCalledTimes(1);
     expect(sectionLines(feedMarkdown(), REMOVED_HEADER)).toEqual([
-      `- [payments\\-api](${link(MONITOR_B)})`,
+      `- [payments-api](${link(MONITOR_B)})`,
     ]);
     expect(sectionLines(feedMarkdown(), ADDED_HEADER)).toEqual([
-      `- [search\\-api](${link(MONITOR_C)})`,
+      `- [search-api](${link(MONITOR_C)})`,
     ]);
 
     expectLoggedFor(EVENT_ID);
@@ -2003,8 +2003,8 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: a failure after the write
     ).toEqual([MONITOR_D]);
 
     expect(sectionLines(feedMarkdown(), ADDED_HEADER)).toEqual([
-      `- [search\\-api](${link(MONITOR_C)})`,
-      `- [auth\\-api](${link(MONITOR_D)})`,
+      `- [search-api](${link(MONITOR_C)})`,
+      `- [auth-api](${link(MONITOR_D)})`,
     ]);
 
     const monitorAttributes: Array<LogAttributes> = loggerError.mock.calls
@@ -2102,10 +2102,10 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: a failure after the write
     // Each event still records its own edit.
     expect(feedItem).toHaveBeenCalledTimes(2);
     expect(sectionLines(feedMarkdown(0), REMOVED_HEADER)).toEqual([
-      `- [checkout\\-web](${link(MONITOR_A)})`,
+      `- [checkout-web](${link(MONITOR_A)})`,
     ]);
     expect(sectionLines(feedMarkdown(1), REMOVED_HEADER)).toEqual([
-      `- [payments\\-api](${link(MONITOR_B)})`,
+      `- [payments-api](${link(MONITOR_B)})`,
     ]);
 
     expectLoggedFor(EVENT_ID);

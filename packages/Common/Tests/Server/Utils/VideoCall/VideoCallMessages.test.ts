@@ -39,10 +39,10 @@ describe("VideoCallMessages", () => {
     test("a rule's Zoom meeting: which call, for which incident, and the link", () => {
       const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
         announcement({}),
-      );
+      ).toString();
 
       expect(markdown).toBe(
-        `📞 A **Zoom meeting** was started for [Incident INC\\-42](${EVENT_LINK}).
+        `📞 A **Zoom meeting** was started for [Incident INC-42](${EVENT_LINK}).
 
 **[Join the call](https://us02web.zoom.us/j/123?pwd=abc)**`,
       );
@@ -54,11 +54,11 @@ describe("VideoCallMessages", () => {
           provider: VideoCallProvider.MicrosoftTeams,
           startedByPerson: true,
         }),
-      );
+      ).toString();
 
       expect(
         markdown.startsWith(
-          "📞 started a **Microsoft Teams meeting** for [Incident INC\\-42]",
+          "📞 started a **Microsoft Teams meeting** for [Incident INC-42]",
         ),
       ).toBe(true);
     });
@@ -71,14 +71,14 @@ describe("VideoCallMessages", () => {
             title: "War room",
             startedByPerson: true,
           }),
-        ),
-      ).toContain("📞 added a **War room** video call to [Incident INC\\-42]");
+        ).toString(),
+      ).toContain("📞 added a **War room** video call to [Incident INC-42]");
 
       expect(
         VideoCallMessages.getStartedFeedMarkdown(
           announcement({ provider: VideoCallProvider.CustomLink }),
-        ),
-      ).toContain("📞 A **video call** was added to [Incident INC\\-42]");
+        ).toString(),
+      ).toContain("📞 A **video call** was added to [Incident INC-42]");
     });
 
     test("a standing bridge is named for its connection", () => {
@@ -88,7 +88,7 @@ describe("VideoCallMessages", () => {
             provider: VideoCallProvider.CustomLink,
             connectionName: "Major incident bridge",
           }),
-        ),
+        ).toString(),
       ).toContain("**Major incident bridge** video call");
     });
 
@@ -98,10 +98,10 @@ describe("VideoCallMessages", () => {
           provider: VideoCallProvider.SlackHuddle,
           joinUrl: "https://app.slack.com/huddle/T1/C1",
         }),
-      );
+      ).toString();
 
       expect(markdown).toContain(
-        "🎧 The **Slack huddle** of [Incident INC\\-42]",
+        "🎧 The **Slack huddle** of [Incident INC-42]",
       );
       expect(markdown).toContain(
         "Opening the link starts the huddle, or joins it when it is running.",
@@ -116,8 +116,8 @@ describe("VideoCallMessages", () => {
       expect(
         VideoCallMessages.getStartedFeedMarkdown(
           announcement({ eventNoun: "Alert", eventNumberDisplay: "#7" }),
-        ),
-      ).toContain("[Alert \\#7](");
+        ).toString(),
+      ).toContain("[Alert #7](");
     });
 
     test("a hostile title stays text: no link, no image, no mention", () => {
@@ -128,7 +128,7 @@ describe("VideoCallMessages", () => {
             "<!channel> [Reset password](https://evil.example) ![](https://tracker.example/p.gif)",
           startedByPerson: true,
         }),
-      );
+      ).toString();
 
       expect(markdown).not.toContain("[Reset password](https://evil.example)");
       expect(markdown).not.toContain("![](https://tracker.example/p.gif)");
@@ -141,7 +141,7 @@ describe("VideoCallMessages", () => {
           provider: VideoCallProvider.CustomLink,
           joinUrl: "https://example.com/room(1) <b>",
         }),
-      );
+      ).toString();
 
       expect(markdown).toContain(
         "**[Join the call](https://example.com/room%281%29%20%3Cb%3E)**",
@@ -157,7 +157,7 @@ describe("VideoCallMessages", () => {
             ruleName: "Sev1 [bridge]",
             connectionName: "Incident Zoom",
           }),
-        ),
+        )?.toString(),
       ).toBe(
         "Started by the **Sev1 \\[bridge\\]** workspace notification rule.\n\nCreated with the **Incident Zoom** video call connection.",
       );
@@ -189,7 +189,7 @@ describe("VideoCallMessages", () => {
         eventNoun: "Incident",
         ruleName: "Sev1 <!here>",
         error: "Zoom said [no](https://evil.example)",
-      });
+      }).toString();
 
       expect(markdown).toContain("⚠️ The video call the **Sev1");
       expect(markdown).toContain(
@@ -205,7 +205,7 @@ describe("VideoCallMessages", () => {
           eventNoun: "Alert",
           ruleName: "",
           error: "x",
-        }),
+        }).toString(),
       ).toContain("The video call a workspace notification rule asks for");
     });
   });
@@ -283,11 +283,28 @@ describe("VideoCallMessages", () => {
     });
   });
 
-  test("toMarkdownLinkTarget leaves an ordinary link as it is", () => {
-    expect(
-      VideoCallMessages.toMarkdownLinkTarget(
-        " https://meet.google.com/abc-mnop-xyz ",
-      ),
-    ).toBe("https://meet.google.com/abc-mnop-xyz");
+  test("an ordinary join link is placed as it is, without the spaces around it", () => {
+    const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
+      announcement({
+        provider: VideoCallProvider.GoogleMeet,
+        joinUrl: " https://meet.google.com/abc-mnop-xyz ",
+      }),
+    ).toString();
+
+    expect(markdown).toContain(
+      "**[Join the call](https://meet.google.com/abc-mnop-xyz)**",
+    );
+  });
+
+  test("a join link that is not a web address is not linked", () => {
+    const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
+      announcement({
+        provider: VideoCallProvider.CustomLink,
+        joinUrl: "javascript:alert(1)",
+      }),
+    ).toString();
+
+    expect(markdown).toContain("**[Join the call](#)**");
+    expect(markdown).not.toContain("javascript:");
   });
 });

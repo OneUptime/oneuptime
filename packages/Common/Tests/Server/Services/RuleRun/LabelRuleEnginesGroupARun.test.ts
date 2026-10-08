@@ -82,6 +82,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEng
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -220,7 +221,7 @@ const ENGINES: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(CephClusterService, "getCephClusterMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(CephClusterFeedService, "createCephClusterFeedItem")
         .mockResolvedValue(undefined);
@@ -244,7 +245,7 @@ const ENGINES: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(CloudResourceService, "getCloudResourceMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(CloudResourceFeedService, "createCloudResourceFeedItem")
         .mockResolvedValue(undefined);
@@ -280,7 +281,7 @@ const ENGINES: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(DockerHostService, "getDockerHostMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(DockerHostFeedService, "createDockerHostFeedItem")
         .mockResolvedValue(undefined);
@@ -304,7 +305,7 @@ const ENGINES: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(DockerSwarmClusterService, "getDockerSwarmClusterMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(
           DockerSwarmClusterFeedService,
@@ -329,7 +330,7 @@ const ENGINES: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(HostService, "getHostMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(HostFeedService, "createHostFeedItem")
         .mockResolvedValue(undefined);
@@ -383,7 +384,7 @@ const ENGINES: Array<LabelEngineCase> = [
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(KubernetesClusterService, "getKubernetesClusterMarkdownLink")
-        .mockResolvedValue(MARKDOWN_LINK);
+        .mockResolvedValue(FeedMarkdown.asMarkdown(MARKDOWN_LINK));
       return jest
         .spyOn(KubernetesClusterFeedService, "createKubernetesClusterFeedItem")
         .mockResolvedValue(undefined);

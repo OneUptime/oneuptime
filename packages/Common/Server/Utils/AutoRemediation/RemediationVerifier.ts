@@ -44,9 +44,9 @@ import CommandPlanExecutor, {
 import AutoRemediationRuleEngineService from "../../Services/AutoRemediationRuleEngineService";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import logger from "../Logger";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { FindOperator, Raw } from "typeorm";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * A rollback refreshes its heartbeat before every step, and no single step
@@ -921,7 +921,8 @@ export default class RemediationVerifier {
         ? "the AI command remediation"
         : `runbook "${suggestion.runbookNameSnapshot || "Runbook"}"`;
 
-    const rootCause: string = `Auto-resolved by auto-remediation: ${remediationDescription} (rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}") completed and the monitor(s) recovered within the verification window.`;
+    const rootCause: string =
+      mdText`Auto-resolved by auto-remediation: ${remediationDescription} (rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}") completed and the monitor(s) recovered within the verification window.`.toString();
 
     try {
       if (suggestion.incidentId && suggestion.projectId) {
@@ -984,7 +985,8 @@ export default class RemediationVerifier {
         ? "✅"
         : "⚠️";
     // The note names the runbook, as typed: text in the feed item.
-    const markdown: string = `${emoji} **Auto-remediation verification:** ${escapeMarkdownValue(data.outcome.note)}`;
+    const markdown: string =
+      mdText`${emoji} **Auto-remediation verification:** ${data.outcome.note}`.toString();
 
     try {
       if (data.suggestion.incidentId && data.suggestion.projectId) {

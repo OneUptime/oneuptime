@@ -102,6 +102,7 @@ import PermissionScope from "../../../Types/Database/AccessControl/PermissionSco
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 type OnBeforeCreate = (
   createBy: CreateBy<Incident>,
 ) => Promise<OnCreate<Incident>>;
@@ -487,7 +488,7 @@ describe("the Incident Created notification of an incident reported through a fo
     // The root cause names the declaring user.
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("Ada" as never);
+      .mockResolvedValue(FeedMarkdown.asMarkdown("Ada") as never);
 
     const incident: Incident = new Incident();
     incident.projectId = PROJECT_ID;

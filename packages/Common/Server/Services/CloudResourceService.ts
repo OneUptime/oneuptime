@@ -34,6 +34,7 @@ import {
   buildCloudMonitoredResourceIdentifier,
   getCloudMonitoredResourceNameCandidates,
 } from "../../Types/Cloud/CloudMonitoredResource";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "cloud-resource-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -1033,7 +1034,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getCloudResourceMarkdownLink(
     projectId: ObjectID,
     cloudResourceId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getCloudResourceName({
       cloudResourceId: cloudResourceId,
     });
@@ -1042,7 +1043,7 @@ export class Service extends ProjectReferencesService<Model> {
       cloudResourceId,
     );
 
-    return `[Cloud Resource ${name}](${link.toString()})`;
+    return mdText`[Cloud Resource ${name}](${link.toString()})`;
   }
 
   private async writeCloudResourceCreatedFeed(
@@ -1207,7 +1208,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getCloudResourceMarkdownLink(projectId, cloudResourceId);
 
       if (isArchiveChange) {
@@ -1219,8 +1220,8 @@ export class Service extends ProjectReferencesService<Model> {
             : CloudResourceFeedEventType.CloudResourceRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

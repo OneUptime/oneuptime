@@ -1,4 +1,8 @@
-import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  MarkdownValue,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 import RootCauseList, {
   RootCauseListDetail,
   RootCauseListItem,
@@ -40,19 +44,19 @@ import RootCauseList, {
  */
 
 export interface AffectedResourceListDetail {
-  // Plain text. Escaped when rendered.
+  // Plain text, placed as text.
   label: string;
-  // Markdown, rendered as-is. An empty value drops the whole detail.
-  value: string;
+  // Text, or Markdown (a MarkdownText). An empty value drops the whole detail.
+  value: MarkdownValue;
 }
 
 export interface AffectedResourceListEntry {
-  // Plain text, e.g. "Pod" or "Virtual Machine". Escaped when rendered.
+  // Plain text, e.g. "Pod" or "Virtual Machine", placed as text.
   kind: string;
-  // Markdown, normally built with AffectedResourceList.code().
-  name: string;
-  // Markdown — the formatted metric value.
-  value: string;
+  // Normally built with AffectedResourceList.code().
+  name: MarkdownText;
+  // The formatted metric value: text, or Markdown (a MarkdownText).
+  value: MarkdownValue;
   details: Array<AffectedResourceListDetail>;
 }
 
@@ -69,7 +73,7 @@ export default class AffectedResourceList {
     totalCount: number;
     // The resources to show, already sorted worst first.
     entries: Array<AffectedResourceListEntry>;
-  }): string {
+  }): MarkdownText {
     const items: Array<RootCauseListItem> = input.entries.map(
       (entry: AffectedResourceListEntry): RootCauseListItem => {
         /*
@@ -77,19 +81,22 @@ export default class AffectedResourceList {
          * detail bullets under it — the value at the end of the line is
          * bold too, so the eye lands on what it is and how bad it is.
          */
-        const kind: string = escapeMarkdownInline(entry.kind).trim();
+        const kind: string = entry.kind.trim();
+
+        const title: Array<MarkdownText> = [
+          kind ? mdText`**${kind}**` : FeedMarkdown.empty(),
+          entry.name.trim(),
+        ].filter((part: MarkdownText): boolean => {
+          return !part.isEmpty();
+        });
 
         return {
-          title: [kind ? `**${kind}**` : "", entry.name.trim()]
-            .filter((part: string): boolean => {
-              return part.length > 0;
-            })
-            .join(" "),
+          title: FeedMarkdown.join(title, " "),
           value: entry.value,
           details: entry.details.map(
             (detail: AffectedResourceListDetail): RootCauseListDetail => {
               return {
-                label: escapeMarkdownInline(detail.label),
+                label: detail.label,
                 value: detail.value,
               };
             },
@@ -98,7 +105,7 @@ export default class AffectedResourceList {
       },
     );
 
-    const lines: Array<string> = [RootCauseList.render(items)];
+    const lines: Array<MarkdownText> = [RootCauseList.render(items)];
 
     const hiddenCount: number = input.totalCount - input.entries.length;
 
@@ -108,13 +115,11 @@ export default class AffectedResourceList {
        * continuation of the last item's final bullet, not a paragraph of
        * its own.
        */
-      lines.push("");
-      lines.push(
-        `*... and ${hiddenCount} more ${escapeMarkdownInline(input.overflowNoun)}*`,
-      );
+      lines.push(FeedMarkdown.empty());
+      lines.push(mdText`*... and ${hiddenCount} more ${input.overflowNoun}*`);
     }
 
-    return `\n\n**${escapeMarkdownInline(input.heading)}** (${input.totalCount} total)\n\n${lines.join("\n")}`;
+    return mdText`\n\n**${input.heading}** (${input.totalCount} total)\n\n${FeedMarkdown.join(lines, "\n")}`;
   }
 
   /*
@@ -123,7 +128,7 @@ export default class AffectedResourceList {
    * anything — RootCauseList.code keeps a name with backticks or line breaks
    * inside its span.
    */
-  public static code(value: string | undefined | null): string {
+  public static code(value: string | undefined | null): MarkdownText {
     return RootCauseList.code(value);
   }
 
@@ -136,14 +141,14 @@ export default class AffectedResourceList {
   public static codeWithId(input: {
     name?: string | undefined;
     id?: string | undefined;
-  }): string {
-    const name: string = AffectedResourceList.code(input.name);
-    const id: string = AffectedResourceList.code(input.id);
+  }): MarkdownText {
+    const name: MarkdownText = AffectedResourceList.code(input.name);
+    const id: MarkdownText = AffectedResourceList.code(input.id);
 
-    if (name && id && name !== id) {
-      return `${name} (${id})`;
+    if (!name.isEmpty() && !id.isEmpty() && name.toString() !== id.toString()) {
+      return mdText`${name} (${id})`;
     }
 
-    return name || id;
+    return name.isEmpty() ? id : name;
   }
 }

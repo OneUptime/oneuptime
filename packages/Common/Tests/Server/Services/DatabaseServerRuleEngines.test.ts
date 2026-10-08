@@ -47,6 +47,7 @@ import RuleCriteria, {
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../Utils/Rules/RuleEngineLimits";
 import { getJestSpyOn } from "../../Spy";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The database label and owner rule engines.
  *
@@ -176,7 +177,11 @@ beforeEach(() => {
   getJestSpyOn(
     DatabaseServerService,
     "getDatabaseServerMarkdownLink",
-  ).mockResolvedValue("[Database PostgreSQL orders-db.internal:5432](/db)");
+  ).mockResolvedValue(
+    FeedMarkdown.asMarkdown(
+      "[Database PostgreSQL orders-db.internal:5432](/db)",
+    ),
+  );
   feed = getJestSpyOn(
     DatabaseServerFeedService,
     "createDatabaseServerFeedItem",

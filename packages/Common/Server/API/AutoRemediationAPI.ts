@@ -71,7 +71,7 @@ import {
 import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import logger from "../Utils/Logger";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -1038,7 +1038,8 @@ router.post(
 
         await postFeedItem({
           suggestion,
-          markdown: `⚡ **AI command plan approved** — ${plan.commands.length} command(s) are being executed. Verification will watch the monitors for recovery.`,
+          markdown:
+            mdText`⚡ **AI command plan approved** — ${plan.commands.length} command(s) are being executed. Verification will watch the monitors for recovery.`.toString(),
           userId: props.userId!,
           pingWorkspace: true,
         });
@@ -1165,7 +1166,8 @@ router.post(
 
       await postFeedItem({
         suggestion,
-        markdown: `⚡ **Auto-remediation suggestion approved** — runbook "${escapeMarkdownValue(suggestion.runbookNameSnapshot || "Runbook")}" was started.`,
+        markdown:
+          mdText`⚡ **Auto-remediation suggestion approved** — runbook "${suggestion.runbookNameSnapshot || "Runbook"}" was started.`.toString(),
         userId: props.userId!,
         pingWorkspace: true,
       });
@@ -1255,13 +1257,15 @@ router.post(
 
       let dismissMarkdown: string;
       if (alreadyExecutedCount > 0) {
-        dismissMarkdown = `⚠️ **Auto-remediation suggestion dismissed — but ${alreadyExecutedCount} command(s) had ALREADY run.** No further commands will run and nothing was rolled back automatically. Review the executed commands and their output on the suggestion.`;
+        dismissMarkdown =
+          mdText`⚠️ **Auto-remediation suggestion dismissed — but ${alreadyExecutedCount} command(s) had ALREADY run.** No further commands will run and nothing was rolled back automatically. Review the executed commands and their output on the suggestion.`.toString();
       } else if (
         suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
       ) {
         dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — the AI-composed command plan will not be run.`;
       } else {
-        dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — runbook "${escapeMarkdownValue(suggestion.runbookNameSnapshot || "(not yet picked)")}" will not be run.`;
+        dismissMarkdown =
+          mdText`⚡ **Auto-remediation suggestion dismissed** — runbook "${suggestion.runbookNameSnapshot || "(not yet picked)"}" will not be run.`.toString();
       }
 
       await postFeedItem({

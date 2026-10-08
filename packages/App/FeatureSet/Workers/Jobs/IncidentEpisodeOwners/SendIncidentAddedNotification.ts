@@ -31,7 +31,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * Cap the number of incidents we list inline in the email body. Anything
@@ -266,8 +266,9 @@ RunCron(
         )
       ).toString();
 
-      const episodeFeedText: string = `🔔 **Owner Incidents Added to Episode Notification Sent**:
-      Notification sent to owners because ${incidentCountInBatch} incident(s) were added to [Incident Episode ${episodeDisplayNumber}](${episodeViewLink}).`;
+      const episodeFeedText: string =
+        mdText`🔔 **Owner Incidents Added to Episode Notification Sent**:
+      Notification sent to owners because ${incidentCountInBatch} incident(s) were added to [Incident Episode ${episodeDisplayNumber}](${episodeViewLink}).`.toString();
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       for (const user of owners) {
@@ -423,7 +424,7 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())}) — ${incidentCountInBatch} incident(s)\n`;
+          moreEpisodeFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()}) — ${incidentCountInBatch} incident(s)\n`;
         } catch (e) {
           logger.error(
             "Error in sending incident-added-to-episode batch notification",

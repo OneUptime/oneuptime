@@ -41,6 +41,12 @@ import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
 import { Lexer, Token, marked } from "marked";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * The root cause a Storage Array monitor writes into its incident / alert:
  * the "Storage Array Details" block (array, platform, the metric the
@@ -62,7 +68,9 @@ type BuilderInput = {
 };
 
 type EvaluatorPrivate = {
-  buildStorageArrayRootCauseContext: (input: BuilderInput) => string | null;
+  buildStorageArrayRootCauseContext: (
+    input: BuilderInput,
+  ) => MarkdownText | null;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -179,15 +187,17 @@ function render(input: {
   criteriaInstance?: MonitorCriteriaInstance;
 }): string {
   return (
-    Evaluator.buildStorageArrayRootCauseContext({
-      dataToProcess: input.dataToProcess,
-      monitorStep: input.monitorStep,
-      monitor: new Monitor(),
-      criteriaInstance:
-        input.criteriaInstance ||
-        input.monitorStep.data!.monitorCriteria.data!
-          .monitorCriteriaInstanceArray[0],
-    }) || ""
+    textOf(
+      Evaluator.buildStorageArrayRootCauseContext({
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        monitor: new Monitor(),
+        criteriaInstance:
+          input.criteriaInstance ||
+          input.monitorStep.data!.monitorCriteria.data!
+            .monitorCriteriaInstanceArray[0],
+      }),
+    ) || ""
   );
 }
 

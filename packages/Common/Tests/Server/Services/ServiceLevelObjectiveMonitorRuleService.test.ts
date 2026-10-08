@@ -29,6 +29,7 @@ import RuleCriteria, {
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Contract under test - the write hooks of SLO monitor rules.
  *
@@ -217,7 +218,7 @@ function installSpies(): HookSpies {
       .mockResolvedValue(undefined),
     markdownLink: jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-      .mockResolvedValue(SLO_LINK),
+      .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_LINK)),
     labelFindBy: jest.spyOn(LabelService, "findBy").mockResolvedValue([
       {
         id: LABEL_ID,
@@ -584,7 +585,7 @@ describe("ServiceLevelObjectiveMonitorRuleService.onCreateSuccess", () => {
     );
     // Label names are looked up, then the whole summary is escaped.
     expect(calls[0]!.moreInformationInMarkdown).toContain(
-      'Labels has any of "Production" AND Name matches pattern "^api\\-"',
+      'Labels has any of "Production" AND Name matches pattern "^api-"',
     );
     expect(spies.markdownLink).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
@@ -652,8 +653,9 @@ describe("ServiceLevelObjectiveMonitorRuleService.onCreateSuccess", () => {
 
     const text: string = feedCalls(spies.feed)[0]!.feedInfoInMarkdown;
 
-    expect(text).toContain("**\\*\\*x\\*\\* \\[y\\]\\(https://evil.test\\)**");
-    expect(text).not.toContain("](https://evil.test)");
+    expect(text).toContain("**\\*\\*x\\*\\* \\[y\\](https://evil.test)**");
+    // Its brackets are escaped: no "](" in it ends a link's words.
+    expect(text).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.test\)/);
   });
 
   it("falls back to the created row when the read-back fails", async () => {
@@ -909,7 +911,7 @@ describe("ServiceLevelObjectiveMonitorRuleService.onUpdateSuccess", () => {
       '- **Match criteria (before):** Labels has any of "Production"',
     );
     expect(calls[0]!.moreInformationInMarkdown).toContain(
-      '- **Match criteria (now):** Name matches pattern "^payments\\-"',
+      '- **Match criteria (now):** Name matches pattern "^payments-"',
     );
   });
 

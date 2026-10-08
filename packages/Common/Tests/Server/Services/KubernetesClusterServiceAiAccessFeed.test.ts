@@ -23,6 +23,7 @@ import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType"
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -155,12 +156,12 @@ describe("KubernetesClusterService AI access feed", () => {
     } as unknown as KubernetesCluster);
     jest
       .spyOn(KubernetesClusterService, "getKubernetesClusterMarkdownLink")
-      .mockResolvedValue(CLUSTER_LINK);
+      .mockResolvedValue(FeedMarkdown.asMarkdown(CLUSTER_LINK));
     // The configured marker is covered by the binding guard tests.
     jest.spyOn(KubernetesClusterService, "updateBy").mockResolvedValue(1);
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue(USER_MARKDOWN);
+      .mockResolvedValue(FeedMarkdown.asMarkdown(USER_MARKDOWN));
     jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);

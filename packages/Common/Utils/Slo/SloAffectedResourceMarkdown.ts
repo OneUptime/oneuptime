@@ -1,6 +1,6 @@
 import URL from "../../Types/API/URL";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../Markdown/MarkdownEscape";
+import { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 
 /*
  * The SLO bullets under "Resources Affected" in an incident's or alert's
@@ -16,9 +16,10 @@ import { escapeMarkdownInline } from "../Markdown/MarkdownEscape";
  * and getSloMarkdownLink exactly, and a test pins that, so an SLO reads the
  * same in every feed.
  *
- * The name is escaped exactly once, here, at the point it becomes markdown:
- * feeds render without safe mode, and a name like `x](https://evil)` must not
- * be able to re-point the link or restyle the sentence.
+ * The name is placed as the link's text (mdText), here, at the point it
+ * becomes markdown: feeds render without safe mode, and a name like
+ * `x](https://evil)` must not be able to re-point the link or restyle the
+ * sentence.
  */
 
 /*
@@ -62,7 +63,7 @@ export type GetSloAffectedResourceMarkdownLinesFunction = (data: {
     | Array<SloAffectedResourceLinkSubject>
     | undefined
     | null;
-}) => Array<string>;
+}) => Array<MarkdownText>;
 
 export const getSloAffectedResourceMarkdownLines: GetSloAffectedResourceMarkdownLinesFunction =
   (data: {
@@ -72,8 +73,8 @@ export const getSloAffectedResourceMarkdownLines: GetSloAffectedResourceMarkdown
       | Array<SloAffectedResourceLinkSubject>
       | undefined
       | null;
-  }): Array<string> => {
-    const lines: Array<string> = [];
+  }): Array<MarkdownText> => {
+    const lines: Array<MarkdownText> = [];
     const seenSloIds: Set<string> = new Set<string>();
 
     for (const slo of data.serviceLevelObjectives || []) {
@@ -108,15 +109,16 @@ export const getSloAffectedResourceMarkdownLines: GetSloAffectedResourceMarkdown
 
       seenSloIds.add(sloId);
 
-      const escapedName: string = escapeMarkdownInline(slo.name).trim();
-      const linkText: string = escapedName ? `SLO ${escapedName}` : "SLO";
+      const name: string = (slo.name || "").trim();
       const link: URL = getSloDashboardUrl({
         dashboardUrl: data.dashboardUrl,
         projectId: data.projectId,
         sloId: sloId,
       });
 
-      lines.push(`- [${linkText}](${link.toString()})`);
+      lines.push(
+        name ? mdText`- [SLO ${name}](${link})` : mdText`- [SLO](${link})`,
+      );
     }
 
     return lines;

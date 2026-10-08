@@ -2,10 +2,14 @@ import Label from "../../Models/DatabaseModels/Label";
 import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import LabelService from "../Services/LabelService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ReferenceChange from "./Database/ReferenceChange";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+  MarkdownValue,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * WHAT AN UPDATE REALLY CHANGES ON AN INCIDENT, AN ALERT, A SCHEDULED
@@ -76,7 +80,7 @@ export interface EventFieldKind {
   textColumns: ReadonlyArray<EventTextColumn>;
   /*
    * Those of them that hold Markdown, shown in the feed as written. Every
-   * other text is plain text: quoted inertly (escapeMarkdownValue), so it
+   * other text is plain text: quoted inertly (mdText), so it
    * reads as typed and cannot become a link, an image or HTML.
    */
   markdownColumns: ReadonlyArray<EventTextColumn>;
@@ -408,13 +412,13 @@ export default class EventFieldChange {
   /*
    * The feed item's lines for the text and the labels an update changed, in
    * the order the feed lists them, each showing the value the update wrote;
-   * "" when it changed none of them. `recordName` ("Incident", "Alert",
+   * empty when it changed none of them. `recordName` ("Incident", "Alert",
    * "Scheduled Maintenance", "Monitor") names the description.
    *
-   * A title or a name is quoted inertly (escapeMarkdownValue), as the
-   * "created" item quotes it, and so are the label names: none of them can
-   * become a link, an image or HTML. A text `kind` holds as Markdown is shown
-   * as written; any other text is quoted inertly too, its line breaks kept.
+   * A title or a name is placed as text (mdText), as the "created" item
+   * places it, and so are the label names: none of them can become a link,
+   * an image or HTML. A text `kind` holds as Markdown is shown as written;
+   * any other text is placed as text too, its line breaks kept.
    */
   public static async getFeedMarkdown(data: {
     written: Record<string, unknown> | null | undefined;
@@ -422,28 +426,32 @@ export default class EventFieldChange {
     projectId: ObjectID;
     recordName: string;
     kind?: EventFieldKind | undefined;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     const written: Record<string, unknown> = data.written || {};
     const kind: EventFieldKind = data.kind || INCIDENT_OR_ALERT_FIELDS;
-    let markdown: string = "";
+    const lines: Array<MarkdownText> = [];
 
     for (const column of this.inFeedOrder(data.changes.textColumns)) {
-      markdown += this.getTextMarkdown({
-        column: column,
-        value: written[column],
-        recordName: data.recordName,
-        isMarkdown: kind.markdownColumns.includes(column),
-      });
+      lines.push(
+        this.getTextMarkdown({
+          column: column,
+          value: written[column],
+          recordName: data.recordName,
+          isMarkdown: kind.markdownColumns.includes(column),
+        }),
+      );
     }
 
     if (data.changes.labels) {
-      markdown += await this.getLabelsMarkdown({
-        writtenLabels: written["labels"],
-        projectId: data.projectId,
-      });
+      lines.push(
+        await this.getLabelsMarkdown({
+          writtenLabels: written["labels"],
+          projectId: data.projectId,
+        }),
+      );
     }
 
-    return markdown;
+    return FeedMarkdown.join(lines, "");
   }
 
   /*
@@ -456,25 +464,27 @@ export default class EventFieldChange {
     recordName: string;
     // The text is Markdown (the record's kind says so), shown as written.
     isMarkdown: boolean;
-  }): string {
+  }): MarkdownText {
     const text: string | null =
       typeof data.value === "string" && this.normalizeText(data.value)
         ? data.value
         : null;
 
-    const shown: string =
+    /*
+     * A title or a name is one line of text; Markdown is shown as written; a
+     * plain-text description keeps its own line breaks.
+     */
+    const shown: MarkdownValue =
       text === null
         ? this.emptyTextLines[data.column]
-        : data.column === "title"
-          ? escapeMarkdownValue(text)
+        : data.column === "title" ||
+            (data.column === "name" && !data.isMarkdown)
+          ? text
           : data.isMarkdown
-            ? text
-            : escapeMarkdownValue(text, {
-                // A name is one line; a plain-text description keeps its own.
-                keepLineBreaks: data.column !== "name",
-              });
+            ? FeedMarkdown.asMarkdown(text)
+            : FeedMarkdown.multilineText(text);
 
-    return `\n\n**${this.getHeading(data.column, data.recordName)}**: \n${shown}\n`;
+    return mdText`\n\n**${this.getHeading(data.column, data.recordName)}**: \n${shown}\n`;
   }
 
   private static getHeading(
@@ -497,19 +507,19 @@ export default class EventFieldChange {
 
   /*
    * The labels the record has after the update, by name, read within its
-   * project - or, when the update took every label off, that it did. "" when
-   * none of the labels it names can be read (deleted since, say).
+   * project - or, when the update took every label off, that it did. Empty
+   * when none of the labels it names can be read (deleted since, say).
    */
   public static async getLabelsMarkdown(data: {
     writtenLabels: unknown;
     projectId: ObjectID;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     const labelIds: Array<string> = ReferenceChange.normalizeList(
       data.writtenLabels,
     );
 
     if (labelIds.length === 0) {
-      return `\n\n**🏷️ Labels**: \n${this.noLabelsLine}\n`;
+      return mdText`\n\n**🏷️ Labels**: \n${this.noLabelsLine}\n`;
     }
 
     const labels: Array<Label> = await LabelService.findBy({
@@ -539,14 +549,10 @@ export default class EventFieldChange {
       });
 
     if (names.length === 0) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
-    return `\n\n**🏷️ Labels**:\n\n${names
-      .map((name: string): string => {
-        return `- ${escapeMarkdownValue(name)}`;
-      })
-      .join("\n")}\n`;
+    return mdText`\n\n**🏷️ Labels**:\n\n${FeedMarkdown.bulletList(names)}\n`;
   }
 
   // `columns` in the order the feed lists them, each once.

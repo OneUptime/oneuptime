@@ -81,6 +81,10 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { mergeDatabaseServerMemberKeys } from "../../Utils/Telemetry/DatabaseServerEntityKeys";
 import crypto from "crypto";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Two heartbeats, two namespaces: a collector reporting engine metrics is a
@@ -384,10 +388,11 @@ interface DatabaseServerCreationContext {
 // The Created feed item of a row no person added (describeCreationOrigin).
 interface DatabaseServerCreationOrigin {
   emoji: string;
-  // Follows the database's link: "was created automatically: detected from ...".
+  // Follows the database's link: "was created automatically: detected from ...". Text.
   summary: string;
   // The "**Created by**" line.
-  createdBy: string;
+  createdBy: MarkdownText;
+  // Text.
   explanation: string;
 }
 
@@ -796,7 +801,7 @@ export class Service extends ProjectReferencesService<Model> {
       getResourceMarkdownLink: (
         projectId: ObjectID,
         databaseServerId: ObjectID,
-      ): Promise<string> => {
+      ): Promise<MarkdownText> => {
         return this.getDatabaseServerMarkdownLink(projectId, databaseServerId);
       },
       createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
@@ -1787,7 +1792,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getDatabaseServerMarkdownLink(
     projectId: ObjectID,
     databaseServerId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getDatabaseServerName({
       databaseServerId: databaseServerId,
     });
@@ -1796,7 +1801,7 @@ export class Service extends ProjectReferencesService<Model> {
       databaseServerId,
     );
 
-    return `[Database ${name}](${link.toString()})`;
+    return mdText`[Database ${name}](${link.toString()})`;
   }
 
   /**
@@ -2253,14 +2258,15 @@ export class Service extends ProjectReferencesService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.DatabaseServerUpdated,
         displayColor: Gray500,
-        feedInfoInMarkdown: `🔎 ${await this.getDatabaseServerMarkdownLink(
-          row.projectId,
-          row.id,
-        )} is now identified as **${getDatabaseSystemDisplayName(
-          row.dbSystem,
-        )}** (it was shown as ${getDatabaseSystemDisplayName(
-          data.previousSystem,
-        )}), from ${DATABASE_SYSTEM_EVIDENCE_LABEL[data.evidence]}.`,
+        feedInfoInMarkdown:
+          mdText`🔎 ${await this.getDatabaseServerMarkdownLink(
+            row.projectId,
+            row.id,
+          )} is now identified as **${getDatabaseSystemDisplayName(
+            row.dbSystem,
+          )}** (it was shown as ${getDatabaseSystemDisplayName(
+            data.previousSystem,
+          )}), from ${DATABASE_SYSTEM_EVIDENCE_LABEL[data.evidence]}.`.toString(),
         moreInformationInMarkdown: `Client libraries of wire-compatible databases report the engine they speak to, so a database first seen in application traces can be named after the wrong engine. A stronger source - a container image, a collector receiver or the Database Agent - corrects it. A fork (MariaDB, Valkey, ScyllaDB ...) refines the engine it forks when a source at least as strong names it, or its container image does; application traces alone never override an image or a collector. An engine a person chose is never changed.`,
       });
     } catch (error) {
@@ -3660,10 +3666,10 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const resourceMarkdownLink: string =
+    const resourceMarkdownLink: MarkdownText =
       await this.getDatabaseServerMarkdownLink(projectId, databaseServerId);
 
-    const discoveredFrom: string = `**Discovered from**: ${getDatabaseServerDiscoverySourceLabel(
+    const discoveredFrom: MarkdownText = mdText`**Discovered from**: ${getDatabaseServerDiscoverySourceLabel(
       createdItem.discoverySource,
     )}`;
 
@@ -3688,7 +3694,8 @@ export class Service extends ProjectReferencesService<Model> {
 
       markdown = {
         feedInfoInMarkdown: created.feedInfoInMarkdown,
-        moreInformationInMarkdown: `${created.moreInformationInMarkdown}\n\n${discoveredFrom}`,
+        moreInformationInMarkdown:
+          mdText`${FeedMarkdown.asMarkdown(created.moreInformationInMarkdown)}\n\n${discoveredFrom}`.toString(),
       };
     } else {
       /*
@@ -3699,24 +3706,30 @@ export class Service extends ProjectReferencesService<Model> {
       const origin: DatabaseServerCreationOrigin =
         await this.describeCreationOrigin(createdItem, context);
 
-      const details: Array<string> = [];
+      const details: Array<MarkdownText> = [];
       if (createdItem.databaseIdentifier) {
         details.push(
-          `**Database identifier**: \`${createdItem.databaseIdentifier}\``,
+          mdText`**Database identifier**: \`${createdItem.databaseIdentifier}\``,
         );
       }
       if (createdItem.description) {
-        details.push(`**Description**: ${createdItem.description}`);
+        details.push(
+          mdText`**Description**: ${FeedMarkdown.asMarkdown(createdItem.description)}`,
+        );
       }
 
       markdown = {
-        feedInfoInMarkdown: `${origin.emoji} ${resourceMarkdownLink} ${origin.summary}.`,
-        moreInformationInMarkdown: [
-          origin.createdBy,
-          `**How it was created**: ${origin.explanation}`,
-          discoveredFrom,
-          ...details,
-        ].join("\n\n"),
+        feedInfoInMarkdown:
+          mdText`${origin.emoji} ${resourceMarkdownLink} ${origin.summary}.`.toString(),
+        moreInformationInMarkdown: FeedMarkdown.join(
+          [
+            origin.createdBy,
+            mdText`**How it was created**: ${origin.explanation}`,
+            discoveredFrom,
+            ...details,
+          ],
+          "\n\n",
+        ).toString(),
       };
     }
 
@@ -3742,8 +3755,7 @@ export class Service extends ProjectReferencesService<Model> {
     row: Model,
     context: DatabaseServerCreationContext | undefined,
   ): Promise<DatabaseServerCreationOrigin> {
-    const automatic: string =
-      "**Created by**: No user. OneUptime created this database on its own.";
+    const automatic: MarkdownText = mdText`**Created by**: No user. OneUptime created this database on its own.`;
     const endpoint: string = describeCreationEndpoint(row, context);
 
     switch (row.discoverySource) {
@@ -3826,8 +3838,7 @@ export class Service extends ProjectReferencesService<Model> {
         return {
           emoji: "🚀",
           summary: "was added manually",
-          createdBy:
-            "**Created by**: An API key or integration, not a signed-in user.",
+          createdBy: mdText`**Created by**: An API key or integration, not a signed-in user.`,
           explanation:
             "Added from the OneUptime dashboard or through the OneUptime API.",
         };
@@ -3939,7 +3950,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getDatabaseServerMarkdownLink(projectId, databaseServerId);
 
       if (isArchiveChange) {
@@ -3951,8 +3962,8 @@ export class Service extends ProjectReferencesService<Model> {
             : DatabaseServerFeedEventType.DatabaseServerRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }
@@ -4087,10 +4098,11 @@ export class Service extends ProjectReferencesService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.DatabaseServerRestored,
         displayColor: Blue500,
-        feedInfoInMarkdown: `♻️ ${await this.getDatabaseServerMarkdownLink(
-          row.projectId,
-          row.id,
-        )} was restored from the archive automatically - it was seen again after being archived for inactivity.`,
+        feedInfoInMarkdown:
+          mdText`♻️ ${await this.getDatabaseServerMarkdownLink(
+            row.projectId,
+            row.id,
+          )} was restored from the archive automatically - it was seen again after being archived for inactivity.`.toString(),
       });
 
       return true;
@@ -4198,15 +4210,17 @@ export class Service extends ProjectReferencesService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.DatabaseServerArchived,
         displayColor: Yellow500,
-        feedInfoInMarkdown: `🗄️ ${await this.getDatabaseServerMarkdownLink(
-          data.projectId,
-          data.databaseServerId,
-        )} was automatically archived - not seen for ${data.days} ${
-          data.days === 1 ? "day" : "days"
-        }.`,
-        moreInformationInMarkdown: `No collector, application trace or container inventory has reported this database for ${data.days} ${
-          data.days === 1 ? "day" : "days"
-        } while the Kubernetes cluster or container host it was found on (if any) kept reporting, and nobody has labelled it, owned it, linked it to an incident, alert or scheduled maintenance, added an endpoint to it, changed its retention or recently restored it from the archive. Labels and owners that rules or telemetry attached on their own do not count. ${restoredBy}`,
+        feedInfoInMarkdown:
+          mdText`🗄️ ${await this.getDatabaseServerMarkdownLink(
+            data.projectId,
+            data.databaseServerId,
+          )} was automatically archived - not seen for ${data.days} ${
+            data.days === 1 ? "day" : "days"
+          }.`.toString(),
+        moreInformationInMarkdown:
+          mdText`No collector, application trace or container inventory has reported this database for ${data.days} ${
+            data.days === 1 ? "day" : "days"
+          } while the Kubernetes cluster or container host it was found on (if any) kept reporting, and nobody has labelled it, owned it, linked it to an incident, alert or scheduled maintenance, added an endpoint to it, changed its retention or recently restored it from the archive. Labels and owners that rules or telemetry attached on their own do not count. ${restoredBy}`.toString(),
       });
     } catch (error) {
       logger.warn(

@@ -41,6 +41,7 @@ import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Owners are who gets paged when an SLO goes at risk, so "who was put on the
  * hook, who was taken off, and by whom" is part of the SLO's history. These
@@ -173,7 +174,7 @@ beforeEach(() => {
 
   sloLinkSpy = jest
     .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-    .mockResolvedValue(SLO_MARKDOWN_LINK);
+    .mockResolvedValue(FeedMarkdown.asMarkdown(SLO_MARKDOWN_LINK));
 
   jest
     .spyOn(UserService, "getUserLinkInDashboard")
@@ -454,7 +455,7 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     );
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍💻 Removed **\\*\\*Jane\\*\\* \\[x\\]\\(y\\)** (jane\\_doe@example.com) as an owner of ${SLO_MARKDOWN_LINK}.`,
+      `👨🏻‍💻 Removed **\\*\\*Jane\\*\\* \\[x\\](y)** (jane_doe@example.com) as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
   });
 
@@ -546,7 +547,7 @@ describe("ServiceLevelObjectiveOwnerTeamService feed writes", () => {
     );
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍👩🏻‍👦🏻 Added team **SRE\\*\\* \\[phish\\]\\(https://evil.example\\)** as an owner of ${SLO_MARKDOWN_LINK}.`,
+      `👨🏻‍👩🏻‍👦🏻 Added team **SRE\\*\\* \\[phish\\](https://evil.example)** as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
   });
 

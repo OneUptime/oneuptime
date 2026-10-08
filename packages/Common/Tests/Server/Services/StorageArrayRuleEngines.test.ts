@@ -47,6 +47,7 @@ import RuleCriteria, {
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../Utils/Rules/RuleEngineLimits";
 import { getJestSpyOn } from "../../Spy";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The storage array label and owner rule engines.
  *
@@ -196,7 +197,9 @@ beforeEach(() => {
     StorageArrayService,
     "getStorageArrayMarkdownLink",
   ).mockResolvedValue(
-    "[Storage Array pure-prod-01](https://example.com/storage-arrays/1)",
+    FeedMarkdown.asMarkdown(
+      "[Storage Array pure-prod-01](https://example.com/storage-arrays/1)",
+    ),
   );
   // The labels and teams the rules name are the project's.
   stubProjectDirectory({});

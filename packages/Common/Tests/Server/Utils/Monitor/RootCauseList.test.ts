@@ -5,6 +5,7 @@ import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { marked, Tokens, Token } from "marked";
 import { describe, expect, test } from "@jest/globals";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * RootCauseList is the numbered list both per-item breakdowns of a root
  * cause render as — a platform monitor's Affected Resources and a metric
@@ -15,11 +16,14 @@ import { describe, expect, test } from "@jest/globals";
 
 function item(overrides: Partial<RootCauseListItem> = {}): RootCauseListItem {
   return {
-    title: "`2026-08-14T10:30:00.000Z`",
-    value: "**1.07 GB**",
+    title: FeedMarkdown.asMarkdown("`2026-08-14T10:30:00.000Z`"),
+    value: FeedMarkdown.asMarkdown("**1.07 GB**"),
     details: [
-      { label: "`a`", value: "537 MB" },
-      { label: "`k8s.pod.name`", value: "`web-1`" },
+      { label: FeedMarkdown.asMarkdown("`a`"), value: "537 MB" },
+      {
+        label: FeedMarkdown.asMarkdown("`k8s.pod.name`"),
+        value: FeedMarkdown.asMarkdown("`web-1`"),
+      },
     ],
     ...overrides,
   };
@@ -31,9 +35,11 @@ function items(count: number): Array<RootCauseListItem> {
   for (let i: number = 1; i <= count; i++) {
     result.push(
       item({
-        title: `\`item-${i}\``,
-        value: `**${i}**`,
-        details: [{ label: "Label", value: `\`detail-${i}\`` }],
+        title: FeedMarkdown.asMarkdown(`\`item-${i}\``),
+        value: FeedMarkdown.asMarkdown(`**${i}**`),
+        details: [
+          { label: "Label", value: FeedMarkdown.asMarkdown(`\`detail-${i}\``) },
+        ],
       }),
     );
   }
@@ -43,7 +49,7 @@ function items(count: number): Array<RootCauseListItem> {
 
 describe("RootCauseList.render", () => {
   test("renders each item as a numbered line with its details as nested bullets", () => {
-    expect(RootCauseList.render([item()])).toBe(
+    expect(RootCauseList.render([item()]).toString()).toBe(
       [
         "1. `2026-08-14T10:30:00.000Z` — **1.07 GB**",
         "   - `a`: 537 MB",
@@ -53,18 +59,18 @@ describe("RootCauseList.render", () => {
   });
 
   test("returns just the list — no heading, and no leading or trailing blank lines", () => {
-    const markdown: string = RootCauseList.render(items(2));
+    const markdown: string = RootCauseList.render(items(2)).toString();
 
     expect(markdown.startsWith("1. ")).toBe(true);
     expect(markdown.endsWith("`detail-2`")).toBe(true);
   });
 
   test("returns an empty string for no items", () => {
-    expect(RootCauseList.render([])).toBe("");
+    expect(RootCauseList.render([]).toString()).toBe("");
   });
 
   test("numbers the items from 1 in the order given", () => {
-    const markdown: string = RootCauseList.render(items(3));
+    const markdown: string = RootCauseList.render(items(3)).toString();
 
     expect(markdown.split("\n")).toEqual([
       "1. `item-1` — **1**",
@@ -77,7 +83,7 @@ describe("RootCauseList.render", () => {
   });
 
   test("indents details to the content column: three spaces under 1-9, four under 10-99, five under 100", () => {
-    const markdown: string = RootCauseList.render(items(100));
+    const markdown: string = RootCauseList.render(items(100)).toString();
 
     expect(markdown).toContain("9. `item-9` — **9**\n   - Label: `detail-9`");
     expect(markdown).toContain(
@@ -95,13 +101,13 @@ describe("RootCauseList.render", () => {
     const markdown: string = RootCauseList.render([
       item({
         details: [
-          { label: "`a`", value: "537 MB" },
-          { label: "`b`", value: "" },
-          { label: "`c`", value: "   " },
-          { label: "`d`", value: "1.5 sec" },
+          { label: FeedMarkdown.asMarkdown("`a`"), value: "537 MB" },
+          { label: FeedMarkdown.asMarkdown("`b`"), value: "" },
+          { label: FeedMarkdown.asMarkdown("`c`"), value: "   " },
+          { label: FeedMarkdown.asMarkdown("`d`"), value: "1.5 sec" },
         ],
       }),
-    ]);
+    ]).toString();
 
     expect(markdown.split("\n")).toEqual([
       "1. `2026-08-14T10:30:00.000Z` — **1.07 GB**",
@@ -112,8 +118,10 @@ describe("RootCauseList.render", () => {
 
   test("a detail with an empty label is just its value", () => {
     const markdown: string = RootCauseList.render([
-      item({ details: [{ label: "", value: "`web-1`" }] }),
-    ]);
+      item({
+        details: [{ label: "", value: FeedMarkdown.asMarkdown("`web-1`") }],
+      }),
+    ]).toString();
 
     expect(markdown).toBe(
       "1. `2026-08-14T10:30:00.000Z` — **1.07 GB**\n   - `web-1`",
@@ -121,53 +129,78 @@ describe("RootCauseList.render", () => {
   });
 
   test("an item without details is a single line", () => {
-    expect(RootCauseList.render([item({ details: [] })])).toBe(
+    expect(RootCauseList.render([item({ details: [] })]).toString()).toBe(
       "1. `2026-08-14T10:30:00.000Z` — **1.07 GB**",
     );
   });
 
   test("an empty value leaves just the title, with no dangling dash", () => {
-    expect(RootCauseList.render([item({ value: "", details: [] })])).toBe(
-      "1. `2026-08-14T10:30:00.000Z`",
-    );
+    expect(
+      RootCauseList.render([item({ value: "", details: [] })]).toString(),
+    ).toBe("1. `2026-08-14T10:30:00.000Z`");
   });
 
   test("an empty title leaves just the value", () => {
-    expect(RootCauseList.render([item({ title: " ", details: [] })])).toBe(
-      "1. **1.07 GB**",
-    );
+    expect(
+      RootCauseList.render([item({ title: " ", details: [] })]).toString(),
+    ).toBe("1. **1.07 GB**");
   });
 
   test("trims the whitespace around the title, value, labels and values", () => {
     expect(
       RootCauseList.render([
         item({
-          title: "  `t`  ",
-          value: " **v** ",
-          details: [{ label: " `k` ", value: " `x` " }],
+          title: FeedMarkdown.asMarkdown("  `t`  "),
+          value: FeedMarkdown.asMarkdown(" **v** "),
+          details: [
+            {
+              label: FeedMarkdown.asMarkdown(" `k` "),
+              value: FeedMarkdown.asMarkdown(" `x` "),
+            },
+          ],
         }),
-      ]),
+      ]).toString(),
     ).toBe("1. `t` — **v**\n   - `k`: `x`");
   });
 
-  test("renders labels, titles and values as markdown, unescaped", () => {
+  test("places MarkdownText titles, labels and values as they are", () => {
     /*
-     * The caller decides: AffectedResourceList escapes its plain-text
-     * labels, the Breaching Samples block code-spans its attribute keys.
+     * The caller decides: AffectedResourceList hands its plain-text labels
+     * over as text, the Breaching Samples block code-spans its attribute
+     * keys (RootCauseList.code).
      */
     expect(
       RootCauseList.render([
         item({
-          title: "**Pod** `x`",
-          details: [{ label: "*Namespace*", value: "`y`" }],
+          title: FeedMarkdown.asMarkdown("**Pod** `x`"),
+          details: [
+            {
+              label: FeedMarkdown.asMarkdown("*Namespace*"),
+              value: FeedMarkdown.asMarkdown("`y`"),
+            },
+          ],
         }),
-      ]),
+      ]).toString(),
     ).toBe("1. **Pod** `x` — **1.07 GB**\n   - *Namespace*: `y`");
+  });
+
+  test("places plain text titles, labels and values as text", () => {
+    expect(
+      RootCauseList.render([
+        {
+          title: "**Pod** [x](https://evil.example)",
+          value: "*3*",
+          details: [{ label: "*Namespace*", value: "<b>y</b>" }],
+        },
+      ]).toString(),
+    ).toBe(
+      "1. \\*\\*Pod\\*\\* \\[x\\](https://evil.example) — \\*3\\*\n   - \\*Namespace\\*: \\<b>y\\</b>",
+    );
   });
 
   test("parses as one ordered list whose every item owns a nested bullet list, with no code blocks", () => {
     const tokens: Array<Token> = marked
-      .lexer(RootCauseList.render(items(12)))
+      .lexer(RootCauseList.render(items(12)).toString())
       .filter((token: Token): boolean => {
         return token.type !== "space";
       });
@@ -206,11 +239,11 @@ describe("RootCauseList.render", () => {
 
 describe("RootCauseList.code", () => {
   test("wraps a value in single backticks", () => {
-    expect(RootCauseList.code("web-1")).toBe("`web-1`");
+    expect(RootCauseList.code("web-1").toString()).toBe("`web-1`");
   });
 
   test("an ISO timestamp stays a bare single-backtick span, which the dashboard localizes", () => {
-    expect(RootCauseList.code("2026-08-14T10:30:00.000Z")).toBe(
+    expect(RootCauseList.code("2026-08-14T10:30:00.000Z").toString()).toBe(
       "`2026-08-14T10:30:00.000Z`",
     );
   });
@@ -222,22 +255,24 @@ describe("RootCauseList.code", () => {
     ["whitespace", "  \t "],
     ["line breaks", "\r\n\n"],
   ])("returns an empty string for %s", (_label: string, value: unknown) => {
-    expect(RootCauseList.code(value as string | undefined | null)).toBe("");
+    expect(
+      RootCauseList.code(value as string | undefined | null).toString(),
+    ).toBe("");
   });
 
   test("turns line breaks into single spaces", () => {
-    expect(RootCauseList.code("a\nb\r\nc \n\n d")).toBe("`a b c d`");
+    expect(RootCauseList.code("a\nb\r\nc \n\n d").toString()).toBe("`a b c d`");
   });
 
   test("a value with backticks gets a fence one longer than its longest run, padded with spaces", () => {
-    expect(RootCauseList.code("a`b")).toBe("`` a`b ``");
-    expect(RootCauseList.code("a``b`c")).toBe("``` a``b`c ```");
+    expect(RootCauseList.code("a`b").toString()).toBe("`` a`b ``");
+    expect(RootCauseList.code("a``b`c").toString()).toBe("``` a``b`c ```");
   });
 
   test("a Slack mention in a reported value notifies nobody once the root cause reaches Slack", () => {
     const value: string =
       "<!channel> <@U0123ABC> <#C0123ABC> <!subteam^S0123ABC>";
-    const span: string = RootCauseList.code(value);
+    const span: string = RootCauseList.code(value).toString();
 
     // It reads as reported: the word joiner that breaks each mention is invisible.
     expect(span.split("\u2060").join("")).toBe(`\`${value}\``);
@@ -247,7 +282,9 @@ describe("RootCauseList.code", () => {
      */
     expect(
       SlackUtil.convertMarkdownToSlackRichText(
-        RootCauseList.render([{ title: span, value: "**3**", details: [] }]),
+        RootCauseList.render([
+          { title: span, value: FeedMarkdown.asMarkdown("**3**"), details: [] },
+        ]).toString(),
       ),
     ).not.toMatch(/<[!@#][A-Za-z0-9]/);
   });
@@ -258,7 +295,7 @@ describe("RootCauseList.code", () => {
         title: RootCauseList.code(
           "x` [Verify](https://evil.example/login) ![](https://tracker.example/p.png) <img src=x> `y",
         ),
-        value: "**1**",
+        value: FeedMarkdown.asMarkdown("**1**"),
         details: [
           {
             label: "Pod",
@@ -266,7 +303,7 @@ describe("RootCauseList.code", () => {
           },
         ],
       },
-    ]);
+    ]).toString();
 
     const kinds: Array<string> = [];
 

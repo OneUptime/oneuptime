@@ -46,6 +46,7 @@ import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentI
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SlackActionAuthorization from "./Authorization";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -200,7 +201,8 @@ export default class SlackIncidentActions {
         incident.createdByUserId = userId;
       }
       incident.incidentSeverityId = incidentSeverityId;
-      const rootCauseInMarkdown: string = `Incident created by @${slackRequest.slackUsername} on Slack.`;
+      const rootCauseInMarkdown: string =
+        mdText`Incident created by @${slackRequest.slackUsername} on Slack.`.toString();
 
       incident.rootCause = rootCauseInMarkdown;
 
@@ -257,10 +259,10 @@ export default class SlackIncidentActions {
             messageBlocks: [
               {
                 _type: "WorkspacePayloadMarkdown",
-                text: `**Incident ${createdIncident.incidentNumberWithPrefix || "#" + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
+                text: mdText`**Incident ${createdIncident.incidentNumberWithPrefix || "#" + createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
                   slackRequest.projectId!,
                   createdIncident.id!,
-                )})`,
+                )})`.toString(),
               } as WorkspacePayloadMarkdown,
             ],
           },
@@ -604,7 +606,7 @@ export default class SlackIncidentActions {
         // send a message to the channel visible to user, that the incident has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot acknowledge the **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been acknowledged.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot acknowledge the **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been acknowledged.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -746,7 +748,7 @@ export default class SlackIncidentActions {
         // send a message to the channel visible to user, that the incident has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot resolve the **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -1151,7 +1153,7 @@ export default class SlackIncidentActions {
         // send a message to the channel visible to user, that the incident has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Incident ${incidentNumberDisplay}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({

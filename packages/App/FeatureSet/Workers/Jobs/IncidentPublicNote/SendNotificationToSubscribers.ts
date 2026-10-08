@@ -70,7 +70,10 @@ import Email from "Common/Types/Email";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -625,18 +628,18 @@ const notifySubscribersOfIncidentPublicNote: (data: {
          * default Slack and Teams messages, one per line. The default SMS
          * carries none: it is billed by the segment.
          */
-        const chatCustomFields: string =
+        const chatCustomFields: MarkdownText =
           pageTemplateVariables.customFieldsMarkdownLines.length > 0
-            ? `${pageTemplateVariables.customFieldsMarkdownLines.join("\n")}\n`
-            : "";
+            ? mdText`${FeedMarkdown.join(pageTemplateVariables.customFieldsMarkdownLines, "\n")}\n`
+            : FeedMarkdown.empty();
 
         /*
          * "**Status:** Resolved", under the severity, for a note posted with
          * a state change: where the state change message has it.
          */
-        const chatStatusLine: string = stateChange
-          ? `${StateChangeNoteMessage.getChatStatusLine(stateChange.name)}\n`
-          : "";
+        const chatStatusLine: MarkdownText = stateChange
+          ? mdText`${StateChangeNoteMessage.getChatStatusLine(stateChange.name)}\n`
+          : FeedMarkdown.empty();
 
         /*
          * Every subscriber of the page, read in batches past LIMIT_MAX, a
@@ -855,17 +858,17 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 ]);
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${escapeMarkdownValue(incident.title || "")}
+                markdownMessage = mdText`## Incident - ${incident.title || ""}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
-**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${resourcesAffectedPlainText}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
 ${chatStatusLine}${chatCustomFields}
 **Note:**
-${incidentPublicNote.note || ""}
+${FeedMarkdown.asMarkdown(incidentPublicNote.note || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                 await incidentTemplateVariables.recordIncludedFieldsSent();
               }
 
@@ -907,17 +910,17 @@ ${incidentPublicNote.note || ""}
                 ]);
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${escapeMarkdownValue(incident.title || "")}
+                markdownMessage = mdText`## Incident - ${incident.title || ""}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
-**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${resourcesAffectedPlainText}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
 ${chatStatusLine}${chatCustomFields}
 **Note:**
-${incidentPublicNote.note || ""}
+${FeedMarkdown.asMarkdown(incidentPublicNote.note || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                 await incidentTemplateVariables.recordIncludedFieldsSent();
               }
 
@@ -1003,8 +1006,9 @@ ${incidentPublicNote.note || ""}
 
     const deliveryMarkdown: string = deliveryRecord.toMarkdown();
     // The custom field values that went out, as they were sent.
-    const customFieldsSentMarkdown: string =
-      incidentTemplateVariables.getSentCustomFieldsMarkdown();
+    const customFieldsSentMarkdown: string = incidentTemplateVariables
+      .getSentCustomFieldsMarkdown()
+      .toString();
 
     /*
      * Fell short when a message failed, or the send stopped before it
@@ -1023,15 +1027,16 @@ ${incidentPublicNote.note || ""}
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Red500,
-        feedInfoInMarkdown: `📧 **Not every subscriber was sent the notification** that ${copy.feedSentReason} this [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
+        feedInfoInMarkdown:
+          mdText`📧 **Not every subscriber was sent the notification** that ${copy.feedSentReason} this [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`.toString(),
         /*
          * The note, then each status page with what was sent and what
          * failed and its subject, then the custom field values sent.
          */
         moreInformationInMarkdown: [
-          `**Public Note:**
+          mdText`**Public Note:**
 
-${incidentPublicNote.note}`,
+${FeedMarkdown.asMarkdown(incidentPublicNote.note)}`.toString(),
           deliveryMarkdown,
           customFieldsSentMarkdown,
         ]
@@ -1052,15 +1057,16 @@ ${incidentPublicNote.note}`,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
+        feedInfoInMarkdown:
+          mdText`📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`.toString(),
         /*
          * The note, then each status page, its subject and what was sent,
          * then the custom field values sent.
          */
         moreInformationInMarkdown: [
-          `**Public Note:**
+          mdText`**Public Note:**
 
-${incidentPublicNote.note}`,
+${FeedMarkdown.asMarkdown(incidentPublicNote.note)}`.toString(),
           deliveryMarkdown,
           customFieldsSentMarkdown,
         ]
@@ -1083,7 +1089,8 @@ ${incidentPublicNote.note}`,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
         displayColor: Yellow500,
-        feedInfoInMarkdown: `📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`,
+        feedInfoInMarkdown:
+          mdText`📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()}).`.toString(),
         moreInformationInMarkdown: [
           "Subscriber notifications were skipped because every associated status page either hides incidents, is left out by this incident's status page scope, or had no matching subscribers.",
           deliveryMarkdown,

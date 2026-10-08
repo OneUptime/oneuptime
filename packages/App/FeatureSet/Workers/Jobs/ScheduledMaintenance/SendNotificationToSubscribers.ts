@@ -8,6 +8,7 @@ import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import logger from "Common/Server/Utils/Logger";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * Why a 'scheduled' message that is queued while notifying subscribers is off
@@ -110,8 +111,9 @@ RunCron(
           event.scheduledMaintenanceNumberWithPrefix ||
           event.scheduledMaintenanceNumber?.toString() ||
           " - ";
-        const scheduledMaintenanceFeedText: string = `📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
-              Notification sent to status page subscribers because this scheduled maintenance was created.`;
+        const scheduledMaintenanceFeedText: string =
+          mdText`📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
+              Notification sent to status page subscribers because this scheduled maintenance was created.`.toString();
 
         // Set status to InProgress
         await ScheduledMaintenanceService.updateOneById({

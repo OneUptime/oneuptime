@@ -75,8 +75,8 @@ import ResourceAiAccessService, {
   describeResourceNoun,
 } from "../../Services/ResourceAiAccessService";
 import logger from "../Logger";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Auto-remediation — the approved-command-plan executor and the rollback
@@ -384,14 +384,14 @@ export default class CommandPlanExecutor {
       await this.postFeedItem({
         suggestion,
         markdown: settledMidPlan
-          ? `⚠️ **Approved AI command plan finished after its verification had already concluded**${
-              firstFailure ? ` — ${firstFailure}` : ""
-            }. Commands that had not started yet were skipped; the verification and rollback notes on this suggestion say what was judged and what was undone. Review the per-command record.`
+          ? mdText`⚠️ **Approved AI command plan finished after its verification had already concluded**${
+              firstFailure ? mdText` — ${firstFailure}` : ""
+            }. Commands that had not started yet were skipped; the verification and rollback notes on this suggestion say what was judged and what was undone. Review the per-command record.`.toString()
           : failed
-            ? `⚠️ **Approved AI command plan did not complete** — ${
+            ? mdText`⚠️ **Approved AI command plan did not complete** — ${
                 firstFailure || "a command failed"
-              }; the remaining commands were skipped. Review the per-command output on the suggestion. Verification will judge (and roll back) what ran.`
-            : `⚡ **Approved AI command plan executed** (${plan.commands.length} command(s)). Verification is watching the monitors for recovery.`,
+              }; the remaining commands were skipped. Review the per-command output on the suggestion. Verification will judge (and roll back) what ran.`.toString()
+            : mdText`⚡ **Approved AI command plan executed** (${plan.commands.length} command(s)). Verification is watching the monitors for recovery.`.toString(),
         pingWorkspace: failed || settledMidPlan,
         displayColor: failed || settledMidPlan ? Red500 : Green500,
       });
@@ -723,23 +723,24 @@ export default class CommandPlanExecutor {
         suggestion,
         markdown:
           leftForHuman.length > 0
-            ? `⚠️ **Auto-remediation rollback was not run for ${leftForHuman.length} command(s)** — the ${
+            ? mdText`⚠️ **Auto-remediation rollback was not run for ${leftForHuman.length} command(s)** — the ${
                 leftForHuman.every((command: AiRemediationCommand): boolean => {
                   return command.stepType === RunbookStepType.ResourceCommand;
                 })
                   ? this.describeCommandResourceNoun(leftForHuman[0]!)
                   : "cluster"
-              } no longer allows them unattended, or whether they ran could not be confirmed, so a human has to undo them. ${leftForHuman
-                .map((command: AiRemediationCommand) => {
+              } no longer allows them unattended, or whether they ran could not be confirmed, so a human has to undo them. ${FeedMarkdown.join(
+                leftForHuman.map((command: AiRemediationCommand): string => {
                   return this.capForFeed(
                     command.rollbackExecution?.errorMessage || "",
                   );
-                })
-                .join(" ")}${
+                }),
+                " ",
+              )}${
                 failedUndos > 0
-                  ? ` ${failedUndos} other rollback command(s) failed.`
+                  ? mdText` ${failedUndos} other rollback command(s) failed.`
                   : ""
-              } Review the suggestion's per-command record; manual intervention is needed.`
+              } Review the suggestion's per-command record; manual intervention is needed.`.toString()
             : anyFailed
               ? `⚠️ **Auto-remediation rollback did not fully complete** — at least one rollback command failed, or its outcome is not known. Review the suggestion's per-command record; manual intervention may be needed.`
               : `↩️ **Auto-remediation rolled back** — the executed commands' rollback commands ran after verification failed. Escalation continues as normal.`,
@@ -1396,17 +1397,15 @@ export default class CommandPlanExecutor {
   }
 
   /*
-   * A command's error as the feed shows it: on one line, capped, and escaped
-   * for the feed item's Markdown - it is whatever the resource, the cluster
-   * or the command printed.
+   * A command's error as the feed shows it: on one line and capped. It is
+   * whatever the resource, the cluster or the command printed - plain text,
+   * which the feed item places as text (mdText).
    */
   private static capForFeed(text: string): string {
     const collapsed: string = text.trim().replace(/\s+/g, " ");
-    return escapeMarkdownValue(
-      collapsed.length > MAX_FEED_REASON_CHARS
-        ? `${collapsed.slice(0, MAX_FEED_REASON_CHARS)}…`
-        : collapsed,
-    );
+    return collapsed.length > MAX_FEED_REASON_CHARS
+      ? `${collapsed.slice(0, MAX_FEED_REASON_CHARS)}…`
+      : collapsed;
   }
 
   /*

@@ -20,6 +20,7 @@ import {
   test,
 } from "@jest/globals";
 
+import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * What an update really changes on an incident or an alert: the title, the
  * root cause, the description, the remediation notes, the labels and the
@@ -502,6 +503,8 @@ describe("EventFieldChange.getFeedMarkdown", () => {
       changes: { ...NOTHING, ...changes },
       projectId: PROJECT_ID,
       recordName: recordName,
+    }).then((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
   }
 
@@ -802,6 +805,8 @@ describe("EventFieldChange.getFeedMarkdown for a monitor", () => {
       projectId: PROJECT_ID,
       recordName: "Monitor",
       kind: MONITOR_FIELDS,
+    }).then((markdown: MarkdownText): string => {
+      return markdown.toString();
     });
   }
 
@@ -849,13 +854,15 @@ describe("EventFieldChange.getFeedMarkdown for a monitor", () => {
 
   test("a scheduled maintenance description is Markdown, shown as written", async () => {
     expect(
-      await EventFieldChange.getFeedMarkdown({
-        written: { description: "**Database** [runbook](https://r.example)" },
-        changes: { ...NOTHING, textColumns: ["description"] },
-        projectId: PROJECT_ID,
-        recordName: "Scheduled Maintenance",
-        kind: SCHEDULED_MAINTENANCE_FIELDS,
-      }),
+      (
+        await EventFieldChange.getFeedMarkdown({
+          written: { description: "**Database** [runbook](https://r.example)" },
+          changes: { ...NOTHING, textColumns: ["description"] },
+          projectId: PROJECT_ID,
+          recordName: "Scheduled Maintenance",
+          kind: SCHEDULED_MAINTENANCE_FIELDS,
+        })
+      ).toString(),
     ).toBe(
       "\n\n**Scheduled Maintenance Description**: \n**Database** [runbook](https://r.example)\n",
     );

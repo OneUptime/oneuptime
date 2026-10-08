@@ -5,7 +5,6 @@ import { ServiceLevelObjectiveFeedEventType } from "../../Models/DatabaseModels/
 import ServiceLevelObjectiveLabelRule from "../../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -22,6 +21,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveLabelRuleService from "./ServiceLevelObjectiveLabelRuleService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 class ServiceLevelObjectiveLabelRuleEngineServiceClass
   implements
@@ -260,7 +261,7 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
     matchedRuleNames: Array<string>;
   }): Promise<void> {
     try {
-      const sloLink: string =
+      const sloLink: MarkdownText =
         await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: data.projectId,
           sloId: data.serviceLevelObjectiveId,
@@ -274,13 +275,13 @@ class ServiceLevelObjectiveLabelRuleEngineServiceClass
           serviceLevelObjectiveFeedEventType:
             ServiceLevelObjectiveFeedEventType.LabelRuleExecuted,
           displayColor: Purple500,
-          feedInfoInMarkdown: `🏷️ ${data.labelsAdded} label(s) were attached to ${sloLink} by label ${data.matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-          moreInformationInMarkdown: `**Label rules that matched**: ${data.matchedRuleNames
-            .map((name: string): string => {
-              // Rule names are user-controlled and the feed renders markdown.
-              return `**${escapeMarkdownInline(name)}**`;
-            })
-            .join(", ")}`,
+          feedInfoInMarkdown:
+            mdText`🏷️ ${data.labelsAdded} label(s) were attached to ${sloLink} by label ${data.matchedRuleNames.length === 1 ? "rule" : "rules"}.`.toString(),
+          moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+            ruleKind: "Label",
+            ruleNames: data.matchedRuleNames,
+            namesInBold: true,
+          }).toString(),
         },
       );
     } catch (error) {

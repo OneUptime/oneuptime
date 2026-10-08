@@ -99,10 +99,12 @@ describe("UserService.getUserMarkdownString", () => {
   async function markdownFor(user: User | null): Promise<string> {
     jest.spyOn(UserService, "findOneBy").mockResolvedValue(user as never);
 
-    return await UserService.getUserMarkdownString({
-      userId: USER_ID,
-      projectId: PROJECT_ID,
-    });
+    return (
+      await UserService.getUserMarkdownString({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      })
+    ).toString();
   }
 
   test("a name is the text of one link to the profile, and reads as typed", async () => {
@@ -116,7 +118,7 @@ describe("UserService.getUserMarkdownString", () => {
     expect(marked.parse(markdown, { async: false }) as string).not.toContain(
       "<img",
     );
-    expect(markdown).toContain(`\\<${WORD_JOINER}\\!channel\\>`);
+    expect(markdown).toContain(`\\<${WORD_JOINER}\\!channel>`);
   });
 
   test("Slack reads no mention in the name, and no other link", async () => {
@@ -137,9 +139,7 @@ describe("UserService.getUserMarkdownString", () => {
       userNamed({ email: "jane_doe+[sre]@example.com" }),
     );
 
-    expect(markdown).toBe(
-      `[jane\\_doe\\+\\[sre\\]@example.com](${PROFILE_URL})`,
-    );
+    expect(markdown).toBe(`[jane\\_doe+\\[sre\\]@example.com](${PROFILE_URL})`);
     expect(linksIn(markdown)).toEqual([
       { href: PROFILE_URL, text: "jane_doe+[sre]@example.com" },
     ]);

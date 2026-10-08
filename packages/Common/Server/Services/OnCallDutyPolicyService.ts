@@ -62,6 +62,7 @@ import {
   FirstResponderKey,
   readFirstResponderIds,
 } from "../../Types/OnCallDutyPolicy/FirstResponders";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 // A join row of a new policy's first escalation rule, and its model.
 interface FirstResponderJoin {
@@ -650,19 +651,19 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    let feedInfoInMarkdown: string = `#### 📞 On Call Policy Created: 
+    let feedInfoInMarkdown: string = mdText`#### 📞 On Call Policy Created: 
               
 **${onCallPolicy.name || "No name provided."}**:
     
-${onCallPolicy.description || "No description provided."}
+${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided.")}
         
-`;
+`.toString();
 
     if (onCallPolicy?.labels && onCallPolicy.labels.length > 0) {
       feedInfoInMarkdown += `🏷️ **Labels**:\n`;
 
       for (const label of onCallPolicy.labels) {
-        feedInfoInMarkdown += `- ${label.name}\n`;
+        feedInfoInMarkdown += mdText`- ${label.name}\n`;
       }
 
       feedInfoInMarkdown += `\n\n`;

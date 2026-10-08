@@ -28,6 +28,12 @@ import ObjectID from "../../../../Types/ObjectID";
 import { marked, Tokens, Token } from "marked";
 import { describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * THE BREACHING SAMPLES LIST.
  *
@@ -60,7 +66,7 @@ type EvaluatorPrivate = {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
-  }) => string | null;
+  }) => MarkdownText | null;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -213,10 +219,12 @@ function makeCriteriaInstance(
 }
 
 function rootCause(ctx: MetricCriteriaContext, monitor?: Monitor): string {
-  const context: string | null = Evaluator.buildMetricRootCauseContext({
-    criteriaInstance: makeCriteriaInstance(ctx),
-    monitor: monitor || new Monitor(),
-  });
+  const context: string | null = textOf(
+    Evaluator.buildMetricRootCauseContext({
+      criteriaInstance: makeCriteriaInstance(ctx),
+      monitor: monitor || new Monitor(),
+    }),
+  );
 
   expect(context).not.toBeNull();
   return context as string;
