@@ -438,6 +438,27 @@ describe("POST /auto-remediation/approve — a plan that runs with a runbook cre
     );
   });
 
+  test("is refused before the project, its Runners or its clusters are read", async () => {
+    expectRefused(await callApprove());
+
+    expect(ProjectService.findOneById).not.toHaveBeenCalled();
+    expect(RunnerService.findOneBy).not.toHaveBeenCalled();
+    expect(
+      KubernetesClusterAiAccessService.getStatusForCluster,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("an approver who may read credentials goes on to the project and Runner checks", async () => {
+    approver({
+      permissions: [Permission.ProjectMember, Permission.ReadRunbookCredential],
+    });
+
+    expectApproved(await callApprove());
+
+    expect(ProjectService.findOneById).toHaveBeenCalledTimes(1);
+    expect(RunnerService.findOneBy).toHaveBeenCalled();
+  });
+
   test("names the first command that runs with a credential, in a mixed plan", async () => {
     suggestionFindSpy.mockResolvedValue(
       suggestionWith([

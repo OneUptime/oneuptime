@@ -20,9 +20,9 @@ import {
 /*
  * THE RESOURCES A SUBSCRIPTION NAMES ARE ITS OWN STATUS PAGE'S.
  *
- * What the subscriber service and the status page's subscribe routes ask
- * about every resource a subscription names: is it one of the page's (and,
- * for a visitor, one the page shows)? Anything else - another page's
+ * What the subscriber service asks about every resource a subscription
+ * names, on every write of it: is it one of the page's (and, for a visitor
+ * on the status page, one the page shows)? Anything else - another page's
  * resource, another project's, an id that matches nothing, a malformed id -
  * gets one answer, the refusal every reference check gives, so nothing tells
  * them apart.
@@ -81,6 +81,7 @@ function refusalFor(ids: Array<string>): string {
 interface LookupCall {
   query: JSONObject;
   select: JSONObject;
+  limit: number;
 }
 
 let lookups: Array<LookupCall> = [];
@@ -95,7 +96,11 @@ function standInForTheDatabase(): void {
       const query: JSONObject = findBy.query as JSONObject;
       const select: JSONObject = findBy.select as JSONObject;
 
-      lookups.push({ query: query, select: select });
+      lookups.push({
+        query: query,
+        select: select,
+        limit: findBy.limit as number,
+      });
 
       // QueryHelper.any: a Raw operator carrying the ids as its parameters.
       const asked: Array<string> = (
@@ -173,17 +178,6 @@ describe("StatusPageSubscriberResources.getNamedIds", () => {
   });
 });
 
-describe("StatusPageSubscriberResources.getAdded", () => {
-  it("is what a change names that the subscription does not name already", () => {
-    expect(
-      StatusPageSubscriberResources.getAdded({
-        named: [MONITOR_RESOURCE, GROUP_RESOURCE, OTHER_PAGE_RESOURCE],
-        held: [GROUP_RESOURCE.toUpperCase()],
-      }),
-    ).toEqual([MONITOR_RESOURCE, OTHER_PAGE_RESOURCE]);
-  });
-});
-
 describe("StatusPageSubscriberResources.findIdsOnPage", () => {
   it("finds the page's own resources, and no other page's", async () => {
     const onPage: Set<string> =
@@ -229,6 +223,17 @@ describe("StatusPageSubscriberResources.findIdsOnPage", () => {
       _id: true,
       isArchived: true,
     });
+  });
+
+  it("reads no more rows than the ids it asks about", async () => {
+    await StatusPageSubscriberResources.findIdsOnPage({
+      statusPageId: PAGE_ID,
+      ids: [MONITOR_RESOURCE, "not-a-uuid", GROUP_RESOURCE],
+      shownToVisitorsOnly: false,
+    });
+
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]!.limit).toBe(2);
   });
 
   it("answers a malformed id without a query", async () => {
@@ -374,6 +379,7 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
     await StatusPageSubscriberResources.assertUpdateOnPages({
       subscribers: [subscriberOn(PAGE_ID, [OTHER_PAGE_RESOURCE])],
       named: [OTHER_PAGE_RESOURCE],
+      shownToVisitorsOnly: false,
     });
 
     expect(lookups).toHaveLength(0);
@@ -383,6 +389,7 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
     await StatusPageSubscriberResources.assertUpdateOnPages({
       subscribers: [subscriberOn(PAGE_ID, [ARCHIVED_MONITOR_RESOURCE])],
       named: [ARCHIVED_MONITOR_RESOURCE, MONITOR_RESOURCE],
+      shownToVisitorsOnly: false,
     });
 
     expect(lookups).toHaveLength(1);
@@ -393,6 +400,7 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
       StatusPageSubscriberResources.assertUpdateOnPages({
         subscribers: [subscriberOn(PAGE_ID, [MONITOR_RESOURCE])],
         named: [MONITOR_RESOURCE, OTHER_PAGE_RESOURCE],
+        shownToVisitorsOnly: false,
       }),
     ).rejects.toThrow(refusalFor([OTHER_PAGE_RESOURCE]));
   });
@@ -410,6 +418,7 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
           subscriberOn(PAGE_ID, []),
         ],
         named: [OTHER_PAGE_RESOURCE],
+        shownToVisitorsOnly: false,
       }),
     ).rejects.toThrow(refusalFor([OTHER_PAGE_RESOURCE]));
 
@@ -421,8 +430,83 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
       StatusPageSubscriberResources.assertUpdateOnPages({
         subscribers: [subscriberOn(OTHER_PAGE_ID, [])],
         named: [OTHER_PAGE_RESOURCE],
+        shownToVisitorsOnly: false,
       }),
     ).resolves.toBeUndefined();
+  });
+
+  it("lets the team add a resource of the page whose monitor is archived", async () => {
+    await expect(
+      StatusPageSubscriberResources.assertUpdateOnPages({
+        subscribers: [subscriberOn(PAGE_ID, [])],
+        named: [ARCHIVED_MONITOR_RESOURCE, GROUP_RESOURCE],
+        shownToVisitorsOnly: false,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(lookups[0]!.select["monitor"]).toBeUndefined();
+  });
+
+  it("refuses a visitor's change that adds a resource the page hides, as one that does not exist", async () => {
+    await expect(
+      StatusPageSubscriberResources.assertUpdateOnPages({
+        subscribers: [subscriberOn(PAGE_ID, [])],
+        named: [GROUP_RESOURCE, ARCHIVED_MONITOR_RESOURCE],
+        shownToVisitorsOnly: true,
+      }),
+    ).rejects.toThrow(refusalFor([ARCHIVED_MONITOR_RESOURCE]));
+
+    // The page was read with each resource's monitor, to see what it shows.
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]!.select["monitor"]).toEqual({
+      _id: true,
+      isArchived: true,
+    });
+  });
+
+  it("keeps, for a visitor, a resource the page hides that the subscription names already", async () => {
+    await expect(
+      StatusPageSubscriberResources.assertUpdateOnPages({
+        subscribers: [subscriberOn(PAGE_ID, [ARCHIVED_MONITOR_RESOURCE])],
+        named: [ARCHIVED_MONITOR_RESOURCE, MONITOR_RESOURCE],
+        shownToVisitorsOnly: true,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("refuses another page's resource to a visitor in the same words as to the team", async () => {
+    const answers: Array<string> = [];
+
+    for (const shownToVisitorsOnly of [true, false]) {
+      try {
+        await StatusPageSubscriberResources.assertUpdateOnPages({
+          subscribers: [subscriberOn(PAGE_ID, [])],
+          named: [OTHER_PAGE_RESOURCE],
+          shownToVisitorsOnly: shownToVisitorsOnly,
+        });
+      } catch (error) {
+        answers.push((error as Error).message);
+      }
+    }
+
+    expect(answers).toEqual([
+      refusalFor([OTHER_PAGE_RESOURCE]),
+      refusalFor([OTHER_PAGE_RESOURCE]),
+    ]);
+  });
+
+  it("asks each subscriber only about what it does not name already, in a bulk change", async () => {
+    // The first subscriber names the resource already; the second does not.
+    await expect(
+      StatusPageSubscriberResources.assertUpdateOnPages({
+        subscribers: [
+          subscriberOn(PAGE_ID, [OTHER_PAGE_RESOURCE]),
+          subscriberOn(PAGE_ID, []),
+        ],
+        named: [OTHER_PAGE_RESOURCE],
+        shownToVisitorsOnly: false,
+      }),
+    ).rejects.toThrow(refusalFor([OTHER_PAGE_RESOURCE]));
   });
 
   it("refuses what a change adds to a subscriber with no page, and keeps what it holds", async () => {
@@ -435,12 +519,14 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
       StatusPageSubscriberResources.assertUpdateOnPages({
         subscribers: [noPage],
         named: [OTHER_PAGE_RESOURCE, MONITOR_RESOURCE],
+        shownToVisitorsOnly: false,
       }),
     ).rejects.toThrow(refusalFor([MONITOR_RESOURCE]));
 
     await StatusPageSubscriberResources.assertUpdateOnPages({
       subscribers: [noPage],
       named: [OTHER_PAGE_RESOURCE],
+      shownToVisitorsOnly: false,
     });
 
     expect(lookups).toHaveLength(0);
@@ -450,6 +536,7 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
     await StatusPageSubscriberResources.assertUpdateOnPages({
       subscribers: [],
       named: [OTHER_PAGE_RESOURCE],
+      shownToVisitorsOnly: false,
     });
 
     expect(lookups).toHaveLength(0);
@@ -474,9 +561,20 @@ describe("StatusPageSubscriberResources.isOnPage", () => {
     expect(StatusPageSubscriberResources.isOnPage(other, PAGE_ID)).toBe(false);
   });
 
-  it("counts a resource read without its page, which cannot be told apart", () => {
+  it("does not count a resource read without its page: it is not known to be on it", () => {
     expect(
       StatusPageSubscriberResources.isOnPage(new StatusPageResource(), PAGE_ID),
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it("does not count any resource when asked without a page", () => {
+    const own: StatusPageResource = new StatusPageResource();
+    own.statusPageId = PAGE_ID;
+
+    for (const statusPageId of [undefined, null, ""]) {
+      expect(
+        StatusPageSubscriberResources.isOnPage(own, statusPageId as never),
+      ).toBe(false);
+    }
   });
 });

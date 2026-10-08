@@ -725,3 +725,202 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
     expect(read.limit).toBe(15000);
   });
 });
+
+describe("AutoRemediationRuleService - a change reads its rules once, and writes only those", () => {
+  const AGENT_RUNNER: string = "cb000000-0000-4000-8000-000000000009";
+  const SECOND_RULE: string = "ca000000-0000-4000-8000-000000000009";
+
+  let ruleFind: jest.SpyInstance;
+  let rulesRead: Array<JSONObject>;
+
+  function rule(id: string, runnerIds: Array<string>): JSONObject {
+    return {
+      _id: id,
+      id: new ObjectID(id),
+      ...unattended({
+        executionMode: AutoRemediationExecutionMode.Suggest,
+        commandRunners: runners(runnerIds),
+      }),
+    } as unknown as JSONObject;
+  }
+
+  beforeEach(() => {
+    stubProjectDirectory({});
+
+    rulesRead = [rule(RULE_ID.toString(), [RUNNER_A, AGENT_RUNNER])];
+
+    ruleFind = jest
+      .spyOn(AutoRemediationRuleService, "findBy")
+      .mockImplementation(async (): Promise<Array<AutoRemediationRule>> => {
+        return rulesRead as unknown as Array<AutoRemediationRule>;
+      });
+
+    // The Runner the change names is a cluster's in-cluster agent.
+    jest
+      .spyOn(RunnerService, "findKubernetesAgentRunners")
+      .mockImplementation(async (value: unknown): Promise<Array<Runner>> => {
+        const named: Array<string> = (
+          (value as Array<{ _id: string }> | undefined) || []
+        ).map((runner: { _id: string }): string => {
+          return runner._id;
+        });
+
+        return named.includes(AGENT_RUNNER)
+          ? ([
+              { _id: AGENT_RUNNER, id: new ObjectID(AGENT_RUNNER), name: "agent" },
+            ] as unknown as Array<Runner>)
+          : [];
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function change(
+    data: JSONObject,
+    props: DatabaseCommonInteractionProps,
+    query: JSONObject = { _id: RULE_ID.toString() },
+    window: { skip: number; limit: number } = { skip: 0, limit: 1 },
+  ): UpdateBy<AutoRemediationRule> {
+    return {
+      query: query,
+      data: data,
+      props: props,
+      skip: window.skip,
+      limit: window.limit,
+    } as unknown as UpdateBy<AutoRemediationRule>;
+  }
+
+  it("reads the rules once for both of its checks: who may run commands unasked, and the Runners it holds", async () => {
+    // Fix without asking, re-posting the agent Runner the rule holds.
+    await expect(
+      hooks.onBeforeUpdate(
+        change(
+          {
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            commandRunners: runners([RUNNER_A, AGENT_RUNNER]),
+          },
+          editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(ruleFind).toHaveBeenCalledTimes(1);
+
+    ruleFind.mockClear();
+
+    // The same change by an editor who may not read credentials: one read, then the refusal.
+    await expect(
+      hooks.onBeforeUpdate(
+        change(
+          {
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            commandRunners: runners([RUNNER_A, AGENT_RUNNER]),
+          },
+          editor(RULE_EDITOR),
+        ),
+      ),
+    ).rejects.toBeInstanceOf(NotAuthorizedException);
+
+    expect(ruleFind).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads the rule once when it only checks the agent Runner it holds", async () => {
+    await expect(
+      hooks.onBeforeUpdate(
+        change(
+          { commandRunners: runners([RUNNER_A, AGENT_RUNNER]) },
+          editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(ruleFind).toHaveBeenCalledTimes(1);
+  });
+
+  it("still refuses to add an agent Runner a rule does not hold", async () => {
+    rulesRead = [rule(RULE_ID.toString(), [RUNNER_A])];
+
+    await expect(
+      hooks.onBeforeUpdate(
+        change(
+          { commandRunners: runners([RUNNER_A, AGENT_RUNNER]) },
+          editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
+        ),
+      ),
+    ).rejects.toThrow('Runner "agent" is the in-cluster Runner');
+  });
+
+  it("reads nothing when neither check has anything to ask", async () => {
+    await hooks.onBeforeUpdate(
+      change(
+        { executionMode: AutoRemediationExecutionMode.FullAuto },
+        editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
+      ),
+    );
+
+    expect(ruleFind).not.toHaveBeenCalled();
+  });
+
+  it("holds the change to the one rule it read", async () => {
+    const updateBy: UpdateBy<AutoRemediationRule> = change(
+      { executionMode: AutoRemediationExecutionMode.Suggest },
+      editor(RULE_EDITOR),
+    );
+
+    await hooks.onBeforeUpdate(updateBy);
+
+    expect((updateBy.query as unknown as JSONObject)["_id"]).toBe(
+      RULE_ID.toString(),
+    );
+    expect(updateBy.skip).toBe(0);
+    expect(updateBy.limit).toBe(1);
+  });
+
+  it("holds a bulk change to the rules read in its window, so none it did not check is written", async () => {
+    rulesRead = [
+      rule(RULE_ID.toString(), [RUNNER_A]),
+      rule(SECOND_RULE, [RUNNER_A]),
+    ];
+
+    const updateBy: UpdateBy<AutoRemediationRule> = change(
+      { executionMode: AutoRemediationExecutionMode.Suggest },
+      editor(RULE_EDITOR),
+      { projectId: PROJECT_ID },
+      { skip: 0, limit: 15000 },
+    );
+
+    await hooks.onBeforeUpdate(updateBy);
+
+    const query: JSONObject = updateBy.query as unknown as JSONObject;
+    const held: Array<string> = Object.values(
+      (query["_id"] as unknown as { objectLiteralParameters: JSONObject })
+        .objectLiteralParameters,
+    ).flat() as Array<string>;
+
+    expect(held.sort()).toEqual([RULE_ID.toString(), SECOND_RULE].sort());
+    expect(updateBy.limit).toBe(2);
+  });
+
+  it("refuses a bulk change that widens any rule it reads, for an editor who may not read credentials", async () => {
+    rulesRead = [
+      rule(RULE_ID.toString(), [RUNNER_A]),
+      {
+        ...rule(SECOND_RULE, [RUNNER_A]),
+        ...unattended({ commandRunners: runners([RUNNER_A]) }),
+      },
+    ];
+
+    await expect(
+      hooks.onBeforeUpdate(
+        change(
+          { commandAllowlist: ["systemctl restart nginx", "reboot"] },
+          editor(RULE_EDITOR),
+          { projectId: PROJECT_ID },
+          { skip: 0, limit: 15000 },
+        ),
+      ),
+    ).rejects.toBeInstanceOf(NotAuthorizedException);
+  });
+});

@@ -4,8 +4,13 @@ import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResourc
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
+import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import {
@@ -13,9 +18,11 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import SSRFProtection from "../../../Server/Utils/SSRFProtection";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { mockRouter } from "./Helpers";
 import {
   afterEach,
@@ -51,17 +58,22 @@ jest.mock("../../../Server/Utils/Logger");
  * A VISITOR SUBSCRIBES TO THE RESOURCES THE STATUS PAGE SHOWS THEM - AND TO
  * NO OTHER.
  *
- * The status page's subscribe and manage-subscription routes write a
- * subscription as OneUptime, for whoever is looking at the page. The
- * resources a visitor names must be resources of that page that the page
- * shows them (its resources route): not another page's - of this project or
- * another - and not one whose monitor is archived, which every public read
- * of the page leaves out. Anything else gets the answer an id that matches
- * nothing gets, every kind of subscriber alike, and nothing is written.
+ * The status page's subscribe and update-subscription routes write a
+ * subscription as OneUptime, for whoever is looking at the page, through
+ * the subscriber service's two visitor entry points: a sign-up
+ * (createFromStatusPageSignUp) and a change from the manage subscription
+ * page (updateFromManageSubscriptionPage). The service holds every write of
+ * a subscription to its own page's resources, and a visitor's to the ones
+ * the page shows them (its resources route): not another page's - of this
+ * project or another - and not one whose monitor is archived, which every
+ * public read of the page leaves out. Anything else gets the answer an id
+ * that matches nothing gets, every kind of subscriber alike, and nothing is
+ * written.
  *
- * A change from the manage subscription page asks only about the resources
- * it adds: what the subscription names already is kept, so a subscriber
- * whose resource's monitor was archived since can still save.
+ * Here the routes run against the service's real create and update hooks;
+ * only the database is stood in for. A change asks only about the
+ * resources it adds: what the subscription names already is kept, so a
+ * subscriber whose resource's monitor was archived since can still save.
  */
 
 const SUBSCRIBE_ROUTE: string = "/status-page/subscribe/:statusPageId";
@@ -128,6 +140,20 @@ const KINDS: Array<{ kind: string; contact: JSONObject }> = [
   },
 ];
 
+type BeforeCreate = (
+  createBy: CreateBy<StatusPageSubscriber>,
+) => Promise<OnCreate<StatusPageSubscriber>>;
+
+type BeforeUpdate = (
+  updateBy: UpdateBy<StatusPageSubscriber>,
+) => Promise<OnUpdate<StatusPageSubscriber>>;
+
+const hooks: { onBeforeCreate: BeforeCreate; onBeforeUpdate: BeforeUpdate } =
+  StatusPageSubscriberService as unknown as {
+    onBeforeCreate: BeforeCreate;
+    onBeforeUpdate: BeforeUpdate;
+  };
+
 function refusalFor(ids: Array<string>): string {
   return ProjectScopedReferenceValidator.getRefusalMessage({
     subject: "status page subscriber",
@@ -144,6 +170,9 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
   // What the subscription names now, for the manage page's changes.
   let heldResourceIds: Array<string>;
   let allowSubscribersToChooseResources: boolean;
+  // The rows the service's create and update reach the database with.
+  let created: Array<StatusPageSubscriber>;
+  let updated: Array<UpdateBy<StatusPageSubscriber>>;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;
@@ -156,6 +185,10 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
     resourceLookups = [];
     heldResourceIds = [];
     allowSubscribersToChooseResources = true;
+    created = [];
+    updated = [];
+
+    stubProjectDirectory({});
 
     jest
       .spyOn(StatusPageService, "hasReadAccess")
@@ -211,25 +244,6 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         });
       });
 
-    // What the subscription names now, read hook-free.
-    const subscriberLookup: DatabaseService<StatusPageSubscriber> =
-      ProjectScopedReferenceValidator.getLookupService(StatusPageSubscriber);
-
-    jest
-      .spyOn(subscriberLookup, "findOneById")
-      .mockImplementation(async (): Promise<StatusPageSubscriber> => {
-        const row: StatusPageSubscriber = new StatusPageSubscriber();
-        row._id = SUBSCRIBER_ID.toString();
-        row.statusPageResources = heldResourceIds.map(
-          (id: string): StatusPageResource => {
-            const resource: StatusPageResource = new StatusPageResource();
-            resource._id = id;
-            return resource;
-          },
-        );
-        return row;
-      });
-
     // The subscriber the manage page changes, found on its own page only.
     jest
       .spyOn(StatusPageSubscriberService, "findOneBy")
@@ -248,15 +262,77 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         return Promise.resolve(row);
       });
 
+    /*
+     * The subscription the update reads - with what it names now - and,
+     * for a sign-up, no earlier subscription of the same contact.
+     */
     jest
-      .spyOn(StatusPageSubscriberService, "updateOneById")
-      .mockResolvedValue(1 as never);
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockImplementation(async (findBy: any): Promise<any> => {
+        if (findBy.query?.["_id"]?.toString() !== SUBSCRIBER_ID.toString()) {
+          return [];
+        }
+
+        const row: StatusPageSubscriber = new StatusPageSubscriber();
+        row._id = SUBSCRIBER_ID.toString();
+        row.projectId = PROJECT_ID;
+        row.statusPageId = PAGE_ID;
+        row.statusPageResources = heldResourceIds.map(
+          (id: string): StatusPageResource => {
+            const resource: StatusPageResource = new StatusPageResource();
+            resource._id = id;
+            return resource;
+          },
+        );
+        return [row];
+      });
 
     jest
-      .spyOn(StatusPageSubscriberService, "createFromStatusPageSignUp")
-      .mockImplementation((data: any): Promise<any> => {
-        return Promise.resolve(data);
+      .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
+      .mockImplementation(async (): Promise<Array<StatusPage>> => {
+        const page: StatusPage = new StatusPage();
+        page._id = PAGE_ID.toString();
+        page.projectId = PROJECT_ID;
+        return [page];
       });
+
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: null,
+      isSubscriptionUnpaid: false,
+    } as never);
+    jest
+      .spyOn(ProjectService, "isSMSNotificationsEnabled")
+      .mockResolvedValue(true);
+    // A webhook's address is checked by its own suites; no DNS here.
+    jest
+      .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
+      .mockResolvedValue(undefined);
+    // The project check is the reference suites' business; this is the page's.
+    jest.spyOn(ProjectReferenceCheck, "validateUpdate").mockResolvedValue();
+
+    /*
+     * The service's create and update, down to the database: their hooks
+     * run for real, and what would be written is kept.
+     */
+    jest
+      .spyOn(StatusPageSubscriberService, "create")
+      .mockImplementation(async (createBy: any): Promise<any> => {
+        await hooks.onBeforeCreate(createBy);
+        created.push(createBy.data);
+        return createBy.data;
+      });
+
+    jest
+      .spyOn(StatusPageSubscriberService, "updateBy")
+      .mockImplementation(async (updateBy: any): Promise<number> => {
+        await hooks.onBeforeUpdate(updateBy);
+        updated.push(updateBy);
+        return 1;
+      });
+
+    jest.spyOn(StatusPageSubscriberService, "createFromStatusPageSignUp");
+    jest.spyOn(StatusPageSubscriberService, "updateFromManageSubscriptionPage");
+    jest.spyOn(StatusPageSubscriberService, "updateOneById");
 
     mockResponse = {
       cookie: jest.fn(),
@@ -329,9 +405,15 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
     };
   }
 
+  function idsOf(resources: Array<unknown> | undefined): Array<string> {
+    return (resources || []).map((resource: unknown): string => {
+      return String((resource as JSONObject)["_id"]);
+    });
+  }
+
   describe("subscribe", () => {
     it.each(KINDS)(
-      "a $kind subscription to resources the page shows is created",
+      "a $kind subscription to resources the page shows is created, as a sign-up",
       async (kind: { contact: JSONObject }) => {
         await subscribe({
           ...kind.contact,
@@ -342,18 +424,14 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         expect(
           StatusPageSubscriberService.createFromStatusPageSignUp,
         ).toHaveBeenCalledTimes(1);
-
-        const created: StatusPageSubscriber = (
-          StatusPageSubscriberService.createFromStatusPageSignUp as unknown as jest.Mock
-        ).mock.calls[0]![0] as StatusPageSubscriber;
-
-        expect(
-          (created.statusPageResources || []).map(
-            (resource: StatusPageResource | JSONObject): string => {
-              return String((resource as JSONObject)["_id"]);
-            },
-          ),
-        ).toEqual([SHOWN_MONITOR_RESOURCE, SHOWN_GROUP_RESOURCE]);
+        expect(created).toHaveLength(1);
+        expect(idsOf(created[0]!.statusPageResources)).toEqual([
+          SHOWN_MONITOR_RESOURCE,
+          SHOWN_GROUP_RESOURCE,
+        ]);
+        // A sign-up is not a subscriber the team added.
+        expect(created[0]!.isAddedByTeam).toBe(false);
+        // The page was read once, by the service's check alone.
         expect(resourceLookups).toEqual([PAGE_ID.toString()]);
       },
     );
@@ -372,9 +450,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         expect((error as Error).message).toBe(
           refusalFor([OTHER_PAGE_RESOURCE]),
         );
-        expect(
-          StatusPageSubscriberService.createFromStatusPageSignUp,
-        ).not.toHaveBeenCalled();
+        expect(created).toHaveLength(0);
       },
     );
 
@@ -389,9 +465,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         expect((thrown() as Error).message).toBe(
           refusalFor([ARCHIVED_MONITOR_RESOURCE]),
         );
-        expect(
-          StatusPageSubscriberService.createFromStatusPageSignUp,
-        ).not.toHaveBeenCalled();
+        expect(created).toHaveLength(0);
       },
     );
 
@@ -414,16 +488,18 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       }
 
       expect(new Set<string>(answers).size).toBe(1);
+      expect(created).toHaveLength(0);
     });
 
-    it("answers a malformed id like a missing one, without reading anything", async () => {
+    it("answers a malformed id like a missing one, without reading the page", async () => {
       await subscribe({
         subscriberEmail: "visitor@example.com",
         ...pickResources(["not-a-uuid"]),
       });
 
-      expect((thrown() as Error).message).toBe(refusalFor(["not-a-uuid"]));
+      expect((thrown() as Error).message).toContain('"not-a-uuid"');
       expect(resourceLookups).toEqual([]);
+      expect(created).toHaveLength(0);
     });
 
     it("names everything refused in one answer", async () => {
@@ -449,9 +525,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
 
       expect(nextFunction).not.toHaveBeenCalled();
       expect(resourceLookups).toEqual([]);
-      expect(
-        StatusPageSubscriberService.createFromStatusPageSignUp,
-      ).toHaveBeenCalledTimes(1);
+      expect(created).toHaveLength(1);
     });
 
     it("still says first that the page lets nobody choose resources", async () => {
@@ -466,11 +540,14 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         "Subscribers are not allowed to choose resources for this status page.",
       );
       expect(resourceLookups).toEqual([]);
+      expect(
+        StatusPageSubscriberService.createFromStatusPageSignUp,
+      ).not.toHaveBeenCalled();
     });
   });
 
   describe("manage subscription", () => {
-    it("adds a resource the page shows", async () => {
+    it("adds a resource the page shows, as the visitor's change", async () => {
       heldResourceIds = [SHOWN_MONITOR_RESOURCE];
 
       await changeSubscription(
@@ -478,9 +555,31 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       );
 
       expect(nextFunction).not.toHaveBeenCalled();
-      expect(StatusPageSubscriberService.updateOneById).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(
+        StatusPageSubscriberService.updateFromManageSubscriptionPage,
+      ).toHaveBeenCalledTimes(1);
+      expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
+      expect(updated).toHaveLength(1);
+      expect(updated[0]!.props).toEqual({ isRoot: true });
+      expect(
+        idsOf(
+          (updated[0]!.data as unknown as JSONObject)[
+            "statusPageResources"
+          ] as Array<unknown>,
+        ),
+      ).toEqual([SHOWN_MONITOR_RESOURCE, SHOWN_GROUP_RESOURCE]);
+      // Only the resource it adds was asked about.
+      expect(resourceLookups).toEqual([PAGE_ID.toString()]);
+    });
+
+    it("writes the change to that one subscriber", async () => {
+      await changeSubscription(pickResources([SHOWN_MONITOR_RESOURCE]));
+
+      expect(updated).toHaveLength(1);
+      expect(
+        (updated[0]!.query as unknown as JSONObject)["_id"]?.toString(),
+      ).toBe(SUBSCRIBER_ID.toString());
+      expect(updated[0]!.limit).toBe(1);
     });
 
     it("refuses to add another page's resource, and writes nothing", async () => {
@@ -493,7 +592,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       expect((thrown() as Error).message).toBe(
         refusalFor([OTHER_PAGE_RESOURCE]),
       );
-      expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
+      expect(updated).toHaveLength(0);
     });
 
     it("refuses to add a resource the page hides", async () => {
@@ -502,7 +601,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       expect((thrown() as Error).message).toBe(
         refusalFor([ARCHIVED_MONITOR_RESOURCE]),
       );
-      expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
+      expect(updated).toHaveLength(0);
     });
 
     it("keeps a resource the subscription named before its monitor was archived", async () => {
@@ -513,10 +612,8 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       );
 
       expect(nextFunction).not.toHaveBeenCalled();
-      expect(StatusPageSubscriberService.updateOneById).toHaveBeenCalledTimes(
-        1,
-      );
-      // Nothing was added, so nothing was looked up.
+      expect(updated).toHaveLength(1);
+      // Nothing was added, so the page was not read.
       expect(resourceLookups).toEqual([]);
     });
 
@@ -529,9 +626,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       });
 
       expect(nextFunction).not.toHaveBeenCalled();
-      expect(StatusPageSubscriberService.updateOneById).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(updated).toHaveLength(1);
     });
 
     it("finds no subscriber of another page before asking about resources", async () => {
@@ -547,7 +642,9 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
 
       expect((thrown() as Error).message).toBe("Subscriber not found");
       expect(resourceLookups).toEqual([]);
-      expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
+      expect(
+        StatusPageSubscriberService.updateFromManageSubscriptionPage,
+      ).not.toHaveBeenCalled();
     });
 
     it("unsubscribing without naming resources reads none", async () => {
@@ -562,6 +659,23 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
 
       expect(nextFunction).not.toHaveBeenCalled();
       expect(resourceLookups).toEqual([]);
+      expect(StatusPageSubscriberService.unsubscribe).toHaveBeenCalledTimes(1);
+    });
+
+    it("unsubscribes nobody when the change is refused", async () => {
+      jest
+        .spyOn(StatusPageSubscriberService, "unsubscribe")
+        .mockResolvedValue(true);
+
+      await changeSubscription({
+        ...pickResources([OTHER_PAGE_RESOURCE]),
+        isUnsubscribed: true,
+      });
+
+      expect((thrown() as Error).message).toBe(
+        refusalFor([OTHER_PAGE_RESOURCE]),
+      );
+      expect(StatusPageSubscriberService.unsubscribe).not.toHaveBeenCalled();
     });
   });
 });

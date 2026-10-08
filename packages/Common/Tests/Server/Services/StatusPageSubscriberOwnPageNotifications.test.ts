@@ -16,10 +16,11 @@ jest.mock("../../../Server/Utils/Logger");
  * A subscription names resources of its own page: every write of one is
  * held to that now (StatusPageSubscriberResources). One saved before that
  * check may still name another page's resource; it is left as it is, and
- * is told nothing through it. Every sender hands over the event's
- * resources on the page being sent for, and the subscriber's choice is
- * matched against those alone - each side read with its page, so a
- * resource of another page counts on neither.
+ * is told nothing through it. The subscriber jobs read each picked
+ * resource with its page (getSubscribersByStatusPage), and a pick counts
+ * only when it is known to be on the page being sent for - one read
+ * without its page does not. Every sender hands over the event's resources
+ * on that page, so those are matched as they are.
  */
 
 const PAGE_ID: ObjectID = new ObjectID("8a000000-0000-4000-8000-000000000001");
@@ -107,8 +108,7 @@ describe("StatusPageSubscriberService.shouldSendNotification - own page only", (
     ).toBe(false);
   });
 
-  test("does not count another page's resource on the event's side either", () => {
-    // Read without its page, the subscriber's pick cannot be told apart.
+  test("does not count a pick read without its page, whatever the event's side says", () => {
     expect(
       isTold({
         subscriber: subscriberPicking([resource(OTHER_PAGE_RESOURCE, null)]),
@@ -143,13 +143,55 @@ describe("StatusPageSubscriberService.shouldSendNotification - own page only", (
     ).toBe(true);
   });
 
-  test("counts resources read without their page, as before", () => {
+  test("does not count a pick read without its page: it is not known to be on this one", () => {
     expect(
       isTold({
         subscriber: subscriberPicking([resource(OWN_RESOURCE, null)]),
         eventResources: [resource(OWN_RESOURCE, null)],
       }),
+    ).toBe(false);
+
+    expect(
+      isTold({
+        subscriber: subscriberPicking([resource(OWN_RESOURCE, null)]),
+        eventResources: [resource(OWN_RESOURCE, PAGE_ID)],
+      }),
+    ).toBe(false);
+  });
+
+  test("matches a pick of this page against the event's resources as the sender hands them over", () => {
+    // The senders hand over the event's resources on the page being sent for.
+    expect(
+      isTold({
+        subscriber: subscriberPicking([resource(OWN_RESOURCE, PAGE_ID)]),
+        eventResources: [resource(OWN_RESOURCE, null)],
+      }),
     ).toBe(true);
+  });
+
+  test("tells a subscriber nothing through its picks for a page sent without its id", () => {
+    const page: StatusPage = pageLettingSubscribersChoose();
+    delete (page as unknown as JSONObject)["_id"];
+
+    expect(
+      StatusPageSubscriberService.shouldSendNotification({
+        subscriber: subscriberPicking([resource(OWN_RESOURCE, PAGE_ID)]),
+        statusPageResources: [resource(OWN_RESOURCE, PAGE_ID)],
+        statusPage: page,
+        eventType: StatusPageEventType.Incident,
+      }),
+    ).toBe(false);
+  });
+
+  test("does not match an event resource the subscriber did not pick", () => {
+    expect(
+      isTold({
+        subscriber: subscriberPicking([resource(OWN_RESOURCE, PAGE_ID)]),
+        eventResources: [
+          resource("8b000000-0000-4000-8000-000000000003", PAGE_ID),
+        ],
+      }),
+    ).toBe(false);
   });
 
   test("tells a subscriber to every resource about everything", () => {

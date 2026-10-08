@@ -23,7 +23,8 @@ import ObjectID from "../../../Types/ObjectID";
  * subscription names only resources of its own page, on every write of it:
  * a sign-up and a change on the status page, the team's dashboard, the API
  * and a workflow alike, for every kind of subscriber (email, SMS, Slack,
- * Microsoft Teams, webhook).
+ * Microsoft Teams, webhook). StatusPageSubscriberService asks it of every
+ * create and update, and is the one place that does.
  *
  * A resource of another status page - of this project or of another one -
  * is answered exactly as an id that matches nothing: the refusal every
@@ -42,6 +43,14 @@ import ObjectID from "../../../Types/ObjectID";
  * A change asks only about the resources it adds: what a subscription
  * already names stays nameable, so a subscription whose resource's monitor
  * was archived since, or one saved before this check, can still be saved.
+ *
+ * Why this is not an option of ProjectScopedReferenceValidator: that check
+ * is keyed by project throughout - its lookups pin the referenced model's
+ * project, and an update's exemptions are grouped per project - while this
+ * one pins each subscriber to its own page, and a bulk update can change
+ * subscribers of several pages at once; and what a page shows a visitor is
+ * the status page's own rule. It shares the validator's refusal, its id
+ * reading and its hook-free lookups instead.
  */
 
 // "Subscribed to Resources": how the project check names this list.
@@ -80,23 +89,6 @@ export default class StatusPageSubscriberResources {
   }
 
   /*
-   * Of `named`, the ids `held` does not name already, in the order written:
-   * what a change adds to a subscription.
-   */
-  public static getAdded(data: {
-    named: Array<string>;
-    held: Array<string>;
-  }): Array<string> {
-    const held: Set<string> = new Set<string>(
-      data.held.map(normalizeReferenceId),
-    );
-
-    return data.named.filter((id: string): boolean => {
-      return !held.has(normalizeReferenceId(id));
-    });
-  }
-
-  /*
    * Of `ids`, the ones that are resources of the status page - and, for a
    * visitor (`shownToVisitorsOnly`), ones the page shows - normalized. A
    * malformed id names no resource, and is answered without a query; with
@@ -108,9 +100,13 @@ export default class StatusPageSubscriberResources {
     ids: Array<string>;
     shownToVisitorsOnly: boolean;
   }): Promise<Set<string>> {
-    const validIds: Array<string> = data.ids.filter((id: string): boolean => {
-      return ObjectID.isValidUUID(id.trim());
-    });
+    const validIds: Array<string> = data.ids
+      .map((id: string): string => {
+        return id.trim();
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      });
 
     if (!data.statusPageId || validIds.length === 0) {
       return new Set<string>();
@@ -125,11 +121,7 @@ export default class StatusPageSubscriberResources {
 
     const resources: Array<StatusPageResource> = await resourceService.findBy({
       query: {
-        _id: QueryHelper.any(
-          validIds.map((id: string): string => {
-            return id.trim();
-          }),
-        ),
+        _id: QueryHelper.any(validIds),
         statusPageId: data.statusPageId,
       },
       select: {
@@ -143,7 +135,7 @@ export default class StatusPageSubscriberResources {
             }
           : {}),
       },
-      limit: LIMIT_MAX,
+      limit: Math.min(validIds.length, LIMIT_MAX),
       skip: 0,
       props: {
         isRoot: true,
@@ -190,9 +182,9 @@ export default class StatusPageSubscriberResources {
   }
 
   /*
-   * The whole check for one subscription: every id of `ids` must be a
-   * resource of the status page (shown on it, for a visitor), or it is
-   * refused - all of them in one answer.
+   * A new subscription's check: every id of `ids` must be a resource of the
+   * status page (shown on it, for a visitor), or it is refused - all of
+   * them in one answer.
    */
   public static async assertOnPage(data: {
     statusPageId: ObjectID | undefined;
@@ -215,16 +207,17 @@ export default class StatusPageSubscriberResources {
 
   /*
    * An update's check: of `named`, the ids a subscriber the update changes
-   * does not name already must be resources of that subscriber's page (a
-   * subscriber with no page has none to add). Each page is read once,
-   * however many of its subscribers the update changes, and everything
-   * refused is named in one answer, in the order written.
+   * does not name already must be resources of that subscriber's page (shown
+   * on it, for a visitor; a subscriber with no page has none to add). Each
+   * page is read once, however many of its subscribers the update changes,
+   * and everything refused is named in one answer, in the order written.
    */
   public static async assertUpdateOnPages(data: {
     subscribers: Array<
       Pick<StatusPageSubscriber, "statusPageId" | "statusPageResources">
     >;
     named: Array<string>;
+    shownToVisitorsOnly: boolean;
   }): Promise<void> {
     if (data.named.length === 0) {
       return;
@@ -244,11 +237,13 @@ export default class StatusPageSubscriberResources {
         ).map(normalizeReferenceId),
       );
 
+      const added: Array<string> = data.named.filter((id: string): boolean => {
+        return !held.has(normalizeReferenceId(id));
+      });
+
       if (!subscriber.statusPageId) {
-        for (const id of data.named) {
-          if (!held.has(normalizeReferenceId(id))) {
-            refused.add(normalizeReferenceId(id));
-          }
+        for (const id of added) {
+          refused.add(normalizeReferenceId(id));
         }
 
         continue;
@@ -264,19 +259,14 @@ export default class StatusPageSubscriberResources {
           ids: [],
         };
 
-      for (const id of data.named) {
-        const key: string = normalizeReferenceId(id);
+      for (const id of added) {
+        const isListed: boolean = entry.ids.some((listed: string): boolean => {
+          return normalizeReferenceId(listed) === normalizeReferenceId(id);
+        });
 
-        if (
-          held.has(key) ||
-          entry.ids.some((added: string): boolean => {
-            return normalizeReferenceId(added) === key;
-          })
-        ) {
-          continue;
+        if (!isListed) {
+          entry.ids.push(id);
         }
-
-        entry.ids.push(id);
       }
 
       if (entry.ids.length > 0) {
@@ -289,7 +279,7 @@ export default class StatusPageSubscriberResources {
         await StatusPageSubscriberResources.findIdsOnPage({
           statusPageId: entry.statusPageId,
           ids: entry.ids,
-          shownToVisitorsOnly: false,
+          shownToVisitorsOnly: data.shownToVisitorsOnly,
         });
 
       for (const id of entry.ids) {
@@ -307,44 +297,17 @@ export default class StatusPageSubscriberResources {
   }
 
   /*
-   * The resources a subscription names now, as ids: what a change to it
-   * from the status page keeps without being asked about again.
-   */
-  public static async getHeldIds(
-    subscriberId: ObjectID,
-  ): Promise<Array<string>> {
-    const subscriber: StatusPageSubscriber | null =
-      await ProjectScopedReferenceValidator.getLookupService(
-        StatusPageSubscriber,
-      ).findOneById({
-        id: subscriberId,
-        select: {
-          _id: true,
-          statusPageResources: {
-            _id: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    return StatusPageSubscriberResources.getNamedIds(
-      subscriber?.statusPageResources,
-    );
-  }
-
-  /*
-   * Whether a resource a subscriber names - read with its status page, as
-   * the subscriber jobs read it - is one of `statusPageId`'s. A resource
-   * read without its page cannot be told apart and counts.
+   * Whether a resource a subscriber names is one of `statusPageId`'s, as the
+   * subscriber jobs read it (with its page: getSubscribersByStatusPage). A
+   * resource read without its page, or asked about without one, is not
+   * known to be on it, so it counts as not on it.
    */
   public static isOnPage(
     resource: Pick<StatusPageResource, "statusPageId">,
     statusPageId: ObjectID | string | undefined | null,
   ): boolean {
     if (!resource.statusPageId || !statusPageId) {
-      return true;
+      return false;
     }
 
     return (

@@ -460,3 +460,342 @@ describe("StatusPageSubscriberService - a change to a subscription", () => {
     expect(pageLookups).toEqual([]);
   });
 });
+
+describe("StatusPageSubscriberService - a visitor's subscription on the status page", () => {
+  beforeEach(() => {
+    // The project check is the reference suites' business; this is the page's.
+    getJestSpyOn(ProjectReferenceCheck, "validateUpdate").mockResolvedValue(
+      undefined,
+    );
+  });
+
+  /*
+   * The visitor's sign-up runs the real create hook: create() is stood in
+   * for by the hook alone, with the very row the sign-up hands it.
+   */
+  function signUpRunsTheCreateHook(): jest.SpyInstance {
+    return getJestSpyOn(StatusPageSubscriberService, "create").mockImplementation(
+      async (
+        createBy: CreateBy<StatusPageSubscriber>,
+      ): Promise<StatusPageSubscriber> => {
+        await hooks.onBeforeCreate(createBy);
+        return createBy.data;
+      },
+    );
+  }
+
+  /*
+   * The visitor's change runs the real update hook: updateBy() is stood in
+   * for by the hook alone, with the very update the change builds.
+   */
+  function changeRunsTheUpdateHook(): jest.SpyInstance {
+    return getJestSpyOn(
+      StatusPageSubscriberService,
+      "updateBy",
+    ).mockImplementation(
+      async (updateBy: UpdateBy<StatusPageSubscriber>): Promise<number> => {
+        await hooks.onBeforeUpdate(updateBy);
+        return 1;
+      },
+    );
+  }
+
+  function subscriberHolding(held: Array<string>): void {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = SUBSCRIBER_ID.toString();
+    row.projectId = PROJECT_ID;
+    row.statusPageId = PAGE_ID;
+    row.statusPageResources = resources(held);
+
+    contactLookup.mockResolvedValue([row]);
+  }
+
+  test.each(KINDS)(
+    "a $kind sign-up naming a resource the page hides is refused as one that does not exist",
+    async (kind: {
+      kind: string;
+      contact: (row: StatusPageSubscriber) => void;
+    }) => {
+      signUpRunsTheCreateHook();
+
+      await expect(
+        StatusPageSubscriberService.createFromStatusPageSignUp(
+          subscription({
+            contact: kind.contact,
+            resourceIds: [OWN_RESOURCE, OWN_ARCHIVED_MONITOR_RESOURCE],
+          }),
+        ),
+      ).rejects.toThrow(refusalFor([OWN_ARCHIVED_MONITOR_RESOURCE]));
+
+      expect(pagesLookup).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(KINDS)(
+    "a $kind sign-up naming another page's resource is refused in the same words",
+    async (kind: {
+      kind: string;
+      contact: (row: StatusPageSubscriber) => void;
+    }) => {
+      signUpRunsTheCreateHook();
+
+      await expect(
+        StatusPageSubscriberService.createFromStatusPageSignUp(
+          subscription({
+            contact: kind.contact,
+            resourceIds: [OTHER_PAGE_RESOURCE],
+          }),
+        ),
+      ).rejects.toThrow(refusalFor([OTHER_PAGE_RESOURCE]));
+    },
+  );
+
+  test.each(KINDS)(
+    "a $kind sign-up naming resources the page shows is created",
+    async (kind: {
+      kind: string;
+      contact: (row: StatusPageSubscriber) => void;
+    }) => {
+      const create: jest.SpyInstance = signUpRunsTheCreateHook();
+
+      await expect(
+        StatusPageSubscriberService.createFromStatusPageSignUp(
+          subscription({
+            contact: kind.contact,
+            resourceIds: [OWN_RESOURCE],
+          }),
+        ),
+      ).resolves.toBeDefined();
+
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(
+        (create.mock.calls[0]![0] as CreateBy<StatusPageSubscriber>).props,
+      ).toEqual({ isRoot: true });
+    },
+  );
+
+  test("a sign-up asks once: the page is read once, with each resource's monitor", async () => {
+    signUpRunsTheCreateHook();
+
+    await StatusPageSubscriberService.createFromStatusPageSignUp(
+      subscription({
+        contact: KINDS[0]!.contact,
+        resourceIds: [OWN_RESOURCE],
+      }),
+    );
+
+    expect(pageLookups).toEqual([PAGE_ID.toString()]);
+  });
+
+  test("the team's create is not a visitor's, before or after a sign-up", async () => {
+    signUpRunsTheCreateHook();
+
+    await expect(
+      StatusPageSubscriberService.createFromStatusPageSignUp(
+        subscription({
+          contact: KINDS[0]!.contact,
+          resourceIds: [OWN_ARCHIVED_MONITOR_RESOURCE],
+        }),
+      ),
+    ).rejects.toThrow();
+
+    // The team may name it: the dashboard's picker lists every resource.
+    await expect(
+      hooks.onBeforeCreate({
+        data: subscription({
+          contact: KINDS[0]!.contact,
+          resourceIds: [OWN_ARCHIVED_MONITOR_RESOURCE],
+        }),
+        props: { isRoot: true },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  test("a visitor's change is written as OneUptime, to that one subscriber", async () => {
+    const update: jest.SpyInstance = getJestSpyOn(
+      StatusPageSubscriberService,
+      "updateBy",
+    ).mockResolvedValue(1 as never);
+
+    await expect(
+      StatusPageSubscriberService.updateFromManageSubscriptionPage({
+        subscriberId: SUBSCRIBER_ID,
+        data: {
+          isSubscribedToAllResources: true,
+        } as unknown as UpdateBy<StatusPageSubscriber>["data"],
+      }),
+    ).resolves.toBe(1);
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0]![0]).toEqual({
+      query: { _id: SUBSCRIBER_ID.toString() },
+      data: { isSubscribedToAllResources: true },
+      limit: 1,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  });
+
+  test("a visitor's change that adds a resource the page hides is refused", async () => {
+    subscriberHolding([OWN_RESOURCE]);
+    changeRunsTheUpdateHook();
+
+    await expect(
+      StatusPageSubscriberService.updateFromManageSubscriptionPage({
+        subscriberId: SUBSCRIBER_ID,
+        data: {
+          statusPageResources: resources([
+            OWN_RESOURCE,
+            OWN_ARCHIVED_MONITOR_RESOURCE,
+          ]),
+        } as unknown as UpdateBy<StatusPageSubscriber>["data"],
+      }),
+    ).rejects.toThrow(refusalFor([OWN_ARCHIVED_MONITOR_RESOURCE]));
+  });
+
+  test("a visitor's change that adds another page's resource is refused", async () => {
+    subscriberHolding([]);
+    changeRunsTheUpdateHook();
+
+    await expect(
+      StatusPageSubscriberService.updateFromManageSubscriptionPage({
+        subscriberId: SUBSCRIBER_ID,
+        data: {
+          statusPageResources: resources([OTHER_PAGE_RESOURCE]),
+        } as unknown as UpdateBy<StatusPageSubscriber>["data"],
+      }),
+    ).rejects.toThrow(refusalFor([OTHER_PAGE_RESOURCE]));
+  });
+
+  test("a visitor keeps a hidden resource the subscription named before its monitor was archived", async () => {
+    subscriberHolding([OWN_ARCHIVED_MONITOR_RESOURCE]);
+    changeRunsTheUpdateHook();
+
+    await expect(
+      StatusPageSubscriberService.updateFromManageSubscriptionPage({
+        subscriberId: SUBSCRIBER_ID,
+        data: {
+          statusPageResources: resources([
+            OWN_ARCHIVED_MONITOR_RESOURCE,
+            OWN_RESOURCE,
+          ]),
+        } as unknown as UpdateBy<StatusPageSubscriber>["data"],
+      }),
+    ).resolves.toBe(1);
+  });
+
+  test("the team's change is not a visitor's, before or after a visitor's", async () => {
+    subscriberHolding([]);
+    changeRunsTheUpdateHook();
+
+    await expect(
+      StatusPageSubscriberService.updateFromManageSubscriptionPage({
+        subscriberId: SUBSCRIBER_ID,
+        data: {
+          statusPageResources: resources([OWN_ARCHIVED_MONITOR_RESOURCE]),
+        } as unknown as UpdateBy<StatusPageSubscriber>["data"],
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      hooks.onBeforeUpdate({
+        query: { _id: SUBSCRIBER_ID.toString() },
+        data: {
+          statusPageResources: resources([OWN_ARCHIVED_MONITOR_RESOURCE]),
+        } as unknown as StatusPageSubscriber,
+        props: { isRoot: true },
+        skip: 0,
+        limit: 1,
+      } as unknown as UpdateBy<StatusPageSubscriber>),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe("StatusPageSubscriberService - a change is held to the subscribers it checked", () => {
+  beforeEach(() => {
+    getJestSpyOn(ProjectReferenceCheck, "validateUpdate").mockResolvedValue(
+      undefined,
+    );
+  });
+
+  function subscriber(id: string, held: Array<string>): StatusPageSubscriber {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = id;
+    row.projectId = PROJECT_ID;
+    row.statusPageId = PAGE_ID;
+    row.statusPageResources = resources(held);
+    return row;
+  }
+
+  test("a change of one subscriber names it, in a window of one", async () => {
+    contactLookup.mockResolvedValue([
+      subscriber(SUBSCRIBER_ID.toString(), []),
+    ]);
+
+    const updateBy: UpdateBy<StatusPageSubscriber> = {
+      query: { _id: SUBSCRIBER_ID.toString() },
+      data: {
+        statusPageResources: resources([OWN_RESOURCE]),
+      } as unknown as StatusPageSubscriber,
+      props: { tenantId: PROJECT_ID, userId: ObjectID.generate() },
+      skip: 0,
+      limit: 1,
+    } as unknown as UpdateBy<StatusPageSubscriber>;
+
+    await hooks.onBeforeUpdate(updateBy);
+
+    expect((updateBy.query as unknown as JSONObject)["_id"]).toBe(
+      SUBSCRIBER_ID.toString(),
+    );
+    expect(updateBy.skip).toBe(0);
+    expect(updateBy.limit).toBe(1);
+  });
+
+  test("a bulk change is held to the subscribers read in its window", async () => {
+    const second: string = "6a000000-0000-4000-8000-000000000099";
+
+    contactLookup.mockResolvedValue([
+      subscriber(SUBSCRIBER_ID.toString(), []),
+      subscriber(second, []),
+    ]);
+
+    const updateBy: UpdateBy<StatusPageSubscriber> = {
+      query: { statusPageId: PAGE_ID },
+      data: {
+        statusPageResources: resources([OWN_RESOURCE]),
+      } as unknown as StatusPageSubscriber,
+      props: { tenantId: PROJECT_ID, userId: ObjectID.generate() },
+      skip: 0,
+      limit: 15000,
+    } as unknown as UpdateBy<StatusPageSubscriber>;
+
+    await hooks.onBeforeUpdate(updateBy);
+
+    const query: JSONObject = updateBy.query as unknown as JSONObject;
+    const named: Array<string> = Object.values(
+      (query["_id"] as unknown as { objectLiteralParameters: JSONObject })
+        .objectLiteralParameters,
+    ).flat() as Array<string>;
+
+    expect(named.sort()).toEqual([SUBSCRIBER_ID.toString(), second].sort());
+    expect(query["statusPageId"]).toBe(PAGE_ID);
+    expect(updateBy.limit).toBe(2);
+  });
+
+  test("a change that names no resource is left as it was sent", async () => {
+    const updateBy: UpdateBy<StatusPageSubscriber> = {
+      query: { statusPageId: PAGE_ID },
+      data: {
+        isSubscribedToAllEventTypes: true,
+      } as unknown as StatusPageSubscriber,
+      props: { isRoot: true },
+      skip: 0,
+      limit: 15000,
+    } as unknown as UpdateBy<StatusPageSubscriber>;
+
+    await hooks.onBeforeUpdate(updateBy);
+
+    expect(updateBy.query).toEqual({ statusPageId: PAGE_ID });
+    expect(updateBy.limit).toBe(15000);
+  });
+});

@@ -28,10 +28,11 @@ import { DataSource } from "typeorm";
  *
  * StatusPageSubscriberResources reads what is on a page - the page's
  * StatusPageResource rows by id, with each one's monitor for a visitor - and
- * what a subscription names already, through the subscriber's join table;
- * the subscriber jobs read each named resource with its page. Those reads
- * are TypeORM queries over a relation, an `IN` list and a join table, so
- * only a real driver can judge them. They run here against structure-only
+ * the subscriber service reads what the subscriptions an update writes name
+ * already, through the subscriber's join table, then holds the update to
+ * those subscriptions; the subscriber jobs read each named resource with
+ * its page. Those reads are TypeORM queries over a relation, an `IN` list
+ * and a join table, so only a real driver can judge them. They run here against structure-only
  * clones of the migrated tables (LIKE ... INCLUDING ALL) in a uniquely named
  * schema that is dropped afterwards; every row is synthetic.
  */
@@ -319,7 +320,7 @@ describePostgres(
       );
     });
 
-    test("reads what a subscription names already through its join table", async () => {
+    test("an update reads what each subscription names already through its join table, and is held to the subscriptions read", async () => {
       const own: ObjectID = await seedResource({
         statusPageId: pageA,
         monitorId: await seedMonitor({ isArchived: true }),
@@ -328,24 +329,130 @@ describePostgres(
         statusPageId: pageB,
         monitorId: await seedMonitor({}),
       });
-      const subscriberId: ObjectID = await seedSubscriber({
+      const first: ObjectID = await seedSubscriber({
         statusPageId: pageA,
         resources: [own, legacyForeign],
       });
-      const emptySubscriberId: ObjectID = await seedSubscriber({
+      const second: ObjectID = await seedSubscriber({
         statusPageId: pageA,
         resources: [],
       });
+      // Another project's subscriber, which the update must not reach.
+      await seedSubscriber({
+        statusPageId: otherProjectPage,
+        projectId: otherProjectId,
+        resources: [],
+      });
 
-      expect(
-        sorted(await StatusPageSubscriberResources.getHeldIds(subscriberId)),
-      ).toEqual(sorted([own, legacyForeign]));
-      expect(
-        await StatusPageSubscriberResources.getHeldIds(emptySubscriberId),
-      ).toEqual([]);
-      expect(
-        await StatusPageSubscriberResources.getHeldIds(ObjectID.generate()),
-      ).toEqual([]);
+      const updateBy: UpdateBy<StatusPageSubscriber> = {
+        query: {},
+        data: {
+          statusPageResources: [own, legacyForeign].map(
+            (id: ObjectID): StatusPageResource => {
+              const resource: StatusPageResource = new StatusPageResource();
+              resource._id = id.toString();
+              return resource;
+            },
+          ),
+        },
+        props: { tenantId: projectId },
+        skip: 0,
+        limit: 10,
+      } as unknown as UpdateBy<StatusPageSubscriber>;
+
+      /*
+       * The first subscription names both already; the second names
+       * neither, and another page's resource is not one it may add.
+       */
+      const refused: Error = await refusalOf(
+        (
+          StatusPageSubscriberService as unknown as {
+            checkResourcesOnPages: (
+              updateBy: UpdateBy<StatusPageSubscriber>,
+            ) => Promise<void>;
+          }
+        ).checkResourcesOnPages(updateBy),
+      );
+
+      expect(refused).toBeInstanceOf(ProjectScopedReferenceException);
+      expect(refused.message).toContain(legacyForeign.toString());
+      expect(refused.message).not.toContain(own.toString());
+
+      // The update now names the project's two subscriptions, and no other.
+      const held: unknown = (updateBy.query as unknown as Record<string, unknown>)[
+        "_id"
+      ];
+      const heldIds: Array<string> = Object.values(
+        (held as { objectLiteralParameters: Record<string, unknown> })
+          .objectLiteralParameters,
+      ).flat() as Array<string>;
+
+      expect(sorted(heldIds)).toEqual(sorted([first, second]));
+      expect(updateBy.skip).toBe(0);
+      expect(updateBy.limit).toBe(2);
+    });
+
+    test("a visitor's change adds only what the page shows, and keeps a hidden resource it names already", async () => {
+      const shown: ObjectID = await seedResource({
+        statusPageId: pageA,
+        monitorId: await seedMonitor({}),
+      });
+      const hidden: ObjectID = await seedResource({
+        statusPageId: pageA,
+        monitorId: await seedMonitor({ isArchived: true }),
+      });
+      const hiddenToo: ObjectID = await seedResource({
+        statusPageId: pageA,
+        monitorId: await seedMonitor({ isArchived: true }),
+      });
+      const subscriberId: ObjectID = await seedSubscriber({
+        statusPageId: pageA,
+        resources: [hidden],
+      });
+
+      // The visitor's change runs the update hook alone, as the write would.
+      const updateBySpy: jest.SpyInstance = jest
+        .spyOn(StatusPageSubscriberService, "updateBy")
+        .mockImplementation(
+          async (updateBy: UpdateBy<StatusPageSubscriber>): Promise<number> => {
+            await (
+              StatusPageSubscriberService as unknown as {
+                onBeforeUpdate: (
+                  updateBy: UpdateBy<StatusPageSubscriber>,
+                ) => Promise<unknown>;
+              }
+            ).onBeforeUpdate(updateBy);
+            return 1;
+          },
+        );
+
+      const change: (ids: Array<ObjectID>) => Promise<number> = (
+        ids: Array<ObjectID>,
+      ): Promise<number> => {
+        return StatusPageSubscriberService.updateFromManageSubscriptionPage({
+          subscriberId: subscriberId,
+          data: {
+            statusPageResources: ids.map((id: ObjectID): StatusPageResource => {
+              const resource: StatusPageResource = new StatusPageResource();
+              resource._id = id.toString();
+              return resource;
+            }),
+          } as unknown as UpdateBy<StatusPageSubscriber>["data"],
+        });
+      };
+
+      try {
+        // It keeps the hidden resource it names, and adds a shown one.
+        await expect(change([hidden, shown])).resolves.toBe(1);
+
+        // It may not add another hidden one.
+        const refused: Error = await refusalOf(change([hidden, hiddenToo]));
+        expect(refused).toBeInstanceOf(ProjectScopedReferenceException);
+        expect(refused.message).toContain(hiddenToo.toString());
+        expect(refused.message).not.toContain(hidden.toString());
+      } finally {
+        updateBySpy.mockRestore();
+      }
     });
 
     test("an update adds only the subscriber's page's resources, keeps what it names already, and reads only the request's project", async () => {
@@ -394,6 +501,8 @@ describePostgres(
             ),
           },
           props: { tenantId: projectId },
+          skip: 0,
+          limit: 1,
         } as unknown as UpdateBy<StatusPageSubscriber>;
 
         await (
@@ -529,6 +638,16 @@ describePostgres(
           eventType: StatusPageEventType.Incident,
         }),
       ).toBe(false);
+
+      // And its own page's resource reaches it as the sender hands it over.
+      expect(
+        StatusPageSubscriberService.shouldSendNotification({
+          subscriber: subscribers[0]!,
+          statusPageResources: [eventResource(own)],
+          statusPage,
+          eventType: StatusPageEventType.Incident,
+        }),
+      ).toBe(true);
     });
   },
 );

@@ -6748,7 +6748,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return results;
   }
 
-  protected normalizePositiveNumber(
+  private normalizePositiveNumber(
     value?: PositiveNumber | number,
   ): number | undefined {
     if (value === undefined || value === null) {
@@ -6764,6 +6764,75 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return undefined;
+  }
+
+  /*
+   * The rows an update is about to write, read as OneUptime with `select`,
+   * for a check a service's onBeforeUpdate makes of them - and the update
+   * held to those very rows, so its write never reaches a row the check did
+   * not see.
+   *
+   * Hooks run before the framework scopes an update to its caller, so the
+   * read is pinned to the request's project here, and it reads the update's
+   * own window (skip and limit). The update then names the rows read by id,
+   * with a window that covers just them, and the write narrows that by the
+   * caller's permissions - never past it. Without that, a bulk update that
+   * matches more rows than its window, by a caller whose permissions leave
+   * some of them out, could write a row past the window the check read. With
+   * no rows read the update is left as it is: it writes nothing either way,
+   * as what it writes is a part of what was read.
+   */
+  protected async findRowsAndHoldUpdateToThem(
+    updateBy: UpdateBy<TBaseModel>,
+    select: Select<TBaseModel>,
+  ): Promise<Array<TBaseModel>> {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+    const tenantId: ObjectID | undefined = updateBy.props.tenantId;
+
+    const pinToProject: (query: Query<TBaseModel>) => Query<TBaseModel> = (
+      query: Query<TBaseModel>,
+    ): Query<TBaseModel> => {
+      if (!tenantColumn || !tenantId || updateBy.props.isMultiTenantRequest) {
+        return query;
+      }
+
+      return { ...query, [tenantColumn]: tenantId } as Query<TBaseModel>;
+    };
+
+    const query: Query<TBaseModel> = Array.isArray(updateBy.query)
+      ? (updateBy.query.map((each: Query<TBaseModel>): Query<TBaseModel> => {
+          return pinToProject(each);
+        }) as unknown as Query<TBaseModel>)
+      : pinToProject(updateBy.query);
+
+    const rows: Array<TBaseModel> = await this.findBy({
+      query: query,
+      select: { ...select, _id: true } as Select<TBaseModel>,
+      skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
+      limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    const rowIds: Array<string> = [];
+
+    for (const row of rows) {
+      if (row._id) {
+        rowIds.push(row._id.toString());
+      }
+    }
+
+    if (rowIds.length === 0) {
+      return rows;
+    }
+
+    updateBy.query = {
+      ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
+      _id: rowIds.length === 1 ? rowIds[0]! : QueryHelper.any(rowIds),
+    } as Query<TBaseModel>;
+    updateBy.skip = 0;
+    updateBy.limit = rowIds.length;
+
+    return rows;
   }
 
   @CaptureSpan()

@@ -131,7 +131,6 @@ import StatusPageSubscriberNotificationTemplateService, {
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
 import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
 import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
-import StatusPageSubscriberResources from "../Utils/StatusPage/StatusPageSubscriberResources";
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
@@ -3791,39 +3790,6 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    /*
-     * A visitor picks from the resources this page shows them - the
-     * resources route above - so the resources a sign-up or a change names
-     * must be resources of this page that the page shows: not another
-     * page's, nor one whose monitor is archived. Any other id is answered as
-     * one that matches nothing (StatusPageSubscriberResources), every kind
-     * of subscriber alike. A change asks only about the resources it adds,
-     * so a subscription keeps what it names already. The subscriber service
-     * holds every write, the team's too, to the page's resources.
-     */
-    const namedResourceIds: Array<string> =
-      StatusPageSubscriberResources.getNamedIds(
-        req.body.data["statusPageResources"],
-      );
-
-    if (namedResourceIds.length > 0) {
-      const heldResourceIds: Array<string> =
-        isUpdate && statusPageSubscriber.id
-          ? await StatusPageSubscriberResources.getHeldIds(
-              statusPageSubscriber.id,
-            )
-          : [];
-
-      await StatusPageSubscriberResources.assertOnPage({
-        statusPageId: objectId,
-        ids: StatusPageSubscriberResources.getAdded({
-          named: namedResourceIds,
-          held: heldResourceIds,
-        }),
-        shownToVisitorsOnly: true,
-      });
-    }
-
     statusPageSubscriber.statusPageId = objectId;
     statusPageSubscriber.sendYouHaveSubscribedMessage = true;
     statusPageSubscriber.projectId = statusPage.projectId!;
@@ -3871,8 +3837,13 @@ export default class StatusPageAPI extends BaseAPI<
         req.body.data["isUnsubscribed"],
       );
 
-      await StatusPageSubscriberService.updateOneById({
-        id: statusPageSubscriber.id!,
+      /*
+       * A visitor's change: the resources it adds are ones this page shows
+       * them, like a sign-up's (StatusPageSubscriberService holds every
+       * write of a subscription to its own page's resources).
+       */
+      await StatusPageSubscriberService.updateFromManageSubscriptionPage({
+        subscriberId: statusPageSubscriber.id!,
         data: {
           statusPageResources: statusPageSubscriber.statusPageResources!,
           isSubscribedToAllResources:
@@ -3888,9 +3859,6 @@ export default class StatusPageAPI extends BaseAPI<
            */
           ...(wantsToUnsubscribe ? {} : { isUnsubscribed: false }),
         } as any,
-        props: {
-          isRoot: true,
-        },
       });
 
       if (wantsToUnsubscribe) {
@@ -3904,7 +3872,10 @@ export default class StatusPageAPI extends BaseAPI<
         `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
         getLogAttributesFromRequest(req as any),
       );
-      // A sign-up, not a subscriber the team added (Is Added By Team stays off).
+      /*
+       * A sign-up, not a subscriber the team added (Is Added By Team stays
+       * off); the resources it names are ones this page shows a visitor.
+       */
       await StatusPageSubscriberService.createFromStatusPageSignUp(
         statusPageSubscriber,
       );
