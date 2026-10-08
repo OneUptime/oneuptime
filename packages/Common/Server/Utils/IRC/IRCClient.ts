@@ -111,6 +111,10 @@ const QUIT_GRACE_IN_MS: number = 2000;
 // The longest reply text quoted back to the author.
 const MAX_QUOTED_REPLY_LENGTH: number = 200;
 
+// IRC formatting: a colour by number (\x03) and by hex (\x04).
+const COLOR_CODE: number = 0x03;
+const HEX_COLOR_CODE: number = 0x04;
+
 // RFC 4616 SASL PLAIN, sent in pieces of at most 400 bytes (IRCv3 SASL 3.1).
 const SASL_CHUNK_LENGTH: number = 400;
 
@@ -210,19 +214,29 @@ export default class IRCClient {
 
   /*
    * A server's words, made fit to quote: formatting codes and other control
-   * characters removed, and cut to a sentence's length.
+   * characters removed - a colour code with the colour numbers after it -
+   * and cut to a sentence's length.
    */
   public static cleanServerText(text: string): string {
     let cleaned: string = "";
+    let index: number = 0;
 
-    for (let index: number = 0; index < text.length; index++) {
+    while (index < text.length) {
       const code: number = text.charCodeAt(index);
+      index++;
+
+      if (code === COLOR_CODE) {
+        // \x03, then a colour of up to two digits, and ",background" if any.
+        index = IRCClient.skipColor(text, index, 2, IRCClient.isDigit);
+      } else if (code === HEX_COLOR_CODE) {
+        index = IRCClient.skipColor(text, index, 6, IRCClient.isHexDigit);
+      }
 
       if (code < 0x20 || code === 0x7f) {
         continue;
       }
 
-      cleaned += text.charAt(index);
+      cleaned += String.fromCharCode(code);
 
       if (cleaned.length >= MAX_QUOTED_REPLY_LENGTH) {
         return `${cleaned.trim()}…`;
@@ -240,6 +254,48 @@ export default class IRCClient {
         : "";
 
     return IRCClient.cleanServerText(text) || `reply ${message.command}`;
+  }
+
+  // Past a colour: up to `length` characters, then "," and as many again.
+  private static skipColor(
+    text: string,
+    start: number,
+    length: number,
+    isColorCharacter: (character: string) => boolean,
+  ): number {
+    const skip: (from: number) => number = (from: number): number => {
+      let end: number = from;
+
+      while (end - from < length && isColorCharacter(text.charAt(end))) {
+        end++;
+      }
+
+      return end;
+    };
+
+    const end: number = skip(start);
+
+    if (
+      end > start &&
+      text.charAt(end) === "," &&
+      isColorCharacter(text.charAt(end + 1))
+    ) {
+      return skip(end + 1);
+    }
+
+    return end;
+  }
+
+  private static isDigit(character: string): boolean {
+    return character >= "0" && character <= "9";
+  }
+
+  private static isHexDigit(character: string): boolean {
+    return (
+      IRCClient.isDigit(character) ||
+      (character >= "a" && character <= "f") ||
+      (character >= "A" && character <= "F")
+    );
   }
 }
 
@@ -959,10 +1015,19 @@ class IRCSession {
       return;
     }
 
+    /*
+     * A TLS port hangs up on a client that does not start TLS: it closes the
+     * connection, or resets it if the client's lines are still unread.
+     */
+    const tlsHint: string =
+      !this.hasHeardIRC && !this.options.useTls
+        ? " If the port takes TLS connections (6697 usually does), turn off Disable TLS."
+        : "";
+
     if (error) {
       this.fail(
         new IRCError(
-          `Lost the connection to the IRC server ${this.serverName}: ${error.message}.`,
+          `Lost the connection to the IRC server ${this.serverName}: ${error.message}.${tlsHint}`,
         ),
       );
       return;
@@ -971,11 +1036,7 @@ class IRCSession {
     if (!this.hasHeardIRC) {
       this.fail(
         new IRCError(
-          `The IRC server ${this.serverName} closed the connection without a word.${
-            this.options.useTls
-              ? ""
-              : " If the port takes TLS connections (6697 usually does), turn off Disable TLS."
-          }`,
+          `The IRC server ${this.serverName} closed the connection without a word.${tlsHint}`,
         ),
       );
       return;
@@ -1123,16 +1184,20 @@ class IRCSession {
   }
 
   private getTimeoutError(): IRCError {
-    const seconds: number = Math.round(this.options.timeoutInMs / 1000);
+    const seconds: number = Math.max(
+      1,
+      Math.round(this.options.timeoutInMs / 1000),
+    );
+    const duration: string = `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
 
     if (this.phase === Phase.Confirming) {
       return new IRCError(
-        `The IRC server ${this.serverName} did not confirm the message within ${seconds} seconds. It may have been delivered.`,
+        `The IRC server ${this.serverName} did not confirm the message within ${duration}. It may have been delivered.`,
       );
     }
 
     return new IRCError(
-      `Timed out after ${seconds} seconds while ${this.describePhase()}.`,
+      `Timed out after ${duration} while ${this.describePhase()}.`,
     );
   }
 
