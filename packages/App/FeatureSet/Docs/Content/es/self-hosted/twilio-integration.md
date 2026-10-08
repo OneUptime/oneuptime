@@ -98,3 +98,11 @@ Para desarrollo, la [guía de pruebas de webhooks de Twilio](https://www.twilio.
 4. Compruebe el estado de entrega del SMS en OneUptime y en los registros de mensajes de Twilio. La aceptación de un envío no demuestra su entrega; [Twilio informa de los cambios de estado posteriores mediante callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 Si el envío falla, compruebe las credenciales, funciones del número, restricciones de la cuenta y conectividad saliente. Si el mensaje o la llamada llega pero el estado o reconocimiento no se actualiza, examine la URL del callback y los registros del ingress público. La [guía de Twilio sobre errores de recuperación HTTP](https://www.twilio.com/docs/api/errors/11200) ayuda a diagnosticar callbacks inaccesibles, problemas TLS y errores HTTP. Una llamada de prueba satisfactoria por sí sola no verifica el acceso de los callbacks.
+
+## 5. Verifique los números de teléfono de los miembros del equipo
+
+Al añadir un número de teléfono para SMS o llamadas, su código de verificación se envía de inmediato y se abre el diálogo de verificación. Muestra cuándo se envió el código y hasta cuándo es válido, y envía un código nuevo cuando se solicita, como máximo una vez por minuto. No hace falta reenviar nada antes de verificar.
+
+Cuando no se puede enviar ningún código, el diálogo indica el motivo en lugar de afirmar que se envió uno: por ejemplo, que no hay ninguna cuenta de Twilio configurada, mientras no exista una configuración predeterminada del proyecto ni la configuración de toda la instalación descrita arriba. Un número cuyo primer código no se puede enviar no se añade, y el formulario muestra el motivo, como que Twilio rechace un país de destino.
+
+Un número verificado para SMS también queda verificado para llamadas, sin un segundo código. Verificar por llamada no verifica los SMS, porque un número que recibe llamadas, como un fijo, no siempre puede recibir mensajes de texto. Si Twilio acepta un código que nunca llega, el registro de SMS del proyecto muestra su estado de entrega.

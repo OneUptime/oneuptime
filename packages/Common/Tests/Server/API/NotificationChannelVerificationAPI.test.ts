@@ -133,6 +133,13 @@ const installFakeRow: (data: { service: unknown; row: FakeRow | null }) => {
 
   service["resendVerificationCode"] = jest.fn().mockResolvedValue(undefined);
 
+  // The real state machine's answer for the row, as the services give it.
+  service["getVerificationStatus"] = jest
+    .fn()
+    .mockImplementation((item: FakeRow) => {
+      return Promise.resolve(ChannelVerification.getStatus({ item: item }));
+    });
+
   return store;
 };
 
@@ -162,6 +169,17 @@ interface Channel {
   service: unknown;
   build: () => void;
   createsDefaultRules: boolean;
+  /*
+   * SMS answers a verify with how many call numbers the code verified too
+   * (UserCallService.verifyNumbersProvenBySms); the others answer empty.
+   */
+  verifyAnswersWithCallHandOver: boolean;
+  /*
+   * The channels with a verify dialog answer a resend with where the new
+   * code stands. All five have one now; the flag stays so a channel added
+   * without one says so here.
+   */
+  resendAnswersWithStatus: boolean;
 }
 
 const CHANNELS: Array<Channel> = [
@@ -174,6 +192,8 @@ const CHANNELS: Array<Channel> = [
       new UserEmailAPI();
     },
     createsDefaultRules: true,
+    verifyAnswersWithCallHandOver: false,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserSmsAPI",
@@ -184,6 +204,8 @@ const CHANNELS: Array<Channel> = [
       new UserSmsAPI();
     },
     createsDefaultRules: true,
+    verifyAnswersWithCallHandOver: true,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserCallAPI",
@@ -194,6 +216,8 @@ const CHANNELS: Array<Channel> = [
       new UserCallAPI();
     },
     createsDefaultRules: true,
+    verifyAnswersWithCallHandOver: false,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserWhatsAppAPI",
@@ -204,6 +228,8 @@ const CHANNELS: Array<Channel> = [
       new UserWhatsAppAPI();
     },
     createsDefaultRules: true,
+    verifyAnswersWithCallHandOver: false,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserIncomingCallNumberAPI",
@@ -214,6 +240,8 @@ const CHANNELS: Array<Channel> = [
       new UserIncomingCallNumberAPI();
     },
     createsDefaultRules: false,
+    verifyAnswersWithCallHandOver: false,
+    resendAnswersWithStatus: true,
   },
 ];
 
@@ -329,10 +357,18 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
     it("accepts the right code and marks the row verified", async () => {
       await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
 
-      expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
-        mockRequest,
-        mockResponse,
-      );
+      if (channel.verifyAnswersWithCallHandOver) {
+        expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+          { alsoVerifiedForCalls: 0 },
+        );
+      } else {
+        expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+        );
+      }
       expect(store.current?.isVerified).toBe(true);
     });
 
@@ -464,7 +500,12 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
         await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
 
-        expect(Response.sendEmptySuccessResponse).toHaveBeenCalled();
+        expect(
+          channel.verifyAnswersWithCallHandOver
+            ? Response.sendJsonObjectResponse
+            : Response.sendEmptySuccessResponse,
+        ).toHaveBeenCalled();
+        expect(nextFunction).not.toHaveBeenCalled();
       });
     }
   });
@@ -510,10 +551,28 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
       expect(
         (channel.service as AnyService)["resendVerificationCode"],
       ).toHaveBeenCalledWith(ITEM_ID);
-      expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
-        mockRequest,
-        mockResponse,
-      );
+
+      if (channel.resendAnswersWithStatus) {
+        /*
+         * Where the new code stands, read from the row the way the status
+         * route reads it: the verify dialog shows it without asking again.
+         */
+        expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+          expect.objectContaining({
+            isVerified: false,
+            codeState: "active",
+            cannotSendReason: null,
+          }),
+        );
+        expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+      } else {
+        expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
+          mockRequest,
+          mockResponse,
+        );
+      }
     });
   });
 

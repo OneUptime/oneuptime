@@ -72,3 +72,11 @@ If policy forbids inbound connections, SMS submission and simple inline voice pl
 4. Confirm SMS delivery status in OneUptime and Twilio's message logs. An accepted send is not proof of delivery; [Twilio reports later status changes through callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 If sending fails, check credentials, number capabilities, account restrictions, and outbound connectivity. If a message or call arrives but status or acknowledgement does not update, inspect the callback URL and public ingress logs. Twilio's [HTTP retrieval failure guidance](https://www.twilio.com/docs/api/errors/11200) helps diagnose unreachable callbacks, TLS problems, and HTTP errors. A successful test call alone does not verify callback access.
+
+## 5. Verify team members' phone numbers
+
+Adding a phone number for SMS or calls sends its verification code straight away, and the verify dialog opens. It shows when the code was sent and until when it works, and sends a new code when asked, at most once a minute. Nothing needs to be resent before verifying.
+
+When no code can be sent, the dialog says why instead of claiming one was sent: for example, that no Twilio account is set up, until a project default configuration or the installation-wide configuration above exists. A number whose first code cannot be sent is not added, and the form shows the reason, such as Twilio refusing a destination country.
+
+A number verified for SMS is also verified for calls, with no second code. Verifying by call does not verify SMS, because a number that takes calls, such as a landline, cannot always receive texts. If Twilio accepts a code that never arrives, the project's SMS log shows its delivery status.

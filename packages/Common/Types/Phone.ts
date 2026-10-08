@@ -98,6 +98,32 @@ export default class Phone extends DatabaseProperty {
     return this.phone;
   }
 
+  /*
+   * Whether two numbers are the same line, however each was typed. A number
+   * is stored as it was entered, so "+1 (555) 123-0100" and "+15551230100"
+   * are different strings; their digits are not. A number written with its
+   * country code and one written without are different digits, and are not
+   * matched - the safe way round for everything that asks.
+   */
+  public static isSameNumber(
+    first: Phone | string | undefined | null,
+    second: Phone | string | undefined | null,
+  ): boolean {
+    if (!first || !second) {
+      return false;
+    }
+
+    const digitsOf: (phone: Phone | string) => string = (
+      phone: Phone | string,
+    ): string => {
+      return phone.toString().replace(/\D/g, "");
+    };
+
+    const firstDigits: string = digitsOf(first);
+
+    return firstDigits.length > 0 && firstDigits === digitsOf(second);
+  }
+
   public override toJSON(): JSONObject {
     return {
       _type: ObjectType.Phone,

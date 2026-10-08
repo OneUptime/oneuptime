@@ -36,6 +36,11 @@ import {
   ProjectNotificationChannel,
 } from "Common/Utils/Project/NotificationChannels";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import {
+  getNoTwilioAccountMessage,
+  TwilioMessageKind,
+} from "Common/Utils/Project/TwilioAccount";
+import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
@@ -168,9 +173,13 @@ export default class CallService {
         /*
          * Nobody has filled in Twilio credentials in Global Settings (or the
          * caller passed a project-level config that is empty). Failing to place
-         * the call is the correct behaviour, not a defect.
+         * the call is the correct behaviour, not a defect. The log, and anyone
+         * waiting on this call, are told what is missing and who can add it
+         * (Utils/Project/TwilioAccount) - not "Twilio Config not found".
          */
-        throw new BadDataException("Twilio Config not found").asUserError();
+        throw new BadDataException(
+          getNoTwilioAccountMessage(TwilioMessageKind.Call),
+        ).asUserError();
       }
 
       const client: Twilio.Twilio = Twilio(
@@ -448,7 +457,9 @@ export default class CallService {
 
       logger.error("Call Request failed.");
       logger.error(callLog.statusMessage);
-      callError = e;
+
+      // Twilio's refusal keeps its words on the way out (TwilioSendError).
+      callError = TwilioSendError.toSendError(e, TwilioSendKind.Call) as Error;
     }
 
     logger.debug("Saving Call Log if project id is provided.");

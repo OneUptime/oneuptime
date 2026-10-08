@@ -98,3 +98,11 @@ For utvikling beskriver Twilios [veiledning for webhook-testing](https://www.twi
 4. Kontroller SMS-leveringsstatus i OneUptime og Twilios meldingslogger. En akseptert sending er ikke bevis på levering; [Twilio rapporterer senere statusendringer gjennom tilbakekall](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 
 Hvis sendingen mislykkes, kontrollerer du påloggingsinformasjon, nummerets funksjoner, kontobegrensninger og utgående tilkobling. Hvis en melding eller et anrop kommer frem, men status eller bekreftelse ikke oppdateres, undersøker du tilbakekalls-URL-en og loggene til den offentlige ingressen. Twilios [veiledning om HTTP-hentefeil](https://www.twilio.com/docs/api/errors/11200) hjelper med å diagnostisere utilgjengelige tilbakekall, TLS-problemer og HTTP-feil. Et vellykket testanrop alene verifiserer ikke tilbakekallstilgangen.
+
+## 5. Bekreft teammedlemmenes telefonnumre
+
+Når et telefonnummer legges til for SMS eller anrop, sendes bekreftelseskoden med en gang, og bekreftelsesdialogen åpnes. Den viser når koden ble sendt og hvor lenge den gjelder, og sender en ny kode når du ber om det, høyst én gang i minuttet. Du trenger ikke å sende noe på nytt før du bekrefter.
+
+Når ingen kode kan sendes, oppgir dialogen årsaken i stedet for å påstå at en ble sendt: for eksempel at ingen Twilio-konto er satt opp, så lenge verken en standardkonfigurasjon for prosjektet eller den installasjonsomfattende konfigurasjonen ovenfor finnes. Et nummer der den første koden ikke kan sendes, legges ikke til, og skjemaet viser årsaken, for eksempel at Twilio avviser et destinasjonsland.
+
+Et nummer som er bekreftet for SMS, er også bekreftet for anrop uten en ny kode. Bekreftelse via anrop bekrefter ikke SMS, fordi et nummer som tar imot anrop, som en fasttelefon, ikke alltid kan motta SMS. Hvis Twilio godtar en kode som aldri kommer frem, viser prosjektets SMS-logg leveringsstatusen.
