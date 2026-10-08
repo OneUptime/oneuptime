@@ -868,9 +868,12 @@ const escapeLinkTextValue: EscapeLinkTextValueFunction = (
   return neutralizeChatControlSequences(
     text.replace(LINK_TEXT_LINE_BREAK_PATTERN, " "),
   )
-    .replace(LINK_TEXT_SPECIAL_CHARACTER_PATTERN, (character: string): string => {
-      return `\\${character}`;
-    })
+    .replace(
+      LINK_TEXT_SPECIAL_CHARACTER_PATTERN,
+      (character: string): string => {
+        return `\\${character}`;
+      },
+    )
     .replace(CHARACTER_REFERENCE_AMPERSAND_PATTERN, "\\&");
 };
 
@@ -1382,6 +1385,28 @@ export default class FeedMarkdown {
   }
 
   /**
+   * Text OneUptime wrote with code in backticks - an evidence label,
+   * "`docker ps -a` on Docker host "web-1"" -: each backticked part is code
+   * (FeedMarkdown.code: a backtick inside cannot end it early), the rest is
+   * text. Text whose backticks do not pair is all text.
+   */
+  public static textWithCode(text: string | null | undefined): MarkdownText {
+    const value: string = toText(text);
+    const parts: Array<string> = value.split("`");
+
+    if (parts.length % 2 === 0) {
+      return FeedMarkdown.join([value], "");
+    }
+
+    return FeedMarkdown.join(
+      parts.map((part: string, index: number): MarkdownValue => {
+        return index % 2 === 1 ? FeedMarkdown.code(part) : part;
+      }),
+      "",
+    );
+  }
+
+  /**
    * Markdown somebody outside OneUptime wrote - an incident form's reporter:
    * no image, diagram or mention in it acts (neutralizeUntrustedMarkdown).
    */
@@ -1449,7 +1474,9 @@ export default class FeedMarkdown {
    * puts into a chat mention or Markdown - to compare a placed value with
    * the text it was placed into.
    */
-  public static withoutInvisibleBreaks(text: string | null | undefined): string {
+  public static withoutInvisibleBreaks(
+    text: string | null | undefined,
+  ): string {
     return (text || "").split(WORD_JOINER).join("");
   }
 

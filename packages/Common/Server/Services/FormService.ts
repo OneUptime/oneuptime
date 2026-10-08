@@ -943,8 +943,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       if (
-        FeedMarkdown.reportedValue(value).length >
-        binding.definition.maxLength
+        FeedMarkdown.reportedValue(value).length > binding.definition.maxLength
       ) {
         throw new BadDataException(
           TOO_LONG_MESSAGE.replace("{{field}}", (): string => {

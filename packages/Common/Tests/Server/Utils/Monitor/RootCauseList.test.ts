@@ -20,7 +20,10 @@ function item(overrides: Partial<RootCauseListItem> = {}): RootCauseListItem {
     value: FeedMarkdown.asMarkdown("**1.07 GB**"),
     details: [
       { label: FeedMarkdown.asMarkdown("`a`"), value: "537 MB" },
-      { label: FeedMarkdown.asMarkdown("`k8s.pod.name`"), value: FeedMarkdown.asMarkdown("`web-1`") },
+      {
+        label: FeedMarkdown.asMarkdown("`k8s.pod.name`"),
+        value: FeedMarkdown.asMarkdown("`web-1`"),
+      },
     ],
     ...overrides,
   };
@@ -34,7 +37,9 @@ function items(count: number): Array<RootCauseListItem> {
       item({
         title: FeedMarkdown.asMarkdown(`\`item-${i}\``),
         value: FeedMarkdown.asMarkdown(`**${i}**`),
-        details: [{ label: "Label", value: FeedMarkdown.asMarkdown(`\`detail-${i}\``) }],
+        details: [
+          { label: "Label", value: FeedMarkdown.asMarkdown(`\`detail-${i}\``) },
+        ],
       }),
     );
   }
@@ -113,7 +118,9 @@ describe("RootCauseList.render", () => {
 
   test("a detail with an empty label is just its value", () => {
     const markdown: string = RootCauseList.render([
-      item({ details: [{ label: "", value: FeedMarkdown.asMarkdown("`web-1`") }] }),
+      item({
+        details: [{ label: "", value: FeedMarkdown.asMarkdown("`web-1`") }],
+      }),
     ]).toString();
 
     expect(markdown).toBe(
@@ -128,15 +135,15 @@ describe("RootCauseList.render", () => {
   });
 
   test("an empty value leaves just the title, with no dangling dash", () => {
-    expect(RootCauseList.render([item({ value: "", details: [] })]).toString()).toBe(
-      "1. `2026-08-14T10:30:00.000Z`",
-    );
+    expect(
+      RootCauseList.render([item({ value: "", details: [] })]).toString(),
+    ).toBe("1. `2026-08-14T10:30:00.000Z`");
   });
 
   test("an empty title leaves just the value", () => {
-    expect(RootCauseList.render([item({ title: " ", details: [] })]).toString()).toBe(
-      "1. **1.07 GB**",
-    );
+    expect(
+      RootCauseList.render([item({ title: " ", details: [] })]).toString(),
+    ).toBe("1. **1.07 GB**");
   });
 
   test("trims the whitespace around the title, value, labels and values", () => {
@@ -145,7 +152,12 @@ describe("RootCauseList.render", () => {
         item({
           title: FeedMarkdown.asMarkdown("  `t`  "),
           value: FeedMarkdown.asMarkdown(" **v** "),
-          details: [{ label: FeedMarkdown.asMarkdown(" `k` "), value: FeedMarkdown.asMarkdown(" `x` ") }],
+          details: [
+            {
+              label: FeedMarkdown.asMarkdown(" `k` "),
+              value: FeedMarkdown.asMarkdown(" `x` "),
+            },
+          ],
         }),
       ]).toString(),
     ).toBe("1. `t` — **v**\n   - `k`: `x`");
@@ -161,7 +173,12 @@ describe("RootCauseList.render", () => {
       RootCauseList.render([
         item({
           title: FeedMarkdown.asMarkdown("**Pod** `x`"),
-          details: [{ label: FeedMarkdown.asMarkdown("*Namespace*"), value: FeedMarkdown.asMarkdown("`y`") }],
+          details: [
+            {
+              label: FeedMarkdown.asMarkdown("*Namespace*"),
+              value: FeedMarkdown.asMarkdown("`y`"),
+            },
+          ],
         }),
       ]).toString(),
     ).toBe("1. **Pod** `x` — **1.07 GB**\n   - *Namespace*: `y`");
@@ -238,7 +255,9 @@ describe("RootCauseList.code", () => {
     ["whitespace", "  \t "],
     ["line breaks", "\r\n\n"],
   ])("returns an empty string for %s", (_label: string, value: unknown) => {
-    expect(RootCauseList.code(value as string | undefined | null).toString()).toBe("");
+    expect(
+      RootCauseList.code(value as string | undefined | null).toString(),
+    ).toBe("");
   });
 
   test("turns line breaks into single spaces", () => {
@@ -263,7 +282,9 @@ describe("RootCauseList.code", () => {
      */
     expect(
       SlackUtil.convertMarkdownToSlackRichText(
-        RootCauseList.render([{ title: span, value: FeedMarkdown.asMarkdown("**3**"), details: [] }]).toString(),
+        RootCauseList.render([
+          { title: span, value: FeedMarkdown.asMarkdown("**3**"), details: [] },
+        ]).toString(),
       ),
     ).not.toMatch(/<[!@#][A-Za-z0-9]/);
   });

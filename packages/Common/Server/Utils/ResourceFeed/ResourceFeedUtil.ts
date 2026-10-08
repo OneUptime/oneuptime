@@ -101,10 +101,11 @@ export default class ResourceFeedUtil {
     }
 
     if (data.createdByUserId) {
-      const userMarkdown: MarkdownText = await UserService.getUserMarkdownString({
-        userId: data.createdByUserId,
-        projectId: data.projectId,
-      });
+      const userMarkdown: MarkdownText =
+        await UserService.getUserMarkdownString({
+          userId: data.createdByUserId,
+          projectId: data.projectId,
+        });
 
       return {
         feedInfoInMarkdown:

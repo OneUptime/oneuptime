@@ -814,8 +814,8 @@ describe("feed markdown", () => {
       projectId: PROJECT_ID,
       resources,
     }).map((line: MarkdownText): string => {
- return line.toString();
- });
+      return line.toString();
+    });
   }
 
   test("keeps the monitor bullet, labels the rest, and ends with the SLO", () => {
@@ -839,9 +839,9 @@ describe("feed markdown", () => {
         ),
       ]),
     ).toEqual([
-      `- [checkout\\-web](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
-      `- [Host web\\-01](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_ID})`,
-      `- [Kubernetes Cluster prod\\-eu](${DASHBOARD}/${PROJECT_ID.toString()}/kubernetes/${CLUSTER_ID})`,
+      `- [checkout-web](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
+      `- [Host web-01](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_ID})`,
+      `- [Kubernetes Cluster prod-eu](${DASHBOARD}/${PROJECT_ID.toString()}/kubernetes/${CLUSTER_ID})`,
       `- [SLO Checkout availability](${DASHBOARD}/${PROJECT_ID.toString()}/slos/${SLO_ID})`,
     ]);
   });
@@ -858,7 +858,7 @@ describe("feed markdown", () => {
         ),
       ]),
     ).toEqual([
-      `- [Storage Array pure\\-prod\\-01](${DASHBOARD}/${PROJECT_ID.toString()}/storage-arrays/${ARRAY_ID})`,
+      `- [Storage Array pure-prod-01](${DASHBOARD}/${PROJECT_ID.toString()}/storage-arrays/${ARRAY_ID})`,
     ]);
   });
 
@@ -873,7 +873,7 @@ describe("feed markdown", () => {
     ]);
 
     expect(line).toBe(
-      `- [checkout\\-web](${(
+      `- [checkout-web](${(
         await MonitorService.getMonitorLinkInDashboard(
           PROJECT_ID,
           new ObjectID(MONITOR_ID),
@@ -895,7 +895,7 @@ describe("feed markdown", () => {
     expect(line).not.toContain("![p](");
     expect(line).not.toContain("\n");
     expect(line).toBe(
-      `- [Host web\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://tracker.example/p.gif\\) \\# owned](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_ID})`,
+      `- [Host web\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://tracker.example/p.gif\\) # owned](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_ID})`,
     );
   });
 
@@ -913,7 +913,7 @@ describe("feed markdown", () => {
     expect(line).not.toContain("\n");
     expect(line).not.toContain("<!channel>");
     expect(line).toBe(
-      `- [web\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://tracker.example/p.gif\\) \\# owned \\<\u2060\\!channel\\>](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
+      `- [web\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://tracker.example/p.gif\\) # owned \\<\u2060\\!channel>](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
     );
   });
 

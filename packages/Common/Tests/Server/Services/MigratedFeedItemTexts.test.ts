@@ -220,38 +220,51 @@ async function incidentLabelRuleRan(name: string): Promise<FeedText> {
  */
 const EXPECTED: Record<string, FeedText | string> = {
   "hostCreated.markdown": {
-    feedInfoInMarkdown: "🚀 [Host \\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel\\> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111) was created by **[\\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel\\> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/settings/users/55555555-5555-4555-8555-555555555555)**.",
-    moreInformationInMarkdown: "**Created by**: [\\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel\\> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/settings/users/55555555-5555-4555-8555-555555555555)\n\n**How it was created**: Added by a user, from the OneUptime dashboard or through the OneUptime API.\n\n**Automatically created from telemetry**: No.\n\n**Host identifier**: `` ![x](https://tracker.example/p.png) [Reset](https://evil.example/login) <\u2060!channel> *bold* `code` _x_ ~s~ R&D &lt; ``\n\n**Description**: Primary database host",
+    feedInfoInMarkdown:
+      "🚀 [Host \\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111) was created by **[\\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/settings/users/55555555-5555-4555-8555-555555555555)**.",
+    moreInformationInMarkdown:
+      "**Created by**: [\\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/settings/users/55555555-5555-4555-8555-555555555555)\n\n**How it was created**: Added by a user, from the OneUptime dashboard or through the OneUptime API.\n\n**Automatically created from telemetry**: No.\n\n**Host identifier**: `` ![x](https://tracker.example/p.png) [Reset](https://evil.example/login) <\u2060!channel> *bold* `code` _x_ ~s~ R&D &lt; ``\n\n**Description**: Primary database host",
   },
   "hostCreated.ordinary": {
-    feedInfoInMarkdown: "🚀 [Host Payments API \\(EU\\) \\- prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111) was created by **[Payments API \\(EU\\) \\- prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/settings/users/55555555-5555-4555-8555-555555555555)**.",
-    moreInformationInMarkdown: "**Created by**: [Payments API \\(EU\\) \\- prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/settings/users/55555555-5555-4555-8555-555555555555)\n\n**How it was created**: Added by a user, from the OneUptime dashboard or through the OneUptime API.\n\n**Automatically created from telemetry**: No.\n\n**Host identifier**: `Payments API (EU) - prod`\n\n**Description**: Primary database host",
+    feedInfoInMarkdown:
+      "🚀 [Host Payments API \\(EU\\) - prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111) was created by **[Payments API \\(EU\\) - prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/settings/users/55555555-5555-4555-8555-555555555555)**.",
+    moreInformationInMarkdown:
+      "**Created by**: [Payments API \\(EU\\) - prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/settings/users/55555555-5555-4555-8555-555555555555)\n\n**How it was created**: Added by a user, from the OneUptime dashboard or through the OneUptime API.\n\n**Automatically created from telemetry**: No.\n\n**Host identifier**: `Payments API (EU) - prod`\n\n**Description**: Primary database host",
   },
   "hostLabelRule.markdown": {
-    feedInfoInMarkdown: "🏷️ 1 label(s) were attached to [Host \\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel\\> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111) by label rule.",
-    moreInformationInMarkdown: "**Label rules that matched**: `` ![x](https://tracker.example/p.png) [Reset](https://evil.example/login) <\u2060!channel> *bold* `code` _x_ ~s~ R&D &lt; ``",
+    feedInfoInMarkdown:
+      "🏷️ 1 label(s) were attached to [Host \\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111) by label rule.",
+    moreInformationInMarkdown:
+      "**Label rules that matched**: `` ![x](https://tracker.example/p.png) [Reset](https://evil.example/login) <\u2060!channel> *bold* `code` _x_ ~s~ R&D &lt; ``",
   },
   "hostLabelRule.ordinary": {
-    feedInfoInMarkdown: "🏷️ 1 label(s) were attached to [Host Payments API \\(EU\\) \\- prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111) by label rule.",
-    moreInformationInMarkdown: "**Label rules that matched**: `Payments API (EU) - prod`",
+    feedInfoInMarkdown:
+      "🏷️ 1 label(s) were attached to [Host Payments API \\(EU\\) - prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111) by label rule.",
+    moreInformationInMarkdown:
+      "**Label rules that matched**: `Payments API (EU) - prod`",
   },
   "incidentLabelRule.markdown": {
-    feedInfoInMarkdown: "🏷️ **Incident Label Rule executed:** **!\\[x\\](https://tracker.example/p.png) \\[Reset\\](https://evil.example/login) \\<\u2060!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;**\n\nAdded the following label to the incident:\n- !\\[x\\](https://tracker.example/p.png) \\[Reset\\](https://evil.example/login) \\<\u2060!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;",
+    feedInfoInMarkdown:
+      "🏷️ **Incident Label Rule executed:** **!\\[x\\](https://tracker.example/p.png) \\[Reset\\](https://evil.example/login) \\<\u2060!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;**\n\nAdded the following label to the incident:\n- !\\[x\\](https://tracker.example/p.png) \\[Reset\\](https://evil.example/login) \\<\u2060!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;",
     moreInformationInMarkdown: undefined,
   },
   "incidentLabelRule.ordinary": {
-    feedInfoInMarkdown: "🏷️ **Incident Label Rule executed:** **Payments API (EU) - prod**\n\nAdded the following label to the incident:\n- Payments API (EU) - prod",
+    feedInfoInMarkdown:
+      "🏷️ **Incident Label Rule executed:** **Payments API (EU) - prod**\n\nAdded the following label to the incident:\n- Payments API (EU) - prod",
     moreInformationInMarkdown: undefined,
   },
   "ownerTeamAdded.markdown": {
-    feedInfoInMarkdown: "👨🏻‍👩🏻‍👦🏻 Added team **!\\[x\\](https://tracker.example/p.png) \\[Reset\\](https://evil.example/login) \\<\u2060!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;** as an owner of [Host \\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel\\> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111).",
+    feedInfoInMarkdown:
+      "👨🏻‍👩🏻‍👦🏻 Added team **!\\[x\\](https://tracker.example/p.png) \\[Reset\\](https://evil.example/login) \\<\u2060!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;** as an owner of [Host \\!\\[x\\]\\(https://tracker.example/p.png\\) \\[Reset\\]\\(https://evil.example/login\\) \\<\u2060\\!channel> \\*bold\\* \\`code\\` \\_x\\_ \\~s\\~ R&D \\&lt;](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111).",
     moreInformationInMarkdown: undefined,
   },
   "ownerTeamAdded.ordinary": {
-    feedInfoInMarkdown: "👨🏻‍👩🏻‍👦🏻 Added team **Payments API (EU) - prod** as an owner of [Host Payments API \\(EU\\) \\- prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111).",
+    feedInfoInMarkdown:
+      "👨🏻‍👩🏻‍👦🏻 Added team **Payments API (EU) - prod** as an owner of [Host Payments API \\(EU\\) - prod](https://oneuptime.example/dashboard/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/host/11111111-1111-4111-8111-111111111111).",
     moreInformationInMarkdown: undefined,
   },
-  "sloLabels.markdown": "!\\[x\\](https://tracker.example/p.png) \\[Reset\\](https://evil.example/login) \\<\u2060!channe…, Tier 1",
+  "sloLabels.markdown":
+    "!\\[x\\](https://tracker.example/p.png) \\[Reset\\](https://evil.example/login) \\<\u2060!channe…, Tier 1",
   "sloLabels.ordinary": "Payments API (EU) - prod, Tier 1",
 };
 
@@ -264,35 +277,48 @@ describe("feed item texts", () => {
   test.each(NAMES)(
     "a host created by a person, both with the %s name",
     async (label: string, name: string) => {
-      expect(await hostCreatedBy(name)).toEqual(EXPECTED[`hostCreated.${label}`]);
+      expect(await hostCreatedBy(name)).toEqual(
+        EXPECTED[`hostCreated.${label}`],
+      );
     },
   );
 
   test.each(NAMES)(
     "an owner team added to a host, both with the %s name",
     async (label: string, name: string) => {
-      expect(await ownerTeamAdded(name)).toEqual(EXPECTED[`ownerTeamAdded.${label}`]);
+      expect(await ownerTeamAdded(name)).toEqual(
+        EXPECTED[`ownerTeamAdded.${label}`],
+      );
     },
   );
 
   test.each(NAMES)(
     "a host label rule run, rule and host with the %s name",
     async (label: string, name: string) => {
-      expect(await hostLabelRuleRan(name)).toEqual(EXPECTED[`hostLabelRule.${label}`]);
+      expect(await hostLabelRuleRan(name)).toEqual(
+        EXPECTED[`hostLabelRule.${label}`],
+      );
     },
   );
 
   test.each(NAMES)(
     "an incident label rule run, rule and label with the %s name",
     async (label: string, name: string) => {
-      expect(await incidentLabelRuleRan(name)).toEqual(EXPECTED[`incidentLabelRule.${label}`]);
+      expect(await incidentLabelRuleRan(name)).toEqual(
+        EXPECTED[`incidentLabelRule.${label}`],
+      );
     },
   );
 
   test.each(NAMES)(
     "an SLO's labels, one with the %s name",
     async (label: string, name: string) => {
-      expect(formatSloFeedEntityNames([{ name: name }, { name: "Tier 1" }]).toString()).toEqual(EXPECTED[`sloLabels.${label}`]);
+      expect(
+        formatSloFeedEntityNames([
+          { name: name },
+          { name: "Tier 1" },
+        ]).toString(),
+      ).toEqual(EXPECTED[`sloLabels.${label}`]);
     },
   );
 });

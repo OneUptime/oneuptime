@@ -114,7 +114,9 @@ beforeEach((): void => {
 
   userMarkdownSpy = jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue(FeedMarkdown.asMarkdown("**Jane Doe** (jane@example.com)"));
+    .mockResolvedValue(
+      FeedMarkdown.asMarkdown("**Jane Doe** (jane@example.com)"),
+    );
 });
 
 afterEach((): void => {

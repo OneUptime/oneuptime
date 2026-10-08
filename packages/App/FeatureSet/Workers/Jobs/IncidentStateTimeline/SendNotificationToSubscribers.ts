@@ -849,7 +849,8 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      slackTitle = mdText`🚨 ## Incident - ${incident.title || " - "}
+                      slackTitle =
+                        mdText`🚨 ## Incident - ${incident.title || " - "}
 
 `.toString();
 
@@ -904,7 +905,8 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      teamsTitle = mdText`🚨 ## Incident - ${incident.title || " - "}
+                      teamsTitle =
+                        mdText`🚨 ## Incident - ${incident.title || " - "}
 
 `.toString();
 

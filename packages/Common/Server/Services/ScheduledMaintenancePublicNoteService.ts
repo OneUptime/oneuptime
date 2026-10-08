@@ -273,10 +273,11 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
         const scheduledMaintenance: ScheduledMaintenance =
           updatedItem.scheduledMaintenance!;
 
-        const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
-          updatedItem.id!,
-          "/scheduled-maintenance-public-note/attachment",
-        );
+        const attachmentsMarkdown: MarkdownText =
+          await this.getAttachmentsMarkdown(
+            updatedItem.id!,
+            "/scheduled-maintenance-public-note/attachment",
+          );
 
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
           {

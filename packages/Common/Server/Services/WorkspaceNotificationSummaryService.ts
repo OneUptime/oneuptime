@@ -1203,12 +1203,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<MarkdownText> = [];
         for (const [sev, count] of map) {
-          parts.push(
-            mdText`${sev}: ${Service.bold(String(count))}`,
-          );
+          parts.push(mdText`${sev}: ${Service.bold(String(count))}`);
         }
         blocks.push(
-          Service.md(mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1223,12 +1223,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<MarkdownText> = [];
         for (const [state, count] of map) {
-          parts.push(
-            mdText`${state}: ${Service.bold(String(count))}`,
-          );
+          parts.push(mdText`${state}: ${Service.bold(String(count))}`);
         }
         blocks.push(
-          Service.md(mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1360,7 +1360,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(Service.divider());
 
       if (incidents.length === 0) {
-        blocks.push(Service.md(mdText`_No incidents reported in this period._`));
+        blocks.push(
+          Service.md(mdText`_No incidents reported in this period._`),
+        );
         return;
       }
 
@@ -1522,7 +1524,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           parts.push(mdText`${sev}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1536,12 +1540,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<MarkdownText> = [];
         for (const [state, c] of map) {
-          parts.push(
-            mdText`${state}: ${Service.bold(String(c))}`,
-          );
+          parts.push(mdText`${state}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1704,7 +1708,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           parts.push(mdText`${sev}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1718,12 +1724,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<MarkdownText> = [];
         for (const [state, c] of map) {
-          parts.push(
-            mdText`${state}: ${Service.bold(String(c))}`,
-          );
+          parts.push(mdText`${state}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1863,14 +1869,10 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
         const meta: Array<MarkdownText> = [];
         if (a.alertSeverity?.name) {
-          meta.push(
-            mdText`Severity: ${Service.bold(a.alertSeverity.name)}`,
-          );
+          meta.push(mdText`Severity: ${Service.bold(a.alertSeverity.name)}`);
         }
         if (a.currentAlertState?.name) {
-          meta.push(
-            mdText`State: ${Service.bold(a.currentAlertState.name)}`,
-          );
+          meta.push(mdText`State: ${Service.bold(a.currentAlertState.name)}`);
         }
         if (a.createdAt) {
           meta.push(
@@ -1992,7 +1994,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           parts.push(mdText`${sev}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -2006,12 +2010,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<MarkdownText> = [];
         for (const [state, c] of map) {
-          parts.push(
-            mdText`${state}: ${Service.bold(String(c))}`,
-          );
+          parts.push(mdText`${state}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -2055,14 +2059,10 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         let text: MarkdownText = mdText`${Service.bold(Service.link(linkUrl, ep.title || "Untitled Episode"))}`;
         const meta: Array<MarkdownText> = [];
         if (ep.alertSeverity?.name) {
-          meta.push(
-            mdText`Severity: ${Service.bold(ep.alertSeverity.name)}`,
-          );
+          meta.push(mdText`Severity: ${Service.bold(ep.alertSeverity.name)}`);
         }
         if (ep.currentAlertState?.name) {
-          meta.push(
-            mdText`State: ${Service.bold(ep.currentAlertState.name)}`,
-          );
+          meta.push(mdText`State: ${Service.bold(ep.currentAlertState.name)}`);
         }
         if (ep.createdAt) {
           meta.push(

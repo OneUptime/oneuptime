@@ -167,7 +167,9 @@ export const formatCustomFieldValueForNote: FormatCustomFieldValueForNoteFunctio
         return toText(value);
 
       case CustomFieldType.LongText:
-        return FeedMarkdown.templateText(toText(value), { keepLineBreaks: true });
+        return FeedMarkdown.templateText(toText(value), {
+          keepLineBreaks: true,
+        });
 
       case CustomFieldType.Boolean:
         return FeedMarkdown.templateText(formatCustomFieldBoolean(value));
@@ -175,7 +177,9 @@ export const formatCustomFieldValueForNote: FormatCustomFieldValueForNoteFunctio
       case CustomFieldType.DateTime: {
         const date: Date | null = toDate(value);
 
-        return FeedMarkdown.templateText(date ? formatDateTime(date) : toText(value));
+        return FeedMarkdown.templateText(
+          date ? formatDateTime(date) : toText(value),
+        );
       }
 
       /*

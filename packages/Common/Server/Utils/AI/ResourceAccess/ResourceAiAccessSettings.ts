@@ -1069,9 +1069,9 @@ export default class ResourceAiAccessSettings {
 
       const changes: Array<MarkdownText> =
         ResourceAiAccessSettings.describeChanges({
-        updateData: data.updateData,
-        previous,
-      });
+          updateData: data.updateData,
+          previous,
+        });
 
       if (changes.length === 0) {
         continue;

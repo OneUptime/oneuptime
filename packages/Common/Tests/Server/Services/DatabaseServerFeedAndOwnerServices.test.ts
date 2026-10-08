@@ -68,7 +68,7 @@ beforeEach(() => {
   getJestSpyOn(
     DatabaseServerService,
     "getDatabaseServerMarkdownLink",
-  ).mockResolvedValue(LINK);
+  ).mockResolvedValue(FeedMarkdown.asMarkdown(LINK));
 });
 
 afterEach(() => {

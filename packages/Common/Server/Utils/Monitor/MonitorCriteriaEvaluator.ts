@@ -1603,9 +1603,7 @@ ${contextBlock}
       });
 
     if (requestMethod) {
-      requestDetails.push(
-        mdText`- Request Method: ${requestMethod}`,
-      );
+      requestDetails.push(mdText`- Request Method: ${requestMethod}`);
     }
 
     if (probeResponse?.responseCode !== undefined) {
@@ -1671,11 +1669,15 @@ ${contextBlock}
     const sections: Array<MarkdownText> = [];
 
     if (requestDetails.length > 0) {
-      sections.push(mdText`**Request Details**\n${FeedMarkdown.join(requestDetails, "\n")}`);
+      sections.push(
+        mdText`**Request Details**\n${FeedMarkdown.join(requestDetails, "\n")}`,
+      );
     }
 
     if (responseDetails.length > 0) {
-      sections.push(mdText`\n\n**Response Snapshot**\n${FeedMarkdown.join(responseDetails, "\n")}`);
+      sections.push(
+        mdText`\n\n**Response Snapshot**\n${FeedMarkdown.join(responseDetails, "\n")}`,
+      );
     }
 
     if (failureDetails.length > 0) {
@@ -1750,7 +1752,9 @@ ${contextBlock}
       lines.push(mdText`- Aggregation: ${ctx.aggregationType}`);
     }
     if (ctx.isFormula && ctx.formulaExpression) {
-      lines.push(mdText`- Formula: ${RootCauseList.code(ctx.formulaExpression)}`);
+      lines.push(
+        mdText`- Formula: ${RootCauseList.code(ctx.formulaExpression)}`,
+      );
     }
     if (ctx.timeWindowMinutes) {
       lines.push(mdText`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
@@ -1782,7 +1786,9 @@ ${contextBlock}
           return mdText`  - ${RootCauseList.code(component.alias)} = ${RootCauseList.code(component.name)}${typeSuffix}${unitSuffix}`;
         },
       );
-      lines.push(mdText`- Components:\n${FeedMarkdown.join(componentLines, "\n")}`);
+      lines.push(
+        mdText`- Components:\n${FeedMarkdown.join(componentLines, "\n")}`,
+      );
     }
 
     const filterKeys: Array<string> = Object.keys(ctx.filterAttributes || {});
@@ -1796,14 +1802,18 @@ ${contextBlock}
 
     if (ctx.groupBy.length > 0) {
       lines.push(
-        mdText`- Grouped By: ${FeedMarkdown.join(ctx.groupBy
-          .map((g: string) => {
+        mdText`- Grouped By: ${FeedMarkdown.join(
+          ctx.groupBy.map((g: string) => {
             return RootCauseList.code(g);
-          }), ", ")}`,
+          }),
+          ", ",
+        )}`,
       );
     }
 
-    const sections: Array<MarkdownText> = [mdText`**Metric Details**\n${FeedMarkdown.join(lines, "\n")}`];
+    const sections: Array<MarkdownText> = [
+      mdText`**Metric Details**\n${FeedMarkdown.join(lines, "\n")}`,
+    ];
 
     const breachingSamples: Array<MetricBreachingSample> =
       ctx.breachingSamples && ctx.breachingSamples.length > 0
@@ -2041,12 +2051,10 @@ ${contextBlock}
             value: MetricValueFormatter.format({
               value: match.value,
               unit: component.unit,
-              metricName: MonitorCriteriaEvaluator.metricNameForUnitHeuristics(
-                {
-                  metricName: component.name,
-                  isFormula: component.isFormula,
-                },
-              ),
+              metricName: MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                metricName: component.name,
+                isFormula: component.isFormula,
+              }),
             }),
           });
         }
@@ -2072,10 +2080,10 @@ ${contextBlock}
         return {
           title: RootCauseList.code(new Date(s.timestamp).toISOString()),
           value: mdText`**${MetricValueFormatter.format({
-              value: s.value,
-              unit: input.unit,
-              metricName: input.unitHeuristicMetricName,
-            })}**`,
+            value: s.value,
+            unit: input.unit,
+            metricName: input.unitHeuristicMetricName,
+          })}**`,
           details: details,
         };
       },
@@ -2770,7 +2778,9 @@ ${contextBlock}
     }
 
     if (input.fallbackMetricName) {
-      return [mdText`- Metric: ${RootCauseList.code(input.fallbackMetricName)}`];
+      return [
+        mdText`- Metric: ${RootCauseList.code(input.fallbackMetricName)}`,
+      ];
     }
 
     return [];
@@ -3521,9 +3531,7 @@ ${contextBlock}
       input.monitorStep.data?.kubernetesMonitor?.resourceFilters?.namespace;
 
     if (namespaceFilter) {
-      clusterDetails.push(
-        mdText`- Namespace: ${namespaceFilter}`,
-      );
+      clusterDetails.push(mdText`- Namespace: ${namespaceFilter}`);
     }
 
     sections.push(
@@ -3687,16 +3695,16 @@ ${contextBlock}
         if (logs.length > 0) {
           const logLines: Array<MarkdownText> = logs.map(
             (log: JSONObject): MarkdownText => {
-            const timestamp: string = log["time"] ? String(log["time"]) : "";
-            const severity: string = log["severityText"]
-              ? String(log["severityText"])
-              : "INFO";
-            const body: string = log["body"] ? String(log["body"]) : "";
-            /*
-             * A log line is whatever the container printed: shown as code,
-             * so nothing in it is read as Markdown or as a chat mention.
-             */
-            return mdText`${RootCauseList.code(timestamp)} **${severity}** ${RootCauseList.code(body)}`;
+              const timestamp: string = log["time"] ? String(log["time"]) : "";
+              const severity: string = log["severityText"]
+                ? String(log["severityText"])
+                : "INFO";
+              const body: string = log["body"] ? String(log["body"]) : "";
+              /*
+               * A log line is whatever the container printed: shown as code,
+               * so nothing in it is read as Markdown or as a chat mention.
+               */
+              return mdText`${RootCauseList.code(timestamp)} **${severity}** ${RootCauseList.code(body)}`;
             },
           );
 
@@ -3815,7 +3823,9 @@ ${contextBlock}
         ? [...input.identityLines, metricLine]
         : input.identityLines;
 
-      sections.push(mdText`**${input.heading}**\n${FeedMarkdown.join(lines, "\n")}`);
+      sections.push(
+        mdText`**${input.heading}**\n${FeedMarkdown.join(lines, "\n")}`,
+      );
     }
 
     const metricDetails: MarkdownText | null = input.criteriaInstance
@@ -3885,9 +3895,7 @@ ${contextBlock}
     return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
       heading: "Host Details",
       identityLines: hostMonitor
-        ? [
-            mdText`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`,
-          ]
+        ? [mdText`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`]
         : null,
       monitor: input.monitor,
       monitorStep: input.monitorStep,
@@ -4256,7 +4264,9 @@ ${contextBlock}
       }
 
       if (resultDetails.length > 0) {
-        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
       }
     }
 
@@ -4481,7 +4491,9 @@ ${contextBlock}
         );
       }
 
-      sections.push(mdText`**vCenter Details**\n${FeedMarkdown.join(vcenterDetails, "\n")}`);
+      sections.push(
+        mdText`**vCenter Details**\n${FeedMarkdown.join(vcenterDetails, "\n")}`,
+      );
     }
 
     // Affected resources: a ranked list of object, host and cluster
@@ -4581,7 +4593,9 @@ ${contextBlock}
       }
 
       if (resultDetails.length > 0) {
-        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
       }
     }
 
@@ -4814,7 +4828,9 @@ ${contextBlock}
       }
 
       if (resultDetails.length > 0) {
-        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
       }
     }
 
@@ -5147,7 +5163,9 @@ ${contextBlock}
         );
       }
 
-      sections.push(mdText`**Ceph Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`);
+      sections.push(
+        mdText`**Ceph Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
+      );
     }
 
     // Affected resources: a ranked list of daemon, pool and host
@@ -5260,7 +5278,9 @@ ${contextBlock}
       }
 
       if (resultDetails.length > 0) {
-        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
       }
     }
 
@@ -5467,7 +5487,9 @@ ${contextBlock}
         }
       }
 
-      sections.push(mdText`**Storage Array Details**\n${FeedMarkdown.join(arrayDetails, "\n")}`);
+      sections.push(
+        mdText`**Storage Array Details**\n${FeedMarkdown.join(arrayDetails, "\n")}`,
+      );
     }
 
     // Affected resources: a ranked list of the array's objects
@@ -5584,7 +5606,9 @@ ${contextBlock}
       }
 
       if (resultDetails.length > 0) {
-        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
       }
     }
 
@@ -5665,7 +5689,9 @@ ${contextBlock}
        * (1 = Pending ... 5 = Unknown). So this branch never ran and every
        * pod-phase alert fell through to the generic Kubernetes text.
        */
-      lines.push(mdText`Pods are stuck in Pending phase and unable to be scheduled.`);
+      lines.push(
+        mdText`Pods are stuck in Pending phase and unable to be scheduled.`,
+      );
       lines.push(
         mdText`Common causes: insufficient CPU/memory resources on nodes, node affinity/taint restrictions preventing scheduling, PersistentVolumeClaim pending, or resource quota exceeded.`,
       );
@@ -5678,7 +5704,9 @@ ${contextBlock}
       metricName === "k8s.node.condition_ready" ||
       (metricName.includes("node") && metricName.includes("condition"))
     ) {
-      lines.push(mdText`One or more nodes have transitioned to a NotReady state.`);
+      lines.push(
+        mdText`One or more nodes have transitioned to a NotReady state.`,
+      );
       if (topResource.nodeName) {
         lines.push(
           mdText`Node ${RootCauseList.code(topResource.nodeName)} is reporting NotReady (value: ${topResourceValue}).`,
@@ -5711,7 +5739,9 @@ ${contextBlock}
         metricName.includes("cpu") &&
         metricName.includes("utilization"))
     ) {
-      lines.push(mdText`Node CPU utilization has exceeded the configured threshold.`);
+      lines.push(
+        mdText`Node CPU utilization has exceeded the configured threshold.`,
+      );
       if (topResource.nodeName) {
         lines.push(
           mdText`Node ${RootCauseList.code(topResource.nodeName)} is at **${topResourceValue}** CPU utilization.`,

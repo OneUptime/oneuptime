@@ -194,7 +194,9 @@ interface SideEffectSpies {
 
 function mockSideEffects(): SideEffectSpies {
   getJestSpyOn(service, "getDatabaseServerMarkdownLink").mockResolvedValue(
-    FeedMarkdown.asMarkdown("[Database PostgreSQL orders-db.example.com:5432](/db)"),
+    FeedMarkdown.asMarkdown(
+      "[Database PostgreSQL orders-db.example.com:5432](/db)",
+    ),
   );
   getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
     FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
@@ -3329,7 +3331,7 @@ describe("DatabaseServerService.autoArchiveStaleDatabaseServers", () => {
     ]);
     getJestSpyOn(service, "getDatabaseServerMarkdownLink")
       .mockRejectedValueOnce(new Error("row gone"))
-      .mockResolvedValue("[Database x](/x)");
+      .mockResolvedValue(FeedMarkdown.asMarkdown("[Database x](/x)"));
 
     await expect(
       DatabaseServerService.autoArchiveStaleDatabaseServers(),
@@ -4032,8 +4034,9 @@ describe("DatabaseServerService names and links", () => {
       URL.fromString("https://oneuptime.example.com/dashboard"),
     );
 
-    const markdown: string =
-      (await DatabaseServerService.getDatabaseServerMarkdownLink(PROJECT_ID, id)).toString();
+    const markdown: string = (
+      await DatabaseServerService.getDatabaseServerMarkdownLink(PROJECT_ID, id)
+    ).toString();
 
     expect(markdown).toBe(
       `[Database PostgreSQL orders-db.example.com:5432](https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/databases/${id.toString()})`,

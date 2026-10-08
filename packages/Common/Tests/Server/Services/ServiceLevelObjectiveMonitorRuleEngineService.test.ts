@@ -961,8 +961,9 @@ describe("ServiceLevelObjectiveMonitorRuleEngineService - membership feed items"
 
     const text: string = feedCalls(spies.feed)[0]!.feedInfoInMarkdown;
 
-    expect(text).toContain("x\\]\\(https://evil.test\\) \\!\\[p\\]\\(y\\)");
-    expect(text).not.toContain("](https://evil.test)");
+    expect(text).toContain("x\\](https://evil.test) !\\[p\\](y)");
+    // Its brackets are escaped: no "](" in it ends a link's words.
+    expect(text).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.test\)/);
   });
 
   it("names a handful in the sentence and lists a bounded page in more information", async () => {
@@ -989,7 +990,7 @@ describe("ServiceLevelObjectiveMonitorRuleEngineService - membership feed items"
 
     expect(call.feedInfoInMarkdown).toContain("attached 60 monitors");
     expect(call.feedInfoInMarkdown).toContain("and 55 more");
-    expect(call.feedInfoInMarkdown).toContain("**monitor\\-00**");
+    expect(call.feedInfoInMarkdown).toContain("**monitor-00**");
 
     const bullets: Array<string> = (call.moreInformationInMarkdown || "")
       .split("\n")

@@ -1,4 +1,5 @@
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import { Lexer, Token, Tokens, marked } from "marked";
 import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -82,18 +83,94 @@ const HOSTILE_NAMES: Array<string> = [
   "back\\slash",
 ];
 
+interface SloFeedColumnChangeText {
+  column: string;
+  title: string;
+  kind: SloFeedValueKind;
+  from: string | null;
+  to: string;
+}
+
+// A change's values are MarkdownText; these tests read their text.
+function textOfChanges(
+  changes: Array<SloFeedColumnChange>,
+): Array<SloFeedColumnChangeText> {
+  return changes.map((change: SloFeedColumnChange): SloFeedColumnChangeText => {
+    return {
+      ...change,
+      from: change.from === null ? null : change.from.toString(),
+      to: change.to.toString(),
+    };
+  });
+}
+
 type ExpectInertFunction = (escaped: string) => void;
 
 /*
- * After removing every backslash-escape pair, no markdown-active character
- * and no line break may remain: whatever is left renders as literal text.
+ * Read as Markdown (marked, with GitHub's extensions), the text is only
+ * text: no link whose words hide where it goes, no image, HTML, emphasis,
+ * code, heading, list or table - and no line break.
  */
 const expectInert: ExpectInertFunction = (escaped: string): void => {
-  const withoutEscapes: string = escaped.replace(/\\[\s\S]/g, "");
+  const tokens: Array<Token> = [];
 
-  expect(withoutEscapes).not.toMatch(/[\\`*_[\]()#+\-!|<>]/);
+  marked.walkTokens(
+    new Lexer({ gfm: true }).lex(escaped),
+    (token: Token): void => {
+      tokens.push(token);
+    },
+  );
+
+  expect(
+    tokens
+      .filter((token: Token): boolean => {
+        if (token.type === "link") {
+          // A bare address is a link that shows where it goes.
+          return (token as Tokens.Link).text !== (token as Tokens.Link).href;
+        }
+
+        return !["paragraph", "text", "escape", "space"].includes(token.type);
+      })
+      .map((token: Token): string => {
+        return `${token.type}: ${token.raw}`;
+      }),
+  ).toEqual([]);
   expect(escaped).not.toMatch(/[\r\n]/);
 };
+
+/*
+ * A whole feed sentence with a name placed in it: the only links are the
+ * sentence's own (or a bare address, which shows where it goes), and the
+ * name started nothing - no image, HTML, code, emphasis, heading or list.
+ */
+function expectSentenceInert(sentence: string, ownLinks: Array<string>): void {
+  const tokens: Array<Token> = [];
+
+  marked.walkTokens(
+    new Lexer({ gfm: true }).lex(sentence),
+    (token: Token): void => {
+      tokens.push(token);
+    },
+  );
+
+  expect(
+    tokens
+      .filter((token: Token): boolean => {
+        if (token.type === "link") {
+          const link: Tokens.Link = token as Tokens.Link;
+          return !ownLinks.includes(link.href) && link.text !== link.href;
+        }
+
+        return !["paragraph", "text", "escape", "space", "strong"].includes(
+          token.type,
+        );
+      })
+      .map((token: Token): string => {
+        return `${token.type}: ${token.raw}`;
+      }),
+  ).toEqual([]);
+  expect(sentence).not.toMatch(/[\r\n]/);
+}
 
 describe("SloFeedMarkdown - numbers and durations", () => {
   test("rounds for reading and folds negative zero into zero", () => {
@@ -123,12 +200,14 @@ describe("SloFeedMarkdown - numbers and durations", () => {
   ])(
     "%p minutes of burn window reads as %p",
     (minutes: number, text: string) => {
-      expect(formatSloFeedMinutes(minutes)).toBe(text);
+      expect(formatSloFeedMinutes(minutes).toString()).toBe(text);
     },
   );
 
   test("a window that is not a number reads as not set", () => {
-    expect(formatSloFeedMinutes(Number.NaN)).toBe(SLO_FEED_NOT_SET_TEXT);
+    expect(formatSloFeedMinutes(Number.NaN).toString()).toBe(
+      SLO_FEED_NOT_SET_TEXT.toString(),
+    );
   });
 
   test.each([
@@ -156,13 +235,13 @@ describe("SloFeedMarkdown - user text", () => {
   });
 
   test("keeps an ordinary name exactly as typed", () => {
-    expect(formatSloFeedText("Checkout availability")).toBe(
+    expect(formatSloFeedText("Checkout availability").toString()).toBe(
       "Checkout availability",
     );
   });
 
   test("folds line breaks and runs of whitespace into single spaces", () => {
-    expect(formatSloFeedText("  first\n\n second\tthird  ")).toBe(
+    expect(formatSloFeedText("  first\n\n second\tthird  ").toString()).toBe(
       "first second third",
     );
   });
@@ -178,8 +257,8 @@ describe("SloFeedMarkdown - user text", () => {
   });
 
   test("an absent value is empty, never the string 'undefined'", () => {
-    expect(formatSloFeedText(undefined)).toBe("");
-    expect(formatSloFeedText(null)).toBe("");
+    expect(formatSloFeedText(undefined).toString()).toBe("");
+    expect(formatSloFeedText(null).toString()).toBe("");
   });
 });
 
@@ -212,7 +291,10 @@ describe("SloFeedMarkdown - relation ids and names", () => {
 
   test("lists names alphabetically so an unchanged set reads identically", () => {
     expect(
-      formatSloFeedEntityNames([{ name: "Tier 1" }, { name: "Production" }]),
+      formatSloFeedEntityNames([
+        { name: "Tier 1" },
+        { name: "Production" },
+      ]).toString(),
     ).toBe("Production, Tier 1");
   });
 
@@ -222,7 +304,7 @@ describe("SloFeedMarkdown - relation ids and names", () => {
         { name: new Name("Jane Doe") },
         { email: "ops@example.com" },
         { _id: "no-name" },
-      ]),
+      ]).toString(),
     ).toBe("Jane Doe, ops@example.com, Unnamed");
   });
 
@@ -246,13 +328,19 @@ describe("SloFeedMarkdown - relation ids and names", () => {
         HOSTILE_NAMES.map((name: string): { name: string } => {
           return { name: name };
         }),
-      ).toString().replace(/ and \d+ more$/, ""),
+      )
+        .toString()
+        .replace(/ and \d+ more$/, ""),
     );
   });
 
   test("an empty relation reads as none", () => {
-    expect(formatSloFeedEntityNames([])).toBe(SLO_FEED_NONE_TEXT);
-    expect(formatSloFeedEntityNames(undefined)).toBe(SLO_FEED_NONE_TEXT);
+    expect(formatSloFeedEntityNames([]).toString()).toBe(
+      SLO_FEED_NONE_TEXT.toString(),
+    );
+    expect(formatSloFeedEntityNames(undefined).toString()).toBe(
+      SLO_FEED_NONE_TEXT.toString(),
+    );
   });
 });
 
@@ -540,28 +628,34 @@ describe("SloFeedMarkdown - reading what changed", () => {
   });
 
   test("formats each kind of value the way a person would say it", () => {
-    expect(formatSloFeedValue(TARGET, { targetPercentage: 99.95 })).toBe(
-      "99.95%",
-    );
-    expect(formatSloFeedValue(TIMEZONE, { timezone: null })).toBe(
+    expect(
+      formatSloFeedValue(TARGET, { targetPercentage: 99.95 }).toString(),
+    ).toBe("99.95%");
+    expect(formatSloFeedValue(TIMEZONE, { timezone: null }).toString()).toBe(
       "UTC (default)",
     );
     expect(
       formatSloFeedValue(ALERT_SEVERITY, {
         alertSeverityId: "s-1",
         alertSeverity: { name: "Critical" },
-      }),
+      }).toString(),
     ).toBe("Critical");
-    expect(formatSloFeedValue(ALERT_SEVERITY, { alertSeverityId: "s-1" })).toBe(
-      "_a deleted item_",
+    expect(
+      formatSloFeedValue(ALERT_SEVERITY, { alertSeverityId: "s-1" }).toString(),
+    ).toBe("_a deleted item_");
+    expect(formatSloFeedValue(ALERT_SEVERITY, {}).toString()).toBe(
+      SLO_FEED_NOT_SET_TEXT.toString(),
     );
-    expect(formatSloFeedValue(ALERT_SEVERITY, {})).toBe(SLO_FEED_NOT_SET_TEXT);
     // Templates are compared but never quoted.
     expect(
-      formatSloFeedValue(ALERT_TEMPLATE, { alertTitleTemplate: "{{sloName}}" }),
+      formatSloFeedValue(ALERT_TEMPLATE, {
+        alertTitleTemplate: "{{sloName}}",
+      }).toString(),
     ).toBe("_set_");
     expect(
-      formatSloFeedValue(SLO_FEED_IS_ENABLED_COLUMN, { isEnabled: "false" }),
+      formatSloFeedValue(SLO_FEED_IS_ENABLED_COLUMN, {
+        isEnabled: "false",
+      }).toString(),
     ).toBe("Off");
   });
 
@@ -580,7 +674,7 @@ describe("SloFeedMarkdown - reading what changed", () => {
       },
     });
 
-    expect(changes).toEqual([
+    expect(textOfChanges(changes)).toEqual([
       {
         column: "description",
         title: "Description",
@@ -598,7 +692,7 @@ describe("SloFeedMarkdown - reading what changed", () => {
       after: { targetPercentage: 99.5 },
     });
 
-    expect(changes).toEqual([
+    expect(textOfChanges(changes)).toEqual([
       {
         column: "targetPercentage",
         title: "Target",
@@ -614,7 +708,9 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
   test("a created SLO names its creator, its promise and the default rules that came with it", () => {
     const markdown: SloFeedMarkdown = getSloCreatedFeedMarkdown({
       sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
-      createdByUserMarkdown: FeedMarkdown.asMarkdown("[Jane Doe](https://oneuptime.test/u)"),
+      createdByUserMarkdown: FeedMarkdown.asMarkdown(
+        "[Jane Doe](https://oneuptime.test/u)",
+      ),
       targetPercentage: 99.9,
       windowType: SloWindowType.Rolling,
       windowDays: 30,
@@ -675,14 +771,19 @@ describe("SloFeedMarkdown - SLO lifecycle items", () => {
   });
 
   test("describes a rolling window with no length as the 30 days the worker measures", () => {
-    expect(describeSloFeedWindow({ windowType: SloWindowType.Rolling })).toBe(
-      "Rolling 30 days",
-    );
     expect(
-      describeSloFeedWindow({ windowType: undefined, windowDays: 1 }),
+      describeSloFeedWindow({ windowType: SloWindowType.Rolling }).toString(),
+    ).toBe("Rolling 30 days");
+    expect(
+      describeSloFeedWindow({
+        windowType: undefined,
+        windowDays: 1,
+      }).toString(),
     ).toBe("Rolling 1 day");
     expect(
-      describeSloFeedWindow({ windowType: SloWindowType.CalendarMonth }),
+      describeSloFeedWindow({
+        windowType: SloWindowType.CalendarMonth,
+      }).toString(),
     ).toBe("Calendar month (UTC)");
   });
 
@@ -924,11 +1025,10 @@ describe("SloFeedMarkdown - monitors attached and detached", () => {
         change: "attached",
       });
 
-      const linkText: string = markdown.feedInfoInMarkdown
-        .replace("🔗 Monitor [", "")
-        .replace(`](https://oneuptime.test/m/1) was attached to ${LINK}.`, "");
-
-      expectInert(linkText);
+      expectSentenceInert(markdown.feedInfoInMarkdown, [
+        "https://oneuptime.test/m/1",
+        "https://oneuptime.test/dashboard/p/slos/s",
+      ]);
     },
   );
 
@@ -1168,19 +1268,19 @@ describe("SloFeedMarkdown - burn rate rules", () => {
           rule: { name: name },
         }),
       ]) {
-        const boldName: string = markdown.feedInfoInMarkdown
-          .replace("🔥 Burn rate rule **", "")
-          .replace(/\*\* was (added to|removed from) .*$/, "");
-
-        expectInert(boldName);
+        expectSentenceInert(markdown.feedInfoInMarkdown, [
+          "https://oneuptime.test/dashboard/p/slos/s",
+        ]);
       }
     },
   );
 
   test("a nameless rule is still identifiable", () => {
     expect(
-      getBurnRateRuleAddedFeedMarkdown({ sloMarkdownLink: FeedMarkdown.asMarkdown(LINK), rule: {} })
-        .feedInfoInMarkdown,
+      getBurnRateRuleAddedFeedMarkdown({
+        sloMarkdownLink: FeedMarkdown.asMarkdown(LINK),
+        rule: {},
+      }).feedInfoInMarkdown,
     ).toBe(`🔥 Burn rate rule **Unnamed rule** was added to ${LINK}.`);
   });
 });

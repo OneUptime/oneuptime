@@ -3959,7 +3959,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       if (result.citations && result.citations.length > 0) {
         const sourceLines: Array<MarkdownText> = result.citations.map(
           (citation: AIChatCitation): MarkdownText => {
-            return mdText`• ${citation.label} (${citation.rowCount} rows)`;
+            return mdText`• ${FeedMarkdown.textWithCode(citation.label)} (${citation.rowCount} rows)`;
           },
         );
         replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;

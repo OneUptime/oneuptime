@@ -707,10 +707,8 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: MarkdownText = await this.getPodmanHostMarkdownLink(
-        projectId,
-        podmanHostId,
-      );
+      const resourceMarkdownLink: MarkdownText =
+        await this.getPodmanHostMarkdownLink(projectId, podmanHostId);
 
       if (isArchiveChange) {
         await PodmanHostFeedService.createPodmanHostFeedItem({

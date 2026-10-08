@@ -424,11 +424,12 @@ describe("VMwareVCenterService markdown link", () => {
         URL.fromString("https://oneuptime.example.com/dashboard"),
       );
 
-    const link: string =
-      (await VMwareVCenterService.getVMwareVCenterMarkdownLink(
+    const link: string = (
+      await VMwareVCenterService.getVMwareVCenterMarkdownLink(
         PROJECT_ID,
         VCENTER_ID,
-      )).toString();
+      )
+    ).toString();
 
     expect(link.startsWith("[vCenter vcsa-prod](")).toBe(true);
     expect(link).toContain(
@@ -465,13 +466,19 @@ describe("VMwareVCenter feed events", () => {
     jest
       .spyOn(VMwareVCenterService, "getVMwareVCenterMarkdownLink")
       .mockImplementation((): Promise<MarkdownText> => {
-        return Promise.resolve(FeedMarkdown.asMarkdown("[vCenter vcsa-prod](https://example.com/vcenter)"));
+        return Promise.resolve(
+          FeedMarkdown.asMarkdown(
+            "[vCenter vcsa-prod](https://example.com/vcenter)",
+          ),
+        );
       });
 
     jest
       .spyOn(UserService, "getUserMarkdownString")
       .mockImplementation((): Promise<MarkdownText> => {
-        return Promise.resolve(FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"));
+        return Promise.resolve(
+          FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
+        );
       });
 
     jest

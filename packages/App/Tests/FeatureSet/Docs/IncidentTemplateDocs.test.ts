@@ -14,10 +14,7 @@ import {
 import { isValidCustomFieldVariableKey } from "Common/Types/CustomField/CustomFieldVariableKey";
 import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -265,12 +262,21 @@ const LISTED_REFUSED_ENTRIES: Record<string, (count: number) => string> = {
   },
 };
 
-// The characters of a title that still format it, and an address in one.
-const TITLE_FORMATTING_CHARACTERS: ReadonlyArray<string> = ["*", "_", "~", "`"];
+// The characters a feed item escapes in a title: it shows as typed.
+const TITLE_ESCAPED_CHARACTERS: ReadonlyArray<string> = [
+  "\\",
+  "[",
+  "]",
+  "*",
+  "_",
+  "~",
+  "`",
+  "<",
+];
 
 const EXAMPLE_TITLE_ADDRESS: string = "https://example.com/reset";
 
-// ASCII punctuation, which escapeMarkdownValue escapes a part of.
+// ASCII punctuation, which a feed item escapes a part of in a title.
 const ASCII_PUNCTUATION: string = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
 // A mention the page names, which is broken.
@@ -347,10 +353,33 @@ const ADDRESS_STAYS_A_LINK: Record<string, string> = {
   fa: "همچنان به‌صورت پیوندی به همان نشانی نشان داده می‌شود",
 };
 
-// How the list of a title's escaped characters ends: the angle bracket, as escaped prose.
-const ESCAPED_ANGLE_BRACKET: Record<string, string> = {
-  en: "`]` and \\<",
-  fa: "`]` و \\<",
+/*
+ * How the list of a title's escaped characters ends: the backtick named in
+ * words (as inline code it needs a longer fence) and the angle bracket as
+ * escaped prose.
+ */
+const ESCAPED_LIST_END: Record<string, string> = {
+  en: "`~`, backticks and \\<",
+  fa: "`~`، بک‌تیک‌ها و \\<",
+};
+
+// What a title no longer does in the feed: it shows as typed.
+const STALE_TITLE_FORMATS_CLAIMS: Record<string, ReadonlyArray<string>> = {
+  en: ["can still format it", "not always shown exactly as typed"],
+  fa: [
+    "همچنان می‌توانند قالب‌بندی‌اش کنند",
+    "همیشه دقیقاً همان‌طور که تایپ شده نشان داده نمی‌شود",
+  ],
+};
+
+/*
+ * A title as the feed items place one: in a sentence, between words (the
+ * Incident Created item bolds it, the episode items put it after a colon).
+ */
+type PlaceTitleFunction = (title: string) => string;
+
+const placeTitle: PlaceTitleFunction = (title: string): string => {
+  return mdText`Added to **Episode EP-7**: ${title}`.toString();
 };
 
 const STALE_TITLE_AS_TYPED_CLAIMS: Record<string, ReadonlyArray<string>> = {
@@ -726,21 +755,24 @@ const cardCopy: CardCopyFunction = (key: string): string | undefined => {
 
 describe("Incident docs", () => {
   describe("an incident's title in the feed and chat messages", () => {
-    it("says which characters of a title are escaped, and that an address and emphasis in it still work, as escapeMarkdownValue escapes them, in every language", () => {
+    it("says which characters of a title are escaped, and that an address in it still works, as the feed places a title, in every language", () => {
+      // Each character on its own, between words, where it could act.
       const escaped: Array<string> = Array.from(ASCII_PUNCTUATION).filter(
         (character: string): boolean => {
-          return escapeMarkdownValue(character) === `\\${character}`;
+          return placeTitle(`a ${character} b`).includes(`\\${character}`);
         },
       );
 
-      expect(escaped.sort()).toEqual(["<", "[", "\\", "]"].sort());
+      expect([...escaped].sort()).toEqual([...TITLE_ESCAPED_CHARACTERS].sort());
 
-      for (const character of TITLE_FORMATTING_CHARACTERS) {
-        expect(escapeMarkdownValue(character)).toBe(character);
-      }
+      // A title reads exactly as typed once the Markdown is read.
+      expect(placeTitle("Checkout *down* in eu_west ~1")).toBe(
+        "Added to **Episode EP-7**: Checkout \\*down\\* in eu_west \\~1",
+      );
 
-      expect(escapeMarkdownValue(EXAMPLE_TITLE_ADDRESS)).toBe(
-        EXAMPLE_TITLE_ADDRESS,
+      // An address in a title is still an address.
+      expect(placeTitle(EXAMPLE_TITLE_ADDRESS)).toBe(
+        `Added to **Episode EP-7**: ${EXAMPLE_TITLE_ADDRESS}`,
       );
 
       for (const language of LANGUAGES) {
@@ -755,35 +787,32 @@ describe("Incident docs", () => {
         for (const section of sections) {
           const code: Set<string> = inlineCode(section);
 
-          // The backtick is named in words: as inline code it needs a longer fence.
-          const namedFormatting: Array<string> =
-            TITLE_FORMATTING_CHARACTERS.filter((character: string): boolean => {
-              return character !== "`";
-            });
-
           expect({
             language: language,
-            // The angle bracket as escaped prose; the others as inline code.
+            /*
+             * The backtick named in words and the angle bracket as escaped
+             * prose, where the list ends; the others as inline code.
+             */
             escaped: escaped.filter((character: string): boolean => {
-              return character === "<"
-                ? section.includes(ESCAPED_ANGLE_BRACKET[language] as string)
+              return character === "<" || character === "`"
+                ? section.includes(ESCAPED_LIST_END[language] as string)
                 : code.has(character);
             }),
-            stillFormats: namedFormatting.filter(
-              (character: string): boolean => {
-                return code.has(character);
-              },
-            ),
             addressStaysALink: section.includes(
               ADDRESS_STAYS_A_LINK[language] as string,
             ),
             mention: section.includes(escapedInProse(EXAMPLE_MENTION)),
+            staleFormats: (
+              STALE_TITLE_FORMATS_CLAIMS[language] as ReadonlyArray<string>
+            ).filter((claim: string): boolean => {
+              return section.includes(claim);
+            }),
           }).toEqual({
             language: language,
             escaped: escaped,
-            stillFormats: namedFormatting,
             addressStaysALink: true,
             mention: true,
+            staleFormats: [],
           });
         }
 
@@ -806,32 +835,40 @@ describe("Incident docs", () => {
     it("names the places that escape a title as their code does", () => {
       const incidentService: string = readSource(INCIDENT_SERVICE_FILE);
 
-      // The Incident Created item, and the item that records a new title.
+      /*
+       * Each places the title with mdText, which escapes it as text for
+       * where it sits. The Incident Created item, and the item that records
+       * a new title:
+       */
       expect(incidentService).toMatch(
-        /\*\*\$\{escapeMarkdownValue\(incident\.title \|\| "No title provided\."\)\}\*\*/,
+        /mdText`#### 🚨 Incident \$\{incidentNumberDisplay\} Created:\s*\*\*\$\{incident\.title \|\| "No title provided\."\}\*\*/,
       );
       /*
        * The "updated" item's lines - the new title among them - are written
-       * by EventFieldChange, which alerts share.
+       * by EventFieldChange, which alerts share: a title is placed as text,
+       * at the start of its own line.
        */
       expect(incidentService).toMatch(/EventFieldChange\.getFeedMarkdown\(/);
-      expect(readSource(EVENT_FIELD_CHANGE_FILE)).toMatch(
-        /data\.column === "title"\s*\?\s*escapeMarkdownValue\(text\)/,
+
+      const eventFieldChange: string = readSource(EVENT_FIELD_CHANGE_FILE);
+
+      expect(eventFieldChange).toMatch(
+        /data\.column === "title" \|\| \(data\.column === "name" && !data\.isMarkdown\)\s*\?\s*text\s*:/,
+      );
+      expect(eventFieldChange).toMatch(
+        /return mdText`\\n\\n\*\*\$\{this\.getHeading\(data\.column, data\.recordName\)\}\*\*: \\n\$\{shown\}\\n`;/,
       );
 
       // The items for joining or leaving an episode, on both feeds.
       const episodeMembers: string = readSource(EPISODE_MEMBER_SERVICE_FILE);
 
-      expect(episodeMembers).toMatch(
-        /const getFeedTitle[\s\S]*?return escapeMarkdownValue\(title \|\| "No title"\);/,
-      );
       /*
        * Each entry names the incident and the episode through one helper,
-       * whose title (left out for a private end) goes in through
-       * getFeedTitle; joining and leaving each name both sides.
+       * whose title (left out for a private end) goes in as text; joining
+       * and leaving each name both sides.
        */
       expect(episodeMembers).toMatch(
-        /titleSuffix: `: \$\{getFeedTitle\(data\.title\)\}`/,
+        /titleSuffix: mdText`: \$\{data\.title \|\| "No title"\}`/,
       );
       expect(episodeMembers).toMatch(/title: incident\?\.title,/);
       expect(episodeMembers).toMatch(/title: episode\?\.title,/);
@@ -842,36 +879,45 @@ describe("Incident docs", () => {
         (episodeMembers.match(/describeEpisode\(episode\)/g) || []).length,
       ).toBe(2);
 
-      // SLA rules' note reminders, Teams bot replies and on-call messages.
+      /*
+       * SLA rules' note reminders place it into the note template a person
+       * wrote, as a template value (FeedMarkdown.templateText); Teams bot
+       * replies and on-call messages place it with mdText.
+       */
       expect(readSource(SLA_NOTE_REMINDERS_FILE)).toMatch(
-        /escapeMarkdownValue\(incident\.title \|\| ""\)/,
+        /FeedMarkdown\.templateText\(incident\.title \|\| ""\)/,
       );
       expect(readSource(TEAMS_INCIDENT_ACTIONS_FILE)).toMatch(
-        /\*\*Title:\*\* \$\{escapeMarkdownValue\(incident\.title\)\}/,
+        /mdText`\*\*Incident Details\*\*\\n\\n\*\*Title:\*\* \$\{incident\.title\}\\n/,
       );
       expect(readSource(USER_NOTIFICATION_RULE_SERVICE_FILE)).toMatch(
-        /escapeMarkdownValue\(data\.identifier\)/,
+        /mdText`📋 \*\*\$\{data\.identifier\}\*\*`/,
       );
 
       /*
        * Where the title is a link's text - the Slack and Teams summaries,
-       * and the Teams bot's list of active incidents - its emphasis and code
-       * characters are escaped too.
+       * and the Teams bot's list of active incidents - mdText places it as
+       * a link's words, where what acts in a link is escaped too.
        */
       const summaries: string = readSource(WORKSPACE_SUMMARY_SERVICE_FILE);
 
       expect(summaries).toMatch(
-        /escapeMarkdownInline\(inc\.title \|\| "Untitled"\)/,
+        /private static link\(url: string, text: string\): MarkdownText \{\s*return mdText`\[\$\{text\}\]\(\$\{url\}\)`;/,
       );
       expect(summaries).toMatch(
-        /escapeMarkdownInline\(ep\.title \|\| "Untitled Episode"\)/,
+        /Service\.link\(linkUrl, `\$\{display\} — \$\{inc\.title \|\| "Untitled"\}`\)/,
+      );
+      expect(summaries).toMatch(
+        /Service\.link\(linkUrl, ep\.title \|\| "Untitled Episode"\)/,
       );
       expect(readSource(TEAMS_WORKSPACE_FILE)).toMatch(
-        /escapeMarkdownInline\(incident\.title\)\}\]\(/,
+        /mdText`\$\{severityIcon\} \*\*\[Incident \$\{[^}]*\}: \$\{incident\.title\}\]\(\$\{incidentUrl\.toString\(\)\}\)\*\*/,
       );
 
-      for (const character of ["*", "_", "`"]) {
-        expect(escapeMarkdownInline(character)).toBe(`\\${character}`);
+      for (const character of ["*", "_", "`", "[", "]", "(", ")", "!", "<"]) {
+        expect(mdText`[${character}](https://example.com/i)`.toString()).toBe(
+          `[\\${character}](https://example.com/i)`,
+        );
       }
     });
   });

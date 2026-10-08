@@ -133,7 +133,7 @@ export const EXPECTED_WEBHOOK_CUSTOM_FIELDS: JSONObject = {
 export const EXPECTED_INCLUDED_FIELDS_FEED: string = [
   "**Custom fields sent:**",
   "",
-  "- **Affected Location:** \\<b\\>Site 03\\</b\\> & Site 07",
+  "- **Affected Location:** \\<b>Site 03\\</b> & Site 07",
   "- **Acknowledgement:** No",
   "",
   "**Impact Details:**",

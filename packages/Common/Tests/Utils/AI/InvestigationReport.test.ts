@@ -19,9 +19,8 @@ import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
-import { neutralizeAiWrittenMarkdown } from "../../../Utils/Markdown/UntrustedMarkdown";
 
+import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The investigation panel lays the AI report out section by section, links
  * the incidents it mentions and lists the evidence it checked; the API uses
@@ -70,7 +69,8 @@ function buildBrandedMarkdown(data: {
   modelName?: string | undefined;
   clusterToolCallCount?: number | undefined;
 }): string {
-  let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${neutralizeAiWrittenMarkdown(data.analysisMarkdown)}`;
+  let markdown: string =
+    mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(data.analysisMarkdown)}`.toString();
 
   const citations: Array<BrandedCitation> = data.citations;
   const clusterToolCallCount: number = data.clusterToolCallCount ?? 0;
@@ -82,19 +82,19 @@ function buildBrandedMarkdown(data: {
         describeClusterCitationOutcome(citation);
 
       if (clusterOutcome !== null) {
-        markdown += `\n- **[${citation.id}]** ${escapeMarkdownValue(citation.label)} — ${clusterOutcome}`;
+        markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${clusterOutcome}`;
         continue;
       }
 
-      markdown += `\n- **[${citation.id}]** ${escapeMarkdownValue(citation.label)} — ${citation.rowCount} row(s)`;
+      markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${citation.rowCount} row(s)`;
     }
   }
 
   if (clusterToolCallCount <= 0) {
-    markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${data.toolCallCount} quer${
+    markdown += mdText`\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${data.toolCallCount} quer${
       data.toolCallCount === 1 ? "y" : "ies"
     } run across your own telemetry${
-      data.modelName ? ` using ${escapeMarkdownValue(data.modelName)}` : ""
+      data.modelName ? ` using ${data.modelName}` : ""
     }. This is an AI-generated first pass; verify before acting.*`;
 
     return markdown;
@@ -131,10 +131,11 @@ function buildBrandedMarkdown(data: {
     counts.push("no telemetry queries or kubectl commands run");
   }
 
-  markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
+  markdown += mdText`\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${FeedMarkdown.join(
+    counts,
     " and ",
   )}${
-    data.modelName ? ` using ${escapeMarkdownValue(data.modelName)}` : ""
+    data.modelName ? ` using ${data.modelName}` : ""
   }. This is an AI-generated first pass; verify before acting.*`;
 
   return markdown;
@@ -2877,36 +2878,29 @@ describe("AIInvestigationEngine report format stays in sync with this parser", (
   test.each([
     [
       "the brand heading",
-      "`## 🧠 AI — Automated Root Cause Analysis\\n\\n${neutralizeAiWrittenMarkdown(analysisMarkdown)}`",
+      "mdText`## 🧠 AI — Automated Root Cause Analysis\\n\\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();",
     ],
     ["the Evidence checked label", "markdown += `\\n\\n**Evidence checked**`;"],
     [
       "the evidence entry",
-      "markdown += `\\n- **[${citation.id}]** ${escapeMarkdownValue(citation.label)} — ${citation.rowCount} row(s)`;",
+      "markdown += mdText`\\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${citation.rowCount} row(s)`;",
     ],
     [
       "the footer opening",
-      "markdown += `\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${",
+      "markdown += mdText`\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${",
     ],
     [
       "the singular/plural query word",
       'result.toolCallCount === 1 ? "y" : "ies"',
     ],
-    [
-      "the model name",
-      'result.modelName ? ` using ${escapeMarkdownValue(result.modelName)}` : ""',
-    ],
-    [
-      "the model name in the telemetry footer",
-      'result.modelName\n          ? ` using ${escapeMarkdownValue(result.modelName)}`\n          : ""',
-    ],
+    ["the model name", 'result.modelName ? ` using ${result.modelName}` : ""'],
     [
       "the footer closing",
       "}. This is an AI-generated first pass; verify before acting.*`;",
     ],
     [
       "the cluster tool entry",
-      "markdown += `\\n- **[${citation.id}]** ${escapeMarkdownValue(citation.label)} — ${clusterOutcome}`;",
+      "markdown += mdText`\\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${clusterOutcome}`;",
     ],
     [
       "the kubectl outcomes",
@@ -2923,7 +2917,7 @@ describe("AIInvestigationEngine report format stays in sync with this parser", (
     ],
     [
       "the cluster footer opening",
-      "markdown += `\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(",
+      "markdown += mdText`\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${FeedMarkdown.join(",
     ],
   ])("engine still writes %s", (_name: string, fragment: string) => {
     expect(engineSource).toContain(fragment);

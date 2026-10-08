@@ -222,8 +222,7 @@ export class Service extends DatabaseService<Model> {
           const incidentNumberDisplay: string =
             incidentNumberResult.numberWithPrefix ||
             "#" + incidentNumberResult.number;
-          incidentOrAlertLink =
-            mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
+          incidentOrAlertLink = mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
@@ -233,8 +232,7 @@ export class Service extends DatabaseService<Model> {
           } = await AlertService.getAlertNumber({
             alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
           });
-          incidentOrAlertLink =
-            mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId)).toString()})`;
+          incidentOrAlertLink = mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId) {
@@ -245,8 +243,7 @@ export class Service extends DatabaseService<Model> {
             episodeId:
               onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId,
           });
-          incidentOrAlertLink =
-            mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId)).toString()})`;
+          incidentOrAlertLink = mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId)).toString()})`;
         }
 
         if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId) {
@@ -257,8 +254,7 @@ export class Service extends DatabaseService<Model> {
             episodeId:
               onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId,
           });
-          incidentOrAlertLink =
-            mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
+          incidentOrAlertLink = mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
         /*

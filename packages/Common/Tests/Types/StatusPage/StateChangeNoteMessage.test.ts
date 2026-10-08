@@ -97,19 +97,19 @@ describe("StateChangeNoteMessage", () => {
 
   describe("Slack and Microsoft Teams", () => {
     test("a Status line, as the incident state change message has", () => {
-      expect(StateChangeNoteMessage.getChatStatusLine("Resolved")).toBe(
-        "**Status:** Resolved",
-      );
-      expect(StateChangeNoteMessage.getChatStatusLine(" Monitoring ")).toBe(
-        "**Status:** Monitoring",
-      );
+      expect(
+        StateChangeNoteMessage.getChatStatusLine("Resolved").toString(),
+      ).toBe("**Status:** Resolved");
+      expect(
+        StateChangeNoteMessage.getChatStatusLine(" Monitoring ").toString(),
+      ).toBe("**Status:** Monitoring");
     });
 
     test("the label is the one the email row uses", () => {
       expect(StateChangeNoteMessage.statusLabel).toBe("Status");
-      expect(StateChangeNoteMessage.getChatStatusLine("Resolved")).toContain(
-        `**${StateChangeNoteMessage.statusLabel}:**`,
-      );
+      expect(
+        StateChangeNoteMessage.getChatStatusLine("Resolved").toString(),
+      ).toContain(`**${StateChangeNoteMessage.statusLabel}:**`);
     });
 
     /*
@@ -120,7 +120,8 @@ describe("StateChangeNoteMessage", () => {
     test("a state's name is plain text in the line, and reads as typed", () => {
       const name: string =
         "![](https://tracker.example/p.png) [Open](https://evil.example) <!channel> <b>x</b>";
-      const line: string = StateChangeNoteMessage.getChatStatusLine(name).toString();
+      const line: string =
+        StateChangeNoteMessage.getChatStatusLine(name).toString();
 
       expect(line).toBe(
         `**Status:** !\\[\\](https://tracker.example/p.png) \\[Open\\](https://evil.example) \\<${WORD_JOINER}!channel> \\<b>x\\</b>`,
@@ -154,7 +155,9 @@ describe("StateChangeNoteMessage", () => {
 
     test("an ordinary state's name is left exactly as typed", () => {
       expect(
-        StateChangeNoteMessage.getChatStatusLine("Fixing - part 2 (EU) #1"),
+        StateChangeNoteMessage.getChatStatusLine(
+          "Fixing - part 2 (EU) #1",
+        ).toString(),
       ).toBe("**Status:** Fixing - part 2 (EU) #1");
     });
   });

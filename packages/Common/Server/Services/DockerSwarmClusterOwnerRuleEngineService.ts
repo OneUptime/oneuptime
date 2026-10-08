@@ -314,9 +314,11 @@ class DockerSwarmClusterOwnerRuleEngineServiceClass
         )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
       moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
         ruleKind: "Owner",
-        ruleNames: matchedRules.map((rule: DockerSwarmClusterOwnerRule): string => {
-          return rule.name || rule.id?.toString() || "Unnamed rule";
-        }),
+        ruleNames: matchedRules.map(
+          (rule: DockerSwarmClusterOwnerRule): string => {
+            return rule.name || rule.id?.toString() || "Unnamed rule";
+          },
+        ),
       }).toString(),
     });
 

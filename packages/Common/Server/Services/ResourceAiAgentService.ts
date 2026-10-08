@@ -2816,7 +2816,8 @@ export class Service extends DatabaseService<Model> {
       resourceId: data.resource.id,
       projectId: data.resource.projectId,
       displayColor: Blue500,
-      feedInfoInMarkdown: mdText`🤖 ${FeedMarkdown.join(sentences, " ")}`.toString(),
+      feedInfoInMarkdown:
+        mdText`🤖 ${FeedMarkdown.join(sentences, " ")}`.toString(),
     });
   }
 }

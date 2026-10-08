@@ -216,7 +216,7 @@ describe("SLO burn rate rules - added", () => {
     });
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `🔥 Burn rate rule **burn\\*\\* \\!\\[p\\]\\(https://t.example/p.png\\)** was added to ${SLO_MARKDOWN_LINK}.`,
+      `🔥 Burn rate rule **burn\\*\\* !\\[p\\](https://t.example/p.png)** was added to ${SLO_MARKDOWN_LINK}.`,
     );
   });
 
@@ -573,7 +573,7 @@ describe("SLO burn rate rules - changed", () => {
     });
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `🔥 Burn rate rule **\\[fast\\]\\(https://evil.example\\)** on ${SLO_MARKDOWN_LINK} was updated: **Name** changed from Fast burn to \\[fast\\]\\(https://evil.example\\).`,
+      `🔥 Burn rate rule **\\[fast\\](https://evil.example)** on ${SLO_MARKDOWN_LINK} was updated: **Name** changed from Fast burn to \\[fast\\](https://evil.example).`,
     );
   });
 

@@ -324,12 +324,12 @@ export function getDeclaredFromAlertsMarkdown(
   const lines: Array<MarkdownText> = alerts.map(
     (alert: LinkedAlertMention): MarkdownText => {
       const described: LinkedRecordMention = describeLinkedRecord({
-          label: alert.label,
-          link: alert.link,
-          title: alert.title,
-          isPrivate: alert.isPrivate,
-          privateNoun: "alert",
-        });
+        label: alert.label,
+        link: alert.link,
+        title: alert.title,
+        isPrivate: alert.isPrivate,
+        privateNoun: "alert",
+      });
 
       return mdText`${described.subject}${described.titleSuffix}`;
     },
@@ -894,20 +894,20 @@ export class Service extends ProjectReferencesService<Model> {
     ).toString();
 
     const alertMention: LinkedRecordMention = describeLinkedRecord({
-        label: alertLabel,
-        link: alertLink,
-        title: alert?.title,
-        isPrivate: alert?.isPrivate === true,
-        privateNoun: "alert",
-      });
+      label: alertLabel,
+      link: alertLink,
+      title: alert?.title,
+      isPrivate: alert?.isPrivate === true,
+      privateNoun: "alert",
+    });
 
     const incidentMention: LinkedRecordMention = describeLinkedRecord({
-        label: incidentLabel,
-        link: incidentLink,
-        title: incident?.title,
-        isPrivate: incident?.isPrivate === true,
-        privateNoun: "incident",
-      });
+      label: incidentLabel,
+      link: incidentLink,
+      title: incident?.title,
+      isPrivate: incident?.isPrivate === true,
+      privateNoun: "incident",
+    });
 
     const incidentSubject: MarkdownText = mdText`**[${incidentLabel}](${incidentLink})**`;
 

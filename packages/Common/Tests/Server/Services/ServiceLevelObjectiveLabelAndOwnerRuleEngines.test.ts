@@ -614,7 +614,7 @@ describe("ServiceLevelObjectiveLabelRuleEngineService", () => {
 
       const more: string = feedPayloads()[0]!.moreInformationInMarkdown!;
       expect(more).toBe(
-        "**Label rules that matched**: **\\!\\[x\\]\\(https://tracker.example/p.png\\) \\*\\*bold\\*\\***",
+        "**Label rules that matched**: **!\\[x\\](https://tracker.example/p.png) \\*\\*bold\\*\\***",
       );
       expect(more).not.toContain("![x](");
     });
@@ -1081,7 +1081,7 @@ describe("ServiceLevelObjectiveOwnerRuleEngineService", () => {
       const payload: FeedPayload = feedPayloads()[0]!;
       expect(payload.feedInfoInMarkdown).toContain("by 2 owner rules.");
       expect(payload.moreInformationInMarkdown).toBe(
-        "**Owner rules that matched**: **\\[a\\]\\(b\\)**, **Plain**",
+        "**Owner rules that matched**: **\\[a\\](b)**, **Plain**",
       );
     });
 

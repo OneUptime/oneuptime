@@ -55,7 +55,9 @@ import ResourceCommandPolicy, {
 } from "../../../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
-import FeedMarkdown from "../../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 /*
  * The rules every resource AI agent's resource applies to an operator's
  * write of its AI access settings (ResourceAiAccessSettings), pure and
@@ -1075,10 +1077,14 @@ describe("ResourceAiAccessSettings.afterUpdate", () => {
       });
     getResourceMarkdownLink = jest
       .fn()
-      .mockResolvedValue("[Docker Host web-1](https://x)");
+      .mockResolvedValue(
+        FeedMarkdown.asMarkdown("[Docker Host web-1](https://x)"),
+      );
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue(FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"));
+      .mockResolvedValue(
+        FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"),
+      );
   });
 
   afterEach(() => {
@@ -1312,6 +1318,8 @@ describe("ResourceAiAccessSettings.describeChanges", () => {
           aiRemediationMode: ResourceAiRemediationMode.Automatic,
           aiCommandAllowlist: ["docker stop web", "docker stop api"],
         }),
+      }).map((change: MarkdownText): string => {
+        return change.toString();
       }),
     ).toEqual([
       "AI investigation with read-only commands turned **on**",
@@ -1328,6 +1336,8 @@ describe("ResourceAiAccessSettings.describeChanges", () => {
           aiCommandAllowlist: ["docker stop web", "docker stop api"],
         } as JSONObject,
         previous: undefined,
+      }).map((change: MarkdownText): string => {
+        return change.toString();
       }),
     ).toEqual([
       "AI investigation with read-only commands turned **off**",

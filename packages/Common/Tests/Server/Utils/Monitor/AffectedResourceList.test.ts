@@ -37,7 +37,10 @@ function entry(
     details: [
       { label: "Namespace", value: FeedMarkdown.asMarkdown("`payments`") },
       { label: "Deployment", value: FeedMarkdown.asMarkdown("`checkout`") },
-      { label: "Node", value: FeedMarkdown.asMarkdown("`gke-prod-pool-1-abcd`") },
+      {
+        label: "Node",
+        value: FeedMarkdown.asMarkdown("`gke-prod-pool-1-abcd`"),
+      },
     ],
     ...overrides,
   };
@@ -190,7 +193,11 @@ describe("AffectedResourceList.render - markdown", () => {
 
   test("an empty name leaves just the kind", () => {
     const markdown: string = render([
-      entry({ kind: "Cluster", name: FeedMarkdown.asMarkdown(""), details: [] }),
+      entry({
+        kind: "Cluster",
+        name: FeedMarkdown.asMarkdown(""),
+        details: [],
+      }),
     ]);
 
     expect(markdown).toContain("1. **Cluster** — **3**");
@@ -201,7 +208,10 @@ describe("AffectedResourceList.render - markdown", () => {
       entry({
         kind: "*bold* [link](https://evil.example)",
         details: [
-          { label: "![img](https://evil.example/x.png)", value: FeedMarkdown.asMarkdown("`x`") },
+          {
+            label: "![img](https://evil.example/x.png)",
+            value: FeedMarkdown.asMarkdown("`x`"),
+          },
         ],
       }),
     ]);
@@ -516,7 +526,9 @@ describe("AffectedResourceList.render - parses as one ordered list of resources"
 
 describe("AffectedResourceList.code", () => {
   test("wraps an identifier in single backticks", () => {
-    expect(AffectedResourceList.code("checkout-7d9f").toString()).toBe("`checkout-7d9f`");
+    expect(AffectedResourceList.code("checkout-7d9f").toString()).toBe(
+      "`checkout-7d9f`",
+    );
   });
 
   test.each([
@@ -526,9 +538,9 @@ describe("AffectedResourceList.code", () => {
     ["whitespace", "   "],
     ["a lone line break", "\n"],
   ])("returns an empty string for %s", (_label: string, value: unknown) => {
-    expect(AffectedResourceList.code(value as string | undefined | null).toString()).toBe(
-      "",
-    );
+    expect(
+      AffectedResourceList.code(value as string | undefined | null).toString(),
+    ).toBe("");
   });
 
   test("trims surrounding whitespace", () => {
@@ -538,7 +550,9 @@ describe("AffectedResourceList.code", () => {
   test("turns line breaks into single spaces so the list item cannot be split", () => {
     expect(AffectedResourceList.code("web\n01").toString()).toBe("`web 01`");
     expect(AffectedResourceList.code("web\r\n01").toString()).toBe("`web 01`");
-    expect(AffectedResourceList.code("web \n\n 01").toString()).toBe("`web 01`");
+    expect(AffectedResourceList.code("web \n\n 01").toString()).toBe(
+      "`web 01`",
+    );
   });
 
   test("a name containing a backtick gets a longer fence, padded with spaces", () => {
@@ -546,7 +560,9 @@ describe("AffectedResourceList.code", () => {
   });
 
   test("the fence is always longer than the longest backtick run", () => {
-    expect(AffectedResourceList.code("a``b`c").toString()).toBe("``` a``b`c ```");
+    expect(AffectedResourceList.code("a``b`c").toString()).toBe(
+      "``` a``b`c ```",
+    );
   });
 
   test("a name that starts or ends with a backtick still renders verbatim", async () => {
@@ -584,14 +600,19 @@ describe("AffectedResourceList.code", () => {
   });
 
   test("a non-string value is stringified rather than crashing", () => {
-    expect(AffectedResourceList.code(42 as unknown as string).toString()).toBe("`42`");
+    expect(AffectedResourceList.code(42 as unknown as string).toString()).toBe(
+      "`42`",
+    );
   });
 });
 
 describe("AffectedResourceList.codeWithId", () => {
   test("shows the name with its id beside it", () => {
     expect(
-      AffectedResourceList.codeWithId({ name: "web-vm", id: "qemu/100" }).toString(),
+      AffectedResourceList.codeWithId({
+        name: "web-vm",
+        id: "qemu/100",
+      }).toString(),
     ).toBe("`web-vm` (`qemu/100`)");
   });
 
@@ -605,18 +626,18 @@ describe("AffectedResourceList.codeWithId", () => {
   });
 
   test("shows a name that equals its id only once", () => {
-    expect(AffectedResourceList.codeWithId({ name: "rbd", id: "rbd" }).toString()).toBe(
-      "`rbd`",
-    );
+    expect(
+      AffectedResourceList.codeWithId({ name: "rbd", id: "rbd" }).toString(),
+    ).toBe("`rbd`");
   });
 
   test("an empty half counts as missing", () => {
-    expect(AffectedResourceList.codeWithId({ name: "", id: "qemu/100" }).toString()).toBe(
-      "`qemu/100`",
-    );
-    expect(AffectedResourceList.codeWithId({ name: "web-vm", id: " " }).toString()).toBe(
-      "`web-vm`",
-    );
+    expect(
+      AffectedResourceList.codeWithId({ name: "", id: "qemu/100" }).toString(),
+    ).toBe("`qemu/100`");
+    expect(
+      AffectedResourceList.codeWithId({ name: "web-vm", id: " " }).toString(),
+    ).toBe("`web-vm`");
   });
 
   test("returns an empty string when neither half is present", () => {

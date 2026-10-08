@@ -886,6 +886,60 @@ describe("FeedMarkdown helpers", () => {
     expect(markdown).toContain(`<${WORD_JOINER}!channel>`);
   });
 
+  test("textWithCode: backticked parts are code, the rest is text", () => {
+    expect(
+      FeedMarkdown.textWithCode(
+        '`docker ps -a` on Docker host "web-1"',
+      ).toString(),
+    ).toBe('`docker ps -a` on Docker host "web-1"');
+    expect(
+      FeedMarkdown.textWithCode(
+        "`kubectl get pods` on *prod* [x](https://evil.example)",
+      ).toString(),
+    ).toBe("`kubectl get pods` on \\*prod\\* \\[x\\](https://evil.example)");
+
+    // A part of the text is never code because the code before it ended early.
+    const tokens: Array<Token> = tokensOf(
+      FeedMarkdown.textWithCode(
+        "`a` [b](https://evil.example) `<!channel>` ![p](https://t.example/p.png)",
+      ).toString(),
+    );
+
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          if (token.type === "link") {
+            // Only a bare address is a link, and it shows where it goes.
+            return !showsItsAddress(
+              (token as Tokens.Link).text,
+              (token as Tokens.Link).href,
+            );
+          }
+
+          return ["image", "html", "em", "strong"].includes(token.type);
+        })
+        .map((token: Token): string => {
+          return token.raw;
+        }),
+    ).toEqual([]);
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          return token.type === "codespan";
+        })
+        .map((token: Token): string => {
+          return withoutJoiners(decodeHtml((token as Tokens.Codespan).text));
+        }),
+    ).toEqual(["a", "<!channel>"]);
+  });
+
+  test("textWithCode: text whose backticks do not pair is all text", () => {
+    expect(FeedMarkdown.textWithCode("it`s *here*").toString()).toBe(
+      "it\\`s \\*here\\*",
+    );
+    expect(FeedMarkdown.textWithCode(null).toString()).toBe("");
+  });
+
   test("multilineText: each line as text, the line breaks kept", () => {
     const markdown: string = FeedMarkdown.multilineText(
       "first [x](https://evil.example)\n# second\n- third",
@@ -979,9 +1033,9 @@ describe("FeedMarkdown helpers", () => {
     expect(FeedMarkdown.reportedValue("<!channel> ![x](y)")).not.toMatch(
       /<!channel>|!\[/,
     );
-    expect(
-      FeedMarkdown.withoutChatSequences("**kept** <!channel>"),
-    ).toBe(`**kept** <${WORD_JOINER}!channel>`);
+    expect(FeedMarkdown.withoutChatSequences("**kept** <!channel>")).toBe(
+      `**kept** <${WORD_JOINER}!channel>`,
+    );
   });
 
   test("aiWrittenForTeams: as aiWritten, and a tag in fenced code breaks too", () => {
@@ -996,9 +1050,7 @@ describe("FeedMarkdown helpers", () => {
       ),
     );
     // Elsewhere aiWritten keeps a "<" in fenced code as it is.
-    expect(FeedMarkdown.aiWritten(answer).toString()).toContain(
-      "\n<img src=x",
-    );
+    expect(FeedMarkdown.aiWritten(answer).toString()).toContain("\n<img src=x");
   });
 
   test("the HTML element pattern used above catches what it should", () => {

@@ -70,7 +70,6 @@ import ObjectID from "../../../../Types/ObjectID";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import { describe, expect, test } from "@jest/globals";
 
-
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 // The root cause builders write MarkdownText; these tests read its text.
 function textOf(markdown: MarkdownText | null): string | null {
@@ -119,7 +118,9 @@ type EvaluatorPrivate = {
   ) => Promise<MarkdownText | null>;
   buildProxmoxRootCauseContext: (input: BuilderInput) => MarkdownText | null;
   buildVMwareRootCauseContext: (input: BuilderInput) => MarkdownText | null;
-  buildDockerSwarmRootCauseContext: (input: BuilderInput) => MarkdownText | null;
+  buildDockerSwarmRootCauseContext: (
+    input: BuilderInput,
+  ) => MarkdownText | null;
   buildCephRootCauseContext: (input: BuilderInput) => MarkdownText | null;
 };
 
@@ -482,12 +483,14 @@ async function kubernetesContext(input: {
   response: MetricMonitorResponse;
   criteria?: MonitorCriteriaInstance | undefined;
 }): Promise<string | null> {
-  return textOf(await Evaluator.buildKubernetesRootCauseContext({
-    dataToProcess: input.response,
-    monitorStep: input.step,
-    monitor: new Monitor(),
-    criteriaInstance: input.criteria,
-  }));
+  return textOf(
+    await Evaluator.buildKubernetesRootCauseContext({
+      dataToProcess: input.response,
+      monitorStep: input.step,
+      monitor: new Monitor(),
+      criteriaInstance: input.criteria,
+    }),
+  );
 }
 
 /*
@@ -915,12 +918,14 @@ function proxmoxSelectionCase(): PlatformSelectionCase {
     platform: "Proxmox",
     listHeading: "**Affected Resources**",
     render: (criteriaInstance: MonitorCriteriaInstance): string | null => {
-      return textOf(Evaluator.buildProxmoxRootCauseContext({
-        dataToProcess: response,
-        monitorStep: step,
-        monitor: new Monitor(),
-        criteriaInstance: criteriaInstance,
-      }));
+      return textOf(
+        Evaluator.buildProxmoxRootCauseContext({
+          dataToProcess: response,
+          monitorStep: step,
+          monitor: new Monitor(),
+          criteriaInstance: criteriaInstance,
+        }),
+      );
     },
     queryAlias: "mem_size",
     expectedQueryList: [
@@ -1012,12 +1017,14 @@ function vmwareSelectionCase(): PlatformSelectionCase {
     platform: "VMware",
     listHeading: "**Affected Resources**",
     render: (criteriaInstance: MonitorCriteriaInstance): string | null => {
-      return textOf(Evaluator.buildVMwareRootCauseContext({
-        dataToProcess: response,
-        monitorStep: step,
-        monitor: new Monitor(),
-        criteriaInstance: criteriaInstance,
-      }));
+      return textOf(
+        Evaluator.buildVMwareRootCauseContext({
+          dataToProcess: response,
+          monitorStep: step,
+          monitor: new Monitor(),
+          criteriaInstance: criteriaInstance,
+        }),
+      );
     },
     queryAlias: "mem_util",
     expectedQueryList: [
@@ -1106,12 +1113,14 @@ function dockerSwarmSelectionCase(): PlatformSelectionCase {
     platform: "Docker Swarm",
     listHeading: "**Affected Tasks**",
     render: (criteriaInstance: MonitorCriteriaInstance): string | null => {
-      return textOf(Evaluator.buildDockerSwarmRootCauseContext({
-        dataToProcess: response,
-        monitorStep: step,
-        monitor: new Monitor(),
-        criteriaInstance: criteriaInstance,
-      }));
+      return textOf(
+        Evaluator.buildDockerSwarmRootCauseContext({
+          dataToProcess: response,
+          monitorStep: step,
+          monitor: new Monitor(),
+          criteriaInstance: criteriaInstance,
+        }),
+      );
     },
     queryAlias: "mem_pct",
     expectedQueryList: [
@@ -1200,12 +1209,14 @@ function cephSelectionCase(): PlatformSelectionCase {
     platform: "Ceph",
     listHeading: "**Affected Resources**",
     render: (criteriaInstance: MonitorCriteriaInstance): string | null => {
-      return textOf(Evaluator.buildCephRootCauseContext({
-        dataToProcess: response,
-        monitorStep: step,
-        monitor: new Monitor(),
-        criteriaInstance: criteriaInstance,
-      }));
+      return textOf(
+        Evaluator.buildCephRootCauseContext({
+          dataToProcess: response,
+          monitorStep: step,
+          monitor: new Monitor(),
+          criteriaInstance: criteriaInstance,
+        }),
+      );
     },
     queryAlias: "osd_used",
     expectedQueryList: [
@@ -1341,47 +1352,49 @@ describe("Platform raw scan: the catalog unit wins over the scan's declared unit
 
     expect(getVMwareMetricByMetricName(query.metricName)?.unit).toBe("%");
 
-    const context: string | null = textOf(Evaluator.buildVMwareRootCauseContext({
-      dataToProcess: metricResponse({
-        vmwareResourceBreakdowns: [
-          {
-            vcenterName: VCENTER,
-            metricName: query.metricName,
-            metricFriendlyName: vmwareName(query.metricName),
-            metricAlias: query.alias,
-            // What the receiver might declare; the catalog must win.
-            metricUnit: "1",
-            attributes: {},
-            affectedResources: [
-              {
-                hostName: "esx-1",
-                clusterName: "prod-cluster",
-                datacenterName: "dc1",
-                metricValue: 92.5,
-                lowestMetricValue: 91,
-              },
-              {
-                hostName: "esx-2",
-                clusterName: "prod-cluster",
-                datacenterName: "dc1",
-                metricValue: 95.25,
-                lowestMetricValue: 93,
-              },
-              {
-                hostName: "esx-3",
-                clusterName: "prod-cluster",
-                datacenterName: "dc1",
-                metricValue: 0,
-                lowestMetricValue: 0,
-              },
-            ],
-          },
-        ],
+    const context: string | null = textOf(
+      Evaluator.buildVMwareRootCauseContext({
+        dataToProcess: metricResponse({
+          vmwareResourceBreakdowns: [
+            {
+              vcenterName: VCENTER,
+              metricName: query.metricName,
+              metricFriendlyName: vmwareName(query.metricName),
+              metricAlias: query.alias,
+              // What the receiver might declare; the catalog must win.
+              metricUnit: "1",
+              attributes: {},
+              affectedResources: [
+                {
+                  hostName: "esx-1",
+                  clusterName: "prod-cluster",
+                  datacenterName: "dc1",
+                  metricValue: 92.5,
+                  lowestMetricValue: 91,
+                },
+                {
+                  hostName: "esx-2",
+                  clusterName: "prod-cluster",
+                  datacenterName: "dc1",
+                  metricValue: 95.25,
+                  lowestMetricValue: 93,
+                },
+                {
+                  hostName: "esx-3",
+                  clusterName: "prod-cluster",
+                  datacenterName: "dc1",
+                  metricValue: 0,
+                  lowestMetricValue: 0,
+                },
+              ],
+            },
+          ],
+        }),
+        monitorStep: step,
+        monitor: new Monitor(),
+        criteriaInstance: firingCriteria(step),
       }),
-      monitorStep: step,
-      monitor: new Monitor(),
-      criteriaInstance: firingCriteria(step),
-    }));
+    );
 
     const text: string = context || "";
 
@@ -1791,23 +1804,25 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
     expect(metricFilter(criteria).value).toBe(1);
 
     const text: string =
-      textOf(Evaluator.buildProxmoxRootCauseContext({
-        dataToProcess: metricResponse({
-          proxmoxResourceBreakdowns: [
-            {
-              clusterName: CLUSTER,
-              metricName: query.metricName,
-              metricFriendlyName: proxmoxName(query.metricName),
-              metricAlias: query.alias,
-              attributes: {},
-              affectedResources: proxmoxNodes(),
-            },
-          ],
+      textOf(
+        Evaluator.buildProxmoxRootCauseContext({
+          dataToProcess: metricResponse({
+            proxmoxResourceBreakdowns: [
+              {
+                clusterName: CLUSTER,
+                metricName: query.metricName,
+                metricFriendlyName: proxmoxName(query.metricName),
+                metricAlias: query.alias,
+                attributes: {},
+                affectedResources: proxmoxNodes(),
+              },
+            ],
+          }),
+          monitorStep: step,
+          monitor: new Monitor(),
+          criteriaInstance: criteria,
         }),
-        monitorStep: step,
-        monitor: new Monitor(),
-        criteriaInstance: criteria,
-      })) || "";
+      ) || "";
 
     expect(text).toContain(PROXMOX_DOWN_LIST);
     expect(text).toContain(
@@ -1822,20 +1837,22 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
     const query: { alias: string; metricName: string } = firstQuery(step);
 
     const text: string =
-      textOf(Evaluator.buildProxmoxRootCauseContext({
-        dataToProcess: metricResponse({
-          proxmoxResourceBreakdown: {
-            clusterName: CLUSTER,
-            metricName: query.metricName,
-            metricFriendlyName: proxmoxName(query.metricName),
-            attributes: {},
-            affectedResources: proxmoxNodes(),
-          },
+      textOf(
+        Evaluator.buildProxmoxRootCauseContext({
+          dataToProcess: metricResponse({
+            proxmoxResourceBreakdown: {
+              clusterName: CLUSTER,
+              metricName: query.metricName,
+              metricFriendlyName: proxmoxName(query.metricName),
+              attributes: {},
+              affectedResources: proxmoxNodes(),
+            },
+          }),
+          monitorStep: step,
+          monitor: new Monitor(),
+          criteriaInstance: firingCriteria(step),
         }),
-        monitorStep: step,
-        monitor: new Monitor(),
-        criteriaInstance: firingCriteria(step),
-      })) || "";
+      ) || "";
 
     expect(text).toContain(PROXMOX_DOWN_LIST);
     expect(text).not.toContain("node/pve2");
@@ -1853,49 +1870,51 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
     );
 
     const text: string =
-      textOf(Evaluator.buildDockerSwarmRootCauseContext({
-        dataToProcess: metricResponse({
-          dockerSwarmResourceBreakdowns: [
-            {
-              clusterName: CLUSTER,
-              metricName: query.metricName,
-              metricFriendlyName: dockerSwarmName(query.metricName),
-              metricAlias: query.alias,
-              metricUnit: "s",
-              attributes: {},
-              affectedResources: [
-                // Ran for an hour, then restarted 45 seconds ago.
-                {
-                  containerName: "web.1.abc",
-                  serviceName: "web",
-                  nodeName: "swarm-1",
-                  metricValue: 3600,
-                  lowestMetricValue: 45,
-                },
-                // Healthy and long-running.
-                {
-                  containerName: "api.1.xyz",
-                  serviceName: "api",
-                  nodeName: "swarm-1",
-                  metricValue: 86400,
-                  lowestMetricValue: 86340,
-                },
-                // Crash-looping: never gets past half a minute.
-                {
-                  containerName: "web.2.def",
-                  serviceName: "web",
-                  nodeName: "swarm-2",
-                  metricValue: 30,
-                  lowestMetricValue: 12,
-                },
-              ],
-            },
-          ],
+      textOf(
+        Evaluator.buildDockerSwarmRootCauseContext({
+          dataToProcess: metricResponse({
+            dockerSwarmResourceBreakdowns: [
+              {
+                clusterName: CLUSTER,
+                metricName: query.metricName,
+                metricFriendlyName: dockerSwarmName(query.metricName),
+                metricAlias: query.alias,
+                metricUnit: "s",
+                attributes: {},
+                affectedResources: [
+                  // Ran for an hour, then restarted 45 seconds ago.
+                  {
+                    containerName: "web.1.abc",
+                    serviceName: "web",
+                    nodeName: "swarm-1",
+                    metricValue: 3600,
+                    lowestMetricValue: 45,
+                  },
+                  // Healthy and long-running.
+                  {
+                    containerName: "api.1.xyz",
+                    serviceName: "api",
+                    nodeName: "swarm-1",
+                    metricValue: 86400,
+                    lowestMetricValue: 86340,
+                  },
+                  // Crash-looping: never gets past half a minute.
+                  {
+                    containerName: "web.2.def",
+                    serviceName: "web",
+                    nodeName: "swarm-2",
+                    metricValue: 30,
+                    lowestMetricValue: 12,
+                  },
+                ],
+              },
+            ],
+          }),
+          monitorStep: step,
+          monitor: new Monitor(),
+          criteriaInstance: criteria,
         }),
-        monitorStep: step,
-        monitor: new Monitor(),
-        criteriaInstance: criteria,
-      })) || "";
+      ) || "";
 
     expect(text).toContain(
       [
@@ -1922,42 +1941,44 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
     expect(metricFilter(criteria).value).toBe(1);
 
     const text: string =
-      textOf(Evaluator.buildCephRootCauseContext({
-        dataToProcess: metricResponse({
-          cephResourceBreakdowns: [
-            {
-              clusterName: CLUSTER,
-              metricName: query.metricName,
-              metricFriendlyName: cephName(query.metricName),
-              metricAlias: query.alias,
-              attributes: {},
-              affectedResources: [
-                {
-                  daemon: "osd.3",
-                  hostname: "ceph-1",
-                  metricValue: 1,
-                  lowestMetricValue: 0,
-                },
-                {
-                  daemon: "osd.4",
-                  hostname: "ceph-1",
-                  metricValue: 1,
-                  lowestMetricValue: 1,
-                },
-                {
-                  daemon: "osd.7",
-                  hostname: "ceph-2",
-                  metricValue: 0,
-                  lowestMetricValue: 0,
-                },
-              ],
-            },
-          ],
+      textOf(
+        Evaluator.buildCephRootCauseContext({
+          dataToProcess: metricResponse({
+            cephResourceBreakdowns: [
+              {
+                clusterName: CLUSTER,
+                metricName: query.metricName,
+                metricFriendlyName: cephName(query.metricName),
+                metricAlias: query.alias,
+                attributes: {},
+                affectedResources: [
+                  {
+                    daemon: "osd.3",
+                    hostname: "ceph-1",
+                    metricValue: 1,
+                    lowestMetricValue: 0,
+                  },
+                  {
+                    daemon: "osd.4",
+                    hostname: "ceph-1",
+                    metricValue: 1,
+                    lowestMetricValue: 1,
+                  },
+                  {
+                    daemon: "osd.7",
+                    hostname: "ceph-2",
+                    metricValue: 0,
+                    lowestMetricValue: 0,
+                  },
+                ],
+              },
+            ],
+          }),
+          monitorStep: step,
+          monitor: new Monitor(),
+          criteriaInstance: criteria,
         }),
-        monitorStep: step,
-        monitor: new Monitor(),
-        criteriaInstance: criteria,
-      })) || "";
+      ) || "";
 
     expect(text).toContain(
       [

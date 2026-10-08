@@ -594,13 +594,12 @@ export default class EventVideoCall {
     error: string;
   }): Promise<void> {
     try {
-      const feedInfoInMarkdown: string = VideoCallMessages.getFailedFeedMarkdown(
-        {
+      const feedInfoInMarkdown: string =
+        VideoCallMessages.getFailedFeedMarkdown({
           eventNoun: EventVideoCall.getEventNoun(data.eventType),
           ruleName: data.ruleName,
           error: data.error,
-        },
-      ).toString();
+        }).toString();
 
       if (data.eventType === VideoCallEventType.Incident) {
         await IncidentFeedService.createIncidentFeedItem({

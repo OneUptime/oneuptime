@@ -636,7 +636,7 @@ describe("IncidentService: editing the monitors of a resolved incident", () => {
     const markdown: string | undefined = feedMarkdownFor();
 
     expect(markdown).toContain(
-      `**🌎 Monitors Added**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
+      `**🌎 Monitors Added**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
     );
     expect(markdown).not.toContain("checkout\\-web");
     expect(markdown).not.toContain("checkout-web");
@@ -672,7 +672,7 @@ describe("IncidentService: editing the monitors of a resolved incident", () => {
     expect(markMonitorsActive).not.toHaveBeenCalled();
     expect(changeMonitorStatus).not.toHaveBeenCalled();
     expect(feedMarkdownFor()).toContain(
-      `**🗑️ Monitors Removed**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
+      `**🗑️ Monitors Removed**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
     );
   });
 
@@ -769,7 +769,7 @@ describe("IncidentService: editing the monitors of an open incident", () => {
     expect(markMonitorsActive).not.toHaveBeenCalled();
 
     expect(feedMarkdownFor()).toContain(
-      `**🌎 Monitors Added**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
+      `**🌎 Monitors Added**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
     );
   });
 
@@ -835,7 +835,7 @@ describe("IncidentService: editing the monitors of an open incident", () => {
     expect(changeMonitorStatus).not.toHaveBeenCalled();
     expect(disableActiveMonitoring).not.toHaveBeenCalled();
     expect(feedMarkdownFor()).toContain(
-      `**🗑️ Monitors Removed**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
+      `**🗑️ Monitors Removed**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
     );
   });
 
@@ -989,7 +989,7 @@ describe("IncidentService: an update that changes the incident's state and its m
     // The state is read before the write, while it is still open.
     expect(order).toEqual(["isIncidentResolved:false", "changeIncidentState"]);
     expect(feedMarkdownFor()).toContain(
-      `**🗑️ Monitors Removed**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
+      `**🗑️ Monitors Removed**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
     );
   });
 
@@ -1145,10 +1145,10 @@ describe("IncidentService: an update that changes the incident's state and its m
     expect(monitorsRestored()).toEqual([[MONITOR_A]]);
     expect(changeMonitorStatus).not.toHaveBeenCalled();
     expect(feedMarkdownFor(INCIDENT_ID)).toContain(
-      `**🗑️ Monitors Removed**:\n- [checkout\\-web](${monitorLink(MONITOR_A)})\n`,
+      `**🗑️ Monitors Removed**:\n- [checkout-web](${monitorLink(MONITOR_A)})\n`,
     );
     expect(feedMarkdownFor(SECOND_INCIDENT_ID)).toContain(
-      `**🗑️ Monitors Removed**:\n- [search\\-api](${monitorLink(MONITOR_C)})\n`,
+      `**🗑️ Monitors Removed**:\n- [search-api](${monitorLink(MONITOR_C)})\n`,
     );
   });
 });
@@ -1536,7 +1536,7 @@ describe("IncidentService: an update that matches several incidents", () => {
     // Both feeds still record the edit.
     expect(feedMarkdownFor(INCIDENT_ID)).toContain("**🌎 Monitors Added**:");
     expect(feedMarkdownFor(SECOND_INCIDENT_ID)).toContain(
-      `**🗑️ Monitors Removed**:\n- [search\\-api](${monitorLink(MONITOR_C)})\n`,
+      `**🗑️ Monitors Removed**:\n- [search-api](${monitorLink(MONITOR_C)})\n`,
     );
   });
 });

@@ -767,10 +767,8 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: MarkdownText = await this.getServiceMarkdownLink(
-        projectId,
-        serviceId,
-      );
+      const resourceMarkdownLink: MarkdownText =
+        await this.getServiceMarkdownLink(projectId, serviceId);
 
       if (isArchiveChange) {
         await ServiceFeedService.createServiceFeedItem({

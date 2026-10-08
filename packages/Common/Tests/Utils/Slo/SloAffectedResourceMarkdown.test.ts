@@ -95,6 +95,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
           ownSlo({ _id: OTHER_SLO_ID, name: "Search latency p95" }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([
       `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
@@ -157,7 +159,7 @@ describe("getSloAffectedResourceMarkdownLines", () => {
     // Every `<` is backslash-escaped, which CommonMark renders as a literal `<`.
     expect(line).not.toMatch(/(^|[^\\])</);
     expect(line).toContain("\\!\\[pixel\\]");
-    expect(line).toContain("\\<img src=x\\>");
+    expect(line).toContain("\\<img src=x>");
     expect(line).toContain("\\*loud\\*");
     expect(line).toContain("\\_x\\_");
   });
@@ -175,7 +177,7 @@ describe("getSloAffectedResourceMarkdownLines", () => {
 
     expect(line).not.toMatch(/[\r\n]/);
     expect(line).toBe(
-      `- [SLO Checkout \\# Pwned \\- injected bullet](${sloLink(SLO_ID)})`,
+      `- [SLO Checkout # Pwned - injected bullet](${sloLink(SLO_ID)})`,
     );
   });
 
@@ -188,6 +190,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           ownSlo({ _id: SLO_ID }),
           ownSlo({ _id: OTHER_SLO_ID, name: "   " }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([
       `- [SLO](${sloLink(SLO_ID)})`,
@@ -204,6 +208,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           ownSlo({ name: "Unsaved objective" }),
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
   });
@@ -217,6 +223,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toHaveLength(1);
   });
@@ -234,6 +242,8 @@ describe("getSloAffectedResourceMarkdownLines", () => {
           dashboardUrl: DASHBOARD_URL,
           projectId: PROJECT_ID,
           serviceLevelObjectives: serviceLevelObjectives,
+        }).map((line: MarkdownText): string => {
+          return line.toString();
         }),
       ).toEqual([]);
     },
@@ -273,6 +283,8 @@ describe("getSloAffectedResourceMarkdownLines names only the record's own projec
           { _id: SLO_ID, name: "Checkout availability" },
           { _id: OTHER_SLO_ID, name: "Search latency", projectId: null },
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([]);
   });
@@ -289,6 +301,8 @@ describe("getSloAffectedResourceMarkdownLines names only the record's own projec
             projectId: PROJECT_ID.toString().toUpperCase(),
           },
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
   });
@@ -307,6 +321,8 @@ describe("getSloAffectedResourceMarkdownLines names only the record's own projec
           { _id: SLO_ID, name: "Foreign", projectId: OTHER_PROJECT_ID },
           ownSlo({ _id: SLO_ID, name: "Checkout availability" }),
         ],
+      }).map((line: MarkdownText): string => {
+        return line.toString();
       }),
     ).toEqual([`- [SLO Checkout availability](${sloLink(SLO_ID)})`]);
   });

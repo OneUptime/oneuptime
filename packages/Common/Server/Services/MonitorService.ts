@@ -1602,12 +1602,15 @@ export class Service extends ProjectReferencesService<Model> {
 
         const fieldsMarkdown: MarkdownText =
           await EventFieldChange.getFeedMarkdown({
-          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
-          changes: fieldChanges,
-          projectId: projectId,
-          recordName: "Monitor",
-          kind: MONITOR_FIELDS,
-        });
+            written: onUpdate.updateBy.data as unknown as Record<
+              string,
+              unknown
+            >,
+            changes: fieldChanges,
+            projectId: projectId,
+            recordName: "Monitor",
+            kind: MONITOR_FIELDS,
+          });
 
         if (!fieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += fieldsMarkdown.toString();

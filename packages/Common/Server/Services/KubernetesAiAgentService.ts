@@ -2264,7 +2264,8 @@ export class Service extends DatabaseService<Model> {
       kubernetesClusterFeedEventType:
         KubernetesClusterFeedEventType.KubernetesClusterUpdated,
       displayColor: Blue500,
-      feedInfoInMarkdown: mdText`🤖 ${FeedMarkdown.join(sentences, " ")}`.toString(),
+      feedInfoInMarkdown:
+        mdText`🤖 ${FeedMarkdown.join(sentences, " ")}`.toString(),
     });
   }
 }

@@ -190,6 +190,30 @@ export interface GuardFinding {
   text: string;
 }
 
+// A log line or an error's message: never Markdown.
+const LOG_OR_ERROR_CALLEE_PATTERN: RegExp = /^logger\.|^console\.|Error$/;
+
+// The text of a code span FeedMarkdown.code (or codeWithId) writes around.
+const CODE_CALLEE_PATTERN: RegExp = /(?:^|\.)code$|\.codeWithId$/;
+
+// Markdown turned back into a string.
+const TO_STRING_CALLEE_PATTERN: RegExp = /\.toString$/;
+
+// A FeedMarkdown helper, which returns Markdown.
+const FEED_MARKDOWN_CALLEE_PATTERN: RegExp = /^FeedMarkdown\./;
+
+// An Array's join.
+const JOIN_CALLEE_PATTERN: RegExp = /\.join$/;
+
+// TypeScript source.
+const SOURCE_FILE_PATTERN: RegExp = /\.tsx?$/;
+
+// A test file.
+const TEST_FILE_PATTERN: RegExp = /\.test\.tsx?$/;
+
+// A React component file: it renders, it writes no feed or chat Markdown.
+const TSX_FILE_PATTERN: RegExp = /\.tsx$/;
+
 function lineOf(source: ts.SourceFile, node: ts.Node): number {
   return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 }
@@ -261,14 +285,15 @@ function isOutsideMarkdown(node: ts.Node): boolean {
     if (ts.isCallExpression(parent) || ts.isNewExpression(parent)) {
       const callee: string = calleeText(parent);
 
-      if (/^logger\.|^console\.|Error$/.test(callee)) {
+      if (LOG_OR_ERROR_CALLEE_PATTERN.test(callee)) {
         return true;
       }
 
-      const callArguments: ReadonlyArray<ts.Expression> = parent.arguments || [];
+      const callArguments: ReadonlyArray<ts.Expression> =
+        parent.arguments || [];
 
       if (
-        /(?:^|\.)code$|\.codeWithId$/.test(callee) &&
+        CODE_CALLEE_PATTERN.test(callee) &&
         callArguments.includes(current as ts.Expression)
       ) {
         return true;
@@ -349,7 +374,7 @@ function isRawValue(expression: ts.Expression): boolean {
     const callee: string = calleeText(unwrapped);
 
     // mdText`...`.toString(), FeedMarkdown.join(...).toString(), ...
-    if (/\.toString$/.test(callee)) {
+    if (TO_STRING_CALLEE_PATTERN.test(callee)) {
       const target: ts.Expression = unwrap(
         (unwrapped.expression as ts.PropertyAccessExpression).expression,
       );
@@ -357,11 +382,11 @@ function isRawValue(expression: ts.Expression): boolean {
       return !(
         isMdTextTag(target) ||
         (ts.isCallExpression(target) &&
-          /^FeedMarkdown\./.test(calleeText(target)))
+          FEED_MARKDOWN_CALLEE_PATTERN.test(calleeText(target)))
       );
     }
 
-    return !/^FeedMarkdown\./.test(callee);
+    return !FEED_MARKDOWN_CALLEE_PATTERN.test(callee);
   }
 
   if (ts.isConditionalExpression(unwrapped)) {
@@ -570,11 +595,14 @@ export function findUntaggedFeedMarkdown(
 
         const callee: string = calleeText(value);
 
-        if (/\.join$/.test(callee) && !/^FeedMarkdown\./.test(callee)) {
+        if (
+          JOIN_CALLEE_PATTERN.test(callee) &&
+          !FEED_MARKDOWN_CALLEE_PATTERN.test(callee)
+        ) {
           report(span.expression, "C");
         }
 
-        if (/\.toString$/.test(callee)) {
+        if (TO_STRING_CALLEE_PATTERN.test(callee)) {
           const target: ts.Expression = unwrap(
             (value.expression as ts.PropertyAccessExpression).expression,
           );
@@ -582,7 +610,7 @@ export function findUntaggedFeedMarkdown(
           if (
             isMdTextTag(target) ||
             (ts.isCallExpression(target) &&
-              /^FeedMarkdown\./.test(calleeText(target)))
+              FEED_MARKDOWN_CALLEE_PATTERN.test(calleeText(target)))
           ) {
             report(span.expression, "C");
           }
@@ -598,7 +626,8 @@ export function findUntaggedFeedMarkdown(
   return found;
 }
 
-const ESCAPER_MODULE_PATTERN: RegExp = /(?:^|\/)(MarkdownEscape|UntrustedMarkdown)$/;
+const ESCAPER_MODULE_PATTERN: RegExp =
+  /(?:^|\/)(MarkdownEscape|UntrustedMarkdown)$/;
 
 /**
  * Rule B over one file: its imports of MarkdownEscape and UntrustedMarkdown.
@@ -666,14 +695,9 @@ function listSourceFiles(directory: string): Array<string> {
 
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     if (
-      [
-        "node_modules",
-        "build",
-        "dist",
-        "Tests",
-        "coverage",
-        ".git",
-      ].includes(entry.name)
+      ["node_modules", "build", "dist", "Tests", "coverage", ".git"].includes(
+        entry.name,
+      )
     ) {
       continue;
     }
@@ -683,8 +707,8 @@ function listSourceFiles(directory: string): Array<string> {
     if (entry.isDirectory()) {
       files.push(...listSourceFiles(fullPath));
     } else if (
-      /\.tsx?$/.test(entry.name) &&
-      !/\.test\.tsx?$/.test(entry.name) &&
+      SOURCE_FILE_PATTERN.test(entry.name) &&
+      !TEST_FILE_PATTERN.test(entry.name) &&
       !entry.name.endsWith(".d.ts")
     ) {
       files.push(fullPath);
@@ -720,7 +744,10 @@ function readSinkFiles(): Array<SourceFile> {
     for (const fullPath of listSourceFiles(root)) {
       const file: string = toRepositoryPath(fullPath);
 
-      if (file.startsWith(MARKDOWN_UTILS_DIRECTORY) || /\.tsx$/.test(file)) {
+      if (
+        file.startsWith(MARKDOWN_UTILS_DIRECTORY) ||
+        TSX_FILE_PATTERN.test(file)
+      ) {
         continue;
       }
 
@@ -898,9 +925,9 @@ describe("findUntaggedFeedMarkdown", () => {
   });
 
   test("finds a Markdown string joined to a value with +", () => {
-    expect(find('const text: string = "**Title:** " + incident.title;')).toHaveLength(
-      1,
-    );
+    expect(
+      find('const text: string = "**Title:** " + incident.title;'),
+    ).toHaveLength(1);
   });
 
   test("passes Markdown joined to Markdown written with mdText", () => {
@@ -923,7 +950,7 @@ describe("findUntaggedFeedMarkdown", () => {
 
   test("finds an Array's join placed into mdText", () => {
     expect(
-      find("const text: MarkdownText = mdText`Labels: ${names.join(\", \")}`;"),
+      find('const text: MarkdownText = mdText`Labels: ${names.join(", ")}`;'),
     ).toEqual([expect.stringMatching(/^C: /)]);
   });
 
@@ -953,7 +980,9 @@ describe("findUntaggedFeedMarkdown", () => {
 
   test("leaves a masked phone number alone: six asterisks are no bold", () => {
     expect(
-      find("const masked: string = `${phone.slice(0, 2)}******${phone.slice(-2)}`;"),
+      find(
+        "const masked: string = `${phone.slice(0, 2)}******${phone.slice(-2)}`;",
+      ),
     ).toEqual([]);
   });
 

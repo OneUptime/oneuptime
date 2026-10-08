@@ -1007,11 +1007,11 @@ export default class AIInvestigationEngine {
           AIInvestigationEngine.describeClusterCitationOutcome(citation);
 
         if (clusterOutcome !== null) {
-          markdown += mdText`\n- **[${citation.id}]** ${citation.label} — ${clusterOutcome}`;
+          markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${clusterOutcome}`;
           continue;
         }
 
-        markdown += mdText`\n- **[${citation.id}]** ${citation.label} — ${citation.rowCount} row(s)`;
+        markdown += mdText`\n- **[${citation.id}]** ${FeedMarkdown.textWithCode(citation.label)} — ${citation.rowCount} row(s)`;
       }
     }
 

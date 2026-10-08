@@ -856,7 +856,11 @@ describe("an out-of-date dashboard tab saving labels on an SLO with no monitor r
       .mockResolvedValue(undefined);
     jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
-      .mockResolvedValue(FeedMarkdown.asMarkdown("[SLO Checkout](https://oneuptime.test/slos/1)"));
+      .mockResolvedValue(
+        FeedMarkdown.asMarkdown(
+          "[SLO Checkout](https://oneuptime.test/slos/1)",
+        ),
+      );
     stubProjectDirectory({});
   });
 

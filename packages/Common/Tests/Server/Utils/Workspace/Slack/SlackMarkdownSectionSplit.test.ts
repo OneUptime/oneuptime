@@ -204,7 +204,9 @@ function buildKubernetesRootCause(): string {
   for (let index: number = 0; index < 10; index++) {
     entries.push({
       kind: "Container",
-      name: FeedMarkdown.asMarkdown(`${AffectedResourceList.code(`checkout-worker-${index}`)} in pod ${AffectedResourceList.code(`checkout-service-7d9f8b6c5d-x2k9q${index}`)}`),
+      name: FeedMarkdown.asMarkdown(
+        `${AffectedResourceList.code(`checkout-worker-${index}`)} in pod ${AffectedResourceList.code(`checkout-service-7d9f8b6c5d-x2k9q${index}`)}`,
+      ),
       value: `**${20 - index}**`,
       details: [
         {

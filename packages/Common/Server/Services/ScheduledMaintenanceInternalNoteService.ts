@@ -161,10 +161,11 @@ export class Service extends ProjectReferencesService<Model> {
         const scheduledMaintenance: ScheduledMaintenance =
           updatedItem.scheduledMaintenance!;
 
-        const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
-          updatedItem.id!,
-          "/scheduled-maintenance-internal-note/attachment",
-        );
+        const attachmentsMarkdown: MarkdownText =
+          await this.getAttachmentsMarkdown(
+            updatedItem.id!,
+            "/scheduled-maintenance-internal-note/attachment",
+          );
 
         await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
           {

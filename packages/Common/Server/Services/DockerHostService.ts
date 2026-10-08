@@ -707,10 +707,8 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: MarkdownText = await this.getDockerHostMarkdownLink(
-        projectId,
-        dockerHostId,
-      );
+      const resourceMarkdownLink: MarkdownText =
+        await this.getDockerHostMarkdownLink(projectId, dockerHostId);
 
       if (isArchiveChange) {
         await DockerHostFeedService.createDockerHostFeedItem({

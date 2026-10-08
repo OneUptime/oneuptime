@@ -504,8 +504,8 @@ describe("EventFieldChange.getFeedMarkdown", () => {
       projectId: PROJECT_ID,
       recordName: recordName,
     }).then((markdown: MarkdownText): string => {
- return markdown.toString();
- });
+      return markdown.toString();
+    });
   }
 
   test("nothing changed is no line, and reads no label", async () => {
@@ -806,8 +806,8 @@ describe("EventFieldChange.getFeedMarkdown for a monitor", () => {
       recordName: "Monitor",
       kind: MONITOR_FIELDS,
     }).then((markdown: MarkdownText): string => {
- return markdown.toString();
- });
+      return markdown.toString();
+    });
   }
 
   test("the name is one line, quoted inertly", async () => {
@@ -854,13 +854,15 @@ describe("EventFieldChange.getFeedMarkdown for a monitor", () => {
 
   test("a scheduled maintenance description is Markdown, shown as written", async () => {
     expect(
-      await EventFieldChange.getFeedMarkdown({
-        written: { description: "**Database** [runbook](https://r.example)" },
-        changes: { ...NOTHING, textColumns: ["description"] },
-        projectId: PROJECT_ID,
-        recordName: "Scheduled Maintenance",
-        kind: SCHEDULED_MAINTENANCE_FIELDS,
-      }),
+      (
+        await EventFieldChange.getFeedMarkdown({
+          written: { description: "**Database** [runbook](https://r.example)" },
+          changes: { ...NOTHING, textColumns: ["description"] },
+          projectId: PROJECT_ID,
+          recordName: "Scheduled Maintenance",
+          kind: SCHEDULED_MAINTENANCE_FIELDS,
+        })
+      ).toString(),
     ).toBe(
       "\n\n**Scheduled Maintenance Description**: \n**Database** [runbook](https://r.example)\n",
     );

@@ -65,7 +65,7 @@ describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
         noun: "incident",
         stage: StartingStage.Acknowledged,
         policyNames: ["Primary"],
-      }),
+      }).toString(),
     ).toBe(
       "📞 **No one was paged.** This incident was created already acknowledged, so its on-call policy **Primary** was not run.",
     );
@@ -77,7 +77,7 @@ describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
         noun: "alert",
         stage: StartingStage.Resolved,
         policyNames: ["Primary", "Database"],
-      }),
+      }).toString(),
     ).toBe(
       "📞 **No one was paged.** This alert was created already resolved, so its on-call policies **Primary** and **Database** were not run.",
     );
@@ -89,7 +89,7 @@ describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
         noun: "episode",
         stage: StartingStage.Acknowledged,
         policyNames: ["Primary", "Database", "Payments"],
-      }),
+      }).toString(),
     ).toBe(
       "📞 **No one was paged.** This episode was created already acknowledged, so its on-call policies **Primary**, **Database** and **Payments** were not run.",
     );
@@ -105,7 +105,7 @@ describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
     }).toString();
 
     expect(markdown).toBe(
-      "📞 **No one was paged.** This incident was created already resolved, so its on-call policy **\\!\\[x\\]\\(https://tracker.example/p\\) \\*\\*bold\\*\\* \\[team\\] \\# heading** was not run.",
+      "📞 **No one was paged.** This incident was created already resolved, so its on-call policy **!\\[x\\](https://tracker.example/p) \\*\\*bold\\*\\* \\[team\\] # heading** was not run.",
     );
     expect(markdown).not.toContain("\n");
   });
@@ -117,7 +117,7 @@ describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
           noun: "incident",
           stage: stage,
           policyNames: ["Primary", "Database"],
-        }),
+        }).toString(),
       ).not.toContain("\n");
     }
   });
@@ -286,12 +286,14 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
       }) as never);
 
     expect(
-      await OnCallNotRunOnCreate.getFeedMarkdown({
-        noun: "incident",
-        stage: StartingStage.Acknowledged,
-        projectId: PROJECT_ID,
-        policies: [new OnCallDutyPolicy(), ...listed([PRIMARY])],
-      }),
+      (
+        await OnCallNotRunOnCreate.getFeedMarkdown({
+          noun: "incident",
+          stage: StartingStage.Acknowledged,
+          projectId: PROJECT_ID,
+          policies: [new OnCallDutyPolicy(), ...listed([PRIMARY])],
+        })
+      )?.toString(),
     ).toBe(
       "📞 **No one was paged.** This incident was created already acknowledged, so its on-call policy **Unnamed policy** was not run.",
     );

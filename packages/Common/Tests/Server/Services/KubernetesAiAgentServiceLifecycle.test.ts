@@ -32,7 +32,9 @@ import {
   test,
 } from "@jest/globals";
 
-import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The Kubernetes AI agent after registration (DESIGN §5.1, §5.2):
  *
@@ -827,7 +829,9 @@ describe("resetAgent", () => {
         .mockResolvedValue(undefined) as unknown as SpyCalls,
       userName: jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue(FeedMarkdown.asMarkdown(USER_MARKDOWN)) as unknown as SpyCalls,
+        .mockResolvedValue(
+          FeedMarkdown.asMarkdown(USER_MARKDOWN),
+        ) as unknown as SpyCalls,
     };
   }
 
@@ -924,9 +928,9 @@ describe("resetAgent", () => {
     const harness: ResetHarness = setUp();
     (
       harness.userName as unknown as {
-        mockResolvedValue: (value: string) => void;
+        mockResolvedValue: (value: MarkdownText) => void;
       }
-    ).mockResolvedValue("");
+    ).mockResolvedValue(FeedMarkdown.empty());
 
     await KubernetesAiAgentService.resetAgent({
       projectId: PROJECT_ID,

@@ -76,9 +76,7 @@ import RunnerService, {
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import crypto from "crypto";
-import FeedMarkdown, {
-  mdText,
-} from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The agent Runner's name for a cluster, and the Runner name column bound.

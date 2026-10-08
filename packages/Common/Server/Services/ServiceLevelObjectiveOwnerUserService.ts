@@ -231,10 +231,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      const userMarkdown: MarkdownText | null = await SloFeedUtil.getUserMarkdown({
-        userId: userId,
-        projectId: projectId,
-      });
+      const userMarkdown: MarkdownText | null =
+        await SloFeedUtil.getUserMarkdown({
+          userId: userId,
+          projectId: projectId,
+        });
 
       if (!userMarkdown) {
         return createdItem;

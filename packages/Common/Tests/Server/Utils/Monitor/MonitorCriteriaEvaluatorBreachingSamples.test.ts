@@ -28,7 +28,6 @@ import ObjectID from "../../../../Types/ObjectID";
 import { marked, Tokens, Token } from "marked";
 import { describe, expect, test } from "@jest/globals";
 
-
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 // The root cause builders write MarkdownText; these tests read its text.
 function textOf(markdown: MarkdownText | null): string | null {
@@ -220,10 +219,12 @@ function makeCriteriaInstance(
 }
 
 function rootCause(ctx: MetricCriteriaContext, monitor?: Monitor): string {
-  const context: string | null = textOf(Evaluator.buildMetricRootCauseContext({
-    criteriaInstance: makeCriteriaInstance(ctx),
-    monitor: monitor || new Monitor(),
-  }));
+  const context: string | null = textOf(
+    Evaluator.buildMetricRootCauseContext({
+      criteriaInstance: makeCriteriaInstance(ctx),
+      monitor: monitor || new Monitor(),
+    }),
+  );
 
   expect(context).not.toBeNull();
   return context as string;

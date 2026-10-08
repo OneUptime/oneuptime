@@ -819,10 +819,12 @@ describe("StorageArrayService names and links", () => {
         URL.fromString("https://oneuptime.example.com/dashboard"),
       );
 
-    const link: string = (await StorageArrayService.getStorageArrayMarkdownLink(
-      PROJECT_ID,
-      ARRAY_ID,
-    )).toString();
+    const link: string = (
+      await StorageArrayService.getStorageArrayMarkdownLink(
+        PROJECT_ID,
+        ARRAY_ID,
+      )
+    ).toString();
 
     expect(link.startsWith("[Storage Array pure-prod-01](")).toBe(true);
     expect(link).toContain(
@@ -903,13 +905,19 @@ describe("StorageArray feed events", () => {
     jest
       .spyOn(StorageArrayService, "getStorageArrayMarkdownLink")
       .mockImplementation((): Promise<MarkdownText> => {
-        return Promise.resolve(FeedMarkdown.asMarkdown("[Storage Array pure-prod-01](https://example.com/storage-arrays/x)"));
+        return Promise.resolve(
+          FeedMarkdown.asMarkdown(
+            "[Storage Array pure-prod-01](https://example.com/storage-arrays/x)",
+          ),
+        );
       });
 
     jest
       .spyOn(UserService, "getUserMarkdownString")
       .mockImplementation((): Promise<MarkdownText> => {
-        return Promise.resolve(FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"));
+        return Promise.resolve(
+          FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
+        );
       });
 
     jest

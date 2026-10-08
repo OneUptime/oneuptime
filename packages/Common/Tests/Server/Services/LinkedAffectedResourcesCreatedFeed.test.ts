@@ -177,7 +177,7 @@ describe("incident created feed item", () => {
     });
 
     expect(sectionLines(markdown, HEADER)).toEqual([
-      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
       `- [Host web](${link("host", HOST_ID)})`,
       `- [Kubernetes Cluster prod](${link("kubernetes", CLUSTER_ID)})`,
       `- [Database orders](${link("databases", DATABASE_ID)})`,
@@ -273,7 +273,7 @@ describe("alert created feed item", () => {
     });
 
     expect(sectionLines(markdown, HEADER)).toEqual([
-      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
       `- [Kubernetes Cluster prod](${link("kubernetes", CLUSTER_ID)})`,
       `- [Service checkout](${link("service", SERVICE_ID)})`,
     ]);
@@ -337,7 +337,7 @@ describe("scheduled maintenance feed items", () => {
     ).createScheduledMaintenanceFeedAsync(event);
 
     expect(sectionLines(postedMarkdown(feedItem), HEADER)).toEqual([
-      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
       `- [Network Site London DC](${link("network-sites/view", SITE_ID)})`,
     ]);
   });
@@ -428,7 +428,7 @@ describe("scheduled maintenance feed items", () => {
       await update({ hosts: [{ _id: HOST_ID }] });
 
       expect(sectionLines(postedMarkdown(feedItem), UPDATED_HEADER)).toEqual([
-        `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
+        `- [checkout-web](${link("monitors", MONITOR_ID)})`,
         `- [Host web](${link("host", HOST_ID)})`,
       ]);
 

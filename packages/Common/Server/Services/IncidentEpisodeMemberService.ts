@@ -85,7 +85,10 @@ const describeFeedMention: DescribeFeedMentionFunction = (data: {
     };
   }
 
-  return { subject: subject, titleSuffix: mdText`: ${data.title || "No title"}` };
+  return {
+    subject: subject,
+    titleSuffix: mdText`: ${data.title || "No title"}`,
+  };
 };
 
 type DescribeIncidentFunction = (incident: Incident | null) => FeedMention;

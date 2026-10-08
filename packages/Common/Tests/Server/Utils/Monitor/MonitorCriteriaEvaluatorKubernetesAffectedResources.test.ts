@@ -49,7 +49,6 @@ import PlatformMetricUnitUtil from "../../../../Utils/Monitor/PlatformMetricUnit
 import PlatformResourceIdentity from "../../../../Utils/Monitor/PlatformResourceIdentity";
 import { describe, expect, test } from "@jest/globals";
 
-
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 // The root cause builders write MarkdownText; these tests read its text.
 function textOf(markdown: MarkdownText | null): string | null {
@@ -1303,8 +1302,8 @@ describe("Kubernetes grouped monitor: a series that matched with no data", () =>
     const firing: MonitorCriteriaInstance = criteriaOf(step).firing;
     const criteriaId: string = firing.data!.id!.toString();
 
-    const context: string | null =
-      textOf(await Evaluator.buildKubernetesRootCauseContext({
+    const context: string | null = textOf(
+      await Evaluator.buildKubernetesRootCauseContext({
         dataToProcess: workerResponse({ step: step, series: [] }),
         monitorStep: step,
         monitor: kubernetesMonitor(),
@@ -1322,7 +1321,8 @@ describe("Kubernetes grouped monitor: a series that matched with no data", () =>
             breachingValues: [88.5, 91.25, 90],
           }),
         ],
-      }));
+      }),
+    );
 
     const section: string = affectedResourcesSection(context || "");
 

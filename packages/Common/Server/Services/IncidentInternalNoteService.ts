@@ -211,10 +211,11 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
       for (const updatedItem of updatedItems) {
         const incident: Incident = updatedItem.incident!;
 
-        const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
-          updatedItem.id!,
-          "/incident-internal-note/attachment",
-        );
+        const attachmentsMarkdown: MarkdownText =
+          await this.getAttachmentsMarkdown(
+            updatedItem.id!,
+            "/incident-internal-note/attachment",
+          );
 
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: updatedItem.incidentId!,

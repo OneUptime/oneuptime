@@ -68,9 +68,7 @@ import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { toStorableJson } from "../Database/PostgresStorableValue";
 
-import FeedMarkdown, {
-  mdText,
-} from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 interface ProbeAgreementResult {
   hasAgreement: boolean;
   agreementCount: number;

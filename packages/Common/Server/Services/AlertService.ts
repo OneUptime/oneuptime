@@ -2098,11 +2098,14 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
          */
         const fieldsMarkdown: MarkdownText =
           await EventFieldChange.getFeedMarkdown({
-          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
-          changes: fieldChanges,
-          projectId: projectId,
-          recordName: "Alert",
-        });
+            written: onUpdate.updateBy.data as unknown as Record<
+              string,
+              unknown
+            >,
+            changes: fieldChanges,
+            projectId: projectId,
+            recordName: "Alert",
+          });
 
         if (!fieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += fieldsMarkdown.toString();

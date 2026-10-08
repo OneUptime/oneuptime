@@ -455,7 +455,7 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     );
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍💻 Removed **\\*\\*Jane\\*\\* \\[x\\]\\(y\\)** (jane\\_doe@example.com) as an owner of ${SLO_MARKDOWN_LINK}.`,
+      `👨🏻‍💻 Removed **\\*\\*Jane\\*\\* \\[x\\](y)** (jane_doe@example.com) as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
   });
 
@@ -547,7 +547,7 @@ describe("ServiceLevelObjectiveOwnerTeamService feed writes", () => {
     );
 
     expect(feedCalls[0]!.feedInfoInMarkdown).toBe(
-      `👨🏻‍👩🏻‍👦🏻 Added team **SRE\\*\\* \\[phish\\]\\(https://evil.example\\)** as an owner of ${SLO_MARKDOWN_LINK}.`,
+      `👨🏻‍👩🏻‍👦🏻 Added team **SRE\\*\\* \\[phish\\](https://evil.example)** as an owner of ${SLO_MARKDOWN_LINK}.`,
     );
   });
 

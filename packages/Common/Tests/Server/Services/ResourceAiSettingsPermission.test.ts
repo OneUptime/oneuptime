@@ -813,10 +813,14 @@ describe.each(WIRING)(
         .mockResolvedValue(undefined as never);
       jest
         .spyOn(wiring.service, wiring.linkMethod)
-        .mockResolvedValue(`[resource](https://x)` as never);
+        .mockResolvedValue(
+          FeedMarkdown.asMarkdown("[resource](https://x)") as never,
+        );
       jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue(FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"));
+        .mockResolvedValue(
+          FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"),
+        );
     });
 
     afterEach(() => {
@@ -988,10 +992,14 @@ describe.each(FULLY_COVERED)(
         .mockResolvedValue(undefined as never);
       jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue(FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"));
+        .mockResolvedValue(
+          FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"),
+        );
       jest
         .spyOn(wiring.service, wiring.linkMethod)
-        .mockResolvedValue("[resource](https://x)" as never);
+        .mockResolvedValue(
+          FeedMarkdown.asMarkdown("[resource](https://x)") as never,
+        );
     });
 
     afterEach(() => {

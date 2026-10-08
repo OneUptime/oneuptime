@@ -5284,11 +5284,11 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
          */
         const fieldsMarkdown: MarkdownText =
           await EventFieldChange.getFeedMarkdown({
-          written: updatedIncidentData,
-          changes: fieldChanges,
-          projectId: projectId,
-          recordName: "Incident",
-        });
+            written: updatedIncidentData,
+            changes: fieldChanges,
+            projectId: projectId,
+            recordName: "Incident",
+          });
 
         if (!fieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += fieldsMarkdown.toString();

@@ -814,7 +814,8 @@ export default class RemediationExecutionRunner {
       if (deletedClusterRound) {
         await this.settleNoneApplicable({
           suggestion,
-          rationaleMarkdown: mdText`The Kubernetes cluster "${deletedClusterRound.clusterName}" was deleted before OneUptime AI could remediate it. Nothing was run or proposed.`.toString(),
+          rationaleMarkdown:
+            mdText`The Kubernetes cluster "${deletedClusterRound.clusterName}" was deleted before OneUptime AI could remediate it. Nothing was run or proposed.`.toString(),
         });
         await this.completeRunQuietly(aiRunId);
         return;
@@ -855,7 +856,8 @@ export default class RemediationExecutionRunner {
 
           await this.settleNoneApplicable({
             suggestion,
-            rationaleMarkdown: mdText`OneUptime AI can no longer remediate cluster "${clusterTarget?.clusterName || "(deleted)"}"${firstGap ? mdText`: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI agent page (AI → Agent).`.toString(),
+            rationaleMarkdown:
+              mdText`OneUptime AI can no longer remediate cluster "${clusterTarget?.clusterName || "(deleted)"}"${firstGap ? mdText`: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI agent page (AI → Agent).`.toString(),
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -960,7 +962,8 @@ export default class RemediationExecutionRunner {
 
           await this.settleNoneApplicable({
             suggestion,
-            rationaleMarkdown: mdText`OneUptime AI can no longer remediate ${noun} "${resourceTarget?.resourceName || "(deleted)"}"${firstGap ? mdText`: ${firstGap}` : ""}. Nothing was run or proposed. Review the ${noun}'s AI agent page (AI → AI agent).`.toString(),
+            rationaleMarkdown:
+              mdText`OneUptime AI can no longer remediate ${noun} "${resourceTarget?.resourceName || "(deleted)"}"${firstGap ? mdText`: ${firstGap}` : ""}. Nothing was run or proposed. Review the ${noun}'s AI agent page (AI → AI agent).`.toString(),
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -1332,7 +1335,8 @@ export default class RemediationExecutionRunner {
         fromStatus: AutoRemediationSuggestionStatus.Planning,
         set: {
           status: AutoRemediationSuggestionStatus.AutoExecuted,
-          rationaleMarkdown: mdText`The AI remediation run was interrupted (${data.reason}). The commands recorded on this suggestion DID run — review them and their outputs. Verification proceeds on the usual window.`.toString(),
+          rationaleMarkdown:
+            mdText`The AI remediation run was interrupted (${data.reason}). The commands recorded on this suggestion DID run — review them and their outputs. Verification proceeds on the usual window.`.toString(),
           commandPlan: AiRemediationCommandPlanUtil.toJSON(plan),
           verificationStatus: AutoRemediationVerificationStatus.Pending,
           verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
@@ -1618,7 +1622,8 @@ export default class RemediationExecutionRunner {
         fromStatus: AutoRemediationSuggestionStatus.Planning,
         set: {
           status: AutoRemediationSuggestionStatus.Suggested,
-          rationaleMarkdown: mdText`${note}\n\n${FeedMarkdown.asMarkdown(data.rationaleMarkdown)}`.toString(),
+          rationaleMarkdown:
+            mdText`${note}\n\n${FeedMarkdown.asMarkdown(data.rationaleMarkdown)}`.toString(),
           commandPlan: AiRemediationCommandPlanUtil.toJSON(plan),
         },
       });

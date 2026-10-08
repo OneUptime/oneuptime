@@ -43,6 +43,7 @@ import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -1349,7 +1350,9 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
         DatabaseServerService,
         "getDatabaseServerMarkdownLink",
       ).mockResolvedValue(
-        "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        FeedMarkdown.asMarkdown(
+          "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        ),
       );
       stubProjectDirectory({});
     });
@@ -1757,7 +1760,9 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
         DatabaseServerService,
         "getDatabaseServerMarkdownLink",
       ).mockResolvedValue(
-        "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        FeedMarkdown.asMarkdown(
+          "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        ),
       );
       stubProjectDirectory({});
     });

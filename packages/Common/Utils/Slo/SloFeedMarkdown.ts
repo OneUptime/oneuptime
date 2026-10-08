@@ -291,9 +291,7 @@ const getEntityName: GetEntityNameFunction = (item: unknown): string => {
   return "";
 };
 
-export type FormatSloFeedEntityNamesFunction = (
-  value: unknown,
-) => MarkdownText;
+export type FormatSloFeedEntityNamesFunction = (value: unknown) => MarkdownText;
 
 /*
  * "Production, Tier 1" for a label set, alphabetical so the before and after
@@ -997,7 +995,8 @@ export const getSloEnabledFeedMarkdown: GetSloEnabledFeedMarkdownFunction =
   }): SloFeedMarkdown => {
     if (data.isEnabled) {
       return {
-        feedInfoInMarkdown: mdText`▶️ ${data.sloMarkdownLink} was enabled.`.toString(),
+        feedInfoInMarkdown:
+          mdText`▶️ ${data.sloMarkdownLink} was enabled.`.toString(),
         moreInformationInMarkdown: data.isArchived
           ? "The SLO is still archived, so it stays out of evaluation until it is restored from the archive."
           : "Evaluation resumes on the next worker tick, which recalculates the SLI, error budget and status.",
@@ -1005,7 +1004,8 @@ export const getSloEnabledFeedMarkdown: GetSloEnabledFeedMarkdownFunction =
     }
 
     return {
-      feedInfoInMarkdown: mdText`⏸️ ${data.sloMarkdownLink} was disabled.`.toString(),
+      feedInfoInMarkdown:
+        mdText`⏸️ ${data.sloMarkdownLink} was disabled.`.toString(),
       moreInformationInMarkdown:
         "A disabled SLO is not evaluated: its SLI, error budget and status stop updating and its burn rate rules do not fire. Any burn rate alerts and incidents its rules had open were resolved.",
     };
@@ -1025,14 +1025,16 @@ export const getSloArchivedFeedMarkdown: GetSloArchivedFeedMarkdownFunction =
   }): SloFeedMarkdown => {
     if (data.isArchived) {
       return {
-        feedInfoInMarkdown: mdText`🗄️ ${data.sloMarkdownLink} was archived.`.toString(),
+        feedInfoInMarkdown:
+          mdText`🗄️ ${data.sloMarkdownLink} was archived.`.toString(),
         moreInformationInMarkdown:
           "Archived SLOs are hidden from the SLO list and are not evaluated. Any burn rate alerts and incidents its rules had open were resolved.",
       };
     }
 
     return {
-      feedInfoInMarkdown: mdText`♻️ ${data.sloMarkdownLink} was restored from the archive.`.toString(),
+      feedInfoInMarkdown:
+        mdText`♻️ ${data.sloMarkdownLink} was restored from the archive.`.toString(),
       moreInformationInMarkdown: data.isEnabled
         ? "The SLO is back on the SLO list and is evaluated again from the next worker tick."
         : "The SLO is back on the SLO list. It is still disabled, so it is not evaluated until it is enabled.",

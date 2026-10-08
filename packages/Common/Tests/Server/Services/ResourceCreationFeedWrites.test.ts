@@ -90,13 +90,19 @@ beforeEach(() => {
   jest
     .spyOn(KubernetesClusterService, "getKubernetesClusterMarkdownLink")
     .mockImplementation((): Promise<MarkdownText> => {
-      return Promise.resolve(FeedMarkdown.asMarkdown("[Kubernetes Cluster prod-us-east](https://example.com/cluster)"));
+      return Promise.resolve(
+        FeedMarkdown.asMarkdown(
+          "[Kubernetes Cluster prod-us-east](https://example.com/cluster)",
+        ),
+      );
     });
 
   jest
     .spyOn(UserService, "getUserMarkdownString")
     .mockImplementation((): Promise<MarkdownText> => {
-      return Promise.resolve(FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"));
+      return Promise.resolve(
+        FeedMarkdown.asMarkdown("Jane Doe (jane@example.com)"),
+      );
     });
 });
 

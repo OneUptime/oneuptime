@@ -622,10 +622,12 @@ describe("ScheduledMaintenanceFieldChange.getStatusPagesMarkdown", () => {
 
   test("names the pages in name order, read as root within the project", async () => {
     expect(
-      await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
-        writtenStatusPages: [STATUS_PAGE_PUBLIC, STATUS_PAGE_INTERNAL],
-        projectId: PROJECT_ID,
-      }),
+      (
+        await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
+          writtenStatusPages: [STATUS_PAGE_PUBLIC, STATUS_PAGE_INTERNAL],
+          projectId: PROJECT_ID,
+        })
+      ).toString(),
     ).toBe(
       "\n\n**Shown on Status Pages**:\n\n- Internal status\n- Public status\n",
     );
@@ -651,20 +653,24 @@ describe("ScheduledMaintenanceFieldChange.getStatusPagesMarkdown", () => {
     statusPageNames[STATUS_PAGE_PUBLIC] = "[Status](https://evil.example) <b>";
 
     expect(
-      await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
-        writtenStatusPages: [{ _id: STATUS_PAGE_PUBLIC }],
-        projectId: PROJECT_ID,
-      }),
+      (
+        await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
+          writtenStatusPages: [{ _id: STATUS_PAGE_PUBLIC }],
+          projectId: PROJECT_ID,
+        })
+      ).toString(),
     ).toContain("- \\[Status\\](https://evil.example) \\<b>");
   });
 
   test("taken off every page says so, without reading any", async () => {
     for (const cleared of [[], null]) {
       expect(
-        await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
-          writtenStatusPages: cleared,
-          projectId: PROJECT_ID,
-        }),
+        (
+          await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
+            writtenStatusPages: cleared,
+            projectId: PROJECT_ID,
+          })
+        ).toString(),
       ).toBe(
         "\n\n**Shown on Status Pages**: \nNot shown on any status page.\n",
       );
@@ -677,10 +683,12 @@ describe("ScheduledMaintenanceFieldChange.getStatusPagesMarkdown", () => {
     statusPageNames = {};
 
     expect(
-      await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
-        writtenStatusPages: [STATUS_PAGE_PUBLIC],
-        projectId: PROJECT_ID,
-      }),
+      (
+        await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
+          writtenStatusPages: [STATUS_PAGE_PUBLIC],
+          projectId: PROJECT_ID,
+        })
+      ).toString(),
     ).toBe("");
   });
 });

@@ -21,7 +21,6 @@ import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
-
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 // The root cause builders write MarkdownText; these tests read its text.
 function textOf(markdown: MarkdownText | null): string | null {
@@ -389,11 +388,13 @@ describe("MonitorCriteriaEvaluator - root cause context carries all three links"
   }
 
   test("appends metric, logs and traces links in that order", () => {
-    const context: string | null = textOf(Evaluator.buildMetricRootCauseContext({
-      criteriaInstance: makeCriteriaInstance(makeContext()),
-      monitor: makeMonitor(ObjectID.generate()),
-      monitorStep: makeMetricMonitorStep([new ObjectID(SERVICE_ID_A)]),
-    }));
+    const context: string | null = textOf(
+      Evaluator.buildMetricRootCauseContext({
+        criteriaInstance: makeCriteriaInstance(makeContext()),
+        monitor: makeMonitor(ObjectID.generate()),
+        monitorStep: makeMetricMonitorStep([new ObjectID(SERVICE_ID_A)]),
+      }),
+    );
 
     expect(context).not.toBeNull();
     expect(context).toContain("[Open metric in dashboard](");
@@ -413,10 +414,12 @@ describe("MonitorCriteriaEvaluator - root cause context carries all three links"
   });
 
   test("still emits sibling links when no monitor step is passed (backward compatible)", () => {
-    const context: string | null = textOf(Evaluator.buildMetricRootCauseContext({
-      criteriaInstance: makeCriteriaInstance(makeContext()),
-      monitor: makeMonitor(ObjectID.generate()),
-    }));
+    const context: string | null = textOf(
+      Evaluator.buildMetricRootCauseContext({
+        criteriaInstance: makeCriteriaInstance(makeContext()),
+        monitor: makeMonitor(ObjectID.generate()),
+      }),
+    );
 
     expect(context).toContain("[Open metric in dashboard](");
     expect(context).toContain("[Open logs in dashboard](");
@@ -424,10 +427,12 @@ describe("MonitorCriteriaEvaluator - root cause context carries all three links"
   });
 
   test("emits no links at all when the monitor has no project id", () => {
-    const context: string | null = textOf(Evaluator.buildMetricRootCauseContext({
-      criteriaInstance: makeCriteriaInstance(makeContext()),
-      monitor: makeMonitor(),
-    }));
+    const context: string | null = textOf(
+      Evaluator.buildMetricRootCauseContext({
+        criteriaInstance: makeCriteriaInstance(makeContext()),
+        monitor: makeMonitor(),
+      }),
+    );
 
     expect(context).not.toBeNull();
     expect(context).not.toContain("[Open metric in dashboard](");
@@ -446,10 +451,12 @@ describe("MonitorCriteriaEvaluator - root cause context carries all three links"
     ];
 
     expect(
-      textOf(Evaluator.buildMetricRootCauseContext({
-        criteriaInstance: instance,
-        monitor: makeMonitor(ObjectID.generate()),
-      })),
+      textOf(
+        Evaluator.buildMetricRootCauseContext({
+          criteriaInstance: instance,
+          monitor: makeMonitor(ObjectID.generate()),
+        }),
+      ),
     ).toBeNull();
   });
 });
@@ -460,7 +467,9 @@ describe("MonitorCriteriaEvaluator - partial-scope hint formatting", () => {
   });
 
   test("names the fields that were not applied", () => {
-    expect(Evaluator.formatScopeDroppedHint(["severityTexts", "spanIds"]).toString()).toBe(
+    expect(
+      Evaluator.formatScopeDroppedHint(["severityTexts", "spanIds"]).toString(),
+    ).toBe(
       " _(scope partially carried — not applied: severityTexts, spanIds)_",
     );
   });

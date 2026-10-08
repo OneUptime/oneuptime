@@ -208,10 +208,11 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
 
       for (const updatedItem of updatedItems) {
         const alert: Alert = updatedItem.alert!;
-        const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
-          updatedItem.id!,
-          "/alert-internal-note/attachment",
-        );
+        const attachmentsMarkdown: MarkdownText =
+          await this.getAttachmentsMarkdown(
+            updatedItem.id!,
+            "/alert-internal-note/attachment",
+          );
         await AlertFeedService.createAlertFeedItem({
           alertId: updatedItem.alertId!,
           projectId: updatedItem.projectId!,

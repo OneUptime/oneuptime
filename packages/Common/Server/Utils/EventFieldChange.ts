@@ -477,7 +477,8 @@ export default class EventFieldChange {
     const shown: MarkdownValue =
       text === null
         ? this.emptyTextLines[data.column]
-        : data.column === "title" || (data.column === "name" && !data.isMarkdown)
+        : data.column === "title" ||
+            (data.column === "name" && !data.isMarkdown)
           ? text
           : data.isMarkdown
             ? FeedMarkdown.asMarkdown(text)
