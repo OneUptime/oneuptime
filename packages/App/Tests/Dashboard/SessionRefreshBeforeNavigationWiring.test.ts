@@ -140,7 +140,7 @@ describe("Connect with GitHub App", () => {
 
   test("the card is a real button, locked with one sentence for someone who may not connect", () => {
     expect(source).toContain(
-      'import {\n  getGitHubConnectLock,\n  GitHubConnectLock,\n} from "../../Components/CodeRepository/GitHubConnectLock";',
+      'import {\n  getGitHubConnectLock,\n  getGitHubConnectPlanReason,\n  GitHubConnectLock,\n} from "../../Components/CodeRepository/GitHubConnectLock";',
     );
     expect(source).toContain(
       "const connectLock: GitHubConnectLock = getGitHubConnectLock();",

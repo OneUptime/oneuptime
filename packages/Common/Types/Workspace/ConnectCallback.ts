@@ -74,7 +74,40 @@ export const CONNECT_PROVIDER_QUERY_PARAM: string = "provider";
 // The query parameter a connection's start route reads the start page from.
 export const CONNECT_START_PAGE_QUERY_PARAM: string = "from";
 
+/*
+ * The Dashboard's connect-return page, under the Dashboard's root
+ * (/dashboard/connect-return): where a callback that cannot tell the project
+ * sends the browser.
+ */
+export const CONNECT_RETURN_PATH: string = "/connect-return";
+
 export default class ConnectCallbackUtil {
+  /*
+   * The page a connection to `provider` starts from and comes back to, under
+   * the project's Dashboard path (/dashboard/<project id>): Slack and
+   * Microsoft Teams in the project's settings, or the person's own settings
+   * when it was started there; GitHub on Code Repositories. The callbacks and
+   * the connect-return page both send the browser here.
+   */
+  public static getPagePath(
+    provider: ConnectProvider,
+    startPage: ConnectStartPage,
+  ): string {
+    const settings: string =
+      startPage === ConnectStartPage.UserSettings
+        ? "/user-settings"
+        : "/settings";
+
+    switch (provider) {
+      case ConnectProvider.Slack:
+        return `${settings}/slack-integration`;
+      case ConnectProvider.MicrosoftTeams:
+        return `${settings}/microsoft-teams-integration`;
+      case ConnectProvider.GitHub:
+        return "/code-repository";
+    }
+  }
+
   public static isError(value: unknown): value is ConnectCallbackError {
     return (
       typeof value === "string" &&

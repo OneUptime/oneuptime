@@ -28,8 +28,14 @@ import AIPlanGate from "../../Components/AI/AIPlanGate";
 import RepositoryConnectionStatus from "../../Components/CodeRepository/RepositoryConnectionStatus";
 import {
   getGitHubConnectLock,
+  getGitHubConnectPlanReason,
   GitHubConnectLock,
 } from "../../Components/CodeRepository/GitHubConnectLock";
+import ConnectCallbackNotice, {
+  ConnectCallbackNoticeState,
+  useConnectCallbackNotice,
+} from "../../Components/Workspace/ConnectCallbackNotice";
+import { ConnectProvider } from "Common/Types/Workspace/ConnectCallback";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -52,6 +58,15 @@ const CodeRepositoryPage: FunctionComponent<
     useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const [connectError, setConnectError] = useState<string | null>(null);
+
+  /*
+   * What an installation that came back unmade says (?error=): GitHub sends
+   * the browser back here either way.
+   */
+  const connectCallback: ConnectCallbackNoticeState = useConnectCallbackNotice({
+    provider: ConnectProvider.GitHub,
+    planRequiredMessage: getGitHubConnectPlanReason(),
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<CodeRepository>({ modelType: CodeRepository });
@@ -174,6 +189,8 @@ const CodeRepositoryPage: FunctionComponent<
           }}
         />
       )}
+
+      <ConnectCallbackNotice state={connectCallback} />
 
       {/* Connect Repository Card */}
       <Card

@@ -197,14 +197,17 @@ describe("refusalOfQuestion: the start's question, refused", () => {
   test.each([
     ConnectCallbackError.NoPermission,
     ConnectCallbackError.NotAMember,
-  ])("any other authorization refusal is the callback's own: %s", (code) => {
-    const refusal: unknown = ConnectCallback.refusalOfQuestion(
-      new NotAuthorizedException("You may not."),
-      code,
-    );
+  ])(
+    "any other authorization refusal is the callback's own: %s",
+    (code: ConnectCallbackError) => {
+      const refusal: unknown = ConnectCallback.refusalOfQuestion(
+        new NotAuthorizedException("You may not."),
+        code,
+      );
 
-    expect(ConnectCallback.codeFor(refusal)).toBe(code);
-  });
+      expect(ConnectCallback.codeFor(refusal)).toBe(code);
+    },
+  );
 
   test("a plan that could not be read is no refusal of the person", () => {
     const unknownPlan: NotAuthorizedException = new NotAuthorizedException(
@@ -474,9 +477,7 @@ describe("route: one order, and every ending answered once", () => {
       }),
     );
 
-    expect(probe.redirectedTo).toEqual([
-      pageOf("/settings/slack-integration"),
-    ]);
+    expect(probe.redirectedTo).toEqual([pageOf("/settings/slack-integration")]);
     expect(probe.sent).toEqual([]);
   });
 

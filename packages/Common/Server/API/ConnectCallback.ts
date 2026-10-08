@@ -12,12 +12,12 @@ import URL from "../../Types/API/URL";
 import Dictionary from "../../Types/Dictionary";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
-import {
+import ConnectCallbackUtil, {
   CONNECT_ERROR_QUERY_PARAM,
   CONNECT_PROVIDER_QUERY_PARAM,
+  CONNECT_RETURN_PATH,
   ConnectCallbackError,
   ConnectProvider,
-  ConnectStartPage,
 } from "../../Types/Workspace/ConnectCallback";
 
 /*
@@ -119,9 +119,6 @@ export interface ConnectCallbackSpec {
 }
 
 export default class ConnectCallback {
-  // The Dashboard page that opens a provider's page in the current project.
-  public static readonly CONNECT_RETURN_PATH: string = "/connect-return";
-
   /*
    * The handler a connect callback is registered with. It never throws and
    * always answers.
@@ -263,7 +260,7 @@ export default class ConnectCallback {
     record: Pick<WorkspaceOAuthStateRecord, "projectId" | "startPage">;
   }): URL {
     return URL.fromString(
-      `${DashboardClientUrl.toString()}/${data.record.projectId.toString()}${ConnectCallback.getPagePath(
+      `${DashboardClientUrl.toString()}/${data.record.projectId.toString()}${ConnectCallbackUtil.getPagePath(
         data.provider,
         data.record.startPage,
       )}`,
@@ -277,27 +274,8 @@ export default class ConnectCallback {
    */
   public static getConnectReturnUrl(provider: ConnectProvider): URL {
     return URL.fromString(
-      `${DashboardClientUrl.toString()}${ConnectCallback.CONNECT_RETURN_PATH}`,
+      `${DashboardClientUrl.toString()}${CONNECT_RETURN_PATH}`,
     ).addQueryParam(CONNECT_PROVIDER_QUERY_PARAM, provider, true);
-  }
-
-  private static getPagePath(
-    provider: ConnectProvider,
-    startPage: ConnectStartPage,
-  ): string {
-    const settings: string =
-      startPage === ConnectStartPage.UserSettings
-        ? "/user-settings"
-        : "/settings";
-
-    switch (provider) {
-      case ConnectProvider.Slack:
-        return `${settings}/slack-integration`;
-      case ConnectProvider.MicrosoftTeams:
-        return `${settings}/microsoft-teams-integration`;
-      case ConnectProvider.GitHub:
-        return "/code-repository";
-    }
   }
 
   /*

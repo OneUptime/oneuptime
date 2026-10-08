@@ -35,17 +35,36 @@ import Link from "Common/UI/Components/Link/Link";
 import SlackChannelCacheModal from "./SlackChannelCacheModal";
 import SlackChannelsCard from "./SlackChannelsCard";
 import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
+import ConnectCallbackNotice, {
+  ConnectCallbackNoticeState,
+  useConnectCallbackNotice,
+} from "../Workspace/ConnectCallbackNotice";
+import {
+  CONNECT_START_PAGE_QUERY_PARAM,
+  ConnectProvider,
+  ConnectStartPage,
+} from "Common/Types/Workspace/ConnectCallback";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
   onDisconnected: VoidFunction;
   hideProjectCards?: boolean | undefined; // hide project-level cards (e.g. on User Settings)
+  /*
+   * The page this is on, which Slack sends the browser back to: the
+   * project's settings unless said otherwise.
+   */
+  startPage?: ConnectStartPage | undefined;
 }
 
 const SlackIntegration: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [error, setError] = React.useState<ReactElement | null>(null);
+
+  // What a connection that came back unmade says (?error=).
+  const connectCallback: ConnectCallbackNoticeState = useConnectCallbackNotice({
+    provider: ConnectProvider.Slack,
+  });
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -153,18 +172,11 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    // if this page has aqueryn param with error, then there was the error in authentication.
-    const error: string | null = Navigation.getQueryStringByName("error");
-
-    if (error) {
-      setError(
-        <div>
-          There was an error while connecting with Slack. Please try again.
-        </div>,
-      );
-      return;
-    }
-
+    /*
+     * A connection that came back unmade is said above the page
+     * (connectCallback), which loads as usual, its Connect button right
+     * there to try again.
+     */
     loadItems().catch((error: Exception) => {
       setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
     });
@@ -175,7 +187,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <Fragment>
+        <ConnectCallbackNotice state={connectCallback} />
+        <ErrorMessage message={error} />
+      </Fragment>
+    );
   }
 
   let cardTitle: string = "";
@@ -254,7 +271,13 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get<JSONObject>({
-          url: URL.fromURL(APP_API_URL).addRoute(route),
+          // Slack sends the browser back to this page.
+          url: URL.fromURL(APP_API_URL)
+            .addRoute(route)
+            .addQueryParam(
+              CONNECT_START_PAGE_QUERY_PARAM,
+              props.startPage || ConnectStartPage.ProjectSettings,
+            ),
           headers: ModelAPI.getCommonHeaders(),
         });
 
@@ -420,11 +443,18 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   }
 
   if (!SlackAppClientId) {
-    return <SlackIntegrationDocumentation manifest={manifest as JSONObject} />;
+    return (
+      <Fragment>
+        <ConnectCallbackNotice state={connectCallback} />
+        <SlackIntegrationDocumentation manifest={manifest as JSONObject} />
+      </Fragment>
+    );
   }
 
   return (
     <Fragment>
+      <ConnectCallbackNotice state={connectCallback} />
+
       <div>
         <Card
           title={cardTitle}

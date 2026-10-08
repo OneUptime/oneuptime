@@ -353,13 +353,15 @@ describe("the GitHub App installation", () => {
 function helperBody(file: string, name: string): string {
   const code: string = readCode(file);
   const start: number = code.search(
-    new RegExp(`private static async ${name}\\(|public static async ${name}\\(`),
+    new RegExp(
+      `private static async ${name}\\(|public static async ${name}\\(`,
+    ),
   );
 
   expect([file, name, start >= 0]).toEqual([file, name, true]);
 
   const rest: string = code.slice(start + 1);
-  const next: number = rest.search(/\n  (private|public|protected) /);
+  const next: number = rest.search(/\n {2}(private|public|protected) /);
 
   return rest.slice(0, next >= 0 ? next : rest.length);
 }
@@ -431,7 +433,11 @@ describe("every connect callback answers through the one outer catch", () => {
   );
 
   test("no file of a connect callback puts anything but a code in ?error=", () => {
-    for (const file of ["SlackAPI.ts", "MicrosoftTeamsAPI.ts", "GitHubAPI.ts"]) {
+    for (const file of [
+      "SlackAPI.ts",
+      "MicrosoftTeamsAPI.ts",
+      "GitHubAPI.ts",
+    ]) {
       expect([file, ERROR_PARAM_WRITE.test(readCode(file))]).toEqual([
         file,
         false,

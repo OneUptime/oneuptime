@@ -590,7 +590,8 @@ describe("Every connect callback answers on the page it came from", () => {
           return new HTTPResponse<JSONObject>(
             200,
             {
-              id_token: (options?.signInToken ||
+              id_token: (
+                options?.signInToken ||
                 ((nonce: string): unknown => {
                   return makeUnsignedJwt({
                     aud: TEAMS_CLIENT_ID,
@@ -599,7 +600,8 @@ describe("Every connect callback answers on the page it came from", () => {
                     nonce: nonce,
                     exp: Math.floor(Date.now() / 1000) + 3600,
                   });
-                }))(currentNonce) as string,
+                })
+              )(currentNonce) as string,
             },
             {},
           ) as any;
@@ -702,9 +704,9 @@ describe("Every connect callback answers on the page it came from", () => {
     );
 
     expect(leg1.status).toBe(302);
-    expect(leg1.location!.startsWith("https://login.microsoftonline.com/")).toBe(
-      true,
-    );
+    expect(
+      leg1.location!.startsWith("https://login.microsoftonline.com/"),
+    ).toBe(true);
 
     currentNonce = queryOf(leg1.location!).get("nonce")!;
 
@@ -1622,7 +1624,11 @@ describe("Every connect callback answers on the page it came from", () => {
         browser,
       );
 
-      expectAnsweredOn(response, codeRepositoryPage(), "github-no-installation");
+      expectAnsweredOn(
+        response,
+        codeRepositoryPage(),
+        "github-no-installation",
+      );
       expect(verifyInstallation).not.toHaveBeenCalled();
     });
 

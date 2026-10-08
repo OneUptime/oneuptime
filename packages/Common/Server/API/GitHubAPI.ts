@@ -31,7 +31,9 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
-import GitHubConnectAccess, { GitHubConnectCaller } from "./GitHubConnectAccess";
+import GitHubConnectAccess, {
+  GitHubConnectCaller,
+} from "./GitHubConnectAccess";
 import ConnectCallback, {
   ConnectCallbackFinish,
   ConnectCallbackRefusal,

@@ -485,8 +485,7 @@ export default class SlackAPI {
         refusedAs: ConnectCallbackError.NoPermission,
         finish: async (data: ConnectCallbackFinish): Promise<void> => {
           const { req, record } = data;
-          const credentials: SlackAppCredentials =
-            SlackAPI.getAppCredentials();
+          const credentials: SlackAppCredentials = SlackAPI.getAppCredentials();
 
           const providerError: ConnectCallbackRefusal | null =
             ConnectCallback.refusalOfProviderError(req);
@@ -532,9 +531,8 @@ export default class SlackAPI {
               },
             });
 
-          const responseBody: JSONObject = SlackAPI.getTokenResponseBody(
-            response,
-          );
+          const responseBody: JSONObject =
+            SlackAPI.getTokenResponseBody(response);
 
           /*
            * ReponseBody is in this format.
@@ -575,7 +573,8 @@ export default class SlackAPI {
             responseBody["access_token"]?.toString();
           const botUserId: string | undefined =
             responseBody["bot_user_id"]?.toString();
-          const slackUserId: string | undefined = authedUser?.["id"]?.toString();
+          const slackUserId: string | undefined =
+            authedUser?.["id"]?.toString();
           const slackUserAccessToken: string | undefined =
             authedUser?.["access_token"]?.toString();
 
@@ -633,8 +632,7 @@ export default class SlackAPI {
         refusedAs: ConnectCallbackError.NotAMember,
         finish: async (data: ConnectCallbackFinish): Promise<void> => {
           const { req, record } = data;
-          const credentials: SlackAppCredentials =
-            SlackAPI.getAppCredentials();
+          const credentials: SlackAppCredentials = SlackAPI.getAppCredentials();
 
           const providerError: ConnectCallbackRefusal | null =
             ConnectCallback.refusalOfProviderError(req);
@@ -661,9 +659,7 @@ export default class SlackAPI {
 
           const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.post({
-              url: URL.fromString(
-                "https://slack.com/api/openid.connect.token",
-              ),
+              url: URL.fromString("https://slack.com/api/openid.connect.token"),
               data: {
                 code: code,
                 client_id: credentials.clientId,
@@ -678,9 +674,8 @@ export default class SlackAPI {
               },
             });
 
-          const responseBody: JSONObject = SlackAPI.getTokenResponseBody(
-            response,
-          );
+          const responseBody: JSONObject =
+            SlackAPI.getTokenResponseBody(response);
 
           /*
            * The ID token's claims, e.g.

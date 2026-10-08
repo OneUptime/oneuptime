@@ -261,9 +261,8 @@ describe("CallerPlan: who a plan holds", () => {
     expect(admin.currentPlan).toBeUndefined();
     expect(currentPlanSpy).not.toHaveBeenCalled();
 
-    const member: DatabaseCommonInteractionProps = await CallerPlan.withPlan(
-      ownerProps(),
-    );
+    const member: DatabaseCommonInteractionProps =
+      await CallerPlan.withPlan(ownerProps());
 
     expect(member.currentPlan).toBe(PlanType.Free);
     expect(currentPlanSpy).toHaveBeenCalledTimes(1);

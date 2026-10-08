@@ -534,13 +534,11 @@ export default class MicrosoftTeamsAPI {
       );
     }
 
-    const tenantId: string = MicrosoftTeamsAPI.getVerifiedTenantIdFromIdToken(
-      {
-        idToken: signInTokenResponse.data["id_token"],
-        expectedTenantId: record.tenantId,
-        expectedNonce: record.oidcNonce,
-      },
-    );
+    const tenantId: string = MicrosoftTeamsAPI.getVerifiedTenantIdFromIdToken({
+      idToken: signInTokenResponse.data["id_token"],
+      expectedTenantId: record.tenantId,
+      expectedNonce: record.oidcNonce,
+    });
 
     // Fetch any existing project auth to merge
     const existingAuth: WorkspaceProjectAuthToken | null =
@@ -1118,9 +1116,7 @@ export default class MicrosoftTeamsAPI {
           if (
             data.record.flow === WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent
           ) {
-            return await MicrosoftTeamsAPI.continueAdminConsentWithSignIn(
-              data,
-            );
+            return await MicrosoftTeamsAPI.continueAdminConsentWithSignIn(data);
           }
 
           return await MicrosoftTeamsAPI.completeAdminConsent(data);
