@@ -576,7 +576,10 @@ export default class IncidentAlertAiInsightsReader {
 
     const otherRows: Array<Incident | Alert> =
       missingIds.length > 0
-        ? await readRows({ _id: QueryHelper.any(missingIds) }, missingIds.length)
+        ? await readRows(
+            { _id: QueryHelper.any(missingIds) },
+            missingIds.length,
+          )
         : [];
 
     const rows: Array<Incident | Alert> = [...windowRows, ...otherRows].filter(
@@ -632,16 +635,17 @@ export default class IncidentAlertAiInsightsReader {
       }
     }
 
-    const getServiceIds: (row: Incident | Alert | undefined) => Array<string> =
-      (row: Incident | Alert | undefined): Array<string> => {
-        return (row?.services || [])
-          .map((service: Service): string => {
-            return service.id?.toString() || "";
-          })
-          .filter((id: string): boolean => {
-            return Boolean(id);
-          });
-      };
+    const getServiceIds: (
+      row: Incident | Alert | undefined,
+    ) => Array<string> = (row: Incident | Alert | undefined): Array<string> => {
+      return (row?.services || [])
+        .map((service: Service): string => {
+          return service.id?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        });
+    };
 
     for (const row of rows) {
       const id: string = row.id!.toString();

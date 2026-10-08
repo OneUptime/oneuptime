@@ -118,9 +118,7 @@ export function parseAIInsightHighlights(
   const topService: AIInsightHighlightService | null = readService(
     value["topService"],
   );
-  const newest: AIInsightHighlightFinding | null = readFinding(
-    value["newest"],
-  );
+  const newest: AIInsightHighlightFinding | null = readFinding(value["newest"]);
 
   return {
     openCount: readCount(value["openCount"]),
@@ -194,7 +192,8 @@ export function describeServiceHighlight(
   return translatePlural(
     {
       one: "The {{name}} service has {{shown}} of the {{count}} open finding",
-      other: "The {{name}} service has {{shown}} of the {{count}} open findings",
+      other:
+        "The {{name}} service has {{shown}} of the {{count}} open findings",
     },
     Math.max(openCount, service.count),
     { name: service.name, shown: service.count },

@@ -1394,9 +1394,7 @@ describe("build: the insights", () => {
       expect(
         insightOf(insights, AiActivityInsightKind.NotInvestigated),
       ).toBeUndefined();
-      expect(insights.coverage.notInvestigated).toEqual([
-        { code, count: 2 },
-      ]);
+      expect(insights.coverage.notInvestigated).toEqual([{ code, count: 2 }]);
     },
   );
 
@@ -1624,7 +1622,10 @@ describe("build: the insights", () => {
         AiActivityInsightKind.Hotspot,
       )!;
 
-      expect(hotspot.monitor).toEqual({ id: "shared", name: "Shared database" });
+      expect(hotspot.monitor).toEqual({
+        id: "shared",
+        name: "Shared database",
+      });
       expect(hotspot.service).toBeUndefined();
       expect([hotspot.count, hotspot.total, hotspot.problemCount]).toEqual([
         3, 4, 2,

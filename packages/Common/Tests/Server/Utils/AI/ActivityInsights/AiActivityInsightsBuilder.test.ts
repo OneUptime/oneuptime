@@ -1197,7 +1197,11 @@ describe("AiActivityInsightsBuilder.rankInsights", () => {
           AiActivityInsightTone.Positive,
           9,
         ),
-        insight(AiActivityInsightKind.Hotspot, AiActivityInsightTone.Pattern, 5),
+        insight(
+          AiActivityInsightKind.Hotspot,
+          AiActivityInsightTone.Pattern,
+          5,
+        ),
       ]);
 
     expect(ranked).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_INSIGHTS);
@@ -2283,7 +2287,9 @@ describe("AiActivityInsightsBuilder.build", () => {
           return subject.id;
         }),
       ).toEqual(["mem-0", "mem-1", "mem-2"]);
-      expect(recurring.evidence).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_EVIDENCE);
+      expect(recurring.evidence).toHaveLength(
+        AI_ACTIVITY_INSIGHTS_MAX_EVIDENCE,
+      );
       expect(recurring.evidenceCount).toBe(5);
     });
 
@@ -2342,7 +2348,9 @@ describe("AiActivityInsightsBuilder.build", () => {
         AiActivityInsightKind.RecurringProblem,
       );
 
-      expect(recurring).toHaveLength(AI_ACTIVITY_INSIGHTS_MAX_RECURRING_INSIGHTS);
+      expect(recurring).toHaveLength(
+        AI_ACTIVITY_INSIGHTS_MAX_RECURRING_INSIGHTS,
+      );
       expect(
         recurring.map((insight: AiActivityInsight): number => {
           return insight.count;
@@ -2729,9 +2737,7 @@ describe("AiActivityInsightsBuilder.build", () => {
     test("not for a problem that only came up twice", () => {
       expect(
         insightsOf(
-          build(
-            stopped({ at: [daysAgo(5), daysAgo(6)], fixedAt: daysAgo(4) }),
-          ),
+          build(stopped({ at: [daysAgo(5), daysAgo(6)], fixedAt: daysAgo(4) })),
           AiActivityInsightKind.ProblemStopped,
         ),
       ).toEqual([]);
@@ -2913,8 +2919,9 @@ describe("AiActivityInsightsBuilder.build", () => {
     describe("your team approved every fix AI proposed", () => {
       function approved(
         count: number,
-        verification: AutoRemediationVerificationStatus | undefined =
-          AutoRemediationVerificationStatus.Verified,
+        verification:
+          | AutoRemediationVerificationStatus
+          | undefined = AutoRemediationVerificationStatus.Verified,
       ): Array<AiActivityFixInput> {
         return Array.from({ length: count }, (_: unknown, index: number) => {
           return fix(hoursAgo(index + 1), {
@@ -2967,19 +2974,19 @@ describe("AiActivityInsightsBuilder.build", () => {
         ],
         [
           "one of them did not help",
-          [...approved(3), ...approved(1, AutoRemediationVerificationStatus.Failed)],
+          [
+            ...approved(3),
+            ...approved(1, AutoRemediationVerificationStatus.Failed),
+          ],
         ],
-      ])(
-        "not when %s",
-        (_: string, fixes: Array<AiActivityFixInput>) => {
-          expect(
-            insightsOf(
-              build({ fixes }),
-              AiActivityInsightKind.ReadyForAutomaticFixes,
-            ),
-          ).toEqual([]);
-        },
-      );
+      ])("not when %s", (_: string, fixes: Array<AiActivityFixInput>) => {
+        expect(
+          insightsOf(
+            build({ fixes }),
+            AiActivityInsightKind.ReadyForAutomaticFixes,
+          ),
+        ).toEqual([]);
+      });
     });
   });
 

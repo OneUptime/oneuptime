@@ -452,77 +452,80 @@ describe.each(
       return [subjectKind];
     },
   ),
-)("the %s page's insights, in the product's own words", (subjectKind: unknown) => {
-  const kind: IncidentAlertAiSubjectKind =
-    subjectKind as IncidentAlertAiSubjectKind;
-  const plural: string = kind === "incident" ? "incidents" : "alerts";
+)(
+  "the %s page's insights, in the product's own words",
+  (subjectKind: unknown) => {
+    const kind: IncidentAlertAiSubjectKind =
+      subjectKind as IncidentAlertAiSubjectKind;
+    const plural: string = kind === "incident" ? "incidents" : "alerts";
 
-  test("the headlines, in the server's order", () => {
-    expect(
-      makeIncidentAlertInsightList(kind).map(
-        (item: AiActivityInsight): string => {
-          return describeInsightHeadline(item, contextOf(kind));
-        },
-      ),
-    ).toEqual([
-      `${RECURRING_TITLE} keeps coming back`,
-      "A fix did not solve the problem it was for",
-      `OneUptime AI did not look into 8 ${plural}`,
-      `The ${SERVICE_NAME} service is behind 2 different problems`,
-      "Your team approved every fix OneUptime AI proposed here",
-    ]);
-  });
+    test("the headlines, in the server's order", () => {
+      expect(
+        makeIncidentAlertInsightList(kind).map(
+          (item: AiActivityInsight): string => {
+            return describeInsightHeadline(item, contextOf(kind));
+          },
+        ),
+      ).toEqual([
+        `${RECURRING_TITLE} keeps coming back`,
+        "A fix did not solve the problem it was for",
+        `OneUptime AI did not look into 8 ${plural}`,
+        `The ${SERVICE_NAME} service is behind 2 different problems`,
+        "Your team approved every fix OneUptime AI proposed here",
+      ]);
+    });
 
-  test("a problem that keeps coming back is a share of the product's own", () => {
-    expect(
-      describeInsightFacts(
-        insightOf(kind, AiActivityInsightKind.RecurringProblem),
-        contextOf(kind),
-      ).join(" "),
-    ).toBe(
-      `It happened 12 times in the last 30 days. 4 of them were in the last 7 days, up from 1 the 7 days before. That is 12 of the 20 ${plural} created in the last 30 days.`,
-    );
-  });
+    test("a problem that keeps coming back is a share of the product's own", () => {
+      expect(
+        describeInsightFacts(
+          insightOf(kind, AiActivityInsightKind.RecurringProblem),
+          contextOf(kind),
+        ).join(" "),
+      ).toBe(
+        `It happened 12 times in the last 30 days. 4 of them were in the last 7 days, up from 1 the 7 days before. That is 12 of the 20 ${plural} created in the last 30 days.`,
+      );
+    });
 
-  test("what AI did not look into says why, and out of how many", () => {
-    expect(
-      describeInsightFacts(
-        insightOf(kind, AiActivityInsightKind.NotInvestigated),
-        contextOf(kind),
-      ).join(" "),
-    ).toBe(
-      `There is no LLM provider OneUptime AI can use. That is 8 of the 20 ${plural} created in the last 30 days.`,
-    );
-  });
+    test("what AI did not look into says why, and out of how many", () => {
+      expect(
+        describeInsightFacts(
+          insightOf(kind, AiActivityInsightKind.NotInvestigated),
+          contextOf(kind),
+        ).join(" "),
+      ).toBe(
+        `There is no LLM provider OneUptime AI can use. That is 8 of the 20 ${plural} created in the last 30 days.`,
+      );
+    });
 
-  test("the service behind the trouble was part of how many of them", () => {
-    expect(
-      describeInsightFacts(
-        insightOf(kind, AiActivityInsightKind.Hotspot),
-        contextOf(kind),
-      ).join(" "),
-    ).toBe(
-      `It was part of 7 of the 20 ${plural} created in the last 30 days. Problems that share one place often share one cause: look there first.`,
-    );
-  });
+    test("the service behind the trouble was part of how many of them", () => {
+      expect(
+        describeInsightFacts(
+          insightOf(kind, AiActivityInsightKind.Hotspot),
+          contextOf(kind),
+        ).join(" "),
+      ).toBe(
+        `It was part of 7 of the 20 ${plural} created in the last 30 days. Problems that share one place often share one cause: look there first.`,
+      );
+    });
 
-  test("a team that approved every fix is told what letting AI fix on its own would do", () => {
-    expect(
-      describeInsightFacts(
-        insightOf(kind, AiActivityInsightKind.ReadyForAutomaticFixes),
-        contextOf(kind),
-      ).join(" "),
-    ).toBe(
-      "That is 4 fixes in the last 30 days, and none dismissed. 3 of them were checked afterwards and solved the problem. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
-    );
-  });
+    test("a team that approved every fix is told what letting AI fix on its own would do", () => {
+      expect(
+        describeInsightFacts(
+          insightOf(kind, AiActivityInsightKind.ReadyForAutomaticFixes),
+          contextOf(kind),
+        ).join(" "),
+      ).toBe(
+        "That is 4 fixes in the last 30 days, and none dismissed. 3 of them were checked afterwards and solved the problem. Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
+      );
+    });
 
-  test("the next step its investigation suggested is the investigation's own words", () => {
-    expect(
-      insightOf(kind, AiActivityInsightKind.RecurringProblem).nextStep,
-    ).toBe(NEXT_STEP);
-  });
-});
+    test("the next step its investigation suggested is the investigation's own words", () => {
+      expect(
+        insightOf(kind, AiActivityInsightKind.RecurringProblem).nextStep,
+      ).toBe(NEXT_STEP);
+    });
+  },
+);
 
 describe("why incidents were not investigated", () => {
   test.each(
@@ -904,7 +907,9 @@ describe("the words are in every Dashboard locale", () => {
       english["OneUptime AI did not look into {{count}} incidents_one"],
     ).toBe("OneUptime AI did not look into {{count}} incident");
     expect(
-      english["The {{name}} service is behind {{count}} different problems_one"],
+      english[
+        "The {{name}} service is behind {{count}} different problems_one"
+      ],
     ).toBe("The {{name}} service is behind {{count}} problem");
     expect(
       english[

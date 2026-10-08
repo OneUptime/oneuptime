@@ -834,7 +834,6 @@ describe("getMostCommonIds", () => {
   });
 });
 
-
 describe("everything that came up in the window", () => {
   test.each(INCIDENT_ALERT_AI_SUBJECT_KINDS)(
     "the window's %ss are read under the caller's props, newest first, bounded, with what the page names",

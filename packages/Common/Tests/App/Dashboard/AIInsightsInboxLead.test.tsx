@@ -174,14 +174,11 @@ describe("the AI Insights inbox", () => {
     expect(lead).toHaveTextContent("What to look at first");
     expect(lead).toHaveTextContent("The nightly batch job doubled its writes.");
     expect(
-      follows(
-        lead,
-        screen.getByRole("combobox", { name: "Sort insights" }),
-      ),
+      follows(lead, screen.getByRole("combobox", { name: "Sort insights" })),
     ).toBe(true);
-    expect(
-      follows(lead, screen.getAllByText(ROW_TITLE).slice(-1)[0]!),
-    ).toBe(true);
+    expect(follows(lead, screen.getAllByText(ROW_TITLE).slice(-1)[0]!)).toBe(
+      true,
+    );
     expect(
       postSpy.mock.calls.filter((call: Array<unknown>): boolean => {
         return String((call[0] as JSONObject)["url"]).endsWith(

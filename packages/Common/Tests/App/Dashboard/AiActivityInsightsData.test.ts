@@ -465,7 +465,9 @@ describe("parseAiActivityInsights", () => {
         ),
       ]);
 
-      expect(read).toEqual(insightOfKind(AiActivityInsightKind.RecurringProblem));
+      expect(read).toEqual(
+        insightOfKind(AiActivityInsightKind.RecurringProblem),
+      );
     });
 
     test("a finding needs its run and its text; a blank next step is no step", () => {
@@ -842,9 +844,21 @@ describe("the page's words", () => {
 
 describe("how an insight looks", () => {
   test.each([
-    [AiActivityInsightTone.Critical, "bg-red-50 text-red-600", "Needs attention now"],
-    [AiActivityInsightTone.Warning, "bg-amber-50 text-amber-600", "Worth acting on"],
-    [AiActivityInsightTone.Pattern, "bg-indigo-50 text-indigo-600", "Worth knowing"],
+    [
+      AiActivityInsightTone.Critical,
+      "bg-red-50 text-red-600",
+      "Needs attention now",
+    ],
+    [
+      AiActivityInsightTone.Warning,
+      "bg-amber-50 text-amber-600",
+      "Worth acting on",
+    ],
+    [
+      AiActivityInsightTone.Pattern,
+      "bg-indigo-50 text-indigo-600",
+      "Worth knowing",
+    ],
     [AiActivityInsightTone.Positive, "bg-green-50 text-green-600", "Good news"],
   ])(
     "a %s insight has its own colour, and says so to a screen reader",
@@ -868,9 +882,12 @@ describe("how an insight looks", () => {
     [AiActivityInsightKind.ReadyForAutomaticFixes, IconProp.Bolt],
     [AiActivityInsightKind.NotInvestigated, IconProp.EyeSlash],
     [AiActivityInsightKind.RiskSpotted, IconProp.Eye],
-  ])("a %s insight has its own icon", (kind: AiActivityInsightKind, icon: IconProp) => {
-    expect(getInsightLook(insight(kind)).icon).toBe(icon);
-  });
+  ])(
+    "a %s insight has its own icon",
+    (kind: AiActivityInsightKind, icon: IconProp) => {
+      expect(getInsightLook(insight(kind)).icon).toBe(icon);
+    },
+  );
 
   test("every kind has an icon of its own: no two kinds look alike", () => {
     const icons: Array<IconProp> = Object.values(AiActivityInsightKind).map(
@@ -936,10 +953,7 @@ describe("naming incidents, alerts and parts of the scope", () => {
     [{ kind: "alert", id: ALERT_ID, number: 7 }, "Alert #7"],
     [{ kind: "alert", id: ALERT_ID, title: "Disk full" }, "Alert: Disk full"],
     [{ kind: "alert", id: ALERT_ID }, "Alert"],
-    [
-      { kind: "alert", id: ALERT_ID, numberWithPrefix: "ALT-7" },
-      "Alert ALT-7",
-    ],
+    [{ kind: "alert", id: ALERT_ID, numberWithPrefix: "ALT-7" }, "Alert ALT-7"],
   ] as Array<[AiActivitySubject, string]>)(
     "%j is %s",
     (subject: AiActivitySubject, expected: string) => {
@@ -1237,9 +1251,7 @@ describe("each insight's headline: one thing worth knowing, in one line", () => 
 describe("the facts under each insight: the numbers behind it, as whole sentences", () => {
   describe("a problem that keeps coming back", () => {
     test("how often, how much of it this week against last, and how much of everything it is", () => {
-      expect(
-        facts(insightOfKind(AiActivityInsightKind.RecurringProblem)),
-      ).toBe(
+      expect(facts(insightOfKind(AiActivityInsightKind.RecurringProblem))).toBe(
         "It happened 12 times in the last 30 days. 5 of them were in the last 7 days, up from 2 the 7 days before. That is 12 of the 20 incidents and alerts on this cluster in the last 30 days.",
       );
     });
@@ -1375,9 +1387,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
   });
 
   test("fixes applied on their own: whether they held, and that nobody had to approve them", () => {
-    expect(
-      facts(insightOfKind(AiActivityInsightKind.FixedAutomatically)),
-    ).toBe(
+    expect(facts(insightOfKind(AiActivityInsightKind.FixedAutomatically))).toBe(
       "It checked afterwards: the problem was gone. Nobody had to approve it first.",
     );
     expect(
@@ -1421,7 +1431,9 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
   test("fixes waiting: they run as soon as someone approves them", () => {
     expect(
       facts(insightOfKind(AiActivityInsightKind.FixesAwaitingApproval)),
-    ).toBe("OneUptime AI has it ready: it runs as soon as someone approves it.");
+    ).toBe(
+      "OneUptime AI has it ready: it runs as soon as someone approves it.",
+    );
     expect(
       facts(insight(AiActivityInsightKind.FixesAwaitingApproval, { count: 2 })),
     ).toBe(
@@ -1576,9 +1588,7 @@ describe("when a problem tends to happen, in the reader's own time", () => {
     readTimesIn("America/New_York", false);
 
     // January: standard time.
-    expect(
-      describeTimeOfDay(NIGHTLY, "2026-01-15T12:00:00.000Z"),
-    ).toBe(
+    expect(describeTimeOfDay(NIGHTLY, "2026-01-15T12:00:00.000Z")).toBe(
       "It usually starts between 20:00 and 23:00 (EST): on 9 of the 10 days it happened.",
     );
   });
@@ -1684,9 +1694,9 @@ describe("parts and preventive findings", () => {
   });
 
   test("a preventive finding says how often it was seen, and when last", () => {
-    expect(describePreventiveInsight(makeInsights().preventiveInsights[0]!)).toBe(
-      "seen 3 times · last seen 6 hours ago",
-    );
+    expect(
+      describePreventiveInsight(makeInsights().preventiveInsights[0]!),
+    ).toBe("seen 3 times · last seen 6 hours ago");
     expect(
       describePreventiveInsight({
         id: INSIGHT_ID,
@@ -1861,9 +1871,7 @@ describe("fixes", () => {
     expect(describeFixVerification(makeInsights().fixOutcomes)).toBe(
       "Verification: 1 resolved the problem, 1 did not, 0 still being checked.",
     );
-    expect(
-      describeFixVerification(makeEmptyInsights().fixOutcomes),
-    ).toBeNull();
+    expect(describeFixVerification(makeEmptyInsights().fixOutcomes)).toBeNull();
   });
 });
 
@@ -1959,21 +1967,24 @@ describe("the words are in every Dashboard locale", () => {
     "and {{count}} more",
   ];
 
-  test.each(CODES)("%s has every one, and every plural's one form", (code: string) => {
-    const locale: Record<string, unknown> = readLocale(code);
+  test.each(CODES)(
+    "%s has every one, and every plural's one form",
+    (code: string) => {
+      const locale: Record<string, unknown> = readLocale(code);
 
-    expect(
-      [
-        ...SENTENCES,
-        ...PLURALS,
-        ...PLURALS.map((key: string): string => {
-          return `${key}_one`;
+      expect(
+        [
+          ...SENTENCES,
+          ...PLURALS,
+          ...PLURALS.map((key: string): string => {
+            return `${key}_one`;
+          }),
+        ].filter((word: string): boolean => {
+          return typeof locale[word] !== "string";
         }),
-      ].filter((word: string): boolean => {
-        return typeof locale[word] !== "string";
-      }),
-    ).toEqual([]);
-  });
+      ).toEqual([]);
+    },
+  );
 
   test.each(
     CODES.filter((code: string): boolean => {
@@ -2071,7 +2082,11 @@ describe("the fixture", () => {
       insights.problems.map((problem: AiActivityProblem): string => {
         return problem.key;
       }),
-    ).toEqual([RECURRING_PROBLEM_KEY, STOPPED_PROBLEM_KEY, ONE_OFF_PROBLEM_KEY]);
+    ).toEqual([
+      RECURRING_PROBLEM_KEY,
+      STOPPED_PROBLEM_KEY,
+      ONE_OFF_PROBLEM_KEY,
+    ]);
     expect(insights.insights[0]!.nextStep).toBe(NEXT_STEP);
     expect(insights.insights[2]!.insightId).toBe(INSIGHT_ID);
   });

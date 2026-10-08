@@ -692,7 +692,8 @@ describe("the refusals end-users actually hit", () => {
     );
     expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
     expect(
-      (Response.sendJsonObjectResponse as unknown as jest.Mock).mock.calls[0]![2],
+      (Response.sendJsonObjectResponse as unknown as jest.Mock).mock
+        .calls[0]![2],
     ).toEqual({ openCount: 0, newCount: 0, isPartial: false });
   });
 

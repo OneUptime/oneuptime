@@ -583,10 +583,7 @@ export default class AiActivityInsightsReader {
     const reportRuns: Array<InvestigationReportSummaryRun> = [];
 
     for (const investigation of data.input.investigations) {
-      if (
-        !needingReport.has(investigation.aiRunId) ||
-        !investigation.subject
-      ) {
+      if (!needingReport.has(investigation.aiRunId) || !investigation.subject) {
         continue;
       }
 

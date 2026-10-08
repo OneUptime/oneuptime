@@ -746,7 +746,9 @@ export default class AiActivityInsightsBuilder {
     const stretchStart: number = best.startHourUtc;
     const offsets: Array<number> = dates
       .map((date: Date): number => {
-        return (date.getUTCHours() - stretchStart + HOURS_IN_DAY) % HOURS_IN_DAY;
+        return (
+          (date.getUTCHours() - stretchStart + HOURS_IN_DAY) % HOURS_IN_DAY
+        );
       })
       .filter((offset: number): boolean => {
         return offset < hours;
@@ -900,8 +902,7 @@ export default class AiActivityInsightsBuilder {
         return fix.createdAt.getTime() >= windowStart.getTime();
       }),
     );
-    const occurrences: Array<AiActivityOccurrence> =
-      this.getOccurrences(input);
+    const occurrences: Array<AiActivityOccurrence> = this.getOccurrences(input);
     const groups: Array<ProblemGroup> = this.groupProblems(input);
 
     // The incidents and alerts the caller may read, by id.
@@ -1838,7 +1839,8 @@ export default class AiActivityInsightsBuilder {
     ).length;
 
     if (
-      approved.length >= AI_ACTIVITY_INSIGHTS_READY_FOR_AUTOMATIC_MIN_APPROVED &&
+      approved.length >=
+        AI_ACTIVITY_INSIGHTS_READY_FOR_AUTOMATIC_MIN_APPROVED &&
       dismissed === 0 &&
       automatic.length === 0 &&
       !approved.some((fix: AiActivityFixInput): boolean => {

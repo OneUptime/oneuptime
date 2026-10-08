@@ -36,7 +36,9 @@ const CALLER: DatabaseCommonInteractionProps = {
   userType: UserType.User,
 } as DatabaseCommonInteractionProps;
 
-function insight(overrides: Partial<Record<keyof AIInsight, unknown>>): AIInsight {
+function insight(
+  overrides: Partial<Record<keyof AIInsight, unknown>>,
+): AIInsight {
   return {
     id: ObjectID.generate(),
     title: "Error logs from checkout spiked 6x",
@@ -164,7 +166,8 @@ describe("InsightHighlights.read", () => {
       occurrenceCount: 3,
       firstSeenAt: "2026-10-08T06:00:00.000Z",
       lastSeenAt: "2026-10-08T10:00:00.000Z",
-      triageSummary: "The 10:42 deploy set the gateway client's timeout to 2 s.",
+      triageSummary:
+        "The 10:42 deploy set the gateway client's timeout to 2 s.",
     });
   });
 

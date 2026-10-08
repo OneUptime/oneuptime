@@ -551,7 +551,11 @@ describe("AiActivityInsightsReader.read", () => {
     expect(
       (titleRead[0] as { select: Record<string, unknown> }).select,
     ).toEqual(
-      expect.objectContaining({ title: true, seriesLabels: true, createdAt: true }),
+      expect.objectContaining({
+        title: true,
+        seriesLabels: true,
+        createdAt: true,
+      }),
     );
 
     // Monitors only of the incidents the caller could read.
@@ -673,9 +677,9 @@ describe("AiActivityInsightsReader.read", () => {
     expect(incidentProblem.latestFinding!.source).toBe("tldr");
 
     // One report per problem: the incident's run for its step, the alert's for both.
-    expect(idsIn(queryOf(incidentFeedFind.mock.calls[0]!)["aiRunId"])).toEqual(
-      [RUN_INCIDENT.toString()],
-    );
+    expect(idsIn(queryOf(incidentFeedFind.mock.calls[0]!)["aiRunId"])).toEqual([
+      RUN_INCIDENT.toString(),
+    ]);
     expect(idsIn(queryOf(alertFeedFind.mock.calls[0]!)["aiRunId"])).toEqual([
       RUN_ALERT.toString(),
     ]);

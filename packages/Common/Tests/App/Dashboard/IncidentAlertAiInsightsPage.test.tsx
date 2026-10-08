@@ -432,7 +432,9 @@ describe.each(
             return String((call[0] as JSONObject)["url"]);
           })
           .filter((url: string): boolean => {
-            return !url.endsWith(product.route) && !url.endsWith(PROVIDERS_ROUTE);
+            return (
+              !url.endsWith(product.route) && !url.endsWith(PROVIDERS_ROUTE)
+            );
           }),
       ).toEqual([]);
     });
@@ -647,7 +649,9 @@ describe.each(
         setPermissions([Permission.ProjectAdmin]);
         serve(
           ok(
-            withInsights(product, [skipped("automatic_investigation_disabled")]),
+            withInsights(product, [
+              skipped("automatic_investigation_disabled"),
+            ]),
           ),
         );
         openPage(product);
@@ -664,7 +668,9 @@ describe.each(
 
       test("a skip because the project reached its own daily AI limit points at Project Settings → AI Features", async () => {
         serve(
-          ok(withInsights(product, [skipped("project_daily_limit_reached", 3)])),
+          ok(
+            withInsights(product, [skipped("project_daily_limit_reached", 3)]),
+          ),
         );
         openPage(product);
 
@@ -886,14 +892,18 @@ describe.each(
 
       await findTestId("ai-insights-summary");
 
-      expect(screen.getByText("Monitors that keep failing")).toBeInTheDocument();
+      expect(
+        screen.getByText("Monitors that keep failing"),
+      ).toBeInTheDocument();
       const monitors: HTMLElement = screen.getByTestId("ai-insights-monitors");
       expect(linksIn(monitors)).toEqual([`${MONITOR_NAME} → ${monitorHref}`]);
       expect(monitors).toHaveTextContent(
         `12 ${product.plural} · 1 problem · last seen`,
       );
 
-      expect(screen.getByText("Services that keep failing")).toBeInTheDocument();
+      expect(
+        screen.getByText("Services that keep failing"),
+      ).toBeInTheDocument();
       const services: HTMLElement = screen.getByTestId("ai-insights-services");
       expect(linksIn(services)).toEqual([`${SERVICE_NAME} → ${serviceHref}`]);
       expect(services).toHaveTextContent(
@@ -972,7 +982,9 @@ describe.each(
             `Open AI Logs → ${logsHref}`,
           ],
         ]);
-        expect(within(health).getByTestId("ai-insights-trust")).toHaveTextContent(
+        expect(
+          within(health).getByTestId("ai-insights-trust"),
+        ).toHaveTextContent(
           "3 findings were confirmed by your team or matched the root cause recorded later.",
         );
       });
@@ -1126,7 +1138,9 @@ describe.each(
       );
       expect(hrefOf(within(empty).getByText("Open AI Logs"))).toBe(logsHref);
 
-      expect(screen.getByText("What OneUptime AI looked at")).toBeInTheDocument();
+      expect(
+        screen.getByText("What OneUptime AI looked at"),
+      ).toBeInTheDocument();
       const coverage: HTMLElement = screen.getByTestId("ai-insights-coverage");
       expect(coverage).toHaveTextContent(
         `OneUptime AI investigated 0 of the 7 ${product.plural} created in the last 30 days.`,

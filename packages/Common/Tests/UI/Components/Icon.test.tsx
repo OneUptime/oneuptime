@@ -167,9 +167,7 @@ describe("Icon map pin", () => {
     const path: string = getIconPath(IconProp.MapPin);
 
     // The dot...
-    expect(path.startsWith("M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z")).toBe(
-      true,
-    );
+    expect(path.startsWith("M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z")).toBe(true);
     // ...and the pin's outline, from its round head down to its point.
     expect(path).toContain("M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25");
     expect(path.match(/Z/g)).toHaveLength(2);

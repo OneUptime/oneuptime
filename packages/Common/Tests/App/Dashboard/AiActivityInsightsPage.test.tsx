@@ -749,13 +749,17 @@ describe("the cluster's AI Insights page", () => {
       );
       expect(
         within(item).getByTestId("ai-insights-insight-facts"),
-      ).toHaveTextContent(/^It happened 4 times in the last 30 days\. It started /);
+      ).toHaveTextContent(
+        /^It happened 4 times in the last 30 days\. It started /,
+      );
     });
 
     test("the part behind most of the trouble links to its own page in the cluster", async () => {
       openClusterInsightsPage();
 
-      const item: HTMLElement = await findInsight(AiActivityInsightKind.Hotspot);
+      const item: HTMLElement = await findInsight(
+        AiActivityInsightKind.Hotspot,
+      );
 
       expect(
         within(item).getByTestId("ai-insights-insight-facts"),
@@ -886,7 +890,9 @@ describe("the cluster's AI Insights page", () => {
       ).toEqual([ONE_OFF_PROBLEM_KEY]);
 
       // No parts, no risks, no fixes: no cards for them at all.
-      expect(screen.queryByText("Where problems happen")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Where problems happen"),
+      ).not.toBeInTheDocument();
       expect(
         screen.queryByTestId("ai-insights-preventive-list"),
       ).not.toBeInTheDocument();
@@ -963,7 +969,11 @@ describe("the cluster's AI Insights page", () => {
         problems.map((problem: HTMLElement): string | null => {
           return problem.getAttribute("data-problem-key");
         }),
-      ).toEqual([RECURRING_PROBLEM_KEY, STOPPED_PROBLEM_KEY, ONE_OFF_PROBLEM_KEY]);
+      ).toEqual([
+        RECURRING_PROBLEM_KEY,
+        STOPPED_PROBLEM_KEY,
+        ONE_OFF_PROBLEM_KEY,
+      ]);
 
       const recurring: HTMLElement = problems[0]!;
       expect(hrefOf(within(recurring).getByText(RECURRING_PROBLEM_TITLE))).toBe(
@@ -1048,7 +1058,9 @@ describe("the cluster's AI Insights page", () => {
       openClusterInsightsPage();
 
       await findTestId("ai-insights-insights");
-      expect(screen.queryByTestId("ai-insights-problems")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("ai-insights-problems"),
+      ).not.toBeInTheDocument();
       expect(screen.queryByText("Other problems")).not.toBeInTheDocument();
     });
 
@@ -1065,16 +1077,16 @@ describe("the cluster's AI Insights page", () => {
         "ai-insights-hotspot",
       );
       expect(hotspots).toHaveLength(2);
-      expect(linksIn(hotspots[0]!)).toEqual([
-        `Node: node-3 → ${NODE_3_HREF}`,
-      ]);
+      expect(linksIn(hotspots[0]!)).toEqual([`Node: node-3 → ${NODE_3_HREF}`]);
       expect(hotspots[0]).toHaveTextContent(
         /14 times · 2 problems · last seen /,
       );
       expect(linksIn(hotspots[1]!)).toEqual([
         `Namespace: checkout → ${NAMESPACE_HREF}`,
       ]);
-      expect(hotspots[1]).toHaveTextContent(/12 times · 1 problem · last seen /);
+      expect(hotspots[1]).toHaveTextContent(
+        /12 times · 1 problem · last seen /,
+      );
     });
 
     test("a part the cluster has no page for is named, not linked", async () => {
@@ -1153,7 +1165,9 @@ describe("the cluster's AI Insights page", () => {
       const summary: HTMLElement = await findTestId("ai-insights-summary");
       const found: HTMLElement = screen.getByTestId("ai-insights-insights");
       expect(follows(found, summary)).toBe(true);
-      expect(screen.getByText("What OneUptime AI did here")).toBeInTheDocument();
+      expect(
+        screen.getByText("What OneUptime AI did here"),
+      ).toBeInTheDocument();
       expect(
         screen.getByText(
           "The last 30 days at a glance. Everything it did, one step at a time, is in AI Logs.",
@@ -1189,7 +1203,11 @@ describe("the cluster's AI Insights page", () => {
         notes.map((note: HTMLElement): string | null => {
           return note.getAttribute("data-kind");
         }),
-      ).toEqual(["InvestigationsFailed", "CommandsTimedOut", "FindingsRejected"]);
+      ).toEqual([
+        "InvestigationsFailed",
+        "CommandsTimedOut",
+        "FindingsRejected",
+      ]);
       expect(notes[0]).toHaveTextContent(
         "1 investigation failed or timed out in the last 30 days.",
       );
@@ -1264,7 +1282,9 @@ describe("the cluster's AI Insights page", () => {
       openClusterInsightsPage();
 
       await findTestId("ai-insights-summary");
-      expect(screen.queryByTestId("ai-insights-health")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("ai-insights-health"),
+      ).not.toBeInTheDocument();
     });
 
     test("says when the numbers cover only the newest of what happened", async () => {
@@ -1340,12 +1360,12 @@ describe("the cluster's AI Insights page", () => {
         "<img src='x' onerror='window.pwned=1'> keeps coming back",
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getAllByTestId("ai-insights-finding")[0],
-    ).toHaveTextContent("<script>window.pwned=1</script>");
-    expect(
-      screen.getAllByTestId("ai-insights-next-step")[0],
-    ).toHaveTextContent("<b>restart</b> it");
+    expect(screen.getAllByTestId("ai-insights-finding")[0]).toHaveTextContent(
+      "<script>window.pwned=1</script>",
+    );
+    expect(screen.getAllByTestId("ai-insights-next-step")[0]).toHaveTextContent(
+      "<b>restart</b> it",
+    );
     const hotspot: HTMLElement = screen
       .getAllByTestId("ai-insights-insight")
       .find((item: HTMLElement): boolean => {
@@ -1403,7 +1423,9 @@ describe("the cluster's AI Insights page", () => {
       expect(
         screen.queryByTestId("ai-insights-nothing-stands-out"),
       ).not.toBeInTheDocument();
-      expect(screen.queryByText("What OneUptime AI found")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("What OneUptime AI found"),
+      ).not.toBeInTheDocument();
     });
 
     test("points at the AI agent page when AI cannot run kubectl here", async () => {
@@ -1490,7 +1512,9 @@ describe("the cluster's AI Insights page", () => {
       isAiOn = false;
       openClusterInsightsPage();
 
-      const notice: HTMLElement = await findTestId(PROJECT_AI_OFF_NOTICE_TEST_ID);
+      const notice: HTMLElement = await findTestId(
+        PROJECT_AI_OFF_NOTICE_TEST_ID,
+      );
       expect(notice).toHaveTextContent(
         "OneUptime AI is off for this project, so nothing new is investigated or fixed, and nothing new shows up on this page.",
       );
@@ -1540,7 +1564,9 @@ describe("the cluster's AI Insights page", () => {
       serve(ok(toBody(makeEmptyInsights())));
       openClusterInsightsPage();
 
-      const notice: HTMLElement = await findTestId(PROJECT_AI_OFF_NOTICE_TEST_ID);
+      const notice: HTMLElement = await findTestId(
+        PROJECT_AI_OFF_NOTICE_TEST_ID,
+      );
       const empty: HTMLElement = await findTestId("ai-insights-empty");
       expect(follows(notice, empty)).toBe(true);
     });
@@ -1723,17 +1749,20 @@ describe("a part of the cluster, on its own page", () => {
     ["k8s.container.name", "containers"],
     ["k8s.persistentvolumeclaim.name", "pvcs"],
     ["k8s.hpa.name", "hpas"],
-  ])("a part read from %s opens the cluster's %s page for it, by name", (key: string, segment: string) => {
-    expect(
-      getKubernetesObjectRoute(CLUSTER_ID, {
-        name: "Part",
-        value: "web-1",
-        key,
-      })!.toString(),
-    ).toBe(
-      `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/${segment}/web-1`,
-    );
-  });
+  ])(
+    "a part read from %s opens the cluster's %s page for it, by name",
+    (key: string, segment: string) => {
+      expect(
+        getKubernetesObjectRoute(CLUSTER_ID, {
+          name: "Part",
+          value: "web-1",
+          key,
+        })!.toString(),
+      ).toBe(
+        `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/${segment}/web-1`,
+      );
+    },
+  );
 
   test("every label the table names has a page", () => {
     for (const [key, page] of Object.entries(KUBERNETES_OBJECT_PAGES)) {
@@ -1890,8 +1919,10 @@ describe("every resource with a resource AI agent", () => {
         linksIn(within(automatic).getByTestId("ai-insights-next-step-link")),
       ).toEqual([`Open AI Logs → ${logsHref}`]);
 
-      // A resource's parts have no page of their own: named, not linked,
-      // and its hotspot opens the newest alert behind it instead.
+      /*
+       * A resource's parts have no page of their own: named, not linked,
+       * and its hotspot opens the newest alert behind it instead.
+       */
       const hotspot: HTMLElement = await findInsight(
         AiActivityInsightKind.Hotspot,
       );
@@ -2327,7 +2358,10 @@ describe("where each insight leads", () => {
         logsRoute: LOGS,
         settingsRoute: SETTINGS,
       }),
-    ).toEqual({ route: "/settings", label: "Choose what AI may fix on its own" });
+    ).toEqual({
+      route: "/settings",
+      label: "Choose what AI may fix on its own",
+    });
     expect(
       target(bare(AiActivityInsightKind.ReadyForAutomaticFixes), {
         logsRoute: LOGS,
@@ -2337,7 +2371,9 @@ describe("where each insight leads", () => {
 
   test("a risk opens its finding, or nothing without one", () => {
     expect(
-      target(bare(AiActivityInsightKind.RiskSpotted, { insightId: INSIGHT_ID })),
+      target(
+        bare(AiActivityInsightKind.RiskSpotted, { insightId: INSIGHT_ID }),
+      ),
     ).toEqual({ route: INSIGHT_HREF, label: "Open insight" });
     expect(target(bare(AiActivityInsightKind.RiskSpotted))).toBeNull();
   });

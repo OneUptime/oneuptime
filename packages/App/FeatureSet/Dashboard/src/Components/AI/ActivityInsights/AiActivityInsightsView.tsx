@@ -708,7 +708,8 @@ function InsightsCard(props: {
                   problem={props.insights.problems.find(
                     (problem: AiActivityProblem): boolean => {
                       return Boolean(
-                        insight.problemKey && problem.key === insight.problemKey,
+                        insight.problemKey &&
+                          problem.key === insight.problemKey,
                       );
                     },
                   )}
@@ -912,18 +913,16 @@ function ProblemsCard(props: {
           className="divide-y divide-gray-100"
           data-testid="ai-insights-problems"
         >
-          {props.problems.map(
-            (problem: AiActivityProblem): ReactElement => {
-              return (
-                <ProblemRow
-                  key={problem.key}
-                  problem={problem}
-                  context={props.context}
-                  getObjectRoute={props.getObjectRoute}
-                />
-              );
-            },
-          )}
+          {props.problems.map((problem: AiActivityProblem): ReactElement => {
+            return (
+              <ProblemRow
+                key={problem.key}
+                problem={problem}
+                context={props.context}
+                getObjectRoute={props.getObjectRoute}
+              />
+            );
+          })}
         </ul>
       ) : (
         <p
@@ -1284,7 +1283,10 @@ function getHealthTarget(
   note: AiActivityHealthNote,
   routes: AiInsightsRoutes,
 ): AiInsightTarget {
-  if (note.kind === AiActivityHealthKind.CommandsTimedOut && routes.agentRoute) {
+  if (
+    note.kind === AiActivityHealthKind.CommandsTimedOut &&
+    routes.agentRoute
+  ) {
     return {
       route: routes.agentRoute,
       label: translationKey("Open the AI agent page"),

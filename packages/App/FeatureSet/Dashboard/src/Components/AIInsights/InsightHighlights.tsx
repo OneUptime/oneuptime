@@ -101,7 +101,10 @@ function HighlightRow(props: {
   const translator: Translator = useTranslator();
 
   return (
-    <li className="flex gap-4 py-4 first:pt-0 last:pb-0" data-testid={props.testId}>
+    <li
+      className="flex gap-4 py-4 first:pt-0 last:pb-0"
+      data-testid={props.testId}
+    >
       <div
         className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${props.badgeClassName}`}
       >
@@ -230,9 +233,7 @@ const InsightHighlights: FunctionComponent<ComponentProps> = (
                 highlights.topService,
                 highlights.openCount,
               )}
-              facts={translator.translateText(
-                INSIGHT_SERVICE_HIGHLIGHT_ADVICE,
-              )}
+              facts={translator.translateText(INSIGHT_SERVICE_HIGHLIGHT_ADVICE)}
               target={
                 highlights.topService.id
                   ? {

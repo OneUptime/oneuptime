@@ -1000,7 +1000,8 @@ export function describeInsightHeadline(
         return translatePlural(
           {
             one: "The {{name}} service is behind {{count}} problem",
-            other: "The {{name}} service is behind {{count}} different problems",
+            other:
+              "The {{name}} service is behind {{count}} different problems",
           },
           insight.problemCount || 0,
           { name: insight.service.name },
@@ -1011,7 +1012,8 @@ export function describeInsightHeadline(
         return translatePlural(
           {
             one: "The {{name}} monitor is behind {{count}} problem",
-            other: "The {{name}} monitor is behind {{count}} different problems",
+            other:
+              "The {{name}} monitor is behind {{count}} different problems",
           },
           insight.problemCount || 0,
           { name: insight.monitor.name },
@@ -1125,7 +1127,9 @@ export function describeInsightFacts(
       const started: string | null = describeWhen(insight.firstSeenAt);
 
       if (recent >= insight.count && started) {
-        facts.push(translateTemplate("It started {{when}}.", { when: started }));
+        facts.push(
+          translateTemplate("It started {{when}}.", { when: started }),
+        );
       } else if (recent > 0 && recent > previous) {
         facts.push(
           translatePlural(
@@ -1238,7 +1242,8 @@ export function describeInsightFacts(
           : translatePlural(
               {
                 one: "It happened {{count}} time, and not once since its fix.",
-                other: "It happened {{count}} times, and not once since its fix.",
+                other:
+                  "It happened {{count}} times, and not once since its fix.",
               },
               insight.count,
             ),
@@ -1260,7 +1265,8 @@ export function describeInsightFacts(
           translatePlural(
             {
               one: "It checked afterwards: the problem was gone.",
-              other: "It checked each one afterwards: the problem was gone every time.",
+              other:
+                "It checked each one afterwards: the problem was gone every time.",
             },
             insight.count,
           ),
@@ -1522,9 +1528,8 @@ export function describeTimeOfDay(
 export const AI_INSIGHTS_FINDING_LABEL: string = translationKey(
   "What OneUptime AI found",
 );
-export const AI_INSIGHTS_NEXT_STEP_LABEL: string = translationKey(
-  "What it suggests",
-);
+export const AI_INSIGHTS_NEXT_STEP_LABEL: string =
+  translationKey("What it suggests");
 export const AI_INSIGHTS_FROM_REPORT_NOTE: string = translationKey(
   "(from the investigation's report)",
 );
@@ -1561,7 +1566,10 @@ export function describeProblemCount(problem: AiActivityProblem): string {
   if (problem.investigationCount > 0) {
     parts.push(
       translatePlural(
-        { one: "investigated {{count}} time", other: "investigated {{count}} times" },
+        {
+          one: "investigated {{count}} time",
+          other: "investigated {{count}} times",
+        },
         problem.investigationCount,
       ),
     );

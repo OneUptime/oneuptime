@@ -284,9 +284,9 @@ describe("the highlights' words", () => {
   });
 
   test("the service behind most of them, out of all the open findings", () => {
-    expect(
-      describeServiceHighlight({ name: "checkout", count: 5 }, 12),
-    ).toBe("The checkout service has 5 of the 12 open findings");
+    expect(describeServiceHighlight({ name: "checkout", count: 5 }, 12)).toBe(
+      "The checkout service has 5 of the 12 open findings",
+    );
     // Never fewer findings in all than the service has.
     expect(describeServiceHighlight({ name: "checkout", count: 5 }, 3)).toBe(
       "The checkout service has 5 of the 5 open findings",
@@ -294,9 +294,7 @@ describe("the highlights' words", () => {
   });
 
   test("what is new, and the newest", () => {
-    expect(describeNewHighlight(3)).toBe(
-      "3 new findings in the last 7 days",
-    );
+    expect(describeNewHighlight(3)).toBe("3 new findings in the last 7 days");
     expect(describeNewHighlight(1)).toBe("1 new finding in the last 7 days");
     expect(
       describeNewestFinding({
@@ -634,10 +632,7 @@ describe("the card, loading its highlights", () => {
       });
       return new HTTPResponse<JSONObject>(200, toBody(makeHighlights()), {});
     };
-    const errors: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      console,
-      "error",
-    );
+    const errors: ReturnType<typeof jest.spyOn> = jest.spyOn(console, "error");
 
     open();
     await act(async () => {

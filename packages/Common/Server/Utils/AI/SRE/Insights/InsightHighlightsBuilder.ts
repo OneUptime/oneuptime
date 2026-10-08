@@ -52,7 +52,9 @@ function getTime(date: Date | undefined): number {
 
 export default class InsightHighlightsBuilder {
   // A finding as the highlights name it.
-  public static toFinding(row: InsightHighlightsRow): AIInsightHighlightFinding {
+  public static toFinding(
+    row: InsightHighlightsRow,
+  ): AIInsightHighlightFinding {
     const triageSummary: string = (row.triageSummary || "").trim();
 
     return {
@@ -64,7 +66,9 @@ export default class InsightHighlightsBuilder {
       ...(typeof row.occurrenceCount === "number"
         ? { occurrenceCount: row.occurrenceCount }
         : {}),
-      ...(row.firstSeenAt ? { firstSeenAt: row.firstSeenAt.toISOString() } : {}),
+      ...(row.firstSeenAt
+        ? { firstSeenAt: row.firstSeenAt.toISOString() }
+        : {}),
       ...(row.lastSeenAt ? { lastSeenAt: row.lastSeenAt.toISOString() } : {}),
       ...(triageSummary ? { triageSummary } : {}),
     };
@@ -110,7 +114,8 @@ export default class InsightHighlightsBuilder {
         continue;
       }
 
-      const key: string = row.telemetryServiceId || `name:${name.toLowerCase()}`;
+      const key: string =
+        row.telemetryServiceId || `name:${name.toLowerCase()}`;
       const service: AIInsightHighlightService = services.get(key) || {
         ...(row.telemetryServiceId ? { id: row.telemetryServiceId } : {}),
         name,

@@ -246,9 +246,7 @@ describe("InsightHighlightsBuilder.build", () => {
     });
 
     test("a finding with no first-seen time is never new", () => {
-      expect(
-        build([finding({ firstSeenAt: undefined })]).newCount,
-      ).toBe(0);
+      expect(build([finding({ firstSeenAt: undefined })]).newCount).toBe(0);
     });
   });
 

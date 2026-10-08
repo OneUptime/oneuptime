@@ -519,7 +519,6 @@ describe("InvestigationReportSummary.getForRuns", () => {
   });
 });
 
-
 /*
  * What OneUptime AI would do about a problem that keeps coming back: the
  * first step its report's Suggested next steps section names. The AI
@@ -527,7 +526,10 @@ describe("InvestigationReportSummary.getForRuns", () => {
  */
 describe("InvestigationReportSummary.getFirstStep", () => {
   test.each([
-    ["- Roll back to v2.4.0.\n- Then check the registry.", "Roll back to v2.4.0."],
+    [
+      "- Roll back to v2.4.0.\n- Then check the registry.",
+      "Roll back to v2.4.0.",
+    ],
     ["* Roll back to v2.4.0.\n* Then check.", "Roll back to v2.4.0."],
     ["+ Roll back to v2.4.0.", "Roll back to v2.4.0."],
     ["1. Roll back to v2.4.0.\n2. Then check.", "Roll back to v2.4.0."],
@@ -651,7 +653,9 @@ describe("InvestigationReportSummary.nextStepFromReport", () => {
   test("text that looks like markup stays text: nothing is turned into HTML", () => {
     expect(
       InvestigationReportSummary.nextStepFromReport(
-        reportWithSteps("- Remove the <script>alert(1)</script> from the page."),
+        reportWithSteps(
+          "- Remove the <script>alert(1)</script> from the page.",
+        ),
       ),
     ).toBe("Remove the <script>alert(1)</script> from the page.");
   });

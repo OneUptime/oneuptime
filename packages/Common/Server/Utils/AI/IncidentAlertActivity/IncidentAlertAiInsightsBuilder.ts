@@ -482,7 +482,9 @@ export default class IncidentAlertAiInsightsBuilder {
 
     return Array.from(counts.values())
       .filter((count: HotspotCount): boolean => {
-        return count.occurrenceIds.size >= INCIDENT_ALERT_AI_INSIGHTS_HOTSPOT_MIN;
+        return (
+          count.occurrenceIds.size >= INCIDENT_ALERT_AI_INSIGHTS_HOTSPOT_MIN
+        );
       })
       .sort((a: HotspotCount, b: HotspotCount): number => {
         return (
