@@ -14,6 +14,7 @@ import PageMap from "../../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import PageComponentProps from "../../../PageComponentProps";
 import { UserOnCallContextValue, useUserOnCallContext } from "./Context";
+import { READINESS_METHOD_TYPE_PUSH } from "../../../../Components/OnCallPolicy/Readiness/ReadinessTypes";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -96,9 +97,6 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
  * — because those are their own rows and the masked admin view would be a
  * strictly worse version of the settings page they already have.
  */
-
-// ReadinessMethodType.Push on the server, the methodType a push device lists as.
-const PUSH_METHOD_TYPE: string = "Push";
 
 const CHANNEL_ICONS: Dictionary<IconProp> = {
   Email: IconProp.Email,
@@ -728,7 +726,7 @@ const UserViewNotificationMethods: FunctionComponent<
                 <span className="ml-auto inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
                   {translator.translateText("Verified")}
                 </span>
-              ) : method.methodType === PUSH_METHOD_TYPE ? (
+              ) : method.methodType === READINESS_METHOD_TYPE_PUSH ? (
                 /*
                  * A push device is verified when it is registered, so one
                  * that is not was registered and then stopped receiving

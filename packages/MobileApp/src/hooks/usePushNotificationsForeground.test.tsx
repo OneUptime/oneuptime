@@ -1,10 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
-import { usePushNotifications } from "./usePushNotifications";
+import {
+  FOREGROUND_REGISTRATION_INTERVAL_MS,
+  usePushNotifications,
+} from "./usePushNotifications";
 import * as pushDeviceApi from "../api/pushDevice";
 import * as setupModule from "../notifications/setup";
 import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
+import logger from "../utils/logger";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 jest.mock("../api/pushDevice", () => {
@@ -49,11 +53,14 @@ jest.mock("./useProject", () => {
  *
  * The app registered only when it started. A phone brought back from the
  * background - which is how most people "open" an app - stayed silent until
- * the app was next started from scratch. Registration now runs again every
- * time the app comes back from the background.
+ * the app was next started from scratch. Registration now runs again when
+ * the app comes back from the background, at most once every five minutes,
+ * without asking for notification permission again.
  */
 
 type AppStateHandler = (state: string) => void;
+
+const SIX_MINUTES_MS: number = 6 * 60 * 1000;
 
 function registerSpy(): jest.SpyInstance {
   return pushDeviceApi.registerPushDevice as unknown as jest.SpyInstance;
@@ -82,11 +89,20 @@ describe("Push registration runs again when the app comes back from the backgrou
   let removeListener: jest.Mock;
   let getToken: jest.SpyInstance;
 
+  // How far the clock has been moved on, on top of the real one.
+  let clockOffsetMs: number;
+
   beforeEach(async () => {
     mockIsAuthenticated = true;
+    clockOffsetMs = 0;
     await AsyncStorage.clear();
     registerSpy().mockClear();
     registerSpy().mockResolvedValue(undefined as never);
+
+    const realNow: () => number = Date.now.bind(Date);
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return realNow() + clockOffsetMs;
+    });
 
     removeListener = jest.fn();
     addListener = jest
@@ -144,6 +160,11 @@ describe("Push registration runs again when the app comes back from the backgrou
     }
   }
 
+  // Some time later: past the least time between two registrations.
+  function later(): void {
+    clockOffsetMs += SIX_MINUTES_MS;
+  }
+
   test("registers every project when the app starts, as before", async () => {
     await renderAndWaitForFirstRegistration();
 
@@ -157,6 +178,7 @@ describe("Push registration runs again when the app comes back from the backgrou
     await renderAndWaitForFirstRegistration();
     expect(getToken).toHaveBeenCalledTimes(1);
 
+    later();
     await changeAppState(["inactive", "background", "active"]);
 
     await waitFor(() => {
@@ -179,6 +201,34 @@ describe("Push registration runs again when the app comes back from the backgrou
     }
   });
 
+  test("the least time between registrations is five minutes", () => {
+    expect(FOREGROUND_REGISTRATION_INTERVAL_MS).toBe(5 * 60 * 1000);
+  });
+
+  /*
+   * Switching between apps every few seconds must not send a request per
+   * project each time. A phone Expo said was gone loses nothing by it: the
+   * registration it needs is the first after the mark.
+   */
+  test("coming back within five minutes of a registration does not register again", async () => {
+    await renderAndWaitForFirstRegistration();
+
+    clockOffsetMs += FOREGROUND_REGISTRATION_INTERVAL_MS - 1000;
+    await changeAppState(["background", "active"]);
+    await settle();
+
+    expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length);
+    expect(getToken).toHaveBeenCalledTimes(1);
+
+    // The same return a little later does.
+    clockOffsetMs += 2000;
+    await changeAppState(["background", "active"]);
+
+    await waitFor(() => {
+      expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length * 2);
+    });
+  });
+
   /*
    * The start of the app asks for notification permission, as it always
    * did. Coming back from the background registers without asking, so
@@ -188,6 +238,7 @@ describe("Push registration runs again when the app comes back from the backgrou
   test("only the start of the app asks for notification permission", async () => {
     await renderAndWaitForFirstRegistration();
 
+    later();
     await changeAppState(["background", "active"]);
 
     await waitFor(() => {
@@ -200,14 +251,84 @@ describe("Push registration runs again when the app comes back from the backgrou
     ]);
   });
 
-  test("every return from the background registers again", async () => {
+  /*
+   * Signing in sends the app to the background: a browser for single
+   * sign-on, a mail app for a code. The first registration after it is a
+   * sign-in's, and asks for permission like one - otherwise a new user would
+   * never be asked, and the phone never registered, until the app restarted.
+   */
+  test("a return while signed out does not stop the sign-in after it from asking for permission", async () => {
+    mockIsAuthenticated = false;
+
+    const view: Awaited<ReturnType<typeof renderHook>> = await renderHook(
+      () => {
+        return usePushNotifications(null);
+      },
+    );
+
+    await changeAppState(["background", "active"]);
+    await settle();
+    expect(getToken).not.toHaveBeenCalled();
+
+    mockIsAuthenticated = true;
+    await view.rerender(undefined);
+
+    await waitFor(() => {
+      expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length);
+    });
+
+    expect(getToken.mock.calls).toEqual([[{ askForPermission: true }]]);
+  });
+
+  /*
+   * Without a token on a return - permission was refused, say - the app does
+   * not retry three times five seconds apart as a start does: the next
+   * return tries again.
+   */
+  test("on a return, no token is tried once, not retried", async () => {
     await renderAndWaitForFirstRegistration();
 
+    getToken.mockResolvedValue(null as never);
+    const warn: jest.SpyInstance = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    later();
+    await changeAppState(["background", "active"]);
+    await settle();
+
+    expect(getToken).toHaveBeenCalledTimes(2);
+    expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length);
+
+    const warnings: Array<string> = warn.mock.calls.map(
+      (call: Array<unknown>) => {
+        return String(call[0]);
+      },
+    );
+
+    // No retry is waiting to run.
+    expect(
+      warnings.filter((line: string) => {
+        return line.includes("retrying");
+      }),
+    ).toEqual([]);
+    expect(warnings).toContain(
+      "[PushNotifications] No push token on coming back to the app — the device is registered again when one is available",
+    );
+  });
+
+  test("every return after five minutes registers again", async () => {
+    await renderAndWaitForFirstRegistration();
+
+    later();
     await changeAppState(["background", "active"]);
     await waitFor(() => {
       expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length * 2);
     });
 
+    later();
     await changeAppState(["background", "active"]);
     await waitFor(() => {
       expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length * 3);
@@ -222,6 +343,7 @@ describe("Push registration runs again when the app comes back from the backgrou
   test("inactive and back - a Face ID prompt, Control Center - does not register again", async () => {
     await renderAndWaitForFirstRegistration();
 
+    later();
     await changeAppState(["inactive", "active", "inactive", "active"]);
     await settle();
 
@@ -232,6 +354,7 @@ describe("Push registration runs again when the app comes back from the backgrou
   test("going to the background registers nothing", async () => {
     await renderAndWaitForFirstRegistration();
 
+    later();
     await changeAppState(["inactive", "background"]);
     await settle();
 

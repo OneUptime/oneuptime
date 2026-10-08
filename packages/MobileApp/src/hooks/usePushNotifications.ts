@@ -22,6 +22,16 @@ import logger from "../utils/logger";
 const RETRY_DELAY_MS: number = 5000;
 const MAX_RETRIES: number = 3;
 
+/*
+ * The least time between a registration and one brought on by coming back to
+ * the app. Switching between apps every few seconds registers once, not once
+ * a switch (a request per project each time). It costs a phone Expo said was
+ * gone nothing: the registration it needs is the first after the mark, and a
+ * mark minutes after a registration renewed the token is not one another
+ * registration would undo.
+ */
+export const FOREGROUND_REGISTRATION_INTERVAL_MS: number = 5 * 60 * 1000;
+
 export function usePushNotifications(navigationRef: unknown): void {
   const { isAuthenticated }: { isAuthenticated: boolean } = useAuth();
   const { projectList }: { projectList: Array<{ _id: string }> } = useProject();
@@ -62,6 +72,17 @@ export function usePushNotifications(navigationRef: unknown): void {
    */
   const [returnsToForeground, setReturnsToForeground] = useState<number>(0);
 
+  // When a registration last started (Date.now()), 0 before the first.
+  const lastRegistrationStartedAtRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
+  /*
+   * The returns the registration below has seen, to tell a registration
+   * brought on by a return apart from one brought on by signing in or by the
+   * projects loading.
+   */
+  const handledReturnsRef: React.MutableRefObject<number> = useRef<number>(0);
+
   useEffect((): (() => void) | undefined => {
     if (Platform.OS === "web") {
       return undefined;
@@ -77,12 +98,22 @@ export function usePushNotifications(navigationRef: unknown): void {
           return;
         }
 
-        if (nextState === "active" && wasInBackground) {
-          wasInBackground = false;
-          setReturnsToForeground((count: number): number => {
-            return count + 1;
-          });
+        if (nextState !== "active" || !wasInBackground) {
+          return;
         }
+
+        wasInBackground = false;
+
+        if (
+          Date.now() - lastRegistrationStartedAtRef.current <
+          FOREGROUND_REGISTRATION_INTERVAL_MS
+        ) {
+          return;
+        }
+
+        setReturnsToForeground((count: number): number => {
+          return count + 1;
+        });
       },
     );
 
@@ -93,6 +124,15 @@ export function usePushNotifications(navigationRef: unknown): void {
 
   // Register push token when authenticated and projects loaded
   useEffect((): (() => void) | undefined => {
+    /*
+     * Counted before the checks below: a return while signed out - to a
+     * browser for single sign-on, or to a mail app for a code - is handled
+     * then, so the sign-in that follows registers as a sign-in does.
+     */
+    const isReturnToForeground: boolean =
+      returnsToForeground !== handledReturnsRef.current;
+    handledReturnsRef.current = returnsToForeground;
+
     if (Platform.OS === "web" || !isAuthenticated || projectList.length === 0) {
       return undefined;
     }
@@ -100,25 +140,31 @@ export function usePushNotifications(navigationRef: unknown): void {
     let cancelled: boolean = false;
 
     /*
-     * Asked for when the app starts. Coming back from the background
-     * registers without asking (requestPermissionsAndGetToken).
+     * Starting the app, signing in and the projects loading ask for
+     * notification permission and retry a token that is not there yet, as
+     * they always did. Coming back to the app does neither
+     * (requestPermissionsAndGetToken): a switch back must never bring the
+     * prompt back, and the next return tries again.
      */
-    const askForPermission: boolean = returnsToForeground === 0;
+    const askForPermission: boolean = !isReturnToForeground;
+    const maxAttempts: number = isReturnToForeground ? 1 : MAX_RETRIES;
 
     const register: () => Promise<void> = async (): Promise<void> => {
+      lastRegistrationStartedAtRef.current = Date.now();
+
       let token: string | null = null;
       let attempt: number = 0;
 
       // Retry obtaining the push token
-      while (!token && attempt < MAX_RETRIES && !cancelled) {
+      while (!token && attempt < maxAttempts && !cancelled) {
         token = await requestPermissionsAndGetToken({
           askForPermission: askForPermission,
         });
         if (!token && !cancelled) {
           attempt++;
-          if (attempt < MAX_RETRIES) {
+          if (attempt < maxAttempts) {
             logger.warn(
-              `[PushNotifications] Push token not available, retrying in ${RETRY_DELAY_MS}ms (attempt ${attempt}/${MAX_RETRIES})`,
+              `[PushNotifications] Push token not available, retrying in ${RETRY_DELAY_MS}ms (attempt ${attempt}/${maxAttempts})`,
             );
             await new Promise<void>((resolve: () => void): void => {
               setTimeout(resolve, RETRY_DELAY_MS);
@@ -130,7 +176,9 @@ export function usePushNotifications(navigationRef: unknown): void {
       if (!token || cancelled) {
         if (!token) {
           logger.warn(
-            "[PushNotifications] Could not obtain push token after all retries — device will not be registered",
+            isReturnToForeground
+              ? "[PushNotifications] No push token on coming back to the app — the device is registered again when one is available"
+              : "[PushNotifications] Could not obtain push token after all retries — device will not be registered",
           );
         }
         return;

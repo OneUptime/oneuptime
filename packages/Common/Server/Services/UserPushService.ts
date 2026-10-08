@@ -255,10 +255,28 @@ export class Service extends DatabaseService<UserPush> {
     deviceToken: string;
     userId?: ObjectID | undefined;
   }): Promise<number> {
+    return await this.markPushTokenAsGone({
+      ...data,
+      deviceType: PushDeviceType.Web,
+    });
+  }
+
+  /*
+   * What marking a gone subscription or token does, for both kinds: the
+   * verified devices of these types registered with it stop being verified,
+   * as root (UserPush grants update to nobody), every one of them - not
+   * deleted, so their rules survive. markWebPushSubscriptionAsGone and
+   * markExpoPushTokenAsGone differ only in the devices a token can belong to.
+   */
+  private async markPushTokenAsGone(data: {
+    deviceToken: string;
+    deviceType: PushDeviceType | Includes;
+    userId?: ObjectID | undefined;
+  }): Promise<number> {
     return await this.updateBy({
       query: {
         deviceToken: data.deviceToken,
-        deviceType: PushDeviceType.Web,
+        deviceType: data.deviceType,
         isVerified: true,
         ...(data.userId ? { userId: data.userId } : {}),
       },
@@ -303,21 +321,9 @@ export class Service extends DatabaseService<UserPush> {
     deviceToken: string;
     userId?: ObjectID | undefined;
   }): Promise<number> {
-    return await this.updateBy({
-      query: {
-        deviceToken: data.deviceToken,
-        deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
-        isVerified: true,
-        ...(data.userId ? { userId: data.userId } : {}),
-      },
-      data: {
-        isVerified: false,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
+    return await this.markPushTokenAsGone({
+      ...data,
+      deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
     });
   }
 

@@ -414,10 +414,8 @@ export default class PushNotificationService {
         promises.push(
           this.sendWebPushNotification(device.token, request.message, options),
         );
-      } else if (
-        request.deviceType === PushDeviceType.iOS ||
-        request.deviceType === PushDeviceType.Android
-      ) {
+      } else if (isExpoPushDeviceType(request.deviceType)) {
+        // The same devices UserPushService marks when Expo says a token is gone.
         promises.push(
           this.sendExpoPushNotification(
             device.token,
@@ -766,24 +764,38 @@ export default class PushNotificationService {
    * Stop sending to the devices registered with a gone subscription (see
    * UserPushService.markWebPushSubscriptionAsGone). They used to stay as they
    * were, so every later page went to the dead subscription and failed there.
-   * The send has failed either way: a failure to mark the devices is logged,
-   * and does not take the place of the send's own error.
    */
   private static async stopSendingToGoneWebPushSubscription(
     deviceToken: string,
   ): Promise<void> {
-    try {
-      const markedCount: number =
-        await UserPushService.markWebPushSubscriptionAsGone({
+    await PushNotificationService.stopSendingToGoneDevices({
+      whatIsGone: "web push subscription",
+      markAsGone: (): Promise<number> => {
+        return UserPushService.markWebPushSubscriptionAsGone({
           deviceToken: deviceToken,
         });
+      },
+    });
+  }
+
+  /*
+   * The one way both push paths stop sending to a subscription or token that
+   * is gone. The send has failed either way: a failure to mark the devices
+   * is logged, and does not take the place of the send's own error.
+   */
+  private static async stopSendingToGoneDevices(data: {
+    whatIsGone: string;
+    markAsGone: () => Promise<number>;
+  }): Promise<void> {
+    try {
+      const markedCount: number = await data.markAsGone();
 
       logger.info(
-        `Web push subscription is gone: ${markedCount} device(s) marked as not receiving notifications.`,
+        `A gone ${data.whatIsGone}: ${markedCount} device(s) marked as not receiving notifications.`,
       );
     } catch (markError) {
       logger.error(
-        `Could not mark the devices of a gone web push subscription: ${markError}`,
+        `Could not mark the devices of a gone ${data.whatIsGone}: ${markError}`,
       );
     }
   }
@@ -993,28 +1005,19 @@ export default class PushNotificationService {
   /*
    * Stop sending to the devices registered with a token Expo says is gone
    * (UserPushService.markExpoPushTokenAsGone), as
-   * stopSendingToGoneWebPushSubscription does for a browser. The send has
-   * failed either way: a failure to mark the devices is logged, and does not
-   * take the place of the send's own error.
+   * stopSendingToGoneWebPushSubscription does for a browser.
    */
   private static async stopSendingToGoneExpoPushToken(
     expoPushToken: string,
   ): Promise<void> {
-    try {
-      const markedCount: number = await UserPushService.markExpoPushTokenAsGone(
-        {
+    await PushNotificationService.stopSendingToGoneDevices({
+      whatIsGone: "Expo push token (DeviceNotRegistered)",
+      markAsGone: (): Promise<number> => {
+        return UserPushService.markExpoPushTokenAsGone({
           deviceToken: expoPushToken,
-        },
-      );
-
-      logger.info(
-        `Expo push token is gone (DeviceNotRegistered): ${markedCount} device(s) marked as not receiving notifications.`,
-      );
-    } catch (markError) {
-      logger.error(
-        `Could not mark the devices of a gone Expo push token: ${markError}`,
-      );
-    }
+        });
+      },
+    });
   }
 
   private static async sendViaRelay(
