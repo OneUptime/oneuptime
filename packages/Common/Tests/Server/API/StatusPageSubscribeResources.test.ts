@@ -698,6 +698,45 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       ]);
     });
 
+    it("clears the resources a visitor unticks: the empty list is written", async () => {
+      await changeSubscription(pickResources([]));
+
+      expect(nextFunction).not.toHaveBeenCalled();
+
+      const data: JSONObject = updated[0]!.data as unknown as JSONObject;
+
+      expect(data["statusPageResources"]).toEqual([]);
+      expect(data["isSubscribedToAllResources"]).toBe(false);
+      expect(resourceLookups).toEqual([]);
+    });
+
+    it("clears the event types a visitor unticks: the empty list is written", async () => {
+      await changeSubscription({
+        isSubscribedToAllResources: true,
+        isSubscribedToAllEventTypes: false,
+        statusPageEventTypes: [],
+      });
+
+      const data: JSONObject = updated[0]!.data as unknown as JSONObject;
+
+      expect(data["statusPageEventTypes"]).toEqual([]);
+      expect(data["isSubscribedToAllEventTypes"]).toBe(false);
+    });
+
+    it("leaves the lists as they are when the change sends none", async () => {
+      await changeSubscription({
+        isSubscribedToAllResources: true,
+        isSubscribedToAllEventTypes: true,
+      });
+
+      const data: JSONObject = updated[0]!.data as unknown as JSONObject;
+
+      expect(data).not.toHaveProperty("statusPageResources");
+      expect(data).not.toHaveProperty("statusPageEventTypes");
+      expect(data["isSubscribedToAllResources"]).toBe(true);
+      expect(data["isSubscribedToAllEventTypes"]).toBe(true);
+    });
+
     it("unsubscribes on a page that offers no choices without writing any", async () => {
       allowSubscribersToChooseResources = false;
       allowSubscribersToChooseEventTypes = false;

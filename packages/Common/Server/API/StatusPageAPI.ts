@@ -3843,19 +3843,28 @@ export default class StatusPageAPI extends BaseAPI<
        * write of a subscription to its own page's resources). And it changes
        * only the choices the page offers: on a page that does not let
        * subscribers choose resources, or event types, those are left as
-       * they are, as a sign-up there may not make them.
+       * they are, as a sign-up there may not make them. A list is written
+       * as the visitor sent it - an empty one clears what was picked - and
+       * left as it is when they sent none.
        */
+      const sentResources: unknown = req.body.data["statusPageResources"];
+      const sentEventTypes: unknown = req.body.data["statusPageEventTypes"];
+
       const change: Record<string, unknown> = {
         ...(statusPage.allowSubscribersToChooseResources
           ? {
-              statusPageResources: statusPageSubscriber.statusPageResources,
+              ...(Array.isArray(sentResources)
+                ? { statusPageResources: sentResources }
+                : {}),
               isSubscribedToAllResources:
                 statusPageSubscriber.isSubscribedToAllResources!,
             }
           : {}),
         ...(statusPage.allowSubscribersToChooseEventTypes
           ? {
-              statusPageEventTypes: statusPageSubscriber.statusPageEventTypes,
+              ...(Array.isArray(sentEventTypes)
+                ? { statusPageEventTypes: sentEventTypes }
+                : {}),
               isSubscribedToAllEventTypes:
                 statusPageSubscriber.isSubscribedToAllEventTypes!,
             }

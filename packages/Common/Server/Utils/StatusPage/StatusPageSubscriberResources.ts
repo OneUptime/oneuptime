@@ -301,6 +301,9 @@ export default class StatusPageSubscriberResources {
       { statusPageId: ObjectID; ids: Array<string> }
     > = new Map();
 
+    // Per page, the ids listed already, normalized: each is asked once.
+    const listedByPage: Map<string, Set<string>> = new Map();
+
     const refused: Set<string> = new Set<string>();
 
     for (const subscriber of data.subscribers) {
@@ -332,12 +335,14 @@ export default class StatusPageSubscriberResources {
           ids: [],
         };
 
-      for (const id of added) {
-        const isListed: boolean = entry.ids.some((listed: string): boolean => {
-          return normalizeReferenceId(listed) === normalizeReferenceId(id);
-        });
+      const listed: Set<string> = listedByPage.get(pageKey) || new Set();
+      listedByPage.set(pageKey, listed);
 
-        if (!isListed) {
+      for (const id of added) {
+        const normalized: string = normalizeReferenceId(id);
+
+        if (!listed.has(normalized)) {
+          listed.add(normalized);
           entry.ids.push(id);
         }
       }
