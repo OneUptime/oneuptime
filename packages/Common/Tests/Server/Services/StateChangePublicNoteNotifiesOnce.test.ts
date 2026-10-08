@@ -8,16 +8,20 @@ import IncidentPublicNoteService from "../../../Server/Services/IncidentPublicNo
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
 import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
+import ScheduledMaintenanceFeedService from "../../../Server/Services/ScheduledMaintenanceFeedService";
+import ScheduledMaintenanceMeasurementValueService from "../../../Server/Services/ScheduledMaintenanceMeasurementValueService";
 import ScheduledMaintenancePublicNoteService from "../../../Server/Services/ScheduledMaintenancePublicNoteService";
+import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/ScheduledMaintenanceStateTimelineService";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import URL from "../../../Types/API/URL";
-import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import StateChangeSubscriberNotification from "../../../Types/StatusPage/StateChangeSubscriberNotification";
@@ -47,6 +51,11 @@ jest.mock("../../../Server/Utils/Logger");
  * they get. A scheduled maintenance state change marked itself as sent by
  * the note and then, a few lines further down, queued itself anyway, so
  * subscribers got the state change message and the note (found in #4384).
+ *
+ * Both timelines post the note once the change is saved, never before it
+ * (the scheduled maintenance one did until #4442's finding): onBeforeCreate
+ * decides the change's notification and carries the note forward, and
+ * onCreateSuccess posts it.
  *
  * These tests drive the real state timeline hooks, and the real public note
  * hooks for the note they post, and count what the two subscriber jobs would
@@ -198,47 +207,23 @@ describe("a scheduled maintenance state change with a public note tells subscrib
     })) as OnBeforeCreateResult<ScheduledMaintenanceStateTimeline>;
   }
 
-  function queuedMessages(
+  // The note a change carries forward, to post once it is saved.
+  function carriedNote(
     result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline>,
-  ): number {
-    const changeQueued: number = isQueued({
-      shouldNotify: result.createBy.data.shouldStatusPageSubscribersBeNotified,
-      status: result.createBy.data.subscriberNotificationStatus,
-    })
-      ? 1
-      : 0;
-
-    const notesQueued: number = postedNotes.filter(
-      (posted: { note: ScheduledMaintenancePublicNote }) => {
-        return isQueued({
-          shouldNotify:
-            posted.note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
-          status: posted.note.subscriberNotificationStatusOnNoteCreated,
-        });
-      },
-    ).length;
-
-    return changeQueued + notesQueued;
+  ): ScheduledMaintenancePublicNote | undefined {
+    return result.carryForward["publicNoteToPost"] as
+      | ScheduledMaintenancePublicNote
+      | undefined;
   }
 
-  test("with Notify on, the note is the one message: it is queued, and the change is recorded as sent by it", async () => {
+  test("with Notify on, the change is recorded as sent by the note it carries forward, and nothing is posted before it is saved", async () => {
     const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
       await changeState({
         notify: true,
         publicNote: "Maintenance has started.",
       });
 
-    expect(createNote).toHaveBeenCalledTimes(1);
-    expect(postedNotes).toHaveLength(1);
-
-    const note: ScheduledMaintenancePublicNote = postedNotes[0]!.note;
-    expect(note.note).toBe("Maintenance has started.");
-    expect(note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
-    expect(note.subscriberNotificationStatusOnNoteCreated).toBe(
-      StatusPageSubscriberNotificationStatus.Pending,
-    );
-
-    // The regression: this was set to Success and then back to Pending.
+    // The regression of #4384: this was set to Success and then back to Pending.
     expect(result.createBy.data.subscriberNotificationStatus).toBe(
       StatusPageSubscriberNotificationStatus.Success,
     );
@@ -246,59 +231,45 @@ describe("a scheduled maintenance state change with a public note tells subscrib
       StateChangeSubscriberNotification.sentByPublicNoteMessage,
     );
 
-    expect(queuedMessages(result)).toBe(1);
-  });
+    // The note waits for the change to be saved (#4442).
+    expect(createNote).not.toHaveBeenCalled();
+    expect(postedNotes).toHaveLength(0);
 
-  test("the note is posted on the event, at the change's time, as the person changing the state", async () => {
-    const props: Record<string, unknown> = {
-      isRoot: true,
-      tenantId: PROJECT_ID,
-    };
+    const note: ScheduledMaintenancePublicNote = carriedNote(result)!;
+    expect(note).toBeInstanceOf(ScheduledMaintenancePublicNote);
+    expect(note.note).toBe("Maintenance has started.");
+    expect(note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
 
-    const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
-      await changeState({
-        notify: true,
-        publicNote: "Maintenance has started.",
-        props: props,
-      });
-
-    const posted: {
-      note: ScheduledMaintenancePublicNote;
-      props: Record<string, unknown>;
-    } = postedNotes[0]!;
-    expect(posted.props).toBe(props);
-    expect(posted.note.scheduledMaintenanceId?.toString()).toBe(
-      EVENT_ID.toString(),
-    );
-    expect(posted.note.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(posted.note.postedAt).toEqual(STARTS_AT);
-    expect(posted.note.createdAt).toEqual(STARTS_AT);
-
-    // The change carries the note forward, as it always has.
+    // The text goes forward too, as it always has.
     expect(result.carryForward["publicNote"]).toBe("Maintenance has started.");
   });
 
-  test("the note is posted as written", async () => {
-    const written: string = "  Upgrading the primary database.\n\n- step 1\n";
+  test("the note it carries is the event's, at the change's time, in its project", async () => {
+    const note: ScheduledMaintenancePublicNote = carriedNote(
+      await changeState({
+        notify: true,
+        publicNote: "Maintenance has started.",
+      }),
+    )!;
 
-    await changeState({ notify: true, publicNote: written });
-
-    expect(postedNotes[0]!.note.note).toBe(written);
+    expect(note.scheduledMaintenanceId?.toString()).toBe(EVENT_ID.toString());
+    expect(note.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(note.postedAt).toEqual(STARTS_AT);
+    expect(note.createdAt).toEqual(STARTS_AT);
   });
 
-  test("without a note, the change is queued and no note is posted", async () => {
+  test("without a note, the change is queued and carries none", async () => {
     const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
       await changeState({ notify: true });
 
-    expect(createNote).not.toHaveBeenCalled();
     expect(result.createBy.data.subscriberNotificationStatus).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
     );
     expect(
       result.createBy.data.subscriberNotificationStatusMessage,
     ).toBeUndefined();
+    expect(carriedNote(result)).toBeUndefined();
     expect(result.carryForward["publicNote"]).toBeUndefined();
-    expect(queuedMessages(result)).toBe(1);
   });
 
   test.each([
@@ -306,17 +277,16 @@ describe("a scheduled maintenance state change with a public note tells subscrib
     ["spaces", "   "],
     ["line breaks and tabs", "\n\t \n"],
   ])(
-    "a note with no text in it (%s) is no note: nothing empty is posted, and the change is queued",
+    "a note with no text in it (%s) is no note: nothing is carried forward, and the change is queued",
     async (_name: string, publicNote: string) => {
       const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
         await changeState({ notify: true, publicNote: publicNote });
 
-      expect(createNote).not.toHaveBeenCalled();
       expect(result.createBy.data.subscriberNotificationStatus).toBe(
         StatusPageSubscriberNotificationStatus.Pending,
       );
+      expect(carriedNote(result)).toBeUndefined();
       expect(result.carryForward["publicNote"]).toBeUndefined();
-      expect(queuedMessages(result)).toBe(1);
     },
   );
 
@@ -324,51 +294,44 @@ describe("a scheduled maintenance state change with a public note tells subscrib
     const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
       await changeState({ notify: true, publicNote: 42 });
 
-    expect(createNote).not.toHaveBeenCalled();
+    expect(carriedNote(result)).toBeUndefined();
     expect(result.createBy.data.subscriberNotificationStatus).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
     );
   });
 
-  test("with Notify off, nobody is told: the note is posted quietly and the change is skipped", async () => {
+  test("with Notify off, the change is skipped and its note still goes forward, quietly", async () => {
     const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
       await changeState({
         notify: false,
         publicNote: "Maintenance has started.",
       });
 
-    expect(postedNotes).toHaveLength(1);
-    expect(
-      postedNotes[0]!.note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
-    ).toBe(false);
-    expect(postedNotes[0]!.note.subscriberNotificationStatusOnNoteCreated).toBe(
-      StatusPageSubscriberNotificationStatus.Skipped,
-    );
-
     expect(result.createBy.data.subscriberNotificationStatus).toBe(
       StatusPageSubscriberNotificationStatus.Skipped,
     );
     expect(result.createBy.data.subscriberNotificationStatusMessage).toBe(
       SCHEDULED_MAINTENANCE_SKIPPED_MESSAGE,
     );
-    expect(queuedMessages(result)).toBe(0);
+    expect(
+      carriedNote(result)!.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
+    ).toBe(false);
   });
 
   test("with Notify off and no note, the change is skipped", async () => {
     const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
       await changeState({ notify: false });
 
-    expect(createNote).not.toHaveBeenCalled();
     expect(result.createBy.data.subscriberNotificationStatus).toBe(
       StatusPageSubscriberNotificationStatus.Skipped,
     );
     expect(result.createBy.data.subscriberNotificationStatusMessage).toBe(
       SCHEDULED_MAINTENANCE_SKIPPED_MESSAGE,
     );
-    expect(queuedMessages(result)).toBe(0);
+    expect(carriedNote(result)).toBeUndefined();
   });
 
-  test("a change that does not say keeps its column defaults, and its note stays quiet: one message", async () => {
+  test("a change that does not say keeps its column defaults, and the note it carries stays quiet", async () => {
     const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
       await changeState({
         notify: undefined,
@@ -380,67 +343,269 @@ describe("a scheduled maintenance state change with a public note tells subscrib
     ).toBeUndefined();
     expect(result.createBy.data.subscriberNotificationStatus).toBeUndefined();
     expect(
-      postedNotes[0]!.note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
+      carriedNote(result)!.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
     ).toBe(false);
-    expect(queuedMessages(result)).toBe(1);
   });
 
-  test("whatever is asked, at most one message is queued, and exactly one when the change notifies", async () => {
-    const cases: Array<{
+  describe("once the change is saved, the note it carried is posted", () => {
+    const ONGOING: string = ONGOING_STATE_ID.toString();
+
+    beforeEach(() => {
+      /*
+       * The state the event moved to, read by id - and asked again with a
+       * flag ({ isOngoingState: true }) to tell which kind it is.
+       */
+      getJestSpyOn(
+        ScheduledMaintenanceStateService,
+        "findOneBy",
+      ).mockImplementation(
+        async (
+          findOneBy: unknown,
+        ): Promise<ScheduledMaintenanceState | null> => {
+          const query: Record<string, unknown> = (
+            findOneBy as { query: Record<string, unknown> }
+          ).query;
+
+          if (String(query["_id"]) !== ONGOING) {
+            return null;
+          }
+
+          if (query["isResolvedState"] || query["isEndedState"]) {
+            return null;
+          }
+
+          const ongoing: ScheduledMaintenanceState =
+            new ScheduledMaintenanceState();
+          ongoing._id = ONGOING;
+          ongoing.name = "Ongoing";
+          ongoing.isOngoingState = true;
+          ongoing.isScheduledState = false;
+          return ongoing;
+        },
+      );
+      getJestSpyOn(
+        ScheduledMaintenanceStateTimelineService as never,
+        "isLastScheduledMaintenanceState",
+      ).mockResolvedValue(false as never);
+      getJestSpyOn(ScheduledMaintenanceService, "findOneBy").mockResolvedValue(
+        null,
+      );
+      getJestSpyOn(
+        ScheduledMaintenanceService,
+        "updateOneBy",
+      ).mockResolvedValue(1);
+      getJestSpyOn(
+        ScheduledMaintenanceService,
+        "getScheduledMaintenanceNumber",
+      ).mockResolvedValue({ number: 3, numberWithPrefix: "SM-3" });
+      getJestSpyOn(
+        ScheduledMaintenanceService,
+        "getScheduledMaintenanceLinkInDashboard",
+      ).mockResolvedValue(
+        URL.fromString("https://oneuptime.example/scheduled-maintenance"),
+      );
+      getJestSpyOn(
+        ScheduledMaintenanceFeedService,
+        "createScheduledMaintenanceFeedItem",
+      ).mockResolvedValue(undefined);
+      getJestSpyOn(
+        ScheduledMaintenanceMeasurementValueService,
+        "recomputeForScheduledMaintenance",
+      ).mockResolvedValue(undefined);
+    });
+
+    async function saveChange(data: {
       notify: boolean | undefined;
-      publicNote?: string;
-      expected: number;
-    }> = [
-      { notify: true, publicNote: "Work has started.", expected: 1 },
-      { notify: true, expected: 1 },
-      { notify: true, publicNote: " ", expected: 1 },
-      { notify: false, publicNote: "Work has started.", expected: 0 },
-      { notify: false, expected: 0 },
-      { notify: undefined, publicNote: "Work has started.", expected: 1 },
-      { notify: undefined, expected: 1 },
-    ];
+      publicNote?: unknown;
+      props?: Record<string, unknown>;
+    }): Promise<{
+      change: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline>;
+      queued: number;
+    }> {
+      const change: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
+        await changeState(data);
 
-    for (const testCase of cases) {
-      postedNotes = [];
+      // Nothing is posted before the change is saved.
+      expect(postedNotes).toHaveLength(0);
 
-      const result: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline> =
-        await changeState({
+      // What DatabaseService saved: the row as the hook left it.
+      const created: ScheduledMaintenanceStateTimeline = change.createBy.data;
+      created._id = TIMELINE_ID.toString();
+
+      await hookOf(ScheduledMaintenanceStateTimelineService, "onCreateSuccess")(
+        { createBy: change.createBy, carryForward: change.carryForward },
+        created,
+      );
+
+      const changeQueued: number = isQueued({
+        shouldNotify: created.shouldStatusPageSubscribersBeNotified,
+        status: created.subscriberNotificationStatus,
+      })
+        ? 1
+        : 0;
+
+      const notesQueued: number = postedNotes.filter(
+        (posted: { note: ScheduledMaintenancePublicNote }) => {
+          return isQueued({
+            shouldNotify:
+              posted.note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
+            status: posted.note.subscriberNotificationStatusOnNoteCreated,
+          });
+        },
+      ).length;
+
+      return { change: change, queued: changeQueued + notesQueued };
+    }
+
+    test("with Notify on: the note, queued to notify, is the one message", async () => {
+      const saved: {
+        change: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline>;
+        queued: number;
+      } = await saveChange({
+        notify: true,
+        publicNote: "Maintenance has started.",
+      });
+
+      expect(createNote).toHaveBeenCalledTimes(1);
+      expect(postedNotes).toHaveLength(1);
+
+      const note: ScheduledMaintenancePublicNote = postedNotes[0]!.note;
+      expect(note.note).toBe("Maintenance has started.");
+      expect(note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
+        true,
+      );
+      expect(note.subscriberNotificationStatusOnNoteCreated).toBe(
+        StatusPageSubscriberNotificationStatus.Pending,
+      );
+      expect(saved.change.createBy.data.subscriberNotificationStatus).toBe(
+        StatusPageSubscriberNotificationStatus.Success,
+      );
+
+      expect(saved.queued).toBe(1);
+    });
+
+    test("the note is posted on the event, at the change's time, as the person changing the state", async () => {
+      const props: Record<string, unknown> = {
+        isRoot: true,
+        tenantId: PROJECT_ID,
+      };
+
+      const saved: {
+        change: OnBeforeCreateResult<ScheduledMaintenanceStateTimeline>;
+      } = await saveChange({
+        notify: true,
+        publicNote: "Maintenance has started.",
+        props: props,
+      });
+
+      const posted: {
+        note: ScheduledMaintenancePublicNote;
+        props: Record<string, unknown>;
+      } = postedNotes[0]!;
+      expect(posted.props).toBe(saved.change.createBy.props);
+      expect(posted.note.scheduledMaintenanceId?.toString()).toBe(
+        EVENT_ID.toString(),
+      );
+      expect(posted.note.projectId?.toString()).toBe(PROJECT_ID.toString());
+      expect(posted.note.postedAt).toEqual(STARTS_AT);
+      expect(posted.note.createdAt).toEqual(STARTS_AT);
+    });
+
+    test("the note is posted as written", async () => {
+      const written: string = "  Upgrading the primary database.\n\n- step 1\n";
+
+      await saveChange({ notify: true, publicNote: written });
+
+      expect(postedNotes[0]!.note.note).toBe(written);
+    });
+
+    test("with Notify off, nobody is told: the note is posted quietly and the change is skipped", async () => {
+      const saved: { queued: number } = await saveChange({
+        notify: false,
+        publicNote: "Maintenance has started.",
+      });
+
+      expect(postedNotes).toHaveLength(1);
+      expect(
+        postedNotes[0]!.note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
+      ).toBe(false);
+      expect(
+        postedNotes[0]!.note.subscriberNotificationStatusOnNoteCreated,
+      ).toBe(StatusPageSubscriberNotificationStatus.Skipped);
+      expect(saved.queued).toBe(0);
+    });
+
+    test("whatever is asked, at most one message is queued, and exactly one when the change notifies", async () => {
+      const cases: Array<{
+        notify: boolean | undefined;
+        publicNote?: string;
+        expected: number;
+        notesPosted: number;
+      }> = [
+        {
+          notify: true,
+          publicNote: "Work has started.",
+          expected: 1,
+          notesPosted: 1,
+        },
+        { notify: true, expected: 1, notesPosted: 0 },
+        { notify: true, publicNote: " ", expected: 1, notesPosted: 0 },
+        {
+          notify: false,
+          publicNote: "Work has started.",
+          expected: 0,
+          notesPosted: 1,
+        },
+        { notify: false, expected: 0, notesPosted: 0 },
+        {
+          notify: undefined,
+          publicNote: "Work has started.",
+          expected: 1,
+          notesPosted: 1,
+        },
+        { notify: undefined, expected: 1, notesPosted: 0 },
+      ];
+
+      for (const testCase of cases) {
+        postedNotes = [];
+
+        const saved: { queued: number } = await saveChange({
           notify: testCase.notify,
           ...(testCase.publicNote !== undefined
             ? { publicNote: testCase.publicNote }
             : {}),
         });
 
-      expect({ asked: testCase, queued: queuedMessages(result) }).toEqual({
-        asked: testCase,
-        queued: testCase.expected,
-      });
-    }
-  });
+        expect({
+          asked: testCase,
+          queued: saved.queued,
+          notesPosted: postedNotes.length,
+        }).toEqual({
+          asked: testCase,
+          queued: testCase.expected,
+          notesPosted: testCase.notesPosted,
+        });
+      }
+    });
 
-  test("a note that cannot be posted refuses the state change, and the event's lock is let go", async () => {
-    const mutex: SemaphoreMutex = {
-      key: EVENT_ID.toString(),
-    } as unknown as SemaphoreMutex;
-    getJestSpyOn(Semaphore, "lock").mockResolvedValue(mutex);
-    const release: jest.SpyInstance = getJestSpyOn(
-      Semaphore,
-      "release",
-    ).mockResolvedValue(undefined);
+    test("a note that cannot be posted once the change is saved: the person who sent it is told, and the event's lock was already let go", async () => {
+      const mutex: SemaphoreMutex = {
+        key: EVENT_ID.toString(),
+      } as unknown as SemaphoreMutex;
+      getJestSpyOn(Semaphore, "lock").mockResolvedValue(mutex);
+      const release: jest.SpyInstance = getJestSpyOn(
+        Semaphore,
+        "release",
+      ).mockResolvedValue(undefined);
 
-    createNote.mockRejectedValue(
-      new NotAuthorizedException(
-        "You do not have permission to create Scheduled Maintenance Public Note.",
-      ),
-    );
+      createNote.mockRejectedValue(new Error("The note could not be saved."));
 
-    await expect(
-      changeState({ notify: true, publicNote: "Maintenance has started." }),
-    ).rejects.toThrow(
-      "You do not have permission to create Scheduled Maintenance Public Note.",
-    );
+      await expect(
+        saveChange({ notify: true, publicNote: "Maintenance has started." }),
+      ).rejects.toThrow("The note could not be saved.");
 
-    expect(release).toHaveBeenCalledWith(mutex);
+      expect(release).toHaveBeenCalledWith(mutex);
+    });
   });
 });
 

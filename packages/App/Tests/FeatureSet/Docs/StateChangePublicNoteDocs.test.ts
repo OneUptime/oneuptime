@@ -33,6 +33,12 @@ const INCIDENT_SECTION: Record<string, string> = {
   fa: "## گفتن تغییر وضعیت به مشترکان صفحه وضعیت",
 };
 
+// What each guide says about when the note is posted.
+const NOTE_POSTED_ONCE_THE_CHANGE_IS_SAVED: Record<string, string> = {
+  en: "The note is posted once the state change is saved: it follows the change in the event's feed and in Slack and Microsoft Teams, and a state change that is not saved posts no note and tells nobody.",
+  fa: "یادداشت پس از ذخیره شدن تغییر وضعیت منتشر می‌شود: در فید رویداد و در Slack و Microsoft Teams پس از آن تغییر می‌آید، و تغییر وضعیتی که ذخیره نشود هیچ یادداشتی منتشر نمی‌کند و به کسی خبر نمی‌دهد.",
+};
+
 const NOTE_KEY_IN_THE_API: string = `"miscDataProps": {"${StateChangeSubscriberNotification.publicNoteKey}": "..."}`;
 
 function readRepoFile(relative: string): string {
@@ -119,6 +125,15 @@ describe.each(LANGUAGES)("the %s guides", (language: string) => {
       "`POST /api/scheduled-maintenance-state-timeline`",
     );
     expect(section).toContain("`shouldStatusPageSubscribersBeNotified`");
+  });
+
+  test("scheduled maintenance: the note is posted once the change is saved, and a change that is not saved posts none", () => {
+    const section: string = sectionOf(
+      readGuide(language, SUBSCRIBERS_PAGE),
+      SCHEDULED_MAINTENANCE_SECTION[language]!,
+    );
+
+    expect(section).toContain(NOTE_POSTED_ONCE_THE_CHANGE_IS_SAVED[language]!);
   });
 
   test("incidents: the note sent with a state change is the one message too", () => {
