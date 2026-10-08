@@ -111,7 +111,7 @@ describe("ScheduledMaintenanceService.isScheduledMaintenanceOngoing: has the eve
     const reads: ReturnType<typeof mockProgressStateReads> =
       mockProgressStateReads();
     const event: ScheduledMaintenance = readsEvent("verifying");
-    event.currentScheduledMaintenanceState = undefined;
+    delete event.currentScheduledMaintenanceState;
 
     await expect(
       ScheduledMaintenanceService.isScheduledMaintenanceOngoing({

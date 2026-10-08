@@ -776,7 +776,7 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds befo
       state: "ongoing",
       networkSites: [SITE_1],
     });
-    stateless.currentScheduledMaintenanceState = undefined;
+    delete stateless.currentScheduledMaintenanceState;
     eventsBeforeWrite = [stateless];
 
     const carried: Dictionary<AttachmentsBeforeUpdate> | null = carriedOf(
