@@ -42,9 +42,11 @@ import MarkdownDataUrls, {
  *     a message that cannot show one (an incoming webhook, a text reply).
  *
  * Either way, images and links whose address is any other data: URL (an
- * SVG, a file) become their alt text or their text, a link reference
- * definition to one goes, and an autolink to an image becomes "[image]" -
- * no chat can open a data: URL, and its base64 would only fill the message.
+ * SVG, a file) become their alt text or their text (an image of no inline
+ * raster image, with no alt text, leaves nothing: it is not shown anywhere),
+ * a link reference definition to one goes, and an autolink to an image
+ * becomes "[image]" - no chat can open a data: URL, and its base64 would
+ * only fill the message.
  * Everything else - code spans and code blocks above all, byte for byte,
  * and https images, which chats show by themselves - stays as it was.
  *
@@ -65,6 +67,7 @@ export enum ChatMarkdownPieceKind {
 
 export interface ChatMarkdownText {
   kind: ChatMarkdownPieceKind.Markdown;
+  // Never empty, and without blank lines around it.
   markdown: string;
 }
 
@@ -122,12 +125,28 @@ const MORE_SPECIAL_CHARACTERS_PATTERN: RegExp = /[~=]/g;
 // A number that would start an ordered list: "1." or "1)" first.
 const ORDERED_LIST_START_PATTERN: RegExp = /^(\d{1,9})([.)])/;
 
-// An odd number of backslashes at the end: a hard line break's.
-const TRAILING_HARD_BREAK_PATTERN: RegExp = /(?:^|[^\\])(?:\\\\)*\\$/;
-
 const SPACE_OR_TAB_ONLY_PATTERN: RegExp = /^[ \t]*$/;
 
 const LINE_BREAK_PATTERN: RegExp = /[\r\n]+/g;
+
+// The lines at the start of a text with nothing on them but white space.
+const LEADING_BLANK_LINES_PATTERN: RegExp = /^(?:[ \t]*(?:\r\n|\r|\n))+/;
+
+const CHAR_TAB: number = 0x09;
+const CHAR_LINE_FEED: number = 0x0a;
+const CHAR_CARRIAGE_RETURN: number = 0x0d;
+const CHAR_SPACE: number = 0x20;
+const CHAR_BACKSLASH: number = 0x5c;
+
+type CharacterTestFunction = (code: number) => boolean;
+
+const isSpaceOrTab: CharacterTestFunction = (code: number): boolean => {
+  return code === CHAR_SPACE || code === CHAR_TAB;
+};
+
+const isLineEnding: CharacterTestFunction = (code: number): boolean => {
+  return code === CHAR_LINE_FEED || code === CHAR_CARRIAGE_RETURN;
+};
 
 type ChatTextFunction = (text: string) => string;
 
@@ -251,16 +270,30 @@ export default class ChatInlineImages {
       stops.push({ position: imageLine.line.start, imageLine: imageLine });
     }
 
+    /*
+     * After its block, and after the blank lines that follow it: a block
+     * can end in a fence its container closed, which holds them as code.
+     */
     for (const image of shownAfterBlock) {
-      stops.push({ position: image.topLevelBlockEnd, imageLine: null });
+      stops.push({
+        position: ChatInlineImages.getNextLineWithText(
+          text,
+          image.topLevelBlockEnd,
+        ),
+        imageLine: null,
+      });
     }
 
+    // At one place, a block's images come before an image line's.
     stops.sort(
       (
         first: { position: number; imageLine: ImageLine | null },
         second: { position: number; imageLine: ImageLine | null },
       ): number => {
-        return first.position - second.position;
+        return (
+          first.position - second.position ||
+          Number(first.imageLine !== null) - Number(second.imageLine !== null)
+        );
       },
     );
 
@@ -280,17 +313,17 @@ export default class ChatInlineImages {
 
       ChatInlineImages.withText(
         pieces,
-        ChatInlineImages.withoutTrailingHardBreak(
-          textUpTo(
-            line.previousLineEnd === null ? line.start : line.previousLineEnd,
-          ),
-        ),
+        line.previousLineEnd === null
+          ? textUpTo(line.start)
+          : ChatInlineImages.withoutHardLineBreakAtEnd(
+              textUpTo(line.previousLineEnd),
+            ),
       );
       showWaitingImages(line.start);
 
       for (const image of stop.imageLine.images) {
         const fallbackMarkdown: string =
-          toChatText(image.text) || PLACEHOLDER_MARKDOWN;
+          ChatInlineImages.getImageFallbackMarkdown(image);
 
         if (image.image) {
           pieces.push(ChatInlineImages.toImagePiece(image, fallbackMarkdown));
@@ -446,7 +479,7 @@ export default class ChatInlineImages {
             edits.push({
               start: use.start,
               end: use.end,
-              replacement: toChatText(use.text) || PLACEHOLDER_MARKDOWN,
+              replacement: ChatInlineImages.getImageFallbackMarkdown(use),
             });
           }
           break;
@@ -497,6 +530,17 @@ export default class ChatInlineImages {
       .sort((first: Edit, second: Edit): number => {
         return first.start - second.start;
       });
+  }
+
+  /*
+   * What reads in an image's place: its alt text; or, for an image the
+   * dashboard and the emails show, "[image]", so the reader knows one is
+   * there to see. An image of no inline raster image - an SVG, a template's
+   * placeholder for a screenshot a run did not take - with no alt text is
+   * not shown anywhere, and leaves nothing.
+   */
+  private static getImageFallbackMarkdown(use: DataUrlUse): string {
+    return toChatText(use.text) || (use.image ? PLACEHOLDER_MARKDOWN : "");
   }
 
   // The uses that are not inside another one, in order.
@@ -564,15 +608,66 @@ export default class ChatInlineImages {
   }
 
   /*
-   * A piece's last line break, when it was a backslash's, would be read as
-   * a backslash at its end: the backslash goes.
+   * Text that ends with a line of a paragraph that an image line followed: a
+   * backslash at the end of that line was its line break, and would be read
+   * as a backslash at the end of the text. It goes.
    */
-  private static withoutTrailingHardBreak(text: string): string {
-    const trimmed: string = text.replace(/[ \t]+$/, "");
+  private static withoutHardLineBreakAtEnd(text: string): string {
+    let end: number = text.length;
 
-    return TRAILING_HARD_BREAK_PATTERN.test(trimmed)
-      ? trimmed.slice(0, -1)
-      : text;
+    while (end > 0 && isSpaceOrTab(text.charCodeAt(end - 1))) {
+      end--;
+    }
+
+    let backslashes: number = 0;
+
+    while (
+      end - backslashes > 0 &&
+      text.charCodeAt(end - backslashes - 1) === CHAR_BACKSLASH
+    ) {
+      backslashes++;
+    }
+
+    return backslashes % 2 === 1 ? text.slice(0, end - 1) : text;
+  }
+
+  /*
+   * Where the first line after this one that is not blank starts, or the
+   * end of the text. `position` is where a line ends, before its line
+   * ending.
+   */
+  private static getNextLineWithText(text: string, position: number): number {
+    let index: number = position;
+
+    for (;;) {
+      if (text.charCodeAt(index) === CHAR_CARRIAGE_RETURN) {
+        index++;
+
+        if (text.charCodeAt(index) === CHAR_LINE_FEED) {
+          index++;
+        }
+      } else if (text.charCodeAt(index) === CHAR_LINE_FEED) {
+        index++;
+      } else {
+        return Math.min(index, text.length);
+      }
+
+      let probe: number = index;
+
+      while (probe < text.length && isSpaceOrTab(text.charCodeAt(probe))) {
+        probe++;
+      }
+
+      if (probe >= text.length) {
+        return text.length;
+      }
+
+      if (!isLineEnding(text.charCodeAt(probe))) {
+        return index;
+      }
+
+      index = probe;
+    }
   }
 
   private static toImagePiece(
@@ -589,7 +684,10 @@ export default class ChatInlineImages {
 
   /*
    * Adds text to the pieces: to the last one when that is text too, and not
-   * at all when there is nothing in it to read.
+   * at all when there is nothing in it to read. The blank lines it starts
+   * with go - they are always between blocks, and a chat would show them as
+   * space - but not its first line's indentation, which can make that line
+   * code.
    */
   private static withText(
     pieces: Array<ChatMarkdownPiece>,
@@ -599,12 +697,13 @@ export default class ChatInlineImages {
       return pieces;
     }
 
+    const text: string = markdown.replace(LEADING_BLANK_LINES_PATTERN, "");
     const last: ChatMarkdownPiece | undefined = pieces[pieces.length - 1];
 
     if (last && last.kind === ChatMarkdownPieceKind.Markdown) {
-      last.markdown += `\n\n${markdown}`;
+      last.markdown += `\n\n${text}`;
     } else {
-      pieces.push({ kind: ChatMarkdownPieceKind.Markdown, markdown: markdown });
+      pieces.push({ kind: ChatMarkdownPieceKind.Markdown, markdown: text });
     }
 
     return pieces;

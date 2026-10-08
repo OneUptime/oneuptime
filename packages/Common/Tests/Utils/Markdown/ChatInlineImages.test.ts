@@ -31,6 +31,9 @@ const PNG: string =
 const JPEG: string =
   "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
 
+const WEBP: string =
+  "UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=";
+
 const DATA_URL: string = `data:image/png;base64,${PNG}`;
 const JPEG_DATA_URL: string = `data:image/png;base64,${JPEG}`;
 const PLACEHOLDER: string = "\\[image\\]";
@@ -133,9 +136,18 @@ describe("ChatInlineImages.toText - every image whose address is a data: URL is 
   test("an SVG or any other data: image is its alt text too", () => {
     expect(
       ChatInlineImages.toText(
-        "![logo](data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=) and ![](data:image/webp;base64,UklGRg==)",
+        `![logo](data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=) and ![](data:image/webp;base64,${WEBP})`,
       ),
     ).toBe(`logo and ${PLACEHOLDER}`);
+  });
+
+  test("an image no renderer shows, with no alt text, leaves nothing", () => {
+    // A template's screenshot for a run that took none, and an SVG.
+    expect(
+      ChatInlineImages.toText(
+        "Timeout\n![](data:image/png;base64,)\n![](data:image/svg+xml;base64,PHN2Zz4=)",
+      ),
+    ).toBe("Timeout\n\n");
   });
 
   test("an image on the web is left as it is", () => {
@@ -245,7 +257,7 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
     expect(summarize(split)).toEqual([
       "#### 🚨 Incident #12 Created:\n\n**Checkout is down**:\n\nTimeout 30000ms exceeded",
       { image: "image/png", alt: "Login page", fallback: "Login page" },
-      "\n\n🔴 **Incident State**: Created \n\n⚠️ **Severity**: Critical \n\n",
+      "🔴 **Incident State**: Created \n\n⚠️ **Severity**: Critical \n\n",
     ]);
   });
 
@@ -271,7 +283,7 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
         alt: "chromium desktop",
         fallback: "chromium desktop",
       },
-      "\n\n**firefox / desktop**: Timeout\n\n",
+      "**firefox / desktop**: Timeout\n\n",
       {
         image: "image/jpeg",
         alt: "firefox desktop",
@@ -291,7 +303,7 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
       "Before\n\n",
       { image: "image/png", alt: "a", fallback: "a" },
       { image: "image/png", alt: "b", fallback: "b" },
-      "\n\nAfter",
+      "After",
     ]);
   });
 
@@ -315,9 +327,9 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
         ),
       ),
     ).toEqual([
-      "See Login for details.\nNext line",
+      "See Login for details.\nNext line\n\n",
       { image: "image/png", alt: "Login", fallback: "" },
-      "\n\nAfter",
+      "After",
     ]);
   });
 
@@ -329,9 +341,9 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
         ),
       ),
     ).toEqual([
-      "- one first\n- two\n\n  more of two\n- three",
+      "- one first\n- two\n\n  more of two\n- three\n\n",
       { image: "image/png", alt: "first", fallback: "" },
-      "\n\nAfter",
+      "After",
     ]);
   });
 
@@ -339,9 +351,9 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
     expect(
       summarize(ChatInlineImages.split(`> ![q](${DATA_URL}) said\n\nAfter`)),
     ).toEqual([
-      "> q said",
+      "> q said\n\n",
       { image: "image/png", alt: "q", fallback: "" },
-      "\n\nAfter",
+      "After",
     ]);
     expect(
       summarize(
@@ -350,9 +362,9 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
         ),
       ),
     ).toEqual([
-      "| a | b |\n|---|---|\n| x | c |",
+      "| a | b |\n|---|---|\n| x | c |\n\n",
       { image: "image/png", alt: "c", fallback: "" },
-      "\n\nAfter",
+      "After",
     ]);
   });
 
@@ -391,7 +403,7 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
     expect(summarize(split)).toEqual([
       "See [the docs][d].\n\n",
       { image: "image/png", alt: "shot", fallback: "shot" },
-      "\n\nAnd [again][d].\n\n",
+      "And [again][d].\n\n",
     ]);
     expect(split.linkDefinitionsMarkdown).toBe("[d]: https://docs.example.com");
 
@@ -418,6 +430,26 @@ describe("ChatInlineImages.split - text and images, each where it was", () => {
     expect(
       summarize(ChatInlineImages.split(`Error\\\n![x](${DATA_URL})`)),
     ).toEqual(["Error", { image: "image/png", alt: "x", fallback: "x" }]);
+  });
+
+  test("code before an image keeps a backslash it ends with", () => {
+    expect(
+      summarize(ChatInlineImages.split(`    ls \\\n\n![x](${DATA_URL})`)),
+    ).toEqual([
+      "    ls \\\n\n",
+      { image: "image/png", alt: "x", fallback: "x" },
+    ]);
+    expect(
+      summarize(
+        ChatInlineImages.split(
+          `- item ![x](${DATA_URL})\n\n      ls \\\n\nAfter`,
+        ),
+      ),
+    ).toEqual([
+      "- item x\n\n      ls \\\n\n",
+      { image: "image/png", alt: "x", fallback: "" },
+      "After",
+    ]);
   });
 
   test("an image no chat shows, on a line with images, is its alt text there", () => {
@@ -525,6 +557,10 @@ describe("ChatInlineImages - code is byte for byte, as the dashboard's parser re
     "text ",
     "| a | b |",
     "|---|---|",
+    "    code \\",
+    "\\\n",
+    `\n\n![a](${DATA_URL})\n`,
+    `\n![b](${DATA_URL})`,
   ];
 
   function seededRandom(seed: number): () => number {
@@ -538,11 +574,11 @@ describe("ChatInlineImages - code is byte for byte, as the dashboard's parser re
     };
   }
 
-  test("every code span and code block of 2000 generated texts survives toText and split", () => {
+  test("every code span and code block of 4000 generated texts survives toText and split", () => {
     const random: () => number = seededRandom(20261008);
     const texts: Array<string> = [];
 
-    for (let index: number = 0; index < 2000; index++) {
+    for (let index: number = 0; index < 4000; index++) {
       let text: string = "";
       const count: number = 3 + Math.floor(random() * 12);
 
