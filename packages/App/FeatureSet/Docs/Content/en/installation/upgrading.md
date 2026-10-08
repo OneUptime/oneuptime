@@ -573,8 +573,10 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   labels or owners the caller's permission to read it reaches, less what a
   block with labels on reading it takes away. One the caller may not read
   is refused as if it did not exist, with the `400` that names the field
-  and the ID, and nothing is written. An announcement is created only on
-  status pages the caller may read, each of them, and a caller whose
+  and the ID, and nothing is written. A private incident, alert or episode
+  takes them only from its owners, directly or through a team, and from
+  project owners and admins. An announcement is created only on status
+  pages the caller may read, each of them, and a caller whose
   permission to read status pages reaches only some of them names at least
   one. The roles OneUptime ships work as before, and so does a custom role
   or an API key that reads the records it creates under across the
