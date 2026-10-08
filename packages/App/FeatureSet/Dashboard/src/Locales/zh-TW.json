@@ -26754,5 +26754,7 @@
   "{{count}} more are waiting for their first check.": "另有 {{count}} 台正在等待首次檢查。",
   "{{count}} more are waiting for their first check._one": "另有 {{count}} 台正在等待首次檢查。",
   "{{count}} sites need attention": "{{count}} 個站點需要關注",
-  "{{count}} sites need attention_one": "{{count}} 個站點需要關注"
+  "{{count}} sites need attention_one": "{{count}} 個站點需要關注",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "新增電話號碼需要編輯來電策略的權限，以及讀取通話和簡訊設定的權限。",
+  "Releasing a phone number needs permission to edit incoming call policies.": "釋出電話號碼需要編輯來電策略的權限。"
 }

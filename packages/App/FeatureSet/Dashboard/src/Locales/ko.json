@@ -26754,5 +26754,7 @@
   "{{count}} more are waiting for their first check.": "{{count}}대가 더 첫 확인을 기다리고 있습니다.",
   "{{count}} more are waiting for their first check._one": "{{count}}대가 더 첫 확인을 기다리고 있습니다.",
   "{{count}} sites need attention": "사이트 {{count}}개에 주의가 필요합니다",
-  "{{count}} sites need attention_one": "사이트 {{count}}개에 주의가 필요합니다"
+  "{{count}} sites need attention_one": "사이트 {{count}}개에 주의가 필요합니다",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "전화번호를 추가하려면 수신 통화 정책을 편집할 권한과 통화 및 SMS 설정을 읽을 권한이 필요합니다.",
+  "Releasing a phone number needs permission to edit incoming call policies.": "전화번호를 해제하려면 수신 통화 정책을 편집할 권한이 필요합니다."
 }

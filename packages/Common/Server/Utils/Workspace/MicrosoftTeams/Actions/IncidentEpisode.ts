@@ -445,15 +445,29 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
+      /*
+       * Asked as the submit asks it, before the card is shown, and the card
+       * then offers the policies the member may read.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this incident episode",
+        resources: [
+          { service: IncidentEpisodeService, id: new ObjectID(actionValue) },
+        ],
+      });
+
       // Send the input card
       const card: JSONObject | null =
         await this.buildExecuteIncidentEpisodeOnCallPolicyCard(
           actionValue,
           projectId,
+          databaseProps,
         );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
         );
         return;
       }
@@ -657,9 +671,13 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
   private static async buildExecuteIncidentEpisodeOnCallPolicyCard(
     episodeId: string,
     projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<JSONObject | null> {
+    // The policies the member may read, with their own permissions.
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: projectId,
           // Archived policies page no one, so they are not offered.
@@ -669,11 +687,7 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           name: true,
           _id: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: 50,
-        skip: 0,
       });
 
     const choices: Array<{ title: string; value: string }> = onCallPolicies

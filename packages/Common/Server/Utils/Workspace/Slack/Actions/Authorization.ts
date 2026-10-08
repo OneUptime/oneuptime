@@ -1,6 +1,8 @@
 import { DatabaseBaseModelType } from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import { WorkspacePayloadMarkdown } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
@@ -59,6 +61,48 @@ export default class SlackActionAuthorization {
       await this.sendRefusal({
         requester: requester,
         message: err.message,
+      });
+
+      return null;
+    }
+  }
+
+  /*
+   * Runs a write the Slack user behind a request asked for, made with their
+   * own props, so it is refused where the dashboard would refuse them: a
+   * permission they lack, a plan the project is not on, a record they may
+   * not name (answered like one that is not there), a value that is not
+   * valid. Such a refusal is written for whoever made the request; it is
+   * told to them in a direct message, as `Could not <action>: <reason>`,
+   * and null comes back - Slack has been answered already, so a DM is the
+   * only way left to reach them. Anything else is thrown.
+   */
+  @CaptureSpan()
+  public static async runForRequester<T>(data: {
+    requester: SlackActionRequester;
+    // Completes "Could not ...", e.g. "declare the incident".
+    action: string;
+    run: () => Promise<T>;
+  }): Promise<T | null> {
+    try {
+      return await data.run();
+    } catch (err) {
+      if (
+        !(err instanceof NotAuthorizedException) &&
+        !(err instanceof BadDataException) &&
+        !(err instanceof PaymentRequiredException)
+      ) {
+        throw err;
+      }
+
+      logger.debug(`Slack request refused: ${err.message}`, {
+        projectId: data.requester.projectId?.toString(),
+        userId: data.requester.userId?.toString(),
+      });
+
+      await this.sendRefusal({
+        requester: data.requester,
+        message: `Could not ${data.action}: ${err.message}`,
       });
 
       return null;

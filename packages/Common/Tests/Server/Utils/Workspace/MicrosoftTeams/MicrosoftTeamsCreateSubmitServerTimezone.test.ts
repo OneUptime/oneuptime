@@ -16,7 +16,6 @@ import logger from "../../../../../Server/Utils/Logger";
 import { MicrosoftTeamsScheduledMaintenanceActionType } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsScheduledMaintenanceActions from "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
-import WorkspaceProjectReferenceValidator from "../../../../../Server/Utils/Workspace/WorkspaceProjectReferenceValidator";
 import URL from "../../../../../Types/API/URL";
 import OneUptimeDate from "../../../../../Types/Date";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -140,12 +139,6 @@ beforeEach((): void => {
     ],
   });
 
-  jest
-    .spyOn(
-      WorkspaceProjectReferenceValidator,
-      "validateReferencesBelongToProject",
-    )
-    .mockResolvedValue();
   jest
     .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
     .mockResolvedValue();

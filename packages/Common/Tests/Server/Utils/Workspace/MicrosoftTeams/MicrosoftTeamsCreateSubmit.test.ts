@@ -18,6 +18,7 @@ import MonitorService from "../../../../../Server/Services/MonitorService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import { ProjectScopedReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import { UnreadableReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import logger, { LogAttributes } from "../../../../../Server/Utils/Logger";
 import {
   MicrosoftTeamsIncidentActionType,
@@ -35,7 +36,6 @@ import MicrosoftTeamsUtil, {
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageSize";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
-import WorkspaceProjectReferenceValidator from "../../../../../Server/Utils/Workspace/WorkspaceProjectReferenceValidator";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -82,15 +82,20 @@ import Permission, {
  *   start picked for "now" that has only just gone by starts now.
  *   MicrosoftTeamsCreateSubmitServerTimezone.test.ts repeats the reads on a
  *   server that is not on UTC.
- * - Who may create what: a scheduled maintenance event takes the permission
- *   the dashboard asks for; an incident takes a linked account that is a
- *   member of the project, and no permission beyond that, by design (see the
- *   incident's "who may submit it"). Those tests run the real checks on the
- *   permissions and memberships a member really holds.
+ * - Who may create what: the member who submits the card, with their own
+ *   permissions, as they would in OneUptime. An incident takes the
+ *   permission to declare one, a scheduled maintenance event the permission
+ *   to create one, both asked before anything is read; and the record is
+ *   created with the member's own props, so every monitor, label, on-call
+ *   policy, severity and status the card names is held to what they may
+ *   name (the create's own reference check, answered like a record the
+ *   project does not have). Nothing is checked or created as root. The
+ *   "who may submit it" tests run the real checks on the permissions and
+ *   memberships a member really holds.
  *
- * "Now" is pinned (only Date is faked). The reference check, the services'
- * create, the dashboard URL and, outside "who may submit it", the permission
- * check are stubbed, so no database is touched.
+ * "Now" is pinned (only Date is faked). The services' create, the dashboard
+ * URL and, outside "who may submit it", the permission check are stubbed, so
+ * no database is touched.
  */
 
 // The clock every test runs at: noon UTC, 08:00 in New York, 17:30 in Kolkata.
@@ -288,9 +293,6 @@ function memberWith(
   };
 }
 
-let validateReferencesSpy: SpyInstance<
-  typeof WorkspaceProjectReferenceValidator.validateReferencesBelongToProject
->;
 let assertCanCreateSpy: SpyInstance<
   typeof WorkspaceActionAuthorization.assertCanCreate
 >;
@@ -320,14 +322,6 @@ beforeEach((): void => {
       "clearTimeout",
     ],
   });
-
-  // The references themselves are pinned in WorkspaceCreateProjectReferences.test.ts.
-  validateReferencesSpy = jest
-    .spyOn(
-      WorkspaceProjectReferenceValidator,
-      "validateReferencesBelongToProject",
-    )
-    .mockResolvedValue();
 
   /*
    * The permission rules are pinned in the workspace authorization tests;
@@ -509,7 +503,7 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       .mockResolvedValue(INCIDENT_LINK);
   });
 
-  test("creates the incident as root from the trimmed form, in the project, as the Teams user", async (): Promise<void> => {
+  test("declares the incident with the member's own props, from the trimmed form, in the project", async (): Promise<void> => {
     await submitIncident(
       createFakeTurn(),
       incidentForm({
@@ -519,7 +513,8 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       }),
     );
 
-    expect(createSpy.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    // The member's own props: never root.
+    expect(createSpy.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
 
     const incident: Incident = incidentPassedToCreate();
     expect(incident.title).toBe("Checkout API returns 502");
@@ -527,7 +522,8 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       "Every POST /checkout has failed since 09:12.",
     );
     expect(incident.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(incident.createdByUserId?.toString()).toBe(USER_ID.toString());
+    // The create credits the member it is made by, from the props.
+    expect(incident.createdByUserId).toBeUndefined();
     expect(incident.incidentSeverityId?.toString()).toBe(SEVERITY_ID);
     expect(incident.rootCause).toBe("Incident created via Microsoft Teams");
   });
@@ -551,7 +547,6 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       expect(turn.events).toEqual([
         { kind: "reply", text: INCIDENT_MISSING_FIELDS },
       ]);
-      expect(validateReferencesSpy).not.toHaveBeenCalled();
       expect(createSpy).not.toHaveBeenCalled();
     },
   );
@@ -580,19 +575,12 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       ON_CALL_POLICY_ID,
     ]);
 
-    // Every submitted id is checked against the project before the create.
-    expect(validateReferencesSpy).toHaveBeenCalledTimes(1);
-    expect(validateReferencesSpy.mock.invocationCallOrder[0]!).toBeLessThan(
-      createSpy.mock.invocationCallOrder[0]!,
-    );
-    expect(validateReferencesSpy.mock.calls[0]![0]).toEqual({
-      projectId: PROJECT_ID,
-      subject: "incident",
-      monitorIds: [new ObjectID(MONITOR_ID), new ObjectID(SECOND_MONITOR_ID)],
-      labelIds: [new ObjectID(LABEL_ID)],
-      onCallDutyPolicyIds: [new ObjectID(ON_CALL_POLICY_ID)],
-      monitorStatusId: new ObjectID(MONITOR_STATUS_ID),
-    });
+    /*
+     * Every submitted id goes to the create, made with the member's own
+     * props, which holds each one to what they may name. Nothing is
+     * pre-checked as root.
+     */
+    expect(createSpy.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
 
     expectNoDirectMonitorWrites();
   });
@@ -606,9 +594,6 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
     const incident: Incident = incidentPassedToCreate();
     expect(incident.changeMonitorStatusToId).toBeUndefined();
     expect(incident.monitors).toBeUndefined();
-    expect(
-      validateReferencesSpy.mock.calls[0]![0].monitorStatusId,
-    ).toBeUndefined();
     expectNoDirectMonitorWrites();
   });
 
@@ -645,8 +630,18 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
         "NotAuthorizedException: You do not have permission to create an incident.",
     },
     {
-      name: "the reference check refusing another project's monitor",
-      where: "validator",
+      // A monitor the member may not read is answered like one the project does not have.
+      name: "IncidentService.create refusing a monitor the member may not read",
+      where: "create",
+      error: new UnreadableReferenceException(
+        `This incident references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`,
+      ),
+      reply: INCIDENT_REFERENCE_UNAVAILABLE,
+      logged: `UnreadableReferenceException: This incident references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`,
+    },
+    {
+      name: "IncidentService.create refusing another project's monitor",
+      where: "create",
       error: new ProjectScopedReferenceException(
         `This incident references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`,
       ),
@@ -680,11 +675,7 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       reply: string;
       logged: string;
     }): Promise<void> => {
-      if (row.where === "validator") {
-        validateReferencesSpy.mockRejectedValue(row.error);
-      } else {
-        createSpy.mockRejectedValue(row.error);
-      }
+      createSpy.mockRejectedValue(row.error);
       const turn: FakeTurn = createFakeTurn();
 
       await expect(
@@ -692,8 +683,8 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       ).resolves.toBeUndefined();
 
       expect(turn.events).toEqual([{ kind: "reply", text: row.reply }]);
-      // A refused reference check stops the create; nothing to link to.
-      expect(createSpy).toHaveBeenCalledTimes(row.where === "create" ? 1 : 0);
+      // The create refused it: nothing was made, so nothing to link to.
+      expect(createSpy).toHaveBeenCalledTimes(1);
       expect(linkSpy).not.toHaveBeenCalled();
       // Named by class: OneUptime's exceptions all carry Error's own name.
       expectOnlyCreateFailureLogged({
@@ -706,8 +697,8 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
 
   test("a reference the project does not have is answered without naming the record; the log keeps which one it was", async (): Promise<void> => {
     const validatorMessage: string = `This incident references records that are not in this project: Monitor "${MONITOR_ID}", On-Call Policy "${ON_CALL_POLICY_ID}". Please pick values from this project and try again.`;
-    validateReferencesSpy.mockRejectedValue(
-      new ProjectScopedReferenceException(validatorMessage),
+    createSpy.mockRejectedValue(
+      new UnreadableReferenceException(validatorMessage),
     );
     const turn: FakeTurn = createFakeTurn();
 
@@ -723,9 +714,9 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
     for (const named of ["Acme", "payroll", "executives", MONITOR_ID]) {
       expect(repliesOf(turn)[0]).not.toContain(named);
     }
-    expect(createSpy).not.toHaveBeenCalled();
+    expect(createSpy).toHaveBeenCalledTimes(1);
     expect(errorLogSpy.mock.calls[0]![0]).toBe(
-      `Could not create an incident from Microsoft Teams: ProjectScopedReferenceException: ${validatorMessage}`,
+      `Could not create an incident from Microsoft Teams: UnreadableReferenceException: ${validatorMessage}`,
     );
   });
 
@@ -883,23 +874,17 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
 
   describe("who may submit it", (): void => {
     /*
-     * Deliberate, not a gap: creating an incident from Teams takes a linked
-     * account that is a current member of the project, and no permission
-     * beyond that. It is the product decision Slack documents ("anyone in the
-     * company can create incident", on SubmitNewIncident in
-     * Server/Utils/Workspace/Slack/Actions/Auth.ts), and the scope of commit
-     * 7ac7a3a03f, which put every other chat write (acknowledge, resolve,
-     * notes, on-call pages, scheduled maintenance) behind the member's own
-     * permissions and left this one open. A read-only member can therefore
-     * declare an incident, and page the on-call policies it names, from
-     * Teams. Changing that is a product decision for both chat integrations,
-     * not a fix to make in this handler alone.
+     * The member who submits the card declares the incident, with their own
+     * permissions, as in OneUptime: a read-only member may not, and is told
+     * so before anything is read, created or paged. (This used to take only a
+     * linked account of a member, by an earlier product decision; the
+     * maintainer decided that a chat form acts as the member it is filled in
+     * by, and follows the same roles as everywhere else.)
      *
      * Membership is checked by handleBotInvokeActivity, through
      * WorkspaceActionAuthorization.getProjectMemberProps, before this handler
-     * runs; the last test here goes through it. The real permission check is
-     * restored, so a change of policy fails these tests instead of slipping
-     * in unnoticed.
+     * runs; the refusal below goes through it too, as every card submit does.
+     * The real permission check is restored.
      */
     let assertCanCreateCalls: SpyInstance<
       typeof WorkspaceActionAuthorization.assertCanCreate
@@ -914,42 +899,113 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
       );
     });
 
+    /*
+     * A card submit handed to handleBotInvokeActivity, as the bot hands it
+     * every card submit, from a linked Teams account of a member holding
+     * `props`. The tenant, account and membership lookups are stubbed.
+     */
+    async function submitThroughBot(
+      value: JSONObject,
+      props: DatabaseCommonInteractionProps,
+    ): Promise<FakeTurn> {
+      const tenantResolution: MicrosoftTeamsTenantResolution = {
+        projectAuth: {
+          projectId: PROJECT_ID,
+        } as unknown as WorkspaceProjectAuthToken,
+        isAmbiguous: false,
+        candidateProjectIds: [PROJECT_ID],
+      };
+
+      jest
+        .spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId")
+        .mockResolvedValue(tenantResolution);
+      jest
+        .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+        .mockResolvedValue(USER_ID);
+      jest
+        .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+        .mockResolvedValue(props);
+
+      const activity: JSONObject = submitActivity({
+        from: {
+          id: "29:1Hk8-teams-user",
+          aadObjectId: TEAMS_USER_AAD_OBJECT_ID,
+        },
+        conversation: { conversationType: "personal", id: "a:1personal-chat" },
+        channelData: { tenant: { id: TEAMS_TENANT_ID } },
+        value: value,
+      });
+      const turn: FakeTurn = createFakeTurn({ activity: activity });
+
+      await expect(
+        MicrosoftTeamsUtil.handleBotInvokeActivity({
+          activity: activity,
+          turnContext: turn.turnContext,
+        }),
+      ).resolves.toBeUndefined();
+
+      return turn;
+    }
+
     test.each([
       {
         name: "with an on-call policy chosen",
         fields: { onCallDutyPolicies: ON_CALL_POLICY_ID },
-        onCallPolicyIds: [ON_CALL_POLICY_ID],
       },
-      { name: "with nothing optional chosen", fields: {}, onCallPolicyIds: [] },
+      { name: "with nothing optional chosen", fields: {} },
     ])(
-      "a linked member without Create Incident permission (a read-only Viewer) still creates one $name: by design",
-      async (row: {
-        name: string;
-        fields: JSONObject;
-        onCallPolicyIds: Array<string>;
-      }): Promise<void> => {
-        const turn: FakeTurn = createFakeTurn();
-
-        await expect(
-          submitIncident(
-            turn,
-            incidentForm(row.fields),
-            memberWith([Permission.Viewer]),
-          ),
-        ).resolves.toBeUndefined();
-
-        // IncidentService.create is what pages the chosen policies.
-        const incident: Incident = incidentPassedToCreate();
-        expect(relationIds(incident.onCallDutyPolicies) || []).toEqual(
-          row.onCallPolicyIds,
+      "a read-only member (Viewer) may not declare one $name: told why, once, and nothing is created or paged",
+      async (row: { name: string; fields: JSONObject }): Promise<void> => {
+        const turn: FakeTurn = await submitThroughBot(
+          incidentForm(row.fields),
+          memberWith([Permission.Viewer]),
         );
-        expect(assertCanCreateCalls).not.toHaveBeenCalled();
+
         expect(turn.events).toEqual([
-          { kind: "reply", text: INCIDENT_CREATED_WITH_LINK },
-          { kind: "delete", activityId: FORM_ACTIVITY_ID },
+          {
+            kind: "reply",
+            text: expect.stringMatching(
+              /^You do not have permission to declare an incident\./,
+            ),
+          },
         ]);
+        expect(assertCanCreateCalls).toHaveBeenCalledTimes(1);
+        // IncidentService.create is what pages the chosen policies: never reached.
+        expect(createSpy).not.toHaveBeenCalled();
+        // A refusal written for the user, not a fault for an operator.
+        expect(errorLogSpy).not.toHaveBeenCalled();
       },
     );
+
+    test("asks whether the member may declare an incident, with the member's own props, before the create", async (): Promise<void> => {
+      const incidentMember: DatabaseCommonInteractionProps = memberWith([
+        Permission.IncidentMember,
+      ]);
+
+      await submitIncident(createFakeTurn(), incidentForm(), incidentMember);
+
+      expect(assertCanCreateCalls).toHaveBeenCalledTimes(1);
+      const permissionCheck: Parameters<
+        typeof WorkspaceActionAuthorization.assertCanCreate
+      >[0] = assertCanCreateCalls.mock.calls[0]![0];
+
+      // The model is compared by name (see the maintenance form's twin of this test).
+      expect({
+        props: permissionCheck.props,
+        modelType: permissionCheck.modelType.name,
+        action: permissionCheck.action,
+      }).toEqual({
+        props: incidentMember,
+        modelType: "Incident",
+        action: "declare an incident",
+      });
+      // ... and the create is made with the same props.
+      expect(createSpy.mock.calls[0]![0].props).toBe(incidentMember);
+      expect(permissionCheck.modelType === Incident).toBe(true);
+      expect(assertCanCreateCalls.mock.invocationCallOrder[0]!).toBeLessThan(
+        createSpy.mock.invocationCallOrder[0]!,
+      );
+    });
 
     test("a member whose only permission is Create Incident creates one", async (): Promise<void> => {
       const turn: FakeTurn = createFakeTurn();
@@ -978,7 +1034,6 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
 
       expectRefusedAsNonMember(submitted);
       expect(handlerSpy).not.toHaveBeenCalled();
-      expect(validateReferencesSpy).not.toHaveBeenCalled();
       expect(createSpy).not.toHaveBeenCalled();
       // A refusal written for the user, not a fault for an operator.
       expect(errorLogSpy).not.toHaveBeenCalled();
@@ -1820,7 +1875,6 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       ).resolves.toBeUndefined();
 
       expect(turn.events).toEqual([{ kind: "reply", text: refusal }]);
-      expect(validateReferencesSpy).not.toHaveBeenCalled();
       expect(createSpy).not.toHaveBeenCalled();
     });
 
@@ -1867,7 +1921,6 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
           ),
         },
       ]);
-      expect(validateReferencesSpy).not.toHaveBeenCalled();
       expect(createSpy).not.toHaveBeenCalled();
     });
 
@@ -1897,14 +1950,13 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
 
       expectRefusedAsNonMember(submitted);
       expect(handlerSpy).not.toHaveBeenCalled();
-      expect(validateReferencesSpy).not.toHaveBeenCalled();
       expect(createSpy).not.toHaveBeenCalled();
       expect(errorLogSpy).not.toHaveBeenCalled();
     });
   });
 
   describe("creating the event", (): void => {
-    test("creates the event as root in the project, as the user, from the trimmed form, and hands the monitor status to the service", async (): Promise<void> => {
+    test("creates the event with the member's own props, in the project, from the trimmed form, and hands the monitor status to the service", async (): Promise<void> => {
       await submitMaintenance(
         inNewYork(),
         maintenanceForm({
@@ -1916,7 +1968,8 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
         }),
       );
 
-      expect(createSpy.mock.calls[0]![0].props).toEqual({ isRoot: true });
+      // The member's own props: never root.
+      expect(createSpy.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
 
       const scheduledMaintenance: ScheduledMaintenance = eventPassedToCreate();
       expect(scheduledMaintenance.title).toBe("Primary database upgrade");
@@ -1924,9 +1977,8 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       expect(scheduledMaintenance.projectId?.toString()).toBe(
         PROJECT_ID.toString(),
       );
-      expect(scheduledMaintenance.createdByUserId?.toString()).toBe(
-        USER_ID.toString(),
-      );
+      // The create credits the member it is made by, from the props.
+      expect(scheduledMaintenance.createdByUserId).toBeUndefined();
       expect(relationIds(scheduledMaintenance.monitors)).toEqual([
         MONITOR_ID,
         SECOND_MONITOR_ID,
@@ -1936,18 +1988,12 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
         MONITOR_STATUS_ID,
       );
 
-      // Every submitted id is checked against the project before the create.
-      expect(validateReferencesSpy).toHaveBeenCalledTimes(1);
-      expect(validateReferencesSpy.mock.invocationCallOrder[0]!).toBeLessThan(
-        createSpy.mock.invocationCallOrder[0]!,
-      );
-      expect(validateReferencesSpy.mock.calls[0]![0]).toEqual({
-        projectId: PROJECT_ID,
-        subject: "scheduled maintenance event",
-        monitorIds: [new ObjectID(MONITOR_ID), new ObjectID(SECOND_MONITOR_ID)],
-        labelIds: [new ObjectID(LABEL_ID)],
-        monitorStatusId: new ObjectID(MONITOR_STATUS_ID),
-      });
+      /*
+       * Every submitted id goes to the create, made with the member's own
+       * props, which holds each one to what they may name. Nothing is
+       * pre-checked as root.
+       */
+      expect(createSpy.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
       expectNoDirectMonitorWrites();
     });
 
@@ -1960,9 +2006,6 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       const scheduledMaintenance: ScheduledMaintenance = eventPassedToCreate();
       expect(scheduledMaintenance.changeMonitorStatusToId).toBeUndefined();
       expect(scheduledMaintenance.monitors).toBeUndefined();
-      expect(
-        validateReferencesSpy.mock.calls[0]![0].monitorStatusId,
-      ).toBeUndefined();
       expectNoDirectMonitorWrites();
     });
 
@@ -2002,13 +2045,13 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
           "NotAuthorizedException: You do not have permission to create a scheduled maintenance event.",
       },
       {
-        name: "the reference check refusing another project's label, with the fixed line",
-        where: "validator",
-        error: new ProjectScopedReferenceException(
+        name: "ScheduledMaintenanceService.create refusing a label the member may not name, with the fixed line",
+        where: "create",
+        error: new UnreadableReferenceException(
           `This scheduled maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
         ),
         reply: MAINTENANCE_REFERENCE_UNAVAILABLE,
-        logged: `ProjectScopedReferenceException: This scheduled maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
+        logged: `UnreadableReferenceException: This scheduled maintenance event references records that are not in this project: Label "${LABEL_ID}". Please pick values from this project and try again.`,
       },
       {
         // Deleted after the form was sent; the service checks it on create.
@@ -2036,11 +2079,7 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
         reply: string;
         logged: string;
       }): Promise<void> => {
-        if (row.where === "validator") {
-          validateReferencesSpy.mockRejectedValue(row.error);
-        } else {
-          createSpy.mockRejectedValue(row.error);
-        }
+        createSpy.mockRejectedValue(row.error);
         const turn: FakeTurn = inNewYork();
 
         await expect(
@@ -2048,8 +2087,8 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
         ).resolves.toBeUndefined();
 
         expect(turn.events).toEqual([{ kind: "reply", text: row.reply }]);
-        // A refused reference check stops the create; nothing to link to.
-        expect(createSpy).toHaveBeenCalledTimes(row.where === "create" ? 1 : 0);
+        // The create refused it: nothing was made, so nothing to link to.
+        expect(createSpy).toHaveBeenCalledTimes(1);
         expect(linkSpy).not.toHaveBeenCalled();
         expectOnlyCreateFailureLogged({
           summary: `Could not create a scheduled maintenance event from Microsoft Teams: ${row.logged}`,
@@ -2061,8 +2100,8 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
 
     test("a reference the project does not have is answered without naming the record; the log keeps which one it was", async (): Promise<void> => {
       const validatorMessage: string = `This scheduled maintenance event references records that are not in this project: Monitor "${MONITOR_ID}". Please pick values from this project and try again.`;
-      validateReferencesSpy.mockRejectedValue(
-        new ProjectScopedReferenceException(validatorMessage),
+      createSpy.mockRejectedValue(
+        new UnreadableReferenceException(validatorMessage),
       );
       const turn: FakeTurn = inNewYork();
 
@@ -2075,9 +2114,9 @@ describe("Microsoft Teams: submitting the Create New Scheduled Maintenance form"
       for (const named of ["Acme", "payroll", MONITOR_ID]) {
         expect(repliesOf(turn)[0]).not.toContain(named);
       }
-      expect(createSpy).not.toHaveBeenCalled();
+      expect(createSpy).toHaveBeenCalledTimes(1);
       expect(errorLogSpy.mock.calls[0]![0]).toBe(
-        `Could not create a scheduled maintenance event from Microsoft Teams: ProjectScopedReferenceException: ${validatorMessage}`,
+        `Could not create a scheduled maintenance event from Microsoft Teams: UnreadableReferenceException: ${validatorMessage}`,
       );
     });
 

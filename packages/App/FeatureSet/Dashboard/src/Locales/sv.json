@@ -26754,5 +26754,7 @@
   "{{count}} more are waiting for their first check.": "{{count}} till väntar på sin första kontroll.",
   "{{count}} more are waiting for their first check._one": "{{count}} till väntar på sin första kontroll.",
   "{{count}} sites need attention": "{{count}} platser behöver uppmärksamhet",
-  "{{count}} sites need attention_one": "{{count}} plats behöver uppmärksamhet"
+  "{{count}} sites need attention_one": "{{count}} plats behöver uppmärksamhet",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "Att lägga till ett telefonnummer kräver behörighet att redigera inkommande samtalspolicyer och att läsa inställningar för samtal och sms.",
+  "Releasing a phone number needs permission to edit incoming call policies.": "Att frigöra ett telefonnummer kräver behörighet att redigera inkommande samtalspolicyer."
 }

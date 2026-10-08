@@ -39,7 +39,7 @@ import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
@@ -81,7 +81,7 @@ export default class SlackIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken } = slackRequest;
+    const { botUserId, projectAuthToken } = slackRequest;
 
     if (!projectAuthToken) {
       return Response.sendErrorResponse(
@@ -139,6 +139,27 @@ export default class SlackIncidentActions {
         response_action: "clear",
       });
 
+      /*
+       * The incident is declared by the member the Slack account is
+       * connected to, with their own permissions, as they would declare it
+       * in OneUptime: they must be allowed to declare incidents, and every
+       * record the submitted view names - the monitors, on-call policies,
+       * labels, severity and monitor status, whatever ids it carries - must
+       * be one they may name. IncidentService checks those on the create
+       * itself, and a record they may not read is answered like one that is
+       * not in the project.
+       */
+      const props: DatabaseCommonInteractionProps | null =
+        await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: Incident,
+          action: SlackIncidentActions.DECLARE_ACTION,
+        });
+
+      if (!props) {
+        return;
+      }
+
       const title: string =
         data.slackRequest.viewValues["incidentTitle"].toString();
       const description: string =
@@ -178,28 +199,10 @@ export default class SlackIncidentActions {
         ? new ObjectID(monitorStatus)
         : undefined;
 
-      /*
-       * The incident is created as root from ids in the submitted view, so
-       * check they belong to this project. IncidentService only checks the
-       * severity and the monitor status on create.
-       */
-      await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject(
-        {
-          projectId: slackRequest.projectId!,
-          subject: "incident",
-          monitorIds: incidentMonitors,
-          labelIds: incidentLabels,
-          onCallDutyPolicyIds: incidentOnCallPolicies,
-        },
-      );
-
       const incident: Incident = new Incident();
       incident.title = title;
       incident.description = description;
       incident.projectId = slackRequest.projectId!;
-      if (userId) {
-        incident.createdByUserId = userId;
-      }
       incident.incidentSeverityId = incidentSeverityId;
       const rootCauseInMarkdown: string =
         mdText`Incident created by @${slackRequest.slackUsername} on Slack.`.toString();
@@ -236,12 +239,25 @@ export default class SlackIncidentActions {
         });
       }
 
-      const createdIncident: Incident = await IncidentService.create({
-        data: incident,
-        props: {
-          isRoot: true,
-        },
-      });
+      /*
+       * Created with the member's props, so it is credited to them and
+       * held to what they may do and name; a refusal is told to them.
+       */
+      const createdIncident: Incident | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "declare the incident",
+          run: async (): Promise<Incident> => {
+            return await IncidentService.create({
+              data: incident,
+              props: props,
+            });
+          },
+        });
+
+      if (!createdIncident) {
+        return;
+      }
 
       // post a message to Slack after the incident was created.
       const slackChannelId: string = data.action.actionValue || ""; // this is the channel id where the incident was created.
@@ -271,6 +287,9 @@ export default class SlackIncidentActions {
     }
   }
 
+  // Declaring an incident, as a refusal names it: "... to declare an incident".
+  public static readonly DECLARE_ACTION: string = "declare an incident";
+
   @CaptureSpan()
   public static async viewNewIncidentModal(data: {
     slackRequest: SlackRequest;
@@ -282,6 +301,26 @@ export default class SlackIncidentActions {
 
     // send response to clear the action.
     Response.sendTextResponse(data.req, data.res, "");
+
+    /*
+     * The form is filled in as the member the Slack account is connected
+     * to: someone who may not declare an incident is told so now, before
+     * filling it in, and every list below is read with their own
+     * permissions (WorkspaceActionAuthorization.findReadable), so it offers
+     * only what they may read - as the incident form in OneUptime does.
+     */
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: Incident,
+        action: SlackIncidentActions.DECLARE_ACTION,
+      });
+
+    if (!props) {
+      return;
+    }
+
+    const projectId: ObjectID = data.slackRequest.projectId!;
 
     /*
      * show new incident modal.
@@ -313,23 +352,83 @@ export default class SlackIncidentActions {
 
     blocks.push(incidentDescription);
 
-    const incidentSeveritiesForProject: Array<IncidentSeverity> =
-      await IncidentSeverityService.findBy({
+    const [
+      incidentSeveritiesForProject,
+      monitorsForProject,
+      monitorStatusForProject,
+      onCallPolicies,
+      labelsForProject,
+    ]: [
+      Array<IncidentSeverity>,
+      Array<Monitor>,
+      Array<MonitorStatus>,
+      Array<OnCallDutyPolicy>,
+      Array<Label>,
+    ] = await Promise.all([
+      WorkspaceActionAuthorization.findReadable({
+        service: IncidentSeverityService,
+        props: props,
         query: {
-          projectId: data.slackRequest.projectId!,
+          projectId: projectId,
         },
         sort: {
           order: SortOrder.Ascending,
         },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
         select: {
           name: true,
         },
-        props: {
-          isRoot: true,
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: MonitorService,
+        props: props,
+        query: {
+          projectId: projectId,
         },
-      });
+        select: {
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: MonitorStatusService,
+        props: props,
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
+        query: {
+          projectId: projectId,
+          // Archived policies page no one, so they are not offered.
+          isArchived: false,
+        },
+        select: {
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+      WorkspaceActionAuthorization.findReadable({
+        service: LabelService,
+        props: props,
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+      }),
+    ]);
 
     const dropdownOptions: Array<DropdownOption> =
       incidentSeveritiesForProject.map((severity: IncidentSeverity) => {
@@ -350,20 +449,6 @@ export default class SlackIncidentActions {
     if (incidentSeveritiesForProject.length > 0) {
       blocks.push(incidentSeverity);
     }
-
-    const monitorsForProject: Array<Monitor> = await MonitorService.findBy({
-      query: {
-        projectId: data.slackRequest.projectId!,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
 
     const monitorDropdownOptions: Array<DropdownOption> =
       monitorsForProject.map((monitor: Monitor) => {
@@ -386,24 +471,6 @@ export default class SlackIncidentActions {
     if (monitorsForProject.length > 0) {
       blocks.push(incidentMonitors);
     }
-
-    const monitorStatusForProject: Array<MonitorStatus> =
-      await MonitorStatusService.findBy({
-        query: {
-          projectId: data.slackRequest.projectId!,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        sort: {
-          priority: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
 
     const monitorStatusDropdownOptions: Array<DropdownOption> =
       monitorStatusForProject.map((status: MonitorStatus) => {
@@ -431,23 +498,6 @@ export default class SlackIncidentActions {
 
     // add on-call policy dropdown.
 
-    const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
-        query: {
-          projectId: data.slackRequest.projectId!,
-          // Archived policies page no one, so they are not offered.
-          isArchived: false,
-        },
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
-
     const onCallPolicyDropdownOptions: Array<DropdownOption> =
       onCallPolicies.map((policy: OnCallDutyPolicy) => {
         return {
@@ -469,20 +519,6 @@ export default class SlackIncidentActions {
       };
       blocks.push(onCallPolicyDropdown);
     }
-
-    const labelsForProject: Array<Label> = await LabelService.findBy({
-      query: {
-        projectId: data.slackRequest.projectId!,
-      },
-      select: {
-        name: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
 
     const labelsDropdownOptions: Array<DropdownOption> = labelsForProject.map(
       (label: Label) => {
@@ -796,12 +832,30 @@ export default class SlackIncidentActions {
       response_action: "clear",
     });
 
-    // const incidentId: ObjectID = new ObjectID(actionValue);
+    /*
+     * Asked as the submit asks it, before the form is shown: someone who may
+     * not execute an on-call policy for this incident is told so now. The
+     * form then offers the policies they may read, with their own
+     * permissions (WorkspaceActionAuthorization.findReadable).
+     */
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this incident",
+        resources: [
+          { service: IncidentService, id: new ObjectID(actionValue) },
+        ],
+      });
 
-    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+    if (!props) {
+      return;
+    }
 
     const onCallPolicies: Array<OnCallDutyPolicy> =
-      await OnCallDutyPolicyService.findBy({
+      await WorkspaceActionAuthorization.findReadable({
+        service: OnCallDutyPolicyService,
+        props: props,
         query: {
           projectId: data.slackRequest.projectId!,
           // Archived policies page no one, so they are not offered.
@@ -810,11 +864,7 @@ export default class SlackIncidentActions {
         select: {
           name: true,
         },
-        props: {
-          isRoot: true,
-        },
         limit: LIMIT_PER_PROJECT,
-        skip: 0,
       });
 
     const dropdownOption: Array<DropdownOption> = onCallPolicies
@@ -834,7 +884,7 @@ export default class SlackIncidentActions {
           messageBlocks: [
             {
               _type: "WorkspacePayloadMarkdown",
-              text: "No on-call policies have been configured for this project yet. Please add an on-call policy in the OneUptime Dashboard under On-Call Duty > Policies to use this feature.",
+              text: "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
             } as WorkspacePayloadMarkdown,
           ],
           authToken: data.slackRequest.projectAuthToken!,
