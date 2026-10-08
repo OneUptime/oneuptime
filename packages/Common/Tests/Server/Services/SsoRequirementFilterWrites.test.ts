@@ -415,6 +415,18 @@ describe("the locks of a Require SSO for Login write are kept for it, until it i
     ]);
   });
 
+  test("the locks are kept alive from the check on: while the auto recharge is charged too", async () => {
+    let keptWhileCharging: Array<boolean> = [];
+    whileCharging = (): void => {
+      keptWhileCharging = keptForWrite();
+    };
+
+    await expect(requireSsoForGroup()).resolves.toBe(2);
+
+    expect(keptWhileCharging).toEqual([true, true]);
+    expect(keptForWrite()).toEqual([false, false]);
+  });
+
   test("a lock lost while the auto recharge was charged refuses the write: nothing is written, and the locks are given back", async () => {
     whileCharging = (): void => {
       lostLocks = [SECOND_LOCKED];

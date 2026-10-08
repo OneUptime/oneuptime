@@ -22,6 +22,7 @@ import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import ProjectSsoProviderChanges, {
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
+import SsoRequirementChanges from "../../../Server/Utils/SsoRequirementChanges";
 import SsoSignInWays, {
   GlobalProviderAttachmentRows,
 } from "../../../Server/Utils/SsoSignInWays";
@@ -1795,6 +1796,10 @@ describe.each([
    * without it: a row that comes to match the filter a moment later was
    * never checked, nor worked out.
    */
+  /*
+   * The row that lands is put first in the table: a write held only to as
+   * many rows as were read, rather than to the rows read, would reach it.
+   */
   describe("a write that names its rows by a filter writes exactly the rows it read", () => {
     beforeEach(() => {
       projects = [project(ACME, "Acme")];
@@ -1819,7 +1824,7 @@ describe.each([
       afterRead(kind.providerService, "restrictToAttachedProjects", () => {
         kind
           .providerTable()
-          .rows.push(providerNamed(OTHER_PROVIDER, "Okta", true));
+          .rows.unshift(providerNamed(OTHER_PROVIDER, "Okta", true));
       });
 
       await expect(
@@ -1850,7 +1855,7 @@ describe.each([
       afterRead(kind.providerService, "restrictToAttachedProjects", () => {
         kind
           .providerTable()
-          .rows.push(providerNamed(OTHER_PROVIDER, "Okta", false));
+          .rows.unshift(providerNamed(OTHER_PROVIDER, "Okta", false));
       });
 
       await expect(
@@ -1872,7 +1877,7 @@ describe.each([
       afterRead(kind.providerService, "restrictToAttachedProjects", () => {
         kind
           .providerTable()
-          .rows.push(providerNamed(OTHER_PROVIDER, "Okta", true));
+          .rows.unshift(providerNamed(OTHER_PROVIDER, "Okta", true));
       });
 
       await expect(
@@ -1892,7 +1897,7 @@ describe.each([
       afterRead(kind.providerService, "restrictToAttachedProjects", () => {
         kind
           .providerTable()
-          .rows.push(
+          .rows.unshift(
             providerNamed(OTHER_PROVIDER, "Created a moment later", true),
           );
       });
@@ -1919,7 +1924,7 @@ describe.each([
       afterRead(kind.providerService, "restrictToAttachedProjects", () => {
         kind
           .providerTable()
-          .rows.push(providerNamed(CREATED_LATER, "Retired", true));
+          .rows.unshift(providerNamed(CREATED_LATER, "Retired", true));
       });
 
       await expect(
@@ -1972,7 +1977,7 @@ describe.each([
       afterRead(kind.attachmentService, "projectId", () => {
         kind
           .attachmentTable()
-          .rows.push(attachmentRow(kind, ATTACHED_LATER, BETA));
+          .rows.unshift(attachmentRow(kind, ATTACHED_LATER, BETA));
       });
 
       await expect(
@@ -2007,7 +2012,7 @@ describe.each([
       afterRead(kind.attachmentService, "projectId", () => {
         kind
           .attachmentTable()
-          .rows.push(attachmentRow(kind, ATTACHED_LATER, BETA));
+          .rows.unshift(attachmentRow(kind, ATTACHED_LATER, BETA));
       });
 
       await expect(
@@ -2033,7 +2038,7 @@ describe.each([
       afterRead(kind.attachmentService, "projectId", () => {
         kind
           .attachmentTable()
-          .rows.push(attachmentRow(kind, ATTACHED_LATER, BETA));
+          .rows.unshift(attachmentRow(kind, ATTACHED_LATER, BETA));
       });
 
       await expect(
@@ -2249,6 +2254,33 @@ describe("the server's Require SSO for Login", () => {
       expect(keptForWrite()).toEqual([false]);
     },
   );
+
+  test("its lock is kept alive from the check on, before the write is started", async () => {
+    globalSamlTable.rows = [
+      { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+    ];
+
+    const rememberServerRuleBefore: (
+      ...args: Array<unknown>
+    ) => Promise<unknown> = SsoRequirementChanges.rememberServerRuleBefore.bind(
+      SsoRequirementChanges,
+    ) as unknown as (...args: Array<unknown>) => Promise<unknown>;
+
+    // The step that follows the check, before the write: the lock is kept alive by then.
+    let keptAfterCheck: Array<boolean> = [];
+    getJestSpyOn(
+      SsoRequirementChanges,
+      "rememberServerRuleBefore",
+    ).mockImplementation((async (...args: Array<unknown>): Promise<unknown> => {
+      keptAfterCheck = keptForWrite();
+      return await rememberServerRuleBefore(...args);
+    }) as never);
+
+    await expect(updateServerRule(true)).resolves.toBe("done");
+
+    expect(keptAfterCheck).toEqual([true]);
+    expect(keptForWrite()).toEqual([false]);
+  });
 
   test("its lock is kept alive while it is written, and no more once it is", async () => {
     globalSamlTable.rows = [
