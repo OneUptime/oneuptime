@@ -90,7 +90,9 @@ describe("MicrosoftTeamsMessageSize.fitAdaptiveCard", () => {
     const body: Array<JSONObject> = [textBlock("**Incident created**")];
 
     for (let index: number = 0; index < 39; index++) {
-      body.push(textBlock(`Line ${index}\n${"an affected resource\n".repeat(150)}`));
+      body.push(
+        textBlock(`Line ${index}\n${"an affected resource\n".repeat(150)}`),
+      );
     }
 
     const original: JSONObject = card(body);
@@ -99,12 +101,13 @@ describe("MicrosoftTeamsMessageSize.fitAdaptiveCard", () => {
       MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES,
     );
 
-    const fitted: JSONObject = MicrosoftTeamsMessageSize.fitAdaptiveCard(original);
+    const fitted: JSONObject =
+      MicrosoftTeamsMessageSize.fitAdaptiveCard(original);
     const texts: Array<string> = textsOf(fitted);
 
-    expect(MicrosoftTeamsMessageSize.getSizeInBytes(fitted)).toBeLessThanOrEqual(
-      MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES,
-    );
+    expect(
+      MicrosoftTeamsMessageSize.getSizeInBytes(fitted),
+    ).toBeLessThanOrEqual(MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES);
     // The title is short, and stays whole.
     expect(texts[0]).toBe("**Incident created**");
     expect(texts).toHaveLength(40);
@@ -126,7 +129,9 @@ describe("MicrosoftTeamsMessageSize.fitAdaptiveCard", () => {
       { type: "Image", url: `data:image/png;base64,${"A".repeat(500000)}` },
     ]);
 
-    expect(MicrosoftTeamsMessageSize.fitAdaptiveCard(withImage)).toBe(withImage);
+    expect(MicrosoftTeamsMessageSize.fitAdaptiveCard(withImage)).toBe(
+      withImage,
+    );
   });
 
   test("a card with no text block to cut is returned as it is", () => {
@@ -148,9 +153,9 @@ describe("MicrosoftTeamsMessageSize.fitAdaptiveCard", () => {
       16 * 1024,
     );
 
-    expect(MicrosoftTeamsMessageSize.getSizeInBytes(fitted)).toBeLessThanOrEqual(
-      16 * 1024,
-    );
+    expect(
+      MicrosoftTeamsMessageSize.getSizeInBytes(fitted),
+    ).toBeLessThanOrEqual(16 * 1024);
   });
 });
 
@@ -171,7 +176,9 @@ describe("Microsoft Teams bot message - many long blocks", () => {
       ],
     } as unknown as WorkspaceMessagePayload;
 
-    const built: JSONObject = MicrosoftTeamsUtil["buildAdaptiveCardFromMessageBlocks"]({
+    const built: JSONObject = MicrosoftTeamsUtil[
+      "buildAdaptiveCardFromMessageBlocks"
+    ]({
       messageBlocks: payload.messageBlocks,
     });
 

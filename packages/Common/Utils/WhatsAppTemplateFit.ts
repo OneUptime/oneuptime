@@ -26,9 +26,12 @@ import {
 // A variable in a template's text: {{incident_title}}, {{1}}.
 const PLACEHOLDER_PATTERN: RegExp = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
 
+// A web address.
+const LINK_PATTERN: RegExp = /^https?:\/\//i;
+
 // A value that is where the message points: never cut.
 const isLink: (value: string) => boolean = (value: string): boolean => {
-  return /^https?:\/\//i.test(value);
+  return LINK_PATTERN.test(value);
 };
 
 export const fitWhatsAppTemplateVariables: (

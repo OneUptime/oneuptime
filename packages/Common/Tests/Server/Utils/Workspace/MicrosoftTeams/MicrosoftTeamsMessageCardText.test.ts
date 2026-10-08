@@ -115,7 +115,7 @@ describe("findMessageCardLinks", () => {
       "](",
       "[a](b)",
       "\r",
-      " ",
+      "\u2028",
       "!",
     ];
     let found: number = 0;
@@ -168,8 +168,8 @@ describe("findFact", () => {
       "\t",
       "\n",
       "\r",
-      " ",
-      " ",
+      "\u2028",
+      "\u00A0",
       "Label",
       "value",
     ];

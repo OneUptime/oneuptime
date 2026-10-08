@@ -125,7 +125,11 @@ beforeEach(() => {
     botUsername: "oneuptime_bot",
   } as never);
 
-  for (const service of [SmsLogService, WhatsAppLogService, TelegramLogService]) {
+  for (const service of [
+    SmsLogService,
+    WhatsAppLogService,
+    TelegramLogService,
+  ]) {
     jest.spyOn(service as never, "create").mockImplementation(((data: {
       data: { _id?: string };
     }) => {
@@ -168,11 +172,14 @@ describe("an SMS", () => {
     expect(body.startsWith("Incident #42: Checkout is down.")).toBe(true);
     expect(body.endsWith(TRUNCATED_TEXT_NOTE_PLAIN)).toBe(true);
     // GSM 7-bit only: a single other character would make every part hold 70.
-    expect(/^[\x20-\x7e\n]*$/.test(TRUNCATED_TEXT_NOTE_PLAIN)).toBe(true);
+    const printableAscii: RegExp = /^[\x20-\x7e\n]*$/;
+
+    expect(printableAscii.test(TRUNCATED_TEXT_NOTE_PLAIN)).toBe(true);
   });
 
   test("within the limit goes as it always did", async () => {
-    const message: string = "Incident #42: Checkout is down. Acknowledge: https://oneuptime.com/a";
+    const message: string =
+      "Incident #42: Checkout is down. Acknowledge: https://oneuptime.com/a";
 
     expect(await sentBody(message)).toBe(message);
   });
@@ -225,7 +232,10 @@ describe("a Telegram message", () => {
 });
 
 describe("a WhatsApp template", () => {
-  function hydrated(templateKey: string, parameters: Array<JSONObject>): string {
+  function hydrated(
+    templateKey: string,
+    parameters: Array<JSONObject>,
+  ): string {
     let text: string =
       WhatsAppTemplateMessages[templateKey as WhatsAppTemplateId];
 

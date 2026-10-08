@@ -53,9 +53,7 @@ function oldReadsPartsOfLines(markdown: string): boolean {
 
     if (
       lines.some((line: string): boolean => {
-        return (
-          line.length < 3 || !line.startsWith("|") || !line.endsWith("|")
-        );
+        return line.length < 3 || !line.startsWith("|") || !line.endsWith("|");
       }) ||
       !(
         end === markdown.length ||
@@ -107,7 +105,11 @@ describe("replacePipeTables", () => {
   });
 
   test("a line must be at least three characters, start and end with a pipe", () => {
-    for (const markdown of ["||\n|-|\n||", "| a\n| - |\n| b |", "| a |\r\n| - |\r\n| b |"]) {
+    for (const markdown of [
+      "||\n|-|\n||",
+      "| a\n| - |\n| b |",
+      "| a |\r\n| - |\r\n| b |",
+    ]) {
       expect(replacePipeTables(markdown, format)).toBe(markdown);
     }
   });
@@ -136,7 +138,7 @@ describe("replacePipeTables", () => {
       "|---|---|",
       "| :-- | --: |",
       "|- -|",
-      "| -|",
+      "|\u00A0-|",
       "text",
       "",
       " ",

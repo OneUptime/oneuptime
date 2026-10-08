@@ -122,9 +122,11 @@ export const getWaterLevel: (
   sizes: ReadonlyArray<number>,
   available: number,
 ) => number = (sizes: ReadonlyArray<number>, available: number): number => {
-  const ascending: Array<number> = sizes.slice().sort((a: number, b: number) => {
-    return a - b;
-  });
+  const ascending: Array<number> = sizes
+    .slice()
+    .sort((a: number, b: number) => {
+      return a - b;
+    });
   let remaining: number = Math.max(0, available);
 
   for (let index: number = 0; index < ascending.length; index++) {

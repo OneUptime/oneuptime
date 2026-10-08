@@ -81,7 +81,9 @@ describe("fitTelegramMessage", () => {
       true,
     );
     // No reference is cut in two.
-    expect(/&[a-z]*$/.test(fitted.split("</code>")[0]!)).toBe(false);
+    const cutReference: RegExp = /&[a-z]*$/;
+
+    expect(cutReference.test(fitted.split("</code>")[0]!)).toBe(false);
   });
 
   test("an emoji is two characters to Telegram, and never cut in two", () => {
@@ -90,14 +92,19 @@ describe("fitTelegramMessage", () => {
     expect(telegramLength(fitted)).toBeLessThanOrEqual(
       MAX_TELEGRAM_MESSAGE_LENGTH,
     );
-    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(fitted)).toBe(false);
+    const loneHighSurrogate: RegExp = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/;
+
+    expect(loneHighSurrogate.test(fitted)).toBe(false);
     expect(fitted.endsWith(`</i>\n\n${TRUNCATED_TEXT_NOTE}`)).toBe(true);
   });
 });
 
 describe("fitWhatsAppTemplateVariables", () => {
   // The text Meta checks: the template with its variables filled in.
-  function hydrated(templateKey: string, variables: Record<string, string>): string {
+  function hydrated(
+    templateKey: string,
+    variables: Record<string, string>,
+  ): string {
     return WhatsAppTemplateMessages[templateKey as WhatsAppTemplateId].replace(
       /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g,
       (_placeholder: string, name: string): string => {
@@ -141,7 +148,8 @@ describe("fitWhatsAppTemplateVariables", () => {
 
       expect([
         templateKey,
-        hydrated(templateKey, fitted).length <= MAX_WHATSAPP_TEMPLATE_TEXT_LENGTH,
+        hydrated(templateKey, fitted).length <=
+          MAX_WHATSAPP_TEMPLATE_TEXT_LENGTH,
       ]).toEqual([templateKey, true]);
 
       for (const [name, value] of Object.entries(variables)) {

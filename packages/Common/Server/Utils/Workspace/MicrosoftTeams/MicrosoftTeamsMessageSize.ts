@@ -284,7 +284,10 @@ export default class MicrosoftTeamsMessageSize {
     const textIndexes: Array<number> = [];
 
     body.forEach((element: JSONObject, index: number): void => {
-      if (element["type"] === "TextBlock" && typeof element["text"] === "string") {
+      if (
+        element["type"] === "TextBlock" &&
+        typeof element["text"] === "string"
+      ) {
         textIndexes.push(index);
       }
     });

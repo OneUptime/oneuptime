@@ -11,7 +11,6 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import nodemailer, { Transporter } from "nodemailer";
-import SendgridMail from "@sendgrid/mail";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
@@ -29,10 +28,7 @@ import {
   MAX_EMAIL_FIELD_HTML_BYTES,
 } from "Common/Server/Utils/Mail/EmailSize";
 import logger from "Common/Server/Utils/Logger";
-import {
-  getEmailServerType,
-  getSendgridConfig,
-} from "../../FeatureSet/Notification/Config";
+import { getEmailServerType } from "../../FeatureSet/Notification/Config";
 import MailService, {
   RenderedEmail,
 } from "../../FeatureSet/Notification/Services/MailService";
@@ -132,11 +128,9 @@ jest.mock("../../FeatureSet/Notification/Services/SMTPOAuthService", () => {
   return { __esModule: true, default: { getAccessToken: jest.fn() } };
 });
 
-// A real 1x1 PNG and JPEG, as the probe reports a screenshot.
+// A real 1x1 PNG, as the probe reports a screenshot.
 const PNG: string =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
-const JPEG: string =
-  "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
 
 const ACKNOWLEDGE_URL: string =
   "https://oneuptime.example.test/api/user-on-call-log-timeline/acknowledge-page/abc";
@@ -215,18 +209,6 @@ async function acknowledgeIncidentEmail(
       acknowledgeIncidentLink: ACKNOWLEDGE_URL,
     },
   };
-}
-
-// The description the template in issue #4532 renders for a failed check.
-const SCREENSHOT_DESCRIPTION: string = `Timeout 30000ms exceeded\n![](data:image/png;base64,${PNG})`;
-
-function contentIdsIn(html: string): Array<string> {
-  return Array.from(
-    html.matchAll(/src="cid:([^"]+)"/g),
-    (match: RegExpMatchArray): string => {
-      return match[1]!;
-    },
-  );
 }
 
 async function deliverOverSmtp(mail: EmailMessage): Promise<CapturedSmtpMail> {

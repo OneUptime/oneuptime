@@ -168,10 +168,7 @@ export const holdBackForViewer: (text: string) => HeldBackViewerText = (
   // Token characters already in the text are held back as they are.
   let withoutTokens: string = text;
 
-  if (
-    text.indexOf(HELD_OPEN) !== -1 ||
-    text.indexOf(HELD_CLOSE) !== -1
-  ) {
+  if (text.indexOf(HELD_OPEN) !== -1 || text.indexOf(HELD_CLOSE) !== -1) {
     let copiedUpTo: number = 0;
 
     withoutTokens = "";

@@ -40,15 +40,17 @@ const RIGHT_BRACKET: number = 0x5d;
 const LEFT_PARENTHESIS: number = 0x28;
 const RIGHT_PARENTHESIS: number = 0x29;
 const BACKSLASH_CODE: number = 0x5c;
+// One character that "\s" takes.
+const WHITESPACE_PATTERN: RegExp = /\s/;
 
 // What "." in a regular expression does not match: a line terminator.
 const isLineTerminator: (code: number) => boolean = (code: number): boolean => {
-  return (
-    code === 0x0a || code === 0x0d || code === 0x2028 || code === 0x2029
-  );
+  return code === 0x0a || code === 0x0d || code === 0x2028 || code === 0x2029;
 };
 
-export type FindMessageCardLinksFunction = (line: string) => Array<MessageCardLink>;
+export type FindMessageCardLinksFunction = (
+  line: string,
+) => Array<MessageCardLink>;
 
 /*
  * The links of a line (see MessageCardLink), left to right. For each
@@ -184,7 +186,9 @@ export type FindFactFunction = (line: string) => MessageCardFact | null;
  * whitespace after the ":**" - line terminators too, as "\s" takes them -
  * is passed.
  */
-export const findFact: FindFactFunction = (line: string): MessageCardFact | null => {
+export const findFact: FindFactFunction = (
+  line: string,
+): MessageCardFact | null => {
   let segmentStart: number = 0;
 
   while (segmentStart <= line.length) {
@@ -206,7 +210,7 @@ export const findFact: FindFactFunction = (line: string): MessageCardFact | null
 
       while (
         valueStart < line.length &&
-        /\s/.test(line.charAt(valueStart))
+        WHITESPACE_PATTERN.test(line.charAt(valueStart))
       ) {
         valueStart++;
       }

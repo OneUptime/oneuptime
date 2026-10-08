@@ -104,9 +104,9 @@ describe("getInlineCharacterCount - what makes a parser look ahead", () => {
   });
 
   test("code spans, brackets, tags, escapes and entities count", () => {
-    expect(getInlineCharacterCount("`a` [b](c) <d> \\* &amp; &#38;", 0, 29)).toBe(
-      9,
-    );
+    expect(
+      getInlineCharacterCount("`a` [b](c) <d> \\* &amp; &#38;", 0, 29),
+    ).toBe(9);
     // What starts nothing does not.
     expect(getInlineCharacterCount("a < b, c & d, e \\ f", 0, 19)).toBe(0);
   });
@@ -145,7 +145,7 @@ describe("getWordPunctuationWork - what a parser reads from a word's punctuation
 
   test("spaces and tabs end a word; other characters do not", () => {
     expect(getWordPunctuationWork("a.b c.d\te.f", 0, 11)).toBe(3 + 3 + 3);
-    expect(getWordPunctuationWork("a.b c.d", 0, 7)).toBe(2 * 7);
+    expect(getWordPunctuationWork("a.b\u00A0c.d", 0, 7)).toBe(2 * 7);
   });
 });
 
@@ -211,7 +211,8 @@ describe("measureSlowMarkdownRuns - what a run costs", () => {
 
 describe("measureSlowMarkdownCodeBlocks - fenced code, read as every parser reads it", () => {
   test("a fence at the start of the text or after a blank line opens a code block", () => {
-    const text: string = "```\ncode *a *a\n```\n\ntext\n\n~~~js\nmore\nlines\n~~~";
+    const text: string =
+      "```\ncode *a *a\n```\n\ntext\n\n~~~js\nmore\nlines\n~~~";
 
     expect(measureSlowMarkdownCodeBlocks(text)).toEqual([
       { start: 0, end: 18, contentLines: 1 },

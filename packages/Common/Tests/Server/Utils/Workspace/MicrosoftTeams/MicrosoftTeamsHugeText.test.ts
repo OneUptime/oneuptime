@@ -301,9 +301,9 @@ describe("Microsoft Teams incoming webhook card - text of any size", () => {
 
     const card: JSONObject = await cardFor(markdown);
 
-    expect(
-      Buffer.byteLength(JSON.stringify(card), "utf8"),
-    ).toBeLessThanOrEqual(MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES);
+    expect(Buffer.byteLength(JSON.stringify(card), "utf8")).toBeLessThanOrEqual(
+      MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
+    );
     expect(sectionTextOf(card).endsWith(NOTE.trim())).toBe(true);
   });
 });

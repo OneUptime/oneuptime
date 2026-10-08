@@ -353,10 +353,7 @@ export const getInlineCharacterCount: (
       count++;
     } else if (
       code === LESS_THAN &&
-      (isAsciiLetter(next) ||
-        next === 0x2f ||
-        next === 0x21 ||
-        next === 0x3f)
+      (isAsciiLetter(next) || next === 0x2f || next === 0x21 || next === 0x3f)
     ) {
       count++;
     } else if (code === BACKSLASH && isAsciiPunctuation(next)) {
@@ -467,7 +464,11 @@ const getFenceOpening: (
   text: string,
   start: number,
   end: number,
-) => Fence | null = (text: string, start: number, end: number): Fence | null => {
+) => Fence | null = (
+  text: string,
+  start: number,
+  end: number,
+): Fence | null => {
   const character: number = text.charCodeAt(start);
 
   if (character !== BACKTICK && character !== TILDE) {
@@ -767,32 +768,35 @@ interface LineStart {
  * "*", "-" or "_", with spaces or tabs between them and nothing else. Its
  * "* " are not nested list items.
  */
-const isThematicBreak: (text: string, start: number, end: number) => boolean =
-  (text: string, start: number, end: number): boolean => {
-    let marker: number = NaN;
-    let count: number = 0;
+const isThematicBreak: (text: string, start: number, end: number) => boolean = (
+  text: string,
+  start: number,
+  end: number,
+): boolean => {
+  let marker: number = NaN;
+  let count: number = 0;
 
-    for (let index: number = start; index < end; index++) {
-      const code: number = text.charCodeAt(index);
+  for (let index: number = start; index < end; index++) {
+    const code: number = text.charCodeAt(index);
 
-      if (isSpaceOrTab(code)) {
-        continue;
-      }
-
-      if (code !== ASTERISK && code !== 0x2d && code !== UNDERSCORE) {
-        return false;
-      }
-
-      if (count > 0 && code !== marker) {
-        return false;
-      }
-
-      marker = code;
-      count++;
+    if (isSpaceOrTab(code)) {
+      continue;
     }
 
-    return count >= 3;
-  };
+    if (code !== ASTERISK && code !== 0x2d && code !== UNDERSCORE) {
+      return false;
+    }
+
+    if (count > 0 && code !== marker) {
+      return false;
+    }
+
+    marker = code;
+    count++;
+  }
+
+  return count >= 3;
+};
 
 /*
  * Reads the markers the line text[start, end) starts with: quote markers
@@ -806,153 +810,156 @@ const isThematicBreak: (text: string, start: number, end: number) => boolean =
  * paragraph's next line. Any other line - quote markers alone included -
  * continues the unit before it.
  */
-const readLineStart: (text: string, start: number, end: number) => LineStart =
-  (text: string, start: number, end: number): LineStart => {
-    if (isThematicBreak(text, start, end)) {
-      return {
-        contentStart: end,
-        nestingDepth: 0,
-        unitStart: null,
-        isFirstOrdered: false,
-      };
+const readLineStart: (text: string, start: number, end: number) => LineStart = (
+  text: string,
+  start: number,
+  end: number,
+): LineStart => {
+  if (isThematicBreak(text, start, end)) {
+    return {
+      contentStart: end,
+      nestingDepth: 0,
+      unitStart: null,
+      isFirstOrdered: false,
+    };
+  }
+
+  let index: number = start;
+  let nestingDepth: number = 0;
+  let firstMarker: string | null = null;
+  let firstMarkerIndentation: number = 0;
+  let isFirstOrdered: boolean = false;
+  // The columns of whitespace before and between the markers (a tab is 4).
+  let indentationColumns: number = 0;
+
+  // The character after a one-character marker: a space, a tab or the end.
+  const endsMarker: (position: number) => boolean = (
+    position: number,
+  ): boolean => {
+    return position >= end || isSpaceOrTab(text.charCodeAt(position));
+  };
+
+  for (;;) {
+    let afterSpaces: number = index;
+
+    while (afterSpaces < end && isSpaceOrTab(text.charCodeAt(afterSpaces))) {
+      indentationColumns += text.charCodeAt(afterSpaces) === TAB ? 4 : 1;
+      afterSpaces++;
     }
 
-    let index: number = start;
-    let nestingDepth: number = 0;
-    let firstMarker: string | null = null;
-    let firstMarkerIndentation: number = 0;
-    let isFirstOrdered: boolean = false;
-    // The columns of whitespace before and between the markers (a tab is 4).
-    let indentationColumns: number = 0;
-
-    // The character after a one-character marker: a space, a tab or the end.
-    const endsMarker: (position: number) => boolean = (
-      position: number,
-    ): boolean => {
-      return position >= end || isSpaceOrTab(text.charCodeAt(position));
-    };
-
-    for (;;) {
-      let afterSpaces: number = index;
-
-      while (afterSpaces < end && isSpaceOrTab(text.charCodeAt(afterSpaces))) {
-        indentationColumns += text.charCodeAt(afterSpaces) === TAB ? 4 : 1;
-        afterSpaces++;
-      }
-
-      if (afterSpaces >= end) {
-        index = afterSpaces;
-        break;
-      }
-
-      const indentation: number = afterSpaces - index;
-      const code: number = text.charCodeAt(afterSpaces);
-
-      if (code === GREATER_THAN && indentation <= 3 && firstMarker === null) {
-        nestingDepth++;
-        index = afterSpaces + 1;
-
-        if (index < end && isSpaceOrTab(text.charCodeAt(index))) {
-          index++;
-        }
-
-        continue;
-      }
-
-      if (code === GREATER_THAN && firstMarker !== null) {
-        // A quote inside a list item: it nests as deep.
-        nestingDepth++;
-        index = afterSpaces + 1;
-        continue;
-      }
-
-      if (
-        (code === 0x2d || code === ASTERISK || code === 0x2b) &&
-        endsMarker(afterSpaces + 1)
-      ) {
-        nestingDepth++;
-
-        if (firstMarker === null) {
-          firstMarker = "bullet";
-          firstMarkerIndentation = indentation;
-        }
-
-        index = afterSpaces + 1;
-        continue;
-      }
-
-      if (isDigit(code)) {
-        let digitsEnd: number = afterSpaces;
-
-        while (
-          digitsEnd < end &&
-          digitsEnd - afterSpaces < 9 &&
-          isDigit(text.charCodeAt(digitsEnd))
-        ) {
-          digitsEnd++;
-        }
-
-        const delimiter: number = text.charCodeAt(digitsEnd);
-
-        if (
-          digitsEnd < end &&
-          (delimiter === 0x2e || delimiter === 0x29) &&
-          endsMarker(digitsEnd + 1)
-        ) {
-          nestingDepth++;
-
-          if (firstMarker === null) {
-            firstMarker = delimiter === 0x2e ? "ordered." : "ordered)";
-            firstMarkerIndentation = indentation;
-            isFirstOrdered =
-              digitsEnd - afterSpaces === 1 &&
-              text.charCodeAt(afterSpaces) === 0x31;
-          }
-
-          index = digitsEnd + 1;
-          continue;
-        }
-      }
-
-      if (code === NUMBER_SIGN && firstMarker === null && indentation <= 3) {
-        let hashesEnd: number = afterSpaces;
-
-        while (hashesEnd < end && text.charCodeAt(hashesEnd) === NUMBER_SIGN) {
-          hashesEnd++;
-        }
-
-        if (hashesEnd - afterSpaces <= 6 && endsMarker(hashesEnd)) {
-          firstMarker = "heading";
-          firstMarkerIndentation = indentation;
-        }
-      }
-
+    if (afterSpaces >= end) {
       index = afterSpaces;
       break;
     }
 
-    const hasText: boolean = index < end;
+    const indentation: number = afterSpaces - index;
+    const code: number = text.charCodeAt(afterSpaces);
 
-    return {
-      contentStart: index,
-      /*
-       * A list nests by indentation as well as by markers: an item indented
-       * a column or two more than the one before is an item inside it, so
-       * on a line with markers every four columns of indentation count as a
-       * level. A line with none - indented code, pretty-printed JSON - does
-       * not nest.
-       */
-      nestingDepth:
-        nestingDepth > 0 || firstMarker !== null
-          ? Math.max(nestingDepth, Math.floor(indentationColumns / 4))
-          : nestingDepth,
-      unitStart:
-        firstMarker !== null && firstMarkerIndentation <= 3 && hasText
-          ? firstMarker
-          : null,
-      isFirstOrdered: isFirstOrdered,
-    };
+    if (code === GREATER_THAN && indentation <= 3 && firstMarker === null) {
+      nestingDepth++;
+      index = afterSpaces + 1;
+
+      if (index < end && isSpaceOrTab(text.charCodeAt(index))) {
+        index++;
+      }
+
+      continue;
+    }
+
+    if (code === GREATER_THAN && firstMarker !== null) {
+      // A quote inside a list item: it nests as deep.
+      nestingDepth++;
+      index = afterSpaces + 1;
+      continue;
+    }
+
+    if (
+      (code === 0x2d || code === ASTERISK || code === 0x2b) &&
+      endsMarker(afterSpaces + 1)
+    ) {
+      nestingDepth++;
+
+      if (firstMarker === null) {
+        firstMarker = "bullet";
+        firstMarkerIndentation = indentation;
+      }
+
+      index = afterSpaces + 1;
+      continue;
+    }
+
+    if (isDigit(code)) {
+      let digitsEnd: number = afterSpaces;
+
+      while (
+        digitsEnd < end &&
+        digitsEnd - afterSpaces < 9 &&
+        isDigit(text.charCodeAt(digitsEnd))
+      ) {
+        digitsEnd++;
+      }
+
+      const delimiter: number = text.charCodeAt(digitsEnd);
+
+      if (
+        digitsEnd < end &&
+        (delimiter === 0x2e || delimiter === 0x29) &&
+        endsMarker(digitsEnd + 1)
+      ) {
+        nestingDepth++;
+
+        if (firstMarker === null) {
+          firstMarker = delimiter === 0x2e ? "ordered." : "ordered)";
+          firstMarkerIndentation = indentation;
+          isFirstOrdered =
+            digitsEnd - afterSpaces === 1 &&
+            text.charCodeAt(afterSpaces) === 0x31;
+        }
+
+        index = digitsEnd + 1;
+        continue;
+      }
+    }
+
+    if (code === NUMBER_SIGN && firstMarker === null && indentation <= 3) {
+      let hashesEnd: number = afterSpaces;
+
+      while (hashesEnd < end && text.charCodeAt(hashesEnd) === NUMBER_SIGN) {
+        hashesEnd++;
+      }
+
+      if (hashesEnd - afterSpaces <= 6 && endsMarker(hashesEnd)) {
+        firstMarker = "heading";
+        firstMarkerIndentation = indentation;
+      }
+    }
+
+    index = afterSpaces;
+    break;
+  }
+
+  const hasText: boolean = index < end;
+
+  return {
+    contentStart: index,
+    /*
+     * A list nests by indentation as well as by markers: an item indented
+     * a column or two more than the one before is an item inside it, so
+     * on a line with markers every four columns of indentation count as a
+     * level. A line with none - indented code, pretty-printed JSON - does
+     * not nest.
+     */
+    nestingDepth:
+      nestingDepth > 0 || firstMarker !== null
+        ? Math.max(nestingDepth, Math.floor(indentationColumns / 4))
+        : nestingDepth,
+    unitStart:
+      firstMarker !== null && firstMarkerIndentation <= 3 && hasText
+        ? firstMarker
+        : null,
+    isFirstOrdered: isFirstOrdered,
   };
+};
 
 // The "|" in text[start, end) that a backslash does not escape.
 const getPipeCount: (text: string, start: number, end: number) => number = (

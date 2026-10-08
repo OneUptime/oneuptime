@@ -41,9 +41,12 @@ const getPushTextSize: TextSizeFunction = (text: string): number => {
   return Buffer.byteLength(JSON.stringify(text), "utf8");
 };
 
+// A web address, with or without its scheme ("https://", "//").
+const WEB_ADDRESS_PATTERN: RegExp = /^(?:https?:)?\/\//i;
+
 // An address a notification opens: never cut.
 const isAddress: (value: string) => boolean = (value: string): boolean => {
-  return /^(?:https?:)?\/\//i.test(value) || value.startsWith("/");
+  return WEB_ADDRESS_PATTERN.test(value) || value.startsWith("/");
 };
 
 /*

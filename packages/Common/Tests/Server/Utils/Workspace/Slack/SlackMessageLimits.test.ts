@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import SlackUtil, {
   SlackifySafeMarkdown,
   getSlackifySafeMarkdown,
@@ -31,7 +32,10 @@ jest.mock("slackify-markdown", () => {
   return {
     __esModule: true,
     default: (markdown: string): string => {
-      if (mockSlackifyState.throwOn !== null && markdown.includes(mockSlackifyState.throwOn)) {
+      if (
+        mockSlackifyState.throwOn !== null &&
+        markdown.includes(mockSlackifyState.throwOn)
+      ) {
         throw new TypeError("Cannot read properties of undefined");
       }
 
@@ -67,7 +71,7 @@ describe("getSlackifySafeMarkdown", () => {
 
   test("half an emoji becomes U+FFFD", () => {
     expect(getSlackifySafeMarkdown("a \uD83D b \uDE00 c").markdown).toBe(
-      "a � b � c",
+      "a \uFFFD b \uFFFD c",
     );
   });
 
@@ -100,18 +104,18 @@ describe("SlackUtil.slackify - every text converts", () => {
 
   test("half an emoji no longer loses the message", () => {
     expect(SlackUtil.slackify("cut \uD83D [a](http://x/\uD83D)")).toBe(
-      "cut � <http://x/%EF%BF%BD|a>\n",
+      "cut \uFFFD <http://x/%EF%BF%BD|a>\n",
     );
   });
 
   test("the stand-in character already in the text comes back as it was", () => {
-    expect(SlackUtil.slackify("odd  char, 50%")).toBe(
-      "odd  char, 50%\n",
+    expect(SlackUtil.slackify("odd \uE007 char, 50%")).toBe(
+      "odd \uE007 char, 50%\n",
     );
   });
 
   test("should slackify still fail, the message goes as its text, escaped as Slack reads it, and it is logged", () => {
-    const warn: jest.SpiedFunction<typeof logger.warn> = jest
+    const warn: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation((): void => {});
 

@@ -708,13 +708,35 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    */
   private static convertMarkdownTablesToHtml(markdown: string): string {
     // Tables are found in one pass over the lines (Utils/Markdown/PipeTables).
-    return replacePipeTables(
-      markdown,
-      (lines: Array<string>): string => {
+    return replacePipeTables(markdown, (lines: Array<string>): string => {
+      // Parse header row
+      const headerLine: string = lines[0] || "";
+      const headers: Array<string> = headerLine
+        .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
+        .map((cell: string) => {
+          return cell.trim();
+        })
+        .filter((cell: string) => {
+          return cell.length > 0;
+        });
 
-        // Parse header row
-        const headerLine: string = lines[0] || "";
-        const headers: Array<string> = headerLine
+      // Skip separator line (line with dashes) and get data rows
+      const dataRows: Array<string> = lines.slice(2);
+
+      // Build HTML table
+      let html: string =
+        '<table style="border-collapse: collapse; width: 100%;">';
+
+      // Header row
+      html += "<tr>";
+      for (const header of headers) {
+        html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${escapeMessageCardCell(header)}</strong></th>`;
+      }
+      html += "</tr>";
+
+      // Data rows
+      for (const row of dataRows) {
+        const cells: Array<string> = row
           .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
           .map((cell: string) => {
             return cell.trim();
@@ -723,47 +745,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             return cell.length > 0;
           });
 
-        // Skip separator line (line with dashes) and get data rows
-        const dataRows: Array<string> = lines.slice(2);
+        if (cells.length === 0) {
+          continue;
+        }
 
-        // Build HTML table
-        let html: string =
-          '<table style="border-collapse: collapse; width: 100%;">';
-
-        // Header row
         html += "<tr>";
-        for (const header of headers) {
-          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${escapeMessageCardCell(header)}</strong></th>`;
+        for (const cell of cells) {
+          html += `<td style="border: 1px solid #ddd; padding: 8px;">${escapeMessageCardCell(cell)}</td>`;
         }
         html += "</tr>";
+      }
 
-        // Data rows
-        for (const row of dataRows) {
-          const cells: Array<string> = row
-            .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
-            .map((cell: string) => {
-              return cell.trim();
-            })
-            .filter((cell: string) => {
-              return cell.length > 0;
-            });
+      html += "</table>";
 
-          if (cells.length === 0) {
-            continue;
-          }
-
-          html += "<tr>";
-          for (const cell of cells) {
-            html += `<td style="border: 1px solid #ddd; padding: 8px;">${escapeMessageCardCell(cell)}</td>`;
-          }
-          html += "</tr>";
-        }
-
-        html += "</table>";
-
-        return html;
-      },
-    );
+      return html;
+    });
   }
 
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {

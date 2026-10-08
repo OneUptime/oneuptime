@@ -967,7 +967,11 @@ export default class Markdown {
       weight > MAX_EMAIL_FIELD_HTML_BYTES ? MAX_EMAIL_FIELD_HTML_BYTES : null;
     let html: string = "";
 
-    for (let attempt: number = 0; attempt <= MAX_EMAIL_FIT_ATTEMPTS; attempt++) {
+    for (
+      let attempt: number = 0;
+      attempt <= MAX_EMAIL_FIT_ATTEMPTS;
+      attempt++
+    ) {
       html =
         kept === null
           ? await Markdown.renderEmailMarkdown(markdown, renderer)
@@ -1248,9 +1252,11 @@ export default class Markdown {
      * An image the cut splits - one whose data starts after it, or ends
      * before it with its ")" after - is left out from its "![".
      */
-    const after: Base64Run | undefined = runs.find((run: Base64Run): boolean => {
-      return run.start >= cut;
-    });
+    const after: Base64Run | undefined = runs.find(
+      (run: Base64Run): boolean => {
+        return run.start >= cut;
+      },
+    );
     const before: Base64Run | undefined = runs
       .filter((run: Base64Run): boolean => {
         return run.end <= cut;

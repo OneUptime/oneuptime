@@ -3286,12 +3286,28 @@ export default class SlackUtil extends WorkspaceBase {
    * the lines (Utils/Markdown/PipeTables).
    */
   private static convertMarkdownTablesToSlackFormat(markdown: string): string {
-    return replacePipeTables(
-      markdown,
-      (lines: Array<string>): string => {
-        // Parse header row
-        const headerLine: string = lines[0] || "";
-        const headers: Array<string> = headerLine
+    return replacePipeTables(markdown, (lines: Array<string>): string => {
+      // Parse header row
+      const headerLine: string = lines[0] || "";
+      const headers: Array<string> = headerLine
+        .split("|")
+        .map((cell: string) => {
+          return cell.trim();
+        })
+        .filter((cell: string) => {
+          return cell.length > 0;
+        });
+
+      /*
+       * Skip separator line (line with dashes)
+       * Find data rows (skip header and separator)
+       */
+      const dataRows: Array<string> = lines.slice(2);
+      const formattedRows: Array<string> = [];
+
+      for (let rowIndex: number = 0; rowIndex < dataRows.length; rowIndex++) {
+        const row: string = dataRows[rowIndex] || "";
+        const cells: Array<string> = row
           .split("|")
           .map((cell: string) => {
             return cell.trim();
@@ -3300,50 +3316,27 @@ export default class SlackUtil extends WorkspaceBase {
             return cell.length > 0;
           });
 
-        /*
-         * Skip separator line (line with dashes)
-         * Find data rows (skip header and separator)
-         */
-        const dataRows: Array<string> = lines.slice(2);
-        const formattedRows: Array<string> = [];
-
-        for (let rowIndex: number = 0; rowIndex < dataRows.length; rowIndex++) {
-          const row: string = dataRows[rowIndex] || "";
-          const cells: Array<string> = row
-            .split("|")
-            .map((cell: string) => {
-              return cell.trim();
-            })
-            .filter((cell: string) => {
-              return cell.length > 0;
-            });
-
-          if (cells.length === 0) {
-            continue;
-          }
-
-          const rowParts: Array<string> = [];
-          for (
-            let cellIndex: number = 0;
-            cellIndex < cells.length;
-            cellIndex++
-          ) {
-            const header: string =
-              headers[cellIndex] || `Column ${cellIndex + 1}`;
-            const value: string = cells[cellIndex] || "";
-            rowParts.push(`*${header}:* ${value}`);
-          }
-
-          if (dataRows.length > 1) {
-            formattedRows.push(`_Row ${rowIndex + 1}_\n${rowParts.join("\n")}`);
-          } else {
-            formattedRows.push(rowParts.join("\n"));
-          }
+        if (cells.length === 0) {
+          continue;
         }
 
-        return formattedRows.join("\n\n");
-      },
-    );
+        const rowParts: Array<string> = [];
+        for (let cellIndex: number = 0; cellIndex < cells.length; cellIndex++) {
+          const header: string =
+            headers[cellIndex] || `Column ${cellIndex + 1}`;
+          const value: string = cells[cellIndex] || "";
+          rowParts.push(`*${header}:* ${value}`);
+        }
+
+        if (dataRows.length > 1) {
+          formattedRows.push(`_Row ${rowIndex + 1}_\n${rowParts.join("\n")}`);
+        } else {
+          formattedRows.push(rowParts.join("\n"));
+        }
+      }
+
+      return formattedRows.join("\n\n");
+    });
   }
 
   @CaptureSpan()

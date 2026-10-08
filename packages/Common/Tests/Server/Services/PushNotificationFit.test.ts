@@ -53,13 +53,11 @@ describe("PushNotificationService.fitMessage", () => {
   });
 
   test("a body of megabytes is cut to fit, with the note; a short title stays whole", () => {
-    const fitted: PushNotificationMessage = PushNotificationService.fitMessage(
-      {
-        title: "Incident #42 created",
-        body: `Checkout is down. ${"A long response body. ".repeat(100000)}`,
-        data: { url: "https://oneuptime.example.com/incidents/42" },
-      },
-    );
+    const fitted: PushNotificationMessage = PushNotificationService.fitMessage({
+      title: "Incident #42 created",
+      body: `Checkout is down. ${"A long response body. ".repeat(100000)}`,
+      data: { url: "https://oneuptime.example.com/incidents/42" },
+    });
 
     expect(fitted.title).toBe("Incident #42 created");
     expect(fitted.body.startsWith("Checkout is down.")).toBe(true);
@@ -72,13 +70,11 @@ describe("PushNotificationService.fitMessage", () => {
   });
 
   test("a title and data texts of any length are cut too, a title with an ellipsis", () => {
-    const fitted: PushNotificationMessage = PushNotificationService.fitMessage(
-      {
-        title: `Incident: ${"a very long title ".repeat(500)}`,
-        body: "障害".repeat(5000),
-        data: { note: "x".repeat(10000), url: "/incidents/42", count: 3 },
-      },
-    );
+    const fitted: PushNotificationMessage = PushNotificationService.fitMessage({
+      title: `Incident: ${"a very long title ".repeat(500)}`,
+      body: "障害".repeat(5000),
+      data: { note: "x".repeat(10000), url: "/incidents/42", count: 3 },
+    });
 
     expect(fitted.title.endsWith(TRUNCATED_NAME_NOTE)).toBe(true);
     expect(fitted.body.endsWith(TRUNCATED_TEXT_NOTE)).toBe(true);
@@ -89,7 +85,9 @@ describe("PushNotificationService.fitMessage", () => {
     expect(fitted.data!["count"]).toBe(3);
     expect(textBytes(fitted)).toBeLessThanOrEqual(MAX_PUSH_TEXT_BYTES);
     // The whole payload, with the rest of what a notification carries, fits.
-    expect(Buffer.byteLength(JSON.stringify(fitted), "utf8")).toBeLessThan(4096);
+    expect(Buffer.byteLength(JSON.stringify(fitted), "utf8")).toBeLessThan(
+      4096,
+    );
   });
 });
 
@@ -99,7 +97,7 @@ describe("PushNotificationService.sendRelayPushNotification", () => {
 
     jest
       .spyOn(
-        PushNotificationService["expoClient"] as {
+        PushNotificationService["expoClient"] as unknown as {
           sendPushNotificationsAsync: (
             messages: Array<Record<string, unknown>>,
           ) => Promise<Array<unknown>>;

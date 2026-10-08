@@ -398,9 +398,9 @@ describe("holdBackForViewer - what is shown as text", () => {
       expect([line, heldBack.heldLines.length]).toEqual([line, 1]);
       expect([line, heldBack.markdown.length < 64]).toEqual([line, true]);
       // What is held back is the text as it was written.
-      expect(
-        heldBack.held[heldBack.heldLines[0]!] === text.slice(0, -1),
-      ).toBe(true);
+      expect(heldBack.held[heldBack.heldLines[0]!] === text.slice(0, -1)).toBe(
+        true,
+      );
     }
   });
 

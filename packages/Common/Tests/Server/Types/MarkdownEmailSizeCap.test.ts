@@ -73,9 +73,9 @@ describe("Markdown email field - held to what an email carries", () => {
 
     // The Markdown is under the budget; its HTML is far over it.
     expect(markdown.length).toBeLessThan(MAX_EMAIL_FIELD_HTML_BYTES * 2);
-    expect(
-      (await renderWithMarkedAlone(markdown)).length,
-    ).toBeGreaterThan(4 * MAX_EMAIL_FIELD_HTML_BYTES);
+    expect((await renderWithMarkedAlone(markdown)).length).toBeGreaterThan(
+      4 * MAX_EMAIL_FIELD_HTML_BYTES,
+    );
 
     const html: string = await render(markdown);
 
@@ -110,7 +110,9 @@ describe("Markdown email field - held to what an email carries", () => {
   test("text in a script of three bytes a character is held to the budget in bytes", async () => {
     jest.spyOn(logger, "warn").mockImplementation((): void => {});
 
-    const html: string = await render(`障害 ${"障害が発生しました。".repeat(20000)}`);
+    const html: string = await render(
+      `障害 ${"障害が発生しました。".repeat(20000)}`,
+    );
 
     expect(EmailSize.getHtmlSizeInBytes(html)).toBeLessThanOrEqual(
       MAX_EMAIL_FIELD_HTML_BYTES,
@@ -173,7 +175,7 @@ describe("Markdown.cutEmailMarkdown", () => {
     );
   });
 
-  test("an image the cut would split is left out, from its \"![\"", () => {
+  test('an image the cut would split is left out, from its "!["', () => {
     const data: string = png(30000);
     const markdown: string = `${"a".repeat(100)} ![Shot](data:image/png;base64,${data} "A title") after`;
 

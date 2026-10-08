@@ -44,7 +44,9 @@ describe("the providers' limits", () => {
     expect(TRUNCATED_TEXT_NOTE_PLAIN).toBe(
       TRUNCATED_TEXT_NOTE.replace("…", "...").replace("—", "-"),
     );
-    expect(/^[\x20-\x7e]*$/.test(TRUNCATED_TEXT_NOTE_PLAIN)).toBe(true);
+    const printableAscii: RegExp = /^[\x20-\x7e]*$/;
+
+    expect(printableAscii.test(TRUNCATED_TEXT_NOTE_PLAIN)).toBe(true);
   });
 });
 

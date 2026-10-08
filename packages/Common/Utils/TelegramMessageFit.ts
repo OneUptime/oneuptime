@@ -34,9 +34,12 @@ export interface TelegramMessageText {
 // The note, on a line of its own.
 const NOTE: string = `\n\n${TRUNCATED_TEXT_NOTE}`;
 
+// The name a tag ("<b>", "</b>", "<a href=...>") opens or closes.
+const TAG_NAME_PATTERN: RegExp = /^<\/?\s*([a-zA-Z0-9-]+)/;
+
 // The name of the tag `tag` ("<b>", "</b>", "<a href=...>") opens or closes.
 const getTagName: (tag: string) => string = (tag: string): string => {
-  const name: RegExpExecArray | null = /^<\/?\s*([a-zA-Z0-9-]+)/.exec(tag);
+  const name: RegExpExecArray | null = TAG_NAME_PATTERN.exec(tag);
 
   return name ? name[1]!.toLowerCase() : "";
 };

@@ -125,9 +125,9 @@ describe("EmailSize.attachWithinLimit", () => {
 
     expect(attached.wasFitted).toBe(true);
     expect(attached.inlineImages).toEqual([]);
-    expect(
-      EmailSize.getHtmlSizeInBytes(attached.html),
-    ).toBeLessThanOrEqual(MAX_EMAIL_BYTES);
+    expect(EmailSize.getHtmlSizeInBytes(attached.html)).toBeLessThanOrEqual(
+      MAX_EMAIL_BYTES,
+    );
     expect(attached.html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)).toBe(true);
     // No image's base64 is left in the HTML.
     expect(attached.html.includes("base64,")).toBe(false);
@@ -162,6 +162,7 @@ describe("EmailSize.cutHtml", () => {
 
   test("never cuts inside a character reference", () => {
     const html: string = `<p>${"&amp;".repeat(100)}</p>`;
+    const onlyWholeReferences: RegExp = /^<p>(&amp;)*$/;
 
     for (let extra: number = 0; extra < 12; extra++) {
       const budget: number =
@@ -174,7 +175,7 @@ describe("EmailSize.cutHtml", () => {
         cut.length - EMAIL_TRUNCATED_TEXT_NOTE_HTML.length,
       );
 
-      expect([extra, /^<p>(&amp;)*$/.test(kept)]).toEqual([extra, true]);
+      expect([extra, onlyWholeReferences.test(kept)]).toEqual([extra, true]);
       expect(EmailSize.getHtmlSizeInBytes(cut)).toBeLessThanOrEqual(budget);
     }
   });
