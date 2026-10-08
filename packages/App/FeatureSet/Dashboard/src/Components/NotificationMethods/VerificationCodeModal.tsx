@@ -354,10 +354,19 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const nextStep: string =
-      canSendCode && !cannotSendReason
-        ? ` ${translator.translateText(definition.sendCodeNextStep) || ""}`
-        : "";
+    /*
+     * With no code waiting and none that can be sent, the reason is all
+     * there is to say. "The code we sent has expired" would only be noise
+     * beside it - and for a number added before sends were checked, the
+     * code it speaks of may never have gone out at all.
+     */
+    if (cannotSendReason) {
+      return null;
+    }
+
+    const nextStep: string = canSendCode
+      ? ` ${translator.translateText(definition.sendCodeNextStep) || ""}`
+      : "";
 
     const sentence: string = translator.translateTemplate(
       status.codeState === VerificationCodeState.Expired
@@ -470,13 +479,14 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
                 /*
                  * A one-time code: digits, at most six. Phones offer the
                  * code from the message they just received, and a numeric
-                 * keypad to type it on.
+                 * keypad to type it on. No maxLength: the browser would cut
+                 * a pasted "123 456" to six characters before onChange
+                 * keeps its digits, and lose the last one.
                  */
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 pattern="[0-9]*"
-                maxLength={CODE_LENGTH}
                 placeholder="123456"
                 autoFocus={true}
                 spellCheck={false}
