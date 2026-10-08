@@ -46,7 +46,10 @@ import QueryHelper from "../Types/Database/QueryHelper";
  *     removed (GlobalSsoProviderChanges);
  *   - Require SSO for Login turned on, or another provider required, for a
  *     project, or Require SSO for Login turned on for the whole server
- *     (SsoRequirementChanges).
+ *     (SsoRequirementChanges);
+ *   - a project created while it would require SSO - itself, or because the
+ *     whole server does - with no provider to sign anyone in to it yet
+ *     (SsoRequirementChanges.beforeProjectCreate, findNewProjectStrandReason).
  *
  * It answers with the projects the change would leave with no way in. It
  * reads the database, never a cache: the caller holds the locks that keep
@@ -171,6 +174,9 @@ export const STRANDED_PROJECTS_NAMED: number = 3;
 // How many projects are read at a time.
 const PROJECT_PAGE_SIZE: number = 500;
 
+// How many restricted global providers a new project's check asks at once.
+const ATTACHMENT_CHECKS_AT_ONCE: number = 10;
+
 interface CandidateProject {
   id: string;
   name: string;
@@ -182,6 +188,13 @@ interface LoadedGlobalProvider {
   providerType: GlobalSsoProviderType;
   id: string;
   reach: SignInReach;
+}
+
+// A global provider that is on, as a new project's check reads it.
+interface GlobalProviderSwitches {
+  providerType: GlobalSsoProviderType;
+  id: string;
+  isRestricted: boolean;
 }
 
 // The lower-case form every id is compared in.
@@ -501,6 +514,163 @@ export default class SsoSignInWays {
     }
 
     return result;
+  }
+
+  /*
+   * Why a project created now with this rule would have no way in, or null
+   * when it would have one, or needs none.
+   *
+   * A new project has no SSO provider of its own yet, and no global
+   * provider is attached to it, so the only providers that sign people in
+   * to it are the global ones that are on and sign people in to every
+   * project: one not restricted to its attached projects, or restricted
+   * with none attached yet. It needs one when it requires SSO itself, or
+   * when the whole server does; the provider it requires, when it requires
+   * one, must be one of those. Read from the database, under the lock on
+   * the server's sign-in rules the caller holds (SsoRequirementChanges.
+   * beforeProjectCreate), as every other change's check is.
+   */
+  public static async findNewProjectStrandReason(data: {
+    rule: ProjectSignInRule;
+  }): Promise<StrandReason | null> {
+    const facts: SignInFacts = new SignInFacts({
+      reachChanges: [],
+      turnsOnServerRule: false,
+    });
+
+    // Read only when the project's own rule does not settle it.
+    const serverRequiresSso: boolean = data.rule.requireSsoForLogin
+      ? false
+      : await facts.getServerRequiresSso();
+
+    if (!data.rule.requireSsoForLogin && !serverRequiresSso) {
+      return null;
+    }
+
+    const ways: Set<string> = new Set<string>(
+      await SsoSignInWays.readGlobalWaysToEveryProject(),
+    );
+
+    return decideStrandReason({
+      rule: data.rule,
+      serverRequiresSso,
+      // A new project's rule asks for all it asks for at once.
+      isTightened: true,
+      takenAway: new Set<string>(),
+      waysAfter: (): Set<string> => {
+        return ways;
+      },
+    });
+  }
+
+  /*
+   * The global providers (wayKey) that sign people in to every project, and
+   * so to one created now: the ones that are on and are not restricted to
+   * their attached projects, or are restricted and attached to none yet
+   * (getGlobalProviderReach). A restricted one is only asked whether it has
+   * an attachment at all - one that has can never reach a project that does
+   * not exist yet - so the check reads one row per restricted provider, not
+   * all of their attachments, and asks them a few at a time
+   * (ATTACHMENT_CHECKS_AT_ONCE), under the lock it holds.
+   */
+  private static async readGlobalWaysToEveryProject(): Promise<Array<string>> {
+    const [samlProviders, oidcProviders]: [
+      Array<GlobalSso>,
+      Array<GlobalOidc>,
+    ] = await Promise.all([
+      GlobalSsoService.findBy({
+        query: { isEnabled: true },
+        select: { _id: true, restrictToAttachedProjects: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      GlobalOidcService.findBy({
+        query: { isEnabled: true },
+        select: { _id: true, restrictToAttachedProjects: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ]);
+
+    const hasAttachment: (
+      providerType: GlobalSsoProviderType,
+      providerId: ObjectID,
+    ) => Promise<boolean> = async (
+      providerType: GlobalSsoProviderType,
+      providerId: ObjectID,
+    ): Promise<boolean> => {
+      const attachment: GlobalSsoProject | GlobalOidcProject | null =
+        providerType === SsoProviderType.GlobalSSO
+          ? await GlobalSsoProjectService.findOneBy({
+              query: { globalSsoId: providerId },
+              select: { _id: true },
+              props: { isRoot: true },
+            })
+          : await GlobalOidcProjectService.findOneBy({
+              query: { globalOidcId: providerId },
+              select: { _id: true },
+              props: { isRoot: true },
+            });
+
+      return Boolean(attachment);
+    };
+
+    const providers: Array<GlobalProviderSwitches> = [];
+
+    for (const [providerType, rows] of [
+      [SsoProviderType.GlobalSSO, samlProviders],
+      [SsoProviderType.GlobalOIDC, oidcProviders],
+    ] as Array<[GlobalSsoProviderType, Array<GlobalSso | GlobalOidc>]>) {
+      for (const row of rows) {
+        const id: string | null = toIdString(row.id);
+
+        if (id) {
+          providers.push({
+            providerType,
+            id,
+            isRestricted: Boolean(row.restrictToAttachedProjects),
+          });
+        }
+      }
+    }
+
+    /*
+     * The restricted ones are asked a few at a time, not one after another
+     * and not all at once.
+     */
+    const isWayIn: Array<boolean> = [];
+
+    for (
+      let start: number = 0;
+      start < providers.length;
+      start += ATTACHMENT_CHECKS_AT_ONCE
+    ) {
+      isWayIn.push(
+        ...(await Promise.all(
+          providers
+            .slice(start, start + ATTACHMENT_CHECKS_AT_ONCE)
+            .map(async (provider: GlobalProviderSwitches): Promise<boolean> => {
+              return (
+                !provider.isRestricted ||
+                !(await hasAttachment(
+                  provider.providerType,
+                  new ObjectID(provider.id),
+                ))
+              );
+            }),
+        )),
+      );
+    }
+
+    return providers
+      .filter((_provider: GlobalProviderSwitches, index: number): boolean => {
+        return isWayIn[index] === true;
+      })
+      .map((provider: GlobalProviderSwitches): string => {
+        return wayKey(provider.providerType, provider.id);
+      });
   }
 
   /*

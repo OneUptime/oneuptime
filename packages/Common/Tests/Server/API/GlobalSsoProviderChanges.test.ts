@@ -20,8 +20,12 @@ import { clearGlobalSsoAuthorizationCaches } from "../../../Server/Utils/GlobalS
 import logger from "../../../Server/Utils/Logger";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import { SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE } from "../../../Server/Utils/ProjectSsoProviderChanges";
+import SsoSignInWays, {
+  GlobalProviderAttachmentRows,
+} from "../../../Server/Utils/SsoSignInWays";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
+  RealtimeAccessChangeKind,
 } from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -822,12 +826,167 @@ describe.each([
       expect(events).toEqual([`write:${PROVIDER}`]);
     });
 
-    test("saving one that is on as on again takes no lock", async () => {
+    test("saving one that is on as on again - an edit form sends every switch it shows - takes no lock and tells nobody: it changed nothing", async () => {
       await expect(
         updateProvider(kind, { isEnabled: true, name: "Okta (renamed)" }),
       ).resolves.toBe("done");
 
       expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([]);
+    });
+
+    test("saving one that is open to every project as open again tells nobody either", async () => {
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: false }),
+      ).resolves.toBe("done");
+
+      expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([]);
+    });
+
+    test("saving one as it is reads none of its attachments: it signs the same people in; turning it on reads them", async () => {
+      const attachmentReads: jest.SpyInstance = getJestSpyOn(
+        GlobalProviderAttachmentRows,
+        "read",
+      );
+
+      await expect(
+        updateProvider(kind, {
+          isEnabled: true,
+          restrictToAttachedProjects: false,
+          name: "Okta (renamed)",
+        }),
+      ).resolves.toBe("done");
+
+      expect(attachmentReads).not.toHaveBeenCalled();
+
+      providerRow(kind)!["isEnabled"] = false;
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(attachmentReads).toHaveBeenCalledTimes(1);
+    });
+
+    test("turning it off is told to every server even when it was read as off: one turned on in between - turning on takes no lock - is turned off by this write", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      const findStrandedProjects: typeof SsoSignInWays.findStrandedProjects =
+        SsoSignInWays.findStrandedProjects.bind(SsoSignInWays);
+      jest
+        .spyOn(SsoSignInWays, "findStrandedProjects")
+        .mockImplementation(
+          async (
+            ...args: Parameters<typeof SsoSignInWays.findStrandedProjects>
+          ): ReturnType<typeof SsoSignInWays.findStrandedProjects> => {
+            // Turned on by a write that takes no lock, after this one read it.
+            providerRow(kind)!["isEnabled"] = true;
+            return await findStrandedProjects(...args);
+          },
+        );
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        "done",
+      );
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(false);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("restricting one read as restricted already is told to every server all the same", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+      projects = [project(ACME, "Acme")];
+
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: true }),
+      ).resolves.toBe("done");
+
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("turning it on is told to every server once, so none keeps refusing the people it signs in", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("lifting its restriction to its attached projects is told to every server once, and takes no lock", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: false }),
+      ).resolves.toBe("done");
+
+      expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("lifting the restriction of one attached to no project tells nobody: it signed people in to every project already", async () => {
+      providerRow(kind)!["restrictToAttachedProjects"] = true;
+
+      await expect(
+        updateProvider(kind, { restrictToAttachedProjects: false }),
+      ).resolves.toBe("done");
+
+      expect(announced).toEqual([]);
+    });
+
+    test("turning it on when what it changes cannot be read is still written, and told to every server all the same", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+      jest.spyOn(logger, "warn").mockImplementation((): void => {
+        return undefined;
+      });
+
+      const findAllBy: (args: unknown) => Promise<unknown> =
+        kind.providerService.findAllBy.bind(kind.providerService) as never;
+      jest
+        .spyOn(kind.providerService, "findAllBy")
+        .mockImplementation((async (args: {
+          select?: Record<string, unknown>;
+        }): Promise<unknown> => {
+          // The read of where the provider signs people in, before the write.
+          if (args.select?.["restrictToAttachedProjects"]) {
+            throw new Error("The database is not answering");
+          }
+
+          return await findAllBy(args);
+        }) as never);
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("a new name alone is told to nobody", async () => {
+      await expect(
+        updateProvider(kind, { name: "Okta (renamed)" }),
+      ).resolves.toBe("done");
+
       expect(announced).toEqual([]);
     });
 
@@ -1431,7 +1590,7 @@ describe.each([
       expect(kind.attachmentTable().deleted).toEqual([ATTACHED_TO_ACME]);
     });
 
-    test("turning an attachment on takes no lock and is never refused", async () => {
+    test("turning an attachment on takes no lock, is never refused, and is told to every server once", async () => {
       kind.attachmentTable().rows = [
         attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
       ];
@@ -1444,6 +1603,81 @@ describe.each([
           return event.startsWith("lock:");
         }),
       ).toEqual([]);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("saving an attachment that is on as on again tells nobody, and reads nothing more for it", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+      ];
+      const attachmentReads: jest.SpyInstance = getJestSpyOn(
+        GlobalProviderAttachmentRows,
+        "read",
+      );
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: true }),
+      ).resolves.toBe("done");
+      expect(announced).toEqual([]);
+      expect(attachmentReads).not.toHaveBeenCalled();
+    });
+
+    test("turning an attachment off that was read as off already is told to every server all the same: one turned on in between takes no lock", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+      ];
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: false }),
+      ).resolves.toBe("done");
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("moving an attachment that was read as off is told to every server all the same: one turned on in between takes no lock", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_ACME, { projectId: GAMMA }),
+      ).resolves.toBe("done");
+      expect(kind.attachmentTable().rows[0]!["projectId"]).toBe(GAMMA);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("moving an attachment that was read as off to a provider that signs people in to every project is told all the same: the provider it leaves is restricted", async () => {
+      kind.providerTable().rows.push({
+        _id: OTHER_PROVIDER,
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      });
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+
+      await expect(
+        kind.attachmentService.updateBy({
+          query: { _id: ATTACHED_TO_ACME },
+          data: { [kind.providerColumn]: OTHER_PROVIDER } as never,
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+      expect(kind.attachmentTable().rows[0]![kind.providerColumn]).toBe(
+        OTHER_PROVIDER,
+      );
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
     });
   });
 
@@ -1466,6 +1700,22 @@ describe.each([
       `delete:${ATTACHED_TO_ACME}`,
       `release:${SERVER_LOCK}`,
     ]);
+    expect(announced).toEqual([]);
+  });
+
+  test("an attachment of a provider that signs people in to every project, turned off or moved while it was off, tells nobody", async () => {
+    projects = [project(ACME, "Acme"), project(BETA, "Beta")];
+    kind.attachmentTable().rows = [
+      attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+    ];
+
+    await expect(
+      updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: false }),
+    ).resolves.toBe("done");
+    await expect(
+      updateAttachment(kind, ATTACHED_TO_ACME, { projectId: BETA }),
+    ).resolves.toBe("done");
+
     expect(announced).toEqual([]);
   });
 

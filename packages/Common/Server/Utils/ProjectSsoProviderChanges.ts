@@ -8,6 +8,7 @@ import Semaphore, {
 } from "../Infrastructure/Semaphore";
 import DatabaseService from "../Services/DatabaseService";
 import Query from "../Types/Database/Query";
+import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -51,7 +52,9 @@ import SsoSignInWays, {
  *     holds a lock on the project from before it reads the providers until
  *     it is written, so what it read is still true when it lands: two
  *     writes at once cannot each take away what the other counted on, and
- *     none can miss a provider another turned on a moment before. One that
+ *     none can miss a provider another turned on a moment before. It writes
+ *     exactly the providers it read under the lock: one that comes to match
+ *     its filter afterwards is left alone (lockReadAndCheck). One that
  *     leaves a project none of its own providers on, or takes away the one
  *     it requires, also holds the lock on the server's sign-in rules
  *     (lockSignInChange): the project then relies on the global providers
@@ -147,6 +150,11 @@ export default class ProjectSsoProviderChanges {
     ProjectSsoProviderWrite
   > = new WeakMap<UpdateBy<BaseModel>, ProjectSsoProviderWrite>();
 
+  // The hard deletes running now (runHardDelete), by the DeleteBy they were given.
+  private static hardDeletes: WeakSet<DeleteBy<BaseModel>> = new WeakSet<
+    DeleteBy<BaseModel>
+  >();
+
   /*
    * Whether a project SAML or OIDC provider vouches for the sign-ins it gave
    * in a project (ProjectSsoProviderStanding): it is there, it is the
@@ -224,9 +232,8 @@ export default class ProjectSsoProviderChanges {
       await ProjectSsoProviderChanges.lockReadAndCheck({
         providerType: data.providerType,
         service: data.service,
-        query: data.updateBy.query,
-        limit: data.updateBy.limit,
-        skip: data.updateBy.skip,
+        write: data.updateBy,
+        isHardDelete: false,
         decide: (
           rows: Array<ProjectSsoProviderRow>,
         ): ProjectSsoProviderWrite => {
@@ -305,9 +312,10 @@ export default class ProjectSsoProviderChanges {
     return await ProjectSsoProviderChanges.lockReadAndCheck({
       providerType: data.providerType,
       service: data.service,
-      query: data.deleteBy.query,
-      limit: data.deleteBy.limit,
-      skip: data.deleteBy.skip,
+      write: data.deleteBy,
+      isHardDelete: ProjectSsoProviderChanges.hardDeletes.has(
+        data.deleteBy as unknown as DeleteBy<BaseModel>,
+      ),
       decide: (rows: Array<ProjectSsoProviderRow>): ProjectSsoProviderWrite => {
         return {
           takenAway: rows.filter((row: ProjectSsoProviderRow): boolean => {
@@ -509,13 +517,43 @@ export default class ProjectSsoProviderChanges {
   }
 
   /*
+   * Runs a hard delete of providers - the service's hardDeleteBy, which the
+   * retention job's purge calls - known as one to beforeDelete while it
+   * runs: unlike every other write, it also reaches rows deleted before,
+   * which no read here sees (writeOnlyTheRowsRead).
+   */
+  public static async runHardDelete<TModel extends BaseModel>(
+    deleteBy: DeleteBy<TModel>,
+    hardDelete: () => Promise<number>,
+  ): Promise<number> {
+    const key: DeleteBy<BaseModel> = deleteBy as unknown as DeleteBy<BaseModel>;
+
+    ProjectSsoProviderChanges.hardDeletes.add(key);
+
+    try {
+      return await hardDelete();
+    } finally {
+      ProjectSsoProviderChanges.hardDeletes.delete(key);
+    }
+  }
+
+  /*
    * The rows a write names and what it does to them, read under a lock on
-   * each of their projects: the rows are read once to learn the projects,
-   * the projects are locked, and the rows are read again, so no other turn
-   * off, turn on or delete of the projects' providers comes between what
-   * this write reads and what it writes. Read again, they must stay within
-   * the projects locked: a write whose filter now reaches another project
-   * is refused, to be saved again.
+   * each project they are in, so no other turn off, turn on or delete of
+   * those projects' providers comes between what this write reads and what
+   * it writes. The rows are read once to learn their projects - a write
+   * that reaches no provider takes no lock, and writes nothing - the
+   * projects are locked, and the rows are read again. Read again, they must
+   * stay within the projects locked: a write whose filter now reaches
+   * another project - a provider created, or moved, there in between - is
+   * refused, to be saved again.
+   *
+   * The write then goes to exactly the rows read under the locks
+   * (writeOnlyTheRowsRead): a row that comes to match its filter later - a
+   * provider created, renamed or turned on a moment after - was never
+   * checked, and is left alone; a write whose rows read under the locks are
+   * none writes nothing. No write turns off or deletes a provider its check
+   * did not read under a lock.
    *
    * A write that takes a provider away is checked. When a project it
    * touches would be left none of its own providers on, or loses the one it
@@ -527,32 +565,45 @@ export default class ProjectSsoProviderChanges {
    * no other lock (SsoSignInWays.dependsOnServerRules).
    *
    * The locks are held until the write is done (afterUpdate, afterDelete)
-   * or fails (afterFailedWrite), or given back at once when it is refused.
-   * Without Valkey the write still reads and checks, unlocked.
+   * or fails (afterFailedWrite), or given back at once when it is refused
+   * or reaches no row. Without Valkey the write still reads and checks,
+   * unlocked.
    */
   private static async lockReadAndCheck<TModel extends BaseModel>(data: {
     providerType: ProjectSsoProviderType;
     service: DatabaseService<TModel>;
-    query: Query<TModel>;
-    limit: PositiveNumber | number;
-    skip: PositiveNumber | number;
+    // The update or delete, narrowed here to the rows it read under the locks.
+    write: UpdateBy<TModel> | DeleteBy<TModel>;
+    // A hard delete: it also reaches rows deleted before, which no read sees.
+    isHardDelete: boolean;
     decide: (rows: Array<ProjectSsoProviderRow>) => ProjectSsoProviderWrite;
   }): Promise<ProjectSsoProviderWrite> {
-    const rowsToLock: Array<ProjectSsoProviderRow> =
-      await ProjectSsoProviderChanges.readRows({
+    const readNow: () => Promise<
+      Array<ProjectSsoProviderRow>
+    > = async (): Promise<Array<ProjectSsoProviderRow>> => {
+      return await ProjectSsoProviderChanges.readRows({
         service: data.service,
-        query: data.query,
-        limit: data.limit,
-        skip: data.skip,
+        query: data.write.query,
+        limit: data.write.limit,
+        skip: data.write.skip,
+      });
+    };
+
+    // Read once, unlocked, only to learn which projects to lock.
+    const lockedProjectIds: Array<string> = Array.from(
+      ProjectSsoProviderChanges.groupByProject(await readNow()).keys(),
+    );
+
+    // It reaches no provider: nothing to lock or check, and nothing to write.
+    if (lockedProjectIds.length === 0) {
+      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
+        write: data.write,
+        rows: [],
+        isHardDelete: data.isHardDelete,
       });
 
-    if (rowsToLock.length === 0) {
       return { takenAway: [], turnedOn: [] };
     }
-
-    const lockedProjectIds: Array<string> = Array.from(
-      ProjectSsoProviderChanges.groupByProject(rowsToLock).keys(),
-    );
 
     const locks: Array<SemaphoreMutex> =
       await ProjectSsoProviderChanges.lockSignInChange({
@@ -561,17 +612,11 @@ export default class ProjectSsoProviderChanges {
       });
 
     try {
-      const rows: Array<ProjectSsoProviderRow> =
-        await ProjectSsoProviderChanges.readRows({
-          service: data.service,
-          query: data.query,
-          limit: data.limit,
-          skip: data.skip,
-        });
+      const rows: Array<ProjectSsoProviderRow> = await readNow();
 
       /*
-       * Read again under the projects' locks, a write that names its rows
-       * by a filter may now reach a project it did not lock - a provider
+       * Read under the projects' locks, a write that names its rows by a
+       * filter may now reach a project it did not lock - a provider
        * created, or moved, there in between - whose own changes it could
        * then overtake. It is refused, to be saved again.
        */
@@ -583,6 +628,18 @@ export default class ProjectSsoProviderChanges {
         })
       ) {
         throw new BadDataException(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
+      }
+
+      ProjectSsoProviderChanges.writeOnlyTheRowsRead({
+        write: data.write,
+        rows,
+        isHardDelete: data.isHardDelete,
+      });
+
+      // Nothing it writes is there: nothing to check, and nothing to hold.
+      if (rows.length === 0) {
+        await ProjectSsoProviderChanges.releaseSignInChange(locks);
+        return { takenAway: [], turnedOn: [] };
       }
 
       const write: ProjectSsoProviderWrite = data.decide(rows);
@@ -622,6 +679,58 @@ export default class ProjectSsoProviderChanges {
     } catch (err) {
       await ProjectSsoProviderChanges.releaseSignInChange(locks);
       throw err;
+    }
+  }
+
+  /*
+   * Holds a write to the rows read under its locks, by their ids, on top of
+   * its own filter: a row that matches the filter only later was never
+   * checked, and one that stops matching it is left alone too. Its window
+   * becomes those rows. A write that read none under its locks writes
+   * nothing.
+   *
+   * Except a hard delete that read no row: the retention job's purge
+   * removes rows deleted long ago, which no read here sees and which sign
+   * nobody in, so it keeps its filter. One that read rows is held to them
+   * like any other write, and the rows deleted before that it also matched
+   * are purged on its next pass.
+   */
+  private static writeOnlyTheRowsRead<TModel extends BaseModel>(data: {
+    write: UpdateBy<TModel> | DeleteBy<TModel>;
+    rows: Array<ProjectSsoProviderRow>;
+    isHardDelete: boolean;
+  }): void {
+    if (data.isHardDelete && data.rows.length === 0) {
+      return;
+    }
+
+    const ids: Array<string> = data.rows.map(
+      (row: ProjectSsoProviderRow): string => {
+        return row.id;
+      },
+    );
+
+    const toTheRowsRead: (query: Query<TModel>) => Query<TModel> = (
+      query: Query<TModel>,
+    ): Query<TModel> => {
+      return {
+        ...query,
+        _id: QueryHelper.any(ids),
+      } as Query<TModel>;
+    };
+
+    // A query per project (several filters, any of which may match) is held branch by branch.
+    const query: unknown = data.write.query;
+
+    data.write.query = Array.isArray(query)
+      ? (query.map((branch: Query<TModel>): Query<TModel> => {
+          return toTheRowsRead(branch);
+        }) as unknown as Query<TModel>)
+      : toTheRowsRead(data.write.query);
+
+    if (ids.length > 0) {
+      data.write.skip = 0;
+      data.write.limit = ids.length;
     }
   }
 

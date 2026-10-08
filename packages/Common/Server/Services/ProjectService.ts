@@ -312,6 +312,12 @@ export const widensAuditLogging: (
  */
 export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
 
+// What onBeforeCreate hands the hooks after it: who is creating the project.
+export interface ProjectCreateCarryForward {
+  // The creator is a master admin, whom the server's Require SSO for Login does not hold.
+  isCreatorMasterAdmin: boolean;
+}
+
 export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
@@ -751,7 +757,48 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     this.applyNewProjectAiDefaults(data.data);
 
-    return Promise.resolve({ createBy: data, carryForward: null });
+    const carryForward: ProjectCreateCarryForward = {
+      isCreatorMasterAdmin: user.isMasterAdmin === true,
+    };
+
+    return Promise.resolve({ createBy: data, carryForward: carryForward });
+  }
+
+  /*
+   * The last step before a project is written, once its creator has passed
+   * every permission and plan check: a project that would require SSO -
+   * itself, or because the whole server does - needs a provider that signs
+   * people in to it, as an update to Require SSO for Login does
+   * (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
+   * lock on the server's sign-in rules, held until the project is written
+   * (onCreateSuccess) or its create fails (create).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const carryForward: ProjectCreateCarryForward | null =
+      (onCreate.carryForward as ProjectCreateCarryForward | null) || null;
+
+    await SsoRequirementChanges.beforeProjectCreate({
+      createBy: onCreate.createBy,
+      isCreatorExemptFromServerRule:
+        carryForward?.isCreatorMasterAdmin === true,
+    });
+  }
+
+  /*
+   * A create that fails once its sign-in check holds the lock - at the
+   * INSERT, or in a step just before it - runs no other hook, so the lock
+   * is given back here, whatever happened (SsoRequirementChanges).
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    try {
+      return await super.create(createBy);
+    } finally {
+      await SsoRequirementChanges.afterProjectCreate(createBy);
+    }
   }
 
   /*
@@ -815,7 +862,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
 
-    this.announceSignInRulesChanged(updateData, updatedItemIds);
+    this.announceSignInRulesChanged(
+      SsoRequirementChanges.takeProjectsWhoseRuleChanged(
+        onUpdate.updateBy,
+        updatedItemIds,
+      ),
+    );
 
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
@@ -922,26 +974,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A project's sign-in rules now ask for more: Require SSO turned on, or a
-   * provider pinned. Every server reads them again, and the live updates
-   * already open in the project are asked again as their joins were
-   * (RealtimeAccessChanges), so a page that no longer meets them stops
-   * hearing at once, as its API requests are refused at once. Rules that
-   * now ask for less refuse nobody, so they ask nobody again.
+   * The projects whose sign-in rules a write told of: every project a write
+   * that asks for more wrote - Require SSO turned on, or a provider pinned,
+   * whatever the rule was before - and those whose rule a write that asks
+   * for less changed - Require SSO turned off, or the pinned provider
+   * cleared; written back as it was, it is not one
+   * (SsoRequirementChanges.takeProjectsWhoseRuleChanged). Every server reads
+   * them again at once, rather than when its cached copy runs out a minute
+   * later (RealtimeAccessChanges). Rules that ask for more stop a page that
+   * no longer meets them hearing at once, as its API requests are refused
+   * at once - the live updates already open in the project are asked again
+   * as their joins were. Rules that ask for less let people back in at once
+   * on every server: one that still held the old rule would refuse them
+   * until it ran out.
    */
-  private announceSignInRulesChanged(
-    updateData: Record<string, unknown>,
-    updatedItemIds: Array<ObjectID>,
-  ): void {
-    const asksForMore: boolean =
-      updateData["requireSsoForLogin"] === true ||
-      Boolean(updateData["requireSsoWithSsoProviderId"]);
-
-    if (!asksForMore) {
-      return;
-    }
-
-    for (const projectId of updatedItemIds) {
+  private announceSignInRulesChanged(changedProjectIds: Array<ObjectID>): void {
+    for (const projectId of changedProjectIds) {
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SignInRulesChanged,
         projectId: projectId.toString(),
@@ -1017,6 +1065,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
+
+    // What the rules are now, so a write that asks for less is told only where it changes one.
+    await SsoRequirementChanges.rememberProjectRulesBefore(updateBy);
 
     await this.chargeAutoRechargeTurnedOn(updateBy);
   }
@@ -2086,9 +2137,12 @@ These are no longer recorded against the project and have to be cancelled by han
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    // Written: the lock its sign-in check held is given back before anything else.
+    await SsoRequirementChanges.afterProjectCreate(onCreate?.createBy);
+
     // Create billing.
 
     if (IsBillingEnabled) {

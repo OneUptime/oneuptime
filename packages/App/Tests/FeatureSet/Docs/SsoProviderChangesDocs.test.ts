@@ -17,6 +17,8 @@ import path from "path";
  *     (Common/Server/Utils/ProjectSsoProviderChanges);
  *   - a global provider turned off, deleted or restricted ends its sign-ins
  *     where it no longer signs people in, live updates included.
+ *   - a provider turned on signs people in straight away, on every server
+ *     (ProjectSsoProviderChanges.afterUpdate tells them all).
  *
  * Markdown is not compiled, so nothing else notices a guide that falls
  * behind. Other languages follow in the translated docs catch-up.
@@ -94,6 +96,12 @@ describe("the SSO guide: turning a provider off or deleting it", () => {
   it("says a project that requires SSO keeps a way in", () => {
     expect(section).toContain(
       "While the project requires SSO, OneUptime keeps a way in: you cannot turn off or delete the last provider people can sign in to the project with, counting global providers that sign people in to it, or the provider the project requires. Turn off **Require SSO for Login** first.",
+    );
+  });
+
+  it("says turning a provider on lets people sign in with it straight away", () => {
+    expect(section).toContain(
+      "Turning a provider on lets people sign in with it straight away.",
     );
   });
 

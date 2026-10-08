@@ -54,6 +54,7 @@ Turning **Require SSO for Login** on needs an SSO provider that signs people in,
 
 - For the whole instance, every project that does not require SSO itself needs one: one of its own SAML or OIDC providers that is on, or a global provider that is on and signs people in to it. While a project has none, turning the switch on is refused, and the message names the projects (or, when there are many, the first few and how many). Turn on a global provider, or a provider in those projects, first. A project that requires a specific provider needs that one: while it is off, deleted, or does not sign people in to the project, the message names the project apart - turn that provider on, or require another one there, first.
 - For a project, the same is asked of that project, and of the provider it requires when it requires one.
+- For a new project, which has no provider of its own yet: while the instance requires SSO, creating a project needs a global provider that is on and signs people in to every project, or nobody, its creator included, could open it. Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects. A project created with **Require SSO for Login** already on needs the same, whoever creates it.
 
 Turning it off is never refused.
 
@@ -72,9 +73,9 @@ A project that requires SSO, itself or because the whole instance does, always k
 - turning a global provider off, deleting it, or restricting it to its attached projects;
 - for a provider restricted to its attached projects: attaching its first project (until then it signs people in to every project), turning an attachment off, moving it to another project or provider, or removing it.
 
-The message names the projects, or the first few and how many there are. Turn on another provider for them first, one of their own or a global one, or turn off **Require SSO for Login** there. A project that requires this very provider is named apart: require another provider there, or turn off **Require SSO for Login**, first. Changes that let a provider sign more people in - turning it or an attachment on, lifting the restriction - are never refused.
+The message names the projects, or the first few and how many there are. Turn on another provider for them first, one of their own or a global one, or turn off **Require SSO for Login** there. A project that requires this very provider is named apart: require another provider there, or turn off **Require SSO for Login**, first. Changes that let a provider sign more people in - turning it or an attachment on, lifting the restriction - are never refused. They reach every app server at once, as turning **Require SSO for Login** off does: people can sign in with the provider straight away. Only when another change to the same provider is saved at that very moment can an app server take up to a minute to follow.
 
-Two changes to who can sign in are checked one after the other. If another one is being saved at the same moment and takes longer than usual - turning on **Require SSO for Login** for the whole instance reads every project - a change is refused with "Another change to who can sign in with SSO is being saved. Try again in a moment.": save it again.
+Two changes to who can sign in are checked one after the other. If another one is being saved at the same moment and takes longer than usual - turning on **Require SSO for Login** for the whole instance reads every project - a change is refused with "Another change to who can sign in with SSO is being saved. Try again in a moment.": save it again. A project created at that moment waits for the change too, and if it waits too long it is refused with "The server's SSO settings are being changed. Create the project again in a moment."
 
 ## Related
 
