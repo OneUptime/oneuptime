@@ -36,13 +36,14 @@ import ObjectID from "../../Types/ObjectID";
  * (assertMayFinish), before anything is written: the callback learns the
  * project and the person only from that state (WorkspaceOAuthState), never
  * from the redirect, and the state proves nothing about what they may still
- * do. Two differences, both deliberate. The credential (2) is asked at the
- * start only: the callback acts for the person, through their browser, and
- * carries no credential of its own. And the plan (3) is read at the start as
- * every request to the project reads it, and at the callback as everything
- * that acts for a stored person reads it (CallerPlan) - which holds no server
- * admin to a plan, as adding a code repository by hand holds none.
- * Tests/Server/API/GitHubConnectPermission pins both.
+ * do. One difference, deliberate: the credential (2) is asked at the start
+ * only, as the callback acts for the person, through their browser, and
+ * carries no credential of its own. The plan (3) is read at the start as
+ * every request to the project reads it (CommonAPI), and at the callback as
+ * everything that acts for a stored person reads it - both by CallerPlan's
+ * one rule, which holds no server admin to a plan, as adding a code
+ * repository by hand holds none. Tests/Server/API/GitHubConnectPermission
+ * pins both.
  */
 
 /*

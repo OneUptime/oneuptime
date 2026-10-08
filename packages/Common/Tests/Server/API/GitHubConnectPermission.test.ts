@@ -28,11 +28,7 @@ import {
   DashboardClientUrl,
   HomeClientUrl,
 } from "../../../Server/EnvironmentConfig";
-import {
-  GITHUB_CONNECT_FAILED_MESSAGE,
-  GITHUB_CONNECT_LINK_MESSAGE,
-  GITHUB_CONNECT_PERMISSION_MESSAGE,
-} from "../../../Server/API/GitHubConnectAccess";
+import { GITHUB_CONNECT_PERMISSION_MESSAGE } from "../../../Server/API/GitHubConnectAccess";
 import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import {
@@ -71,6 +67,10 @@ import {
  * writes nothing before both answers are yes and GitHub has confirmed the
  * installation.
  *
+ * The callback answers on Code Repositories, with a code for a refusal
+ * (ConnectCallback.route); Tests/Server/API/ConnectCallbacksAnswer drives its
+ * failures further.
+ *
  * These tests drive the real routes over HTTP, with the real state, the real
  * permission rule and the real plan checks. Faked: the session middleware,
  * Redis, the membership read at the callback, and everything that writes or
@@ -89,6 +89,8 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
       unknown
     >),
     GitHubAppName: "oneuptime-test-app",
+    GitHubAppClientId: "Iv1.github-client-id",
+    GitHubAppClientSecret: "github-client-secret",
   });
 });
 
@@ -561,6 +563,29 @@ describe("Connecting a GitHub App installation", () => {
     expect(importRepositories).not.toHaveBeenCalled();
   }
 
+  // Sent back to Code Repositories, told `code` (ConnectCallback.route).
+  function expectAnsweredOnCodeRepositories(
+    response: ProbeResponse,
+    code: string,
+  ): void {
+    expect(response.status).toBe(302);
+    expect(response.location).toBe(
+      `${DashboardClientUrl.toString()}/${projectId.toString()}/code-repository?error=${code}`,
+    );
+  }
+
+  /*
+   * A state that cannot be spent names no project anyone may trust: the
+   * Dashboard opens Code Repositories in the project the person has open,
+   * and tells them the link cannot be used.
+   */
+  function expectLinkRefused(response: ProbeResponse): void {
+    expect(response.status).toBe(302);
+    expect(response.location).toBe(
+      `${DashboardClientUrl.toString()}/connect-return?provider=github&error=link-invalid`,
+    );
+  }
+
   function useBilling(plan: PlanType | null): void {
     setTestBillingEnabled(true);
     currentPlan = plan;
@@ -796,14 +821,13 @@ describe("Connecting a GitHub App installation", () => {
       expectNoStateIssued(response);
     });
 
-    test("a server admin below the plan is refused at the start, as every request to the project holds one to its plan", async () => {
+    test("a server admin below the plan may start: no plan holds a server admin, at the start or the callback", async () => {
       useBilling(PlanType.Free);
 
       const response: ProbeResponse = await start({ masterAdmin: true });
 
-      expect(response.status).toBe(402);
-      expect(messageOf(response)).toBe(GROWTH_REFUSAL);
-      expectNoStateIssued(response);
+      expect(response.status).toBe(200);
+      expect(getCurrentPlan).not.toHaveBeenCalled();
     });
 
     test("someone outside the project is told the one sentence, nothing about its plan", async () => {
@@ -897,8 +921,7 @@ describe("Connecting a GitHub App installation", () => {
         code: OAUTH_CODE,
       });
 
-      expect(response.status).toBe(400);
-      expect(messageOf(response)).toBe(GITHUB_CONNECT_LINK_MESSAGE);
+      expectLinkRefused(response);
       expect(verifyInstallation).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -911,8 +934,7 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
-      expect(messageOf(response)).toBe(GITHUB_CONNECT_LINK_MESSAGE);
+      expectLinkRefused(response);
       expect(verifyInstallation).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -931,7 +953,11 @@ describe("Connecting a GitHub App installation", () => {
           browser,
         );
 
-        expect([forged, response.status]).toEqual([forged, 400]);
+        expect([forged, response.status, response.location]).toEqual([
+          forged,
+          302,
+          `${DashboardClientUrl.toString()}/connect-return?provider=github&error=link-invalid`,
+        ]);
       }
 
       expectNothingWritten();
@@ -947,8 +973,7 @@ describe("Connecting a GitHub App installation", () => {
       );
 
       expect(first.status).toBe(302);
-      expect(replay.status).toBe(400);
-      expect(messageOf(replay)).toBe(GITHUB_CONNECT_LINK_MESSAGE);
+      expectLinkRefused(replay);
       expect(updateProject).toHaveBeenCalledTimes(1);
       expect(importRepositories).toHaveBeenCalledTimes(1);
     });
@@ -958,8 +983,7 @@ describe("Connecting a GitHub App installation", () => {
 
       const withoutCookie: ProbeResponse = await callback(connectQuery(state));
 
-      expect(withoutCookie.status).toBe(400);
-      expect(messageOf(withoutCookie)).toBe(GITHUB_CONNECT_LINK_MESSAGE);
+      expectLinkRefused(withoutCookie);
 
       // The state was spent by that first presentation.
       const withCookie: ProbeResponse = await callback(
@@ -967,7 +991,7 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(withCookie.status).toBe(400);
+      expectLinkRefused(withCookie);
       expectNothingWritten();
     });
 
@@ -982,7 +1006,7 @@ describe("Connecting a GitHub App installation", () => {
         second.browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNothingWritten();
     });
 
@@ -1012,8 +1036,7 @@ describe("Connecting a GitHub App installation", () => {
         cookies,
       );
 
-      expect(response.status).toBe(400);
-      expect(messageOf(response)).toBe(GITHUB_CONNECT_LINK_MESSAGE);
+      expectLinkRefused(response);
       expect(verifyInstallation).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -1030,7 +1053,7 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNothingWritten();
     });
   });
@@ -1045,8 +1068,7 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(422);
-      expect(messageOf(response)).toBe(GITHUB_CONNECT_PERMISSION_MESSAGE);
+      expectAnsweredOnCodeRepositories(response, "no-permission");
       expect(verifyInstallation).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -1062,8 +1084,7 @@ describe("Connecting a GitHub App installation", () => {
           browser,
         );
 
-        expect(response.status).toBe(422);
-        expect(messageOf(response)).toBe(GITHUB_CONNECT_PERMISSION_MESSAGE);
+        expectAnsweredOnCodeRepositories(response, "no-permission");
         expect(verifyInstallation).not.toHaveBeenCalled();
         expectNothingWritten();
       },
@@ -1097,8 +1118,7 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(422);
-      expect(messageOf(response)).toBe(GITHUB_CONNECT_PERMISSION_MESSAGE);
+      expectAnsweredOnCodeRepositories(response, "no-permission");
       expectNothingWritten();
     });
 
@@ -1145,7 +1165,7 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(422);
+      expectAnsweredOnCodeRepositories(response, "no-permission");
       expectNothingWritten();
     });
 
@@ -1162,9 +1182,8 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(500);
-      expect(messageOf(response)).toBe(GITHUB_CONNECT_FAILED_MESSAGE);
-      expect(JSON.stringify(response.body)).not.toContain("TeamMember");
+      expectAnsweredOnCodeRepositories(response, "could-not-finish");
+      expect(response.location).not.toContain("TeamMember");
       expect(verifyInstallation).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -1194,8 +1213,7 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(402);
-      expect(messageOf(response)).toBe(GROWTH_REFUSAL);
+      expectAnsweredOnCodeRepositories(response, "plan-required");
       expect(verifyInstallation).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -1210,8 +1228,8 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(422);
-      expect(messageOf(response)).toBe(CallerPlan.PLAN_UNKNOWN_MESSAGE);
+      // Not a refusal of the person: answered as "could not finish".
+      expectAnsweredOnCodeRepositories(response, "could-not-finish");
       expectNothingWritten();
     });
 
@@ -1242,8 +1260,7 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(402);
-      expect(messageOf(response)).toBe(GROWTH_REFUSAL);
+      expectAnsweredOnCodeRepositories(response, "plan-required");
       expectNothingWritten();
     });
 
@@ -1269,7 +1286,7 @@ describe("Connecting a GitHub App installation", () => {
 
       const response: ProbeResponse = await callback(query, browser);
 
-      expect(response.status).toBe(400);
+      expectAnsweredOnCodeRepositories(response, "github-no-installation");
       expect(verifyInstallation).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -1281,7 +1298,7 @@ describe("Connecting a GitHub App installation", () => {
 
       const response: ProbeResponse = await callback(query, browser);
 
-      expect(response.status).toBe(400);
+      expectAnsweredOnCodeRepositories(response, "github-no-authorization");
       expect(verifyInstallation).not.toHaveBeenCalled();
       expectNothingWritten();
     });
@@ -1297,7 +1314,8 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectAnsweredOnCodeRepositories(response, "github-not-verified");
+      expect(response.location).not.toContain("administer");
       expectNothingWritten();
     });
 
@@ -1314,9 +1332,8 @@ describe("Connecting a GitHub App installation", () => {
         browser,
       );
 
-      expect(response.status).toBe(500);
-      expect(messageOf(response)).toBe(GITHUB_CONNECT_FAILED_MESSAGE);
-      expect(JSON.stringify(response.body)).not.toContain("Project_pkey");
+      expectAnsweredOnCodeRepositories(response, "could-not-finish");
+      expect(response.location).not.toContain("Project_pkey");
       expect(importRepositories).not.toHaveBeenCalled();
     });
 

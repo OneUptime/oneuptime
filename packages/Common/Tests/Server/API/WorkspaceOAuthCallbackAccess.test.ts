@@ -6,15 +6,12 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthStateRecord,
 } from "../../../Server/Utils/Workspace/WorkspaceOAuthState";
 import UserService from "../../../Server/Services/UserService";
-import logger from "../../../Server/Utils/Logger";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadRequestException from "../../../Types/Exception/BadRequestException";
-import Exception from "../../../Types/Exception/Exception";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
-import ServerException from "../../../Types/Exception/ServerException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { ConnectStartPage } from "../../../Types/Workspace/ConnectCallback";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -23,7 +20,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * as they are now - their membership read from the database, their
  * permissions by the rule every check follows (a block row never grants, a
  * block with no labels takes its permission away), a server admin let
- * through where the start lets one through.
+ * through where the start lets one through. What a refusal or a failure is
+ * answered with is ConnectCallback's business (ConnectCallback.test.ts).
  */
 
 jest.mock("../../../Server/Utils/Logger");
@@ -47,6 +45,7 @@ describe("WorkspaceOAuthCallbackAccess", () => {
       flow: WorkspaceOAuthFlow.SlackInstall,
       projectId: ObjectID.generate(),
       userId: ObjectID.generate(),
+      startPage: ConnectStartPage.ProjectSettings,
     };
 
     memberships = new Map<string, Membership>();
@@ -398,49 +397,6 @@ describe("WorkspaceOAuthCallbackAccess", () => {
 
       expect(refusal).toBeInstanceOf(NotAuthorizedException);
       expect((refusal as Error).message).toBe(REFUSAL);
-    });
-  });
-
-  describe("answerFor (what a callback answers when it was not let through)", () => {
-    test("a refusal is answered as it is, with its own sentence and status", () => {
-      const refusal: NotAuthorizedException = new NotAuthorizedException(
-        REFUSAL,
-      );
-
-      expect(WorkspaceOAuthCallbackAccess.answerFor(refusal)).toBe(refusal);
-
-      const badRequest: BadRequestException = new BadRequestException(
-        "This link has already been used.",
-      );
-
-      expect(WorkspaceOAuthCallbackAccess.answerFor(badRequest)).toBe(
-        badRequest,
-      );
-    });
-
-    test("anything else is logged and answered plainly, never with its own message", () => {
-      const failure: Error = new Error(
-        'relation "TeamMember" does not exist at character 15',
-      );
-
-      const answer: Exception = WorkspaceOAuthCallbackAccess.answerFor(failure);
-
-      expect(answer).toBeInstanceOf(ServerException);
-      expect(answer.message).toBe(
-        WorkspaceOAuthCallbackAccess.COULD_NOT_CHECK_MESSAGE,
-      );
-      expect(answer.message).not.toContain("TeamMember");
-      expect(logger.error).toHaveBeenCalledWith(failure);
-    });
-
-    test("something thrown that is not even an Error is answered plainly too", () => {
-      const answer: Exception =
-        WorkspaceOAuthCallbackAccess.answerFor("connection reset");
-
-      expect(answer).toBeInstanceOf(ServerException);
-      expect(answer.message).toBe(
-        WorkspaceOAuthCallbackAccess.COULD_NOT_CHECK_MESSAGE,
-      );
     });
   });
 });
