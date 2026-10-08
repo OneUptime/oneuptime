@@ -37,6 +37,7 @@ import Project from "../../../Models/DatabaseModels/Project";
 import ProjectOidc from "../../../Models/DatabaseModels/ProjectOidc";
 import ProjectSso from "../../../Models/DatabaseModels/ProjectSso";
 import User from "../../../Models/DatabaseModels/User";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -267,9 +268,14 @@ const stubRepository: (
       where: Record<string, unknown>;
       skip?: number;
       take?: number;
+      withDeleted?: boolean;
     }): Promise<Array<BaseModel>> => {
+      // A row deleted before is found only by a read that asks for those (a hard delete's).
       const found: Array<Row> = rows().filter((row: Row): boolean => {
-        return matches(row, options.where);
+        return (
+          (options.withDeleted || !row["deletedAt"]) &&
+          matches(row, options.where)
+        );
       });
 
       const skip: number = options.skip || 0;
@@ -1815,6 +1821,322 @@ describe("the rows a write names are read under the lock", () => {
       expect(
         (offAlready["data"] as Record<string, unknown>)["signInsEndedAt"],
       ).toBeUndefined();
+    },
+  );
+});
+
+describe("a write by filter reads under its locks, and writes only the rows it read there", () => {
+  const LATER_ID: ObjectID = new ObjectID(
+    "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  );
+
+  /*
+   * The rows each read of the hooks returns (projectId and isEnabled
+   * selected), in order, recorded as "read" next to the locks; `after`
+   * runs once the read with that number has been answered, as another
+   * server's write landing then would.
+   */
+  const watchReads: (
+    kind: ProviderKind,
+    after?: Record<number, () => void>,
+  ) => void = (
+    kind: ProviderKind,
+    after?: Record<number, () => void>,
+  ): void => {
+    const service: {
+      findAllBy: (...args: Array<unknown>) => Promise<unknown>;
+    } = kind.service as unknown as {
+      findAllBy: (...args: Array<unknown>) => Promise<unknown>;
+    };
+    const findAllBy: (...args: Array<unknown>) => Promise<unknown> =
+      service.findAllBy.bind(kind.service);
+    let reads: number = 0;
+
+    getJestSpyOn(kind.service, "findAllBy").mockImplementation((async (
+      ...args: Array<unknown>
+    ): Promise<unknown> => {
+      const select: Record<string, unknown> =
+        (args[0] as { select?: Record<string, unknown> }).select || {};
+      const answer: unknown = await findAllBy(...args);
+
+      if (select["projectId"] && select["isEnabled"]) {
+        reads++;
+        events.push("read");
+        after?.[reads]?.();
+      }
+
+      return answer;
+    }) as never);
+  };
+
+  test.each(KINDS)(
+    "%s: a write whose filter names its project reads once to learn it, locks it, and reads its rows again under the lock",
+    async (_label: string, kind: ProviderKind) => {
+      watchReads(kind);
+
+      await expect(
+        kind.service.updateBy({
+          query: { projectId: PROJECT_ID, isEnabled: true } as never,
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
+
+      expect(events.slice(0, 3)).toEqual([
+        "read",
+        `lock:${PROJECT_ID.toString()}`,
+        "read",
+      ]);
+      expect(rowOf(kind)!.isEnabled).toBe(false);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a write whose filter reaches no provider - a clean-up of a project that has none - takes no lock, and writes nothing",
+    async (_label: string, kind: ProviderKind) => {
+      watchReads(kind);
+
+      await expect(
+        kind.service.updateBy({
+          query: {
+            projectId: OTHER_PROJECT_ID,
+            name: "No such provider",
+          } as never,
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(0);
+
+      expect(events).toEqual(["read"]);
+      expect(lockCalls).toEqual([]);
+      expect(kind.writes()).toEqual([]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a filter that names two projects locks the one it found providers in; a provider that comes to match it in the other between the reads refuses the write, to be saved again",
+    async (_label: string, kind: ProviderKind) => {
+      const name: string = String(rowOf(kind)!["name"]);
+
+      // While the write waits for its project's lock, the other project gets a provider of that name.
+      whileWaitingForLock = (): void => {
+        kind.rows().push(
+          row({
+            id: LATER_ID,
+            projectId: OTHER_PROJECT_ID,
+            columns: { name: name },
+          }),
+        );
+      };
+
+      await expect(
+        refusalOf(
+          kind.service.updateBy({
+            query: {
+              projectId: new Includes([PROJECT_ID, OTHER_PROJECT_ID]),
+              name: name,
+            } as never,
+            data: { isEnabled: false } as never,
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: ROOT,
+          }),
+        ),
+      ).resolves.toBe(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
+
+      expect(kind.writes()).toEqual([]);
+      expect(rowOf(kind, LATER_ID)!.isEnabled).toBe(true);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a write whose filter matched no row when it was read writes none of the providers that come to match it afterwards",
+    async (_label: string, kind: ProviderKind) => {
+      project.requireSsoForLogin = true;
+
+      // Once the write has read its rows, a provider that matches its filter is created, on.
+      watchReads(kind, {
+        1: (): void => {
+          kind.rows().push(
+            row({
+              id: LATER_ID,
+              columns: { name: "Created a moment later" },
+            }),
+          );
+        },
+      });
+
+      await expect(
+        kind.service.updateBy({
+          query: { name: "Created a moment later" } as never,
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(0);
+
+      expect(rowOf(kind, LATER_ID)!.isEnabled).toBe(true);
+      expect(kind.writes()).toEqual([]);
+      expect(lockCalls).toEqual([]);
+      expect(projectAnnouncements()).toEqual([]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete whose filter matched no row when it was read deletes none of the providers that come to match it afterwards",
+    async (_label: string, kind: ProviderKind) => {
+      watchReads(kind, {
+        1: (): void => {
+          kind.rows().push(
+            row({
+              id: LATER_ID,
+              columns: { name: "Created a moment later" },
+            }),
+          );
+        },
+      });
+
+      await expect(
+        kind.service.deleteBy({
+          query: { name: "Created a moment later" } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(0);
+
+      expect(rowOf(kind, LATER_ID)).toBeDefined();
+      expect(deleted).toEqual([]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a provider renamed to match the filter after the rows were read under the lock is left on: the project keeps a way in",
+    async (_label: string, kind: ProviderKind) => {
+      project.requireSsoForLogin = true;
+      // The project's only providers that are on: this one, and one of its kind named otherwise.
+      rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
+      rowOf(kind, kind.secondId)!.isEnabled = true;
+      const name: string = String(rowOf(kind)!["name"]);
+
+      // Read under the lock, the write turns this one off and keeps the other: then the other is renamed.
+      watchReads(kind, {
+        2: (): void => {
+          rowOf(kind, kind.secondId)!["name"] = name;
+        },
+      });
+
+      await expect(
+        kind.service.updateBy({
+          query: { name: name } as never,
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
+
+      expect(rowOf(kind)!.isEnabled).toBe(false);
+      expect(rowOf(kind, kind.secondId)!.isEnabled).toBe(true);
+      expect(
+        kind.writes().map((write: Write): string => {
+          return write.id;
+        }),
+      ).toEqual([kind.id.toString()]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a provider that stops matching the filter after the rows were read is left alone too: the write keeps its own filter",
+    async (_label: string, kind: ProviderKind) => {
+      const name: string = String(rowOf(kind)!["name"]);
+
+      watchReads(kind, {
+        2: (): void => {
+          rowOf(kind)!["name"] = `${name} (renamed)`;
+        },
+      });
+
+      await expect(
+        kind.service.updateBy({
+          query: { name: name } as never,
+          data: { isEnabled: false } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(0);
+
+      expect(rowOf(kind)!.isEnabled).toBe(true);
+      expect(kind.writes()).toEqual([]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a write's window is the rows it read under the lock: a skip it was sent with does not move it onto rows it did not read",
+    async (_label: string, kind: ProviderKind) => {
+      kind
+        .rows()
+        .push(
+          row({ id: LATER_ID, columns: { name: "Another of this project's" } }),
+        );
+
+      await expect(
+        kind.service.updateBy({
+          query: { projectId: PROJECT_ID } as never,
+          data: { isEnabled: false } as never,
+          limit: 1,
+          skip: 1,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
+
+      // The second of the project's rows, as the read under the lock found it.
+      expect(
+        kind.writes().map((write: Write): string => {
+          return write.id;
+        }),
+      ).toEqual([kind.secondId.toString()]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a hard delete of a provider deleted before still removes it: the check never reads rows deleted before, and they sign nobody in",
+    async (_label: string, kind: ProviderKind) => {
+      rowOf(kind)!["deletedAt"] = new Date("2026-08-01T00:00:00.000Z");
+
+      await expect(
+        kind.service.hardDeleteBy({
+          query: { _id: kind.id.toString() } as never,
+          limit: 1,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
+
+      expect(deleted).toEqual([kind.id.toString()]);
+      expect(lockCalls).toEqual([]);
+      expect(projectAnnouncements()).toEqual([]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete that is not a hard delete reaches no row deleted before",
+    async (_label: string, kind: ProviderKind) => {
+      rowOf(kind)!["deletedAt"] = new Date("2026-08-01T00:00:00.000Z");
+
+      await expect(remove(kind)).resolves.toBe(0);
+
+      expect(deleted).toEqual([]);
     },
   );
 });

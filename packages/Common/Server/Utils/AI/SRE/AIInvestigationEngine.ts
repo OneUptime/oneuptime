@@ -43,6 +43,7 @@ import ObservabilityAssistant, {
   ObservabilityAssistantStepType,
 } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
+import LLMService from "../../LLM/LLMService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
@@ -89,7 +90,9 @@ const CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS: number = 3;
  * Failures a retry cannot fix within the run's usefulness window: missing/
  * broken provider configuration and budget exhaustion (both messages minted
  * by our own gating in AIService/LLMService, so they are stable to match),
- * and the project's own daily AI limits, which hold until midnight UTC.
+ * the project's own daily AI limits, which hold until midnight UTC, and a
+ * model context window too small for the run, which a retry would only fill
+ * again until the operator raises it.
  */
 const PERMANENT_FAILURE_RE: RegExp =
   /no llm provider configured|llm provider type is not configured|token budget exhausted/i;
@@ -100,7 +103,8 @@ export const isPermanentInvestigationFailure: (message: string) => boolean = (
 ): boolean => {
   return (
     PERMANENT_FAILURE_RE.test(message) ||
-    PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN.test(message)
+    PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN.test(message) ||
+    message.includes(LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR)
   );
 };
 

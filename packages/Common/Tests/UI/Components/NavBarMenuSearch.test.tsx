@@ -114,14 +114,14 @@ function selectedOption(): HTMLElement {
 
 /*
  * Search behaves the same in both kinds of products menu: one that shows
- * every category open (the Admin Dashboard's), and one that keeps the
- * categories it names open and folds the rest (the Dashboard's, which keeps
- * Essentials open). Search ignores folding, so every alias below still finds
- * its product while that product's category is folded.
+ * every category open (the Admin Dashboard's), and one that opens on the
+ * categories it names and folds the rest (the Dashboard's, which opens on
+ * Essentials). Search ignores folding, so every alias below still finds its
+ * product while that product's category is folded.
  */
 const MENU_KINDS: Array<[string, Array<string> | undefined]> = [
   ["a menu that shows every category", undefined],
-  ["a menu that keeps Essentials open and folds the rest", ["Essentials"]],
+  ["a menu that opens on Essentials and folds the rest", ["Essentials"]],
 ];
 
 // The whole catalog as the menu lists it: grouped by category, in order.
@@ -149,8 +149,8 @@ beforeAll(() => {
 
 describe.each(MENU_KINDS)(
   "products menu search, in %s",
-  (_kind: string, categoriesAlwaysOpen: Array<string> | undefined) => {
-    const isFolding: boolean = Boolean(categoriesAlwaysOpen);
+  (_kind: string, categoriesOpenByDefault: Array<string> | undefined) => {
+    const isFolding: boolean = Boolean(categoriesOpenByDefault);
 
     function renderMenu(
       items: Array<MoreMenuItem> = ITEMS,
@@ -159,7 +159,7 @@ describe.each(MENU_KINDS)(
       return render(
         <NavBarMenuModal
           items={items}
-          categoriesAlwaysOpen={categoriesAlwaysOpen}
+          categoriesOpenByDefault={categoriesOpenByDefault}
           onClose={onClose}
         />,
       );
@@ -422,15 +422,24 @@ describe.each(MENU_KINDS)(
         ...CATALOG_ON_SCREEN,
       ]);
       /*
-       * Resources, Observability and Other fold, and are open now. Essentials
-       * never folds, so it has no toggle at all.
+       * Every category has a row that folds it in a menu that folds:
+       * Essentials, open from the start, then Resources, Observability and
+       * Other, open now.
        */
       expect(
-        categoryToggles().map((toggle: HTMLElement): string | null => {
-          return toggle.getAttribute("aria-expanded");
+        categoryToggles().map((toggle: HTMLElement): string => {
+          return `${toggle.textContent}:${toggle.getAttribute("aria-expanded")}`;
         }),
-      ).toEqual(isFolding ? ["true", "true", "true"] : []);
-      expect(screen.queryByRole("button", { name: "Essentials" })).toBeNull();
+      ).toEqual(
+        isFolding
+          ? [
+              "Essentials:true",
+              "Resources:true",
+              "Observability:true",
+              "Other:true",
+            ]
+          : [],
+      );
     });
 
     test("a catalog update re-evaluates an existing alias query", () => {
@@ -442,7 +451,7 @@ describe.each(MENU_KINDS)(
       rerender(
         <NavBarMenuModal
           items={ITEMS}
-          categoriesAlwaysOpen={categoriesAlwaysOpen}
+          categoriesOpenByDefault={categoriesOpenByDefault}
           onClose={() => {}}
         />,
       );

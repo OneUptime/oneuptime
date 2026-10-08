@@ -246,14 +246,17 @@ describe("Navbar", () => {
       ).toBeNull();
     });
 
-    it("folds every category but the ones it keeps open, like the desktop products menu", () => {
+    it("opens on the categories it names and folds the rest, like the desktop products menu", () => {
       expect(
-        openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Essentials"] }),
+        openPhoneMenu({ moreMenuCategoriesOpenByDefault: ["Essentials"] }),
       ).toEqual([
         "home-nav-bar-item:Home",
         "more-monitors:Monitors",
         "right-user-settings:User Settings",
       ]);
+      expect(
+        screen.getByRole("button", { name: "Essentials" }),
+      ).toHaveAttribute("aria-expanded", "true");
       expect(
         screen.getByRole("button", { name: "Observability" }),
       ).toHaveAttribute("aria-expanded", "false");
@@ -267,39 +270,56 @@ describe("Navbar", () => {
       expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
     });
 
-    it("lists the categories it keeps open under a plain heading that never folds", () => {
-      // What the menu stored when Essentials could still be folded.
+    it("draws the categories it opens on as rows that fold like the others, and forgets their fold", () => {
+      // What the menu stored when a fold of Essentials was remembered.
       window.localStorage.setItem(
         "oneuptime-navbar-product-categories",
         JSON.stringify({ Essentials: false }),
       );
 
-      openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Essentials"] });
+      openPhoneMenu({ moreMenuCategoriesOpenByDefault: ["Essentials"] });
 
-      const heading: HTMLElement = screen.getByRole("heading", {
-        level: 3,
+      const toggle: HTMLElement = screen.getByRole("button", {
         name: "Essentials",
       });
-      expect(screen.queryByRole("button", { name: "Essentials" })).toBeNull();
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(
+        screen.getByRole("heading", { level: 3, name: "Essentials" }),
+      ).toContainElement(toggle);
       expect(
         screen.getByRole("group", { name: "Essentials" }),
       ).toContainElement(screen.getByRole("link", { name: "Monitors" }));
-      // Lined up with the icons of the rows around it; no chevron.
-      expect(heading.parentElement).toHaveClass("px-3", "py-2");
-      expect(heading.parentElement).not.toHaveClass("border");
-      expect(heading.parentElement!.querySelector("svg")).toBeNull();
-      expect(heading).toHaveClass("leading-4", "uppercase");
+      // Drawn as every other category's row is.
+      const row: (name: string) => HTMLElement = (
+        name: string,
+      ): HTMLElement => {
+        return screen
+          .getByRole("button", { name })
+          .closest("div.relative") as HTMLElement;
+      };
+      expect(row("Essentials").className).toBe(row("Observability").className);
+      expect(toggle.className).toBe(
+        screen.getByRole("button", { name: "Observability" }).className,
+      );
 
-      fireEvent.click(heading);
+      // A tap folds them, without closing the menu or remembering it.
+      fireEvent.click(toggle);
 
-      expect(
-        screen.getByRole("link", { name: "Monitors" }),
-      ).toBeInTheDocument();
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByRole("link", { name: "Monitors" })).toBeNull();
+      expect(toggle).toHaveAccessibleDescription("1 product Monitors");
+      expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
       expect(
         JSON.parse(
           window.localStorage.getItem("oneuptime-navbar-product-categories")!,
         ),
       ).toEqual({ Essentials: false });
+
+      // Another tap opens them again.
+      fireEvent.click(toggle);
+      expect(
+        screen.getByRole("link", { name: "Monitors" }),
+      ).toBeInTheDocument();
     });
 
     // What <Icon icon={icon} /> draws, to compare a row's glyph against.
@@ -319,12 +339,16 @@ describe("Navbar", () => {
       return heading.querySelector("svg")!.innerHTML;
     }
 
-    it("draws each folded category with the icon it was given, and the menu's own for the rest", () => {
+    it("draws each category with the icon it was given, and the menu's own for the rest", () => {
       openPhoneMenu({
-        moreMenuCategoriesAlwaysOpen: ["Essentials"],
-        moreMenuCategoryIcons: { Infrastructure: IconProp.ServerStack },
+        moreMenuCategoriesOpenByDefault: ["Essentials"],
+        moreMenuCategoryIcons: {
+          Essentials: IconProp.Star,
+          Infrastructure: IconProp.ServerStack,
+        },
       });
 
+      expect(categoryIcon("Essentials")).toBe(glyphOf(IconProp.Star));
       expect(categoryIcon("Infrastructure")).toBe(
         glyphOf(IconProp.ServerStack),
       );
@@ -335,7 +359,7 @@ describe("Navbar", () => {
 
     it("draws a category row as the product rows are: the icon before the name, the same size", () => {
       openPhoneMenu({
-        moreMenuCategoriesAlwaysOpen: ["Essentials"],
+        moreMenuCategoriesOpenByDefault: ["Essentials"],
         moreMenuCategoryIcons: { Infrastructure: IconProp.ServerStack },
       });
 
@@ -361,43 +385,49 @@ describe("Navbar", () => {
       ).toHaveClass("text-base", "font-medium", "text-gray-900");
     });
 
-    it("sets the folded categories apart from the products above them with a rule", () => {
-      openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Essentials"] });
+    it("sets the categories apart from Home above them with one rule", () => {
+      openPhoneMenu({ moreMenuCategoriesOpenByDefault: ["Essentials"] });
 
       const first: HTMLElement = screen.getByRole("group", {
-        name: "Observability",
-      });
-      const next: HTMLElement = screen.getByRole("group", {
-        name: "Infrastructure",
+        name: "Essentials",
       });
 
       expect(first).toHaveClass("mt-1", "border-t", "border-gray-100", "pt-2");
       expect(first).not.toHaveClass("pt-1");
-      // One rule for the run, not one per row.
-      expect(next).toHaveClass("pt-1");
-      expect(next).not.toHaveClass("border-t");
-      expect(screen.getByRole("group", { name: "Essentials" })).not.toHaveClass(
-        "border-t",
-      );
+      // One rule for the list, not one per row.
+      for (const name of ["Observability", "Infrastructure"]) {
+        const next: HTMLElement = screen.getByRole("group", { name });
+        expect([name, next.classList.contains("pt-1")]).toEqual([name, true]);
+        expect([name, next.classList.contains("border-t")]).toEqual([
+          name,
+          false,
+        ]);
+      }
     });
 
-    it("starts a rule at each run of folded categories, wherever the open ones fall", () => {
-      openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Observability"] });
+    it("draws the rule above the first category, whichever ones the menu opens on", () => {
+      openPhoneMenu({ moreMenuCategoriesOpenByDefault: ["Observability"] });
 
-      // Essentials fold here and come first, right after Home.
+      // Essentials are folded here, and still first, right after Home.
+      expect(
+        screen.getByRole("button", { name: "Essentials" }),
+      ).toHaveAttribute("aria-expanded", "false");
+      expect(
+        screen.getByRole("button", { name: "Observability" }),
+      ).toHaveAttribute("aria-expanded", "true");
       expect(screen.getByRole("group", { name: "Essentials" })).toHaveClass(
         "border-t",
       );
       expect(
         screen.getByRole("group", { name: "Observability" }),
       ).not.toHaveClass("border-t");
-      expect(screen.getByRole("group", { name: "Infrastructure" })).toHaveClass(
-        "border-t",
-      );
+      expect(
+        screen.getByRole("group", { name: "Infrastructure" }),
+      ).not.toHaveClass("border-t");
     });
 
-    it("indents an opened category's products under its row, on a guide line", () => {
-      openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Essentials"] });
+    it("indents an opened category's products under its row, on a guide line, the essentials' too", () => {
+      openPhoneMenu({ moreMenuCategoriesOpenByDefault: ["Essentials"] });
 
       const toggle: HTMLElement = screen.getByRole("button", {
         name: "Infrastructure",
@@ -412,17 +442,23 @@ describe("Navbar", () => {
       );
       expect(body).toHaveClass("ml-5", "border-l", "border-gray-100", "pl-1");
 
-      // The essentials, which never fold, are not indented.
-      const essentials: HTMLElement = screen
-        .getByRole("link", { name: "Monitors" })
-        .closest("div.space-y-1") as HTMLElement;
-      expect(essentials).not.toHaveClass("ml-5");
-      expect(essentials).not.toHaveClass("border-l");
+      // The essentials' products sit under their row the same way.
+      const essentials: HTMLElement = document.getElementById(
+        screen
+          .getByRole("button", { name: "Essentials" })
+          .getAttribute("aria-controls")!,
+      )!;
+      expect(essentials).toContainElement(
+        screen.getByRole("link", { name: "Monitors" }),
+      );
+      expect(essentials.className).toBe(body.className);
     });
   });
 
   describe("the desktop products menu", () => {
     it("draws each folded category's row with the icon the navbar was given for it", () => {
+      // Nothing opened or folded before, by the phone menu's tests above.
+      window.localStorage.clear();
       Object.defineProperty(window, "innerWidth", {
         configurable: true,
         writable: true,
@@ -463,7 +499,7 @@ describe("Navbar", () => {
               category: "Infrastructure",
             },
           ]}
-          moreMenuCategoriesAlwaysOpen={["Essentials"]}
+          moreMenuCategoriesOpenByDefault={["Essentials"]}
           moreMenuCategoryIcons={{ Infrastructure: IconProp.ServerStack }}
         />,
       );
@@ -477,6 +513,13 @@ describe("Navbar", () => {
       expect(row.querySelector("svg")!.innerHTML).toBe(
         container.querySelector("svg")!.innerHTML,
       );
+      // The category it opens on is a row as well, open.
+      expect(
+        screen.getByRole("button", { name: "Essentials" }),
+      ).toHaveAttribute("aria-expanded", "true");
+      expect(
+        screen.getByRole("button", { name: "Infrastructure" }),
+      ).toHaveAttribute("aria-expanded", "false");
     });
   });
 

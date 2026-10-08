@@ -452,6 +452,189 @@ describe("Markdown email renderer - inline images (synthetic monitor screenshots
   });
 });
 
+describe("Markdown email renderer - screenshots too long for one line of Markdown", () => {
+  /*
+   * marked reads a line with regular expressions whose backtracking stack
+   * can grow with the line, and a screenshot is millions of characters on
+   * one line. The email renderer holds long base64 back while marked reads
+   * the Markdown and puts it back after, so the email has to come out
+   * exactly as it would have. (ScreenshotEmailInLongRunningProcess.test.ts
+   * runs the same path where V8 compiles regular expressions unoptimized.)
+   */
+
+  // The PNG with enough after it to be held back - padded the same way.
+  const LONG: string = Buffer.concat([
+    Buffer.from(PNG, "base64"),
+    Buffer.alloc(3 * 1365, 0x5a),
+  ]).toString("base64");
+
+  test("the long data is long enough to be held back, and padded like the short", () => {
+    expect(LONG.length).toBeGreaterThan(4096);
+    expect(PNG.length).toBeLessThan(1024);
+    expect(LONG.endsWith("==")).toBe(true);
+    expect(PNG.endsWith("==")).toBe(true);
+  });
+
+  test("renders a screenshot too big for marked to read on one line", async () => {
+    // About sixteen million characters of base64 on one line.
+    const base64: string = Buffer.concat([
+      Buffer.from(PNG, "base64"),
+      Buffer.alloc(12 * 1024 * 1024, 0x5a),
+    ]).toString("base64");
+
+    const html: string = await render(
+      `Login failed\n\n![Login](data:image/png;base64,${base64})\n\nRetried twice.`,
+    );
+    const urls: Array<string> = urlsIn(html);
+
+    expect(urls).toHaveLength(1);
+    // A boolean, so a failure does not print sixteen million characters.
+    expect(urls[0] === `data:image/png;base64,${base64}`).toBe(true);
+    expect(html.startsWith("<p>Login failed</p>\n<p><img src=")).toBe(true);
+    expect(html.endsWith("<p>Retried twice.</p>\n")).toBe(true);
+  });
+
+  test.each([
+    [
+      "an image",
+      (data: string) => {
+        return `![Shot](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "an image with a title",
+      (data: string) => {
+        return `![Shot](data:image/png;base64,${data} "Login page")`;
+      },
+    ],
+    [
+      "a reference-style image",
+      (data: string) => {
+        return `![Shot][login]\n\n[login]: data:image/png;base64,${data}`;
+      },
+    ],
+    [
+      "an image inside a link",
+      (data: string) => {
+        return `[![Shot](data:image/png;base64,${data})](https://oneuptime.example.com/incidents/1)`;
+      },
+    ],
+    [
+      "an image in a table",
+      (data: string) => {
+        return `| Browser | Screenshot |\n| --- | --- |\n| Chromium | ![Chromium](data:image/png;base64,${data}) |`;
+      },
+    ],
+    [
+      "an image in a list",
+      (data: string) => {
+        return `- Opened the page\n- ![Login](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "an image in a quote",
+      (data: string) => {
+        return `> ![Shot](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "an image in bold",
+      (data: string) => {
+        return `**![Shot](data:image/png;base64,${data})**`;
+      },
+    ],
+    [
+      "an image underlined as a heading",
+      (data: string) => {
+        return `![Shot](data:image/png;base64,${data})\n===`;
+      },
+    ],
+    [
+      "an upper-case data: URL",
+      (data: string) => {
+        return `![Shot](DATA:IMAGE/PNG;BASE64,${data})`;
+      },
+    ],
+    [
+      "two screenshots of the same data",
+      (data: string) => {
+        return `![One](data:image/png;base64,${data})\n\n![Two](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "a data: link, which stays text",
+      (data: string) => {
+        return `[Open the screenshot](data:image/png;base64,${data})`;
+      },
+    ],
+    [
+      "a data: autolink, which stays text",
+      (data: string) => {
+        return `<data:image/png;base64,${data}>`;
+      },
+    ],
+    [
+      "a code span",
+      (data: string) => {
+        return `\`data:image/png;base64,${data}\``;
+      },
+    ],
+    [
+      "a code block",
+      (data: string) => {
+        return `\`\`\`\ndata:image/png;base64,${data}\n\`\`\``;
+      },
+    ],
+    [
+      "the data as alt text",
+      (data: string) => {
+        return `![data:image/png;base64,${data}](https://cdn.example.com/login.png)`;
+      },
+    ],
+    [
+      "raw HTML, which is escaped",
+      (data: string) => {
+        return `<img src="data:image/png;base64,${data}">`;
+      },
+    ],
+  ])(
+    "long data renders as short data does: %s",
+    async (_label: string, markdownWith: (data: string) => string) => {
+      const short: string = await render(markdownWith(PNG));
+      const long: string = await render(markdownWith(LONG));
+
+      expect(long.split(LONG).join(PNG)).toBe(short);
+    },
+  );
+
+  test("what follows the data reads as it did: its last character keeps an emphasis from closing", async () => {
+    // Unpadded data that ends in "+", which a closing "*" may not follow.
+    const markdownWith: (data: string) => string = (data: string): string => {
+      return `*data:image/png;base64,${data.replace(/[=]+$/, "")}+*after`;
+    };
+
+    const short: string = await render(markdownWith(PNG));
+    const long: string = await render(markdownWith(LONG));
+
+    expect(short).not.toContain("<em>");
+    expect(
+      long.split(LONG.replace(/[=]+$/, "")).join(PNG.replace(/[=]+$/, "")),
+    ).toBe(short);
+  });
+
+  test("Private Use Area characters already in the Markdown come through as they are", async () => {
+    const text: string = "Odd   0  text";
+
+    const html: string = await render(
+      `${text}\n\n![Shot](data:image/png;base64,${LONG})\n\n\`${text}\``,
+    );
+
+    expect(html).toContain(`<p>${text}</p>`);
+    expect(html).toContain(`>${text}</code>`);
+    expect(urlsIn(html)).toEqual([`data:image/png;base64,${LONG}`]);
+  });
+});
+
 describe("Markdown.getEmailUrl", () => {
   test("allows only the schemes it is given, case-insensitively", () => {
     expect(

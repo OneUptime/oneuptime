@@ -30,6 +30,10 @@ Feed items and Slack / Microsoft Teams messages are Markdown with people's text 
 
 `FeedAndChatPlainTextEscapedGuard` (packages/Common/Tests/Server/Services) enforces this for every feed and chat sink, including `ee/Server`.
 
+### Megabyte-long values
+
+A synthetic monitor's screenshot reaches descriptions and emails as base64 of several megabytes on one line. Do not run a regular expression with a quantifier over a value that long. V8 backtracks on a stack that can grow with every character a quantifier takes, and a process that has been running a while compiles regular expressions without optimization, so they run out of stack ("Maximum call stack size exceeded") on about three megabytes - in production, and in a CI test worker that has already run many test files. Scan such a value with a loop or `indexOf` (`isBase64` in `packages/Common/Utils/Markdown/InlineImageDataUri.ts`), and keep it out of marked (`Markdown.holdBackLongBase64`). `ScreenshotEmailInLongRunningProcess.test.ts` (packages/Common/Tests/Server/Utils/Mail) runs the screenshot-in-email path under `node --no-regexp-optimization`, the state such a process reaches; test new code that handles these values the same way.
+
 ### After you make a change.
 
 Do not lint the entire project. Only lint the files you have modified by passing their paths explicitly to `npx eslint --fix` from the root. Do not run `npm run lint`, `npm run fix-lint`, or `npm run fix`, as these commands lint the entire project.

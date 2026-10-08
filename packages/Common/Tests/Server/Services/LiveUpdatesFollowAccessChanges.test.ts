@@ -10,6 +10,7 @@ import UserSessionService from "../../../Server/Services/UserSessionService";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import SsoRequirementChanges from "../../../Server/Utils/SsoRequirementChanges";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
   RealtimeAccessChangeKind,
@@ -20,6 +21,8 @@ import RealtimeReaders, {
 import RealtimeSessions, {
   RealtimeSessionSocket,
 } from "../../../Server/Utils/Realtime/RealtimeSessions";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import Project from "../../../Models/DatabaseModels/Project";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserSession from "../../../Models/DatabaseModels/UserSession";
@@ -676,24 +679,56 @@ describe("live updates follow every change of access", () => {
       ]);
     });
 
-    test("turning Require SSO off, or clearing the pinned provider, asks nobody again: it refuses nobody", async () => {
+    test("turning Require SSO off, or clearing the pinned provider, is announced once per project too: no server keeps refusing people with the rule it held", async () => {
       await projectHooks.onUpdateSuccess(
         updateOf<User>({ requireSsoForLogin: false }),
         [PROJECT],
       );
       await projectHooks.onUpdateSuccess(
         updateOf<User>({ requireSsoWithSsoProviderId: null }),
-        [PROJECT],
+        [PROJECT, OTHER_PROJECT],
+      );
+
+      expect(announced).toEqual([
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: PROJECT.toString(),
+        },
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: PROJECT.toString(),
+        },
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: OTHER_PROJECT.toString(),
+        },
+      ]);
+    });
+
+    test("a project update that wrote no project announces nothing, whatever it names", async () => {
+      await projectHooks.onUpdateSuccess(
+        updateOf<User>({ requireSsoForLogin: false }),
+        [],
       );
 
       expect(announced).toEqual([]);
     });
 
-    test("turning the instance-wide rule off asks nobody again", async () => {
+    test("turning the instance-wide rule off is announced once, for every project", async () => {
       await instanceHooks.onUpdateSuccess(
         updateOf<User>({ requireSsoForLogin: false }),
         [TEAM],
       );
+
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("an instance-wide settings update that leaves Require SSO alone announces nothing", async () => {
+      await instanceHooks.onUpdateSuccess(updateOf<User>({ name: "Renamed" }), [
+        TEAM,
+      ]);
 
       expect(announced).toEqual([]);
     });
@@ -715,6 +750,239 @@ describe("live updates follow every change of access", () => {
       expect(announced).toEqual([
         { kind: RealtimeAccessChangeKind.SignInRulesChanged },
       ]);
+    });
+
+    /*
+     * The rules as they were before the write (SsoRequirementChanges.
+     * rememberProjectRulesBefore / rememberServerRuleBefore, from the
+     * services' onUpdatePermitted): a rule that asks for less, written back
+     * as it was - an edit form, an API client or Terraform sends the whole
+     * record - is told to no server. One that asks for more is told whatever
+     * it was: a write that asks for less takes no lock, and may land between
+     * that read and this write.
+     */
+    describe("a rule written back as it was", () => {
+      const projectWithRule: (
+        projectId: ObjectID,
+        rule: { requireSsoForLogin: boolean; requiredProviderId?: ObjectID },
+      ) => Project = (
+        projectId: ObjectID,
+        rule: { requireSsoForLogin: boolean; requiredProviderId?: ObjectID },
+      ): Project => {
+        const project: Project = new Project();
+        project.id = projectId;
+        project.requireSsoForLogin = rule.requireSsoForLogin;
+        if (rule.requiredProviderId) {
+          project.requireSsoWithSsoProviderId = rule.requiredProviderId;
+        }
+        return project;
+      };
+
+      test("turning Require SSO off tells no server about a project where it was off already, and tells about one where it was on", async () => {
+        jest
+          .spyOn(ProjectService, "findAllBy")
+          .mockResolvedValue([
+            projectWithRule(PROJECT, { requireSsoForLogin: false }),
+            projectWithRule(OTHER_PROJECT, { requireSsoForLogin: true }),
+          ] as never);
+
+        const update: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
+        });
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          update.updateBy as never,
+        );
+        await projectHooks.onUpdateSuccess(update, [PROJECT, OTHER_PROJECT]);
+
+        expect(announced).toEqual([
+          {
+            kind: RealtimeAccessChangeKind.SignInRulesChanged,
+            projectId: OTHER_PROJECT.toString(),
+          },
+        ]);
+      });
+
+      test("clearing the provider a project requires tells nobody where none was required; where one was, it is told", async () => {
+        const reads: jest.SpyInstance = jest
+          .spyOn(ProjectService, "findAllBy")
+          .mockResolvedValue([
+            projectWithRule(PROJECT, { requireSsoForLogin: true }),
+          ] as never);
+
+        const none: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
+          requireSsoWithSsoProviderId: null,
+        });
+
+        reads.mockResolvedValueOnce([
+          projectWithRule(PROJECT, { requireSsoForLogin: false }),
+        ] as never);
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          none.updateBy as never,
+        );
+        await projectHooks.onUpdateSuccess(none, [PROJECT]);
+
+        expect(announced).toEqual([]);
+
+        const cleared: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoWithSsoProviderId: null,
+        });
+
+        reads.mockResolvedValueOnce([
+          projectWithRule(PROJECT, {
+            requireSsoForLogin: true,
+            requiredProviderId: TEAM,
+          }),
+        ] as never);
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          cleared.updateBy as never,
+        );
+        await projectHooks.onUpdateSuccess(cleared, [PROJECT]);
+
+        expect(announced).toEqual([
+          {
+            kind: RealtimeAccessChangeKind.SignInRulesChanged,
+            projectId: PROJECT.toString(),
+          },
+        ]);
+      });
+
+      test.each([
+        ["Require SSO turned on", { requireSsoForLogin: true }],
+        ["a provider required", { requireSsoWithSsoProviderId: TEAM }],
+        [
+          "both, saved again as they are",
+          { requireSsoForLogin: true, requireSsoWithSsoProviderId: TEAM },
+        ],
+      ])(
+        "a write that asks for more - %s - is told for every project it wrote, whatever the rules were, and reads nothing before it",
+        async (_label: string, data: Record<string, unknown>) => {
+          const reads: jest.SpyInstance = jest
+            .spyOn(ProjectService, "findAllBy")
+            .mockResolvedValue([
+              projectWithRule(PROJECT, {
+                requireSsoForLogin: true,
+                requiredProviderId: TEAM,
+              }),
+            ] as never);
+
+          const update: OnUpdate<User & UserSession> = updateOf<User>(
+            data as never,
+          );
+
+          await SsoRequirementChanges.rememberProjectRulesBefore(
+            update.updateBy as never,
+          );
+          await projectHooks.onUpdateSuccess(update, [PROJECT, OTHER_PROJECT]);
+
+          expect(reads).not.toHaveBeenCalled();
+          expect(announced).toEqual([
+            {
+              kind: RealtimeAccessChangeKind.SignInRulesChanged,
+              projectId: PROJECT.toString(),
+            },
+            {
+              kind: RealtimeAccessChangeKind.SignInRulesChanged,
+              projectId: OTHER_PROJECT.toString(),
+            },
+          ]);
+        },
+      );
+
+      test("when the rules cannot be read before the write, every project it wrote is told, so no change is missed", async () => {
+        jest
+          .spyOn(ProjectService, "findAllBy")
+          .mockRejectedValue(new Error("The database is not answering"));
+
+        const update: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
+        });
+
+        await expect(
+          SsoRequirementChanges.rememberProjectRulesBefore(
+            update.updateBy as never,
+          ),
+        ).resolves.toBeUndefined();
+        await projectHooks.onUpdateSuccess(update, [PROJECT]);
+
+        expect(announced).toEqual([
+          {
+            kind: RealtimeAccessChangeKind.SignInRulesChanged,
+            projectId: PROJECT.toString(),
+          },
+        ]);
+      });
+
+      test("a write that names no rule reads nothing before it", async () => {
+        const reads: jest.SpyInstance = jest.spyOn(ProjectService, "findAllBy");
+
+        await SsoRequirementChanges.rememberProjectRulesBefore(
+          updateOf<User>({ name: "Renamed" }).updateBy as never,
+        );
+
+        expect(reads).not.toHaveBeenCalled();
+      });
+
+      test("the instance-wide rule turned off while off tells nobody; turned off while on, it is told", async () => {
+        const config: GlobalConfig = new GlobalConfig();
+        config.requireSsoForLogin = false;
+        const reads: jest.SpyInstance = jest
+          .spyOn(GlobalConfigService, "findOneBy")
+          .mockResolvedValue(config as never);
+
+        const offAgain: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
+        });
+
+        await SsoRequirementChanges.rememberServerRuleBefore(
+          offAgain.updateBy as never,
+        );
+        await instanceHooks.onUpdateSuccess(offAgain, [TEAM]);
+
+        expect(announced).toEqual([]);
+
+        const wasOn: GlobalConfig = new GlobalConfig();
+        wasOn.requireSsoForLogin = true;
+        reads.mockResolvedValue(wasOn as never);
+
+        const off: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: false,
+        });
+
+        await SsoRequirementChanges.rememberServerRuleBefore(
+          off.updateBy as never,
+        );
+        await instanceHooks.onUpdateSuccess(off, [TEAM]);
+
+        expect(announced).toEqual([
+          { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+        ]);
+      });
+
+      test("the instance-wide rule turned on is told whatever it was, saved on again while on included, and reads nothing before it", async () => {
+        const config: GlobalConfig = new GlobalConfig();
+        config.requireSsoForLogin = true;
+        const reads: jest.SpyInstance = jest
+          .spyOn(GlobalConfigService, "findOneBy")
+          .mockResolvedValue(config as never);
+
+        const onAgain: OnUpdate<User & UserSession> = updateOf<User>({
+          requireSsoForLogin: true,
+        });
+
+        await SsoRequirementChanges.rememberServerRuleBefore(
+          onAgain.updateBy as never,
+        );
+        await instanceHooks.onUpdateSuccess(onAgain, [TEAM]);
+
+        expect(reads).not.toHaveBeenCalled();
+        expect(announced).toEqual([
+          { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+        ]);
+      });
     });
   });
 });

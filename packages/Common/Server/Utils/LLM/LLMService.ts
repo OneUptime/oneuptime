@@ -168,6 +168,20 @@ const EGRESS_REFUSAL_DESCRIPTIONS: Record<EgressFailureReason, string> = {
   [EgressFailureReason.Unreachable]: "the LLM provider could not be reached",
 };
 
+/*
+ * What Ollama says when a chat does not fit in the model's context window.
+ *
+ * Ollama fits a chat into the window (`num_ctx`) by dropping its oldest
+ * messages, with the system prompt put back in front, until the rest fits.
+ * The question is among the first to go, and a model whose chat template
+ * requires one (Qwen 3.8 and later) rejects what is left with "no user query
+ * found in messages", which reads as though OneUptime sent no question at
+ * all. When not even the newest message fits, Ollama says so itself.
+ */
+const NO_USER_QUERY_ERROR_PATTERN: RegExp = /no user query found in messages/i;
+const PROMPT_LONGER_THAN_CONTEXT_ERROR_PATTERN: RegExp =
+  /prompt is longer than the context length/i;
+
 export default class LLMService {
   /*
    * How many times a provider call is attempted before it is reported as a
@@ -1038,6 +1052,21 @@ export default class LLMService {
     };
   }
 
+  /*
+   * How the error for a request that did not fit in the model's context
+   * window begins. It is stable so the investigation queue can recognize it:
+   * re-running an investigation sends it into the same window again.
+   */
+  public static readonly CONTEXT_WINDOW_OVERFLOW_ERROR: string =
+    "the request is larger than the model's context window";
+
+  /*
+   * The num_ctx that error suggests: what Ollama recommends for agents, and
+   * enough for most investigations. Their fixed part alone (system prompt
+   * and tool definitions) is over 10,000 tokens.
+   */
+  public static readonly RECOMMENDED_OLLAMA_NUM_CTX: number = 65536;
+
   /**
    * Handle provider HTTP failures before the decorated provider method
    * rejects. Sanitizing here is important: @CaptureSpan records the exception,
@@ -1045,24 +1074,112 @@ export default class LLMService {
    */
   private static throwProviderHTTPError(data: {
     providerName: string;
+    llmType: LlmType;
+    request: LLMCompletionRequest;
     response: HTTPErrorResponse;
     logAttributes: LogAttributes;
-    includeProviderErrorDetails?: boolean | undefined;
   }): never {
     logger.error(`Error from ${data.providerName} API:`, data.logAttributes);
 
-    if (data.includeProviderErrorDetails !== false) {
+    /*
+     * Built from our own words and the provider's fixed phrases only, so it
+     * can be shown even where the provider's error body cannot.
+     */
+    const contextWindowOverflowError: string | undefined =
+      this.describeContextWindowOverflow(data);
+
+    if (data.request.includeProviderErrorDetails !== false) {
       logger.error(data.response, data.logAttributes);
       throw new BadDataException(
-        `${data.providerName} API error: ${JSON.stringify(
-          data.response.jsonData,
-        )}`,
+        contextWindowOverflowError ??
+          `${data.providerName} API error: ${JSON.stringify(
+            data.response.jsonData,
+          )}`,
       );
     }
 
     throw new BadDataException(
-      `${data.providerName} API request failed. Review the provider configuration and try again.`,
+      contextWindowOverflowError ??
+        `${data.providerName} API request failed. Review the provider configuration and try again.`,
     );
+  }
+
+  /*
+   * The error for a request the model server refused because it did not fit
+   * in the model's context window, naming the setting that fixes it — or
+   * undefined when that is not what the server said.
+   *
+   * "No user query found" only means that when the request had a question to
+   * lose; for a request that never had one, the server's own words are right.
+   */
+  private static describeContextWindowOverflow(data: {
+    providerName: string;
+    llmType: LlmType;
+    request: LLMCompletionRequest;
+    response: HTTPErrorResponse;
+  }): string | undefined {
+    /*
+     * Ollama's native API sends {"error": "..."} and its OpenAI-compatible
+     * API {"error": {"message": "..."}}; HTTPErrorResponse reads both.
+     */
+    const providerError: string = data.response.message;
+    const isOllama: boolean = data.llmType === LlmType.Ollama;
+
+    let symptom: string;
+
+    if (
+      NO_USER_QUERY_ERROR_PATTERN.test(providerError) &&
+      this.hasUserQuery(data.request.messages)
+    ) {
+      symptom = `, so ${
+        isOllama ? "Ollama" : "the server"
+      } dropped the oldest messages, the question among them, and the model rejected the rest ("no user query found in messages")`;
+    } else if (PROMPT_LONGER_THAN_CONTEXT_ERROR_PATTERN.test(providerError)) {
+      symptom = ` ("the prompt is longer than the context length currently available to the model")`;
+    } else {
+      return undefined;
+    }
+
+    if (!isOllama) {
+      // Ollama's OpenAI-compatible API has no field for num_ctx.
+      return `${data.providerName} API error: ${this.CONTEXT_WINDOW_OVERFLOW_ERROR}${symptom}. If Ollama serves this model, set OLLAMA_CONTEXT_LENGTH on the Ollama server (its OpenAI-compatible API ignores num_ctx), or switch this provider to Ollama and set num_ctx in its Additional Parameters.`;
+    }
+
+    const options: unknown = data.request.additionalParams?.["options"];
+    const configuredNumCtx: unknown =
+      options && typeof options === "object" && !Array.isArray(options)
+        ? (options as JSONObject)["num_ctx"]
+        : undefined;
+
+    let target: string = `to ${this.RECOMMENDED_OLLAMA_NUM_CTX} or more`;
+
+    if (typeof configuredNumCtx === "number") {
+      target =
+        configuredNumCtx >= this.RECOMMENDED_OLLAMA_NUM_CTX
+          ? `above ${configuredNumCtx}`
+          : `${target} (it is ${configuredNumCtx} now)`;
+    }
+
+    return `${data.providerName} API error: ${this.CONTEXT_WINDOW_OVERFLOW_ERROR}${symptom}. Raise the context window: set "num_ctx" under "options" in this LLM provider's Additional Parameters ${target}, or set OLLAMA_CONTEXT_LENGTH on the Ollama server.`;
+  }
+
+  /*
+   * Whether a conversation has a question by the rule Qwen's chat template
+   * applies: a user message that is not just a wrapped tool result.
+   */
+  private static hasUserQuery(messages: Array<LLMMessage>): boolean {
+    return messages.some((message: LLMMessage) => {
+      if (message.role !== "user") {
+        return false;
+      }
+
+      const content: string = (message.content || "").trim();
+
+      return !(
+        content.startsWith("<tool_response>") &&
+        content.endsWith("</tool_response>")
+      );
+    });
   }
 
   /*
@@ -1343,9 +1460,10 @@ export default class LLMService {
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({
         providerName: config.llmType.toString(),
+        llmType: config.llmType,
+        request,
         response,
         logAttributes,
-        includeProviderErrorDetails: request.includeProviderErrorDetails,
       });
     }
 
@@ -1428,9 +1546,10 @@ export default class LLMService {
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({
         providerName: "Azure OpenAI",
+        llmType: config.llmType,
+        request,
         response,
         logAttributes,
-        includeProviderErrorDetails: request.includeProviderErrorDetails,
       });
     }
 
@@ -1645,9 +1764,10 @@ export default class LLMService {
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({
         providerName: "Anthropic",
+        llmType: config.llmType,
+        request,
         response,
         logAttributes: anthropicLogAttributes,
-        includeProviderErrorDetails: request.includeProviderErrorDetails,
       });
     }
 
@@ -1872,9 +1992,10 @@ export default class LLMService {
     if (response instanceof HTTPErrorResponse) {
       this.throwProviderHTTPError({
         providerName: "Ollama",
+        llmType: config.llmType,
+        request,
         response,
         logAttributes: ollamaLogAttributes,
-        includeProviderErrorDetails: request.includeProviderErrorDetails,
       });
     }
 

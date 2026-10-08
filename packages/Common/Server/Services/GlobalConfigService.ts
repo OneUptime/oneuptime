@@ -485,6 +485,9 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     await SsoRequirementChanges.beforeServerUpdate({ updateBy });
+
+    // What the rule is now, so turning it off is told only when it was on.
+    await SsoRequirementChanges.rememberServerRuleBefore(updateBy);
   }
 
   // An update that failed once it held the lock: it is given back.
@@ -515,15 +518,17 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Turned on: every server reads the rule again, and the live updates
-     * already open are asked again as their joins were, so a page that no
-     * longer meets it stops hearing at once, as its API requests are
-     * refused. Turned off, it refuses nobody, so nobody is asked again.
+     * Turned on or off: every server reads the rule again at once, rather
+     * than when its cached copy runs out a minute later. Turned on, the live
+     * updates already open are asked again as their joins were, so a page
+     * that no longer meets it stops hearing at once, as its API requests are
+     * refused. That is told even when it was on already: turning it off
+     * takes no lock, so it may have been turned off a moment before this
+     * write landed. Turned off, people signed in with a password are let
+     * back in at once on every server, not only on this one; saved off
+     * again while off, nobody is told.
      */
-    if (
-      (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
-        .requireSsoForLogin === true
-    ) {
+    if (SsoRequirementChanges.takeWhetherServerRuleChanged(onUpdate.updateBy)) {
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SignInRulesChanged,
       });

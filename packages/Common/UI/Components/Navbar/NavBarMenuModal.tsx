@@ -134,17 +134,18 @@ const writeRecentRoute: (routeString: string) => void = (
 export interface ComponentProps {
   items: MoreMenuItem[];
   /*
-   * The categories that are always open: the menu opens on them and they
-   * never fold, so they sit under a plain heading, like Recent. Every other
-   * category starts folded to one line until the user opens it (click, or
-   * Enter on its row); search ignores folding, and the category holding the
-   * current page opens by itself. Leave it unset to show every category
-   * open, with nothing to fold. See NavBarMenuCatalog.ts for the rules.
+   * The categories the menu opens on: open every time it opens. Every
+   * category, these too, is a row of one list that folds and opens (click,
+   * or Enter on its row), and every other one starts folded; folding one of
+   * these lasts until the menu closes. Search ignores folding, and the
+   * category holding the current page opens by itself. Leave it unset to
+   * show every category open, with nothing to fold. See
+   * NavBarMenuCatalog.ts for the rules.
    */
-  categoriesAlwaysOpen?: Array<string> | undefined;
+  categoriesOpenByDefault?: Array<string> | undefined;
   /*
-   * Category name -> the icon its row is drawn with, while it folds. A
-   * category without one gets the products menu's own icon.
+   * Category name -> the icon its row is drawn with, in a menu that folds.
+   * A category without one gets the products menu's own icon.
    */
   categoryIcons?: Dictionary<IconProp> | undefined;
   footer?:
@@ -262,7 +263,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
   const folds: CategoryFolds = useCategoryFolds(
     props.items,
-    props.categoriesAlwaysOpen,
+    props.categoriesOpenByDefault,
   );
 
   /*
@@ -327,10 +328,10 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
    * order, so arrow keys, the cursor and the cell refs stay in step: the
    * heading row of a category that folds, then the products shown under it.
    *
-   * A category folds only while idle, and never one the menu keeps open
-   * (the Dashboard's Essentials): that one has a plain heading, which the
-   * cursor does not stop on. Search ignores folding: every match is shown
-   * under a plain heading, and the cursor moves over products alone.
+   * A category folds only while idle, the ones the menu opens on (the
+   * Dashboard's Essentials) as well: they are open, under a row that folds
+   * them like any other. Search ignores folding: every match is shown under
+   * a plain heading, and the cursor moves over products alone.
    */
   const rawGroups: Array<RawGroup> = [];
   if (!isSearching && recentItems.length > 0) {
@@ -348,7 +349,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const groups: Array<MenuGroup> = rawGroups.map(
     (group: RawGroup, index: number): MenuGroup => {
       const canFold: boolean =
-        !isSearching && !group.isRecent && folds.canFold(group.title);
+        !isSearching && !group.isRecent && folds.isEnabled;
       const isOpen: boolean = !canFold || folds.isOpen(group.title);
       let toggle: CategoryEntry | undefined = undefined;
 
@@ -392,10 +393,11 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
   /*
    * The categories that fold are drawn as one list, a row each: one bordered
-   * box under the cards, rather than lines of small capitals that read as
-   * headings with nothing under them. A category the menu keeps open
-   * (Essentials) between two of them ends one list and starts the next, so
-   * the order on screen stays the catalog's.
+   * box, Essentials its first row, rather than lines of small capitals that
+   * read as headings with nothing under them. Recent, which never folds,
+   * keeps its plain heading above the list. Any group that does not fold
+   * ends a list, and the next one that does starts another, so the order on
+   * screen stays the catalog's.
    */
   const sections: Array<MenuSection> = [];
   groups.forEach((group: MenuGroup) => {
@@ -772,9 +774,9 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
           />
         ) : (
           /*
-           * In a menu that folds, a plain heading (Recent, a category the
-           * menu keeps open, or any category while searching) lines its
-           * text up with the icons of the cards and of the category rows.
+           * In a menu that folds, a plain heading (Recent, or any category
+           * while searching) lines its text up with the icons of the cards
+           * and of the category rows.
            */
           <div
             className={`mb-2.5 flex items-center gap-1.5 ${
