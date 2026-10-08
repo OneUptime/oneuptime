@@ -54,18 +54,19 @@ export interface ComponentProps {
   rightElement?: NavItem;
   moreMenuItems?: MoreMenuItem[];
   /*
-   * The categories the products menu always shows open: it opens on them,
-   * and they never fold, whatever the browser remembers. Every other
-   * category starts folded to one line (its name, how many products it holds
-   * and what they are called) until the user opens it; search still finds
+   * The categories the products menu opens on: open every time it opens,
+   * whatever the browser remembers. Every category is a row that folds and
+   * opens (its name, how many products it holds and what they are called),
+   * these too, but folding one of these lasts until the menu closes; every
+   * other category starts folded until the user opens it. Search still finds
    * every product, and the category holding the current page opens by
    * itself. Leave it unset to show every category open: a short menu has
    * nothing to fold. See NavBarMenuCatalog.ts.
    */
-  moreMenuCategoriesAlwaysOpen?: Array<string> | undefined;
+  moreMenuCategoriesOpenByDefault?: Array<string> | undefined;
   /*
-   * Category name (as the items carry it) -> the icon its folded row is
-   * drawn with. A category without one gets the products menu's own icon.
+   * Category name (as the items carry it) -> the icon its row is drawn
+   * with. A category without one gets the products menu's own icon.
    */
   moreMenuCategoryIcons?: Dictionary<IconProp> | undefined;
   moreMenuTitle?: string; // Title for the more menu (default: "Products")
@@ -382,7 +383,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               <NavBarMobileMenu
                 items={props.items}
                 moreMenuItems={props.moreMenuItems || []}
-                categoriesAlwaysOpen={props.moreMenuCategoriesAlwaysOpen}
+                categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
                 categoryIcons={props.moreMenuCategoryIcons}
                 rightElement={props.rightElement}
                 onNavigate={() => {
@@ -547,7 +548,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
         createPortal(
           <NavBarMenuModal
             items={props.moreMenuItems}
-            categoriesAlwaysOpen={props.moreMenuCategoriesAlwaysOpen}
+            categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
             categoryIcons={props.moreMenuCategoryIcons}
             footer={props.moreMenuFooter}
             searchPlaceholder={props.moreMenuSearchPlaceholder}

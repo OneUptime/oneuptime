@@ -121,7 +121,12 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  // Deleting a provider that is on ends the sign-ins it gave, as turning it off does.
+  /*
+   * Deleting a provider that is on ends the sign-ins it gave, as turning it
+   * off does. A delete - a hard delete included - reaches only the
+   * providers its check read under the lock, and rows deleted before
+   * (Utils/ProjectSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,

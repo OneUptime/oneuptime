@@ -1,4 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
+import ScheduledMaintenanceStartUtil, {
+  ScheduledMaintenancePhaseOfState,
+} from "Common/Utils/ScheduledMaintenanceStart";
 
 /*
  * Timing for a scheduled maintenance event: which part of its window it is
@@ -72,9 +75,13 @@ export const SCHEDULED_MAINTENANCE_DURATION_PREFIX: {
   completedIn: "Completed in",
 };
 
-// The flags a ScheduledMaintenanceState carries, as plain data.
+/*
+ * The flags a ScheduledMaintenanceState carries, as plain data, and its
+ * place in the project's list - the list's own position when left out.
+ */
 export interface ScheduledMaintenanceStateFlags {
   id: string;
+  order?: number | undefined;
   isScheduledState?: boolean | undefined;
   isOngoingState?: boolean | undefined;
   isEndedState?: boolean | undefined;
@@ -151,9 +158,11 @@ export const toValidDate: (value: DateInput) => Date | undefined = (
 /*
  * Classifies the current state. Ended wins over everything, then Scheduled,
  * then Ongoing - the same precedence the header's actions have always used.
- * Custom states count by their position: one ordered before the first
- * ongoing state is still waiting to start, one after it (a "Verifying" step,
- * say) is still in progress.
+ * Custom states count by their place, by the one rule
+ * (Common/Utils/ScheduledMaintenanceStart): one placed before the ongoing
+ * state is still waiting to start, one between Ongoing and Ended (a
+ * "Verifying" step, say) is in progress, and one after Ended (a
+ * "Reviewing" step) is over.
  */
 export const getScheduledMaintenanceStateKind: (data: {
   states: Array<ScheduledMaintenanceStateFlags>;
@@ -183,27 +192,110 @@ export const getScheduledMaintenanceStateKind: (data: {
     return ScheduledMaintenanceStateKind.Ended;
   }
 
-  const ongoingStateIndex: number = data.states.findIndex(
-    (state: ScheduledMaintenanceStateFlags): boolean => {
-      return Boolean(state.isOngoingState);
-    },
-  );
-
-  if (
-    currentState.isScheduledState ||
-    (ongoingStateIndex >= 0 && currentStateIndex < ongoingStateIndex)
-  ) {
+  if (currentState.isScheduledState) {
     return ScheduledMaintenanceStateKind.Scheduled;
   }
 
+  const placedStates: Array<ScheduledMaintenanceStateFlags> =
+    placeScheduledMaintenanceStates(data.states);
+  const placedCurrentState: ScheduledMaintenanceStateFlags =
+    placedStates[currentStateIndex]!;
+
+  // Without an ongoing state in the list, a state of its own has no place.
   if (
-    currentState.isOngoingState ||
-    (ongoingStateIndex >= 0 && currentStateIndex > ongoingStateIndex)
+    ScheduledMaintenanceStartUtil.isInProgressByFlags(placedCurrentState) ===
+      null &&
+    !ScheduledMaintenanceStartUtil.getOngoingState({ states: placedStates })
   ) {
-    return ScheduledMaintenanceStateKind.Ongoing;
+    return ScheduledMaintenanceStateKind.Unknown;
   }
 
-  return ScheduledMaintenanceStateKind.Unknown;
+  switch (
+    ScheduledMaintenanceStartUtil.getPhase({
+      states: placedStates,
+      state: placedCurrentState,
+    })
+  ) {
+    case ScheduledMaintenancePhaseOfState.InProgress:
+      return ScheduledMaintenanceStateKind.Ongoing;
+    case ScheduledMaintenancePhaseOfState.Over:
+      return ScheduledMaintenanceStateKind.Ended;
+    case ScheduledMaintenancePhaseOfState.NotStarted:
+      return ScheduledMaintenanceStateKind.Scheduled;
+    default:
+      return ScheduledMaintenanceStateKind.Unknown;
+  }
+};
+
+/*
+ * The states with a place each: their own order, or - read without it -
+ * their position in the list, which comes sorted by it. What the header's
+ * kind, its timing and the notify default of a move all place a state of
+ * the project's own by.
+ */
+export const placeScheduledMaintenanceStates: (
+  states: Array<ScheduledMaintenanceStateFlags>,
+) => Array<ScheduledMaintenanceStateFlags> = (
+  states: Array<ScheduledMaintenanceStateFlags>,
+): Array<ScheduledMaintenanceStateFlags> => {
+  return states.map(
+    (
+      state: ScheduledMaintenanceStateFlags,
+      index: number,
+    ): ScheduledMaintenanceStateFlags => {
+      return {
+        ...state,
+        order:
+          typeof state.order === "number" && Number.isFinite(state.order)
+            ? state.order
+            : index + 1,
+      };
+    },
+  );
+};
+
+/*
+ * When the event really started and when it was completed, from its state
+ * timeline (any order): the first move into a state where it is in
+ * progress from one where it was not - Ongoing, or straight into a state of
+ * the project's own between Ongoing and Ended - and the last move into a
+ * state where it is over from one where it was not (ScheduledMaintenanceStartUtil
+ * .getStartRows / getEndRows). Moving on from Ongoing to "Verifying", or from
+ * Ended to Completed, is no second start or end.
+ */
+export const getStartedAndCompletedAt: (data: {
+  states: Array<ScheduledMaintenanceStateFlags>;
+  timelines: Array<ScheduledMaintenanceTimelineEntry>;
+}) => { startedAt: Date | undefined; completedAt: Date | undefined } = (data: {
+  states: Array<ScheduledMaintenanceStateFlags>;
+  timelines: Array<ScheduledMaintenanceTimelineEntry>;
+}): { startedAt: Date | undefined; completedAt: Date | undefined } => {
+  const placedStates: Array<ScheduledMaintenanceStateFlags> =
+    placeScheduledMaintenanceStates(data.states);
+
+  const timeline: Array<ScheduledMaintenanceTimelineEntry> =
+    data.timelines.filter(
+      (entry: ScheduledMaintenanceTimelineEntry): boolean => {
+        return Boolean(toValidDate(entry.startsAt));
+      },
+    );
+
+  const startRows: Array<ScheduledMaintenanceTimelineEntry> =
+    ScheduledMaintenanceStartUtil.getStartRows({
+      states: placedStates,
+      timeline: timeline,
+    });
+
+  const endRows: Array<ScheduledMaintenanceTimelineEntry> =
+    ScheduledMaintenanceStartUtil.getEndRows({
+      states: placedStates,
+      timeline: timeline,
+    });
+
+  return {
+    startedAt: toValidDate(startRows[0]?.startsAt),
+    completedAt: toValidDate(endRows[endRows.length - 1]?.startsAt),
+  };
 };
 
 /*

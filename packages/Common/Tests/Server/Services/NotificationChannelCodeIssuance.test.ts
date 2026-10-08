@@ -1,7 +1,9 @@
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import MailService from "../../../Server/Services/MailService";
 import ChannelVerification, {
+  ChannelVerificationStatus,
   RESEND_COOLDOWN_SECONDS,
+  VerificationCodeState,
 } from "../../../Server/Utils/ChannelVerification";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
 import ObjectID from "../../../Types/ObjectID";
@@ -396,6 +398,45 @@ describe("notification channel verification code issuance", () => {
         MailService.sendMail as unknown as jest.Mock,
       ).not.toHaveBeenCalled();
       expect(result.verificationCode).toBeUndefined();
+    });
+  });
+
+  /*
+   * The verify dialog asks where an address's code stands instead of saying
+   * one was sent. An email's send is left fire-and-forget (the end-to-end
+   * stack confirms addresses with the code the hatch above hands it, whether
+   * or not the mail went out), so nothing is ever said to stand in its way.
+   */
+  describe("getVerificationStatus", () => {
+    it("reads where the code stands from the row", async () => {
+      const sentAt: Date = new Date(Date.now() - 30 * 1000);
+      const expiresAt: Date = new Date(Date.now() + 14 * 60 * 1000);
+
+      const status: ChannelVerificationStatus =
+        await UserEmailService.getVerificationStatus(
+          buildItem({
+            verificationCodeSentAt: sentAt,
+            verificationCodeExpiresAt: expiresAt,
+            verificationFailedAttempts: 0,
+          }),
+        );
+
+      expect(status).toEqual({
+        isVerified: false,
+        codeState: VerificationCodeState.Active,
+        codeSentAt: sentAt,
+        codeExpiresAt: expiresAt,
+        resendAvailableInSeconds: RESEND_COOLDOWN_SECONDS - 30,
+        cannotSendReason: null,
+      });
+    });
+
+    it("never names a reason a code cannot be sent", async () => {
+      const status: ChannelVerificationStatus =
+        await UserEmailService.getVerificationStatus(buildItem());
+
+      expect(status.codeState).toBe(VerificationCodeState.None);
+      expect(status.cannotSendReason).toBeNull();
     });
   });
 });

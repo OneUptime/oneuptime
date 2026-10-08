@@ -10,10 +10,15 @@ import URL from "Common/Types/API/URL";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Permission, { UserPermission } from "Common/Types/Permission";
 import Phone from "Common/Types/Phone";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import UserType from "Common/Types/UserType";
 
 /*
  * A SCHEDULED MAINTENANCE STATE CHANGE WITH A PUBLIC NOTE REACHES EACH
@@ -25,11 +30,17 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
  * and the note (found in #4384): the change was marked as sent by its note
  * and then queued anyway. They now get the note, once, on every channel.
  *
- * This runs it end to end without a database: the real state timeline hook
- * records the change, and posts its note through the real public note hook;
- * both rows go into an in-memory table that answers the jobs' queries; then
- * the real state change job and the real public note job run, as the worker
- * would every minute, and every message they send is counted.
+ * The note is posted once the change is saved, never before it: a change
+ * that is refused, or that fails to save, tells nobody (#4442 found the
+ * scheduled maintenance timeline posting its note first, so a change that
+ * then failed still sent the note to every subscriber).
+ *
+ * This runs it end to end without a database: the real state timeline hooks
+ * record the change - onBeforeCreate before the save, onCreateSuccess after
+ * it - and post its note through the real public note hook; both rows go
+ * into an in-memory table that answers the jobs' queries; then the real
+ * state change job and the real public note job run, as the worker would
+ * every minute, and every message they send is counted.
  */
 
 type CronHandler = () => Promise<void>;
@@ -86,6 +97,9 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
       findOneById: jest.fn(),
       findOneBy: jest.fn(),
       getScheduledMaintenanceLinkInDashboard: jest.fn(),
+      getScheduledMaintenanceNumber: jest.fn(),
+      updateOneBy: jest.fn(),
+      updateOneById: jest.fn(),
     },
   };
 });
@@ -190,8 +204,10 @@ import DatabaseConfig from "Common/Server/DatabaseConfig";
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
 import MailService from "Common/Server/Services/MailService";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
+import ScheduledMaintenanceMeasurementValueService from "Common/Server/Services/ScheduledMaintenanceMeasurementValueService";
 import ScheduledMaintenancePublicNoteService from "Common/Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
@@ -247,6 +263,8 @@ const NOTE: string = "The database upgrade has started. Expect read-only mode.";
 // The two tables the jobs read, as the database would hold them.
 let timelines: Array<ScheduledMaintenanceStateTimeline> = [];
 let notes: Array<ScheduledMaintenancePublicNote> = [];
+// How many state changes were saved when each note was posted.
+let changesSavedWhenNotesWerePosted: Array<number> = [];
 
 function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
@@ -355,16 +373,52 @@ function resource(): StatusPageResource {
   return row;
 }
 
+// A member of the project who may change an event's state, and these too.
+function memberProps(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
+  return {
+    userId: new ObjectID("3f000000-0000-4000-8000-0000000000aa"),
+    userType: UserType.User,
+    tenantId: PROJECT_ID,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        projectId: PROJECT_ID,
+        _type: "UserTenantAccessPermission",
+        permissions: [
+          Permission.CurrentUser,
+          Permission.ProjectUser,
+          Permission.ReadProjectScheduledMaintenance,
+          Permission.CreateScheduledMaintenanceStateTimeline,
+          ...permissions,
+        ].map((permission: Permission): UserPermission => {
+          return {
+            _type: "UserPermission",
+            permission: permission,
+            labelIds: [],
+            isBlockPermission: false,
+            scope: PermissionScope.All,
+          };
+        }),
+      },
+    },
+  };
+}
+
 /*
- * "Mark Scheduled Maintenance as Ongoing", as the dashboard sends it: the
- * real hook decides the change's notification and posts its note through the
- * real note hook. Both rows are then stored the way the database stores
- * them: an unset column takes its default (notify, Pending), and the row is
- * read back with its state, as the job's select joins it.
+ * "Mark Scheduled Maintenance as Ongoing", as the dashboard sends it, through
+ * the create's hooks: onBeforeCreate decides the change's notification and
+ * carries its note forward; the change is saved the way the database stores
+ * it - an unset column takes its default (notify, Pending), and the row is
+ * read back with its state, as the job's select joins it - and then
+ * onCreateSuccess posts its note through the real note hook. `saveFails`
+ * stops it where the insert fails, after every check has passed.
  */
 async function markOngoing(data: {
   notify: boolean | undefined;
   publicNote?: string;
+  props?: DatabaseCommonInteractionProps;
+  saveFails?: boolean;
 }): Promise<void> {
   const timeline: ScheduledMaintenanceStateTimeline =
     new ScheduledMaintenanceStateTimeline();
@@ -377,16 +431,32 @@ async function markOngoing(data: {
     timeline.shouldStatusPageSubscribersBeNotified = data.notify;
   }
 
-  const result: { createBy: { data: ScheduledMaintenanceStateTimeline } } =
-    (await hookOf(
-      ScheduledMaintenanceStateTimelineService,
-      "onBeforeCreate",
-    )({
-      data: timeline,
-      miscDataProps:
-        data.publicNote === undefined ? {} : { publicNote: data.publicNote },
-      props: { isRoot: true, tenantId: PROJECT_ID },
-    })) as { createBy: { data: ScheduledMaintenanceStateTimeline } };
+  const result: {
+    createBy: {
+      data: ScheduledMaintenanceStateTimeline;
+      props: DatabaseCommonInteractionProps;
+    };
+    carryForward: JSONObject;
+  } = (await hookOf(
+    ScheduledMaintenanceStateTimelineService,
+    "onBeforeCreate",
+  )({
+    data: timeline,
+    miscDataProps:
+      data.publicNote === undefined ? {} : { publicNote: data.publicNote },
+    props: data.props || { isRoot: true, tenantId: PROJECT_ID },
+  })) as {
+    createBy: {
+      data: ScheduledMaintenanceStateTimeline;
+      props: DatabaseCommonInteractionProps;
+    };
+    carryForward: JSONObject;
+  };
+
+  if (data.saveFails) {
+    // The insert fails: nothing is stored, and the success hook never runs.
+    return;
+  }
 
   const saved: ScheduledMaintenanceStateTimeline = result.createBy.data;
   saved._id = ObjectID.generate().toString();
@@ -396,6 +466,18 @@ async function markOngoing(data: {
   saved.scheduledMaintenanceState = ongoingState();
 
   timelines.push(saved);
+
+  await (
+    ScheduledMaintenanceStateTimelineService as unknown as {
+      onCreateSuccess: (
+        onCreate: unknown,
+        createdItem: ScheduledMaintenanceStateTimeline,
+      ) => Promise<unknown>;
+    }
+  ).onCreateSuccess(
+    { createBy: result.createBy, carryForward: result.carryForward },
+    saved,
+  );
 }
 
 // One run of each job, as the worker runs them every minute.
@@ -460,6 +542,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   timelines = [];
   notes = [];
+  changesSavedWhenNotesWerePosted = [];
 
   // The hooks, without a database.
   jest
@@ -484,6 +567,8 @@ beforeEach(() => {
           ScheduledMaintenancePublicNoteService,
           "onBeforeCreate",
         )(input)) as { createBy: { data: ScheduledMaintenancePublicNote } };
+
+      changesSavedWhenNotesWerePosted.push(timelines.length);
 
       const savedNote: ScheduledMaintenancePublicNote = result.createBy.data;
       savedNote._id = ObjectID.generate().toString();
@@ -539,6 +624,45 @@ beforeEach(() => {
     .mockImplementation((async (input: unknown) => {
       applyUpdate(notes, input);
     }) as never);
+
+  /*
+   * What the change's success hook reads and writes besides its note: the
+   * state it moved to (read by id, and again with a flag to tell its kind),
+   * the event's current state and number, and the measurements it refreshes.
+   * The event is read with nothing the move would hold or release.
+   */
+  jest
+    .spyOn(ScheduledMaintenanceStateService, "findOneBy")
+    .mockImplementation((async (input: unknown) => {
+      const query: JSONObject = (input as { query: JSONObject }).query;
+
+      if (
+        String(query["_id"]) !== ONGOING_STATE_ID.toString() ||
+        query["isResolvedState"] ||
+        query["isEndedState"]
+      ) {
+        return null;
+      }
+
+      return ongoingState();
+    }) as never);
+  jest
+    .spyOn(
+      ScheduledMaintenanceStateTimelineService as never,
+      "isLastScheduledMaintenanceState",
+    )
+    .mockResolvedValue(false as never);
+  jest
+    .spyOn(
+      ScheduledMaintenanceMeasurementValueService,
+      "recomputeForScheduledMaintenance",
+    )
+    .mockResolvedValue(undefined as never);
+  mock(ScheduledMaintenanceService.findOneBy).mockResolvedValue(null as never);
+  mock(ScheduledMaintenanceService.updateOneBy).mockResolvedValue(1 as never);
+  mock(
+    ScheduledMaintenanceService.getScheduledMaintenanceNumber,
+  ).mockResolvedValue({ number: 7, numberWithPrefix: "SM-7" } as never);
 
   // Everything the jobs read about the event and its status page.
   mock(ScheduledMaintenanceService.findOneById).mockResolvedValue(
@@ -608,6 +732,8 @@ describe("a scheduled maintenance state change posted with a public note", () =>
 
     expect(timelines).toHaveLength(1);
     expect(notes).toHaveLength(1);
+    // The note was posted once the change was saved, not before it.
+    expect(changesSavedWhenNotesWerePosted).toEqual([1]);
 
     await runTheJobs();
 
@@ -728,6 +854,48 @@ describe("a scheduled maintenance state change posted with a public note", () =>
     await runTheJobs();
 
     expect(sent()).toEqual(NOTHING_SENT);
+  });
+
+  test("a state change whose save fails tells nobody: no note is posted, and the jobs send nothing", async () => {
+    await markOngoing({ notify: true, publicNote: NOTE, saveFails: true });
+
+    expect(timelines).toHaveLength(0);
+    expect(notes).toHaveLength(0);
+
+    await runTheJobs();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+  });
+
+  test("a person who may not post the note: the change is refused, nothing is posted, and nobody is told", async () => {
+    await expect(
+      markOngoing({
+        notify: true,
+        publicNote: NOTE,
+        props: memberProps([]),
+      }),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    expect(timelines).toHaveLength(0);
+    expect(notes).toHaveLength(0);
+
+    await runTheJobs();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+  });
+
+  test("a person who may post the note: each subscriber gets the note once, posted after the change", async () => {
+    await markOngoing({
+      notify: true,
+      publicNote: NOTE,
+      props: memberProps([Permission.CreateScheduledMaintenancePublicNote]),
+    });
+
+    expect(changesSavedWhenNotesWerePosted).toEqual([1]);
+
+    await runTheJobs();
+
+    expect(sent()).toEqual(THE_NOTE_ONCE);
   });
 
   test("a change that does not say whether to notify tells subscribers once: the change, by its column default, with its note kept quiet", async () => {

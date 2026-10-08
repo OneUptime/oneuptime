@@ -108,6 +108,14 @@ export default class ScheduledMaintenanceFieldChange {
     "Not shown on any status page.";
 
   /*
+   * What it says when the last of what the event affects besides its
+   * monitors was taken off, leaving it affecting nothing: there is no list
+   * left to show. The monitors taken off are named on lines of their own.
+   */
+  public static readonly noOtherResourcesLine: string =
+    "No other affected resources.";
+
+  /*
    * The compared columns an update writes. A column left out - or sent as
    * undefined, which writes nothing - is not written; one sent as null is.
    */

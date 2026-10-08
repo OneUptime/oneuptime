@@ -23,7 +23,9 @@ export interface EventOverlayScope {
  */
 export const EVENT_OVERLAY_SCOPE_QUERY_LIMIT: number = 50;
 
-type ScopeQuery = { [key: string]: string | ScopeQuery };
+// An array only appears inside a jsonb containment value (metricEventQuery).
+type ScopeValue = string | ScopeQuery | Array<ScopeQuery>;
+type ScopeQuery = { [key: string]: ScopeValue };
 type Attributes = Record<string, unknown>;
 
 interface ResourceMapping {
@@ -297,8 +299,16 @@ function exactValues(
 function sortedQuery(query: ScopeQuery): ScopeQuery {
   const result: ScopeQuery = {};
   for (const key of Object.keys(query).sort()) {
-    const value: string | ScopeQuery = query[key]!;
-    result[key] = typeof value === "string" ? value : sortedQuery(value);
+    const value: ScopeValue = query[key]!;
+    if (typeof value === "string") {
+      result[key] = value;
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item: ScopeQuery): ScopeQuery => {
+        return sortedQuery(item);
+      });
+    } else {
+      result[key] = sortedQuery(value);
+    }
   }
   return result;
 }
@@ -370,14 +380,22 @@ function nestParentScopes(queries: Array<ScopeQuery>): Array<ScopeQuery> {
       ["dockerHosts", ["dockerResources"], "dockerHost"],
       ["podmanHosts", ["podmanResources"], "podmanHost"],
     ] as Array<[string, Array<string>, string]>) {
-      const parentScope: string | ScopeQuery | undefined = query[parent];
-      if (!parentScope || typeof parentScope === "string") {
+      const parentScope: ScopeValue | undefined = query[parent];
+      if (
+        !parentScope ||
+        typeof parentScope === "string" ||
+        Array.isArray(parentScope)
+      ) {
         continue;
       }
       let hasChild: boolean = false;
       for (const child of children) {
-        const childScope: string | ScopeQuery | undefined = query[child];
-        if (childScope && typeof childScope !== "string") {
+        const childScope: ScopeValue | undefined = query[child];
+        if (
+          childScope &&
+          typeof childScope !== "string" &&
+          !Array.isArray(childScope)
+        ) {
           childScope[parentRelation] = parentScope;
           hasChild = true;
         }
@@ -392,6 +410,64 @@ function nestParentScopes(queries: Array<ScopeQuery>): Array<ScopeQuery> {
     }
   }
   return queries;
+}
+
+/*
+ * Whether a query names its metric. A blank one is a draft still being
+ * written in Explorer.
+ */
+function namesMetric(metricName: unknown): boolean {
+  return typeof metricName === "string"
+    ? metricName.trim().length > 0
+    : Boolean(metricName);
+}
+
+/*
+ * The incidents or alerts raised on one metric. Every monitor that evaluates
+ * metrics (Metrics, Host, Kubernetes, Docker, Podman, Proxmox, VMware, Ceph,
+ * storage arrays, Docker Swarm, IoT) stores the queries that fired the
+ * incident or alert in its `telemetryQuery`. jsonb containment matches the
+ * record when any one of those queries reads this metric, whatever else the
+ * query filters on or however many other queries sit beside it.
+ */
+function metricEventQuery(metricName: string): ScopeQuery {
+  return {
+    telemetryQuery: {
+      metricViewData: {
+        queryConfigs: [
+          { metricQueryData: { filterData: { metricName: metricName } } },
+        ],
+      },
+    },
+  };
+}
+
+/*
+ * A chart filtered to no resource is still a chart of a metric, and its
+ * incident and alert markers are the ones raised on that metric - never every
+ * incident in the project (#4472). A status page, website or API monitor's
+ * incident, or one declared by hand, says nothing about a container's CPU,
+ * yet it used to be drawn on that chart as if it did.
+ *
+ * Only an unscoped source changes: a resource scope already decides its
+ * events, and a suppressed one ([]) stays suppressed. A draft without a
+ * metric is left to getEventOverlayScope, which skips it; a metric name that
+ * is not text cannot be matched, and is refused rather than read as the
+ * whole project.
+ */
+function scopeUnscopedToMetric(
+  queries: Array<ScopeQuery>,
+  metricName: unknown,
+): Array<ScopeQuery> {
+  const isUnscoped: boolean =
+    queries.length === 1 && Object.keys(queries[0]!).length === 0;
+  if (!isUnscoped || !namesMetric(metricName)) {
+    return queries;
+  }
+  if (typeof metricName !== "string") {
+    return [];
+  }
+  return [metricEventQuery(metricName)];
 }
 
 function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
@@ -861,15 +937,22 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
 
   /*
    * Empty/malformed resource scope is deliberately not converted back into
-   * project-wide markers. Only charts with no resource filter are unscoped.
+   * project-wide markers. Only charts with no resource filter are unscoped,
+   * and their incidents and alerts are still those raised on the charted
+   * metric. Change events stay project-wide for them: a deploy or a config
+   * change is a change to the system the chart measures, the "what changed?"
+   * those markers are there to answer.
    */
+  const metricName: unknown = config.metricQueryData?.filterData?.metricName;
   return {
-    incidentQueries: dedupeQueries(nestParentScopes(incidentQueries)) as Array<
-      Query<Incident>
-    >,
-    alertQueries: dedupeQueries(nestParentScopes(alertQueries)) as Array<
-      Query<Alert>
-    >,
+    incidentQueries: scopeUnscopedToMetric(
+      dedupeQueries(nestParentScopes(incidentQueries)),
+      metricName,
+    ) as Array<Query<Incident>>,
+    alertQueries: scopeUnscopedToMetric(
+      dedupeQueries(nestParentScopes(alertQueries)),
+      metricName,
+    ) as Array<Query<Alert>>,
     changeEventQueries: dedupeQueries(changeEventQueries) as Array<
       Query<ChangeEvent>
     >,
@@ -879,6 +962,11 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
 export function getEventOverlayScope(
   queryConfigs: Array<MetricQueryConfigData> | undefined,
 ): EventOverlayScope {
+  /*
+   * No query at all is a caller asking for the project's own timeline, such
+   * as the "what else happened" list beside an unfiltered log error pattern.
+   * A metric chart always passes its queries.
+   */
   if (!queryConfigs || queryConfigs.length === 0) {
     return {
       incidentQueries: [{}],
@@ -889,11 +977,9 @@ export function getEventOverlayScope(
   const scopes: Array<EventOverlayScope> = [];
   for (const config of queryConfigs) {
     const scope: EventOverlayScope = buildQueryScope(config);
-    const metricName: unknown = config.metricQueryData?.filterData?.metricName;
-    const hasMetricName: boolean =
-      typeof metricName === "string"
-        ? metricName.trim().length > 0
-        : Boolean(metricName);
+    const hasMetricName: boolean = namesMetric(
+      config.metricQueryData?.filterData?.metricName,
+    );
     const isUnscoped: boolean =
       scope.incidentQueries.length === 1 &&
       scope.alertQueries.length === 1 &&

@@ -1,10 +1,13 @@
 import AnalyticsModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import CreatePermission from "../../../Server/Types/Database/Permissions/CreatePermission";
+import CreateScopePermission from "../../../Server/Types/Database/Permissions/CreateScopePermission";
+import RelationListPermission from "../../../Server/Types/Database/Permissions/RelationListPermission";
 import DeletePermission from "../../../Server/Types/Database/Permissions/DeletePermission";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import ReadPermission from "../../../Server/Types/Database/Permissions/ReadPermission";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdatePermission from "../../../Server/Types/Database/Permissions/UpdatePermission";
+import UpdateScopePermission from "../../../Server/Types/Database/Permissions/UpdateScopePermission";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import Log from "../../../Models/AnalyticsModels/Log";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -350,6 +353,106 @@ const POSTGRES_WRITE_ENTRY_POINTS: Array<WriteEntryPoint> = [
         data: newLabel(),
         props: props,
         findReadableParentIds: async (): Promise<Array<string>> => {
+          return [];
+        },
+        findParentIdsInProject: async (): Promise<Array<string>> => {
+          return [];
+        },
+        referencesCheckedInProject: true,
+      });
+    },
+  },
+  {
+    /*
+     * Asked before an update's hooks run: a record moved to a parent it
+     * does not have goes only to one its editor may read.
+     */
+    name: "checkUpdateParentPermission",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(UpdatePermission, "checkParentPermission");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await ModelPermission.checkUpdateParentPermission({
+        modelType: Label,
+        data: { name: "renamed" },
+        props: props,
+        heldParentIds: [],
+        findReadableParentIds: async (): Promise<Array<string>> => {
+          return [];
+        },
+        findParentIdsInProject: async (): Promise<Array<string>> => {
+          return [];
+        },
+        referencesCheckedInProject: true,
+      });
+    },
+  },
+  {
+    /*
+     * Asked before a create's or an update's hooks run: the records it
+     * lists are records its caller may read.
+     */
+    name: "checkNamedListsPermission",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(RelationListPermission, "checkNamedLists");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await ModelPermission.checkNamedListsPermission({
+        modelType: Label,
+        data: newLabel(),
+        props: props,
+        findReadableIds: async (): Promise<Array<string>> => {
+          return [];
+        },
+        findIdsInProject: async (): Promise<Array<string>> => {
+          return [];
+        },
+        referencesCheckedInProject: true,
+      });
+    },
+  },
+  {
+    /*
+     * Asked once a create's hooks have run: the record is one the caller's
+     * create permission reaches.
+     */
+    name: "checkCreateScopePermission",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(CreateScopePermission, "checkCreateScope");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await ModelPermission.checkCreateScopePermission({
+        modelType: Label,
+        data: newLabel(),
+        props: props,
+        findRecordLabels: async (): Promise<Record<string, Array<string>>> => {
+          return {};
+        },
+        findLabelNames: async (): Promise<Array<string>> => {
+          return [];
+        },
+      });
+    },
+  },
+  {
+    /*
+     * Asked of an update that changes the labels its records carry: the
+     * records stay within the caller's permission to update them.
+     */
+    name: "checkUpdateScopePermission",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(UpdateScopePermission, "checkUpdateScope");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await ModelPermission.checkUpdateScopePermission({
+        modelType: Label,
+        data: { name: "Renamed" },
+        rows: [newLabel()],
+        props: props,
+        findRecordLabels: async (): Promise<Record<string, Array<string>>> => {
+          return {};
+        },
+        findLabelNames: async (): Promise<Array<string>> => {
           return [];
         },
       });
@@ -772,11 +875,15 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
     expectedWriteMethods: [
       "checkCreateParentPermission",
       "checkCreatePermissions",
+      "checkCreateScopePermission",
       "checkDeletePermissionByModel",
       "checkDeleteQueryPermission",
+      "checkNamedListsPermission",
       "checkTableWritePermission",
+      "checkUpdateParentPermission",
       "checkUpdatePermissionByModel",
       "checkUpdateQueryPermissions",
+      "checkUpdateScopePermission",
       "getUpdatableQuery",
     ],
   },

@@ -1,4 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "Common/Types/Docs/DocsLanguage";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
@@ -8,6 +9,8 @@ import DataSourceEgressGuard, {
   ResolvedAddress,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import LLMService from "Common/Server/Utils/LLM/LLMService";
+import logger from "Common/Server/Utils/Logger";
+import slugify from "Common/Server/Types/MarkdownSlugify";
 import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import dns from "dns";
@@ -28,7 +31,8 @@ import path from "path";
  * install; hold the guide's account of the policy, the refusals it quotes,
  * and the private addresses it says a Global LLM Provider still reaches, to
  * the guard and LLMService; and hold its in-cluster vLLM URL and num_ctx
- * advice to the Helm chart and the Ollama request that make them true.
+ * advice to the Helm chart and the Ollama request that make them true, and
+ * the context window errors it quotes to what LLMService reports.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -63,8 +67,21 @@ const ADMIN_DASHBOARD_LOCALES_DIR: string = path.join(
 // The guides quote the dashboards in English in these languages.
 const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
 
-// The Additional Parameters every language's guide shows for Ollama.
-const NUM_CTX_EXAMPLE: string = '{ "options": { "num_ctx": 16384 } }';
+/*
+ * The Additional Parameters every language's guide shows for Ollama: the
+ * num_ctx LLMService's context window error recommends.
+ */
+const NUM_CTX_EXAMPLE: string = `{ "options": { "num_ctx": ${LLMService.RECOMMENDED_OLLAMA_NUM_CTX} } }`;
+
+/*
+ * The context window errors, as the guides quote them: OneUptime's own, and
+ * the two Ollama sends that it explains. In English in every language, like
+ * the refusals below, because that is what the dashboard shows.
+ */
+const CONTEXT_WINDOW_ERROR: string = LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR;
+const OLLAMA_NO_USER_QUERY: string = "no user query found in messages";
+const OLLAMA_PROMPT_TOO_LONG: string =
+  "the prompt is longer than the context length currently available to the model";
 
 /*
  * The tails of LLMService's refusals, as the guides quote them. The guides
@@ -589,9 +606,132 @@ describe("the num_ctx advice is what LLMService sends to Ollama", () => {
     const options: JSONObject = request.data["options"] as JSONObject;
 
     expect(request.url.toString()).toBe("http://10.0.0.12:11434/api/chat");
-    expect(options["num_ctx"]).toBe(16384);
+    expect(options["num_ctx"]).toBe(LLMService.RECOMMENDED_OLLAMA_NUM_CTX);
     expect(options["temperature"]).toBeDefined();
     expect(options["num_predict"]).toBe(512);
+  });
+});
+
+describe("the context window errors every guide quotes are the ones OneUptime reports", () => {
+  startEachTestOnSelfHostedEgressPolicy();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  // What an agent conversation gets back once Ollama has dropped its question.
+  async function ollamaContextWindowError(
+    providerError: string,
+  ): Promise<string> {
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(
+        new HTTPErrorResponse(500, { error: providerError }, {}),
+      );
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    try {
+      await LLMService.getCompletion({
+        llmProviderConfig: {
+          llmType: LlmType.Ollama,
+          baseUrl: "http://10.0.0.12:11434",
+          modelName: "qwen3.8",
+        },
+        messages: [
+          { role: "system", content: "You are OneUptime AI." },
+          { role: "user", content: "Investigate the incident." },
+          {
+            role: "assistant",
+            content: "",
+            toolCalls: [{ id: "call_1", name: "query_logs", arguments: {} }],
+          },
+          { role: "tool", toolCallId: "call_1", content: "log lines" },
+        ],
+        requestRetries: 0,
+      });
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+
+    throw new Error("Expected Ollama's refusal to fail the request.");
+  }
+
+  test.each([OLLAMA_NO_USER_QUERY, OLLAMA_PROMPT_TOO_LONG])(
+    "Ollama's %p is reported with the quoted error and the guide's fix",
+    async (providerError: string) => {
+      const message: string = await ollamaContextWindowError(providerError);
+
+      expect(message).toContain(`: ${CONTEXT_WINDOW_ERROR}`);
+      expect(message).toContain(providerError);
+      expect(message).toContain('"num_ctx" under "options"');
+      expect(message).toContain(
+        `to ${LLMService.RECOMMENDED_OLLAMA_NUM_CTX} or more`,
+      );
+      expect(message).toContain("OLLAMA_CONTEXT_LENGTH");
+    },
+  );
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s quotes OneUptime's error and both of Ollama's",
+    (language: string) => {
+      const markdown: string = readPage(language, LLM_PROVIDER_PAGE);
+
+      expect(markdown).toContain(`"…${CONTEXT_WINDOW_ERROR}"`);
+      expect(markdown).toContain(`"${OLLAMA_NO_USER_QUERY}"`);
+      expect(markdown).toContain(`"${OLLAMA_PROMPT_TOO_LONG}"`);
+    },
+  );
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s no longer recommends the num_ctx that was too small for an investigation",
+    (language: string) => {
+      expect(readPage(language, LLM_PROVIDER_PAGE)).not.toContain("16384");
+    },
+  );
+});
+
+describe("every in-page link in the LLM provider guides reaches a heading", () => {
+  const FENCE_LINE: RegExp = /^\s*```/;
+
+  function headingSlugs(markdown: string): Set<string> {
+    const slugs: Set<string> = new Set<string>();
+    let inFence: boolean = false;
+
+    for (const line of markdown.split("\n")) {
+      if (FENCE_LINE.test(line)) {
+        inFence = !inFence;
+        continue;
+      }
+
+      const heading: RegExpMatchArray | null = inFence
+        ? null
+        : line.match(/^#{1,6}\s+(.*)$/);
+
+      if (heading && heading[1]) {
+        slugs.add(slugify(heading[1].trim()));
+      }
+    }
+
+    return slugs;
+  }
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)("%s", (language: string) => {
+    const markdown: string = readPage(language, LLM_PROVIDER_PAGE);
+    const slugs: Set<string> = headingSlugs(markdown);
+    const anchors: Array<string> = [
+      ...markdown.matchAll(/\]\(#([^)]+)\)/g),
+    ].map((match: RegExpMatchArray): string => {
+      return decodeURIComponent(match[1]!);
+    });
+
+    expect(anchors.length).toBeGreaterThan(0);
+
+    for (const anchor of anchors) {
+      expect({ anchor, known: slugs.has(anchor) }).toEqual({
+        anchor,
+        known: true,
+      });
+    }
   });
 });
 

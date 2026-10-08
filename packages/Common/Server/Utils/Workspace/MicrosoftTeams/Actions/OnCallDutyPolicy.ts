@@ -105,7 +105,7 @@ export default class MicrosoftTeamsOnCallDutyActions {
       switch (actionType) {
         case MicrosoftTeamsOnCallDutyActionType.ViewOnCallDuty:
           await turnContext.sendActivity(
-            mdText`**${onCallDutyPolicy.name}**\n\n${FeedMarkdown.asMarkdown(onCallDutyPolicy.description || "No description")}`.toString(),
+            mdText`**${onCallDutyPolicy.name}**\n\n${FeedMarkdown.asChatMarkdown(onCallDutyPolicy.description || "No description")}`.toString(),
           );
           break;
 

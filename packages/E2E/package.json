@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.21",
+  "version": "14.0.22",
   "description": "",
   "repository": {
     "type": "git",
@@ -40,7 +40,8 @@
     "test-security-events-empty-states-ui": "playwright test --config playwright.security-events-empty-states-ui.config.ts",
     "test-sharding": "playwright test --config playwright.sharding.config.ts",
     "test-enterprise-licensed": "playwright test --config playwright.enterprise-licensed.config.ts",
-    "test-enterprise-lapsed": "playwright test --config playwright.enterprise-lapsed.config.ts"
+    "test-enterprise-lapsed": "playwright test --config playwright.enterprise-lapsed.config.ts",
+    "test-push-registration-ui": "playwright test --config playwright.push-registration-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

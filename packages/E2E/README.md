@@ -305,6 +305,26 @@ or Enter adds a step, typing a search never holds the page up, and it fits a
 phone and the dark theme. Failure traces are written to
 `output/playwright/workflow-builder-ui/test-results/` at the repository root.
 
+## Push registration UI regression tests
+
+Run Register Device (User Settings > Notification Methods > Push Notifications)
+in Chromium without starting the app or database:
+
+```bash
+cd packages/E2E
+CI=1 npm run test-push-registration-ui
+```
+
+The fixture (`PushRegistration/Fixture`, port 4281) serves the real Push
+component, the Dashboard's real service worker and the service worker script
+from `views/index.ejs`, and records what the page sends. It covers the first
+registration installing the worker without reloading the page, the project sent
+as a plain id, "This browser" in the device list, the test notification offered
+afterwards, registering again, registering after a hard refresh, a dismissed or
+blocked permission prompt, and a newer worker still reloading the page. See
+`PushRegistration/README.md`. Screenshots and failure traces are written to
+`output/playwright/push-registration-ui/` at the repository root.
+
 ## Single sign-on on every stack
 
 Single sign-on — SAML and OIDC sign-in for projects, for the whole instance

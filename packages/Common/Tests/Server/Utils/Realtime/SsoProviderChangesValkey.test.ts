@@ -1,5 +1,8 @@
 import type RealtimeAccessChangesType from "../../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import type ProjectSsoProviderChangesType from "../../../../Server/Utils/ProjectSsoProviderChanges";
+import type SsoRequirementChangesType from "../../../../Server/Utils/SsoRequirementChanges";
+import type CreateBy from "../../../../Server/Types/Database/CreateBy";
+import type Project from "../../../../Models/DatabaseModels/Project";
 import type ProjectSsoProviderStandingType from "../../../../Server/Utils/ProjectSsoProviderStanding";
 import type {
   ProjectSsoProviderStandingValue,
@@ -46,7 +49,16 @@ jest.mock("../../../../Server/Services/ProjectService", () => {
   return { __esModule: true, default: { forgetSignInRules: jest.fn() } };
 });
 jest.mock("../../../../Server/Services/GlobalConfigService", () => {
-  return { __esModule: true, default: { forgetSignInRules: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      forgetSignInRules: jest.fn(),
+      // The server's Require SSO for Login, off: a project created now needs no provider.
+      findOneBy: jest.fn(async () => {
+        return { requireSsoForLogin: false };
+      }),
+    },
+  };
 });
 jest.mock("../../../../Server/Services/ProjectSsoService", () => {
   return { __esModule: true, default: {} };
@@ -76,6 +88,7 @@ jest.mock("../../../../Server/Services/UserService", () => {
 interface Server {
   changes: typeof RealtimeAccessChangesType;
   providerChanges: typeof ProjectSsoProviderChangesType;
+  requirementChanges: typeof SsoRequirementChangesType;
   semaphore: typeof SemaphoreType;
   standing: typeof ProjectSsoProviderStandingType;
   globalSso: typeof GlobalSsoAuthorizationType;
@@ -106,6 +119,8 @@ async function startServer(): Promise<Server> {
       require("../../../../Server/Utils/Realtime/RealtimeAccessChanges").default;
     const providerChanges: typeof ProjectSsoProviderChangesType =
       require("../../../../Server/Utils/ProjectSsoProviderChanges").default;
+    const requirementChanges: typeof SsoRequirementChangesType =
+      require("../../../../Server/Utils/SsoRequirementChanges").default;
     const standing: typeof ProjectSsoProviderStandingType =
       require("../../../../Server/Utils/ProjectSsoProviderStanding").default;
     const globalSso: typeof GlobalSsoAuthorizationType = require("../../../../Server/Utils/GlobalSsoAuthorization");
@@ -121,6 +136,7 @@ async function startServer(): Promise<Server> {
     const created: Server = {
       changes,
       providerChanges,
+      requirementChanges,
       semaphore,
       standing,
       globalSso,
@@ -550,5 +566,192 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     );
 
     await serverA.providerChanges.releaseSignInChange(held);
+  });
+
+  /*
+   * Once its check is done, a change keeps its locks alive while it is
+   * written (ProjectSsoProviderChanges.holdForWrite) - every
+   * WRITE_KEEP_INTERVAL_IN_MS, however long the write takes - until they are
+   * given back: it never lands once they could have run out, and no other
+   * server's change to who can sign in comes between.
+   *
+   * The lock is cut short in Valkey right after it is held, as though it
+   * were nearly out (4s): the keep 2.5s in sets it back to a full timeout,
+   * so 6s in - 2s past the cut - it is still held, with seconds to spare.
+   */
+  test("a change being written keeps its lock alive in Valkey past the time it would have run out; another server's change waits until it is given back", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    try {
+      await serverA.providerChanges.holdForWrite(held);
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(true);
+
+      await serverA.client.pexpire(lockKey, 4000);
+      await pause(6000);
+
+      expect(await serverA.client.pttl(lockKey)).toBeGreaterThan(5000);
+
+      // Another server's change to who can sign in, meanwhile: it waits.
+      let heldByB: Array<SemaphoreMutex> | null = null;
+      const waitingB: Promise<void> = serverB.providerChanges
+        .lockSignInChange({ projectIds: [], wholeServer: true })
+        .then((locks: Array<SemaphoreMutex>): void => {
+          heldByB = locks;
+        });
+
+      await quietPeriod();
+      expect(heldByB).toBeNull();
+
+      // Written: the lock is given back, kept no more, and B goes on.
+      await serverA.providerChanges.releaseSignInChange(held);
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(false);
+
+      await waitingB;
+      expect(heldByB).toHaveLength(1);
+      await serverB.providerChanges.releaseSignInChange(heldByB!);
+    } finally {
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  }, 30000);
+
+  test("a lock Valkey loses while its change is written is kept no more: nothing takes it back for the change", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    try {
+      await serverA.providerChanges.holdForWrite(held);
+
+      // Valkey lost it (a restart, an eviction) while the write ran.
+      await serverA.client.del(lockKey);
+      await pause(4000);
+
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(false);
+      expect(await serverA.client.exists(lockKey)).toBe(0);
+
+      // Another server's change takes it at once.
+      const next: Array<SemaphoreMutex> =
+        await serverB.providerChanges.lockSignInChange({
+          projectIds: [],
+          wholeServer: true,
+        });
+      expect(next).toHaveLength(1);
+      await serverB.providerChanges.releaseSignInChange(next);
+    } finally {
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  }, 30000);
+
+  test("a change whose lock Valkey lost before its write is refused right before it, and keeps nothing alive", async () => {
+    const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
+
+    const held: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+
+    try {
+      await serverA.client.del(lockKey);
+
+      await expect(serverA.providerChanges.holdForWrite(held)).rejects.toThrow(
+        "Another change to who can sign in with SSO is being saved. Try again in a moment.",
+      );
+      expect(serverA.providerChanges.isKeptForWrite(held[0]!)).toBe(false);
+    } finally {
+      await serverA.providerChanges.releaseSignInChange(held);
+    }
+  });
+
+  /*
+   * A project created on one server holds the lock on the server's sign-in
+   * rules from its check until it is written (SsoRequirementChanges.
+   * beforeProjectCreate / afterProjectCreate): a server turning Require SSO
+   * for Login on, or turning a global provider off, at that moment waits,
+   * and then reads the new project.
+   */
+  test("a project created on one server holds the lock on the server's rules until it is written; another server's change to them waits", async () => {
+    const createBy: CreateBy<Project> = {
+      data: {} as Project,
+      props: {},
+    };
+
+    const write: unknown = await serverA.requirementChanges.beforeProjectCreate(
+      {
+        createBy: createBy,
+        isCreatorExemptFromServerRule: false,
+      },
+    );
+    expect(write).not.toBeNull();
+
+    // Server B turns the server's Require SSO for Login on meanwhile.
+    let heldByB: Array<SemaphoreMutex> | null = null;
+    const waitingB: Promise<void> = serverB.providerChanges
+      .lockSignInChange({ projectIds: [], wholeServer: true })
+      .then((locks: Array<SemaphoreMutex>): void => {
+        heldByB = locks;
+      });
+
+    await quietPeriod();
+    expect(heldByB).toBeNull();
+
+    // The project is written, and its lock given back once: B goes on.
+    await serverA.requirementChanges.afterProjectCreate(createBy);
+    await serverA.requirementChanges.afterProjectCreate(createBy);
+    await waitingB;
+
+    expect(heldByB).toHaveLength(1);
+    await serverB.providerChanges.releaseSignInChange(heldByB!);
+  });
+
+  test("a provider turned on on one server: the other forgets its answers about the project at once, rather than refusing its sign-ins for a minute", async () => {
+    reset();
+
+    const projectId: ObjectID = ObjectID.generate();
+    const providerId: ObjectID = ObjectID.generate();
+    const provider: {
+      projectId: ObjectID;
+      providerId: ObjectID;
+      providerType: ProjectSsoProviderType;
+    } = {
+      projectId,
+      providerId,
+      providerType: SsoProviderType.ProjectSSO,
+    };
+
+    // Server B answered about the provider while it was off.
+    await answersFromMemory(serverB, provider);
+
+    await serverA.providerChanges.afterUpdate({
+      write: {
+        takenAway: [],
+        turnedOn: [
+          {
+            id: providerId.toString(),
+            projectId: projectId.toString(),
+            isOn: false,
+          },
+        ],
+      },
+      updatedItemIds: [providerId],
+    });
+
+    await expect(
+      eventually((): boolean => {
+        return serverB.rechecked.includes(projectId.toString());
+      }),
+    ).resolves.toBe(true);
+
+    await expect(answersFromMemory(serverB, provider)).resolves.toBe(false);
   });
 });

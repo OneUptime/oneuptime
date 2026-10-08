@@ -145,6 +145,15 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
     return compareNumbers(stored, match[1]!, parameters[match[2]!]);
   }
 
+  // A comparison that an empty value passes too (QueryHelper.*OrNull).
+  match = sql.match(/^\(c (>=|<=|>|<) :(\w+) or c IS NULL\)$/i);
+  if (match) {
+    return (
+      storedText === null ||
+      compareNumbers(stored, match[1]!, parameters[match[2]!])
+    );
+  }
+
   throw new Error(`InMemoryRepository: unknown SQL condition "${sql}"`);
 }
 

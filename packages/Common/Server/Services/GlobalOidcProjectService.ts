@@ -7,7 +7,6 @@ import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import GlobalOidcService from "./GlobalOidcService";
 import Query from "../Types/Database/Query";
-import QueryHelper from "../Types/Database/QueryHelper";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -21,7 +20,6 @@ import {
   announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
   isAnyAttachedProviderRestricted,
-  isGlobalProviderNarrowing,
   doAttachmentsGovernProject,
   globalProviderCacheKey,
   globalSsoAttachmentsCache,
@@ -123,9 +121,20 @@ export class Service extends DatabaseService<Model> {
      * attachments decide - so nothing after the lock here can fail and keep
      * it.
      */
+    const providerIds: Array<ObjectID | null> = await this.readProviderIds(
+      deleteBy.query,
+    );
+
+    /*
+     * Right before the delete, the lock is kept once more and kept alive
+     * while it is written: one lost by now refuses the delete, and is given
+     * back (GlobalSsoProviderChanges.holdForWrite).
+     */
+    await GlobalSsoProviderChanges.holdForWrite(deleteBy);
+
     return {
       deleteBy,
-      carryForward: await this.readProviderIds(deleteBy.query),
+      carryForward: providerIds,
     };
   }
 
@@ -206,16 +215,21 @@ export class Service extends DatabaseService<Model> {
    * An attachment is checked, under the lock on the server's sign-in rules,
    * once every permission and clash check has passed (onCreatePermitted).
    * The lock is given back once it is written (onCreateSuccess), and here
-   * whatever happened after the check: a create that fails at the INSERT,
-   * or in a step just before it, runs no other hook.
+   * when the create fails once its check ran - refused after it, at the
+   * INSERT, or in onCreateSuccess before it gave the lock back:
+   * DatabaseService.create hands every failure after onBeforeCreate to this
+   * hook, with what onBeforeCreate handed back.
    */
   @CaptureSpan()
-  public override async create(createBy: CreateBy<Model>): Promise<Model> {
-    try {
-      return await super.create(createBy);
-    } finally {
-      await GlobalSsoProviderChanges.afterWrite(createBy);
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onCreate) {
+      await GlobalSsoProviderChanges.afterWrite(onCreate.createBy);
     }
+
+    return error;
   }
 
   /*
@@ -259,21 +273,20 @@ export class Service extends DatabaseService<Model> {
     clearGlobalSsoAuthorizationCaches();
 
     /*
-     * An attachment turned off, or moved to another project or provider,
-     * where that changes where its provider signs people in (as read under
-     * the lock): as removing it. One turned off is told for a provider
-     * restricted to its attached projects whatever was read.
+     * An attachment turned off or on, or moved to another project or
+     * provider, where that changes where its provider signs people in - only
+     * for a provider restricted to its attached projects: as removing it, or
+     * as adding it. The people it lets in are let in at once on every
+     * server.
+     *
+     * One turned off or moved is told whatever was read under the lock when
+     * a provider it touches - the one it leaves, or the one it moves to - is
+     * restricted to its attached projects (GlobalSsoProviderChanges.
+     * afterWrite): turning one on takes no lock, and may have been written
+     * between that read and this write. One turned on again while on
+     * changed nothing, and tells no server.
      */
-    if (
-      updatedItemIds.length > 0 &&
-      (changedReach ||
-        (isGlobalProviderNarrowing(onUpdate.updateBy.data) &&
-          (await this.isAnyProviderRestricted(
-            await this.readProviderIds({
-              _id: QueryHelper.any(updatedItemIds),
-            } as Query<Model>),
-          ))))
-    ) {
+    if (updatedItemIds.length > 0 && changedReach) {
       announceGlobalSignInChange();
     }
 
@@ -383,7 +396,7 @@ export class Service extends DatabaseService<Model> {
    * project to this one, refused when that would leave a project that
    * requires SSO with no provider to sign in with
    * (Utils/GlobalSsoProviderChanges). The lock it holds is given back once
-   * the attachment is written, or the create fails (create).
+   * the attachment is written, or the create fails (onCreateError).
    */
   @CaptureSpan()
   protected override async onCreatePermitted(

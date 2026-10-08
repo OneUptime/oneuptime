@@ -905,6 +905,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: AlertOwnerUserService,
+      ownerTeamService: AlertOwnerTeamService,
+      resourceIdColumn: "alertId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     /*
      * A new alert is in no episode: it joins one through grouping or the
      * episode's members (EpisodeMembershipReference). Refused before the
@@ -1222,6 +1233,7 @@ export class Service extends ProjectReferencesService<Model> {
               ] as Array<ObjectID>) || [],
               false,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -1899,6 +1911,12 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the alert are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -1911,6 +1929,7 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 

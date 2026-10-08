@@ -401,10 +401,8 @@ self.addEventListener('sync', function(event) {
 // Handle messages from the main thread
 self.addEventListener('message', function(event) {
   console.log('[ServiceWorker] Message received:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  } else if (event.data && event.data.type === 'GET_VERSION') {
+
+  if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: CACHE_VERSION });
   }
 });

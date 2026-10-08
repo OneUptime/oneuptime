@@ -66,8 +66,6 @@ const ALLOWED: Record<string, string> = {
     "scheduled maintenance states",
   "packages/Common/Server/Utils/TeamMember/ProjectLeaveResourceCleanup.ts":
     "the open scheduled maintenance states (incidents and alerts ask the state services)",
-  "packages/Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault.ts":
-    "a scheduled maintenance event moved into an ended state",
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/ReactionNoteSync.ts":
     "the open scheduled maintenance events (incidents and alerts ask the state services)",
   "packages/App/FeatureSet/StatusPage/src/Pages/ScheduledEvent/Detail.tsx":

@@ -63,6 +63,28 @@ A record read through another one - an incident's or an alert's notes and state 
 You do not have permissions to create Incident Internal Note. It is read through its Incident, and you need one of these permissions to read Incidents: …
 ```
 
+A change that moves such a record follows the same rule: each record it adds as a parent - another status page for an announcement, another service for a record read through its service - must be one you may read, or the change is refused with the same `400` and nothing is written. The parents a record has already are not checked again, and a change that leaves it under none needs a permission to read that kind of record that reaches every one of them, as a create that names none does.
+
+The records a create or a change lists - an incident's monitors and on-call policies, an alert's services, a scheduled maintenance event's status pages, a rule's runbooks - keep to your permission to read that kind of record when you have one, and to a block with labels on reading it either way: one outside them is refused with the same `400`. A change checks only the records it adds to a list, so the ones the list holds already stay.
+
+The one record a create or a change names in a field of its own - an alert's monitor, the monitor a status page resource shows, a cost budget's service, the incident a runbook run is linked to - keeps to the same rule, under either of its names: one outside your permission to read that kind of record, or carrying a label a block on reading it takes away, is refused with the same `400`. A change checks it only when it names another record than the one the field holds already. OneUptime's global probes and AI agents, which every project can use, stay open to every project. The records a template fills in for you are checked the same way once they are filled in, before anything is saved: the monitors, status pages and on-call policies an incident template adds to an incident declared from it must be ones you may read, as if you had picked them.
+
+A permission to create restricted to labels creates only records carrying one of its labels - for a record with no labels of its own, records under one that carries one - unless another permission to create that kind of record reaches the whole project, and a block with labels on a permission to create refuses a record carrying one of its labels. A create outside them is refused with a `422` that names the labels:
+
+```text
+Your access lets you create Status Pages only with one of these labels: Production. Add one of them and try again.
+```
+
+A permission to create scoped to **Owned** creates a monitor, a status page or another record with owners of its own only for a person, who becomes one of its owners, and a note or another record that takes its owners from the record it belongs to only under one you or one of your teams own.
+
+The creator is made an owner right after the record is saved, before anything else happens to it. If the owner row cannot be written, the record is removed again and the create is refused with a `500`, so no record is left behind that its creator could not reach.
+
+A change of the labels a record carries - its own labels, or for a record with no labels of its own the records it names - keeps to your permission to change that kind of record the same way: with one restricted to labels, the record keeps at least one of them, unless another permission to change it reaches the whole project, and a block with labels on a permission to change refuses giving it one of its labels. Such a change is refused with a `422` that names the labels:
+
+```text
+Your access lets you change Monitors only with one of these labels: Production. Keep one of them and try again.
+```
+
 A record can be named in two ways: by its ID field (`monitorId`), or by the relation (`"monitor": { "_id": "…" }`), which is what the dashboard's forms send. Send one of them. If a request sends both, they must name the same record: a request whose two disagree — two different IDs, or an ID and an empty value — is refused with a `400` that names both fields:
 
 ```text

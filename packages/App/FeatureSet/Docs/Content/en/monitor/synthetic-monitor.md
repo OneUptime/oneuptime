@@ -96,6 +96,8 @@ available to monitor scripts.
 
 A pre-declared `screenshots` object is available in the script context. Assign screenshots to it at any point in the script — these screenshots are captured **even if the script throws** (including assertion failures, timeouts, or unexpected errors), so you can see exactly what the page looked like when the run failed. Captured screenshots appear in the OneUptime Dashboard for that specific monitor run.
 
+A screenshot can also be shown in the incident or alert a failing run opens — on its page and in the emails about it — by placing it in the monitor's incident or alert description. See [Showing a screenshot](/docs/monitor/incident-alert-templating#showing-a-screenshot).
+
 ```javascript
 // Capture screenshots via the `screenshots` side-channel — they are preserved on both success and failure.
 

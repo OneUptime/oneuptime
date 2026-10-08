@@ -58,8 +58,6 @@ const CASCADE_REASON: string =
   "Deletes the rows that reference the deleted one first. DatabaseService has already narrowed the delete to the rows the caller may delete, so only their children go.";
 const FEED_REASON: string =
   "Records the removal in the on-call policy's feed (and its workspace channel) while the row can still be read. DatabaseService has already narrowed the delete to the rows the caller may delete, and nothing in the hook refuses after it.";
-const NOTE_REASON: string =
-  "Creates the note that comes with the state change as the caller, so the note's own permission check applies: it is only ever a note the caller may add anyway. It goes first so that a note the caller may not add refuses the state change too, rather than failing after the change is saved.";
 const TIMELINE_REASON: string =
   "Joins the neighbours of the deleted timeline entry so the timeline has no gap. DatabaseService has already narrowed the delete to the entries the caller may delete.";
 
@@ -104,7 +102,6 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
   "WorkspaceUserAuthTokenService.ts#onBeforeDelete": CASCADE_REASON,
   "BillingPaymentMethodService.ts#onBeforeDelete":
     "Detaches the card being deleted at the payment provider, which refuses to detach a project's last card. DatabaseService has already narrowed the delete to the cards the caller may delete.",
-  "ScheduledMaintenanceStateTimelineService.ts#onBeforeCreate": NOTE_REASON,
   "DatabaseServerService.ts#onBeforeCreate":
     "A read: hasKubernetesClusters runs a SELECT through the repository's manager.",
   "NetworkSiteService.ts#onBeforeCreate":
@@ -419,8 +416,13 @@ describe("DatabaseService checks the caller before any write hook", () => {
     );
   });
 
+  /*
+   * create() runs the create itself (_create) in one try, so that every
+   * failure reaches onCreateError (CreateLockGivenBackGuard): the checks
+   * and the hooks are _create's.
+   */
   test("create asks before onBeforeCreate", () => {
-    expectInOrder("create", [
+    expectInOrder("_create", [
       "this.checkCallerBeforeHooks(",
       "this._onBeforeCreate(",
     ]);
@@ -445,7 +447,7 @@ describe("DatabaseService checks the caller before any write hook", () => {
   });
 
   test("a create runs onCreatePermitted only once every permission check has passed, and before the write", () => {
-    expectInOrder("create", [
+    expectInOrder("_create", [
       "this.checkCallerBeforeHooks(",
       "this._onBeforeCreate(",
       "ModelPermission.checkCreatePermissions(",
@@ -482,7 +484,7 @@ describe("DatabaseService checks the caller before any write hook", () => {
         "_deleteBy",
         "_onBeforeCreate",
         "_updateBy",
-        "create",
+        "_create",
         "hardDeleteBy",
       ].sort(),
     );
@@ -525,6 +527,76 @@ describe("service write hooks write nothing a refused or failed write would leav
 
     expect(stale).toEqual([]);
   });
+
+  /*
+   * The note that comes with a state change - the public note of an incident
+   * or a scheduled maintenance event, the private note of an alert or an
+   * episode - is posted once the change is saved, so a change that is
+   * refused or fails to save leaves no note behind, and the note follows the
+   * change in the feed. Whether its sender may post it is asked before
+   * (Server/Utils/StateChangeNote). The scheduled maintenance timeline used
+   * to post its note in onBeforeCreate, on the list above, until #4442 found
+   * it: a change that failed after that still told every subscriber.
+   */
+  describe.each([
+    {
+      file: "AlertEpisodeStateTimelineService.ts",
+      postsTheNote: "StateChangeNote.postPrivateNotes(",
+    },
+    {
+      file: "AlertStateTimelineService.ts",
+      postsTheNote: "StateChangeNote.postPrivateNotes(",
+    },
+    {
+      file: "IncidentEpisodeStateTimelineService.ts",
+      postsTheNote: "StateChangeNote.postPrivateNotes(",
+    },
+    {
+      file: "IncidentStateTimelineService.ts",
+      postsTheNote: "IncidentPublicNoteService.create(",
+    },
+    {
+      file: "ScheduledMaintenanceStateTimelineService.ts",
+      postsTheNote: "ScheduledMaintenancePublicNoteService.create(",
+    },
+  ])(
+    "$file posts the note that comes with a state change once the change is saved",
+    (timeline: { file: string; postsTheNote: string }) => {
+      const source: string = stripCommentsAndStrings(
+        fs.readFileSync(path.join(SERVICES_DIR, timeline.file), "utf8"),
+      );
+      const methods: Map<string, Array<MethodBody>> = methodsOf(source);
+
+      // The text of a hook and of every method of the class it calls.
+      function reachedText(hook: string): string {
+        return Array.from(reachableFrom(source, methods, hook))
+          .flatMap((name: string): Array<string> => {
+            return methods.get(name)!.map((body: MethodBody): string => {
+              return source.slice(body.start, body.end);
+            });
+          })
+          .join("\n");
+      }
+
+      test("onBeforeCreate writes nothing, and is not on the list of hooks that may", () => {
+        expect(
+          HOOK_WRITES.filter((write: HookWrite): boolean => {
+            return write.key === `${timeline.file}#onBeforeCreate`;
+          }),
+        ).toEqual([]);
+        expect(
+          ALLOWED_HOOK_WRITES[`${timeline.file}#onBeforeCreate`],
+        ).toBeUndefined();
+      });
+
+      test("the note is posted from onCreateSuccess, and only from there", () => {
+        expect(reachedText("onCreateSuccess")).toContain(timeline.postsTheNote);
+        expect(reachedText("onBeforeCreate")).not.toContain(
+          timeline.postsTheNote,
+        );
+      });
+    },
+  );
 
   test.each([
     "AIAgentService.ts",

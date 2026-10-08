@@ -137,9 +137,28 @@ Synthetic monitors run the same script across multiple browsers (Chromium, Firef
 | `syntheticResponses[].result`            | The result returned by this run.                                                         | `string`, `number`, `boolean`, or `JSON` |
 | `syntheticResponses[].scriptError`       | Any error that occurred during this run.                                                 | `string`                                 |
 | `syntheticResponses[].logMessages`       | Log messages generated during this run.                                                  | `Array<string>`                          |
-| `syntheticResponses[].screenshots`       | Screenshots captured during this run.                                                    | `Object`                                 |
+| `syntheticResponses[].screenshots`       | Screenshots captured during this run, by name, each as base64 text. See [Showing a screenshot](#showing-a-screenshot). | `Object` |
 | `syntheticResponses[].browserType`       | Browser used for this run.                                                               | `string`                                 |
 | `syntheticResponses[].screenSizeType`    | Screen size used for this run.                                                           | `string`                                 |
+
+#### Showing a screenshot
+
+Each entry of `screenshots` is a screenshot the script took, under the name the script gave it (`screenshots["login-page"] = await page.screenshot()`), as base64 text. To show one in an incident's or alert's description or remediation notes, write an image around it:
+
+```
+{{syntheticResponses[0].scriptError}}
+
+![Login page](data:image/png;base64,{{syntheticResponses[0].screenshots.login-page}})
+```
+
+The screenshot then appears on the incident's or alert's page, on the status pages that show the incident, in the email notifications about it, and in the Slack and Microsoft Teams messages about it. In an email it is attached and shown in the body, which Gmail, Outlook and Apple Mail all display, so whoever is on call can see what the page looked like without opening OneUptime.
+
+- PNG, JPEG, GIF and WebP screenshots are shown. `image/png` works for a JPEG screenshot (`page.screenshot({ type: "jpeg" })`) too.
+- One email carries at most 2 MB of images, and at most 20. An image that does not fit is replaced by a note with its alt text, so give each image alt text. A JPEG screenshot is much smaller than a PNG one, and one screenshot of the failing run usually says more than every screenshot of every run.
+- In Slack and Microsoft Teams the screenshot is shown where the description has it: an image on a line of its own takes that line's place, and an image in the middle of a sentence, a list or a table leaves its alt text there and is shown after it. Slack shows PNG, JPEG and GIF screenshots, at most 10 and 10 MB per message; the OneUptime app uploads each one to your Slack workspace, privately, and shows it in the message. Teams shows PNG, JPEG and GIF screenshots of up to 1 MB each inside the message's card, at most 10 and 2 MB per message.
+- Uploading to Slack needs the app's `files:write` permission. If your workspace connected Slack before OneUptime asked for it, connect Slack again in **Project Settings > Slack Integration** (on a self-hosted server, add the permission to your Slack app first - see [Slack Integration](/docs/self-hosted/slack-integration#images-in-messages)).
+- A screenshot a chat cannot show - a WebP, one past those limits, one Slack or Teams refuses, or any screenshot in a message sent through an incoming webhook - is shown as its alt text, or "[image]" when it has none, so give each image alt text. The image's base64 never reaches the chat.
+- Only an image you write in the template is shown. An image in a value the monitored page or script reported - an error message, a log line - still shows as text (see [Values in descriptions and remediation notes](#values-in-descriptions-and-remediation-notes)).
 
 ### Custom JavaScript Code Monitors
 
@@ -412,6 +431,18 @@ Iterate over every browser / screen-size combination with `{{#each}}`:
 - **{{browserType}} / {{screenSizeType}}**: {{result}} in {{executionTimeInMs}}ms
   - Script error: {{scriptError}}
   - First log: {{logMessages[0]}}
+{{/each}}
+```
+
+Show the screenshot each run took when it failed (the script assigns `screenshots["failure"]`):
+
+```
+### What the page looked like
+{{#each syntheticResponses}}
+**{{browserType}} / {{screenSizeType}}**: {{scriptError}}
+
+![{{browserType}} {{screenSizeType}}](data:image/png;base64,{{screenshots.failure}})
+
 {{/each}}
 ```
 

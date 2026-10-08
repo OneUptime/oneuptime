@@ -16,8 +16,8 @@ export interface ComponentProps {
   items: Array<NavItem>;
   // The products, from the same catalog as the desktop products menu.
   moreMenuItems: Array<MoreMenuItem>;
-  // See NavBar's moreMenuCategoriesAlwaysOpen.
-  categoriesAlwaysOpen?: Array<string> | undefined;
+  // See NavBar's moreMenuCategoriesOpenByDefault.
+  categoriesOpenByDefault?: Array<string> | undefined;
   // See NavBar's moreMenuCategoryIcons.
   categoryIcons?: Dictionary<IconProp> | undefined;
   // The right-hand entry (User Settings), listed last.
@@ -34,23 +34,23 @@ const slug: (title: string) => string = (title: string): string => {
  * The rows of the phone menu: Home, the products, then User Settings.
  *
  * On a phone there is no products dialog: the menu toggle lists everything.
- * A menu that names the categories it always shows open (the Dashboard's
- * Essentials) groups the products the way the desktop products menu does,
- * with the same folding: those categories are listed under a plain heading
- * that never folds, every other one is a single row that opens on a tap, and
- * the category holding the current page opens by itself. The choices are the
- * same ones the desktop menu remembers. Without that list, the products are
- * listed one after another, as before.
+ * A menu that names the categories it opens on (the Dashboard's Essentials)
+ * groups the products the way the desktop products menu does, with the same
+ * folding: every category is a row that folds and opens on a tap, those
+ * categories open and every other one folded, and the category holding the
+ * current page opens by itself. The choices are the same ones the desktop
+ * menu remembers. Without that list, the products are listed one after
+ * another, as before.
  *
- * It mounts when the menu opens, so each opening starts from the remembered
- * choices and the page the user is on now.
+ * It mounts when the menu opens, so each opening starts from the categories
+ * it opens on, the remembered choices and the page the user is on now.
  */
 const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const folds: CategoryFolds = useCategoryFolds(
     props.moreMenuItems,
-    props.categoriesAlwaysOpen,
+    props.categoriesOpenByDefault,
   );
   const idPrefix: string = `navbar-mobile-${useId()}`;
 
@@ -98,14 +98,6 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
       {folds.isEnabled
         ? categories.map((category: MenuCategory, index: number) => {
             const isOpen: boolean = folds.isOpen(category.title);
-            const canFold: boolean = folds.canFold(category.title);
-            /*
-             * A rule above the first of a run of categories that fold sets
-             * them apart from the products listed above them (Essentials).
-             */
-            const startsFoldingRun: boolean =
-              canFold &&
-              (index === 0 || !folds.canFold(categories[index - 1]!.title));
             const headingId: string = `${idPrefix}-heading-${index}`;
             const bodyId: string = `${idPrefix}-group-${index}`;
 
@@ -114,54 +106,37 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
                 key={category.title}
                 role="group"
                 aria-labelledby={headingId}
+                /*
+                 * A rule above the first category sets the categories apart
+                 * from the rows listed above them (Home).
+                 */
                 className={`block w-full ${
-                  startsFoldingRun
-                    ? "mt-1 border-t border-gray-100 pt-2"
-                    : "pt-1"
+                  index === 0 ? "mt-1 border-t border-gray-100 pt-2" : "pt-1"
                 }`}
               >
-                {canFold ? (
-                  <NavBarCategoryToggle
-                    title={category.title}
-                    itemTitles={category.items.map(
-                      (item: MoreMenuItem): string => {
-                        return item.title;
-                      },
-                    )}
-                    icon={props.categoryIcons?.[category.title]}
-                    isOpen={isOpen}
-                    onToggle={() => {
-                      folds.toggle(category.title);
-                    }}
-                    controlsId={bodyId}
-                    headingId={headingId}
-                  />
-                ) : (
-                  /*
-                   * A category that is always open (Essentials) has nothing
-                   * to fold: a plain heading, lined up with the icons of the
-                   * products under it and of the category rows below.
-                   */
-                  <div className="flex min-w-0 items-center px-3 py-2">
-                    <h3
-                      id={headingId}
-                      className="text-[11px] font-semibold uppercase leading-4 tracking-[0.1em] text-gray-500"
-                    >
-                      {category.title}
-                    </h3>
-                  </div>
-                )}
+                <NavBarCategoryToggle
+                  title={category.title}
+                  itemTitles={category.items.map(
+                    (item: MoreMenuItem): string => {
+                      return item.title;
+                    },
+                  )}
+                  icon={props.categoryIcons?.[category.title]}
+                  isOpen={isOpen}
+                  onToggle={() => {
+                    folds.toggle(category.title);
+                  }}
+                  controlsId={bodyId}
+                  headingId={headingId}
+                />
                 {isOpen && (
                   /*
-                   * The products of a category that folds are indented
-                   * under its row, on a guide line, so they do not read as
-                   * more categories.
+                   * A category's products are indented under its row, on a
+                   * guide line, so they do not read as more categories.
                    */
                   <div
                     id={bodyId}
-                    className={`mt-1 space-y-1 ${
-                      canFold ? "ml-5 border-l border-gray-100 pl-1" : ""
-                    }`}
+                    className="ml-5 mt-1 space-y-1 border-l border-gray-100 pl-1"
                   >
                     {category.items.map(productRow)}
                   </div>

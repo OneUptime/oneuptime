@@ -192,6 +192,7 @@ const VERIFYING_STATE_ID: string = "44444444-4444-4444-8444-444444444443";
 const ENDED_STATE_ID: string = "44444444-4444-4444-8444-444444444444";
 const COMPLETED_STATE_ID: string = "44444444-4444-4444-8444-444444444445";
 const DRAFT_STATE_ID: string = "44444444-4444-4444-8444-444444444446";
+const REVIEWING_STATE_ID: string = "44444444-4444-4444-8444-444444444447";
 const TEMPLATE_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1";
 const TEMPLATE_NOTE: string =
   "The failover drill has started. Writes may pause for a few seconds.";
@@ -313,6 +314,13 @@ const COMPLETED_SPEC: StateSpec = {
   flag: "isResolvedState",
 };
 
+// A custom state placed after Ended: the event is over in it.
+const REVIEWING_SPEC: StateSpec = {
+  id: REVIEWING_STATE_ID,
+  name: "Reviewing",
+  color: "#a855f7",
+};
+
 // A custom state ordered before Scheduled.
 const DRAFT_SPEC: StateSpec = {
   id: DRAFT_STATE_ID,
@@ -333,6 +341,16 @@ const STATE_SPECS: Array<StateSpec> = [
 const STATES_WITHOUT_ENDED: Array<StateSpec> = [
   SCHEDULED_SPEC,
   ONGOING_SPEC,
+  COMPLETED_SPEC,
+];
+
+// The default states with a state of the project's own after Ended.
+const STATES_WITH_REVIEWING: Array<StateSpec> = [
+  SCHEDULED_SPEC,
+  ONGOING_SPEC,
+  VERIFYING_SPEC,
+  ENDED_SPEC,
+  REVIEWING_SPEC,
   COMPLETED_SPEC,
 ];
 
@@ -600,6 +618,45 @@ const CUSTOM_STATE_FROM_MENU: OpenCase = {
   expectedTitle: "Mark Scheduled Maintenance as Verifying",
   expectedSubmitButtonText: "Mark as Verifying",
   expectedStateId: VERIFYING_STATE_ID,
+};
+
+/*
+ * Verifying (between Ongoing and Ended) picked while the event is already
+ * in progress: no start, so the change has no setting of its own.
+ */
+const CUSTOM_STATE_FROM_ONGOING: OpenCase = {
+  label: "a custom state from More actions while ongoing",
+  open: chooseFromMoreActions("Verifying"),
+  expectedTitle: "Mark Scheduled Maintenance as Verifying",
+  expectedSubmitButtonText: "Mark as Verifying",
+  expectedStateId: VERIFYING_STATE_ID,
+  apiOptions: { currentStateId: ONGOING_STATE_ID },
+};
+
+// Reviewing (after Ended) picked while the event is in Verifying: its end.
+const STATE_AFTER_ENDED_FROM_VERIFYING: OpenCase = {
+  label: "a custom state after Ended, from Verifying",
+  open: chooseFromMoreActions("Reviewing"),
+  expectedTitle: "Mark Scheduled Maintenance as Reviewing",
+  expectedSubmitButtonText: "Mark as Reviewing",
+  expectedStateId: REVIEWING_STATE_ID,
+  apiOptions: {
+    states: STATES_WITH_REVIEWING,
+    currentStateId: VERIFYING_STATE_ID,
+  },
+};
+
+// Reviewing picked once the event has ended: it is over already.
+const STATE_AFTER_ENDED_FROM_ENDED: OpenCase = {
+  label: "a custom state after Ended, from Ended",
+  open: chooseFromMoreActions("Reviewing"),
+  expectedTitle: "Mark Scheduled Maintenance as Reviewing",
+  expectedSubmitButtonText: "Mark as Reviewing",
+  expectedStateId: REVIEWING_STATE_ID,
+  apiOptions: {
+    states: STATES_WITH_REVIEWING,
+    currentStateId: ENDED_STATE_ID,
+  },
 };
 
 const RESOLVED_STATE_FROM_MENU: OpenCase = {
@@ -978,11 +1035,54 @@ describe("ChangeScheduledMaintenanceState: the default follows the state the eve
       target: RESOLVED_STATE_BUTTON,
       expected: false,
     },
-    // Any other state has no setting of its own, so it stays quiet.
+    /*
+     * A state of the project's own starts or ends the event by its place
+     * (Common/Utils/ScheduledMaintenanceStart): moving from Scheduled
+     * straight into Verifying (between Ongoing and Ended) is the event's
+     * start, and follows "Event Ongoing"; moving from Verifying into
+     * Reviewing (after Ended) is its end, and follows "Event Ended".
+     */
     {
-      name: "quiet event set to announce both: a custom state starts unticked",
+      name: "quiet event set to announce going ongoing: Verifying from Scheduled starts the event, ticked",
+      settings: QUIET_ANNOUNCES_ONGOING,
+      target: CUSTOM_STATE_FROM_MENU,
+      expected: true,
+    },
+    {
+      name: "quiet event set to announce both: Verifying from Scheduled starts the event, ticked",
       settings: QUIET_ANNOUNCES_BOTH,
       target: CUSTOM_STATE_FROM_MENU,
+      expected: true,
+    },
+    {
+      name: "quiet event set to announce only ending: Verifying from Scheduled starts unticked",
+      settings: QUIET_ANNOUNCES_ENDED,
+      target: CUSTOM_STATE_FROM_MENU,
+      expected: false,
+    },
+    {
+      name: "quiet event set to announce ending: Reviewing from Verifying ends the event, ticked",
+      settings: QUIET_ANNOUNCES_ENDED,
+      target: STATE_AFTER_ENDED_FROM_VERIFYING,
+      expected: true,
+    },
+    {
+      name: "quiet event set to announce only going ongoing: Reviewing from Verifying starts unticked",
+      settings: QUIET_ANNOUNCES_ONGOING,
+      target: STATE_AFTER_ENDED_FROM_VERIFYING,
+      expected: false,
+    },
+    // Any other change has no setting of its own, so it stays quiet.
+    {
+      name: "quiet event set to announce both: Verifying while already ongoing starts unticked",
+      settings: QUIET_ANNOUNCES_BOTH,
+      target: CUSTOM_STATE_FROM_ONGOING,
+      expected: false,
+    },
+    {
+      name: "quiet event set to announce both: Reviewing once ended starts unticked",
+      settings: QUIET_ANNOUNCES_BOTH,
+      target: STATE_AFTER_ENDED_FROM_ENDED,
       expected: false,
     },
     {
@@ -1120,7 +1220,11 @@ describe("ChangeScheduledMaintenanceState: the default follows the state the eve
     expect(notifyStartOf(closeAndOpen(MARK_AS_ENDED))).toEqual(
       expectedNotifyStart(false),
     );
+    // Verifying, from Scheduled, starts the event: "Event Ongoing" again.
     expect(notifyStartOf(closeAndOpen(CUSTOM_STATE_FROM_MENU))).toEqual(
+      expectedNotifyStart(true),
+    );
+    expect(notifyStartOf(closeAndOpen(MARK_AS_ENDED))).toEqual(
       expectedNotifyStart(false),
     );
     expect(notifyStartOf(closeAndOpen(MARK_AS_ONGOING))).toEqual(
@@ -1486,8 +1590,36 @@ describe("ChangeScheduledMaintenanceState: what the real form sends", () => {
     expect(capturedMiscDataProps?.["publicNote"]).toBe(NOTE_TEXT);
   });
 
-  test("quiet event set to announce both: a custom state sends an explicit false", async () => {
-    await openRealForm(CUSTOM_STATE_FROM_MENU, QUIET_ANNOUNCES_BOTH);
+  test("quiet event set to announce going ongoing: Verifying from Scheduled starts the event, so it sends true", async () => {
+    await openRealForm(CUSTOM_STATE_FROM_MENU, QUIET_ANNOUNCES_ONGOING);
+
+    expect(notifyCheckbox()).toBeChecked();
+
+    await writeNote();
+    const payload: JSONObject = await submit();
+
+    expect(payload[NOTIFY_FIELD_KEY]).toBe(true);
+    expect(capturedMiscDataProps?.["publicNote"]).toBe(NOTE_TEXT);
+    expect(capturedModel?.scheduledMaintenanceStateId?.toString()).toBe(
+      VERIFYING_STATE_ID,
+    );
+  });
+
+  test("quiet event set to announce ending: Reviewing from Verifying ends the event, so it sends true", async () => {
+    await openRealForm(STATE_AFTER_ENDED_FROM_VERIFYING, QUIET_ANNOUNCES_ENDED);
+
+    expect(notifyCheckbox()).toBeChecked();
+
+    const payload: JSONObject = await submit();
+
+    expect(payload[NOTIFY_FIELD_KEY]).toBe(true);
+    expect(capturedModel?.scheduledMaintenanceStateId?.toString()).toBe(
+      REVIEWING_STATE_ID,
+    );
+  });
+
+  test("quiet event set to announce both: a custom state while already ongoing sends an explicit false", async () => {
+    await openRealForm(CUSTOM_STATE_FROM_ONGOING, QUIET_ANNOUNCES_BOTH);
 
     expect(notifyCheckbox()).not.toBeChecked();
 

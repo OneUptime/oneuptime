@@ -2,6 +2,11 @@ import { Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
 import SafeHtml from "../../Types/SafeHtml";
+import {
+  InlineImageDataUri,
+  isBase64Character,
+  parseInlineImageDataUri,
+} from "../../Utils/Markdown/InlineImageDataUri";
 
 export type MarkdownRenderer = Renderer;
 
@@ -30,6 +35,36 @@ const PARAGRAPH_BREAK: string = "\uE002";
 const LITERAL_UNDERSCORE: string = "\uE003";
 const WORD_EDGE: string = "\uE004";
 const INPUT_SENTINELS: RegExp = /[\uE000-\uE004]+/g;
+
+/*
+ * Private Use Area sentinels convertToHTML puts in place of long base64 data
+ * while marked reads EMAIL Markdown (see holdBackLongBase64):
+ *   HELD_DATA_OPEN + index + HELD_DATA_CLOSE
+ * Any already in the input are held back the same way, so every one marked
+ * sees is one convertToHTML put there. Always write them as \u escapes,
+ * never as raw characters.
+ */
+const HELD_DATA_OPEN: string = "\uE005";
+const HELD_DATA_CLOSE: string = "\uE006";
+
+/*
+ * Where the base64 data of a data: URL starts, or a sentinel already in the
+ * input. It has no quantifier, so matching it never backtracks.
+ */
+const BASE64_DATA_START_OR_SENTINEL: RegExp = /;base64,|[\uE005\uE006]/gi;
+
+/*
+ * Base64 data at least this long is held back. A screenshot runs to millions
+ * of characters; shorter data is no trouble to marked and stays in place.
+ */
+const HELD_BASE64_MIN_LENGTH: number = 1024;
+
+interface HeldBackMarkdown {
+  // The Markdown, with long base64 data held back.
+  markdown: string;
+  // `value` with the held-back data put back where it was taken from.
+  restore: (value: string) => string;
+}
 
 const FENCE_OPEN: RegExp =
   /^(?:[ \t>]|(?:[-*+]|\d{1,9}[.)])[ \t])*(?:(`{3,})[^`]*|(~{3,}).*)$/;
@@ -62,7 +97,10 @@ const URL_NAMED_CHARACTER_REFERENCES: Record<string, string> = {
 
 /*
  * The schemes an email may link to, and load an image from. A destination
- * with no scheme is also allowed (see Markdown.getEmailUrl).
+ * with no scheme is also allowed (see Markdown.getEmailUrl). An image may
+ * also be an inline raster image, a data: URL that carries a PNG, JPEG, GIF
+ * or WebP itself (see Utils/Markdown/InlineImageDataUri) - never data: as a
+ * scheme, which would let any data: URL through.
  */
 export const EMAIL_LINK_SCHEMES: ReadonlyArray<string> = [
   "http",
@@ -70,6 +108,15 @@ export const EMAIL_LINK_SCHEMES: ReadonlyArray<string> = [
   "mailto",
 ];
 export const EMAIL_IMAGE_SCHEMES: ReadonlyArray<string> = ["http", "https"];
+
+/*
+ * Every image in an email is scaled down to the width of the card it sits
+ * in, never up. A screenshot is 1280 pixels wide or more, and the card leaves
+ * about 416 (see getEmailRenderer); left at its own width it pushed the card
+ * wider than a phone's screen, which is where an on-call engineer reads it.
+ * Outlook's Word engine ignores max-width and shows the image at its own size.
+ */
+export const EMAIL_IMAGE_STYLE: string = "max-width:100%;height:auto;";
 
 type HoldFunction = (value: string) => string;
 
@@ -608,11 +655,172 @@ export default class Markdown {
       };
     }
 
+    // An email's screenshots are held back from marked: see holdBackLongBase64.
+    if (contentType === MarkdownContentType.Email && renderer) {
+      const held: HeldBackMarkdown = Markdown.holdBackLongBase64(markdown);
+
+      const emailBody: string = await marked(held.markdown, {
+        renderer: Markdown.withHeldDataInUrls(renderer, held.restore),
+      });
+
+      return held.restore(emailBody);
+    }
+
     const htmlBody: string = await marked(markdown, {
       renderer: renderer,
     });
 
     return htmlBody;
+  }
+
+  /*
+   * EMAIL Markdown with every long run of base64 data held back, for marked
+   * to read, and the means to put the data back.
+   *
+   * A synthetic monitor's screenshot reaches an email as a data: URL of
+   * millions of characters on one line (see Utils/Markdown/
+   * InlineImageDataUri). marked reads a line with regular expressions, and
+   * V8 matches those with a backtracking stack that can grow with every
+   * character: a screenshot of about six megabytes ran it out of stack -
+   * "Maximum call stack size exceeded" - and the email was never rendered.
+   * Once a long-running process has compiled enough code, V8 stops
+   * optimizing the regular expressions it compiles, and then three
+   * megabytes was enough.
+   *
+   * So each run of base64 after ";base64," that is long enough to matter
+   * leaves the Markdown, all but its last character, and a short token takes
+   * its place. The last character stays so that whatever follows the data
+   * reads exactly as it did. Links and images get their data back before
+   * their URL is judged (withHeldDataInUrls), and the rendered HTML gets it
+   * back wherever else marked wrote it - code, alt text, a title - so the
+   * email is what it would have been.
+   */
+  private static holdBackLongBase64(markdown: string): HeldBackMarkdown {
+    if (typeof markdown !== "string" || !markdown) {
+      return {
+        markdown: markdown,
+        restore: (value: string): string => {
+          return value;
+        },
+      };
+    }
+
+    const held: Array<string> = [];
+    let text: string = "";
+    let copiedUpTo: number = 0;
+
+    const pattern: RegExp = new RegExp(
+      BASE64_DATA_START_OR_SENTINEL.source,
+      "gi",
+    );
+
+    for (
+      let match: RegExpExecArray | null = pattern.exec(markdown);
+      match !== null;
+      match = pattern.exec(markdown)
+    ) {
+      let holdFrom: number = match.index;
+      let holdTo: number = match.index + match[0].length;
+
+      if (match[0].length > 1) {
+        // ";base64,": the data runs on for as long as it is base64.
+        holdFrom = holdTo;
+
+        let dataEnd: number = holdFrom;
+
+        while (
+          dataEnd < markdown.length &&
+          isBase64Character(markdown.charCodeAt(dataEnd))
+        ) {
+          dataEnd++;
+        }
+
+        pattern.lastIndex = dataEnd;
+
+        if (dataEnd - holdFrom < HELD_BASE64_MIN_LENGTH) {
+          continue;
+        }
+
+        holdTo = dataEnd - 1;
+      }
+
+      // Otherwise a sentinel already in the input, held back as it is.
+      held.push(markdown.slice(holdFrom, holdTo));
+      text +=
+        markdown.slice(copiedUpTo, holdFrom) +
+        `${HELD_DATA_OPEN}${held.length - 1}${HELD_DATA_CLOSE}`;
+      copiedUpTo = holdTo;
+    }
+
+    if (held.length === 0) {
+      return {
+        markdown: markdown,
+        restore: (value: string): string => {
+          return value;
+        },
+      };
+    }
+
+    // Read with indexOf, not a regular expression: the HTML is as long as the data.
+    const restore: (value: string) => string = (value: string): string => {
+      let restored: string = "";
+      let restoredUpTo: number = 0;
+
+      for (
+        let open: number = value.indexOf(HELD_DATA_OPEN);
+        open !== -1;
+        open = value.indexOf(HELD_DATA_OPEN, restoredUpTo)
+      ) {
+        const close: number = value.indexOf(HELD_DATA_CLOSE, open + 1);
+
+        if (close === -1) {
+          break;
+        }
+
+        restored +=
+          value.slice(restoredUpTo, open) +
+          (held[Number(value.slice(open + 1, close))] ?? "");
+        restoredUpTo = close + 1;
+      }
+
+      return restored + value.slice(restoredUpTo);
+    };
+
+    return {
+      markdown: text + markdown.slice(copiedUpTo),
+      restore: restore,
+    };
+  }
+
+  /*
+   * `renderer`, with every link and image URL it is given put back together
+   * first (see holdBackLongBase64), so it judges the URL the author wrote.
+   */
+  private static withHeldDataInUrls(
+    renderer: Renderer,
+    restore: (value: string) => string,
+  ): Renderer {
+    const restoring: Renderer = Object.create(renderer) as Renderer;
+
+    restoring.link = function (
+      this: Renderer,
+      href: string,
+      title: string | null | undefined,
+      text: string,
+    ): string {
+      return renderer.link.call(this, restore(href), title, text);
+    };
+
+    restoring.image = function (
+      this: Renderer,
+      href: string,
+      title: string | null,
+      text: string,
+    ): string {
+      return renderer.image.call(this, restore(href), title, text);
+    };
+
+    return restoring;
   }
 
   /**
@@ -851,6 +1059,15 @@ export default class Markdown {
      * other link renders as its text alone, and any other image as its alt
      * text, so the words the author wrote still read in place.
      *
+     * An image may also be an inline raster image: a data: URL whose bytes
+     * are a PNG, JPEG, GIF or WebP (parseInlineImageDataUri). That is the
+     * only way a synthetic monitor's screenshot reaches a description, and
+     * it is fetched from nowhere and runs nothing. It is written out as the
+     * parser rebuilt it, and MailService sends it as an inline attachment
+     * the HTML points at by Content-ID, which Gmail and Outlook show and a
+     * data: URL they do not. A data: link stays a link's text, whatever it
+     * carries.
+     *
      * The markup is marked's own. `text` is the link's rendered inline
      * content, and `title` and an image's alt text arrive already escaped by
      * marked's tokenizer, so escaping them again would show "&amp;".
@@ -876,10 +1093,12 @@ export default class Markdown {
       title: string | null,
       text: string,
     ): string {
-      const url: string | null = Markdown.getEmailUrl(
-        href,
-        EMAIL_IMAGE_SCHEMES,
-      );
+      const inlineImage: InlineImageDataUri | null =
+        parseInlineImageDataUri(href);
+
+      const url: string | null = inlineImage
+        ? Markdown.escapeHtml(inlineImage.dataUri)
+        : Markdown.getEmailUrl(href, EMAIL_IMAGE_SCHEMES);
 
       if (url === null) {
         return text;
@@ -887,7 +1106,7 @@ export default class Markdown {
 
       const titleAttribute: string = title ? ` title="${title}"` : "";
 
-      return `<img src="${url}" alt="${text}"${titleAttribute}>`;
+      return `<img src="${url}" alt="${text}"${titleAttribute} style="${EMAIL_IMAGE_STYLE}">`;
     };
 
     this.emailRenderer = renderer;

@@ -17,6 +17,7 @@ import ChannelVerification, {
 } from "../Utils/ChannelVerification";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import ChannelVerificationStatusRoute from "./ChannelVerificationStatusRoute";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
@@ -182,11 +183,29 @@ export default class UserEmailAPI extends BaseAPI<
 
           await this.service.resendVerificationCode(req.body.itemId);
 
-          return Response.sendEmptySuccessResponse(req, res);
+          /*
+           * Answered with where the new code stands, so the verify dialog
+           * shows its times and the next cooldown without asking again.
+           */
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            (await ChannelVerificationStatusRoute.getStatusJSON({
+              service: this.service,
+              itemId: new ObjectID(req.body["itemId"].toString()),
+            })) || {},
+          );
         } catch (err) {
           return next(err);
         }
       },
     );
+
+    // Where the person's own code stands, for the verify dialog.
+    ChannelVerificationStatusRoute.register({
+      router: this.router,
+      path: "/user-email",
+      service: this.service,
+    });
   }
 }

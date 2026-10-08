@@ -35,6 +35,10 @@ import DataSourceEgressGuard, {
 import PinnedSmtpSocket, {
   SmtpSocketCallback,
 } from "Common/Server/Utils/Mail/PinnedSmtpSocket";
+import EmailInlineImages, {
+  EmailHtmlWithInlineImages,
+  EmailInlineImage,
+} from "Common/Server/Utils/Mail/EmailInlineImages";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
@@ -46,9 +50,13 @@ import nodemailer, {
   type SMTPTransportOptions,
   type Transporter,
 } from "nodemailer";
+import type Mailer from "nodemailer/lib/mailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
+
+// One attachment of a SendGrid message.
+type SendgridAttachment = NonNullable<MailDataRequired["attachments"]>[number];
 
 // An email as it is sent: its final subject and HTML body.
 export interface RenderedEmail {
@@ -862,6 +870,11 @@ export default class MailService {
    * goes out - the status page subscriber notification preview - shows
    * byte for byte what a recipient gets. Nothing is sent or logged, and the
    * envelope is not changed.
+   *
+   * The one step send() takes after this: an inline image (a screenshot in
+   * a description) stays a data: URL here, which a browser shows, and is
+   * sent as an attachment the HTML points at by Content-ID, which every
+   * mail client shows (see EmailInlineImages).
    */
   public static async render(mail: EmailEnvelope): Promise<RenderedEmail> {
     // The defaults every email gets.
@@ -905,8 +918,11 @@ export default class MailService {
       emailServer: EmailServer;
       projectId?: ObjectID | undefined;
       timeout?: number | undefined;
+      inlineImages?: Array<EmailInlineImage> | undefined;
     },
   ): Promise<void> {
+    const inlineImages: Array<EmailInlineImage> = options.inlineImages || [];
+
     /*
      * Dispatch on transport type. HTTP-API transports (Microsoft Graph today,
      * Gmail/SES tomorrow) bypass nodemailer and the SMTP connection pool — they
@@ -919,6 +935,7 @@ export default class MailService {
         mail,
         options.emailServer,
         options.timeout,
+        inlineImages,
       );
       return;
     }
@@ -945,6 +962,26 @@ export default class MailService {
               to: mail.toEmail.toString(),
               subject: mail.subject,
               html: mail.body,
+              /*
+               * An attachment with a cid is "related" to the HTML: nodemailer
+               * sends both in one multipart/related part.
+               */
+              ...(inlineImages.length > 0
+                ? {
+                    attachments: inlineImages.map(
+                      (image: EmailInlineImage): Mailer.Attachment => {
+                        return {
+                          filename: image.fileName,
+                          content: image.base64,
+                          encoding: "base64",
+                          contentType: image.mimeType,
+                          contentDisposition: "inline",
+                          cid: image.contentId,
+                        };
+                      },
+                    ),
+                  }
+                : {}),
             });
 
           logger.debug("SMTP Email Provider Response:");
@@ -989,7 +1026,8 @@ export default class MailService {
   private static async transportViaMicrosoftGraph(
     mail: EmailMessage,
     emailServer: EmailServer,
-    timeout?: number | undefined,
+    timeout: number | undefined,
+    inlineImages: Array<EmailInlineImage>,
   ): Promise<void> {
     const provider: MicrosoftGraphMailProvider =
       new MicrosoftGraphMailProvider();
@@ -1004,7 +1042,10 @@ export default class MailService {
      * fast-failing callers (e.g. the "Test mail config" endpoint) don't hang for
      * minutes on a throttled or unreachable mailbox.
      */
-    await provider.send(mail, emailServer, { timeoutMs: timeout });
+    await provider.send(mail, emailServer, {
+      timeoutMs: timeout,
+      inlineImages: inlineImages,
+    });
   }
 
   public static async send(
@@ -1163,7 +1204,17 @@ export default class MailService {
        */
       const rendered: RenderedEmail = await this.render(mail);
 
-      mail.body = rendered.body;
+      /*
+       * Inline images (a screenshot in a description) go out as attachments
+       * the HTML points at by Content-ID; an email with none is sent exactly
+       * as rendered.
+       */
+      const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(
+        rendered.body,
+      );
+      const inlineImages: Array<EmailInlineImage> = attached.inlineImages;
+
+      mail.body = attached.html;
       mail.subject = rendered.subject;
 
       if (
@@ -1255,6 +1306,21 @@ export default class MailService {
           } <${sendgridConfig.fromEmail.toString()}>`,
           subject: mail.subject,
           html: mail.body,
+          ...(inlineImages.length > 0
+            ? {
+                attachments: inlineImages.map(
+                  (image: EmailInlineImage): SendgridAttachment => {
+                    return {
+                      content: image.base64,
+                      filename: image.fileName,
+                      type: image.mimeType,
+                      disposition: "inline",
+                      contentId: image.contentId,
+                    };
+                  },
+                ),
+              }
+            : {}),
         };
 
         if (emailLog) {
@@ -1349,6 +1415,7 @@ export default class MailService {
         emailServer: options.emailServer,
         projectId: options.projectId,
         timeout: options.timeout,
+        inlineImages: inlineImages,
       });
 
       if (emailLog) {

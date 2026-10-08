@@ -2684,6 +2684,16 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     /*
+     * The owners the declarer picked in the form, as sent: asked about below,
+     * once the incident is as it will be saved. A template's owners, handed
+     * over below, are the template's to name, and are added once the
+     * incident is saved, as they were.
+     */
+    const ownersPicked: JSONObject = OwnerRuleAssignment.getOwnersPicked(
+      createBy.miscDataProps,
+    );
+
+    /*
      * A new incident is in no episode: it joins one through grouping or the
      * episode's members (EpisodeMembershipReference). Refused before the
      * incident number is taken.
@@ -3237,6 +3247,29 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     /*
+     * The owners the declarer picked, on the incident as it will be saved -
+     * with a template's labels - and before the counter increment too: a
+     * pick they may not add refuses the declare.
+     */
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: IncidentOwnerUserService,
+      ownerTeamService: IncidentOwnerTeamService,
+      resourceIdColumn: "incidentId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: ownersPicked,
+      props: createBy.props,
+    });
+
+    /*
+     * The monitors, status pages, on-call policies and the rest a template
+     * filled in above are the declarer's to name as if they had picked them:
+     * each must be one they may read, asked here, before the incident
+     * number is taken, rather than once the hooks have run.
+     */
+    await this.checkRecordsNamedSoFar(createBy);
+
+    /*
      * How far along it starts (StartingStage), as read with its state above,
      * is handed to onCreateSuccess, which decides on it what the create sets
      * off: an incident declared already acknowledged pages nobody, and one
@@ -3628,6 +3661,7 @@ export class Service extends ProjectReferencesService<Model> {
               ] as Array<ObjectID>) || [],
               notifyOwners,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -4712,6 +4746,12 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the incident are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -4724,6 +4764,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 
