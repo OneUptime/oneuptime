@@ -582,7 +582,7 @@ export default class ProjectSsoProviderChanges {
           return !locked.has(row.projectId);
         })
       ) {
-        throw new BadDataException(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
+        throw new BadDataException(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
       }
 
       const write: ProjectSsoProviderWrite = data.decide(rows);

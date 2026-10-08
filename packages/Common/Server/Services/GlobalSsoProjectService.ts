@@ -178,17 +178,28 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A hard delete (the retention job's purge) runs no onDeleteSuccess, so
-   * it is handed on to it: the lock its check took is given back, and
-   * every server told, the same way. A purge that deletes no row tells no
-   * server anything.
+   * A hard delete (the retention job's purge) runs no onDeleteSuccess: the
+   * lock its check took is given back here, and every server is told only
+   * when it changed where a provider signs people in, as read under the
+   * lock (GlobalSsoProviderChanges.afterHardDelete). A purge of rows
+   * deleted long ago tells no server anything.
    */
   @CaptureSpan()
   protected override async onHardDeleteSuccess(
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
-    return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
+    if (
+      await GlobalSsoProviderChanges.afterHardDelete(
+        onDelete.deleteBy,
+        itemIdsBeforeDelete,
+      )
+    ) {
+      clearGlobalSsoAuthorizationCaches();
+      announceGlobalSignInChange();
+    }
+
+    return onDelete;
   }
 
   /*

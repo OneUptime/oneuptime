@@ -66,10 +66,10 @@ import SsoSignInWays, {
  *     delete has no later hook than onBeforeDelete, and takes it last
  *     there), kept while the check reads, and given back as soon as the
  *     write is done (afterWrite, first in the success hooks; afterHardDelete
- *     for a hard delete, which runs none) or fails (the error hooks). A
- *     write that only lets a provider sign more people in - turning it or
- *     an attachment on, lifting the restriction, a new certificate - takes
- *     no lock and is never refused.
+ *     for a hard delete, which runs none of them) or fails (the error
+ *     hooks). A write that only lets a provider sign more people in -
+ *     turning it or an attachment on, lifting the restriction, a new
+ *     certificate - takes no lock and is never refused.
  *
  * Every server hearing of the change is the services' part
  * (announceGlobalSignInChange): told when the write changed where a
@@ -182,11 +182,8 @@ export default class GlobalSsoProviderChanges {
    * once every permission check has passed): one that turns it off or
    * restricts it to its attached projects is checked, under the lock on the
    * server's sign-in rules, against the projects it would stop signing
-   * people in to. One that turns a provider on that is off holds the lock
-   * too, and is never refused: a write turning it off at the same moment
-   * then lands wholly before or after it, never between the time it
-   * stamps and the time it is written. Saving a provider that is on as on
-   * again takes no lock. Null for any other update, which takes none.
+   * people in to. Null for any other update, which takes no lock: turning
+   * a provider on is never refused.
    */
   public static async beforeProviderUpdate<TModel extends BaseModel>(data: {
     providerType: GlobalSsoProviderType;
@@ -202,31 +199,8 @@ export default class GlobalSsoProviderChanges {
         "restrictToAttachedProjects",
       );
 
-    if (isEnabled === undefined && restrictToAttachedProjects !== true) {
+    if (isEnabled !== false && restrictToAttachedProjects !== true) {
       return null;
-    }
-
-    if (isEnabled === true && restrictToAttachedProjects !== true) {
-      /*
-       * Only whether to lock is decided here: a provider read on that is
-       * turned off before this lands has been turned off - and stamped -
-       * wholly before it, so this turns it on again, as asked.
-       */
-      const named: Array<GlobalProviderRow> =
-        await GlobalSsoProviderChanges.readProviders({
-          service: data.service,
-          query: data.updateBy.query,
-          limit: data.updateBy.limit,
-          skip: data.updateBy.skip,
-        });
-
-      if (
-        named.every((provider: GlobalProviderRow): boolean => {
-          return provider.isEnabled;
-        })
-      ) {
-        return null;
-      }
     }
 
     return await GlobalSsoProviderChanges.lockAndCheck({
@@ -286,8 +260,8 @@ export default class GlobalSsoProviderChanges {
    * writes when, in the same write (SsoSignInsEnded.stampWhenTurnedOff),
    * whether or not the provider was on when it was read: one that was off
    * already gave no sign-ins while it was off, so the later time ends none
-   * that its own did not, and one turned on by a write that read it on - so
-   * held no lock - is stamped too.
+   * that its own did not, and one turned on in between - turning on takes
+   * no lock - is stamped too.
    */
   public static async beforeProviderWrite<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
@@ -555,6 +529,24 @@ export default class GlobalSsoProviderChanges {
           },
         ),
     );
+  }
+
+  /*
+   * Once a hard delete is done (the services' onHardDeleteSuccess: it runs
+   * no onDeleteSuccess - the retention job's purge): its lock is given
+   * back, and whether to tell every server is answered - only when it
+   * deleted a row and changed where a provider signs people in, as read
+   * under the lock. A purge of rows deleted long ago, which reads none of
+   * them as signing anyone in, tells no server anything.
+   */
+  public static async afterHardDelete<TModel extends BaseModel>(
+    deleteBy: DeleteBy<TModel>,
+    deletedIds: Array<ObjectID>,
+  ): Promise<boolean> {
+    const changedReach: boolean =
+      await GlobalSsoProviderChanges.afterWrite(deleteBy);
+
+    return changedReach && deletedIds.length > 0;
   }
 
   // Gives a write's lock back, once.

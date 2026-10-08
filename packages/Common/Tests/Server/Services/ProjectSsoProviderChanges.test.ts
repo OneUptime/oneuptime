@@ -1754,7 +1754,7 @@ describe("the rows a write names are read under the lock", () => {
             props: ROOT,
           }),
         ),
-      ).resolves.toBe(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
+      ).resolves.toBe(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
 
       expect(kind.writes()).toEqual([]);
       expect(events).toEqual([

@@ -229,9 +229,14 @@ const stubTable: (
       where: Record<string, unknown>;
       skip?: number;
       take?: number;
+      withDeleted?: boolean;
     }): Promise<Array<BaseModel>> => {
+      // A row deleted already is found only when deleted rows are asked for, as TypeORM does.
       const found: Array<Row> = table().rows.filter((row: Row): boolean => {
-        return matches(row, options.where);
+        return (
+          (options.withDeleted || !row["deletedAt"]) &&
+          matches(row, options.where)
+        );
       });
       const skip: number = options.skip || 0;
       const take: number = options.take || found.length;
@@ -802,7 +807,7 @@ describe.each([
       ]);
     });
 
-    test("turned on again, it keeps that time: turning on writes none, and holds the lock while it is written, so a turn-off at the same moment lands before or after it", async () => {
+    test("turned on again, it keeps that time: turning on writes none and takes no lock", async () => {
       await updateProvider(kind, { isEnabled: false });
       const endedAt: unknown = providerRow(kind)!["signInsEndedAt"];
       events = [];
@@ -814,11 +819,7 @@ describe.each([
       expect(providerRow(kind)!["isEnabled"]).toBe(true);
       expect(providerRow(kind)!["signInsEndedAt"]).toEqual(endedAt);
       expect(kind.providerTable().writes[1]!.set).toEqual({ isEnabled: true });
-      expect(events).toEqual([
-        `lock:${SERVER_LOCK}`,
-        `write:${PROVIDER}`,
-        `release:${SERVER_LOCK}`,
-      ]);
+      expect(events).toEqual([`write:${PROVIDER}`]);
     });
 
     test("saving one that is on as on again takes no lock", async () => {
@@ -1140,6 +1141,27 @@ describe.each([
         `release:${SERVER_LOCK}`,
       ]);
       expect(announced).toHaveLength(1);
+    });
+
+    test("a hard delete of a provider deleted long ago gives the lock back and tells no server anything", async () => {
+      providerRow(kind)!["deletedAt"] = OneUptimeDate.getSomeDaysAgo(40);
+
+      await expect(
+        kind.providerService.hardDeleteBy({
+          query: { _id: PROVIDER },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(providerRow(kind)).toBeUndefined();
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `delete:${PROVIDER}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(announced).toEqual([]);
     });
 
     test("a hard delete that would strand a project is refused, and one the database fails gives the lock back", async () => {
