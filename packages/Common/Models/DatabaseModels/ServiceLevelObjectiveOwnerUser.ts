@@ -5,6 +5,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
@@ -27,6 +28,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * notification job flips isOwnerNotified once it has told the new owner -
  * delivery bookkeeping, not an edit.
  */
+@CanAccessIfCanReadOn("serviceLevelObjective")
 @EnableAuditLog({
   rootResource: {
     resourceType: "Service Level Objective",

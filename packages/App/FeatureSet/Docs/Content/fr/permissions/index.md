@@ -154,6 +154,8 @@ Les propriétaires jouent deux rôles :
 
 La propriété seule n'accorde rien. Être propriétaire d'un moniteur ne permet pas de le modifier si aucune de vos équipes ne détient également une autorisation sur les moniteurs. La propriété restreint l'accès ; elle ne l'élargit jamais.
 
+Les propriétaires d'une ressource se lisent à travers la ressource. Les propriétaires d'un moniteur ou de toute autre ressource ne sont listés, lus, ajoutés et retirés que par quelqu'un qui peut lire cette ressource, et une autorisation portant sur les seuls propriétaires n'atteint les propriétaires d'aucune ressource que vous ne pouvez pas lire.
+
 ## Étiquettes
 
 Les étiquettes sont des marqueurs valables dans tout le projet que vous attachez aux ressources. Elles servent à deux choses : filtrer et regrouper dans le tableau de bord, et restreindre les autorisations comme décrit plus haut.
@@ -205,6 +207,8 @@ Pour un utilisateur connecté, dans l'ordre :
 Chaque champ d'un enregistrement se lit avec l'autorisation de lecture de l'enregistrement lui-même : une autorisation portant sur un autre type d'enregistrement ne l'ouvre jamais. Certains champs sont volontairement plus restreints. Les secrets ne sont lus que par les personnes qui peuvent modifier ou administrer l'enregistrement auquel ils appartiennent, comme les clés de requêtes entrantes et d'e-mails entrants d'un moniteur et la clé de son agent serveur, ou les clés de webhook et d'e-mail entrant d'un workflow. Regarder l'enregistrement d'une relecture de session demande **Watch Session Replays**, pas seulement **List Session Replays**. La télémétrie se lit signal par signal : **Read Telemetry Service Log** lit les logs, **Read Telemetry Service Traces** lit les traces et **Read Telemetry Service Metrics** lit les métriques, graphiques de métriques compris.
 
 Les champs suivent la même règle. Un blocage sans étiquette sur l'autorisation d'un champ retire ce champ, et pour une ressource opérationnelle l'autorisation **All Operational Resources** correspondante ouvre chaque champ que peut ouvrir toute personne autorisée à lire ou modifier l'enregistrement — mais pas un champ volontairement plus restreint, comme une clé secrète.
+
+Un paramètre qui contient des identifiants n'est désigné que par quelqu'un qui peut le lire. Une création ou une modification ne désigne un serveur SMTP, un fournisseur d'appels et de SMS, un identifiant de runbook, des identifiants SNMP, une connexion d'appel vidéo ou une clé d'API — comme le serveur SMTP par lequel une page de statut envoie ses e-mails, ou l'identifiant avec lequel s'exécute une étape de runbook — que si vous pouvez lire ce type de paramètre ; celui que vous ne pouvez pas lire est refusé comme s'il n'existait pas, tandis qu'un enregistrement garde celui qu'il désigne déjà. Chercher des numéros à acheter auprès d'un fournisseur d'appels et de SMS, ou lister les numéros qu'il possède, demande la même lecture.
 
 La même règle décide de tout ce qui demande si vous détenez une autorisation : les actions qui ne sont pas une simple lecture ou écriture — ajouter du crédit SMS, appels ou IA, payer une facture, tester une règle de notification — et les boutons qu'affiche OneUptime. Un bouton que vous ne pouvez pas utiliser s'affiche verrouillé et dit pourquoi ; quand un blocage sur l'une de vos équipes en est la raison, il nomme l'autorisation bloquée.
 

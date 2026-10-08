@@ -154,6 +154,8 @@ En ägare är en användare eller ett team kopplat till en specifik resurs. De f
 
 Ägarskap i sig ger ingenting. Att äga en övervakare ger inte rätt att redigera den om inte något av dina team också har en övervakarbehörighet. Ägarskap smalnar av åtkomst; det vidgar den aldrig.
 
+Vem som äger en resurs läses genom resursen. Ägarna till en övervakare eller till någon annan resurs visas, läses, läggs till och tas bort bara av någon som får läsa resursen, och en behörighet för enbart ägare når inte ägarna till någon resurs som du inte får läsa.
+
 ## Etiketter
 
 Etiketter är projektövergripande märkningar du fäster på resurser. De fyller två syften: filtrering och gruppering i panelen, och begränsning av behörigheter enligt ovan.
@@ -205,6 +207,8 @@ För en inloggad användare, i ordning:
 Varje fält i en post läses med postens egen läsbehörighet: en behörighet för en annan sorts post öppnar det aldrig. Vissa fält är avsiktligt snävare. Hemligheter läses bara av personer som får redigera eller administrera posten de hör till, till exempel en monitors nycklar för inkommande förfrågningar och inkommande e-post och dess serveragentnyckel, eller ett arbetsflödes webhook- och e-postnycklar. Att titta på inspelningen av en sessionsuppspelning kräver **Watch Session Replays**, inte bara **List Session Replays**. Telemetri läses signal för signal: **Read Telemetry Service Log** läser loggar, **Read Telemetry Service Traces** läser spår och **Read Telemetry Service Metrics** läser mätvärden, mätvärdesdiagram inräknade.
 
 Fält följer samma regel. En blockering utan etiketter på ett fälts behörighet tar bort fältet, och för en driftresurs öppnar motsvarande **All Operational Resources**-behörighet varje fält som alla som får läsa eller ändra posten får öppna — men inte ett fält som är avsiktligt snävare, som en hemlig nyckel.
+
+En inställning som innehåller inloggningsuppgifter anges bara av någon som får läsa den. Ett skapande eller en ändring anger en SMTP-server, en leverantör för samtal och SMS, inloggningsuppgifter för runbooks, SNMP-inloggningsuppgifter, en videosamtalsanslutning eller en API-nyckel – som SMTP-servern en statussida skickar e-post med, eller inloggningsuppgifterna ett runbook-steg körs med – bara när du får läsa den sortens inställning; en som du inte får läsa avvisas som om den inte fanns, medan en post behåller den den redan anger. Att söka efter nummer att köpa hos en leverantör för samtal och SMS, eller visa numren den äger, kräver samma läsbehörighet.
 
 Samma regel avgör allt annat som frågar om du har en behörighet: åtgärder som inte är en enkel läsning eller skrivning — att lägga till SMS-, samtals- eller AI-kredit, betala en faktura eller testa en aviseringsregel — och knapparna som OneUptime visar. En knapp du inte får använda visas låst och säger varför; är en blockering i ett av dina team orsaken, namnger den den blockerade behörigheten.
 
