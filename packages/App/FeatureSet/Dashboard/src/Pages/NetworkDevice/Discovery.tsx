@@ -246,7 +246,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * /24s" without creating hundreds of separate scans.
        */
       description: translateTemplate(
-        "Either a subnet in CIDR notation (192.168.1.0/24), or an octet range where any octet may be an inclusive low-high range — 10.16-22.0-255.51-66 sweeps .51 to .66 in every /24 from 10.16 to 10.22. A single scan may cover at most {{max}} addresses.",
+        "A subnet such as 192.168.1.0/24, or a range where any part may be low-high: 10.16-22.0-255.51-66 scans .51 to .66 in every /24 from 10.16 to 10.22. One scan covers up to {{max}} addresses.",
         { max: ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US") },
       ),
       /*

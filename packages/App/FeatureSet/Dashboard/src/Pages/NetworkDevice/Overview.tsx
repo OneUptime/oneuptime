@@ -367,7 +367,7 @@ const NetworkOverview: FunctionComponent<
           {attentionDevices.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
               {translator.translateText(
-                "Every device is reachable, every SNMP walk is succeeding and no interfaces are down. Nothing needs you here.",
+                "Every device answers, its details are being read and no interface is down. Nothing needs you here.",
               )}
             </p>
           ) : (
@@ -446,7 +446,7 @@ const NetworkOverview: FunctionComponent<
           {attentionSites.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
               {translator.translateText(
-                "Every site with monitored devices is rolling up healthy.",
+                "Every site with devices in it is healthy.",
               )}
             </p>
           ) : (

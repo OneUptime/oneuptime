@@ -134,37 +134,36 @@ const NetworkHealthHero: FunctionComponent<ComponentProps> = (
             {props.enabledAlertPolicyCount !== null ? (
               <div
                 data-testid="network-health-alerting"
-                className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+                className="mt-3 flex items-start gap-2 text-sm"
               >
-                <Icon icon={IconProp.Bell} className="h-4 w-4 text-gray-400" />
-                {props.enabledAlertPolicyCount > 0 ? (
-                  <span className="text-gray-600">
-                    {translator.translatePlural(
-                      {
-                        one: "{{count}} alert policy raises incidents for this network.",
-                        other:
-                          "{{count}} alert policies raise incidents for this network.",
-                      },
-                      props.enabledAlertPolicyCount,
-                    )}
+                <Icon
+                  icon={IconProp.Bell}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+                />
+                <p className="text-gray-600">
+                  {props.enabledAlertPolicyCount > 0
+                    ? translator.translatePlural(
+                        {
+                          one: "{{count}} alert policy raises incidents for this network.",
+                          other:
+                            "{{count}} alert policies raise incidents for this network.",
+                        },
+                        props.enabledAlertPolicyCount,
+                      )
+                    : translator.translateText(
+                        "No alert policy yet. Turn one on to raise an incident when a device goes down.",
+                      )}{" "}
+                  <span data-testid="network-health-alerting-link">
+                    <AppLink
+                      to={alertPoliciesRoute}
+                      className="font-medium text-indigo-600 hover:underline"
+                    >
+                      {(props.enabledAlertPolicyCount > 0
+                        ? translator.translateText("Alert Policies")
+                        : translator.translateText("Set up alerts")) || ""}
+                    </AppLink>
                   </span>
-                ) : (
-                  <span className="text-gray-600">
-                    {translator.translateText(
-                      "No alert policy yet. Turn one on to raise an incident when a device goes down.",
-                    )}
-                  </span>
-                )}
-                <span data-testid="network-health-alerting-link">
-                  <AppLink
-                    to={alertPoliciesRoute}
-                    className="font-medium text-indigo-600 hover:underline"
-                  >
-                    {(props.enabledAlertPolicyCount > 0
-                      ? translator.translateText("Alert Policies")
-                      : translator.translateText("Set up alerts")) || ""}
-                  </AppLink>
-                </span>
+                </p>
               </div>
             ) : (
               <></>
