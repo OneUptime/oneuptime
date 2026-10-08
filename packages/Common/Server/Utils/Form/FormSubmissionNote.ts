@@ -1,6 +1,7 @@
 import { WHOLE_EMAIL_ADDRESS } from "../../../Types/Form/FormPublic";
 import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
 import { neutralizeUntrustedMarkdown } from "../../../Utils/Markdown/UntrustedMarkdown";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The private note a submission leaves on what it created: which form it
@@ -110,7 +111,7 @@ export const getFormSubmitterEmailText: GetFormSubmitterTextFunction = (data: {
   }
 
   return EXPLICIT_LINK_ADDRESS_PATTERN.test(email)
-    ? `[${escapeMarkdownInline(email)}](${getMailtoLink(email)})`
+    ? mdText`[${email}](${getMailtoLink(email)})`.toString()
     : `<${email}>`;
 };
 
@@ -176,7 +177,9 @@ export const getFormSubmissionNote: GetFormSubmissionNoteFunction = (data: {
   answers?: Array<FormNoteAnswer> | undefined;
 }): string => {
   const formName: string = escapeLine(data.formName);
-  const form: string = formName ? `the form **${formName}**` : "a form";
+  const form: string = formName
+    ? mdText`the form **${formName}**`.toString()
+    : "a form";
 
   const submitterName: string = escapeLine(data.submitterName);
   const submitterEmail: string = getFormSubmitterEmailText({
@@ -197,7 +200,9 @@ export const getFormSubmissionNote: GetFormSubmissionNoteFunction = (data: {
   const templateName: string = escapeLine(data.templateName);
 
   if (templateName) {
-    parts.push(`Started from the template **${templateName}**.`);
+    parts.push(
+      mdText`Started from the template **${templateName}**.`.toString(),
+    );
   }
 
   for (const answer of data.answers || []) {
@@ -215,8 +220,8 @@ export const getFormSubmissionNote: GetFormSubmissionNoteFunction = (data: {
      */
     parts.push(
       answer.format === FormNoteAnswerFormat.Markdown
-        ? `**${label}**\n\n${value}`
-        : `**${label}**  \n${value}`,
+        ? mdText`**${label}**\n\n${value}`.toString()
+        : mdText`**${label}**  \n${value}`.toString(),
     );
   }
 

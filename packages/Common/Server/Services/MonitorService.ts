@@ -48,10 +48,7 @@ import MonitorType, {
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
+
 import EventFieldChange, {
   EventFieldSet,
   EventValuesBeforeUpdate,
@@ -123,6 +120,7 @@ import ProbeMonitorsNotification, {
   ProbeMonitorsNotificationContent,
   ProbeMonitorsRecipient,
 } from "../Utils/Monitor/ProbeMonitorsNotification";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
@@ -1525,10 +1523,11 @@ export class Service extends ProjectReferencesService<Model> {
 
         const projectId: ObjectID = monitor!.projectId!;
         // The monitor's name, inside its link's own text.
-        const monitorName: string = escapeMarkdownInline(monitor!.name!);
+        const monitorName: string = monitor!.name!;
 
         let shouldAddMonitorFeed: boolean = false;
-        let feedInfoInMarkdown: string = `Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
+        let feedInfoInMarkdown: string =
+          mdText`Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`.toString();
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
@@ -1598,7 +1597,8 @@ export class Service extends ProjectReferencesService<Model> {
           kind: MONITOR_FIELDS,
         });
 
-        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
+        const fieldsMarkdown: MarkdownText =
+          await EventFieldChange.getFeedMarkdown({
           written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
           changes: fieldChanges,
           projectId: projectId,
@@ -1606,8 +1606,8 @@ export class Service extends ProjectReferencesService<Model> {
           kind: MONITOR_FIELDS,
         });
 
-        if (fieldsMarkdown) {
-          feedInfoInMarkdown += fieldsMarkdown;
+        if (!fieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += fieldsMarkdown.toString();
           shouldAddMonitorFeed = true;
         }
 
@@ -1990,27 +1990,27 @@ export class Service extends ProjectReferencesService<Model> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    let feedInfoInMarkdown: string = `#### 🌎 Monitor Created: 
+    let feedInfoInMarkdown: string = mdText`#### 🌎 Monitor Created: 
           
-**${escapeMarkdownValue(createdItem.name?.trim() || "No name provided.")}**:
+**${createdItem.name?.trim() || "No name provided."}**:
 
 ${createdItem.description?.trim() || "No description provided."}
     
-`;
+`.toString();
 
     if (monitor?.currentMonitorStatus?.name) {
-      feedInfoInMarkdown += `➡️ **Monitor Status**: ${escapeMarkdownValue(monitor.currentMonitorStatus.name)} \n\n`;
+      feedInfoInMarkdown += mdText`➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
     }
 
     if (monitor?.monitorType) {
-      feedInfoInMarkdown += `⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
+      feedInfoInMarkdown += mdText`⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
     }
 
     if (monitor?.labels && monitor.labels.length > 0) {
       feedInfoInMarkdown += `🏷️ **Labels**:\n`;
 
       for (const label of monitor.labels) {
-        feedInfoInMarkdown += `- ${escapeMarkdownValue(label.name)}\n`;
+        feedInfoInMarkdown += mdText`- ${label.name}\n`;
       }
 
       feedInfoInMarkdown += `\n\n`;

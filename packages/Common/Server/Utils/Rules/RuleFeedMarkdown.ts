@@ -64,16 +64,18 @@ export default class RuleFeedMarkdown {
   }
 
   /**
-   * "**Label rules that matched**: `Prod`, `EU`" - each rule's name as code.
+   * "**Label rules that matched**: `Prod`, `EU`" - each rule's name as code,
+   * or in bold (the SLO engines' "**Prod**, **EU**").
    */
   public static matchedRulesLine(data: {
     // "Label" or "Owner".
     ruleKind: string;
     ruleNames: Array<string>;
+    namesInBold?: boolean | undefined;
   }): MarkdownText {
     return mdText`**${data.ruleKind} rules that matched**: ${FeedMarkdown.join(
       data.ruleNames.map((name: string): MarkdownText => {
-        return FeedMarkdown.code(name);
+        return data.namesInBold ? mdText`**${name}**` : FeedMarkdown.code(name);
       }),
     )}`;
   }

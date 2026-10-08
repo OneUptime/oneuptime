@@ -1,6 +1,5 @@
 import User from "../../Models/DatabaseModels/User";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -15,6 +14,7 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -83,7 +83,8 @@ export class Service extends ProjectReferencesService<Model> {
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
               displayColor: Red500,
-              feedInfoInMarkdown: `Removed **${escapeMarkdownValue(user.name.toString())}** (${escapeMarkdownValue(user.email?.toString())}) from the scheduled maintenance as the owner.`,
+              feedInfoInMarkdown:
+                mdText`Removed **${user.name.toString()}** (${user.email?.toString()}) from the scheduled maintenance as the owner.`.toString(),
               userId: deleteByUserId || undefined,
             },
           );
@@ -117,12 +118,11 @@ export class Service extends ProjectReferencesService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerUserAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `Added **${await UserService.getUserMarkdownString(
-              {
+            feedInfoInMarkdown:
+              mdText`Added **${await UserService.getUserMarkdownString({
                 userId: userId,
                 projectId: projectId,
-              },
-            )}** to the scheduled maintenance as the owner.`,
+              })}** to the scheduled maintenance as the owner.`.toString(),
             userId: createdByUserId || undefined,
           },
         );

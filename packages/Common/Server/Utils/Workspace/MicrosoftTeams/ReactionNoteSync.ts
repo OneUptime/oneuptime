@@ -32,6 +32,7 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../WorkspaceReactionNote";
 import MicrosoftTeamsUtil from "./MicrosoftTeams";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 // A Teams channel OneUptime created for an incident / alert / ...
 export interface MicrosoftTeamsWatchedChannel {
@@ -676,10 +677,10 @@ export default class MicrosoftTeamsReactionNoteSync {
           resourceLabel: display.label,
           resourceLink: display.link.toString(),
           formatLink: (url: string, linkText: string): string => {
-            return `[${linkText}](${url})`;
+            return mdText`[${linkText}](${url})`.toString();
           },
           formatBold: (boldText: string): string => {
-            return `**${boldText}**`;
+            return mdText`**${boldText}**`.toString();
           },
         }),
       });
@@ -728,13 +729,14 @@ export default class MicrosoftTeamsReactionNoteSync {
 
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-      settingsLink = ` in [OneUptime → User Settings → Microsoft Teams](${URL.fromString(
-        dashboardUrl.toString(),
-      )
-        .addRoute(
-          `/${data.projectId.toString()}/user-settings/microsoft-teams-integration`,
+      settingsLink =
+        mdText` in [OneUptime → User Settings → Microsoft Teams](${URL.fromString(
+          dashboardUrl.toString(),
         )
-        .toString()})`;
+          .addRoute(
+            `/${data.projectId.toString()}/user-settings/microsoft-teams-integration`,
+          )
+          .toString()})`.toString();
     } catch (err) {
       logger.debug("Could not build the Microsoft Teams settings link");
       logger.debug(err);

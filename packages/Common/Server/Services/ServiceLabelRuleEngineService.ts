@@ -20,6 +20,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 class ServiceLabelRuleEngineServiceClass
   implements RuleRunEngine<Service, ServiceLabelRule>
@@ -230,15 +232,15 @@ class ServiceLabelRuleEngineServiceClass
       projectId: service.projectId,
       serviceFeedEventType: ServiceFeedEventType.LabelRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await ServiceService.getServiceMarkdownLink(
-        service.projectId,
-        service.id,
-      )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
-        .map((name: string) => {
-          return `\`${name}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`🏷️ ${newLabelIds.length} label(s) were attached to ${await ServiceService.getServiceMarkdownLink(
+          service.projectId,
+          service.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Label",
+        ruleNames: matchedRuleNames,
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(newLabelIds.length);

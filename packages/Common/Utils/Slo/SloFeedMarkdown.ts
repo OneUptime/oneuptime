@@ -1,6 +1,6 @@
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
-import { escapeMarkdownInline } from "../Markdown/MarkdownEscape";
+import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 
 /*
  * The words of the SLO feed.
@@ -12,9 +12,9 @@ import { escapeMarkdownInline } from "../Markdown/MarkdownEscape";
  *
  *   - Safety. Feed items render without the markdown viewer's safe mode, and
  *     almost every value in them is user-controlled: SLO, monitor, rule, label
- *     and status names, descriptions, timezones. Everything that is not a
- *     number we computed goes through escapeMarkdownInline exactly once, here,
- *     so no caller can forget to and no caller can do it twice.
+ *     and status names, descriptions, timezones. Every value is placed as text
+ *     (mdText), here, and what this module builds is MarkdownText, so no
+ *     caller can forget to escape a value and no caller can escape one twice.
  *
  *   - Change detection. "What changed" is decided by comparing a row read
  *     before an update with the row read after it. That comparison has to
@@ -23,8 +23,8 @@ import { escapeMarkdownInline } from "../Markdown/MarkdownEscape";
  *     formatting sit side by side and are unit-tested together.
  */
 
-export const SLO_FEED_NOT_SET_TEXT: string = "_not set_";
-export const SLO_FEED_NONE_TEXT: string = "_none_";
+export const SLO_FEED_NOT_SET_TEXT: MarkdownText = mdText`_not set_`;
+export const SLO_FEED_NONE_TEXT: MarkdownText = mdText`_none_`;
 
 /*
  * A description is free text of any length; the feed is a timeline, not an
@@ -99,7 +99,7 @@ const pluralize: PluralizeFunction = (
   return `${count} ${count === "1" ? singular : `${singular}s`}`;
 };
 
-export type FormatSloFeedMinutesFunction = (minutes: number) => string;
+export type FormatSloFeedMinutesFunction = (minutes: number) => MarkdownText;
 
 /*
  * Burn rate windows are stored in minutes but thought about in hours and days
@@ -107,20 +107,20 @@ export type FormatSloFeedMinutesFunction = (minutes: number) => string;
  */
 export const formatSloFeedMinutes: FormatSloFeedMinutesFunction = (
   minutes: number,
-): string => {
+): MarkdownText => {
   if (!Number.isFinite(minutes)) {
     return SLO_FEED_NOT_SET_TEXT;
   }
 
   if (minutes !== 0 && minutes % 1440 === 0) {
-    return pluralize(formatSloFeedNumber(minutes / 1440), "day");
+    return mdText`${pluralize(formatSloFeedNumber(minutes / 1440), "day")}`;
   }
 
   if (minutes !== 0 && minutes % 60 === 0) {
-    return pluralize(formatSloFeedNumber(minutes / 60), "hour");
+    return mdText`${pluralize(formatSloFeedNumber(minutes / 60), "hour")}`;
   }
 
-  return pluralize(formatSloFeedNumber(minutes), "minute");
+  return mdText`${pluralize(formatSloFeedNumber(minutes), "minute")}`;
 };
 
 export type FormatSloFeedDurationFunction = (seconds: number) => string;
@@ -158,17 +158,18 @@ export const formatSloFeedDuration: FormatSloFeedDurationFunction = (
  * ---------------------------------------------------------------------------
  */
 
-export type FormatSloFeedTextFunction = (
+export type TruncateSloFeedTextFunction = (
   value: unknown,
   maximumLength?: number,
 ) => string;
 
 /*
- * User text for the middle of a sentence: escaped, trimmed, and cut at a
- * length a timeline can carry. Cutting happens BEFORE escaping so an escape
- * sequence can never be split in half and leave a dangling backslash.
+ * User text as a timeline can carry it, still plain text: on one line,
+ * trimmed, and cut at a length. Cutting happens before the text is placed
+ * into Markdown, so an escape can never be split in half and leave a
+ * dangling backslash.
  */
-export const formatSloFeedText: FormatSloFeedTextFunction = (
+export const truncateSloFeedText: TruncateSloFeedTextFunction = (
   value: unknown,
   maximumLength: number = MAX_INLINE_TEXT_LENGTH,
 ): string => {
@@ -179,10 +180,26 @@ export const formatSloFeedText: FormatSloFeedTextFunction = (
   const text: string = String(value).replace(/\s+/g, " ").trim();
 
   if (text.length <= maximumLength) {
-    return escapeMarkdownInline(text);
+    return text;
   }
 
-  return `${escapeMarkdownInline(text.substring(0, maximumLength).trimEnd())}…`;
+  return `${text.substring(0, maximumLength).trimEnd()}…`;
+};
+
+export type FormatSloFeedTextFunction = (
+  value: unknown,
+  maximumLength?: number,
+) => MarkdownText;
+
+/*
+ * User text for the middle of a sentence: truncateSloFeedText's text,
+ * placed as text (mdText). Empty for no text.
+ */
+export const formatSloFeedText: FormatSloFeedTextFunction = (
+  value: unknown,
+  maximumLength: number = MAX_INLINE_TEXT_LENGTH,
+): MarkdownText => {
+  return mdText`${truncateSloFeedText(value, maximumLength)}`;
 };
 
 type NormalizeIdFunction = (value: string) => string | null;
@@ -274,7 +291,9 @@ const getEntityName: GetEntityNameFunction = (item: unknown): string => {
   return "";
 };
 
-export type FormatSloFeedEntityNamesFunction = (value: unknown) => string;
+export type FormatSloFeedEntityNamesFunction = (
+  value: unknown,
+) => MarkdownText;
 
 /*
  * "Production, Tier 1" for a label set, alphabetical so the before and after
@@ -283,7 +302,7 @@ export type FormatSloFeedEntityNamesFunction = (value: unknown) => string;
  */
 export const formatSloFeedEntityNames: FormatSloFeedEntityNamesFunction = (
   value: unknown,
-): string => {
+): MarkdownText => {
   if (!Array.isArray(value) || value.length === 0) {
     return SLO_FEED_NONE_TEXT;
   }
@@ -299,14 +318,14 @@ export const formatSloFeedEntityNames: FormatSloFeedEntityNamesFunction = (
   const listed: Array<string> = names
     .slice(0, MAX_LISTED_NAMES)
     .map((name: string): string => {
-      return formatSloFeedText(name, 80);
+      return truncateSloFeedText(name, 80);
     });
 
   const remaining: number = names.length - listed.length;
 
   return remaining > 0
-    ? `${listed.join(", ")} and ${remaining} more`
-    : listed.join(", ");
+    ? mdText`${FeedMarkdown.join(listed)} and ${remaining} more`
+    : FeedMarkdown.join(listed);
 };
 
 export type NormalizeSloFeedBooleanFunction = (
@@ -392,7 +411,7 @@ export interface SloFeedColumn {
   // EntityReference only: the relation that carries the referenced row's name.
   relationProperty?: string | undefined;
   // What an unset value reads as, when "not set" would be misleading.
-  emptyText?: string | undefined;
+  emptyText?: MarkdownText | undefined;
   // EntityList / EntityReference: columns to select on the related rows.
   relationSelect?: Record<string, true> | undefined;
 }
@@ -402,8 +421,8 @@ export interface SloFeedColumnChange {
   title: string;
   kind: SloFeedValueKind;
   // null when there was no before-row to compare against.
-  from: string | null;
-  to: string;
+  from: MarkdownText | null;
+  to: MarkdownText;
 }
 
 const DEFAULT_RELATION_SELECT: Record<string, true> = {
@@ -520,14 +539,14 @@ export const isSloFeedValueEqual: IsSloFeedValueEqualFunction = (
 export type FormatSloFeedValueFunction = (
   column: SloFeedColumn,
   row: SloFeedRow,
-) => string;
+) => MarkdownText;
 
 export const formatSloFeedValue: FormatSloFeedValueFunction = (
   column: SloFeedColumn,
   row: SloFeedRow,
-): string => {
+): MarkdownText => {
   const value: unknown = row[column.column];
-  const emptyText: string = column.emptyText || SLO_FEED_NOT_SET_TEXT;
+  const emptyText: MarkdownText = column.emptyText || SLO_FEED_NOT_SET_TEXT;
 
   switch (column.kind) {
     case SloFeedValueKind.EntityList:
@@ -542,7 +561,7 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
         : "";
 
       // The row is referenced but its name could not be read.
-      return name ? formatSloFeedText(name, 80) : "_a deleted item_";
+      return name ? formatSloFeedText(name, 80) : mdText`_a deleted item_`;
     }
     case SloFeedValueKind.Boolean: {
       const flag: boolean | null = normalizeSloFeedBoolean(value);
@@ -551,7 +570,7 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
         return emptyText;
       }
 
-      return flag ? "On" : "Off";
+      return flag ? mdText`On` : mdText`Off`;
     }
     case SloFeedValueKind.Percent:
     case SloFeedValueKind.Days:
@@ -565,11 +584,11 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
       }
 
       if (column.kind === SloFeedValueKind.Percent) {
-        return formatSloFeedPercent(numeric, 3);
+        return mdText`${formatSloFeedPercent(numeric, 3)}`;
       }
 
       if (column.kind === SloFeedValueKind.Days) {
-        return pluralize(formatSloFeedNumber(numeric), "day");
+        return mdText`${pluralize(formatSloFeedNumber(numeric), "day")}`;
       }
 
       if (column.kind === SloFeedValueKind.Minutes) {
@@ -577,17 +596,17 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
       }
 
       if (column.kind === SloFeedValueKind.Multiplier) {
-        return `${formatSloFeedNumber(numeric)}x`;
+        return mdText`${formatSloFeedNumber(numeric)}x`;
       }
 
-      return formatSloFeedNumber(numeric);
+      return mdText`${formatSloFeedNumber(numeric)}`;
     }
     case SloFeedValueKind.Opaque:
-      return String(value ?? "").trim() ? "_set_" : emptyText;
+      return String(value ?? "").trim() ? mdText`_set_` : emptyText;
     default: {
-      const text: string = formatSloFeedText(value);
+      const text: MarkdownText = formatSloFeedText(value);
 
-      return text || emptyText;
+      return text.isEmpty() ? emptyText : text;
     }
   }
 };
@@ -629,40 +648,44 @@ export const getSloFeedColumnChanges: GetSloFeedColumnChangesFunction = (data: {
   return changes;
 };
 
-type JoinTitlesFunction = (titles: Array<string>) => string;
+type JoinTitlesFunction = (titles: Array<string>) => MarkdownText;
 
 // "**A**", "**A** and **B**", "**A**, **B** and **C**".
-const joinTitles: JoinTitlesFunction = (titles: Array<string>): string => {
-  const bold: Array<string> = titles.map((title: string): string => {
-    return `**${title}**`;
-  });
+const joinTitles: JoinTitlesFunction = (
+  titles: Array<string>,
+): MarkdownText => {
+  const bold: Array<MarkdownText> = titles.map(
+    (title: string): MarkdownText => {
+      return mdText`**${title}**`;
+    },
+  );
 
   if (bold.length <= 1) {
-    return bold.join("");
+    return FeedMarkdown.join(bold, "");
   }
 
-  return `${bold.slice(0, -1).join(", ")} and ${bold[bold.length - 1]}`;
+  return mdText`${FeedMarkdown.join(bold.slice(0, -1))} and ${bold[bold.length - 1]}`;
 };
 
-type FormatChangeLineFunction = (change: SloFeedColumnChange) => string;
+type FormatChangeLineFunction = (change: SloFeedColumnChange) => MarkdownText;
 
 const formatChangeLine: FormatChangeLineFunction = (
   change: SloFeedColumnChange,
-): string => {
+): MarkdownText => {
   if (change.kind === SloFeedValueKind.Opaque) {
-    return `**${change.title}**: changed`;
+    return mdText`**${change.title}**: changed`;
   }
 
   if (change.from === null) {
-    return `**${change.title}**: ${change.to}`;
+    return mdText`**${change.title}**: ${change.to}`;
   }
 
-  return `**${change.title}**: ${change.from} → ${change.to}`;
+  return mdText`**${change.title}**: ${change.from} → ${change.to}`;
 };
 
 type FormatChangeSummaryFunction = (
   changes: Array<SloFeedColumnChange>,
-) => string;
+) => MarkdownText;
 
 /*
  * A single short change is spelled out in the one-line summary, so the
@@ -671,7 +694,7 @@ type FormatChangeSummaryFunction = (
  */
 const formatChangeSummary: FormatChangeSummaryFunction = (
   changes: Array<SloFeedColumnChange>,
-): string => {
+): MarkdownText => {
   const onlyChange: SloFeedColumnChange | undefined =
     changes.length === 1 ? changes[0] : undefined;
 
@@ -681,11 +704,11 @@ const formatChangeSummary: FormatChangeSummaryFunction = (
     onlyChange.kind !== SloFeedValueKind.Opaque
   ) {
     return onlyChange.from === null
-      ? `**${onlyChange.title}** set to ${onlyChange.to}`
-      : `**${onlyChange.title}** changed from ${onlyChange.from} to ${onlyChange.to}`;
+      ? mdText`**${onlyChange.title}** set to ${onlyChange.to}`
+      : mdText`**${onlyChange.title}** changed from ${onlyChange.from} to ${onlyChange.to}`;
   }
 
-  return `${joinTitles(
+  return mdText`${joinTitles(
     changes.map((change: SloFeedColumnChange): string => {
       return change.title;
     }),
@@ -734,13 +757,13 @@ export const SLO_FEED_UPDATE_COLUMNS: Array<SloFeedColumn> = [
     column: "timezone",
     title: "Timezone",
     kind: SloFeedValueKind.Text,
-    emptyText: "UTC (default)",
+    emptyText: mdText`UTC (default)`,
   },
   {
     column: "atRiskThresholdPercentage",
     title: "At-risk threshold",
     kind: SloFeedValueKind.Percent,
-    emptyText: "_default_",
+    emptyText: mdText`_default_`,
   },
   {
     column: "multiMonitorMode",
@@ -805,12 +828,12 @@ export interface SloFeedBurnRateRuleSummary {
 
 type DescribeBurnRateConditionFunction = (
   rule: SloFeedBurnRateRuleSummary,
-) => string | null;
+) => MarkdownText | null;
 
 // "above 14.4x over 1 hour, confirmed over 5 minutes".
 const describeBurnRateCondition: DescribeBurnRateConditionFunction = (
   rule: SloFeedBurnRateRuleSummary,
-): string | null => {
+): MarkdownText | null => {
   const threshold: number | null = normalizeNumber(rule.burnRateThreshold);
   const longWindow: number | null = normalizeNumber(rule.longWindowInMinutes);
   const shortWindow: number | null = normalizeNumber(rule.shortWindowInMinutes);
@@ -819,41 +842,41 @@ const describeBurnRateCondition: DescribeBurnRateConditionFunction = (
     return null;
   }
 
-  const confirmation: string =
+  const confirmation: MarkdownText =
     shortWindow === null
-      ? ""
-      : `, confirmed over ${formatSloFeedMinutes(shortWindow)}`;
+      ? FeedMarkdown.empty()
+      : mdText`, confirmed over ${formatSloFeedMinutes(shortWindow)}`;
 
-  return `burn rate above ${formatSloFeedNumber(threshold)}x over ${formatSloFeedMinutes(longWindow)}${confirmation}`;
+  return mdText`burn rate above ${formatSloFeedNumber(threshold)}x over ${formatSloFeedMinutes(longWindow)}${confirmation}`;
 };
 
 export type DescribeSloFeedWindowFunction = (data: {
   windowType?: SloWindowType | string | undefined | null;
   windowDays?: number | undefined | null;
   timezone?: string | undefined | null;
-}) => string;
+}) => MarkdownText;
 
 export const describeSloFeedWindow: DescribeSloFeedWindowFunction = (data: {
   windowType?: SloWindowType | string | undefined | null;
   windowDays?: number | undefined | null;
   timezone?: string | undefined | null;
-}): string => {
+}): MarkdownText => {
   if (data.windowType === SloWindowType.CalendarMonth) {
-    const timezone: string = formatSloFeedText(data.timezone) || "UTC";
+    const timezone: string = truncateSloFeedText(data.timezone) || "UTC";
 
-    return `Calendar month (${timezone})`;
+    return mdText`Calendar month (${timezone})`;
   }
 
   const windowDays: number | null = normalizeNumber(data.windowDays);
 
   // The worker measures a rolling window with no length as 30 days.
-  return `Rolling ${pluralize(formatSloFeedNumber(windowDays ?? 30), "day")}`;
+  return mdText`Rolling ${pluralize(formatSloFeedNumber(windowDays ?? 30), "day")}`;
 };
 
 export type GetSloCreatedFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
-  // Already-safe markdown for the creating user, or null for no user.
-  createdByUserMarkdown: string | null;
+  sloMarkdownLink: MarkdownText;
+  // The creating user as Markdown (a link), or null for no user.
+  createdByUserMarkdown: MarkdownText | null;
   targetPercentage?: number | undefined | null;
   windowType?: SloWindowType | string | undefined | null;
   windowDays?: number | undefined | null;
@@ -866,8 +889,8 @@ export type GetSloCreatedFeedMarkdownFunction = (data: {
 
 export const getSloCreatedFeedMarkdown: GetSloCreatedFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
-    createdByUserMarkdown: string | null;
+    sloMarkdownLink: MarkdownText;
+    createdByUserMarkdown: MarkdownText | null;
     targetPercentage?: number | undefined | null;
     windowType?: SloWindowType | string | undefined | null;
     windowDays?: number | undefined | null;
@@ -877,22 +900,22 @@ export const getSloCreatedFeedMarkdown: GetSloCreatedFeedMarkdownFunction =
     description?: string | undefined | null;
     defaultBurnRateRules: Array<SloFeedBurnRateRuleSummary>;
   }): SloFeedMarkdown => {
-    const details: Array<string> = [
+    const details: Array<MarkdownText> = [
       data.createdByUserMarkdown
-        ? `**Created by**: ${data.createdByUserMarkdown}`
-        : "**Created by**: No user - it was created through the OneUptime API or by an automation.",
+        ? mdText`**Created by**: ${data.createdByUserMarkdown}`
+        : mdText`**Created by**: No user - it was created through the OneUptime API or by an automation.`,
     ];
 
     const target: number | null = normalizeNumber(data.targetPercentage);
 
     if (target !== null) {
-      details.push(`**Target**: ${formatSloFeedPercent(target, 3)}`);
+      details.push(mdText`**Target**: ${formatSloFeedPercent(target, 3)}`);
     }
 
-    details.push(`**Compliance window**: ${describeSloFeedWindow(data)}`);
+    details.push(mdText`**Compliance window**: ${describeSloFeedWindow(data)}`);
 
     if (data.sliType) {
-      details.push(`**SLI**: ${formatSloFeedText(data.sliType)}`);
+      details.push(mdText`**SLI**: ${formatSloFeedText(data.sliType)}`);
     }
 
     const atRisk: number | null = normalizeNumber(
@@ -901,7 +924,7 @@ export const getSloCreatedFeedMarkdown: GetSloCreatedFeedMarkdownFunction =
 
     if (atRisk !== null) {
       details.push(
-        `**At-risk threshold**: ${formatSloFeedPercent(atRisk)} of the error budget remaining`,
+        mdText`**At-risk threshold**: ${formatSloFeedPercent(atRisk)} of the error budget remaining`,
       );
     }
 
@@ -910,66 +933,71 @@ export const getSloCreatedFeedMarkdown: GetSloCreatedFeedMarkdownFunction =
      * are described here rather than as two more items that would bury the
      * creation under its own bookkeeping.
      */
-    const rules: Array<string> = data.defaultBurnRateRules.map(
-      (rule: SloFeedBurnRateRuleSummary): string => {
-        const name: string = formatSloFeedText(rule.name) || "Unnamed rule";
-        const condition: string | null = describeBurnRateCondition(rule);
+    const rules: Array<MarkdownText> = data.defaultBurnRateRules.map(
+      (rule: SloFeedBurnRateRuleSummary): MarkdownText => {
+        const name: string = truncateSloFeedText(rule.name) || "Unnamed rule";
+        const condition: MarkdownText | null = describeBurnRateCondition(rule);
 
-        return condition ? `${name} (${condition})` : name;
+        return condition ? mdText`${name} (${condition})` : mdText`${name}`;
       },
     );
 
     if (rules.length > 0) {
-      details.push(`**Default burn rate rules**: ${rules.join("; ")}`);
+      details.push(
+        mdText`**Default burn rate rules**: ${FeedMarkdown.join(rules, "; ")}`,
+      );
     }
 
-    const description: string = formatSloFeedText(data.description);
+    const description: MarkdownText = formatSloFeedText(data.description);
 
-    if (description) {
-      details.push(`**Description**: ${description}`);
+    if (!description.isEmpty()) {
+      details.push(mdText`**Description**: ${description}`);
     }
 
     return {
-      feedInfoInMarkdown: data.createdByUserMarkdown
-        ? `🎯 ${data.sloMarkdownLink} was created by **${data.createdByUserMarkdown}**.`
-        : `🎯 ${data.sloMarkdownLink} was created.`,
-      moreInformationInMarkdown: details.join("\n\n"),
+      feedInfoInMarkdown: (data.createdByUserMarkdown
+        ? mdText`🎯 ${data.sloMarkdownLink} was created by **${data.createdByUserMarkdown}**.`
+        : mdText`🎯 ${data.sloMarkdownLink} was created.`
+      ).toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(details, "\n\n").toString(),
     };
   };
 
 export type GetSloUpdatedFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
+  sloMarkdownLink: MarkdownText;
   changes: Array<SloFeedColumnChange>;
 }) => SloFeedMarkdown;
 
 export const getSloUpdatedFeedMarkdown: GetSloUpdatedFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
+    sloMarkdownLink: MarkdownText;
     changes: Array<SloFeedColumnChange>;
   }): SloFeedMarkdown => {
     return {
-      feedInfoInMarkdown: `📝 ${data.sloMarkdownLink} was updated: ${formatChangeSummary(data.changes)}.`,
-      moreInformationInMarkdown: data.changes
-        .map(formatChangeLine)
-        .join("\n\n"),
+      feedInfoInMarkdown:
+        mdText`📝 ${data.sloMarkdownLink} was updated: ${formatChangeSummary(data.changes)}.`.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(
+        data.changes.map(formatChangeLine),
+        "\n\n",
+      ).toString(),
     };
   };
 
 export type GetSloEnabledFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
+  sloMarkdownLink: MarkdownText;
   isEnabled: boolean;
   isArchived: boolean;
 }) => SloFeedMarkdown;
 
 export const getSloEnabledFeedMarkdown: GetSloEnabledFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
+    sloMarkdownLink: MarkdownText;
     isEnabled: boolean;
     isArchived: boolean;
   }): SloFeedMarkdown => {
     if (data.isEnabled) {
       return {
-        feedInfoInMarkdown: `▶️ ${data.sloMarkdownLink} was enabled.`,
+        feedInfoInMarkdown: mdText`▶️ ${data.sloMarkdownLink} was enabled.`.toString(),
         moreInformationInMarkdown: data.isArchived
           ? "The SLO is still archived, so it stays out of evaluation until it is restored from the archive."
           : "Evaluation resumes on the next worker tick, which recalculates the SLI, error budget and status.",
@@ -977,34 +1005,34 @@ export const getSloEnabledFeedMarkdown: GetSloEnabledFeedMarkdownFunction =
     }
 
     return {
-      feedInfoInMarkdown: `⏸️ ${data.sloMarkdownLink} was disabled.`,
+      feedInfoInMarkdown: mdText`⏸️ ${data.sloMarkdownLink} was disabled.`.toString(),
       moreInformationInMarkdown:
         "A disabled SLO is not evaluated: its SLI, error budget and status stop updating and its burn rate rules do not fire. Any burn rate alerts and incidents its rules had open were resolved.",
     };
   };
 
 export type GetSloArchivedFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
+  sloMarkdownLink: MarkdownText;
   isArchived: boolean;
   isEnabled: boolean;
 }) => SloFeedMarkdown;
 
 export const getSloArchivedFeedMarkdown: GetSloArchivedFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
+    sloMarkdownLink: MarkdownText;
     isArchived: boolean;
     isEnabled: boolean;
   }): SloFeedMarkdown => {
     if (data.isArchived) {
       return {
-        feedInfoInMarkdown: `🗄️ ${data.sloMarkdownLink} was archived.`,
+        feedInfoInMarkdown: mdText`🗄️ ${data.sloMarkdownLink} was archived.`.toString(),
         moreInformationInMarkdown:
           "Archived SLOs are hidden from the SLO list and are not evaluated. Any burn rate alerts and incidents its rules had open were resolved.",
       };
     }
 
     return {
-      feedInfoInMarkdown: `♻️ ${data.sloMarkdownLink} was restored from the archive.`,
+      feedInfoInMarkdown: mdText`♻️ ${data.sloMarkdownLink} was restored from the archive.`.toString(),
       moreInformationInMarkdown: data.isEnabled
         ? "The SLO is back on the SLO list and is evaluated again from the next worker tick."
         : "The SLO is back on the SLO list. It is still disabled, so it is not evaluated until it is enabled.",
@@ -1018,14 +1046,14 @@ export interface SloFeedMonitorReference {
 }
 
 export type GetSloMonitorsChangedFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
+  sloMarkdownLink: MarkdownText;
   monitors: Array<SloFeedMonitorReference>;
   change: "attached" | "detached";
 }) => SloFeedMarkdown;
 
 export const getSloMonitorsChangedFeedMarkdown: GetSloMonitorsChangedFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
+    sloMarkdownLink: MarkdownText;
     monitors: Array<SloFeedMonitorReference>;
     change: "attached" | "detached";
   }): SloFeedMarkdown => {
@@ -1035,45 +1063,41 @@ export const getSloMonitorsChangedFeedMarkdown: GetSloMonitorsChangedFeedMarkdow
       },
     );
 
-    const links: Array<string> = sorted.map(
-      (monitor: SloFeedMonitorReference): string => {
+    const links: Array<MarkdownText> = sorted.map(
+      (monitor: SloFeedMonitorReference): MarkdownText => {
         const name: string =
-          formatSloFeedText(monitor.name, 80) || "Unnamed monitor";
+          truncateSloFeedText(monitor.name, 80) || "Unnamed monitor";
 
-        return `[${name}](${monitor.link})`;
+        return mdText`[${name}](${monitor.link})`;
       },
     );
 
     const emoji: string = data.change === "attached" ? "🔗" : "✂️";
     const preposition: string = data.change === "attached" ? "to" : "from";
 
-    let feedInfoInMarkdown: string;
+    let feedInfoInMarkdown: MarkdownText;
 
     if (links.length === 1) {
-      feedInfoInMarkdown = `${emoji} Monitor ${links[0]} was ${data.change} ${preposition} ${data.sloMarkdownLink}.`;
+      feedInfoInMarkdown = mdText`${emoji} Monitor ${links[0]} was ${data.change} ${preposition} ${data.sloMarkdownLink}.`;
     } else {
-      const named: Array<string> = links.slice(0, MAX_SUMMARY_MONITORS);
+      const named: Array<MarkdownText> = links.slice(0, MAX_SUMMARY_MONITORS);
       const unnamed: number = links.length - named.length;
 
-      feedInfoInMarkdown = `${emoji} ${links.length} monitors were ${data.change} ${preposition} ${data.sloMarkdownLink}: ${named.join(", ")}${unnamed > 0 ? ` and ${unnamed} more` : ""}.`;
+      feedInfoInMarkdown = mdText`${emoji} ${links.length} monitors were ${data.change} ${preposition} ${data.sloMarkdownLink}: ${FeedMarkdown.join(named)}${unnamed > 0 ? mdText` and ${unnamed} more` : ""}.`;
     }
 
-    const listed: Array<string> = links.slice(0, MAX_DETAIL_MONITORS);
+    const listed: Array<MarkdownText> = links.slice(0, MAX_DETAIL_MONITORS);
     const remaining: number = links.length - listed.length;
 
-    const lines: Array<string> = [
-      `**Monitors ${data.change}**:`,
-      listed
-        .map((link: string): string => {
-          return `- ${link}`;
-        })
-        .join("\n") + (remaining > 0 ? `\n- and ${remaining} more` : ""),
-      "The SLO is measured against its new monitor set from the next worker tick.",
+    const lines: Array<MarkdownText> = [
+      mdText`**Monitors ${data.change}**:`,
+      mdText`${FeedMarkdown.bulletList(listed)}${remaining > 0 ? mdText`\n- and ${remaining} more` : ""}`,
+      mdText`The SLO is measured against its new monitor set from the next worker tick.`,
     ];
 
     return {
-      feedInfoInMarkdown: feedInfoInMarkdown,
-      moreInformationInMarkdown: lines.join("\n\n"),
+      feedInfoInMarkdown: feedInfoInMarkdown.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(lines, "\n\n").toString(),
     };
   };
 
@@ -1113,7 +1137,7 @@ export interface SloFeedStatusMeasurement {
 }
 
 export type GetSloStatusChangedFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
+  sloMarkdownLink: MarkdownText;
   // The status before this transition; unset for an SLO never evaluated.
   previousStatus?: SloStatus | undefined | null;
   newStatus: SloStatus;
@@ -1125,18 +1149,18 @@ export type GetSloStatusChangedFeedMarkdownFunction = (data: {
 
 export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
+    sloMarkdownLink: MarkdownText;
     previousStatus?: SloStatus | undefined | null;
     newStatus: SloStatus;
     measurement?: SloFeedStatusMeasurement | undefined;
     reason?: string | undefined;
   }): SloFeedMarkdown => {
-    const details: Array<string> = [
-      `**Status**: ${data.previousStatus || "Not evaluated yet"} → ${data.newStatus}`,
+    const details: Array<MarkdownText> = [
+      mdText`**Status**: ${data.previousStatus || "Not evaluated yet"} → ${data.newStatus}`,
     ];
 
     if (data.reason) {
-      details.push(`**Why**: ${data.reason}`);
+      details.push(mdText`**Why**: ${data.reason}`);
     }
 
     if (data.measurement) {
@@ -1147,7 +1171,7 @@ export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFun
        * UP to its own target would read as healthy when it is not.
        */
       details.push(
-        `**SLI**: ${formatSloFeedPercent(measurement.sliPercentage, 4)} against a ${formatSloFeedPercent(measurement.targetPercentage, 3)} target`,
+        mdText`**SLI**: ${formatSloFeedPercent(measurement.sliPercentage, 4)} against a ${formatSloFeedPercent(measurement.targetPercentage, 3)} target`,
       );
 
       const budgetDuration: string = formatSloFeedDuration(
@@ -1156,16 +1180,16 @@ export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFun
 
       details.push(
         measurement.errorBudgetRemainingSeconds < 0
-          ? `**Error budget remaining**: ${formatSloFeedPercent(measurement.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
-          : `**Error budget remaining**: ${formatSloFeedPercent(measurement.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+          ? mdText`**Error budget remaining**: ${formatSloFeedPercent(measurement.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
+          : mdText`**Error budget remaining**: ${formatSloFeedPercent(measurement.errorBudgetRemainingPercentage)} (${budgetDuration})`,
       );
 
       details.push(
-        `**Current burn rate**: ${formatSloFeedNumber(measurement.currentBurnRate)}x over the last ${formatSloFeedMinutes(measurement.currentBurnRateWindowInMinutes)}`,
+        mdText`**Current burn rate**: ${formatSloFeedNumber(measurement.currentBurnRate)}x over the last ${formatSloFeedMinutes(measurement.currentBurnRateWindowInMinutes)}`,
       );
 
       details.push(
-        `**At-risk threshold**: ${formatSloFeedPercent(measurement.atRiskThresholdPercentage)} of the error budget remaining`,
+        mdText`**At-risk threshold**: ${formatSloFeedPercent(measurement.atRiskThresholdPercentage)} of the error budget remaining`,
       );
     }
 
@@ -1174,17 +1198,18 @@ export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFun
       data.newStatus === SloStatus.Misconfigured
     ) {
       details.push(
-        `While the SLO is ${data.newStatus}, its SLI and error budget are not recalculated and its burn rate rules do not fire. Any burn rate alerts and incidents its rules had open were resolved.`,
+        mdText`While the SLO is ${data.newStatus}, its SLI and error budget are not recalculated and its burn rate rules do not fire. Any burn rate alerts and incidents its rules had open were resolved.`,
       );
     }
 
-    const was: string = data.previousStatus
-      ? ` (was ${data.previousStatus})`
-      : "";
+    const was: MarkdownText = data.previousStatus
+      ? mdText` (was ${data.previousStatus})`
+      : FeedMarkdown.empty();
 
     return {
-      feedInfoInMarkdown: `${getSloStatusEmoji(data.newStatus)} ${data.sloMarkdownLink} is now **${data.newStatus}**${was}.`,
-      moreInformationInMarkdown: details.join("\n\n"),
+      feedInfoInMarkdown:
+        mdText`${getSloStatusEmoji(data.newStatus)} ${data.sloMarkdownLink} is now **${data.newStatus}**${was}.`.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(details, "\n\n").toString(),
     };
   };
 
@@ -1228,7 +1253,7 @@ export const SLO_BURN_RATE_RULE_FEED_COLUMNS: Array<SloFeedColumn> = [
     column: "refireSuppressionMinutes",
     title: "Re-fire suppression",
     kind: SloFeedValueKind.Minutes,
-    emptyText: "_default_",
+    emptyText: mdText`_default_`,
   },
   {
     column: "minimumSampleCount",
@@ -1395,28 +1420,28 @@ const describeRuleOutputs: DescribeRuleOutputsFunction = (
 
 type GetRuleDetailsFunction = (
   rule: SloFeedBurnRateRuleDetails,
-) => Array<string>;
+) => Array<MarkdownText>;
 
 const getRuleDetails: GetRuleDetailsFunction = (
   rule: SloFeedBurnRateRuleDetails,
-): Array<string> => {
-  const details: Array<string> = [];
-  const condition: string | null = describeBurnRateCondition(rule);
+): Array<MarkdownText> => {
+  const details: Array<MarkdownText> = [];
+  const condition: MarkdownText | null = describeBurnRateCondition(rule);
 
   if (condition) {
-    details.push(`**Fires on**: ${condition}`);
+    details.push(mdText`**Fires on**: ${condition}`);
   }
 
   const outputs: string | null = describeRuleOutputs(rule);
 
   if (outputs) {
-    details.push(`**When it fires**: it ${outputs}`);
+    details.push(mdText`**When it fires**: it ${outputs}`);
   }
 
   const enabled: boolean | null = normalizeSloFeedBoolean(rule.isEnabled);
 
   if (enabled !== null) {
-    details.push(`**Enabled**: ${enabled ? "Yes" : "No"}`);
+    details.push(mdText`**Enabled**: ${enabled ? "Yes" : "No"}`);
   }
 
   return details;
@@ -1424,37 +1449,42 @@ const getRuleDetails: GetRuleDetailsFunction = (
 
 type FormatRuleNameFunction = (name: string | undefined | null) => string;
 
+// A rule's name as text, cut to a length a timeline can carry.
 const formatRuleName: FormatRuleNameFunction = (
   name: string | undefined | null,
 ): string => {
-  return formatSloFeedText(name, 80) || "Unnamed rule";
+  return truncateSloFeedText(name, 80) || "Unnamed rule";
 };
 
 export type GetBurnRateRuleAddedFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
+  sloMarkdownLink: MarkdownText;
   rule: SloFeedBurnRateRuleDetails;
 }) => SloFeedMarkdown;
 
 export const getBurnRateRuleAddedFeedMarkdown: GetBurnRateRuleAddedFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
+    sloMarkdownLink: MarkdownText;
     rule: SloFeedBurnRateRuleDetails;
   }): SloFeedMarkdown => {
     return {
-      feedInfoInMarkdown: `🔥 Burn rate rule **${formatRuleName(data.rule.name)}** was added to ${data.sloMarkdownLink}.`,
-      moreInformationInMarkdown: getRuleDetails(data.rule).join("\n\n"),
+      feedInfoInMarkdown:
+        mdText`🔥 Burn rate rule **${formatRuleName(data.rule.name)}** was added to ${data.sloMarkdownLink}.`.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(
+        getRuleDetails(data.rule),
+        "\n\n",
+      ).toString(),
     };
   };
 
 export type GetBurnRateRuleChangedFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
+  sloMarkdownLink: MarkdownText;
   ruleName: string | undefined | null;
   changes: Array<SloFeedColumnChange>;
 }) => SloFeedMarkdown;
 
 export const getBurnRateRuleChangedFeedMarkdown: GetBurnRateRuleChangedFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
+    sloMarkdownLink: MarkdownText;
     ruleName: string | undefined | null;
     changes: Array<SloFeedColumnChange>;
   }): SloFeedMarkdown => {
@@ -1464,10 +1494,11 @@ export const getBurnRateRuleChangedFeedMarkdown: GetBurnRateRuleChangedFeedMarkd
 
     // Turning a rule on or off is the one change people scan the feed for.
     if (onlyChange && onlyChange.column === "isEnabled") {
-      const isEnabled: boolean = onlyChange.to === "On";
+      const isEnabled: boolean = onlyChange.to.toString() === "On";
 
       return {
-        feedInfoInMarkdown: `🔥 Burn rate rule **${ruleName}** on ${data.sloMarkdownLink} was ${isEnabled ? "enabled" : "disabled"}.`,
+        feedInfoInMarkdown:
+          mdText`🔥 Burn rate rule **${ruleName}** on ${data.sloMarkdownLink} was ${isEnabled ? "enabled" : "disabled"}.`.toString(),
         moreInformationInMarkdown: isEnabled
           ? "The rule is evaluated again on the next worker tick."
           : "A disabled rule does not fire. Any alerts and incidents it had open were resolved.",
@@ -1475,33 +1506,39 @@ export const getBurnRateRuleChangedFeedMarkdown: GetBurnRateRuleChangedFeedMarkd
     }
 
     return {
-      feedInfoInMarkdown: `🔥 Burn rate rule **${ruleName}** on ${data.sloMarkdownLink} was updated: ${formatChangeSummary(data.changes)}.`,
-      moreInformationInMarkdown: data.changes
-        .map(formatChangeLine)
-        .join("\n\n"),
+      feedInfoInMarkdown:
+        mdText`🔥 Burn rate rule **${ruleName}** on ${data.sloMarkdownLink} was updated: ${formatChangeSummary(data.changes)}.`.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(
+        data.changes.map(formatChangeLine),
+        "\n\n",
+      ).toString(),
     };
   };
 
 export type GetBurnRateRuleRemovedFeedMarkdownFunction = (data: {
-  sloMarkdownLink: string;
+  sloMarkdownLink: MarkdownText;
   rule: SloFeedBurnRateRuleDetails;
 }) => SloFeedMarkdown;
 
 export const getBurnRateRuleRemovedFeedMarkdown: GetBurnRateRuleRemovedFeedMarkdownFunction =
   (data: {
-    sloMarkdownLink: string;
+    sloMarkdownLink: MarkdownText;
     rule: SloFeedBurnRateRuleDetails;
   }): SloFeedMarkdown => {
     return {
-      feedInfoInMarkdown: `🔥 Burn rate rule **${formatRuleName(data.rule.name)}** was removed from ${data.sloMarkdownLink}.`,
-      moreInformationInMarkdown: [
-        ...getRuleDetails({
-          name: data.rule.name,
-          burnRateThreshold: data.rule.burnRateThreshold,
-          longWindowInMinutes: data.rule.longWindowInMinutes,
-          shortWindowInMinutes: data.rule.shortWindowInMinutes,
-        }),
-        "Any alerts and incidents the rule had open were resolved.",
-      ].join("\n\n"),
+      feedInfoInMarkdown:
+        mdText`🔥 Burn rate rule **${formatRuleName(data.rule.name)}** was removed from ${data.sloMarkdownLink}.`.toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(
+        [
+          ...getRuleDetails({
+            name: data.rule.name,
+            burnRateThreshold: data.rule.burnRateThreshold,
+            longWindowInMinutes: data.rule.longWindowInMinutes,
+            shortWindowInMinutes: data.rule.shortWindowInMinutes,
+          }),
+          mdText`Any alerts and incidents the rule had open were resolved.`,
+        ],
+        "\n\n",
+      ).toString(),
     };
   };

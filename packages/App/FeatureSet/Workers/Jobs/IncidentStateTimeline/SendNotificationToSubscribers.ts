@@ -68,7 +68,10 @@ import SubscriberNotificationRunLimit, {
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "IncidentStateTimeline:SendNotificationToSubscribers",
@@ -525,10 +528,10 @@ RunCron(
                * default Slack and Teams messages, one per line. The default SMS
                * carries none: it is billed by the segment.
                */
-              const chatCustomFields: string =
+              const chatCustomFields: MarkdownText =
                 pageTemplateVariables.customFieldsMarkdownLines.length > 0
-                  ? `\n${pageTemplateVariables.customFieldsMarkdownLines.join("\n")}`
-                  : "";
+                  ? mdText`\n${FeedMarkdown.join(pageTemplateVariables.customFieldsMarkdownLines, "\n")}`
+                  : FeedMarkdown.empty();
 
               const incidentStateName: string =
                 incidentStateTimeline.incidentState.name;
@@ -846,20 +849,20 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      slackTitle = `🚨 ## Incident - ${escapeMarkdownValue(incident.title || " - ")}
+                      slackTitle = mdText`🚨 ## Incident - ${incident.title || " - "}
 
-`;
+`.toString();
 
                       if (resourcesAffectedPlainText) {
-                        slackTitle += `
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}`;
+                        slackTitle += mdText`
+**Resources Affected:** ${resourcesAffectedPlainText}`.toString();
                       }
 
-                      slackTitle += `
-**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
-**Status:** ${escapeMarkdownValue(incidentStateName)}${chatCustomFields}
+                      slackTitle += mdText`
+**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Status:** ${incidentStateName}${chatCustomFields}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 
@@ -901,20 +904,20 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      teamsTitle = `🚨 ## Incident - ${escapeMarkdownValue(incident.title || " - ")}
+                      teamsTitle = mdText`🚨 ## Incident - ${incident.title || " - "}
 
-`;
+`.toString();
 
                       if (resourcesAffectedPlainText) {
-                        teamsTitle += `
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}`;
+                        teamsTitle += mdText`
+**Resources Affected:** ${resourcesAffectedPlainText}`.toString();
                       }
 
-                      teamsTitle += `
-**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
-**Status:** ${escapeMarkdownValue(incidentStateName)}${chatCustomFields}
+                      teamsTitle += mdText`
+**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Status:** ${incidentStateName}${chatCustomFields}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 
@@ -1004,8 +1007,9 @@ RunCron(
 
           const deliveryMarkdown: string = deliveryRecord.toMarkdown();
           // The custom field values that went out, as they were sent.
-          const customFieldsSentMarkdown: string =
-            incidentTemplateVariables.getSentCustomFieldsMarkdown();
+          const customFieldsSentMarkdown: string = incidentTemplateVariables
+            .getSentCustomFieldsMarkdown()
+            .toString();
 
           const incidentNumberDisplay: string =
             incident.incidentNumberWithPrefix ||
@@ -1031,7 +1035,8 @@ RunCron(
               incidentFeedEventType:
                 IncidentFeedEventType.SubscriberNotificationSent,
               displayColor: Red500,
-              feedInfoInMarkdown: `📧 **Not every Status Page Subscriber was notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${escapeMarkdownValue(incidentStateTimeline.incidentState.name)}**`,
+              feedInfoInMarkdown:
+                mdText`📧 **Not every Status Page Subscriber was notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`.toString(),
               /*
                * Each status page with what was sent and what failed, and the
                * subject its email went out with; then the custom field values
@@ -1057,7 +1062,8 @@ RunCron(
               incidentFeedEventType:
                 IncidentFeedEventType.SubscriberNotificationSent,
               displayColor: Blue500,
-              feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${escapeMarkdownValue(incidentStateTimeline.incidentState.name)}**`,
+              feedInfoInMarkdown:
+                mdText`📧 **Status Page Subscribers have been notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`.toString(),
               /*
                * Each status page, the subject its email went out with, and
                * what was sent; then the custom field values sent.
@@ -1084,7 +1090,8 @@ RunCron(
               incidentFeedEventType:
                 IncidentFeedEventType.SubscriberNotificationSent,
               displayColor: Yellow500,
-              feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${escapeMarkdownValue(incidentStateTimeline.incidentState.name)}**`,
+              feedInfoInMarkdown:
+                mdText`📧 **No notification sent to subscribers** for the state change of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`.toString(),
               moreInformationInMarkdown: [
                 "Subscriber notifications were skipped because every associated status page either hides incidents, is left out by this incident's status page scope, or had no matching subscribers.",
                 deliveryMarkdown,

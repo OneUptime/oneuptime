@@ -28,6 +28,7 @@ import AlertEpisodeInternalNoteService from "./AlertEpisodeInternalNoteService";
 import { JSONObject } from "../../Types/JSON";
 import StateChangeNote from "../Utils/StateChangeNote";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline> {
   public constructor() {
@@ -93,12 +94,13 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       );
 
       if (changedByUserId && !createBy.data.rootCause) {
-        createBy.data.rootCause = `Episode state created by ${await UserService.getUserMarkdownString(
-          {
-            userId: changedByUserId,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
+        createBy.data.rootCause =
+          mdText`Episode state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: changedByUserId,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`.toString();
       }
 
       // Under either of its names; the two must agree.
@@ -468,11 +470,11 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       displayColor: alertState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **Episode ${episodeDisplayNumber} State** to **` +
+        mdText` Changed **Episode ${episodeDisplayNumber} State** to **` +
         stateName +
         "**",
       moreInformationInMarkdown: createdItem.rootCause
-        ? `**Cause:** \n${createdItem.rootCause}`
+        ? mdText`**Cause:** \n${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         : undefined,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {

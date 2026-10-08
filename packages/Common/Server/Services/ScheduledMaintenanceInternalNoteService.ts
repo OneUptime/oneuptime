@@ -11,6 +11,10 @@ import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -93,7 +97,7 @@ export class Service extends ProjectReferencesService<Model> {
       scheduledMaintenanceId: scheduledMaintenanceId,
     });
 
-    const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+    const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
       createdItem.id!,
       "/scheduled-maintenance-internal-note/attachment",
     );
@@ -106,10 +110,11 @@ export class Service extends ProjectReferencesService<Model> {
       displayColor: Blue500,
       userId: userId || undefined,
 
-      feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
+      feedInfoInMarkdown:
+        mdText`📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
     
-    ${(createdItem.note || "") + attachmentsMarkdown}
-              `,
+    ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
+              `.toString(),
       workspaceNotification: {
         sendWorkspaceNotification: true,
         notifyUserId: userId || undefined,
@@ -156,7 +161,7 @@ export class Service extends ProjectReferencesService<Model> {
         const scheduledMaintenance: ScheduledMaintenance =
           updatedItem.scheduledMaintenance!;
 
-        const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
+        const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
           updatedItem.id!,
           "/scheduled-maintenance-internal-note/attachment",
         );
@@ -170,10 +175,11 @@ export class Service extends ProjectReferencesService<Model> {
             displayColor: Blue500,
             userId: userId || undefined,
 
-            feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
+            feedInfoInMarkdown:
+              mdText`📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
         
-${(updatedItem.note || "") + attachmentsMarkdown}
-                  `,
+${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
+                  `.toString(),
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: userId || undefined,
@@ -188,9 +194,9 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
   private async getAttachmentsMarkdown(
     modelId: ObjectID,
     attachmentApiPath: string,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     if (!modelId) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const noteWithAttachments: Model | null = await this.findOneById({
@@ -206,7 +212,7 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
     });
 
     if (!noteWithAttachments || !noteWithAttachments.attachments) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const attachmentIds: Array<ObjectID> = noteWithAttachments.attachments
@@ -226,7 +232,7 @@ ${(updatedItem.note || "") + attachmentsMarkdown}
       });
 
     if (!attachmentIds.length) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({

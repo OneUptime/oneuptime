@@ -47,6 +47,7 @@ import ResolvedStateUtil from "../../Utils/ResolvedState";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -180,12 +181,13 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       );
 
       if (changedByUserId && !createBy.data.rootCause) {
-        createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString(
-          {
-            userId: changedByUserId,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
+        createBy.data.rootCause =
+          mdText`Incident state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: changedByUserId,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`.toString();
       }
 
       /*
@@ -626,11 +628,11 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
+        mdText` Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
         stateName +
         "**",
-      moreInformationInMarkdown: `**Cause:**
-${createdItem.rootCause}`,
+      moreInformationInMarkdown: mdText`**Cause:**
+${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -817,12 +819,12 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Incident ${incidentNumberDisplay}](${(
+          text: mdText`**[Incident ${incidentNumberDisplay}](${(
             await IncidentService.getIncidentLinkInDashboard(
               createdItem.projectId!,
               createdItem.incidentId!,
             )
-          ).toString()})** is resolved. Archiving channel.`,
+          ).toString()})** is resolved. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {

@@ -40,6 +40,10 @@ import {
   isSameAgentAiSettings,
 } from "../../Types/AI/AgentAiSettings";
 import crypto from "crypto";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Every column of a KubernetesAiAgent row a reader may need — everything
@@ -1896,9 +1900,9 @@ export class Service extends DatabaseService<Model> {
         kubernetesClusterFeedEventType:
           KubernetesClusterFeedEventType.KubernetesClusterUpdated,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🧹 The previous in-cluster Runner **${
+        feedInfoInMarkdown: mdText`🧹 The previous in-cluster Runner **${
           legacyRunner.name || "kubernetes-agent"
-        }** was removed. The ${KUBERNETES_AI_AGENT_DISPLAY_NAME} replaced it, and it had been offline for over ${LEGACY_RUNNER_RETIREMENT_OFFLINE_DAYS} days.`,
+        }** was removed. The ${KUBERNETES_AI_AGENT_DISPLAY_NAME} replaced it, and it had been offline for over ${LEGACY_RUNNER_RETIREMENT_OFFLINE_DAYS} days.`.toString(),
       });
 
       return "retired";
@@ -2032,12 +2036,12 @@ export class Service extends DatabaseService<Model> {
       }.`,
     );
 
-    const resetBy: string = data.userId
+    const resetBy: MarkdownText = data.userId
       ? await this.getUserMarkdownForFeed({
           userId: data.userId,
           projectId: data.projectId,
         })
-      : "";
+      : FeedMarkdown.empty();
 
     await KubernetesClusterFeedService.createKubernetesClusterFeedItem({
       kubernetesClusterId: data.kubernetesClusterId,
@@ -2045,30 +2049,32 @@ export class Service extends DatabaseService<Model> {
       kubernetesClusterFeedEventType:
         KubernetesClusterFeedEventType.KubernetesClusterUpdated,
       displayColor: Blue500,
-      feedInfoInMarkdown: `🔄 The ${KUBERNETES_AI_AGENT_DISPLAY_NAME} was reset${
-        resetBy ? ` by **${resetBy}**` : ""
-      }. It reconnects on its own within a few minutes.`,
-      moreInformationInMarkdown: `**Agent**: ${KUBERNETES_AI_AGENT_DISPLAY_NAME} (${agent.id.toString()})`,
+      feedInfoInMarkdown:
+        mdText`🔄 The ${KUBERNETES_AI_AGENT_DISPLAY_NAME} was reset${
+          !resetBy.isEmpty() ? mdText` by **${resetBy}**` : ""
+        }. It reconnects on its own within a few minutes.`.toString(),
+      moreInformationInMarkdown:
+        mdText`**Agent**: ${KUBERNETES_AI_AGENT_DISPLAY_NAME} (${agent.id.toString()})`.toString(),
       ...(data.userId ? { userId: data.userId } : {}),
     });
   }
 
   /*
-   * The user's name as a feed link, or "" when it cannot be had (no such
+   * The user's name as a feed link, or nothing when it cannot be had (no such
    * user, or the lookup failed). Only ever wording: the action it describes
    * is already done, so a failed lookup must not fail it.
    */
   private async getUserMarkdownForFeed(data: {
     userId: ObjectID;
     projectId: ObjectID;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     try {
       return await UserService.getUserMarkdownString(data);
     } catch (error) {
       logger.error(
         `KubernetesAiAgent: could not look up user ${data.userId.toString()} for a feed item: ${error}`,
       );
-      return "";
+      return FeedMarkdown.empty();
     }
   }
 
@@ -2158,14 +2164,17 @@ export class Service extends DatabaseService<Model> {
       kubernetesClusterFeedEventType:
         KubernetesClusterFeedEventType.KubernetesClusterUpdated,
       displayColor: Green500,
-      feedInfoInMarkdown: sentences.join(" "),
-      moreInformationInMarkdown: [
-        `**Agent**: ${KUBERNETES_AI_AGENT_DISPLAY_NAME} (${data.agentId.toString()})`,
-        `**Cluster identifier**: \`${data.posture.clusterIdentifier || ""}\``,
-        `**Agent version**: ${data.agentVersion || "unknown"}`,
-        `**kubectl**: ${data.posture.kubectlVersion || "not detected"}`,
-        `**Agent chart**: ${data.posture.agentChartVersion || "unknown"}`,
-      ].join("\n\n"),
+      feedInfoInMarkdown: FeedMarkdown.join(sentences, " ").toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(
+        [
+          mdText`**Agent**: ${KUBERNETES_AI_AGENT_DISPLAY_NAME} (${data.agentId.toString()})`,
+          mdText`**Cluster identifier**: \`${data.posture.clusterIdentifier || ""}\``,
+          mdText`**Agent version**: ${data.agentVersion || "unknown"}`,
+          mdText`**kubectl**: ${data.posture.kubectlVersion || "not detected"}`,
+          mdText`**Agent chart**: ${data.posture.agentChartVersion || "unknown"}`,
+        ],
+        "\n\n",
+      ).toString(),
     });
   }
 
@@ -2207,11 +2216,11 @@ export class Service extends DatabaseService<Model> {
       kubernetesClusterFeedEventType:
         KubernetesClusterFeedEventType.KubernetesClusterUpdated,
       displayColor: Blue500,
-      feedInfoInMarkdown: `🤖 The ${KUBERNETES_AI_AGENT_DISPLAY_NAME}'s ${
+      feedInfoInMarkdown: mdText`🤖 The ${KUBERNETES_AI_AGENT_DISPLAY_NAME}'s ${
         data.applied.source === "agent_configuration"
           ? "configuration"
           : "defaults"
-      } changed what AI may do on this cluster: ${changes.join("; ")}.`,
+      } changed what AI may do on this cluster: ${FeedMarkdown.join(changes, "; ")}.`.toString(),
       moreInformationInMarkdown:
         data.applied.source === "agent_configuration"
           ? "Set with **aiAgent.investigation** and **aiAgent.fixes** on the Kubernetes agent chart. The cluster's AI agent page shows them, with the command that changes them."
@@ -2255,7 +2264,7 @@ export class Service extends DatabaseService<Model> {
       kubernetesClusterFeedEventType:
         KubernetesClusterFeedEventType.KubernetesClusterUpdated,
       displayColor: Blue500,
-      feedInfoInMarkdown: `🤖 ${sentences.join(" ")}`,
+      feedInfoInMarkdown: mdText`🤖 ${FeedMarkdown.join(sentences, " ")}`.toString(),
     });
   }
 }

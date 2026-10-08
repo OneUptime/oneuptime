@@ -41,6 +41,7 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import Select from "../Types/Database/Select";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Enough of a state to tell which kind it is. A project can add its own
@@ -575,7 +576,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
+        mdText` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
         stateName +
         "**",
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
@@ -752,12 +753,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
+          text: mdText`**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               createdItem.projectId!,
               createdItem.scheduledMaintenanceId!,
             )
-          ).toString()})** is complete. Archiving channel.`,
+          ).toString()})** is complete. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {

@@ -42,10 +42,7 @@ import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
 import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
+
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
 import SSRFProtection from "../Utils/SSRFProtection";
@@ -74,6 +71,7 @@ import {
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../Utils/StatusPage/StatusPageEmailLogo";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -1265,10 +1263,8 @@ export class Service extends ProjectReferencesService<Model> {
      * heading, and inside the link's own text, so it reads as typed and
      * cannot become a link, an image, raw HTML or a chat mention.
      */
-    const statusPageNameInMarkdown: string =
-      escapeMarkdownValue(statusPageName);
-    const statusPageNameInLinkText: string =
-      escapeMarkdownInline(statusPageName);
+    const statusPageNameInMarkdown: string = statusPageName;
+    const statusPageNameInLinkText: string = statusPageName;
 
     // createdItem carries the unsubscribe token onBeforeCreate minted.
     const unsubscribeLink: string = this.getUnsubscribeLink(
@@ -1391,7 +1387,8 @@ export class Service extends ProjectReferencesService<Model> {
       logger.debug("Sending Slack notification for new subscriber.", {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
-      const slackMessage: string = `## 📢 New Subscription to ${statusPageNameInMarkdown}
+      const slackMessage: string =
+        mdText`## 📢 New Subscription to ${statusPageNameInMarkdown}
 
 **You have successfully subscribed to receive status updates!**
 
@@ -1404,7 +1401,7 @@ You will receive real-time notifications for:
 • Service announcements
 • Status updates
 
-Stay informed about service availability! 🚀`;
+Stay informed about service availability! 🚀`.toString();
 
       logger.debug(`Slack Message: ${slackMessage}`, {
         projectId: createdItem.projectId?.toString(),
@@ -1474,7 +1471,8 @@ Stay informed about service availability! 🚀`;
       logger.debug("Sending Microsoft Teams notification for new subscriber.", {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
-      const teamsMessage: string = `## 📢 New Subscription to ${statusPageNameInMarkdown}
+      const teamsMessage: string =
+        mdText`## 📢 New Subscription to ${statusPageNameInMarkdown}
 
 **You have successfully subscribed to receive status updates!**
 
@@ -1487,7 +1485,7 @@ You will receive real-time notifications for:
 • Service announcements
 • Status updates
 
-Stay informed about service availability! 🚀`;
+Stay informed about service availability! 🚀`.toString();
 
       logger.debug(`Teams Message: ${teamsMessage}`, {
         projectId: createdItem.projectId?.toString(),
@@ -2750,7 +2748,8 @@ Stay informed about service availability! 🚀`;
     );
 
     // Create markdown message for Slack: the page's name as text.
-    const markdownMessage: string = `## Test Notification - ${escapeMarkdownValue(statusPageName)}
+    const markdownMessage: string =
+      mdText`## Test Notification - ${statusPageName}
 
 **This is a test notification from OneUptime.**
 
@@ -2762,7 +2761,7 @@ You will receive real-time notifications for:
 - Status Updates
 - Announcements
 
-[View Status Page](${statusPageURL})`;
+[View Status Page](${statusPageURL})`.toString();
 
     // Send the test notification
     try {

@@ -14,7 +14,6 @@ import Model from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
@@ -72,6 +71,7 @@ import StartingStageUtil, {
 } from "../../Utils/StartingStage";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -672,14 +672,15 @@ export class Service extends ProjectReferencesService<Model> {
      * says a title must be, so it cannot become an image, raw HTML or a
      * link that hides where it goes. The description stays Markdown.
      */
-    let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
+    let feedInfoInMarkdown: string =
+      mdText`#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
 
-**${escapeMarkdownValue(episode.title || "No title provided.")}**
+**${episode.title || "No title provided."}**
 
-`;
+`.toString();
 
     if (episode.description) {
-      feedInfoInMarkdown += `${episode.description}\n\n`;
+      feedInfoInMarkdown += mdText`${FeedMarkdown.asMarkdown(episode.description)}\n\n`;
     }
 
     if (episode.isManuallyCreated) {
@@ -793,11 +794,11 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
-      feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
+      feedInfoInMarkdown += mdText`The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
 
       // Each policy name is plain text.
       for (const policyName of policyNames) {
-        feedInfoInMarkdown += `- ${escapeMarkdownValue(policyName)}\n`;
+        feedInfoInMarkdown += mdText`- ${policyName}\n`;
       }
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -1252,7 +1253,8 @@ export class Service extends ProjectReferencesService<Model> {
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.SeverityChanged,
         displayColor: newSeverity.color || Yellow500,
-        feedInfoInMarkdown: `Episode severity changed to **${escapeMarkdownValue(newSeverity.name || "Unknown")}**`,
+        feedInfoInMarkdown:
+          mdText`Episode severity changed to **${newSeverity.name || "Unknown"}**`.toString(),
       });
     }
   }

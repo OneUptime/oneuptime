@@ -914,7 +914,7 @@ export class Service extends ProjectReferencesService<Model> {
             serviceLevelObjectiveFeedEventType:
               ServiceLevelObjectiveFeedEventType.BurnRateRuleChanged,
             displayColor:
-              isEnabledOnlyChange && changes[0]!.to === "On"
+              isEnabledOnlyChange && changes[0]!.to.toString() === "On"
                 ? Green500
                 : Gray500,
             feedInfoInMarkdown: markdown.feedInfoInMarkdown,

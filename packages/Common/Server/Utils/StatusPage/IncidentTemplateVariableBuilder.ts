@@ -28,15 +28,16 @@ import SubscriberNotificationTemplateCompiler, {
   SubscriberNotificationTextTemplateVariables,
 } from "../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
 import Timezone from "../../../Types/Timezone";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../../Utils/Markdown/MarkdownEscape";
+import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import IncidentCustomFieldService from "../../Services/IncidentCustomFieldService";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import { syncIsPublicForMarkdownImages } from "../InlineImageAccessTokenSync";
 import StatusPageResourceUtil from "../StatusPageResource";
 import SubscriberMarkdownTemplateValues from "./SubscriberMarkdownTemplateValues";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The values an incident's status page subscriber messages are filled with -
@@ -129,7 +130,7 @@ export interface IncidentStatusPageTemplateVariables {
    * The same fields as Markdown lines ("**Name:** value") for the default
    * Slack and Teams messages; empty when there are none.
    */
-  customFieldsMarkdownLines: Array<string>;
+  customFieldsMarkdownLines: Array<MarkdownText>;
 }
 
 // A custom field and its value, read once per send.
@@ -273,7 +274,7 @@ export class IncidentTemplateVariables {
     }
 
     const customFieldRows: Array<IncidentCustomFieldEmailRow> = [];
-    const customFieldsMarkdownLines: Array<string> = [];
+    const customFieldsMarkdownLines: Array<MarkdownText> = [];
 
     for (const field of this.customFields) {
       const formatted: FormattedCustomFieldValue = this.formatValue(
@@ -302,12 +303,19 @@ export class IncidentTemplateVariables {
           : { title: field.name, plainText: formatted.plainText },
       );
 
-      // The field's name is plain text; its value is formatted for Markdown.
+      /*
+       * The field's name is plain text; its value is already Markdown,
+       * formatted for its type (formatValue).
+       */
+      const valueMarkdown: MarkdownText = FeedMarkdown.asMarkdown(
+        formatted.markdown,
+      );
+
       customFieldsMarkdownLines.push(
         field.customFieldType === CustomFieldType.Markdown ||
           field.customFieldType === CustomFieldType.LongText
-          ? `**${escapeMarkdownValue(field.name)}:**\n${formatted.markdown}`
-          : `**${escapeMarkdownValue(field.name)}:** ${formatted.markdown}`,
+          ? mdText`**${field.name}:**\n${valueMarkdown}`
+          : mdText`**${field.name}:** ${valueMarkdown}`,
       );
     }
 
@@ -385,10 +393,10 @@ export class IncidentTemplateVariables {
 
   /**
    * The custom field values this send put into a message, as Markdown for
-   * the incident feed's "Subscriber Notification Sent" item, or "" when it
-   * sent none. Fields with no value are left out.
+   * the incident feed's "Subscriber Notification Sent" item, or nothing when
+   * it sent none. Fields with no value are left out.
    */
-  public getSentCustomFieldsMarkdown(): string {
+  public getSentCustomFieldsMarkdown(): MarkdownText {
     const sent: Array<PreparedCustomField> = this.customFields.filter(
       (field: PreparedCustomField): boolean => {
         if (!field.hasValue) {
@@ -406,18 +414,18 @@ export class IncidentTemplateVariables {
     );
 
     if (sent.length === 0) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
-    const listLines: Array<string> = [];
-    const richTextBlocks: Array<string> = [];
+    const listItems: Array<MarkdownText> = [];
+    const richTextBlocks: Array<MarkdownText> = [];
 
     for (const field of sent) {
-      const name: string = escapeMarkdownInline(field.name);
-
       // Rich text is Markdown already, and goes in as the block it is.
       if (field.customFieldType === CustomFieldType.Markdown) {
-        richTextBlocks.push(`**${name}:**\n\n${field.markdown?.source || ""}`);
+        richTextBlocks.push(
+          mdText`**${field.name}:**\n\n${FeedMarkdown.asMarkdown(field.markdown?.source)}`,
+        );
         continue;
       }
 
@@ -425,12 +433,17 @@ export class IncidentTemplateVariables {
         Timezone.UTC,
       ]);
 
-      listLines.push(`- **${name}:** ${escapeMarkdownInline(value.plainText)}`);
+      listItems.push(mdText`**${field.name}:** ${value.plainText}`);
     }
 
-    return ["**Custom fields sent:**", listLines.join("\n"), ...richTextBlocks]
-      .filter(Boolean)
-      .join("\n\n");
+    return FeedMarkdown.join(
+      [
+        mdText`**Custom fields sent:**`,
+        ...(listItems.length > 0 ? [FeedMarkdown.bulletList(listItems)] : []),
+        ...richTextBlocks,
+      ],
+      "\n\n",
+    );
   }
 
   /**

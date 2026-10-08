@@ -12,6 +12,7 @@ import {
   StatusPageExclusionReason,
 } from "./StatusPageExclusion";
 import SubscriberNotificationTiming from "./SubscriberNotificationTiming";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * What one subscriber send - an incident created, a state change, a public
@@ -461,11 +462,13 @@ export default class SubscriberNotificationDeliveryRecord {
     if (this.deliveries.length > 0) {
       const lines: Array<string> = this.deliveries.map(
         (delivery: StatusPageDelivery): string => {
-          return `- **${escapeMarkdownInline(delivery.statusPageName)}**: ${this.describeDelivery(delivery)}`;
+          return mdText`- **${delivery.statusPageName}**: ${this.describeDelivery(delivery)}`.toString();
         },
       );
 
-      sections.push(`**Status pages:**\n\n${lines.join("\n")}`);
+      sections.push(
+        mdText`**Status pages:**\n\n${lines.join("\n")}`.toString(),
+      );
 
       if (this.dedupeEmailAndSms) {
         sections.push(
@@ -498,7 +501,7 @@ export default class SubscriberNotificationDeliveryRecord {
       const more: number = names.length - listed.length;
 
       sections.push(
-        `**Not sent to ${names.length} ${names.length === 1 ? EXCLUSION_HEADINGS[reason].one : EXCLUSION_HEADINGS[reason].many}:** ${listed.join(", ")}${more > 0 ? `, and ${more} more` : ""}.`,
+        mdText`**Not sent to ${names.length} ${names.length === 1 ? EXCLUSION_HEADINGS[reason].one : EXCLUSION_HEADINGS[reason].many}:** ${listed.join(", ")}${more > 0 ? `, and ${more} more` : ""}.`.toString(),
       );
     }
 

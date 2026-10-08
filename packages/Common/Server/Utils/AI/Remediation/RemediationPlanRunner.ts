@@ -35,7 +35,7 @@ import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import { escapeMarkdownValue } from "../../../../Utils/Markdown/MarkdownEscape";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Auto-remediation — the AI planning run.
@@ -373,8 +373,8 @@ export default class RemediationPlanRunner {
       suggestion.ruleNameSnapshot || "Auto Remediation Rule";
 
     const markdown: string = runbook
-      ? `⚡ **Auto Remediation Rule "${escapeMarkdownValue(ruleName)}": AI proposed runbook "${escapeMarkdownValue(runbook.name)}".** Review the reasoning and approve it with one click to start remediation.`
-      : `⚡ **Auto Remediation Rule "${escapeMarkdownValue(ruleName)}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`;
+      ? mdText`⚡ **Auto Remediation Rule "${ruleName}": AI proposed runbook "${runbook.name}".** Review the reasoning and approve it with one click to start remediation.`.toString()
+      : mdText`⚡ **Auto Remediation Rule "${ruleName}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`.toString();
 
     await this.postFeedItem({
       suggestion,
@@ -742,7 +742,8 @@ export default class RemediationPlanRunner {
             fromStatus: AutoRemediationSuggestionStatus.Planning,
             set: {
               status: AutoRemediationSuggestionStatus.NoneApplicable,
-              rationaleMarkdown: `AI planning did not produce a proposal — ${reason}. No runbook was proposed; you can still start one manually from the Runbooks card.`,
+              rationaleMarkdown:
+                mdText`AI planning did not produce a proposal — ${reason}. No runbook was proposed; you can still start one manually from the Runbooks card.`.toString(),
             },
           });
 
@@ -752,7 +753,8 @@ export default class RemediationPlanRunner {
 
         await this.postFeedItem({
           suggestion,
-          markdown: `⚡ **${escapeMarkdownValue(this.describeStrandedSource(suggestion))}: AI planning did not complete** (${escapeMarkdownValue(reason)}) — no runbook was proposed.`,
+          markdown:
+            mdText`⚡ **${this.describeStrandedSource(suggestion)}: AI planning did not complete** (${reason}) — no runbook was proposed.`.toString(),
           pingWorkspace: false,
         });
       } catch (error) {

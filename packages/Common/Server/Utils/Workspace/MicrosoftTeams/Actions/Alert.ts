@@ -25,7 +25,9 @@ import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateT
 import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
-import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class MicrosoftTeamsAlertActions {
   @CaptureSpan()
@@ -370,7 +372,8 @@ export default class MicrosoftTeamsAlertActions {
       }
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
-      const message: string = `**Alert Details**\n\n**Title:** ${escapeMarkdownValue(alert.title)}\n**Description:** ${alert.description || "No description"}\n**State:** ${escapeMarkdownValue(alert.currentAlertState?.name || "Unknown")}\n**Severity:** ${escapeMarkdownValue(alert.alertSeverity?.name || "Unknown")}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString() : "Unknown"}`;
+      const message: string =
+        mdText`**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${FeedMarkdown.asMarkdown(alert.description || "No description")}\n**State:** ${alert.currentAlertState?.name || "Unknown"}\n**Severity:** ${alert.alertSeverity?.name || "Unknown"}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;

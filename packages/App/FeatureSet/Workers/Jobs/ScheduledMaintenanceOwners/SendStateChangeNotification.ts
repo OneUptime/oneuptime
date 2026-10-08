@@ -30,7 +30,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
@@ -297,7 +297,7 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+        moreScheduledMaintenanceFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
           {
             userId: user.id!,
             projectId: scheduledMaintenanceStateTimeline.projectId!,
@@ -317,7 +317,8 @@ RunCron(
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${escapeMarkdownValue(scheduledMaintenanceState.name)}**.`,
+        feedInfoInMarkdown:
+          mdText`🔔 **Owners have been notified about the state change of the [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`.toString(),
         moreInformationInMarkdown:
           moreScheduledMaintenanceFeedInformationInMarkdown,
         workspaceNotification: {

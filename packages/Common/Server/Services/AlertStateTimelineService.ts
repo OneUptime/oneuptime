@@ -32,6 +32,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import StateChangeNote from "../Utils/StateChangeNote";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -129,12 +130,13 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       );
 
       if (changedByUserId && !createBy.data.rootCause) {
-        createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
-          {
-            userId: changedByUserId,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
+        createBy.data.rootCause =
+          mdText`Alert state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: changedByUserId,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`.toString();
       }
 
       // Under either of its names; the two must agree.
@@ -467,11 +469,11 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       displayColor: alertState?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
+        mdText` Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
         stateName +
         "**",
-      moreInformationInMarkdown: `**Cause:** 
-${createdItem.rootCause}`,
+      moreInformationInMarkdown: mdText`**Cause:** 
+${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -536,12 +538,12 @@ ${createdItem.rootCause}`,
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(
+          text: mdText`**[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(
             await AlertService.getAlertLinkInDashboard(
               createdItem.projectId!,
               createdItem.alertId!,
             )
-          ).toString()})** is resolved. Archiving channel.`,
+          ).toString()})** is resolved. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {

@@ -82,6 +82,10 @@ import {
   isSameAgentAiSettings,
 } from "../../Types/AI/AgentAiSettings";
 import crypto from "crypto";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Every column of a ResourceAiAgent row a reader may need — everything
@@ -2552,21 +2556,22 @@ export class Service extends DatabaseService<Model> {
       }.`,
     );
 
-    const resetBy: string = data.userId
+    const resetBy: MarkdownText = data.userId
       ? await this.getUserMarkdownForFeed({
           userId: data.userId,
           projectId: data.projectId,
         })
-      : "";
+      : FeedMarkdown.empty();
 
     await Service.getResourceBinding(data.resourceType).writeFeedItem({
       resourceId: data.resourceId,
       projectId: data.projectId,
       displayColor: Blue500,
-      feedInfoInMarkdown: `🔄 The ${info.agentDisplayName} was reset${
-        resetBy ? ` by **${resetBy}**` : ""
-      }. It reconnects on its own within a few minutes.`,
-      moreInformationInMarkdown: `**Agent**: ${info.agentDisplayName} (${agent.id.toString()})`,
+      feedInfoInMarkdown: mdText`🔄 The ${info.agentDisplayName} was reset${
+        !resetBy.isEmpty() ? mdText` by **${resetBy}**` : ""
+      }. It reconnects on its own within a few minutes.`.toString(),
+      moreInformationInMarkdown:
+        mdText`**Agent**: ${info.agentDisplayName} (${agent.id.toString()})`.toString(),
       ...(data.userId ? { userId: data.userId } : {}),
     });
   }
@@ -2604,21 +2609,21 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The user's name as a feed link, or "" when it cannot be had (no such
+   * The user's name as a feed link, or nothing when it cannot be had (no such
    * user, or the lookup failed). Only ever wording: the action it describes
    * is already done, so a failed lookup must not fail it.
    */
   private async getUserMarkdownForFeed(data: {
     userId: ObjectID;
     projectId: ObjectID;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     try {
       return await UserService.getUserMarkdownString(data);
     } catch (error) {
       logger.error(
         `ResourceAiAgent: could not look up user ${data.userId.toString()} for a feed item: ${error}`,
       );
-      return "";
+      return FeedMarkdown.empty();
     }
   }
 
@@ -2710,14 +2715,17 @@ export class Service extends DatabaseService<Model> {
       resourceId: data.resource.id,
       projectId: data.resource.projectId,
       displayColor: Green500,
-      feedInfoInMarkdown: sentences.join(" "),
-      moreInformationInMarkdown: [
-        `**Agent**: ${info.agentDisplayName} (${data.agentId.toString()})`,
-        `**Identity**: \`${data.posture.resourceIdentifier}\``,
-        `**Agent version**: ${data.agentVersion || "unknown"}`,
-        `**Version**: ${data.posture.toolVersion || "not detected"}`,
-        `**Reachable**: ${reachability}`,
-      ].join("\n\n"),
+      feedInfoInMarkdown: FeedMarkdown.join(sentences, " ").toString(),
+      moreInformationInMarkdown: FeedMarkdown.join(
+        [
+          mdText`**Agent**: ${info.agentDisplayName} (${data.agentId.toString()})`,
+          mdText`**Identity**: \`${data.posture.resourceIdentifier}\``,
+          mdText`**Agent version**: ${data.agentVersion || "unknown"}`,
+          mdText`**Version**: ${data.posture.toolVersion || "not detected"}`,
+          mdText`**Reachable**: ${reachability}`,
+        ],
+        "\n\n",
+      ).toString(),
     });
   }
 
@@ -2759,15 +2767,15 @@ export class Service extends DatabaseService<Model> {
       resourceId: data.resource.id,
       projectId: data.resource.projectId,
       displayColor: Blue500,
-      feedInfoInMarkdown: `🤖 The ${info.agentDisplayName}'s ${
+      feedInfoInMarkdown: mdText`🤖 The ${info.agentDisplayName}'s ${
         data.applied.source === "agent_configuration"
           ? "configuration"
           : "defaults"
-      } changed what AI may do on this ${noun}: ${changes.join("; ")}.`,
+      } changed what AI may do on this ${noun}: ${FeedMarkdown.join(changes, "; ")}.`.toString(),
       moreInformationInMarkdown:
         data.applied.source === "agent_configuration"
-          ? `Set with **${AI_INVESTIGATION_ENV}** and **${AI_FIXES_ENV}** where the agent runs. The ${noun}'s AI agent page shows them, with how to change them.`
-          : `Neither **${AI_INVESTIGATION_ENV}** nor **${AI_FIXES_ENV}** is set where the agent runs, so its defaults apply: investigation on, and fixes Ask for approval when it may change things (${RESOURCE_AI_ALLOW_WRITES_ENV}=true), else Off. Set them to choose; the ${noun}'s AI agent page shows how.`,
+          ? mdText`Set with **${AI_INVESTIGATION_ENV}** and **${AI_FIXES_ENV}** where the agent runs. The ${noun}'s AI agent page shows them, with how to change them.`.toString()
+          : mdText`Neither **${AI_INVESTIGATION_ENV}** nor **${AI_FIXES_ENV}** is set where the agent runs, so its defaults apply: investigation on, and fixes Ask for approval when it may change things (${RESOURCE_AI_ALLOW_WRITES_ENV}=true), else Off. Set them to choose; the ${noun}'s AI agent page shows how.`.toString(),
     });
   }
 
@@ -2808,7 +2816,7 @@ export class Service extends DatabaseService<Model> {
       resourceId: data.resource.id,
       projectId: data.resource.projectId,
       displayColor: Blue500,
-      feedInfoInMarkdown: `🤖 ${sentences.join(" ")}`,
+      feedInfoInMarkdown: mdText`🤖 ${FeedMarkdown.join(sentences, " ")}`.toString(),
     });
   }
 }

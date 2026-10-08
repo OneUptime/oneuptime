@@ -1,5 +1,4 @@
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import AlertGroupingRule from "../../Models/DatabaseModels/AlertGroupingRule";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
@@ -39,6 +38,7 @@ import {
   clearPlaceholdersExcept,
   replaceAllLiterally,
 } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -1004,12 +1004,13 @@ class AlertGroupingEngineServiceClass {
          * title often holds an address, and a backslash put inside a bare
          * address would become part of the link renderers make of it.
          */
-        let moreInfo: string = `**Rule:** ${escapeMarkdownValue(rule.name || "Unnamed Rule")}\n\n`;
-        moreInfo += `**Grouping Key:** ${escapeMarkdownValue(this.getGroupingKeyToShow(alert, rule, groupingKey))}\n\n`;
-        moreInfo += `**${groupByDescription}**`;
+        let moreInfo: string =
+          mdText`**Rule:** ${rule.name || "Unnamed Rule"}\n\n`.toString();
+        moreInfo += mdText`**Grouping Key:** ${this.getGroupingKeyToShow(alert, rule, groupingKey)}\n\n`;
+        moreInfo += mdText`**${groupByDescription}**`;
 
         if (rule.enableTimeWindow && rule.timeWindowMinutes) {
-          moreInfo += `\n\n**Time Window:** ${rule.timeWindowMinutes} minutes`;
+          moreInfo += mdText`\n\n**Time Window:** ${rule.timeWindowMinutes} minutes`;
         }
 
         try {
@@ -1018,7 +1019,8 @@ class AlertGroupingEngineServiceClass {
             projectId: alert.projectId!,
             alertEpisodeFeedEventType: AlertEpisodeFeedEventType.EpisodeCreated,
             displayColor: Green500,
-            feedInfoInMarkdown: `🔔 **Episode Created** by grouping rule **${escapeMarkdownValue(rule.name || "Unnamed Rule")}**`,
+            feedInfoInMarkdown:
+              mdText`🔔 **Episode Created** by grouping rule **${rule.name || "Unnamed Rule"}**`.toString(),
             moreInformationInMarkdown: moreInfo,
           });
         } catch (feedError) {

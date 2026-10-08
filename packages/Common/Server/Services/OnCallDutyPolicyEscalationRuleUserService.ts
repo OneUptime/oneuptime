@@ -25,6 +25,7 @@ import OneUptimeDate from "../../Types/Date";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -160,12 +161,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         projectId: projectId!,
         onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.UserAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-          {
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
             userId: createdModel.user!.id!,
             projectId: projectId!,
-          },
-        )}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
+          })}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`.toString(),
         userId: createdModel.createdByUserId! || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -255,7 +255,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,

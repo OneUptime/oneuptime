@@ -28,35 +28,30 @@ import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/Incide
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Yellow500, Green500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import IncidentService from "./IncidentService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * An incident's or an episode's title is plain text - an incident's is typed
  * by whoever declared it, which is anyone holding an incident form's link,
  * and an episode's is often copied from its first incident's - and the feed
  * items below place it into Markdown that the dashboard renders without its
- * safe mode and that is posted to Slack and Teams. Escaped as MarkdownEscape
- * says a title must be (as the incident's own "Incident Created" item does),
- * so "![](https://tracker...)" is not fetched and "[Reset your password](...)"
- * is not a link that hides where it goes, while an ordinary title reads as
- * typed.
+ * safe mode and that is posted to Slack and Teams. It is placed as text
+ * (mdText), so "![](https://tracker...)" is not fetched and "[Reset your
+ * password](...)" is not a link that hides where it goes, while an ordinary
+ * title reads as typed.
  */
-type GetFeedTitleFunction = (title: string | undefined | null) => string;
-
-const getFeedTitle: GetFeedTitleFunction = (
-  title: string | undefined | null,
-): string => {
-  return escapeMarkdownValue(title || "No title");
-};
 
 // How a feed entry names the incident, or the episode, on the other side.
 interface FeedMention {
   // "**Incident INC-42**", or "**Incident INC-42** (private incident)".
-  subject: string;
+  subject: MarkdownText;
   // ": <title>", or nothing for a private one.
-  titleSuffix: string;
+  titleSuffix: MarkdownText;
 }
 
 /*
@@ -81,16 +76,16 @@ const describeFeedMention: DescribeFeedMentionFunction = (data: {
   isPrivate: boolean;
   privateNoun: string;
 }): FeedMention => {
-  const subject: string = `**${data.label}**`;
+  const subject: MarkdownText = mdText`**${data.label}**`;
 
   if (data.isPrivate) {
     return {
-      subject: `${subject} (private ${data.privateNoun})`,
-      titleSuffix: "",
+      subject: mdText`${subject} (private ${data.privateNoun})`,
+      titleSuffix: FeedMarkdown.empty(),
     };
   }
 
-  return { subject: subject, titleSuffix: `: ${getFeedTitle(data.title)}` };
+  return { subject: subject, titleSuffix: mdText`: ${data.title || "No title"}` };
 };
 
 type DescribeIncidentFunction = (incident: Incident | null) => FeedMention;
@@ -483,7 +478,8 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createdItem.projectId,
       incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.IncidentAdded,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `${incidentMention.subject} added to episode${incidentMention.titleSuffix}`,
+      feedInfoInMarkdown:
+        mdText`${incidentMention.subject} added to episode${incidentMention.titleSuffix}`.toString(),
       userId: createdItem.addedByUserId || undefined,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -497,7 +493,8 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createdItem.projectId,
       incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `Added to ${episodeMention.subject}${episodeMention.titleSuffix}`,
+      feedInfoInMarkdown:
+        mdText`Added to ${episodeMention.subject}${episodeMention.titleSuffix}`.toString(),
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -614,7 +611,8 @@ export class Service extends ProjectReferencesService<Model> {
               incidentEpisodeFeedEventType:
                 IncidentEpisodeFeedEventType.IncidentRemoved,
               displayColor: Green500,
-              feedInfoInMarkdown: `${incidentMention.subject} removed from episode${incidentMention.titleSuffix}`,
+              feedInfoInMarkdown:
+                mdText`${incidentMention.subject} removed from episode${incidentMention.titleSuffix}`.toString(),
               workspaceNotification: {
                 sendWorkspaceNotification: true,
               },
@@ -626,7 +624,8 @@ export class Service extends ProjectReferencesService<Model> {
               projectId: member.projectId,
               incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
               displayColor: Green500,
-              feedInfoInMarkdown: `Removed from ${episodeMention.subject}${episodeMention.titleSuffix}`,
+              feedInfoInMarkdown:
+                mdText`Removed from ${episodeMention.subject}${episodeMention.titleSuffix}`.toString(),
             });
           }
         }

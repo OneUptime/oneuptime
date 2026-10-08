@@ -37,6 +37,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "podman-host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -446,7 +447,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getPodmanHostMarkdownLink(
     projectId: ObjectID,
     podmanHostId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getPodmanHostName({
       podmanHostId: podmanHostId,
     });
@@ -455,7 +456,7 @@ export class Service extends ProjectReferencesService<Model> {
       podmanHostId,
     );
 
-    return `[Podman Host ${name}](${link.toString()})`;
+    return mdText`[Podman Host ${name}](${link.toString()})`;
   }
 
   private async writePodmanHostCreatedFeed(
@@ -639,7 +640,7 @@ export class Service extends ProjectReferencesService<Model> {
       getResourceMarkdownLink: (
         projectId: ObjectID,
         podmanHostId: ObjectID,
-      ): Promise<string> => {
+      ): Promise<MarkdownText> => {
         return this.getPodmanHostMarkdownLink(projectId, podmanHostId);
       },
       createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
@@ -706,7 +707,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string = await this.getPodmanHostMarkdownLink(
+      const resourceMarkdownLink: MarkdownText = await this.getPodmanHostMarkdownLink(
         projectId,
         podmanHostId,
       );
@@ -720,8 +721,8 @@ export class Service extends ProjectReferencesService<Model> {
             : PodmanHostFeedEventType.PodmanHostRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

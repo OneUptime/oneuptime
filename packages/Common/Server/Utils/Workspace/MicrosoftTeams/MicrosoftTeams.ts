@@ -123,11 +123,9 @@ import AIService, {
 } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../../../Utils/Markdown/MarkdownEscape";
+import { escapeMarkdownValue } from "../../../../Utils/Markdown/MarkdownEscape";
 import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
@@ -898,7 +896,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           name.toLowerCase() === "description" ||
           name.toLowerCase() === "note"
         ) {
-          bodyTextParts.push(`**${name}:** ${value}`);
+          bodyTextParts.push(mdText`**${name}:** ${value}`.toString());
         } else {
           facts.push({ name: name, value: value });
         }
@@ -3941,7 +3939,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             return `• ${escapeMarkdownValue(citation.label)} (${citation.rowCount} rows)`;
           },
         );
-        replyText += `\n\n**Sources**\n${sourceLines.join("\n")}`;
+        replyText += mdText`\n\n**Sources**\n${sourceLines.join("\n")}`;
       }
 
       await turnContext.sendActivity(replyText);
@@ -4069,9 +4067,10 @@ Currently, there are no active incidents in the system. All services are operati
 If you need to report an incident or check historical incidents, please visit the OneUptime dashboard.`;
       }
 
-      let message: string = `**Active Incidents** (${activeIncidents.length})
+      let message: string =
+        mdText`**Active Incidents** (${activeIncidents.length})
 
-`;
+`.toString();
 
       for (const incident of activeIncidents) {
         const severity: string = incident.incidentSeverity?.name || "Unknown";
@@ -4102,24 +4101,24 @@ If you need to report an incident or check historical incidents, please visit th
          * image. Escaping brackets alone is not enough there: marked, for
          * one, undoes "\[" and "\]" in a link's text before reading it.
          */
-        message += `${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${escapeMarkdownInline(incident.title)}](${incidentUrl.toString()})**
-• **Severity:** ${escapeMarkdownValue(severity)}
-• **Status:** ${escapeMarkdownValue(state)}
+        message += mdText`${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${incident.title}](${incidentUrl.toString()})**
+• **Severity:** ${severity}
+• **Status:** ${state}
 • **Declared:** ${declaredAtText}
 `;
 
         if (incident.monitors && incident.monitors.length > 0) {
-          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
             incident.monitors,
           )}\n`;
         }
 
         if (incident.description) {
           const desc: string = incident.description.replace(/\s+/g, " ");
-          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `• [Open in Dashboard](${incidentUrl.toString()})\n\n`;
+        message += mdText`• [Open in Dashboard](${incidentUrl.toString()})\n\n`;
       }
 
       return message;
@@ -4187,9 +4186,10 @@ When maintenance is scheduled, you'll see details here including:
 Check back later for upcoming maintenance windows.`;
       }
 
-      let message: string = `**Scheduled Maintenance Events** (${scheduledEvents.length})
+      let message: string =
+        mdText`**Scheduled Maintenance Events** (${scheduledEvents.length})
 
-`;
+`.toString();
 
       for (const event of scheduledEvents) {
         const state: string =
@@ -4208,24 +4208,24 @@ Check back later for upcoming maintenance windows.`;
           );
 
         // The title inside the link's text, escaped as an incident's is.
-        message += `🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${escapeMarkdownInline(event.title)}](${eventUrl.toString()})**
-• **Status:** ${escapeMarkdownValue(state)}
+        message += mdText`🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
+• **Status:** ${state}
 • **Starts:** ${startTime}
 • **Ends:** ${endTime}
 `;
 
         if (event.monitors && event.monitors.length > 0) {
-          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
             event.monitors,
           )}\n`;
         }
 
         if (event.description) {
           const desc: string = event.description.replace(/\s+/g, " ");
-          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `• [View Event](${eventUrl.toString()})\n\n`;
+        message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
       }
 
       return message;
@@ -4292,9 +4292,10 @@ When maintenance is in progress, you'll see details here including:
 All systems are currently operating normally.`;
       }
 
-      let message: string = `**Ongoing Maintenance Events** (${ongoingEvents.length})
+      let message: string =
+        mdText`**Ongoing Maintenance Events** (${ongoingEvents.length})
 
-`;
+`.toString();
 
       for (const event of ongoingEvents) {
         const state: string =
@@ -4313,24 +4314,24 @@ All systems are currently operating normally.`;
           );
 
         // The title inside the link's text, escaped as an incident's is.
-        message += `🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${escapeMarkdownInline(event.title)}](${eventUrl.toString()})**
-• **Status:** ${escapeMarkdownValue(state)}
+        message += mdText`🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
+• **Status:** ${state}
 • **Started:** ${startTime}
 • **Expected End:** ${endTime}
 `;
 
         if (event.monitors && event.monitors.length > 0) {
-          message += `• **Affected Services:** ${this.formatAffectedMonitorNames(
+          message += mdText`• **Affected Services:** ${this.formatAffectedMonitorNames(
             event.monitors,
           )}\n`;
         }
 
         if (event.description) {
           const desc: string = event.description.replace(/\s+/g, " ");
-          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `• [View Event](${eventUrl.toString()})\n\n`;
+        message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
       }
 
       return message;
@@ -4409,9 +4410,9 @@ When alerts are triggered, you'll see details here including:
 All monitoring checks are passing normally.`;
       }
 
-      let message: string = `**Active Alerts** (${activeAlerts.length})
+      let message: string = mdText`**Active Alerts** (${activeAlerts.length})
 
-`;
+`.toString();
 
       for (const alert of activeAlerts) {
         const severity: string = alert.alertSeverity?.name || "Unknown";
@@ -4431,22 +4432,22 @@ All monitoring checks are passing normally.`;
          * Markdown character in it is escaped, as an incident's title is
          * above. The severity, state and monitor names are plain text too.
          */
-        message += `⚠️ **[Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber}: ${escapeMarkdownInline(alert.title)}](${alertUrl.toString()})**
-• **Severity:** ${escapeMarkdownValue(severity)}
-• **Status:** ${escapeMarkdownValue(state)}
+        message += mdText`⚠️ **[Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
+• **Severity:** ${severity}
+• **Status:** ${state}
 • **Triggered:** ${createdAt}
 `;
 
         if (alert.monitor?.name) {
-          message += `• **Monitor:** ${escapeMarkdownValue(alert.monitor.name)}\n`;
+          message += mdText`• **Monitor:** ${alert.monitor.name}\n`;
         }
 
         if (alert.description) {
           const desc: string = alert.description.replace(/\s+/g, " ");
-          message += `• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
         }
 
-        message += `• [Open in Dashboard](${alertUrl.toString()})\n\n`;
+        message += mdText`• [Open in Dashboard](${alertUrl.toString()})\n\n`;
       }
 
       return message;

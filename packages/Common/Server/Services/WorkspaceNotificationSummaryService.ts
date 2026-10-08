@@ -64,6 +64,7 @@ import WorkspaceSummaryScheduleUtil, {
 import Timezone from "../../Types/Timezone";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * NOTE ON FORMATTING:
@@ -664,11 +665,11 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   }
 
   private static bold(text: string): string {
-    return `**${text}**`;
+    return mdText`**${text}**`.toString();
   }
 
   private static link(url: string, text: string): string {
-    return `[${text}](${url})`;
+    return mdText`[${text}](${url})`.toString();
   }
 
   /*

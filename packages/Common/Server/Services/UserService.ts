@@ -41,7 +41,6 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import Text from "../../Types/Text";
 import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
@@ -65,6 +64,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Timezone from "../../Types/Timezone";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Names the Redis mutex that serializes the first-Master-Admin election across
@@ -237,7 +240,7 @@ export class Service extends DatabaseService<Model> {
   public async getUserMarkdownString(data: {
     userId: ObjectID;
     projectId: ObjectID;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     /*
      * Callers reach this through non-null assertions on nullable columns (an
      * on-call timeline row for a coverage gap has no recipient, for example).
@@ -246,7 +249,7 @@ export class Service extends DatabaseService<Model> {
      * would name an arbitrary person. Fail closed instead.
      */
     if (!data.userId) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const user: Model | null = await this.findOneBy({
@@ -263,7 +266,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!user) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     /*
@@ -273,11 +276,10 @@ export class Service extends DatabaseService<Model> {
      * sentence somewhere else, "![...](...)" is no image, and "<!channel>"
      * mentions nobody. The name still reads exactly as typed.
      */
-    const displayName: string = escapeMarkdownInline(
-      user.name?.toString() || user.email?.toString() || "User",
-    );
+    const displayName: string =
+      user.name?.toString() || user.email?.toString() || "User";
 
-    return `[${displayName}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
+    return mdText`[${displayName}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
   }
 
   @CaptureSpan()
