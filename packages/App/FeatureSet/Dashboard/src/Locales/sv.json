@@ -26984,7 +26984,6 @@
   "Branding Product Name": "Branding Product Name",
   "Branding Updated At": "Branding Updated At",
   "Branding Website URL": "Branding Website URL",
-  "Can Be White-Labelled": "Can Be White-Labelled",
   "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "Mobilappen har tagits bort från den här enheten, eller så är dess push-token inte längre giltig. Öppna mobilappen på enheten för att registrera den igen.",
   "Waiting for {{name}} to register it again": "Väntar på att {{name}} registrerar den igen",
   "{{identifier}} (not receiving notifications)": "{{identifier}} (tar inte emot aviseringar)"
