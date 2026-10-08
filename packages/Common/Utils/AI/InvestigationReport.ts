@@ -264,7 +264,7 @@ const WHITESPACE_CHARACTER_REGEX: RegExp = /\s/;
 
 /*
  * The server writes an evidence label and the model's name escaped for
- * Markdown (escapeMarkdownValue): a backslash before punctuation, and an
+ * Markdown (FeedMarkdown): a backslash before punctuation, and an
  * invisible word joiner inside a chat mention. Read back, each is the text
  * as typed.
  */

@@ -10,6 +10,7 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import PodmanHostService from "./PodmanHostService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -84,10 +85,11 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: projectId,
         podmanHostFeedEventType: PodmanHostFeedEventType.OwnerTeamRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await PodmanHostService.getPodmanHostMarkdownLink(
-          projectId,
-          podmanHostId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await PodmanHostService.getPodmanHostMarkdownLink(
+            projectId,
+            podmanHostId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -123,10 +125,11 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: projectId,
           podmanHostFeedEventType: PodmanHostFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await PodmanHostService.getPodmanHostMarkdownLink(
-            projectId,
-            podmanHostId,
-          )}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await PodmanHostService.getPodmanHostMarkdownLink(
+              projectId,
+              podmanHostId,
+            )}.`.toString(),
           userId: createdByUserId || undefined,
         });
       }

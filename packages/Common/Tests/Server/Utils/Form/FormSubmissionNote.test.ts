@@ -13,6 +13,7 @@ import {
   renderAsDashboard,
 } from "../../../Utils/Markdown/DashboardMarkdownRenderer";
 import { describe, expect, test } from "@jest/globals";
+import { marked, Token } from "marked";
 
 /*
  * The private note a submission leaves on what it created: which form, who
@@ -68,7 +69,7 @@ describe("getFormSubmissionNote: who sent it", () => {
 
   test("escapes the form's name too, which sits inside the note's own bold", () => {
     expect(getFormSubmissionNote({ formName: "IT ** Help_desk [EU]" })).toBe(
-      "Submitted anonymously through the form **IT \\*\\* Help\\_desk \\[EU\\]**.",
+      "Submitted anonymously through the form **IT \\*\\* Help_desk \\[EU\\]**.",
     );
   });
 
@@ -94,9 +95,7 @@ describe("getFormSubmissionNote: who sent it", () => {
         formName: "Form",
         submitterEmail: "Jane <jane@example.com>",
       }),
-    ).toBe(
-      "Submitted through the form **Form** by Jane \\<jane@example.com\\>.",
-    );
+    ).toBe("Submitted through the form **Form** by Jane \\<jane@example.com>.");
   });
 
   test("getFormSubmitterEmailText: an autolink, an explicit link, an escape or nothing", () => {
@@ -104,7 +103,7 @@ describe("getFormSubmissionNote: who sent it", () => {
       "<jane@example.com>",
     );
     expect(getFormSubmitterEmailText({ email: "a#b@example.com" })).toBe(
-      "[a\\#b@example.com](mailto:a%23b@example.com)",
+      "[a#b@example.com](mailto:a%23b@example.com)",
     );
     expect(getFormSubmitterEmailText({ email: "  " })).toBe("");
     expect(getFormSubmitterEmailText({})).toBe("");
@@ -136,20 +135,28 @@ describe("getFormSubmissionNote: the answers", () => {
   });
 
   test("a multi-line answer keeps its lines, each escaped", () => {
-    expect(
-      getFormSubmissionNote({
-        formName: "F",
-        answers: [
-          {
-            label: "Steps",
-            displayValue: "1. Add to cart\n2. Pay *now*",
-            format: FormNoteAnswerFormat.MultiLine,
-          },
-        ],
-      }),
-    ).toBe(
-      "Submitted anonymously through the form **F**.\n\n**Steps**  \n1. Add to cart  \n2. Pay \\*now\\*",
+    const note: string = getFormSubmissionNote({
+      formName: "F",
+      answers: [
+        {
+          label: "Steps",
+          displayValue: "1. Add to cart\n2. Pay *now*",
+          format: FormNoteAnswerFormat.MultiLine,
+        },
+      ],
+    });
+
+    expect(note).toBe(
+      "Submitted anonymously through the form **F**.\n\n**Steps**  \n1\\. Add to cart  \n2\\. Pay \\*now\\*",
     );
+
+    // The numbers start no list: the answer reads as it was typed.
+    const tokenTypes: Array<string> = [];
+    marked.walkTokens(marked.lexer(note), (token: Token): void => {
+      tokenTypes.push(token.type);
+    });
+    expect(tokenTypes).not.toContain("list");
+    expect(tokenTypes).not.toContain("em");
   });
 
   test("a Markdown answer gets a paragraph of its own, neutralized as a description is", () => {
@@ -446,7 +453,15 @@ describe("getFormSubmissionNote: the template it started from", () => {
 
     expect(line.startsWith("Started from the template **")).toBe(true);
     expect(line).not.toContain("<!channel>");
-    expect(line).not.toContain("](javascript:");
+    // Its brackets are escaped, so nothing in it is a link.
+    expect(line).toContain("\\[x\\](javascript:alert(1))");
+    const links: Array<string> = [];
+    marked.walkTokens(marked.lexer(line), (token: Token): void => {
+      if (token.type === "link") {
+        links.push(token.raw);
+      }
+    });
+    expect(links).toEqual([]);
     expect(line).not.toContain("****");
   });
 });

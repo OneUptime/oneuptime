@@ -33,6 +33,7 @@ import IncidentEpisodeInternalNote from "../../../../../Models/DatabaseModels/In
 import IncidentEpisodePublicNote from "../../../../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import SlackActionAuthorization from "./Authorization";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackIncidentEpisodeActions {
   @CaptureSpan()
@@ -129,7 +130,7 @@ export default class SlackIncidentEpisodeActions {
         // send a message to the channel visible to user, that the episode has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot acknowledge the **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been acknowledged.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot acknowledge the **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been acknowledged.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -259,7 +260,7 @@ export default class SlackIncidentEpisodeActions {
         // send a message to the channel visible to user, that the episode has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot resolve the **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -630,7 +631,7 @@ export default class SlackIncidentEpisodeActions {
         // send a message to the channel visible to user, that the episode has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`,
+          text: mdText`@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Incident Episode](${await IncidentEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({

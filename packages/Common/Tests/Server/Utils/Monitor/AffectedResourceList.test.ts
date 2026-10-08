@@ -7,6 +7,7 @@ import Markdown, {
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { marked, Tokens, Token } from "marked";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * AffectedResourceList renders the "Affected Resources" block of a platform
  * monitor's root cause. It replaced a GitHub-flavoured table that wrapped
@@ -31,12 +32,15 @@ function entry(
 ): AffectedResourceListEntry {
   return {
     kind: "Pod",
-    name: "`checkout-7d9f`",
-    value: "**3**",
+    name: FeedMarkdown.asMarkdown("`checkout-7d9f`"),
+    value: FeedMarkdown.asMarkdown("**3**"),
     details: [
-      { label: "Namespace", value: "`payments`" },
-      { label: "Deployment", value: "`checkout`" },
-      { label: "Node", value: "`gke-prod-pool-1-abcd`" },
+      { label: "Namespace", value: FeedMarkdown.asMarkdown("`payments`") },
+      { label: "Deployment", value: FeedMarkdown.asMarkdown("`checkout`") },
+      {
+        label: "Node",
+        value: FeedMarkdown.asMarkdown("`gke-prod-pool-1-abcd`"),
+      },
     ],
     ...overrides,
   };
@@ -48,11 +52,11 @@ function entries(count: number): Array<AffectedResourceListEntry> {
   for (let i: number = 1; i <= count; i++) {
     result.push(
       entry({
-        name: `\`pod-${i}\``,
-        value: `**${100 - i}**`,
+        name: FeedMarkdown.asMarkdown(`\`pod-${i}\``),
+        value: FeedMarkdown.asMarkdown(`**${100 - i}**`),
         details: [
-          { label: "Namespace", value: `\`ns-${i}\`` },
-          { label: "Node", value: `\`node-${i}\`` },
+          { label: "Namespace", value: FeedMarkdown.asMarkdown(`\`ns-${i}\``) },
+          { label: "Node", value: FeedMarkdown.asMarkdown(`\`node-${i}\``) },
         ],
       }),
     );
@@ -70,7 +74,7 @@ function render(
     overflowNoun: "affected resources",
     totalCount: totalCount === undefined ? shown.length : totalCount,
     entries: shown,
-  });
+  }).toString();
 }
 
 // The top-level block tokens marked produces, without the blank-line spacers.
@@ -143,14 +147,14 @@ describe("AffectedResourceList.render - markdown", () => {
     const markdown: string = render([
       entry({
         kind: "Node",
-        name: "`node-a`",
-        value: "**85.00%**",
+        name: FeedMarkdown.asMarkdown("`node-a`"),
+        value: FeedMarkdown.asMarkdown("**85.00%**"),
         details: [],
       }),
       entry({
         kind: "Node",
-        name: "`node-b`",
-        value: "**80.00%**",
+        name: FeedMarkdown.asMarkdown("`node-b`"),
+        value: FeedMarkdown.asMarkdown("**80.00%**"),
         details: [],
       }),
     ]);
@@ -164,10 +168,10 @@ describe("AffectedResourceList.render - markdown", () => {
     const markdown: string = render([
       entry({
         details: [
-          { label: "Namespace", value: "`payments`" },
+          { label: "Namespace", value: FeedMarkdown.asMarkdown("`payments`") },
           { label: "Deployment", value: "" },
           { label: "Pod", value: "   " },
-          { label: "Node", value: "`node-a`" },
+          { label: "Node", value: FeedMarkdown.asMarkdown("`node-a`") },
         ],
       }),
     ]);
@@ -189,7 +193,11 @@ describe("AffectedResourceList.render - markdown", () => {
 
   test("an empty name leaves just the kind", () => {
     const markdown: string = render([
-      entry({ kind: "Cluster", name: "", details: [] }),
+      entry({
+        kind: "Cluster",
+        name: FeedMarkdown.asMarkdown(""),
+        details: [],
+      }),
     ]);
 
     expect(markdown).toContain("1. **Cluster** — **3**");
@@ -200,17 +208,50 @@ describe("AffectedResourceList.render - markdown", () => {
       entry({
         kind: "*bold* [link](https://evil.example)",
         details: [
-          { label: "![img](https://evil.example/x.png)", value: "`x`" },
+          {
+            label: "![img](https://evil.example/x.png)",
+            value: FeedMarkdown.asMarkdown("`x`"),
+          },
         ],
       }),
     ]);
 
     expect(markdown).toContain(
-      "1. **\\*bold\\* \\[link\\]\\(https://evil.example\\)** `checkout-7d9f` — **3**",
+      "1. **\\*bold\\* \\[link\\](https://evil.example)** `checkout-7d9f` — **3**",
     );
     expect(markdown).toContain(
-      "   - \\!\\[img\\]\\(https://evil.example/x.png\\): `x`",
+      "   - !\\[img\\](https://evil.example/x.png): `x`",
     );
+
+    /*
+     * Once the list is read, neither is an image, emphasis or a link whose
+     * words hide where it goes: the only link is the bare address itself.
+     */
+    const tokens: Array<Token> = [];
+    marked.walkTokens(marked.lexer(markdown), (token: Token): void => {
+      tokens.push(token);
+    });
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          return ["image", "em"].includes(token.type);
+        })
+        .map((token: Token): string => {
+          return token.raw;
+        }),
+    ).toEqual([]);
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          return token.type === "link";
+        })
+        .map((token: Token): string => {
+          return `${(token as Tokens.Link).text} -> ${(token as Tokens.Link).href}`;
+        }),
+    ).toEqual([
+      "https://evil.example -> https://evil.example",
+      "https://evil.example/x.png -> https://evil.example/x.png",
+    ]);
   });
 
   describe("overflow summary", () => {
@@ -251,10 +292,22 @@ describe("AffectedResourceList.render - markdown", () => {
         overflowNoun: "x_y",
         totalCount: 2,
         entries: [entry({ details: [] })],
-      });
+      }).toString();
 
       expect(markdown).toContain("**A\\*b** (2 total)");
-      expect(markdown).toContain("*... and 1 more x\\_y*");
+      // An "_" between two letters starts no emphasis, so it reads as typed.
+      expect(markdown).toContain("*... and 1 more x_y*");
+    });
+
+    test("an underscore that could start emphasis in the noun is escaped", () => {
+      const markdown: string = AffectedResourceList.render({
+        heading: "Affected Resources",
+        overflowNoun: "_hosts_",
+        totalCount: 2,
+        entries: [entry({ details: [] })],
+      }).toString();
+
+      expect(markdown).toContain("*... and 1 more \\_hosts\\_*");
     });
 
     test("uses the caller's heading and noun (Docker Swarm lists tasks)", () => {
@@ -263,7 +316,7 @@ describe("AffectedResourceList.render - markdown", () => {
         overflowNoun: "affected tasks",
         totalCount: 14,
         entries: entries(10),
-      });
+      }).toString();
 
       expect(markdown).toContain("**Affected Tasks** (14 total)");
       expect(markdown).toContain("*... and 4 more affected tasks*");
@@ -420,7 +473,7 @@ describe("AffectedResourceList.render - parses as one ordered list of resources"
         [
           entry({
             name: AffectedResourceList.code("checkout_api-7d9f"),
-            value: "**99**",
+            value: FeedMarkdown.asMarkdown("**99**"),
             details: [
               {
                 label: "Namespace",
@@ -434,7 +487,7 @@ describe("AffectedResourceList.render - parses as one ordered list of resources"
           }),
           entry({
             name: AffectedResourceList.code("db`01"),
-            value: "**98**",
+            value: FeedMarkdown.asMarkdown("**98**"),
             details: [
               {
                 label: "Namespace",
@@ -449,7 +502,7 @@ describe("AffectedResourceList.render - parses as one ordered list of resources"
           entry({
             kind: "Virtual Machine",
             name: AffectedResourceList.code("a``b`c"),
-            value: "**97**",
+            value: FeedMarkdown.asMarkdown("**97**"),
             details: [],
           }),
         ],
@@ -473,7 +526,9 @@ describe("AffectedResourceList.render - parses as one ordered list of resources"
 
 describe("AffectedResourceList.code", () => {
   test("wraps an identifier in single backticks", () => {
-    expect(AffectedResourceList.code("checkout-7d9f")).toBe("`checkout-7d9f`");
+    expect(AffectedResourceList.code("checkout-7d9f").toString()).toBe(
+      "`checkout-7d9f`",
+    );
   });
 
   test.each([
@@ -483,31 +538,35 @@ describe("AffectedResourceList.code", () => {
     ["whitespace", "   "],
     ["a lone line break", "\n"],
   ])("returns an empty string for %s", (_label: string, value: unknown) => {
-    expect(AffectedResourceList.code(value as string | undefined | null)).toBe(
-      "",
-    );
+    expect(
+      AffectedResourceList.code(value as string | undefined | null).toString(),
+    ).toBe("");
   });
 
   test("trims surrounding whitespace", () => {
-    expect(AffectedResourceList.code("  web-01  ")).toBe("`web-01`");
+    expect(AffectedResourceList.code("  web-01  ").toString()).toBe("`web-01`");
   });
 
   test("turns line breaks into single spaces so the list item cannot be split", () => {
-    expect(AffectedResourceList.code("web\n01")).toBe("`web 01`");
-    expect(AffectedResourceList.code("web\r\n01")).toBe("`web 01`");
-    expect(AffectedResourceList.code("web \n\n 01")).toBe("`web 01`");
+    expect(AffectedResourceList.code("web\n01").toString()).toBe("`web 01`");
+    expect(AffectedResourceList.code("web\r\n01").toString()).toBe("`web 01`");
+    expect(AffectedResourceList.code("web \n\n 01").toString()).toBe(
+      "`web 01`",
+    );
   });
 
   test("a name containing a backtick gets a longer fence, padded with spaces", () => {
-    expect(AffectedResourceList.code("db`01")).toBe("`` db`01 ``");
+    expect(AffectedResourceList.code("db`01").toString()).toBe("`` db`01 ``");
   });
 
   test("the fence is always longer than the longest backtick run", () => {
-    expect(AffectedResourceList.code("a``b`c")).toBe("``` a``b`c ```");
+    expect(AffectedResourceList.code("a``b`c").toString()).toBe(
+      "``` a``b`c ```",
+    );
   });
 
   test("a name that starts or ends with a backtick still renders verbatim", async () => {
-    const code: string = AffectedResourceList.code("`vm`");
+    const code: string = AffectedResourceList.code("`vm`").toString();
 
     expect(code).toBe("`` `vm` ``");
 
@@ -522,7 +581,7 @@ describe("AffectedResourceList.code", () => {
   test("markdown inside a name stays inside the code span", async () => {
     const code: string = AffectedResourceList.code(
       "vm` **pwned** [x](https://evil.example)",
-    );
+    ).toString();
 
     const html: string = await Markdown.convertToHTML(
       `1. **Virtual Machine** ${code} — **3**`,
@@ -537,46 +596,51 @@ describe("AffectedResourceList.code", () => {
   });
 
   test("a pipe needs no escaping any more — there is no table to break", () => {
-    expect(AffectedResourceList.code("a|b")).toBe("`a|b`");
+    expect(AffectedResourceList.code("a|b").toString()).toBe("`a|b`");
   });
 
   test("a non-string value is stringified rather than crashing", () => {
-    expect(AffectedResourceList.code(42 as unknown as string)).toBe("`42`");
+    expect(AffectedResourceList.code(42 as unknown as string).toString()).toBe(
+      "`42`",
+    );
   });
 });
 
 describe("AffectedResourceList.codeWithId", () => {
   test("shows the name with its id beside it", () => {
     expect(
-      AffectedResourceList.codeWithId({ name: "web-vm", id: "qemu/100" }),
+      AffectedResourceList.codeWithId({
+        name: "web-vm",
+        id: "qemu/100",
+      }).toString(),
     ).toBe("`web-vm` (`qemu/100`)");
   });
 
   test("falls back to whichever half is present", () => {
-    expect(AffectedResourceList.codeWithId({ name: "web-vm" })).toBe(
+    expect(AffectedResourceList.codeWithId({ name: "web-vm" }).toString()).toBe(
       "`web-vm`",
     );
-    expect(AffectedResourceList.codeWithId({ id: "qemu/100" })).toBe(
+    expect(AffectedResourceList.codeWithId({ id: "qemu/100" }).toString()).toBe(
       "`qemu/100`",
     );
   });
 
   test("shows a name that equals its id only once", () => {
-    expect(AffectedResourceList.codeWithId({ name: "rbd", id: "rbd" })).toBe(
-      "`rbd`",
-    );
+    expect(
+      AffectedResourceList.codeWithId({ name: "rbd", id: "rbd" }).toString(),
+    ).toBe("`rbd`");
   });
 
   test("an empty half counts as missing", () => {
-    expect(AffectedResourceList.codeWithId({ name: "", id: "qemu/100" })).toBe(
-      "`qemu/100`",
-    );
-    expect(AffectedResourceList.codeWithId({ name: "web-vm", id: " " })).toBe(
-      "`web-vm`",
-    );
+    expect(
+      AffectedResourceList.codeWithId({ name: "", id: "qemu/100" }).toString(),
+    ).toBe("`qemu/100`");
+    expect(
+      AffectedResourceList.codeWithId({ name: "web-vm", id: " " }).toString(),
+    ).toBe("`web-vm`");
   });
 
   test("returns an empty string when neither half is present", () => {
-    expect(AffectedResourceList.codeWithId({})).toBe("");
+    expect(AffectedResourceList.codeWithId({}).toString()).toBe("");
   });
 });

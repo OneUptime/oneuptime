@@ -8,6 +8,7 @@ import {
 } from "../../../Utils/Slo/SloAffectedResourceMarkdown";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * IncidentService and AlertService cannot import ServiceLevelObjectiveService
  * (it reaches them through ServiceLevelObjectiveBurnRateRuleService), so the
@@ -64,12 +65,13 @@ describe("inline SLO links match ServiceLevelObjectiveService", () => {
   ])(
     "the bullet for %s is the service's markdown link",
     async (_label: string, sloName: string) => {
-      const canonical: string =
+      const canonical: string = (
         await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: PROJECT_ID,
           sloId: SLO_ID,
           sloName: sloName,
-        });
+        })
+      ).toString();
 
       expect(
         getSloAffectedResourceMarkdownLines({
@@ -79,6 +81,8 @@ describe("inline SLO links match ServiceLevelObjectiveService", () => {
           serviceLevelObjectives: [
             { _id: SLO_ID.toString(), name: sloName, projectId: PROJECT_ID },
           ],
+        }).map((line: MarkdownText): string => {
+          return line.toString();
         }),
       ).toEqual([`- ${canonical}`]);
     },

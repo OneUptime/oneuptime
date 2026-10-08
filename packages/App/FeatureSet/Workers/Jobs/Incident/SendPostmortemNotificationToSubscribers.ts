@@ -64,7 +64,10 @@ import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/Subscri
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * A run decides from the incident as it read it, which was before it
@@ -340,8 +343,9 @@ RunCron(
           const incidentNumberDisplay: string =
             incident.incidentNumberWithPrefix ||
             "#" + (incident.incidentNumber?.toString() || " - ");
-          const incidentFeedText: string = `📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**:
-      Notification sent to status page subscribers because postmortem was published for this incident.`;
+          const incidentFeedText: string =
+            mdText`📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**:
+      Notification sent to status page subscribers because postmortem was published for this incident.`.toString();
 
           if (!incident.monitors || incident.monitors.length === 0) {
             logger.debug(
@@ -595,14 +599,14 @@ RunCron(
                * the default Slack and Teams messages. The default SMS carries
                * none: it is billed by the segment.
                */
-              const slackCustomFields: string =
+              const slackCustomFields: MarkdownText =
                 pageTemplateVariables.customFieldsMarkdownLines.length > 0
-                  ? `${pageTemplateVariables.customFieldsMarkdownLines.join("\n\n")}\n\n`
-                  : "";
-              const teamsCustomFields: string =
+                  ? mdText`${FeedMarkdown.join(pageTemplateVariables.customFieldsMarkdownLines, "\n\n")}\n\n`
+                  : FeedMarkdown.empty();
+              const teamsCustomFields: MarkdownText =
                 pageTemplateVariables.customFieldsMarkdownLines.length > 0
-                  ? `${pageTemplateVariables.customFieldsMarkdownLines.join("\n")}\n`
-                  : "";
+                  ? mdText`${FeedMarkdown.join(pageTemplateVariables.customFieldsMarkdownLines, "\n")}\n`
+                  : FeedMarkdown.empty();
 
               logger.debug(
                 `Resources affected for incident ${incident.id} on status page ${statuspage.id}: ${resourcesAffectedPlainText}`,
@@ -953,15 +957,16 @@ RunCron(
                         slackTemplate.templateBody,
                       ]);
                     } else {
-                      markdownMessage = `## 🚨 Incident Postmortem - ${escapeMarkdownValue(incident.title || "")}
+                      markdownMessage =
+                        mdText`## 🚨 Incident Postmortem - ${incident.title || ""}
 
-**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Resources Affected:** ${resourcesAffectedPlainText}
 
-**Postmortem:** ${incident.postmortemNote || ""}
+**Postmortem:** ${FeedMarkdown.asMarkdown(incident.postmortemNote || "")}
 
-${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 
@@ -1020,11 +1025,12 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                         teamsTemplate.templateBody,
                       ]);
                     } else {
-                      teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${escapeMarkdownValue(incident.title || "")}
-**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
-**Postmortem:** ${incident.postmortemNote || ""}
-${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+                      teamsMarkdownMessage =
+                        mdText`## 🚨 Incident Postmortem - ${incident.title || ""}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Resources Affected:** ${resourcesAffectedPlainText}
+**Postmortem:** ${FeedMarkdown.asMarkdown(incident.postmortemNote || "")}
+${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 
@@ -1118,8 +1124,9 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
            */
           const sendFellShort: boolean = deliveryRecord.hasFailures();
           // The custom field values that went out, as they were sent.
-          const customFieldsSentMarkdown: string =
-            incidentTemplateVariables.getSentCustomFieldsMarkdown();
+          const customFieldsSentMarkdown: string = incidentTemplateVariables
+            .getSentCustomFieldsMarkdown()
+            .toString();
 
           const incidentLink: string = (
             await IncidentService.getIncidentLinkInDashboard(
@@ -1146,10 +1153,10 @@ ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                 ? Blue500
                 : Yellow500,
             feedInfoInMarkdown: sendFellShort
-              ? `📧 **Not every subscriber was sent the postmortem notification** for [Incident ${incidentNumberDisplay}](${incidentLink}).`
+              ? mdText`📧 **Not every subscriber was sent the postmortem notification** for [Incident ${incidentNumberDisplay}](${incidentLink}).`.toString()
               : attemptedAny
                 ? incidentFeedText
-                : `📧 **No postmortem notification sent to subscribers** for [Incident ${incidentNumberDisplay}](${incidentLink}).`,
+                : mdText`📧 **No postmortem notification sent to subscribers** for [Incident ${incidentNumberDisplay}](${incidentLink}).`.toString(),
             moreInformationInMarkdown:
               [deliveryMarkdown, customFieldsSentMarkdown]
                 .filter(Boolean)

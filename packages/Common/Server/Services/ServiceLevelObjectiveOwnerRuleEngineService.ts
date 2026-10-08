@@ -8,7 +8,6 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import { Purple500 } from "../../Types/BrandColors";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -31,6 +30,8 @@ import ServiceLevelObjectiveOwnerRuleService from "./ServiceLevelObjectiveOwnerR
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 // What adding one owner row did.
 enum OwnerWriteOutcome {
@@ -381,7 +382,7 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
     matchedRules: Array<ServiceLevelObjectiveOwnerRule>;
   }): Promise<void> {
     try {
-      const sloLink: string =
+      const sloLink: MarkdownText =
         await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: data.projectId,
           sloId: data.serviceLevelObjectiveId,
@@ -395,15 +396,17 @@ class ServiceLevelObjectiveOwnerRuleEngineServiceClass
           serviceLevelObjectiveFeedEventType:
             ServiceLevelObjectiveFeedEventType.OwnerRuleExecuted,
           displayColor: Purple500,
-          feedInfoInMarkdown: `👥 Owners were added to ${sloLink} by ${data.matchedRules.length} owner ${data.matchedRules.length === 1 ? "rule" : "rules"}.`,
-          moreInformationInMarkdown: `**Owner rules that matched**: ${data.matchedRules
-            .map((rule: ServiceLevelObjectiveOwnerRule): string => {
-              // Rule names are user-controlled and the feed renders markdown.
-              return `**${escapeMarkdownInline(
-                rule.name || rule.id?.toString() || "Unnamed rule",
-              )}**`;
-            })
-            .join(", ")}`,
+          feedInfoInMarkdown:
+            mdText`👥 Owners were added to ${sloLink} by ${data.matchedRules.length} owner ${data.matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+          moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+            ruleKind: "Owner",
+            ruleNames: data.matchedRules.map(
+              (rule: ServiceLevelObjectiveOwnerRule): string => {
+                return rule.name || rule.id?.toString() || "Unnamed rule";
+              },
+            ),
+            namesInBold: true,
+          }).toString(),
         },
       );
     } catch (error) {

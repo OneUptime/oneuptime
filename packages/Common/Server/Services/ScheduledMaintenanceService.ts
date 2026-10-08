@@ -29,10 +29,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
+
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
@@ -117,6 +114,10 @@ import ScheduledMaintenanceFieldChange, {
   ScheduledMaintenanceFieldSet,
   ScheduledMaintenanceValuesBeforeUpdate,
 } from "../Utils/ScheduledMaintenance/ScheduledMaintenanceFieldChange";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The attachments whose membership an ongoing event acts on. Monitors are
@@ -576,15 +577,16 @@ export class Service extends ProjectReferencesService<Model> {
                 );
             } else {
               // Use default template: the same plain values, escaped.
-              slackMessage = `## 🔧 Scheduled Maintenance - ${escapeMarkdownValue(event.title || "")}
+              slackMessage =
+                mdText`## 🔧 Scheduled Maintenance - ${event.title || ""}
 
 **Scheduled Date:** ${OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!)}
 
-${resourcesAffected ? `**Resources Affected:** ${escapeMarkdownValue(resourcesAffected)}` : ""}
+${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
 
-**Description:** ${event.description || ""}
+**Description:** ${FeedMarkdown.asMarkdown(event.description || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
             }
 
             // send Slack notification here.
@@ -1694,6 +1696,17 @@ ${resourcesAffected ? `**Resources Affected:** ${escapeMarkdownValue(resourcesAf
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: ScheduledMaintenanceOwnerUserService,
+      ownerTeamService: ScheduledMaintenanceOwnerTeamService,
+      resourceIdColumn: "scheduledMaintenanceId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
         "ProjectId required to create scheduled maintenance.",
@@ -2021,6 +2034,7 @@ ${resourcesAffected ? `**Resources Affected:** ${escapeMarkdownValue(resourcesAf
               ] as Array<ObjectID>) || [],
               false,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -2172,25 +2186,26 @@ ${resourcesAffected ? `**Resources Affected:** ${escapeMarkdownValue(resourcesAf
         scheduledMaintenance.createdByUserId ||
         scheduledMaintenance.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created:
+      let feedInfoInMarkdown: string =
+        mdText`#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created:
             
-**${escapeMarkdownValue(scheduledMaintenance.title || "No title provided.")}**:
+**${scheduledMaintenance.title || "No title provided."}**:
       
-${scheduledMaintenance.description || "No description provided."}
+${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description provided.")}
       
-`;
+`.toString();
 
       // add starts at and ends at.
       if (scheduledMaintenance.startsAt) {
-        feedInfoInMarkdown += `**Starts At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
+        feedInfoInMarkdown += mdText`**Starts At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
       }
 
       if (scheduledMaintenance.endsAt) {
-        feedInfoInMarkdown += `**Ends At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
+        feedInfoInMarkdown += mdText`**Ends At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
       }
 
       if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
-        feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${escapeMarkdownValue(scheduledMaintenance.currentScheduledMaintenanceState.name)} \n\n`;
+        feedInfoInMarkdown += mdText`⏳ **Scheduled Maintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
       }
 
       // Everything the event's Affected Resources card lists, monitors first.
@@ -2209,7 +2224,7 @@ ${scheduledMaintenance.description || "No description provided."}
           projectId: scheduledMaintenance.projectId!,
           resources: resources,
         })) {
-          feedInfoInMarkdown += `${resourceLine}\n`;
+          feedInfoInMarkdown += mdText`${resourceLine}\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
@@ -2292,6 +2307,12 @@ ${scheduledMaintenance.description || "No description provided."}
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the event are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -2304,6 +2325,7 @@ ${scheduledMaintenance.description || "No description provided."}
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 
@@ -2838,7 +2860,7 @@ ${scheduledMaintenance.description || "No description provided."}
   private async getMonitorChangesFeedMarkdown(data: {
     projectId: ObjectID;
     change: AttachmentChange;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     const sections: Array<{ title: string; monitorIds: Array<ObjectID> }> = [
       {
         title: "🗑️ Monitors Removed",
@@ -2850,7 +2872,7 @@ ${scheduledMaintenance.description || "No description provided."}
       },
     ];
 
-    let markdown: string = "";
+    const lines: Array<MarkdownText> = [];
 
     for (const section of sections) {
       if (section.monitorIds.length === 0) {
@@ -2877,15 +2899,17 @@ ${scheduledMaintenance.description || "No description provided."}
         continue;
       }
 
-      markdown += `\n\n**${section.title}**:\n`;
+      lines.push(mdText`\n\n**${section.title}**:\n`);
 
       // Each name is plain text inside its link's own text.
       for (const monitor of monitors) {
-        markdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, monitor.id!)).toString()})\n`;
+        lines.push(
+          mdText`- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, monitor.id!)).toString()})\n`,
+        );
       }
     }
 
-    return markdown;
+    return FeedMarkdown.join(lines, "");
   }
 
   /*
@@ -3027,13 +3051,13 @@ ${scheduledMaintenance.description || "No description provided."}
   private async getMonitorStatusFeedMarkdown(data: {
     projectId: ObjectID | undefined;
     monitorStatusId: string | null;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     if (!data.monitorStatusId) {
-      return `\n\n**Change Monitor Status to**: Monitors keep their status.`;
+      return mdText`\n\n**Change Monitor Status to**: Monitors keep their status.`;
     }
 
     if (!data.projectId) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const monitorStatus: MonitorStatus | null =
@@ -3051,11 +3075,11 @@ ${scheduledMaintenance.description || "No description provided."}
       });
 
     if (!monitorStatus?.name) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     // The status's name is plain text.
-    return `\n\n**Change Monitor Status to**: ${escapeMarkdownValue(monitorStatus.name)}`;
+    return mdText`\n\n**Change Monitor Status to**: ${monitorStatus.name}`;
   }
 
   @CaptureSpan()
@@ -3229,14 +3253,14 @@ ${scheduledMaintenance.description || "No description provided."}
          * what the event holds - every save of its Maintenance Details card
          * sends them all - adds none.
          */
-        const fieldsMarkdown: string =
+        const fieldsMarkdown: MarkdownText =
           ScheduledMaintenanceFieldChange.getFeedMarkdown({
             written: written,
             changes: fieldChanges,
           });
 
-        if (fieldsMarkdown) {
-          feedInfoInMarkdown += fieldsMarkdown;
+        if (!fieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += fieldsMarkdown.toString();
           shouldAddScheduledMaintenanceFeed = true;
         }
 
@@ -3271,13 +3295,16 @@ ${scheduledMaintenance.description || "No description provided."}
               });
 
             if (resources.length > 0) {
-              feedInfoInMarkdown += `\n\n**Resources Affected**:
+              feedInfoInMarkdown += mdText`\n\n**Resources Affected**:
 
-${LinkedAffectedResources.getMarkdownLines({
-  dashboardUrl: await DatabaseConfig.getDashboardUrl(),
-  projectId: projectId,
-  resources: resources,
-}).join("\n")}
+${FeedMarkdown.join(
+  LinkedAffectedResources.getMarkdownLines({
+    dashboardUrl: await DatabaseConfig.getDashboardUrl(),
+    projectId: projectId,
+    resources: resources,
+  }),
+  "\n",
+)}
 `;
 
               shouldAddScheduledMaintenanceFeed = true;
@@ -3304,14 +3331,14 @@ ${LinkedAffectedResources.getMarkdownLines({
         if (attachmentChange && onUpdate.updateBy.props.tenantId) {
           // A line the names could not be read for is left out, not the item.
           try {
-            const monitorChangesMarkdown: string =
+            const monitorChangesMarkdown: MarkdownText =
               await this.getMonitorChangesFeedMarkdown({
                 projectId: onUpdate.updateBy.props.tenantId as ObjectID,
                 change: attachmentChange,
               });
 
-            if (monitorChangesMarkdown) {
-              feedInfoInMarkdown += monitorChangesMarkdown;
+            if (!monitorChangesMarkdown.isEmpty()) {
+              feedInfoInMarkdown += monitorChangesMarkdown.toString();
               shouldAddScheduledMaintenanceFeed = true;
             }
           } catch (err) {
@@ -3332,14 +3359,14 @@ ${LinkedAffectedResources.getMarkdownLines({
         if (changedMonitorStatus && monitorStatusBeforeUpdate) {
           // A line the name could not be read for is left out, not the item.
           try {
-            const monitorStatusMarkdown: string =
+            const monitorStatusMarkdown: MarkdownText =
               await this.getMonitorStatusFeedMarkdown({
                 projectId: monitorStatusBeforeUpdate.projectId,
                 monitorStatusId: changedMonitorStatus.monitorStatusId,
               });
 
-            if (monitorStatusMarkdown) {
-              feedInfoInMarkdown += monitorStatusMarkdown;
+            if (!monitorStatusMarkdown.isEmpty()) {
+              feedInfoInMarkdown += monitorStatusMarkdown.toString();
               shouldAddScheduledMaintenanceFeed = true;
             }
           } catch (err) {
@@ -3365,27 +3392,27 @@ ${LinkedAffectedResources.getMarkdownLines({
           changedListColumns.includes("statusPages") &&
           onUpdate.updateBy.props.tenantId
         ) {
-          const statusPagesMarkdown: string =
+          const statusPagesMarkdown: MarkdownText =
             await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
               writtenStatusPages: written["statusPages"],
               projectId: onUpdate.updateBy.props.tenantId,
             });
 
-          if (statusPagesMarkdown) {
-            feedInfoInMarkdown += statusPagesMarkdown;
+          if (!statusPagesMarkdown.isEmpty()) {
+            feedInfoInMarkdown += statusPagesMarkdown.toString();
             shouldAddScheduledMaintenanceFeed = true;
           }
         }
 
         if (fieldChanges.labels && onUpdate.updateBy.props.tenantId) {
-          const labelsMarkdown: string =
+          const labelsMarkdown: MarkdownText =
             await EventFieldChange.getLabelsMarkdown({
               writtenLabels: written["labels"],
               projectId: onUpdate.updateBy.props.tenantId,
             });
 
-          if (labelsMarkdown) {
-            feedInfoInMarkdown += labelsMarkdown;
+          if (!labelsMarkdown.isEmpty()) {
+            feedInfoInMarkdown += labelsMarkdown.toString();
             shouldAddScheduledMaintenanceFeed = true;
           }
         }

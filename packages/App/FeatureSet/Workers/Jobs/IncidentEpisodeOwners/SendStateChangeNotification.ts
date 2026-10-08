@@ -30,7 +30,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "IncidentEpisodeOwner:SendStateChangeEmail",
@@ -310,7 +310,7 @@ RunCron(
           eventType,
         });
 
-        moreEpisodeFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+        moreEpisodeFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
           {
             userId: user.id!,
             projectId: episodeStateTimeline.projectId!,
@@ -328,7 +328,8 @@ RunCron(
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident Episode ${episodeDisplayNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the incident episode because the episode state changed to **${escapeMarkdownValue(incidentState.name)}**.`,
+        feedInfoInMarkdown:
+          mdText`🔔 **Owners have been notified about the state change of the [Incident Episode ${episodeDisplayNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the incident episode because the episode state changed to **${incidentState.name}**.`.toString(),
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
       });
     }

@@ -1,5 +1,6 @@
 import SMTPOAuthService from "../SMTPOAuthService";
-import MailProvider from "./MailProvider";
+import MailProvider, { MailProviderSendOptions } from "./MailProvider";
+import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import URL from "Common/Types/API/URL";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
@@ -108,7 +109,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
   public async send(
     mail: EmailMessage,
     emailServer: EmailServer,
-    options?: { timeoutMs?: number | undefined } | undefined,
+    options?: MailProviderSendOptions | undefined,
   ): Promise<void> {
     if (
       !emailServer.clientId ||
@@ -154,7 +155,13 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     await MicrosoftGraphMailProvider.acquireMailboxSlot(gateKey);
 
     try {
-      await this.sendWithRetry(mail, emailServer, senderAddress, deadlineAt);
+      await this.sendWithRetry(
+        mail,
+        emailServer,
+        senderAddress,
+        deadlineAt,
+        options?.inlineImages || [],
+      );
     } finally {
       MicrosoftGraphMailProvider.releaseMailboxSlot(gateKey);
     }
@@ -194,6 +201,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     emailServer: EmailServer,
     senderAddress: string,
     deadlineAt: number | undefined,
+    inlineImages: Array<EmailInlineImage>,
   ): Promise<void> {
     let lastError: unknown;
 
@@ -215,7 +223,13 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
       try {
         const fetchTimeoutMs: number =
           MicrosoftGraphMailProvider.effectiveFetchTimeoutMs(deadlineAt);
-        await this.sendOnce(mail, emailServer, senderAddress, fetchTimeoutMs);
+        await this.sendOnce(
+          mail,
+          emailServer,
+          senderAddress,
+          fetchTimeoutMs,
+          inlineImages,
+        );
         return;
       } catch (error) {
         lastError = error;
@@ -278,6 +292,7 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
     emailServer: EmailServer,
     senderAddress: string,
     fetchTimeoutMs: number,
+    inlineImages: Array<EmailInlineImage>,
   ): Promise<void> {
     const accessToken: string = await SMTPOAuthService.getAccessToken({
       configId: emailServer.id ? emailServer.id.toString() : undefined,
@@ -316,6 +331,27 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
             name: emailServer.fromName,
           },
         },
+        /*
+         * Images the body points at by Content-ID. The caller keeps them
+         * small enough (EmailInlineImages) for this whole request to stay
+         * under Graph's 4 MB limit on sendMail.
+         */
+        ...(inlineImages.length > 0
+          ? {
+              attachments: inlineImages.map(
+                (image: EmailInlineImage): Record<string, unknown> => {
+                  return {
+                    "@odata.type": "#microsoft.graph.fileAttachment",
+                    name: image.fileName,
+                    contentType: image.mimeType,
+                    contentBytes: image.base64,
+                    contentId: image.contentId,
+                    isInline: true,
+                  };
+                },
+              ),
+            }
+          : {}),
       },
       saveToSentItems: false,
     };

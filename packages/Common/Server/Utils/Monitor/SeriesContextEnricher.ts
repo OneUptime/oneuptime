@@ -1,5 +1,4 @@
 import ColumnLength from "../../../Types/Database/ColumnLength";
-import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import SeriesDebugHints from "../../../Types/Monitor/SeriesContext/SeriesDebugHints";
@@ -7,6 +6,7 @@ import SeriesLabelDisplay, {
   DisplaySeriesLabel,
 } from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Make a per-series alert or incident say WHICH pod, container, node or
  * mount it is about.
@@ -164,7 +164,7 @@ export default class SeriesContextEnricher {
      * invisible word joiners that keep it from being read as Markdown
      * (MonitorTemplateUtil.buildMarkdownStorageMap), and is still naming it.
      */
-    const text: string = (input.text || "").split(WORD_JOINER).join("");
+    const text: string = FeedMarkdown.withoutInvisibleBreaks(input.text);
 
     return labels.filter((label: DisplaySeriesLabel) => {
       return !SeriesContextEnricher.isValueMentioned({ text, label });

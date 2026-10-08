@@ -2,8 +2,8 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import User from "../../../Models/DatabaseModels/User";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
 import UserService from "../../Services/UserService";
+import { mdText, MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The server-side half of the SLO feed: the few things a feed writer needs
@@ -122,8 +122,9 @@ export default class SloFeedUtil {
   }
 
   /*
-   * "Jane Doe" - or the email when the user never set a name - escaped for
-   * the middle of a markdown sentence. Empty when the user has neither.
+   * "Jane Doe" - or the email when the user never set a name. Plain text,
+   * for a feed item to place as text (mdText). Empty when the user has
+   * neither.
    */
   public static getUserDisplayName(user: User | null | undefined): string {
     if (!user) {
@@ -133,13 +134,13 @@ export default class SloFeedUtil {
     const name: string = user.name?.toString().trim() || "";
     const email: string = user.email?.toString().trim() || "";
 
-    return escapeMarkdownInline(name || email).trim();
+    return name || email;
   }
 
   /*
    * `[Jane Doe](<dashboard link to the user>)` for the acting user of a feed
-   * item, the name escaped inside the link's own text as
-   * UserService.getUserMarkdownString escapes it - a user's name is theirs to
+   * item, the name the link's own text, placed as text (mdText) as
+   * UserService.getUserMarkdownString places it - a user's name is theirs to
    * set, and `x](https://evil)` must not re-point the link.
    *
    * Unlike UserService.getUserMarkdownString it returns null when there is
@@ -149,7 +150,7 @@ export default class SloFeedUtil {
   public static async getUserMarkdown(data: {
     userId: ObjectID | undefined | null;
     projectId: ObjectID;
-  }): Promise<string | null> {
+  }): Promise<MarkdownText | null> {
     /*
      * An undefined id is not a harmless lookup: the id key would drop out of
      * the WHERE clause and match an arbitrary user.
@@ -180,7 +181,7 @@ export default class SloFeedUtil {
       data.userId,
     );
 
-    return `[${displayName}](${link.toString()})`;
+    return mdText`[${displayName}](${link.toString()})`;
   }
 
   /*

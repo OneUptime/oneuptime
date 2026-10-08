@@ -624,7 +624,7 @@ describe("building has no side effects; sending does", () => {
     pageEmail.forSubscriber({ unsubscribeUrl: OTHER_UNSUBSCRIBE_URL });
 
     expect(syncIsPublicForMarkdownImages).not.toHaveBeenCalled();
-    expect(variables.getSentCustomFieldsMarkdown()).toBe("");
+    expect(variables.getSentCustomFieldsMarkdown().toString()).toBe("");
 
     await pageEmail.recordSending();
 
@@ -632,7 +632,9 @@ describe("building has no side effects; sending does", () => {
     expect(mock(syncIsPublicForMarkdownImages).mock.calls[0]![0]).toContain(
       IMAGE_URL,
     );
-    expect(variables.getSentCustomFieldsMarkdown()).toContain("Impact details");
+    expect(variables.getSentCustomFieldsMarkdown().toString()).toContain(
+      "Impact details",
+    );
   });
 
   /*

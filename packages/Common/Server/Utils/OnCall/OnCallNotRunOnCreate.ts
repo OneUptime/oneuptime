@@ -6,7 +6,6 @@ import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import { Gray500 } from "../../../Types/BrandColors";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
 import { StartingStage } from "../../../Utils/StartingStage";
 import AlertEpisodeFeedService from "../../Services/AlertEpisodeFeedService";
 import AlertFeedService from "../../Services/AlertFeedService";
@@ -14,6 +13,10 @@ import IncidentEpisodeFeedService from "../../Services/IncidentEpisodeFeedServic
 import IncidentFeedService from "../../Services/IncidentFeedService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The record whose create did not run its on-call policies, by the id its
@@ -121,30 +124,30 @@ export default class OnCallNotRunOnCreate {
 
   /*
    * The line, for a record the feed calls `noun` ("incident", "alert",
-   * "episode"). Policy names are free text: escaped, so a name cannot turn
-   * into a link, an image or formatting.
+   * "episode"). Policy names are free text, placed as text (mdText), so a
+   * name cannot turn into a link, an image or formatting.
    */
   public static getMarkdown(data: {
     noun: string;
     stage: StartingStage;
     policyNames: Array<string>;
-  }): string {
-    const names: Array<string> = data.policyNames.map(
-      (name: string): string => {
-        return `**${escapeMarkdownInline(name)}**`;
+  }): MarkdownText {
+    const names: Array<MarkdownText> = data.policyNames.map(
+      (name: string): MarkdownText => {
+        return mdText`**${name}**`;
       },
     );
 
     const isOne: boolean = names.length === 1;
 
-    const listed: string = isOne
+    const listed: MarkdownText = isOne
       ? names[0]!
-      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+      : mdText`${FeedMarkdown.join(names.slice(0, -1), ", ")} and ${names[names.length - 1]}`;
 
     const stateWord: string =
       data.stage === StartingStage.Resolved ? "resolved" : "acknowledged";
 
-    return `📞 **No one was paged.** This ${data.noun} was created already ${stateWord}, so its on-call ${isOne ? "policy" : "policies"} ${listed} ${isOne ? "was" : "were"} not run.`;
+    return mdText`📞 **No one was paged.** This ${data.noun} was created already ${stateWord}, so its on-call ${isOne ? "policy" : "policies"} ${listed} ${isOne ? "was" : "were"} not run.`;
   }
 
   /*
@@ -220,6 +223,6 @@ export default class OnCallNotRunOnCreate {
       noun: data.noun,
       stage: data.stage,
       policyNames: policyNames,
-    });
+    }).toString();
   }
 }

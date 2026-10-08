@@ -21,6 +21,11 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Entities from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageOwnerTeam from "../../../Models/DatabaseModels/StatusPageOwnerTeam";
+import MetricPipelineRule from "../../../Models/DatabaseModels/MetricPipelineRule";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
@@ -44,6 +49,7 @@ import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterAll,
+  afterEach,
   beforeAll,
   describe,
   expect,
@@ -175,6 +181,13 @@ const TABLES: Array<string> = [
   "InventoryItem",
   "IncidentLabel",
   "AutoRemediationDecision",
+  "MetricPipelineRule",
+  "AlertService",
+  "OnCallDutyPolicy",
+  "OnCallDutyPolicyLabel",
+  "OnCallDutyPolicyEscalationRule",
+  "OnCallDutyPolicyOwnerUser",
+  "OnCallDutyPolicyOwnerTeam",
 ];
 
 interface PermissionRow {
@@ -253,6 +266,28 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
   new BaseAPI(
     AutoRemediationDecision,
     new DatabaseService(AutoRemediationDecision) as DatabaseService<BaseModel>,
+  );
+  new BaseAPI(
+    StatusPage,
+    new DatabaseService(StatusPage) as DatabaseService<BaseModel>,
+  );
+  new BaseAPI(
+    StatusPageOwnerTeam,
+    new DatabaseService(StatusPageOwnerTeam) as DatabaseService<BaseModel>,
+  );
+  new BaseAPI(
+    MetricPipelineRule,
+    new DatabaseService(MetricPipelineRule) as DatabaseService<BaseModel>,
+  );
+  new BaseAPI(
+    OnCallDutyPolicy,
+    new DatabaseService(OnCallDutyPolicy) as DatabaseService<BaseModel>,
+  );
+  new BaseAPI(
+    OnCallDutyPolicyEscalationRule,
+    new DatabaseService(
+      OnCallDutyPolicyEscalationRule,
+    ) as DatabaseService<BaseModel>,
   );
 
   // The signed-in member: in the home project and the second project.
@@ -3381,6 +3416,1041 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         expect(created.error).toBeUndefined();
         expect(await announcementsWithTitle(title)).toBe(1);
       });
+    });
+  });
+
+  /*
+   * A RECORD'S PARENTS AND THE RECORDS IT LISTS FOLLOW ITS EDITOR'S READ ON
+   * AN UPDATE TOO, AND A CREATE STAYS WITHIN ITS CREATE PERMISSION.
+   */
+  describe("a record moved to another parent by an update", () => {
+    const ANNOUNCEMENT_EDITOR: Array<PermissionRow> = [
+      { permission: Permission.EditStatusPageAnnouncement },
+      { permission: Permission.ReadStatusPageAnnouncement },
+    ];
+
+    // The status pages each announcement is on before this block.
+    const PAGES_BEFORE: Array<[ObjectID, Array<ObjectID>]> = [
+      [productionAnnouncementId, [productionStatusPageId]],
+      [bothPagesAnnouncementId, [productionStatusPageId, stagingStatusPageId]],
+    ];
+
+    const pagesOf: (
+      announcementId: ObjectID,
+    ) => Promise<Array<string>> = async (
+      announcementId: ObjectID,
+    ): Promise<Array<string>> => {
+      const rows: Array<{ statusPageId: string }> = await database.query(
+        `SELECT "statusPageId" FROM "${schema}"."AnnouncementStatusPage" WHERE "announcementId" = $1`,
+        [announcementId.toString()],
+      );
+
+      return sorted(
+        rows.map((row: { statusPageId: string }): string => {
+          return row.statusPageId;
+        }),
+      );
+    };
+
+    const restorePages: () => Promise<void> = async (): Promise<void> => {
+      for (const [announcementId, statusPageIds] of PAGES_BEFORE) {
+        await database.query(
+          `DELETE FROM "${schema}"."AnnouncementStatusPage" WHERE "announcementId" = $1`,
+          [announcementId.toString()],
+        );
+
+        for (const statusPageId of statusPageIds) {
+          await insert("AnnouncementStatusPage", {
+            announcementId: announcementId,
+            statusPageId: statusPageId,
+          });
+        }
+      }
+    };
+
+    afterEach(async () => {
+      await restorePages();
+    });
+
+    afterAll(async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    // The refusal of a parent the editor may not read: that of a missing one.
+    const expectRefusedAsMissing: (
+      outcome: Outcome,
+      field: string,
+      id: ObjectID,
+    ) => void = (outcome: Outcome, field: string, id: ObjectID): void => {
+      expect(outcome.error).toBeInstanceOf(BadDataException);
+      expect((outcome.error as Error).message).toContain(
+        `references records that are not in this project: ${field} "${id.toString()}".`,
+      );
+    };
+
+    const pages: (ids: Array<ObjectID>) => Array<JSONObject> = (
+      ids: Array<ObjectID>,
+    ): Array<JSONObject> => {
+      return ids.map((id: ObjectID): JSONObject => {
+        return { _id: id.toString() };
+      });
+    };
+
+    describe.each([
+      ["a team member", "team"],
+      ["an API key", "apiKey"],
+    ] as Array<[string, "team" | "apiKey"]>)(
+      "%s whose read of status pages is limited to a label",
+      (_name: string, kind: "team" | "apiKey") => {
+        const editor: () => Promise<Caller> = async (): Promise<Caller> => {
+          const rows: Array<PermissionRow> = [
+            {
+              permission: Permission.ReadProjectStatusPage,
+              labelIds: [productionLabelId],
+            },
+            ...ANNOUNCEMENT_EDITOR,
+          ];
+
+          if (kind === "team") {
+            await setTeamPermissions(homeTeamId, homeProjectId, rows);
+            return homeUser;
+          }
+
+          return { kind: "apiKey", apiKey: await createApiKey(rows) };
+        };
+
+        test("adds no status page the editor may not read to an announcement", async () => {
+          const caller: Caller = await editor();
+
+          const refused: Outcome = await update(
+            "/status-page-announcement",
+            caller,
+            productionAnnouncementId,
+            {
+              statusPages: pages([productionStatusPageId, stagingStatusPageId]),
+            },
+          );
+
+          expectRefusedAsMissing(refused, "Status Pages", stagingStatusPageId);
+          expect(await pagesOf(productionAnnouncementId)).toEqual([
+            productionStatusPageId.toString(),
+          ]);
+        });
+
+        test("keeps a page an announcement is on already, unasked", async () => {
+          const caller: Caller = await editor();
+
+          const kept: Outcome = await update(
+            "/status-page-announcement",
+            caller,
+            bothPagesAnnouncementId,
+            {
+              statusPages: pages([productionStatusPageId, stagingStatusPageId]),
+            },
+          );
+
+          expect(kept.error).toBeUndefined();
+          expect(await pagesOf(bothPagesAnnouncementId)).toEqual(
+            sorted([productionStatusPageId, stagingStatusPageId]),
+          );
+        });
+
+        test("leaves an announcement on no page only with a read that reaches every page", async () => {
+          const caller: Caller = await editor();
+
+          const refused: Outcome = await update(
+            "/status-page-announcement",
+            caller,
+            productionAnnouncementId,
+            { statusPages: [] },
+          );
+
+          expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+          expect((refused.error as Error).message).toBe(
+            "A Status Page Announcement you change must belong to a Status Page you can read: your access to Status Pages covers only some of them.",
+          );
+          expect(await pagesOf(productionAnnouncementId)).toEqual([
+            productionStatusPageId.toString(),
+          ]);
+        });
+      },
+    );
+
+    test("an editor whose read of status pages reaches only the pages they own adds none they do not own", async () => {
+      const ownerRowId: ObjectID = ObjectID.generate();
+
+      await insert("StatusPageOwnerUser", {
+        _id: ownerRowId,
+        projectId: homeProjectId,
+        userId: memberId,
+        statusPageId: productionStatusPageId,
+        isOwnerNotified: true,
+        version: 1,
+      });
+
+      try {
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          {
+            permission: Permission.ReadProjectStatusPage,
+            scope: PermissionScope.Owned,
+          },
+          ...ANNOUNCEMENT_EDITOR,
+        ]);
+
+        const refused: Outcome = await update(
+          "/status-page-announcement",
+          homeUser,
+          productionAnnouncementId,
+          {
+            statusPages: pages([productionStatusPageId, stagingStatusPageId]),
+          },
+        );
+
+        expectRefusedAsMissing(refused, "Status Pages", stagingStatusPageId);
+        expect(await pagesOf(productionAnnouncementId)).toEqual([
+          productionStatusPageId.toString(),
+        ]);
+      } finally {
+        await removeRows([["StatusPageOwnerUser", "_id", ownerRowId]]);
+      }
+    });
+
+    test("a block with labels on reading status pages leaves out the pages carrying them", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadProjectStatusPage },
+        {
+          permission: Permission.ReadProjectStatusPage,
+          isBlock: true,
+          labelIds: [stagingLabelId],
+        },
+        ...ANNOUNCEMENT_EDITOR,
+      ]);
+
+      const refused: Outcome = await update(
+        "/status-page-announcement",
+        homeUser,
+        productionAnnouncementId,
+        {
+          statusPages: pages([productionStatusPageId, stagingStatusPageId]),
+        },
+      );
+
+      expectRefusedAsMissing(refused, "Status Pages", stagingStatusPageId);
+      expect(await pagesOf(productionAnnouncementId)).toEqual([
+        productionStatusPageId.toString(),
+      ]);
+    });
+
+    test("an editor who reads every status page moves an announcement to any page of the project", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.StatusPageAdmin },
+      ]);
+
+      const moved: Outcome = await update(
+        "/status-page-announcement",
+        homeUser,
+        productionAnnouncementId,
+        {
+          statusPages: pages([productionStatusPageId, stagingStatusPageId]),
+        },
+      );
+
+      expect(moved.error).toBeUndefined();
+      expect(await pagesOf(productionAnnouncementId)).toEqual(
+        sorted([productionStatusPageId, stagingStatusPageId]),
+      );
+    });
+
+    describe("a rule of a service, moved to another service by either name", () => {
+      const ruleId: ObjectID = ObjectID.generate();
+
+      const RULE_EDITOR: Array<PermissionRow> = [
+        { permission: Permission.EditProjectMetricPipelineRule },
+        { permission: Permission.ReadProjectMetricPipelineRule },
+        { permission: Permission.ReadService, labelIds: [productionLabelId] },
+      ];
+
+      const serviceOfRule: () => Promise<unknown> =
+        async (): Promise<unknown> => {
+          return await readColumn("MetricPipelineRule", ruleId, "serviceId");
+        };
+
+      beforeAll(async () => {
+        await insert("MetricPipelineRule", {
+          _id: ruleId,
+          projectId: homeProjectId,
+          name: "Drop debug metrics",
+          ruleType: "Drop",
+          serviceId: productionServiceId,
+          version: 1,
+        });
+      });
+
+      afterAll(async () => {
+        await removeRows([["MetricPipelineRule", "_id", ruleId]]);
+      });
+
+      afterEach(async () => {
+        await database.query(
+          `UPDATE "${schema}"."MetricPipelineRule" SET "serviceId" = $1 WHERE "_id" = $2`,
+          [productionServiceId.toString(), ruleId.toString()],
+        );
+      });
+
+      describe.each([
+        ["a team member", "team"],
+        ["an API key", "apiKey"],
+      ] as Array<[string, "team" | "apiKey"]>)(
+        "%s whose read of services is limited to a label",
+        (_name: string, kind: "team" | "apiKey") => {
+          const editor: () => Promise<Caller> = async (): Promise<Caller> => {
+            if (kind === "team") {
+              await setTeamPermissions(homeTeamId, homeProjectId, RULE_EDITOR);
+              return homeUser;
+            }
+
+            return { kind: "apiKey", apiKey: await createApiKey(RULE_EDITOR) };
+          };
+
+          test.each([
+            ["its ID column", "serviceId"],
+            ["its relation", "service"],
+            ["both names, agreeing", "both"],
+          ])(
+            "moves no rule to a service the editor may not read, named by %s",
+            async (_naming: string, naming: string) => {
+              const caller: Caller = await editor();
+
+              const named: JSONObject =
+                naming === "serviceId"
+                  ? { serviceId: stagingServiceId }
+                  : naming === "service"
+                    ? { service: { _id: stagingServiceId.toString() } }
+                    : {
+                        serviceId: stagingServiceId,
+                        service: { _id: stagingServiceId.toString() },
+                      };
+
+              const refused: Outcome = await update(
+                "/metric-pipeline-rule",
+                caller,
+                ruleId,
+                named,
+              );
+
+              expectRefusedAsMissing(refused, "Service", stagingServiceId);
+              expect(String(await serviceOfRule())).toBe(
+                productionServiceId.toString(),
+              );
+            },
+          );
+
+          test("keeps the service a rule has, unasked", async () => {
+            const caller: Caller = await editor();
+
+            const kept: Outcome = await update(
+              "/metric-pipeline-rule",
+              caller,
+              ruleId,
+              { serviceId: productionServiceId, name: "Drop debug metrics" },
+            );
+
+            expect(kept.error).toBeUndefined();
+            expect(String(await serviceOfRule())).toBe(
+              productionServiceId.toString(),
+            );
+          });
+        },
+      );
+
+      test("the two names of the service must agree", async () => {
+        await setTeamPermissions(homeTeamId, homeProjectId, RULE_EDITOR);
+
+        const refused: Outcome = await update(
+          "/metric-pipeline-rule",
+          homeUser,
+          ruleId,
+          {
+            serviceId: productionServiceId,
+            service: { _id: stagingServiceId.toString() },
+          },
+        );
+
+        expect(refused.error).toBeInstanceOf(BadDataException);
+        expect(String(await serviceOfRule())).toBe(
+          productionServiceId.toString(),
+        );
+      });
+
+      test("a service of another project reads like a missing one, to an editor who reads every service", async () => {
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          { permission: Permission.EditProjectMetricPipelineRule },
+          { permission: Permission.ReadProjectMetricPipelineRule },
+          { permission: Permission.ReadService },
+        ]);
+
+        const refused: Outcome = await update(
+          "/metric-pipeline-rule",
+          homeUser,
+          ruleId,
+          { serviceId: otherServiceId },
+        );
+
+        expectRefusedAsMissing(refused, "Service", otherServiceId);
+        expect(String(await serviceOfRule())).toBe(
+          productionServiceId.toString(),
+        );
+      });
+    });
+  });
+
+  describe("a create permission limited to labels", () => {
+    // What the status pages this block creates are named, to clear them after.
+    const CREATED_PAGE_MARKER: string = "Created under a create scope";
+
+    const pageName: () => string = (): string => {
+      return `${CREATED_PAGE_MARKER} ${ObjectID.generate().toString()}`;
+    };
+
+    const pagesNamed: (name: string) => Promise<number> = async (
+      name: string,
+    ): Promise<number> => {
+      const rows: Array<{ count: string }> = await database.query(
+        `SELECT COUNT(*) AS "count" FROM "${schema}"."StatusPage" WHERE "name" = $1`,
+        [name],
+      );
+
+      return Number(rows[0]?.count || 0);
+    };
+
+    const createStatusPage: (
+      caller: Caller,
+      name: string,
+      labelIds: Array<ObjectID>,
+    ) => Promise<Outcome> = async (
+      caller: Caller,
+      name: string,
+      labelIds: Array<ObjectID>,
+    ): Promise<Outcome> => {
+      return await send({
+        uri: "/status-page",
+        caller: caller,
+        body: {
+          data: JSONFunctions.serialize({
+            name: name,
+            labels: labelIds.map((labelId: ObjectID): JSONObject => {
+              return { _id: labelId.toString() };
+            }),
+          }),
+        },
+      });
+    };
+
+    afterAll(async () => {
+      const rows: Array<{ _id: string }> = await database.query(
+        `SELECT "_id" FROM "${schema}"."StatusPage" WHERE "name" LIKE $1`,
+        [`${CREATED_PAGE_MARKER}%`],
+      );
+
+      for (const created of rows) {
+        await removeRows([
+          ["StatusPageLabel", "statusPageId", new ObjectID(created._id)],
+          ["StatusPageOwnerUser", "statusPageId", new ObjectID(created._id)],
+          ["StatusPageOwnerTeam", "statusPageId", new ObjectID(created._id)],
+          ["StatusPage", "_id", new ObjectID(created._id)],
+        ]);
+      }
+
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    describe.each([
+      ["a team member", "team"],
+      ["an API key", "apiKey"],
+    ] as Array<[string, "team" | "apiKey"]>)(
+      "%s",
+      (_name: string, kind: "team" | "apiKey") => {
+        const creatorWith: (
+          rows: Array<PermissionRow>,
+        ) => Promise<Caller> = async (
+          rows: Array<PermissionRow>,
+        ): Promise<Caller> => {
+          if (kind === "team") {
+            await setTeamPermissions(homeTeamId, homeProjectId, rows);
+            return homeUser;
+          }
+
+          return { kind: "apiKey", apiKey: await createApiKey(rows) };
+        };
+
+        test("creates a status page carrying one of its labels, and no other", async () => {
+          const caller: Caller = await creatorWith([
+            {
+              permission: Permission.CreateProjectStatusPage,
+              labelIds: [productionLabelId],
+            },
+            {
+              permission: Permission.ReadProjectStatusPage,
+              labelIds: [productionLabelId],
+            },
+          ]);
+
+          const name: string = pageName();
+          const created: Outcome = await createStatusPage(caller, name, [
+            productionLabelId,
+          ]);
+
+          expect(created.error).toBeUndefined();
+          expect(await pagesNamed(name)).toBe(1);
+
+          for (const labelIds of [[], [stagingLabelId]]) {
+            const refusedName: string = pageName();
+            const refused: Outcome = await createStatusPage(
+              caller,
+              refusedName,
+              labelIds,
+            );
+
+            expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+            expect((refused.error as Error).message).toBe(
+              "Your access lets you create Status Pages only with one of these labels: Production. Add one of them and try again.",
+            );
+            expect(await pagesNamed(refusedName)).toBe(0);
+          }
+        });
+
+        test("with a permission over the whole project beside it, creates any", async () => {
+          const caller: Caller = await creatorWith([
+            {
+              permission: Permission.CreateProjectStatusPage,
+              labelIds: [productionLabelId],
+            },
+            { permission: Permission.CreateProjectStatusPage },
+            { permission: Permission.ReadProjectStatusPage },
+          ]);
+
+          const name: string = pageName();
+          const created: Outcome = await createStatusPage(caller, name, []);
+
+          expect(created.error).toBeUndefined();
+          expect(await pagesNamed(name)).toBe(1);
+        });
+      },
+    );
+
+    test("a block with labels on creating status pages refuses one carrying them", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.CreateProjectStatusPage },
+        { permission: Permission.ReadProjectStatusPage },
+        {
+          permission: Permission.CreateProjectStatusPage,
+          isBlock: true,
+          labelIds: [stagingLabelId],
+        },
+      ]);
+
+      const allowedName: string = pageName();
+      expect(
+        (await createStatusPage(homeUser, allowedName, [productionLabelId]))
+          .error,
+      ).toBeUndefined();
+
+      const refusedName: string = pageName();
+      const refused: Outcome = await createStatusPage(homeUser, refusedName, [
+        productionLabelId,
+        stagingLabelId,
+      ]);
+
+      expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+      expect((refused.error as Error).message).toContain(
+        `is in your team's permission block list for the label "Staging"`,
+      );
+      expect(await pagesNamed(refusedName)).toBe(0);
+    });
+
+    test("a note goes only on an alert carrying a label of the permission to write notes", async () => {
+      // Every alert is read; notes are written on Production alerts only.
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadAlert },
+        {
+          permission: Permission.CreateAlertInternalNote,
+          labelIds: [productionLabelId],
+        },
+        { permission: Permission.ReadAlertInternalNote },
+      ]);
+
+      const text: string = `${CREATED_PAGE_MARKER} note ${ObjectID.generate().toString()}`;
+
+      try {
+        const created: Outcome = await send({
+          uri: "/alert-internal-note",
+          caller: homeUser,
+          body: {
+            data: JSONFunctions.serialize({
+              alertId: productionAlertId,
+              note: text,
+            }),
+          },
+        });
+
+        expect(created.error).toBeUndefined();
+
+        const refused: Outcome = await send({
+          uri: "/alert-internal-note",
+          caller: homeUser,
+          body: {
+            data: JSONFunctions.serialize({
+              alertId: stagingAlertId,
+              note: `${text} refused`,
+            }),
+          },
+        });
+
+        expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+        expect((refused.error as Error).message).toBe(
+          "Your access lets you create Alert Internal Notes only for records with one of these labels: Production.",
+        );
+      } finally {
+        await database.query(
+          `DELETE FROM "${schema}"."AlertInternalNote" WHERE "note" LIKE $1`,
+          [`${CREATED_PAGE_MARKER}%`],
+        );
+      }
+    });
+
+    describe("limited to owned records", () => {
+      test("a person creates a status page, and becomes its owner", async () => {
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          {
+            permission: Permission.CreateProjectStatusPage,
+            scope: PermissionScope.Owned,
+          },
+          {
+            permission: Permission.ReadProjectStatusPage,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const name: string = pageName();
+        const created: Outcome = await createStatusPage(homeUser, name, []);
+
+        expect(created.error).toBeUndefined();
+
+        const owners: Array<{ userId: string }> = await database.query(
+          `SELECT o."userId" FROM "${schema}"."StatusPageOwnerUser" o JOIN "${schema}"."StatusPage" p ON p."_id" = o."statusPageId" WHERE p."name" = $1`,
+          [name],
+        );
+
+        expect(
+          owners.map((owner: { userId: string }): string => {
+            return owner.userId;
+          }),
+        ).toEqual([memberId.toString()]);
+      });
+
+      test("a note goes only on an alert they or their teams own", async () => {
+        // Every alert is read; notes are written on owned alerts only.
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          { permission: Permission.ReadAlert },
+          {
+            permission: Permission.CreateAlertInternalNote,
+            scope: PermissionScope.Owned,
+          },
+          { permission: Permission.ReadAlertInternalNote },
+        ]);
+
+        const text: string = `${CREATED_PAGE_MARKER} owned note ${ObjectID.generate().toString()}`;
+
+        try {
+          // The member owns the staging alert.
+          const created: Outcome = await send({
+            uri: "/alert-internal-note",
+            caller: homeUser,
+            body: {
+              data: JSONFunctions.serialize({
+                alertId: stagingAlertId,
+                note: text,
+              }),
+            },
+          });
+
+          expect(created.error).toBeUndefined();
+
+          const refused: Outcome = await send({
+            uri: "/alert-internal-note",
+            caller: homeUser,
+            body: {
+              data: JSONFunctions.serialize({
+                alertId: productionAlertId,
+                note: `${text} refused`,
+              }),
+            },
+          });
+
+          expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+          expect((refused.error as Error).message).toBe(
+            "Your access lets you create Alert Internal Notes only for the Alerts you or your teams own.",
+          );
+
+          const notes: Array<{ alertId: string }> = await database.query(
+            `SELECT "alertId" FROM "${schema}"."AlertInternalNote" WHERE "note" LIKE $1`,
+            [`${text}%`],
+          );
+
+          expect(
+            notes.map((note: { alertId: string }): string => {
+              return note.alertId;
+            }),
+          ).toEqual([stagingAlertId.toString()]);
+        } finally {
+          await database.query(
+            `DELETE FROM "${schema}"."AlertInternalNote" WHERE "note" LIKE $1`,
+            [`${CREATED_PAGE_MARKER}%`],
+          );
+        }
+      });
+    });
+
+    describe("what a label-limited creator makes under a record they just made", () => {
+      test("the owners picked for a status page carrying their label are added, as the creator", async () => {
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          {
+            permission: Permission.StatusPageMember,
+            labelIds: [productionLabelId],
+          },
+        ]);
+
+        const name: string = pageName();
+        const created: Outcome = await createStatusPage(homeUser, name, [
+          productionLabelId,
+        ]);
+
+        expect(created.error).toBeUndefined();
+
+        const pageId: ObjectID = created.item!.id!;
+
+        const owner: Outcome = await send({
+          uri: "/status-page-owner-team",
+          caller: homeUser,
+          body: {
+            data: JSONFunctions.serialize({
+              statusPageId: pageId,
+              teamId: homeTeamId,
+              isOwnerNotified: true,
+            }),
+          },
+        });
+
+        expect(owner.error).toBeUndefined();
+
+        const rows: Array<{ teamId: string }> = await database.query(
+          `SELECT "teamId" FROM "${schema}"."StatusPageOwnerTeam" WHERE "statusPageId" = $1`,
+          [pageId.toString()],
+        );
+
+        expect(
+          rows.map((row: { teamId: string }): string => {
+            return row.teamId;
+          }),
+        ).toEqual([homeTeamId.toString()]);
+
+        // A page without their label is never made, so nothing under it can fail.
+        const refused: Outcome = await createStatusPage(
+          homeUser,
+          pageName(),
+          [],
+        );
+
+        expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+      });
+
+      test("the first escalation rule of an on-call policy carrying their label is added, as the creator", async () => {
+        const autoOwner: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+          DatabaseService.prototype as never,
+          "autoOwnerOnCreate",
+        ).mockResolvedValue(undefined as never);
+
+        try {
+          await setTeamPermissions(homeTeamId, homeProjectId, [
+            {
+              permission: Permission.OnCallMember,
+              labelIds: [productionLabelId],
+            },
+          ]);
+
+          const policy: Outcome = await send({
+            uri: "/on-call-duty-policy",
+            caller: homeUser,
+            body: {
+              data: JSONFunctions.serialize({
+                name: pageName(),
+                labels: [{ _id: productionLabelId.toString() }],
+              }),
+            },
+          });
+
+          expect(policy.error).toBeUndefined();
+
+          const policyId: ObjectID = policy.item!.id!;
+
+          try {
+            const rule: Outcome = await send({
+              uri: "/on-call-duty-policy-escalation-rule",
+              caller: homeUser,
+              body: {
+                data: JSONFunctions.serialize({
+                  onCallDutyPolicyId: policyId,
+                  name: "Level 1",
+                  order: 1,
+                }),
+              },
+            });
+
+            expect(rule.error).toBeUndefined();
+
+            const rules: Array<{ count: string }> = await database.query(
+              `SELECT COUNT(*) AS "count" FROM "${schema}"."OnCallDutyPolicyEscalationRule" WHERE "onCallDutyPolicyId" = $1`,
+              [policyId.toString()],
+            );
+
+            expect(Number(rules[0]?.count)).toBe(1);
+
+            // A policy without their label is never made.
+            const refused: Outcome = await send({
+              uri: "/on-call-duty-policy",
+              caller: homeUser,
+              body: {
+                data: JSONFunctions.serialize({ name: pageName() }),
+              },
+            });
+
+            expect(refused.error).toBeInstanceOf(NotAuthorizedException);
+          } finally {
+            await removeRows([
+              [
+                "OnCallDutyPolicyEscalationRule",
+                "onCallDutyPolicyId",
+                policyId,
+              ],
+              ["OnCallDutyPolicyLabel", "onCallDutyPolicyId", policyId],
+              ["OnCallDutyPolicy", "_id", policyId],
+            ]);
+          }
+        } finally {
+          autoOwner.mockRestore();
+        }
+      });
+    });
+  });
+
+  describe("the records a write lists", () => {
+    // What the alerts this block creates are titled, to clear them after.
+    const CREATED_ALERT_MARKER: string = "Listed records";
+
+    let autoOwner: ReturnType<typeof getJestSpyOn>;
+
+    beforeAll(() => {
+      // The creator's owner row of a new alert is not what this block is about.
+      autoOwner = getJestSpyOn(
+        DatabaseService.prototype as never,
+        "autoOwnerOnCreate",
+      ).mockResolvedValue(undefined as never);
+    });
+
+    afterAll(async () => {
+      autoOwner.mockRestore();
+
+      const rows: Array<{ _id: string }> = await database.query(
+        `SELECT "_id" FROM "${schema}"."Alert" WHERE "title" LIKE $1`,
+        [`${CREATED_ALERT_MARKER}%`],
+      );
+
+      for (const created of rows) {
+        await removeRows([
+          ["AlertService", "alertId", new ObjectID(created._id)],
+          ["Alert", "_id", new ObjectID(created._id)],
+        ]);
+      }
+
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    const alertTitle: () => string = (): string => {
+      return `${CREATED_ALERT_MARKER} ${ObjectID.generate().toString()}`;
+    };
+
+    const servicesOf: (alertId: ObjectID) => Promise<Array<string>> = async (
+      alertId: ObjectID,
+    ): Promise<Array<string>> => {
+      const rows: Array<{ serviceId: string }> = await database.query(
+        `SELECT "serviceId" FROM "${schema}"."AlertService" WHERE "alertId" = $1`,
+        [alertId.toString()],
+      );
+
+      return sorted(
+        rows.map((row: { serviceId: string }): string => {
+          return row.serviceId;
+        }),
+      );
+    };
+
+    const createAlert: (
+      caller: Caller,
+      title: string,
+      serviceIds: Array<ObjectID>,
+    ) => Promise<Outcome> = async (
+      caller: Caller,
+      title: string,
+      serviceIds: Array<ObjectID>,
+    ): Promise<Outcome> => {
+      return await send({
+        uri: "/alert",
+        caller: caller,
+        body: {
+          data: JSONFunctions.serialize({
+            title: title,
+            currentAlertStateId: ObjectID.generate(),
+            alertSeverityId: ObjectID.generate(),
+            labels: [{ _id: productionLabelId.toString() }],
+            services: serviceIds.map((serviceId: ObjectID): JSONObject => {
+              return { _id: serviceId.toString() };
+            }),
+          }),
+        },
+      });
+    };
+
+    const LABELLED_DECLARER: Array<PermissionRow> = [
+      { permission: Permission.CreateAlert },
+      { permission: Permission.EditAlert },
+      { permission: Permission.ReadAlert },
+      { permission: Permission.ReadService, labelIds: [productionLabelId] },
+    ];
+
+    const expectRefusedAsMissing: (
+      outcome: Outcome,
+      field: string,
+      id: ObjectID,
+    ) => void = (outcome: Outcome, field: string, id: ObjectID): void => {
+      expect(outcome.error).toBeInstanceOf(BadDataException);
+      expect((outcome.error as Error).message).toContain(
+        `references records that are not in this project: ${field} "${id.toString()}".`,
+      );
+    };
+
+    describe.each([
+      ["a team member", "team"],
+      ["an API key", "apiKey"],
+    ] as Array<[string, "team" | "apiKey"]>)(
+      "%s whose read of services is limited to a label",
+      (_name: string, kind: "team" | "apiKey") => {
+        const declarer: () => Promise<Caller> = async (): Promise<Caller> => {
+          if (kind === "team") {
+            await setTeamPermissions(
+              homeTeamId,
+              homeProjectId,
+              LABELLED_DECLARER,
+            );
+            return homeUser;
+          }
+
+          return {
+            kind: "apiKey",
+            apiKey: await createApiKey(LABELLED_DECLARER),
+          };
+        };
+
+        test("creates an alert listing only services carrying the label", async () => {
+          const caller: Caller = await declarer();
+
+          const created: Outcome = await createAlert(caller, alertTitle(), [
+            productionServiceId,
+          ]);
+
+          expect(created.error).toBeUndefined();
+          expect(await servicesOf(created.item!.id!)).toEqual([
+            productionServiceId.toString(),
+          ]);
+
+          const title: string = alertTitle();
+          const refused: Outcome = await createAlert(caller, title, [
+            productionServiceId,
+            stagingServiceId,
+          ]);
+
+          expectRefusedAsMissing(refused, "Services", stagingServiceId);
+
+          const rows: Array<{ count: string }> = await database.query(
+            `SELECT COUNT(*) AS "count" FROM "${schema}"."Alert" WHERE "title" = $1`,
+            [title],
+          );
+
+          expect(Number(rows[0]?.count)).toBe(0);
+        });
+
+        test("an update adds only services the editor may read, and keeps the ones listed already", async () => {
+          const caller: Caller = await declarer();
+
+          const created: Outcome = await createAlert(caller, alertTitle(), [
+            productionServiceId,
+          ]);
+          const alertId: ObjectID = created.item!.id!;
+
+          const refused: Outcome = await update("/alert", caller, alertId, {
+            services: [
+              { _id: productionServiceId.toString() },
+              { _id: stagingServiceId.toString() },
+            ],
+          });
+
+          expectRefusedAsMissing(refused, "Services", stagingServiceId);
+          expect(await servicesOf(alertId)).toEqual([
+            productionServiceId.toString(),
+          ]);
+
+          // Listed already - put there by someone who reads it - and kept.
+          await insert("AlertService", {
+            alertId: alertId,
+            serviceId: stagingServiceId,
+          });
+
+          const kept: Outcome = await update("/alert", caller, alertId, {
+            services: [
+              { _id: productionServiceId.toString() },
+              { _id: stagingServiceId.toString() },
+            ],
+          });
+
+          expect(kept.error).toBeUndefined();
+          expect(await servicesOf(alertId)).toEqual(
+            sorted([productionServiceId, stagingServiceId]),
+          );
+        });
+      },
+    );
+
+    test("a responder who reads no services is held to the project: a service of another project reads like a missing one", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+
+      const created: Outcome = await createAlert(homeUser, alertTitle(), [
+        stagingServiceId,
+      ]);
+
+      expect(created.error).toBeUndefined();
+
+      const refused: Outcome = await createAlert(homeUser, alertTitle(), [
+        otherServiceId,
+      ]);
+
+      expectRefusedAsMissing(refused, "Services", otherServiceId);
     });
   });
 

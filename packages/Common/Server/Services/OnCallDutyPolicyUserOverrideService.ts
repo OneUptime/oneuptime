@@ -20,6 +20,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import logger from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The (project, overridden user, substitute) triple an override names; the
@@ -283,25 +284,28 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         onCallDutyPolicyFeedEventType:
           OnCallDutyPolicyFeedEventType.UserOverrideAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `🔁 Added a User Override Rule for user **${await UserService.getUserMarkdownString(
-          {
-            userId: overrideUserId,
-            projectId: projectId!,
-          },
-        )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
-          {
-            userId: routeAlertsToUserId,
-            projectId: projectId!,
-          },
-        )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-          {
-            date: createdItem.startsAt!,
-            timezones: timezones,
-          },
-        )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
-          date: createdItem.endsAt!,
-          timezones: timezones,
-        })}**. `,
+        feedInfoInMarkdown:
+          mdText`🔁 Added a User Override Rule for user **${await UserService.getUserMarkdownString(
+            {
+              userId: overrideUserId,
+              projectId: projectId!,
+            },
+          )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
+            {
+              userId: routeAlertsToUserId,
+              projectId: projectId!,
+            },
+          )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+            {
+              date: createdItem.startsAt!,
+              timezones: timezones,
+            },
+          )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+            {
+              date: createdItem.endsAt!,
+              timezones: timezones,
+            },
+          )}**. `.toString(),
 
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
@@ -583,17 +587,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           onCallDutyPolicyFeedEventType:
             OnCallDutyPolicyFeedEventType.UserOverrideRemoved,
           displayColor: Gray500,
-          feedInfoInMarkdown: `❌ Removed a User Override Rule for user **${await UserService.getUserMarkdownString(
-            {
-              userId: overrideUserId,
-              projectId: projectId!,
-            },
-          )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString(
-            {
-              userId: overrideUserId,
-              projectId: projectId!,
-            },
-          )}**`,
+          feedInfoInMarkdown:
+            mdText`❌ Removed a User Override Rule for user **${await UserService.getUserMarkdownString(
+              {
+                userId: overrideUserId,
+                projectId: projectId!,
+              },
+            )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString(
+              {
+                userId: overrideUserId,
+                projectId: projectId!,
+              },
+            )}**`.toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

@@ -31,7 +31,7 @@ import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "AlertOwner:SendUnresolvedReminderNotification",
@@ -316,7 +316,7 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
       eventType,
     });
 
-    moreAlertFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+    moreAlertFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
       {
         userId: user.id!,
         projectId: projectId,
@@ -332,7 +332,8 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
     projectId: projectId,
     alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
     displayColor: Blue500,
-    feedInfoInMarkdown: `🔔 **Reminder sent to owners of [Alert ${alertNumberDisplayValue}](${alertViewLink})**: This alert is still **${escapeMarkdownValue(currentStateName)}** and has been open for **${openDuration}**.`,
+    feedInfoInMarkdown:
+      mdText`🔔 **Reminder sent to owners of [Alert ${alertNumberDisplayValue}](${alertViewLink})**: This alert is still **${currentStateName}** and has been open for **${openDuration}**.`.toString(),
     moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
     workspaceNotification: {
       sendWorkspaceNotification: true,

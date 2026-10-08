@@ -24,7 +24,7 @@ import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedServ
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "AlertEpisodeOwner:SendsNotePostedEmail",
@@ -228,7 +228,7 @@ RunCron(
           eventType,
         });
 
-        moreEpisodeFeedInformationInMarkdown += `**Notified:** ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
+        moreEpisodeFeedInformationInMarkdown += mdText`**Notified:** ${user.name?.toString()} (${user.email?.toString()})\n`;
       }
 
       const projectId: ObjectID = episode.projectId!;
@@ -236,7 +236,8 @@ RunCron(
       const episodeDisplayNumber: string =
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
-      const episodeFeedText: string = `🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`;
+      const episodeFeedText: string =
+        mdText`🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`.toString();
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id!,

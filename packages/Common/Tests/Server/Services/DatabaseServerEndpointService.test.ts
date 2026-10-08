@@ -46,6 +46,7 @@ import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -718,6 +719,39 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           return database.row.id!.toString();
         });
     }) as never);
+    /*
+     * An endpoint a label-scoped editor adds names a database carrying one
+     * of the labels their permission to add it is limited to
+     * (CreateScopePermission): the labels of the same fake table.
+     */
+    getJestSpyOn(
+      DatabaseService as never,
+      "findRecordLabels",
+    ).mockImplementation((async (lookup: {
+      ids: Array<string>;
+    }): Promise<Record<string, Array<string>>> => {
+      const asked: Array<string> = lookup.ids.map((id: string): string => {
+        return id.toLowerCase();
+      });
+      const labels: Record<string, Array<string>> = {};
+
+      for (const database of databases) {
+        const id: string = database.row.id!.toString().toLowerCase();
+
+        if (asked.includes(id)) {
+          labels[id] = database.labelIds.map((labelId: string): string => {
+            return labelId.toLowerCase();
+          });
+        }
+      }
+
+      return labels;
+    }) as never);
+    getJestSpyOn(DatabaseService as never, "findLabelNames").mockImplementation(
+      (async (lookup: { labelIds: Array<string> }): Promise<Array<string>> => {
+        return lookup.labelIds;
+      }) as never,
+    );
     // The Feed item an added alias writes - see "the database's Feed".
     getJestSpyOn(
       DatabaseServerFeedService,
@@ -1420,7 +1454,9 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
         DatabaseServerService,
         "getDatabaseServerMarkdownLink",
       ).mockResolvedValue(
-        "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        FeedMarkdown.asMarkdown(
+          "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        ),
       );
       stubProjectDirectory({});
     });
@@ -1828,7 +1864,9 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
         DatabaseServerService,
         "getDatabaseServerMarkdownLink",
       ).mockResolvedValue(
-        "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        FeedMarkdown.asMarkdown(
+          "[Database PostgreSQL orders-db.example.com:5432](/db)",
+        ),
       );
       stubProjectDirectory({});
     });

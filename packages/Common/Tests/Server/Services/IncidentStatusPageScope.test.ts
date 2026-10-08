@@ -44,6 +44,7 @@ import {
   test,
 } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * An incident can be limited to some of the status pages its monitors reach
  * (Incident.statusPages). IncidentService owns everything that follows from a
@@ -1773,7 +1774,7 @@ describe("IncidentService.onBeforeCreate: the scope of a new incident", () => {
     // The root cause names the user who declared the incident.
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("Test User" as never);
+      .mockResolvedValue(FeedMarkdown.asMarkdown("Test User") as never);
     jest.spyOn(IncidentTemplateService, "findOneBy").mockImplementation((() => {
       return Promise.resolve(template);
     }) as never);

@@ -25,10 +25,6 @@ import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import LinkedAffectedResources from "../Utils/AffectedResources/LinkedAffectedResources";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
@@ -64,6 +60,11 @@ import WorkspaceSummaryScheduleUtil, {
 import Timezone from "../../Types/Timezone";
 import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+  MarkdownValue,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * NOTE ON FORMATTING:
@@ -659,28 +660,26 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     return { _type: "WorkspacePayloadHeader", text };
   }
 
-  private static md(text: string): WorkspacePayloadMarkdown {
-    return { _type: "WorkspacePayloadMarkdown", text };
+  private static md(text: MarkdownText): WorkspacePayloadMarkdown {
+    return { _type: "WorkspacePayloadMarkdown", text: text.toString() };
   }
 
-  private static bold(text: string): string {
-    return `**${text}**`;
+  // Bold: text placed as text, a MarkdownText as it is.
+  private static bold(text: MarkdownValue): MarkdownText {
+    return mdText`**${text}**`;
   }
 
-  private static link(url: string, text: string): string {
-    return `[${text}](${url})`;
+  // A link whose words are text: a "]" in them cannot end them early.
+  private static link(url: string, text: string): MarkdownText {
+    return mdText`[${text}](${url})`;
   }
 
   /*
-   * Resource names are escaped: a host or cluster name can come from an
-   * agent rather than from someone typing it, and this text is markdown.
+   * Resource names are text: a host or cluster name can come from an agent
+   * rather than from someone typing it, and this text is markdown.
    */
-  private static joinNames(names: Array<string>): string {
-    return names
-      .map((name: string): string => {
-        return escapeMarkdownInline(name);
-      })
-      .join(", ");
+  private static joinNames(names: Array<string>): MarkdownText {
+    return FeedMarkdown.join(names);
   }
 
   private static formatDuration(totalMinutes: number): string {
@@ -1067,7 +1066,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     blocks.push(
       Service.md(
-        `_Reporting period: ${Service.bold(String(days))} day${days !== 1 ? "s" : ""}_`,
+        mdText`_Reporting period: ${Service.bold(String(days))} day${days !== 1 ? "s" : ""}_`,
       ),
     );
 
@@ -1104,7 +1103,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     // Footer
     blocks.push(Service.divider());
     blocks.push(
-      Service.md(`_Sent by OneUptime  •  ${summary.name || "Untitled"}_`),
+      Service.md(mdText`_Sent by OneUptime  •  ${summary.name || "Untitled"}_`),
     );
 
     return blocks;
@@ -1187,8 +1186,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
       blocks.push(
         Service.md(
-          `${Service.bold("Total:")} ${incidents.length} incident${incidents.length !== 1 ? "s" : ""}  ·  ` +
-            `${Service.bold("Open:")} ${open}  ·  ${Service.bold("Resolved:")} ${resolved}`,
+          mdText`${Service.bold("Total:")} ${incidents.length} incident${incidents.length !== 1 ? "s" : ""}  ·  ${Service.bold("Open:")} ${open}  ·  ${Service.bold("Resolved:")} ${resolved}`,
         ),
       );
     }
@@ -1203,14 +1201,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
-        const parts: Array<string> = [];
+        const parts: Array<MarkdownText> = [];
         for (const [sev, count] of map) {
-          parts.push(
-            `${escapeMarkdownValue(sev)}: ${Service.bold(String(count))}`,
-          );
+          parts.push(mdText`${sev}: ${Service.bold(String(count))}`);
         }
         blocks.push(
-          Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1223,14 +1221,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
-        const parts: Array<string> = [];
+        const parts: Array<MarkdownText> = [];
         for (const [state, count] of map) {
-          parts.push(
-            `${escapeMarkdownValue(state)}: ${Service.bold(String(count))}`,
-          );
+          parts.push(mdText`${state}: ${Service.bold(String(count))}`);
         }
         blocks.push(
-          Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1316,8 +1314,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `${Service.bold("MTTA (Mean Time to Acknowledge):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} acknowledged)_`
-            : `${Service.bold("MTTA (Mean Time to Acknowledge):")}  _No incidents acknowledged_`,
+            ? mdText`${Service.bold("MTTA (Mean Time to Acknowledge):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} acknowledged)_`
+            : mdText`${Service.bold("MTTA (Mean Time to Acknowledge):")}  _No incidents acknowledged_`,
         ),
       );
     }
@@ -1328,8 +1326,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} resolved)_`
-            : `${Service.bold("MTTR (Mean Time to Resolve):")}  _No incidents resolved_`,
+            ? mdText`${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} resolved)_`
+            : mdText`${Service.bold("MTTR (Mean Time to Resolve):")}  _No incidents resolved_`,
         ),
       );
     }
@@ -1351,7 +1349,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (names.length > 0) {
         blocks.push(
           Service.md(
-            `${Service.bold(`Resources Affected (${names.length}):`)}  ${Service.joinNames(names)}`,
+            mdText`${Service.bold(`Resources Affected (${names.length}):`)}  ${Service.joinNames(names)}`,
           ),
         );
       }
@@ -1362,7 +1360,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(Service.divider());
 
       if (incidents.length === 0) {
-        blocks.push(Service.md(`_No incidents reported in this period._`));
+        blocks.push(
+          Service.md(mdText`_No incidents reported in this period._`),
+        );
         return;
       }
 
@@ -1384,58 +1384,58 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
          * not enough inside a link's text: marked, for one, undoes "\[" and
          * "\]" there before reading it.)
          */
-        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${escapeMarkdownInline(inc.title || "Untitled")}`))}`;
+        let text: MarkdownText = mdText`${Service.bold(Service.link(linkUrl, `${display} — ${inc.title || "Untitled"}`))}`;
 
         // Meta line
-        const meta: Array<string> = [];
+        const meta: Array<MarkdownText> = [];
         if (inc.incidentSeverity?.name) {
           meta.push(
-            `Severity: ${Service.bold(escapeMarkdownValue(inc.incidentSeverity.name))}`,
+            mdText`Severity: ${Service.bold(inc.incidentSeverity.name)}`,
           );
         }
         if (inc.currentIncidentState?.name) {
           meta.push(
-            `State: ${Service.bold(escapeMarkdownValue(inc.currentIncidentState.name))}`,
+            mdText`State: ${Service.bold(inc.currentIncidentState.name)}`,
           );
         }
         if (inc.declaredAt) {
           meta.push(
-            `Declared: ${Service.formatDate(inc.declaredAt, data.timezone)}`,
+            mdText`Declared: ${Service.formatDate(inc.declaredAt, data.timezone)}`,
           );
         }
         if (meta.length > 0) {
-          text += `\n${meta.join("  ·  ")}`;
+          text = mdText`${text}\n${FeedMarkdown.join(meta, "  ·  ")}`;
         }
 
         // Ack & resolve line
-        const ackResolve: Array<string> = [];
+        const ackResolve: Array<MarkdownText> = [];
         if (
           Service.has(items, WorkspaceNotificationSummaryItem.WhoAcknowledged)
         ) {
           if (td?.ackBy && td?.ackAt) {
             ackResolve.push(
-              `Ack: ${Service.bold(escapeMarkdownValue(td.ackBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))}`,
+              mdText`Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))}`,
             );
           } else if (td?.resolvedBy && td?.resolvedAt) {
             // If not explicitly acknowledged but resolved, ack time = resolve time
             ackResolve.push(
-              `Ack: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
+              mdText`Ack: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
             );
           } else {
-            ackResolve.push(`_Not yet acknowledged_`);
+            ackResolve.push(mdText`_Not yet acknowledged_`);
           }
         }
         if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
-              `Resolved: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
+              mdText`Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
             );
           } else if (!isResolvedIncidentState(inc.currentIncidentStateId)) {
-            ackResolve.push(`_Not yet resolved_`);
+            ackResolve.push(mdText`_Not yet resolved_`);
           }
         }
         if (ackResolve.length > 0) {
-          text += `\n${ackResolve.join("  ·  ")}`;
+          text = mdText`${text}\n${FeedMarkdown.join(ackResolve, "  ·  ")}`;
         }
 
         blocks.push(Service.md(text));
@@ -1505,8 +1505,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       }).length;
       blocks.push(
         Service.md(
-          `${Service.bold("Total:")} ${episodes.length} episode${episodes.length !== 1 ? "s" : ""}  ·  ` +
-            `${Service.bold("Open:")} ${episodes.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
+          mdText`${Service.bold("Total:")} ${episodes.length} episode${episodes.length !== 1 ? "s" : ""}  ·  ${Service.bold("Open:")} ${episodes.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
         ),
       );
     }
@@ -1520,12 +1519,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
-        const parts: Array<string> = [];
+        const parts: Array<MarkdownText> = [];
         for (const [sev, c] of map) {
-          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
+          parts.push(mdText`${sev}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1537,14 +1538,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
-        const parts: Array<string> = [];
+        const parts: Array<MarkdownText> = [];
         for (const [state, c] of map) {
-          parts.push(
-            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
-          );
+          parts.push(mdText`${state}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1564,8 +1565,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(Math.round(total / count)))}  _(${count} resolved)_`
-            : `${Service.bold("MTTR (Mean Time to Resolve):")}  _No episodes resolved_`,
+            ? mdText`${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(Math.round(total / count)))}  _(${count} resolved)_`
+            : mdText`${Service.bold("MTTR (Mean Time to Resolve):")}  _No episodes resolved_`,
         ),
       );
     }
@@ -1574,7 +1575,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(Service.divider());
 
       if (episodes.length === 0) {
-        blocks.push(Service.md(`_No incident episodes in this period._`));
+        blocks.push(Service.md(mdText`_No incident episodes in this period._`));
         return;
       }
 
@@ -1585,30 +1586,30 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           .toString();
 
         // The title inside the link's text, escaped as an incident's is.
-        let text: string = `${Service.bold(Service.link(linkUrl, escapeMarkdownInline(ep.title || "Untitled Episode")))}`;
-        const meta: Array<string> = [];
+        let text: MarkdownText = mdText`${Service.bold(Service.link(linkUrl, ep.title || "Untitled Episode"))}`;
+        const meta: Array<MarkdownText> = [];
         if (ep.incidentSeverity?.name) {
           meta.push(
-            `Severity: ${Service.bold(escapeMarkdownValue(ep.incidentSeverity.name))}`,
+            mdText`Severity: ${Service.bold(ep.incidentSeverity.name)}`,
           );
         }
         if (ep.currentIncidentState?.name) {
           meta.push(
-            `State: ${Service.bold(escapeMarkdownValue(ep.currentIncidentState.name))}`,
+            mdText`State: ${Service.bold(ep.currentIncidentState.name)}`,
           );
         }
         if (ep.createdAt) {
           meta.push(
-            `Created: ${Service.formatDate(ep.createdAt, data.timezone)}`,
+            mdText`Created: ${Service.formatDate(ep.createdAt, data.timezone)}`,
           );
         }
         if (ep.resolvedAt && ep.createdAt) {
           meta.push(
-            `Resolved in ${Service.bold(Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(ep.createdAt, ep.resolvedAt)))}`,
+            mdText`Resolved in ${Service.bold(Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(ep.createdAt, ep.resolvedAt)))}`,
           );
         }
         if (meta.length > 0) {
-          text += `\n${meta.join("  ·  ")}`;
+          text = mdText`${text}\n${FeedMarkdown.join(meta, "  ·  ")}`;
         }
         blocks.push(Service.md(text));
       }
@@ -1688,8 +1689,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       }).length;
       blocks.push(
         Service.md(
-          `${Service.bold("Total:")} ${alerts.length} alert${alerts.length !== 1 ? "s" : ""}  ·  ` +
-            `${Service.bold("Open:")} ${alerts.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
+          mdText`${Service.bold("Total:")} ${alerts.length} alert${alerts.length !== 1 ? "s" : ""}  ·  ${Service.bold("Open:")} ${alerts.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
         ),
       );
     }
@@ -1703,12 +1703,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
-        const parts: Array<string> = [];
+        const parts: Array<MarkdownText> = [];
         for (const [sev, c] of map) {
-          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
+          parts.push(mdText`${sev}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1720,14 +1722,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
-        const parts: Array<string> = [];
+        const parts: Array<MarkdownText> = [];
         for (const [state, c] of map) {
-          parts.push(
-            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
-          );
+          parts.push(mdText`${state}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -1806,8 +1808,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `${Service.bold("MTTA (Mean Time to Acknowledge):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} acknowledged)_`
-            : `${Service.bold("MTTA (Mean Time to Acknowledge):")}  _No alerts acknowledged_`,
+            ? mdText`${Service.bold("MTTA (Mean Time to Acknowledge):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} acknowledged)_`
+            : mdText`${Service.bold("MTTA (Mean Time to Acknowledge):")}  _No alerts acknowledged_`,
         ),
       );
     }
@@ -1817,8 +1819,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} resolved)_`
-            : `${Service.bold("MTTR (Mean Time to Resolve):")}  _No alerts resolved_`,
+            ? mdText`${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(avg))}  _(${count} resolved)_`
+            : mdText`${Service.bold("MTTR (Mean Time to Resolve):")}  _No alerts resolved_`,
         ),
       );
     }
@@ -1839,7 +1841,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (names.length > 0) {
         blocks.push(
           Service.md(
-            `${Service.bold(`Resources Affected (${names.length}):`)}  ${Service.joinNames(names)}`,
+            mdText`${Service.bold(`Resources Affected (${names.length}):`)}  ${Service.joinNames(names)}`,
           ),
         );
       }
@@ -1849,7 +1851,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(Service.divider());
 
       if (alerts.length === 0) {
-        blocks.push(Service.md(`_No alerts reported in this period._`));
+        blocks.push(Service.md(mdText`_No alerts reported in this period._`));
         return;
       }
 
@@ -1863,56 +1865,52 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         const td: TimelineData | undefined = tlMap.get(id);
 
         // The title inside the link's text, escaped as an incident's is.
-        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${escapeMarkdownInline(a.title || "Untitled")}`))}`;
+        let text: MarkdownText = mdText`${Service.bold(Service.link(linkUrl, `${display} — ${a.title || "Untitled"}`))}`;
 
-        const meta: Array<string> = [];
+        const meta: Array<MarkdownText> = [];
         if (a.alertSeverity?.name) {
-          meta.push(
-            `Severity: ${Service.bold(escapeMarkdownValue(a.alertSeverity.name))}`,
-          );
+          meta.push(mdText`Severity: ${Service.bold(a.alertSeverity.name)}`);
         }
         if (a.currentAlertState?.name) {
-          meta.push(
-            `State: ${Service.bold(escapeMarkdownValue(a.currentAlertState.name))}`,
-          );
+          meta.push(mdText`State: ${Service.bold(a.currentAlertState.name)}`);
         }
         if (a.createdAt) {
           meta.push(
-            `Created: ${Service.formatDate(a.createdAt, data.timezone)}`,
+            mdText`Created: ${Service.formatDate(a.createdAt, data.timezone)}`,
           );
         }
         if (meta.length > 0) {
-          text += `\n${meta.join("  ·  ")}`;
+          text = mdText`${text}\n${FeedMarkdown.join(meta, "  ·  ")}`;
         }
 
-        const ackResolve: Array<string> = [];
+        const ackResolve: Array<MarkdownText> = [];
         if (
           Service.has(items, WorkspaceNotificationSummaryItem.WhoAcknowledged)
         ) {
           if (td?.ackBy && td?.ackAt) {
             ackResolve.push(
-              `Ack: ${Service.bold(escapeMarkdownValue(td.ackBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))}`,
+              mdText`Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))}`,
             );
           } else if (td?.resolvedBy && td?.resolvedAt) {
             // If not explicitly acknowledged but resolved, ack time = resolve time
             ackResolve.push(
-              `Ack: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
+              mdText`Ack: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
             );
           } else {
-            ackResolve.push(`_Not yet acknowledged_`);
+            ackResolve.push(mdText`_Not yet acknowledged_`);
           }
         }
         if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
-              `Resolved: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
+              mdText`Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
             );
           } else if (!isResolvedAlertState(a.currentAlertStateId)) {
-            ackResolve.push(`_Not yet resolved_`);
+            ackResolve.push(mdText`_Not yet resolved_`);
           }
         }
         if (ackResolve.length > 0) {
-          text += `\n${ackResolve.join("  ·  ")}`;
+          text = mdText`${text}\n${FeedMarkdown.join(ackResolve, "  ·  ")}`;
         }
 
         blocks.push(Service.md(text));
@@ -1977,8 +1975,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       }).length;
       blocks.push(
         Service.md(
-          `${Service.bold("Total:")} ${episodes.length} episode${episodes.length !== 1 ? "s" : ""}  ·  ` +
-            `${Service.bold("Open:")} ${episodes.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
+          mdText`${Service.bold("Total:")} ${episodes.length} episode${episodes.length !== 1 ? "s" : ""}  ·  ${Service.bold("Open:")} ${episodes.length - resolved}  ·  ${Service.bold("Resolved:")} ${resolved}`,
         ),
       );
     }
@@ -1992,12 +1989,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
-        const parts: Array<string> = [];
+        const parts: Array<MarkdownText> = [];
         for (const [sev, c] of map) {
-          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
+          parts.push(mdText`${sev}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By Severity:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -2009,14 +2008,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         map.set(s, (map.get(s) || 0) + 1);
       }
       if (map.size > 0) {
-        const parts: Array<string> = [];
+        const parts: Array<MarkdownText> = [];
         for (const [state, c] of map) {
-          parts.push(
-            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
-          );
+          parts.push(mdText`${state}: ${Service.bold(String(c))}`);
         }
         blocks.push(
-          Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
+          Service.md(
+            mdText`${Service.bold("By State:")}  ${FeedMarkdown.join(parts, "  ·  ")}`,
+          ),
         );
       }
     }
@@ -2036,8 +2035,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(
         Service.md(
           count > 0
-            ? `${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(Math.round(total / count)))}  _(${count} resolved)_`
-            : `${Service.bold("MTTR (Mean Time to Resolve):")}  _No episodes resolved_`,
+            ? mdText`${Service.bold("MTTR (Mean Time to Resolve):")}  ${Service.bold(Service.formatDuration(Math.round(total / count)))}  _(${count} resolved)_`
+            : mdText`${Service.bold("MTTR (Mean Time to Resolve):")}  _No episodes resolved_`,
         ),
       );
     }
@@ -2046,7 +2045,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       blocks.push(Service.divider());
 
       if (episodes.length === 0) {
-        blocks.push(Service.md(`_No alert episodes in this period._`));
+        blocks.push(Service.md(mdText`_No alert episodes in this period._`));
         return;
       }
 
@@ -2057,30 +2056,26 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           .toString();
 
         // The title inside the link's text, escaped as an incident episode's is.
-        let text: string = `${Service.bold(Service.link(linkUrl, escapeMarkdownInline(ep.title || "Untitled Episode")))}`;
-        const meta: Array<string> = [];
+        let text: MarkdownText = mdText`${Service.bold(Service.link(linkUrl, ep.title || "Untitled Episode"))}`;
+        const meta: Array<MarkdownText> = [];
         if (ep.alertSeverity?.name) {
-          meta.push(
-            `Severity: ${Service.bold(escapeMarkdownValue(ep.alertSeverity.name))}`,
-          );
+          meta.push(mdText`Severity: ${Service.bold(ep.alertSeverity.name)}`);
         }
         if (ep.currentAlertState?.name) {
-          meta.push(
-            `State: ${Service.bold(escapeMarkdownValue(ep.currentAlertState.name))}`,
-          );
+          meta.push(mdText`State: ${Service.bold(ep.currentAlertState.name)}`);
         }
         if (ep.createdAt) {
           meta.push(
-            `Created: ${Service.formatDate(ep.createdAt, data.timezone)}`,
+            mdText`Created: ${Service.formatDate(ep.createdAt, data.timezone)}`,
           );
         }
         if (ep.resolvedAt && ep.createdAt) {
           meta.push(
-            `Resolved in ${Service.bold(Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(ep.createdAt, ep.resolvedAt)))}`,
+            mdText`Resolved in ${Service.bold(Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(ep.createdAt, ep.resolvedAt)))}`,
           );
         }
         if (meta.length > 0) {
-          text += `\n${meta.join("  ·  ")}`;
+          text = mdText`${text}\n${FeedMarkdown.join(meta, "  ·  ")}`;
         }
         blocks.push(Service.md(text));
       }

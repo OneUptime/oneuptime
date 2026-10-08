@@ -27,17 +27,20 @@ import ModelPermission from "../Types/Database/Permissions/Index";
  * change is saved used to fail after the fact: the change was saved, and the
  * person who sent it was answered with an error, as if nothing had happened.
  *
- * So every state timeline asks first, before the change takes its lock or
- * reads the timeline, with the very check the note's own create runs
+ * So every state timeline asks first - before the change reads or writes
+ * anything, and all but the incident timeline before it even takes the
+ * event's lock - with the very check the note's own create runs
  * (ModelPermission.checkCreatePermissions, with the same note and the same
  * props), and a change whose note its sender may not post is refused whole,
  * with one plain message: the state was not changed, why, and that leaving
  * the note out lets the change through. OneUptime's own changes (root) are
  * not asked, as the note's create does not ask them.
  *
- * The private note is then posted once the change is saved, so it comes
- * after the change in the feed, and a change that fails leaves no note
- * behind: preparePrivateNotes builds and checks it, postPrivateNotes posts it.
+ * The note, public or private, is then posted once the change is saved, so
+ * it comes after the change in the feed, and a change that is refused or
+ * fails to save leaves no note behind: preparePrivateNotes builds and checks
+ * a private note, postPrivateNotes posts it, and the public note's two
+ * timelines do the same with theirs (StatusPage/StateChangePublicNote).
  */
 
 export enum StateChangeNoteType {

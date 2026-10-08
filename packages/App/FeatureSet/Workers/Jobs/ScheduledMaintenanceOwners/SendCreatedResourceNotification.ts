@@ -21,7 +21,7 @@ import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendCreatedResourceEmail",
@@ -188,7 +188,7 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
+        moreScheduledMaintenanceFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()})\n`;
       }
 
       const projectId: ObjectID = scheduledMaintenance.projectId!;
@@ -197,8 +197,9 @@ RunCron(
         scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
         "#" + scheduledMaintenance.scheduledMaintenanceNumber;
 
-      const scheduledMaintenanceFeedText: string = `🔔 **Owner Scheduled Maintenance Created Notification Sent**:
-      Notification sent to owners because [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) was created.`;
+      const scheduledMaintenanceFeedText: string =
+        mdText`🔔 **Owner Scheduled Maintenance Created Notification Sent**:
+      Notification sent to owners because [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) was created.`.toString();
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,

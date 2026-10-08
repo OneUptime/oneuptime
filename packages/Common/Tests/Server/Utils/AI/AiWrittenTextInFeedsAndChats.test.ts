@@ -333,6 +333,88 @@ describe("OneUptime AI's answers in chat", () => {
   });
 });
 
+// The reply the Teams bot posts for an answer.
+async function teamsReplyFor(
+  result: ObservabilityAssistantResult,
+): Promise<string> {
+  jest
+    .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+    .mockResolvedValue(USER_ID);
+  jest
+    .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+    .mockResolvedValue({ userId: USER_ID, tenantId: PROJECT_ID } as never);
+  jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
+  jest
+    .spyOn(AIService, "getReachedProjectDailyLimit")
+    .mockResolvedValue(null as never);
+  jest
+    .spyOn(
+      MicrosoftTeamsUtil as unknown as {
+        getConversationHistoryTurns: () => Promise<Array<JSONObject>>;
+      },
+      "getConversationHistoryTurns",
+    )
+    .mockResolvedValue([]);
+  jest
+    .spyOn(ObservabilityAssistant, "answerQuestion")
+    .mockResolvedValue(result as never);
+
+  const sent: Array<string> = [];
+
+  await (
+    MicrosoftTeamsUtil as unknown as {
+      answerObservabilityQuestion: (data: {
+        activity: JSONObject;
+        turnContext: unknown;
+        projectId: ObjectID;
+        question: string;
+      }) => Promise<void>;
+    }
+  ).answerObservabilityQuestion({
+    activity: { from: { aadObjectId: "aad-user-1" } },
+    turnContext: {
+      sendActivity: async (text: string): Promise<void> => {
+        sent.push(text);
+      },
+    },
+    projectId: PROJECT_ID,
+    question: "Why is checkout failing?",
+  });
+
+  return sent[sent.length - 1]!;
+}
+
+describe("OneUptime AI's answers in Microsoft Teams, in code", () => {
+  /*
+   * Teams reads HTML in a bot's Markdown message, fenced code included, so
+   * a tag the model put in a code block would be an element there - an
+   * image fetched when the reply is read. Every tag in the reply is broken
+   * with an invisible word joiner; the code reads as the model wrote it.
+   */
+  test("a tag in the answer's fenced code is shown as its characters", async () => {
+    const code: string =
+      '<img src="https://tracker.example/q.png"> <b>bold</b> </code>';
+
+    const reply: string = await teamsReplyFor(
+      assistantResult({
+        contentInMarkdown: [
+          "The page embeds the tracker:",
+          "",
+          "```html",
+          code,
+          "```",
+        ].join("\n"),
+        citations: [citation('`docker ps -a` on Docker host "web-1"')],
+      }),
+    );
+
+    expect(reply).not.toMatch(/<[A-Za-z/!]/);
+    expect(withoutJoiners(reply)).toContain(code);
+    // A command in a citation's label stays code.
+    expect(reply).toContain('• `docker ps -a` on Docker host "web-1" (3 rows)');
+  });
+});
+
 describe("Notes, status updates and incidents OneUptime AI writes", () => {
   test("create_incident_note stores the note with its formatting, acting on nothing", async () => {
     const incident: Incident = new Incident();

@@ -16,6 +16,7 @@ import Permission, {
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import CreateBy from "../Types/Database/CreateBy";
 import CreatePermission from "../Types/Database/Permissions/CreatePermission";
+import CreateScopeException from "../Types/Database/Permissions/CreateScopeException";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
 import Query from "../Types/Database/Query";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
@@ -118,7 +119,7 @@ export default class OnCallDutyPolicyChildService<
         props: this.getCreateScopeProps(props),
       });
     if (!creatablePolicy) {
-      throw new NotAuthorizedException(
+      throw new CreateScopeException(
         "You do not have permission to create configuration for this on-call policy.",
       );
     }

@@ -259,6 +259,7 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 const STATE_CHANGE_JOB: string =
   "IncidentStateTimeline:SendNotificationToSubscribers";
 const PUBLIC_NOTE_JOB: string =
@@ -626,7 +627,7 @@ beforeEach(() => {
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("Ada Lovelace" as never);
+    .mockResolvedValue(FeedMarkdown.asMarkdown("Ada Lovelace") as never);
   // The incident's first state change after Created: nothing after it.
   jest
     .spyOn(IncidentStateTimelineService, "findOneBy")

@@ -16,7 +16,6 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteService from "./NetworkSiteService";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -41,6 +40,7 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import Select from "../Types/Database/Select";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Enough of a state to tell which kind it is. A project can add its own
@@ -127,6 +127,80 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       throw new BadDataException("scheduledMaintenanceId is null");
     }
 
+    // Under either of its names; the two must agree.
+    const scheduledMaintenanceStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
+        "Scheduled Maintenance State",
+      );
+
+    if (!scheduledMaintenanceStateId) {
+      throw new BadDataException("scheduledMaintenanceStateId is null");
+    }
+
+    // The public note that comes with the change, if any (a blank one is none).
+    const publicNote: string | undefined =
+      StateChangeSubscriberNotification.getPublicNote(
+        createBy.miscDataProps as JSONObject | undefined,
+      );
+
+    /*
+     * The note is posted once the change is saved (onCreateSuccess), as the
+     * person changing the state: after the change in the event's feed and in
+     * its Slack and Microsoft Teams channels, and never for a change that is
+     * refused or fails to save. With Notify on it is the one message
+     * subscribers get about the change, which is recorded as sent by it. So
+     * whether they may post it is asked now, before the change takes the
+     * event's lock or reads anything, with the check the note's own create
+     * runs: a change whose note they may not post is refused whole, with one
+     * plain message (StateChangePublicNote).
+     *
+     * It notifies exactly when the change was asked to: a change that does
+     * not say keeps its column defaults and notifies itself, and its note
+     * stays quiet - one message, not two.
+     */
+    let publicNoteToPost: ScheduledMaintenancePublicNote | undefined =
+      undefined;
+
+    if (publicNote) {
+      publicNoteToPost = new ScheduledMaintenancePublicNote();
+      publicNoteToPost.scheduledMaintenanceId =
+        createBy.data.scheduledMaintenanceId;
+      publicNoteToPost.note = publicNote;
+
+      /*
+       * At the change's time: as it was sent, or now when it names none.
+       * The saved change has the last word on it (onCreateSuccess).
+       */
+      const postedAt: Date =
+        createBy.data.startsAt || OneUptimeDate.getCurrentDate();
+      publicNoteToPost.postedAt = postedAt;
+      publicNoteToPost.createdAt = postedAt;
+
+      const noteProjectId: ObjectID | undefined =
+        createBy.data.projectId || createBy.props.tenantId;
+
+      if (noteProjectId) {
+        publicNoteToPost.projectId = noteProjectId;
+      }
+
+      publicNoteToPost.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+        Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+      // Its messages name the state the event moves to.
+      StateChangePublicNote.markPostedWith(
+        publicNoteToPost,
+        scheduledMaintenanceStateId,
+      );
+
+      StateChangePublicNote.assertCallerMayPost({
+        noteModelType: ScheduledMaintenancePublicNote,
+        note: publicNoteToPost,
+        props: createBy.props,
+      });
+    }
+
     let mutex: SemaphoreMutex | null = null;
 
     try {
@@ -142,68 +216,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         } as LogAttributes);
       }
 
+      /*
+       * Taken once the lock is held, so that changes made to the event at
+       * the same moment are timed - and ordered - as they get it.
+       */
       if (!createBy.data.startsAt) {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
-      }
-
-      // Under either of its names; the two must agree.
-      const scheduledMaintenanceStateId: ObjectID | null =
-        RelationIdUtil.readConsistent(
-          createBy.data as unknown as Record<string, unknown>,
-          ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
-          "Scheduled Maintenance State",
-        );
-
-      if (!scheduledMaintenanceStateId) {
-        throw new BadDataException("scheduledMaintenanceStateId is null");
-      }
-
-      // The public note that comes with the change, if any (a blank one is none).
-      const publicNote: string | undefined =
-        StateChangeSubscriberNotification.getPublicNote(
-          createBy.miscDataProps as JSONObject | undefined,
-        );
-
-      /*
-       * The note, as it will be posted below - before the change, as the
-       * person changing the state, so that a note they may not post refuses
-       * the change too. Asked now, before anything is read or written, with
-       * the check the note's own create runs, so the refusal says what it
-       * means for the change (StateChangePublicNote).
-       */
-      let scheduledMaintenancePublicNote:
-        | ScheduledMaintenancePublicNote
-        | undefined = undefined;
-
-      if (publicNote) {
-        scheduledMaintenancePublicNote = new ScheduledMaintenancePublicNote();
-        scheduledMaintenancePublicNote.scheduledMaintenanceId =
-          createBy.data.scheduledMaintenanceId;
-        scheduledMaintenancePublicNote.note = publicNote;
-        scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
-        scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
-
-        const noteProjectId: ObjectID | undefined =
-          createBy.data.projectId || createBy.props.tenantId;
-
-        if (noteProjectId) {
-          scheduledMaintenancePublicNote.projectId = noteProjectId;
-        }
-
-        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
-
-        // Its messages name the state the event moves to.
-        StateChangePublicNote.markPostedWith(
-          scheduledMaintenancePublicNote,
-          scheduledMaintenanceStateId,
-        );
-
-        StateChangePublicNote.assertCallerMayPost({
-          noteModelType: ScheduledMaintenancePublicNote,
-          note: scheduledMaintenancePublicNote,
-          props: createBy.props,
-        });
       }
 
       /*
@@ -343,14 +361,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         }
       }
 
-      // The note goes first: a note that cannot be posted refuses the change.
-      if (scheduledMaintenancePublicNote) {
-        await ScheduledMaintenancePublicNoteService.create({
-          data: scheduledMaintenancePublicNote,
-          props: createBy.props,
-        });
-      }
-
       /*
        * The change's own notification, decided once: when it notifies
        * subscribers and a note came with it, the note is the one message
@@ -369,6 +379,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
           publicNote: publicNote,
+          publicNoteToPost: publicNoteToPost,
           mutex: mutex,
         },
       };
@@ -538,11 +549,9 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown
-     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
      */
-    const stateName: string = escapeMarkdownValue(
-      scheduledMaintenanceState?.name || "",
-    );
+    const stateName: string = scheduledMaintenanceState?.name || "";
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.
@@ -574,10 +583,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
-        stateName +
-        "**",
+        mdText`${stateEmoji} Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **${stateName}**`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -738,6 +744,33 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       await this.recomputeNetworkSiteRollups(scheduledMaintenanceEvent);
     }
 
+    /*
+     * The note that came with the change, which onBeforeCreate built and
+     * made sure may be posted: posted now that the change is saved - after
+     * it in the event's feed and its Slack and Microsoft Teams channels, and
+     * before a completed event's channels are archived - on the event, at
+     * the time and in the project the change was saved with, as the person
+     * who changed the state.
+     */
+    const publicNoteToPost: ScheduledMaintenancePublicNote | undefined =
+      onCreate.carryForward.publicNoteToPost;
+
+    if (publicNoteToPost) {
+      if (createdItem.startsAt) {
+        publicNoteToPost.postedAt = createdItem.startsAt;
+        publicNoteToPost.createdAt = createdItem.startsAt;
+      }
+
+      if (createdItem.projectId) {
+        publicNoteToPost.projectId = createdItem.projectId;
+      }
+
+      await ScheduledMaintenancePublicNoteService.create({
+        data: publicNoteToPost,
+        props: onCreate.createBy.props,
+      });
+    }
+
     const isLastScheduledMaintenanceState: boolean =
       await this.isLastScheduledMaintenanceState({
         projectId: createdItem.projectId!,
@@ -752,12 +785,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
+          text: mdText`**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               createdItem.projectId!,
               createdItem.scheduledMaintenanceId!,
             )
-          ).toString()})** is complete. Archiving channel.`,
+          ).toString()})** is complete. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {

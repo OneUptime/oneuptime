@@ -28,6 +28,7 @@ import DiscoveredResourceUpdate, {
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const DEFAULT_TELEMETRY_RETENTION_IN_DAYS: number = 15;
 
@@ -648,14 +649,14 @@ export class Service extends ProjectReferencesService<Model> {
   public async getServiceMarkdownLink(
     projectId: ObjectID,
     serviceId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getServiceName({ serviceId: serviceId });
     const link: URL = await this.getServiceLinkInDashboard(
       projectId,
       serviceId,
     );
 
-    return `[Service ${name}](${link.toString()})`;
+    return mdText`[Service ${name}](${link.toString()})`;
   }
 
   private async writeServiceCreatedFeed(
@@ -766,10 +767,8 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string = await this.getServiceMarkdownLink(
-        projectId,
-        serviceId,
-      );
+      const resourceMarkdownLink: MarkdownText =
+        await this.getServiceMarkdownLink(projectId, serviceId);
 
       if (isArchiveChange) {
         await ServiceFeedService.createServiceFeedItem({
@@ -780,8 +779,8 @@ export class Service extends ProjectReferencesService<Model> {
             : ServiceFeedEventType.ServiceRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

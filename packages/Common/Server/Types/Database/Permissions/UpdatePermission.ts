@@ -3,11 +3,17 @@ import Query from "../Query";
 import AccessControlUtil from "./AccessControlPermission";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import ColumnPermissions from "./ColumnPermission";
+import CreatePermission, {
+  CreateParent,
+  ReadableParentIdsFinder,
+  RecordIdsFinder,
+} from "./CreatePermission";
 import EditionPermissions from "./EditionPermission";
 import TablePermission from "./TablePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import QueryDeepPartialEntity from "../../../../Types/Database/PartialEntity";
+import { normalizeReferenceId } from "../../../Utils/Database/ProjectScopedReferenceRefusal";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class UpdatePermission {
@@ -77,6 +83,143 @@ export default class UpdatePermission {
       );
 
     return checkBasePermission.query;
+  }
+
+  /*
+   * A RECORD MOVED TO ANOTHER PARENT GOES ONLY TO ONE ITS EDITOR MAY READ.
+   *
+   * The parent a record is read through (@CanAccessIfCanReadOn) is the
+   * parent it is created under (CreatePermission.checkParentPermission), and
+   * an update that changes it is held to the same rule: every parent the
+   * update names that a record it writes does not have yet - a changed
+   * parent, an entry added to a list of them (an announcement's status
+   * pages), under either of the parent's names - must be one the caller may
+   * read, in the project, by the read rule of the parent's own table
+   * (CreatePermission.checkParentIds). One they may not read is answered
+   * like one that does not exist, and nothing is written. The parents a
+   * record has already are not asked about again: an announcement on a page
+   * its editor may read and on one they may not keeps both through an edit
+   * that leaves them. An update that leaves a record with no parent at all
+   * makes it a record of the whole project, which needs a read of the
+   * parents that reaches the whole project (CreatePermission
+   * .checkParentlessWrite), as a create that names none does.
+   *
+   * `heldParentIds` is, for each record the update writes, the parents it
+   * has now; none means it writes nothing, so nothing is asked. Root and
+   * master admin callers are left alone. Returns the parents the update
+   * names, as checkedParentIds for an ask after the hooks.
+   */
+  @CaptureSpan()
+  public static async checkParentPermission<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    // What the update writes.
+    data: unknown;
+    props: DatabaseCommonInteractionProps;
+    heldParentIds: Array<Array<string>>;
+    findReadableParentIds: ReadableParentIdsFinder;
+    findParentIdsInProject: RecordIdsFinder;
+    referencesCheckedInProject: boolean;
+    // What an ask before the hooks returned: only other parents are asked.
+    checkedParentIds?: Array<string> | undefined;
+  }): Promise<Array<string>> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return [];
+    }
+
+    const parent: CreateParent | null = CreatePermission.getCreateParent(
+      data.modelType,
+    );
+
+    if (
+      !parent ||
+      !UpdatePermission.namesParent(parent, data.data) ||
+      data.heldParentIds.length === 0
+    ) {
+      return [];
+    }
+
+    const namedIds: Array<string> = CreatePermission.getNamedParentIds(
+      parent,
+      data.data as BaseModel,
+    );
+
+    const alreadyChecked: Set<string> = new Set<string>(
+      (data.checkedParentIds || []).map(normalizeReferenceId),
+    );
+
+    const newIds: Array<string> = namedIds.filter((id: string): boolean => {
+      const normalized: string = normalizeReferenceId(id);
+
+      return (
+        !alreadyChecked.has(normalized) &&
+        data.heldParentIds.some((held: Array<string>): boolean => {
+          return !held.map(normalizeReferenceId).includes(normalized);
+        })
+      );
+    });
+
+    const leavesARecordWithoutParent: boolean =
+      namedIds.length === 0 &&
+      data.heldParentIds.some((held: Array<string>): boolean => {
+        return held.length > 0;
+      });
+
+    if (newIds.length === 0 && !leavesARecordWithoutParent) {
+      return namedIds;
+    }
+
+    if (leavesARecordWithoutParent) {
+      if (
+        CreatePermission.checkParentReadHeld(
+          data.modelType,
+          parent,
+          data.props,
+          DatabaseRequestType.Update,
+        )
+      ) {
+        CreatePermission.checkParentlessWrite(
+          data.modelType,
+          parent,
+          data.props,
+          DatabaseRequestType.Update,
+        );
+      }
+
+      return namedIds;
+    }
+
+    await CreatePermission.checkParentIds({
+      modelType: data.modelType,
+      parent: parent,
+      ids: newIds,
+      props: data.props,
+      type: DatabaseRequestType.Update,
+      findReadableParentIds: data.findReadableParentIds,
+      findParentIdsInProject: data.findParentIdsInProject,
+      referencesCheckedInProject: data.referencesCheckedInProject,
+    });
+
+    return namedIds;
+  }
+
+  /*
+   * Whether an update's data names the parent at all - its relation or its
+   * ID column, set to anything, null included. An update that leaves both
+   * out keeps the parents the records have.
+   */
+  public static namesParent(parent: CreateParent, data: unknown): boolean {
+    if (!data || typeof data !== "object") {
+      return false;
+    }
+
+    const record: Record<string, unknown> = data as Record<string, unknown>;
+
+    return (
+      record[parent.relation] !== undefined ||
+      Boolean(parent.idColumn && record[parent.idColumn] !== undefined)
+    );
   }
 
   @CaptureSpan()

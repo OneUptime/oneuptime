@@ -139,6 +139,8 @@ describePostgres(
       "OnCallDutyPolicy",
       "OnCallDutyPolicyLabel",
       "OnCallDutyPolicySchedule",
+      // A create permission limited to labels reads the schedule's too.
+      "OnCallDutyPolicyScheduleLabel",
       "OnCallDutyPolicyOwnerUser",
       "OnCallDutyPolicyOwnerTeam",
       "OnCallDutyPolicyEscalationRule",

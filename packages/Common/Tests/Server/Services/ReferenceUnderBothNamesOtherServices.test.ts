@@ -31,6 +31,7 @@ import {
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Every other service that reads a reference off a write to check it or act
  * on it - a timeline's state, a rule's page or site, a probe attached to a
@@ -271,7 +272,7 @@ beforeEach(() => {
 
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("a teammate" as never);
+    .mockResolvedValue(FeedMarkdown.asMarkdown("a teammate") as never);
 });
 
 afterEach(() => {

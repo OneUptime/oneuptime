@@ -16,10 +16,6 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorFeedService from "./MonitorFeedService";
@@ -46,6 +42,7 @@ import {
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
 import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -1119,12 +1116,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     );
 
     if (changedByUserId && !createBy.data.rootCause) {
-      createBy.data.rootCause = `Monitor status created by ${await UserService.getUserMarkdownString(
-        {
-          userId: changedByUserId,
-          projectId: createBy.data.projectId || createBy.props.tenantId!,
-        },
-      )}`;
+      createBy.data.rootCause =
+        mdText`Monitor status created by ${await UserService.getUserMarkdownString(
+          {
+            userId: changedByUserId,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`.toString();
     }
 
     // Under either of its names; the two must agree.
@@ -1605,7 +1603,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
      * The status's name is plain text, placed into the feed item's Markdown
      * (posted to Slack and Teams too): escaped, so it reads as typed.
      */
-    const stateName: string = escapeMarkdownValue(monitorStatus?.name || "");
+    const stateName: string = monitorStatus?.name || "";
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to 🟢.
@@ -1629,12 +1627,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       monitorFeedEventType: MonitorFeedEventType.MonitorStatusChanged,
       displayColor: monitorStatus?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed Monitor **[${escapeMarkdownInline(monitorName)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) State** to **` +
-        stateName +
-        "**",
-      moreInformationInMarkdown: `**Cause:**
-    ${createdItem.rootCause}`,
+        mdText`${stateEmoji} Changed Monitor **[${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) State** to **${stateName}**`.toString(),
+      moreInformationInMarkdown: mdText`**Cause:**
+    ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,

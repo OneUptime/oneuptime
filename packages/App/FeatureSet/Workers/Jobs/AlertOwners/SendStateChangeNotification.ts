@@ -33,7 +33,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 RunCron(
   "AlertOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -389,7 +389,7 @@ RunCron(
           eventType,
         });
 
-        moreAlertFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+        moreAlertFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
           {
             userId: user.id!,
             projectId: alertStateTimeline.projectId!,
@@ -406,7 +406,8 @@ RunCron(
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).**: Owners have been notified about the state change of the alert because the alert state changed to **${escapeMarkdownValue(alertState.name)}**.`,
+        feedInfoInMarkdown:
+          mdText`🔔 **Owners have been notified about the state change of the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`.toString(),
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,

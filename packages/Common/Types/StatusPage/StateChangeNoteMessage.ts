@@ -1,5 +1,5 @@
 import Text from "../Text";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * WHAT A PUBLIC NOTE POSTED WITH A STATE CHANGE ADDS TO ITS MESSAGES.
@@ -98,10 +98,10 @@ export default class StateChangeNoteMessage {
 
   /*
    * The line a default Slack or Microsoft Teams message names the state on.
-   * The state's name is plain text in a Markdown message: escaped, so it
-   * reads as typed.
+   * The state's name is plain text in a Markdown message, placed as text
+   * (mdText), so it reads as typed.
    */
-  public static getChatStatusLine(stateName: string): string {
-    return `**${this.statusLabel}:** ${escapeMarkdownValue(stateName.trim())}`;
+  public static getChatStatusLine(stateName: string): MarkdownText {
+    return mdText`**${this.statusLabel}:** ${stateName.trim()}`;
   }
 }

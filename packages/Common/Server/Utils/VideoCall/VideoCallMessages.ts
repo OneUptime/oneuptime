@@ -7,10 +7,10 @@ import {
   WorkspacePayloadButtons,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
 import SlackActionType from "../Workspace/Slack/Actions/ActionTypes";
 
@@ -21,10 +21,10 @@ import SlackActionType from "../Workspace/Slack/Actions/ActionTypes";
  * appended to that message in Slack and Teams.
  *
  * Every name or title here is text a person typed (a rule, a connection, a
- * pasted call's title), so each one is escaped where it is placed: in prose
- * with escapeMarkdownValue, inside a link's own words with
- * escapeMarkdownInline. A join link is placed as a link target, where only
- * the characters that would end the target early are encoded.
+ * pasted call's title), so each one is placed as text (mdText), which
+ * escapes it for where it goes: prose, or a link's own words. A join link is
+ * placed as a link's address, where the characters that would end it early
+ * are encoded.
  */
 
 export interface VideoCallAnnouncement {
@@ -58,40 +58,26 @@ export default class VideoCallMessages {
   }
 
   /*
-   * A link target in Markdown ends at the first unescaped ")" or at
-   * whitespace, and "<" would read as an autolink. A validated https link
-   * may still hold those characters, so they are percent-encoded, which
-   * leaves the address it opens unchanged.
-   */
-  public static toMarkdownLinkTarget(url: string): string {
-    return url
-      .trim()
-      .replace(/\(/g, "%28")
-      .replace(/\)/g, "%29")
-      .replace(/\s/g, "%20")
-      .replace(/</g, "%3C")
-      .replace(/>/g, "%3E");
-  }
-
-  /*
    * What the call is, as the noun of a sentence: "**Zoom meeting**", the
    * connection's name for a standing link ("**Incident bridge** call"), or
    * a pasted link's title.
    */
-  public static describeCall(announcement: VideoCallAnnouncement): string {
+  public static describeCall(
+    announcement: VideoCallAnnouncement,
+  ): MarkdownText {
     if (announcement.provider === VideoCallProvider.CustomLink) {
       if (announcement.title) {
-        return `**${escapeMarkdownValue(announcement.title)}** video call`;
+        return mdText`**${announcement.title}** video call`;
       }
 
       if (announcement.connectionName) {
-        return `**${escapeMarkdownValue(announcement.connectionName)}** video call`;
+        return mdText`**${announcement.connectionName}** video call`;
       }
 
-      return "**video call**";
+      return mdText`**video call**`;
     }
 
-    return `**${getVideoCallNoun(announcement.provider)}**`;
+    return mdText`**${getVideoCallNoun(announcement.provider)}**`;
   }
 
   /*
@@ -101,35 +87,35 @@ export default class VideoCallMessages {
    */
   public static getStartedFeedMarkdown(
     announcement: VideoCallAnnouncement,
-  ): string {
-    const eventReference: string = `[${escapeMarkdownInline(`${announcement.eventNoun} ${announcement.eventNumberDisplay}`)}](${VideoCallMessages.toMarkdownLinkTarget(announcement.eventLink)})`;
-    const call: string = VideoCallMessages.describeCall(announcement);
+  ): MarkdownText {
+    const eventReference: MarkdownText = mdText`[${announcement.eventNoun} ${announcement.eventNumberDisplay}](${announcement.eventLink})`;
+    const call: MarkdownText = VideoCallMessages.describeCall(announcement);
     const joinLinkWords: string =
       announcement.provider === VideoCallProvider.SlackHuddle
         ? "Join the huddle"
         : "Join the call";
 
-    let sentence: string;
+    let sentence: MarkdownText;
 
     if (announcement.provider === VideoCallProvider.SlackHuddle) {
       sentence = announcement.startedByPerson
-        ? `🎧 opened the ${call} of ${eventReference}'s Slack channel. Opening the link starts the huddle, or joins it when it is running.`
-        : `🎧 The ${call} of ${eventReference}'s Slack channel is ready. Opening the link starts the huddle, or joins it when it is running.`;
+        ? mdText`🎧 opened the ${call} of ${eventReference}'s Slack channel. Opening the link starts the huddle, or joins it when it is running.`
+        : mdText`🎧 The ${call} of ${eventReference}'s Slack channel is ready. Opening the link starts the huddle, or joins it when it is running.`;
     } else if (announcement.startedByPerson) {
       sentence =
         announcement.provider === VideoCallProvider.CustomLink
-          ? `📞 added a ${call} to ${eventReference}.`
-          : `📞 started a ${call} for ${eventReference}.`;
+          ? mdText`📞 added a ${call} to ${eventReference}.`
+          : mdText`📞 started a ${call} for ${eventReference}.`;
     } else {
       sentence =
         announcement.provider === VideoCallProvider.CustomLink
-          ? `📞 A ${call} was added to ${eventReference}.`
-          : `📞 A ${call} was started for ${eventReference}.`;
+          ? mdText`📞 A ${call} was added to ${eventReference}.`
+          : mdText`📞 A ${call} was started for ${eventReference}.`;
     }
 
-    return `${sentence}
+    return mdText`${sentence}
 
-**[${joinLinkWords}](${VideoCallMessages.toMarkdownLinkTarget(announcement.joinUrl)})**`;
+**[${joinLinkWords}](${announcement.joinUrl})**`;
   }
 
   /*
@@ -139,12 +125,12 @@ export default class VideoCallMessages {
    */
   public static getStartedFeedMoreInformationMarkdown(
     announcement: VideoCallAnnouncement,
-  ): string | undefined {
-    const parts: Array<string> = [];
+  ): MarkdownText | undefined {
+    const parts: Array<MarkdownText> = [];
 
     if (announcement.ruleName) {
       parts.push(
-        `Started by the **${escapeMarkdownValue(announcement.ruleName)}** workspace notification rule.`,
+        mdText`Started by the **${announcement.ruleName}** workspace notification rule.`,
       );
     }
 
@@ -153,30 +139,30 @@ export default class VideoCallMessages {
       announcement.provider !== VideoCallProvider.CustomLink
     ) {
       parts.push(
-        `Created with the **${escapeMarkdownValue(announcement.connectionName)}** video call connection.`,
+        mdText`Created with the **${announcement.connectionName}** video call connection.`,
       );
     }
 
-    return parts.length > 0 ? parts.join("\n\n") : undefined;
+    return parts.length > 0 ? FeedMarkdown.join(parts, "\n\n") : undefined;
   }
 
   /*
    * A rule's call that could not be started. The reason is the provider's
    * own words or OneUptime's, already redacted; it is still text, so it is
-   * escaped like any other.
+   * placed as text like any other.
    */
   public static getFailedFeedMarkdown(data: {
     eventNoun: string;
     ruleName: string;
     error: string;
-  }): string {
-    const rule: string = data.ruleName
-      ? `the **${escapeMarkdownValue(data.ruleName)}** workspace notification rule`
-      : "a workspace notification rule";
+  }): MarkdownText {
+    const rule: MarkdownText = data.ruleName
+      ? mdText`the **${data.ruleName}** workspace notification rule`
+      : mdText`a workspace notification rule`;
 
-    return `⚠️ The video call ${rule} asks for could not be started. Start one from this ${data.eventNoun.toLowerCase()}'s page instead.
+    return mdText`⚠️ The video call ${rule} asks for could not be started. Start one from this ${data.eventNoun.toLowerCase()}'s page instead.
 
-${escapeMarkdownValue(data.error)}`;
+${data.error}`;
   }
 
   // The Join call button, for each workspace the message is posted to.

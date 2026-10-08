@@ -11,7 +11,6 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
@@ -30,6 +29,7 @@ import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteSer
 import { JSONObject } from "../../Types/JSON";
 import StateChangeNote from "../Utils/StateChangeNote";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
+import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
   public constructor() {
@@ -95,12 +95,13 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       );
 
       if (changedByUserId && !createBy.data.rootCause) {
-        createBy.data.rootCause = `Episode state created by ${await UserService.getUserMarkdownString(
-          {
-            userId: changedByUserId,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
+        createBy.data.rootCause =
+          mdText`Episode state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: changedByUserId,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`.toString();
       }
 
       // Under either of its names; the two must agree.
@@ -447,9 +448,9 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown
-     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
      */
-    const stateName: string = escapeMarkdownValue(incidentState?.name || "");
+    const stateName: string = incidentState?.name || "";
     const stateEmoji: string = StateChangeFeedEmoji.get({
       isResolved: isResolvedState,
       isAcknowledged: isAcknowledged,
@@ -478,12 +479,9 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         IncidentEpisodeFeedEventType.EpisodeStateChanged,
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed **Episode ${episodeDisplayNumber} State** to **` +
-        stateName +
-        "**",
+        mdText`${stateEmoji} Changed **Episode ${episodeDisplayNumber} State** to **${stateName}**`.toString(),
       moreInformationInMarkdown: createdItem.rootCause
-        ? `**Cause:** \n${createdItem.rootCause}`
+        ? mdText`**Cause:** \n${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         : undefined,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {

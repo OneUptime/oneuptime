@@ -14,6 +14,7 @@ import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import Dictionary from "../../../../../Types/Dictionary";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export interface SlackAction {
   actionValue?: string | undefined;
@@ -277,8 +278,8 @@ export default class SlackAuthAction {
           const markdwonPayload: WorkspacePayloadMarkdown = {
             _type: "WorkspacePayloadMarkdown",
             text: isRemovedFromProject
-              ? `@${slackUsername}, ${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`
-              : `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
+              ? mdText`@${slackUsername}, ${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`.toString()
+              : mdText`@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `.toString(),
           };
 
           await SlackUtil.sendDirectMessageToUser({

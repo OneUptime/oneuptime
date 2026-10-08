@@ -7,7 +7,7 @@ import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
@@ -116,20 +116,21 @@ export default class WorkspaceUtil {
 
     /*
      * A Slack or Teams display name is the user's own to set, and it heads a
-     * Markdown message: escaped, so it reads as typed and cannot become a
-     * link, an image or a mention of somebody else.
+     * Markdown message: placed as text (mdText), so it reads as typed and
+     * cannot become a link, an image or a mention of somebody else.
      */
     if (workspaceUsername) {
-      return `@${escapeMarkdownValue(workspaceUsername)} `;
+      return mdText`@${workspaceUsername} `.toString();
     }
 
     try {
-      const userString: string = await UserService.getUserMarkdownString({
-        userId: data.userId,
-        projectId: data.projectId,
-      });
+      const userMarkdown: MarkdownText =
+        await UserService.getUserMarkdownString({
+          userId: data.userId,
+          projectId: data.projectId,
+        });
 
-      return userString ? `${userString} ` : "";
+      return userMarkdown.isEmpty() ? "" : mdText`${userMarkdown} `.toString();
     } catch (err) {
       logger.warn("Could not resolve the OneUptime name of the user.", {
         projectId: data.projectId?.toString(),

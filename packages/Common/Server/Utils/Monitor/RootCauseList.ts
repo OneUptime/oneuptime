@@ -27,68 +27,91 @@
  * downstream needs to know these blocks exist.
  */
 
-import { markdownCodeSpan } from "../../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  MarkdownValue,
+  NumberedListItem,
+  isMarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 
+/*
+ * Each part is text, placed as text where it lands in the list, or a
+ * MarkdownText - written with mdText, or an identifier wrapped with
+ * RootCauseList.code() - placed as it is.
+ */
 export interface RootCauseListDetail {
-  /*
-   * Markdown, rendered as-is — escape plain text, or wrap an identifier
-   * with RootCauseList.code(). An empty label leaves just the value.
-   */
-  label: string;
-  // Markdown, rendered as-is. An empty value drops the whole detail.
-  value: string;
+  // An empty label leaves just the value.
+  label: MarkdownValue;
+  // An empty value drops the whole detail.
+  value: MarkdownValue;
 }
 
 export interface RootCauseListItem {
-  // Markdown, rendered as-is: what the item is.
-  title: string;
-  // Markdown, rendered as-is: how bad it is, normally a bold value.
-  value: string;
+  // What the item is.
+  title: MarkdownValue;
+  // How bad it is, normally a bold value.
+  value: MarkdownValue;
   details: Array<RootCauseListDetail>;
 }
 
+type TrimFunction = (part: MarkdownValue) => MarkdownValue;
+
+// A part without the white space around it.
+const trim: TrimFunction = (part: MarkdownValue): MarkdownValue => {
+  if (isMarkdownText(part)) {
+    return part.trim();
+  }
+
+  return typeof part === "string" ? part.trim() : part;
+};
+
+type IsBlankFunction = (part: MarkdownValue) => boolean;
+
+const isBlank: IsBlankFunction = (part: MarkdownValue): boolean => {
+  return part === null || part === undefined || String(part).trim() === "";
+};
+
 export default class RootCauseList {
   /*
-   * The items as one ordered list, numbered from 1 in the order given. The
-   * result is just the list: the caller puts its heading above it and any
-   * summary below it, each separated from the list by a blank line.
+   * The items as one ordered list, numbered from 1 in the order given
+   * (FeedMarkdown.numberedList, which indents each item's details to its
+   * content column). The result is just the list: the caller puts its
+   * heading above it and any summary below it, each separated from the list
+   * by a blank line.
    */
-  public static render(items: Array<RootCauseListItem>): string {
-    const lines: Array<string> = [];
+  public static render(items: Array<RootCauseListItem>): MarkdownText {
+    return FeedMarkdown.numberedList(
+      items.map((item: RootCauseListItem): NumberedListItem => {
+        const head: Array<MarkdownValue> = [
+          trim(item.title),
+          trim(item.value),
+        ].filter((part: MarkdownValue): boolean => {
+          return !isBlank(part);
+        });
 
-    items.forEach((item: RootCauseListItem, index: number): void => {
-      const marker: string = `${index + 1}.`;
+        const bullets: Array<MarkdownValue> = [];
 
-      /*
-       * A nested bullet belongs to its item only when it is indented to
-       * the item's content column, which is one past the marker — three
-       * spaces under "1.", four under "10.". A fixed three-space indent
-       * would push item 10's details out into a separate top-level list.
-       */
-      const indent: string = " ".repeat(marker.length + 1);
+        for (const detail of item.details) {
+          if (isBlank(detail.value)) {
+            continue;
+          }
 
-      const head: string = [item.title.trim(), item.value.trim()]
-        .filter((part: string): boolean => {
-          return part.length > 0;
-        })
-        .join(" — ");
+          const value: MarkdownValue = trim(detail.value);
 
-      lines.push(`${marker} ${head}`);
-
-      for (const detail of item.details) {
-        const value: string = detail.value ? detail.value.trim() : "";
-
-        if (value.length === 0) {
-          continue;
+          bullets.push(
+            isBlank(detail.label)
+              ? value
+              : mdText`${trim(detail.label)}: ${value}`,
+          );
         }
 
-        const label: string = detail.label ? detail.label.trim() : "";
-
-        lines.push(`${indent}- ${label ? `${label}: ${value}` : value}`);
-      }
-    });
-
-    return lines.join("\n");
+        return {
+          line: FeedMarkdown.join(head, " — "),
+          bullets: bullets,
+        };
+      }),
+    );
   }
 
   /*
@@ -112,10 +135,10 @@ export default class RootCauseList {
    * mention in a value ("<!channel>", "<@U123>") is broken with an invisible
    * word joiner: it reads as reported, and notifies nobody.
    *
-   * The span itself is markdownCodeSpan, which every other place that shows
+   * The span itself is FeedMarkdown.code, which every other place that shows
    * a reported value as code uses too.
    */
-  public static code(value: string | undefined | null): string {
-    return markdownCodeSpan(value);
+  public static code(value: string | undefined | null): MarkdownText {
+    return FeedMarkdown.code(value);
   }
 }
