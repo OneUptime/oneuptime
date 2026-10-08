@@ -530,12 +530,25 @@ function clampMonitorName(name: string): string {
  * that service logged during THIS spike when that is less — the project-wide
  * bar is measured on every service together, and a service-scoped monitor
  * that would not have fired on the very spike it was made from would be
- * watching nothing in particular.
+ * watching nothing in particular. Never below the floor either way: under it
+ * the detector calls an hour routine flakiness, not a spike.
+ *
+ * `basis` says which of the three set the number, so the description can say
+ * why it is what it is without claiming the wrong reason.
  */
+export enum ErrorLogSpikeThresholdBasis {
+  // The detector's own bar for the project (which may itself be the floor).
+  ProjectBar = "ProjectBar",
+  // What the service logged during the spike, under the project's bar.
+  ServiceSpike = "ServiceSpike",
+  // The service logged less than the floor during the spike.
+  Floor = "Floor",
+}
+
 export interface ErrorLogSpikeThreshold {
   threshold: number;
   projectBar: number;
-  isCappedAtServiceSpike: boolean;
+  basis: ErrorLogSpikeThresholdBasis;
 }
 
 export function getErrorLogSpikeThreshold(data: {
@@ -551,12 +564,14 @@ export function getErrorLogSpikeThreshold(data: {
     Math.ceil(ERROR_LOG_SPIKE_MULTIPLIER * Math.max(baselineHourlyAverage, 1)),
   );
 
+  const atProjectBar: ErrorLogSpikeThreshold = {
+    threshold: projectBar,
+    projectBar: projectBar,
+    basis: ErrorLogSpikeThresholdBasis.ProjectBar,
+  };
+
   if (!data.isServiceScoped || !data.serviceName) {
-    return {
-      threshold: projectBar,
-      projectBar: projectBar,
-      isCappedAtServiceSpike: false,
-    };
+    return atProjectBar;
   }
 
   const topServices: Array<unknown> = Array.isArray(data.evidence?.topServices)
@@ -578,22 +593,30 @@ export function getErrorLogSpikeThreshold(data: {
   }
 
   if (serviceSpikeCount === null || serviceSpikeCount >= projectBar) {
+    return atProjectBar;
+  }
+
+  /*
+   * Floored: a count is whole, and a threshold of 412.7 would ask for 413
+   * when the service logged 412 — rounding up would miss the very spike.
+   */
+  const serviceSpikeThreshold: number = Math.floor(serviceSpikeCount);
+
+  if (serviceSpikeThreshold < ERROR_LOG_SPIKE_MIN_COUNT) {
     return {
-      threshold: projectBar,
+      threshold: ERROR_LOG_SPIKE_MIN_COUNT,
       projectBar: projectBar,
-      isCappedAtServiceSpike: false,
+      basis:
+        ERROR_LOG_SPIKE_MIN_COUNT < projectBar
+          ? ErrorLogSpikeThresholdBasis.Floor
+          : ErrorLogSpikeThresholdBasis.ProjectBar,
     };
   }
 
-  const capped: number = Math.max(
-    ERROR_LOG_SPIKE_MIN_COUNT,
-    Math.floor(serviceSpikeCount),
-  );
-
   return {
-    threshold: capped,
+    threshold: serviceSpikeThreshold,
     projectBar: projectBar,
-    isCappedAtServiceSpike: capped < projectBar,
+    basis: ErrorLogSpikeThresholdBasis.ServiceSpike,
   };
 }
 
@@ -815,16 +838,28 @@ function buildErrorLogSpikeMonitor(input: AIInsightMonitorInput): MonitorShape {
         { threshold: thresholdText },
       );
 
-  const thresholdReason: string = threshold.isCappedAtServiceSpike
-    ? translateTemplate(
+  let thresholdReason: string;
+
+  switch (threshold.basis) {
+    case ErrorLogSpikeThresholdBasis.ServiceSpike:
+      thresholdReason = translateTemplate(
         "{{threshold}} is what {{serviceName}} logged during the spike this monitor was created from, below the project's spike bar of {{projectBar}}.",
         {
           threshold: thresholdText,
           serviceName: serviceName!,
           projectBar: formatCount(threshold.projectBar),
         },
-      )
-    : translateTemplate(
+      );
+      break;
+    case ErrorLogSpikeThresholdBasis.Floor:
+      thresholdReason = translateTemplate(
+        "{{threshold}} is the fewest Error or Fatal lines in an hour the AI detector ever treats as a spike.",
+        { threshold: thresholdText },
+      );
+      break;
+    case ErrorLogSpikeThresholdBasis.ProjectBar:
+    default:
+      thresholdReason = translateTemplate(
         "{{threshold}} is the bar the AI detector used: {{multiplier}} times the project's hourly baseline, and never below {{floor}}.",
         {
           threshold: thresholdText,
@@ -832,6 +867,7 @@ function buildErrorLogSpikeMonitor(input: AIInsightMonitorInput): MonitorShape {
           floor: formatCount(ERROR_LOG_SPIKE_MIN_COUNT),
         },
       );
+  }
 
   return {
     monitorType: MonitorType.Logs,
@@ -901,22 +937,37 @@ function buildExceptionMonitor(input: AIInsightMonitorInput): MonitorShape {
    * scoped by its message fragment, which stays out of the name (see the
    * header).
    */
-  const subject: string = exceptionType
-    ? serviceId && serviceName
+  const scopedServiceName: string | null =
+    serviceId && serviceName ? serviceName : null;
+
+  let name: string;
+
+  if (exceptionType) {
+    const subject: string = scopedServiceName
       ? translateTemplate("{{exceptionType}} in {{serviceName}}", {
           exceptionType: exceptionType,
-          serviceName: serviceName,
+          serviceName: scopedServiceName,
         })
-      : exceptionType
-    : serviceId && serviceName
-      ? translateTemplate("an exception in {{serviceName}}", {
-          serviceName: serviceName,
-        })
-      : translateTemplate("an exception");
+      : exceptionType;
 
-  const name: string = isNewException
-    ? translateTemplate("Exception: {{subject}}", { subject: subject })
-    : translateTemplate("Exception spike: {{subject}}", { subject: subject });
+    name = isNewException
+      ? translateTemplate("Exception: {{subject}}", { subject: subject })
+      : translateTemplate("Exception spike: {{subject}}", {
+          subject: subject,
+        });
+  } else if (scopedServiceName) {
+    name = isNewException
+      ? translateTemplate("Recurring exception in {{serviceName}}", {
+          serviceName: scopedServiceName,
+        })
+      : translateTemplate("Exception spike in {{serviceName}}", {
+          serviceName: scopedServiceName,
+        });
+  } else {
+    name = isNewException
+      ? translateTemplate("Recurring exception")
+      : translateTemplate("Exception spike");
+  }
 
   const condition: string = isNewException
     ? translateTemplate(
