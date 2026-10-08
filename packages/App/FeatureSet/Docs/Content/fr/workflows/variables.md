@@ -58,7 +58,7 @@ Les variables locales n'existent que le temps de l'exécution en cours. Chaque n
 Presque tous les champs de texte acceptent des variables :
 
 - L'URL d'un bloc API.
-- Le texte du message sur Slack, Teams, Discord, Telegram, Email.
+- Le texte du message sur Slack, Teams, Discord, Telegram, IRC, Email.
 - L'objet et le corps d'un e-mail.
 - Les en-têtes et les champs du corps de requête (à l'intérieur des valeurs de type chaîne).
 - Les deux côtés d'un bloc **If / Else**.

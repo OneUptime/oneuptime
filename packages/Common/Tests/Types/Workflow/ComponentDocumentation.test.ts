@@ -74,6 +74,12 @@ import {
 import CronTab from "../../../Utils/CronTab";
 import { DISCORD_WEBHOOK_DOMAINS } from "../../../Server/Types/Workflow/Components/IncomingWebhookUtils";
 import { MAX_SLEEP_IN_MS } from "../../../Server/Types/Workflow/Components/Sleep";
+import {
+  IRC_DEFAULT_NICKNAME,
+  IRC_DEFAULT_PLAIN_TEXT_PORT,
+  IRC_DEFAULT_TLS_PORT,
+  IRC_MAX_LINES,
+} from "../../../Types/Workflow/Components/IRC";
 import { MICROSOFT_TEAMS_WEBHOOK_DOMAINS } from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { componentInputTypeToFormFieldType } from "../../../UI/Components/Workflow/Utils";
 import {
@@ -771,6 +777,7 @@ describe("examples are built from this step and this workflow", () => {
       ComponentID.MicrosoftTeamsSendMessageToChannel,
       ComponentID.DiscordSendMessageToChannel,
       ComponentID.TelegramSendMessageToChat,
+      ComponentID.IRCSendMessageToChannel,
       ComponentID.SendEmail,
       ComponentID.Log,
     ]) {
@@ -1032,6 +1039,30 @@ describe("built-in help says what each step really does", () => {
     expect(
       allText(docsOf(findStep(BUILT_IN, ComponentID.Sleep))).join(" "),
     ).toContain(`The longest wait is ${days} days.`);
+  });
+
+  test("IRC's help states the defaults and the limit the step uses", () => {
+    const text: string = allText(
+      docsOf(findStep(BUILT_IN, ComponentID.IRCSendMessageToChannel)),
+    ).join(" ");
+
+    expect(text).toContain(`over TLS on port ${IRC_DEFAULT_TLS_PORT}`);
+    expect(text).toContain(`connects on port ${IRC_DEFAULT_PLAIN_TEXT_PORT}`);
+    expect(text).toContain(`at most ${IRC_MAX_LINES} IRC lines`);
+    expect(text).toContain(`\`${IRC_DEFAULT_NICKNAME}\``);
+    // The same policy as the egress guard in front of the step.
+    expect(text).toContain("`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`");
+    expect(text).toContain("`NODE_EXTRA_CA_CERTS`");
+  });
+
+  test("IRC's help links to its own section of the components guide", () => {
+    expect(
+      docsOf(findStep(BUILT_IN, ComponentID.IRCSendMessageToChannel)).links,
+    ).toContainEqual({
+      title: "IRC step guide",
+      site: ComponentDocumentationLinkSite.Docs,
+      path: "/workflows/components#irc",
+    });
   });
 
   test("the API steps only mention a body where they send one", () => {

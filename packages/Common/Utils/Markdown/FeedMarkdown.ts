@@ -546,17 +546,38 @@ const readTemplate: ReadTemplateFunction = (
     valueIndexAt.set(position, index);
   });
 
+  /*
+   * The values placed in [start, end). The positions only grow, so the first
+   * is found by halving: asked once per line, a scan of every value made a
+   * text of many lines (multilineText) take time that grows with the square
+   * of its lines - minutes for a log of two hundred thousand.
+   */
   const valuesBetween: (start: number, end: number) => Array<number> = (
     start: number,
     end: number,
   ): Array<number> => {
+    let low: number = 0;
+    let high: number = valuePositions.length;
+
+    while (low < high) {
+      const middle: number = (low + high) >>> 1;
+
+      if (valuePositions[middle]! < start) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+
     const indexes: Array<number> = [];
 
-    valuePositions.forEach((position: number, index: number): void => {
-      if (position >= start && position < end) {
-        indexes.push(index);
-      }
-    });
+    for (
+      let index: number = low;
+      index < valuePositions.length && valuePositions[index]! < end;
+      index++
+    ) {
+      indexes.push(index);
+    }
 
     return indexes;
   };
@@ -972,20 +993,25 @@ const sanitizeFenceInfoValue: SanitizeFenceInfoValueFunction = (
     });
 };
 
-const TRAILING_BACKSLASHES_PATTERN: RegExp = /\\+$/;
+const BACKSLASH: number = 0x5c;
 
-type EndsWithUnpairedBackslashFunction = (text: string) => boolean;
+type CountTrailingBackslashesFunction = (text: string) => number;
 
-/*
- * Whether the text ends in an odd run of backslashes: the last one would
- * escape whatever a value starts with.
- */
-const endsWithUnpairedBackslash: EndsWithUnpairedBackslashFunction = (
+// How many backslashes the text ends in.
+const countTrailingBackslashes: CountTrailingBackslashesFunction = (
   text: string,
-): boolean => {
-  const run: RegExpExecArray | null = TRAILING_BACKSLASHES_PATTERN.exec(text);
+): number => {
+  let backslashes: number = 0;
 
-  return Boolean(run && run[0].length % 2 === 1);
+  for (
+    let index: number = text.length - 1;
+    index >= 0 && text.charCodeAt(index) === BACKSLASH;
+    index--
+  ) {
+    backslashes++;
+  }
+
+  return backslashes;
 };
 
 type RenderValueFunction = (
@@ -1151,19 +1177,38 @@ const renderTemplate: RenderTemplateFunction = (
   });
 
   let output: string = "";
+
+  /*
+   * How many backslashes the output ends in, counted as each piece is
+   * written: reading the end of the output itself copied all of it each
+   * time, and a text of many lines (multilineText) took time that grew with
+   * the square of its length - minutes for a log of a hundred thousand.
+   */
+  let trailingBackslashes: number = 0;
+
+  const write: (piece: string) => void = (piece: string): void => {
+    const ending: number = countTrailingBackslashes(piece);
+
+    output += piece;
+    trailingBackslashes =
+      ending === piece.length ? trailingBackslashes + ending : ending;
+  };
+
   let index: number = 0;
 
   while (index < original.length) {
     const run: RewrittenRun | undefined = reading.runsByStart.get(index);
 
     if (run) {
-      output += renderRun({
-        run: run,
-        original: original,
-        reading: reading,
-        values: values,
-        valueIndexAt: valueIndexAt,
-      });
+      write(
+        renderRun({
+          run: run,
+          original: original,
+          reading: reading,
+          values: values,
+          valueIndexAt: valueIndexAt,
+        }),
+      );
       index = run.end;
       continue;
     }
@@ -1171,7 +1216,7 @@ const renderTemplate: RenderTemplateFunction = (
     const valueIndex: number | undefined = valueIndexAt.get(index);
 
     if (valueIndex === undefined) {
-      output += original[index]!;
+      write(original[index]!);
       index++;
       continue;
     }
@@ -1187,12 +1232,12 @@ const renderTemplate: RenderTemplateFunction = (
     if (
       rendered.length > 0 &&
       placed.place !== ValuePlace.LinkAddress &&
-      endsWithUnpairedBackslash(output)
+      trailingBackslashes % 2 === 1
     ) {
-      output += WORD_JOINER;
+      write(WORD_JOINER);
     }
 
-    output += rendered;
+    write(rendered);
     index++;
   }
 

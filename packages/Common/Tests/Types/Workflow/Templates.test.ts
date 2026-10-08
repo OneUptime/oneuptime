@@ -2011,3 +2011,80 @@ describe.each(
     }
   });
 });
+
+/*
+ * The IRC template has no webhook URL to ask for: the step connects to a
+ * server and joins a channel, so those are its two fields. What they accept
+ * is what the step can use - a host name, a channel with its "#" - and what
+ * people get wrong first is refused in the wizard rather than at the first
+ * incident.
+ */
+describe("the IRC template", () => {
+  const ircTemplate: WorkflowTemplate = getWorkflowTemplate(
+    "incident-created-irc",
+  ) as WorkflowTemplate;
+
+  type FieldFunction = (name: string) => WorkflowTemplateVariable;
+
+  const field: FieldFunction = (name: string): WorkflowTemplateVariable => {
+    return ircTemplate.variables.find((variable: WorkflowTemplateVariable) => {
+      return variable.name === name;
+    }) as WorkflowTemplateVariable;
+  };
+
+  test("is an incident template that asks for a server and a channel, neither secret", () => {
+    expect(ircTemplate.category).toBe(WorkflowTemplateCategory.Incidents);
+    expect(
+      ircTemplate.variables.map((variable: WorkflowTemplateVariable) => {
+        return [variable.name, variable.required, variable.isSecret];
+      }),
+    ).toEqual([
+      ["ircServer", true, false],
+      ["ircChannel", true, false],
+    ]);
+  });
+
+  test.each(["irc.libera.chat", "irc.oftc.net", "irc-internal", "203.0.113.5"])(
+    "IRC Server takes %j",
+    (value: string) => {
+      expect(field("ircServer").format?.pattern.test(value)).toBe(true);
+    },
+  );
+
+  test.each([
+    "ircs://irc.libera.chat",
+    "irc.libera.chat:6697",
+    "irc.libera.chat/#ops",
+    "irc libera",
+    "-irc.example.com",
+  ])("IRC Server refuses %j", (value: string) => {
+    expect(field("ircServer").format?.pattern.test(value)).toBe(false);
+  });
+
+  test.each(["#ops", "##libera-overflow", "&local", "#部署"])(
+    "IRC Channel takes %j",
+    (value: string) => {
+      expect(field("ircChannel").format?.pattern.test(value)).toBe(true);
+    },
+  );
+
+  test.each(["ops", "#ops team", "#ops,#dev", "#"])(
+    "IRC Channel refuses %j",
+    (value: string) => {
+      expect(field("ircChannel").format?.pattern.test(value)).toBe(false);
+    },
+  );
+
+  test("its IRC step takes the server and the channel from those fields", () => {
+    const step: TemplateNodeSpec | undefined = specOf(
+      "incident-created-irc",
+    ).nodes.find((node: TemplateNodeSpec) => {
+      return node.metadataId === ComponentID.IRCSendMessageToChannel;
+    });
+
+    expect(step?.args?.["server"]).toBe("{{local.variables.ircServer}}");
+    expect(step?.args?.["channel"]).toBe("{{local.variables.ircChannel}}");
+    // Two lines: IRC sends each as a message of its own.
+    expect(String(step?.args?.["text"]).split("\n")).toHaveLength(2);
+  });
+});

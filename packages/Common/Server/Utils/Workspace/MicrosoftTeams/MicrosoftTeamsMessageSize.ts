@@ -1,5 +1,6 @@
 import { JSONObject } from "../../../../Types/JSON";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
+import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
 
 /*
  * How big a message Microsoft Teams takes from a bot.
@@ -28,6 +29,31 @@ export const MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES: ReadonlyArray<number> =
 
 // Budget for a plain text reply, such as "show active incidents".
 export const MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES: number = 40 * 1024;
+
+/*
+ * The most of one markdown text - a description, a note or a root cause in
+ * a notification - a message carries, as Teams counts it: Microsoft's
+ * "keep a bot message within 80 KB". A response body or a log a
+ * description template placed can be megabytes, which Teams would refuse,
+ * and which the card builder's regular expressions cannot read safely: a
+ * longer text is cut to this (cutToLength) and ends with
+ * MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.
+ */
+export const MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES: number = 80 * 1024;
+
+// Ends a markdown text cut to fit - the words a cut Slack message ends with.
+export const MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE: string =
+  "\n\n_… (truncated — see OneUptime for the full text)_";
+
+// How big what Teams is sent for a text is, in bytes as Teams counts them.
+export type MeasureTextFunction = (text: string) => number;
+
+/*
+ * fitMarkdownText cuts a text that measures over the budget shorter at most
+ * this many times, each time to this share of what would just fit.
+ */
+const MAX_FIT_ATTEMPTS: number = 5;
+const FIT_MARGIN: number = 0.9;
 
 const DEFAULT_TRUNCATION_NOTE: string =
   "…\n\n_This reply was shortened to fit in Microsoft Teams. Open OneUptime to see everything._";
@@ -109,6 +135,69 @@ export default class MicrosoftTeamsMessageSize {
     }
 
     return undefined;
+  }
+
+  /*
+   * A markdown text a notification carries, within
+   * MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES: as it is when it fits,
+   * else cut (cutToLength: at a line break where there is one near the end)
+   * and followed by MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.
+   *
+   * What Teams is sent for a text can be bigger than the text: JSON writes
+   * each quote and backslash in two characters, and a MessageCard's table
+   * is HTML several times the size of its Markdown. So a cut text is
+   * measured as it is sent - measureInBytes: as a JSON string unless the
+   * caller measures the message it builds from it - and one that comes out
+   * over the budget is cut shorter, in proportion and with a margin, a few
+   * times at most. A text that fits is never measured: it is sent as it
+   * always was.
+   */
+  public static fitMarkdownText(
+    text: string,
+    measureInBytes: MeasureTextFunction = (fitted: string): number => {
+      return MicrosoftTeamsMessageSize.getSizeInBytes(JSON.stringify(fitted));
+    },
+  ): string {
+    const maxLength: number = Math.floor(
+      MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES / 2,
+    );
+
+    if (text.length <= maxLength) {
+      return text;
+    }
+
+    const cut: (length: number) => string = (length: number): string => {
+      return (
+        cutToLength(text, length).trimEnd() +
+        MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE
+      );
+    };
+
+    let length: number = maxLength - MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE.length;
+    let fitted: string = cut(length);
+
+    for (let attempt: number = 0; attempt < MAX_FIT_ATTEMPTS; attempt++) {
+      const sizeInBytes: number = measureInBytes(fitted);
+
+      if (
+        sizeInBytes <= MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES ||
+        length <= 1
+      ) {
+        break;
+      }
+
+      length = Math.max(
+        1,
+        Math.floor(
+          ((length * MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES) /
+            sizeInBytes) *
+            FIT_MARGIN,
+        ),
+      );
+      fitted = cut(length);
+    }
+
+    return fitted;
   }
 
   /*

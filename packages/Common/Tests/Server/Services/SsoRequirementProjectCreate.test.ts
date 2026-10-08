@@ -35,6 +35,12 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import {
+  COMMIT_STATEMENT,
+  INSERT_STATEMENT,
+  clientTimeout,
+  connectionLost,
+} from "../TestingUtils/StatementFailures";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -119,9 +125,13 @@ let creatorIsMasterAdmin: boolean;
 let events: Array<string>;
 let saved: Array<Project>;
 let saveFails: boolean;
+// What the database fails the project's write with, when it does - as TypeORM hands it on.
+let saveFailsWith: Error | null;
 let lockBusy: boolean;
 let locksUnreachable: boolean;
 let lostLocks: Array<string>;
+// Locks found lost once, by key: the next keep of each finds it gone, and the one taken again is kept.
+let lostOnce: Array<string>;
 // The locks Semaphore.lock handed out, by key, the last of each.
 let lockObjects: Map<string, { key: string }>;
 // Runs as the project row is written, before it is.
@@ -238,9 +248,11 @@ beforeEach(() => {
   events = [];
   saved = [];
   saveFails = false;
+  saveFailsWith = null;
   lockBusy = false;
   locksUnreachable = false;
   lostLocks = [];
+  lostOnce = [];
   lockObjects = new Map<string, { key: string }>();
   whileSaving = null;
 
@@ -269,6 +281,10 @@ beforeEach(() => {
   getJestSpyOn(ProjectService, "getRepository").mockReturnValue({
     save: async (project: Project): Promise<Project> => {
       whileSaving?.();
+
+      if (saveFailsWith) {
+        throw saveFailsWith;
+      }
 
       if (saveFails) {
         throw new Error("The database could not write the project");
@@ -386,6 +402,14 @@ beforeEach(() => {
     key: string;
   }): Promise<boolean> => {
     events.push(`keep:${mutex.key}`);
+
+    if (lostOnce.includes(mutex.key)) {
+      lostOnce = lostOnce.filter((key: string): boolean => {
+        return key !== mutex.key;
+      });
+      return false;
+    }
+
     return !lostLocks.includes(mutex.key);
   }) as never);
 });
@@ -711,6 +735,39 @@ describe("the lock the check holds", () => {
     expect(keptForWrite()).toEqual([false]);
   });
 
+  test("an INSERT the client stopped waiting for is rolled back with the create's own transaction: the lock is given back at once, and other creates go on", async () => {
+    saveFailsWith = clientTimeout(INSERT_STATEMENT);
+
+    await expect(create("member")).rejects.toThrow("Query read timeout");
+
+    expect(saved).toEqual([]);
+    expect(lockEvents()).toEqual([
+      `lock:${SERVER_LOCK}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+    expect(keptForWrite()).toEqual([false]);
+
+    saveFailsWith = null;
+
+    await expect(create("member")).resolves.toBe("created");
+  });
+
+  test("a create whose COMMIT went unanswered may have landed: the lock is kept until the database would have cancelled it", async () => {
+    saveFailsWith = connectionLost(COMMIT_STATEMENT);
+
+    await expect(create("member")).rejects.toThrow(
+      "Connection terminated unexpectedly",
+    );
+
+    expect(lockEvents()).toEqual([`lock:${SERVER_LOCK}`]);
+    expect(keptForWrite()).toEqual([true]);
+
+    // Stops keeping it, so nothing outlives the test.
+    await ProjectSsoProviderChanges.releaseSignInChange(
+      Array.from(lockObjects.values()) as never,
+    );
+  });
+
   test("is given back once only, when the create succeeds", async () => {
     await create("member");
 
@@ -733,7 +790,60 @@ describe("the lock the check holds", () => {
     expect(saved).toEqual([]);
   });
 
-  test("found lost after the check refuses the create, and is given back", async () => {
+  test("found lost after the check is taken again, and the check run again under it: the project is created", async () => {
+    lostOnce = [SERVER_LOCK];
+
+    await expect(create("member")).resolves.toBe("created");
+
+    expect(saved).toHaveLength(1);
+    expect(lockEvents()).toEqual([
+      `lock:${SERVER_LOCK}`,
+      // Gone once the check is done: given back, taken again, checked again.
+      `release:${SERVER_LOCK}`,
+      `lock:${SERVER_LOCK}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+    expect(
+      events.filter((event: string): boolean => {
+        return event === "read:server-rule";
+      }),
+    ).toHaveLength(2);
+    expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("found lost after the check, and checked again under the lock taken again: refused when the server now requires SSO with no provider for a new project", async () => {
+    lostOnce = [SERVER_LOCK];
+
+    // While the lock was gone, the server came to require SSO.
+    const keeps: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      Semaphore,
+      "keepLock",
+    );
+    const keepLock: (...args: Array<unknown>) => Promise<boolean> =
+      keeps.getMockImplementation() as unknown as (
+        ...args: Array<unknown>
+      ) => Promise<boolean>;
+
+    keeps.mockImplementation((async (
+      ...args: Array<unknown>
+    ): Promise<boolean> => {
+      const isKept: boolean = await keepLock(...args);
+
+      if (!isKept) {
+        serverRequiresSso = true;
+      }
+
+      return isKept;
+    }) as never);
+
+    await expect(create("member")).resolves.toBe(
+      SERVER_REQUIRES_SSO_FOR_NEW_PROJECT_MESSAGE,
+    );
+    expect(saved).toEqual([]);
+    expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("found lost after the check, and lost again once taken again, refuses the create: try again in a moment, in a creator's words, and nothing is held", async () => {
     lostLocks = [SERVER_LOCK];
 
     await expect(create("member")).resolves.toBe(
@@ -743,7 +853,41 @@ describe("the lock the check holds", () => {
     expect(lockEvents()).toEqual([
       `lock:${SERVER_LOCK}`,
       `release:${SERVER_LOCK}`,
+      `lock:${SERVER_LOCK}`,
+      `release:${SERVER_LOCK}`,
     ]);
+    expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("taken by another change by the time it is taken again: the create is refused, in a creator's words", async () => {
+    lostOnce = [SERVER_LOCK];
+
+    const keeps: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      Semaphore,
+      "keepLock",
+    );
+    const keepLock: (...args: Array<unknown>) => Promise<boolean> =
+      keeps.getMockImplementation() as unknown as (
+        ...args: Array<unknown>
+      ) => Promise<boolean>;
+
+    keeps.mockImplementation((async (
+      ...args: Array<unknown>
+    ): Promise<boolean> => {
+      const isKept: boolean = await keepLock(...args);
+
+      // Another change holds it now, for longer than a create waits.
+      if (!isKept) {
+        lockBusy = true;
+      }
+
+      return isKept;
+    }) as never);
+
+    await expect(create("member")).resolves.toBe(
+      PROJECT_CREATE_WAITS_FOR_SIGN_IN_CHANGE_MESSAGE,
+    );
+    expect(saved).toEqual([]);
   });
 
   test("without Valkey the check still runs, unlocked", async () => {

@@ -86,6 +86,12 @@ API 元件的簡化版，適合「送出去就不管」的情況。把一段 JSO
 
 用機器人權杖和聊天 ID，送一則訊息到 Telegram 的聊天室。
 
+## IRC
+
+在任何 IRC 網路（Libera.Chat、OFTC 或你自己的伺服器）上，把訊息送到一個 IRC 頻道。這個區塊會透過 TLS 連線、加入頻道、送出訊息後離開。
+
+填入 **IRC Server**（只填主機名稱，例如 `irc.libera.chat`）、**Channel**（例如 `#ops`）和 **Message Text**。每一行都會當作一則獨立的 IRC 訊息送出，最多 15 行。選用設定包括暱稱、連接埠、伺服器密碼，以及給需要登入的網路使用的 **SASL Username** 和 **SASL Password**。
+
 ## Email
 
 透過你在區塊上填入的 SMTP 伺服器寄出一封電子郵件。
