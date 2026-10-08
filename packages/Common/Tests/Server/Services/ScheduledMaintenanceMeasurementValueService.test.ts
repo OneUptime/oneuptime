@@ -9,6 +9,7 @@ import MutableMetricService from "../../../Server/Services/MutableMetricService"
 import ScheduledMaintenanceMeasurementService from "../../../Server/Services/ScheduledMaintenanceMeasurementService";
 import ScheduledMaintenanceMeasurementValueService from "../../../Server/Services/ScheduledMaintenanceMeasurementValueService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/ScheduledMaintenanceStateTimelineService";
 import TelemetryUtil from "../../../Server/Utils/Telemetry/Telemetry";
 import { JSONObject } from "../../../Types/JSON";
@@ -263,6 +264,23 @@ describe("ScheduledMaintenanceMeasurementValueService.recomputeForScheduledMaint
       .spyOn(ScheduledMaintenanceService, "findOneById")
       .mockResolvedValue(buildScheduledMaintenance() as never);
     mockTimeline(defaultTimeline());
+
+    /*
+     * The project's states, in their order: what places a state of the
+     * project's own when "the ongoing state entered" is worked out
+     * (ScheduledMaintenanceStartUtil.getStartRows).
+     */
+    jest
+      .spyOn(ScheduledMaintenanceStateService, "getAllScheduledMaintenanceStates")
+      .mockResolvedValue(
+        defaultTimeline().map(
+          (
+            entry: ScheduledMaintenanceStateTimeline,
+          ): ScheduledMaintenanceState => {
+            return entry.scheduledMaintenanceState!;
+          },
+        ) as never,
+      );
 
     jest
       .spyOn(ScheduledMaintenanceMeasurementValueService, "findBy")

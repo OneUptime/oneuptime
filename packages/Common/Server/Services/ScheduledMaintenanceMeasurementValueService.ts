@@ -6,6 +6,9 @@ import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenan
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStateTimelineService";
+import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
+import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import ScheduledMaintenanceMeasurementAnchorType from "../../Types/ScheduledMaintenance/ScheduledMaintenanceMeasurementAnchorType";
 import ScheduledMaintenanceStateRole from "../../Types/ScheduledMaintenance/ScheduledMaintenanceStateRole";
 import MeasurementEvaluator, {
@@ -122,7 +125,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline(
-      data.scheduledMaintenanceId,
+      {
+        scheduledMaintenanceId: data.scheduledMaintenanceId,
+        projectId: scheduledMaintenance.projectId,
+      },
     );
 
     const specs: Array<MeasurementDefinitionSpec> = measurements.map(
@@ -153,12 +159,13 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  private async loadTimeline(
-    scheduledMaintenanceId: ObjectID,
-  ): Promise<Array<MeasurementTimelineEntry>> {
+  private async loadTimeline(data: {
+    scheduledMaintenanceId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Array<MeasurementTimelineEntry>> {
     const timelines: Array<ScheduledMaintenanceStateTimeline> =
       await ScheduledMaintenanceStateTimelineService.findBy({
-        query: { scheduledMaintenanceId: scheduledMaintenanceId },
+        query: { scheduledMaintenanceId: data.scheduledMaintenanceId },
         select: {
           _id: true,
           scheduledMaintenanceStateId: true,
@@ -179,6 +186,39 @@ export class Service extends DatabaseService<Model> {
         props: { isRoot: true },
       });
 
+    /*
+     * "The ongoing state entered" is the event's start: each move into a
+     * state where it is in progress - the project's ongoing state, or a state
+     * of its own placed between Ongoing and Ended ("Verifying") - from one
+     * where it was not (Common/Utils/ScheduledMaintenanceStart). An event
+     * started straight into such a state starts there; moving on from
+     * Ongoing to it is no second start.
+     */
+    const states: Array<ScheduledMaintenanceState> =
+      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+        projectId: data.projectId,
+        props: { isRoot: true },
+      });
+
+    const startRowIds: Set<string> = new Set<string>(
+      ScheduledMaintenanceStartUtil.getStartRows({
+        states: states,
+        timeline: timelines.map(
+          (
+            timeline: ScheduledMaintenanceStateTimeline,
+          ): { id: string; stateId: ObjectID | undefined; startsAt: Date | undefined } => {
+            return {
+              id: timeline._id?.toString() || "",
+              stateId: timeline.scheduledMaintenanceStateId,
+              startsAt: timeline.startsAt,
+            };
+          },
+        ),
+      }).map((row: { id: string }): string => {
+        return row.id;
+      }),
+    );
+
     return timelines
       .filter((timeline: ScheduledMaintenanceStateTimeline) => {
         return Boolean(timeline.startsAt);
@@ -195,7 +235,7 @@ export class Service extends DatabaseService<Model> {
           roles.push(ScheduledMaintenanceStateRole.Scheduled);
         }
 
-        if (timeline.scheduledMaintenanceState?.isOngoingState) {
+        if (startRowIds.has(timeline._id?.toString() || "")) {
           roles.push(ScheduledMaintenanceStateRole.Ongoing);
         }
 

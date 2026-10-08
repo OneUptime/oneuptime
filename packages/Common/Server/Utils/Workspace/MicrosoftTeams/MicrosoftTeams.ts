@@ -54,6 +54,7 @@ import {
 import IncidentService from "../../../Services/IncidentService";
 import AlertService from "../../../Services/AlertService";
 import ScheduledMaintenanceService from "../../../Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../Services/ScheduledMaintenanceStateService";
 import IncidentStateService from "../../../Services/IncidentStateService";
 import AlertStateService from "../../../Services/AlertStateService";
 
@@ -4268,14 +4269,24 @@ Check back later for upcoming maintenance windows.`;
           projectId.toString(),
       );
 
-      // Get ongoing maintenance events
+      /*
+       * The events in progress: in the project's ongoing state, or in a
+       * state of the project's own placed between Ongoing and Ended, such as
+       * "Verifying" (Common/Utils/ScheduledMaintenanceStart).
+       */
+      const inProgressStateIds: Array<ObjectID> =
+        await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
+          projectId,
+        );
+
       const ongoingEvents: Array<ScheduledMaintenance> =
-        await ScheduledMaintenanceService.findBy({
+        inProgressStateIds.length === 0
+          ? []
+          : await ScheduledMaintenanceService.findBy({
           query: {
             projectId: projectId,
-            currentScheduledMaintenanceState: {
-              isOngoingState: true,
-            } as any,
+            currentScheduledMaintenanceStateId:
+              QueryHelper.any(inProgressStateIds),
           },
           select: {
             _id: true,
