@@ -108,6 +108,23 @@ Een machtiging kan niet in beide lijsten tegelijk beperkingslabels dragen; OneUp
 
 De toestemmingen van een gebruiker tellen op over al zijn teams, maar een blokkade geldt voor alles wat de gebruiker doet: een blokkade zonder labels in het ene team haalt de mogelijkheid weg, ook als een ander team hem toestaat, en een blokkade geeft nooit iets. Heeft iemand minder toegang dan u verwacht, zoek dan in elk van zijn teams naar een blokkade; heeft hij meer, zoek dan in elk team naar een toestemming.
 
+### Een status wijzigen
+
+Een incident, een waarschuwing, een waarschuwings- of incidentepisode en gepland onderhoud wijzigen van status, en een monitor wijzigt van status, door een nieuwe rij op hun statustijdlijn. Bevestigen, oplossen, de status wijzigen, de pagina met de statustijdlijn, de API en workflows voegen er allemaal een toe. Daarvoor is de aanmaakmachtiging van die tijdlijn nodig, samen met een machtiging om het record te lezen dat ze wijzigt:
+
+| Om de status te wijzigen van | Is nodig |
+| --- | --- |
+| Een incident | **Create Incident State Timeline** |
+| Een waarschuwing | **Create Alert State Timeline** |
+| Een waarschuwingsepisode | **Create Alert Episode State Timeline** |
+| Een incidentepisode | **Create Incident Episode State Timeline** |
+| Gepland onderhoud | **Create Scheduled Maintenance State Timeline** |
+| Een monitor (zijn status) | **Create Monitor Status Timeline** |
+
+Het record krijgt de nieuwe status daarna van OneUptime zelf, met wat erbij hoort, zoals wanneer een episode is opgelost of wanneer een onderhoud zijn abonnees opnieuw herinnert. Een wijziging vraagt dus niet ook een machtiging om het record te bewerken: een aangepaste rol met **Create Incident State Timeline** maar zonder **Edit Incident** wijzigt de status van een incident. Wilt u voorkomen dat een team statussen wijzigt, blokkeer dan de aanmaakmachtiging van de tijdlijn; een blokkade op **Edit Incident** laat statuswijzigingen ongemoeid. Labels, eigenaren en privérecords beperken de aanmaakmachtiging van de tijdlijn zoals ze elke andere beperken, via het record waarvan ze de status wijzigt: zie de regels voor het bereik hieronder.
+
+Alleen de status wordt voor u geschreven. Een notitie die met een wijziging wordt geplaatst, wordt als u geplaatst en vraagt de eigen machtiging van de notitie, zoals beschreven in [Statussen en ernstniveaus](/docs/incidents/states-and-severities). Het bevestigen van de waarschuwingen van een incident terwijl u het declareert, vraagt nog steeds ook **Edit Alert**: zie [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts).
+
 ## Bereik: hoe ver een toegestane machtiging reikt
 
 Elke toegestane machtiging krijgt een bereik, dat u kiest bij het toevoegen:

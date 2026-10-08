@@ -108,6 +108,23 @@ Uma permissão não pode carregar rótulos de restrição nas duas listas ao mes
 
 As permissões concedidas a um usuário se somam entre todas as suas equipes, mas um bloqueio vale para tudo o que o usuário faz: um bloqueio sem rótulos em uma equipe remove a capacidade mesmo que outra equipe a conceda, e uma entrada de bloqueio nunca concede nada. Se alguém tem menos acesso do que você esperava, procure um bloqueio em cada uma das equipes dessa pessoa; se tem mais, procure uma permissão em cada uma.
 
+### Alterar um estado
+
+Um incidente, um alerta, um episódio de alertas ou de incidentes e uma manutenção programada mudam de estado, e um monitor muda de status, por uma nova linha na sua linha do tempo de estados. Reconhecer, resolver, alterar o estado, a página da linha do tempo de estados, a API e os fluxos de trabalho adicionam todos uma. Adicioná-la exige a permissão de criação dessa linha do tempo, junto com uma permissão para ler o registro que ela altera:
+
+| Para alterar o estado de | É preciso |
+| --- | --- |
+| Um incidente | **Create Incident State Timeline** |
+| Um alerta | **Create Alert State Timeline** |
+| Um episódio de alertas | **Create Alert Episode State Timeline** |
+| Um episódio de incidentes | **Create Incident Episode State Timeline** |
+| Uma manutenção programada | **Create Scheduled Maintenance State Timeline** |
+| Um monitor (seu status) | **Create Monitor Status Timeline** |
+
+Depois, o registro recebe o novo estado da própria OneUptime, com o que o acompanha, como quando um episódio foi resolvido ou quando uma manutenção volta a lembrar seus assinantes. Uma alteração, portanto, não exige também uma permissão para editar o registro: uma função personalizada com **Create Incident State Timeline**, mas sem **Edit Incident**, altera o estado de um incidente. Para impedir que uma equipe altere estados, bloqueie a permissão de criação da linha do tempo; um bloqueio de **Edit Incident** não afeta as alterações de estado. Rótulos, proprietários e registros privados restringem a permissão de criação da linha do tempo como restringem qualquer outra, por meio do registro cujo estado ela altera: veja as regras de escopo abaixo.
+
+Só o estado é escrito por você. Uma nota publicada com uma alteração é publicada em seu nome e exige a permissão da própria nota, como descrito em [Estados e severidades](/docs/incidents/states-and-severities). Reconhecer os alertas de um incidente enquanto você o declara ainda exige também **Edit Alert**: veja [Alertas vinculados](/docs/incidents/linked-alerts).
+
 ## Escopo: até onde vai uma permissão concedida
 
 Toda permissão concedida vem com um escopo, escolhido no momento em que você a adiciona:
