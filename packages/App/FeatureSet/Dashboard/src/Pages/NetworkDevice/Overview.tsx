@@ -362,7 +362,7 @@ const NetworkOverview: FunctionComponent<
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card
           title="Devices needing attention"
-          description="Devices that are down first, then devices whose details are not being read over SNMP, then devices with ports down."
+          description="Devices that are down first (their probe or monitor cannot reach them), then devices whose details are not being read over SNMP, then devices with ports down."
         >
           {attentionDevices.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">

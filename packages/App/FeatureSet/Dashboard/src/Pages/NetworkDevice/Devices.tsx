@@ -728,7 +728,6 @@ const NetworkDevices: FunctionComponent<
    * bar's own empty state.
    */
   const devicesEmptyState: EmptyStateOptions = {
-    ...(facetEmptyState || {}),
     actions: [
       {
         title: "Discover Devices",
@@ -742,6 +741,8 @@ const NetworkDevices: FunctionComponent<
         },
       },
     ],
+    // The chips' own state last, so a filter that hides every row wins.
+    ...facetEmptyState,
   };
 
   type ResolveSiteProbeIdFunction = (siteId: string) => Promise<string>;
@@ -1014,7 +1015,7 @@ const NetworkDevices: FunctionComponent<
         cardProps={{
           title: "Devices",
           description:
-            "Switches, routers, firewalls and anything else with an address. Each device is pinged by its probe; add SNMP credentials to also see its interfaces and health.",
+            "Switches, routers, firewalls and anything else with an address. Each device is pinged by its probe, unless a monitor reports on it instead; add SNMP credentials to also see its interfaces and health.",
         }}
         showViewIdButton={true}
         onBeforeCreate={async (

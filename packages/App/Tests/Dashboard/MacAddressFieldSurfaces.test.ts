@@ -23,15 +23,18 @@ import path from "path";
  * sources, comments stripped, whitespace squashed. The App suite has no
  * React renderer and these pages are JSX with no extractable logic.
  *
- * Two things about the CALL matter as well as its presence. All three
- * surfaces are stepped forms, and BasicForm places a field on a step purely
- * from its `stepId` - an unstamped field in a stepped form renders on no
- * step at all. The Device Settings card's edit form walks Device Details
- * (with the site, and the labels folded under Advanced), Address,
- * Monitoring and SNMP, with the MAC on the Address step. And the field sits
- * beside the hostname on every surface, because it is the device's other
- * address: an operator who learns where it lives on one form finds it in
- * the same place on the next.
+ * Two things about the CALL matter as well as its presence. The two
+ * stepped surfaces place the field on a step purely from its `stepId` - an
+ * unstamped field in a stepped form renders on no step at all. The Device
+ * Settings card's edit form walks Device Details (with the site, and the
+ * labels folded under Advanced), Address, Monitoring and SNMP, with the MAC
+ * on the Address step, beside the hostname - the device's other address.
+ *
+ * The Add Device form is one page now, and asks only what adding a device
+ * needs (the hostname, a name, the site, the probe). The MAC is one of the
+ * rarely needed fields folded under More fields: a router's ARP table fills
+ * it in for most devices, and the fold lists it by name, so it is one click
+ * away rather than gone.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -62,16 +65,22 @@ interface MacAddressSurface {
   parts: Array<string>;
   /*
    * The step the field is stamped with on a stepped wizard, or undefined
-   * on the one single-page form.
+   * on a single-page form.
    */
   stepId: string | undefined;
+  /*
+   * On a single-page form that folds it: the folded section it is handed,
+   * as written (the Add Device form's More fields).
+   */
+  foldedUnder?: string | undefined;
 }
 
 const SURFACES: Array<MacAddressSurface> = [
   {
     name: "the create form on the device list",
     parts: ["Pages", "NetworkDevice", "Devices.tsx"],
-    stepId: STEP_ID,
+    stepId: undefined,
+    foldedUnder: "ADD_DEVICE_MORE_FIELDS",
   },
   {
     name: "the Device Settings card",
@@ -126,6 +135,12 @@ const HAND_ROLLED_FORM_FIELD: RegExp =
 function steppedCall(stepId: string): RegExp {
   return new RegExp(
     `getMacAddressFormField\\(\\s*\\{\\s*stepId:\\s*"${stepId}",?\\s*\\}\\s*\\)`,
+  );
+}
+
+function foldedCall(section: string): RegExp {
+  return new RegExp(
+    `getMacAddressFormField\\(\\s*\\{\\s*collapsibleSection:\\s*${section},?\\s*\\}\\s*\\)`,
   );
 }
 
@@ -184,6 +199,17 @@ describe.each(SURFACES)(
       test("never calls the helper unstamped", () => {
         expect(source).not.toMatch(UNSTEPPED_CALL);
       });
+    } else if (surface.foldedUnder) {
+      const section: string = surface.foldedUnder;
+
+      test(`folds the field under ${section}`, () => {
+        expect(source).toMatch(foldedCall(section));
+      });
+
+      // A one-page form has no step to name.
+      test("never hands the helper a stepId", () => {
+        expect(source).not.toMatch(/getMacAddressFormField\(\s*\{\s*stepId:/);
+      });
     } else {
       test("calls the helper unstamped, as a single-page form must", () => {
         expect(source).toMatch(UNSTEPPED_CALL);
@@ -195,7 +221,12 @@ describe.each(SURFACES)(
       });
     }
 
-    test("places the field right after the hostname field", () => {
+    /*
+     * Beside the hostname on the forms that show it on screen. On the Add
+     * Device form it sits in the folded More fields instead - see below.
+     */
+    if (!surface.foldedUnder) {
+      test("places the field right after the hostname field", () => {
       const callIndex: number = indexOfMatch(ANY_CALL, source);
       expect(callIndex).toBeGreaterThan(-1);
 
@@ -212,7 +243,26 @@ describe.each(SURFACES)(
         callIndex,
       );
       expect(between).not.toMatch(ANY_FIELD_LITERAL);
-    });
+      });
+    }
+
+    if (surface.foldedUnder) {
+      /*
+       * Folded with the other rarely needed fields, after the questions the
+       * form asks on screen - so the hostname still comes first and the MAC
+       * is listed by name on the fold's header.
+       */
+      test("comes after the hostname, in the folded part of the form", () => {
+        const callIndex: number = indexOfMatch(ANY_CALL, source);
+        const hostnameIndex: number = lastHostnameFieldBefore(
+          source,
+          callIndex,
+        );
+
+        expect(hostnameIndex).toBeGreaterThan(-1);
+        expect(callIndex).toBeGreaterThan(hostnameIndex);
+      });
+    }
   },
 );
 
