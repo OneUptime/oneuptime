@@ -15,6 +15,7 @@ import SsoProviderTeamGrant, {
   SsoProviderKind,
 } from "../Utils/SsoProviderTeamGrant";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Exception from "../../Types/Exception/Exception";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -146,6 +147,45 @@ export class Service extends DatabaseService<Model> {
     });
 
     return onDelete;
+  }
+
+  /*
+   * A hard delete (the retention job's purge) runs no onDeleteSuccess, so
+   * it is handed on to it: the locks its check took are given back, and the
+   * projects of the providers it deleted that were on are told.
+   */
+  @CaptureSpan()
+  protected override async onHardDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
+  }
+
+  // An update that failed, or was refused, once it held its locks: they are given back.
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+  ): Promise<Exception> {
+    await ProjectSsoProviderChanges.afterFailedWrite(
+      onUpdate?.carryForward as ProjectSsoProviderWrite | null | undefined,
+    );
+
+    return error;
+  }
+
+  // The same for a delete.
+  @CaptureSpan()
+  protected override async onDeleteError(
+    error: Exception,
+    onDelete?: OnDelete<Model> | undefined,
+  ): Promise<Exception> {
+    await ProjectSsoProviderChanges.afterFailedWrite(
+      onDelete?.carryForward as ProjectSsoProviderWrite | null | undefined,
+    );
+
+    return error;
   }
 }
 

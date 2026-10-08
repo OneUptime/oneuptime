@@ -22,8 +22,11 @@ import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
 } from "../../../Server/Services/DatabaseServerEndpointService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
 import { DatabaseServerFeedEventType } from "../../../Models/DatabaseModels/DatabaseServerFeed";
@@ -686,6 +689,36 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     });
     findOwner = getJestSpyOn(service, "findOwnerByEndpoint");
     findOwner.mockResolvedValue(null);
+    /*
+     * An endpoint is created only under a database its creator may read
+     * (CreatePermission.checkParentPermission): the databases a read by the
+     * caller finds, answered by the same fake table as the service's own
+     * lookup.
+     */
+    getJestSpyOn(
+      DatabaseService as never,
+      "findReadableParentIds",
+    ).mockImplementation((async (lookup: {
+      ids: Array<string>;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<string>> => {
+      const query: any = (
+        await ModelPermission.checkReadQueryPermission(
+          DatabaseServer,
+          { _id: QueryHelper.any(lookup.ids) },
+          { _id: true },
+          lookup.props,
+        )
+      ).query;
+
+      return databases
+        .filter((database: FakeDatabase) => {
+          return fakeRowMatches(database, query);
+        })
+        .map((database: FakeDatabase) => {
+          return database.row.id!.toString();
+        });
+    }) as never);
     // The Feed item an added alias writes - see "the database's Feed".
     getJestSpyOn(
       DatabaseServerFeedService,
@@ -943,6 +976,11 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       expect(created.databaseServerId!.toString()).toBe(DATABASE_ID.toString());
     });
 
+    /*
+     * A database the caller may not read is answered like one that does
+     * not exist, before the service's own lookup or anything about the
+     * endpoint's owner.
+     */
     test("an editor scoped to label A cannot add an alias to a database labelled only B", async () => {
       addDatabase({ labelIds: [LABEL_TEAM_B] });
 
@@ -953,11 +991,12 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
         return e;
       });
 
-      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error).toBeInstanceOf(ProjectScopedReferenceException);
       expect((error as Error).message).toBe(
-        "Database not found, or you do not have permission to edit it. Adding an endpoint to a database needs permission to edit that database.",
+        `This database endpoint references records that are not in this project: Database "${DATABASE_ID.toString()}". Please pick values from this project and try again.`,
       );
       expect(save).not.toHaveBeenCalled();
+      expect(findParent).not.toHaveBeenCalled();
       // Refused before anything about the endpoint's owner is looked up.
       expect(findOwner).not.toHaveBeenCalled();
     });
@@ -970,8 +1009,40 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           data: aliasRequest("orders-db.example.com"),
           props: labelScopedEditorProps(LABEL_TEAM_A),
         }),
-      ).rejects.toThrow("Database not found, or you do not have permission");
+      ).rejects.toThrow("references records that are not in this project");
       expect(save).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Adding an endpoint needs permission to edit the database, too: a
+     * database the caller may read but not edit is refused by the service's
+     * own check, in its own words.
+     */
+    test("an editor who may read a database but not edit it cannot add an alias to it", async () => {
+      addDatabase({ labelIds: [LABEL_TEAM_A] });
+
+      const error: unknown = await DatabaseServerEndpointService.create({
+        data: aliasRequest("orders-db.example.com"),
+        props: propsWith([
+          permissionRow(Permission.EditDatabaseServer, {
+            labelIds: [new ObjectID(LABEL_TEAM_B)],
+            scope: PermissionScope.Labels,
+          }),
+          permissionRow(Permission.ReadDatabaseServer, {
+            labelIds: [new ObjectID(LABEL_TEAM_A)],
+            scope: PermissionScope.Labels,
+          }),
+        ]),
+      }).catch((e: unknown) => {
+        return e;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).toBe(
+        "Database not found, or you do not have permission to edit it. Adding an endpoint to a database needs permission to edit that database.",
+      );
+      expect(save).not.toHaveBeenCalled();
+      expect(findOwner).not.toHaveBeenCalled();
     });
 
     test("an Owned-scoped editor adds an alias to a database they own", async () => {
@@ -998,7 +1069,7 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           data: aliasRequest("orders-db.example.com"),
           props: ownedScopeEditorProps(),
         }),
-      ).rejects.toThrow("Database not found, or you do not have permission");
+      ).rejects.toThrow("references records that are not in this project");
       expect(save).not.toHaveBeenCalled();
       expect(findOwner).not.toHaveBeenCalled();
     });

@@ -89,13 +89,21 @@ jest.mock(
   },
 );
 
+/*
+ * Shaped like the real module: the service is its default export.
+ * CallerPlan reads the plan through require("…/ProjectService").default,
+ * so a mock without one gives CommonAPI no service to ask.
+ */
 jest.mock("../../../Server/Services/ProjectService", () => {
   return {
-    getCurrentPlan: () => {
-      return {
-        currentPlan: "Free",
-        isSubscriptionUnpaid: false,
-      };
+    __esModule: true,
+    default: {
+      getCurrentPlan: () => {
+        return {
+          plan: "Free",
+          isSubscriptionUnpaid: false,
+        };
+      },
     },
   };
 });

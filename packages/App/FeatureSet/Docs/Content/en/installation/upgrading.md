@@ -526,6 +526,23 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   project's last provider cannot be turned off or deleted until another one
   is on. See
   [SSO](/docs/identity/sso#turning-a-provider-off-or-deleting-it).
+- **Global and status page SSO providers end their sign-ins the same way,
+  and turning on Require SSO for Login needs a provider.** Turning a
+  global SAML or OIDC provider off, or deleting it, ends the sign-ins it
+  gave, as a project's provider does, and turning it on again does not
+  bring them back; a global provider already off when you upgrade counts as
+  turned off at the upgrade. A change to a global provider or to its
+  attached projects that would leave a project that requires SSO - itself
+  or because the whole server does - with no provider to sign in with is
+  refused, naming the projects. Turning on Require SSO for Login, for a
+  project or for the whole server, is refused while no provider would sign
+  people in there; the message says what to set up first. Turning a status
+  page's SSO or OIDC provider off, or deleting it, signs out the private
+  users it signed in, and a status page that requires SSO no longer keeps
+  sessions that signed in with a password. Private users whom only SSO
+  ever signed in sign in once more after the upgrade. See
+  [Global SSO](/docs/identity/global-sso#turning-a-provider-off-or-deleting-it)
+  and [Status Pages](/docs/status-pages/index#sso-and-oidc).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
@@ -562,6 +579,34 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   announcement's. A Project Admin API key now also reads the project's SSO
   and OIDC providers it could already change. See
   [Changing or deleting a record you may not read](/docs/api-reference/api-reference#changing-or-deleting-a-record-you-may-not-read)
+  and [Users, Teams & Permissions](/docs/permissions/index).
+- **A record read through another one is created only under a record its
+  creator may read.** The notes, state timeline and feed of an incident,
+  an alert, an episode or a scheduled maintenance event, a status page's
+  announcements, domains, groups and owners, an on-call policy's
+  escalation rules and the other records read through another one are
+  created - from the dashboard, the API, Terraform or the MCP tools - only
+  under one the caller may read, by the rule a read of it follows: the
+  labels or owners the caller's permission to read it reaches, less what a
+  block with labels on reading it takes away. One the caller may not read
+  is refused as if it did not exist, with the `400` that names the field
+  and the ID, and nothing is written. A private incident, alert or episode
+  takes them only from its owners, directly or through a team, and from
+  project owners and admins. An announcement is created only on status
+  pages the caller may read, each of them, and a caller whose
+  permission to read status pages reaches only some of them names at least
+  one. The roles OneUptime ships work as before, and so does a custom role
+  or an API key that reads the records it creates under across the
+  project. What changes is for the ones built from single permissions:
+  `CreateIncidentInternalNote` without a permission to read incidents now
+  creates no note, where it could add one to any incident, and with
+  `ReadProjectIncident` limited to some labels or to **Owned** scope it
+  adds notes to those incidents only. A monitor's status history follows
+  the same rule: an incident someone declares or edits changes the status
+  of the monitors they may read and leaves the others as they are. Give a
+  custom role or an API key the read permission of the record it creates
+  under beside each such create permission. See
+  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
   record you may not read answers `404`.** The same rule now holds in the

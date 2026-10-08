@@ -1,6 +1,9 @@
 import DatabaseService from "./DatabaseService";
 import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUserSession";
+import StatusPage from "../../Models/DatabaseModels/StatusPage";
+import StatusPageOidc from "../../Models/DatabaseModels/StatusPageOidc";
+import StatusPageSso from "../../Models/DatabaseModels/StatusPageSso";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import HashedString from "../../Types/HashedString";
@@ -10,7 +13,15 @@ import Text from "../../Types/Text";
 import logger from "../Utils/Logger";
 import Exception from "../../Types/Exception/Exception";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { IsNull, JsonContains, MoreThan, UpdateResult } from "typeorm";
+import {
+  Brackets,
+  IsNull,
+  JsonContains,
+  MoreThan,
+  SelectQueryBuilder,
+  UpdateResult,
+  WhereExpressionBuilder,
+} from "typeorm";
 
 export interface SessionMetadata {
   session: Model;
@@ -22,6 +33,12 @@ export interface CreateSessionOptions {
   projectId: ObjectID;
   statusPageId: ObjectID;
   statusPagePrivateUserId: ObjectID;
+  /*
+   * The status page SAML or OIDC provider that signed the person in, when
+   * one did: the session counts only while it vouches for it (addSignInRule).
+   */
+  statusPageSsoId?: ObjectID | undefined;
+  statusPageOidcId?: ObjectID | undefined;
   refreshToken?: string | undefined;
   refreshTokenExpiresAt?: Date | undefined;
   ipAddress?: string | undefined;
@@ -66,6 +83,14 @@ export interface ExchangeLoginCodeOptions {
 }
 
 export const STATUS_PAGE_LOGIN_CODE_TTL_MINUTES: number = 5;
+
+// Why a session that no longer counts was ended, as the session records it.
+export const SIGN_IN_NO_LONGER_ACCEPTED_REASON: string =
+  "Its sign-in is no longer accepted by the status page";
+
+// A session no SSO provider signed in: a password sign-in, or one from before sessions named their provider.
+const SESSION_NAMES_NO_PROVIDER_SQL: string =
+  "session.statusPageSsoId IS NULL AND session.statusPageOidcId IS NULL";
 
 export class Service extends DatabaseService<Model> {
   private static readonly DEFAULT_REFRESH_TOKEN_TTL_DAYS: number = 30;
@@ -141,6 +166,107 @@ export class Service extends DatabaseService<Model> {
       session.additionalInfo?.[Service.LOGIN_CODE_PURPOSE_KEY] ===
       Service.LOGIN_CODE_PURPOSE_VALUE
     );
+  }
+
+  /*
+   * WHETHER A STATUS PAGE SESSION STILL COUNTS, AS FAR AS HOW IT SIGNED IN
+   * GOES - added to a query over the sessions, aliased "session", so the
+   * answer comes from the same database read as the session itself.
+   *
+   *   - A session signed in with one of the status page's SAML or OIDC
+   *     providers (statusPageSsoId, statusPageOidcId) counts only while that
+   *     provider vouches for it: it is still there, still this status
+   *     page's, turned on, and it was not turned off after the session began
+   *     (signInsEndedAt before the session's createdAt, both the database's
+   *     time). So turning the provider off, or deleting it, ends the
+   *     sessions it signed in, and turning it on again does not bring them
+   *     back (Utils/SsoSignInsEnded).
+   *   - A session that names no provider - a password sign-in, or an SSO
+   *     sign-in from before sessions named their provider - counts only
+   *     while the status page does not require SSO (`requiresSso`, its
+   *     Require SSO for Login, read by the caller with the page): Require
+   *     SSO for Login lets in only people an SSO provider signs in.
+   */
+  public addSignInRule(
+    query: SelectQueryBuilder<Model>,
+    data: { requiresSso: boolean },
+  ): SelectQueryBuilder<Model> {
+    // A page that requires SSO counts nothing but an SSO sign-in.
+    return this.addSignInRuleCounting(
+      query,
+      data.requiresSso ? "1 = 0" : SESSION_NAMES_NO_PROVIDER_SQL,
+    );
+  }
+
+  /*
+   * The rule above, with what it counts of a session no provider signed in
+   * given as SQL over the query's aliases.
+   */
+  private addSignInRuleCounting(
+    query: SelectQueryBuilder<Model>,
+    sessionWithoutProviderSql: string,
+  ): SelectQueryBuilder<Model> {
+    const vouchedForBy: (alias: string, column: string) => string = (
+      alias: string,
+      column: string,
+    ): string => {
+      return [
+        `session.${column} IS NOT NULL`,
+        `${alias}._id = session.${column}`,
+        `${alias}.statusPageId = session.statusPageId`,
+        `${alias}.isEnabled = true`,
+        `${alias}.deletedAt IS NULL`,
+        `(${alias}.signInsEndedAt IS NULL OR ${alias}.signInsEndedAt < session.createdAt)`,
+      ].join(" AND ");
+    };
+
+    return query
+      .leftJoin(
+        StatusPageSso,
+        "sessionStatusPageSso",
+        "sessionStatusPageSso._id = session.statusPageSsoId",
+      )
+      .leftJoin(
+        StatusPageOidc,
+        "sessionStatusPageOidc",
+        "sessionStatusPageOidc._id = session.statusPageOidcId",
+      )
+      .andWhere(
+        new Brackets((rule: WhereExpressionBuilder): void => {
+          rule.where(sessionWithoutProviderSql);
+
+          rule
+            .orWhere(vouchedForBy("sessionStatusPageSso", "statusPageSsoId"))
+            .orWhere(vouchedForBy("sessionStatusPageOidc", "statusPageOidcId"));
+        }),
+      );
+  }
+
+  /*
+   * Whether this session still counts by the sign-in rule above
+   * (addSignInRule), read now, with its status page's own Require SSO for
+   * Login, in one database read: a refresh and a login code ask it before
+   * they hand the session a new access token. A session whose status page
+   * is gone does not count.
+   */
+  public async doesSignInStillCount(data: {
+    sessionId: ObjectID;
+  }): Promise<boolean> {
+    const session: Model | null = await this.addSignInRuleCounting(
+      this.getQueryBuilder("session")
+        .select(["session._id"])
+        .innerJoin(
+          StatusPage,
+          "sessionStatusPage",
+          "sessionStatusPage._id = session.statusPageId AND sessionStatusPage.deletedAt IS NULL",
+        )
+        .where("session._id = :sessionId", {
+          sessionId: data.sessionId.toString(),
+        }),
+      `sessionStatusPage.requireSsoForLogin IS NOT TRUE AND ${SESSION_NAMES_NO_PROVIDER_SQL}`,
+    ).getOne();
+
+    return Boolean(session);
   }
 
   public async findActiveSessionByRefreshToken(
@@ -424,6 +550,15 @@ export class Service extends DatabaseService<Model> {
     session.refreshToken = HashedString.fromString(tokenMeta.refreshToken);
     session.refreshTokenExpiresAt = tokenMeta.refreshTokenExpiresAt;
     session.lastActiveAt = OneUptimeDate.getCurrentDate();
+
+    // The provider that signed the person in, if one did (addSignInRule).
+    if (options.statusPageSsoId) {
+      session.statusPageSsoId = options.statusPageSsoId;
+    }
+
+    if (options.statusPageOidcId) {
+      session.statusPageOidcId = options.statusPageOidcId;
+    }
 
     if (options.userAgent) {
       session.userAgent = options.userAgent;

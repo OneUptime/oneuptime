@@ -584,6 +584,15 @@ beforeEach(() => {
       return config;
     }) as never,
   );
+  // The projects a change names are read together, by id (SsoSignInWays).
+  getJestSpyOn(ProjectService, "findBy").mockImplementation(
+    async (): Promise<Array<Project>> => {
+      const project: Project = new Project();
+      project.id = PROJECT_ID;
+      project.requireSsoForLogin = false;
+      return [project];
+    },
+  );
 
   database = {
     teamReads,

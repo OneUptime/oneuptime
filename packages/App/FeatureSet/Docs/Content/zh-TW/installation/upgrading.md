@@ -172,6 +172,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **`oneuptime` CLI 在 `--version` 會報告真實版本號**，不再是預留字串。
 - **Runner 已從專案設定移到運行手冊。** Runner 現在位於 **運行手冊 → Runbook 代理程式**（`…/runbooks/runners`），Runner Credentials 位於 **運行手冊 → Runbook 代理程式 → 憑證**（`…/runbooks/runner-credentials`），就在由它們執行步驟的 Runbook 旁邊。舊的 `…/settings/runners` 與 `…/settings/runner-credentials` URL 會重新導向，書籤仍可使用。其他都沒有改變：Runner 的 ID、金鑰、能力與權限維持不變，仍會執行 AI 程式碼修復與 AI 修復指令。早於此版本的 Runner 映像檔仍會在日誌訊息中輸出「Project Settings > Runners」；請將其讀作 運行手冊 → Runbook 代理程式。
 - **`RunbookMember` 執行 Runbook，但不建置 Runbook。** 這個角色不再建立或刪除 Runbook、Runner 及其擁有者，並且只執行其標籤與範圍所及的 Runbook；建置 Runbook 的人需要 `RunbookAdmin`。帳務角色現在可以讀取帳務頁面：`BillingViewer` 只讀，`BillingMember` 還能下載發票並變更帳務聯絡資訊。
+- **透過另一筆記錄讀取的記錄，只能在建立者能讀取的記錄之下建立。** 透過事件、狀態頁或其他記錄讀取的備註、公告等記錄，只能在呼叫方能讀取的記錄之下建立——與讀取一樣，由標籤、擁有者和帶標籤的封鎖決定——指定呼叫方不能讀取的記錄，會像該記錄不存在一樣被拒絕。帶有 `CreateIncidentInternalNote` 的自訂角色或 API 金鑰還需要 `ReadProjectIncident`，而且只能為該權限觸及的事件新增備註。
 - **每個授予都會收窄它觸及的範圍，依 ID 讀取你不能讀取的記錄會回答 `404`。** `POST /api/<resource>/<id>/get-item` 現在回答 `404`，而不是內文為空的 `200`；限定到標籤的 **All Operational Resources** 權限只觸及帶有這些標籤的資源；透過事件或其他記錄讀取的記錄遵循該記錄的「擁有」範圍；刪除遙測資料限於呼叫方能讀取的內容，每次一個專案；狀態頁的 SSO 與 OIDC 提供者由專案角色讀取，而不是每個成員。Terraform 會把它不再能讀取的資源從狀態中移除。
 - 哪些端點移動或收緊了，包含 `GET /api/global-config/license` 以及自架部署不再提供的授權伺服器端點，請見上方的 [API and endpoint changes](#api-and-endpoint-changes)。
 

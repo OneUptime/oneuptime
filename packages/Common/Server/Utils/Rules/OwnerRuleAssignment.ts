@@ -7,7 +7,10 @@ import TeamMemberService from "../../Services/TeamMemberService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
-import { ProjectScopedReferenceException } from "../Database/ProjectScopedReferenceValidator";
+import {
+  ProjectScopedReferenceException,
+  UnreadableParentException,
+} from "../Database/ProjectScopedReferenceRefusal";
 
 /*
  * An owner row is unique per (resource, user or team, project): every
@@ -135,7 +138,9 @@ export default class OwnerRuleAssignment {
    * a concurrent insert that got past it - or the owner is a user who is not
    * a member of the project, or the owner service refused the row as naming
    * a record that is not the project's (a team of another project). Every
-   * other failure is thrown as before.
+   * other failure is thrown as before - a resource its caller may not read
+   * among them (UnreadableParentException): that is the caller's access,
+   * not a stale owner, and is not skipped as one.
    */
   public static async createOwner<TOwner extends BaseModel>(data: {
     ownerService: DatabaseService<TOwner>;
@@ -156,7 +161,8 @@ export default class OwnerRuleAssignment {
     } catch (error) {
       if (
         PostgresErrorTranslator.isUniqueViolation(error) ||
-        error instanceof ProjectScopedReferenceException
+        (error instanceof ProjectScopedReferenceException &&
+          !(error instanceof UnreadableParentException))
       ) {
         return false;
       }

@@ -83,6 +83,7 @@ import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../Utils/Realtime/RealtimeAccessChanges";
 import ProjectSsoProviderStanding from "../Utils/ProjectSsoProviderStanding";
+import SsoRequirementChanges from "../Utils/SsoRequirementChanges";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import Permission from "../../Types/Permission";
@@ -775,6 +776,23 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * An update that failed - refused or thrown, an auto recharge charge
+   * included - once a stricter sign-in rule held its locks: they are given
+   * back (SsoRequirementChanges).
+   */
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+    }
+
+    return error;
+  }
+
+  /*
    * Session replay is gated on the project's org-wide allow flag, and the
    * ingest gate caches the resolved policy per pod. Turning the flag off has
    * to reach every pod now, not after the cache TTL plus the config
@@ -787,6 +805,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // The locks a stricter sign-in rule held for its check (onUpdatePermitted).
+    await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+
     const updateData: Record<string, unknown> = onUpdate.updateBy
       .data as unknown as Record<string, unknown>;
 
@@ -979,6 +1000,28 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The last steps before an update is written, once the caller has passed
+   * every permission check:
+   *
+   *   - turning Require SSO for Login on, or requiring another provider,
+   *     needs an SSO provider that signs people in to the project
+   *     (Utils/SsoRequirementChanges). Checked under the project's lock -
+   *     and, when the project would rely on more than its own providers that
+   *     are on, the lock on the server's sign-in rules - held until the
+   *     write is done (onUpdateSuccess) or fails (onUpdateError, a charge
+   *     below that fails included), and before anything is charged below;
+   *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn).
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
+
+    await this.chargeAutoRechargeTurnedOn(updateBy);
+  }
+
+  /*
    * Turning auto recharge on tops the balance up at once when it is already
    * below the threshold - the SMS and call balance, and the AI credits alike.
    * A charge is never made for a change that is refused, so it is made here:
@@ -987,8 +1030,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * - and still before the write, so a charge that fails (no card, say)
    * refuses the change, as it always has for SMS and calls.
    */
-  @CaptureSpan()
-  protected override async onUpdatePermitted(
+  private async chargeAutoRechargeTurnedOn(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     if (

@@ -87,6 +87,7 @@ import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
+import { UnreadableParentException } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
   ProjectScopedReference,
@@ -2075,6 +2076,14 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
       })
       .then(async () => {
         try {
+          /*
+           * The monitor's first status row is part of creating it, as an
+           * incident's first state is: OneUptime writes it, for the person
+           * who created the monitor (still its creator). Written as them, it
+           * would be held to their read of the monitor, which a creator
+           * whose read reaches only what they own gets once the create
+           * returns (DatabaseService.autoOwnerOnCreate).
+           */
           return await this.changeMonitorStatus(
             createdItem.projectId!,
             [createdItem.id!],
@@ -2082,7 +2091,10 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
             false, // notifyOwners = false
             "This status was created when the monitor was created.",
             undefined,
-            onCreate.createBy.props,
+            {
+              isRoot: true,
+              userId: onCreate.createBy.props.userId,
+            },
           );
         } catch (error) {
           logger.error(
@@ -3654,8 +3666,8 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
   }
 
   /*
-   * Creates one status timeline row, absorbing the two error classes that are
-   * recoverable per monitor so one monitor cannot abort a caller's loop over
+   * Creates one status timeline row, absorbing the error classes that are
+   * decided per monitor so one monitor cannot abort a caller's loop over
    * many (incident resolve, scheduled maintenance end, incident create with
    * changeMonitorStatusTo):
    *
@@ -3674,7 +3686,15 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
    *     the next probe result recreates the transition, and failing the caller
    *     outright would strand its remaining monitors instead.
    *
-   * Every other error still propagates.
+   *   - a monitor the caller may not read: a person's change - an incident
+   *     they declare or edit - writes as them, and a monitor outside what
+   *     their read of monitors reaches takes no row from them
+   *     (CreatePermission.checkParentPermission refuses it with
+   *     UnreadableParentException). That monitor keeps its status; the
+   *     others are still changed.
+   *
+   * Every other error still propagates - a caller who may write no status
+   * row at all is refused, as before.
    */
   private async createStatusTimelineWithRetry(data: {
     statusTimeline: MonitorStatusTimeline;
@@ -3724,6 +3744,15 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
         if (isLockError) {
           logger.error(
             `changeMonitorStatus: could not acquire the status timeline lock for monitor ${data.monitorId.toString()} after ${maxAttempts} attempt(s); skipping this status change. The monitor keeps its current status.`,
+            logAttributes,
+          );
+          return;
+        }
+
+        // A monitor the caller may not read. See the comment above.
+        if (err instanceof UnreadableParentException) {
+          logger.warn(
+            `changeMonitorStatus: monitor ${data.monitorId.toString()} keeps its status: the caller of this change may not read it.`,
             logAttributes,
           );
           return;

@@ -1,7 +1,7 @@
 import QueryDeepPartialEntity from "../../../../Types/Database/PartialEntity";
 import Query from "../Query";
 import Select from "../Select";
-import CreatePermission from "./CreatePermission";
+import CreatePermission, { ReadableParentIdsFinder } from "./CreatePermission";
 import DeletePermission from "./DeletePermission";
 import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
 import TablePermission from "./TablePermission";
@@ -261,6 +261,34 @@ export default class ModelPermission {
       return CreatePermission.checkCreatePermissions(modelType, data, props);
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, props);
+    }
+  }
+
+  /*
+   * A record read through another one is created only under a parent its
+   * creator may read (CreatePermission.checkParentPermission). Asked by
+   * DatabaseService before the create hooks run, and again after them
+   * (`checkedParentIds`, what the first ask returned), which looks a parent
+   * up only when a hook named other parents and decides a create that names
+   * none. Returns the parent ids the create names.
+   */
+  @CaptureSpan()
+  public static async checkCreateParentPermission<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+    // Reads the parents as the caller. See ReadableParentIdsFinder.
+    findReadableParentIds: ReadableParentIdsFinder;
+    checkedParentIds?: Array<string> | undefined;
+  }): Promise<Array<string>> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    try {
+      return await CreatePermission.checkParentPermission(data);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, data.props);
     }
   }
 

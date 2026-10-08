@@ -5,14 +5,27 @@ import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import ServerException from "../../../Types/Exception/ServerException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
+import {
+  getReferenceRefusalMessage,
+  ProjectScopedReferenceException,
+  resolveReferenceId,
+  resolveReferenceIds,
+} from "./ProjectScopedReferenceRefusal";
 import RelationIdUtil from "./RelationIdUtil";
+
+// Defined apart, as the permission layer uses them too. See the module.
+export {
+  ProjectScopedReferenceException,
+  resolveReferenceId,
+  resolveReferenceIds,
+  UnreadableParentException,
+} from "./ProjectScopedReferenceRefusal";
 
 /*
  * Incidents, alerts and scheduled maintenance events point at project-scoped
@@ -187,35 +200,6 @@ const lookupServices: Map<
 > = new Map();
 
 /*
- * The same reference reaches a service hook in several shapes: the id column
- * (`incidentSeverityId`), a relation object (`incidentSeverity: { _id }`), an
- * ObjectID in either slot, or — on the update path — a bare uuid string in the
- * relation slot, which DatabaseService.sanitizeCreateOrUpdate only turns into
- * a relation entity *after* onBeforeUpdate has run. Reading `?._id` alone
- * misses the string shape and the guard would silently pass.
- */
-export function resolveReferenceId(
-  value: unknown,
-): ObjectID | string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (value instanceof ObjectID) {
-    return value;
-  }
-
-  const relation: { _id?: string | undefined; id?: ObjectID | undefined } =
-    value as { _id?: string | undefined; id?: ObjectID | undefined };
-
-  return relation._id || relation.id || undefined;
-}
-
-/*
  * A column of a row read back, whether the row arrives as a model or as a
  * plain object (a raw read, a projection).
  */
@@ -233,31 +217,6 @@ export function readRowColumn(row: unknown, column: string): unknown {
   }
 
   return (row as Dictionary<unknown>)[column];
-}
-
-/*
- * The list form of resolveReferenceId, for many-to-many payloads. The list
- * reaches a hook as model instances (API create, workers), `{ _id }` objects,
- * ObjectIDs or bare uuid strings (API update), and an entry with no id cannot
- * link anything, so it is skipped.
- */
-export function resolveReferenceIds(value: unknown): Array<ObjectID | string> {
-  if (value === undefined || value === null) {
-    return [];
-  }
-
-  const entries: Array<unknown> = Array.isArray(value) ? value : [value];
-  const ids: Array<ObjectID | string> = [];
-
-  for (const entry of entries) {
-    const id: ObjectID | string | undefined = resolveReferenceId(entry);
-
-    if (id && id.toString().trim()) {
-      ids.push(id);
-    }
-  }
-
-  return ids;
 }
 
 /*
@@ -334,14 +293,6 @@ export function getWrittenRelationReferences(data: {
     relationValue: payload[data.relation],
   });
 }
-
-/*
- * Thrown when a payload references records that are not the project's:
- * another project's, ones that do not exist, or users who are not members.
- * A BadDataException, so API callers see a 400 with the message; its own
- * type lets a chat reply say something fixed instead of echoing the ids.
- */
-export class ProjectScopedReferenceException extends BadDataException {}
 
 export default class ProjectScopedReferenceValidator {
   public static async validateReferencesBelongToProject(data: {
@@ -622,7 +573,7 @@ export default class ProjectScopedReferenceValidator {
     // `Label "<id>"`, as describeReferences describes each.
     described: Array<string>;
   }): string {
-    return `This ${data.subject || "request"} references records that are not in this project: ${data.described.join(", ")}. Please pick values from this project and try again.`;
+    return getReferenceRefusalMessage(data);
   }
 
   /*
