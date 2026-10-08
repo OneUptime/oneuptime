@@ -1,9 +1,6 @@
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import Response from "../../../Response";
-import MicrosoftTeamsAuthAction, {
-  MicrosoftTeamsAction,
-  MicrosoftTeamsRequest,
-} from "./Auth";
+import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
 import { MicrosoftTeamsAlertActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -14,13 +11,13 @@ import { TurnContext } from "botbuilder";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import AlertInternalNoteService from "../../../../Services/AlertInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
-import AlertStateService from "../../../../Services/AlertStateService";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
-import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import MicrosoftTeamsActionAuthorization from "./Authorization";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventStateOption,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
 import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateTimeline";
 import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -30,6 +27,10 @@ import FeedMarkdown, {
 } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class MicrosoftTeamsAlertActions {
+  // What a change-state card says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No alert states are available to you in this project. Ask a project admin for access to them.";
+
   @CaptureSpan()
   public static isAlertAction(data: { actionType: string }): boolean {
     return (
@@ -67,20 +68,6 @@ export default class MicrosoftTeamsAlertActions {
 
     try {
       switch (action.actionType) {
-        case MicrosoftTeamsAlertActionType.AckAlert:
-          await this.acknowledgeAlert({
-            teamsRequest,
-            action,
-          });
-          break;
-
-        case MicrosoftTeamsAlertActionType.ResolveAlert:
-          await this.resolveAlert({
-            teamsRequest,
-            action,
-          });
-          break;
-
         case MicrosoftTeamsAlertActionType.ViewAlert:
           // This is handled by opening the URL directly
           break;
@@ -104,165 +91,6 @@ export default class MicrosoftTeamsAlertActions {
   }
 
   @CaptureSpan()
-  private static async acknowledgeAlert(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const alertId: string = data.action.actionValue || "";
-
-    if (!alertId) {
-      logger.error("No alert ID provided for acknowledge action", {
-        projectId: data.teamsRequest.projectId.toString(),
-      });
-      return;
-    }
-
-    logger.debug("Acknowledging alert: " + alertId, {
-      projectId: data.teamsRequest.projectId.toString(),
-      alertId: alertId,
-    });
-
-    try {
-      const alert: Alert | null = await AlertService.findOneBy({
-        query: {
-          _id: alertId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentAlertState: {
-            _id: true,
-            name: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!alert) {
-        logger.error("Alert not found: " + alertId, {
-          projectId: data.teamsRequest.projectId.toString(),
-          alertId: alertId,
-        });
-        return;
-      }
-
-      /*
-       * Already acknowledged, or further along, by the one rule
-       * (Common/Utils/AcknowledgedState): a state placed after Acknowledged
-       * counts too, so it is not moved back up its list.
-       */
-      if (await AlertService.isAlertAcknowledged({ alertId: alert.id! })) {
-        logger.debug("Alert is already acknowledged", {
-          projectId: data.teamsRequest.projectId.toString(),
-          alertId: alertId,
-        });
-        return;
-      }
-
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await AlertService.acknowledgeAlert(
-        new ObjectID(alertId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Alert acknowledged successfully", {
-        projectId: data.teamsRequest.projectId.toString(),
-        alertId: alertId,
-      });
-    } catch (error) {
-      logger.error("Error acknowledging alert:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        alertId: alertId,
-      });
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
-  private static async resolveAlert(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const alertId: string = data.action.actionValue || "";
-
-    if (!alertId) {
-      logger.error("No alert ID provided for resolve action", {
-        projectId: data.teamsRequest.projectId.toString(),
-      });
-      return;
-    }
-
-    logger.debug("Resolving alert: " + alertId, {
-      projectId: data.teamsRequest.projectId.toString(),
-      alertId: alertId,
-    });
-
-    try {
-      const alert: Alert | null = await AlertService.findOneBy({
-        query: {
-          _id: alertId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentAlertState: {
-            _id: true,
-            name: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!alert) {
-        logger.error("Alert not found: " + alertId, {
-          projectId: data.teamsRequest.projectId.toString(),
-          alertId: alertId,
-        });
-        return;
-      }
-
-      // Resolved by the one rule (Common/Utils/ResolvedState).
-      if (await AlertService.isAlertResolved({ alertId: alert.id! })) {
-        logger.debug("Alert is already resolved", {
-          projectId: data.teamsRequest.projectId.toString(),
-          alertId: alertId,
-        });
-        return;
-      }
-
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await AlertService.resolveAlert(new ObjectID(alertId), oneUptimeUserId);
-
-      logger.debug("Alert resolved successfully", {
-        projectId: data.teamsRequest.projectId.toString(),
-        alertId: alertId,
-      });
-    } catch (error) {
-      logger.error("Error resolving alert:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        alertId: alertId,
-      });
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
   public static async handleBotAlertAction(data: {
     actionType: string;
     actionValue: string;
@@ -277,7 +105,6 @@ export default class MicrosoftTeamsAlertActions {
       actionValue,
       value,
       projectId,
-      oneUptimeUserId,
       databaseProps,
       turnContext,
     } = data;
@@ -299,13 +126,19 @@ export default class MicrosoftTeamsAlertActions {
         resources: [{ service: AlertService, id: alertId }],
       });
 
-      await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert({
-        alertId: alertId,
-        projectId: projectId,
+      /*
+       * Acknowledged by the member, as the dashboard acknowledges it for
+       * them (WorkspaceMemberActions). A refusal is theirs to read:
+       * handleBotInvokeActivity tells them.
+       */
+      await WorkspaceMemberActions.acknowledge({
+        event: {
+          type: WorkspaceEventType.Alert,
+          id: alertId,
+        },
         props: databaseProps,
       });
 
-      await AlertService.acknowledgeAlert(alertId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Alert acknowledged.");
       return;
     }
@@ -325,13 +158,15 @@ export default class MicrosoftTeamsAlertActions {
         resources: [{ service: AlertService, id: alertId }],
       });
 
-      await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert({
-        alertId: alertId,
-        projectId: projectId,
+      // Resolved by the member, as the dashboard resolves it for them.
+      await WorkspaceMemberActions.resolve({
+        event: {
+          type: WorkspaceEventType.Alert,
+          id: alertId,
+        },
         props: databaseProps,
       });
 
-      await AlertService.resolveAlert(alertId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Alert resolved.");
       return;
     }
@@ -361,9 +196,8 @@ export default class MicrosoftTeamsAlertActions {
           },
           createdAt: true,
         },
-        props: {
-          isRoot: true,
-        },
+        // Read as the member: an alert they may not read is not shown.
+        props: databaseProps,
       });
 
       if (!alert) {
@@ -418,11 +252,12 @@ export default class MicrosoftTeamsAlertActions {
           resources: [{ service: AlertService, id: alertId }],
         });
 
+        // Posted by the member, as the dashboard posts it for them.
         await AlertInternalNoteService.addNote({
           alertId: alertId,
           note: note.toString(),
           projectId: projectId,
-          userId: oneUptimeUserId,
+          props: databaseProps,
         });
 
         await MicrosoftTeamsReplies.sendBestEffort(
@@ -519,9 +354,17 @@ export default class MicrosoftTeamsAlertActions {
           ],
         });
 
-        await OnCallDutyPolicyService.executePolicy(policyId, {
-          triggeredByAlertId: alertId,
-          userNotificationEventType: UserNotificationEventType.AlertCreated,
+        /*
+         * Executed by the member, as the dashboard's Execute On-Call Policy
+         * executes it for them: an execution log triggered by the alert.
+         */
+        await WorkspaceMemberActions.executeOnCallPolicy({
+          event: {
+            type: WorkspaceEventType.Alert,
+            id: alertId,
+          },
+          onCallDutyPolicyId: policyId,
+          props: databaseProps,
         });
 
         await MicrosoftTeamsReplies.sendBestEffort(
@@ -554,11 +397,30 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      // Send the input card
-      const card: JSONObject = await this.buildChangeAlertStateCard(
+      /*
+       * Asked as the submit asks it, before the card is shown, and the card
+       * then offers the states the member may read.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: AlertStateTimeline,
+        action: "change the state of this alert",
+        resources: [{ service: AlertService, id: new ObjectID(actionValue) }],
+      });
+
+      const card: JSONObject | null = await this.buildChangeAlertStateCard(
         actionValue,
         projectId,
+        databaseProps,
       );
+
+      if (!card) {
+        await turnContext.sendActivity(
+          MicrosoftTeamsAlertActions.NO_STATES_MESSAGE,
+        );
+        return;
+      }
+
       await turnContext.sendActivity({
         attachments: [
           {
@@ -592,11 +454,16 @@ export default class MicrosoftTeamsAlertActions {
           resources: [{ service: AlertService, id: alertId }],
         });
 
-        await AlertService.updateOneById({
-          id: alertId,
-          data: {
-            currentAlertStateId: new ObjectID(alertStateId.toString()),
+        /*
+         * The state change the dashboard makes: a row in the alert's state
+         * timeline, created by the member (WorkspaceMemberActions).
+         */
+        await WorkspaceMemberActions.changeState({
+          event: {
+            type: WorkspaceEventType.Alert,
+            id: alertId,
           },
+          stateId: new ObjectID(alertStateId.toString()),
           props: databaseProps,
         });
 
@@ -733,28 +600,34 @@ export default class MicrosoftTeamsAlertActions {
     };
   }
 
+  /*
+   * The states the member may read, in the project's order; null when they
+   * may read none, for the caller to say so instead of an empty card.
+   */
   private static async buildChangeAlertStateCard(
     alertId: string,
     projectId: ObjectID,
-  ): Promise<JSONObject> {
-    const alertStates: Array<AlertState> =
-      await AlertStateService.getAllAlertStates({
+    props: DatabaseCommonInteractionProps,
+  ): Promise<JSONObject | null> {
+    const alertStates: Array<WorkspaceEventStateOption> =
+      await WorkspaceMemberActions.findStateOptions({
+        type: WorkspaceEventType.Alert,
         projectId: projectId,
-        props: {
-          isRoot: true,
-        },
+        props: props,
       });
 
-    const choices: Array<{ title: string; value: string }> = alertStates
-      .map((state: AlertState) => {
+    if (alertStates.length === 0) {
+      return null;
+    }
+
+    const choices: Array<{ title: string; value: string }> = alertStates.map(
+      (state: WorkspaceEventStateOption) => {
         return {
-          title: state.name || "",
-          value: state._id?.toString() || "",
+          title: state.name,
+          value: state.id.toString(),
         };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
+      },
+    );
 
     return {
       type: "AdaptiveCard",

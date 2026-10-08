@@ -40,10 +40,12 @@ export interface WorkspaceActionResource {
  * do in the project today: it survives a downgrade to a read-only role, and it
  * used to survive removal from the project as well.
  *
- * The services those actions call (acknowledgeIncident, addNote,
- * executePolicy, ...) write as root. So a chat action that changes data asks
- * this class first, and gets the answer the dashboard would give the same
- * user for the same change:
+ * So a chat action runs as the member the account is connected to, with the
+ * props the dashboard would use for them (getProjectMemberProps), and what it
+ * changes it changes with those props (WorkspaceMemberActions, the note
+ * services' addNote): the write is held to the same rules as the API. Before
+ * it, the action asks this class, for an answer it can tell them in their
+ * own words before anything about the record is read out to them:
  *
  *   1. the user holds an accepted membership in the project, read from the
  *      database rather than from the permission cache,
@@ -53,9 +55,7 @@ export interface WorkspaceActionResource {
  *      state, an IncidentPublicNote for a public note, an
  *      OnCallDutyPolicyExecutionLog to page an on-call policy, and so on,
  *   3. every resource the action names is one the user can read in THIS
- *      project, under their label, owner and privacy scoping. This also keeps
- *      an id from another project out, since the services look rows up by id
- *      alone.
+ *      project, under their label, owner and privacy scoping.
  */
 export default class WorkspaceActionAuthorization {
   public static readonly NOT_A_PROJECT_MEMBER_MESSAGE: string =
@@ -302,7 +302,7 @@ export default class WorkspaceActionAuthorization {
   }
 
   // A read refused for its caller: no permission, or not on the plan.
-  private static isReadRefusal(err: unknown): boolean {
+  public static isReadRefusal(err: unknown): boolean {
     return (
       err instanceof NotAuthorizedException ||
       err instanceof PaymentRequiredException

@@ -7,6 +7,7 @@ import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
@@ -606,8 +607,10 @@ export default class MicrosoftTeamsReactionNoteSync {
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
 
+    let props: DatabaseCommonInteractionProps;
+
     try {
-      await WorkspaceActionAuthorization.authorize({
+      props = await WorkspaceActionAuthorization.authorize({
         userId: oneUptimeUserId,
         projectId: projectId,
         modelType: WorkspaceReactionNote.getNoteModelType(
@@ -655,7 +658,7 @@ export default class MicrosoftTeamsReactionNoteSync {
       await WorkspaceReactionNote.saveNote({
         resource: resource,
         noteType: reaction.noteType,
-        userId: oneUptimeUserId,
+        props: props,
         note: text,
         sourceMessageKey: sourceMessageKey,
       });

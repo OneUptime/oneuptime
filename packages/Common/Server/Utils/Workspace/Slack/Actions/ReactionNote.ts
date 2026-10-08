@@ -2,6 +2,7 @@ import DatabaseBaseModel from "../../../../../Models/DatabaseModels/DatabaseBase
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import LIMIT_MAX from "../../../../../Types/Database/LimitMax";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../../Types/ObjectID";
 import { JSONObject } from "../../../../../Types/JSON";
 import WorkspaceNoteReactionUtil, {
@@ -212,8 +213,8 @@ export default class SlackReactionNoteActions {
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
 
-    if (
-      !(await SlackActionAuthorization.authorize({
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
         requester: {
           userId: oneUptimeUserId,
           projectId: projectId,
@@ -236,8 +237,9 @@ export default class SlackReactionNoteActions {
             id: resource.resourceId,
           },
         ],
-      }))
-    ) {
+      });
+
+    if (!props) {
       return;
     }
 
@@ -272,7 +274,7 @@ export default class SlackReactionNoteActions {
       saveResult = await WorkspaceReactionNote.saveNote({
         resource: resource,
         noteType: noteType,
-        userId: oneUptimeUserId,
+        props: props,
         note: message.text,
         sourceMessageKey: WorkspaceReactionNote.getSourceMessageKey({
           channelId: channelId,
