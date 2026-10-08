@@ -283,7 +283,10 @@ describe("ruled edge-to-edge card bodies", () => {
     const found: Array<string> = [];
 
     const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-      if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      if (
+        ts.isStringLiteral(node) ||
+        ts.isNoSubstitutionTemplateLiteral(node)
+      ) {
         found.push(node.text);
       } else if (ts.isTemplateExpression(node)) {
         found.push(
@@ -398,9 +401,9 @@ export default Page;
   }
 
   test("finds a card in a card", () => {
-    expect(scan(page(`<Card title="Outer"><Card title="Inner" /></Card>`))).toEqual(
-      ["Card in Card"],
-    );
+    expect(
+      scan(page(`<Card title="Outer"><Card title="Inner" /></Card>`)),
+    ).toEqual(["Card in Card"]);
   });
 
   test("finds a detail card or a table's card in a card", () => {
@@ -444,7 +447,9 @@ export default Page;
 
   test("finds a card handed to a card as a prop", () => {
     expect(
-      scan(page(`<Card title="Outer" rightElement={<Card title="Inner" />} />`)),
+      scan(
+        page(`<Card title="Outer" rightElement={<Card title="Inner" />} />`),
+      ),
     ).toEqual(["Card in Card"]);
   });
 
@@ -561,14 +566,17 @@ export default Chart;
       ]),
     );
 
-    expect(resolve("packages/App/src/Pages/Page.tsx", "../Components/Rules")).toBe(
-      "packages/App/src/Components/Rules.tsx",
-    );
+    expect(
+      resolve("packages/App/src/Pages/Page.tsx", "../Components/Rules"),
+    ).toBe("packages/App/src/Components/Rules.tsx");
     expect(resolve("packages/App/src/Components/Page.tsx", "./Table")).toBe(
       "packages/App/src/Components/Table/Index.tsx",
     );
     expect(
-      resolve("packages/App/src/Pages/Page.tsx", "Common/UI/Components/Card/Card"),
+      resolve(
+        "packages/App/src/Pages/Page.tsx",
+        "Common/UI/Components/Card/Card",
+      ),
     ).toBe("packages/Common/UI/Components/Card/Card.tsx");
     expect(resolve("packages/App/src/Pages/Page.tsx", "react")).toBeNull();
     expect(resolve("packages/App/src/Pages/Page.tsx", "./Missing")).toBeNull();

@@ -227,9 +227,9 @@ test.describe("Project Settings → AI Features: daily AI limits", () => {
     expect(foldBox).not.toBeNull();
     expect(dailyBox).not.toBeNull();
     expect(Math.abs(dailyBox!.x - (foldBox!.x + 1))).toBeLessThanOrEqual(1);
-    expect(Math.abs(dailyBox!.width - (foldBox!.width - 2))).toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      Math.abs(dailyBox!.width - (foldBox!.width - 2)),
+    ).toBeLessThanOrEqual(1);
 
     // Its Edit is still there, at the right edge of its header.
     await expect(daily.getByRole("button", { name: "Edit" })).toBeVisible();

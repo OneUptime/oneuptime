@@ -442,13 +442,14 @@ describe("MicrosoftTeamsIntegration setup guide is one card", () => {
   ];
 
   function framesIn(root: HTMLElement): Array<HTMLElement> {
-    return [root, ...Array.from(root.querySelectorAll<HTMLElement>("*"))].filter(
-      (element: HTMLElement): boolean => {
-        return FRAME_TOKENS.every((token: string): boolean => {
-          return element.classList.contains(token);
-        });
-      },
-    );
+    return [
+      root,
+      ...Array.from(root.querySelectorAll<HTMLElement>("*")),
+    ].filter((element: HTMLElement): boolean => {
+      return FRAME_TOKENS.every((token: string): boolean => {
+        return element.classList.contains(token);
+      });
+    });
   }
 
   async function guide(): Promise<HTMLElement> {
@@ -490,9 +491,9 @@ describe("MicrosoftTeamsIntegration setup guide is one card", () => {
     });
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(within(root).getByTestId("collapsible-section-summary")).toHaveTextContent(
-      MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION,
-    );
+    expect(
+      within(root).getByTestId("collapsible-section-summary"),
+    ).toHaveTextContent(MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION);
     expect(MICROSOFT_TEAMS_SETUP_GUIDE_TITLE).toBe(SETUP_GUIDE_TITLE);
   });
 

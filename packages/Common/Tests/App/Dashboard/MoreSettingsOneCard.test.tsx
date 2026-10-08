@@ -167,26 +167,28 @@ beforeEach(() => {
     });
   jest
     .spyOn(ModelAPI, "getList")
-    .mockImplementation(async (data: unknown): Promise<ListResult<BaseModel>> => {
-      const modelType: { new (): BaseModel } = (
-        data as { modelType: { new (): BaseModel } }
-      ).modelType;
-      const rows: Array<BaseModel> = [];
+    .mockImplementation(
+      async (data: unknown): Promise<ListResult<BaseModel>> => {
+        const modelType: { new (): BaseModel } = (
+          data as { modelType: { new (): BaseModel } }
+        ).modelType;
+        const rows: Array<BaseModel> = [];
 
-      for (let i: number = 0; i < rowsPerTable; i++) {
-        rows.push(rowOf(modelType));
-      }
+        for (let i: number = 0; i < rowsPerTable; i++) {
+          rows.push(rowOf(modelType));
+        }
 
-      return { data: rows, count: rows.length, skip: 0, limit: 10 };
-    });
-  jest.spyOn(ModelAPI, "count").mockImplementation(async (): Promise<number> => {
-    return rowsPerTable;
-  });
+        return { data: rows, count: rows.length, skip: 0, limit: 10 };
+      },
+    );
   jest
-    .spyOn(API, "post")
-    .mockImplementation(async (): Promise<never> => {
-      return new HTTPResponse<JSONObject>(200, {}, {}) as unknown as never;
+    .spyOn(ModelAPI, "count")
+    .mockImplementation(async (): Promise<number> => {
+      return rowsPerTable;
     });
+  jest.spyOn(API, "post").mockImplementation(async (): Promise<never> => {
+    return new HTTPResponse<JSONObject>(200, {}, {}) as unknown as never;
+  });
   jest.spyOn(API, "get").mockImplementation(async (): Promise<never> => {
     return new HTTPResponse<JSONObject>(200, {}, {}) as unknown as never;
   });
@@ -329,6 +331,10 @@ const PAGES: Array<MoreSettingsPage> = [
   },
 ];
 
+// A margin or padding on the left or right: what would pull a divider in from the card's sides.
+const SIDE_MARGIN: RegExp = /^-?m[xlr]?-/;
+const SIDE_PADDING: RegExp = /^-?p[xlr]-/;
+
 const FRAME_TOKENS: Array<string> = CARD_FRAME_CLASS_NAME.split(" ").filter(
   (token: string): boolean => {
     return token !== "overflow-visible";
@@ -338,7 +344,9 @@ const FRAME_TOKENS: Array<string> = CARD_FRAME_CLASS_NAME.split(" ").filter(
 function openPage(page: MoreSettingsPage): void {
   goTo(page.path);
 
-  render(<MemoryRouter initialEntries={[page.path]}>{page.element()}</MemoryRouter>);
+  render(
+    <MemoryRouter initialEntries={[page.path]}>{page.element()}</MemoryRouter>,
+  );
 }
 
 async function flush(): Promise<void> {
@@ -446,10 +454,10 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
     expect(sections.map(titleOf)).toEqual(page.sectionTitles);
 
     for (const section of sections) {
-      expect([titleOf(section), section.getAttribute("data-card-surface")]).toEqual([
+      expect([
         titleOf(section),
-        "section",
-      ]);
+        section.getAttribute("data-card-surface"),
+      ]).toEqual([titleOf(section), "section"]);
       expect(section).toHaveClass("border-t", "border-gray-200");
       expect(section).not.toHaveClass("mb-5");
       expect(section.firstElementChild).not.toHaveClass("rounded-xl");
@@ -468,16 +476,16 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
     ) as HTMLElement;
 
     // The body adds no padding and no rule; the first section's divider is the line under the header.
-    expect((body.firstElementChild as HTMLElement).getAttribute("class") || "").toBe(
-      "",
-    );
+    expect(
+      (body.firstElementChild as HTMLElement).getAttribute("class") || "",
+    ).toBe("");
     expect(body).toHaveClass("rounded-b-xl", "overflow-hidden");
 
     for (const section of sections) {
       expect(body).toContainElement(section);
       expect(
         Array.from(section.classList).some((token: string): boolean => {
-          return /^-?m[xlr]?-/.test(token) || /^-?p[xlr]-/.test(token);
+          return SIDE_MARGIN.test(token) || SIDE_PADDING.test(token);
         }),
       ).toBe(false);
     }

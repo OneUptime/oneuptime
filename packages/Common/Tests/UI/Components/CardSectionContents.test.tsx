@@ -269,7 +269,9 @@ interface Row {
   name?: string | undefined;
 }
 
-const columns: Columns<Row> = [{ title: "Name", type: FieldType.Text, key: "name" }];
+const columns: Columns<Row> = [
+  { title: "Name", type: FieldType.Text, key: "name" },
+];
 
 function rulesTable(data: Array<Row>): ReactElement {
   return (

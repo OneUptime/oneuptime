@@ -80,7 +80,10 @@ const CARD_TABLES: ReadonlyArray<string> = [
 ];
 
 // What holds cards as its sections.
-const SECTIONING: ReadonlyArray<string> = ["CardSections", "AdvancedPageSection"];
+const SECTIONING: ReadonlyArray<string> = [
+  "CardSections",
+  "AdvancedPageSection",
+];
 
 // Framed holders that are not cards themselves: folds and dialogs.
 const FRAMED_HOLDERS: ReadonlyArray<string> = [
@@ -232,9 +235,7 @@ function mainReturnOf(source: ts.SourceFile): ts.Expression | null {
   const name: string = defaultName;
 
   // The component itself: a const arrow or function expression, or a function declaration.
-  const findComponent: (
-    node: ts.Node,
-  ) => ts.FunctionLikeDeclaration | null = (
+  const findComponent: (node: ts.Node) => ts.FunctionLikeDeclaration | null = (
     node: ts.Node,
   ): ts.FunctionLikeDeclaration | null => {
     if (
@@ -247,7 +248,11 @@ function mainReturnOf(source: ts.SourceFile): ts.Expression | null {
       return node.initializer;
     }
 
-    if (ts.isFunctionDeclaration(node) && node.name && node.name.text === name) {
+    if (
+      ts.isFunctionDeclaration(node) &&
+      node.name &&
+      node.name.text === name
+    ) {
       return node;
     }
 
@@ -475,8 +480,7 @@ class CardNestingScanner {
         isInCard: boolean,
       ): void => {
         if (ts.isJsxElement(node)) {
-          const inCard: boolean =
-            isInCard || this.isCardElement(module, node);
+          const inCard: boolean = isInCard || this.isCardElement(module, node);
 
           for (const child of node.children) {
             visit(child, inCard);

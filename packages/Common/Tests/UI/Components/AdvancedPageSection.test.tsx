@@ -438,15 +438,18 @@ describe("AdvancedPageSection", () => {
     test("each card in it is a section, with a divider across the whole card above it", async () => {
       await openWithCards();
 
-      const sections: Array<HTMLElement> = within(section()).getAllByTestId(
-        "card",
-      );
+      const sections: Array<HTMLElement> =
+        within(section()).getAllByTestId("card");
 
       expect(
         sections.map((card: HTMLElement): string | null => {
           return within(card).getByTestId("card-details-heading").textContent;
         }),
-      ).toEqual(["Investigation rules", "Investigation limits", "Daily limits"]);
+      ).toEqual([
+        "Investigation rules",
+        "Investigation limits",
+        "Daily limits",
+      ]);
 
       for (const card of sections) {
         expect(card).toHaveAttribute("data-card-surface", "section");
@@ -498,8 +501,9 @@ describe("AdvancedPageSection", () => {
       await openWithCards();
 
       const rules: HTMLElement = within(section()).getAllByTestId("card")[0]!;
-      const actions: HTMLElement =
-        within(rules).getByTestId("card-header-actions");
+      const actions: HTMLElement = within(rules).getByTestId(
+        "card-header-actions",
+      );
 
       expect(actions).toHaveClass("ml-auto", "justify-end");
       expect(

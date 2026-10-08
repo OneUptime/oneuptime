@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -319,9 +325,9 @@ describe("a card in CardSections is a section of the card that holds it", () => 
     expect(screen.getByTestId("card-header-title-row")).toContainElement(
       screen.getByTestId("card-header-actions"),
     );
-    expect(
-      screen.getByTestId("card-header-title-row").nextElementSibling,
-    ).toBe(screen.getByTestId("card-description"));
+    expect(screen.getByTestId("card-header-title-row").nextElementSibling).toBe(
+      screen.getByTestId("card-description"),
+    );
   });
 
   test("it keeps its body, the body's spacing and the page's class names", () => {
@@ -520,8 +526,10 @@ describe("a card's edge-to-edge body", () => {
   test("on both it runs from the card's left edge to its right edge, at every width", () => {
     for (const surface of [CardSurface.Page, CardSurface.Section]) {
       for (const width of WIDTHS) {
-        const cardSide: number = resolvePadding(CARD_PADDING_CLASS_NAME, width)
-          .left;
+        const cardSide: number = resolvePadding(
+          CARD_PADDING_CLASS_NAME,
+          width,
+        ).left;
         const margin: ReturnType<typeof resolveMargin> = resolveMargin(
           getCardRuledBodyClassName(surface),
           width,
