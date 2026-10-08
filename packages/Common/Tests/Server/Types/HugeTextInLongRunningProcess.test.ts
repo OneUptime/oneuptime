@@ -110,6 +110,30 @@ const INPUTS_SCRIPT: string = String.raw`
     "a long quote of log lines": () => "Before\n\n" + logLines("> ") + "\n\nAfter",
   };
 
+  /*
+   * Runs of lines that are not plain - each could be a table row, HTML or
+   * code - so none of them is held back: what is left is too long to read
+   * as Markdown, and is shown as text.
+   */
+  const notPlainLines = (line) => {
+    return "HEAD\n" + line.repeat(Math.ceil(SIZE / line.length)) + "TAIL";
+  };
+
+  const notPlainInputs = {
+    "a long log whose lines hold a pipe": () =>
+      "Before\n\n" +
+      notPlainLines("2026-10-08T10:00:00Z | INFO | request served | 12 ms\n") +
+      "\n\nAfter",
+    "a long log whose lines hold an arrow": () =>
+      "Before\n\n" +
+      notPlainLines("2026-10-08T10:00:00Z INFO GET /api -> 200 in 12 ms\n") +
+      "\n\nAfter",
+    "a long table": () =>
+      "Before\n\n| Host | State |\n| --- | --- |\n| HEAD | up |\n" +
+      "| web-01 | down |\n".repeat(Math.ceil(SIZE / 18)) +
+      "| TAIL | up |\n\nAfter",
+  };
+
   // A description template that places a monitor's response body.
   const templatedInputs = (MonitorTemplateUtil) => {
     return {
@@ -334,7 +358,11 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
       ],
       String.raw`
         const SlackUtil = lib.SlackUtil;
-        const all = { ...markdownInputs, ...templatedInputs(lib.MonitorTemplateUtil) };
+        const all = {
+          ...markdownInputs,
+          ...notPlainInputs,
+          ...templatedInputs(lib.MonitorTemplateUtil),
+        };
         const inputs = {};
 
         for (const name of [
@@ -342,6 +370,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
           "a long line of JSON",
           "a long run of link brackets",
           "a long paragraph of log lines",
+          "a long table",
           "a templated response body",
         ]) {
           inputs[name] = all[name];
@@ -387,7 +416,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     );
 
     expectUnoptimizedProcess(report);
-    expect(Object.keys(report.results)).toHaveLength(10);
+    expect(Object.keys(report.results)).toHaveLength(12);
     expectEveryCheckPassed(report);
   }, 600000);
 
@@ -399,7 +428,11 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
       ],
       String.raw`
         const MicrosoftTeamsUtil = lib.MicrosoftTeamsUtil;
-        const all = { ...markdownInputs, ...templatedInputs(lib.MonitorTemplateUtil) };
+        const all = {
+          ...markdownInputs,
+          ...notPlainInputs,
+          ...templatedInputs(lib.MonitorTemplateUtil),
+        };
         const inputs = {};
 
         for (const name of [
@@ -407,6 +440,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
           "a long line of JSON",
           "a long run of link brackets",
           "a long paragraph of log lines",
+          "a long table",
           "a templated response body",
         ]) {
           inputs[name] = all[name];
@@ -421,7 +455,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
             return {
               "is titled with the first line": card.title === "Before",
-              "is cut short": JSON.stringify(card).length < 1024 * 1024,
+              "fits the budget, as Teams counts it": JSON.stringify(card).length * 2 <= 80 * 1024,
               "ends with the note": text.endsWith("_… (truncated — see OneUptime for the full text)_"),
             };
           });
@@ -436,7 +470,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
             return {
               "starts with the text before": block.text.startsWith("Before"),
-              "is cut short": block.text.length < 1024 * 1024,
+              "fits the budget, as Teams counts it": JSON.stringify(block.text).length * 2 <= 80 * 1024,
               "ends with the note": block.text.endsWith("_… (truncated — see OneUptime for the full text)_"),
             };
           });
@@ -445,7 +479,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     );
 
     expectUnoptimizedProcess(report);
-    expect(Object.keys(report.results)).toHaveLength(10);
+    expect(Object.keys(report.results)).toHaveLength(12);
     expectEveryCheckPassed(report);
   }, 600000);
 
@@ -469,6 +503,11 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
         const renderAsViewer = (text) => {
           const heldBack = lib.holdBackForViewer(text);
+
+          // These are held back enough to be read as Markdown.
+          if (heldBack.showAsText) {
+            throw new Error("The viewer would show this as text.");
+          }
 
           return renderToStaticMarkup(
             React.createElement(
@@ -508,6 +547,65 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
     expectUnoptimizedProcess(report);
     expect(Object.keys(report.results)).toHaveLength(11);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
+  test("an email, plain text and the dashboard show a long run of lines that are not plain as text", () => {
+    /*
+     * Nothing of these is held back - each line could be a table row, HTML
+     * or code - so marked, and remark, would read all of it: marked ran out
+     * of stack, and remark did not finish. The email sends the Markdown as
+     * text, plain text keeps every line, and the dashboard shows the text as
+     * it was written.
+     */
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { default as Markdown, MarkdownContentType } from "./Server/Types/Markdown";',
+        'export { holdBackForViewer } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
+      ],
+      String.raw`
+        for (const [name, markdownOf] of Object.entries(notPlainInputs)) {
+          const markdown = markdownOf();
+
+          results["email: " + name] = await attempt(async () => {
+            const html = await lib.Markdown.convertToHTML(
+              markdown,
+              lib.MarkdownContentType.Email,
+            );
+
+            return {
+              "is the text, line by line": html.startsWith("<p>Before<br>\n<br>\n"),
+              "ends with the text after": html.endsWith("<br>\nAfter</p>\n"),
+              "keeps the text's start": html.includes("HEAD"),
+              "keeps the text's end": html.includes("TAIL"),
+              "keeps all of the text": html.length > markdown.length,
+            };
+          });
+
+          results["plain text: " + name] = await attempt(() => {
+            const text = lib.Markdown.convertToPlainText(markdown);
+
+            return {
+              "starts with the text before": text.startsWith("Before"),
+              "ends with the text after": text.endsWith("After"),
+              "keeps the text's start": text.includes("HEAD"),
+              "keeps the text's end": text.includes("TAIL"),
+            };
+          });
+
+          results["dashboard: " + name] = await attempt(() => {
+            const heldBack = lib.holdBackForViewer(markdown);
+
+            return {
+              "is shown as text, not read as Markdown": heldBack.showAsText === true,
+            };
+          });
+        }
+      `,
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results)).toHaveLength(9);
     expectEveryCheckPassed(report);
   }, 600000);
 

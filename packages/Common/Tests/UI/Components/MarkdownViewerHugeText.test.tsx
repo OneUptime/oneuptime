@@ -8,7 +8,9 @@
  * megabytes. The viewer now holds back what is too long before
  * react-markdown reads the text (MarkdownViewerOverLongText), and puts it
  * back as text with a rehype plugin; code too long to highlight is shown
- * as it is, and a diagram too long to draw as its source.
+ * as it is, and a diagram too long to draw as its source. A text with more
+ * left than react-markdown reads in good time - a log of megabytes whose
+ * lines are not plain, a table of thousands of rows - is shown as written.
  *
  * Jest stubs react-markdown, so the stand-in here records what the viewer
  * hands it, and draws the code blocks it is told to. The real parser runs
@@ -67,6 +69,8 @@ import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
 import {
   HeldTextTreeNode,
   MAX_HIGHLIGHTED_CODE_LENGTH,
+  MAX_PARSED_MARKDOWN_LENGTH,
+  holdBackForViewer,
 } from "../../../UI/Components/Markdown.tsx/MarkdownViewerOverLongText";
 import { OVER_LONG_LINE_LENGTH } from "../../../Utils/Markdown/OverLongText";
 
@@ -76,7 +80,9 @@ import { OVER_LONG_LINE_LENGTH } from "../../../Utils/Markdown/OverLongText";
  */
 const mockMarkdownState: {
   props: Record<string, unknown> | null;
-  build: ((components: Record<string, React.ElementType>) => React.ReactElement) | null;
+  build:
+    | ((components: Record<string, React.ElementType>) => React.ReactElement)
+    | null;
 } = { props: null, build: null };
 
 const mockReact: typeof React = jest.requireActual("react") as typeof React;
@@ -95,7 +101,9 @@ const MIB: number = 1024 * 1024;
 // The markdown and the rehype plugins the viewer handed react-markdown.
 function handedToParser(): {
   markdown: string;
-  rehypePlugins: Array<[TreePlugin, { held: ReadonlyArray<string> }]> | undefined;
+  rehypePlugins:
+    | Array<[TreePlugin, { held: ReadonlyArray<string> }]>
+    | undefined;
 } {
   const props: Record<string, unknown> = mockMarkdownState.props!;
 
@@ -112,7 +120,9 @@ function codeFence(
   language: string,
   source: string,
 ): (components: Record<string, React.ElementType>) => React.ReactElement {
-  return (components: Record<string, React.ElementType>): React.ReactElement => {
+  return function CodeFence(
+    components: Record<string, React.ElementType>,
+  ): React.ReactElement {
     const Pre: React.ElementType = components["pre"] as React.ElementType;
     const Code: React.ElementType = components["code"] as React.ElementType;
 
@@ -218,9 +228,9 @@ describe("MarkdownViewer - text too long for its parser", () => {
       "text",
     );
     // The block still reads as JSON code, with all of it there.
-    expect(
-      screen.getByTestId("highlighted").textContent === longCode,
-    ).toBe(true);
+    expect(screen.getByTestId("highlighted").textContent === longCode).toBe(
+      true,
+    );
 
     cleanup();
 
@@ -245,5 +255,99 @@ describe("MarkdownViewer - text too long for its parser", () => {
       "data-highlighted-as",
       "text",
     );
+  });
+});
+
+describe("MarkdownViewer - text with too much left for its parser", () => {
+  // Lines with a "|" are not plain: they could be a table, so none is held back.
+  const pipeLines: (length: number) => string = (length: number): string => {
+    const line: string = "2026-10-08T10:00:00Z | INFO | request served\n";
+
+    return line.repeat(Math.ceil(length / line.length)).slice(0, length);
+  };
+
+  test("is shown as it was written, line breaks kept, and never handed to the parser", () => {
+    const text: string = `**Response:**\n\n${pipeLines(MIB)}\n\n_end_`;
+
+    render(<MarkdownViewer text={text} />);
+
+    expect(mockMarkdownState.props).toBeNull();
+
+    const shown: HTMLElement = screen.getByTestId("markdown-viewer-text");
+
+    // Booleans, so a failure does not print a megabyte.
+    expect(shown.textContent === text).toBe(true);
+    expect(shown.className.includes("whitespace-pre-wrap")).toBe(true);
+    expect(shown.querySelector("*")).toBeNull();
+  });
+
+  test("a text with no more than that left still goes to the parser", () => {
+    const table: string = `| Host | State |\n| --- | --- |\n${"| web-01 | down |\n".repeat(6000)}`;
+
+    expect(table.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
+    expect(table.length).toBeLessThanOrEqual(MAX_PARSED_MARKDOWN_LENGTH);
+
+    render(<MarkdownViewer text={table} />);
+
+    expect(screen.queryByTestId("markdown-viewer-text")).toBeNull();
+    expect(handedToParser().markdown === table).toBe(true);
+  });
+
+  test("sixteen megabytes of plain lines are held back, and so still read as Markdown", () => {
+    const line: string = "2026-10-08T10:00:00Z INFO request served\n";
+    const text: string = `**Response:**\n\n${line.repeat(Math.ceil((16 * MIB) / line.length))}\n_end_`;
+
+    render(<MarkdownViewer text={text} />);
+
+    expect(screen.queryByTestId("markdown-viewer-text")).toBeNull();
+    expect(handedToParser().markdown.length).toBeLessThan(4096);
+    expect(handedToParser().rehypePlugins).toHaveLength(1);
+  });
+});
+
+describe("holdBackForViewer - what is shown as text", () => {
+  const pipeLines: (length: number) => string = (length: number): string => {
+    const line: string = "a | b\n";
+
+    return line.repeat(Math.ceil(length / line.length)).slice(0, length);
+  };
+
+  test("nothing of at most 64 KB, whatever it holds", () => {
+    expect(holdBackForViewer(pipeLines(OVER_LONG_LINE_LENGTH)).showAsText).toBe(
+      false,
+    );
+  });
+
+  test("a text with exactly the most left is read as Markdown; one more character is shown as text", () => {
+    expect(
+      holdBackForViewer(pipeLines(MAX_PARSED_MARKDOWN_LENGTH)).showAsText,
+    ).toBe(false);
+    expect(
+      holdBackForViewer(pipeLines(MAX_PARSED_MARKDOWN_LENGTH + 1)).showAsText,
+    ).toBe(true);
+  });
+
+  test("what is left is what counts: over-long lines and plain runs held back leave little", () => {
+    const heldBack: ReturnType<typeof holdBackForViewer> = holdBackForViewer(
+      `Before\n\n${"a".repeat(16 * MIB)}\n\n${"plain line\n".repeat(200000)}\nAfter`,
+    );
+
+    expect(heldBack.showAsText).toBe(false);
+    expect(heldBack.markdown.length).toBeLessThan(8192);
+  });
+
+  test("lines that are not plain are left in, and over the most, shown as text", () => {
+    for (const line of [
+      "GET /api -> 200 in 12 ms\n",
+      "ran `make build` in 12 ms\n",
+      "| web-01 | down |\n",
+      "- web-01 is down\n",
+    ]) {
+      const heldBack: ReturnType<typeof holdBackForViewer> = holdBackForViewer(
+        line.repeat(Math.ceil((2 * MAX_PARSED_MARKDOWN_LENGTH) / line.length)),
+      );
+
+      expect([line, heldBack.showAsText]).toEqual([line, true]);
+    }
   });
 });

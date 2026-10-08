@@ -24,7 +24,10 @@ jest.mock("marked", () => {
 });
 
 import { Renderer, marked } from "marked";
-import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
+import Markdown, {
+  MAX_MARKED_EMAIL_MARKDOWN_LENGTH,
+  MarkdownContentType,
+} from "../../../Server/Types/Markdown";
 import logger from "../../../Server/Utils/Logger";
 import { OVER_LONG_LINE_LENGTH } from "../../../Utils/Markdown/OverLongText";
 
@@ -127,10 +130,7 @@ describe("Markdown email renderer - text longer than marked can read", () => {
     ["an autolink", `<https://example.com/${LONG_PATH}>`],
     ["a bare address", `See https://example.com/${LONG_PATH} now`],
     ["raw HTML, which is escaped", `<div>${LONG_WORDS}</div>`],
-    [
-      "characters HTML escapes",
-      `${'a < b & c > d " e \' f '.repeat(4000)}end`,
-    ],
+    ["characters HTML escapes", `${"a < b & c > d \" e ' f ".repeat(4000)}end`],
     ["a paragraph of log lines", `Before\n\n${LOG_LINES.join("\n")}\n\nAfter`],
     [
       "a quote of log lines",
@@ -205,7 +205,9 @@ describe("Markdown email renderer - text longer than marked can read", () => {
   test("Private Use Area characters already in the Markdown come through as they are", async () => {
     const text: string = "Odd \uE005 \uE006 \uE0050\uE006 text";
 
-    const html: string = await render(`${text}\n\n${LONG_WORDS}\n\n\`${text}\``);
+    const html: string = await render(
+      `${text}\n\n${LONG_WORDS}\n\n\`${text}\``,
+    );
 
     expect(html).toContain(`<p>${text}</p>`);
     expect(html).toContain(`>${text}</code>`);
@@ -252,6 +254,65 @@ describe("Markdown email renderer - the last resort", () => {
     expect(String(logged.mock.calls[0]![0])).toContain(
       "could not be rendered, and is sent as text: Maximum call stack size exceeded",
     );
+  });
+
+  test("Markdown with more than a megabyte left once over-long text is held back is sent as text, and marked never reads it", async () => {
+    const logged: jest.SpiedFunction<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((): void => {});
+    // Table rows are not plain lines: none of them is held back.
+    const rows: string = "| web-01 | <down> & out |\n".repeat(
+      Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 26) + 1,
+    );
+
+    const html: string = await render(`# Disk full\n\n${rows}\nAfter`);
+
+    expect(mockMarkedState.calls).toHaveLength(0);
+    // Booleans, so a failure does not print a megabyte.
+    expect(
+      html.startsWith(
+        "<p># Disk full<br>\n<br>\n| web-01 | &lt;down&gt; &amp; out |<br>\n",
+      ),
+    ).toBe(true);
+    expect(
+      html.endsWith(
+        "| web-01 | &lt;down&gt; &amp; out |<br>\n<br>\nAfter</p>\n",
+      ),
+    ).toBe(true);
+    expect(logged).toHaveBeenCalledTimes(1);
+    expect(String(logged.mock.calls[0]![0])).toContain(
+      "is more than marked reads safely, and is sent as text",
+    );
+  });
+
+  test("Markdown with exactly a megabyte left still goes to marked; one character more does not", async () => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    const lines: string = "a | b\n"
+      .repeat(Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 6) + 1)
+      .slice(0, MAX_MARKED_EMAIL_MARKDOWN_LENGTH);
+
+    const html: string = await render(lines);
+
+    expect(mockMarkedState.calls).toHaveLength(1);
+    expect(mockMarkedState.calls[0] === lines).toBe(true);
+    expect(html.startsWith("<p>a | b\na | b")).toBe(true);
+
+    mockMarkedState.calls = [];
+
+    const text: string = await render(`${lines}a`);
+
+    expect(mockMarkedState.calls).toHaveLength(0);
+    expect(text.startsWith("<p>a | b<br>\na | b")).toBe(true);
+  });
+
+  test("Markdown that is long only for what is held back still goes to marked", async () => {
+    const markdown: string = `# Disk full\n\n${"a".repeat(16 * 1024 * 1024)}\n\n${LOG_LINES.join("\n")}`;
+
+    const html: string = await render(markdown);
+
+    expect(mockMarkedState.calls).toHaveLength(1);
+    expect(mockMarkedState.calls[0]!.length).toBeLessThan(16 * 1024);
+    expect(html.startsWith("<h1")).toBe(true);
   });
 
   test("any other error from marked is not swallowed", async () => {

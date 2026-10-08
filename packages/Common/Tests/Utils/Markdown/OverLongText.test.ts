@@ -1,4 +1,5 @@
 import {
+  OVER_LONG_GROUP_MIN_LENGTH,
   OVER_LONG_LINE_KEPT_LENGTH,
   OVER_LONG_LINE_LENGTH,
   OVER_LONG_RUN_LENGTH,
@@ -37,9 +38,12 @@ function makeHolder(): Holder {
   const held: Array<string> = [];
 
   const putBack: (text: string) => string = (text: string): string => {
-    return text.replace(/\uE005(\d+)\uE006/g, (_match: string, index: string) => {
-      return held[Number(index)] ?? "";
-    });
+    return text.replace(
+      /\uE005(\d+)\uE006/g,
+      (_match: string, index: string) => {
+        return held[Number(index)] ?? "";
+      },
+    );
   };
 
   return {
@@ -140,28 +144,27 @@ describe("OverLongText - over-long lines", () => {
     expect(held.length - held.indexOf("\uE006") - 1).toBe(
       OVER_LONG_LINE_KEPT_LENGTH,
     );
-    expect(holder.held[0]!.length).toBe(100000 - 2 * OVER_LONG_LINE_KEPT_LENGTH);
+    expect(holder.held[0]!.length).toBe(
+      100000 - 2 * OVER_LONG_LINE_KEPT_LENGTH,
+    );
   });
 
   test.each([
     ["the cut at the start falls inside an emoji", "a😀"],
     ["the cut at the end falls inside an emoji", "😀a"],
     ["every cut falls between emoji", "😀"],
-  ])(
-    "an emoji is never split: %s",
-    (_label: string, unit: string) => {
-      const holder: Holder = makeHolder();
-      const line: string = unit.repeat(Math.ceil(100000 / unit.length));
+  ])("an emoji is never split: %s", (_label: string, unit: string) => {
+    const holder: Holder = makeHolder();
+    const line: string = unit.repeat(Math.ceil(100000 / unit.length));
 
-      const held: string = holdBackOverLongLines(line, holder.hold);
-      const loneSurrogate: RegExp =
-        /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+    const held: string = holdBackOverLongLines(line, holder.hold);
+    const loneSurrogate: RegExp =
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
-      expect(loneSurrogate.test(held)).toBe(false);
-      expect(loneSurrogate.test(holder.held[0]!)).toBe(false);
-      expect(holder.putBack(held) === line).toBe(true);
-    },
-  );
+    expect(loneSurrogate.test(held)).toBe(false);
+    expect(loneSurrogate.test(holder.held[0]!)).toBe(false);
+    expect(holder.putBack(held) === line).toBe(true);
+  });
 
   test("every over-long line is held back on its own; the lines between stay", () => {
     const holder: Holder = makeHolder();
@@ -312,8 +315,11 @@ describe("OverLongText - over-long runs of lines", () => {
     expect(held.split("\n")).toEqual([
       "> \uE0050\uE006",
       "> > \uE0051\uE006",
-      // A lazy line, in no quote of its own, is a group of its own.
-      "\uE0052\uE006",
+      /*
+       * A lazy line, in no quote of its own, is a group of its own - too
+       * short to be worth holding back.
+       */
+      LOG_LINE,
     ]);
     expect(holder.held[0]).toBe(
       Array.from({ length: 1200 }, () => {
@@ -321,14 +327,46 @@ describe("OverLongText - over-long runs of lines", () => {
       }).join("\n"),
     );
     expect(holder.held[1]).toBe(holder.held[0]);
-    expect(holder.held[2]).toBe(LOG_LINE);
+    expect(holder.held).toHaveLength(2);
+  });
+
+  test("a group shorter than OVER_LONG_GROUP_MIN_LENGTH stays, Markdown and all; a longer one is held back", () => {
+    const holder: Holder = makeHolder();
+    const rows: string = Array.from({ length: 4000 }, () => {
+      return "| web-01 | down |";
+    }).join("\n");
+    const shortGroup: string = "a **short** line between rows";
+    const longGroup: Array<string> = Array.from(
+      { length: Math.ceil(OVER_LONG_GROUP_MIN_LENGTH / LOG_LINE.length) },
+      () => {
+        return LOG_LINE;
+      },
+    );
+
+    expect(rows.length).toBeGreaterThan(OVER_LONG_RUN_LENGTH);
+    expect(longGroup.join("\n").length).toBeGreaterThanOrEqual(
+      OVER_LONG_GROUP_MIN_LENGTH,
+    );
+
+    const held: string = holdBackOverLongRuns(
+      [rows, shortGroup, rows, ...longGroup, rows].join("\n"),
+      holder.hold,
+    );
+
+    expect(held).toBe(
+      [rows, shortGroup, rows, "\uE0050\uE006", rows].join("\n"),
+    );
+    expect(holder.held).toEqual([longGroup.join("\n")]);
   });
 
   test("a group's line is indented as its first line was", () => {
     const holder: Holder = makeHolder();
-    const lines: string = Array.from({ length: 4000 }, (_: unknown, index: number) => {
-      return `${index % 2 === 0 ? "    " : "  "}"key-${index}": "value",`;
-    }).join("\n");
+    const lines: string = Array.from(
+      { length: 4000 },
+      (_: unknown, index: number) => {
+        return `${index % 2 === 0 ? "    " : "  "}"key-${index}": "value",`;
+      },
+    ).join("\n");
 
     expect(lines.length).toBeGreaterThan(OVER_LONG_RUN_LENGTH);
 

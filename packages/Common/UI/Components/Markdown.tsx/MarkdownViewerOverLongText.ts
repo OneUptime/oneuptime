@@ -23,6 +23,13 @@ import {
  * of at most 64 KB holds back nothing, and renders exactly as it always
  * has.
  *
+ * What is left after that can still be more than remark reads in good time:
+ * its time grows with the square of a long table, list or paragraph whose
+ * lines are not plain (a log whose every line holds a "|", a "<" or a "`")
+ * - a 128 KB table took seconds, a few megabytes did not finish. A text
+ * with more than MAX_PARSED_MARKDOWN_LENGTH left is shown as it was written
+ * instead (showAsText), the way an email shows a text marked cannot read.
+ *
  * Pure, with no React or DOM: the plugin works on remark's HTML tree.
  */
 
@@ -39,11 +46,23 @@ const HELD_CLOSE_CODE: number = 0xe006;
 // Code longer than this is shown as it is: highlighting it took minutes.
 export const MAX_HIGHLIGHTED_CODE_LENGTH: number = OVER_LONG_LINE_LENGTH;
 
+/*
+ * The most Markdown the viewer hands react-markdown, once what is too long
+ * is held back: a text with more left is shown as it was written.
+ */
+export const MAX_PARSED_MARKDOWN_LENGTH: number = 2 * OVER_LONG_LINE_LENGTH;
+
 export interface HeldBackViewerText {
   // The Markdown react-markdown reads.
   markdown: string;
   // What was held back, by index: empty when nothing was.
   held: Array<string>;
+  /*
+   * Whether the text is shown as it was written rather than read as
+   * Markdown: more than MAX_PARSED_MARKDOWN_LENGTH of it is left once what
+   * is too long is held back.
+   */
+  showAsText: boolean;
 }
 
 // `value` with every token in it replaced by the text it stands for.
@@ -81,13 +100,14 @@ export const putBackHeldText: (
 /*
  * The Markdown the viewer gives react-markdown for `text`, with what is too
  * long for it held back (see the top of this file). `text` itself, with
- * nothing held, when nothing in it is that long.
+ * nothing held, when nothing in it is that long - and showAsText when what
+ * is left is more than react-markdown reads in good time.
  */
 export const holdBackForViewer: (text: string) => HeldBackViewerText = (
   text: string,
 ): HeldBackViewerText => {
   if (typeof text !== "string" || !mayHoldBack(text)) {
-    return { markdown: text, held: [] };
+    return { markdown: text, held: [], showAsText: false };
   }
 
   const held: Array<string> = [];
@@ -117,10 +137,18 @@ export const holdBackForViewer: (text: string) => HeldBackViewerText = (
   const markdown: string = holdBackOverLongText(withoutTokens, hold);
 
   if (held.length === heldTokenCharacters) {
-    return { markdown: text, held: [] };
+    return {
+      markdown: text,
+      held: [],
+      showAsText: text.length > MAX_PARSED_MARKDOWN_LENGTH,
+    };
   }
 
-  return { markdown: markdown, held: held };
+  return {
+    markdown: markdown,
+    held: held,
+    showAsText: markdown.length > MAX_PARSED_MARKDOWN_LENGTH,
+  };
 };
 
 /*

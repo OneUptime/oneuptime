@@ -1017,6 +1017,25 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
     };
   }, [safeMode, hasInlineReferences]);
 
+  /*
+   * More Markdown than react-markdown reads in good time is left even after
+   * holding back - a log of megabytes whose lines each hold a "|" or a "<",
+   * a table of thousands of rows: the text is shown as it was written, its
+   * line breaks kept (MarkdownViewerOverLongText).
+   */
+  if (heldBack.showAsText) {
+    return (
+      <MarkdownViewerFrame inlineReferences={inlineReferences}>
+        <p
+          className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed whitespace-pre-wrap break-words"
+          data-testid="markdown-viewer-text"
+        >
+          {props.text}
+        </p>
+      </MarkdownViewerFrame>
+    );
+  }
+
   return (
     <MarkdownViewerFrame inlineReferences={inlineReferences}>
       <ReactMarkdown

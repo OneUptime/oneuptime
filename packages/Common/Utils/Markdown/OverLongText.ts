@@ -29,7 +29,8 @@
  *     text, starting no list, quote, heading, table, fence or HTML, and
  *     holding no image, code or line break). A group is held back as one
  *     line, indented as its first line was, so the run keeps every line that
- *     gives it its structure.
+ *     gives it its structure. A group of fewer than OVER_LONG_GROUP_MIN_LENGTH
+ *     characters stays: holding it back would spare the parser nothing.
  *
  * The caller puts a short token where it held something back (`hold`), and
  * writes the text out again where the parser put the token: as escaped text
@@ -56,6 +57,13 @@ export const OVER_LONG_LINE_KEPT_LENGTH: number = 1024;
  * long for a parser to read as one paragraph.
  */
 export const OVER_LONG_RUN_LENGTH: number = 65536;
+
+/*
+ * A group of continuation lines in an over-long run is held back when it
+ * holds at least this many characters: a shorter one - a line of text
+ * between table rows - is left for the parser, its Markdown and all.
+ */
+export const OVER_LONG_GROUP_MIN_LENGTH: number = OVER_LONG_LINE_KEPT_LENGTH;
 
 /*
  * Holds back `text` and returns the token the caller puts in its place.
@@ -307,11 +315,11 @@ const isBlankLine: (text: string, line: Line) => boolean = (
  * quote markers - each a ">" with up to three spaces before it and one
  * space or tab after it. The line's start when it is in no quote.
  */
-const getQuotePrefixEnd: (text: string, start: number, end: number) => number = (
+const getQuotePrefixEnd: (
   text: string,
   start: number,
   end: number,
-): number => {
+) => number = (text: string, start: number, end: number): number => {
   let prefixEnd: number = start;
 
   for (;;) {
@@ -424,12 +432,17 @@ export const holdBackOverLongRuns: (
           index++;
         }
 
+        index++;
+
+        if (last.end - textStart < OVER_LONG_GROUP_MIN_LENGTH) {
+          continue;
+        }
+
         pieces.push(
           text.slice(copiedUpTo, textStart),
           hold(heldLines.join("\n")),
         );
         copiedUpTo = last.end;
-        index++;
       }
     }
 

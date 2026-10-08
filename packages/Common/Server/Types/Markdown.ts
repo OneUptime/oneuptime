@@ -67,6 +67,16 @@ const BASE64_DATA_START_OR_SENTINEL: RegExp = /;base64,|[\uE005\uE006]/gi;
  */
 const HELD_BASE64_MIN_LENGTH: number = 1024;
 
+/*
+ * The most Markdown marked reads for an email once what it cannot read
+ * safely is held back (holdBackFromMarked). Markdown with more left than
+ * this - a log of megabytes whose every line holds a "|", a "<" or a "`",
+ * a table of a hundred thousand rows - is sent as text (getEmailTextHtml):
+ * marked ran out of stack on a few megabytes of it, took seconds on less,
+ * and an email's table is some thirty times the size of its Markdown.
+ */
+export const MAX_MARKED_EMAIL_MARKDOWN_LENGTH: number = 1024 * 1024;
+
 interface HeldBackMarkdown {
   // The Markdown, with what marked cannot read safely held back.
   markdown: string;
@@ -821,6 +831,17 @@ export default class Markdown {
     if (contentType === MarkdownContentType.Email && renderer) {
       const held: HeldBackMarkdown = Markdown.holdBackFromMarked(markdown);
 
+      if (
+        typeof held.markdown === "string" &&
+        held.markdown.length > MAX_MARKED_EMAIL_MARKDOWN_LENGTH
+      ) {
+        logger.warn(
+          `An email's Markdown (${held.markdown.length} characters left once over-long text is held back, of ${String(markdown).length}) is more than marked reads safely, and is sent as text.`,
+        );
+
+        return Markdown.getEmailTextHtml(markdown);
+      }
+
       try {
         const emailBody: string = await marked(held.markdown, {
           renderer: Markdown.withHeldDataInUrls(renderer, held.restore),
@@ -884,7 +905,9 @@ export default class Markdown {
    * escaped, as marked escapes text. So an email whose text is too long for
    * marked shows it, as text, and the rest of the email is what it would
    * have been. Markdown of at most 64 KB with no screenshot holds back
-   * nothing, and goes to marked as it is.
+   * nothing, and goes to marked as it is. Markdown with more than
+   * MAX_MARKED_EMAIL_MARKDOWN_LENGTH left - long runs of lines that are not
+   * plain - is not given to marked at all: it is sent as text.
    */
   private static holdBackFromMarked(markdown: string): HeldBackMarkdown {
     const asIs: (value: string) => string = (value: string): string => {

@@ -28,7 +28,10 @@ const repeatTo: (unit: string, length: number) => string = (
 
 describe("Markdown.convertToPlainText - text over 64 KB", () => {
   test.each([
-    ["a line of JSON", `HEAD {"items":[${repeatTo('{"id":1},', 16 * MIB)}]} TAIL`],
+    [
+      "a line of JSON",
+      `HEAD {"items":[${repeatTo('{"id":1},', 16 * MIB)}]} TAIL`,
+    ],
     ["a long address", `HEAD https://example.com/${"a".repeat(16 * MIB)} TAIL`],
     ["a run of spaces", `HEAD ${" ".repeat(16 * MIB)} TAIL`],
     ["an unclosed tag", `HEAD <${"a".repeat(16 * MIB)} TAIL`],
@@ -140,10 +143,10 @@ describe("Markdown.convertToPlainText - the loops that replaced regular expressi
       "\n",
       "\n\n",
       "\r",
-      " ",
-      " ",
-      "　",
-      "﻿",
+      "\u00A0",
+      "\u2028",
+      "\u3000",
+      "\uFEFF",
       "\v",
       "a",
       "b",
@@ -199,7 +202,11 @@ describe("Markdown.convertToPlainText - the loops that replaced regular expressi
         },
       );
 
-      expect([run, byLoop, heldByLoop]).toEqual([run, byPattern, heldByPattern]);
+      expect([run, byLoop, heldByLoop]).toEqual([
+        run,
+        byPattern,
+        heldByPattern,
+      ]);
     }
   });
 });
