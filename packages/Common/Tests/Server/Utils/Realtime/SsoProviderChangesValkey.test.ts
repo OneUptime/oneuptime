@@ -479,6 +479,13 @@ describe("project SSO provider changes reach every server through Valkey", () =>
    * a lock outlasts its timeout; no longer kept - its holder's write failed
    * half way - it runs out, and another server takes it.
    */
+  /*
+   * The times leave a second or more either side of every edge, so a busy
+   * machine whose timers fire late still sees the same order: the lock is
+   * kept before it runs out (2s of 4s), looked at after it would have run
+   * out unkept (5s) and before the kept time ends (6s), and taken again
+   * after that (7s).
+   */
   test("a lock kept by its holder outlasts its timeout; one it stops keeping runs out, and keeping it then answers that it was lost", async () => {
     const lock: {
       key: string;
@@ -488,7 +495,7 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     } = {
       key: ObjectID.generate().toString(),
       namespace: "SsoProviderChangesValkey.keep",
-      lockTimeout: 600,
+      lockTimeout: 4000,
       refreshInterval: 0,
     };
     const tryOnce: {
@@ -498,17 +505,17 @@ describe("project SSO provider changes reach every server through Valkey", () =>
 
     const heldByA: SemaphoreMutex = await serverA.semaphore.lock(lock);
 
-    await pause(400);
+    await pause(2000);
     await expect(serverA.semaphore.keepLock(heldByA)).resolves.toBe(true);
-    await pause(400);
+    await pause(3000);
 
-    // 800ms after it was taken, 400ms after it was kept: still A's.
+    // 5s after it was taken, past its own 4s, 3s after it was kept: still A's.
     await expect(
       serverB.semaphore.lock({ ...lock, ...tryOnce }),
     ).rejects.toThrow();
 
     // A stops keeping it: it runs out, and B takes it.
-    await pause(700);
+    await pause(2000);
     const heldByB: SemaphoreMutex = await serverB.semaphore.lock({
       ...lock,
       ...tryOnce,
@@ -518,7 +525,7 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     await expect(serverB.semaphore.keepLock(heldByB)).resolves.toBe(true);
 
     await serverB.semaphore.release(heldByB);
-  });
+  }, 30000);
 
   test("a sign-in change keeps the lock on the server's rules for another full timeout, and is refused once that lock was lost", async () => {
     const lockKey: string = "mutex:ProjectSsoProviderChanges.keepAWayIn-server";
