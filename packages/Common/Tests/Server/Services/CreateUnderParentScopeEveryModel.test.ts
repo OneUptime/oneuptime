@@ -241,13 +241,12 @@ const refusalOf: (promise: Promise<unknown>) => Promise<unknown> = async (
   return undefined;
 };
 
-const CREATABLE: Array<[string, ModelType]> = MODELS_READ_THROUGH_A_PARENT.filter(
-  (modelType: ModelType): boolean => {
+const CREATABLE: Array<[string, ModelType]> =
+  MODELS_READ_THROUGH_A_PARENT.filter((modelType: ModelType): boolean => {
     return Boolean(createGrantOf(modelType));
-  },
-).map((modelType: ModelType): [string, ModelType] => {
-  return [nameOf(modelType), modelType];
-});
+  }).map((modelType: ModelType): [string, ModelType] => {
+    return [nameOf(modelType), modelType];
+  });
 
 // Created by OneUptime alone: no permission creates them.
 const CREATED_BY_ONEUPTIME_ONLY: Array<[string, ModelType]> =
@@ -457,7 +456,7 @@ describe("the code creates these records through DatabaseService.create only", (
     for (const file of SERVER_FILES) {
       const source: string = fs.readFileSync(file, "utf-8");
 
-      if (!/override async create\(/.test(source)) {
+      if (!source.includes("override async create(")) {
         continue;
       }
 

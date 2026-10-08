@@ -322,15 +322,13 @@ describe("a record read through another one is created only under a parent its c
         title: "Incident",
       });
 
-      expect(CreatePermission.getCreateParent(StatusPageAnnouncement)).toEqual(
-        {
-          parentModelType: StatusPage,
-          relation: "statusPages",
-          idColumn: null,
-          isList: true,
-          title: "Status Pages",
-        },
-      );
+      expect(CreatePermission.getCreateParent(StatusPageAnnouncement)).toEqual({
+        parentModelType: StatusPage,
+        relation: "statusPages",
+        idColumn: null,
+        isList: true,
+        title: "Status Pages",
+      });
 
       expect(CreatePermission.getCreateParent(Incident)).toBeNull();
     });
@@ -631,11 +629,7 @@ describe("a record read through another one is created only under a parent its c
       const refusal: unknown = await refusalOf(
         check({
           modelType: StatusPageAnnouncement,
-          data: announcementOn([
-            { _id: PAGE_A },
-            new ObjectID(PAGE_B),
-            PAGE_C,
-          ]),
+          data: announcementOn([{ _id: PAGE_A }, new ObjectID(PAGE_B), PAGE_C]),
           props: member(ANNOUNCER_ON_PRODUCTION),
           lookup: lookup,
         }),

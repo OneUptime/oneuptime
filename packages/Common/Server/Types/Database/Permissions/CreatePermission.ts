@@ -333,7 +333,9 @@ export default class CreatePermission {
    * other parents.
    */
   @CaptureSpan()
-  public static async checkParentPermission<TBaseModel extends BaseModel>(data: {
+  public static async checkParentPermission<
+    TBaseModel extends BaseModel,
+  >(data: {
     modelType: { new (): TBaseModel };
     data: TBaseModel;
     props: DatabaseCommonInteractionProps;
@@ -405,11 +407,9 @@ export default class CreatePermission {
     }
 
     // A malformed id names no record; it is not looked up.
-    const lookupIds: Array<string> = parentIds.filter(
-      (id: string): boolean => {
-        return ObjectID.isValidUUID(id);
-      },
-    );
+    const lookupIds: Array<string> = parentIds.filter((id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    });
 
     const readableIds: Set<string> = new Set<string>(
       (lookupIds.length > 0
@@ -477,8 +477,7 @@ export default class CreatePermission {
       relation: relation,
       idColumn: isList ? null : column.manyToOneRelationColumn || null,
       isList: isList,
-      title:
-        column.title || new column.modelType().singularName || relation,
+      title: column.title || new column.modelType().singularName || relation,
     };
   }
 

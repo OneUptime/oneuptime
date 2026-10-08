@@ -3012,15 +3012,18 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     ] as Array<[string, "team" | "apiKey"]>)(
       "%s whose read of alerts is limited to a label",
       (_name: string, kind: "team" | "apiKey") => {
-        const callerWith: (rows: Array<PermissionRow>) => Promise<Caller> =
-          async (rows: Array<PermissionRow>): Promise<Caller> => {
-            if (kind === "team") {
-              await setTeamPermissions(homeTeamId, homeProjectId, rows);
-              return homeUser;
-            }
+        const callerWith: (
+          rows: Array<PermissionRow>,
+        ) => Promise<Caller> = async (
+          rows: Array<PermissionRow>,
+        ): Promise<Caller> => {
+          if (kind === "team") {
+            await setTeamPermissions(homeTeamId, homeProjectId, rows);
+            return homeUser;
+          }
 
-            return { kind: "apiKey", apiKey: await createApiKey(rows) };
-          };
+          return { kind: "apiKey", apiKey: await createApiKey(rows) };
+        };
 
         test.each([
           ["by its ID column", "alertId"],
@@ -3029,7 +3032,10 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
           "creates a note on an alert carrying the label, named %s, and nowhere else",
           async (_naming: string, name: string) => {
             const caller: Caller = await callerWith([
-              { permission: Permission.ReadAlert, labelIds: [productionLabelId] },
+              {
+                permission: Permission.ReadAlert,
+                labelIds: [productionLabelId],
+              },
               ...NOTE_PERMISSIONS,
             ]);
 
@@ -3197,15 +3203,16 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     });
 
     describe("an announcement, through its status pages", () => {
-      const announcementsWithTitle: (title: string) => Promise<number> =
-        async (title: string): Promise<number> => {
-          const rows: Array<{ count: string }> = await database.query(
-            `SELECT COUNT(*) AS "count" FROM "${schema}"."StatusPageAnnouncement" WHERE "title" = $1`,
-            [title],
-          );
+      const announcementsWithTitle: (title: string) => Promise<number> = async (
+        title: string,
+      ): Promise<number> => {
+        const rows: Array<{ count: string }> = await database.query(
+          `SELECT COUNT(*) AS "count" FROM "${schema}"."StatusPageAnnouncement" WHERE "title" = $1`,
+          [title],
+        );
 
-          return Number(rows[0]?.count || 0);
-        };
+        return Number(rows[0]?.count || 0);
+      };
 
       const createAnnouncement: (
         statusPageIds: Array<ObjectID>,
