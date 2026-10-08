@@ -3840,26 +3840,41 @@ export default class StatusPageAPI extends BaseAPI<
       /*
        * A visitor's change: the resources it adds are ones this page shows
        * them, like a sign-up's (StatusPageSubscriberService holds every
-       * write of a subscription to its own page's resources).
+       * write of a subscription to its own page's resources). And it changes
+       * only the choices the page offers: on a page that does not let
+       * subscribers choose resources, or event types, those are left as
+       * they are, as a sign-up there may not make them.
        */
-      await StatusPageSubscriberService.updateFromManageSubscriptionPage({
-        subscriberId: statusPageSubscriber.id!,
-        data: {
-          statusPageResources: statusPageSubscriber.statusPageResources!,
-          isSubscribedToAllResources:
-            statusPageSubscriber.isSubscribedToAllResources!,
-          statusPageEventTypes: statusPageSubscriber.statusPageEventTypes!,
-          isSubscribedToAllEventTypes:
-            statusPageSubscriber.isSubscribedToAllEventTypes!,
-          /*
-           * Cancelling goes through unsubscribe() below, like the unsubscribe
-           * link: it records when, once, and tells the team about a
-           * subscriber it added. Only turning the subscription back on is
-           * written here (which clears Unsubscribed At).
-           */
-          ...(wantsToUnsubscribe ? {} : { isUnsubscribed: false }),
-        } as any,
-      });
+      const change: Record<string, unknown> = {
+        ...(statusPage.allowSubscribersToChooseResources
+          ? {
+              statusPageResources: statusPageSubscriber.statusPageResources,
+              isSubscribedToAllResources:
+                statusPageSubscriber.isSubscribedToAllResources!,
+            }
+          : {}),
+        ...(statusPage.allowSubscribersToChooseEventTypes
+          ? {
+              statusPageEventTypes: statusPageSubscriber.statusPageEventTypes,
+              isSubscribedToAllEventTypes:
+                statusPageSubscriber.isSubscribedToAllEventTypes!,
+            }
+          : {}),
+        /*
+         * Cancelling goes through unsubscribe() below, like the unsubscribe
+         * link: it records when, once, and tells the team about a
+         * subscriber it added. Only turning the subscription back on is
+         * written here (which clears Unsubscribed At).
+         */
+        ...(wantsToUnsubscribe ? {} : { isUnsubscribed: false }),
+      };
+
+      if (Object.keys(change).length > 0) {
+        await StatusPageSubscriberService.updateFromManageSubscriptionPage({
+          subscriberId: statusPageSubscriber.id!,
+          data: change as any,
+        });
+      }
 
       if (wantsToUnsubscribe) {
         await StatusPageSubscriberService.unsubscribe({

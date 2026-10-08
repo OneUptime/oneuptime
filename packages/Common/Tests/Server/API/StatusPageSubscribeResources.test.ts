@@ -170,6 +170,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
   // What the subscription names now, for the manage page's changes.
   let heldResourceIds: Array<string>;
   let allowSubscribersToChooseResources: boolean;
+  let allowSubscribersToChooseEventTypes: boolean;
   // The rows the service's create and update reach the database with.
   let created: Array<StatusPageSubscriber>;
   let updated: Array<UpdateBy<StatusPageSubscriber>>;
@@ -185,6 +186,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
     resourceLookups = [];
     heldResourceIds = [];
     allowSubscribersToChooseResources = true;
+    allowSubscribersToChooseEventTypes = true;
     created = [];
     updated = [];
 
@@ -208,7 +210,8 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         statusPage.enableWebhookSubscribers = true;
         statusPage.allowSubscribersToChooseResources =
           allowSubscribersToChooseResources;
-        statusPage.allowSubscribersToChooseEventTypes = true;
+        statusPage.allowSubscribersToChooseEventTypes =
+          allowSubscribersToChooseEventTypes;
         return Promise.resolve(statusPage);
       });
 
@@ -659,6 +662,59 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
 
       expect(nextFunction).not.toHaveBeenCalled();
       expect(resourceLookups).toEqual([]);
+      expect(StatusPageSubscriberService.unsubscribe).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves the resources alone on a page that does not let subscribers choose them", async () => {
+      allowSubscribersToChooseResources = false;
+
+      await changeSubscription(pickResources([OTHER_PAGE_RESOURCE]));
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(updated).toHaveLength(1);
+
+      const data: JSONObject = updated[0]!.data as unknown as JSONObject;
+
+      // Neither the list nor its switch is written, and nothing is asked.
+      expect(data).not.toHaveProperty("statusPageResources");
+      expect(data).not.toHaveProperty("isSubscribedToAllResources");
+      expect(resourceLookups).toEqual([]);
+      // What the page does offer is still written.
+      expect(data).toHaveProperty("isSubscribedToAllEventTypes");
+      expect(data["isUnsubscribed"]).toBe(false);
+    });
+
+    it("writes the resources on a page that lets subscribers choose them", async () => {
+      await changeSubscription({
+        ...pickResources([SHOWN_GROUP_RESOURCE]),
+        isSubscribedToAllEventTypes: true,
+      });
+
+      const data: JSONObject = updated[0]!.data as unknown as JSONObject;
+
+      expect(data["isSubscribedToAllResources"]).toBe(false);
+      expect(idsOf(data["statusPageResources"] as Array<unknown>)).toEqual([
+        SHOWN_GROUP_RESOURCE,
+      ]);
+    });
+
+    it("unsubscribes on a page that offers no choices without writing any", async () => {
+      allowSubscribersToChooseResources = false;
+      allowSubscribersToChooseEventTypes = false;
+
+      jest
+        .spyOn(StatusPageSubscriberService, "unsubscribe")
+        .mockResolvedValue(true);
+
+      await changeSubscription({
+        ...pickResources([SHOWN_GROUP_RESOURCE]),
+        isUnsubscribed: true,
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(
+        StatusPageSubscriberService.updateFromManageSubscriptionPage,
+      ).not.toHaveBeenCalled();
       expect(StatusPageSubscriberService.unsubscribe).toHaveBeenCalledTimes(1);
     });
 

@@ -5,6 +5,7 @@ import DatabaseService from "../../../../Server/Services/DatabaseService";
 import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import StatusPageSubscriberResources from "../../../../Server/Utils/StatusPage/StatusPageSubscriberResources";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -115,16 +116,31 @@ function standInForTheDatabase(): void {
         return id.toLowerCase();
       });
 
-      const pageId: string = (query["statusPageId"] as ObjectID).toString();
+      // One page as an ObjectID, several as a QueryHelper.any of their ids.
+      const pageCondition: unknown = query["statusPageId"];
+      const pagesAsked: Array<string> = (
+        pageCondition instanceof ObjectID
+          ? [pageCondition.toString()]
+          : (Object.values(
+              (
+                pageCondition as unknown as {
+                  objectLiteralParameters: JSONObject;
+                }
+              ).objectLiteralParameters,
+            ).flat() as Array<string>)
+      ).map((id: string): string => {
+        return id.toLowerCase();
+      });
 
       return ROWS.filter((row: ResourceRow): boolean => {
         return (
           asked.includes(row.id.toLowerCase()) &&
-          row.statusPageId.toString() === pageId
+          pagesAsked.includes(row.statusPageId.toString().toLowerCase())
         );
       }).map((row: ResourceRow): StatusPageResource => {
         const resource: StatusPageResource = new StatusPageResource();
         resource._id = row.id;
+        resource.statusPageId = row.statusPageId;
 
         if (select["monitor"] && row.monitorIsArchived !== null) {
           const monitor: Monitor = new Monitor();
@@ -234,6 +250,32 @@ describe("StatusPageSubscriberResources.findIdsOnPage", () => {
 
     expect(lookups).toHaveLength(1);
     expect(lookups[0]!.limit).toBe(2);
+  });
+
+  it("reads a list longer than one read returns in reads of at most LIMIT_MAX ids, and finds every resource in it", async () => {
+    // LIMIT_MAX ids that name nothing, then two of the page's resources.
+    const nothing: Array<string> = Array.from(
+      { length: LIMIT_MAX },
+      (_value: unknown, index: number): string => {
+        return `5c000000-0000-4000-8000-${index.toString().padStart(12, "0")}`;
+      },
+    );
+
+    const onPage: Set<string> =
+      await StatusPageSubscriberResources.findIdsOnPage({
+        statusPageId: PAGE_ID,
+        ids: [...nothing, MONITOR_RESOURCE, GROUP_RESOURCE],
+        shownToVisitorsOnly: false,
+      });
+
+    expect([...onPage].sort()).toEqual(
+      [GROUP_RESOURCE, MONITOR_RESOURCE].sort(),
+    );
+    expect(
+      lookups.map((lookup: LookupCall): number => {
+        return lookup.limit;
+      }),
+    ).toEqual([LIMIT_MAX, 2]);
   });
 
   it("answers a malformed id without a query", async () => {
@@ -405,7 +447,7 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
     ).rejects.toThrow(refusalFor([OTHER_PAGE_RESOURCE]));
   });
 
-  it("holds each subscriber to its own page, reading each page once", async () => {
+  it("holds each subscriber to its own page, reading every page in one lookup", async () => {
     /*
      * One update over subscribers of two pages: the resource is the second
      * page's, so the first page's subscriber may not name it.
@@ -422,7 +464,33 @@ describe("StatusPageSubscriberResources.assertUpdateOnPages", () => {
       }),
     ).rejects.toThrow(refusalFor([OTHER_PAGE_RESOURCE]));
 
-    expect(lookups).toHaveLength(2);
+    expect(lookups).toHaveLength(1);
+
+    // Both pages, in the one lookup.
+    const pagesAsked: Array<string> = Object.values(
+      (
+        lookups[0]!.query["statusPageId"] as unknown as {
+          objectLiteralParameters: JSONObject;
+        }
+      ).objectLiteralParameters,
+    ).flat() as Array<string>;
+
+    expect(pagesAsked.sort()).toEqual(
+      [PAGE_ID.toString(), OTHER_PAGE_ID.toString()].sort(),
+    );
+  });
+
+  it("asks nothing about a resource the subscriber names already", async () => {
+    await expect(
+      StatusPageSubscriberResources.assertUpdateOnPages({
+        subscribers: [subscriberOn(OTHER_PAGE_ID, [OTHER_PAGE_RESOURCE])],
+        named: [OTHER_PAGE_RESOURCE],
+        shownToVisitorsOnly: false,
+      }),
+    ).resolves.toBeUndefined();
+
+    // A resource a subscriber names already is not asked about.
+    expect(lookups).toHaveLength(0);
   });
 
   it("lets a change through when every subscriber's page has what it adds", async () => {

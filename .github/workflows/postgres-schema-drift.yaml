@@ -554,8 +554,10 @@ jobs:
       # resources are found by id (a visitor's without those whose monitor is
       # archived), what a subscriber names already is read through the join
       # table, an update adds only its page's resources and reads only the
-      # request's project, and the subscriber jobs read each named resource
-      # with its page and tell a subscriber only through its own page's.
+      # request's project - every page in one read, and only the
+      # subscriptions its caller may write - and the subscriber jobs read
+      # each named resource with its page and tell a subscriber only through
+      # its own page's.
       - name: Test subscriber resources on migrated Postgres
         working-directory: packages/Common
         env:

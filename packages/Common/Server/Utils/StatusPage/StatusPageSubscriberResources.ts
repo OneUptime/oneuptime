@@ -100,61 +100,133 @@ export default class StatusPageSubscriberResources {
     ids: Array<string>;
     shownToVisitorsOnly: boolean;
   }): Promise<Set<string>> {
-    const validIds: Array<string> = data.ids
-      .map((id: string): string => {
-        return id.trim();
-      })
-      .filter((id: string): boolean => {
-        return ObjectID.isValidUUID(id);
-      });
-
-    if (!data.statusPageId || validIds.length === 0) {
+    if (!data.statusPageId) {
       return new Set<string>();
     }
 
+    const onPages: Map<
+      string,
+      Set<string>
+    > = await StatusPageSubscriberResources.findIdsOnPages({
+      pages: [{ statusPageId: data.statusPageId, ids: data.ids }],
+      shownToVisitorsOnly: data.shownToVisitorsOnly,
+    });
+
+    return (
+      onPages.get(normalizeReferenceId(data.statusPageId.toString())) ||
+      new Set<string>()
+    );
+  }
+
+  /*
+   * For each status page of `pages`, the ids it asks about that are that
+   * page's resources (shown on it, for a visitor), normalized and keyed by
+   * the page's normalized id - in one read for every page, as many ids at a
+   * time as a read returns (LIMIT_MAX), so a long list is read whole. A
+   * resource belongs to one page: it counts only for the page it is on. A
+   * malformed id names no resource and is not asked about.
+   */
+  public static async findIdsOnPages(data: {
+    pages: Array<{ statusPageId: ObjectID; ids: Array<string> }>;
+    shownToVisitorsOnly: boolean;
+  }): Promise<Map<string, Set<string>>> {
+    const onPages: Map<string, Set<string>> = new Map<string, Set<string>>();
+
+    const asked: Map<string, string> = new Map<string, string>();
+    const pageIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const page of data.pages) {
+      for (const id of page.ids) {
+        const written: string = id.trim();
+
+        if (ObjectID.isValidUUID(written)) {
+          asked.set(normalizeReferenceId(written), written);
+          pageIds.set(
+            normalizeReferenceId(page.statusPageId.toString()),
+            page.statusPageId,
+          );
+        }
+      }
+    }
+
+    if (asked.size === 0) {
+      return onPages;
+    }
+
     /*
-     * Hook-free (getLookupService): a read of what is on the page, which
+     * Hook-free (getLookupService): a read of what is on the pages, which
      * neither needs nor may run another service's hooks.
      */
     const resourceService: DatabaseService<StatusPageResource> =
       ProjectScopedReferenceValidator.getLookupService(StatusPageResource);
 
-    const resources: Array<StatusPageResource> = await resourceService.findBy({
-      query: {
-        _id: QueryHelper.any(validIds),
-        statusPageId: data.statusPageId,
-      },
-      select: {
-        _id: true,
-        ...(data.shownToVisitorsOnly
-          ? {
-              monitor: {
-                _id: true,
-                isArchived: true,
-              },
-            }
-          : {}),
-      },
-      limit: Math.min(validIds.length, LIMIT_MAX),
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const askedIds: Array<string> = [...asked.values()];
+    const pages: Array<ObjectID> = [...pageIds.values()];
 
-    const onPage: Array<StatusPageResource> = data.shownToVisitorsOnly
-      ? ArchivedMonitorResources.withoutArchivedMonitors(resources)
-      : resources;
+    for (let start: number = 0; start < askedIds.length; start += LIMIT_MAX) {
+      const ids: Array<string> = askedIds.slice(start, start + LIMIT_MAX);
 
-    return new Set<string>(
-      onPage
-        .map((resource: StatusPageResource): string => {
-          return normalizeReferenceId(resource._id?.toString() || "");
-        })
-        .filter((id: string): boolean => {
-          return Boolean(id);
-        }),
-    );
+      const resources: Array<StatusPageResource> = await resourceService.findBy(
+        {
+          query: {
+            _id: QueryHelper.any(ids),
+            statusPageId:
+              pages.length === 1
+                ? pages[0]!
+                : QueryHelper.any(
+                    pages.map((pageId: ObjectID): string => {
+                      return pageId.toString();
+                    }),
+                  ),
+          },
+          select: {
+            _id: true,
+            statusPageId: true,
+            ...(data.shownToVisitorsOnly
+              ? {
+                  monitor: {
+                    _id: true,
+                    isArchived: true,
+                  },
+                }
+              : {}),
+          },
+          limit: ids.length,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        },
+      );
+
+      const onPage: Array<StatusPageResource> = data.shownToVisitorsOnly
+        ? ArchivedMonitorResources.withoutArchivedMonitors(resources)
+        : resources;
+
+      for (const resource of onPage) {
+        const id: string = normalizeReferenceId(resource._id?.toString() || "");
+
+        /*
+         * The page it is on: read with it, or the one page asked about. A
+         * resource read back without one counts for no page.
+         */
+        const pageKey: string = resource.statusPageId
+          ? normalizeReferenceId(resource.statusPageId.toString())
+          : pages.length === 1
+            ? normalizeReferenceId(pages[0]!.toString())
+            : "";
+
+        if (!id || !pageKey || !pageIds.has(pageKey)) {
+          continue;
+        }
+
+        const found: Set<string> = onPages.get(pageKey) || new Set<string>();
+        found.add(id);
+        onPages.set(pageKey, found);
+      }
+    }
+
+    return onPages;
   }
 
   /*
@@ -208,9 +280,10 @@ export default class StatusPageSubscriberResources {
   /*
    * An update's check: of `named`, the ids a subscriber the update changes
    * does not name already must be resources of that subscriber's page (shown
-   * on it, for a visitor; a subscriber with no page has none to add). Each
-   * page is read once, however many of its subscribers the update changes,
-   * and everything refused is named in one answer, in the order written.
+   * on it, for a visitor; a subscriber with no page has none to add). The
+   * pages are read together, once, however many subscribers of how many
+   * pages the update changes, and everything refused is named in one
+   * answer, in the order written.
    */
   public static async assertUpdateOnPages(data: {
     subscribers: Array<
@@ -274,13 +347,16 @@ export default class StatusPageSubscriberResources {
       }
     }
 
-    for (const entry of addedByPage.values()) {
-      const onPage: Set<string> =
-        await StatusPageSubscriberResources.findIdsOnPage({
-          statusPageId: entry.statusPageId,
-          ids: entry.ids,
+    // Every page in one read (findIdsOnPages).
+    const onPages: Map<string, Set<string>> = addedByPage.size > 0
+      ? await StatusPageSubscriberResources.findIdsOnPages({
+          pages: [...addedByPage.values()],
           shownToVisitorsOnly: data.shownToVisitorsOnly,
-        });
+        })
+      : new Map<string, Set<string>>();
+
+    for (const [pageKey, entry] of addedByPage.entries()) {
+      const onPage: Set<string> = onPages.get(pageKey) || new Set<string>();
 
       for (const id of entry.ids) {
         if (!onPage.has(normalizeReferenceId(id))) {

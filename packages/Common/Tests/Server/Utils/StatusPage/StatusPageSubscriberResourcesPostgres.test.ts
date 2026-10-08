@@ -4,6 +4,10 @@ import StatusPageResource from "../../../../Models/DatabaseModels/StatusPageReso
 import StatusPageSubscriber from "../../../../Models/DatabaseModels/StatusPageSubscriber";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import StatusPageSubscriberService from "../../../../Server/Services/StatusPageSubscriberService";
+import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
+import Query from "../../../../Server/Types/Database/Query";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import UpdateBy from "../../../../Server/Types/Database/UpdateBy";
 import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import StatusPageSubscriberResources from "../../../../Server/Utils/StatusPage/StatusPageSubscriberResources";
@@ -30,9 +34,10 @@ import { DataSource } from "typeorm";
  * StatusPageResource rows by id, with each one's monitor for a visitor - and
  * the subscriber service reads what the subscriptions an update writes name
  * already, through the subscriber's join table, then holds the update to
- * those subscriptions; the subscriber jobs read each named resource with
- * its page. Those reads are TypeORM queries over a relation, an `IN` list
- * and a join table, so only a real driver can judge them. They run here against structure-only
+ * those subscriptions - the ones its caller may write, read again by id;
+ * the subscriber jobs read each named resource with its page. Those reads
+ * are TypeORM queries over a relation, an `IN` list and a join table, so
+ * only a real driver can judge them. They run here against structure-only
  * clones of the migrated tables (LIKE ... INCLUDING ALL) in a uniquely named
  * schema that is dropped afterwards; every row is synthetic.
  */
@@ -390,6 +395,168 @@ describePostgres(
       expect(sorted(heldIds)).toEqual(sorted([first, second]));
       expect(updateBy.skip).toBe(0);
       expect(updateBy.limit).toBe(2);
+    });
+
+    function namingResources(ids: Array<ObjectID>): Array<StatusPageResource> {
+      return ids.map((id: ObjectID): StatusPageResource => {
+        const resource: StatusPageResource = new StatusPageResource();
+        resource._id = id.toString();
+        return resource;
+      });
+    }
+
+    // The ids an update's query names by _id: a plain id, or an "any of".
+    function heldIdsOf(
+      updateBy: UpdateBy<StatusPageSubscriber>,
+    ): Array<string> {
+      const held: unknown = (
+        updateBy.query as unknown as Record<string, unknown>
+      )["_id"];
+
+      if (typeof held === "string") {
+        return [held];
+      }
+
+      return Object.values(
+        (held as { objectLiteralParameters: Record<string, unknown> })
+          .objectLiteralParameters,
+      ).flat() as Array<string>;
+    }
+
+    async function checkResourcesOnPages(
+      updateBy: UpdateBy<StatusPageSubscriber>,
+    ): Promise<void> {
+      await (
+        StatusPageSubscriberService as unknown as {
+          checkResourcesOnPages: (
+            updateBy: UpdateBy<StatusPageSubscriber>,
+          ) => Promise<void>;
+        }
+      ).checkResourcesOnPages(updateBy);
+    }
+
+    test("an update over subscriptions of two pages reads both pages at once, and adds to each only its own page's resources", async () => {
+      const ofA: ObjectID = await seedResource({
+        statusPageId: pageA,
+        monitorId: await seedMonitor({}),
+      });
+      const ofB: ObjectID = await seedResource({
+        statusPageId: pageB,
+        monitorId: await seedMonitor({}),
+      });
+      const onA: ObjectID = await seedSubscriber({
+        statusPageId: pageA,
+        resources: [],
+      });
+      const onB: ObjectID = await seedSubscriber({
+        statusPageId: pageB,
+        resources: [ofA],
+      });
+
+      const update: (ids: Array<ObjectID>) => UpdateBy<StatusPageSubscriber> = (
+        ids: Array<ObjectID>,
+      ): UpdateBy<StatusPageSubscriber> => {
+        return {
+          query: {},
+          data: { statusPageResources: namingResources(ids) },
+          props: { tenantId: projectId },
+          skip: 0,
+          limit: 10,
+        } as unknown as UpdateBy<StatusPageSubscriber>;
+      };
+
+      /*
+       * Page A's resource is page A's subscription's to add, and page B's
+       * subscription names it already; page B's resource is page B's
+       * subscription's to add, and not page A's.
+       */
+      const refused: Error = await refusalOf(
+        checkResourcesOnPages(update([ofA, ofB])),
+      );
+
+      expect(refused).toBeInstanceOf(ProjectScopedReferenceException);
+      expect(refused.message).toContain(ofB.toString());
+      expect(refused.message).not.toContain(ofA.toString());
+
+      // Page A's resource alone: every subscription keeps or adds it rightly.
+      const allowed: UpdateBy<StatusPageSubscriber> = update([ofA]);
+
+      await expect(checkResourcesOnPages(allowed)).resolves.toBeUndefined();
+      expect(sorted(heldIdsOf(allowed))).toEqual(sorted([onA, onB]));
+    });
+
+    test("a teammate's update checks, and is held to, only the subscriptions they may write", async () => {
+      const ofA: ObjectID = await seedResource({
+        statusPageId: pageA,
+        monitorId: await seedMonitor({}),
+      });
+      const theirs: Array<ObjectID> = [
+        await seedSubscriber({ statusPageId: pageA, resources: [] }),
+        await seedSubscriber({ statusPageId: pageA, resources: [] }),
+      ];
+      // Not theirs to write - and on another page, where ofA is not a resource.
+      await seedSubscriber({
+        statusPageId: pageB,
+        resources: [],
+      });
+
+      /*
+       * What the caller may write is decided by their permissions; here they
+       * reach the two subscriptions of page A, and the update, which names
+       * no subscription, is left scoped to the project.
+       */
+      const updatableQuery: jest.SpyInstance = jest
+        .spyOn(ModelPermission, "getUpdatableQuery")
+        .mockImplementation(
+          async (
+            _modelType: unknown,
+            query: Query<StatusPageSubscriber>,
+          ): Promise<Query<StatusPageSubscriber>> => {
+            return {
+              ...query,
+              projectId: projectId,
+              _id: QueryHelper.any(
+                theirs.map((id: ObjectID): string => {
+                  return id.toString();
+                }),
+              ),
+            } as unknown as Query<StatusPageSubscriber>;
+          },
+        );
+
+      try {
+        const updateBy: UpdateBy<StatusPageSubscriber> = {
+          query: {},
+          data: { statusPageResources: namingResources([ofA]) },
+          props: {
+            tenantId: projectId,
+            userId: ObjectID.generate(),
+          },
+          skip: 0,
+          limit: 10,
+        } as unknown as UpdateBy<StatusPageSubscriber>;
+
+        // The update path reads the rows the caller may write first.
+        await expect(
+          (
+            StatusPageSubscriberService as unknown as {
+              keepRowsCallerMayWrite: (
+                write: UpdateBy<StatusPageSubscriber>,
+                type: DatabaseRequestType.Update,
+              ) => Promise<boolean>;
+            }
+          ).keepRowsCallerMayWrite(updateBy, DatabaseRequestType.Update),
+        ).resolves.toBe(true);
+
+        // The other page's subscription, which they may not write, says nothing.
+        await expect(checkResourcesOnPages(updateBy)).resolves.toBeUndefined();
+
+        expect(sorted(heldIdsOf(updateBy))).toEqual(sorted(theirs));
+        expect(updateBy.skip).toBe(0);
+        expect(updateBy.limit).toBe(2);
+      } finally {
+        updatableQuery.mockRestore();
+      }
     });
 
     test("a visitor's change adds only what the page shows, and keeps a hidden resource it names already", async () => {
