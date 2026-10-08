@@ -50,6 +50,16 @@ export const SSO_AUTHORIZATION_REQUIRED_MESSAGE: string =
   "SSO Authorization Required";
 
 /*
+ * What switching "Require SSO for login" on answers, with a 400, while no SSO
+ * provider can sign anyone in to the project - copied from
+ * NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE in
+ * Common/Server/Utils/SsoRequirementChanges.ts. Requiring SSO then would lock
+ * everyone out of the project, the person switching it on included.
+ */
+export const NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE: string =
+  "No SSO provider can sign people in to this project yet, so requiring SSO would lock everyone out of it, you included. Turn on an SSO provider for it and test it first.";
+
+/*
  * The identity provider the test provider points at. Nothing is ever sent
  * there: the start route only REDIRECTS to it, and every request here stops
  * at the redirect.
@@ -495,6 +505,11 @@ type ExpectRequireSsoEnforcedFunction = (data: {
 /*
  * "Require SSO for login" can be switched on, and is then ENFORCED.
  *
+ * Not on a project no SSO provider can sign anyone in to: that switch is
+ * refused with a 400 and NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE, because it would
+ * lock everyone out. So the refusal is checked first, then the project gets
+ * an enabled SAML provider of its own, and then the switch must be accepted.
+ *
  * The owner is signed in with a password, so once their project requires SSO
  * UserAuthorization refuses their session for that project with a 406 and
  * SSO_AUTHORIZATION_REQUIRED_MESSAGE (Common/Server/Middleware/
@@ -516,6 +531,44 @@ export const expectRequireSsoForLoginEnforced: ExpectRequireSsoEnforcedFunction 
     openProjectId: string;
     where: string;
   }): Promise<void> => {
+    const withoutProvider: ApiOutcome = await setProjectRequireSsoForLogin({
+      request: data.request,
+      projectId: data.ssoProjectId,
+      requireSsoForLogin: true,
+    });
+    const withoutProviderFound: string = describeOutcome({
+      request: `PUT ${stackUrl(`${PROJECT_API_PATH}/${data.ssoProjectId}`)}`,
+      outcome: withoutProvider,
+    });
+
+    expect(
+      withoutProvider.status,
+      `"Require SSO for login" must be refused ${data.where} while no SSO ` +
+        `provider can sign anyone in to the project. ${withoutProviderFound}`,
+    ).toBe(400);
+
+    expect(
+      readJson(withoutProvider.body),
+      `The refusal must say that requiring SSO would lock everyone out. ${withoutProviderFound}`,
+    ).toEqual({ error: NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE });
+
+    const provider: ApiOutcome & { id: string } = await createProjectSso({
+      request: data.request,
+      projectId: data.ssoProjectId,
+      name: `E2E SAML ${Faker.generateName().toString()}`,
+      isEnabled: true,
+    });
+
+    expect(
+      provider.status,
+      `An enabled SAML provider must be accepted on the project that will require SSO ${data.where}. ${describeOutcome(
+        {
+          request: `POST ${stackUrl(PROJECT_SSO_API_PATH)}`,
+          outcome: provider,
+        },
+      )}`,
+    ).toBe(200);
+
     const switchedOn: ApiOutcome = await setProjectRequireSsoForLogin({
       request: data.request,
       projectId: data.ssoProjectId,
