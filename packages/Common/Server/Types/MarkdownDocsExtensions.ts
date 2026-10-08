@@ -104,6 +104,8 @@ const CONTAINER_START: RegExp = new RegExp(
 const CLOSING_LINE: RegExp = /^ {0,3}:{3,}[ \t]*$/;
 const FENCE_OPEN: RegExp = /^ {0,3}(`{3,}|~{3,})/;
 const TAB_LINE: RegExp = /^ {0,3}@tab[ \t]+(.+?)[ \t]*$/;
+// A card link that leaves the docs.
+const EXTERNAL_URL: RegExp = /^https?:\/\//i;
 
 interface FenceState {
   marker: string;
@@ -369,15 +371,10 @@ const stripLeadingSeparator: (tokens: Array<Token>) => Array<Token> = (
     return tokens.slice(1);
   }
 
-  return [
-    {
-      ...first,
-      raw: stripped,
-      text: stripped,
-      tokens: undefined,
-    } as Tokens.Text,
-    ...tokens.slice(1),
-  ];
+  // Plain text from here on: the separator's own inline tokens are dropped.
+  const rest: Tokens.Text = { type: "text", raw: stripped, text: stripped };
+
+  return [rest, ...tokens.slice(1)];
 };
 
 const renderCards: (
@@ -425,7 +422,7 @@ const renderCards: (
       const description: string =
         parser.parseInline(before) + parser.parseInline(after) + more;
       const href: string = escapeHtml(found.link.href);
-      const isExternal: boolean = (/^https?:\/\//i).test(found.link.href);
+      const isExternal: boolean = EXTERNAL_URL.test(found.link.href);
       const external: string = isExternal
         ? ' target="_blank" rel="noopener noreferrer"'
         : "";
