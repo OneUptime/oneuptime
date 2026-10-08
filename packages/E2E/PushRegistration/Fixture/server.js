@@ -72,15 +72,15 @@ const tailwind = path.join(
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
 
-// The <script> after "PWA Service Worker Registration" in index.ejs, as is.
+// The <script> after "PWA Service Worker" in index.ejs, as is.
 function readIndexServiceWorkerScript() {
   const source = fs.readFileSync(
     path.join(dashboard, "views/index.ejs"),
     "utf8",
   );
-  const marker = source.indexOf("<!-- PWA Service Worker Registration -->");
+  const marker = source.indexOf("<!-- PWA Service Worker -->");
   if (marker === -1) {
-    throw new Error("index.ejs has no PWA Service Worker Registration script");
+    throw new Error("index.ejs has no PWA Service Worker script");
   }
   const start = source.indexOf("<script>", marker) + "<script>".length;
   const end = source.indexOf("</script>", start);

@@ -32,6 +32,9 @@ invalid" - and what the dialog does now:
 - the first registration installs the worker, which takes control of the page
   without reloading it, sends the project as a plain id, and lists the new device
   as "This browser" (also after a reload);
+- the page registers no worker of its own (it used to ask for scope `/`, which
+  the browser refused on every load): Register Device's registration, with the
+  default scope `/dashboard/`, is the only one;
 - the dialog that follows sends a test notification to the device it registered;
 - registering the same browser again says it is already registered and adds no
   device;
