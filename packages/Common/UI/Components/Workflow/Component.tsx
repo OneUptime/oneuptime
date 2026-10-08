@@ -146,6 +146,8 @@ const getCategoryColors: (
     lowerCategory.includes("discord") ||
     lowerCategory.includes("teams") ||
     lowerCategory.includes("telegram") ||
+    // Exactly: "irc" is inside other words, such as "circuit".
+    lowerCategory === "irc" ||
     lowerCategory.includes("email") ||
     lowerCategory.includes("notification")
   ) {

@@ -1,6 +1,6 @@
 /*
  * Help for the steps that send a message somewhere: Slack, Microsoft Teams,
- * Discord, Telegram and email.
+ * Discord, Telegram, IRC and email.
  *
  * Their example is a message with a real value in it, taken from another step
  * of the same workflow - the trigger's, where there is one - so it shows the
@@ -23,6 +23,12 @@ import {
   docsLink,
   externalLink,
 } from "./DocumentationLinks";
+import {
+  IRC_DEFAULT_NICKNAME,
+  IRC_DEFAULT_PLAIN_TEXT_PORT,
+  IRC_DEFAULT_TLS_PORT,
+  IRC_MAX_LINES,
+} from "../Components/IRC";
 
 export type MessagingDocumentationFunction = (
   context: ComponentDocumentationContext,
@@ -254,6 +260,77 @@ export const getTelegramDocumentation: MessagingDocumentationFunction = (
         "https://core.telegram.org/bots#how-do-i-create-a-bot",
       ),
       docsLink("Telegram step guide", WorkflowDocsPaths.telegram),
+    ],
+  };
+};
+
+export const getIRCDocumentation: MessagingDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  return {
+    summary: "Posts a message to an IRC channel, or to one person.",
+    steps: [
+      "Enter the server in **IRC Server**, such as `irc.libera.chat`, and the channel in **Channel**, such as `#ops`.",
+      "Write the message in **Message Text**. Each line is sent as an IRC message of its own.",
+      "Connect **Success** to what runs next, and **Error** to what should happen if the server refuses the message.",
+    ],
+    examples: [
+      messageExample({
+        context,
+        prefix: "Heads up: ",
+        plainMessage: "Heads up: the nightly export has finished.",
+      }),
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: `The step connects over TLS on port ${IRC_DEFAULT_TLS_PORT}, joins the channel, sends the message and leaves. A channel with a key needs it in **Channel Key**.`,
+      },
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: `A message is sent as at most ${IRC_MAX_LINES} IRC lines. A longer one is cut short, and its last line says so.`,
+      },
+    ],
+    learnMore: [
+      {
+        title: "Signing in",
+        paragraphs: [
+          "On a network that wants you signed in to an account, such as Libera.Chat from some cloud addresses, fill in **SASL Username** and **SASL Password**. A server or bouncer that asks for a password when you connect takes it in **Server Password**.",
+          "Passwords are hidden in run logs. To share one between workflows, save it in a secret global variable and use the variable here instead.",
+        ],
+        example: {
+          title: "SASL Password",
+          code: "{{global.variables.IRC_SASL_PASSWORD}}",
+        },
+      },
+      {
+        title: "Joining, and the nickname",
+        paragraphs: [
+          "Most channels only take messages from their members, so the step joins the channel before it posts and leaves straight after. Where a channel takes messages from outside, turn on **Send Without Joining** and the channel does not see the step come and go.",
+          `The step posts as \`${IRC_DEFAULT_NICKNAME}\` unless **Nickname** says otherwise. When the nickname is taken, it adds an underscore or a number. A nickname works in **Channel** too, to message one person.`,
+        ],
+      },
+      {
+        title: "Formatting",
+        paragraphs: [
+          "IRC has no Markdown: the message is sent exactly as typed. IRC's own formatting codes, such as bold and colours, work.",
+        ],
+      },
+      {
+        title: "Which servers it can reach",
+        paragraphs: [
+          "Servers on `localhost`, link-local and cloud metadata addresses are refused. On OneUptime Cloud, servers on a private network are refused too. A self-hosted install can reach a server on its own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`.",
+          `The server's TLS certificate must be one OneUptime trusts. A self-hosted install can trust its own certificate authority with \`NODE_EXTRA_CA_CERTS\`. Turn on **Disable TLS** only for a server that does not offer TLS: it then connects on port ${IRC_DEFAULT_PLAIN_TEXT_PORT}, and any password is sent unencrypted.`,
+        ],
+      },
+      whenRefusedTopic(context, "the IRC server"),
+    ],
+    links: [
+      externalLink(
+        "Libera.Chat: signing in with SASL",
+        "https://libera.chat/guides/sasl",
+      ),
+      docsLink("IRC step guide", WorkflowDocsPaths.irc),
     ],
   };
 };
