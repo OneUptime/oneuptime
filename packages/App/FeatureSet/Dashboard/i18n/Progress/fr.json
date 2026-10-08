@@ -159,6 +159,7 @@
     "ERR",
     "Enterprise Edition",
     "Envoy Proxy",
+    "Europe",
     "Exception",
     "Exceptions",
     "Exclusion",
@@ -349,6 +350,11 @@
     "agent {{version}}",
     "cluster",
     "kubectl set image deployment/web * -n web",
-    "{{count}} minutes"
+    "services",
+    "{{count}} minutes",
+    "{{count}} option",
+    "{{count}} options",
+    "{{count}} rotation",
+    "{{count}} rotations"
   ]
 }
