@@ -1,11 +1,9 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types jest.fn() as a Mock the
+ * global jest.Mock annotations here do not accept, and spyOn(Storage.prototype,
+ * ...) as never, because Storage has a string index signature.
+ */
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   BROWSER_PUSH_PROBLEM_MESSAGES,
   BrowserIdentity,

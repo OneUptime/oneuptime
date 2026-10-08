@@ -1,12 +1,9 @@
+/*
+ * jest itself is the global one: @jest/globals types jest.fn() as a Mock the
+ * global jest.Mock annotations here do not accept.
+ */
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   cleanup,
   fireEvent,
