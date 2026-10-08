@@ -7,6 +7,12 @@ import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorized
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
 import { RuleRunType } from "../../../../../Types/Rules/RuleRun";
+import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../../../Models/DatabaseModels/NetworkDevice";
+import NetworkSiteAssignmentRule from "../../../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
+import fs from "fs";
+import path from "path";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
 /*
@@ -30,9 +36,15 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 
+const BLOCKED_LABEL_ID: ObjectID = new ObjectID(
+  "33333333-3333-4333-8333-333333333333",
+);
+
 function propsWith(data: {
   permissions?: Array<Permission> | undefined;
   blockedPermissions?: Array<Permission> | undefined;
+  // Blocks limited to one label, beside the blocks with no labels.
+  labelledBlockedPermissions?: Array<Permission> | undefined;
   labelIds?: Array<ObjectID> | undefined;
   // The scope stored on every granted row; absent, as on legacy rows.
   scope?: PermissionScope | undefined;
@@ -68,6 +80,16 @@ function propsWith(data: {
           ...(data.blockedPermissions || []).map((permission: Permission) => {
             return toUserPermission(permission, true);
           }),
+          ...(data.labelledBlockedPermissions || []).map(
+            (permission: Permission) => {
+              return {
+                permission: permission,
+                labelIds: [BLOCKED_LABEL_ID],
+                isBlockPermission: true,
+                _type: "UserPermission",
+              } as UserPermission;
+            },
+          ),
         ],
         _type: "UserTenantAccessPermission",
       },
@@ -515,5 +537,311 @@ describe("RuleRunPermission.assertCanRun - SLO label and owner rules", () => {
         );
       }).not.toThrow();
     }
+  });
+});
+
+/*
+ * A run changes every record of the project, those carrying a label a
+ * team's block takes away included - where the CRUD path would leave them
+ * out. So for a model whose records carry labels (a monitor, a network
+ * device), a block on some labels takes the run away too; a model whose
+ * records carry none (a rule, an owner row) is narrowed by no such block
+ * anywhere, and is not here either.
+ */
+describe("RuleRunPermission.assertCanRun - blocks on some labels", () => {
+  it("refuses a project admin whose team blocks monitor edit for some labels", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorLabelRule,
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          labelledBlockedPermissions: [Permission.EditProjectMonitor],
+        }),
+      );
+    }).toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to edit every monitor in this project, which running this rule does. Edit Monitor is in your team's permission block list for some labels.",
+      ),
+    );
+  });
+
+  it("refuses an owner rule run the same way, before any owner row is asked about", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorOwnerRule,
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          labelledBlockedPermissions: [Permission.EditProjectMonitor],
+        }),
+      );
+    }).toThrow(/block list for some labels/);
+  });
+
+  it("does not refuse a block on some labels of the rule's own permission", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorLabelRule,
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          labelledBlockedPermissions: [Permission.EditMonitorLabelRule],
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  it("does not refuse a block on some labels of owner rows, which carry none", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorOwnerRule,
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          labelledBlockedPermissions: [
+            Permission.CreateMonitorOwnerTeam,
+            Permission.CreateMonitorOwnerUser,
+          ],
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  it("refuses the operational wildcard when a block on some labels takes it away", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorLabelRule,
+        propsWith({
+          permissions: [
+            Permission.EditMonitorLabelRule,
+            Permission.EditAllOperationalResources,
+          ],
+          labelledBlockedPermissions: [Permission.EditAllOperationalResources],
+        }),
+      );
+    }).toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to edit every monitor in this project, which running this rule does.",
+      ),
+    );
+  });
+
+  it("counts the operational wildcard granted to the whole project", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorLabelRule,
+        propsWith({
+          permissions: [
+            Permission.EditMonitorLabelRule,
+            Permission.EditAllOperationalResources,
+          ],
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  it("lets a master admin run whatever blocks their rows carry", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorLabelRule,
+        propsWith({
+          isMasterAdmin: true,
+          labelledBlockedPermissions: [Permission.EditProjectMonitor],
+        }),
+      );
+    }).not.toThrow();
+  });
+});
+
+/*
+ * The network automation rules' Run now (site assignment, device label and
+ * auto import rules) is not in the registry - it lives in the App's
+ * NetworkRuleRun API - but reaches every network device of the project the
+ * same way, and asks the same question: assertMayChangeEveryRecord.
+ */
+describe("RuleRunPermission.assertMayChangeEveryRecord", () => {
+  const MESSAGE: string =
+    "You do not have permission to edit every network device in this project, which running site assignment rules does.";
+
+  function assertMayEditEveryDevice(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    RuleRunPermission.assertMayChangeEveryRecord({
+      props: props,
+      modelType: NetworkDevice,
+      requestType: DatabaseRequestType.Update,
+      message: MESSAGE,
+    });
+  }
+
+  it("lets a caller whose grant reaches the whole project", () => {
+    for (const permission of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ]) {
+      expect(() => {
+        assertMayEditEveryDevice(propsWith({ permissions: [permission] }));
+      }).not.toThrow();
+    }
+  });
+
+  it("counts a grant stored with the scope All", () => {
+    expect(() => {
+      assertMayEditEveryDevice(
+        propsWith({
+          permissions: [Permission.EditNetworkDevice],
+          scope: PermissionScope.All,
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  it("refuses a grant limited to some labels, with the run's own words", () => {
+    expect(() => {
+      assertMayEditEveryDevice(
+        propsWith({
+          permissions: [Permission.EditNetworkDevice],
+          labelIds: [ObjectID.generate()],
+        }),
+      );
+    }).toThrow(new NotAuthorizedException(MESSAGE));
+  });
+
+  it("refuses a grant limited to owned devices", () => {
+    expect(() => {
+      assertMayEditEveryDevice(
+        propsWith({
+          permissions: [Permission.EditNetworkDevice],
+          scope: PermissionScope.Owned,
+        }),
+      );
+    }).toThrow(new NotAuthorizedException(MESSAGE));
+  });
+
+  it("refuses a caller with no device permission at all", () => {
+    expect(() => {
+      assertMayEditEveryDevice(
+        propsWith({ permissions: [Permission.EditNetworkSiteAssignmentRule] }),
+      );
+    }).toThrow(new NotAuthorizedException(MESSAGE));
+  });
+
+  it("refuses a block with no labels, naming it", () => {
+    expect(() => {
+      assertMayEditEveryDevice(
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          blockedPermissions: [Permission.EditNetworkDevice],
+        }),
+      );
+    }).toThrow(/permission block list/);
+  });
+
+  it("refuses a block on some labels of a model whose records carry labels", () => {
+    expect(() => {
+      assertMayEditEveryDevice(
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          labelledBlockedPermissions: [Permission.EditNetworkDevice],
+        }),
+      );
+    }).toThrow(
+      new NotAuthorizedException(
+        `${MESSAGE} Edit Network Device is in your team's permission block list for some labels.`,
+      ),
+    );
+  });
+
+  it("does not refuse a block on some labels of a rule, which carries none", () => {
+    expect(() => {
+      RuleRunPermission.assertMayChangeEveryRecord({
+        props: propsWith({
+          permissions: [Permission.ProjectAdmin],
+          labelledBlockedPermissions: [Permission.EditNetworkSiteAssignmentRule],
+        }),
+        modelType: NetworkSiteAssignmentRule,
+        requestType: DatabaseRequestType.Update,
+        message: "You do not have permission to run site assignment rules.",
+      });
+    }).not.toThrow();
+  });
+
+  it("asks a create the same way: monitors created across the project", () => {
+    const message: string =
+      "You do not have permission to create monitors anywhere in this project, which running this auto-import rule does.";
+
+    expect(() => {
+      RuleRunPermission.assertMayChangeEveryRecord({
+        props: propsWith({
+          permissions: [Permission.CreateProjectMonitor],
+          labelIds: [ObjectID.generate()],
+        }),
+        modelType: Monitor,
+        requestType: DatabaseRequestType.Create,
+        message: message,
+      });
+    }).toThrow(new NotAuthorizedException(message));
+
+    expect(() => {
+      RuleRunPermission.assertMayChangeEveryRecord({
+        props: propsWith({
+          permissions: [Permission.CreateAllOperationalResources],
+        }),
+        modelType: Monitor,
+        requestType: DatabaseRequestType.Create,
+        message: message,
+      });
+    }).not.toThrow();
+  });
+
+  it("lets a master admin through without reading their rows", () => {
+    expect(() => {
+      assertMayEditEveryDevice(
+        propsWith({
+          isMasterAdmin: true,
+          blockedPermissions: [Permission.EditNetworkDevice],
+        }),
+      );
+    }).not.toThrow();
+  });
+
+  /*
+   * Pinned to the route's source: every permission a network rule's Run now
+   * needs is asked through this one rule, never read off the caller's rows
+   * by hand - which is how a grant limited to some labels used to pass.
+   */
+  it("is what every network automation rule's Run now asks", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../../App/FeatureSet/BaseAPI/API/NetworkRuleRun.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source).not.toContain("CallerPermission");
+    expect(source).not.toContain("TablePermission");
+
+    const asks: Array<string> =
+      source.match(/RuleRunPermission\.assertMayChangeEveryRecord\(/g) || [];
+
+    // The rule, devices edited, devices created and monitors created.
+    expect(asks.length).toBe(4);
+
+    for (const modelType of [
+      "modelType: data.ruleModelType",
+      "modelType: NetworkDevice",
+      "modelType: Monitor",
+    ]) {
+      expect(source).toContain(modelType);
+    }
+
+    for (const route of [
+      "/network-site-assignment-rule/:ruleId/run",
+      "/network-device-label-rule/:ruleId/run",
+      "/network-device-auto-import-rule/:ruleId/run",
+    ]) {
+      expect(source).toContain(route);
+    }
+
+    expect((source.match(/assertCanRunRule\(\{/g) || []).length).toBe(3);
   });
 });
