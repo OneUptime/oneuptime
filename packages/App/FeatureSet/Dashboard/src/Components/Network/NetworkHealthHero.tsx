@@ -170,7 +170,7 @@ const NetworkHealthHero: FunctionComponent<ComponentProps> = (
             )}
           </div>
         </div>
-        <div className="flex flex-shrink-0 flex-wrap gap-2 lg:justify-end">
+        <div className="flex flex-shrink-0 flex-wrap gap-2 self-end lg:self-auto lg:justify-end">
           <Button
             title="Discover Devices"
             icon={IconProp.Search}
