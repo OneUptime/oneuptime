@@ -16,6 +16,11 @@ import path from "path";
  *   - Require SSO for Login, for a project or for the whole server, needs a
  *     provider that signs people in (Common/Server/Utils/
  *     SsoRequirementChanges);
+ *   - a new project needs a global provider that signs people in to every
+ *     project while the server requires SSO, or when it is created with
+ *     Require SSO for Login on (SsoRequirementChanges.beforeProjectCreate);
+ *   - changes that let people sign in reach every server at once
+ *     (RealtimeAccessChanges SignInRulesChanged);
  *   - a status page provider turned off or deleted signs out the private
  *     users it signed in (StatusPagePrivateUserSessionService.addSignInRule).
  *
@@ -104,9 +109,12 @@ describe("the Global SSO guide", () => {
       );
     });
 
-    it("says changes that let a provider sign more people in are never refused", () => {
+    it("says changes that let a provider sign more people in are never refused, and reach every app server at once", () => {
       expect(section).toContain(
         "Changes that let a provider sign more people in - turning it or an attachment on, lifting the restriction - are never refused.",
+      );
+      expect(section).toContain(
+        "They reach every app server at once, as turning **Require SSO for Login** off does: people can sign in with the provider straight away.",
       );
     });
   });
@@ -123,6 +131,18 @@ describe("the Global SSO guide", () => {
       );
       expect(section).toContain(
         "A project that requires a specific provider needs that one: while it is off, deleted, or does not sign people in to the project, the message names the project apart - turn that provider on, or require another one there, first.",
+      );
+    });
+
+    it("says a new project needs a global provider that signs people in to every project while the instance requires SSO, and master admins can still create projects", () => {
+      expect(section).toContain(
+        "- For a new project, which has no provider of its own yet: while the instance requires SSO, creating a project needs a global provider that is on and signs people in to every project, or nobody, its creator included, could open it.",
+      );
+      expect(section).toContain(
+        "Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.",
+      );
+      expect(section).toContain(
+        "A project created with **Require SSO for Login** already on needs the same, whoever creates it.",
       );
     });
 
@@ -149,6 +169,42 @@ describe("the SSO guide", () => {
     );
     expect(section).toContain(
       "If you pick a provider the project requires, it has to be one of those, and the same is asked when you require another provider later.",
+    );
+  });
+
+  it("says a new project is held to the same rule, and what to do instead", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "A new project is held to the same rule. It has no provider of its own yet, so creating one with **Require SSO for Login** already on - only a master admin can - needs a global provider that is on and signs people in to every project, and is refused in the same words without one. Create the project, set up and test its provider, then turn the switch on.",
+    );
+  });
+
+  it("says creating a project while the server requires SSO needs a global provider, and master admins can still create projects", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "While the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), creating any project needs such a global provider too, or nobody, its creator included, could open the project.",
+    );
+    expect(section).toContain(
+      "Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.",
+    );
+  });
+
+  it("says turning Require SSO for Login off lets members back in straight away", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password straight away.",
     );
   });
 
@@ -211,6 +267,21 @@ describe("the upgrade notes", () => {
     );
     expect(page).toContain(
       "[Status Pages](/docs/status-pages/index#sso-and-oidc)",
+    );
+  });
+
+  it("say that creating a project follows the SSO rules, and that changes that let people sign in reach every app server at once", () => {
+    expect(page).toContain(
+      "**Creating a project follows the SSO rules too, and changes that let people sign in reach every app server at once.**",
+    );
+    expect(page).toContain(
+      "While the whole server requires SSO for login, creating a project needs a global SSO provider that is on and signs people in to every project, since a new project has no provider of its own yet; without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.",
+    );
+    expect(page).toContain(
+      "now reach every app server at once, as changes that end sign-ins already did: nobody waits up to a minute for another server to notice.",
+    );
+    expect(page).toContain(
+      "[SSO](/docs/identity/sso#requiring-sso-for-your-project) and [Global SSO](/docs/identity/global-sso#enforcing-sso).",
     );
   });
 });

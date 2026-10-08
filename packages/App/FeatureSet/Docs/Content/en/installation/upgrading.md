@@ -543,6 +543,21 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   ever signed in sign in once more after the upgrade. See
   [Global SSO](/docs/identity/global-sso#turning-a-provider-off-or-deleting-it)
   and [Status Pages](/docs/status-pages/index#sso-and-oidc).
+- **Creating a project follows the SSO rules too, and changes that let
+  people sign in reach every app server at once.** While the whole server
+  requires SSO for login, creating a project needs a global SSO provider
+  that is on and signs people in to every project, since a new project has
+  no provider of its own yet; without one, creating a project is refused,
+  and the message asks a server admin to turn one on. Master admins can
+  still create projects. A project created with Require SSO for Login
+  already on needs the same. Turning a provider or a global provider's
+  attachment on, lifting a global provider's restriction to its attached
+  projects, and turning Require SSO for Login off, for a project or for the
+  whole server, now reach every app server at once, as changes that end
+  sign-ins already did: nobody waits up to a minute for another server to
+  notice. See
+  [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
+  [Global SSO](/docs/identity/global-sso#enforcing-sso).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
