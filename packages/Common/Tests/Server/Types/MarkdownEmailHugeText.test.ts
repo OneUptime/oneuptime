@@ -279,9 +279,12 @@ describe("Markdown email renderer - the last resort", () => {
     const logged: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation((): void => {});
-    // Table rows are not plain lines: none of them is held back.
-    const rows: string = "| web-01 | <down> & out |\n".repeat(
-      Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 26) + 1,
+    /*
+     * Table rows are not plain lines, and these cost marked little to read
+     * (Utils/Markdown/SlowMarkdown): none of them is held back.
+     */
+    const rows: string = "| web-01 | down -> out & in |\n".repeat(
+      Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 30) + 1,
     );
 
     const html: string = await renderOnePiece(`# Disk full\n\n${rows}\nAfter`);
@@ -290,12 +293,12 @@ describe("Markdown email renderer - the last resort", () => {
     // Booleans, so a failure does not print a megabyte.
     expect(
       html.startsWith(
-        "<p># Disk full<br>\n<br>\n| web-01 | &lt;down&gt; &amp; out |<br>\n",
+        "<p># Disk full<br>\n<br>\n| web-01 | down -&gt; out &amp; in |<br>\n",
       ),
     ).toBe(true);
     expect(
       html.endsWith(
-        "| web-01 | &lt;down&gt; &amp; out |<br>\n<br>\nAfter</p>\n",
+        "| web-01 | down -&gt; out &amp; in |<br>\n<br>\nAfter</p>\n",
       ),
     ).toBe(true);
     expect(logged).toHaveBeenCalledTimes(1);

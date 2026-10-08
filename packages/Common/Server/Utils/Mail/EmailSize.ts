@@ -48,7 +48,39 @@ export const MAX_EMAIL_FIELD_HTML_BYTES: number = 256 * 1024;
 export const EMAIL_TRUNCATED_TEXT_NOTE: string =
   "… (truncated — see OneUptime for the full text)";
 
-export const EMAIL_TRUNCATED_TEXT_NOTE_HTML: string = `<p style="color:#64748b;font-style:italic;">${EMAIL_TRUNCATED_TEXT_NOTE}</p>`;
+// The note's words that link to the record, where the email has one.
+const EMAIL_TRUNCATED_TEXT_NOTE_LINK_WORDS: string =
+  "see OneUptime for the full text";
+
+const EMAIL_TRUNCATED_TEXT_NOTE_STYLE: string =
+  "color:#64748b;font-style:italic;";
+
+export const EMAIL_TRUNCATED_TEXT_NOTE_HTML: string = `<p style="${EMAIL_TRUNCATED_TEXT_NOTE_STYLE}">${EMAIL_TRUNCATED_TEXT_NOTE}</p>`;
+
+/*
+ * The email variable that holds the address of what a notification is
+ * about, as a subscriber sees it (the incident on the status page); else
+ * the first variable whose name ends with this - incidentViewLink,
+ * alertViewLink, monitorViewLink and the rest (getRecordLink).
+ */
+const RECORD_LINK_VARIABLE: string = "detailsUrl";
+const RECORD_LINK_VARIABLE_SUFFIX: string = "ViewLink";
+
+const HTTP_URL_PATTERN: RegExp = /^https?:\/\//i;
+
+const escapeHtmlAttribute: (value: string) => string = (
+  value: string,
+): string => {
+  return value
+    .split("&")
+    .join("&amp;")
+    .split('"')
+    .join("&quot;")
+    .split("<")
+    .join("&lt;")
+    .split(">")
+    .join("&gt;");
+};
 
 export interface EmailWithinLimit extends EmailHtmlWithInlineImages {
   // Whether anything was left out or cut to fit MAX_EMAIL_BYTES.
@@ -74,6 +106,63 @@ const getUtf8Length: (code: number) => number = (code: number): number => {
 };
 
 export default class EmailSize {
+  /*
+   * The address of the record an email is about, from its variables
+   * (RECORD_LINK_VARIABLE, then the first that ends with
+   * RECORD_LINK_VARIABLE_SUFFIX), when it is a web address - or null. The
+   * note a cut text ends with links to it (linkTruncatedTextNotes).
+   */
+  public static getRecordLink(
+    vars: { [key: string]: unknown } | undefined,
+  ): string | null {
+    if (!vars) {
+      return null;
+    }
+
+    const candidates: Array<unknown> = [vars[RECORD_LINK_VARIABLE]];
+
+    for (const [name, value] of Object.entries(vars)) {
+      if (name.endsWith(RECORD_LINK_VARIABLE_SUFFIX)) {
+        candidates.push(value);
+      }
+    }
+
+    for (const candidate of candidates) {
+      const link: string =
+        candidate === null || candidate === undefined
+          ? ""
+          : String(candidate).trim();
+
+      if (link && HTTP_URL_PATTERN.test(link)) {
+        return link;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * `html` with the words of every note a cut text ends with
+   * (EMAIL_TRUNCATED_TEXT_NOTE_HTML) linking to `link` - the record the
+   * email is about, where the full text is. The same HTML when it has no
+   * such note or there is no link.
+   */
+  public static linkTruncatedTextNotes(
+    html: string,
+    link: string | null,
+  ): string {
+    if (!link || !html || html.indexOf(EMAIL_TRUNCATED_TEXT_NOTE_HTML) === -1) {
+      return html;
+    }
+
+    const linkedNote: string = EMAIL_TRUNCATED_TEXT_NOTE_HTML.replace(
+      EMAIL_TRUNCATED_TEXT_NOTE_LINK_WORDS,
+      `<a href="${escapeHtmlAttribute(link)}" style="color:#64748b;">${EMAIL_TRUNCATED_TEXT_NOTE_LINK_WORDS}</a>`,
+    );
+
+    return html.split(EMAIL_TRUNCATED_TEXT_NOTE_HTML).join(linkedNote);
+  }
+
   // HTML's size as it is sent: UTF-8.
   public static getHtmlSizeInBytes(html: string): number {
     return Buffer.byteLength(html, "utf8");

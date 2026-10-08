@@ -82,6 +82,7 @@ export const VIEWER_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   maxCellsPerLine: 128,
   holdBackCodeBlockContent: true,
   countUrlLiterals: true,
+  countWordUnderscores: true,
 };
 
 export interface HeldBackViewerText {

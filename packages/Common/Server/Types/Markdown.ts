@@ -111,6 +111,7 @@ export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   maxCellsPerLine: Number.POSITIVE_INFINITY,
   holdBackCodeBlockContent: false,
   countUrlLiterals: false,
+  countWordUnderscores: false,
 };
 
 /*
@@ -947,11 +948,14 @@ export default class Markdown {
     const runs: Array<Base64Run> = Markdown.getBase64Runs(markdown);
     const weight: number = Markdown.getEmailMarkdownWeight(markdown, runs);
 
-    // How much of the text is kept, by weight; null while all of it is.
+    /*
+     * How much of the text is kept, by weight; null while all of it is. A
+     * text heavier than the budget renders to more HTML than it (escaping
+     * and tags only add), so it is cut to the budget before it is first
+     * rendered.
+     */
     let kept: number | null =
-      weight > 2 * MAX_EMAIL_FIELD_HTML_BYTES
-        ? 2 * MAX_EMAIL_FIELD_HTML_BYTES
-        : null;
+      weight > MAX_EMAIL_FIELD_HTML_BYTES ? MAX_EMAIL_FIELD_HTML_BYTES : null;
     let html: string = "";
 
     for (let attempt: number = 0; attempt <= MAX_EMAIL_FIT_ATTEMPTS; attempt++) {

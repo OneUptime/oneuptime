@@ -8,7 +8,8 @@ import { cutToLength } from "./Markdown/OverLongText";
  * 1,600 characters and a call's TwiML of more than 4,000, Expo a push
  * notification of more than 4,096 bytes, Meta a WhatsApp template whose
  * text comes to more than 1,024 characters, Telegram a message of more than
- * 4,096 characters. A notification can carry any text a template placed in
+ * 4,096 characters, Discord a webhook message of more than 2,000
+ * characters. A notification can carry any text a template placed in
  * it - a description, a response body, a log - so its text is held to the
  * channel's limit before it is sent, and a text that was cut ends with a
  * note that sends the reader to OneUptime for the rest. A message within the
@@ -47,6 +48,9 @@ export const MAX_WHATSAPP_TEMPLATE_TEXT_LENGTH: number = 1024;
 
 // Telegram: a message of at most 4,096 characters once its formatting is read.
 export const MAX_TELEGRAM_MESSAGE_LENGTH: number = 4096;
+
+// Discord: a webhook message's content of at most 2,000 characters.
+export const MAX_DISCORD_MESSAGE_LENGTH: number = 2000;
 
 /*
  * Expo (APNs and FCM behind it) and web push: a notification of at most

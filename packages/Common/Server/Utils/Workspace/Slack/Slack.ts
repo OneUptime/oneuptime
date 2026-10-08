@@ -47,6 +47,113 @@ import {
 } from "../../../../Utils/Markdown/SlowMarkdown";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 
+/*
+ * What slackify reads a "%" that starts no escape as (see
+ * getSlackifySafeMarkdown), and what encodeURI makes of it in an address.
+ */
+const SLACKIFY_PERCENT_STAND_IN: string = "\uE007";
+const ENCODED_PERCENT_STAND_IN: string = encodeURI(SLACKIFY_PERCENT_STAND_IN);
+
+const isHexDigit: (code: number) => boolean = (code: number): boolean => {
+  return (
+    (code >= 0x30 && code <= 0x39) ||
+    (code >= 0x41 && code <= 0x46) ||
+    (code >= 0x61 && code <= 0x66)
+  );
+};
+
+// Markdown slackify cannot fail on, and how to put back what was changed.
+export interface SlackifySafeMarkdown {
+  markdown: string;
+  restore: (slackText: string) => string;
+}
+
+/*
+ * `markdown` with nothing slackify-markdown throws on (see
+ * SlackUtil.slackify): every "%" that is not the start of an escape ("%2F")
+ * becomes a stand-in, and every half of a surrogate pair standing alone
+ * becomes U+FFFD. `restore` turns the stand-in back into "%" - "%25" where
+ * slackify encoded the address it is in, as "%" is written in an address.
+ * Markdown with none of these comes back as it is. Scanned with a loop: the
+ * text can be long.
+ */
+export const getSlackifySafeMarkdown: (
+  markdown: string,
+) => SlackifySafeMarkdown = (markdown: string): SlackifySafeMarkdown => {
+  const unchanged: SlackifySafeMarkdown = {
+    markdown: markdown,
+    restore: (slackText: string): string => {
+      return slackText;
+    },
+  };
+
+  let safe: string = "";
+  let copiedUpTo: number = 0;
+  let hasStandIn: boolean = false;
+
+  for (let index: number = 0; index < markdown.length; index++) {
+    const code: number = markdown.charCodeAt(index);
+    let replacement: string | null = null;
+
+    if (code === 0x25) {
+      if (
+        !isHexDigit(markdown.charCodeAt(index + 1)) ||
+        !isHexDigit(markdown.charCodeAt(index + 2))
+      ) {
+        replacement = SLACKIFY_PERCENT_STAND_IN;
+        hasStandIn = true;
+      }
+    } else if (code >= 0xd800 && code <= 0xdbff) {
+      const next: number = markdown.charCodeAt(index + 1);
+
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        index++;
+      } else {
+        replacement = "\uFFFD";
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      replacement = "\uFFFD";
+    }
+
+    if (replacement !== null) {
+      safe += markdown.slice(copiedUpTo, index) + replacement;
+      copiedUpTo = index + 1;
+    }
+  }
+
+  if (copiedUpTo === 0) {
+    return unchanged;
+  }
+
+  safe += markdown.slice(copiedUpTo);
+
+  /*
+   * An address that already held the stand-in's escape would be read back
+   * wrongly: leave the "%" as it was, and let slackify fail on it.
+   */
+  if (
+    hasStandIn &&
+    markdown.toUpperCase().indexOf(ENCODED_PERCENT_STAND_IN) !== -1
+  ) {
+    return unchanged;
+  }
+
+  return {
+    markdown: safe,
+    restore: (slackText: string): string => {
+      if (!hasStandIn) {
+        return slackText;
+      }
+
+      return slackText
+        .split(ENCODED_PERCENT_STAND_IN)
+        .join("%25")
+        .split(SLACKIFY_PERCENT_STAND_IN)
+        .join("%");
+    },
+  };
+};
+
 // Markdown as slackify is given it (see SlackUtil.cutMarkdown).
 export interface CutMarkdown {
   text: string;
@@ -115,7 +222,8 @@ export default class SlackUtil extends WorkspaceBase {
     maxNestingDepth: SLOW_MARKDOWN_MAX_NESTING_DEPTH,
     maxCellsPerLine: 128,
     holdBackCodeBlockContent: true,
-    countUrlLiterals: false,
+    countUrlLiterals: true,
+    countWordUnderscores: true,
   };
 
   // Closes and reopens a ``` code block that a section boundary cuts through.
@@ -3050,6 +3158,15 @@ export default class SlackUtil extends WorkspaceBase {
    * content of fenced code, are held back first (SLOW_MARKDOWN_LIMITS) and
    * written back where slackify put them - escaped as Slack reads text
    * ("&", "<" and ">"), a line on each line.
+   *
+   * And whatever the text, it converts: slackify reads every link's address
+   * with decodeURIComponent and encodeURI, which throw on a "%" that starts
+   * no escape and on half an emoji ("URI malformed") - a response body with
+   * "100%" in an address was enough, and the message was never sent. Such a
+   * "%" goes through slackify as a stand-in character and comes back as it
+   * was ("%25" where slackify encoded the address), half an emoji goes
+   * through as U+FFFD, and should slackify still fail, the message is sent
+   * as its text (getSlackifySafeMarkdown).
    */
   public static slackify(markdown: string): string {
     if (!markdown) {
@@ -3095,12 +3212,16 @@ export default class SlackUtil extends WorkspaceBase {
       return `\uE005${held.length - 1}\uE006`;
     };
 
-    // Token characters already in the Markdown are held back as they are.
+    /*
+     * Token characters already in the Markdown - and the stand-in for a
+     * "%" - are held back as they are.
+     */
     let withoutTokens: string = markdown;
 
     if (
       markdown.indexOf("\uE005") !== -1 ||
-      markdown.indexOf("\uE006") !== -1
+      markdown.indexOf("\uE006") !== -1 ||
+      markdown.indexOf(SLACKIFY_PERCENT_STAND_IN) !== -1
     ) {
       withoutTokens = "";
       let copiedUpTo: number = 0;
@@ -3108,7 +3229,7 @@ export default class SlackUtil extends WorkspaceBase {
       for (let index: number = 0; index < markdown.length; index++) {
         const code: number = markdown.charCodeAt(index);
 
-        if (code === 0xe005 || code === 0xe006) {
+        if (code === 0xe005 || code === 0xe006 || code === 0xe007) {
           withoutTokens +=
             markdown.slice(copiedUpTo, index) + hold(markdown.charAt(index));
           copiedUpTo = index + 1;
@@ -3118,18 +3239,33 @@ export default class SlackUtil extends WorkspaceBase {
       withoutTokens += markdown.slice(copiedUpTo);
     }
 
-    const heldTokenCharacters: number = held.length;
-    const markdownToRead: string = holdBackSlowMarkdown(
+    let markdownToRead: string = holdBackSlowMarkdown(
       withoutTokens,
       { holdLines: hold, holdCode: hold },
       SlackUtil.SLOW_MARKDOWN_LIMITS,
     );
 
-    if (held.length === heldTokenCharacters) {
-      return SlackifyMarkdown(markdown);
+    if (held.length === 0) {
+      // Nothing was held back: slackify reads the Markdown as it is.
+      markdownToRead = markdown;
     }
 
-    return putBack(SlackifyMarkdown(markdownToRead), true);
+    const safe: SlackifySafeMarkdown = getSlackifySafeMarkdown(markdownToRead);
+    let text: string;
+
+    try {
+      text = SlackifyMarkdown(safe.markdown);
+    } catch (error) {
+      logger.warn(
+        `Slack could not convert a message's Markdown (${markdown.length} characters), and it is sent as text: ${error instanceof Error ? error.message : String(error)}`,
+      );
+
+      return SlackUtil.escapeSlackText(markdown);
+    }
+
+    text = safe.restore(text);
+
+    return held.length > 0 ? putBack(text, true) : text;
   }
 
   // Text as Slack shows it: "&", "<" and ">" escaped, nothing else changed.

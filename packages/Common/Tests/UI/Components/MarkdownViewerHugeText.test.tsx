@@ -280,7 +280,7 @@ describe("MarkdownViewer - text too long for its parser", () => {
 });
 
 describe("MarkdownViewer - text with too much left for its parser", () => {
-  // Lines with a "|" are not plain: they could be a table, so none is held back.
+  // Lines with a "|" are not plain: they could be a table.
   const pipeLines: (length: number) => string = (length: number): string => {
     const line: string = "2026-10-08T10:00:00Z | INFO | request served\n";
 
@@ -288,7 +288,8 @@ describe("MarkdownViewer - text with too much left for its parser", () => {
   };
 
   test("is shown as it was written, line breaks kept, and never handed to the parser", () => {
-    const text: string = `**Response:**\n\n${pipeLines(MIB)}\n\n_end_`;
+    // Short runs of lines that are not plain: none is held back.
+    const text: string = shortRuns(MAX_PARSED_MARKDOWN_LENGTH + 1);
 
     render(<MarkdownViewer text={text} />);
 
@@ -296,22 +297,45 @@ describe("MarkdownViewer - text with too much left for its parser", () => {
 
     const shown: HTMLElement = screen.getByTestId("markdown-viewer-text");
 
-    // Booleans, so a failure does not print a megabyte.
+    // Booleans, so a failure does not print the text.
     expect(shown.textContent === text).toBe(true);
     expect(shown.className.includes("whitespace-pre-wrap")).toBe(true);
     expect(shown.querySelector("*")).toBeNull();
   });
 
   test("a text with no more than that left still goes to the parser", () => {
-    const table: string = `| Host | State |\n| --- | --- |\n${"| web-01 | down |\n".repeat(6000)}`;
+    const text: string = shortRuns(MAX_PARSED_MARKDOWN_LENGTH);
 
-    expect(table.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
-    expect(table.length).toBeLessThanOrEqual(MAX_PARSED_MARKDOWN_LENGTH);
+    expect(text.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
 
-    render(<MarkdownViewer text={table} />);
+    render(<MarkdownViewer text={text} />);
 
     expect(screen.queryByTestId("markdown-viewer-text")).toBeNull();
-    expect(handedToParser().markdown === table).toBe(true);
+    expect(handedToParser().markdown === text).toBe(true);
+    expect(handedToParser().rehypePlugins).toBeUndefined();
+  });
+
+  test("a megabyte of lines that are not plain is held back whole, and put back in place as written", () => {
+    const lines: string = pipeLines(MIB);
+    const text: string = `**Response:**\n\n${lines}\n\n_end_`;
+
+    render(<MarkdownViewer text={text} />);
+
+    expect(screen.queryByTestId("markdown-viewer-text")).toBeNull();
+
+    const handed: ReturnType<typeof handedToParser> = handedToParser();
+
+    // The heading line and the last line are still read as Markdown.
+    expect(handed.markdown.startsWith("**Response:**\n\n")).toBe(true);
+    expect(handed.markdown.endsWith("\n\n_end_")).toBe(true);
+    expect(handed.markdown.length).toBeLessThan(64);
+    expect(handed.rehypePlugins).toHaveLength(1);
+
+    const options: PutBackOptions = handed.rehypePlugins![0]![1];
+
+    // The run is held back as whole lines, as it was written.
+    expect(options.heldLines).toHaveLength(1);
+    expect(options.held[options.heldLines![0]!] === lines).toBe(true);
   });
 
   test("sixteen megabytes of plain lines are held back, and so still read as Markdown", () => {
@@ -341,10 +365,10 @@ describe("holdBackForViewer - what is shown as text", () => {
 
   test("a text with exactly the most left is read as Markdown; one more character is shown as text", () => {
     expect(
-      holdBackForViewer(pipeLines(MAX_PARSED_MARKDOWN_LENGTH)).showAsText,
+      holdBackForViewer(shortRuns(MAX_PARSED_MARKDOWN_LENGTH)).showAsText,
     ).toBe(false);
     expect(
-      holdBackForViewer(pipeLines(MAX_PARSED_MARKDOWN_LENGTH + 1)).showAsText,
+      holdBackForViewer(shortRuns(MAX_PARSED_MARKDOWN_LENGTH + 1)).showAsText,
     ).toBe(true);
   });
 
@@ -357,33 +381,38 @@ describe("holdBackForViewer - what is shown as text", () => {
     expect(heldBack.markdown.length).toBeLessThan(8192);
   });
 
-  test("lines that are not plain are left in, and over the most, shown as text", () => {
+  test("a long run of lines that are not plain is held back whole, as lines, and never shown as text", () => {
     for (const line of [
       "GET /api -> 200 in 12 ms\n",
       "ran `make build` in 12 ms\n",
       "| web-01 | down |\n",
       "- web-01 is down\n",
     ]) {
-      const heldBack: ReturnType<typeof holdBackForViewer> = holdBackForViewer(
-        line.repeat(Math.ceil((2 * MAX_PARSED_MARKDOWN_LENGTH) / line.length)),
+      const text: string = line.repeat(
+        Math.ceil((2 * MAX_PARSED_MARKDOWN_LENGTH) / line.length),
       );
+      const heldBack: ReturnType<typeof holdBackForViewer> =
+        holdBackForViewer(text);
 
-      expect([line, heldBack.showAsText]).toEqual([line, true]);
+      expect([line, heldBack.showAsText]).toEqual([line, false]);
+      expect([line, heldBack.heldLines.length]).toEqual([line, 1]);
+      expect([line, heldBack.markdown.length < 64]).toEqual([line, true]);
+      // What is held back is the text as it was written.
+      expect(
+        heldBack.held[heldBack.heldLines[0]!] === text.slice(0, -1),
+      ).toBe(true);
     }
   });
 
   test("what is held back does not count, what is left does: too much left is shown as text", () => {
-    // A paragraph of plain lines (held back) and a table (left in).
+    // A paragraph of plain lines (held back) and short runs (left in).
     const plainLines: string =
       "2026-10-08T10:00:00Z INFO request served\n".repeat(
         Math.ceil((4 * MIB) / 40),
       );
-    const table: string = `| Host | State |\n| --- | --- |\n${"| web-01 | down |\n".repeat(
-      Math.ceil((2 * MAX_PARSED_MARKDOWN_LENGTH) / 18),
-    )}`;
 
     const heldBack: ReturnType<typeof holdBackForViewer> = holdBackForViewer(
-      `${plainLines}\n${table}`,
+      `${plainLines}\n${shortRuns(MAX_PARSED_MARKDOWN_LENGTH + 4096)}`,
     );
 
     expect(heldBack.held.length).toBeGreaterThan(0);

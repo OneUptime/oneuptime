@@ -1,5 +1,6 @@
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MicrosoftTeamsMessageSize, {
+  MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
   MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES,
   MICROSOFT_TEAMS_TRUNCATED_TEXT_NOTE,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageSize";
@@ -25,8 +26,11 @@ import {
  * expressions, and ran out of stack on a long line of JSON, a run of links
  * or a long table; and Teams refuses a message much over 80 KB anyway. So a
  * markdown text - the webhook card's and a bot message's text block - is cut
- * to MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES (as Teams counts it, two
- * bytes a character) and ends with the note a cut Slack message ends with.
+ * to fit and ends with the note a cut Slack message ends with: a bot's text
+ * block to MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES (as Teams counts
+ * it, two bytes a character), and a webhook's card - measured as it is sent,
+ * whatever the length of its text - to
+ * MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES.
  */
 
 const MIB: number = 1024 * 1024;
@@ -79,10 +83,20 @@ describe("MicrosoftTeamsMessageSize.fitMarkdownText", () => {
     expect(MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES).toBe(80 * 1024);
   });
 
-  test("leaves a text that fits as it is", () => {
-    const text: string = "x".repeat(MAX_LENGTH);
+  test("leaves a text that fits as it is, measured as JSON sends it", () => {
+    // Its quotes take the last two characters of the budget.
+    const text: string = "x".repeat(MAX_LENGTH - 2);
 
     expect(MicrosoftTeamsMessageSize.fitMarkdownText(text) === text).toBe(true);
+
+    const oneMore: string = MicrosoftTeamsMessageSize.fitMarkdownText(
+      `${text}x`,
+    );
+
+    expect(oneMore.endsWith(NOTE)).toBe(true);
+    expect(
+      MicrosoftTeamsMessageSize.getSizeInBytes(JSON.stringify(oneMore)),
+    ).toBeLessThanOrEqual(MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES);
   });
 
   test("cuts a longer text to the budget, at a line break near the end, with the note", () => {
@@ -140,14 +154,44 @@ describe("MicrosoftTeamsMessageSize.fitMarkdownText", () => {
     expect(measured.length).toBeLessThanOrEqual(3);
   });
 
-  test("never measures a text that fits", () => {
+  test("measures every text, and cuts one whose length fits but whose message does not", () => {
+    // Every quote is two characters once JSON has escaped it.
     const text: string = '"'.repeat(MAX_LENGTH);
 
+    const fitted: string = MicrosoftTeamsMessageSize.fitMarkdownText(text);
+
+    expect(fitted.endsWith(NOTE)).toBe(true);
     expect(
-      MicrosoftTeamsMessageSize.fitMarkdownText(text, (): number => {
-        throw new Error("A text that fits is not measured.");
-      }) === text,
-    ).toBe(true);
+      MicrosoftTeamsMessageSize.getSizeInBytes(JSON.stringify(fitted)),
+    ).toBeLessThanOrEqual(MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES);
+
+    const measured: Array<string> = [];
+
+    expect(
+      MicrosoftTeamsMessageSize.fitMarkdownText("short", (value: string) => {
+        measured.push(value);
+        return 10;
+      }),
+    ).toBe("short");
+    expect(measured).toEqual(["short"]);
+  });
+
+  test("holds a text to the budget it is given", () => {
+    const text: string = "an affected resource\n".repeat(2000);
+
+    const fitted: string = MicrosoftTeamsMessageSize.fitMarkdownText(
+      text,
+      (value: string): number => {
+        return MicrosoftTeamsMessageSize.getSizeInBytes(JSON.stringify(value));
+      },
+      8 * 1024,
+    );
+
+    expect(fitted.endsWith(NOTE)).toBe(true);
+    expect(
+      MicrosoftTeamsMessageSize.getSizeInBytes(JSON.stringify(fitted)),
+    ).toBeLessThanOrEqual(8 * 1024);
+    expect(fitted.length).toBeGreaterThan(2 * 1024);
   });
 
   test("gives up after a few tries when nothing it cuts to fits", () => {
@@ -187,8 +231,8 @@ describe("Microsoft Teams incoming webhook card - text of any size", () => {
 
       expect(card["title"]).toBe("Incident created");
       expect(
-        MicrosoftTeamsMessageSize.getSizeInBytes(card),
-      ).toBeLessThanOrEqual(MICROSOFT_TEAMS_MARKDOWN_TEXT_BUDGET_IN_BYTES);
+        MicrosoftTeamsMessageSize.getIncomingWebhookSizeInBytes(card),
+      ).toBeLessThanOrEqual(MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES);
       expect(sectionTextOf(card).endsWith(NOTE.trim())).toBe(true);
     },
   );
@@ -222,18 +266,45 @@ describe("Microsoft Teams incoming webhook card - text of any size", () => {
     });
   });
 
-  test("a table that fits the text budget is never cut, however big its card", async () => {
+  test("a table that fits the text budget is cut when its card is more than a webhook takes", async () => {
     const markdown: string = `## Incident created\n\n| Host | State |\n| --- | --- |\n${"| web-01 | down |\n".repeat(2000)}`;
 
+    // As Markdown it fits; as the card's HTML table it is several times that.
     expect(markdown.length).toBeLessThanOrEqual(MAX_LENGTH);
+    expect(
+      MicrosoftTeamsMessageSize.getIncomingWebhookSizeInBytes(
+        MicrosoftTeamsUtil["buildMessageCardFromFittedMarkdown"](markdown),
+      ),
+    ).toBeGreaterThan(MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES);
 
     const card: JSONObject = await cardFor(markdown);
 
-    expect(card).toEqual(
-      MicrosoftTeamsUtil["buildMessageCardFromFittedMarkdown"](markdown),
-    );
-    expect(sectionTextOf(card).includes(NOTE.trim())).toBe(false);
-    expect(sectionTextOf(card).split("<tr>")).toHaveLength(2002);
+    expect(card["title"]).toBe("Incident created");
+    expect(
+      MicrosoftTeamsMessageSize.getIncomingWebhookSizeInBytes(card),
+    ).toBeLessThanOrEqual(MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES);
+    expect(sectionTextOf(card).endsWith(NOTE.trim())).toBe(true);
+    // The rows that fit are still a table.
+    expect(sectionTextOf(card).startsWith("<table")).toBe(true);
+    expect(sectionTextOf(card).split("<tr>").length).toBeGreaterThan(50);
+  });
+
+  test("a card is measured as the request carries it: a text of Asian script counts three bytes a character", async () => {
+    // Under the budget as Teams counts a bot message, over it in UTF-8.
+    const markdown: string = `## Incident created\n\n${"障害".repeat(5000)}`;
+
+    expect(
+      MicrosoftTeamsMessageSize.getSizeInBytes(
+        MicrosoftTeamsUtil["buildMessageCardFromFittedMarkdown"](markdown),
+      ),
+    ).toBeLessThanOrEqual(MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES);
+
+    const card: JSONObject = await cardFor(markdown);
+
+    expect(
+      Buffer.byteLength(JSON.stringify(card), "utf8"),
+    ).toBeLessThanOrEqual(MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES);
+    expect(sectionTextOf(card).endsWith(NOTE.trim())).toBe(true);
   });
 });
 

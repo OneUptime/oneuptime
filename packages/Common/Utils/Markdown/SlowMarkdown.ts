@@ -9,15 +9,17 @@
  *
  *   - marked (the emails) looks for the end of every "*", "_", "~", code
  *     span or link it meets, from where it is to the end of the block: a
- *     line of "*a " took 75 s, of "[a](" 13 s, of "`a``" 2.5 s, and an
- *     address ending in underscores over 90 s.
+ *     line of "*a " took 53 s, of "[a](" 13 s, of "![a](" 20 s, of "`a" 3 s.
+ *     And between two of those it reads the text up to the next "@" it
+ *     could make an email address of: a line of "_a" took 14 s, of "a!" 6 s.
  *   - remark (the dashboard) did the same with different shapes - a line of
- *     "a* " took 29 s, of "[[[...]]]" 69 s - and grows faster than linearly
- *     with long lists and tables: a list of 16,000 items took 8 s.
+ *     "a* " took 9 s, of "a*" 26 s, of "](" 13 s, of "a.a." 8 s (an email
+ *     address it tries from every dot), and 64 KB of snake_case words 0.9 s
+ *     - and its time grows faster than linearly with the blocks of a text:
+ *     a list of 16,000 items took 6 s, 4,000 small tables 8 s.
  *   - slackify (Slack) was slow on all of these, and on plain long blocks
- *     as well: a paragraph of 16,000 lines took 4 s, and one line of 32 KB
- *     of words a quarter of a second - three quarters when the words were
- *     web addresses.
+ *     as well: a paragraph of 16,000 lines took 4 s, a line of "hello! "
+ *     2 s.
  *   - marked, remark and slackify all ran out of stack on a line nested a
  *     few thousand quotes deep ("> > > ...").
  *
@@ -26,18 +28,21 @@
  * SLOW_MARKDOWN_MIN_LENGTH, its blocks are measured in one pass, and the
  * blocks that would cost it too much are held back whole. A block here is a
  * run of lines with no blank line between them, outside fenced code. Each
- * stretch of runs held back becomes one token, and the caller writes the
+ * stretch of blocks held back becomes one token, and the caller writes the
  * text back where the parser put it, as it was written, a line on each line:
  * Markdown in it reads as written. What a run costs:
  *
- *   - its inline work: for each paragraph, list item or heading in it, the
- *     characters that can start inline Markdown (getInlineCharacterCount)
- *     times its length - the most that marked, and remark, look through.
- *     The runs of the text together may cost limits.maxInlineWork; the
- *     costliest are held back until they do.
- *   - its lines: a run may have limits.maxRunLines, all the runs read as
- *     Markdown limits.maxLines (the dashboard and Slack only: marked reads
- *     lines in linear time).
+ *   - its inline work, the most the parsers look through (getInlineWork):
+ *     for each paragraph, list item or heading in it, the characters that
+ *     can start inline Markdown (getInlineCharacterCount) times its length;
+ *     and for each word - characters with no space between them - its
+ *     punctuation times its length, which bounds what a parser reads from
+ *     every punctuation character of a word to its end. The runs of the
+ *     text together may cost limits.maxInlineWork; the costliest are held
+ *     back until they do.
+ *   - its lines: a run may have limits.maxRunLines, and all the runs and
+ *     fenced code read as Markdown limits.maxLines together (the dashboard
+ *     and Slack only: marked reads lines in linear time).
  *   - its longest paragraph, list item or heading, in lines
  *     (limits.maxUnitLines) and in characters (limits.maxUnitLength):
  *     Slack only - slackify reads a long list in good time, but not one
@@ -45,15 +50,20 @@
  *   - how deep its lines nest quotes and lists (limits.maxNestingDepth),
  *     and how many cells a table row of it has (limits.maxCellsPerLine).
  *
- * Fenced code is read in linear time by every parser: it costs nothing, and
- * is never held back. limits.holdBackCodeBlockContent holds back its content
- * as one token, so a parser whose time grows with lines (slackify) reads one
- * - the caller writes it back as it was, in the code block.
+ * Fenced code is read in linear time by every parser: its content costs no
+ * inline work, and a code block is only held back - whole, as text - when
+ * there are more lines than limits.maxLines. limits.holdBackCodeBlockContent
+ * holds back its content as one token, so a parser whose time grows with
+ * lines (slackify) reads one - the caller writes it back as it was, in the
+ * code block.
  *
  * The measuring is conservative: when it cannot tell whether two lines are
  * one block or two for the parser, it counts them as one, which can only
- * make a run look costlier than it is. And anything it holds back is text to
- * the parser, so a run it misjudged is shown as written, never parsed slowly.
+ * make a run look costlier than it is. A fence is only taken for one where
+ * every parser takes it the same way (readSegments); after a line that
+ * could open or close a fence some other way, nothing more is skipped as
+ * code. And anything held back is text to the parser, so a run that was
+ * misjudged is shown as written, never parsed slowly.
  *
  * A text of at most SLOW_MARKDOWN_MIN_LENGTH characters renders in good
  * time in every shape but one, and renders exactly as it always has: only
@@ -73,13 +83,16 @@ export const SLOW_MARKDOWN_MIN_LENGTH: number = 2048;
 // How much of each kind of work a parser is given at most.
 export interface SlowMarkdownLimits {
   /*
-   * The inline work of all the runs read as Markdown together: for each
-   * paragraph, list item or heading, its inline characters times its length.
+   * The inline work of all the runs read as Markdown together
+   * (getInlineWork).
    */
   maxInlineWork: number;
   // The lines one run may have.
   maxRunLines: number;
-  // The lines all the runs read as Markdown may have together.
+  /*
+   * The lines all the runs and code blocks read as Markdown may have
+   * together - a code block's as the parser reads them.
+   */
   maxLines: number;
   // The lines one paragraph, list item or heading may have.
   maxUnitLines: number;
@@ -97,12 +110,18 @@ export interface SlowMarkdownLimits {
    * through the rest of its paragraph, marked does not.
    */
   countUrlLiterals: boolean;
+  /*
+   * Whether an "_" inside a word counts toward inline work: remark's GFM
+   * reads each one through the rest of its paragraph (64 KB of snake_case
+   * words took 0.9 s, four times as long 9 s); marked passes it by.
+   */
+  countWordUnderscores: boolean;
 }
 
 /*
  * What every parser takes in good time: inline work of 2^22 is about a
- * fifth of a second for marked, the slowest of them, in a long-running
- * process (53 ns for each character it looks through).
+ * sixth of a second for marked, the slowest of them, in a long-running
+ * process (39 ns for each character it looks through, at worst).
  */
 export const SLOW_MARKDOWN_MAX_INLINE_WORK: number = 4 * 1024 * 1024;
 
@@ -116,9 +135,9 @@ export const SLOW_MARKDOWN_MAX_NESTING_DEPTH: number = 16;
  */
 export interface SlowMarkdownHolder {
   /*
-   * Whole lines - one or more runs of them, with the blank lines between -
-   * that the parser would take too long to read. Written back as text, a
-   * line on each line.
+   * Whole lines - one or more runs or code blocks, with the blank lines
+   * between - that the parser would take too long to read. Written back as
+   * text, a line on each line.
    */
   holdLines: (text: string) => string;
   /*
@@ -143,16 +162,29 @@ export interface SlowMarkdownRun {
   cellsPerLine: number;
 }
 
-// A fenced code block: where its content starts and ends (before a closer).
+/*
+ * A fenced code block: where its opening fence starts and its closing fence
+ * ends (the text's end when it is never closed), where its content starts
+ * and ends, and how many lines the parser reads for it.
+ */
 interface CodeBlock {
+  start: number;
+  end: number;
   contentStart: number;
   contentEnd: number;
+  contentLines: number;
 }
 
 // The text read as runs of lines and fenced code blocks, in order.
 type Segment =
   | { kind: "run"; run: SlowMarkdownRun }
   | { kind: "code"; block: CodeBlock };
+
+// How the inline work of a run is counted (see SlowMarkdownLimits).
+interface InlineCounting {
+  countUrlLiterals: boolean;
+  countWordUnderscores: boolean;
+}
 
 const SPACE: number = 0x20;
 const TAB: number = 0x09;
@@ -165,6 +197,8 @@ const LESS_THAN: number = 0x3c;
 const NUMBER_SIGN: number = 0x23;
 const PIPE: number = 0x7c;
 const BACKSLASH: number = 0x5c;
+const ASTERISK: number = 0x2a;
+const UNDERSCORE: number = 0x5f;
 
 const WORD_CHARACTER: RegExp = /[\p{L}\p{N}]/u;
 
@@ -261,23 +295,23 @@ const startsWithWww: (text: string, index: number, end: number) => boolean = (
  * The characters of text[start, end) that can start or end inline Markdown,
  * and so make a parser look ahead through the rest of a block: emphasis and
  * strikethrough delimiters ("*", "_", "~") that can open or close - not
- * those with whitespace on both sides, nor an "_" inside a word - every
- * backtick, "[" and "]", a "<" that can start a tag or an autolink, a "\"
- * that escapes, and a "&" that can start an entity. With
- * `countUrlLiterals`, also where a web address or an email address can
- * start without brackets ("www.", "://", "@"): remark reads each of those
- * through the rest of its paragraph.
+ * those with whitespace on both sides, nor an "_" inside a word unless
+ * `counting.countWordUnderscores` - every backtick, "[" and "]", a "<" that
+ * can start a tag or an autolink, a "\" that escapes, and a "&" that can
+ * start an entity. With `counting.countUrlLiterals`, also where a web
+ * address or an email address can start without brackets ("www.", "://",
+ * "@"): remark reads each of those through the rest of its paragraph.
  */
 export const getInlineCharacterCount: (
   text: string,
   start: number,
   end: number,
-  countUrlLiterals?: boolean,
+  counting?: Partial<InlineCounting>,
 ) => number = (
   text: string,
   start: number,
   end: number,
-  countUrlLiterals: boolean = false,
+  counting: Partial<InlineCounting> = {},
 ): number => {
   let count: number = 0;
   let index: number = start;
@@ -285,7 +319,7 @@ export const getInlineCharacterCount: (
   while (index < end) {
     const code: number = text.charCodeAt(index);
 
-    if (code === 0x2a || code === 0x5f || code === TILDE) {
+    if (code === ASTERISK || code === UNDERSCORE || code === TILDE) {
       let runEnd: number = index + 1;
 
       while (runEnd < end && text.charCodeAt(runEnd) === code) {
@@ -298,7 +332,8 @@ export const getInlineCharacterCount: (
       const canNeitherOpenNorClose: boolean =
         isWhitespaceOrNothing(before) && isWhitespaceOrNothing(after);
       const isInsideWord: boolean =
-        code === 0x5f &&
+        code === UNDERSCORE &&
+        !counting.countWordUnderscores &&
         index > start &&
         runEnd < end &&
         isWordCharacterAt(text, index - 1) &&
@@ -329,7 +364,7 @@ export const getInlineCharacterCount: (
     } else if (code === 0x26 && (next === NUMBER_SIGN || isAsciiLetter(next))) {
       count++;
     } else if (
-      countUrlLiterals &&
+      counting.countUrlLiterals &&
       (code === 0x40 ||
         (code === 0x3a &&
           next === 0x2f &&
@@ -344,6 +379,39 @@ export const getInlineCharacterCount: (
   }
 
   return count;
+};
+
+/*
+ * For each word of text[start, end) - characters with no space or tab
+ * between them - its ASCII punctuation times its length, summed. A parser
+ * can read from a punctuation character to the end of its word: marked
+ * reads ahead for an "@" from every "!", "*", "_", "~" or backtick of a
+ * word, remark for one from every ".", "-", "+" or "_". Spoken text has
+ * short words, and costs next to nothing here; a line of minified JSON or
+ * "a.a.a." costs the square of its length.
+ */
+export const getWordPunctuationWork: (
+  text: string,
+  start: number,
+  end: number,
+) => number = (text: string, start: number, end: number): number => {
+  let work: number = 0;
+  let wordStart: number = start;
+  let punctuation: number = 0;
+
+  for (let index: number = start; index <= end; index++) {
+    const code: number = index < end ? text.charCodeAt(index) : SPACE;
+
+    if (isSpaceOrTab(code)) {
+      work += punctuation * (index - wordStart);
+      wordStart = index + 1;
+      punctuation = 0;
+    } else if (isAsciiPunctuation(code)) {
+      punctuation++;
+    }
+  }
+
+  return work;
 };
 
 // Where the line that starts at `start` ends: its "\n", or the text's end.
@@ -383,6 +451,12 @@ const isBlankLine: (text: string, start: number, end: number) => boolean = (
   return true;
 };
 
+// The fence a code block opened with: its character, and how many of it.
+interface Fence {
+  character: number;
+  length: number;
+}
+
 /*
  * A fence that opens a code block, as every parser reads one wherever this
  * reads one: at the very start of a line, three or more backticks with no
@@ -393,11 +467,7 @@ const getFenceOpening: (
   text: string,
   start: number,
   end: number,
-) => { character: number; length: number } | null = (
-  text: string,
-  start: number,
-  end: number,
-): { character: number; length: number } | null => {
+) => Fence | null = (text: string, start: number, end: number): Fence | null => {
   const character: number = text.charCodeAt(start);
 
   if (character !== BACKTICK && character !== TILDE) {
@@ -426,22 +496,125 @@ const getFenceOpening: (
 };
 
 /*
- * Whether the line closes a fence of `length` `character`s - leniently: up
- * to three spaces, then at least as long a run of the character, whatever
- * follows. A parser closes a fence there or does not close it, never
- * closes it where this does not, so this never takes a line the parser
- * reads as Markdown for code.
+ * Whether the line text[start, end) starts - after spaces, tabs, and any
+ * quote and list markers - with a run of three or more backticks or tildes
+ * that a parser could read as a fence in some container: a run of
+ * backticks with another backtick after it on the line is the start of a
+ * code span, never a fence.
+ */
+const isFenceLikeLine: (text: string, start: number, end: number) => boolean = (
+  text: string,
+  start: number,
+  end: number,
+): boolean => {
+  let index: number = start;
+
+  // Spaces, tabs, quote markers and list markers ("-", "*", "+", "1.").
+  while (index < end) {
+    const code: number = text.charCodeAt(index);
+
+    if (
+      isSpaceOrTab(code) ||
+      code === GREATER_THAN ||
+      code === 0x2d ||
+      code === ASTERISK ||
+      code === 0x2b ||
+      isDigit(code) ||
+      code === 0x2e ||
+      code === 0x29
+    ) {
+      index++;
+      continue;
+    }
+
+    break;
+  }
+
+  const character: number = text.charCodeAt(index);
+
+  if (character !== BACKTICK && character !== TILDE) {
+    return false;
+  }
+
+  let runEnd: number = index;
+
+  while (runEnd < end && text.charCodeAt(runEnd) === character) {
+    runEnd++;
+  }
+
+  if (runEnd - index < 3) {
+    return false;
+  }
+
+  if (character === BACKTICK) {
+    for (let after: number = runEnd; after < end; after++) {
+      if (text.charCodeAt(after) === BACKTICK) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+};
+
+/*
+ * Whether the line closes a fence of `fence.length` `fence.character`s as
+ * every parser reads one: up to three spaces, at least as long a run of the
+ * character, then nothing but spaces. (marked also closes on a run followed
+ * by other backticks and tildes, CommonMark on one followed by tabs: such a
+ * line is one a parser may read either way - see readSegments.)
  */
 const isFenceClosing: (
   text: string,
   start: number,
   end: number,
-  fence: { character: number; length: number },
+  fence: Fence,
 ) => boolean = (
   text: string,
   start: number,
   end: number,
-  fence: { character: number; length: number },
+  fence: Fence,
+): boolean => {
+  let index: number = start;
+
+  while (index < end && index - start < 3 && text.charCodeAt(index) === SPACE) {
+    index++;
+  }
+
+  let runEnd: number = index;
+
+  while (runEnd < end && text.charCodeAt(runEnd) === fence.character) {
+    runEnd++;
+  }
+
+  if (runEnd - index < fence.length) {
+    return false;
+  }
+
+  for (let after: number = runEnd; after < end; after++) {
+    if (text.charCodeAt(after) !== SPACE) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/*
+ * Whether some parser could close a fence of `fence.length`
+ * `fence.character`s on the line: up to three spaces, then at least as long
+ * a run of the character, whatever follows (see isFenceClosing).
+ */
+const mayCloseFence: (
+  text: string,
+  start: number,
+  end: number,
+  fence: Fence,
+) => boolean = (
+  text: string,
+  start: number,
+  end: number,
+  fence: Fence,
 ): boolean => {
   let index: number = start;
 
@@ -461,7 +634,7 @@ const isFenceClosing: (
 /*
  * The HTML blocks that run on past a blank line (CommonMark types 1 to 5),
  * by how they start, and what ends them. Inside one, a fence is HTML, not
- * code: no fence is looked for until it ends.
+ * code.
  */
 const HTML_BLOCK_KINDS: ReadonlyArray<{
   starts: ReadonlyArray<string>;
@@ -502,7 +675,9 @@ const getOpenHtmlBlockEnds: (
   }
 
   // Lower case, and short: the longest start is "<![cdata[".
-  const head: string = text.slice(index, Math.min(end, index + 10)).toLowerCase();
+  const head: string = text
+    .slice(index, Math.min(end, index + 10))
+    .toLowerCase();
 
   for (const kind of HTML_BLOCK_KINDS) {
     const opener: string | undefined = kind.starts.find(
@@ -604,7 +779,7 @@ const isThematicBreak: (text: string, start: number, end: number) => boolean =
         continue;
       }
 
-      if (code !== 0x2a && code !== 0x2d && code !== 0x5f) {
+      if (code !== ASTERISK && code !== 0x2d && code !== UNDERSCORE) {
         return false;
       }
 
@@ -650,6 +825,13 @@ const readLineStart: (text: string, start: number, end: number) => LineStart =
     // The columns of whitespace before and between the markers (a tab is 4).
     let indentationColumns: number = 0;
 
+    // The character after a one-character marker: a space, a tab or the end.
+    const endsMarker: (position: number) => boolean = (
+      position: number,
+    ): boolean => {
+      return position >= end || isSpaceOrTab(text.charCodeAt(position));
+    };
+
     for (;;) {
       let afterSpaces: number = index;
 
@@ -665,13 +847,6 @@ const readLineStart: (text: string, start: number, end: number) => LineStart =
 
       const indentation: number = afterSpaces - index;
       const code: number = text.charCodeAt(afterSpaces);
-
-      // The character after a one-character marker: a space, a tab or the end.
-      const endsMarker: (position: number) => boolean = (
-        position: number,
-      ): boolean => {
-        return position >= end || isSpaceOrTab(text.charCodeAt(position));
-      };
 
       if (code === GREATER_THAN && indentation <= 3 && firstMarker === null) {
         nestingDepth++;
@@ -692,7 +867,7 @@ const readLineStart: (text: string, start: number, end: number) => LineStart =
       }
 
       if (
-        (code === 0x2d || code === 0x2a || code === 0x2b) &&
+        (code === 0x2d || code === ASTERISK || code === 0x2b) &&
         endsMarker(afterSpaces + 1)
       ) {
         nestingDepth++;
@@ -808,111 +983,147 @@ const getPipeCount: (text: string, start: number, end: number) => number = (
  * the unit before it, as a paragraph's next line does - two lines are only
  * counted apart where every parser reads them apart. A numbered item that
  * is not "1." starts a unit only right after a unit that a numbered item of
- * the same kind started: elsewhere it can be a paragraph's next line.
+ * the same kind started: elsewhere it can be a paragraph's next line. The
+ * punctuation of its words is added to it, line by line
+ * (getWordPunctuationWork).
  */
 const measureRun: (
   text: string,
   lineStarts: Array<number>,
-  countUrlLiterals: boolean,
+  counting: InlineCounting,
 ) => SlowMarkdownRun = (
   text: string,
   lineStarts: Array<number>,
-  countUrlLiterals: boolean,
+  counting: InlineCounting,
 ): SlowMarkdownRun => {
-    let inlineWork: number = 0;
-    let longestUnit: number = 0;
-    let longestUnitLines: number = 0;
-    let nestingDepth: number = 0;
-    let cellsPerLine: number = 0;
-    let unitLength: number = 0;
-    let unitLines: number = 0;
-    let unitCharacters: number = 0;
-    // What started the unit being read, if a marker did.
-    let unitKind: string | null = null;
+  let inlineWork: number = 0;
+  let longestUnit: number = 0;
+  let longestUnitLines: number = 0;
+  let nestingDepth: number = 0;
+  let cellsPerLine: number = 0;
+  let unitLength: number = 0;
+  let unitLines: number = 0;
+  let unitCharacters: number = 0;
+  // What started the unit being read, if a marker did.
+  let unitKind: string | null = null;
 
-    for (const lineStart of lineStarts) {
-      const lineEnd: number = withoutCarriageReturn(
-        text,
-        lineStart,
-        getLineEnd(text, lineStart),
-      );
-      const start: LineStart = readLineStart(text, lineStart, lineEnd);
+  for (const lineStart of lineStarts) {
+    const lineEnd: number = withoutCarriageReturn(
+      text,
+      lineStart,
+      getLineEnd(text, lineStart),
+    );
+    const start: LineStart = readLineStart(text, lineStart, lineEnd);
 
-      const startsUnit: boolean =
-        start.unitStart === "bullet" ||
-        start.unitStart === "heading" ||
-        (start.unitStart !== null &&
-          (start.isFirstOrdered || start.unitStart === unitKind));
+    const startsUnit: boolean =
+      start.unitStart === "bullet" ||
+      start.unitStart === "heading" ||
+      (start.unitStart !== null &&
+        (start.isFirstOrdered || start.unitStart === unitKind));
 
-      if (startsUnit) {
-        inlineWork += unitCharacters * unitLength;
-        longestUnit = Math.max(longestUnit, unitLength);
-        longestUnitLines = Math.max(longestUnitLines, unitLines);
-        unitLength = 0;
-        unitLines = 0;
-        unitCharacters = 0;
-        unitKind = start.unitStart;
-      }
-
-      unitLength += lineEnd - lineStart + 1;
-      unitLines++;
-      unitCharacters += getInlineCharacterCount(
-        text,
-        start.contentStart,
-        lineEnd,
-        countUrlLiterals,
-      );
-      nestingDepth = Math.max(nestingDepth, start.nestingDepth);
-      cellsPerLine = Math.max(
-        cellsPerLine,
-        getPipeCount(text, start.contentStart, lineEnd),
-      );
+    if (startsUnit) {
+      inlineWork += unitCharacters * unitLength;
+      longestUnit = Math.max(longestUnit, unitLength);
+      longestUnitLines = Math.max(longestUnitLines, unitLines);
+      unitLength = 0;
+      unitLines = 0;
+      unitCharacters = 0;
+      unitKind = start.unitStart;
     }
 
-    inlineWork += unitCharacters * unitLength;
-    longestUnit = Math.max(longestUnit, unitLength);
-    longestUnitLines = Math.max(longestUnitLines, unitLines);
+    unitLength += lineEnd - lineStart + 1;
+    unitLines++;
+    unitCharacters += getInlineCharacterCount(
+      text,
+      start.contentStart,
+      lineEnd,
+      counting,
+    );
+    inlineWork += getWordPunctuationWork(text, start.contentStart, lineEnd);
+    nestingDepth = Math.max(nestingDepth, start.nestingDepth);
+    cellsPerLine = Math.max(
+      cellsPerLine,
+      getPipeCount(text, start.contentStart, lineEnd),
+    );
+  }
 
-    return {
-      start: lineStarts[0]!,
-      end: getLineEnd(text, lineStarts[lineStarts.length - 1]!),
-      lines: lineStarts.length,
-      inlineWork: inlineWork,
-      longestUnit: longestUnit,
-      longestUnitLines: longestUnitLines,
-      nestingDepth: nestingDepth,
-      cellsPerLine: cellsPerLine,
-    };
+  inlineWork += unitCharacters * unitLength;
+  longestUnit = Math.max(longestUnit, unitLength);
+  longestUnitLines = Math.max(longestUnitLines, unitLines);
+
+  return {
+    start: lineStarts[0]!,
+    end: getLineEnd(text, lineStarts[lineStarts.length - 1]!),
+    lines: lineStarts.length,
+    inlineWork: inlineWork,
+    longestUnit: longestUnit,
+    longestUnitLines: longestUnitLines,
+    nestingDepth: nestingDepth,
+    cellsPerLine: cellsPerLine,
   };
+};
 
 /*
  * The text read as runs of lines and fenced code blocks (see the top of this
- * file). A fence is only read as one where every parser reads one: it opens
- * at the start of a line after a blank line (or at the text's start), never
- * inside an HTML block that runs on past blank lines, and closes leniently.
+ * file).
+ *
+ * A code block's content costs no inline work, so a line read as code here
+ * must be code to the parser too. A fence is only read as one where every
+ * parser reads one the same way: it opens at the very start of a line after
+ * a blank line (or at the text's start) - marked can read a fence right
+ * after a paragraph's line as part of a heading - never inside an HTML block
+ * that runs on past blank lines, and it closes on a line every parser
+ * closes it on (isFenceClosing). Any other line that a parser could read as
+ * a fence - indented, in a quote or a list item, after a paragraph's line,
+ * or one that closes the block for one parser only - could leave this and
+ * the parser apart on which lines are code from there on: after it, no
+ * more code is read as code, and every line left is measured as Markdown.
  */
 const readSegments: (
   text: string,
-  countUrlLiterals: boolean,
+  counting: InlineCounting,
 ) => Array<Segment> = (
   text: string,
-  countUrlLiterals: boolean,
+  counting: InlineCounting,
 ): Array<Segment> => {
   const segments: Array<Segment> = [];
   let runLineStarts: Array<number> = [];
   let previousLineWasBlank: boolean = true;
-  let fence: { character: number; length: number } | null = null;
+  let fence: Fence | null = null;
+  let fenceStart: number = 0;
   let fenceContentStart: number = 0;
+  let fenceContentLines: number = 0;
   let htmlBlockEnds: ReadonlyArray<string> | null = null;
+  // Whether a fence may still be read as one (see above).
+  let isFenceReadable: boolean = true;
 
   const endRun: () => void = (): void => {
     if (runLineStarts.length > 0) {
       segments.push({
         kind: "run",
-        run: measureRun(text, runLineStarts, countUrlLiterals),
+        run: measureRun(text, runLineStarts, counting),
       });
       runLineStarts = [];
     }
+  };
+
+  const pushCode: (contentEnd: number, end: number) => void = (
+    contentEnd: number,
+    end: number,
+  ): void => {
+    segments.push({
+      kind: "code",
+      block: {
+        start: fenceStart,
+        end: end,
+        contentStart: fenceContentStart,
+        contentEnd: Math.max(
+          fenceContentStart,
+          withoutCarriageReturn(text, fenceContentStart, contentEnd),
+        ),
+        contentLines: fenceContentLines,
+      },
+    });
   };
 
   let lineStart: number = 0;
@@ -923,23 +1134,29 @@ const readSegments: (
 
     if (fence !== null) {
       if (isFenceClosing(text, lineStart, lineEnd, fence)) {
-        segments.push({
-          kind: "code",
-          block: {
-            contentStart: fenceContentStart,
-            // Before the closer's line, and a "\r" its line break left.
-            contentEnd: Math.max(
-              fenceContentStart,
-              withoutCarriageReturn(text, fenceContentStart, lineStart - 1),
-            ),
-          },
-        });
+        // Before the closer's line, and a "\r" its line break left.
+        pushCode(Math.max(fenceContentStart, lineStart - 1), lineBreak);
         fence = null;
-        previousLineWasBlank = false;
+        // A new block starts on the next line, as after a blank line.
+        previousLineWasBlank = true;
+        lineStart = lineBreak + 1;
+        continue;
       }
 
-      lineStart = lineBreak + 1;
-      continue;
+      if (!mayCloseFence(text, lineStart, lineEnd, fence)) {
+        fenceContentLines++;
+        lineStart = lineBreak + 1;
+        continue;
+      }
+
+      /*
+       * A line a parser may close the block on, and another not: the code
+       * block ends here for this count, and this line and every line after
+       * it are measured as Markdown.
+       */
+      pushCode(Math.max(fenceContentStart, lineStart - 1), lineStart - 1);
+      fence = null;
+      isFenceReadable = false;
     }
 
     const isBlank: boolean = isBlankLine(text, lineStart, lineEnd);
@@ -951,21 +1168,35 @@ const readSegments: (
       continue;
     }
 
+    const isFenceLike: boolean = isFenceLikeLine(text, lineStart, lineEnd);
+
     if (htmlBlockEnds !== null) {
       if (lineHoldsOneOf(text, lineStart, lineEnd, htmlBlockEnds)) {
         htmlBlockEnds = null;
       }
+
+      if (isFenceLike) {
+        isFenceReadable = false;
+      }
     } else {
-      const opening: { character: number; length: number } | null =
-        previousLineWasBlank ? getFenceOpening(text, lineStart, lineEnd) : null;
+      const opening: Fence | null =
+        isFenceReadable && previousLineWasBlank
+          ? getFenceOpening(text, lineStart, lineEnd)
+          : null;
 
       if (opening !== null) {
         endRun();
         fence = opening;
+        fenceStart = lineStart;
         fenceContentStart = Math.min(text.length, lineBreak + 1);
+        fenceContentLines = 0;
         previousLineWasBlank = false;
         lineStart = lineBreak + 1;
         continue;
+      }
+
+      if (isFenceLike) {
+        isFenceReadable = false;
       }
 
       htmlBlockEnds = getOpenHtmlBlockEnds(text, lineStart, lineEnd);
@@ -980,20 +1211,14 @@ const readSegments: (
     // A fence never closed runs to the end of the text, but its line break.
     let contentEnd: number = text.length;
 
-    if (contentEnd > fenceContentStart && text.charCodeAt(contentEnd - 1) === LINE_FEED) {
+    if (
+      contentEnd > fenceContentStart &&
+      text.charCodeAt(contentEnd - 1) === LINE_FEED
+    ) {
       contentEnd--;
     }
 
-    segments.push({
-      kind: "code",
-      block: {
-        contentStart: fenceContentStart,
-        contentEnd: Math.max(
-          fenceContentStart,
-          withoutCarriageReturn(text, fenceContentStart, contentEnd),
-        ),
-      },
-    });
+    pushCode(contentEnd, text.length);
   }
 
   endRun();
@@ -1002,23 +1227,45 @@ const readSegments: (
 };
 
 /*
- * Which runs to hold back: each that breaks a limit of its own (lines, the
- * lines and length of a unit, nesting, cells), then the costliest by inline
- * work until the rest are within limits.maxInlineWork, then the longest by
- * lines until the rest are
- * within limits.maxLines - the later of two equal ones first, so the start
- * of a text stays as it was written.
+ * The lines a parser reads for a code block: its fences, and its content -
+ * one line when the content is held back as one token.
  */
-const chooseRunsToHoldBack: (
-  runs: Array<SlowMarkdownRun>,
+const getCodeBlockLines: (
+  block: CodeBlock,
   limits: SlowMarkdownLimits,
-) => Set<SlowMarkdownRun> = (
-  runs: Array<SlowMarkdownRun>,
-  limits: SlowMarkdownLimits,
-): Set<SlowMarkdownRun> => {
-  const heldBack: Set<SlowMarkdownRun> = new Set<SlowMarkdownRun>();
+) => number = (block: CodeBlock, limits: SlowMarkdownLimits): number => {
+  return (
+    2 +
+    (limits.holdBackCodeBlockContent
+      ? Math.min(1, block.contentLines)
+      : block.contentLines)
+  );
+};
 
-  for (const run of runs) {
+/*
+ * Which segments to hold back: each run that breaks a limit of its own
+ * (lines, the lines and length of a unit, nesting, cells), then the
+ * costliest runs by inline work until the rest are within
+ * limits.maxInlineWork, then the longest runs and code blocks by lines
+ * until the rest are within limits.maxLines - the later of two equal ones
+ * first, so the start of a text stays as it was written.
+ */
+const chooseSegmentsToHoldBack: (
+  segments: Array<Segment>,
+  limits: SlowMarkdownLimits,
+) => Set<Segment> = (
+  segments: Array<Segment>,
+  limits: SlowMarkdownLimits,
+): Set<Segment> => {
+  const heldBack: Set<Segment> = new Set<Segment>();
+
+  for (const segment of segments) {
+    if (segment.kind !== "run") {
+      continue;
+    }
+
+    const run: SlowMarkdownRun = segment.run;
+
     if (
       run.lines > limits.maxRunLines ||
       run.longestUnitLines > limits.maxUnitLines ||
@@ -1026,25 +1273,30 @@ const chooseRunsToHoldBack: (
       run.nestingDepth > limits.maxNestingDepth ||
       run.cellsPerLine > limits.maxCellsPerLine
     ) {
-      heldBack.add(run);
+      heldBack.add(segment);
     }
   }
 
   const holdBackUntil: (
-    measure: (run: SlowMarkdownRun) => number,
+    measure: (segment: Segment) => number | null,
     limit: number,
   ) => void = (
-    measure: (run: SlowMarkdownRun) => number,
+    measure: (segment: Segment) => number | null,
     limit: number,
   ): void => {
-    const kept: Array<{ run: SlowMarkdownRun; position: number }> = [];
+    const kept: Array<{ segment: Segment; size: number; position: number }> =
+      [];
     let total: number = 0;
 
-    runs.forEach((run: SlowMarkdownRun, position: number): void => {
-      if (!heldBack.has(run)) {
-        kept.push({ run: run, position: position });
-        total += measure(run);
+    segments.forEach((segment: Segment, position: number): void => {
+      const size: number | null = measure(segment);
+
+      if (size === null || heldBack.has(segment)) {
+        return;
       }
+
+      kept.push({ segment: segment, size: size, position: position });
+      total += size;
     });
 
     if (total <= limit) {
@@ -1053,10 +1305,10 @@ const chooseRunsToHoldBack: (
 
     kept.sort(
       (
-        a: { run: SlowMarkdownRun; position: number },
-        b: { run: SlowMarkdownRun; position: number },
+        a: { size: number; position: number },
+        b: { size: number; position: number },
       ): number => {
-        return measure(b.run) - measure(a.run) || b.position - a.position;
+        return b.size - a.size || b.position - a.position;
       },
     );
 
@@ -1065,20 +1317,39 @@ const chooseRunsToHoldBack: (
         return;
       }
 
-      heldBack.add(candidate.run);
-      total -= measure(candidate.run);
+      heldBack.add(candidate.segment);
+      total -= candidate.size;
     }
   };
 
-  holdBackUntil((run: SlowMarkdownRun): number => {
-    return run.inlineWork;
-  }, limits.maxInlineWork);
+  if (Number.isFinite(limits.maxInlineWork)) {
+    holdBackUntil((segment: Segment): number | null => {
+      return segment.kind === "run" ? segment.run.inlineWork : null;
+    }, limits.maxInlineWork);
+  }
 
-  holdBackUntil((run: SlowMarkdownRun): number => {
-    return run.lines;
-  }, limits.maxLines);
+  if (Number.isFinite(limits.maxLines)) {
+    holdBackUntil((segment: Segment): number => {
+      return segment.kind === "run"
+        ? segment.run.lines
+        : getCodeBlockLines(segment.block, limits);
+    }, limits.maxLines);
+  }
 
   return heldBack;
+};
+
+// Where a segment's first line starts, and its last line ends.
+const getSegmentStart: (segment: Segment) => number = (
+  segment: Segment,
+): number => {
+  return segment.kind === "run" ? segment.run.start : segment.block.start;
+};
+
+const getSegmentEnd: (segment: Segment) => number = (
+  segment: Segment,
+): number => {
+  return segment.kind === "run" ? segment.run.end : segment.block.end;
 };
 
 /*
@@ -1118,29 +1389,23 @@ export const holdBackSlowMarkdown: (
       maxCellsPerLine: Number.POSITIVE_INFINITY,
       holdBackCodeBlockContent: false,
       countUrlLiterals: false,
+      countWordUnderscores: false,
     };
   }
 
-  const segments: Array<Segment> = readSegments(
-    text,
-    appliedLimits.countUrlLiterals,
-  );
-  const runs: Array<SlowMarkdownRun> = [];
+  const segments: Array<Segment> = readSegments(text, {
+    countUrlLiterals: appliedLimits.countUrlLiterals,
+    countWordUnderscores: appliedLimits.countWordUnderscores,
+  });
 
-  for (const segment of segments) {
-    if (segment.kind === "run") {
-      runs.push(segment.run);
-    }
-  }
-
-  const heldBack: Set<SlowMarkdownRun> = chooseRunsToHoldBack(
-    runs,
+  const heldBack: Set<Segment> = chooseSegmentsToHoldBack(
+    segments,
     appliedLimits,
   );
 
   const pieces: Array<string> = [];
   let copiedUpTo: number = 0;
-  // The stretch of runs held back being read: where it starts and ends.
+  // The stretch of segments held back being read: where it starts and ends.
   let stretchStart: number = -1;
   let stretchEnd: number = -1;
 
@@ -1157,21 +1422,20 @@ export const holdBackSlowMarkdown: (
   };
 
   for (const segment of segments) {
-    if (segment.kind === "run") {
-      if (heldBack.has(segment.run)) {
-        if (stretchStart === -1) {
-          stretchStart = segment.run.start;
-        }
-
-        stretchEnd = segment.run.end;
-      } else {
-        endStretch();
+    if (heldBack.has(segment)) {
+      if (stretchStart === -1) {
+        stretchStart = getSegmentStart(segment);
       }
 
+      stretchEnd = getSegmentEnd(segment);
       continue;
     }
 
     endStretch();
+
+    if (segment.kind !== "code") {
+      continue;
+    }
 
     const block: CodeBlock = segment.block;
 
@@ -1234,21 +1498,49 @@ const hasLineNestedDeeperThan: (text: string, maxDepth: number) => boolean = (
  */
 export const measureSlowMarkdownRuns: (
   text: string,
-  countUrlLiterals?: boolean,
+  counting?: Partial<InlineCounting>,
 ) => Array<SlowMarkdownRun> = (
   text: string,
-  countUrlLiterals: boolean = false,
+  counting: Partial<InlineCounting> = {},
 ): Array<SlowMarkdownRun> => {
   const runs: Array<SlowMarkdownRun> = [];
 
-  for (const segment of readSegments(
-    typeof text === "string" ? text : "",
-    countUrlLiterals,
-  )) {
+  for (const segment of readSegments(typeof text === "string" ? text : "", {
+    countUrlLiterals: Boolean(counting.countUrlLiterals),
+    countWordUnderscores: Boolean(counting.countWordUnderscores),
+  })) {
     if (segment.kind === "run") {
       runs.push(segment.run);
     }
   }
 
   return runs;
+};
+
+/*
+ * The code blocks of `text` as they are measured (see readSegments): where
+ * each starts and ends, for tests.
+ */
+export const measureSlowMarkdownCodeBlocks: (
+  text: string,
+) => Array<{ start: number; end: number; contentLines: number }> = (
+  text: string,
+): Array<{ start: number; end: number; contentLines: number }> => {
+  const blocks: Array<{ start: number; end: number; contentLines: number }> =
+    [];
+
+  for (const segment of readSegments(typeof text === "string" ? text : "", {
+    countUrlLiterals: false,
+    countWordUnderscores: false,
+  })) {
+    if (segment.kind === "code") {
+      blocks.push({
+        start: segment.block.start,
+        end: segment.block.end,
+        contentLines: segment.block.contentLines,
+      });
+    }
+  }
+
+  return blocks;
 };

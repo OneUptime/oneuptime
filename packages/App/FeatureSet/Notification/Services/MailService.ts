@@ -885,9 +885,19 @@ export default class MailService {
       vars["year"] = OneUptimeDate.getCurrentYear().toString();
     }
 
-    const body: string = mail.templateType
+    const compiledBody: string = mail.templateType
       ? await this.compileEmailBody(mail.templateType, vars)
       : this.compileText(mail.body || "", vars);
+
+    /*
+     * A text too long for an email was cut, and ends with a note that the
+     * full text is in OneUptime: the note links to what the email is about
+     * (EmailSize.getRecordLink), where the email has a link to it.
+     */
+    const body: string = EmailSize.linkTruncatedTextNotes(
+      compiledBody,
+      EmailSize.getRecordLink(vars),
+    );
 
     /*
      * A literal subject was rendered by the sender, often from user-authored
@@ -1223,7 +1233,12 @@ export default class MailService {
         );
       }
 
-      mail.body = attached.html;
+      mail.body = attached.wasFitted
+        ? EmailSize.linkTruncatedTextNotes(
+            attached.html,
+            EmailSize.getRecordLink(mail.vars),
+          )
+        : attached.html;
       mail.subject = rendered.subject;
 
       if (

@@ -866,11 +866,21 @@ export default class PushNotificationService {
     const sound: ExpoPushSound =
       data.sound === undefined ? "default" : data.sound;
 
-    const expoPushMessage: ExpoPushMessage = {
-      to: data.to,
+    /*
+     * What another server relays is held to what Expo takes as well
+     * (fitMessage): a server of an older version relays its text as it is.
+     */
+    const fitted: PushNotificationMessage = this.fitMessage({
       title: data.title || "",
       body: data.body || "",
-      data: data.data || {},
+      ...(data.data ? { data: data.data } : {}),
+    });
+
+    const expoPushMessage: ExpoPushMessage = {
+      to: data.to,
+      title: fitted.title,
+      body: fitted.body,
+      data: (fitted.data as { [key: string]: string } | undefined) || {},
       sound: sound,
       priority: (data.priority as "default" | "normal" | "high") || "high",
       channelId: data.channelId || "default",
