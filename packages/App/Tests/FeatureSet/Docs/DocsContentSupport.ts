@@ -26,9 +26,11 @@ export const TRANSLATED_LANGUAGES: Array<string> = DOCS_LANGUAGES.filter(
   },
 );
 
-// "category/page" for every page the nav serves, in nav order.
-export const NAV_PAGES: Array<string> = DocsNav.flatMap(
-  (group: NavGroup): Array<string> => {
+// "category/page" for every page a nav serves, in nav order.
+export const navPagesOf: (nav: Array<NavGroup>) => Array<string> = (
+  nav: Array<NavGroup>,
+): Array<string> => {
+  return nav.flatMap((group: NavGroup): Array<string> => {
     return group.links
       .filter((link: NavLink): boolean => {
         return link.url.startsWith("/docs/");
@@ -36,8 +38,10 @@ export const NAV_PAGES: Array<string> = DocsNav.flatMap(
       .map((link: NavLink): string => {
         return link.url.slice("/docs/".length);
       });
-  },
-);
+  });
+};
+
+export const NAV_PAGES: Array<string> = navPagesOf(DocsNav);
 
 const pagesCache: Map<string, Array<string>> = new Map();
 
@@ -360,16 +364,30 @@ export const scanMarkdown: (markdown: string) => ScannedPage = (
   };
 };
 
-// The anchors a page's headings produce.
+/*
+ * The anchors a page's headings produce, as the page is served. Line 1 is the
+ * page's title: the docs strip it and show the nav link's title above the
+ * page instead, with no anchor - so a link to the title's anchor goes nowhere.
+ */
+export const anchorsOfScanned: (scanned: ScannedPage) => Set<string> = (
+  scanned: ScannedPage,
+): Set<string> => {
+  return new Set(
+    scanned.headings
+      .filter((heading: DocsHeading): boolean => {
+        return heading.line !== 1;
+      })
+      .map((heading: DocsHeading): string => {
+        return heading.slug;
+      }),
+  );
+};
+
 export const anchorsOf: (lang: string, page: string) => Set<string> = (
   lang: string,
   page: string,
 ): Set<string> => {
-  return new Set(
-    scanPage(lang, page).headings.map((heading: DocsHeading): string => {
-      return heading.slug;
-    }),
-  );
+  return anchorsOfScanned(scanPage(lang, page));
 };
 
 export interface DocsPageLink {
@@ -377,27 +395,58 @@ export interface DocsPageLink {
   anchor: string | null;
 }
 
+// /docs/[<lang>/]<category>/<page>[/][?query][#anchor]
+const DOCS_PAGE_LINK: RegExp =
+  /^\/docs\/(?:([^/?#]+)\/)?([^/?#]+)\/([^/?#]+)\/?(?:\?[^#]*)?(?:#(.*))?$/;
+// What the docs serve under /docs/<name>/ that is not a page.
+export const NOT_PAGE_CATEGORIES: Array<string> = [
+  "static",
+  "as-markdown",
+  "search-index",
+];
+
 /*
  * A link to a docs page, as "category/page" and its anchor; null when the
- * target is not a docs page.
+ * target is not a docs page. A link may name a language
+ * (/docs/de/<category>/<page>): the docs put the reader's own language in its
+ * place, so it is the same page.
  */
 export const parseDocsLink: (target: string) => DocsPageLink | null = (
   target: string,
 ): DocsPageLink | null => {
-  const match: RegExpMatchArray | null = target.match(
-    /^\/docs\/([^/?#]+)\/([^/?#]+)\/?(?:\?[^#]*)?(?:#(.*))?$/,
-  );
+  const match: RegExpMatchArray | null = target.match(DOCS_PAGE_LINK);
 
   if (!match) {
     return null;
   }
 
-  if (["static", "as-markdown"].includes(match[1]!)) {
+  // Three segments with no language first: deeper than a page.
+  if (
+    match[1] !== undefined &&
+    !SUPPORTED_DOCS_LANGUAGE_CODES.includes(match[1])
+  ) {
+    return null;
+  }
+
+  if (NOT_PAGE_CATEGORIES.includes(match[2]!)) {
     return null;
   }
 
   return {
-    page: `${match[1]}/${match[2]}`,
-    anchor: match[3] === undefined ? null : decodeURIComponent(match[3]),
+    page: `${match[2]}/${match[3]}`,
+    anchor: match[4] === undefined ? null : decodeAnchor(match[4]),
   };
+};
+
+/*
+ * An anchor as the heading slug it names. Anchors are percent-encoded in
+ * links; one that is not valid percent-encoding ("#100%") is kept as written,
+ * so the link is reported as broken instead of throwing.
+ */
+export const decodeAnchor: (raw: string) => string = (raw: string): string => {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 };

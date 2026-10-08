@@ -73,7 +73,7 @@ PagerDuty の `severity` は `critical`、`error`、`warning`、`info` を受け
 
 ## インバウンド (オプション)
 
-逆方向 — PagerDuty イベントから OneUptime インシデントを開く — には、**Webhook** トリガーのワークフローを追加し、PagerDuty の [V3 Webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (またはイベントオーケストレーション) をその URL に向け、**インシデントを作成** を使います。[インバウンドパターン](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime) を参照してください。
+逆方向 — PagerDuty イベントから OneUptime インシデントを開く — には、**Webhook** トリガーのワークフローを追加し、PagerDuty の [V3 Webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (またはイベントオーケストレーション) をその URL に向け、**インシデントを作成** を使います。[インバウンドパターン](/docs/integrations/index#インバウンド-別のツールが-oneuptime-にデータを送る) を参照してください。
 
 ## トラブルシューティング
 

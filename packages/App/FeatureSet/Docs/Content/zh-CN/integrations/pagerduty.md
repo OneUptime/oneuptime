@@ -73,7 +73,7 @@ PagerDuty 的 `severity` 接受 `critical`、`error`、`warning` 或 `info`。�
 
 ## 入站（可选）
 
-要反向操作——从 PagerDuty 事件创建 OneUptime 事件——添加一个带 **Webhook** 触发器的工作流，将 PagerDuty [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/)（或 Events Orchestration）指向其 URL，然后使用 **创建事件**。参见[入站模式](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime)。
+要反向操作——从 PagerDuty 事件创建 OneUptime 事件——添加一个带 **Webhook** 触发器的工作流，将 PagerDuty [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/)（或 Events Orchestration）指向其 URL，然后使用 **创建事件**。参见[入站模式](/docs/integrations/index#入站另一个工具把数据送进-oneuptime)。
 
 ## 故障排查
 
