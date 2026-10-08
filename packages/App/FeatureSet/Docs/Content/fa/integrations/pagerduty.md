@@ -73,7 +73,7 @@ PagerDuty با `dedup_key` تطبیق می‌دهد و incident اصلی را م
 
 ## ورودی (اختیاری)
 
-برای مسیر معکوس — باز کردن یک حادثه OneUptime از روی یک رویداد PagerDuty — یک گردش کاری با تریگر **Webhook** اضافه کنید و یک [وب‌هوک نسخه ۳ در PagerDuty](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (یا یک Events Orchestration) را به نشانی آن بدهید، سپس از **Create Incident** استفاده کنید. [الگوی ورودی](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime) را ببینید.
+برای مسیر معکوس — باز کردن یک حادثه OneUptime از روی یک رویداد PagerDuty — یک گردش کاری با تریگر **Webhook** اضافه کنید و یک [وب‌هوک نسخه ۳ در PagerDuty](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (یا یک Events Orchestration) را به نشانی آن بدهید، سپس از **Create Incident** استفاده کنید. [الگوی ورودی](/docs/integrations/index#ورودی-ابزاری-دیگر-داده-را-به-درون-oneuptime-میفرستد) را ببینید.
 
 ## رفع اشکال
 
