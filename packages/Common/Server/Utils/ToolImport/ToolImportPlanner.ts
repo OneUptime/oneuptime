@@ -235,7 +235,7 @@ class PlanBuilder {
         return;
       case ToolImportResourceKind.Service:
         this.snapshot.services.forEach((service: ImportedService) => {
-          this.planNamed({
+          const item: ToolImportPlanItem | null = this.planNamed({
             kind: kind,
             sourceId: service.sourceId,
             name: service.name,
@@ -245,6 +245,15 @@ class PlanBuilder {
               return getToolImportItemKey(ToolImportResourceKind.Team, id);
             }),
           });
+
+          // A service the tool has turned off is offered, not ticked.
+          if (
+            item &&
+            item.action === ToolImportAction.Create &&
+            service.isEnabled === false
+          ) {
+            item.isSelectedByDefault = false;
+          }
         });
         return;
       case ToolImportResourceKind.IncidentSeverity:

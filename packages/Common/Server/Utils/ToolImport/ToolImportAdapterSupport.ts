@@ -1,10 +1,15 @@
 import Dictionary from "../../../Types/Dictionary";
 import {
   getToolImportSourceDefinition,
+  isToolImportAddressGiven,
   resolveToolImportRegion,
   ToolImportRegion,
   ToolImportSourceDefinition,
 } from "../../../Types/ToolImport/ToolImportCatalog";
+import {
+  readToolImportApiUrl,
+  ToolImportApiAddress,
+} from "../../../Types/ToolImport/ToolImportCredentials";
 import {
   TOOL_IMPORT_MAX_DESCRIPTION_LENGTH,
   TOOL_IMPORT_MAX_NAME_LENGTH,
@@ -16,9 +21,11 @@ import {
   ToolImportNoteCode,
 } from "../../../Types/ToolImport/ToolImportNote";
 import ToolImportResourceKind from "../../../Types/ToolImport/ToolImportResourceKind";
+import { ImportedPerson } from "../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportHttpClient, {
   ToolImportHttpError,
   ToolImportHttpErrorKind,
+  ToolImportQuery,
 } from "./ToolImportHttpClient";
 import {
   ToolImportReadContext,
@@ -34,8 +41,10 @@ import {
  */
 
 /*
- * The client an adapter reads through: https://<the region's host>, the key
- * in the tool's header, and the read's request and time budget.
+ * The client an adapter reads through: https://<the region's host> (or the
+ * address the person gave, for a tool they also run themselves), the key -
+ * and its ID, where the tool pairs one with it - in the tool's own headers,
+ * the tool's pace, and the read's request and time budget.
  */
 export function createToolImportClient(data: {
   settings: ToolImportReadSettings;
@@ -55,33 +64,83 @@ export function createToolImportClient(data: {
     );
   }
 
+  let baseUrl: string = `https://${region.host}`;
+  let basePath: string = "";
+  let allowedHosts: Array<string> = definition.hosts;
+  let allowHttp: boolean = false;
+
+  if (isToolImportAddressGiven(definition)) {
+    const address: ToolImportApiAddress | null = readToolImportApiUrl(
+      data.settings.apiUrl,
+    );
+
+    if (!address) {
+      throw new ToolImportReadError(`Paste your ${definition.title} API URL.`);
+    }
+
+    baseUrl = address.origin;
+    basePath = address.basePath;
+    allowedHosts = [address.hostname];
+    // The transport decides whether plain http may go out at all.
+    allowHttp = !address.isHttps;
+  }
+
   const apiKey: string = (data.settings.apiKey || "").trim();
 
   if (!apiKey) {
     throw new ToolImportReadError(`Paste your ${definition.title} API key.`);
   }
 
-  const authorization: string =
-    definition.authorizationScheme === "GenieKey"
-      ? `GenieKey ${apiKey}`
-      : `Bearer ${apiKey}`;
+  const headers: Dictionary<string> = {};
+  const secrets: Array<string> = [apiKey];
 
-  const headers: Dictionary<string> = {
-    Authorization: authorization,
-  };
+  switch (definition.authorizationScheme) {
+    case "GenieKey":
+      headers["Authorization"] = `GenieKey ${apiKey}`;
+      break;
+    case "TokenToken":
+      headers["Authorization"] = `Token token=${apiKey}`;
+      break;
+    case "Plain":
+      headers["Authorization"] = apiKey;
+      break;
+    case "ApiIdAndKey": {
+      const apiKeyId: string = (data.settings.apiKeyId || "").trim();
+
+      if (!apiKeyId) {
+        throw new ToolImportReadError(`Paste your ${definition.title} API ID.`);
+      }
+
+      headers["X-VO-Api-Id"] = apiKeyId;
+      headers["X-VO-Api-Key"] = apiKey;
+      secrets.push(apiKeyId);
+      break;
+    }
+    case "Bearer":
+    default:
+      headers["Authorization"] = `Bearer ${apiKey}`;
+      break;
+  }
+
+  if (headers["Authorization"]) {
+    secrets.push(headers["Authorization"]);
+  }
 
   return new ToolImportHttpClient({
     toolName: definition.title,
-    baseUrl: `https://${region.host}`,
-    allowedHosts: definition.hosts,
-    headers: headers,
-    secrets: [apiKey, authorization],
+    baseUrl: baseUrl,
+    basePath: basePath,
+    allowHttp: allowHttp,
+    allowedHosts: allowedHosts,
+    headers: { ...(definition.headers || {}), ...headers },
+    secrets: secrets,
     transport: data.context.transport,
     sleep: data.context.sleep,
     now: data.context.now,
     maxRequests: data.context.maxRequests,
     deadlineAt: data.context.deadlineAt,
     requestTimeoutInMs: data.context.requestTimeoutInMs,
+    minRequestIntervalMs: definition.minRequestIntervalMs,
   });
 }
 
@@ -199,10 +258,25 @@ export function uniqueStrings(values: Array<string>): Array<string> {
 }
 
 /*
+ * Whether a tool's answer says this account cannot have the list at all:
+ * the key may not read it (403), the tool does not have it for this
+ * account (404), or the account's plan does not include it (402, as
+ * PagerDuty answers for teams on a plan without them).
+ */
+export function isListNotAvailable(error: unknown): boolean {
+  return (
+    error instanceof ToolImportHttpError &&
+    (error.kind === ToolImportHttpErrorKind.Forbidden ||
+      error.kind === ToolImportHttpErrorKind.NotFound ||
+      error.statusCode === 402)
+  );
+}
+
+/*
  * A list the key may not read, or that the tool does not have for this
- * account (a 403 or a 404), is not a failed read: the snapshot says so with
- * a CouldNotRead note naming the kind, and the import brings over the rest.
- * Anything else - the key refused, the tool down - stops the read.
+ * account (a 402, 403 or 404), is not a failed read: the snapshot says so
+ * with a CouldNotRead note naming the kind, and the import brings over the
+ * rest. Anything else - the key refused, the tool down - stops the read.
  */
 export async function readOptionalList<T>(data: {
   kind: ToolImportResourceKind;
@@ -212,11 +286,7 @@ export async function readOptionalList<T>(data: {
   try {
     return await data.read();
   } catch (error) {
-    if (
-      error instanceof ToolImportHttpError &&
-      (error.kind === ToolImportHttpErrorKind.Forbidden ||
-        error.kind === ToolImportHttpErrorKind.NotFound)
-    ) {
+    if (isListNotAvailable(error)) {
       data.notes.push(
         makeToolImportNote(ToolImportNoteCode.CouldNotRead, {
           kind: data.kind,
@@ -249,6 +319,81 @@ export function capRecords<T>(data: {
   }
 
   return data.records.slice(0, TOOL_IMPORT_MAX_RECORDS_PER_KIND);
+}
+
+/*
+ * The people a read found, by the tool's id for them, and by email for the
+ * places that name a person only by it. An id or email of nobody read is
+ * null: a schedule or a policy never names someone the preview does not
+ * list.
+ */
+export class ToolImportPeopleIndex {
+  private ids: Set<string> = new Set<string>();
+  private byEmail: Map<string, string> = new Map<string, string>();
+
+  public constructor(people: Array<ImportedPerson>) {
+    for (const person of people) {
+      this.ids.add(person.sourceId);
+
+      if (person.email) {
+        this.byEmail.set(person.email, person.sourceId);
+      }
+    }
+  }
+
+  public find(data: { id?: string; email?: string }): string | null {
+    if (data.id && this.ids.has(data.id)) {
+      return data.id;
+    }
+
+    const email: string | null = cleanEmail(data.email || "");
+
+    return email ? this.byEmail.get(email) || null : null;
+  }
+}
+
+/*
+ * Every record of an offset-paged list (PagerDuty's: `limit` and `offset`
+ * in, `more` out), `field` of each page, until a page says there is no
+ * more, comes back short, or repeats itself. At most
+ * TOOL_IMPORT_MAX_RECORDS_PER_KIND records; `hasMore` says when there were
+ * more.
+ */
+export async function readOffsetPaged(data: {
+  client: ToolImportHttpClient;
+  path: string;
+  field: string;
+  pageSize: number;
+  query?: ToolImportQuery | undefined;
+  limit?: number | undefined;
+}): Promise<{ records: Array<unknown>; hasMore: boolean }> {
+  const records: Array<unknown> = [];
+  const limit: number = data.limit ?? TOOL_IMPORT_MAX_RECORDS_PER_KIND;
+  let offset: number = 0;
+
+  for (;;) {
+    const body: Record<string, unknown> = asRecord(
+      await data.client.getJson(data.path, {
+        ...(data.query || {}),
+        limit: data.pageSize,
+        offset: offset,
+      }),
+    );
+
+    const page: Array<unknown> = asArray(body[data.field]);
+    records.push(...page);
+    offset += page.length;
+
+    const more: boolean = asBoolean(body["more"], false);
+
+    if (!more || page.length === 0) {
+      return { records: records, hasMore: false };
+    }
+
+    if (records.length >= limit) {
+      return { records: records, hasMore: true };
+    }
+  }
 }
 
 /*

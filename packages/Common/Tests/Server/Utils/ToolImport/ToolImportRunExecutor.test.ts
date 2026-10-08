@@ -284,7 +284,7 @@ describe("ToolImportRunExecutor.validateReadRequest", () => {
   test.each([
     [
       "an unknown tool",
-      { source: "PagerDuty", region: "", apiKey: "k" },
+      { source: "Elsewhere", region: "", apiKey: "k" },
       "Choose a tool to import from.",
     ],
     [
