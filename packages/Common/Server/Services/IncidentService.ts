@@ -4791,7 +4791,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
 
       const postmortemFeedMarkdown: string =
         IncidentPostmortemPublication.hasNote(noteValue)
-          ? mdText`**📘 Postmortem Note updated for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n${noteValue}`.toString()
+          ? mdText`**📘 Postmortem Note updated for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n${FeedMarkdown.asMarkdown(noteValue)}`.toString()
           : mdText`**📘 Postmortem Note cleared for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n_No postmortem note provided._`.toString();
 
       await IncidentFeedService.createIncidentFeedItem({
@@ -5790,10 +5790,12 @@ ${incidentSeverity.name}
         },
       });
 
-      const statusPageLines: (ids: Array<string>) => Promise<string> = async (
+      const statusPageLines: (
         ids: Array<string>,
-      ): Promise<string> => {
-        let lines: string = "";
+      ) => Promise<MarkdownText> = async (
+        ids: Array<string>,
+      ): Promise<MarkdownText> => {
+        const lines: Array<MarkdownText> = [];
 
         for (const id of ids) {
           const statusPage: StatusPage | undefined = statusPages.find(
@@ -5804,15 +5806,17 @@ ${incidentSeverity.name}
 
           if (!statusPage) {
             // Deleted since: its name is gone with it.
-            lines += `- A deleted status page\n`;
+            lines.push(mdText`- A deleted status page\n`);
             continue;
           }
 
           // A page name is free text: kept from turning into a link or an image.
-          lines += mdText`- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(data.projectId, statusPage.id!)).toString()})\n`;
+          lines.push(
+            mdText`- [${statusPage.name || "Untitled status page"}](${(await StatusPageService.getStatusPageLinkInDashboard(data.projectId, statusPage.id!)).toString()})\n`,
+          );
         }
 
-        return lines;
+        return FeedMarkdown.join(lines, "");
       };
 
       let markdown: string = "";

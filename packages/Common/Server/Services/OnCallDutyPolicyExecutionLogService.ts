@@ -29,7 +29,10 @@ import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import { IsNull, UpdateResult } from "typeorm";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -146,7 +149,7 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (onCallPolicy && onCallPolicy.id) {
-        let incidentOrAlertLink: string = "";
+        let incidentOrAlertLink: MarkdownText = FeedMarkdown.empty();
 
         if (createdItem.triggeredByIncidentId) {
           const projectId: ObjectID | undefined = createdItem.projectId;
@@ -162,7 +165,7 @@ export class Service extends ProjectReferencesService<Model> {
             incidentNumberResult.numberWithPrefix ||
             "#" + incidentNumberResult.number;
           incidentOrAlertLink =
-            mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`.toString();
+            mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
         }
 
         if (createdItem.triggeredByAlertId) {
@@ -173,7 +176,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertId: createdItem.triggeredByAlertId,
           });
           incidentOrAlertLink =
-            mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertId)).toString()})`.toString();
+            mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertId)).toString()})`;
         }
 
         if (createdItem.triggeredByAlertEpisodeId) {
@@ -184,7 +187,7 @@ export class Service extends ProjectReferencesService<Model> {
             episodeId: createdItem.triggeredByAlertEpisodeId,
           });
           incidentOrAlertLink =
-            mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertEpisodeId)).toString()})`.toString();
+            mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByAlertEpisodeId)).toString()})`;
         }
 
         if (createdItem.triggeredByIncidentEpisodeId) {
@@ -195,7 +198,7 @@ export class Service extends ProjectReferencesService<Model> {
             episodeId: createdItem.triggeredByIncidentEpisodeId,
           });
           incidentOrAlertLink =
-            mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByIncidentEpisodeId)).toString()})`.toString();
+            mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
         const feedInfoInMarkdown: string =
@@ -450,7 +453,7 @@ export class Service extends ProjectReferencesService<Model> {
 
 **Message:** ${onCalldutyPolicyExecutionLog.statusMessage}`.toString();
 
-          let incidentOrAlertLink: string = "";
+          let incidentOrAlertLink: MarkdownText = FeedMarkdown.empty();
 
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
             const projectId: ObjectID | undefined =
@@ -467,7 +470,7 @@ export class Service extends ProjectReferencesService<Model> {
               incidentNumberResult.numberWithPrefix ||
               "#" + incidentNumberResult.number;
             incidentOrAlertLink =
-              mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`.toString();
+              mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
           }
 
           if (onCalldutyPolicyExecutionLog.triggeredByAlertId) {
@@ -478,7 +481,7 @@ export class Service extends ProjectReferencesService<Model> {
               alertId: onCalldutyPolicyExecutionLog.triggeredByAlertId,
             });
             incidentOrAlertLink =
-              mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertId)).toString()})`.toString();
+              mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertId)).toString()})`;
           }
 
           if (onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId) {
@@ -489,7 +492,7 @@ export class Service extends ProjectReferencesService<Model> {
               episodeId: onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId,
             });
             incidentOrAlertLink =
-              mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId)).toString()})`.toString();
+              mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByAlertEpisodeId)).toString()})`;
           }
 
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId) {
@@ -501,7 +504,7 @@ export class Service extends ProjectReferencesService<Model> {
                 onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId,
             });
             incidentOrAlertLink =
-              mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId)).toString()})`.toString();
+              mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCalldutyPolicyExecutionLog.projectId!, onCalldutyPolicyExecutionLog.triggeredByIncidentEpisodeId)).toString()})`;
           }
 
           const feedInfoInMarkdown: string =

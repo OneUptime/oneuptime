@@ -177,6 +177,11 @@ const getMessageCardFenceOpening: GetMessageCardFenceOpeningFunction = (
 
 type EscapeMessageCardCodeFunction = (text: string) => string;
 
+type EscapeMessageCardCellFunction = (cell: string) => string;
+
+// A table row's cells: split at each "|" that is not escaped.
+const MESSAGE_CARD_CELL_SEPARATOR_PATTERN: RegExp = /(?<!\\)\|/;
+
 /*
  * A line of fenced code as a MessageCard section shows it: the characters
  * HTML would read escaped, so "<img ...>" or a comment in it is text.
@@ -188,6 +193,20 @@ const escapeMessageCardCode: EscapeMessageCardCodeFunction = (
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+};
+
+/*
+ * A table cell in a MessageCard's HTML table. Teams reads no Markdown
+ * inside the table, so the cell's Markdown escapes are undone - the text
+ * reads as written - and what HTML would read is escaped: a "<img ...>" in a
+ * name stays those characters.
+ */
+const escapeMessageCardCell: EscapeMessageCardCellFunction = (
+  cell: string,
+): string => {
+  return escapeMessageCardCode(
+    cell.replace(MARKDOWN_BACKSLASH_ESCAPE_PATTERN, "$1"),
+  );
 };
 
 // Microsoft Teams apps should always be single-tenant
@@ -701,7 +720,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         // Parse header row
         const headerLine: string = lines[0] || "";
         const headers: Array<string> = headerLine
-          .split("|")
+          .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
           .map((cell: string) => {
             return cell.trim();
           })
@@ -719,14 +738,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         // Header row
         html += "<tr>";
         for (const header of headers) {
-          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${header}</strong></th>`;
+          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${escapeMessageCardCell(header)}</strong></th>`;
         }
         html += "</tr>";
 
         // Data rows
         for (const row of dataRows) {
           const cells: Array<string> = row
-            .split("|")
+            .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
             .map((cell: string) => {
               return cell.trim();
             })
@@ -740,7 +759,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
           html += "<tr>";
           for (const cell of cells) {
-            html += `<td style="border: 1px solid #ddd; padding: 8px;">${cell}</td>`;
+            html += `<td style="border: 1px solid #ddd; padding: 8px;">${escapeMessageCardCell(cell)}</td>`;
           }
           html += "</tr>";
         }
@@ -897,7 +916,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           name.toLowerCase() === "description" ||
           name.toLowerCase() === "note"
         ) {
-          bodyTextParts.push(mdText`**${name}:** ${value}`.toString());
+          // Both parts come out of the Markdown line: they stay Markdown.
+          bodyTextParts.push(
+            mdText`**${FeedMarkdown.asMarkdown(name)}:** ${FeedMarkdown.asMarkdown(value)}`.toString(),
+          );
         } else {
           facts.push({ name: name, value: value });
         }
@@ -3926,10 +3948,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
        * The answer is written from telemetry, which can carry text meant to
        * steer the model, and it is posted to a chat: it stays the Markdown
        * the model wrote, with no image, no link whose words hide where it
-       * goes, no HTML tag and no mention in it (FeedMarkdown.aiWritten).
-       * A citation's label is text.
+       * goes, no HTML tag and no mention in it, fenced code included
+       * (FeedMarkdown.aiWrittenForTeams). A citation's label is text.
        */
-      let replyText: MarkdownText = FeedMarkdown.aiWritten(
+      let replyText: MarkdownText = FeedMarkdown.aiWrittenForTeams(
         result.contentInMarkdown,
       );
 
@@ -4117,7 +4139,7 @@ If you need to report an incident or check historical incidents, please visit th
 
         if (incident.description) {
           const desc: string = incident.description.replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
         message += mdText`• [Open in Dashboard](${incidentUrl.toString()})\n\n`;
@@ -4224,7 +4246,7 @@ Check back later for upcoming maintenance windows.`;
 
         if (event.description) {
           const desc: string = event.description.replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
         message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
@@ -4330,7 +4352,7 @@ All systems are currently operating normally.`;
 
         if (event.description) {
           const desc: string = event.description.replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
         message += mdText`• [View Event](${eventUrl.toString()})\n\n`;
@@ -4446,7 +4468,7 @@ All monitoring checks are passing normally.`;
 
         if (alert.description) {
           const desc: string = alert.description.replace(/\s+/g, " ");
-          message += mdText`• **Description:** ${desc.substring(0, 180)}${desc.length > 180 ? "..." : ""}\n`;
+          message += mdText`• **Description:** ${FeedMarkdown.asMarkdown(desc.substring(0, 180))}${desc.length > 180 ? "..." : ""}\n`;
         }
 
         message += mdText`• [Open in Dashboard](${alertUrl.toString()})\n\n`;

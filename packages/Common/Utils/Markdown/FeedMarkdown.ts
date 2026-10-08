@@ -1207,6 +1207,9 @@ const renderUncached: RenderUncachedFunction = (
   );
 };
 
+// A "<" that something follows and that is not broken already: where a tag could start.
+const TAG_START_PATTERN: RegExp = /<(?![\s\u2060])/g;
+
 export interface BulletListOptions {
   // The only bullet when there are no items, as text: "(no named labels)".
   whenEmpty?: string | undefined;
@@ -1340,6 +1343,25 @@ export default class FeedMarkdown {
    */
   public static aiWritten(markdown: string | null | undefined): MarkdownText {
     return makeMarkdownText(neutralizeAiWrittenMarkdown(markdown));
+  }
+
+  /**
+   * Markdown OneUptime AI wrote, for a Microsoft Teams bot message: as
+   * aiWritten, and a "<" in fenced code is broken as well (an invisible word
+   * joiner after it). The other renderers show what is fenced as text and
+   * the Teams message card escapes it, but how Teams treats HTML inside the
+   * code of a bot message is not documented - so no "<img ...>" in a fence
+   * can be read as a tag there. Outside code, aiWritten broke them already.
+   */
+  public static aiWrittenForTeams(
+    markdown: string | null | undefined,
+  ): MarkdownText {
+    return makeMarkdownText(
+      neutralizeAiWrittenMarkdown(markdown).replace(
+        TAG_START_PATTERN,
+        `<${WORD_JOINER}`,
+      ),
+    );
   }
 
   /**

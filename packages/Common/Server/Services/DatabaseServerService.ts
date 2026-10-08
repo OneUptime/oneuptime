@@ -388,10 +388,11 @@ interface DatabaseServerCreationContext {
 // The Created feed item of a row no person added (describeCreationOrigin).
 interface DatabaseServerCreationOrigin {
   emoji: string;
-  // Follows the database's link: "was created automatically: detected from ...".
+  // Follows the database's link: "was created automatically: detected from ...". Text.
   summary: string;
   // The "**Created by**" line.
-  createdBy: string;
+  createdBy: MarkdownText;
+  // Text.
   explanation: string;
 }
 
@@ -3694,7 +3695,7 @@ export class Service extends ProjectReferencesService<Model> {
       markdown = {
         feedInfoInMarkdown: created.feedInfoInMarkdown,
         moreInformationInMarkdown:
-          mdText`${created.moreInformationInMarkdown}\n\n${discoveredFrom}`.toString(),
+          mdText`${FeedMarkdown.asMarkdown(created.moreInformationInMarkdown)}\n\n${discoveredFrom}`.toString(),
       };
     } else {
       /*
@@ -3705,27 +3706,30 @@ export class Service extends ProjectReferencesService<Model> {
       const origin: DatabaseServerCreationOrigin =
         await this.describeCreationOrigin(createdItem, context);
 
-      const details: Array<string> = [];
+      const details: Array<MarkdownText> = [];
       if (createdItem.databaseIdentifier) {
         details.push(
-          mdText`**Database identifier**: \`${createdItem.databaseIdentifier}\``.toString(),
+          mdText`**Database identifier**: \`${createdItem.databaseIdentifier}\``,
         );
       }
       if (createdItem.description) {
         details.push(
-          mdText`**Description**: ${FeedMarkdown.asMarkdown(createdItem.description)}`.toString(),
+          mdText`**Description**: ${FeedMarkdown.asMarkdown(createdItem.description)}`,
         );
       }
 
       markdown = {
         feedInfoInMarkdown:
           mdText`${origin.emoji} ${resourceMarkdownLink} ${origin.summary}.`.toString(),
-        moreInformationInMarkdown: [
-          origin.createdBy,
-          mdText`**How it was created**: ${origin.explanation}`.toString(),
-          discoveredFrom,
-          ...details,
-        ].join("\n\n"),
+        moreInformationInMarkdown: FeedMarkdown.join(
+          [
+            origin.createdBy,
+            mdText`**How it was created**: ${origin.explanation}`,
+            discoveredFrom,
+            ...details,
+          ],
+          "\n\n",
+        ).toString(),
       };
     }
 
@@ -3751,8 +3755,7 @@ export class Service extends ProjectReferencesService<Model> {
     row: Model,
     context: DatabaseServerCreationContext | undefined,
   ): Promise<DatabaseServerCreationOrigin> {
-    const automatic: string =
-      "**Created by**: No user. OneUptime created this database on its own.";
+    const automatic: MarkdownText = mdText`**Created by**: No user. OneUptime created this database on its own.`;
     const endpoint: string = describeCreationEndpoint(row, context);
 
     switch (row.discoverySource) {
@@ -3835,8 +3838,7 @@ export class Service extends ProjectReferencesService<Model> {
         return {
           emoji: "🚀",
           summary: "was added manually",
-          createdBy:
-            "**Created by**: An API key or integration, not a signed-in user.",
+          createdBy: mdText`**Created by**: An API key or integration, not a signed-in user.`,
           explanation:
             "Added from the OneUptime dashboard or through the OneUptime API.",
         };

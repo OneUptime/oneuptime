@@ -26,7 +26,10 @@ import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -180,9 +183,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createdModel.onCallDutyPolicy?.id;
 
     if (feedOnCallDutyPolicyId) {
-      const noCoverageSuffix: string = userOnSchedule
-        ? ""
-        : " ⚠️ **No one is currently on call in this schedule**, so alerts escalating to this rule will not notify anyone until coverage resumes.";
+      const noCoverageSuffix: MarkdownText = userOnSchedule
+        ? FeedMarkdown.empty()
+        : mdText` ⚠️ **No one is currently on call in this schedule**, so alerts escalating to this rule will not notify anyone until coverage resumes.`;
 
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: feedOnCallDutyPolicyId,

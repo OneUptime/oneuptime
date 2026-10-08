@@ -120,7 +120,10 @@ import ProbeMonitorsNotification, {
   ProbeMonitorsNotificationContent,
   ProbeMonitorsRecipient,
 } from "../Utils/Monitor/ProbeMonitorsNotification";
-import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
@@ -1994,7 +1997,7 @@ export class Service extends ProjectReferencesService<Model> {
           
 **${createdItem.name?.trim() || "No name provided."}**:
 
-${createdItem.description?.trim() || "No description provided."}
+${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description provided.")}
     
 `.toString();
 

@@ -1258,15 +1258,13 @@ export class Service extends ProjectReferencesService<Model> {
     } as LogAttributes);
 
     /*
-     * The Slack and Teams welcome messages are Markdown, and the status
-     * page's name is plain text that its admins typed: escaped in the
-     * heading, and inside the link's own text, so it reads as typed and
+     * The Slack and Teams welcome messages below are Markdown, and the status
+     * page's name is plain text that its admins typed: mdText escapes it in
+     * the heading and inside the link's own text, so it reads as typed and
      * cannot become a link, an image, raw HTML or a chat mention.
+     *
+     * createdItem carries the unsubscribe token onBeforeCreate minted.
      */
-    const statusPageNameInMarkdown: string = statusPageName;
-    const statusPageNameInLinkText: string = statusPageName;
-
-    // createdItem carries the unsubscribe token onBeforeCreate minted.
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
       createdItem,
@@ -1388,11 +1386,11 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
       const slackMessage: string =
-        mdText`## 📢 New Subscription to ${statusPageNameInMarkdown}
+        mdText`## 📢 New Subscription to ${statusPageName}
 
 **You have successfully subscribed to receive status updates!**
 
-🔗 **Status Page:** [${statusPageNameInLinkText}](${statusPageURL})
+🔗 **Status Page:** [${statusPageName}](${statusPageURL})
 🔕 **Unsubscribe:** [Stop these notifications](${unsubscribeLink})
 
 You will receive real-time notifications for:
@@ -1472,11 +1470,11 @@ Stay informed about service availability! 🚀`.toString();
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
       const teamsMessage: string =
-        mdText`## 📢 New Subscription to ${statusPageNameInMarkdown}
+        mdText`## 📢 New Subscription to ${statusPageName}
 
 **You have successfully subscribed to receive status updates!**
 
-🔗 **Status Page:** [${statusPageNameInLinkText}](${statusPageURL})
+🔗 **Status Page:** [${statusPageName}](${statusPageURL})
 🔕 **Unsubscribe:** [Stop these notifications](${unsubscribeLink})
 
 You will receive real-time notifications for:
