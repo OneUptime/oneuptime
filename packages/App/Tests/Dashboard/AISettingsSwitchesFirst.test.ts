@@ -21,6 +21,7 @@ import {
   getProjectAiNotices,
   getProjectAiProviderState,
   getProjectAiState,
+  getProjectAiSwitchesInOrder,
   getProjectAiSwitchTestId,
   isAiLaneAdvancedConfigured,
   isAiLaneAdvancedValueSet,
@@ -167,11 +168,16 @@ const CODE_FIXES_COLUMN: RegExp = /CodeFixes$/;
 
 /*
  * The switches a new project starts without: fixing new incidents and
- * alerts changes infrastructure, so a project turns it on itself.
+ * alerts changes infrastructure, so a project turns it on itself - and the
+ * pull requests under it are part of fixing, so they start off with it.
  */
 const OFF_FOR_NEW_PROJECTS: Array<string> = [
   "enableAutomaticIncidentRemediation",
   "enableAutomaticAlertRemediation",
+  "enableAutomaticIncidentCodeFixes",
+  "enableIncidentInstrumentationFixTasks",
+  "enableAutomaticAlertCodeFixes",
+  "enableAlertInstrumentationFixTasks",
 ];
 
 // The cards under More settings that hold Project columns, not rules.
@@ -181,9 +187,10 @@ const COLUMN_CARDS: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS.filter(
   },
 );
 
+// Every switch on the pages, the ones under a switch too.
 const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
-  ...AI_LANE_SWITCHES[AiLane.Incident],
-  ...AI_LANE_SWITCHES[AiLane.Alert],
+  ...getProjectAiSwitchesInOrder(AI_LANE_SWITCHES[AiLane.Incident]),
+  ...getProjectAiSwitchesInOrder(AI_LANE_SWITCHES[AiLane.Alert]),
   ...AI_INSIGHTS_SWITCHES,
 ];
 
@@ -224,7 +231,7 @@ describe("every AI behaviour is a switch", () => {
     const onPages: Array<string> = Array.from(new Set(columnsOf(ALL_SWITCHES)));
 
     // A walk that found nothing would pass vacuously.
-    expect(fromServer.length).toBeGreaterThanOrEqual(10);
+    expect(fromServer.length).toBeGreaterThanOrEqual(6);
     expect(
       onPages
         .filter((column: string): boolean => {
@@ -343,8 +350,6 @@ describe("every AI behaviour is a switch", () => {
       "Investigate new incidents",
       "Fix new incidents automatically",
       "Draft a postmortem when an incident resolves",
-      "Open a fix pull request when an investigation finds a code change",
-      "Open a pull request that adds missing telemetry",
     ]);
     expect(
       AI_LANE_SWITCHES[AiLane.Alert].map(
@@ -352,12 +357,21 @@ describe("every AI behaviour is a switch", () => {
           return definition.title;
         },
       ),
-    ).toEqual([
-      "Investigate new alerts",
-      "Fix new alerts automatically",
-      "Open a fix pull request when an investigation finds a code change",
-      "Open a pull request that adds missing telemetry",
-    ]);
+    ).toEqual(["Investigate new alerts", "Fix new alerts automatically"]);
+
+    // The pull requests, under fixing on each page.
+    for (const lane of [AiLane.Incident, AiLane.Alert]) {
+      expect(
+        (AI_LANE_SWITCHES[lane][1]!.children || []).map(
+          (definition: ProjectAiSwitchDefinition<string>): string => {
+            return definition.title;
+          },
+        ),
+      ).toEqual([
+        "Open a fix pull request when an investigation finds a code change",
+        "Open a pull request that adds missing telemetry",
+      ]);
+    }
     expect(
       AI_INSIGHTS_SWITCHES.map(
         (definition: ProjectAiSwitchDefinition<string>): string => {
@@ -413,7 +427,7 @@ describe("every AI behaviour is a switch", () => {
 
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
       const codeFix: ProjectAiSwitchDefinition<string> | undefined =
-        AI_LANE_SWITCHES[lane].find(
+        getProjectAiSwitchesInOrder(AI_LANE_SWITCHES[lane]).find(
           (definition: ProjectAiSwitchDefinition<string>): boolean => {
             return CODE_FIXES_COLUMN.test(definition.column);
           },

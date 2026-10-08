@@ -22,8 +22,10 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  * The AUTOMATIC form of the FixFromIncident trigger: a durably Recommended
  * investigation (per the structured G6 signal) enqueues a fix-PR CodeFix
  * run with no human click — but ONLY for projects with the setting on for
- * the investigation's incident or alert lane (both columns default FALSE;
- * new projects get them on), only
+ * the investigation's incident or alert lane AND that lane's fixing switch
+ * on ("Fix new incidents automatically" or alerts): the pull request is
+ * part of fixing (Types/AI/AutomaticFixSwitches). All four columns default
+ * FALSE, and new projects start with them off. Only
  * when a GitHub-App repo exists to open the PR against, at most one
  * non-terminal run per subject, and inside the daily fix-run budget. It
  * runs as a post-recommendation follow-up, so it must NEVER throw,
@@ -43,12 +45,19 @@ const enqueueSubjectCodeFixRun: typeof SubjectCodeFixRun.enqueueSubjectCodeFixRu
 
 function fakeProject(data?: {
   enableAi?: boolean;
+  enableAutomaticIncidentRemediation?: boolean;
+  enableAutomaticAlertRemediation?: boolean;
   enableAutomaticIncidentCodeFixes?: boolean;
   enableAutomaticAlertCodeFixes?: boolean;
 }): Project {
   return {
     id: projectId,
     enableAi: data?.enableAi ?? true,
+    // Fixing on: the pull requests are part of it.
+    enableAutomaticIncidentRemediation:
+      data?.enableAutomaticIncidentRemediation ?? true,
+    enableAutomaticAlertRemediation:
+      data?.enableAutomaticAlertRemediation ?? true,
     enableAutomaticIncidentCodeFixes:
       data?.enableAutomaticIncidentCodeFixes ?? true,
     enableAutomaticAlertCodeFixes: data?.enableAutomaticAlertCodeFixes ?? true,
@@ -105,6 +114,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     const project: Project = {
       id: projectId,
       enableAi: true,
+      enableAutomaticIncidentRemediation: true,
       // enableAutomaticIncidentCodeFixes deliberately absent.
     } as unknown as Project;
 
@@ -118,6 +128,102 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toMatch(/not opted in/);
+  });
+
+  test("the fixing switch is strict too: unset (a row read without it) never enqueues", () => {
+    const project: Project = {
+      id: projectId,
+      enableAi: true,
+      // enableAutomaticIncidentRemediation deliberately absent.
+      enableAutomaticIncidentCodeFixes: true,
+    } as unknown as Project;
+
+    const decision: AutoFixTaskGateDecision =
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project,
+        incidentId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
+
+    expect(decision.enqueue).toBe(false);
+    expect(decision.reason).toMatch(/fixing new incidents automatically off/);
+  });
+
+  /*
+   * "It should actually be a child of 'Fix new alerts automatically'" - the
+   * maintainer. With the lane's fixing switch off, its fix pull request
+   * switch does nothing, however it is set.
+   */
+  test.each([
+    ["incident", { incidentId }, { enableAutomaticIncidentRemediation: false }],
+    ["alert", { alertId }, { enableAutomaticAlertRemediation: false }],
+  ] as Array<
+    [
+      string,
+      { incidentId?: ObjectID; alertId?: ObjectID },
+      Record<string, boolean>,
+    ]
+  >)(
+    "%s: fixing off means no automatic fix pull request, though its own switch is on",
+    (
+      label: string,
+      subject: { incidentId?: ObjectID; alertId?: ObjectID },
+      fixOff: Record<string, boolean>,
+    ) => {
+      const decision: AutoFixTaskGateDecision =
+        FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+          project: fakeProject(fixOff),
+          ...subject,
+          hasConnectedRepository: true,
+          existingRun: null,
+        });
+
+      expect(decision.enqueue).toBe(false);
+      expect(decision.reason).toBe(
+        `project has fixing new ${label}s automatically off, and its fix pull requests open only while it is on`,
+      );
+    },
+  );
+
+  test("fixing off wins over a missing repository and a live run: the first thing it says is fixing", () => {
+    const decision: AutoFixTaskGateDecision =
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project: fakeProject({
+          enableAutomaticIncidentRemediation: false,
+          enableAutomaticIncidentCodeFixes: false,
+        }),
+        incidentId,
+        hasConnectedRepository: false,
+        existingRun: fakeRun(),
+      });
+
+    expect(decision.enqueue).toBe(false);
+    expect(decision.reason).toMatch(/fixing new incidents automatically off/);
+  });
+
+  test("one lane's fixing does not open the other lane's pull requests", () => {
+    const project: Project = fakeProject({
+      enableAutomaticIncidentRemediation: true,
+      enableAutomaticAlertRemediation: false,
+    });
+
+    expect(
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project,
+        incidentId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).enqueue,
+    ).toBe(true);
+    expect(
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project,
+        alertId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).enqueue,
+    ).toBe(false);
   });
 
   test("an explicit false flag never enqueues", () => {
@@ -377,6 +483,44 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
     expect(enqueue).not.toHaveBeenCalled();
   });
 
+  test.each([
+    ["incident", { incidentId }, { enableAutomaticIncidentRemediation: false }],
+    ["alert", { alertId }, { enableAutomaticAlertRemediation: false }],
+  ] as Array<
+    [
+      string,
+      { incidentId?: ObjectID; alertId?: ObjectID },
+      Record<string, boolean>,
+    ]
+  >)(
+    "%s: a project with fixing off skips cheaply — no budget, repository, dedupe or investigation read, nothing enqueued",
+    async (
+      _label: string,
+      subject: { incidentId?: ObjectID; alertId?: ObjectID },
+      fixOff: Record<string, boolean>,
+    ) => {
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(fakeProject(fixOff));
+      (AIRunService.findOneBy as unknown as jest.Mock).mockClear();
+
+      await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation(
+        {
+          projectId,
+          investigationRunId,
+          analysisMarkdown,
+          ...subject,
+        },
+      );
+
+      expect(AIRunService.findOneBy).not.toHaveBeenCalled();
+      expect(getBudgetStatus).not.toHaveBeenCalled();
+      expect(hasRepository).not.toHaveBeenCalled();
+      expect(findNonTerminalRun).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalled();
+    },
+  );
+
   test("the alert opt-in cannot enable an automatic incident code fix", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
       fakeProject({
@@ -496,10 +640,12 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
       incidentId,
     });
 
+    // Enable AI, the incident fixing switch and its code-fix switch.
     expect(findProject).toHaveBeenCalledWith(
       expect.objectContaining({
         select: {
           enableAi: true,
+          enableAutomaticIncidentRemediation: true,
           enableAutomaticIncidentCodeFixes: true,
         },
       }),
@@ -542,6 +688,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
       expect.objectContaining({
         select: {
           enableAi: true,
+          enableAutomaticAlertRemediation: true,
           enableAutomaticAlertCodeFixes: true,
         },
       }),

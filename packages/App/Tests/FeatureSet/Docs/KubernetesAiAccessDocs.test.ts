@@ -984,8 +984,12 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(enabling).not.toContain("**off by default**. To enable them");
   });
 
-  it("says the other AI features on the page are on for new projects too", () => {
+  it("says postmortem drafts and AI Insights are on for new projects too, and fixing with its pull requests is not", () => {
+    expect(enabling).toContain("So are postmortem drafts and AI Insights.");
     expect(enabling).toContain(
+      "Fixing starts off, and so do the pull requests that are part of it",
+    );
+    expect(enabling).not.toContain(
       "So is every other AI feature on this page: postmortem drafts, automatic code fixes and AI Insights.",
     );
   });
@@ -1019,12 +1023,22 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
       "enableAutomaticIncidentInvestigation",
       "enableAutomaticAlertInvestigation",
       "enableAutomaticPostmortemDraft",
-      "enableAutomaticIncidentCodeFixes",
-      "enableAutomaticAlertCodeFixes",
       "enableAiInsights",
       "enableInsightFixTasks",
     ]) {
       expect(list).toContain(`"${column}"`);
+    }
+
+    // Fixing, and the pull requests that are part of it, start off.
+    for (const column of [
+      "enableAutomaticIncidentRemediation",
+      "enableAutomaticAlertRemediation",
+      "enableAutomaticIncidentCodeFixes",
+      "enableAutomaticAlertCodeFixes",
+      "enableIncidentInstrumentationFixTasks",
+      "enableAlertInstrumentationFixTasks",
+    ]) {
+      expect(list).not.toContain(`"${column}"`);
     }
 
     expect(body).toContain("of NEW_PROJECT_AI_DEFAULT_COLUMNS");
@@ -1065,18 +1079,22 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(postmortem).not.toMatch(/off by default/i);
   });
 
-  it("says automatic code fixes and AI Insights are on for new projects", () => {
+  it("says automatic code fixes are part of fixing and start off, and AI Insights is on for new projects", () => {
     const codeFixes: string = getSection(page, "## Automatic code fixes");
     const insights: string = getSection(
       page,
       "## Insights — proactive detection",
     );
 
-    expect(codeFixes).toContain("**on by default for new projects**");
+    expect(codeFixes).toContain(
+      "is part of fixing: it sits under **Fix new incidents automatically** on **Incidents > AI > Settings**",
+    );
+    expect(codeFixes).toContain("Both start **off**, for new projects too");
+    expect(codeFixes).not.toContain("**on by default for new projects**");
+    expect(codeFixes).not.toContain("set independently");
     expect(insights).toContain(
       "All three settings are **on by default for new projects**",
     );
-    expect(codeFixes).not.toMatch(/off by default/i);
     expect(insights).not.toMatch(/off by default/i);
   });
 

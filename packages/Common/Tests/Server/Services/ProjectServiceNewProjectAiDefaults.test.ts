@@ -19,7 +19,8 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * New projects start with every AI feature on.
+ * New projects start with every AI feature on - but fixing, and the pull
+ * requests that are part of it.
  *
  * Each per-feature AI switch on Project is switched on by
  * ProjectService.onBeforeCreate when the create request leaves it unset —
@@ -52,23 +53,37 @@ const USER_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 type AiFlags = NewProjectAiDefaults;
 
 /*
- * The switches a new project starts without: fixing new incidents and
- * alerts changes infrastructure, so a project turns it on itself.
+ * The fixing switches: fixing new incidents and alerts changes
+ * infrastructure, so a project turns it on itself.
  */
-const OFF_FOR_NEW_PROJECTS: Array<string> = [
+const FIX_SWITCHES: Array<string> = [
   "enableAutomaticIncidentRemediation",
   "enableAutomaticAlertRemediation",
 ];
 
-// The ten switches, written out so a column dropped from the list fails here.
+/*
+ * The pull requests that are part of fixing (Types/AI/AutomaticFixSwitches):
+ * they open only while fixing is on, and come on with it, so a new project
+ * starts with them off like fixing.
+ */
+const FIX_PULL_REQUEST_SWITCHES: Array<string> = [
+  "enableAutomaticIncidentCodeFixes",
+  "enableIncidentInstrumentationFixTasks",
+  "enableAutomaticAlertCodeFixes",
+  "enableAlertInstrumentationFixTasks",
+];
+
+// The switches a new project starts without.
+const OFF_FOR_NEW_PROJECTS: Array<string> = [
+  ...FIX_SWITCHES,
+  ...FIX_PULL_REQUEST_SWITCHES,
+];
+
+// The six switches, written out so a column dropped from the list fails here.
 const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticIncidentInvestigation",
   "enableAutomaticAlertInvestigation",
   "enableAutomaticPostmortemDraft",
-  "enableIncidentInstrumentationFixTasks",
-  "enableAlertInstrumentationFixTasks",
-  "enableAutomaticIncidentCodeFixes",
-  "enableAutomaticAlertCodeFixes",
   "enableAiInsights",
   "enableInsightFixTasks",
   "autoArchiveNonActionableExceptions",
@@ -115,7 +130,7 @@ async function runOnBeforeCreate(
 }
 
 describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
-  it("lists the ten per-feature AI switches", () => {
+  it("lists the six per-feature AI switches", () => {
     expect([...NEW_PROJECT_AI_DEFAULT_COLUMNS].sort()).toEqual(
       [...AI_SWITCHES].sort(),
     );
@@ -126,7 +141,8 @@ describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
    * whose name, title or description mentions AI is a feature switch,
    * except the ones named below. The balance and notification-sent columns
    * are bookkeeping, Enable AI defaults to true in the column, and the
-   * automatic-fix switches start off on purpose.
+   * automatic-fix switches - with the pull requests that are part of
+   * fixing - start off on purpose.
    */
   it("covers every boolean AI feature switch on the Project model", () => {
     const project: Project = new Project();
@@ -204,14 +220,64 @@ describe("the automatic-fix switches", () => {
     const project: Project = new Project();
     project.name = "Acme";
     project.enableAutomaticIncidentRemediation = true;
+    project.enableAutomaticIncidentCodeFixes = true;
 
     const created: Project = await runOnBeforeCreate(project);
 
     expect(created.enableAutomaticIncidentRemediation).toBe(true);
+    expect(created.enableAutomaticIncidentCodeFixes).toBe(true);
     expect(created.enableAutomaticAlertRemediation).toBeUndefined();
+    // The server turns no pull-request switch on with fixing.
+    expect(created.enableIncidentInstrumentationFixTasks).toBeUndefined();
 
     jest.restoreAllMocks();
   });
+
+  it.each(FIX_PULL_REQUEST_SWITCHES)(
+    "%s says it is part of fixing, names its fixing switch, and starts off",
+    (column: string) => {
+      const description: string | undefined = new Project().getTableColumnMetadata(
+        column,
+      ).description;
+      const fixColumn: string = column.includes("Incident")
+        ? "enableAutomaticIncidentRemediation"
+        : "enableAutomaticAlertRemediation";
+
+      expect(description).toContain("Part of fixing: it acts only while");
+      expect(description).toContain(fixColumn);
+      expect(description).toContain("Off for new projects.");
+      expect(description).not.toContain(
+        "On for new projects created in OneUptime",
+      );
+    },
+  );
+
+  it.each(FIX_SWITCHES)(
+    "%s names the pull-request switches it holds, and says the API sets them in the same request",
+    (column: string) => {
+      const description: string | undefined = new Project().getTableColumnMetadata(
+        column,
+      ).description;
+      const pullRequests: Array<string> = FIX_PULL_REQUEST_SWITCHES.filter(
+        (pullRequest: string): boolean => {
+          return (
+            pullRequest.includes("Incident") === column.includes("Incident")
+          );
+        },
+      );
+
+      expect(pullRequests).toHaveLength(2);
+      for (const pullRequest of pullRequests) {
+        expect(description).toContain(pullRequest);
+      }
+      expect(description).toContain(
+        "they open pull requests only while this is on",
+      );
+      expect(description).toContain(
+        "through the API, set them in the same request",
+      );
+    },
+  );
 });
 
 describe("ProjectService.applyNewProjectAiDefaults", () => {

@@ -6,6 +6,7 @@ import {
   AI_LANE_ADVANCED_CARDS,
   ENABLE_AI_COLUMN,
   getAiLaneAdvancedCardColumns,
+  getProjectAiSwitchesInOrder,
   ProjectAiSwitchDefinition,
   isAiLaneRulesCard,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
@@ -138,10 +139,11 @@ function formFieldsOf(cards: Array<SettingsCard>): Array<string> {
   });
 }
 
+// Every switch's column, in drawn order: the ones under a switch too.
 function columnsOf(
   switches: Array<ProjectAiSwitchDefinition<string>>,
 ): Array<string> {
-  return switches.map(
+  return getProjectAiSwitchesInOrder(switches).map(
     (definition: ProjectAiSwitchDefinition<string>): string => {
       return definition.column;
     },
@@ -168,12 +170,16 @@ const RETIRED_PROJECT_AI_SWITCH_TITLES: Array<string> = [
 
 const POSTMORTEM_DRAFT_COLUMN: string = "enableAutomaticPostmortemDraft";
 
+/*
+ * In drawn order: the two pull requests are part of fixing, under "Fix new
+ * incidents automatically", and the postmortem follows them.
+ */
 const INCIDENT_SWITCH_COLUMNS: Array<string> = [
   "enableAutomaticIncidentInvestigation",
   "enableAutomaticIncidentRemediation",
-  POSTMORTEM_DRAFT_COLUMN,
   "enableAutomaticIncidentCodeFixes",
   "enableIncidentInstrumentationFixTasks",
+  POSTMORTEM_DRAFT_COLUMN,
 ];
 
 const ALERT_SWITCH_COLUMNS: Array<string> = [
