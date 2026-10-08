@@ -494,6 +494,35 @@ export const isUnitLevelFor: (
 };
 
 /**
+ * Whether drilling into a site opens its devices (the site's device
+ * topology) rather than a map of the sites beneath it.
+ *
+ * A unit-level site always does: its type says it holds devices, not more
+ * sites. So does any other site that has no sites under it but has devices
+ * of its own - an office or a data center modelled with a type that is not
+ * unit level. Before, such a site opened on "No child sites here yet" with
+ * its devices nowhere on the page, which is the opposite of what someone
+ * clicking a site with devices in it wants. A site with neither children
+ * nor devices keeps the container view, whose empty state says sites and
+ * devices added under it will appear there.
+ */
+export const opensDeviceTopology: (site: {
+  isUnitLevel: boolean;
+  childSiteCount: number;
+  ownDeviceCount: number;
+}) => boolean = (site: {
+  isUnitLevel: boolean;
+  childSiteCount: number;
+  ownDeviceCount: number;
+}): boolean => {
+  if (site.isUnitLevel) {
+    return true;
+  }
+
+  return site.childSiteCount === 0 && site.ownDeviceCount > 0;
+};
+
+/**
  * The map's coverage line: how much of the network the frame is holding.
  *
  * A count that quietly shrinks as somebody zooms reads as sites

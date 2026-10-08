@@ -1,3 +1,7 @@
+import {
+  NetworkQuickAction,
+  getNetworkQuickActionRoute,
+} from "../Network/NetworkQuickActions";
 import NetworkDeviceGraph from "./NetworkDeviceGraph";
 import NetworkTopologyToolbar from "./NetworkTopologyToolbar";
 import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
@@ -61,9 +65,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { APP_API_URL } from "Common/UI/Config";
-import Route from "Common/Types/API/Route";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -950,14 +951,17 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           setSelectedNodeId(null);
           setSelectedEdgeKey(edgeKeyForEdge(edge));
         }}
+        /*
+         * The way forward from an empty map: the Add Device form itself,
+         * opened by the Devices list (NetworkQuickActions), rather than the
+         * list with a button on it somewhere.
+         */
         emptyStateFooter={
           <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICES] as Route,
-            )}
+            to={getNetworkQuickActionRoute(NetworkQuickAction.AddDevice)}
             className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
           >
-            Set up network device monitoring
+            Add a device
           </Link>
         }
       />
