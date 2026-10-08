@@ -357,17 +357,26 @@ Pin \`ref\` to a published tag: this repository is regenerated on every release,
    * moved block that carries their state over.
    */
   private generateRenamedSection(): string {
-    const renamed: Array<TerraformResource> = this.resources.filter(
-      (resource: TerraformResource) => {
+    const renamed: Array<TerraformResource> = this.resources
+      .filter((resource: TerraformResource) => {
         return Boolean(resource.legacyName);
-      },
-    );
+      })
+      .sort((a: TerraformResource, b: TerraformResource) => {
+        return a.name.localeCompare(b.name);
+      });
 
     if (renamed.length === 0) {
       return "";
     }
 
     const provider: string = this.config.providerName;
+
+    // The moved example uses the plainest of them: iot_fleet, not its rules.
+    const example: TerraformResource = [...renamed].sort(
+      (a: TerraformResource, b: TerraformResource) => {
+        return a.name.length - b.name.length || a.name.localeCompare(b.name);
+      },
+    )[0]!;
 
     return `
 ## Renamed resources
@@ -386,8 +395,8 @@ To switch, rename the resource in your configuration and add a \`moved\` block, 
 
 \`\`\`terraform
 moved {
-  from = ${provider}_${renamed[0]!.legacyName}.example
-  to   = ${provider}_${renamed[0]!.name}.example
+  from = ${provider}_${example.legacyName}.example
+  to   = ${provider}_${example.name}.example
 }
 \`\`\`
 `;
