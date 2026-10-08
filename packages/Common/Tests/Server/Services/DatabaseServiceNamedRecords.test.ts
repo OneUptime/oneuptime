@@ -1,5 +1,6 @@
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import HostOwnerUserService from "../../../Server/Services/HostOwnerUserService";
+import MonitorOwnerUserService from "../../../Server/Services/MonitorOwnerUserService";
 import ProjectReferencesService from "../../../Server/Services/ProjectReferencesService";
 import StatusPageAnnouncementService from "../../../Server/Services/StatusPageAnnouncementService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -160,6 +161,8 @@ class AnnouncementService extends DatabaseService<StatusPageAnnouncement> {
   public pageAddedByHook: string | null = null;
   // A hook that narrows the update's query in place.
   public queryNarrowedByHook: boolean = false;
+  // Run by the update hook, as it runs.
+  public duringUpdateHook: (() => void) | null = null;
   public updateHookCalls: number = 0;
   public createHookCalls: number = 0;
 
@@ -185,6 +188,10 @@ class AnnouncementService extends DatabaseService<StatusPageAnnouncement> {
 
     if (this.queryNarrowedByHook) {
       (updateBy.query as Record<string, unknown>)["title"] = "Launch";
+    }
+
+    if (this.duringUpdateHook) {
+      this.duringUpdateHook();
     }
 
     return { updateBy: updateBy, carryForward: null };
@@ -480,6 +487,44 @@ describe("an update that gives a record a parent it does not have", () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
+  test("the rows it writes are read once before its hooks, with the pages they have", async () => {
+    let readsBeforeHook: number = -1;
+    service.duringUpdateHook = (): void => {
+      readsBeforeHook = rowReads.length;
+    };
+
+    await updateAnnouncement({
+      statusPages: [{ _id: PAGE_A }, { _id: PAGE_C }],
+    });
+
+    // The read that keeps the rows the editor may update, with their pages.
+    expect(readsBeforeHook).toBe(1);
+    expect(rowReadsWithPages()).toHaveLength(1);
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  test("a page every row had before the hooks is asked about on the rows a hook has the update reach instead", async () => {
+    storedPages = [PAGE_A, PAGE_B];
+    readablePages = [PAGE_A];
+    service.queryNarrowedByHook = true;
+    service.duringUpdateHook = (): void => {
+      // The rows the narrowed query reaches are on page A only.
+      storedPages = [PAGE_A];
+    };
+
+    const refusal: unknown = await refusalOf(
+      updateAnnouncement({
+        statusPages: [{ _id: PAGE_A }, { _id: PAGE_B }],
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableParentException);
+    expect((refusal as Error).message).toContain(`Status Pages "${PAGE_B}"`);
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_B] }]);
+    expect(save).not.toHaveBeenCalled();
+  });
+
   test("a hook that names a page with other letter case asks nothing more", async () => {
     service.pageAddedByHook = PAGE_C.toUpperCase();
 
@@ -585,6 +630,48 @@ describe("a write that lists records", () => {
 });
 
 describe("what decides whether a lookup is made", () => {
+  test("a write that skips its hooks has every record it names looked up, though the service's hooks would hold them to the project", async () => {
+    getJestSpyOn(service as never, "checksReferencesInProject").mockReturnValue(
+      true as never,
+    );
+
+    const announcementOnPageAWithMonitorB: () => StatusPageAnnouncement =
+      (): StatusPageAnnouncement => {
+        const announcement: StatusPageAnnouncement =
+          new StatusPageAnnouncement();
+        announcement.title = "Maintenance";
+        announcement.statusPages = asStatusPages([PAGE_A]);
+        announcement.monitors = asMonitors([MONITOR_B]);
+        return announcement;
+      };
+
+    // With its hooks, which hold the records to the project: none looked up.
+    await refusalOf(
+      service.create({
+        data: announcementOnPageAWithMonitorB(),
+        props: member([row(Permission.ProjectAdmin)]),
+      }),
+    );
+
+    expect(service.createHookCalls).toBe(1);
+    expect(parentReads).toEqual([]);
+
+    // Without them, nothing else would: each record is looked up.
+    const refusal: unknown = await refusalOf(
+      service.create({
+        data: announcementOnPageAWithMonitorB(),
+        props: { ...member([row(Permission.ProjectAdmin)]), ignoreHooks: true },
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect(parentReads).toEqual([
+      { modelType: "StatusPage", ids: [PAGE_A] },
+      { modelType: "Monitor", ids: [MONITOR_B] },
+    ]);
+    expect(service.createHookCalls).toBe(1);
+  });
+
   test("a service whose own hooks hold its references to the project says so; a plain one does not", () => {
     const asked: (service: unknown) => boolean = (target: unknown): boolean => {
       return (
@@ -823,30 +910,67 @@ describe("a create held to its create permission's scope", () => {
   });
 });
 
+// What a create's success makes of its creator (DatabaseService.autoOwnerOnCreate).
+const autoOwner: <TBaseModel extends BaseModel>(
+  modelType: { new (): TBaseModel },
+  createdItem: TBaseModel,
+  props: DatabaseCommonInteractionProps,
+) => Promise<void> = async <TBaseModel extends BaseModel>(
+  modelType: { new (): TBaseModel },
+  createdItem: TBaseModel,
+  props: DatabaseCommonInteractionProps,
+): Promise<void> => {
+  await (
+    new DatabaseService<TBaseModel>(modelType) as unknown as {
+      autoOwnerOnCreate: (
+        createdItem: TBaseModel,
+        props: DatabaseCommonInteractionProps,
+      ) => Promise<void>;
+    }
+  ).autoOwnerOnCreate(createdItem, props);
+};
+
 describe("the creator of a record with owners of its own becomes one of them", () => {
-  test("for a host too, which is no operational resource", async () => {
+  test("for an operational resource, whatever their permission to create it reaches", async () => {
+    const owners: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      MonitorOwnerUserService,
+      "create",
+    ).mockResolvedValue({} as never);
+
+    const monitor: Monitor = new Monitor();
+    monitor.id = ObjectID.generate();
+    monitor.projectId = PROJECT_ID;
+
+    const props: DatabaseCommonInteractionProps = member([
+      row(Permission.CreateProjectMonitor),
+    ]);
+
+    await autoOwner(Monitor, monitor, props);
+
+    expect(owners).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (owners.mock.calls[0]![0] as { data: BaseModel })
+          .data as unknown as Record<string, unknown>
+      )["userId"],
+    ).toEqual(props.userId);
+  });
+
+  test("for a host, which is no operational resource, when their permission to create hosts reaches only the ones they own", async () => {
     const owners: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
       HostOwnerUserService,
       "create",
     ).mockResolvedValue({} as never);
 
-    const writes: DatabaseService<Host> = new DatabaseService<Host>(Host);
-    const userId: ObjectID = ObjectID.generate();
+    const props: DatabaseCommonInteractionProps = member([
+      row(Permission.CreateHost, [], PermissionScope.Owned),
+    ]);
+    const userId: ObjectID = props.userId!;
     const host: Host = new Host();
     host.id = ObjectID.generate();
     host.projectId = PROJECT_ID;
 
-    await (
-      writes as unknown as {
-        autoOwnerOnCreate: (
-          createdItem: Host,
-          props: DatabaseCommonInteractionProps,
-        ) => Promise<void>;
-      }
-    ).autoOwnerOnCreate(host, {
-      userId: userId,
-      tenantId: PROJECT_ID,
-    });
+    await autoOwner(Host, host, props);
 
     expect(owners).toHaveBeenCalledTimes(1);
 
@@ -863,6 +987,21 @@ describe("the creator of a record with owners of its own becomes one of them", (
     expect(
       (created.data as unknown as Record<string, unknown>)["userId"],
     ).toEqual(userId);
+  });
+
+  test("but not for a host created under a permission that reaches every host, as before", async () => {
+    const owners: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      HostOwnerUserService,
+      "create",
+    ).mockResolvedValue({} as never);
+
+    const host: Host = new Host();
+    host.id = ObjectID.generate();
+    host.projectId = PROJECT_ID;
+
+    await autoOwner(Host, host, member([row(Permission.CreateHost)]));
+
+    expect(owners).not.toHaveBeenCalled();
   });
 
   test("but not for an API key's create, which no person makes", async () => {

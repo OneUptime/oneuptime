@@ -73,8 +73,8 @@ interface ModelByTableName {
 let modelsByTableName: Array<ModelByTableName> | null = null;
 let labelledModelTypes: Array<{ new (): BaseModel }> | null = null;
 
-// Every model whose records carry labels.
-function getLabelledModelTypes(): Array<{ new (): BaseModel }> {
+// Every model whose records carry labels (the read rule's and a create's).
+export function getLabelledModelTypes(): Array<{ new (): BaseModel }> {
   if (!labelledModelTypes) {
     labelledModelTypes = AllModelTypes.filter(
       (modelType: { new (): BaseModel }): boolean => {

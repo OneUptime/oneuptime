@@ -101,7 +101,7 @@ export default class OnCallDutyPolicyChildService<
       props,
     });
     if (!policy) {
-      throw new CreateScopeException(
+      throw new NotAuthorizedException(
         "You do not have permission to create configuration for this on-call policy.",
       );
     }

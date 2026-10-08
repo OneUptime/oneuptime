@@ -275,10 +275,10 @@ describe("the shared update path asks it, once, around the hooks", () => {
     const start: number = source.indexOf(
       "private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {",
     );
-    const update: string = source.slice(start, start + 6000);
+    const update: string = source.slice(start, start + 9000);
 
     const before: number = update.indexOf(
-      "await this.checkUpdateNamedRecords(updateBy)",
+      "await this.checkUpdateNamedRecords(",
     );
     const hooks: number = update.indexOf("await this.onBeforeUpdate(updateBy)");
     const after: number = update.indexOf(
@@ -354,7 +354,7 @@ describe("a create limited to owned records makes a record its creator owns", ()
     expect(withoutOwners).toEqual([]);
   });
 
-  test("the creator of any record with owner rows becomes an owner, operational resource or not", () => {
+  test("the creator of an operational resource becomes an owner, and of any other record with owner rows when their create relies on it", () => {
     const source: string = fs.readFileSync(
       path.join(SERVER_DIRECTORY, "Services/DatabaseService.ts"),
       "utf8",
@@ -363,7 +363,9 @@ describe("a create limited to owned records makes a record its creator owns", ()
     const body: string = source.slice(start, source.indexOf("\n  }\n", start));
 
     expect(start).toBeGreaterThan(-1);
-    expect(body).not.toContain("isOperationalResource");
+    expect(body).toContain(
+      "if (!isOperationalResource && !this.createReliesOnOwnership(props)) {",
+    );
     expect(body).toContain("ownerTableRegistry.get(modelName)");
 
     // The hosts, clusters and the rest carry owners, but are no operational resource.
@@ -443,6 +445,25 @@ describe("owners picked on create are asked about before the record is saved", (
     }
 
     expect(services).toBe(7);
+    expect(missing).toEqual([]);
+  });
+
+  test("every service that adds them for their creator hands that on to OwnerRuleAssignment.addOwners", () => {
+    const missing: Array<string> = [];
+
+    for (const file of listTypeScriptFiles(
+      path.join(SERVER_DIRECTORY, "Services"),
+    )) {
+      const text: string = fs.readFileSync(file, "utf8");
+
+      if (
+        text.includes("onCreatorsBehalf: boolean = false") &&
+        !text.includes("onCreatorsBehalf: onCreatorsBehalf,")
+      ) {
+        missing.push(path.basename(file));
+      }
+    }
+
     expect(missing).toEqual([]);
   });
 

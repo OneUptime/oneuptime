@@ -1,9 +1,11 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import CreateScopeException from "./CreateScopeException";
 import OwnedScopePermission from "./OwnedScopePermission";
-import ReadPermission, { LabelledReferences } from "./ReadPermission";
+import ReadPermission, {
+  getLabelledModelTypes,
+  LabelledReferences,
+} from "./ReadPermission";
 import TablePermission from "./TablePermission";
-import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -58,21 +60,6 @@ export interface CreateScope {
   isOwnedOnly: boolean;
   // The blocks with labels on the model's create permissions.
   labelledBlocks: Array<UserPermission>;
-}
-
-let labelledModelTypes: Array<DatabaseBaseModelType> | null = null;
-
-// Every model whose records carry labels.
-function getLabelledModelTypes(): Array<DatabaseBaseModelType> {
-  if (!labelledModelTypes) {
-    labelledModelTypes = AllModelTypes.filter(
-      (modelType: DatabaseBaseModelType): boolean => {
-        return Boolean(new modelType().getAccessControlColumn());
-      },
-    );
-  }
-
-  return labelledModelTypes;
 }
 
 /*
@@ -373,7 +360,10 @@ export default class CreateScopePermission {
     }
 
     for (const column of references.anyKindColumns) {
-      name(getLabelledModelTypes(), record[column]);
+      name(
+        getLabelledModelTypes() as Array<DatabaseBaseModelType>,
+        record[column],
+      );
     }
 
     // The parents it is read through, through a list (an announcement's pages).
@@ -399,14 +389,22 @@ export default class CreateScopePermission {
 
     const labelIds: Set<string> = new Set<string>();
 
-    for (const [modelType, ids] of namedIds) {
-      const labelsByRecord: Dictionary<Array<string>> =
-        await data.findRecordLabels({
-          modelType: modelType,
-          ids: Array.from(ids),
-          props: data.props,
-        });
+    // Each kind of record named, looked up at once.
+    const labelsByKind: Array<Dictionary<Array<string>>> = await Promise.all(
+      Array.from(namedIds.entries()).map(
+        ([modelType, ids]: [DatabaseBaseModelType, Set<string>]): Promise<
+          Dictionary<Array<string>>
+        > => {
+          return data.findRecordLabels({
+            modelType: modelType,
+            ids: Array.from(ids),
+            props: data.props,
+          });
+        },
+      ),
+    );
 
+    for (const labelsByRecord of labelsByKind) {
       for (const recordLabelIds of Object.values(labelsByRecord)) {
         for (const labelId of recordLabelIds || []) {
           labelIds.add(normalizeReferenceId(labelId));

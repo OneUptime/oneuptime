@@ -342,8 +342,9 @@ describe.each(CHILDREN)(
         } else {
           await expect(operation).rejects.toThrow(NotAuthorizedException);
           /*
-           * A policy outside what the create grant reaches: its own type,
-           * so the first rule of a new policy is added for its creator.
+           * A policy the caller reads but their create grant does not reach:
+           * a refusal of the create's scope (CreateScopeException), which
+           * nothing writes around.
            */
           await expect(operation).rejects.toBeInstanceOf(CreateScopeException);
           expect(createSpy).not.toHaveBeenCalled();

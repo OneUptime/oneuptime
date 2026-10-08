@@ -218,6 +218,14 @@ export interface PendingRecord {
   ownedByCreator: boolean;
 }
 
+// What an update names that checkUpdateNamedRecords asks about.
+interface UpdateNamedRecords {
+  // The parent it names, when it names one (CreatePermission.getCreateParent).
+  parent: CreateParent | null;
+  // The records it lists, by list column (RelationListPermission.getNamedIds).
+  namedIds: Dictionary<Array<string>>;
+}
+
 // What checkUpdateNamedRecords asked, for checkUpdateParentsAfterHooks.
 interface UpdateNamedRecordsChecked<TBaseModel extends BaseModel> {
   // What the parent check returned; null when the update named no parent.
@@ -555,7 +563,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data?: unknown;
     },
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
-    options: { withDeleted?: boolean } = {},
+    options: {
+      withDeleted?: boolean;
+      // More of the rows to read, for a check that comes after this one.
+      alsoSelect?: Dictionary<unknown> | undefined;
+      // Handed the rows read, with `alsoSelect`, when any are read.
+      onRows?: ((rows: Array<TBaseModel>) => void) | undefined;
+    } = {},
   ): Promise<boolean> {
     if (
       write.props.isRoot ||
@@ -587,13 +601,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const rows: Array<TBaseModel> = await this._findBy(
       {
         query: writableQuery,
-        select: { _id: true } as Select<TBaseModel>,
+        select: {
+          ...(options.alsoSelect || {}),
+          _id: true,
+        } as Select<TBaseModel>,
         skip: this.normalizePositiveNumber(write.skip) ?? 0,
         limit: this.normalizePositiveNumber(write.limit) ?? LIMIT_MAX,
         props: { isRoot: true, ignoreHooks: true },
       },
       options.withDeleted,
     );
+
+    if (options.onRows) {
+      options.onRows(rows);
+    }
 
     const rowIds: Array<string> = [];
 
@@ -2198,7 +2219,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data: data.data,
       props: data.props,
       checkedParentIds: data.checkedParentIds,
-      referencesCheckedInProject: this.checksReferencesInProject(),
+      referencesCheckedInProject: this.referencesCheckedInProjectFor(
+        data.props,
+      ),
       findReadableParentIds: async (lookup: {
         parentModelType: { new (): BaseModel };
         ids: Array<string>;
@@ -2232,6 +2255,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    */
   protected checksReferencesInProject(): boolean {
     return false;
+  }
+
+  /*
+   * Whether a write's references are held to its project by the service's
+   * own hooks (checksReferencesInProject) - never for a write that skips
+   * them (ignoreHooks): its references are looked up as any other
+   * service's are.
+   */
+  private referencesCheckedInProjectFor(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return this.checksReferencesInProject() && !props.ignoreHooks;
   }
 
   /*
@@ -2294,7 +2329,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       props: data.props,
       heldIdsByColumn: data.heldIdsByColumn,
       namedIds: namedIds,
-      referencesCheckedInProject: this.checksReferencesInProject(),
+      referencesCheckedInProject: this.referencesCheckedInProjectFor(
+        data.props,
+      ),
       findReadableIds: async (lookup: {
         modelType: { new (): BaseModel };
         ids: Array<string>;
@@ -2424,37 +2461,34 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * no hook acts on a write that is going to be refused. The rows it writes
    * are read as they are now, by the query the caller may update with: a
    * parent or a listed record a row has already is not asked about again.
-   * Returns what the parent check returned and the rows it read, for an ask
-   * after the hooks (checkUpdateParentsAfterHooks); null when nothing was
-   * asked.
+   * `named` is what the update names (getUpdateNamedRecords) and
+   * `rowsRead` the rows keepRowsCallerMayWrite read with it, when it read
+   * them. Returns what the parent check returned and the rows it read, for
+   * an ask after the hooks (checkUpdateParentsAfterHooks); null when nothing
+   * was asked.
    */
   private async checkUpdateNamedRecords(
     updateBy: UpdateBy<TBaseModel>,
+    named: UpdateNamedRecords | null,
+    rowsRead: Array<TBaseModel> | null,
   ): Promise<UpdateNamedRecordsChecked<TBaseModel> | null> {
     const props: DatabaseCommonInteractionProps = updateBy.props;
 
-    if (props.isRoot || props.isMasterAdmin) {
+    if (!named || props.isRoot || props.isMasterAdmin) {
       return null;
     }
 
-    const parent: CreateParent | null = CreatePermission.getCreateParent(
-      this.modelType,
-    );
-    const namesParent: boolean = Boolean(
-      parent && UpdatePermission.namesParent(parent, updateBy.data),
-    );
-    const namedIds: Dictionary<Array<string>> =
-      RelationListPermission.getNamedIds(this.modelType, updateBy.data);
+    const parent: CreateParent | null = named.parent;
+    const namesParent: boolean = Boolean(parent);
+    const namedIds: Dictionary<Array<string>> = named.namedIds;
     const namedLists: Array<string> = Object.keys(namedIds);
 
-    if (!namesParent && namedLists.length === 0) {
-      return null;
-    }
-
-    const rows: Array<TBaseModel> = await this.findRowsToUpdate(updateBy, [
-      ...(namesParent && parent ? [parent] : []),
-      ...namedLists,
-    ]);
+    const rows: Array<TBaseModel> =
+      rowsRead ||
+      (await this.findRowsToUpdate(
+        updateBy,
+        DatabaseService.getNamedRecordColumns(named),
+      ));
 
     const projectId: ObjectID | null =
       props.tenantId || this.getRowsProjectId(rows);
@@ -2469,7 +2503,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         heldParentIds: rows.map((row: TBaseModel): Array<string> => {
           return DatabaseService.getHeldParentIds(row, parent);
         }),
-        referencesCheckedInProject: this.checksReferencesInProject(),
+        referencesCheckedInProject: this.referencesCheckedInProjectFor(props),
         findReadableParentIds: this.getUpdateParentFinder(projectId, props),
         findParentIdsInProject: this.getProjectRecordFinder(projectId),
       });
@@ -2504,6 +2538,48 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         props: updateBy.props,
       },
     };
+  }
+
+  /*
+   * What an update names that checkUpdateNamedRecords asks about: a parent
+   * it moves its records to, the lists it gives records. Null for root and
+   * master admin callers, and for an update that names neither.
+   */
+  private getUpdateNamedRecords(
+    updateBy: UpdateBy<TBaseModel>,
+  ): UpdateNamedRecords | null {
+    const props: DatabaseCommonInteractionProps = updateBy.props;
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return null;
+    }
+
+    const parent: CreateParent | null = CreatePermission.getCreateParent(
+      this.modelType,
+    );
+    const namedIds: Dictionary<Array<string>> =
+      RelationListPermission.getNamedIds(this.modelType, updateBy.data);
+
+    const namedParent: CreateParent | null =
+      parent && UpdatePermission.namesParent(parent, updateBy.data)
+        ? parent
+        : null;
+
+    if (!namedParent && Object.keys(namedIds).length === 0) {
+      return null;
+    }
+
+    return { parent: namedParent, namedIds: namedIds };
+  }
+
+  // The columns the rows an update writes are read with for `named`.
+  private static getNamedRecordColumns(
+    named: UpdateNamedRecords,
+  ): Array<CreateParent | string> {
+    return [
+      ...(named.parent ? [named.parent] : []),
+      ...Object.keys(named.namedIds),
+    ];
   }
 
   /*
@@ -2547,10 +2623,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * After the update hooks: a hook that named other parents than the caller
-   * did has them asked about too (UpdatePermission.checkParentPermission
-   * with the parents asked about before), on the rows the update writes -
-   * the ones read before the hooks, when they were read with their parents
-   * and the hooks kept the query.
+   * did has them asked about too (UpdatePermission.checkParentPermission),
+   * on the rows the update writes. While the hooks kept what the update
+   * reaches (isReadBySameUpdate), those are the rows read before the hooks,
+   * and the parents asked about then are not asked again: each was looked
+   * up, or every one of those rows had it. A hook that changed what the
+   * update reaches has the rows read again, and every parent the update
+   * names asked about on them.
    */
   private async checkUpdateParentsAfterHooks(
     updateBy: UpdateBy<TBaseModel>,
@@ -2578,7 +2657,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       updateBy.data as unknown as BaseModel,
     );
 
-    if (checkedParentIds) {
+    const sameRows: boolean = Boolean(
+      checked &&
+        checkedParentIds &&
+        DatabaseService.isReadBySameUpdate(checked, updateBy),
+    );
+
+    if (sameRows && checkedParentIds) {
       const asked: Set<string> = new Set<string>(
         checkedParentIds.map(normalizeReferenceId),
       );
@@ -2594,9 +2679,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     const rows: Array<TBaseModel> =
-      checked &&
-      checkedParentIds &&
-      DatabaseService.isReadBySameUpdate(checked, updateBy)
+      sameRows && checked
         ? checked.rows
         : await this.findRowsToUpdate(updateBy, [parent]);
 
@@ -2610,8 +2693,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       heldParentIds: rows.map((row: TBaseModel): Array<string> => {
         return DatabaseService.getHeldParentIds(row, parent);
       }),
-      checkedParentIds: checkedParentIds || [],
-      referencesCheckedInProject: this.checksReferencesInProject(),
+      checkedParentIds: sameRows ? checkedParentIds || [] : [],
+      referencesCheckedInProject: this.referencesCheckedInProjectFor(props),
       findReadableParentIds: this.getUpdateParentFinder(projectId, props),
       findParentIdsInProject: this.getProjectRecordFinder(projectId),
     });
@@ -2627,6 +2710,32 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     updateBy: UpdateBy<TBaseModel>,
     named: Array<CreateParent | string>,
   ): Promise<Array<TBaseModel>> {
+    const select: Dictionary<unknown> = this.getRowsToUpdateSelect(named);
+
+    const updatableQuery: Query<TBaseModel> =
+      await ModelPermission.getUpdatableQuery(
+        this.modelType,
+        this.getRuleCriteriaEffectiveEnabledQuery(updateBy.query),
+        updateBy.props,
+        updateBy.data,
+      );
+
+    return await this._findBy({
+      query: updatableQuery,
+      select: select as Select<TBaseModel>,
+      skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
+      limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+  }
+
+  /*
+   * What the rows an update writes are read with: their ids, their project,
+   * and the parent and lists `named`.
+   */
+  private getRowsToUpdateSelect(
+    named: Array<CreateParent | string>,
+  ): Dictionary<unknown> {
     const select: Dictionary<unknown> = { _id: true };
     const tenantColumn: string | null = this.getModel().getTenantColumn();
 
@@ -2644,21 +2753,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
     }
 
-    const updatableQuery: Query<TBaseModel> =
-      await ModelPermission.getUpdatableQuery(
-        this.modelType,
-        this.getRuleCriteriaEffectiveEnabledQuery(updateBy.query),
-        updateBy.props,
-        updateBy.data,
-      );
-
-    return await this._findBy({
-      query: updatableQuery,
-      select: select as Select<TBaseModel>,
-      skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
-      limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
-      props: { isRoot: true, ignoreHooks: true },
-    });
+    return select;
   }
 
   // The project of the rows an update writes, when they share one.
@@ -4437,14 +4532,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Inserts the creating user into the resource's *OwnerUser table, for
-   * every model whose records have owners of their own (OwnerTableRegistry:
-   * the operational resources, and the hosts, clusters and the rest that
-   * carry owners too). Mirrors the existing OwnerRule behavior for user
-   * assignment and gives the creator immediate access under the `Owned`
-   * permission scope - which is what lets a person whose permission to
-   * create one is limited to owned records create it at all
-   * (CreateScopePermission).
+   * Inserts the creating user into the resource's *OwnerUser table, for a
+   * model whose records have owners of their own (OwnerTableRegistry).
+   * Mirrors the existing OwnerRule behavior for user assignment and gives
+   * the creator immediate access under the `Owned` permission scope. The
+   * creator of an operational resource always becomes an owner; of the
+   * hosts, clusters and the rest that carry owners too, only when their
+   * permission to create one is limited to owned records - which is what
+   * lets them create it at all (createReliesOnOwnership,
+   * CreateScopePermission).
    */
   private async autoOwnerOnCreate(
     createdItem: TBaseModel,
@@ -4455,6 +4551,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * Probes) have no userId either, and nobody owns what they make.
      */
     if (props.isRoot || props.isMasterAdmin || !props.userId) {
+      return;
+    }
+
+    // The @OperationalResource() decorator sets this on the model prototype.
+    const isOperationalResource: boolean = Boolean(
+      (createdItem as unknown as { isOperationalResource?: boolean })
+        .isOperationalResource,
+    );
+
+    if (!isOperationalResource && !this.createReliesOnOwnership(props)) {
       return;
     }
 
@@ -6468,11 +6574,31 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // One reference, one value, whichever name it is sent under. See the helper.
       this.assertRelationNamesAgree(updateBy.data, updateBy.props);
 
-      // Only the rows the caller may update reach the hook. See the helper.
+      // The parent and the lists the update names, should it name any.
+      const namedRecords: UpdateNamedRecords | null =
+        this.getUpdateNamedRecords(updateBy);
+      const rowsReadWithNamed: { rows: Array<TBaseModel> | null } = {
+        rows: null,
+      };
+
+      /*
+       * Only the rows the caller may update reach the hook. See the helper.
+       * Read with the parent and lists the update names, for the check below.
+       */
       if (
         !(await this.keepRowsCallerMayWrite(
           updateBy,
           DatabaseRequestType.Update,
+          namedRecords
+            ? {
+                alsoSelect: this.getRowsToUpdateSelect(
+                  DatabaseService.getNamedRecordColumns(namedRecords),
+                ),
+                onRows: (rows: Array<TBaseModel>): void => {
+                  rowsReadWithNamed.rows = rows;
+                },
+              }
+            : {},
         ))
       ) {
         return 0;
@@ -6480,7 +6606,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // A new parent, or more records in a list: ones the caller may read.
       const namedRecordsChecked: UpdateNamedRecordsChecked<TBaseModel> | null =
-        await this.checkUpdateNamedRecords(updateBy);
+        await this.checkUpdateNamedRecords(
+          updateBy,
+          namedRecords,
+          rowsReadWithNamed.rows,
+        );
 
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
