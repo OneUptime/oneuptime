@@ -491,6 +491,23 @@ export default class SplunkOnCallAdapter implements ToolImportAdapter {
     let restriction: ImportedRestriction | null = toRestriction(shift);
     const shiftTimezone: string = asString(shift["timezone"]);
 
+    /*
+     * A daily hand-off counts the days the shift is on call, skipping the
+     * rest (Monday to Friday hands over from Friday to Monday); a OneUptime
+     * layer counts every day. With one member it makes no difference.
+     */
+    if (
+      turn.intervalType === EventInterval.Day &&
+      new Set(members).size > 1 &&
+      getMaskDays(shift).size < 7
+    ) {
+      notes.push(
+        makeToolImportNote(ToolImportNoteCode.RotationApproximated, {
+          rotation: name,
+        }),
+      );
+    }
+
     if (
       restriction &&
       shiftTimezone &&
@@ -682,6 +699,41 @@ export function toRestriction(
   }
 
   return hasMask ? buildRestrictionFromDayWindows(windows) : null;
+}
+
+/*
+ * The days a shift's masks put it on call on (every day for a shift with no
+ * mask: a 24/7 shift).
+ */
+export function getMaskDays(shift: Record<string, unknown>): Set<DayOfWeek> {
+  const days: Set<DayOfWeek> = new Set<DayOfWeek>();
+  let hasMask: boolean = false;
+
+  for (const field of MASK_FIELDS) {
+    const dayFlags: Record<string, unknown> = asRecord(
+      asRecord(shift[field])["day"],
+    );
+
+    if (Object.keys(dayFlags).length === 0) {
+      continue;
+    }
+
+    hasMask = true;
+
+    for (const [flag, day] of MASK_DAYS) {
+      if (dayFlags[flag] === true) {
+        days.add(day);
+      }
+    }
+  }
+
+  return hasMask
+    ? days
+    : new Set<DayOfWeek>(
+        MASK_DAYS.map((entry: [string, DayOfWeek]): DayOfWeek => {
+          return entry[1];
+        }),
+      );
 }
 
 function toMinuteOfDay(time: Record<string, unknown>): number {

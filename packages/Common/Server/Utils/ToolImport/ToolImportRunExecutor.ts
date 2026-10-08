@@ -60,6 +60,7 @@ import ToolImportApplier, { toErrorMessage } from "./ToolImportApplier";
 import {
   createToolImportAddressTransport,
   createToolImportTransport,
+  ToolImportSleep,
   ToolImportTransport,
 } from "./ToolImportHttpClient";
 import {
@@ -153,6 +154,12 @@ export default class ToolImportRunExecutor {
         })
       : createToolImportTransport(hosts);
   };
+
+  /*
+   * How a read waits - for a tool's pace, or when it says to slow down.
+   * Undefined: really waits. Tests replace it so they never wait.
+   */
+  public static readSleep: ToolImportSleep | undefined = undefined;
 
   /*
    * Whether an address a person gives may be plain http: only where the
@@ -544,6 +551,7 @@ export default class ToolImportRunExecutor {
           toolName: definition.title,
           allowHttp: this.allowsPlainHttpAddress(),
         }),
+        sleep: this.readSleep,
         maxRequests: TOOL_IMPORT_MAX_REQUESTS,
         deadlineAt: Date.now() + TOOL_IMPORT_READ_TIMEOUT_MS,
         onProgress: async (kind: ToolImportResourceKind): Promise<void> => {

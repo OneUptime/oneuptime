@@ -204,9 +204,7 @@ describe.each(AllToolImportSources)(
           expect(request.method).toBe("GET");
           expect(url.protocol).toBe("https:");
           expect(url.host).toBe(connection.host);
-          expect(url.pathname.startsWith(`${connection.basePath}/`)).toBe(
-            true,
-          );
+          expect(url.pathname.startsWith(`${connection.basePath}/`)).toBe(true);
 
           if (!isToolImportAddressGiven(definition)) {
             expect(definition.hosts).toContain(url.host);
@@ -300,8 +298,10 @@ describe.each(AllToolImportSources)(
           ...attempt,
         });
 
-        expect({ attempt, error: recorded.error instanceof ToolImportReadError })
-          .toEqual({ attempt, error: true });
+        expect({
+          attempt,
+          error: recorded.error instanceof ToolImportReadError,
+        }).toEqual({ attempt, error: true });
         expect({ attempt, requests: recorded.requests }).toEqual({
           attempt,
           requests: [],

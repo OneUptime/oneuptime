@@ -32,6 +32,7 @@ import {
   ImportedIncidentStateKind,
   ImportedPerson,
   ImportedPolicy,
+  ImportedPolicyLevel,
   ImportedRotation,
   ImportedSchedule,
   ImportedService,
@@ -584,7 +585,23 @@ class PlanBuilder {
   private planPolicy(policy: ImportedPolicy): void {
     const notes: Array<ToolImportNote> = [...policy.notes];
 
-    if (policy.isUnreadable || policy.levels.length === 0) {
+    /*
+     * A policy none of whose levels names anyone - every step pages what
+     * OneUptime cannot (a channel, a webhook, a schedule the tool's API does
+     * not give) - would page nobody: the import skips it, so the preview
+     * says so up front rather than offering it as new.
+     */
+    const namesNobody: boolean = policy.levels.every(
+      (level: ImportedPolicyLevel): boolean => {
+        return (
+          level.personSourceIds.length === 0 &&
+          level.teamSourceIds.length === 0 &&
+          level.scheduleSourceIds.length === 0
+        );
+      },
+    );
+
+    if (policy.isUnreadable || policy.levels.length === 0 || namesNobody) {
       const base: ToolImportPlanItem = this.newItem({
         kind: ToolImportResourceKind.OnCallPolicy,
         sourceId: policy.sourceId,
