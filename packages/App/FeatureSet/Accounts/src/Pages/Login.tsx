@@ -761,7 +761,7 @@ const LoginPage: () => JSX.Element = () => {
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <ProductLogo className="mx-auto h-10 w-auto sm:h-12" />
+        <ProductLogo />
         {/*
          * Which OneUptime edition this is, and its license: not on an
          * installation that goes by a name of its own (ProductBranding),

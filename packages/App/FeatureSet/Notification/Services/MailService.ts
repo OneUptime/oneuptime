@@ -59,6 +59,7 @@ import {
   getCurrentEmailBrandingVariables,
   withBrandedSubject,
 } from "../Utils/EmailBranding";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 
 // One attachment of a SendGrid message.
 type SendgridAttachment = NonNullable<MailDataRequired["attachments"]>[number];
@@ -1324,7 +1325,7 @@ export default class MailService {
         const msg: MailDataRequired = {
           to: mail.toEmail.toString(),
           from: `${
-            sendgridConfig.fromName || "OneUptime"
+            sendgridConfig.fromName || ProductBrandingText.getProductName()
           } <${sendgridConfig.fromEmail.toString()}>`,
           subject: mail.subject,
           html: mail.body,

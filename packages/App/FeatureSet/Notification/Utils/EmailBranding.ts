@@ -33,15 +33,28 @@ export const BRAND_VARIABLE_NAMES: ReadonlyArray<string> = [
 
 const TRAILING_SLASHES: RegExp = /\/+$/;
 
-// A path on this host as an absolute address a mail client can fetch.
-export const toAbsoluteUrl: (path: string) => string = (
+/*
+ * A path on this host as an absolute address a mail client can fetch, or
+ * null when the host is not known (HOST unset): an email then shows the
+ * product name in place of the logo rather than an address no client can
+ * reach.
+ */
+export const toAbsoluteUrl: (path: string) => string | null = (
   path: string,
-): string => {
-  const origin: string = new URL(HttpProtocol, Host)
-    .toString()
-    .replace(TRAILING_SLASHES, "");
+): string | null => {
+  if (!Host || !Host.trim()) {
+    return null;
+  }
 
-  return `${origin}${path}`;
+  try {
+    const origin: string = new URL(HttpProtocol, Host.trim())
+      .toString()
+      .replace(TRAILING_SLASHES, "");
+
+    return `${origin}${path}`;
+  } catch {
+    return null;
+  }
 };
 
 export const getEmailBrandingVariables: (
@@ -62,7 +75,11 @@ export const getEmailBrandingVariables: (
   }
 
   if (branding?.logoUrl && branding.isLogoEmailSafe === true) {
-    variables["brandLogoUrl"] = toAbsoluteUrl(branding.logoUrl);
+    const logoUrl: string | null = toAbsoluteUrl(branding.logoUrl);
+
+    if (logoUrl) {
+      variables["brandLogoUrl"] = logoUrl;
+    }
   }
 
   return variables;

@@ -42,9 +42,7 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const isAvailable: boolean = isWhiteLabelAvailable();
 
-  const [settings, setSettings] = useState<WhiteLabelSettingsView | null>(
-    null,
-  );
+  const [settings, setSettings] = useState<WhiteLabelSettingsView | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(isAvailable);
   const [error, setError] = useState<string>("");
   const [isGone, setIsGone] = useState<boolean>(false);
@@ -98,8 +96,19 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
     }
 
     if (error || !settings) {
-      return <ErrorMessage message={error || "The settings could not be read."} />;
+      return (
+        <ErrorMessage message={error || "The settings could not be read."} />
+      );
     }
+
+    /*
+     * Without a logo, the product shows its name when it has one of its own
+     * (OneUptime's wordmark reads "OneUptime"), and OneUptime's logo
+     * otherwise.
+     */
+    const withoutLogoText: string = settings.productName
+      ? "The product name is shown in its place."
+      : "OneUptime's logo is shown.";
 
     return (
       <div className="space-y-6" data-testid="white-label-settings">
@@ -116,8 +125,12 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
                 label="Logo for light backgrounds"
                 image={settings.logo}
                 background="light"
-                emptyText="OneUptime's logo is shown."
-                removedText="People will see OneUptime's logo again."
+                emptyText={withoutLogoText}
+                removedText={
+                  settings.productName
+                    ? "People will see the product name in its place."
+                    : "People will see OneUptime's logo again."
+                }
                 onSaved={setSettings}
               />
               <WhiteLabelImageSlot
@@ -129,7 +142,7 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
                 emptyText={
                   settings.logo
                     ? "The logo for light backgrounds is used."
-                    : "OneUptime's logo is shown."
+                    : withoutLogoText
                 }
                 removedText="Dark mode will use the logo for light backgrounds."
                 onSaved={setSettings}
@@ -161,8 +174,8 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
               />
             </div>
             <p className="mt-4 text-sm text-gray-500">
-              PNG, ICO, SVG, GIF, JPEG or WebP, up to 128 KB. A square image
-              of at least 32 by 32 pixels looks best.
+              PNG, ICO, SVG, GIF, JPEG or WebP, up to 128 KB. A square image of
+              at least 32 by 32 pixels looks best.
             </p>
           </div>
         </Card>

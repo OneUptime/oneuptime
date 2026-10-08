@@ -137,9 +137,7 @@ const VerifyEmail: () => JSX.Element = () => {
     <div className="flex w-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center sm:mb-10">
-          <ProductLogo
-            className="mx-auto h-10 w-auto sm:h-12"
-          />
+          <ProductLogo />
         </div>
 
         <div

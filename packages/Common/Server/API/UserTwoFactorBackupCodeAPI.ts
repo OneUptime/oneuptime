@@ -8,6 +8,7 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import { DashboardRoute } from "../../ServiceRoute";
 import DatabaseConfig from "../DatabaseConfig";
 import MailService from "../Services/MailService";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import UserService from "../Services/UserService";
 import User from "../../Models/DatabaseModels/User";
 import UserMiddleware from "../Middleware/UserAuthorization";
@@ -218,7 +219,7 @@ export default class UserTwoFactorBackupCodeAPI extends BaseAPI<
 
     await MailService.sendMail({
       toEmail: user.email,
-      subject: "Your OneUptime two factor backup codes were replaced",
+      subject: `Your ${ProductBrandingText.getProductName()} two factor backup codes were replaced`,
       isSubjectLiteral: true,
       templateType: EmailTemplateType.TwoFactorBackupCodesRegenerated,
       vars: {

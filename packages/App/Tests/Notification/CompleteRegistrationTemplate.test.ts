@@ -2,6 +2,10 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  registerEmailBrandHelpers,
+  registerJoiningConcat,
+} from "./Fixtures/EmailBrandHelpers";
 
 /*
  * CompleteRegistration.hbs - sent when somebody tried to register an address
@@ -106,9 +110,9 @@ beforeAll(() => {
     },
   );
 
-  Handlebars.registerHelper("concat", (v1: any, v2: any) => {
-    return v1 + v2;
-  });
+  // concat joins every argument, and the brand helpers name the product.
+  registerJoiningConcat(Handlebars);
+  registerEmailBrandHelpers(Handlebars);
 });
 
 describe("CompleteRegistration.hbs", () => {
@@ -207,11 +211,6 @@ describe("CompleteRegistration.hbs", () => {
   });
 
   test("only uses helpers the Handlebars util registers", () => {
-    /*
-     * `concat` takes exactly two arguments, which is why the expiry sentence is
-     * built server-side rather than assembled here -- a three-argument call
-     * silently drops everything after the second.
-     */
     const util: string = fs.readFileSync(HANDLEBARS_UTIL_PATH, {
       encoding: "utf8",
     });
@@ -232,7 +231,8 @@ describe("CompleteRegistration.hbs", () => {
       }
     }
 
-    // The whole sentence arrives pre-formatted, so no multi-argument concat.
-    expect(templateSource()).not.toMatch(/concat\s+[^)]*\s+[^)]*\s+[^)]*\)/);
+    // The product's name in a sentence comes from the brand helper.
+    expect(templateSource()).toContain("(brandNameHtml)");
+    expect(util).toContain('registerHelper("brandNameHtml"');
   });
 });

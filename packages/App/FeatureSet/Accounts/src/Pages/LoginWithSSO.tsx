@@ -309,9 +309,7 @@ const LoginPage: () => JSX.Element = () => {
       <div className="w-full max-w-md mx-auto px-4 sm:px-0">
         <div className="flex min-h-full flex-col justify-center py-8 sm:py-12">
           <div className="w-full">
-            <ProductLogo
-              className="mx-auto h-10 w-auto sm:h-12"
-            />
+            <ProductLogo />
             <h2 className="mt-6 sm:mt-10 text-center text-lg sm:text-xl tracking-tight text-gray-900">
               {t("sso.selectProjectTitle")}
             </h2>
@@ -350,9 +348,7 @@ const LoginPage: () => JSX.Element = () => {
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <ProductLogo
-          className="mx-auto h-10 w-auto sm:h-12"
-        />
+        <ProductLogo />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           {t("sso.title")}
         </h2>

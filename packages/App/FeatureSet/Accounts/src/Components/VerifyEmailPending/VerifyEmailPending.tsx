@@ -97,9 +97,7 @@ const VerifyEmailPending: (props: ComponentProps) => ReactElement = (
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <ProductLogo
-          className="mx-auto h-10 w-auto sm:h-12"
-        />
+        <ProductLogo />
         <div
           className="mt-6 rounded-xl border border-gray-200 bg-white px-5 py-8 text-center shadow-sm sm:px-8"
           data-testid="verify-email-required"

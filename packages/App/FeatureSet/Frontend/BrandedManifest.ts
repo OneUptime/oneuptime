@@ -15,6 +15,8 @@ import { JSONObject } from "Common/Types/JSON";
  *   icons             its browser tab icon, when it has one (for every size:
  *                     an installed app has no other icon of its own)
  *   screenshots       left out: they are pictures of OneUptime
+ *   iarc_rating_id,   left out when renamed: OneUptime's own app rating
+ *   scope_extensions  and its own domain (*.oneuptime.com)
  *
  * The id stays, so an app installed before keeps being the same app. Null
  * when the installation shows OneUptime's own branding: the static file is
@@ -58,6 +60,9 @@ export const getBrandedDashboardManifest: (
   if (isRenamed) {
     branded["name"] = productName;
     branded["short_name"] = productName;
+
+    delete branded["iarc_rating_id"];
+    delete branded["scope_extensions"];
 
     if (typeof manifest["description"] === "string") {
       branded["description"] = rename(manifest["description"]) as string;

@@ -484,9 +484,7 @@ const RegisterPage: () => JSX.Element = () => {
     return (
       <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
         <div className="w-full max-w-md mx-auto">
-          <ProductLogo
-            className="mx-auto h-10 w-auto sm:h-12"
-          />
+          <ProductLogo />
           <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
             {t("register.checkEmailTitle")}
           </h2>
@@ -501,9 +499,7 @@ const RegisterPage: () => JSX.Element = () => {
   return (
     <div className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <div className="w-full max-w-md mx-auto lg:max-w-2xl">
-        <ProductLogo
-          className="mx-auto h-10 w-auto sm:h-12"
-        />
+        <ProductLogo />
         <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 sm:mt-6 sm:text-3xl">
           {t("register.title")}
         </h1>

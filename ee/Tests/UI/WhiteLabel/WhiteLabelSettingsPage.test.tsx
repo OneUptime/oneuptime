@@ -136,11 +136,11 @@ beforeEach(() => {
   jest.clearAllMocks();
   setBrandingEnvironment("{}");
   getSpy = jest.spyOn(API, "get").mockResolvedValue(ok(SETTINGS) as never);
-  putSpy = jest
-    .spyOn(API, "put")
-    .mockImplementation((async (options: { data: JSONObject }) => {
-      return ok({ ...SETTINGS, ...options.data });
-    }) as never);
+  putSpy = jest.spyOn(API, "put").mockImplementation((async (options: {
+    data: JSONObject;
+  }) => {
+    return ok({ ...SETTINGS, ...options.data });
+  }) as never);
 });
 
 afterEach(() => {
@@ -256,9 +256,31 @@ describe("with white-labelling allowed", () => {
     expect(screen.getByTestId("white-label-logo-preview")).toHaveTextContent(
       "OneUptime's logo is shown.",
     );
+    expect(screen.getByTestId("white-label-favicon-preview")).toHaveTextContent(
+      "OneUptime's icon is shown.",
+    );
+  });
+
+  test("with a name of its own and no logo, says the name stands in for the logo", async () => {
+    getSpy.mockResolvedValue(
+      ok({
+        productName: "Acme Monitoring",
+        websiteUrl: null,
+        logo: null,
+        darkLogo: null,
+        favicon: null,
+        updatedAt: null,
+      }) as never,
+    );
+
+    await renderPage();
+
+    expect(screen.getByTestId("white-label-logo-preview")).toHaveTextContent(
+      "The product name is shown in its place.",
+    );
     expect(
-      screen.getByTestId("white-label-favicon-preview"),
-    ).toHaveTextContent("OneUptime's icon is shown.");
+      screen.getByTestId("white-label-darkLogo-preview"),
+    ).toHaveTextContent("The product name is shown in its place.");
   });
 
   test("previews each logo on the background it is for, whatever the theme", async () => {
@@ -293,14 +315,14 @@ describe("the product name and website", () => {
 
     await user.click(screen.getByText("Edit"));
 
-    const nameInput: HTMLElement = await screen.findByPlaceholderText(
-      "OneUptime",
-    );
+    const nameInput: HTMLElement =
+      await screen.findByPlaceholderText("OneUptime");
     await user.clear(nameInput);
     await user.type(nameInput, "Acme Cloud");
 
-    const websiteInput: HTMLElement =
-      screen.getByPlaceholderText("https://example.com");
+    const websiteInput: HTMLElement = screen.getByPlaceholderText(
+      "https://example.com",
+    );
     await user.clear(websiteInput);
 
     await user.click(screen.getByTestId("modal-footer-submit-button"));
@@ -336,9 +358,8 @@ describe("the product name and website", () => {
     await renderPage();
     await user.click(screen.getByText("Edit"));
 
-    const nameInput: HTMLElement = await screen.findByPlaceholderText(
-      "OneUptime",
-    );
+    const nameInput: HTMLElement =
+      await screen.findByPlaceholderText("OneUptime");
     await user.clear(nameInput);
     await user.type(nameInput, "Acme Cloud");
     await user.click(screen.getByTestId("modal-footer-submit-button"));
@@ -348,7 +369,9 @@ describe("the product name and website", () => {
         "The product name can't contain line breaks or the characters < > { }.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("modal-footer-submit-button")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("modal-footer-submit-button"),
+    ).toBeInTheDocument();
   }, 30000);
 });
 
@@ -388,9 +411,7 @@ describe("an image", () => {
     });
 
     expect(Object.keys(putBody())).toEqual(["darkLogo"]);
-    expect(String(putBody()["darkLogo"])).toMatch(
-      /^data:image\/png;base64,/,
-    );
+    expect(String(putBody()["darkLogo"])).toMatch(/^data:image\/png;base64,/);
     expect(
       await screen.findByTestId("white-label-darkLogo-image"),
     ).toHaveAttribute("src", "/api/branding/dark-logo?v=2");
@@ -467,10 +488,14 @@ describe("an image", () => {
     await user.click(screen.getByTestId("white-label-logo-remove"));
 
     expect(putSpy).not.toHaveBeenCalled();
+    // The installation has a name of its own: it stands in for the logo.
     expect(
-      await screen.findByText("People will see OneUptime's logo again.", {
-        exact: false,
-      }),
+      await screen.findByText(
+        "People will see the product name in its place.",
+        {
+          exact: false,
+        },
+      ),
     ).toBeInTheDocument();
 
     await user.click(screen.getByTestId("modal-footer-submit-button"));

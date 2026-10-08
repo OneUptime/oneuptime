@@ -16,6 +16,8 @@ import React from "react";
 import Page from "../../../UI/Components/Page/Page";
 import ProductLogo, {
   getProductLogoSource,
+  PAGE_LOGO_CLASS_NAME,
+  PAGE_PRODUCT_NAME_CLASS_NAME,
 } from "../../../UI/Components/ProductLogo/ProductLogo";
 import PublicFormLogo from "../../../UI/Components/PublicForm/PublicFormLogo";
 import Container from "../../../UI/Container";
@@ -62,6 +64,9 @@ const setBranding: (value: string | null) => void = (
     browserWindow.process.env["PRODUCT_BRANDING"] = value;
   }
 };
+
+// The wordmark's data: URL, as the mock above hands it out.
+const SVG_DATA_URL: RegExp = /^data:image\/svg\+xml;base64,/;
 
 const ACME: string = JSON.stringify({
   productName: "Acme",
@@ -213,13 +218,24 @@ describe("the page title", () => {
 
 describe("ProductLogo", () => {
   test("is OneUptime's logo, named OneUptime, by default", () => {
-    render(<ProductLogo className="h-10" />);
+    render(<ProductLogo />);
 
     const logo: HTMLElement = screen.getByRole("img", { name: "OneUptime" });
 
     expect(logo.getAttribute("src")).toBe(getProductLogoSource(Theme.Light));
+    expect(logo.getAttribute("src")).toMatch(SVG_DATA_URL);
     expect(logo.getAttribute("src")).not.toContain("/api/branding");
+    // Sized for the top of a sign-in page, and never wider than it.
+    expect(logo.getAttribute("class")).toBe(PAGE_LOGO_CLASS_NAME);
     expect(logo).toHaveClass("h-10", "max-w-full", "object-contain");
+  });
+
+  test("takes the classes it is given in place of the page's", () => {
+    render(<ProductLogo className="h-8 w-auto" />);
+
+    expect(
+      screen.getByRole("img", { name: "OneUptime" }).getAttribute("class"),
+    ).toBe("h-8 w-auto");
   });
 
   test("is the installation's logo, named after it", () => {
@@ -253,12 +269,94 @@ describe("ProductLogo", () => {
     );
   });
 
-  test("the alt text of a name with markup in it is text, not markup", () => {
-    setBranding(JSON.stringify({ productName: 'Acme "Q" & Co' }));
+  test("the alt text of a name with quotes and ampersands in it is that text", () => {
+    setBranding(
+      JSON.stringify({
+        productName: 'Acme "Q" & Co',
+        logoUrl: "/api/branding/logo?v=1",
+      }),
+    );
 
     render(<ProductLogo />);
 
-    expect(screen.getByRole("img", { name: 'Acme "Q" & Co' })).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: 'Acme "Q" & Co' }),
+    ).toBeInTheDocument();
+  });
+
+  test("a logo of its own without a name of its own keeps OneUptime's name as the alt text", () => {
+    setBranding(JSON.stringify({ logoUrl: "/api/branding/logo?v=1" }));
+
+    render(<ProductLogo />);
+
+    expect(screen.getByRole("img", { name: "OneUptime" })).toHaveAttribute(
+      "src",
+      "/api/branding/logo?v=1",
+    );
+  });
+
+  describe("a name of its own and no logo", () => {
+    test("draws the name in the logo's place: never OneUptime's wordmark", () => {
+      setBranding(JSON.stringify({ productName: "Acme" }));
+
+      expect(getProductLogoSource(Theme.Light)).toBeNull();
+      expect(getProductLogoSource(Theme.Dark)).toBeNull();
+
+      render(<ProductLogo dataTestId="product-logo" />);
+
+      const name: HTMLElement = screen.getByTestId("product-logo");
+
+      expect(name.tagName).toBe("DIV");
+      expect(name).toHaveTextContent("Acme");
+      expect(name.getAttribute("class")).toBe(PAGE_PRODUCT_NAME_CLASS_NAME);
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    });
+
+    test("in the classes it is given for the name", () => {
+      setBranding(JSON.stringify({ productName: "Acme" }));
+
+      render(
+        <ProductLogo
+          className="h-8"
+          nameClassName="text-lg font-semibold"
+          dataTestId="product-logo"
+        />,
+      );
+
+      expect(screen.getByTestId("product-logo").getAttribute("class")).toBe(
+        "text-lg font-semibold",
+      );
+    });
+
+    test("draws a name with quotes and ampersands as that text", () => {
+      setBranding(JSON.stringify({ productName: 'Acme "Q" & Co' }));
+
+      const { container } = render(<ProductLogo dataTestId="product-logo" />);
+
+      expect(screen.getByTestId("product-logo").textContent).toBe(
+        'Acme "Q" & Co',
+      );
+      expect(container.querySelectorAll("*")).toHaveLength(1);
+    });
+
+    test("is clickable like the logo it stands in for", () => {
+      setBranding(JSON.stringify({ productName: "Acme" }));
+
+      let clicks: number = 0;
+
+      render(
+        <ProductLogo
+          dataTestId="product-logo"
+          onClick={() => {
+            clicks += 1;
+          }}
+        />,
+      );
+
+      screen.getByTestId("product-logo").click();
+
+      expect(clicks).toBe(1);
+    });
   });
 });
 
@@ -279,6 +377,19 @@ describe("a form page without a logo of its own", () => {
       "/api/branding/logo?v=1",
     );
     expect(screen.getByTestId("form-logo")).toHaveAttribute("alt", "Acme");
+  });
+
+  test("shows the installation's name when it has a name of its own and no logo", () => {
+    setBranding(JSON.stringify({ productName: "Acme" }));
+
+    render(<PublicFormLogo />);
+
+    const logo: HTMLElement = screen.getByTestId("form-logo");
+
+    expect(logo.tagName).toBe("DIV");
+    expect(logo).toHaveTextContent("Acme");
+    expect(logo).toHaveAttribute("data-logo", "oneuptime");
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 });
 

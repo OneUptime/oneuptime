@@ -1,4 +1,7 @@
-import { getProductLogoSource } from "../ProductLogo/ProductLogo";
+import {
+  getProductLogoSource,
+  PAGE_PRODUCT_NAME_CLASS_NAME,
+} from "../ProductLogo/ProductLogo";
 import { getProductName } from "../../Utils/ProductBranding";
 import { Theme } from "../../Utils/Theme";
 import {
@@ -10,8 +13,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 /*
  * The logo at the top of a form's public page: the form's own when it has
  * one (its Branding), and the product's logo until then - OneUptime's, or
- * the installation's own when it has one (ProductBranding) - or when the
- * form's own cannot be drawn, so the page never shows a broken image. Drawn by the
+ * the installation's own when it has one (ProductBranding), or its name when
+ * it goes by a name of its own and has no logo - or when the form's own
+ * cannot be drawn, so the page never shows a broken image. Drawn by the
  * public page (Accounts Pages/Form.tsx) and by the dashboard's preview of
  * it, so the preview shows what a visitor sees.
  *
@@ -56,10 +60,26 @@ const PublicFormLogo: FunctionComponent<ComponentProps> = (
     }`.trim();
 
   if (!source || failedSource === source) {
+    const productLogoSource: string | null = getProductLogoSource(Theme.Light);
+
+    if (!productLogoSource) {
+      return (
+        <div
+          className={`${PAGE_PRODUCT_NAME_CLASS_NAME} ${
+            props.className || ""
+          }`.trim()}
+          data-testid={PUBLIC_FORM_LOGO_TEST_ID}
+          data-logo={PublicFormLogoSource.OneUptime}
+        >
+          {getProductName()}
+        </div>
+      );
+    }
+
     return (
       <img
         className={className}
-        src={getProductLogoSource(Theme.Light)}
+        src={productLogoSource}
         alt={getProductName()}
         data-testid={PUBLIC_FORM_LOGO_TEST_ID}
         data-logo={PublicFormLogoSource.OneUptime}

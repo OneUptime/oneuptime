@@ -15,6 +15,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectReferencesService from "./ProjectReferencesService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import MailService from "./MailService";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
@@ -2694,8 +2695,7 @@ Stay informed about service availability! 🚀`.toString();
           statusPageUrl: statusPageURL,
           unsubscribeUrl: "",
           data: {
-            message:
-              "This is a test notification from OneUptime. Your webhook is configured correctly.",
+            message: `This is a test notification from ${ProductBrandingText.getProductName()}. Your webhook is configured correctly.`,
           },
         },
       });

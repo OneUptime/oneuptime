@@ -238,9 +238,7 @@ const McpAuthorize: () => JSX.Element = () => {
   ): ReactElement => {
     return (
       <div className="w-full max-w-md mx-auto">
-        <ProductLogo
-          className="mx-auto h-10 w-auto sm:h-12"
-        />
+        <ProductLogo />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           {t("mcpAuthorize.title")}
         </h2>

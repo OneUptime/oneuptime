@@ -3,11 +3,11 @@
     {{#if @root.brandLogoUrl}}<table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr>
       <td style="vertical-align: middle;">
         {{#if homeURL}}<a href="{{homeURL}}" style="text-decoration: none;">{{else}}{{#if homeUrl}}<a href="{{homeUrl}}" style="text-decoration: none;">{{/if}}{{/if}}
-          <img src="{{@root.brandLogoUrl}}" height="32" alt="{{brandName}}" style="display: block; height: 32px; width: auto; max-width: 200px; border: 0;">
+          <img src="{{@root.brandLogoUrl}}" height="32" alt="{{#if @root.isBrandRenamed}}{{@root.brandProductName}}{{else}}OneUptime{{/if}}" style="display: block; height: 32px; width: auto; max-width: 200px; border: 0;">
         {{#if homeURL}}</a>{{else}}{{#if homeUrl}}</a>{{/if}}{{/if}}
       </td>
     </tr></table>{{else}}{{#if @root.isBrandRenamed}}<table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.5px; color: #0f172a;">{{brandName}}</td>
+      <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.5px; color: #0f172a;">{{@root.brandProductName}}</td>
     </tr></table>{{else}}<table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr>
       <td width="32" style="width: 32px; vertical-align: middle;">
         {{#if homeURL}}<a href="{{homeURL}}" style="text-decoration: none;">{{else}}{{#if homeUrl}}<a href="{{homeUrl}}" style="text-decoration: none;">{{/if}}{{/if}}
