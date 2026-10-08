@@ -29,7 +29,10 @@ import { describe, expect, test } from "@jest/globals";
  *     through another one may read that other one - unless the model says
  *     its own readers read it without that other one (CanAccessIfCanReadOn's
  *     isParentReadOptional), which only the models in
- *     PARENT_READ_OPTIONAL do.
+ *     PARENT_READ_OPTIONAL do;
+ *   - every role that may create such records may read that other one too:
+ *     a record read through another one is created only under a parent its
+ *     creator may read (CreatePermission.checkParentPermission).
  *
  * Anything that legitimately does not is listed below with the reason, and
  * the lists may only shrink: each entry is the exact line the sweep
@@ -71,6 +74,19 @@ const WRITES_WITHOUT_READ: Array<string> = [];
  * roles that may read that other one.
  */
 const READS_WITHOUT_PARENT: Array<string> = [];
+
+/*
+ * Lines of the create sweep that are deliberate. May only shrink.
+ *
+ * A status page subscriber lists Public among who may create it: a visitor
+ * subscribes on the status page, whose sign-up route creates the subscriber
+ * as root (StatusPageSubscriberService.createFromStatusPageSignUp). Through
+ * the API, an anonymous create can read no status page and is answered with
+ * a 401.
+ */
+const CREATES_WITHOUT_PARENT: Array<string> = [
+  "StatusPageSubscriber (read through StatusPage) create: Public",
+];
 
 /*
  * The models whose shipped readers do not read the record they are read
@@ -221,6 +237,41 @@ describe("Built-in roles under a write needs a read", () => {
 
     expect(Array.from(new Set<string>(lines)).sort()).toEqual(
       [...READS_WITHOUT_PARENT].sort(),
+    );
+  });
+
+  test("every built-in role that may create a model read through another one may read that other one", () => {
+    const lines: Array<string> = [];
+
+    for (const modelType of MODEL_TYPES) {
+      const parentType: ModelType | null = parentOf(modelType);
+      const model: BaseModel = new modelType();
+
+      // Created without the parent by its own creators, as it is read.
+      if (!parentType || model.isParentReadOptional) {
+        continue;
+      }
+
+      const parentRead: Array<string> = (
+        new parentType().readRecordPermissions || []
+      ).map(String);
+
+      for (const permission of model.createRecordPermissions || []) {
+        if (
+          isHeldToTheRule(permission) &&
+          !parentRead.includes(permission.toString())
+        ) {
+          lines.push(
+            `${nameOf(modelType)} (read through ${nameOf(
+              parentType,
+            )}) create: ${permission}`,
+          );
+        }
+      }
+    }
+
+    expect(Array.from(new Set<string>(lines)).sort()).toEqual(
+      [...CREATES_WITHOUT_PARENT].sort(),
     );
   });
 

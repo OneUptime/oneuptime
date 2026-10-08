@@ -1,13 +1,104 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
+import AccessControlPermission from "./AccessControlPermission";
+import BasePermission from "./BasePermission";
 import ColumnPermissions from "./ColumnPermission";
 import EditionPermissions from "./EditionPermission";
+import OwnedScopePermission from "./OwnedScopePermission";
+import PublicPermission from "./PublicPermission";
+import ReadPermission from "./ReadPermission";
 import TablePermission from "./TablePermission";
 import TenantPermission from "./TenantPermission";
-import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
+import Dictionary from "../../../../Types/Dictionary";
+import Query from "../Query";
+import QueryHelper from "../QueryHelper";
+import { applyAlertSelfPrivacyFilter } from "../../../Utils/Alert/AlertPrivacyFilter";
+import { applyAlertEpisodeSelfPrivacyFilter } from "../../../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
+import {
+  getReferenceRefusalMessage,
+  resolveReferenceIds,
+  UnreadableParentException,
+} from "../../../Utils/Database/ProjectScopedReferenceRefusal";
+import RelationIdUtil from "../../../Utils/Database/RelationIdUtil";
+import { applyIncidentSelfPrivacyFilter } from "../../../Utils/Incident/IncidentPrivacyFilter";
+import { applyIncidentEpisodeSelfPrivacyFilter } from "../../../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
+import { shouldBypassRecordPrivacy } from "../../../Utils/PrivacyFilterUtil";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+
+/*
+ * The record a model's rows are read through (@CanAccessIfCanReadOn), as a
+ * create names it: one record by a key column, under its two names (an
+ * incident note's `incident` and `incidentId`), or several through a join
+ * table (an announcement's `statusPages`).
+ */
+export interface CreateParent {
+  parentModelType: DatabaseBaseModelType;
+  // "incident", "statusPages".
+  relation: string;
+  // "incidentId"; null for a join table.
+  idColumn: string | null;
+  isList: boolean;
+  // How a refusal names the field: the relation's title, "Incident".
+  title: string;
+  // Read by its own rule by a caller who reads no parent (isParentReadOptional).
+  isParentReadOptional: boolean;
+}
+
+/*
+ * Of `ids` (each a valid uuid), the parents the caller may read, read as
+ * the caller in the project the record is created in: `query` names them,
+ * with the parent table's rule for its private records
+ * (getParentLookupQuery). DatabaseService hands it in: it reads with the
+ * read rule of the parent's own table.
+ */
+export type ReadableParentIdsFinder = (data: {
+  parentModelType: DatabaseBaseModelType;
+  ids: Array<string>;
+  query: Query<BaseModel>;
+  props: DatabaseCommonInteractionProps;
+}) => Promise<Array<string>>;
+
+// Postgres renders a uuid lower-cased, whatever case the payload used.
+function normalizeId(id: string): string {
+  return id.trim().toLowerCase();
+}
+
+// A parent table's rule for its private records, added to a query of it.
+type SelfPrivacyFilter = <TQuery>(
+  query: TQuery,
+  props: DatabaseCommonInteractionProps,
+) => TQuery;
+
+/*
+ * The parent tables that hold private records - an incident, an alert or an
+ * episode marked private - by table name, with the rule each one's service
+ * adds to every read of it (IncidentService.onBeforeFind and the others): a
+ * private record is read only by the people it names and by those who see
+ * every private record of the project (shouldBypassRecordPrivacy).
+ */
+const PARENT_PRIVACY_FILTERS: Dictionary<SelfPrivacyFilter> = {
+  Incident: applyIncidentSelfPrivacyFilter,
+  Alert: applyAlertSelfPrivacyFilter,
+  IncidentEpisode: applyIncidentEpisodeSelfPrivacyFilter,
+  AlertEpisode: applyAlertEpisodeSelfPrivacyFilter,
+};
+
+/*
+ * A parent table's rules a create is checked against: the rule for its
+ * private records, and whether it is itself read through another record.
+ */
+interface ParentTableFacts {
+  privacyFilter: SelfPrivacyFilter | null;
+  isReadThroughAnother: boolean;
+}
 
 export default class CreatePermission {
   @CaptureSpan()
@@ -242,5 +333,477 @@ export default class CreatePermission {
       props,
       DatabaseRequestType.Create,
     );
+  }
+
+  /*
+   * A RECORD READ THROUGH ANOTHER ONE IS CREATED ONLY UNDER A PARENT ITS
+   * CREATOR MAY READ.
+   *
+   * The rows of a model read through another record (@CanAccessIfCanReadOn
+   * - an incident's notes and state timeline, a status page's announcements
+   * and domains) are read, changed and deleted only through the parents
+   * their caller may read (BasePermission.addParentAccessToQuery). A create
+   * names its parent itself, so it is held to the same rule, before anything
+   * is written:
+   *
+   *   - a caller who may read none of the parent's records - who holds none
+   *     of its read permissions, or whose block with no labels takes one of
+   *     them away - is refused, naming the permission they need
+   *     (BasePermission.isHeldToParentRead). A model whose parent read is
+   *     optional (isParentReadOptional) is created by its own rule, as
+   *     before, by a caller who holds none of the parent's read permissions;
+   *   - every parent the create names, under either of its names, must be
+   *     one a read of the parent's table finds for the caller: in the
+   *     project the record is created in, carrying a label their read is
+   *     limited to, not carrying a label a block takes away, owned by them
+   *     or one of their teams when their read reaches only what they own,
+   *     and - for a private incident, alert or episode - one they may see
+   *     (`findReadableParentIds`, the read rule of the parent's own table,
+   *     and getParentLookupQuery). A parent that is not is answered like one
+   *     that does not exist, in the words every reference check answers
+   *     with. A caller whose read of the parents is narrowed by none of
+   *     these reads every parent of the project (readsEveryParent), so
+   *     nothing is looked up for them: whether the parent named is a record
+   *     of the project is the reference check their write runs anyway
+   *     (ProjectReferencesService), in the same words;
+   *   - a create that names no parent (an override for every policy, a
+   *     variable of no workflow) makes a record of the whole project, which
+   *     a read limited to some of the parents does not reach
+   *     (addParentAccessToQuery): it needs a read of the parents that
+   *     reaches the whole project. It is asked about once the hooks have
+   *     run, as a hook may name the parent, and a parent the record cannot
+   *     be created without is the required-field check's to answer.
+   *
+   * Root and master admin callers are left alone - OneUptime's engines and
+   * workers create these rows as root - as is a model read through no
+   * other record. DatabaseService asks before the create hooks run and
+   * again after them (`checkedParentIds`: the ids the first ask returned),
+   * which looks a parent up only when a hook named other parents. Returns
+   * the parent ids the create names.
+   */
+  @CaptureSpan()
+  public static async checkParentPermission<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+    findReadableParentIds: ReadableParentIdsFinder;
+    checkedParentIds?: Array<string> | undefined;
+  }): Promise<Array<string>> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return [];
+    }
+
+    const parent: CreateParent | null = CreatePermission.getCreateParent(
+      data.modelType,
+    );
+
+    if (!parent) {
+      return [];
+    }
+
+    const parentIds: Array<string> = CreatePermission.getNamedParentIds(
+      parent,
+      data.data,
+    );
+
+    const isAfterHooks: boolean = data.checkedParentIds !== undefined;
+
+    // The parents asked about before the hooks, which named no others.
+    if (
+      isAfterHooks &&
+      parentIds.length > 0 &&
+      CreatePermission.isSameIdSet(parentIds, data.checkedParentIds || [])
+    ) {
+      return parentIds;
+    }
+
+    /*
+     * Reading the parent needs someone signed in, a person or an API key: a
+     * caller with neither - a publicly creatable model's anonymous create -
+     * is answered with the 401 that read would give them.
+     */
+    if (!parent.isParentReadOptional) {
+      PublicPermission.checkIfUserIsLoggedIn(
+        parent.parentModelType,
+        data.props,
+        DatabaseRequestType.Read,
+      );
+    }
+
+    if (
+      !BasePermission.isHeldToParentRead(
+        data.modelType,
+        parent.parentModelType,
+        data.props,
+        DatabaseRequestType.Create,
+      )
+    ) {
+      // A model whose parent read is optional, by a caller who reads none.
+      return parentIds;
+    }
+
+    // No parent named yet: asked about after the hooks. See the comment above.
+    if (parentIds.length === 0 && !isAfterHooks) {
+      return parentIds;
+    }
+
+    if (parentIds.length === 0) {
+      CreatePermission.checkParentlessCreate(
+        data.modelType,
+        parent,
+        data.props,
+      );
+
+      return parentIds;
+    }
+
+    // Every parent of the project is one the caller may read.
+    if (CreatePermission.readsEveryParent(parent.parentModelType, data.props)) {
+      return parentIds;
+    }
+
+    // A malformed id names no record; it is not looked up.
+    const lookupIds: Array<string> = parentIds.filter((id: string): boolean => {
+      return ObjectID.isValidUUID(id);
+    });
+
+    const readableIds: Set<string> = new Set<string>(
+      (lookupIds.length > 0
+        ? await data.findReadableParentIds({
+            parentModelType: parent.parentModelType,
+            ids: lookupIds,
+            query: CreatePermission.getParentLookupQuery({
+              parentModelType: parent.parentModelType,
+              ids: lookupIds,
+              props: data.props,
+            }),
+            props: data.props,
+          })
+        : []
+      ).map(normalizeId),
+    );
+
+    const refusedIds: Array<string> = parentIds.filter(
+      (id: string): boolean => {
+        return !readableIds.has(normalizeId(id));
+      },
+    );
+
+    if (refusedIds.length > 0) {
+      throw CreatePermission.getMissingParentRefusal(
+        data.modelType,
+        parent,
+        refusedIds,
+      );
+    }
+
+    return parentIds;
+  }
+
+  // The parent of each model asked about, read from its metadata once.
+  private static createParents: Map<
+    DatabaseBaseModelType,
+    CreateParent | null
+  > = new Map();
+
+  /*
+   * The record `modelType`'s rows are read through, as a create names it.
+   * Null for a model read through none. A declared relation that names no
+   * parent model is a misconfigured model - ParentOwnedScopeCoverage holds
+   * every model to one the read rule follows - and is refused rather than
+   * created unchecked.
+   */
+  public static getCreateParent(
+    modelType: DatabaseBaseModelType,
+  ): CreateParent | null {
+    if (CreatePermission.createParents.has(modelType)) {
+      return CreatePermission.createParents.get(modelType) || null;
+    }
+
+    const parent: CreateParent | null =
+      CreatePermission.readCreateParent(modelType);
+
+    CreatePermission.createParents.set(modelType, parent);
+
+    return parent;
+  }
+
+  // See getCreateParent.
+  private static readCreateParent(
+    modelType: DatabaseBaseModelType,
+  ): CreateParent | null {
+    const model: BaseModel = new modelType();
+    const relation: string | null = model.canAccessIfCanReadOn;
+
+    if (!relation) {
+      return null;
+    }
+
+    const column: TableColumnMetadata | undefined =
+      model.getTableColumnMetadata(relation);
+
+    if (
+      !column ||
+      !column.modelType ||
+      (column.type !== TableColumnType.Entity &&
+        column.type !== TableColumnType.EntityArray)
+    ) {
+      throw new BadDataException(
+        `${model.singularName} is read through ${relation}, which names no record to check a create against.`,
+      );
+    }
+
+    const isList: boolean = column.type === TableColumnType.EntityArray;
+
+    return {
+      parentModelType: column.modelType as DatabaseBaseModelType,
+      relation: relation,
+      idColumn: isList ? null : column.manyToOneRelationColumn || null,
+      isList: isList,
+      title: column.title || new column.modelType().singularName || relation,
+      isParentReadOptional: model.isParentReadOptional,
+    };
+  }
+
+  /*
+   * The parents a create's data names, each once, as the caller wrote them:
+   * a key under both of its names - the ID column and the relation, which
+   * must agree (RelationIdUtil.readConsistent refuses two that do not) - or
+   * every record of a join table's list, as model instances, `{ _id }`
+   * objects, ObjectIDs or plain ids (resolveReferenceIds, as the reference
+   * checks read them). None for a create that names no parent.
+   */
+  public static getNamedParentIds(
+    parent: CreateParent,
+    data: BaseModel,
+  ): Array<string> {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (!parent.isList) {
+      const id: ObjectID | null = RelationIdUtil.readConsistent(
+        record,
+        parent.idColumn
+          ? [parent.idColumn, parent.relation]
+          : [parent.relation],
+        parent.title,
+      );
+
+      return id ? [id.toString().trim()] : [];
+    }
+
+    const seen: Set<string> = new Set<string>();
+    const ids: Array<string> = [];
+
+    for (const entry of resolveReferenceIds(record[parent.relation])) {
+      const id: string = entry.toString().trim();
+
+      if (seen.has(normalizeId(id))) {
+        continue;
+      }
+
+      seen.add(normalizeId(id));
+      ids.push(id);
+    }
+
+    return ids;
+  }
+
+  /*
+   * Whether a read of `parentModelType` by the caller reaches every record
+   * of it in the project, so that a lookup could only tell whether a parent
+   * is a record of the project: none of the narrowings the read rule applies
+   * to a read of it (BasePermission.addRecordScopeToQuery) - a grant limited
+   * to labels (on a label-less parent, to the labels of what it names), a
+   * block with labels, grants limited to owned records, a read only the
+   * CurrentUser permission grants, a parent that is read through another
+   * record of its own, or a parent table whose private records the caller
+   * sees only when they are named on them.
+   */
+  public static readsEveryParent(
+    parentModelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      !CreatePermission.getParentTableFacts(parentModelType)
+        .isReadThroughAnother &&
+      !CreatePermission.isHeldToParentPrivacy(parentModelType, props) &&
+      CreatePermission.reachesRecordsOfNoParent(parentModelType, props) &&
+      ReadPermission.getBlockedLabelIds(
+        parentModelType,
+        props,
+        DatabaseRequestType.Read,
+      ).length === 0 &&
+      !TenantPermission.isAccessGrantedOnlyByCurrentUser(
+        parentModelType,
+        props,
+        DatabaseRequestType.Read,
+      )
+    );
+  }
+
+  /*
+   * The read a lookup of `ids` makes as the caller: the ids, and the parent
+   * table's rule for its private records, which its own service adds to
+   * every read of it - a lookup through a plain service would leave it out.
+   */
+  public static getParentLookupQuery(data: {
+    parentModelType: DatabaseBaseModelType;
+    ids: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Query<BaseModel> {
+    const query: Query<BaseModel> = {
+      _id: QueryHelper.any(data.ids),
+    } as Query<BaseModel>;
+
+    const privacyFilter: SelfPrivacyFilter | null =
+      CreatePermission.getParentPrivacyFilter(data.parentModelType);
+
+    return privacyFilter ? privacyFilter(query, data.props) : query;
+  }
+
+  // The rule for the private records of a parent table; null if it holds none.
+  public static getParentPrivacyFilter(
+    parentModelType: DatabaseBaseModelType,
+  ): SelfPrivacyFilter | null {
+    return CreatePermission.getParentTableFacts(parentModelType).privacyFilter;
+  }
+
+  // What each parent table's rules come to, read from its metadata once.
+  private static parentTableFacts: Map<
+    DatabaseBaseModelType,
+    ParentTableFacts
+  > = new Map();
+
+  private static getParentTableFacts(
+    parentModelType: DatabaseBaseModelType,
+  ): ParentTableFacts {
+    let facts: ParentTableFacts | undefined =
+      CreatePermission.parentTableFacts.get(parentModelType);
+
+    if (!facts) {
+      const parentModel: BaseModel = new parentModelType();
+
+      facts = {
+        privacyFilter:
+          PARENT_PRIVACY_FILTERS[parentModel.tableName || ""] || null,
+        isReadThroughAnother: Boolean(parentModel.canAccessIfCanReadOn),
+      };
+
+      CreatePermission.parentTableFacts.set(parentModelType, facts);
+    }
+
+    return facts;
+  }
+
+  /*
+   * Whether the caller sees only some private records of a parent table:
+   * the ones they are named on. Project owners and admins see them all.
+   */
+  public static isHeldToParentPrivacy(
+    parentModelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      CreatePermission.getParentPrivacyFilter(parentModelType) !== null &&
+      !shouldBypassRecordPrivacy(props)
+    );
+  }
+
+  /*
+   * Whether the caller reaches the rows of a model read through
+   * `parentModelType` that name no parent at all: their read of the parent
+   * is limited neither to labels nor to what they or their teams own - the
+   * two narrowings of the rows read through a parent that leave out a row
+   * of no parent (BasePermission.addParentAccessToQuery). A block with
+   * labels takes away only the parents carrying them, so a row of no parent
+   * is still reached.
+   */
+  public static reachesRecordsOfNoParent(
+    parentModelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      AccessControlPermission.getAccessControlIdsForQuery(
+        parentModelType,
+        {},
+        { _id: true },
+        props,
+        DatabaseRequestType.Read,
+      ).length === 0 &&
+      !OwnedScopePermission.isLimitedToOwnedRecords(
+        parentModelType,
+        props,
+        DatabaseRequestType.Read,
+      )
+    );
+  }
+
+  // See checkParentPermission: a create that names no parent.
+  private static checkParentlessCreate(
+    modelType: DatabaseBaseModelType,
+    parent: CreateParent,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (
+      CreatePermission.reachesRecordsOfNoParent(parent.parentModelType, props)
+    ) {
+      return;
+    }
+
+    const model: BaseModel = new modelType();
+    const parentModel: BaseModel = new parent.parentModelType();
+
+    throw new NotAuthorizedException(
+      `A ${model.singularName} you create must belong to a ${parentModel.singularName} you can read: your access to ${parentModel.pluralName} covers only some of them.`,
+    );
+  }
+
+  /*
+   * The refusal of parents the caller may not read: the one every reference
+   * check answers with (getReferenceRefusalMessage), naming the field and
+   * the ids as sent - so a parent the caller may not read reads exactly like
+   * one in another project, or one that does not exist.
+   */
+  private static getMissingParentRefusal(
+    modelType: DatabaseBaseModelType,
+    parent: CreateParent,
+    refusedIds: Array<string>,
+  ): UnreadableParentException {
+    return new UnreadableParentException(
+      getReferenceRefusalMessage({
+        subject: (new modelType().singularName || "record").toLowerCase(),
+        described: refusedIds.map((id: string): string => {
+          return `${parent.title} "${id}"`;
+        }),
+      }),
+    );
+  }
+
+  // Whether two lists of ids name the same records, in any order or case.
+  private static isSameIdSet(
+    ids: Array<string>,
+    otherIds: Array<string>,
+  ): boolean {
+    const normalized: Set<string> = new Set<string>(ids.map(normalizeId));
+    const otherNormalized: Set<string> = new Set<string>(
+      otherIds.map(normalizeId),
+    );
+
+    if (normalized.size !== otherNormalized.size) {
+      return false;
+    }
+
+    for (const id of normalized) {
+      if (!otherNormalized.has(id)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

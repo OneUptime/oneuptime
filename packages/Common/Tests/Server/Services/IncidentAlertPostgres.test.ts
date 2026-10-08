@@ -926,13 +926,18 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       });
       const alertId: ObjectID = await seedAlert();
 
+      /*
+       * The incident is the record a link is created under: one the member
+       * may not read is answered like one that does not exist, before the
+       * link's own checks run (CreatePermission.checkParentPermission).
+       */
       await expect(
         IncidentAlertService.create({
           data: link(privateIncidentId, alertId),
           props: memberProps(userId),
         }),
       ).rejects.toThrow(
-        "The incident to link does not exist in this project, or you do not have access to it.",
+        `This incident alert references records that are not in this project: Incident "${privateIncidentId.toString()}".`,
       );
       expect(await linkCount()).toBe(0);
     });

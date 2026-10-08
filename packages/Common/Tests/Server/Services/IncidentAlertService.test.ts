@@ -57,13 +57,18 @@ import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
 
 /*
  * The records these tests name are their project's own: the services check
- * every reference against the project (ProjectReferencesService).
+ * every reference against the project (ProjectReferencesService). And the
+ * incident a link is created under is one its creator may read: a member
+ * who is no project admin is looked up with the rule for private incidents
+ * (CreatePermission.checkParentPermission), answered here as found.
  */
 beforeEach(() => {
   stubProjectDirectory({});
+  stubReadableParents();
 });
 
 /*

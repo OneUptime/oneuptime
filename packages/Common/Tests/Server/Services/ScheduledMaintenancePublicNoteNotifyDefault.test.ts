@@ -113,9 +113,16 @@ const rootProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
   return { isRoot: true };
 };
 
-// A member whose only way in is the scheduled maintenance public note create permission.
+/*
+ * A member whose only way in is the scheduled maintenance public note create
+ * permission, and a read of the event the note is posted on: a note is
+ * created only under an event its creator may read.
+ */
 const noteCreatorProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
-  return memberProps([Permission.CreateScheduledMaintenancePublicNote]);
+  return memberProps([
+    Permission.CreateScheduledMaintenancePublicNote,
+    Permission.ReadProjectScheduledMaintenance,
+  ]);
 };
 
 type EventWithFlagFunction = (
