@@ -391,9 +391,10 @@ export default class AIAlertInvestigationRunner {
 
           /*
            * Inconclusive means the telemetry was insufficient — for
-           * projects with the alert instrumentation-fix setting on (on
-           * for new projects), queue an ImproveInstrumentation fix task that
-           * opens a PR adding the missing observability. Runs strictly
+           * projects with the alert instrumentation-fix setting on, under
+           * "Fix new alerts automatically" (Types/AI/AutomaticFixSwitches),
+           * queue an ImproveInstrumentation fix task that opens a PR adding
+           * the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.
            * Fail direction (G6): only a POSITIVE inconclusive verdict
@@ -417,8 +418,9 @@ export default class AIAlertInvestigationRunner {
          * The engine calls this only after it atomically persists Recommended
          * with the exact posted analysis snapshot. That durable decision is
          * the prerequisite for the optional automatic FixFromIncident task;
-         * the trigger then applies the alert lane's independent opt-in and
-         * remaining repository, budget and dedupe gates.
+         * the trigger then applies the alert lane's opt-in - its code-fix
+         * switch, under its fixing switch - and the remaining repository,
+         * budget and dedupe gates.
          */
         onCodeFixRecommended: async (data: {
           analysisMarkdown: string;

@@ -67,8 +67,13 @@ export const MONITOR_STEP_SUB_CONFIGS: ReadonlyArray<{
   { attributeName: "iot_monitor", apiKey: "iotMonitor" },
 ];
 
-// Filter options that are raw JSON, like the step sub-configs.
-const FILTER_JSON_OPTIONS: ReadonlyArray<{
+/*
+ * Filter options that are raw JSON, like the step sub-configs: provider
+ * attribute, CriteriaFilter key. A filter option CriteriaFilterSchema accepts
+ * with no attribute here (nor a typed one, like disk_path) is dropped by the
+ * provider and by this export (TerraformMonitorStepFilterOptions.test.ts).
+ */
+export const FILTER_JSON_OPTIONS: ReadonlyArray<{
   attributeName: string;
   apiKey: string;
 }> = [
@@ -77,6 +82,11 @@ const FILTER_JSON_OPTIONS: ReadonlyArray<{
   {
     attributeName: "database_monitor_options",
     apiKey: "databaseMonitorOptions",
+  },
+  // A Result Value filter's field path (resultValuePath).
+  {
+    attributeName: "custom_code_monitor_options",
+    apiKey: "customCodeMonitorOptions",
   },
 ];
 

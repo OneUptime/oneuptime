@@ -17,13 +17,17 @@ import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSCo
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
-import Permission from "Common/Types/Permission";
+import IncomingCallPhoneNumberAccess, {
+  INCOMING_CALL_PHONE_NUMBER_REFUSALS,
+  IncomingCallPhoneNumberAction,
+} from "Common/Utils/IncomingCall/IncomingCallPhoneNumberAccess";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
   OneUptimeRequest,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import logger, {
@@ -44,6 +48,24 @@ import Query from "Common/Types/BaseDatabase/Query";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * Who may use each route: the roles of the incoming call policy the numbers
+ * serve, read from the models (IncomingCallPhoneNumberAccess). Looking
+ * numbers up needs the read of incoming call policies and of call and SMS
+ * settings; reserving, attaching and releasing one needs the edit of
+ * incoming call policies, and the handler then checks the one policy as its
+ * update would (assertCanEditIncomingCallPolicy). The dashboard's number
+ * picker is offered to the same people.
+ */
+function requirePhoneNumberAccess(
+  action: IncomingCallPhoneNumberAction,
+): RequestHandler {
+  return UserMiddleware.requireModelPermission({
+    operations: IncomingCallPhoneNumberAccess.getNeeds(action),
+    refusal: INCOMING_CALL_PHONE_NUMBER_REFUSALS[action],
+  });
+}
 
 /*
  * Returns the project (tenant) id the caller was authenticated and authorized
@@ -120,10 +142,13 @@ async function assertCanEditIncomingCallPolicy(data: {
  * list routes look numbers up with - holds the provider account's
  * credentials. It is named only by a caller who may read the project's call
  * and SMS settings, as a create or an update that names one is
- * (RelationListPermission.mayReadTable): one they may not read is answered
- * like one that is not there, before it is read at all. The config a
- * policy's own numbers use is the policy's, not the caller's to name, and
- * is not asked about here.
+ * (RelationListPermission.mayReadTable). The route guard already asks that
+ * read of whoever looks numbers up (IncomingCallPhoneNumberAction.LookUp);
+ * this asks it again where the config is named, so the routes never read a
+ * config for someone who may not, whatever guard stands in front of them:
+ * one they may not read is answered like one that is not there, before it
+ * is read at all. The config a policy's own numbers use is the policy's, not
+ * the caller's to name, and is not asked about here.
  */
 async function assertCallerMayNameConfig(req: ExpressRequest): Promise<void> {
   const databaseProps: DatabaseCommonInteractionProps =
@@ -319,14 +344,7 @@ router.post(
   "/search",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
-  UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncomingCallPolicy,
-    ],
-  }),
+  requirePhoneNumberAccess(IncomingCallPhoneNumberAction.LookUp),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -455,14 +473,7 @@ router.post(
   "/list-owned",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
-  UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectIncomingCallPolicy,
-    ],
-  }),
+  requirePhoneNumberAccess(IncomingCallPhoneNumberAction.LookUp),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -550,14 +561,7 @@ router.post(
   "/assign-existing",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
-  UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectIncomingCallPolicy,
-    ],
-  }),
+  requirePhoneNumberAccess(IncomingCallPhoneNumberAction.Change),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -747,14 +751,7 @@ router.post(
   "/purchase",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
-  UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectIncomingCallPolicy,
-    ],
-  }),
+  requirePhoneNumberAccess(IncomingCallPhoneNumberAction.Change),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -1196,14 +1193,7 @@ router.delete(
   "/release/:incomingCallPolicyId/:incomingCallPolicyPhoneNumberId",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
-  UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectIncomingCallPolicy,
-    ],
-  }),
+  requirePhoneNumberAccess(IncomingCallPhoneNumberAction.Change),
   releasePhoneNumberHandler,
 );
 
@@ -1212,14 +1202,7 @@ router.delete(
   "/release/:incomingCallPolicyId",
   UserMiddleware.getUserMiddleware,
   UserMiddleware.requireUserAuthentication,
-  UserMiddleware.requirePermission({
-    permissions: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditProjectIncomingCallPolicy,
-    ],
-  }),
+  requirePhoneNumberAccess(IncomingCallPhoneNumberAction.Change),
   releasePhoneNumberHandler,
 );
 

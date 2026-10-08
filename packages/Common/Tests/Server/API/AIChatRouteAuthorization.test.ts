@@ -602,15 +602,16 @@ describe("POST /ai-chat/providers - membership alone is not read authorization",
     expect(providerLookupsRan()).toBe(false);
   });
 
-  test("Permission.Public in LlmProvider's read list does not admit an ordinary member", async () => {
+  test("an ordinary member who holds none of LlmProvider's readers is refused", async () => {
     /*
-     * LlmProvider declares Permission.Public as a reader so the shared global
-     * providers stay visible, and getUserPermissions merges Public into EVERY
-     * caller's permissions. A guard that intersected the two lists naively
-     * would therefore pass for anyone at all - this is the regression test for
-     * that specific mistake.
+     * LlmProvider's read list names only the project's own readers: no
+     * Permission.Public, which getUserPermissions merges into EVERY caller's
+     * permissions, so a list carrying it would admit anyone at all. The
+     * shared global providers are listed by their own route instead.
      */
-    expect(new LlmProvider().getReadPermissions()).toContain(Permission.Public);
+    expect(new LlmProvider().getReadPermissions()).not.toContain(
+      Permission.Public,
+    );
 
     withProps(memberOfVictimProject([Permission.ReadProjectIncident]));
 

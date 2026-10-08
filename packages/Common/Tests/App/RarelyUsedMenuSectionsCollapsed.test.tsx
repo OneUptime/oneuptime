@@ -211,7 +211,11 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "More",
   "Scheduled Events",
   "Schedules",
-  "Topology",
+  /*
+   * "Topology" left this list when the Network menu folded its Topology
+   * section (the deeper wiring views and the hand-drawn links): Network's
+   * everyday pages are Overview, Devices, Sites, Map and Discovery.
+   */
   // A resource's own views.
   "Activity",
   "Alert Notes",

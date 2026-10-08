@@ -58,7 +58,8 @@ import type { OnCallCalendarFeedStatus, ProjectItem } from "../api/types";
  *
  * The two platforms get different primary actions because they can do
  * different things with a webcal link. iOS has a native "Subscribe" sheet
- * behind `Linking.openURL("webcals://...")`; Android has nothing - the
+ * behind `Linking.openURL("webcal://...")` (never webcals://, which iOS does
+ * not open); Android has nothing - the
  * Google Calendar app cannot add a calendar by URL, so the honest action is
  * to get the link onto a computer, and the copy says so.
  */

@@ -44,4 +44,29 @@ const slugify: (text: string) => string = (text: string): string => {
     .replace(/^-|-$/g, "");
 };
 
+/*
+ * The anchor of a heading, from the heading as it is written in Markdown -
+ * what the docs search index, the anchor scripts and the docs tests read.
+ *
+ * The renderer slugifies the heading's HTML, and there a `<` or `>` the
+ * author typed - in inline code such as "`oneuptime <resource> list`", or as
+ * text - is an entity, which slugify drops while keeping the word between
+ * them ("oneuptime-resource-list"). Slugified as written, "<resource>" would
+ * look like a tag and lose the word too ("oneuptime-list"), and a link to
+ * the heading would miss it. A bare `&` is escaped the way marked escapes
+ * it, so "A & B; C" keeps its "B" as it does on the page. A link in a
+ * heading is its text on the page.
+ */
+export const slugifyMarkdownHeading: (heading: string) => string = (
+  heading: string,
+): string => {
+  return slugify(
+    heading
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/&(?!#?\w+;)/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;"),
+  );
+};
+
 export default slugify;

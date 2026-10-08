@@ -153,6 +153,8 @@ Every allow permission is granted with a scope, chosen when you add it:
 
 **Labels** is the more manual version of the same idea: tag resources, then grant permissions restricted to those tags.
 
+**Acting on the whole project takes a permission that reaches it.** A rule's **Run Now** applies the rule to every resource of the project, and a network's site assignment, device label and auto import rules to every network device or scan, so it takes permissions scoped to all resources in the project: a permission restricted to labels or to owned resources is not enough, and a block with labels on the resources a run changes refuses the run, because it would change the resources carrying those labels too.
+
 Some roles are project-wide by definition and do not offer a scope at all, because scoping them would be meaningless — "Billing Admin, but only for the billing I own" does not describe anything:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -235,7 +237,7 @@ Every field of a record is read with the record's own read permission: a permiss
 
 Fields follow the same rule. A block with no labels on a field's permission takes the field away, and on an operational resource the matching **All Operational Resources** permission opens every field that everyone who may read or change the record may open — but not a field that is narrower on purpose, such as a secret key.
 
-A setting that holds credentials is named only by someone who may read it. A create or a change names an SMTP server, a call and SMS provider, a runbook credential, SNMP credentials, a video call connection or an API key — such as the SMTP server a status page sends email with, or the credential a runbook step runs with — only when you may read that kind of setting; one you may not read is refused as if it did not exist, while a record keeps the one it names already. Searching a call and SMS provider for numbers to buy, or listing the numbers it owns, takes the same read.
+A setting that holds credentials is named only by someone who may read it. A create or a change names an SMTP server, a call and SMS provider, a runbook credential, SNMP credentials, a video call connection or an API key — such as the SMTP server a status page sends email with, or the credential a runbook step runs with — only when you may read that kind of setting; one you may not read is refused as if it did not exist, while a record keeps the one it names already. Searching a call and SMS provider for numbers to buy, or listing the numbers it owns, takes the same read. Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners, or turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials.
 
 The same rule decides everything else that asks whether you hold a permission: actions that are not a plain read or write, such as adding SMS, call or AI credit, paying an invoice or testing a notification rule, and the buttons OneUptime shows you. A button you may not use is shown locked and says why; when a block on one of your teams is the reason, it names the blocked permission.
 

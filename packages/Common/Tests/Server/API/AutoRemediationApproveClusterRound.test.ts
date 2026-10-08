@@ -248,21 +248,25 @@ async function callApprove(): Promise<RouteCallResult> {
   };
 }
 
-function buildUserProps(): DatabaseCommonInteractionProps {
+function buildUserProps(
+  morePermissions: Array<Permission> = [],
+): DatabaseCommonInteractionProps {
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
 
   permissionMap[PROJECT_ID.toString()] = {
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,
-    permissions: [Permission.ProjectMember].map((permission: Permission) => {
-      const userPermission: UserPermission = {
-        _type: "UserPermission",
-        permission: permission,
-        labelIds: [],
-      };
+    permissions: [Permission.ProjectMember, ...morePermissions].map(
+      (permission: Permission) => {
+        const userPermission: UserPermission = {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+        };
 
-      return userPermission;
-    }),
+        return userPermission;
+      },
+    ),
   };
 
   return {
@@ -798,6 +802,16 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
     test.each([RunbookStepType.Bash, RunbookStepType.SSH])(
       "a %s step aimed at the AI agent is refused — it runs only Kubectl steps",
       async (stepType: RunbookStepType) => {
+        /*
+         * An approver who may read runbook credentials, so what refuses is
+         * the step itself rather than the credential an SSH step runs with.
+         */
+        jest
+          .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+          .mockResolvedValue(
+            buildUserProps([Permission.ReadRunbookCredential]),
+          );
+
         mockRow(
           clusterRoundRow([
             agentKubectlCommandJson({ sequence: 1 }),

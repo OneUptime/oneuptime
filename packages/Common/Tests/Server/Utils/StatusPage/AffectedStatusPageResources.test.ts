@@ -583,9 +583,15 @@ describe("who hears about an event on a monitor in a monitor group", () => {
     "unsubscribedFromBackend",
   ];
 
+  /*
+   * A subscriber's pick as getSubscribersByStatusPage reads it: its id and
+   * the page it is on - a subscriber is told about an event only through
+   * resources of its own page.
+   */
   function pageResource(row: StatusPageResourceRow): StatusPageResource {
     const resource: StatusPageResource = new StatusPageResource();
     resource._id = row._id;
+    resource.statusPageId = new ObjectID(row.statusPageId);
     return resource;
   }
 

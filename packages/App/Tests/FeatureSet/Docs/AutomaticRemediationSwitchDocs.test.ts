@@ -36,7 +36,9 @@ const NOTE_HEADING: string =
   "### Fixing new incidents and alerts has a switch of its own";
 const PREVIOUS_NOTE_HEADING: string =
   "### The AI Logs get an index for the daily AI limits";
-const NEXT_NOTE_HEADING: string = "### Verify the edition and the license";
+// Fixing's own note is followed by the one on the pull requests under it.
+const NEXT_NOTE_HEADING: string =
+  "### The pull-request switches are part of fixing";
 
 const INCIDENT_SETTINGS_PAGE: string = path.join(
   DOCS_CONTENT_DIR,
@@ -64,24 +66,42 @@ describe("the AI SRE page", () => {
   const rules: string = flat(getSection(read(AI_SRE_PAGE), RULES_HEADING));
 
   it("names the incident page's switches as the dashboard titles them, in order", () => {
-    const named: string = titles(AiLane.Incident)
-      .map((title: string): string => {
+    const named: Array<string> = titles(AiLane.Incident).map(
+      (title: string): string => {
         return `_${title}_`;
-      })
-      .join(", ");
+      },
+    );
 
     expect(titles(AiLane.Incident)[1]).toBe("Fix new incidents automatically");
+    expect(named).toHaveLength(3);
     expect(page).toContain(
-      `The incident page has five, under **What OneUptime AI does**: ${named
-        .split(", ")
+      `The incident page has three, under **What OneUptime AI does**: ${named
         .slice(0, -1)
-        .join(", ")} and _${titles(AiLane.Incident).slice(-1)[0]}_.`,
+        .join(", ")} and ${named.slice(-1)[0]}.`,
     );
+  });
+
+  it("names the two pull requests as part of fixing, drawn under it, on and off with it", () => {
+    const children: Array<string> = (
+      AI_LANE_SWITCHES[AiLane.Incident][1]!.children || []
+    ).map((definition: ProjectAiSwitchDefinition<string>): string => {
+      return `_${definition.title}_`;
+    });
+
+    expect(children).toHaveLength(2);
+    expect(page).toContain(
+      `Two more switches are part of it, drawn under it while it is on: ${children[0]} and ${children[1]}.`,
+    );
+    expect(page).toContain(
+      "Turning fixing on turns both on, and turning it off turns both off; while it is on, turn off either one you do not want.",
+    );
+    // The page no longer counts them as switches of their own.
+    expect(page).not.toContain("The incident page has five");
   });
 
   it("says fixing starts off, for new projects too", () => {
     expect(page).toContain(
-      "_Fix new incidents automatically_ (and _Fix new alerts automatically_) is the one switch that starts **off**, for new projects too",
+      "_Fix new incidents automatically_ (and _Fix new alerts automatically_) starts **off**, for new projects too",
     );
   });
 

@@ -201,16 +201,17 @@ test.describe("Project Settings → AI Features: daily AI limits", () => {
     });
 
     // The card around it is the one frame: rounded, with a shadow.
-    const foldStyle: Record<string, string> = await fold.evaluate(
-      (element: HTMLElement): Record<string, string> => {
-        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    const foldStyle: { boxShadow: string; borderRadius: string } =
+      await fold.evaluate(
+        (element: HTMLElement): { boxShadow: string; borderRadius: string } => {
+          const style: CSSStyleDeclaration = window.getComputedStyle(element);
 
-        return {
-          boxShadow: style.boxShadow,
-          borderRadius: style.borderTopLeftRadius,
-        };
-      },
-    );
+          return {
+            boxShadow: style.boxShadow,
+            borderRadius: style.borderTopLeftRadius,
+          };
+        },
+      );
 
     expect(foldStyle.boxShadow).not.toBe("none");
     expect(foldStyle.borderRadius).toBe("12px");

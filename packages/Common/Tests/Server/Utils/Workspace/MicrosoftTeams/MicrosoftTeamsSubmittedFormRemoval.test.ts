@@ -116,7 +116,6 @@ import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentEpisodeInternalNote from "../../../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
-import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -131,12 +130,11 @@ import IncidentEpisodeService from "../../../../../Server/Services/IncidentEpiso
 import IncidentInternalNoteService from "../../../../../Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
-import MonitorService from "../../../../../Server/Services/MonitorService";
 import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
 import ScheduledMaintenanceInternalNoteService from "../../../../../Server/Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenancePublicNoteService from "../../../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
-import { ProjectScopedReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import { UnreadableReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import logger, { LogAttributes } from "../../../../../Server/Utils/Logger";
 import {
   MicrosoftTeamsAlertActionType,
@@ -156,7 +154,6 @@ import MicrosoftTeamsScheduledMaintenanceActions from "../../../../../Server/Uti
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MicrosoftTeamsReplies from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
-import WorkspaceProjectReferenceValidator from "../../../../../Server/Utils/Workspace/WorkspaceProjectReferenceValidator";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -250,9 +247,6 @@ const UNAVAILABLE_REFERENCE: string =
 // A monitor of another project, as a tampered submit could name it.
 const FOREIGN_MONITOR_ID: string = "b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e";
 const FOREIGN_MONITOR_NAME: string = "Acme Corp: payments-db-primary";
-const OTHER_PROJECT_ID: ObjectID = new ObjectID(
-  "c2d3e4f5-a6b7-4c8d-9e0f-1a2b3c4d5e6f",
-);
 
 // The debug line deleteBestEffort logs for a removal Teams refused.
 const REMOVAL_REFUSED_LOG_PREFIX: string =
@@ -602,12 +596,6 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
       created.projectId = PROJECT_ID;
 
       jest
-        .spyOn(
-          WorkspaceProjectReferenceValidator,
-          "validateReferencesBelongToProject",
-        )
-        .mockResolvedValue();
-      jest
         .spyOn(IncidentService, "getIncidentLinkInDashboard")
         .mockResolvedValue(URL.fromString(INCIDENT_LINK));
       const create: SpyInstance<typeof IncidentService.create> = jest
@@ -621,7 +609,9 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
         const incident: Incident = create.mock.calls[0]![0].data;
         expect(incident.title).toBe("Checkout is failing");
         expect(incident.projectId).toEqual(PROJECT_ID);
-        expect(incident.createdByUserId).toEqual(USER_ID);
+        // Declared by the member, with their own props: the create credits them.
+        expect(create.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
+        expect(incident.createdByUserId).toBeUndefined();
       };
     },
   },
@@ -973,12 +963,6 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
 
       jest
         .spyOn(
-          WorkspaceProjectReferenceValidator,
-          "validateReferencesBelongToProject",
-        )
-        .mockResolvedValue();
-      jest
-        .spyOn(
           ScheduledMaintenanceService,
           "getScheduledMaintenanceLinkInDashboard",
         )
@@ -995,6 +979,8 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
         const maintenance: ScheduledMaintenance = create.mock.calls[0]![0].data;
         expect(maintenance.title).toBe("Database upgrade");
         expect(maintenance.projectId).toEqual(PROJECT_ID);
+        // Created by the member, with their own props.
+        expect(create.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
         expect(maintenance.startsAt).toEqual(
           new Date("2099-06-01T10:00:00.000Z"),
         );
@@ -1021,8 +1007,6 @@ interface CreateSubmitDetails {
   subject: string;
   // The submit field the picked monitors arrive in.
   monitorsField: string;
-  // Stubs the create, which must not run: it rejects if it does.
-  stubCreateThatMustNotRun: () => { mock: { calls: Array<unknown> } };
 }
 
 const CREATE_SUBMIT_DETAILS: Record<string, CreateSubmitDetails> = {
@@ -1032,11 +1016,6 @@ const CREATE_SUBMIT_DETAILS: Record<string, CreateSubmitDetails> = {
     unavailableReferenceReply: `❌ Could not create the incident: ${UNAVAILABLE_REFERENCE}`,
     subject: "incident",
     monitorsField: "incidentMonitors",
-    stubCreateThatMustNotRun: (): { mock: { calls: Array<unknown> } } => {
-      return jest
-        .spyOn(IncidentService, "create")
-        .mockRejectedValue(new Error("The incident must not be created."));
-    },
   },
   [MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance]:
     {
@@ -1046,11 +1025,6 @@ const CREATE_SUBMIT_DETAILS: Record<string, CreateSubmitDetails> = {
       unavailableReferenceReply: `❌ Could not create the scheduled maintenance event: ${UNAVAILABLE_REFERENCE}`,
       subject: "scheduled maintenance event",
       monitorsField: "scheduledMaintenanceMonitors",
-      stubCreateThatMustNotRun: (): { mock: { calls: Array<unknown> } } => {
-        return jest
-          .spyOn(ScheduledMaintenanceService, "create")
-          .mockRejectedValue(new Error("The event must not be created."));
-      },
     },
 };
 
@@ -1064,15 +1038,6 @@ function createDetailsOf(form: SubmittedForm): CreateSubmitDetails {
   }
 
   return details;
-}
-
-// The monitor the project check finds for FOREIGN_MONITOR_ID.
-function foreignMonitor(): Monitor {
-  const monitor: Monitor = new Monitor();
-  monitor.id = new ObjectID(FOREIGN_MONITOR_ID);
-  monitor.projectId = OTHER_PROJECT_ID;
-  monitor.name = FOREIGN_MONITOR_NAME;
-  return monitor;
 }
 
 /*
@@ -1562,20 +1527,22 @@ describe("a submit whose action fails keeps its form, so it can be submitted aga
 
   /*
    * A submit carries ids, and nothing binds them to the form that was sent:
-   * a record deleted since, or another project's id in a tampered submit.
-   * The project check refuses it before anything is created, with a message
-   * that names the record - fine for the log, not for a chat that may be
-   * another project's. "Please pick it again" needs the form, so it stays.
+   * a record deleted since, another project's id in a tampered submit, or a
+   * record the member may not read. The create, made with the member's own
+   * props, refuses it before anything is written, with a message that names
+   * the record - fine for the log, not for a chat that may be another
+   * project's. "Please pick it again" needs the form, so it stays.
    */
   test.each(CREATE_FORMS)(
     "$name with another project's monitor picked: the fixed reason, which names no record, and the form stays to pick again",
     async (form: SubmittedForm): Promise<void> => {
       const details: CreateSubmitDetails = createDetailsOf(form);
-      const findMonitors: SpyInstance<typeof MonitorService.findBy> = jest
-        .spyOn(MonitorService, "findBy")
-        .mockResolvedValue([foreignMonitor()]);
-      const create: { mock: { calls: Array<unknown> } } =
-        details.stubCreateThatMustNotRun();
+      // The refusal the create's own reference check gives such a monitor.
+      const refusal: UnreadableReferenceException =
+        new UnreadableReferenceException(
+          `This ${details.subject} references records that are not in this project: Monitor "${FOREIGN_MONITOR_ID}". Please pick values from this project and try again.`,
+        );
+      const writeRefused: WriteCheck = form.stubWrite(refusal);
       const tampered: SubmittedForm = {
         ...form,
         fields: { ...form.fields, [details.monitorsField]: FOREIGN_MONITOR_ID },
@@ -1590,9 +1557,8 @@ describe("a submit whose action fails keeps its form, so it can be submitted aga
         }),
       ).resolves.toBeUndefined();
 
-      // The real project check read the monitor, and refused before creating.
-      expect(findMonitors).toHaveBeenCalledTimes(1);
-      expect(create.mock.calls).toHaveLength(0);
+      // The create, made as the member, was asked once and refused.
+      writeRefused();
 
       // One reply, and no removal: the form is there to pick again.
       expect(turn.events).toEqual([
@@ -1607,10 +1573,10 @@ describe("a submit whose action fails keeps its form, so it can be submitted aga
       const attributes: LogAttributes = { projectId: PROJECT_ID.toString() };
       expect(errorLogCalls()).toStrictEqual([
         [
-          `${details.failureLogSummary}: ProjectScopedReferenceException: This ${details.subject} references records that are not in this project: Monitor "${FOREIGN_MONITOR_ID}". Please pick values from this project and try again.`,
+          `${details.failureLogSummary}: UnreadableReferenceException: This ${details.subject} references records that are not in this project: Monitor "${FOREIGN_MONITOR_ID}". Please pick values from this project and try again.`,
           attributes,
         ],
-        [expect.any(ProjectScopedReferenceException), attributes],
+        [refusal, attributes],
       ]);
     },
   );

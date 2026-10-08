@@ -521,15 +521,43 @@ describe("Locales", () => {
     "Remind me before shifts",
     "Upcoming shifts (next 30 days)",
     "Get cover",
-    "Apple / other apps",
-    "Copy webcal link",
+    "Add to your calendar",
     "Google Calendar",
+    "Apple Calendar / Outlook",
+    "Or copy the link",
+    "Copy link",
     "Add your shifts to your calendar",
     "Add to calendar",
     "Before my on-call shift starts",
     "My upcoming on-call shift is reassigned",
-    "Google Calendar and Outlook on the web fetch this link from their servers; it must be reachable from the internet. Apple Calendar, Thunderbird and Outlook desktop fetch from your computer.",
+    "Google Calendar refreshes subscribed calendars on its own schedule, every few hours (sometimes only once a day), so changes take a while to show up there. Reminders and pages still come from OneUptime on time.",
+    "Google Calendar reads this link from Google's servers, so this OneUptime server must be reachable from the internet.",
+    "Google Calendar and Outlook on the web can't reach this link: {{host}} is a private address, and they read calendars from their own servers. Apple Calendar or Outlook on a computer in your network can still subscribe.",
   ];
+
+  /*
+   * The subscribe block's old controls are gone with the redesign - a third
+   * "Copy webcal link" button and an "Apple / other apps" link to webcals://,
+   * which iOS refuses to open - and so are their keys.
+   */
+  test("the retired subscribe-block keys are gone from every locale", () => {
+    for (const locale of LOCALES) {
+      const json: Record<string, unknown> = readLocale(locale);
+
+      for (const key of [
+        "Apple / other apps",
+        "Copy webcal link",
+        "Opens Google Calendar's 'From URL' page with this link filled in.",
+        "Outlook: Add calendar, then Subscribe from web, then paste this link.",
+      ]) {
+        expect({ locale, key, present: key in json }).toEqual({
+          locale,
+          key,
+          present: false,
+        });
+      }
+    }
+  });
 
   test("every calendar-feed string is a key in en.json whose value is the key", () => {
     for (const key of REQUIRED_KEYS) {

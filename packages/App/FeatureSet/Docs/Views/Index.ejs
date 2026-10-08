@@ -4,6 +4,7 @@
     <%- include('./Partials/Head.ejs', {
         enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
         link: typeof link !== 'undefined' ? link : null,
+        pageDescription: typeof pageDescription !== 'undefined' ? pageDescription : null,
         t: t,
         lang: lang
     }) %>
@@ -59,7 +60,8 @@
                         t: t,
                         lang: lang,
                         contentLang: typeof contentLang !== 'undefined' ? contentLang : null,
-                        contentDir: typeof contentDir !== 'undefined' ? contentDir : null
+                        contentDir: typeof contentDir !== 'undefined' ? contentDir : null,
+                        markdownUrl: typeof markdownUrl !== 'undefined' ? markdownUrl : null
                     }) %>
 
                     <%- include('./Partials/Pagination.ejs', {
@@ -89,7 +91,7 @@
     </div>
 
     <%- include('./Partials/SearchModal.ejs', { t: t }) %>
-    <%- include('./Partials/Scripts.ejs', { nav: nav, t: t }) %>
+    <%- include('./Partials/Scripts.ejs', { nav: nav, t: t, lang: lang }) %>
 </body>
 
 </html>
