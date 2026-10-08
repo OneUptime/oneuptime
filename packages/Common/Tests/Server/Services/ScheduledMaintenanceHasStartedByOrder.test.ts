@@ -107,6 +107,21 @@ describe("ScheduledMaintenanceService.isScheduledMaintenanceOngoing: has the eve
     },
   );
 
+  test("an event read without a state has not started, and the project's states are not read", async () => {
+    const reads: ReturnType<typeof mockProgressStateReads> =
+      mockProgressStateReads();
+    const event: ScheduledMaintenance = readsEvent("verifying");
+    event.currentScheduledMaintenanceState = undefined;
+
+    await expect(
+      ScheduledMaintenanceService.isScheduledMaintenanceOngoing({
+        scheduledMaintenanceId: event.id!,
+      }),
+    ).resolves.toBe(false);
+
+    expect(reads.findBy).not.toHaveBeenCalled();
+  });
+
   test("asks for the event's state with its place and flags", async () => {
     mockProgressStateReads();
     const event: ScheduledMaintenance = readsEvent("verifying");

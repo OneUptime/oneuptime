@@ -770,6 +770,25 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds befo
     expect(carried![EVENT_ID]!.wasHoldingMonitorsBeforeUpdate).toBe(false);
     expect(timelineFindBy).not.toHaveBeenCalled();
   });
+
+  test("an event read without a state is not in progress, and the project's states are not read for it", async () => {
+    const stateless: ScheduledMaintenance = maintenanceEvent({
+      state: "ongoing",
+      networkSites: [SITE_1],
+    });
+    stateless.currentScheduledMaintenanceState = undefined;
+    eventsBeforeWrite = [stateless];
+
+    const carried: Dictionary<AttachmentsBeforeUpdate> | null = carriedOf(
+      await runBeforeUpdate(updateByFor({ networkSites: [{ _id: SITE_2 }] })),
+    );
+
+    expect(carried![EVENT_ID]!.wasInProgressBeforeUpdate).toBe(false);
+    // No state to place: the project's list would answer nothing.
+    expect(
+      ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates,
+    ).not.toHaveBeenCalled();
+  });
 });
 
 describe("ScheduledMaintenanceService.onBeforeUpdate: whether the event holds its monitors", () => {

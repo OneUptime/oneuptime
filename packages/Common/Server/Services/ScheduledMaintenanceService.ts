@@ -1143,13 +1143,18 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
       return startedByFlags;
     }
 
+    // An event read without a state has none to place: nothing is read.
+    if (!currentState) {
+      return false;
+    }
+
     const states: Array<ScheduledMaintenanceState> | null =
       await this.getProjectStatesOnce({
         scheduledMaintenanceEvent: data.scheduledMaintenanceEvent,
         statesByProjectId: data.statesByProjectId,
       });
 
-    if (!currentState || !states) {
+    if (!states) {
       return false;
     }
 
@@ -1181,13 +1186,18 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
       return inProgressByFlags;
     }
 
+    // An event read without a state has none to place: nothing is read.
+    if (!currentState) {
+      return false;
+    }
+
     const states: Array<ScheduledMaintenanceState> | null =
       await this.getProjectStatesOnce({
         scheduledMaintenanceEvent: data.scheduledMaintenanceEvent,
         statesByProjectId: data.statesByProjectId,
       });
 
-    if (!currentState || !states) {
+    if (!states) {
       return false;
     }
 
