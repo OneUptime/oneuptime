@@ -802,7 +802,7 @@ describe.each([
       ]);
     });
 
-    test("turned on again, it keeps that time: turning on writes none, and holds the lock while it is written", async () => {
+    test("turned on again, it keeps that time: turning on writes none and takes no lock", async () => {
       await updateProvider(kind, { isEnabled: false });
       const endedAt: unknown = providerRow(kind)!["signInsEndedAt"];
       events = [];
@@ -814,12 +814,7 @@ describe.each([
       expect(providerRow(kind)!["isEnabled"]).toBe(true);
       expect(providerRow(kind)!["signInsEndedAt"]).toEqual(endedAt);
       expect(kind.providerTable().writes[1]!.set).toEqual({ isEnabled: true });
-      // A write turning it off at the same moment waits, and then reads it on.
-      expect(events).toEqual([
-        `lock:${SERVER_LOCK}`,
-        `write:${PROVIDER}`,
-        `release:${SERVER_LOCK}`,
-      ]);
+      expect(events).toEqual([`write:${PROVIDER}`]);
     });
 
     test("turning it on is never refused, even for a project that requires SSO and has no provider yet", async () => {
@@ -833,19 +828,23 @@ describe.each([
       expect(providerRow(kind)!["isEnabled"]).toBe(true);
     });
 
-    test("turning off one that is off already keeps the time it has", async () => {
-      const endedAt: Date = new Date("2026-01-01T00:00:00.000Z");
+    test("turning off one that is off already writes the time too, whatever was read before: it gave no sign-ins while off, and one turned on a moment before is stamped", async () => {
       providerRow(kind)!["isEnabled"] = false;
-      providerRow(kind)!["signInsEndedAt"] = endedAt;
+      providerRow(kind)!["signInsEndedAt"] = new Date(
+        "2026-01-01T00:00:00.000Z",
+      );
+      const before: number = Date.now();
 
       await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
         "done",
       );
 
-      expect(kind.providerTable().writes[0]!.set).toEqual({
-        isEnabled: false,
-      });
-      expect(providerRow(kind)!["signInsEndedAt"]).toEqual(endedAt);
+      const written: Record<string, unknown> =
+        kind.providerTable().writes[0]!.set;
+      expect(written["isEnabled"]).toBe(false);
+      expect(
+        (written["signInsEndedAt"] as Date).getTime(),
+      ).toBeGreaterThanOrEqual(before);
     });
 
     test("a new name or new credentials write no time and take no lock", async () => {
@@ -1066,7 +1065,7 @@ describe.each([
       ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
     });
 
-    test("an update or delete that names no provider takes no lock", async () => {
+    test("an update or delete that names no provider changes nothing, and gives back the lock its check took", async () => {
       await expect(
         kind.providerService.updateBy({
           query: { name: "No such provider" },
@@ -1085,11 +1084,16 @@ describe.each([
         }),
       ).resolves.toBe(0);
 
-      expect(events).toEqual([]);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
       expect(providerRow(kind)!["isEnabled"]).toBe(true);
     });
 
-    test("the retention job's hard delete of rows deleted long ago takes no lock", async () => {
+    test("the retention job's hard delete of rows deleted long ago gives back the lock its check took, and tells no server anything", async () => {
       await expect(
         kind.providerService.hardDeleteBy({
           query: {
@@ -1101,7 +1105,8 @@ describe.each([
         }),
       ).resolves.toBe(0);
 
-      expect(events).toEqual([]);
+      expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
+      expect(announced).toEqual([]);
       expect(providerRow(kind)).toBeDefined();
     });
 
@@ -1190,7 +1195,7 @@ describe.each([
       expect(announced).toHaveLength(1);
     });
 
-    test("an update or delete that names no attachment takes no lock", async () => {
+    test("an update or delete that names no attachment changes nothing, and gives back the lock its check took", async () => {
       kind.attachmentTable().rows = [
         attachmentRow(kind, ATTACHED_TO_BETA, BETA),
       ];
@@ -1213,7 +1218,12 @@ describe.each([
         }),
       ).resolves.toBe(0);
 
-      expect(events).toEqual([]);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
       expect(kind.attachmentTable().rows).toHaveLength(1);
     });
 
@@ -1388,6 +1398,28 @@ describe.each([
         }),
       ).toEqual([]);
     });
+  });
+
+  test("a hard delete of an attachment of a provider that signs people in to every project gives the lock back, and tells no server anything", async () => {
+    projects = [project(ACME, "Acme")];
+    kind.attachmentTable().rows = [attachmentRow(kind, ATTACHED_TO_ACME, ACME)];
+
+    await expect(
+      kind.attachmentService.hardDeleteBy({
+        query: { _id: ATTACHED_TO_ACME },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(1);
+
+    expect(kind.attachmentTable().deleted).toEqual([ATTACHED_TO_ACME]);
+    expect(events).toEqual([
+      `lock:${SERVER_LOCK}`,
+      `delete:${ATTACHED_TO_ACME}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+    expect(announced).toEqual([]);
   });
 
   test("the attachments of a provider that signs people in to every project decide nothing", async () => {

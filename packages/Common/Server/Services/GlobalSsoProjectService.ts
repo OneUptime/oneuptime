@@ -111,16 +111,24 @@ export class Service extends DatabaseService<Model> {
     // Detaching a project has to take effect now, not in 60s, on this node.
     clearGlobalSsoAuthorizationCaches();
 
+    // Their providers, read while the rows are still there.
+    const providerIds: Array<ObjectID | null> = await this.readProviderIds(
+      deleteBy.query,
+    );
+
+    /*
+     * Last, so nothing after it here can fail and leave the lock it takes
+     * with no hook to give it back.
+     */
     await GlobalSsoProviderChanges.beforeAttachmentDelete<Model>({
       providerType: SsoProviderType.GlobalSSO,
       service: this,
       deleteBy: deleteBy,
     });
 
-    // Their providers, read while the rows are still there.
     return {
       deleteBy,
-      carryForward: await this.readProviderIds(deleteBy.query),
+      carryForward: providerIds,
     };
   }
 
@@ -169,30 +177,27 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A hard delete runs no success hook (DatabaseService.hardDeleteBy): the
-   * lock its check took (onBeforeDelete) is given back here, whatever
-   * happened, and the projects of the attachments it deleted are asked
-   * again on every server, as onDeleteSuccess does for a provider
-   * restricted to its attached projects.
+   * A hard delete (the retention job's purge) runs no onDeleteSuccess: the
+   * lock its check took is given back here, and when the attachments it
+   * deleted were all that let a provider restricted to its attached
+   * projects sign people in to a project, every server is told, as
+   * onDeleteSuccess does. A purge of attachments deleted long ago tells no
+   * server anything.
    */
   @CaptureSpan()
-  public override async hardDeleteBy(
-    deleteBy: DeleteBy<Model>,
-  ): Promise<number> {
-    let deleted: number = 0;
-
-    try {
-      deleted = await super.hardDeleteBy(deleteBy);
-    } finally {
-      await GlobalSsoProviderChanges.afterWrite(deleteBy);
-    }
-
-    if (deleted > 0) {
+  protected override async onHardDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    if (
+      (await GlobalSsoProviderChanges.afterHardDelete(onDelete.deleteBy)) &&
+      itemIdsBeforeDelete.length > 0
+    ) {
       clearGlobalSsoAuthorizationCaches();
       announceGlobalSignInChange();
     }
 
-    return deleted;
+    return onDelete;
   }
 
   /*

@@ -1286,6 +1286,31 @@ describe("the check and the write hold the project's lock", () => {
   );
 
   test.each(KINDS)(
+    "%s: a hard delete, which runs no onDeleteSuccess, gives the locks back once it is done, and tells every server, as a delete does",
+    async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+
+      await expect(
+        kind.service.hardDeleteBy({
+          query: { _id: kind.id } as never,
+          limit: 1,
+          skip: 0,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
+        `delete:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
+    },
+  );
+
+  test.each(KINDS)(
     "%s: deleting the project's last own provider holds them the same way",
     async (_label: string, kind: ProviderKind) => {
       leaveItLast(kind);

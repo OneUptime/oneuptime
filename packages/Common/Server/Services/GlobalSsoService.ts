@@ -214,29 +214,25 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A hard delete runs no success hook (DatabaseService.hardDeleteBy): the
-   * lock its check took (onBeforeDelete) is given back here, whatever
-   * happened, and a provider it deleted vouches for nobody, as
-   * onDeleteSuccess says.
+   * A hard delete (the retention job's purge) runs no onDeleteSuccess: the
+   * lock its check took is given back here, and a provider it deleted that
+   * signed people in vouches for nobody, as onDeleteSuccess says. A purge
+   * of providers deleted long ago tells no server anything.
    */
   @CaptureSpan()
-  public override async hardDeleteBy(
-    deleteBy: DeleteBy<Model>,
-  ): Promise<number> {
-    let deleted: number = 0;
-
-    try {
-      deleted = await super.hardDeleteBy(deleteBy);
-    } finally {
-      await GlobalSsoProviderChanges.afterWrite(deleteBy);
-    }
-
-    if (deleted > 0) {
+  protected override async onHardDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    if (
+      (await GlobalSsoProviderChanges.afterHardDelete(onDelete.deleteBy)) &&
+      itemIdsBeforeDelete.length > 0
+    ) {
       clearGlobalSsoAuthorizationCaches();
       announceGlobalSignInChange();
     }
 
-    return deleted;
+    return onDelete;
   }
 
   /*

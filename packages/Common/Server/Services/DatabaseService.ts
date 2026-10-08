@@ -1523,8 +1523,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The same for a delete: one that failed once onBeforeDelete had run,
-   * with what onBeforeDelete handed back. A hard delete runs no
-   * onDeleteSuccess, so it hands it here only when it fails.
+   * with what onBeforeDelete handed back - a hard delete's too.
    */
   protected async onDeleteError(
     error: Exception,
@@ -1532,6 +1531,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<Exception> {
     // A place holder method used for overriding.
     return Promise.resolve(error);
+  }
+
+  /*
+   * A hard delete that is done (hardDeleteBy: the retention job's purge),
+   * with what onBeforeDelete handed back and the rows it found to delete.
+   * A hard delete runs no onDeleteSuccess, whose work - workflows, live
+   * updates, notices - is for the rows a person deletes; this is where a
+   * service gives back what its onBeforeDelete took for the write (a
+   * lock). Skipped with ignoreHooks.
+   */
+  protected async onHardDeleteSuccess(
+    onDelete: OnDelete<TBaseModel>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<TBaseModel>> {
+    // A place holder method used for overriding.
+    return Promise.resolve(onDelete);
   }
 
   protected async onFindSuccess(
@@ -4670,6 +4685,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           tableName: this.model.tableName,
           rows: rowsDeleted,
         });
+      }
+
+      if (!deleteBy.props.ignoreHooks) {
+        await this.onHardDeleteSuccess(
+          onDelete,
+          items.map((item: TBaseModel): ObjectID => {
+            return new ObjectID(item._id!);
+          }),
+        );
       }
 
       return numberOfDocsAffected;
