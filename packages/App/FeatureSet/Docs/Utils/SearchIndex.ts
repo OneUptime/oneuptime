@@ -7,7 +7,7 @@ import {
   makeT,
   TranslateFn,
 } from "./I18n";
-import slugify from "Common/Server/Types/MarkdownSlugify";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import OneUptimeDate from "Common/Types/Date";
 
@@ -60,19 +60,40 @@ const TTL_MS: number = 10 * 60 * 1000;
 const cache: Map<string, { data: Array<DocsSearchEntry>; at: number }> =
   new Map();
 
+const INLINE_CODE: RegExp = /`+([^`]*)`+/g;
+// Marks where a code span was set aside: a private-use character no page uses.
+const CODE_MARK: string = "";
+const CODE_PLACEHOLDER: RegExp = /(\d+)/g;
+
 // Markdown inline syntax off a line of text: links, emphasis, code, images.
 export const stripInlineMarkdown: (text: string) => string = (
   text: string,
 ): string => {
-  return text
+  /*
+   * Inline code is kept as written - "`oneuptime <resource> list`" reads
+   * "oneuptime <resource> list", as on the page - so it is set aside before
+   * links, emphasis and tags are taken out, and put back after.
+   */
+  const code: Array<string> = [];
+  const withoutCode: string = text.replace(
+    INLINE_CODE,
+    (_whole: string, inner: string): string => {
+      code.push(inner);
+      return `${CODE_MARK}${code.length - 1}${CODE_MARK}`;
+    },
+  );
+
+  return withoutCode
     .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\[([^\]]*)\]\[[^\]]*\]/g, "$1")
-    .replace(/`+([^`]*)`+/g, "$1")
     .replace(/(\*\*|__)(.*?)\1/g, "$2")
     .replace(/(^|[^\w*])[*_]([^*_\n]+)[*_](?=[^\w*]|$)/g, "$1$2")
     .replace(/<[^>]+>/g, "")
     .replace(/\s+/g, " ")
+    .replace(CODE_PLACEHOLDER, (_whole: string, position: string): string => {
+      return code[Number(position)] ?? "";
+    })
     .trim();
 };
 
@@ -124,7 +145,7 @@ export const summarizeDocsPage: (markdown: string) => DocsPageSummary = (
         headings.push({
           level: level,
           text: stripInlineMarkdown(heading[2]!),
-          anchor: slugify(heading[2]!.trim()),
+          anchor: slugifyMarkdownHeading(heading[2]!.trim()),
         });
       }
       continue;

@@ -1,7 +1,7 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { DOCS_CONTAINER_NAMES } from "Common/Server/Types/MarkdownDocsExtensions";
-import slugify from "Common/Server/Types/MarkdownSlugify";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import fs from "fs";
 import path from "path";
 
@@ -300,7 +300,7 @@ export const scanMarkdown: (markdown: string) => ScannedPage = (
       headings.push({
         level: heading[1]!.length,
         text: text,
-        slug: slugify(text),
+        slug: slugifyMarkdownHeading(text),
         line: number,
       });
       const top: DocsContainerUse | undefined = stack[stack.length - 1];

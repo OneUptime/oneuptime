@@ -237,6 +237,14 @@ describe("summarizeDocsPage", () => {
       "snake_case_name stays",
     );
   });
+
+  it("keeps inline code as written, a <placeholder> or an underscore in it too", () => {
+    expect(
+      stripInlineMarkdown(
+        "Run `oneuptime <resource> list`, set `_private_` and [`helm`](/x)",
+      ),
+    ).toBe("Run oneuptime <resource> list, set _private_ and helm");
+  });
 });
 
 describe("the search index", () => {
@@ -285,6 +293,62 @@ describe("the search index", () => {
         expect(html).toContain(`id="${heading.a}"`);
       }
     }
+  });
+
+  /*
+   * A section result opens the page at its heading. The index reads the
+   * heading as written and the page gives it an id from its HTML, so they
+   * must agree for every heading - inline code with a <placeholder> in it
+   * included - on every page, in a language written left to right, one
+   * written right to left and one without spaces.
+   */
+  it.each(["en", "fa", "ja"])(
+    "opens every section result in %s at a heading the page has",
+    async (lang: string) => {
+      const index: Array<DocsSearchEntry> = await getIndex(lang);
+      const missing: Array<string> = [];
+      let checked: number = 0;
+
+      for (const entry of index) {
+        if (!entry.u.startsWith("/docs/") || entry.h.length === 0) {
+          continue;
+        }
+        const html: string = await (await fetch(`${origin}${entry.u}`)).text();
+        for (const heading of entry.h) {
+          checked++;
+          if (!html.includes(`id="${heading.a}"`)) {
+            missing.push(`${entry.u}#${heading.a} (${heading.t})`);
+          }
+        }
+      }
+
+      expect(checked).toBeGreaterThan(1000);
+      expect(missing).toEqual([]);
+    },
+    180000,
+  );
+
+  it("names a heading with a <placeholder> in inline code as the page does", async () => {
+    const index: Array<DocsSearchEntry> = await getIndex("en");
+    const reference: DocsSearchEntry | undefined = index.find(
+      (entry: DocsSearchEntry): boolean => {
+        return entry.u === "/docs/en/cli/command-reference";
+      },
+    );
+
+    expect(reference).toBeDefined();
+    expect(reference!.h).toContainEqual({
+      t: "oneuptime <resource> list",
+      a: "oneuptime-resource-list",
+    });
+
+    const html: string = await (
+      await fetch(`${origin}/docs/en/cli/command-reference`)
+    ).text();
+    expect(html).toContain('id="oneuptime-resource-list"');
+    expect(html).toContain(
+      '<code class="docs-code-inline">oneuptime &lt;resource&gt; list</code>',
+    );
   });
 
   it("is cacheable, and refuses a language the docs do not have", async () => {
