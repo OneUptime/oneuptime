@@ -24,10 +24,19 @@ const COMPONENTS: string = path.join(
   "Components",
 );
 
+/*
+ * More settings is one card: its cards are drawn as its sections
+ * (Card/CardSections, Card/CardSurface) - the divider above each, the rows
+ * of a section's list ruled lighter than it - so those are read too.
+ */
 const FILES: Array<string> = [
   path.join(COMPONENTS, "FoldedSection", "FoldedSection.tsx"),
   path.join(COMPONENTS, "Forms", "CollapsibleFormSection.tsx"),
   path.join(COMPONENTS, "AdvancedPageSection", "AdvancedPageSection.tsx"),
+  path.join(COMPONENTS, "Card", "Card.tsx"),
+  path.join(COMPONENTS, "Card", "CardSections.tsx"),
+  path.join(COMPONENTS, "Card", "CardSurface.ts"),
+  path.join(COMPONENTS, "ModelDetail", "CardModelDetail.tsx"),
 ];
 
 const THEME_CSS: string = fs
@@ -185,6 +194,9 @@ describe("folded sections in the dark theme", () => {
         "text-gray-400",
         // The keyboard focus ring.
         "focus-visible:ring-indigo-500",
+        // The divider above each section, and a section list's lighter row rules.
+        "divide-gray-200",
+        "divide-gray-100",
       ]),
     );
 

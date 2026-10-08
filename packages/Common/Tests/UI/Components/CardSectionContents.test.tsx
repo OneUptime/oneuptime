@@ -85,7 +85,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import CardSections from "../../../UI/Components/Card/CardSections";
 import {
   CARD_RULED_BODY_CLASS_NAME,
+  CARD_RULED_LIST_CLASS_NAME,
   CARD_SECTION_RULED_BODY_CLASS_NAME,
+  CARD_SECTION_RULED_LIST_CLASS_NAME,
 } from "../../../UI/Components/Card/CardSurface";
 import CardModelDetail, {
   CARD_MODEL_DETAIL_BODY_CLASS_NAME,
@@ -93,6 +95,7 @@ import CardModelDetail, {
 } from "../../../UI/Components/ModelDetail/CardModelDetail";
 import List from "../../../UI/Components/List/List";
 import ModelSwitchCard from "../../../UI/Components/ModelSwitch/ModelSwitchCard";
+import ModelSwitchesCard from "../../../UI/Components/ModelSwitch/ModelSwitchesCard";
 import Table from "../../../UI/Components/Table/Table";
 import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
@@ -445,5 +448,76 @@ describe("a switch card's row", () => {
     await waitFor(() => {
       expect(updateByIdMock).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A card of switches
+ * ---------------------------------------------------------------------------
+ */
+
+const SWITCHES_TEST_ID: string = "status-page-switches";
+
+function switchesCard(): ReactElement {
+  return (
+    <ModelSwitchesCard<StatusPage>
+      modelType={StatusPage}
+      modelId={new ObjectID(STATUS_PAGE_ID)}
+      cardTitle="What visitors can do"
+      switches={[
+        {
+          column: "enableSearchEngineIndexing",
+          title: "Allow Search Engines to Index this Status Page",
+          dataTestId: "switch-indexing",
+        },
+        {
+          column: "enableMcpServer",
+          title: "Enable MCP Server",
+          dataTestId: "switch-mcp",
+        },
+      ]}
+      dataTestId={SWITCHES_TEST_ID}
+    />
+  );
+}
+
+describe("a card of switches", () => {
+  beforeEach(() => {
+    getJestSpyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
+      (): PermissionGateResult => {
+        return { isAllowed: true };
+      },
+    );
+  });
+
+  async function rows(): Promise<HTMLElement> {
+    await screen.findByTestId("switch-mcp");
+
+    return screen.getByTestId(SWITCHES_TEST_ID)
+      .firstElementChild as HTMLElement;
+  }
+
+  test("on a page its rows sit under a rule across the card, ruled from each other the same way", async () => {
+    render(switchesCard());
+
+    expect(classTokens(await rows())).toEqual(
+      CARD_RULED_LIST_CLASS_NAME.split(" "),
+    );
+  });
+
+  test("in a section its first row follows the header, and its rows are ruled lighter than the section dividers", async () => {
+    render(inSections(switchesCard()));
+
+    const list: HTMLElement = await rows();
+
+    expect(classTokens(list)).toEqual(
+      CARD_SECTION_RULED_LIST_CLASS_NAME.split(" "),
+    );
+    expect(list).not.toHaveClass("border-t");
+    expect(list).toHaveClass("divide-y", "divide-gray-100", "-mx-5");
+    // Two rows, both switches drawn.
+    expect(list.children).toHaveLength(2);
+    expect(screen.getByTestId("switch-indexing")).toBeInTheDocument();
   });
 });

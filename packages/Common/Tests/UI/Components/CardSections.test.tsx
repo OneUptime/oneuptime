@@ -17,11 +17,15 @@ import CardSections, {
 } from "../../../UI/Components/Card/CardSections";
 import {
   CARD_RULED_BODY_CLASS_NAME,
+  CARD_RULED_LIST_CLASS_NAME,
   CARD_SECTION_RULED_BODY_CLASS_NAME,
+  CARD_SECTION_RULED_LIST_CLASS_NAME,
   CardSurface,
   CardSurfaceContext,
   getCardRuledBodyClassName,
+  getCardRuledListClassName,
   useCardRuledBodyClassName,
+  useCardRuledListClassName,
   useCardSurface,
   useIsCardSection,
 } from "../../../UI/Components/Card/CardSurface";
@@ -566,6 +570,69 @@ describe("a card's edge-to-edge body", () => {
     expect(seen).toEqual([
       CARD_RULED_BODY_CLASS_NAME,
       CARD_SECTION_RULED_BODY_CLASS_NAME,
+    ]);
+  });
+});
+
+/*
+ * The same body as a list of rows ruled from each other - a card of
+ * switches, of channels. In a section its top rule goes too, and the rules
+ * between its rows are lighter than the dividers between sections.
+ */
+describe("a card's edge-to-edge list of ruled rows", () => {
+  test("on a page its rows are ruled like its header", () => {
+    expect(getCardRuledListClassName(CardSurface.Page)).toBe(
+      CARD_RULED_LIST_CLASS_NAME,
+    );
+    expect(CARD_RULED_LIST_CLASS_NAME).toBe(
+      "-mx-5 -mb-6 divide-y divide-gray-200 border-t border-gray-200 md:-mx-6",
+    );
+  });
+
+  test("in a section it has no top rule, and lighter rules between its rows than between sections", () => {
+    const tokens: Array<string> = getCardRuledListClassName(
+      CardSurface.Section,
+    ).split(" ");
+
+    expect(CARD_SECTION_RULED_LIST_CLASS_NAME.split(" ")).toEqual(tokens);
+    expect(tokens).not.toContain("border-t");
+    expect(tokens).toContain("divide-y");
+    expect(tokens).toContain("divide-gray-100");
+    expect(tokens).not.toContain("divide-gray-200");
+    // The divider between sections is the darker grey.
+    expect(CARD_SECTION_CLASS_NAME.split(" ")).toContain("border-gray-200");
+  });
+
+  test("it is placed exactly as the single body is, on both surfaces", () => {
+    for (const surface of [CardSurface.Page, CardSurface.Section]) {
+      for (const width of WIDTHS) {
+        expect([
+          surface,
+          width,
+          resolveMargin(getCardRuledListClassName(surface), width),
+        ]).toEqual([
+          surface,
+          width,
+          resolveMargin(getCardRuledBodyClassName(surface), width),
+        ]);
+      }
+    }
+  });
+
+  test("the hook gives each surface its class", () => {
+    const seen: Array<string> = [];
+
+    const Probe: FunctionComponent = (): ReactElement => {
+      seen.push(useCardRuledListClassName());
+      return <></>;
+    };
+
+    render(<Probe />);
+    renderSections(<Probe />);
+
+    expect(seen).toEqual([
+      CARD_RULED_LIST_CLASS_NAME,
+      CARD_SECTION_RULED_LIST_CLASS_NAME,
     ]);
   });
 });

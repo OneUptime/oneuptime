@@ -64,3 +64,28 @@ export const getCardRuledBodyClassName: (surface: CardSurface) => string = (
 export const useCardRuledBodyClassName: () => string = (): string => {
   return getCardRuledBodyClassName(useCardSurface());
 };
+
+/*
+ * The same body when it is a list of rows ruled from each other - a card of
+ * switches, of channels. In a section its first row follows the header with
+ * no rule, as above, and the rules between its rows are a lighter grey than
+ * the dividers between sections, so they read as the section's rows rather
+ * than the start of another section.
+ */
+export const CARD_RULED_LIST_CLASS_NAME: string =
+  "-mx-5 -mb-6 divide-y divide-gray-200 border-t border-gray-200 md:-mx-6";
+
+export const CARD_SECTION_RULED_LIST_CLASS_NAME: string =
+  "-mx-5 -mt-2 -mb-4 divide-y divide-gray-100 md:-mx-6";
+
+export const getCardRuledListClassName: (surface: CardSurface) => string = (
+  surface: CardSurface,
+): string => {
+  return surface === CardSurface.Section
+    ? CARD_SECTION_RULED_LIST_CLASS_NAME
+    : CARD_RULED_LIST_CLASS_NAME;
+};
+
+export const useCardRuledListClassName: () => string = (): string => {
+  return getCardRuledListClassName(useCardSurface());
+};
