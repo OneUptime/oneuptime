@@ -771,7 +771,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * people in to it, as an update to Require SSO for Login does
    * (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
    * lock on the server's sign-in rules, held until the project is written
-   * (onCreateSuccess) or its create fails (create).
+   * (onCreateSuccess) or its create fails (onCreateError).
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
@@ -788,17 +788,20 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A create that fails once its sign-in check holds the lock - at the
-   * INSERT, or in a step just before it - runs no other hook, so the lock
-   * is given back here, whatever happened (SsoRequirementChanges).
+   * A create that fails once its sign-in check holds the lock - in a step
+   * just before the INSERT, at the INSERT, or in onCreateSuccess before it
+   * gave the lock back - reaches no other hook: the lock is given back here,
+   * whatever happened (SsoRequirementChanges). DatabaseService.create hands
+   * every failure after onBeforeCreate to this hook.
    */
   @CaptureSpan()
-  public override async create(createBy: CreateBy<Model>): Promise<Model> {
-    try {
-      return await super.create(createBy);
-    } finally {
-      await SsoRequirementChanges.afterProjectCreate(createBy);
-    }
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<Model> | undefined,
+  ): Promise<Exception> {
+    await SsoRequirementChanges.afterProjectCreate(onCreate?.createBy);
+
+    return error;
   }
 
   /*

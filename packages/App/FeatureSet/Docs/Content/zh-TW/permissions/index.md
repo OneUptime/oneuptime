@@ -108,6 +108,23 @@ OneUptime 中的一切都存在於**專案**之內。誰能在專案裡做什麼
 
 使用者的允許項目會在其所有團隊之間累加，但封鎖適用於該使用者所做的一切：某個團隊上不帶標籤的封鎖，即使另一個團隊允許，也會取消這項能力；封鎖項目本身永遠不授予任何權限。若某人的權限少於預期，請在他所屬的每個團隊裡尋找封鎖；若多於預期，請在每個團隊裡尋找允許。
 
+### 變更狀態
+
+事件、警示、警示片段或事件片段以及排程維護，透過在其狀態時間軸上新增一列來變更狀態，監視器的狀態也是如此。確認、解決、變更狀態、狀態時間軸頁面、API 與工作流程都會新增這樣一列。新增它需要該時間軸本身的建立權限，以及讀取它所變更記錄的權限：
+
+| 要變更其狀態的對象 | 所需權限 |
+| --- | --- |
+| 事件 | **Create Incident State Timeline** |
+| 警示 | **Create Alert State Timeline** |
+| 警示片段 | **Create Alert Episode State Timeline** |
+| 事件片段 | **Create Incident Episode State Timeline** |
+| 排程維護 | **Create Scheduled Maintenance State Timeline** |
+| 監視器（其狀態） | **Create Monitor Status Timeline** |
+
+接著，記錄的新狀態以及隨之而來的值（例如片段何時被解決，或排程維護下次何時提醒其訂閱者）由 OneUptime 自己寫入。因此，變更狀態不需要另外的記錄編輯權限：擁有 **Create Incident State Timeline** 但沒有 **Edit Incident** 的自訂角色可以變更事件的狀態。若要阻止某個團隊變更狀態，請封鎖時間軸的建立權限；封鎖 **Edit Incident** 不會影響狀態變更。標籤、擁有者與私人記錄會像收窄任何其他權限一樣，透過其狀態被變更的記錄來收窄時間軸的建立權限：請參閱下文的範圍規則。
+
+替你寫入的只有狀態。隨變更一起發布的備註以你的身分發布，並且需要備註本身的權限，詳見[狀態與嚴重程度](/docs/incidents/states-and-severities)。在宣告事件的同時確認其警示，仍然還需要 **Edit Alert**：請參閱[關聯的警示](/docs/incidents/linked-alerts)。
+
 ## 範圍：一條允許權限能涵蓋多遠
 
 每條允許權限在新增時都會選定一個範圍：

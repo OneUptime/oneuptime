@@ -26,8 +26,9 @@
  *     notifications), and holding the lock across that would refuse
  *     concurrent status writes for the monitor past the semaphore's
  *     acquire timeout,
- *   - onCreateSuccess (which runs UNDER that mutex) writes the monitor's
- *     currentMonitorStatusId and does NOT call the bridge itself,
+ *   - onCreateSuccess (which runs UNDER that mutex, and gives it back once
+ *     the monitor is written) writes the monitor's currentMonitorStatusId
+ *     and does NOT call the bridge itself,
  *   - onDeleteSuccess bridges the SURVIVING latest status after a row is
  *     deleted,
  *   - MonitorService.refreshMonitorCurrentStatus bridges only when it
@@ -39,8 +40,10 @@
  *
  * Everything below the service boundary is spied - no database. Semaphore is
  * mocked at the module boundary (as MonitorStatusTimelineService.test.ts
- * does) so create() can run its lock -> super.create -> release -> bridge
- * sequence without Redis.
+ * does) so the hooks can give back the monitor's lock without Redis: the lock
+ * is the create hooks' (onBeforeCreate takes it, onCreateSuccess or
+ * onCreateError gives it back, both inside super.create), and create() itself
+ * holds none.
  */
 
 const lockMock: jest.Mock = jest.fn();
@@ -69,6 +72,7 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../../../Server/Types/Database/Hooks";
 import fs from "fs";
@@ -154,9 +158,9 @@ async function runOnCreateSuccess(data: {
 /*
  * Drives create() exactly as the probe path does - root props, no tenantId -
  * with super.create (DatabaseService.prototype.create: hooks, validation, the
- * INSERT) stubbed to resolve the saved row, and the feed item (DB lookups +
- * Slack/Teams HTTP) stubbed. What is left running is exactly what create()
- * owns: lock -> super.create -> release -> bridge -> feed item.
+ * INSERT) stubbed, and the feed item (DB lookups + Slack/Teams HTTP) stubbed.
+ * What is left running is exactly what create() owns: super.create (whose
+ * success hook gives the lock back) -> bridge -> feed item.
  */
 async function runCreate(data: {
   createdItem: MonitorStatusTimeline;
@@ -204,6 +208,9 @@ describe("MonitorStatusTimelineService.create - the probe path bridge", () => {
 
     superCreateSpy = jest.spyOn(DatabaseService.prototype, "create");
 
+    // The monitor's status, written by the success hook.
+    mockMonitorStatusWrite();
+
     feedItemSpy = jest
       .spyOn(
         MonitorStatusTimelineService as unknown as {
@@ -219,12 +226,55 @@ describe("MonitorStatusTimelineService.create - the probe path bridge", () => {
   });
 
   /*
-   * super.create resolves the saved row. Its hooks (onBeforeCreate /
-   * onCreateSuccess) do not run here - they are DatabaseService.create's
-   * responsibility and are pinned separately below.
+   * What onBeforeCreate hands on - the monitor's lock it took, and a first
+   * status (no predecessor, no successor) so the predecessor bookkeeping
+   * stays out of the way.
+   */
+  function handedOn(
+    createBy: CreateBy<MonitorStatusTimeline>,
+  ): OnCreate<MonitorStatusTimeline> {
+    return {
+      createBy: createBy,
+      carryForward: {
+        statusTimelineBeforeThisStatus: null,
+        statusTimelineAfterThisStatus: null,
+        mutex: fakeMutex,
+      },
+    };
+  }
+
+  /*
+   * super.create, as DatabaseService.create ends a create that is saved:
+   * the success hook - which writes the monitor's status and gives back the
+   * lock onBeforeCreate took - and then the saved row. The checks, the
+   * INSERT and onBeforeCreate itself are not under test here
+   * (MonitorStatusTimelineService.test.ts, StateTimelineLockAndFollowOn).
    */
   function stubSuperCreate(createdItem: MonitorStatusTimeline): void {
-    superCreateSpy.mockResolvedValue(createdItem);
+    superCreateSpy.mockImplementation((async (
+      createBy: CreateBy<MonitorStatusTimeline>,
+    ): Promise<MonitorStatusTimeline> => {
+      await (MonitorStatusTimelineService as any).onCreateSuccess(
+        handedOn(createBy),
+        createdItem,
+      );
+
+      return createdItem;
+    }) as never);
+  }
+
+  // super.create, as DatabaseService.create ends a create that fails.
+  function stubSuperCreateFailing(error: Error): void {
+    superCreateSpy.mockImplementation((async (
+      createBy: CreateBy<MonitorStatusTimeline>,
+    ): Promise<never> => {
+      await (MonitorStatusTimelineService as any).onCreateError(
+        error,
+        handedOn(createBy),
+      );
+
+      throw error;
+    }) as never);
   }
 
   it("bridges a new current row exactly once with root props and no tenantId", async () => {
@@ -243,15 +293,20 @@ describe("MonitorStatusTimelineService.create - the probe path bridge", () => {
     expect(result).toBe(createdItem);
 
     /*
-     * The probe path's exact shape: root, no tenantId. The create went
-     * through the locked path (a monitorId is set), and the bridge fired
-     * off the row that was written - not off anything tenant-gated.
+     * The probe path's exact shape: root, no tenantId. The bridge fired off
+     * the row that was written - not off anything tenant-gated.
      */
     const createArgs: any = superCreateSpy.mock.calls[0]![0];
     expect(createArgs.props.isRoot).toBe(true);
     expect(createArgs.props.tenantId).toBeUndefined();
-    expect(lockMock).toHaveBeenCalledTimes(1);
+
+    /*
+     * The lock is the hooks': the one onBeforeCreate took is given back by
+     * the success hook, inside super.create. create() itself takes none.
+     */
+    expect(lockMock).not.toHaveBeenCalled();
     expect(releaseMock).toHaveBeenCalledTimes(1);
+    expect(releaseMock).toHaveBeenCalledWith(fakeMutex);
 
     expectBridgedOnceWith(bridge, {
       projectId: PROJECT_ID,
@@ -277,7 +332,7 @@ describe("MonitorStatusTimelineService.create - the probe path bridge", () => {
     });
 
     /*
-     * super.create -> release -> bridge -> feed item.
+     * super.create -> release (its success hook) -> bridge -> feed item.
      *
      * After super.create: the timeline row and (in onCreateSuccess) the
      * monitor's currentMonitorStatusId are written, and
@@ -317,13 +372,13 @@ describe("MonitorStatusTimelineService.create - the probe path bridge", () => {
 
     // A closed row is history, not the current status: nothing moves.
     expect(bridge).not.toHaveBeenCalled();
-    // The lock was still taken and released around the write itself.
+    // The lock was still given back once the write was saved.
     expect(releaseMock).toHaveBeenCalledTimes(1);
   });
 
   it("does not bridge when super.create throws", async () => {
     const bridge: jest.SpyInstance = mockBridge();
-    superCreateSpy.mockRejectedValue(new Error("insert failed"));
+    stubSuperCreateFailing(new Error("insert failed"));
 
     await expect(
       runCreate({
@@ -334,9 +389,13 @@ describe("MonitorStatusTimelineService.create - the probe path bridge", () => {
       }),
     ).rejects.toThrow("insert failed");
 
-    // No row, no status change, nothing to stamp - but the lock is released.
+    /*
+     * No row, no status change, nothing to stamp - but the lock is given
+     * back, by the error hook.
+     */
     expect(bridge).not.toHaveBeenCalled();
     expect(releaseMock).toHaveBeenCalledTimes(1);
+    expect(releaseMock).toHaveBeenCalledWith(fakeMutex);
   });
 
   it("falls back to the createBy data when the saved row carries no projectId", async () => {
@@ -447,7 +506,7 @@ describe("MonitorStatusTimelineService.onCreateSuccess - writes the monitor, nev
     jest.restoreAllMocks();
   });
 
-  it("writes the monitor's current status with the caller's props and leaves the bridge to create()", async () => {
+  it("writes the monitor's current status as OneUptime and leaves the bridge to create()", async () => {
     const monitorWrite: jest.SpyInstance = mockMonitorStatusWrite();
     const bridge: jest.SpyInstance = mockBridge();
 
@@ -461,8 +520,9 @@ describe("MonitorStatusTimelineService.onCreateSuccess - writes the monitor, nev
     ).resolves.toBe(createdItem);
 
     /*
-     * The monitor's current status is written with the caller's props -
-     * root, no tenantId - which is precisely the write that never reaches
+     * The monitor's current status is OneUptime's write, derived from the
+     * timeline (StateChangeFollowOn) - root, no tenantId, whoever made the
+     * change - which is precisely the write that never reaches
      * MonitorService.onUpdateSuccess's tenant-gated changeMonitorStatus.
      */
     expect(monitorWrite).toHaveBeenCalledTimes(1);
@@ -474,9 +534,10 @@ describe("MonitorStatusTimelineService.onCreateSuccess - writes the monitor, nev
     expect(writeArgs.props.tenantId).toBeUndefined();
 
     /*
-     * This hook runs while create() still holds the per-monitor mutex, so
-     * the bridge (device stamps, site rollups, alerts, notifications) must
-     * NOT run from here: create() runs it right after the release. A bridge
+     * This hook runs while the per-monitor mutex onBeforeCreate took is
+     * still held (it gives it back last), so the bridge (device stamps,
+     * site rollups, alerts, notifications) must NOT run from here: create()
+     * runs it once super.create has resolved, after the release. A bridge
      * call from this hook would put it back under the lock.
      */
     expect(bridge).not.toHaveBeenCalled();

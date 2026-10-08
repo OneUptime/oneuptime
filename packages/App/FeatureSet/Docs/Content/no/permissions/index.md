@@ -108,6 +108,23 @@ En tillatelse kan ikke bære begrensningsetiketter i begge listene samtidig; One
 
 En brukers tillatelser legges sammen på tvers av alle teamene vedkommende er med i, men en blokkering gjelder alt brukeren gjør: en blokkering uten etiketter i ett team fjerner funksjonen også der et annet team tillater den, og en blokkering gir aldri noe. Har noen mindre tilgang enn du venter, se etter en blokkering i hvert av teamene deres; har de mer, se etter en tillatelse i hvert team.
 
+### Endre en tilstand
+
+En hendelse, et varsel, en varsel- eller hendelsesepisode og et planlagt vedlikehold endrer tilstand, og en monitor endrer status, ved en ny rad på tilstandstidslinjen sin. Å kvittere, løse, endre tilstand, siden med tilstandstidslinjen, API-et og arbeidsflyter legger alle til en slik rad. Det krever tidslinjens egen tillatelse til å opprette, sammen med en tillatelse til å lese posten den endrer:
+
+| For å endre tilstanden til | Kreves |
+| --- | --- |
+| En hendelse | **Create Incident State Timeline** |
+| Et varsel | **Create Alert State Timeline** |
+| En varselepisode | **Create Alert Episode State Timeline** |
+| En hendelsesepisode | **Create Incident Episode State Timeline** |
+| Et planlagt vedlikehold | **Create Scheduled Maintenance State Timeline** |
+| En monitor (statusen) | **Create Monitor Status Timeline** |
+
+Posten får deretter den nye tilstanden fra OneUptime selv, sammen med det som hører til, for eksempel når en episode ble løst, eller når et vedlikehold neste gang minner abonnentene sine på det. En endring krever altså ikke i tillegg en tillatelse til å redigere posten: en egendefinert rolle med **Create Incident State Timeline**, men uten **Edit Incident**, endrer en hendelses tilstand. Vil du hindre et team i å endre tilstander, blokker tidslinjens tillatelse til å opprette; en blokkering av **Edit Incident** lar tilstandsendringer være. Etiketter, eiere og private poster snevrer inn tidslinjens tillatelse til å opprette slik de snevrer inn enhver annen, gjennom posten den endrer tilstanden til: se reglene for omfang nedenfor.
+
+Bare tilstanden skrives for deg. Et notat som sendes med en endring, sendes som deg og krever notatets egen tillatelse, som beskrevet i [Tilstander og alvorlighetsgrader](/docs/incidents/states-and-severities). Å kvittere for en hendelses varsler mens du erklærer den, krever fortsatt også **Edit Alert**: se [Koblede varsler](/docs/incidents/linked-alerts).
+
 ## Omfang: hvor langt en tillatt rettighet rekker
 
 Enhver tillatt rettighet gis med et omfang, som du velger når du legger den til:

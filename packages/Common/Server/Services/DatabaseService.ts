@@ -288,6 +288,11 @@ interface RowWrite<TBaseModel extends BaseModel> {
   comparedAs: Record<string, unknown>;
 }
 
+// What onBeforeCreate handed back, for onCreateError (see create).
+interface CreateHandedBack<TBaseModel extends BaseModel> {
+  onCreate: OnCreate<TBaseModel> | undefined;
+}
+
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
   private model!: TBaseModel;
@@ -1590,7 +1595,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve(createdItem);
   }
 
-  protected async onCreateError(error: Exception): Promise<Exception> {
+  /*
+   * A create that failed - refused or thrown - once onBeforeCreate had run,
+   * with what onBeforeCreate handed back: refused by a check after the hook,
+   * failed at the INSERT, or thrown by a success hook. A refused create never
+   * reaches onCreateSuccess, and one that threw there may not have finished
+   * it, so this is where a service gives back what its hooks took for the
+   * write - a lock (StateChangeLock, SsoRequirementChanges). Undefined when
+   * the create failed before onBeforeCreate ran.
+   */
+  protected async onCreateError(
+    error: Exception,
+    _onCreate?: OnCreate<TBaseModel> | undefined,
+  ): Promise<Exception> {
     // A place holder method used for overriding.
     return Promise.resolve(error);
   }
@@ -4700,8 +4717,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /*
+   * Creates a record: the checks, the hooks, the INSERT and what follows it
+   * (_create). A create refused or failed at any of those steps reaches
+   * onCreateError with what onBeforeCreate handed back, once that has run -
+   * as onUpdateError and onDeleteError are handed what onBeforeUpdate and
+   * onBeforeDelete handed back - so a service gives back there what its
+   * hooks took for the write. A lock taken in onBeforeCreate and given back
+   * only in onCreateSuccess used to be held for as long as the process lived
+   * by a create refused in between.
+   */
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    const handedBack: CreateHandedBack<TBaseModel> = { onCreate: undefined };
+
+    try {
+      return await this._create(createBy, handedBack);
+    } catch (error) {
+      await this.onCreateError(error as Exception, handedBack.onCreate);
+      throw this.getException(error as Exception);
+    }
+  }
+
+  private async _create(
+    createBy: CreateBy<TBaseModel>,
+    // Given what onBeforeCreate hands back, for create to hand onCreateError.
+    handedBack: CreateHandedBack<TBaseModel>,
+  ): Promise<TBaseModel> {
     // Every switch as the database stores it, before anything reads one.
     this.coerceBooleanColumns(createBy.data);
 
@@ -4770,6 +4812,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
       : await this._onBeforeCreate(createBy);
+    handedBack.onCreate = onCreate;
 
     let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
 
@@ -5010,7 +5053,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       return createBy.data;
     } catch (error) {
-      await this.onCreateError(error as Exception);
+      /*
+       * The database's own refusal, in words its caller can act on; create()
+       * hands it to onCreateError, as it does every failure of a create.
+       */
       throw this.getException(error as Exception);
     }
   }

@@ -416,8 +416,13 @@ describe("DatabaseService checks the caller before any write hook", () => {
     );
   });
 
+  /*
+   * create() runs the create itself (_create) in one try, so that every
+   * failure reaches onCreateError (CreateLockGivenBackGuard): the checks
+   * and the hooks are _create's.
+   */
   test("create asks before onBeforeCreate", () => {
-    expectInOrder("create", [
+    expectInOrder("_create", [
       "this.checkCallerBeforeHooks(",
       "this._onBeforeCreate(",
     ]);
@@ -442,7 +447,7 @@ describe("DatabaseService checks the caller before any write hook", () => {
   });
 
   test("a create runs onCreatePermitted only once every permission check has passed, and before the write", () => {
-    expectInOrder("create", [
+    expectInOrder("_create", [
       "this.checkCallerBeforeHooks(",
       "this._onBeforeCreate(",
       "ModelPermission.checkCreatePermissions(",
@@ -479,7 +484,7 @@ describe("DatabaseService checks the caller before any write hook", () => {
         "_deleteBy",
         "_onBeforeCreate",
         "_updateBy",
-        "create",
+        "_create",
         "hardDeleteBy",
       ].sort(),
     );

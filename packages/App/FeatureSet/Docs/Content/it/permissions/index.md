@@ -108,6 +108,23 @@ Un'autorizzazione non può portare etichette di restrizione in entrambi gli elen
 
 Le concessioni di un utente si sommano su tutti i suoi team, ma un blocco vale per tutto ciò che l'utente fa: un blocco senza etichette su un team toglie la capacità anche se un altro team la concede, e una voce di blocco non concede mai nulla. Se qualcuno ha meno accesso del previsto, cercate un blocco in ciascuno dei suoi team; se ne ha di più, cercate una concessione in ciascuno.
 
+### Cambiare uno stato
+
+Un incidente, un avviso, un episodio di avvisi o di incidenti e una manutenzione programmata cambiano stato, e un monitor cambia il suo stato, con una nuova riga nella loro cronologia degli stati. Riconoscere, risolvere, cambiare stato, la pagina della cronologia degli stati, l'API e i workflow ne aggiungono tutti una. Aggiungerla richiede l'autorizzazione di creazione di quella cronologia, insieme a un'autorizzazione a leggere il record che modifica:
+
+| Per cambiare lo stato di | Serve |
+| --- | --- |
+| Un incidente | **Create Incident State Timeline** |
+| Un avviso | **Create Alert State Timeline** |
+| Un episodio di avvisi | **Create Alert Episode State Timeline** |
+| Un episodio di incidenti | **Create Incident Episode State Timeline** |
+| Una manutenzione programmata | **Create Scheduled Maintenance State Timeline** |
+| Un monitor (il suo stato) | **Create Monitor Status Timeline** |
+
+Il record riceve poi il nuovo stato da OneUptime stessa, con ciò che lo accompagna, come il momento in cui un episodio è stato risolto o quello in cui una manutenzione avvisa di nuovo i suoi iscritti. Un cambiamento quindi non richiede anche un'autorizzazione a modificare il record: un ruolo personalizzato con **Create Incident State Timeline** ma senza **Edit Incident** cambia lo stato di un incidente. Per impedire a un team di cambiare stati, bloccate l'autorizzazione di creazione della cronologia; un blocco su **Edit Incident** lascia stare i cambiamenti di stato. Etichette, proprietari e record privati restringono l'autorizzazione di creazione della cronologia come restringono qualsiasi altra, attraverso il record di cui cambia lo stato: vedete le regole di ambito più sotto.
+
+Per voi viene scritto solo lo stato. Una nota pubblicata con un cambiamento viene pubblicata a vostro nome e richiede l'autorizzazione propria della nota, come descritto in [Stati e gravità](/docs/incidents/states-and-severities). Riconoscere gli avvisi di un incidente mentre lo dichiarate richiede ancora anche **Edit Alert**: vedete [Avvisi collegati](/docs/incidents/linked-alerts).
+
 ## Ambito: fin dove arriva un'autorizzazione concessa
 
 Ogni autorizzazione concessa ha un ambito, scelto al momento dell'aggiunta:

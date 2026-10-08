@@ -108,6 +108,23 @@ Une autorisation ne peut pas porter d'étiquettes de restriction dans les deux l
 
 Les autorisations accordées à un utilisateur s'additionnent sur toutes ses équipes, mais un blocage s'applique à tout ce que fait l'utilisateur : un blocage sans étiquette sur une équipe retire la capacité même si une autre équipe l'accorde, et une entrée de blocage n'accorde jamais rien. Si quelqu'un a moins d'accès que prévu, cherchez un blocage dans chacune de ses équipes ; s'il en a plus, cherchez une autorisation dans chacune.
 
+### Changer un état
+
+Un incident, une alerte, un épisode d'alertes ou d'incidents et une maintenance planifiée changent d'état, et un moniteur change de statut, par une nouvelle ligne dans leur chronologie des états. Acquitter, résoudre, changer d'état, la page de la chronologie des états, l'API et les workflows en ajoutent tous une. L'ajouter demande l'autorisation de création de cette chronologie, avec une autorisation de lire l'enregistrement qu'elle modifie :
+
+| Pour changer l'état de | Il faut |
+| --- | --- |
+| Un incident | **Create Incident State Timeline** |
+| Une alerte | **Create Alert State Timeline** |
+| Un épisode d'alertes | **Create Alert Episode State Timeline** |
+| Un épisode d'incidents | **Create Incident Episode State Timeline** |
+| Une maintenance planifiée | **Create Scheduled Maintenance State Timeline** |
+| Un moniteur (son statut) | **Create Monitor Status Timeline** |
+
+L'enregistrement reçoit ensuite le nouvel état de OneUptime elle-même, avec ce qui l'accompagne, comme le moment où un épisode a été résolu ou celui où une maintenance rappelle de nouveau ses abonnés. Un changement ne demande donc pas en plus une autorisation de modifier l'enregistrement : un rôle personnalisé avec **Create Incident State Timeline** mais sans **Edit Incident** change l'état d'un incident. Pour empêcher une équipe de changer des états, bloquez l'autorisation de création de la chronologie ; un blocage de **Edit Incident** laisse les changements d'état tels quels. Les étiquettes, les propriétaires et les enregistrements privés restreignent l'autorisation de création de la chronologie comme ils restreignent toute autre, à travers l'enregistrement dont elle change l'état : voir les règles de portée plus bas.
+
+Seul l'état est écrit pour vous. Une note publiée avec un changement l'est en votre nom et demande l'autorisation propre à la note, comme décrit dans [États et gravités](/docs/incidents/states-and-severities). Acquitter les alertes d'un incident pendant que vous le déclarez demande toujours aussi **Edit Alert** : voir [Alertes liées](/docs/incidents/linked-alerts).
+
 ## Portée : jusqu'où va une autorisation accordée
 
 Chaque autorisation accordée l'est avec une portée, choisie au moment de l'ajout :

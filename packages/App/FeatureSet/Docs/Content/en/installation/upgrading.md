@@ -795,6 +795,23 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   everywhere: a server admin acting in a project is held to no plan, and
   everyone else to the project's. Installs with billing off, the
   self-hosted default, see no change.
+- **Changing a state takes the state timeline's permission, and nothing
+  more.** An incident, alert, episode or scheduled maintenance event
+  changes state, and a monitor changes status, by a new row on its state
+  timeline, and the record then takes the new state. That second write
+  used to be made with your own permissions, so a custom role with
+  **Create Incident State Timeline** but not **Edit Incident** - or a
+  team with a block on **Edit Incident** - had its change recorded on the
+  timeline and refused on the incident, which kept its old state.
+  OneUptime now writes the record's state itself once the timeline row is
+  allowed, so those roles change states. If you used a block on editing to
+  keep a team from changing states, block the state timeline's create
+  permission instead. A note posted with a change still takes the note's
+  own permission. A state change that failed after it started also no
+  longer holds up the next change to the same record: the next one goes
+  ahead at once, where it used to wait about ten seconds and then go ahead
+  without the lock that keeps two changes from crossing. See
+  [Changing a state](/docs/permissions/index#changing-a-state).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

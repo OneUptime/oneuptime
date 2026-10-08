@@ -122,6 +122,23 @@ A permission cannot carry restriction labels in both lists at once; OneUptime re
 
 A user's allow entries add up across all their teams, but a block applies to everything the user does: a block with no labels on one team takes the capability away even where another team allows it, and a block entry never grants anything. If somebody has less access than you expect, check each of their teams for a block; if they have more, check each team for an allow.
 
+### Changing a state
+
+An incident, an alert, an alert or incident episode and a scheduled maintenance event change state, and a monitor changes status, by a new row on their state timeline. **Acknowledge**, **Resolve**, **Change State**, the **State Timeline** page, the API and workflows all add one. Adding it takes the timeline's own create permission, with a permission to read the record it changes:
+
+| To change the state of | It takes |
+| --- | --- |
+| An incident | **Create Incident State Timeline** |
+| An alert | **Create Alert State Timeline** |
+| An alert episode | **Create Alert Episode State Timeline** |
+| An incident episode | **Create Incident Episode State Timeline** |
+| A scheduled maintenance event | **Create Scheduled Maintenance State Timeline** |
+| A monitor (its status) | **Create Monitor Status Timeline** |
+
+The record then takes the new state from OneUptime itself, with what goes with it, such as when an episode was resolved or when a maintenance event next reminds its subscribers. So a change does not also take a permission to edit the record: a custom role with **Create Incident State Timeline** but not **Edit Incident** changes an incident's state. To keep a team from changing states, block the timeline's create permission; a block on **Edit Incident** leaves state changes alone. Labels, owners and private records narrow the timeline's create permission as they narrow any other, through the record whose state it changes: see the scope rules below.
+
+Only the state is written for you. A note posted with a change is posted as you and takes the note's own permission, as described in [Telling status page subscribers about a state change](/docs/incidents/states-and-severities#telling-status-page-subscribers-about-a-state-change). Acknowledging the alerts of an incident as you declare it still also takes **Edit Alert**: see [Acknowledging the alerts as you declare](/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare).
+
 ## Scope: how far an allow permission reaches
 
 Every allow permission is granted with a scope, chosen when you add it:

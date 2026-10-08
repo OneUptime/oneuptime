@@ -108,6 +108,23 @@ En tilladelse kan ikke bære begrænsningslabels i begge lister samtidig; OneUpt
 
 En brugers tilladelser lægges sammen på tværs af alle vedkommendes teams, men en blokering gælder alt, hvad brugeren gør: en blokering uden labels i ét team fjerner funktionen, også hvor et andet team tillader den, og en blokering giver aldrig noget. Har nogen mindre adgang, end du forventer, så kig efter en blokering i hvert af vedkommendes teams; har de mere, så kig efter en tilladelse i hvert team.
 
+### Ændring af en tilstand
+
+En hændelse, en alarm, en alarm- eller hændelsesepisode og en planlagt vedligeholdelse skifter tilstand, og en monitor skifter status, ved en ny række på deres tilstandstidslinje. At kvittere, løse, skifte tilstand, siden med tilstandstidslinjen, API'et og workflows tilføjer alle sådan en række. Det kræver tidslinjens egen tilladelse til at oprette, sammen med en tilladelse til at læse den post, den ændrer:
+
+| For at ændre tilstanden for | Kræves |
+| --- | --- |
+| En hændelse | **Create Incident State Timeline** |
+| En alarm | **Create Alert State Timeline** |
+| En alarmepisode | **Create Alert Episode State Timeline** |
+| En hændelsesepisode | **Create Incident Episode State Timeline** |
+| En planlagt vedligeholdelse | **Create Scheduled Maintenance State Timeline** |
+| En monitor (dens status) | **Create Monitor Status Timeline** |
+
+Posten får derefter den nye tilstand fra OneUptime selv, sammen med det, der følger med, såsom hvornår en episode blev løst, eller hvornår en vedligeholdelse næste gang minder sine abonnenter om den. En ændring kræver altså ikke også en tilladelse til at redigere posten: en brugerdefineret rolle med **Create Incident State Timeline**, men uden **Edit Incident**, ændrer en hændelses tilstand. Vil du forhindre et team i at ændre tilstande, så blokér tidslinjens tilladelse til at oprette; en blokering af **Edit Incident** lader tilstandsændringer være. Labels, ejere og private poster begrænser tidslinjens tilladelse til at oprette, som de begrænser enhver anden, gennem den post, hvis tilstand den ændrer: se reglerne for omfang nedenfor.
+
+Kun tilstanden skrives for dig. En note, der sendes med en ændring, sendes som dig og kræver notens egen tilladelse, som beskrevet under [Tilstande og alvorsgrader](/docs/incidents/states-and-severities). At kvittere for en hændelses alarmer, mens du erklærer den, kræver stadig også **Edit Alert**: se [Tilknyttede alarmer](/docs/incidents/linked-alerts).
+
 ## Omfang: hvor langt en tilladt rettighed rækker
 
 Enhver tilladt rettighed tildeles med et omfang, som du vælger, når du tilføjer den:
