@@ -295,6 +295,15 @@ If you no longer need a phone number:
 
 > **Warning**: Released numbers are returned to Twilio and may not be available for re-purchase.
 
+## Who Can Add and Release Phone Numbers
+
+A policy's phone numbers follow the same roles as the policy itself:
+
+- **Looking numbers up** - searching Twilio for a number to buy, or listing the numbers your Twilio account already has - needs permission to read incoming call policies and to read call and SMS configs, because it reads your Twilio account through one. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** and **Settings Viewer** have both. In a custom role, that is **Read Incoming Call Policy** and **Read Call and SMS**.
+- **Buying a number, using an existing one, and releasing one** need permission to edit incoming call policies: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** and **Settings Member**, or **Edit Incoming Call Policy** in a custom role. They change the numbers of a policy you may edit: with a role limited to some labels, the policies carrying those labels.
+
+A team's block with no labels on one of these permissions takes it away. For anyone else, **Add Phone Number** and **Release** stay on the page, locked, and their tooltip says what they take. The API refuses their request with a sentence saying what it takes: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." or "Adding or releasing a phone number needs permission to edit incoming call policies." Buying a number charges your own Twilio account, not your OneUptime balance, so it needs no billing permission.
+
 ## Troubleshooting
 
 ### Calls not being received

@@ -1,22 +1,29 @@
-# IP Address Whitelist for OneUptime.com
+# IP Addresses
 
-If you are using OneUptime.com and want to whitelist our IP's for security reasons, you can do so by following the instructions below.
+OneUptime Cloud's probes check your websites, APIs and servers from a fixed set of IP addresses. If a firewall or an allowlist sits in front of what you monitor, allow these addresses so the checks get through.
 
-Please whitelist the following IP's in your firewall to allow oneuptime.com to reach your resources.
+```mermaid title="Where the allowlist applies"
+flowchart LR
+    P["OneUptime probes"] -->|"checks from the listed IPs"| F["Your firewall"]
+    F -->|"allowed"| S["Your website, API or server"]
+```
+
+## IP addresses to allow
+
+Allow traffic from these addresses in your firewall:
 
 {{IP_WHITELIST}}
 
-These IP's can change, we will let you know in advance if this happens.
+> [!NOTE]
+> These addresses can change. OneUptime lets you know in advance when they do. To stay up to date without watching for announcements, [fetch the list](#fetch-the-list-programmatically) when you update your firewall.
 
-## Fetch IP Addresses Programmatically
+## Fetch the list programmatically
 
-You can also fetch the list of probe egress IP addresses programmatically via the following API endpoint:
+The same list is served as JSON, with no API key needed, so a script can keep your firewall rules in step:
 
+```bash
+curl -s https://oneuptime.com/ip-whitelist
 ```
-GET https://oneuptime.com/ip-whitelist
-```
-
-This returns a JSON response:
 
 ```json
 {
@@ -24,4 +31,25 @@ This returns a JSON response:
 }
 ```
 
-You can use this endpoint to keep your firewall whitelist updated automatically.
+`ipWhitelist` is an array with one address per entry. To print one address per line, for example to feed into a firewall script:
+
+```bash
+curl -s https://oneuptime.com/ip-whitelist | jq -r '.ipWhitelist[]'
+```
+
+## Self-hosted OneUptime
+
+On your own instance, this page and the `/ip-whitelist` endpoint show the addresses in the instance's `IP_WHITELIST` setting, a comma-separated list. With the Helm chart, set it with the `ipWhitelist` value:
+
+```yaml title="values.yaml"
+ipWhitelist: "203.0.113.1,203.0.113.2"
+```
+
+When nothing is set, this page shows **No IP addresses configured.** and the endpoint returns an empty `ipWhitelist` array. List the addresses your own probes send their checks from.
+
+## Next steps
+
+:::cards
+- [Custom Probes](/docs/probe/custom-probe): Run a probe inside your own network instead of opening the firewall.
+- [Creating a Monitor](/docs/monitor/create-monitor): Start checking a website, API or server.
+:::

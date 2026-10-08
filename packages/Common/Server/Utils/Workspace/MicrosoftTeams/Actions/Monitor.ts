@@ -85,6 +85,10 @@ export default class MicrosoftTeamsMonitorActions {
         return;
       }
 
+      /*
+       * Read as the member who asked, with their own permissions: a monitor
+       * outside their read is answered like one the project does not have.
+       */
       const monitor: Monitor | null = await MonitorService.findOneBy({
         query: {
           _id: actionValue,
@@ -101,9 +105,7 @@ export default class MicrosoftTeamsMonitorActions {
           disableActiveMonitoring: true,
           createdAt: true,
         },
-        props: {
-          isRoot: true,
-        },
+        props: databaseProps,
       });
 
       if (!monitor) {

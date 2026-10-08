@@ -338,8 +338,8 @@ describe("VMware docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("lists the VMware monitor page in the Monitor group, right after the other infrastructure monitors", (): void => {
-      const urls: Array<string> = navGroup("Monitor").links.map(
+    it("lists the VMware monitor page in the Infrastructure Monitors group, right after the other infrastructure monitors", (): void => {
+      const urls: Array<string> = navGroup("Infrastructure Monitors").links.map(
         (link: NavLink): string => {
           return link.url;
         },
@@ -352,8 +352,8 @@ describe("VMware docs", (): void => {
       expect(urls.indexOf("/docs/monitor/proxmox-monitor")).toBeLessThan(index);
     });
 
-    it("lists the VMware agent page in the Telemetry group, next to the other agents", (): void => {
-      const urls: Array<string> = navGroup("Telemetry").links.map(
+    it("lists the VMware agent page in the Infrastructure Agents group, next to the other agents", (): void => {
+      const urls: Array<string> = navGroup("Infrastructure Agents").links.map(
         (link: NavLink): string => {
           return link.url;
         },
@@ -368,8 +368,8 @@ describe("VMware docs", (): void => {
 
     it("uses the product's titles", (): void => {
       const titles: Array<string> = [
-        ...navGroup("Monitor").links,
-        ...navGroup("Telemetry").links,
+        ...navGroup("Infrastructure Monitors").links,
+        ...navGroup("Infrastructure Agents").links,
       ].map((link: NavLink): string => {
         return link.title;
       });
@@ -379,10 +379,10 @@ describe("VMware docs", (): void => {
       );
     });
 
-    it("resolves every Monitor- and Telemetry-group URL to an English page on disk", (): void => {
+    it("resolves every Infrastructure Monitors- and Infrastructure Agents-group URL to an English page on disk", (): void => {
       for (const link of [
-        ...navGroup("Monitor").links,
-        ...navGroup("Telemetry").links,
+        ...navGroup("Infrastructure Monitors").links,
+        ...navGroup("Infrastructure Agents").links,
       ]) {
         expect({
           url: link.url,

@@ -7,6 +7,11 @@
      * with no stored choice we follow the operating system.
      */
     (function () {
+        /*
+         * Scripting is on: tab sets show one panel at a time from the first
+         * paint (see "Tabs" in style.css) instead of every panel at once.
+         */
+        document.documentElement.classList.add('docs-js');
         try {
             var stored = window.localStorage.getItem('oneuptime-docs-theme');
             var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -104,16 +109,24 @@
 </script>
 <!-- Compiled CSS: Tailwind build plus the hand-written docs design layer -->
 <link rel="stylesheet" href="/docs/static/css/style.css" crossorigin data-precedence="next">
+<%
+/*
+ * A page's own description - its first paragraph (Utils/SearchIndex.ts) -
+ * is what a search engine or a link preview shows under its title; the
+ * site-wide one is the fallback.
+ */
+var metaDescription = typeof pageDescription !== 'undefined' && pageDescription ? pageDescription : t('ui.metaDescription');
+%>
 <title><%= typeof link !== 'undefined' && link && link.title ? link.title + ' - ' + t('ui.metaTitleSuffix') : t('ui.metaTitleDefault') %></title>
-<meta name="description" content="<%= t('ui.metaDescription') %>">
+<meta name="description" content="<%= metaDescription %>">
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="<%= t('ui.metaTitleSuffix') %>">
 <meta property="og:title" content="<%= typeof link !== 'undefined' && link && link.title ? link.title : t('ui.metaTitleDefault') %>">
-<meta property="og:description" content="<%= t('ui.metaDescription') %>">
+<meta property="og:description" content="<%= metaDescription %>">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="<%= typeof link !== 'undefined' && link && link.title ? link.title : t('ui.metaTitleDefault') %>">
-<meta name="twitter:description" content="<%= t('ui.metaDescription') %>">
+<meta name="twitter:description" content="<%= metaDescription %>">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">
 <script src="/oneuptime-assets/highlight/highlight.min.js" defer></script>

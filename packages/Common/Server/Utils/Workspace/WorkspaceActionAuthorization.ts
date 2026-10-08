@@ -16,6 +16,8 @@ import TeamMemberService from "../../Services/TeamMemberService";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
+import Sort from "../../Types/Database/Sort";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import CallerPlan from "../Billing/CallerPlan";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
@@ -227,6 +229,84 @@ export default class WorkspaceActionAuthorization {
     });
 
     return props;
+  }
+
+  /*
+   * THE RECORDS A CHAT FORM OFFERS ITS USER: the severities, monitors,
+   * monitor statuses, on-call policies and labels a "new incident" form
+   * lists, the monitors and labels of a "new maintenance event" form, the
+   * on-call policies an "execute on-call policy" form lists. They are read
+   * with that user's own props (getProjectMemberProps), as the dashboard
+   * reads the same lists for them - in the project, under their labels,
+   * owners and blocks - so a form never names a record its user could not
+   * pick in OneUptime. A user who may not read that kind of record at all
+   * (or whose plan does not include it) is offered none of it: the read is
+   * refused, and answered with an empty list. Anything else that fails is
+   * the caller's to answer. What the user then submits is checked by the
+   * create itself, made with the same props.
+   */
+  @CaptureSpan()
+  public static async findReadable<TBaseModel extends DatabaseBaseModel>(data: {
+    service: DatabaseService<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+    query: Query<TBaseModel>;
+    select: Select<TBaseModel>;
+    sort?: Sort<TBaseModel> | undefined;
+    limit: number;
+  }): Promise<Array<TBaseModel>> {
+    try {
+      return await data.service.findBy({
+        query: data.query,
+        select: data.select,
+        sort: data.sort,
+        limit: data.limit,
+        skip: 0,
+        props: data.props,
+      });
+    } catch (err) {
+      if (WorkspaceActionAuthorization.isReadRefusal(err)) {
+        return [];
+      }
+
+      throw err;
+    }
+  }
+
+  /*
+   * How many records of a kind a chat form's user may read (findReadable's
+   * count): for a form that lists the first ones and says how many it left
+   * out. A refused read counts none.
+   */
+  @CaptureSpan()
+  public static async countReadable<
+    TBaseModel extends DatabaseBaseModel,
+  >(data: {
+    service: DatabaseService<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+    query: Query<TBaseModel>;
+  }): Promise<number> {
+    try {
+      return (
+        await data.service.countBy({
+          query: data.query,
+          props: data.props,
+        })
+      ).toNumber();
+    } catch (err) {
+      if (WorkspaceActionAuthorization.isReadRefusal(err)) {
+        return 0;
+      }
+
+      throw err;
+    }
+  }
+
+  // A read refused for its caller: no permission, or not on the plan.
+  private static isReadRefusal(err: unknown): boolean {
+    return (
+      err instanceof NotAuthorizedException ||
+      err instanceof PaymentRequiredException
+    );
   }
 
   private static async getAcceptedTeamIds(data: {

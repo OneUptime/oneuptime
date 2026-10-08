@@ -563,8 +563,8 @@ describe("Databases docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("lists the hub in the Telemetry group, right after the VMware agent", (): void => {
-      const links: Array<NavLink> = navGroup("Telemetry").links;
+    it("lists the hub in the Infrastructure Agents group, right after the VMware agent", (): void => {
+      const links: Array<NavLink> = navGroup("Infrastructure Agents").links;
       const index: number = links.findIndex((link: NavLink): boolean => {
         return link.url === PAGE_URL;
       });

@@ -1033,6 +1033,25 @@ jobs:
           Tests/Server/API/RecordScopeCrudPostgres.test.ts
           --forceExit
 
+      # Clones the migrated team, label, monitor, on-call policy, severity,
+      # status, incident and workspace connection tables into an isolated
+      # schema and opens Slack's and Teams' New Incident forms and the Execute
+      # On-Call Policy picker as the members connected to them: a member
+      # whose reads are limited to a label is offered only what carries it,
+      # and a submit naming anything outside their read, or another
+      # project's record, is refused before anything is written.
+      - name: Test what Slack and Teams create forms offer and name on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKSPACE_CREATE_FORM_TESTS: "true"
+          WORKSPACE_CREATE_FORM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKSPACE_CREATE_FORM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKSPACE_CREATE_FORM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Workspace/WorkspaceCreateFormsScopePostgres.test.ts
+          --forceExit
+
       - name: Test workflow OAuth variables on migrated Postgres
         working-directory: packages/Common
         env:

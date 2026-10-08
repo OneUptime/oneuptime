@@ -10,7 +10,9 @@
  * It imports the real slugify rather than reimplementing it. A second copy of
  * those rules would drift from the renderer and then cheerfully pass a link
  * the renderer serves as a 404 — which is exactly how the last round of
- * broken anchors survived.
+ * broken anchors survived. It reads the heading as written, through
+ * slugifyMarkdownHeading, which gives the anchor the renderer gives the
+ * heading's HTML (a `<word>` in inline code keeps its word).
  *
  * The import is a relative path into a dependency-free module, NOT the bare
  * specifier "Common/Server/Types/Markdown". The bare form only resolves after
@@ -22,7 +24,7 @@
  * To run:
  *   npm run docs:check-anchors
  */
-import slugify from "../../packages/Common/Server/Types/MarkdownSlugify";
+import { slugifyMarkdownHeading } from "../../packages/Common/Server/Types/MarkdownSlugify";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -79,7 +81,7 @@ const checkFile: (file: string) => Array<Broken> = (
 
     const heading: RegExpMatchArray | null = line.match(/^#{1,6}\s+(.*)$/);
     if (heading && heading[1]) {
-      headingSlugs.add(slugify(heading[1].trim()));
+      headingSlugs.add(slugifyMarkdownHeading(heading[1].trim()));
     }
 
     for (const match of line.matchAll(/\]\(#([^)]*)\)/g)) {

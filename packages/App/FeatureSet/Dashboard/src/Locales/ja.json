@@ -26754,5 +26754,7 @@
   "{{count}} more are waiting for their first check.": "ほかに {{count}} 台が最初のチェックを待っています。",
   "{{count}} more are waiting for their first check._one": "ほかに {{count}} 台が最初のチェックを待っています。",
   "{{count}} sites need attention": "{{count}} 件のサイトに注意が必要です",
-  "{{count}} sites need attention_one": "{{count}} 件のサイトに注意が必要です"
+  "{{count}} sites need attention_one": "{{count}} 件のサイトに注意が必要です",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "電話番号を追加するには、着信ポリシーを編集する権限と、通話と SMS の設定を読み取る権限が必要です。",
+  "Releasing a phone number needs permission to edit incoming call policies.": "電話番号を解放するには、着信ポリシーを編集する権限が必要です。"
 }

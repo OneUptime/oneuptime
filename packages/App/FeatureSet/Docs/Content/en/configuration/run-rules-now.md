@@ -2,6 +2,16 @@
 
 Label rules, owner rules and privacy rules run automatically when a resource is **created**. A rule you write today therefore does nothing to the monitors, incidents or hosts you already have. **Run Now** closes that gap: it applies one rule to every resource that already exists in the project.
 
+```mermaid title="What one run does"
+flowchart TB
+    S["Run Now"] --> E["Every resource in the project"]
+    E --> M{"Matches the rule?"}
+    M -->|"No"| K["Left as it is"]
+    M -->|"Yes"| H{"Already has what<br/>the rule adds?"}
+    H -->|"Yes"| A["Counted as already applied"]
+    H -->|"No"| C["Labels or owners added,<br/>or made private"]
+```
+
 ## Which rules can be run
 
 - **Label Rules** and **Owner Rules**, for every resource that has them: monitors, incidents, incident episodes, alerts, alert episodes, scheduled maintenance events, status pages, services, hosts, Kubernetes clusters, Docker hosts, Docker Swarm clusters, Podman hosts, Proxmox clusters, VMware vCenters, Ceph clusters, storage arrays, databases, queues, IoT fleets, serverless functions, cloud resources, RUM applications, dashboards, on-call policies, on-call schedules, incoming call policies, workflows, runbooks, network devices and SLOs.
@@ -11,18 +21,45 @@ Label rules, owner rules and privacy rules run automatically when a resource is 
 
 Rules that take an action rather than describe a resource — **On-Call Rules**, **Runbook Rules**, **Auto-Remediation Rules** and **Grouping Rules** — cannot be run against existing records. Running them would page people, execute runbooks or reorganize episodes for incidents that are already over.
 
+## Before you begin
+
+To run a rule you need permission to edit the rule **and** to edit the resources it changes — for example, a monitor label rule needs both the monitor label rule and the monitor edit permissions. Owner rules also need permission to add owners. Monitor rules on a status page or an SLO need only permission to edit the rule.
+
+> [!IMPORTANT]
+> A permission limited to specific labels, or to resources you own, is not enough: a run can change every resource in the project. Team block lists apply as they do everywhere else, and a block limited to some labels counts too: a run would change the resources carrying those labels, so a block with labels on editing the resources a rule changes refuses the run.
+
+A network's rules ask the same when you run them on the devices you already have. A site assignment or device label rule's **Run Now** needs permission to edit the rule and **Edit Network Device**. An auto import rule's **Dry Run** and **Run Rule** need permission to edit the rule, **Create Network Device** and, when the rule has a Monitor Template, **Create Monitor**. Each must reach the whole project. See [Importing Automatically with Auto Import Rules](/docs/monitor/network-device-monitor#importing-automatically-with-auto-import-rules).
+
 ## Run one rule
 
-1. Open the rule list, for example **Monitors → Settings → Label Rules**.
-2. Select **Run Now** on the rule's row, or select **View** and then **Run Now** on the rule's own page.
-3. For an owner rule, choose whether to **notify the owners this run adds**. This is off by default, and only takes effect when the rule itself has **Notify Owners** turned on. An owner is notified once for every resource they are added to.
-4. Select **Run Rule** and keep the dialog open. On a large project the dialog shows how far the run has got.
+:::steps
+### Open the rule list
+
+Open the rules page, for example **Monitors → Settings → Label Rules**.
+
+### Select Run Now
+
+Select **Run Now** on the rule's row, or select **View** and then **Run Now** on the rule's own page. A dialog says what the run will do.
+
+### Choose whether to notify new owners
+
+For an owner rule, choose whether to **Notify the owners this run adds**. It is off by default, and only takes effect when the rule itself has **Notify Owners** turned on. An owner is notified once for every resource they are added to.
+
+### Run the rule
+
+Select **Run Rule** and keep the dialog open. On a large project, the dialog shows how far the run has got.
+
+### Read the report
 
 When the run finishes, the dialog reports how many resources the rule matched, how many it changed, and how many already had what the rule adds.
+:::
 
 ## Run several rules
 
-Select rules in the table, open the bulk actions menu and choose **Run Now**. The selected rules run one after another. Owners added by a bulk run are never notified. A rule that cannot run — for example because it is disabled — is listed with the reason, and the other rules still run.
+Select rules in the table, open the bulk actions menu and choose **Run Now**. The selected rules run one after another.
+
+- Owners added by a bulk run are never notified. To notify them, run a single rule instead.
+- A rule that cannot run — for example because it is disabled — is listed with the reason, and the other rules still run.
 
 ## What a run does
 
@@ -35,14 +72,10 @@ Select rules in the table, open the bulk actions menu and choose **Run Now**. Th
 - **Status page monitor rules** add the monitors they match and remove the monitors they added earlier that no longer match. Monitors added to the page by hand are never touched.
 - **A single run covers up to 100,000 resources.** On a larger project the run stops and says so; run the rule again to continue.
 
-## Permissions
+## Next steps
 
-To run a rule you need permission to edit the rule **and** to edit the resources it changes — for example, a monitor label rule needs both the monitor label rule and the monitor edit permissions. Owner rules also need permission to add owners. A permission limited to specific labels, or to owned resources, is not enough, because a run can change every resource in the project. Team block lists apply as they do everywhere else, and a block limited to some labels counts too: a run would change the resources carrying those labels, so a block with labels on editing the resources a rule changes refuses the run.
-
-A network's rules ask the same when you run them on the devices you already have: a site assignment or device label rule's **Run Now** needs permission to edit the rule and **Edit Network Device**, and an auto import rule's **Dry Run** and **Run Rule** need permission to edit the rule, **Create Network Device** and, when the rule has a Monitor Template, **Create Monitor** - each reaching the whole project. See [Importing Automatically with Auto Import Rules](/docs/monitor/network-device-monitor#importing-automatically-with-auto-import-rules).
-
-## Related
-
-- [Label and Owner Rules](/docs/configuration/label-and-owner-rules)
-- [Import and Export Label Rules](/docs/configuration/label-rule-import-export)
-- [Incident Settings and Rules](/docs/incidents/settings)
+:::cards
+- [Label and Owner Rules](/docs/configuration/label-and-owner-rules): Write the rules a run applies.
+- [Import and Export Label Rules](/docs/configuration/label-rule-import-export): Bring label rules in from another project first.
+- [Incident Settings & Automation](/docs/incidents/settings): Incident rules, including privacy rules.
+:::
