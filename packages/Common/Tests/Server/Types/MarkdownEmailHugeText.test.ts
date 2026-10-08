@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * marked as it is, except that a test can see what it was given, or make it
@@ -239,7 +240,7 @@ describe("Markdown email renderer - the last resort", () => {
     mockMarkedState.failWith = new RangeError(
       "Maximum call stack size exceeded",
     );
-    const logged: jest.SpiedFunction<typeof logger.error> = jest
+    const logged: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation((): void => {});
 
@@ -257,7 +258,7 @@ describe("Markdown email renderer - the last resort", () => {
   });
 
   test("Markdown with more than a megabyte left once over-long text is held back is sent as text, and marked never reads it", async () => {
-    const logged: jest.SpiedFunction<typeof logger.warn> = jest
+    const logged: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation((): void => {});
     // Table rows are not plain lines: none of them is held back.
