@@ -61,6 +61,30 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
 };
 
 /*
+ * The settings that hold credentials OneUptime uses for the record that
+ * names them: the SMTP server a status page sends its email through, the
+ * call and SMS provider a status page or an incoming call policy uses, the
+ * credential the AI reaches a cluster with, the SNMP credentials a network
+ * device or site is polled with, the video call provider a meeting is
+ * started with, and the API key a permission is granted to.
+ *
+ * Their records are read as a whole table - no label or owner narrows a
+ * read of them - so a write that names one is held to its caller's
+ * permission to read that table, not to the project alone: a caller who may
+ * read the table may name any of the project's records of it, and a caller
+ * who may not - who holds none of its read permissions, or whose block with
+ * no labels takes them away - names none of them. By table name.
+ */
+const CREDENTIAL_SETTINGS: Array<string> = [
+  "ApiKey",
+  "NetworkSnmpCredentialProfile",
+  "ProjectCallSMSConfig",
+  "ProjectSMTPConfig",
+  "RunbookCredential",
+  "VideoCallConnection",
+];
+
+/*
  * THE RECORDS A WRITE NAMES ARE RECORDS ITS CALLER MAY READ.
  *
  * A create or an update that names records - in a list (the monitors an
@@ -96,6 +120,10 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  * Records read as a whole table - labels, teams, people, severities,
  * monitor statuses, files - are not held to a read here: every member reads
  * them, and the reference check answers a record that is not the project's.
+ * The settings that hold credentials (SMTP, call and SMS, credentials, SNMP
+ * credentials, video call providers, API keys) are read as a whole table
+ * too, and a write names one only when its caller may read that table
+ * (CREDENTIAL_SETTINGS, isHeldToTableRead).
  * The parent a model is read through, even when it is a list (an
  * announcement's status pages), is the parent rule's
  * (CreatePermission.checkParentPermission,
@@ -118,8 +146,8 @@ export default class RelationListPermission {
   /*
    * The lists of `modelType` held to the caller's read: every many-to-many
    * column a create or an update may write (its create or update permissions
-   * name someone) whose records are read one by one (isReadPerRecord), but
-   * the parent the model's rows are read through.
+   * name someone) whose records are read one by one or hold credentials
+   * (isNamedOnlyWhenRead), but the parent the model's rows are read through.
    */
   public static getCheckedLists(
     modelType: DatabaseBaseModelType,
@@ -159,7 +187,7 @@ export default class RelationListPermission {
 
       if (
         !isWritable ||
-        !RelationListPermission.isReadPerRecord(listedModelType)
+        !RelationListPermission.isNamedOnlyWhenRead(listedModelType)
       ) {
         continue;
       }
@@ -180,8 +208,9 @@ export default class RelationListPermission {
    * The single references of `modelType` held to the caller's read: every
    * relation to one record (RelationNames.getSingleRelations - the project
    * is the tenant check's) that a create or an update may write, under
-   * either of its names, to a model whose records are read one by one
-   * (isReadPerRecord), but the parent the model's rows are read through.
+   * either of its names, to a model whose records are read one by one or
+   * hold credentials (isNamedOnlyWhenRead), but the parent the model's rows
+   * are read through.
    */
   public static getCheckedReferences(
     modelType: DatabaseBaseModelType,
@@ -221,7 +250,7 @@ export default class RelationListPermission {
       if (
         !referencedModelType ||
         !(isWritable(reference.relation) || isWritable(reference.idColumn)) ||
-        !RelationListPermission.isReadPerRecord(referencedModelType)
+        !RelationListPermission.isNamedOnlyWhenRead(referencedModelType)
       ) {
         continue;
       }
@@ -262,6 +291,67 @@ export default class RelationListPermission {
     const tableName: string = new modelType().tableName || "";
 
     return SHARED_RECORD_QUERIES[tableName] || null;
+  }
+
+  /*
+   * Whether a write that names records of `modelType` is held to its
+   * caller's read of them: records read one by one (isReadPerRecord), and
+   * the settings that hold credentials, read as a whole table
+   * (isHeldToTableRead).
+   */
+  public static isNamedOnlyWhenRead(modelType: DatabaseBaseModelType): boolean {
+    return (
+      RelationListPermission.isReadPerRecord(modelType) ||
+      RelationListPermission.isHeldToTableRead(modelType)
+    );
+  }
+
+  /*
+   * Whether `modelType` is one of the settings that hold credentials
+   * (CREDENTIAL_SETTINGS): a write names one of its records only when its
+   * caller may read its table.
+   */
+  public static isHeldToTableRead(modelType: DatabaseBaseModelType): boolean {
+    return CREDENTIAL_SETTINGS.includes(new modelType().tableName || "");
+  }
+
+  // The settings that hold credentials, by table name (CREDENTIAL_SETTINGS).
+  public static getCredentialSettingsTables(): Array<string> {
+    return [...CREDENTIAL_SETTINGS];
+  }
+
+  /*
+   * Whether `props` may read `modelType`'s table at all, as a write that
+   * names a setting that holds credentials asks it (isHeldToTableRead):
+   * OneUptime and master admins may; anyone else holds one of the table's
+   * read permissions, or its read wildcard, and no block with no labels
+   * takes any of them away. For a service that reads such a reference from
+   * a column no metadata describes (a runbook's steps name the credentials
+   * they run with).
+   */
+  public static mayReadTable(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return true;
+    }
+
+    const readPermissions: Array<Permission> =
+      TablePermission.getTablePermission(modelType, DatabaseRequestType.Read);
+
+    const held: HeldPermissions = TablePermission.getHeldPermissions(props);
+
+    if (HeldPermissionsUtil.isBlockedFromAny(held, readPermissions)) {
+      return false;
+    }
+
+    return HeldPermissionsUtil.isGrantedAny(held, readPermissions, {
+      wildcard: TablePermission.getModelWildcard(
+        modelType,
+        DatabaseRequestType.Read,
+      ),
+    });
   }
 
   /*
@@ -554,9 +644,11 @@ export default class RelationListPermission {
    * nothing needs looking up: a caller who reads every record of the named
    * model, or who holds no read of it and no block with labels on it, on a
    * write whose service checks its references in the project itself. A
-   * malformed id names no record and is not looked up. The records every
-   * project may name (SHARED_RECORD_QUERIES) are reachable to anyone a block
-   * with no labels does not keep from the model altogether.
+   * caller who holds no read of a setting that holds credentials
+   * (isHeldToTableRead) may name none of them. A malformed id names no
+   * record and is not looked up. The records every project may name
+   * (SHARED_RECORD_QUERIES) are reachable to anyone a block with no labels
+   * does not keep from the model altogether.
    */
   private static async findReachableIds(data: {
     list: CheckedRelationList;
@@ -594,6 +686,18 @@ export default class RelationListPermission {
         ),
       },
     );
+
+    /*
+     * A setting that holds credentials is named only by a caller who may
+     * read its table (CREDENTIAL_SETTINGS): one who may not names none of
+     * them, wherever they are.
+     */
+    if (
+      !isReader &&
+      RelationListPermission.isHeldToTableRead(listedModelType)
+    ) {
+      return new Set<string>();
+    }
 
     const blockedLabelIds: Array<ObjectID> = isReader
       ? []

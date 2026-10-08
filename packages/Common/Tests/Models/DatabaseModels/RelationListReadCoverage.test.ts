@@ -289,9 +289,6 @@ const PROJECT_SETTING: string =
 const NOTIFICATION_METHOD: string =
   "A person's own notification method: a notification rule names only methods of the person it belongs to (UserNotificationRuleService's method-ownership check), whatever a read of the table reaches.";
 
-const RESELLER: string =
-  "OneUptime's own resellers and their plans, not a project's records: a project names them as it is created (ProjectService, from a reseller's promo code).";
-
 // The models a single reference may name without the caller's read of them, and why.
 const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   User: "People are held to membership of the project (ProjectScopedReferenceValidator), not to a read of the user table.",
@@ -312,14 +309,8 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   NetworkDeviceOidTemplate: PROJECT_SETTING,
   NetworkDeviceRole: PROJECT_SETTING,
   NetworkSiteType: PROJECT_SETTING,
-  NetworkSnmpCredentialProfile: PROJECT_SETTING,
-  ProjectCallSMSConfig: PROJECT_SETTING,
-  ProjectSMTPConfig: PROJECT_SETTING,
   StatusPageSubscriberNotificationTemplate: PROJECT_SETTING,
-  VideoCallConnection: PROJECT_SETTING,
   Domain: PROJECT_SETTING,
-  ApiKey: PROJECT_SETTING,
-  RunbookCredential: PROJECT_SETTING,
   UserCall: NOTIFICATION_METHOD,
   UserEmail: NOTIFICATION_METHOD,
   UserMicrosoftTeams: NOTIFICATION_METHOD,
@@ -329,12 +320,55 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   UserTelegram: NOTIFICATION_METHOD,
   UserWebhook: NOTIFICATION_METHOD,
   UserWhatsApp: NOTIFICATION_METHOD,
-  Reseller: RESELLER,
-  "Reseller Plan": RESELLER,
 };
 
 // References to records read one by one the rule leaves out. May only shrink - and is empty.
 const REFERENCES_LEFT_OUT: Array<string> = [];
+
+/*
+ * The settings that hold credentials OneUptime uses for the record that
+ * names them. They are read as a whole table too, but a write names one of
+ * them only when its caller may read that table
+ * (RelationListPermission.isHeldToTableRead): a caller who may not read the
+ * project's SMTP servers does not choose the one a status page sends with.
+ * Each with the credentials it holds and the records that name it.
+ */
+const CREDENTIAL_SETTINGS: Record<string, string> = {
+  ProjectSMTPConfig:
+    "An SMTP server's login: a status page that names one sends its subscribers' email through it.",
+  ProjectCallSMSConfig:
+    "A call and SMS provider's account token: a status page or an incoming call policy that names one calls and texts through it.",
+  RunbookCredential:
+    "SSH keys and Kubernetes service account tokens: a cluster that names one lets OneUptime AI reach the cluster with it.",
+  NetworkSnmpCredentialProfile:
+    "SNMP community strings and keys: a network device or site that names one is polled with them.",
+  VideoCallConnection:
+    "A video call provider's authorization: an incident or alert video call that names one starts its meeting through it.",
+  ApiKey:
+    "An API key is itself a credential: a permission row that names one grants that key what it lists.",
+};
+
+// The references to them, each held to the read of the table it names.
+const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
+  ["StatusPage", "smtpConfig", "ProjectSMTPConfig"],
+  ["StatusPage", "callSmsConfig", "ProjectCallSMSConfig"],
+  ["IncomingCallPolicy", "projectCallSMSConfig", "ProjectCallSMSConfig"],
+  ["KubernetesCluster", "aiAccessCredential", "RunbookCredential"],
+  ["NetworkDevice", "snmpCredentialProfile", "NetworkSnmpCredentialProfile"],
+  ["NetworkSite", "snmpCredentialProfile", "NetworkSnmpCredentialProfile"],
+  ["IncidentVideoCall", "videoCallConnection", "VideoCallConnection"],
+  ["AlertVideoCall", "videoCallConnection", "VideoCallConnection"],
+  ["ApiKeyPermission", "apiKey", "ApiKey"],
+];
+
+/*
+ * Models that hold a secret - an encrypted or a hashed column - that a write
+ * may name and that are neither read one by one nor one of the settings
+ * above, and why. May only shrink.
+ */
+const SECRETS_NAMED_WITHOUT_A_READ: Record<string, string> = {
+  User: "People are held to membership of the project; their password is never read back by anyone.",
+};
 
 interface WritableReference {
   name: string;
@@ -540,6 +574,114 @@ describe("every single reference a write may name a record in", () => {
       ).toBe(false);
     },
   );
+});
+
+describe("a setting that holds credentials is named only by a caller who may read it", () => {
+  test("the settings held to their table's read are the ones pinned here, each for the reason given", () => {
+    expect(
+      [...RelationListPermission.getCredentialSettingsTables()].sort(),
+    ).toEqual(Object.keys(CREDENTIAL_SETTINGS).sort());
+
+    for (const reason of Object.values(CREDENTIAL_SETTINGS)) {
+      expect(reason.length).toBeGreaterThan(40);
+    }
+  });
+
+  test.each(Object.keys(CREDENTIAL_SETTINGS))(
+    "%s is read as a whole table, and held to that table's read",
+    (table: string) => {
+      const modelType: ModelType = modelNamed(table);
+
+      expect(RelationListPermission.isReadPerRecord(modelType)).toBe(false);
+      expect(RelationListPermission.isHeldToTableRead(modelType)).toBe(true);
+      expect(RelationListPermission.isNamedOnlyWhenRead(modelType)).toBe(
+        true,
+      );
+    },
+  );
+
+  test.each(CREDENTIAL_REFERENCES)(
+    "%s.%s is held to the read of %s, under both of its names",
+    (table: string, relation: string, credentialTable: string) => {
+      const reference: WritableReference | undefined = WRITABLE_REFERENCES.find(
+        (each: WritableReference): boolean => {
+          return each.name === `${table}.${relation}`;
+        },
+      );
+
+      expect(reference).toBeDefined();
+      expect(new reference!.referencedModelType().tableName).toBe(
+        credentialTable,
+      );
+      expect(isReferenceChecked(reference!)).toBe(true);
+    },
+  );
+
+  test("every reference a write may make to one of them is held to the read", () => {
+    const references: Array<string> = WRITABLE_REFERENCES.filter(
+      (reference: WritableReference): boolean => {
+        return Boolean(
+          CREDENTIAL_SETTINGS[
+            new reference.referencedModelType().tableName || ""
+          ],
+        );
+      },
+    ).map((reference: WritableReference): string => {
+      return reference.name;
+    });
+
+    expect(references.sort()).toEqual(
+      CREDENTIAL_REFERENCES.map(
+        ([table, relation]: [string, string, string]): string => {
+          return `${table}.${relation}`;
+        },
+      ).sort(),
+    );
+  });
+
+  test("a model that holds a secret is named only when read, or for the reason given", () => {
+    const holdsSecret: (modelType: ModelType) => boolean = (
+      modelType: ModelType,
+    ): boolean => {
+      const columns: Dictionary<TableColumnMetadata> = getTableColumns(
+        new modelType(),
+      );
+
+      return Object.values(columns).some(
+        (column: TableColumnMetadata): boolean => {
+          return Boolean(column.encrypted || column.hashed);
+        },
+      );
+    };
+
+    const namedWithoutRead: Set<string> = new Set<string>();
+
+    for (const reference of WRITABLE_REFERENCES) {
+      if (
+        holdsSecret(reference.referencedModelType) &&
+        !RelationListPermission.isNamedOnlyWhenRead(
+          reference.referencedModelType,
+        )
+      ) {
+        namedWithoutRead.add(
+          new reference.referencedModelType().tableName || "",
+        );
+      }
+    }
+
+    for (const list of WRITABLE_LISTS) {
+      if (
+        holdsSecret(list.listedModelType) &&
+        !RelationListPermission.isNamedOnlyWhenRead(list.listedModelType)
+      ) {
+        namedWithoutRead.add(new list.listedModelType().tableName || "");
+      }
+    }
+
+    expect(Array.from(namedWithoutRead).sort()).toEqual(
+      Object.keys(SECRETS_NAMED_WITHOUT_A_READ).sort(),
+    );
+  });
 });
 
 /*
