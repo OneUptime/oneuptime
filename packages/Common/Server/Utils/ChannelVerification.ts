@@ -2,7 +2,9 @@ import DatabaseService from "../Services/DatabaseService";
 import Select from "../Types/Database/Select";
 import logger from "./Logger";
 import VerificationCode from "./VerificationCode";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
@@ -151,6 +153,47 @@ export interface ChannelVerificationResult {
 }
 
 /*
+ * Where an unverified row's code stands, for the dialog that asks for it.
+ *
+ * That dialog used to say "We have sent a SMS with your verification code"
+ * whatever had happened - including when nothing had been sent at all,
+ * because the project had no Twilio account and the send failed in the
+ * background. It now asks (the channel's verification-status route) and
+ * says what is true.
+ */
+export enum VerificationCodeState {
+  // A code was sent and can still be entered.
+  Active = "active",
+  // A code was sent, and its time ran out.
+  Expired = "expired",
+  /*
+   * There is no code to enter: none was sent yet, the last one could not be
+   * sent, or it was used up by wrong guesses.
+   */
+  None = "none",
+}
+
+export interface ChannelVerificationStatus {
+  isVerified: boolean;
+  codeState: VerificationCodeState;
+  // When the code that is (or was) waiting went out. Null with no code.
+  codeSentAt: Date | null;
+  // When that code stops (or stopped) being accepted. Null with no code.
+  codeExpiresAt: Date | null;
+  /*
+   * Seconds until another code may be sent: the resend cooldown, counted by
+   * the server, so a wrong clock on the reader's machine cannot skew it.
+   */
+  resendAvailableInSeconds: number;
+  /*
+   * Why no code can be sent right now - the channel is off, the balance is
+   * too low, there is no Twilio account - in the words the refusal of a
+   * resend would use. Null when one can.
+   */
+  cannotSendReason: string | null;
+}
+
+/*
  * The slice of a channel service this module actually uses.
  *
  * The five services are DatabaseService<UserEmail>, DatabaseService<UserSMS>
@@ -170,6 +213,11 @@ interface VerifiableChannelWriter {
   atomicIncrementColumnValueByOneAndGetValue(data: {
     id: ObjectID;
     columnName: string;
+  }): Promise<number>;
+
+  deleteOneById(data: {
+    id: ObjectID;
+    props: { isRoot: boolean };
   }): Promise<number>;
 
   getModel(): { tableName: string | null };
@@ -294,6 +342,34 @@ export default class ChannelVerification {
   }
 
   /*
+   * Mark a row verified without a code of its own - when something else
+   * already proved the same thing (a number verified for SMS is verified
+   * for calls: UserCallService.isNumberVerifiedForSms). The same write a
+   * correct code makes in verifyCode: verified, the attempt counter back to
+   * zero, and no code left on the row.
+   *
+   * Callers must have established the proof. This checks nothing.
+   */
+  public static async markVerified<TModel extends VerifiableChannelModel>(data: {
+    service: DatabaseService<TModel>;
+    itemId: ObjectID;
+  }): Promise<void> {
+    await asWriter(
+      data.service as unknown as DatabaseService<VerifiableChannelModel>,
+    ).updateOneById({
+      id: data.itemId,
+      props: {
+        isRoot: true,
+      },
+      data: {
+        isVerified: true,
+        verificationFailedAttempts: 0,
+        ...ChannelVerification.getClearedCodeFields(),
+      },
+    });
+  }
+
+  /*
    * Write a fresh code onto an existing row and return the plaintext to send.
    *
    * Callers must have already decided that a send is allowed - this does not
@@ -323,6 +399,153 @@ export default class ChannelVerification {
     });
 
     return issued.plainCode;
+  }
+
+  /*
+   * Issue a fresh code and send it, and say so when it did not go.
+   *
+   * `send` hands the plaintext to the channel and must throw when the
+   * channel did not take it (throwIfNotSent turns the Notification
+   * service's answer into that). Every channel used to send fire-and-forget:
+   * the code was issued, the send failed in the background - no Twilio
+   * account, a number Twilio refused - and the person was told a code was on
+   * its way. Now the failure comes back to whoever asked, with the reason.
+   *
+   * A code that was never delivered is not left live on the row: nobody can
+   * know it, so all it could do is soak up guesses. The row is left with no
+   * code (getClearedCodeFields), and the dialog says so. The resend cooldown
+   * still counts from this attempt - the Notification service may have
+   * failed after the message went out (recording it, charging for it), and
+   * the cooldown is what stands between the resend button and somebody's
+   * phone.
+   */
+  public static async issueAndSendCode<
+    TModel extends VerifiableChannelModel,
+  >(data: {
+    service: DatabaseService<TModel>;
+    itemId: ObjectID;
+    // Where the code goes, for the message if it does not get there.
+    destination: string;
+    send: (plainCode: string) => Promise<void>;
+  }): Promise<void> {
+    const plainCode: string = await ChannelVerification.issueCodeOnItem({
+      service: data.service,
+      itemId: data.itemId,
+    });
+
+    try {
+      await data.send(plainCode);
+    } catch (error) {
+      try {
+        await asWriter(
+          data.service as unknown as DatabaseService<VerifiableChannelModel>,
+        ).updateOneById({
+          id: data.itemId,
+          props: {
+            isRoot: true,
+          },
+          data: ChannelVerification.getClearedCodeFields(),
+        });
+      } catch (clearError) {
+        logger.error(clearError);
+      }
+
+      throw ChannelVerification.getSendFailureException({
+        destination: data.destination,
+        error: error,
+      });
+    }
+  }
+
+  /*
+   * The first code of a row that was just added, or no row at all.
+   *
+   * A method whose code could not be sent can never be verified, and it
+   * would sit in the person's list looking like it was waiting on them. So
+   * the add is refused with the reason - the add form shows it - and the row
+   * is taken out again. Adding it once whatever was missing is fixed sends
+   * the code then.
+   */
+  public static async sendFirstCodeOrRemoveItem<
+    TModel extends VerifiableChannelModel,
+  >(data: {
+    service: DatabaseService<TModel>;
+    itemId: ObjectID;
+    issueAndSend: () => Promise<void>;
+  }): Promise<void> {
+    try {
+      await data.issueAndSend();
+    } catch (error) {
+      try {
+        await asWriter(
+          data.service as unknown as DatabaseService<VerifiableChannelModel>,
+        ).deleteOneById({
+          id: data.itemId,
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (deleteError) {
+        logger.error(deleteError);
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * The Notification service answers a message it did not send with an
+   * error response, not a thrown error - the channel services' senders
+   * return whatever it answered. This is what turns that answer into the
+   * throw issueAndSendCode is waiting for.
+   */
+  public static throwIfNotSent(response: unknown): void {
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+  }
+
+  /*
+   * Why a send failed, as a sentence: what the Notification service said
+   * (a missing Twilio account, the reason Twilio refused the number), or
+   * what was thrown on the way there.
+   */
+  public static getSendFailureReason(error: unknown): string {
+    let reason: string = "";
+
+    if (error instanceof HTTPErrorResponse) {
+      reason = error.message;
+    } else if (error instanceof Error) {
+      reason = error.message;
+    } else if (typeof error === "string") {
+      reason = error;
+    }
+
+    reason = (reason || "").trim();
+
+    // What the server says about a failure it does not explain.
+    if (!reason || reason === "Server Error") {
+      return "Something went wrong while sending it. Please try again in a moment.";
+    }
+
+    return /[.!?]$/.test(reason) ? reason : `${reason}.`;
+  }
+
+  /*
+   * What the person is told when their code did not go out: "The
+   * verification code was not sent to +15551230100. No Twilio account is
+   * set up to send SMS. The OneUptime server's administrator can add one
+   * in ...". A user error: whatever failed was logged where it failed, by
+   * the Notification service, and this is the person's answer, not a
+   * defect of its own.
+   */
+  public static getSendFailureException(data: {
+    destination: string;
+    error: unknown;
+  }): BadDataException {
+    return new BadDataException(
+      `The verification code was not sent to ${data.destination}. ${ChannelVerification.getSendFailureReason(data.error)}`,
+    ).asUserError();
   }
 
   /*
@@ -506,5 +729,86 @@ export default class ChannelVerification {
       default:
         return new BadDataException("Invalid code");
     }
+  }
+
+  /*
+   * Where a row's code stands, for its owner's verify dialog: whether one
+   * is waiting and until when, when another may be sent, and why none can
+   * be sent if that is so (the channel's service decides cannotSendReason,
+   * since only it knows what its channel needs).
+   *
+   * Nothing here is secret - times, and the reason a resend would be
+   * refused - but it is still only for the row's owner: the route asks
+   * whose row it is before it asks this.
+   */
+  public static getStatus(data: {
+    item: VerifiableChannelFields;
+    cannotSendReason?: string | null | undefined;
+    now?: Date | undefined;
+  }): ChannelVerificationStatus {
+    const now: Date = data.now || new Date();
+
+    if (data.item.isVerified) {
+      return {
+        isVerified: true,
+        codeState: VerificationCodeState.None,
+        codeSentAt: null,
+        codeExpiresAt: null,
+        resendAvailableInSeconds: 0,
+        cannotSendReason: null,
+      };
+    }
+
+    const expiresAt: Date | null = data.item.verificationCodeExpiresAt
+      ? new Date(data.item.verificationCodeExpiresAt)
+      : null;
+
+    let codeState: VerificationCodeState = VerificationCodeState.None;
+
+    /*
+     * A code whose attempts are spent is no code at all, even in the moment
+     * before the request that spent them clears it.
+     */
+    if (
+      expiresAt &&
+      (data.item.verificationFailedAttempts || 0) < MAX_VERIFICATION_ATTEMPTS
+    ) {
+      codeState = ChannelVerification.isCodeExpired({ expiresAt, now })
+        ? VerificationCodeState.Expired
+        : VerificationCodeState.Active;
+    }
+
+    const hasCode: boolean = codeState !== VerificationCodeState.None;
+
+    return {
+      isVerified: false,
+      codeState: codeState,
+      codeSentAt:
+        hasCode && data.item.verificationCodeSentAt
+          ? new Date(data.item.verificationCodeSentAt)
+          : null,
+      codeExpiresAt: hasCode ? expiresAt : null,
+      resendAvailableInSeconds: ChannelVerification.getResendRetryAfterSeconds(
+        {
+          lastSentAt: data.item.verificationCodeSentAt,
+          now,
+        },
+      ),
+      cannotSendReason: data.cannotSendReason || null,
+    };
+  }
+
+  // The status as the route sends it: times as ISO 8601 strings.
+  public static statusToJSON(status: ChannelVerificationStatus): JSONObject {
+    return {
+      isVerified: status.isVerified,
+      codeState: status.codeState,
+      codeSentAt: status.codeSentAt ? status.codeSentAt.toISOString() : null,
+      codeExpiresAt: status.codeExpiresAt
+        ? status.codeExpiresAt.toISOString()
+        : null,
+      resendAvailableInSeconds: status.resendAvailableInSeconds,
+      cannotSendReason: status.cannotSendReason,
+    } as JSONObject;
   }
 }
