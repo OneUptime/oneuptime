@@ -86,6 +86,12 @@ API 组件的简化版，适合"发完就走"的场景。往一个 URL POST 一�
 
 用一个机器人令牌和聊天 ID，往 Telegram 会话发消息。
 
+## IRC
+
+在任意 IRC 网络（Libera.Chat、OFTC 或你自己的服务器）上，把消息发到一个 IRC 频道，或者发给某一个人。这个方块通过 TLS 连接，加入频道，发出消息后离开。
+
+填写 **IRC Server**（只填主机名，例如 `irc.libera.chat`）、**Channel**（例如 `#ops`）和 **Message Text**。每一行都作为一条单独的 IRC 消息发出，最多 15 行。可选设置包括昵称、端口、服务器密码，以及用于需要登录的网络的 **SASL Username** 和 **SASL Password**。
+
 ## 电子邮件
 
 通过你在方块上填写的 SMTP 服务器发一封邮件。

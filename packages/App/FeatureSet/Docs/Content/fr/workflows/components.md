@@ -86,6 +86,12 @@ Publier un message dans un canal Discord via une URL de webhook entrant.
 
 Envoyer un message dans une conversation Telegram à l'aide d'un jeton de bot et d'un identifiant de conversation.
 
+## IRC
+
+Envoyer un message dans un canal IRC, ou à une seule personne, sur n'importe quel réseau IRC : Libera.Chat, OFTC ou votre propre serveur. Le bloc se connecte en TLS, rejoint le canal, envoie le message puis le quitte.
+
+Renseignez **IRC Server** (le nom d'hôte seul, par exemple `irc.libera.chat`), **Channel** (par exemple `#ops`) et **Message Text**. Chaque ligne est envoyée comme un message IRC distinct, 15 lignes au plus. Les réglages facultatifs couvrent le pseudo, le port, un mot de passe de serveur, ainsi que **SASL Username** et **SASL Password** pour les réseaux qui exigent une connexion à un compte.
+
 ## Email
 
 Envoyer un e-mail via un serveur SMTP que vous saisissez dans le bloc.

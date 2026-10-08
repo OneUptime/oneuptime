@@ -110,8 +110,8 @@ export const createTestCertificate: (data: {
 }): TestCertificate => {
   const keys: { publicKey: crypto.KeyObject; privateKey: crypto.KeyObject } =
     crypto.generateKeyPairSync("ec", {
-    namedCurve: "prime256v1",
-  });
+      namedCurve: "prime256v1",
+    });
 
   const name: Buffer = sequence(
     set(
