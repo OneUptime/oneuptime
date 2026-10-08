@@ -248,7 +248,7 @@ criteria = [
 | Incoming Request | `Incoming Request`، `Request Body`، `Request Header` |
 | Server | `CPU Usage (in %)`، `Memory Usage (in %)`، `Disk Usage (in %)` (به `disk_path` نیاز دارد)، `Server Process Name` |
 | Logs / Traces / Exceptions / Metrics | `Log Count`، `Span Count`، `Exception Count`، `Metric Value` (پالایه‌های سنجه می‌توانند JSON‏ `metric_monitor_options` را حمل کنند) |
-| Custom Code / Synthetic | `Result Value`، `Error`، `Execution Time (in ms)` |
+| Custom Code / Synthetic | `Result Value` (می‌تواند یک فیلد از داده بازگشتی را مقایسه کند که در JSON‏ `custom_code_monitor_options` نام برده می‌شود، مثلاً `jsonencode({ resultValuePath = "status" })` — پایین را ببینید)، `Error`، `Execution Time (in ms)` |
 | DNS / Domain / DNSSEC | `DNS Is Online`، `DNS Record Value`، `Domain Is Expired`، `DNSSEC Chain Is Valid` |
 | SQL Query | `SQL Is Online`، `SQL Query Row Count`، `SQL Query Scalar Value` |
 | Database Health | `Database Is Online`، `Database Metric` (به JSON‏ `database_monitor_options`ای نیاز دارد که سری را نام ببرد، مثلاً `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`)، `Database Collection Error` |
@@ -279,6 +279,43 @@ filters = [
 ```
 
 ارائه‌دهنده `check_on`، `filter_type` و دیگر صفت‌های شمارشی را هنگام plan اعتبارسنجی می‌کند، پس غلط تایپی پیش از فرستاده شدن چیزی به API شکست می‌خورد. فهرست‌های کامل در ویرایشگر معیار داشبورد دیدنی‌اند؛ هر چیزی که داشبورد بپذیرد اینجا معتبر است، دقیقاً با همان برچسبی که داشبورد نشان می‌دهد.
+
+### مقایسه یک فیلد از نتیجه اسکریپت
+
+اسکریپت مانیتور Custom Code یا Synthetic مقدار `data` را برمی‌گرداند و پالایه `Result Value` آن را مقایسه می‌کند. وقتی `data` شیء یا آرایه است، `custom_code_monitor_options` همان یک فیلدی از آن را نام می‌برد که مقایسه می‌شود — همان **مسیر فیلد** پالایه Result Value در داشبورد. برای فیلدهای تودرتو از نقطه و برای عنصرهای آرایه از `[n]` استفاده کنید، و برای مقایسه کل مقدار این صفت را حذف کنید:
+
+```hcl
+monitor_steps = [{
+  custom_code = <<-EOT
+    const response = await axios.get("https://api.example.com/health");
+    // For example { status: "UP", checks: [{ name: "db", latency: 12 }] }
+    return { data: response.data };
+  EOT
+
+  criteria = [
+    {
+      name             = "Unhealthy"
+      filter_condition = "Any"
+      filters = [
+        {
+          check_on                    = "Result Value"
+          filter_type                 = "Not Equal To"
+          value                       = "UP"
+          custom_code_monitor_options = jsonencode({ resultValuePath = "status" })
+        },
+        {
+          check_on                    = "Result Value"
+          filter_type                 = "Greater Than"
+          value                       = "500"
+          custom_code_monitor_options = jsonencode({ resultValuePath = "checks[0].latency" })
+        }
+      ]
+    }
+  ]
+}]
+```
+
+‏`Greater Than` و دیگر شرط‌های عددی فقط با فیلدی تطبیق می‌یابند که عدد باشد، و فیلدی که در داده بازگشتی نباشد فقط با `Is Empty` تطبیق می‌یابد. برای اینکه مسیرها و شرط‌ها چگونه کار می‌کنند، [هشدار روی داده بازگشتی](/docs/monitor/custom-code-monitor#alerting-on-the-returned-data) را ببینید.
 
 ## اشتباه‌های رایج
 
