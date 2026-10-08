@@ -24,6 +24,7 @@ import {
   MicrosoftTeamsIncidentActionType,
   MicrosoftTeamsIncidentEpisodeActionType,
   MicrosoftTeamsMonitorActionType,
+  MicrosoftTeamsOnCallDutyActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import MicrosoftTeamsAlertEpisodeActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/AlertEpisode";
@@ -31,6 +32,7 @@ import { MicrosoftTeamsRequest } from "../../../../Server/Utils/Workspace/Micros
 import MicrosoftTeamsIncidentActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
 import MicrosoftTeamsIncidentEpisodeActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/IncidentEpisode";
 import MicrosoftTeamsMonitorActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Monitor";
+import MicrosoftTeamsOnCallDutyActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
 import MicrosoftTeamsScheduledMaintenanceActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -455,5 +457,126 @@ describe("Microsoft Teams scheduled maintenance", (): void => {
         "You do not have permission to create a scheduled maintenance event.",
       ),
     );
+  });
+});
+
+/*
+ * Viewing a monitor and the on-call policy actions of a card are read as the
+ * member who pressed the button, in their project: they used to read any
+ * monitor of the project, and any on-call policy of any project by id, as
+ * OneUptime - and escalating a policy asked nothing at all.
+ */
+describe("Microsoft Teams monitor and on-call policy views", (): void => {
+  test("viewing a monitor reads it as the member, in their project", async (): Promise<void> => {
+    const props: DatabaseCommonInteractionProps = createDatabaseProps([
+      Permission.MonitorViewer,
+    ]);
+    const findSpy: SpyInstance<typeof MonitorService.findOneBy> = jest
+      .spyOn(MonitorService, "findOneBy")
+      .mockResolvedValue(null);
+    const turnContext: TurnContext = createTurnContext();
+    const monitorId: ObjectID = ObjectID.generate();
+
+    await MicrosoftTeamsMonitorActions.handleBotMonitorAction({
+      actionType: MicrosoftTeamsMonitorActionType.ViewMonitor,
+      actionValue: monitorId.toString(),
+      value: {},
+      projectId: projectId,
+      oneUptimeUserId: userId,
+      databaseProps: props,
+      turnContext: turnContext,
+    });
+
+    expect(findSpy).toHaveBeenCalledTimes(1);
+    expect(findSpy.mock.calls[0]![0].props).toBe(props);
+    expect(findSpy.mock.calls[0]![0].query).toMatchObject({
+      _id: monitorId.toString(),
+      projectId: projectId,
+    });
+    // One outside their read is answered like one the project does not have.
+    expect(turnContext.sendActivity).toHaveBeenCalledWith("Monitor not found.");
+  });
+
+  test("viewing an on-call policy reads it as the member, in their project", async (): Promise<void> => {
+    const props: DatabaseCommonInteractionProps = createDatabaseProps([
+      Permission.OnCallViewer,
+    ]);
+    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> = jest
+      .spyOn(OnCallDutyPolicyService, "findOneBy")
+      .mockResolvedValue(null);
+    const turnContext: TurnContext = createTurnContext();
+    const policyId: ObjectID = ObjectID.generate();
+
+    await MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
+      actionType: MicrosoftTeamsOnCallDutyActionType.ViewOnCallDuty,
+      turnContext: turnContext,
+      actionPayload: { onCallDutyPolicyId: policyId.toString() },
+      projectId: projectId,
+      databaseProps: props,
+    });
+
+    expect(findSpy).toHaveBeenCalledTimes(1);
+    expect(findSpy.mock.calls[0]![0].props).toBe(props);
+    expect(findSpy.mock.calls[0]![0].query).toMatchObject({
+      _id: policyId.toString(),
+      projectId: projectId,
+    });
+    expect(turnContext.sendActivity).toHaveBeenCalledWith(
+      "OnCallDutyPolicy not found",
+    );
+  });
+
+  test("a member who may not execute on-call policies cannot escalate one, and is told why", async (): Promise<void> => {
+    const executeSpy: SpyInstance<
+      typeof OnCallDutyPolicyService.executePolicy
+    > = jest
+      .spyOn(OnCallDutyPolicyService, "executePolicy")
+      .mockResolvedValue();
+    const turnContext: TurnContext = createTurnContext();
+
+    await expect(
+      MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
+        actionType: MicrosoftTeamsOnCallDutyActionType.EscalateOnCall,
+        turnContext: turnContext,
+        actionPayload: { onCallDutyPolicyId: ObjectID.generate().toString() },
+        projectId: projectId,
+        databaseProps: readOnlyProps,
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to execute this on-call policy.",
+    );
+
+    expect(executeSpy).not.toHaveBeenCalled();
+    // handleBotInvokeActivity answers the refusal; nothing else is said.
+    expect(turnContext.sendActivity).not.toHaveBeenCalled();
+  });
+
+  test("a member who may execute policies cannot escalate one outside their read, or of another project", async (): Promise<void> => {
+    const executeSpy: SpyInstance<
+      typeof OnCallDutyPolicyService.executePolicy
+    > = jest
+      .spyOn(OnCallDutyPolicyService, "executePolicy")
+      .mockResolvedValue();
+    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> = jest
+      .spyOn(OnCallDutyPolicyService, "findOneBy")
+      .mockResolvedValue(null);
+    const props: DatabaseCommonInteractionProps = createDatabaseProps([
+      Permission.OnCallMember,
+    ]);
+
+    await expect(
+      MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
+        actionType: MicrosoftTeamsOnCallDutyActionType.EscalateOnCall,
+        turnContext: createTurnContext(),
+        actionPayload: { onCallDutyPolicyId: ObjectID.generate().toString() },
+        projectId: projectId,
+        databaseProps: props,
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to execute this on-call policy: the",
+    );
+
+    expect(findSpy.mock.calls[0]![0].props).toBe(props);
+    expect(executeSpy).not.toHaveBeenCalled();
   });
 });
