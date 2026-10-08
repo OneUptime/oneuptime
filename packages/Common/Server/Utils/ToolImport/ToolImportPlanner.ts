@@ -483,7 +483,11 @@ class PlanBuilder {
       });
       this.skip(
         base,
-        makeToolImportNote(ToolImportNoteCode.CustomFieldFromCatalog),
+        makeToolImportNote(
+          field.isFromCatalog
+            ? ToolImportNoteCode.CustomFieldFromCatalog
+            : ToolImportNoteCode.CustomFieldTypeNotSupported,
+        ),
       );
       return;
     }

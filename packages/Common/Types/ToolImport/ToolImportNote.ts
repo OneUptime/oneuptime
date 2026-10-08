@@ -23,6 +23,7 @@ export enum ToolImportNoteCode {
   StateNotNeeded = "StateNotNeeded",
   RoleReporter = "RoleReporter",
   CustomFieldFromCatalog = "CustomFieldFromCatalog",
+  CustomFieldTypeNotSupported = "CustomFieldTypeNotSupported",
   NotSelected = "NotSelected",
   StoppedPartWay = "StoppedPartWay",
 

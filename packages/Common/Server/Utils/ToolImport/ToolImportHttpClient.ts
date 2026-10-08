@@ -126,6 +126,13 @@ const MAX_MESSAGE_EXCERPT_LENGTH: number = 300;
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
+/*
+ * A path on the tool's API: from the root, of the characters a path and an
+ * escaped id are made of, with no empty or ".." segment that could make it
+ * mean anything but itself.
+ */
+const API_PATH: RegExp = /^\/[A-Za-z0-9\-._~%/]*$/;
+
 export default class ToolImportHttpClient {
   private options: ToolImportHttpClientOptions;
   private sleep: ToolImportSleep;
@@ -465,7 +472,11 @@ export default class ToolImportHttpClient {
   }
 
   private buildUrl(path: string, query?: ToolImportQuery): string {
-    if (!path.startsWith("/") || path.includes("://") || path.includes("..")) {
+    if (
+      !API_PATH.test(path) ||
+      path.includes("//") ||
+      path.split("/").includes("..")
+    ) {
       throw new BadDataException("A request path must stay on the tool's API.");
     }
 
