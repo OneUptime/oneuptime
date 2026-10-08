@@ -1,11 +1,9 @@
-import RelationListPermission from "../../Types/Database/Permissions/RelationListPermission";
 import { Service as RunnerServiceClass } from "../../Services/RunnerService";
 import CommandAllowlist from "./CommandAllowlist";
+import RunbookCredentialReaders from "./RunbookCredentialReaders";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
-import { PermissionHelper } from "../../../Types/Permission";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import {
@@ -68,7 +66,7 @@ export default class AiRemediationCredentialUse {
   public static mayUseCredentials(
     props: DatabaseCommonInteractionProps,
   ): boolean {
-    return RelationListPermission.mayReadTable(RunbookCredential, props);
+    return RunbookCredentialReaders.mayRead(props);
   }
 
   /*
@@ -89,9 +87,7 @@ export default class AiRemediationCredentialUse {
 
   // The permissions that read runbook credentials, by title.
   public static getCredentialReaderTitles(): string {
-    return PermissionHelper.getPermissionTitles(
-      new RunbookCredential().getReadPermissions(),
-    ).join(", ");
+    return RunbookCredentialReaders.getTitles();
   }
 
   // Why an approver who may not read credentials cannot approve `command`.

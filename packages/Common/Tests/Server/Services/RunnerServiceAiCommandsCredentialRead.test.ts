@@ -19,6 +19,7 @@ import {
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
+import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 
 /*
  * TURNING ON "RUNS AI REMEDIATION COMMANDS" FOR A RUNNER THAT HOLDS SSH
@@ -228,8 +229,13 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
 
     expect(message).toContain('Runner "office-runner" holds SSH credentials');
     expect(message).toContain('"Runs AI Remediation Commands"');
-    expect(message).toContain("Read Runbook Credential");
-    expect(message).toContain("Project Owner or Project Admin");
+    // Who may, named as approving such a plan names them.
+    expect(message).toContain(
+      `takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.`,
+    );
+    expect(RunbookCredentialReaders.getTitles()).toContain(
+      "Read Runbook Credential",
+    );
   });
 
   it("asks OneUptime which SSH credentials the Runners it turns on hold", async () => {
