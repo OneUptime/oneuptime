@@ -9,6 +9,7 @@ import {
 import {
   neutralizeAiWrittenMarkdown,
   neutralizeUntrustedMarkdown,
+  neutralizeUntrustedValue,
 } from "./UntrustedMarkdown";
 import type URL from "../../Types/API/URL";
 import type ObjectID from "../../Types/ObjectID";
@@ -68,6 +69,13 @@ import type ObjectID from "../../Types/ObjectID";
  * string: hand it the MarkdownText's toString(). Pieces stay MarkdownText
  * until then; a piece turned into a string and placed into `mdText` again would
  * be escaped a second time.
+ *
+ * This module is the one way into MarkdownEscape and UntrustedMarkdown: code
+ * outside Utils/Markdown calls FeedMarkdown, never those helpers (the guard
+ * FeedAndChatPlainTextEscapedGuard holds it to that). Text that goes into
+ * Markdown somebody else assembles - a template a person wrote, a value
+ * stored for later - has its own entry points here too: templateText,
+ * reportedValue and withoutChatSequences.
  *
  * Pure, with no database or React imports.
  */
@@ -1308,6 +1316,42 @@ export default class FeedMarkdown {
     literals.push("");
 
     return renderUncached(literals, lines);
+  }
+
+  /**
+   * Plain text for a Markdown template a person wrote - {{incidentTitle}} in
+   * a status page's Slack message, a note template's {{monitorName}}:
+   * escaped (escapeMarkdownValue), so wherever the template places it, it
+   * reads as typed and is no link, image, HTML or chat mention. Line breaks
+   * become spaces unless `keepLineBreaks` is set (a long text answer). A
+   * string: the template engine puts it in place.
+   */
+  public static templateText(
+    text: string | null | undefined,
+    options?: { keepLineBreaks?: boolean | undefined } | undefined,
+  ): string {
+    return escapeMarkdownValue(text, options);
+  }
+
+  /**
+   * A value a monitored system reported, or text a stranger typed, for
+   * Markdown somebody else puts together - a description template's
+   * {{responseBody.message}}, a form answer stored as an incident's title.
+   * Wherever it lands, inside the author's code span or fence too, it reads
+   * as reported and nothing in it acts (neutralizeUntrustedValue): the
+   * breaks it gets are invisible. A string.
+   */
+  public static reportedValue(value: string | null | undefined): string {
+    return neutralizeUntrustedValue(value);
+  }
+
+  /**
+   * Text whose chat mentions are broken, invisibly, and nothing else - a
+   * form's text answer stored for a custom field (neutralizeChatControlSequences).
+   * A string.
+   */
+  public static withoutChatSequences(text: string | null | undefined): string {
+    return neutralizeChatControlSequences(text || "");
   }
 
   // Nothing: a MarkdownText to build on.

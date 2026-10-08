@@ -1139,16 +1139,14 @@ class IncidentGroupingEngineServiceClass {
           groupByParts.length > 0
             ? `Grouping by: ${groupByParts.join(", ")}`
             : "Grouping all matching incidents together";
-
         /*
          * The rule's name is plain text, and so is the grouping key: it can
-         * hold the title the rule groups by. Both are escaped. The key is not
-         * put in a code span: a "`" in the title would end the span early, a
-         * backslash cannot escape one there, and chat tools pass a code
-         * span's text on as it is. It is escaped as prose
-         * (escapeMarkdownValue) rather than character by character: a
-         * title often holds an address, and a backslash put inside a bare
-         * address would become part of the link renderers make of it.
+         * hold the title the rule groups by. Both are placed as text
+         * (mdText). The key is not put in a code span: a "`" in the title
+         * would end the span early, a backslash cannot escape one there, and
+         * chat tools pass a code span's text on as it is. A sentence leaves
+         * a bare web address in it whole, so the link renderers make of an
+         * address in a title still opens it.
          */
         let moreInfo: string =
           mdText`**Rule:** ${rule.name || "Unnamed Rule"}\n\n`.toString();

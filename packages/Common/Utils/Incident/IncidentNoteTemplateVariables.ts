@@ -13,8 +13,8 @@ import {
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import SubscriberNotificationTemplateCompiler from "../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
-import { escapeMarkdownValue } from "../Markdown/MarkdownEscape";
 
+import FeedMarkdown from "../Markdown/FeedMarkdown";
 /*
  * The {{placeholders}} an incident note template can carry, and their values
  * for one incident. The note template's own example has always shown
@@ -167,15 +167,15 @@ export const formatCustomFieldValueForNote: FormatCustomFieldValueForNoteFunctio
         return toText(value);
 
       case CustomFieldType.LongText:
-        return escapeMarkdownValue(toText(value), { keepLineBreaks: true });
+        return FeedMarkdown.templateText(toText(value), { keepLineBreaks: true });
 
       case CustomFieldType.Boolean:
-        return escapeMarkdownValue(formatCustomFieldBoolean(value));
+        return FeedMarkdown.templateText(formatCustomFieldBoolean(value));
 
       case CustomFieldType.DateTime: {
         const date: Date | null = toDate(value);
 
-        return escapeMarkdownValue(date ? formatDateTime(date) : toText(value));
+        return FeedMarkdown.templateText(date ? formatDateTime(date) : toText(value));
       }
 
       /*
@@ -185,10 +185,10 @@ export const formatCustomFieldValueForNote: FormatCustomFieldValueForNoteFunctio
        * picked in. A note and an email about the incident say the same day.
        */
       case CustomFieldType.Date:
-        return escapeMarkdownValue(formatCustomFieldCalendarDate(value));
+        return FeedMarkdown.templateText(formatCustomFieldCalendarDate(value));
 
       default:
-        return escapeMarkdownValue(toText(value));
+        return FeedMarkdown.templateText(toText(value));
     }
   };
 
@@ -214,7 +214,7 @@ export const buildIncidentNoteTemplateVariables: BuildIncidentNoteTemplateVariab
         return;
       }
 
-      variables[name] = escapeMarkdownValue(value);
+      variables[name] = FeedMarkdown.templateText(value);
     };
 
     const setList: (name: string, values: Array<string> | undefined) => void = (
@@ -233,7 +233,7 @@ export const buildIncidentNoteTemplateVariables: BuildIncidentNoteTemplateVariab
           return value.length > 0;
         })
         .map((value: string) => {
-          return escapeMarkdownValue(value);
+          return FeedMarkdown.templateText(value);
         })
         .join(", ");
     };

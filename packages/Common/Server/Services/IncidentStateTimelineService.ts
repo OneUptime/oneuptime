@@ -19,7 +19,6 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -599,9 +598,9 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown
-     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
      */
-    const stateName: string = escapeMarkdownValue(incidentState?.name || "");
+    const stateName: string = incidentState?.name || "";
     const stateEmoji: string = StateChangeFeedEmoji.get({
       isResolved: isResolved,
       isAcknowledged: isAcknowledged,
@@ -627,10 +626,7 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       incidentFeedEventType: IncidentFeedEventType.IncidentStateChanged,
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        mdText` Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **` +
-        stateName +
-        "**",
+        mdText`${stateEmoji} Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **${stateName}**`.toString(),
       moreInformationInMarkdown: mdText`**Cause:**
 ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,

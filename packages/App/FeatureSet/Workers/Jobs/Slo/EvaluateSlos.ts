@@ -3189,7 +3189,7 @@ async function postBurnRateResolvedFeedItem(data: {
   const isAlert: boolean = data.output === "alert";
   const record: string = isAlert ? "alert" : "incident";
   const createdVerb: string = isAlert ? "raised" : "declared";
-  const ruleName: string = rule.name;
+  const ruleName: string = rule.name || "";
 
   try {
     await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem({

@@ -76,11 +76,6 @@ import IP from "../../Types/IP/IP";
 import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
-import {
-  neutralizeChatControlSequences,
-  neutralizeUntrustedMarkdown,
-  neutralizeUntrustedPlainText,
-} from "../../Utils/Markdown/UntrustedMarkdown";
 import File from "../../Models/DatabaseModels/File";
 import Model from "../../Models/DatabaseModels/Form";
 import FormSubmission from "../../Models/DatabaseModels/FormSubmission";
@@ -103,6 +98,7 @@ import {
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 /*
  * What a form may hold, and what its public page does. The public page that
  * submits a form - and whatever each submission creates - trust everything
@@ -192,9 +188,10 @@ export type NeutralizeFormAnswersFunction = (data: {
  * are posted to the project's Slack and Teams channels and rendered for
  * every responder and in owners' emails, and nobody reads them over first.
  *
- * - The title (a target's built-in title): chat control sequences such as
- *   <!channel>, image syntax and mermaid fences are broken, invisibly - much
- *   of OneUptime places an incident's title into Markdown as it is.
+ * - The title (a target's built-in title): stored as a reported value
+ *   (FeedMarkdown.reportedValue) - chat control sequences such as <!channel>,
+ *   image and link syntax, a "<" and mermaid fences are broken, invisibly,
+ *   so wherever the title is placed into Markdown, nothing in it acts.
  * - Every other one-line or multi-line text answer: chat control sequences
  *   are broken, invisibly.
  * - Every Markdown answer: chat control sequences are broken, and images
@@ -228,14 +225,14 @@ export const neutralizeFormAnswers: NeutralizeFormAnswersFunction = (data: {
         binding.source === FormFieldSource.TargetField &&
         binding.definition.key === "title"
       ) {
-        stored = neutralizeUntrustedPlainText(value);
+        stored = FeedMarkdown.reportedValue(value);
       } else if (field.type === PublicFormFieldType.Markdown) {
-        stored = neutralizeUntrustedMarkdown(value);
+        stored = FeedMarkdown.writtenOutside(value).toString();
       } else if (
         field.type === PublicFormFieldType.Text ||
         field.type === PublicFormFieldType.LongText
       ) {
-        stored = neutralizeChatControlSequences(value);
+        stored = FeedMarkdown.withoutChatSequences(value);
       }
     }
 
@@ -922,7 +919,7 @@ export class Service extends DatabaseService<Model> {
   /*
    * The title as it will be stored must still fit the record's column:
    * breaking a chat sequence or image syntax in it adds an invisible
-   * character (neutralizeUntrustedPlainText), so a title right at the limit
+   * character (FeedMarkdown.reportedValue), so a title right at the limit
    * full of "<!" or "![" can outgrow it. Worded as the answer check's own
    * length refusal.
    */
@@ -946,7 +943,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       if (
-        neutralizeUntrustedPlainText(value).length >
+        FeedMarkdown.reportedValue(value).length >
         binding.definition.maxLength
       ) {
         throw new BadDataException(

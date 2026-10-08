@@ -1,9 +1,9 @@
 import { JSONObject, JSONValue } from "../../JSON";
-import {
-  escapeMarkdownValue,
-  markdownCodeSpan,
-} from "../../../Utils/Markdown/MarkdownEscape";
 
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Turning a metric series' raw label map into something an on-call
  * engineer can read at 3am.
@@ -648,15 +648,14 @@ export default class SeriesLabelDisplay {
       return "";
     }
 
-    const heading: string = escapeMarkdownValue(
-      options?.heading || "Affected resource",
+    // A label's name is text and its value code, each placed by mdText.
+    const lines: Array<MarkdownText> = labels.map(
+      (label: DisplaySeriesLabel): MarkdownText => {
+        return mdText`**${label.name}:** \`${label.value}\``;
+      },
     );
 
-    const lines: Array<string> = labels.map((label: DisplaySeriesLabel) => {
-      return `- **${escapeMarkdownValue(label.name)}:** ${markdownCodeSpan(label.value)}`;
-    });
-
-    return `**${heading}**\n${lines.join("\n")}`;
+    return mdText`**${options?.heading || "Affected resource"}**\n${FeedMarkdown.bulletList(lines)}`.toString();
   }
 
   /*

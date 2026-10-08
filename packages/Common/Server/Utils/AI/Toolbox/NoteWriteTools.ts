@@ -6,7 +6,6 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import AlertService from "../../../Services/AlertService";
 import AlertInternalNoteService from "../../../Services/AlertInternalNoteService";
@@ -21,6 +20,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
  * Private (internal) note tools — the team-only counterpart of
  * post_incident_status_update. Internal notes live in the dashboard's private
@@ -140,7 +140,7 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
      * Markdown, but nothing in it acts on its own where the note is shown -
      * the feed, Slack and Teams (neutralizeAiWrittenMarkdown).
      */
-    internalNote.note = neutralizeAiWrittenMarkdown(note);
+    internalNote.note = FeedMarkdown.aiWritten(note).toString();
     internalNote.createdByUserId = userId;
 
     const createdNote: IncidentInternalNote =
@@ -260,7 +260,7 @@ export const CreateAlertNoteTool: ObservabilityTool = {
      * Markdown, but nothing in it acts on its own where the note is shown -
      * the feed, Slack and Teams (neutralizeAiWrittenMarkdown).
      */
-    internalNote.note = neutralizeAiWrittenMarkdown(note);
+    internalNote.note = FeedMarkdown.aiWritten(note).toString();
     internalNote.createdByUserId = userId;
 
     const createdNote: AlertInternalNote =

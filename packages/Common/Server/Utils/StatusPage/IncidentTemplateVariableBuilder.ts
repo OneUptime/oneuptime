@@ -28,7 +28,6 @@ import SubscriberNotificationTemplateCompiler, {
   SubscriberNotificationTextTemplateVariables,
 } from "../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
 import Timezone from "../../../Types/Timezone";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import IncidentCustomFieldService from "../../Services/IncidentCustomFieldService";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import { syncIsPublicForMarkdownImages } from "../InlineImageAccessTokenSync";
@@ -523,7 +522,7 @@ export class IncidentTemplateVariables {
 
         return {
           plainText: text,
-          markdown: escapeMarkdownValue(text, { keepLineBreaks: true }),
+          markdown: FeedMarkdown.templateText(text, { keepLineBreaks: true }),
           html: SafeHtml.fromTrustedHtml(
             SafeHtml.escape(text).replace(LINE_BREAK_PATTERN, "<br/>"),
           ),
@@ -534,7 +533,7 @@ export class IncidentTemplateVariables {
         const text: string = formatCustomFieldBoolean(value);
         return {
           plainText: text,
-          markdown: escapeMarkdownValue(text),
+          markdown: FeedMarkdown.templateText(text),
           html: null,
         };
       }
@@ -549,7 +548,7 @@ export class IncidentTemplateVariables {
         const text: string = formatCustomFieldCalendarDate(value);
         return {
           plainText: text,
-          markdown: escapeMarkdownValue(text),
+          markdown: FeedMarkdown.templateText(text),
           html: null,
         };
       }
@@ -566,7 +565,7 @@ export class IncidentTemplateVariables {
           const text: string = customFieldValueToText(value);
           return {
             plainText: text,
-            markdown: escapeMarkdownValue(text),
+            markdown: FeedMarkdown.templateText(text),
             html: null,
           };
         }
@@ -580,7 +579,7 @@ export class IncidentTemplateVariables {
 
         return {
           plainText: lines.join(", "),
-          markdown: escapeMarkdownValue(lines.join(", ")),
+          markdown: FeedMarkdown.templateText(lines.join(", ")),
           html: SafeHtml.fromTrustedHtml(
             lines
               .map((line: string): string => {
@@ -595,7 +594,7 @@ export class IncidentTemplateVariables {
         const text: string = customFieldValueToText(value);
         return {
           plainText: text,
-          markdown: escapeMarkdownValue(text),
+          markdown: FeedMarkdown.templateText(text),
           html: null,
         };
       }

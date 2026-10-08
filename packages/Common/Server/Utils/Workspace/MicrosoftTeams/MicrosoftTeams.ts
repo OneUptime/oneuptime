@@ -123,9 +123,10 @@ import AIService, {
 } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
-import { escapeMarkdownValue } from "../../../../Utils/Markdown/MarkdownEscape";
-import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
@@ -3925,24 +3926,24 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
        * The answer is written from telemetry, which can carry text meant to
        * steer the model, and it is posted to a chat: it stays the Markdown
        * the model wrote, with no image, no link whose words hide where it
-       * goes, no HTML tag and no mention in it (neutralizeAiWrittenMarkdown).
+       * goes, no HTML tag and no mention in it (FeedMarkdown.aiWritten).
        * A citation's label is text.
        */
-      let replyText: string = neutralizeAiWrittenMarkdown(
+      let replyText: MarkdownText = FeedMarkdown.aiWritten(
         result.contentInMarkdown,
       );
 
       // Build a compact "Sources" footer from the server-minted citations.
       if (result.citations && result.citations.length > 0) {
-        const sourceLines: Array<string> = result.citations.map(
-          (citation: AIChatCitation) => {
-            return `• ${escapeMarkdownValue(citation.label)} (${citation.rowCount} rows)`;
+        const sourceLines: Array<MarkdownText> = result.citations.map(
+          (citation: AIChatCitation): MarkdownText => {
+            return mdText`• ${citation.label} (${citation.rowCount} rows)`;
           },
         );
-        replyText += mdText`\n\n**Sources**\n${sourceLines.join("\n")}`;
+        replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;
       }
 
-      await turnContext.sendActivity(replyText);
+      await turnContext.sendActivity(replyText.toString());
       logger.debug("AI Ops answer sent successfully using TurnContext", {
         projectId: projectId.toString(),
       });
@@ -3964,7 +3965,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * first few names, then how many more. An event can cover hundreds of
    * monitors, and listing them all made the reply too large for Teams.
    */
-  public static formatAffectedMonitorNames(monitors: Array<Monitor>): string {
+  public static formatAffectedMonitorNames(
+    monitors: Array<Monitor>,
+  ): MarkdownText {
     const names: Array<string> = monitors
       .map((monitor: Monitor) => {
         return monitor.name || "";
@@ -3973,17 +3976,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return Boolean(name);
       });
 
-    // Each name is plain text, placed into the summary's Markdown.
-    const shownNames: Array<string> = names
-      .slice(0, MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES)
-      .map((name: string): string => {
-        return escapeMarkdownValue(name);
-      });
+    // Each name is plain text, placed into the summary's Markdown as text.
+    const shownNames: Array<string> = names.slice(
+      0,
+      MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES,
+    );
     const notShownCount: number = names.length - shownNames.length;
 
     return notShownCount > 0
-      ? `${shownNames.join(", ")} and ${notShownCount} more`
-      : shownNames.join(", ");
+      ? mdText`${FeedMarkdown.join(shownNames)} and ${notShownCount} more`
+      : FeedMarkdown.join(shownNames);
   }
 
   // Helper methods for bot commands

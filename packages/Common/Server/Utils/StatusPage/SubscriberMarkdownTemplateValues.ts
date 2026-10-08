@@ -1,4 +1,4 @@
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * THE VALUES A CUSTOM SLACK OR MICROSOFT TEAMS SUBSCRIBER MESSAGE GETS.
@@ -33,7 +33,7 @@ export default class SubscriberMarkdownTemplateValues {
     for (const [name, value] of Object.entries(values)) {
       markdown[name] = SUBSCRIBER_MARKDOWN_ADDRESS_VARIABLES.has(name)
         ? value
-        : escapeMarkdownValue(value);
+        : FeedMarkdown.templateText(value);
     }
 
     return markdown;

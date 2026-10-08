@@ -41,8 +41,8 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
 import logger from "../Logger";
-import { neutralizeUntrustedValue } from "../../../Utils/Markdown/UntrustedMarkdown";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Path segments that resolve to the object prototype when a dotted series
  * label key is walked as a nested property path. See the fold in
@@ -895,7 +895,7 @@ export default class MonitorTemplateUtil {
   // Every string in `value` neutralized, object keys included.
   private static neutralizeReportedValue(value: JSONValue): JSONValue {
     if (typeof value === "string") {
-      return neutralizeUntrustedValue(value);
+      return FeedMarkdown.reportedValue(value);
     }
 
     if (Array.isArray(value)) {
@@ -908,7 +908,7 @@ export default class MonitorTemplateUtil {
       const neutralized: JSONObject = {};
 
       for (const [key, item] of Object.entries(value as JSONObject)) {
-        const neutralizedKey: string = neutralizeUntrustedValue(key);
+        const neutralizedKey: string = FeedMarkdown.reportedValue(key);
 
         // Two keys that read the same: the first one wins, as in JSON.
         if (Object.prototype.hasOwnProperty.call(neutralized, neutralizedKey)) {

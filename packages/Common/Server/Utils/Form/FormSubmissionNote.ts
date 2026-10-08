@@ -1,7 +1,8 @@
 import { WHOLE_EMAIL_ADDRESS } from "../../../Types/Form/FormPublic";
 import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
-import { neutralizeUntrustedMarkdown } from "../../../Utils/Markdown/UntrustedMarkdown";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The private note a submission leaves on what it created: which form it
@@ -147,7 +148,7 @@ const formatAnswerValue: FormatAnswerFunction = (
 ): string => {
   switch (answer.format) {
     case FormNoteAnswerFormat.Markdown:
-      return neutralizeUntrustedMarkdown(answer.displayValue).trim();
+      return FeedMarkdown.writtenOutside(answer.displayValue).toString().trim();
 
     case FormNoteAnswerFormat.MultiLine:
       // A hard break ends each line, so the answer keeps its lines.

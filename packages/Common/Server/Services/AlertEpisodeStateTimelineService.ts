@@ -10,7 +10,6 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AlertState from "../../Models/DatabaseModels/AlertState";
@@ -440,9 +439,9 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown
-     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
      */
-    const stateName: string = escapeMarkdownValue(alertState?.name || "");
+    const stateName: string = alertState?.name || "";
     const stateEmoji: string = StateChangeFeedEmoji.get({
       isResolved: isResolvedState,
       isAcknowledged: isAcknowledged,
@@ -469,10 +468,7 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       alertEpisodeFeedEventType: AlertEpisodeFeedEventType.EpisodeStateChanged,
       displayColor: alertState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        mdText` Changed **Episode ${episodeDisplayNumber} State** to **` +
-        stateName +
-        "**",
+        mdText`${stateEmoji} Changed **Episode ${episodeDisplayNumber} State** to **${stateName}**`.toString(),
       moreInformationInMarkdown: createdItem.rootCause
         ? mdText`**Cause:** \n${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         : undefined,
