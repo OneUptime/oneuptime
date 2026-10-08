@@ -21,6 +21,11 @@ import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSCon
 import { ICallProvider } from "Common/Types/Call/CallProvider";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { UserPermission } from "Common/Types/Permission";
+import {
+  INCOMING_CALL_PHONE_NUMBER_REFUSALS,
+  IncomingCallPhoneNumberAction,
+  IncomingCallPhoneNumberNeed,
+} from "Common/Utils/IncomingCall/IncomingCallPhoneNumberAccess";
 import UserType from "Common/Types/UserType";
 import Phone from "Common/Types/Phone";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -87,6 +92,9 @@ jest.mock("Common/Server/Middleware/UserAuthorization", () => {
       getUserMiddleware: jest.fn(),
       requireUserAuthentication: jest.fn(),
       requirePermission: jest.fn(() => {
+        return jest.fn();
+      }),
+      requireModelPermission: jest.fn(() => {
         return jest.fn();
       }),
     },
@@ -307,10 +315,24 @@ function memberProps(
   };
 }
 
-const registeredPermissionChecks: Array<any> = (
-  UserMiddleware.requirePermission as unknown as AnyMock
+/*
+ * The route guards the router registered, in route order, as the operations
+ * each asks - the model's table and operation - and the refusal it gives.
+ */
+const registeredModelPermissionChecks: Array<{
+  operations: Array<string>;
+  refusal: string;
+}> = (
+  UserMiddleware.requireModelPermission as unknown as AnyMock
 ).mock.calls.map((call: Array<any>) => {
-  return call[0];
+  return {
+    operations: (
+      call[0].operations as Array<IncomingCallPhoneNumberNeed>
+    ).map((need: IncomingCallPhoneNumberNeed): string => {
+      return `${need.operation} ${need.model.tableName}`;
+    }),
+    refusal: call[0].refusal as string,
+  };
 });
 
 function makeProject(id: ObjectID = PROJECT_ID): Project {
@@ -466,35 +488,34 @@ function installAllowedPolicyEditAuthorization(
 }
 
 describe("phone-number route authorization", () => {
-  test("uses read permission for discovery, edit permission for mutations, and cluster auth internally", () => {
-    expect(registeredPermissionChecks).toEqual([
-      {
-        permissions: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.ReadProjectIncomingCallPolicy,
+  test("looking up asks the read of policies and of call and SMS settings, changing the edit of policies, and the internal route the cluster key", () => {
+    const lookUp: { operations: Array<string>; refusal: string } = {
+      operations: ["read IncomingCallPolicy", "read ProjectCallSMSConfig"],
+      refusal:
+        INCOMING_CALL_PHONE_NUMBER_REFUSALS[
+          IncomingCallPhoneNumberAction.LookUp
         ],
-      },
-      {
-        permissions: [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.ReadProjectIncomingCallPolicy,
+    };
+    const change: { operations: Array<string>; refusal: string } = {
+      operations: ["update IncomingCallPolicy"],
+      refusal:
+        INCOMING_CALL_PHONE_NUMBER_REFUSALS[
+          IncomingCallPhoneNumberAction.Change
         ],
-      },
-      ...Array.from({ length: 4 }, () => {
-        return {
-          permissions: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.ProjectMember,
-            Permission.EditProjectIncomingCallPolicy,
-          ],
-        };
-      }),
+    };
+
+    // search, list-owned, assign-existing, purchase, release x2 - in route order.
+    expect(registeredModelPermissionChecks).toEqual([
+      lookUp,
+      lookUp,
+      change,
+      change,
+      change,
+      change,
     ]);
+
+    // No phone-number route names roles by hand any more.
+    expect(UserMiddleware.requirePermission).not.toHaveBeenCalled();
 
     for (const [method, route] of [
       ["post", "/search"],
