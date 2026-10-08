@@ -359,6 +359,21 @@ describe("MonitorService gives the ids inside monitorSteps", () => {
     );
   });
 
+  test("on update: a failed default-status lookup leaves the default unset, not the write failed", async () => {
+    jest
+      .spyOn(MonitorStatusService, "findDefaultOperationalStatusId")
+      .mockRejectedValue(new Error("Database not connected"));
+
+    const updated: MonitorSteps = await updateMonitor({
+      monitorSteps: terraformMonitorStepsJSON(),
+      storedMonitorSteps: MonitorSteps.fromJSON(terraformMonitorStepsJSON()),
+    });
+
+    expect(operationalLookupSpy.mock.calls).toHaveLength(1);
+    expect(updated.data!.defaultMonitorStatusId).toBeUndefined();
+    expect(idsOf(updated).stepId).toMatch(UUID_PATTERN);
+  });
+
   test("on a bulk update: missing ids are filled, without borrowing any one monitor's", async () => {
     const created: MonitorSteps = await createMonitor(
       terraformMonitorStepsJSON(),

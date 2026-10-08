@@ -2009,7 +2009,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (projectId) {
         defaultMonitorStatusId =
-          await MonitorStatusService.findDefaultOperationalStatusId(
+          await MonitorStatusService.findDefaultOperationalStatusIdOrNull(
             new ObjectID(projectId),
           );
       }

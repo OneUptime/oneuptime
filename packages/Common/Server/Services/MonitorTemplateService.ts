@@ -174,7 +174,7 @@ export class Service extends ProjectReferencesService<Model> {
       !monitorSteps.data?.defaultMonitorStatusId &&
       !data.storedMonitorSteps?.data?.defaultMonitorStatusId &&
       data.projectId
-        ? await MonitorStatusService.findDefaultOperationalStatusId(
+        ? await MonitorStatusService.findDefaultOperationalStatusIdOrNull(
             data.projectId,
           )
         : null;
