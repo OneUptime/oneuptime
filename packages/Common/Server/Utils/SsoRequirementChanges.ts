@@ -385,20 +385,20 @@ export default class SsoRequirementChanges {
    * counts (SsoSignInWays.findNewProjectStrandReason).
    *
    *   - Require SSO for Login on, or a provider required, is held to the
-   *     rule an update to them is held to (beforeProjectUpdate), and refused
-   *     in the same words, whoever creates it: the project's own rule holds
-   *     master admins too.
+   *     rule an update to them is held to (beforeProjectUpdate), the
+   *     server's Require SSO for Login included, and refused in the same
+   *     words, whoever creates it.
    *   - Created while the whole server requires SSO, it needs such a
    *     provider as well, or its creator could not open it; the refusal says
    *     a server admin can turn one on. A master admin, whom the server's
-   *     rule does not hold, is not refused for it.
+   *     rule does not hold, is not refused for it: a create of theirs that
+   *     asks nothing of SSO itself needs no check, and takes no lock.
    *
    * Read under the lock on the server's sign-in rules, held until the
    * project is written (afterProjectCreate, first in onCreateSuccess, or
    * once the create fails): a server turning its Require SSO for Login on,
    * or a global provider being turned off, at the same moment either reads
-   * the new project or is read by its check. A master admin's create that
-   * asks nothing of SSO itself needs no check and takes no lock.
+   * the new project or is read by its check.
    */
   public static async beforeProjectCreate(data: {
     createBy: CreateBy<Project>;
@@ -431,10 +431,7 @@ export default class SsoRequirementChanges {
 
     try {
       const reason: StrandReason | null =
-        await SsoSignInWays.findNewProjectStrandReason({
-          rule,
-          heldToServerRule: !data.isCreatorExemptFromServerRule,
-        });
+        await SsoSignInWays.findNewProjectStrandReason({ rule });
 
       if (reason === StrandReason.RequiredProvider) {
         throw new BadDataException(REQUIRED_PROVIDER_CANNOT_SIGN_IN_MESSAGE);

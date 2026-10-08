@@ -1484,3 +1484,172 @@ describe("whether a change to projects alone depends on the server's sign-in rul
     expect(ownSamlReads).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("a project created now, which has no provider of its own yet", () => {
+  const create: (data: {
+    requireSsoForLogin?: boolean;
+    requiredProviderId?: string;
+  }) => Promise<StrandReason | null> = (data: {
+    requireSsoForLogin?: boolean;
+    requiredProviderId?: string;
+  }): Promise<StrandReason | null> => {
+    return SsoSignInWays.findNewProjectStrandReason({
+      rule: {
+        requireSsoForLogin: data.requireSsoForLogin === true,
+        requiredProviderId: data.requiredProviderId || null,
+      },
+    });
+  };
+
+  const everyProject: (providerId: string) => GlobalProviderRow = (
+    providerId: string,
+  ): GlobalProviderRow => {
+    return {
+      id: providerId,
+      isEnabled: true,
+      restrictToAttachedProjects: false,
+    };
+  };
+
+  test("that asks nothing of SSO, on a server that does not require it, needs no provider, and no provider is read", async () => {
+    await expect(create({})).resolves.toBeNull();
+
+    expect(serverRuleReads).toHaveBeenCalledTimes(1);
+    expect(GlobalSsoService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("on a server that requires SSO for everyone it needs a provider, though it does not require SSO itself", async () => {
+    serverRequiresSso = true;
+
+    await expect(create({})).resolves.toBe(StrandReason.NoProvider);
+
+    globalSaml = [everyProject(GLOBAL_SAML)];
+    await expect(create({})).resolves.toBeNull();
+  });
+
+  test("that requires SSO itself needs a global provider that signs people in to every project, and the server's rule is not read", async () => {
+    await expect(create({ requireSsoForLogin: true })).resolves.toBe(
+      StrandReason.NoProvider,
+    );
+
+    globalOidc = [everyProject(GLOBAL_OIDC)];
+
+    await expect(create({ requireSsoForLogin: true })).resolves.toBeNull();
+    expect(serverRuleReads).not.toHaveBeenCalled();
+  });
+
+  test("another project's providers, on, sign nobody in to it", async () => {
+    ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+    ownOidc = [{ id: BETA_OIDC, projectId: BETA, isEnabled: true }];
+
+    await expect(create({ requireSsoForLogin: true })).resolves.toBe(
+      StrandReason.NoProvider,
+    );
+  });
+
+  test("a global provider that is off does not count", async () => {
+    globalSaml = [
+      { id: GLOBAL_SAML, isEnabled: false, restrictToAttachedProjects: false },
+    ];
+
+    await expect(create({ requireSsoForLogin: true })).resolves.toBe(
+      StrandReason.NoProvider,
+    );
+  });
+
+  test("a provider restricted to its attached projects counts only while it has none: no project is attached to one created now", async () => {
+    globalSaml = [
+      { id: GLOBAL_SAML, isEnabled: true, restrictToAttachedProjects: true },
+    ];
+
+    await expect(create({ requireSsoForLogin: true })).resolves.toBeNull();
+
+    samlAttachments = [
+      { id: id(301), providerId: GLOBAL_SAML, projectId: ACME, isEnabled: true },
+    ];
+
+    await expect(create({ requireSsoForLogin: true })).resolves.toBe(
+      StrandReason.NoProvider,
+    );
+  });
+
+  test("an attachment that is off still restricts its provider to the attached projects", async () => {
+    globalSaml = [
+      { id: GLOBAL_SAML, isEnabled: true, restrictToAttachedProjects: true },
+    ];
+    samlAttachments = [
+      {
+        id: id(301),
+        providerId: GLOBAL_SAML,
+        projectId: ACME,
+        isEnabled: false,
+      },
+    ];
+
+    await expect(create({ requireSsoForLogin: true })).resolves.toBe(
+      StrandReason.NoProvider,
+    );
+  });
+
+  test("the provider it requires must be a global provider that signs people in to every project", async () => {
+    globalSaml = [
+      everyProject(GLOBAL_SAML),
+      {
+        id: OTHER_GLOBAL_SAML,
+        isEnabled: true,
+        restrictToAttachedProjects: true,
+      },
+    ];
+    samlAttachments = [
+      {
+        id: id(301),
+        providerId: OTHER_GLOBAL_SAML,
+        projectId: ACME,
+        isEnabled: true,
+      },
+    ];
+    ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+
+    await expect(
+      create({ requireSsoForLogin: true, requiredProviderId: GLOBAL_SAML }),
+    ).resolves.toBeNull();
+
+    // Restricted to projects this one is not among, another project's own, or none at all.
+    for (const requiredProviderId of [
+      OTHER_GLOBAL_SAML,
+      ACME_SAML,
+      GLOBAL_OIDC,
+    ]) {
+      await expect(
+        create({ requireSsoForLogin: true, requiredProviderId }),
+      ).resolves.toBe(StrandReason.RequiredProvider);
+    }
+  });
+
+  test("a provider it requires while it does not require SSO itself is held to the server's rule", async () => {
+    serverRequiresSso = true;
+    globalSaml = [everyProject(GLOBAL_SAML)];
+
+    await expect(create({ requiredProviderId: GLOBAL_SAML })).resolves.toBe(
+      null,
+    );
+    await expect(create({ requiredProviderId: GLOBAL_OIDC })).resolves.toBe(
+      StrandReason.RequiredProvider,
+    );
+
+    serverRequiresSso = false;
+    await expect(create({ requiredProviderId: GLOBAL_OIDC })).resolves.toBe(
+      null,
+    );
+  });
+
+  test("the global providers are read once for a check", async () => {
+    serverRequiresSso = true;
+    globalSaml = [everyProject(GLOBAL_SAML)];
+
+    await expect(create({ requireSsoForLogin: true })).resolves.toBeNull();
+
+    expect(GlobalSsoService.findBy).toHaveBeenCalledTimes(1);
+    expect(GlobalOidcService.findBy).toHaveBeenCalledTimes(1);
+  });
+});

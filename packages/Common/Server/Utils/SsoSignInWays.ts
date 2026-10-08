@@ -515,16 +515,13 @@ export default class SsoSignInWays {
    * to it are the global ones that are on and sign people in to every
    * project: one not restricted to its attached projects, or restricted
    * with none attached yet. It needs one when it requires SSO itself, or
-   * when the whole server does and its rule holds the people the check is
-   * for (`heldToServerRule`: the server's rule never holds a master admin,
-   * UserMiddleware). The provider it requires, when it requires one, must
-   * be one of those. Read from the database, under the lock on the
-   * server's sign-in rules the caller holds (SsoRequirementChanges.
+   * when the whole server does; the provider it requires, when it requires
+   * one, must be one of those. Read from the database, under the lock on
+   * the server's sign-in rules the caller holds (SsoRequirementChanges.
    * beforeProjectCreate), as every other change's check is.
    */
   public static async findNewProjectStrandReason(data: {
     rule: ProjectSignInRule;
-    heldToServerRule: boolean;
   }): Promise<StrandReason | null> {
     const facts: SignInFacts = new SignInFacts({
       reachChanges: [],
@@ -532,10 +529,9 @@ export default class SsoSignInWays {
     });
 
     // Read only when the project's own rule does not settle it.
-    const serverRequiresSso: boolean =
-      !data.rule.requireSsoForLogin && data.heldToServerRule
-        ? await facts.getServerRequiresSso()
-        : false;
+    const serverRequiresSso: boolean = data.rule.requireSsoForLogin
+      ? false
+      : await facts.getServerRequiresSso();
 
     if (!data.rule.requireSsoForLogin && !serverRequiresSso) {
       return null;
