@@ -98,21 +98,24 @@ export default class SlackUtil extends WorkspaceBase {
   /*
    * What slackify is given at most once the Markdown is cut
    * (Utils/Markdown/SlowMarkdown): its time grew with the square of a run of
-   * emphasis or brackets, of the lines of one block (a paragraph of 16,000
-   * lines took 4 s), of one paragraph (32 KB of web addresses on one line
-   * took three quarters of a second) and of the blocks of a message, so a
-   * block of more than 256 lines or with a paragraph or list item of more
-   * than 4,096 characters, more than 2,048 lines in all, and the content of
-   * fenced code are held back and written back as text.
+   * emphasis or brackets, of one paragraph's lines (a paragraph of 16,000
+   * lines took 4 s) and length (32 KB of web addresses on one line took
+   * three quarters of a second), and of the blocks of a message. So a block
+   * with a paragraph or list item of more than 256 lines or 4,096
+   * characters, more than 2,048 lines in all, and the content of fenced
+   * code are held back and written back as text. A list of short items is
+   * read in good time, however long.
    */
   public static readonly SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
     maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
-    maxRunLines: 256,
+    maxRunLines: Number.POSITIVE_INFINITY,
     maxLines: 2048,
+    maxUnitLines: 256,
     maxUnitLength: 4096,
     maxNestingDepth: SLOW_MARKDOWN_MAX_NESTING_DEPTH,
     maxCellsPerLine: 128,
     holdBackCodeBlockContent: true,
+    countUrlLiterals: false,
   };
 
   // Closes and reopens a ``` code block that a section boundary cuts through.

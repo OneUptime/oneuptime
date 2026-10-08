@@ -99,10 +99,12 @@ export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
   maxRunLines: Number.POSITIVE_INFINITY,
   maxLines: Number.POSITIVE_INFINITY,
+  maxUnitLines: Number.POSITIVE_INFINITY,
   maxUnitLength: Number.POSITIVE_INFINITY,
   maxNestingDepth: SLOW_MARKDOWN_MAX_NESTING_DEPTH,
   maxCellsPerLine: Number.POSITIVE_INFINITY,
   holdBackCodeBlockContent: false,
+  countUrlLiterals: false,
 };
 
 /*

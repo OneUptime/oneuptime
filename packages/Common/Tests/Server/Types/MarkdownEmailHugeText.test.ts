@@ -73,6 +73,24 @@ const renderWithMarkedAlone: RenderFunction = async (
   return await marked(markdown, { renderer: renderer });
 };
 
+/*
+ * What the email renderer makes of one piece of Markdown, before an email
+ * field is held to what an email carries (MarkdownEmailSizeCap.test.ts):
+ * the last resort is a step of it.
+ */
+const renderOnePiece: RenderFunction = async (
+  markdown: string,
+): Promise<string> => {
+  // The renderer set up as convertToHTML sets it up; that call is not counted.
+  await render("");
+  mockMarkedState.calls = [];
+
+  return await Markdown["renderEmailMarkdown"](
+    markdown,
+    Markdown["getEmailRenderer"](),
+  );
+};
+
 // Over 64 KB of plain words on one line, with no space at either end.
 const LONG_WORDS: string = "word ".repeat(15000).trim();
 
@@ -266,7 +284,7 @@ describe("Markdown email renderer - the last resort", () => {
       Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 26) + 1,
     );
 
-    const html: string = await render(`# Disk full\n\n${rows}\nAfter`);
+    const html: string = await renderOnePiece(`# Disk full\n\n${rows}\nAfter`);
 
     expect(mockMarkedState.calls).toHaveLength(0);
     // Booleans, so a failure does not print a megabyte.
@@ -292,15 +310,13 @@ describe("Markdown email renderer - the last resort", () => {
       .repeat(Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 6) + 1)
       .slice(0, MAX_MARKED_EMAIL_MARKDOWN_LENGTH);
 
-    const html: string = await render(lines);
+    const html: string = await renderOnePiece(lines);
 
     expect(mockMarkedState.calls).toHaveLength(1);
     expect(mockMarkedState.calls[0] === lines).toBe(true);
     expect(html.startsWith("<p>a | b\na | b")).toBe(true);
 
-    mockMarkedState.calls = [];
-
-    const text: string = await render(`${lines}a`);
+    const text: string = await renderOnePiece(`${lines}a`);
 
     expect(mockMarkedState.calls).toHaveLength(0);
     expect(text.startsWith("<p>a | b<br>\na | b")).toBe(true);
@@ -309,7 +325,7 @@ describe("Markdown email renderer - the last resort", () => {
   test("Markdown that is long only for what is held back still goes to marked", async () => {
     const markdown: string = `# Disk full\n\n${"a".repeat(16 * 1024 * 1024)}\n\n${LOG_LINES.join("\n")}`;
 
-    const html: string = await render(markdown);
+    const html: string = await renderOnePiece(markdown);
 
     expect(mockMarkedState.calls).toHaveLength(1);
     expect(mockMarkedState.calls[0]!.length).toBeLessThan(16 * 1024);

@@ -88,7 +88,13 @@ const mockMarkdownState: {
 const mockReact: typeof React = jest.requireActual("react") as typeof React;
 
 type TreeTransformer = (tree: HeldTextTreeNode) => void;
-type TreePlugin = (options: { held: ReadonlyArray<string> }) => TreeTransformer;
+
+interface PutBackOptions {
+  held: ReadonlyArray<string>;
+  heldLines?: ReadonlyArray<number> | undefined;
+}
+
+type TreePlugin = (options: PutBackOptions) => TreeTransformer;
 
 afterEach(() => {
   cleanup();
@@ -101,18 +107,33 @@ const MIB: number = 1024 * 1024;
 // The markdown and the rehype plugins the viewer handed react-markdown.
 function handedToParser(): {
   markdown: string;
-  rehypePlugins:
-    | Array<[TreePlugin, { held: ReadonlyArray<string> }]>
-    | undefined;
+  rehypePlugins: Array<[TreePlugin, PutBackOptions]> | undefined;
 } {
   const props: Record<string, unknown> = mockMarkdownState.props!;
 
   return {
     markdown: props["children"] as string,
     rehypePlugins: props["rehypePlugins"] as
-      | Array<[TreePlugin, { held: ReadonlyArray<string> }]>
+      | Array<[TreePlugin, PutBackOptions]>
       | undefined,
   };
+}
+
+/*
+ * Runs of 400 lines that are not plain - each holds a "|" - with a blank
+ * line between them, and a last line that makes them `length` characters:
+ * no run long enough to hold back, so all of it is left for the parser.
+ */
+function shortRuns(length: number): string {
+  const line: string = `a | b | ${"x".repeat(91)}\n`;
+  const run: string = line.repeat(400);
+  let text: string = "";
+
+  while (text.length + run.length + 1 + 8 <= length) {
+    text += `${run}\n`;
+  }
+
+  return `${text}a | b | ${"y".repeat(length - text.length - 8)}`;
 }
 
 // A code fence as react-markdown hands it over: <pre><code class="language-x">.

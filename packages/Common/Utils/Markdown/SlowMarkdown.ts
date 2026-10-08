@@ -38,8 +38,10 @@
  *   - its lines: a run may have limits.maxRunLines, all the runs read as
  *     Markdown limits.maxLines (the dashboard and Slack only: marked reads
  *     lines in linear time).
- *   - its longest paragraph, list item or heading, in characters:
- *     limits.maxUnitLength (the dashboard and Slack only).
+ *   - its longest paragraph, list item or heading, in lines
+ *     (limits.maxUnitLines) and in characters (limits.maxUnitLength):
+ *     Slack only - slackify reads a long list in good time, but not one
+ *     long paragraph.
  *   - how deep its lines nest quotes and lists (limits.maxNestingDepth),
  *     and how many cells a table row of it has (limits.maxCellsPerLine).
  *
@@ -79,6 +81,8 @@ export interface SlowMarkdownLimits {
   maxRunLines: number;
   // The lines all the runs read as Markdown may have together.
   maxLines: number;
+  // The lines one paragraph, list item or heading may have.
+  maxUnitLines: number;
   // The characters one paragraph, list item or heading may have.
   maxUnitLength: number;
   // The quote and list markers a line may start with.
@@ -87,6 +91,12 @@ export interface SlowMarkdownLimits {
   maxCellsPerLine: number;
   // Whether the content of fenced code is held back as one token.
   holdBackCodeBlockContent: boolean;
+  /*
+   * Whether where a web or email address can start without brackets counts
+   * toward inline work (getInlineCharacterCount): remark reads each of them
+   * through the rest of its paragraph, marked does not.
+   */
+  countUrlLiterals: boolean;
 }
 
 /*
@@ -127,6 +137,8 @@ export interface SlowMarkdownRun {
   inlineWork: number;
   // Its longest paragraph, list item or heading, in characters.
   longestUnit: number;
+  // Its paragraph, list item or heading of the most lines: how many.
+  longestUnitLines: number;
   nestingDepth: number;
   cellsPerLine: number;
 }
@@ -230,19 +242,43 @@ const isWordCharacterAt: (text: string, index: number) => boolean = (
   );
 };
 
+// Whether text[index, end) starts with "www." (any case).
+const startsWithWww: (text: string, index: number, end: number) => boolean = (
+  text: string,
+  index: number,
+  end: number,
+): boolean => {
+  return (
+    index + 4 <= end &&
+    (text.charCodeAt(index) | 0x20) === 0x77 &&
+    (text.charCodeAt(index + 1) | 0x20) === 0x77 &&
+    (text.charCodeAt(index + 2) | 0x20) === 0x77 &&
+    text.charCodeAt(index + 3) === 0x2e
+  );
+};
+
 /*
  * The characters of text[start, end) that can start or end inline Markdown,
  * and so make a parser look ahead through the rest of a block: emphasis and
  * strikethrough delimiters ("*", "_", "~") that can open or close - not
  * those with whitespace on both sides, nor an "_" inside a word - every
  * backtick, "[" and "]", a "<" that can start a tag or an autolink, a "\"
- * that escapes, and a "&" that can start an entity.
+ * that escapes, and a "&" that can start an entity. With
+ * `countUrlLiterals`, also where a web address or an email address can
+ * start without brackets ("www.", "://", "@"): remark reads each of those
+ * through the rest of its paragraph.
  */
 export const getInlineCharacterCount: (
   text: string,
   start: number,
   end: number,
-) => number = (text: string, start: number, end: number): number => {
+  countUrlLiterals?: boolean,
+) => number = (
+  text: string,
+  start: number,
+  end: number,
+  countUrlLiterals: boolean = false,
+): number => {
   let count: number = 0;
   let index: number = start;
 
@@ -291,6 +327,16 @@ export const getInlineCharacterCount: (
     } else if (code === BACKSLASH && isAsciiPunctuation(next)) {
       count++;
     } else if (code === 0x26 && (next === NUMBER_SIGN || isAsciiLetter(next))) {
+      count++;
+    } else if (
+      countUrlLiterals &&
+      (code === 0x40 ||
+        (code === 0x3a &&
+          next === 0x2f &&
+          index + 2 < end &&
+          text.charCodeAt(index + 2) === 0x2f) ||
+        ((code | 0x20) === 0x77 && startsWithWww(text, index, end)))
+    ) {
       count++;
     }
 
@@ -526,7 +572,10 @@ const lineHoldsOneOf: (
 interface LineStart {
   // Where the line's inline text starts: past its markers.
   contentStart: number;
-  // Quote and list markers it starts with, one in another.
+  /*
+   * Quote and list markers it starts with, one in another - or, when it
+   * has markers and more, its indentation in fours of columns.
+   */
   nestingDepth: number;
   /*
    * What it starts as a unit of its own, if anything: "bullet",
@@ -598,11 +647,14 @@ const readLineStart: (text: string, start: number, end: number) => LineStart =
     let firstMarker: string | null = null;
     let firstMarkerIndentation: number = 0;
     let isFirstOrdered: boolean = false;
+    // The columns of whitespace before and between the markers (a tab is 4).
+    let indentationColumns: number = 0;
 
     for (;;) {
       let afterSpaces: number = index;
 
       while (afterSpaces < end && isSpaceOrTab(text.charCodeAt(afterSpaces))) {
+        indentationColumns += text.charCodeAt(afterSpaces) === TAB ? 4 : 1;
         afterSpaces++;
       }
 
@@ -708,7 +760,17 @@ const readLineStart: (text: string, start: number, end: number) => LineStart =
 
     return {
       contentStart: index,
-      nestingDepth: nestingDepth,
+      /*
+       * A list nests by indentation as well as by markers: an item indented
+       * a column or two more than the one before is an item inside it, so
+       * on a line with markers every four columns of indentation count as a
+       * level. A line with none - indented code, pretty-printed JSON - does
+       * not nest.
+       */
+      nestingDepth:
+        nestingDepth > 0 || firstMarker !== null
+          ? Math.max(nestingDepth, Math.floor(indentationColumns / 4))
+          : nestingDepth,
       unitStart:
         firstMarker !== null && firstMarkerIndentation <= 3 && hasText
           ? firstMarker
@@ -748,13 +810,22 @@ const getPipeCount: (text: string, start: number, end: number) => number = (
  * is not "1." starts a unit only right after a unit that a numbered item of
  * the same kind started: elsewhere it can be a paragraph's next line.
  */
-const measureRun: (text: string, lineStarts: Array<number>) => SlowMarkdownRun =
-  (text: string, lineStarts: Array<number>): SlowMarkdownRun => {
+const measureRun: (
+  text: string,
+  lineStarts: Array<number>,
+  countUrlLiterals: boolean,
+) => SlowMarkdownRun = (
+  text: string,
+  lineStarts: Array<number>,
+  countUrlLiterals: boolean,
+): SlowMarkdownRun => {
     let inlineWork: number = 0;
     let longestUnit: number = 0;
+    let longestUnitLines: number = 0;
     let nestingDepth: number = 0;
     let cellsPerLine: number = 0;
     let unitLength: number = 0;
+    let unitLines: number = 0;
     let unitCharacters: number = 0;
     // What started the unit being read, if a marker did.
     let unitKind: string | null = null;
@@ -776,16 +847,20 @@ const measureRun: (text: string, lineStarts: Array<number>) => SlowMarkdownRun =
       if (startsUnit) {
         inlineWork += unitCharacters * unitLength;
         longestUnit = Math.max(longestUnit, unitLength);
+        longestUnitLines = Math.max(longestUnitLines, unitLines);
         unitLength = 0;
+        unitLines = 0;
         unitCharacters = 0;
         unitKind = start.unitStart;
       }
 
       unitLength += lineEnd - lineStart + 1;
+      unitLines++;
       unitCharacters += getInlineCharacterCount(
         text,
         start.contentStart,
         lineEnd,
+        countUrlLiterals,
       );
       nestingDepth = Math.max(nestingDepth, start.nestingDepth);
       cellsPerLine = Math.max(
@@ -796,6 +871,7 @@ const measureRun: (text: string, lineStarts: Array<number>) => SlowMarkdownRun =
 
     inlineWork += unitCharacters * unitLength;
     longestUnit = Math.max(longestUnit, unitLength);
+    longestUnitLines = Math.max(longestUnitLines, unitLines);
 
     return {
       start: lineStarts[0]!,
@@ -803,6 +879,7 @@ const measureRun: (text: string, lineStarts: Array<number>) => SlowMarkdownRun =
       lines: lineStarts.length,
       inlineWork: inlineWork,
       longestUnit: longestUnit,
+      longestUnitLines: longestUnitLines,
       nestingDepth: nestingDepth,
       cellsPerLine: cellsPerLine,
     };
@@ -814,8 +891,12 @@ const measureRun: (text: string, lineStarts: Array<number>) => SlowMarkdownRun =
  * at the start of a line after a blank line (or at the text's start), never
  * inside an HTML block that runs on past blank lines, and closes leniently.
  */
-const readSegments: (text: string) => Array<Segment> = (
+const readSegments: (
   text: string,
+  countUrlLiterals: boolean,
+) => Array<Segment> = (
+  text: string,
+  countUrlLiterals: boolean,
 ): Array<Segment> => {
   const segments: Array<Segment> = [];
   let runLineStarts: Array<number> = [];
@@ -826,7 +907,10 @@ const readSegments: (text: string) => Array<Segment> = (
 
   const endRun: () => void = (): void => {
     if (runLineStarts.length > 0) {
-      segments.push({ kind: "run", run: measureRun(text, runLineStarts) });
+      segments.push({
+        kind: "run",
+        run: measureRun(text, runLineStarts, countUrlLiterals),
+      });
       runLineStarts = [];
     }
   };
@@ -919,8 +1003,9 @@ const readSegments: (text: string) => Array<Segment> = (
 
 /*
  * Which runs to hold back: each that breaks a limit of its own (lines, the
- * length of a unit, nesting, cells), then the costliest by inline work until the rest are
- * within limits.maxInlineWork, then the longest by lines until the rest are
+ * lines and length of a unit, nesting, cells), then the costliest by inline
+ * work until the rest are within limits.maxInlineWork, then the longest by
+ * lines until the rest are
  * within limits.maxLines - the later of two equal ones first, so the start
  * of a text stays as it was written.
  */
@@ -936,6 +1021,7 @@ const chooseRunsToHoldBack: (
   for (const run of runs) {
     if (
       run.lines > limits.maxRunLines ||
+      run.longestUnitLines > limits.maxUnitLines ||
       run.longestUnit > limits.maxUnitLength ||
       run.nestingDepth > limits.maxNestingDepth ||
       run.cellsPerLine > limits.maxCellsPerLine
@@ -1026,14 +1112,19 @@ export const holdBackSlowMarkdown: (
       maxInlineWork: Number.POSITIVE_INFINITY,
       maxRunLines: Number.POSITIVE_INFINITY,
       maxLines: Number.POSITIVE_INFINITY,
+      maxUnitLines: Number.POSITIVE_INFINITY,
       maxUnitLength: Number.POSITIVE_INFINITY,
       maxNestingDepth: limits.maxNestingDepth,
       maxCellsPerLine: Number.POSITIVE_INFINITY,
       holdBackCodeBlockContent: false,
+      countUrlLiterals: false,
     };
   }
 
-  const segments: Array<Segment> = readSegments(text);
+  const segments: Array<Segment> = readSegments(
+    text,
+    appliedLimits.countUrlLiterals,
+  );
   const runs: Array<SlowMarkdownRun> = [];
 
   for (const segment of segments) {
@@ -1143,10 +1234,17 @@ const hasLineNestedDeeperThan: (text: string, maxDepth: number) => boolean = (
  */
 export const measureSlowMarkdownRuns: (
   text: string,
-) => Array<SlowMarkdownRun> = (text: string): Array<SlowMarkdownRun> => {
+  countUrlLiterals?: boolean,
+) => Array<SlowMarkdownRun> = (
+  text: string,
+  countUrlLiterals: boolean = false,
+): Array<SlowMarkdownRun> => {
   const runs: Array<SlowMarkdownRun> = [];
 
-  for (const segment of readSegments(typeof text === "string" ? text : "")) {
+  for (const segment of readSegments(
+    typeof text === "string" ? text : "",
+    countUrlLiterals,
+  )) {
     if (segment.kind === "run") {
       runs.push(segment.run);
     }

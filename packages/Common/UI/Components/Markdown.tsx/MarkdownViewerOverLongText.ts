@@ -68,19 +68,20 @@ export const MAX_PARSED_MARKDOWN_LENGTH: number = 2 * OVER_LONG_LINE_LENGTH;
  * What remark is given at most (Utils/Markdown/SlowMarkdown): the inline
  * work every parser takes in good time, runs of at most 1,024 lines and
  * 2,048 lines in all - remark took a fifth of a second for 2,048 list items
- * in a browser - paragraphs and list items of at most 16,384 characters
- * (64 KB of web addresses in one paragraph took twice as long as in four),
- * at most sixteen quotes and lists deep, and table rows of at most 128
- * cells.
+ * in a browser - at most sixteen quotes and lists deep, and table rows of
+ * at most 128 cells. remark reads a long paragraph in linear time, so its
+ * length is not limited.
  */
 export const VIEWER_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
   maxRunLines: 1024,
   maxLines: 2048,
-  maxUnitLength: 16384,
+  maxUnitLines: Number.POSITIVE_INFINITY,
+  maxUnitLength: Number.POSITIVE_INFINITY,
   maxNestingDepth: SLOW_MARKDOWN_MAX_NESTING_DEPTH,
   maxCellsPerLine: 128,
   holdBackCodeBlockContent: true,
+  countUrlLiterals: true,
 };
 
 export interface HeldBackViewerText {
