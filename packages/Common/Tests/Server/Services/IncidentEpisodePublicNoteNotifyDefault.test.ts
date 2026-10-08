@@ -28,13 +28,18 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
 
 /*
  * The records these tests name are their project's own: the services check
- * every reference against the project (ProjectReferencesService).
+ * every reference against the project (ProjectReferencesService). And the
+ * episode a note is created under is one its creator may read: a member who
+ * is no project admin is looked up with the rule for private episodes
+ * (CreatePermission.checkParentPermission), answered here as found.
  */
 beforeEach(() => {
   stubProjectDirectory({});
+  stubReadableParents();
 });
 
 /*

@@ -36,6 +36,7 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
 import {
   afterEach,
   beforeEach,
@@ -314,6 +315,13 @@ beforeEach(() => {
    */
   mockProjectStates();
   stubProjectDirectory({});
+  /*
+   * The incident or event a change is made to is one the caller may read:
+   * a member who is no project admin is looked up with the rule for private
+   * incidents (CreatePermission.checkParentPermission), answered here as
+   * found.
+   */
+  stubReadableParents();
   getJestSpyOn(Semaphore, "lock").mockResolvedValue({
     key: "state-change",
   });

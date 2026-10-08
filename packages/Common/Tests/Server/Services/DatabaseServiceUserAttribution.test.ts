@@ -24,7 +24,15 @@ import UserType from "../../../Types/UserType";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import { getJestSpyOn } from "../../Spy";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { stubReadableParents } from "../TestingUtils/ReadableParents";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * WHO DID SOMETHING TO A RECORD IS FOR ONEUPTIME TO SAY.
@@ -633,6 +641,16 @@ describe("a write names nobody even as the same person, or as a clear", () => {
  */
 describe("the creator of a record, end to end", () => {
   class PastTheStamp extends Error {}
+
+  /*
+   * The incident a note is created under is one its creator may read: a
+   * member who is no project admin is looked up with the rule for private
+   * incidents (CreatePermission.checkParentPermission), answered here as
+   * found.
+   */
+  beforeEach(() => {
+    stubReadableParents();
+  });
 
   async function inserted(
     values: Record<string, unknown>,
