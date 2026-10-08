@@ -619,8 +619,9 @@ describePostgres("an import from another tool, against Postgres", () => {
 
     /*
      * Every table, so whatever a service's hooks touch lands here and never
-     * in the database's own tables. Constraints and indexes come with them:
-     * a record the import creates must be a whole one.
+     * in the database's own tables. Defaults, NOT NULL and CHECK
+     * constraints and every index (the unique ones too) come with them, so
+     * a record the import creates must be a whole one; foreign keys do not.
      */
     tables = (
       await database.query(
@@ -732,12 +733,14 @@ describePostgres("an import from another tool, against Postgres", () => {
       return api.transport;
     };
 
+    /*
+     * Every table emptied, in one round trip. DELETE rather than TRUNCATE:
+     * nearly all of them are empty, and an empty DELETE is free where a
+     * TRUNCATE makes each table a new file. The clones carry no foreign
+     * keys, so the order does not matter.
+     */
     await database.query(
-      `TRUNCATE ${tables
-        .map((table: string): string => {
-          return `"${schema}"."${table}"`;
-        })
-        .join(", ")}`,
+      `DO $$ DECLARE t text; BEGIN FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = '${schema}' LOOP EXECUTE format('DELETE FROM %I.%I', '${schema}', t); END LOOP; END $$;`,
     );
 
     await database.query(
