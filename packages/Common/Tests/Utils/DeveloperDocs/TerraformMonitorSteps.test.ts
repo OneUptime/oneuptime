@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { printHclExpression } from "../../../Utils/DeveloperDocs/Hcl";
 import {
+  FILTER_JSON_OPTIONS,
   MonitorStepsHclContext,
   monitorStepsToHcl,
 } from "../../../Utils/DeveloperDocs/TerraformMonitorSteps";
@@ -483,6 +484,252 @@ describe("raw-JSON sub-configs (TestMonitorStepsFromAPIMapsInjectedSubConfigs)",
     expect(
       convert(envelope([step({ requestType: "GET", logMonitor: "nope" })])),
     ).toEqual([{ request_type: "GET" }]);
+  });
+});
+
+/*
+ * The raw-JSON filter options (TestMonitorStepsFilterJSONOptionsRoundTrip,
+ * TestMonitorStepsFromAPICustomCodeMonitorOptions). A Custom Code monitor's
+ * Result Value filter names the field of the returned data it compares in
+ * customCodeMonitorOptions.resultValuePath; the provider keeps it in
+ * custom_code_monitor_options, so the export writes it there too - otherwise
+ * applying the exported configuration would drop the field path.
+ */
+describe("raw-JSON filter options", () => {
+  const SCRIPT: string = "return { data: { status: 'UP' } };";
+
+  type HclFilter = { [key: string]: HclTestValue };
+
+  function customCodeMonitor(filters: Array<Record<string, unknown>>): unknown {
+    return envelope([
+      step({
+        id: "server-generated-step-id",
+        customCode: SCRIPT,
+        monitorCriteria: criteriaEnvelope([
+          { name: "Unhealthy", filterCondition: "Any", filters },
+        ]),
+      }),
+    ]);
+  }
+
+  function exportedFilters(
+    filters: Array<Record<string, unknown>>,
+  ): Array<HclFilter> {
+    const converted: HclTestValue = convert(customCodeMonitor(filters));
+
+    return (
+      converted as Array<{ criteria: Array<{ filters: Array<HclFilter> }> }>
+    )[0]!.criteria[0]!.filters;
+  }
+
+  function resultValueFilter(
+    customCodeMonitorOptions?: unknown,
+  ): Record<string, unknown> {
+    const filter: Record<string, unknown> = {
+      checkOn: "Result Value",
+      filterType: "Not Equal To",
+      value: "UP",
+    };
+
+    if (customCodeMonitorOptions !== undefined) {
+      filter["customCodeMonitorOptions"] = customCodeMonitorOptions;
+    }
+
+    return filter;
+  }
+
+  test("a Result Value filter's field path is written as custom_code_monitor_options", () => {
+    expect(
+      convert(
+        customCodeMonitor([
+          {
+            checkOn: "Result Value",
+            filterType: "Greater Than",
+            value: 500,
+            customCodeMonitorOptions: {
+              resultValuePath: "data.items[0].value",
+            },
+          },
+        ]),
+      ),
+    ).toEqual([
+      {
+        custom_code: SCRIPT,
+        criteria: [
+          {
+            name: "Unhealthy",
+            filter_condition: "Any",
+            filters: [
+              {
+                check_on: "Result Value",
+                filter_type: "Greater Than",
+                value: "500",
+                custom_code_monitor_options: {
+                  call: "jsonencode",
+                  args: [{ resultValuePath: "data.items[0].value" }],
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  test("a filter without a field path writes no custom_code_monitor_options", () => {
+    const filters: Array<HclFilter> = exportedFilters([resultValueFilter()]);
+
+    expect(filters).toEqual([
+      { check_on: "Result Value", filter_type: "Not Equal To", value: "UP" },
+    ]);
+    expect(filters[0]).not.toHaveProperty("custom_code_monitor_options");
+  });
+
+  test("filters with and without a path keep their own: the option never moves to a neighbour", () => {
+    expect(
+      exportedFilters([
+        resultValueFilter({ resultValuePath: "status" }),
+        resultValueFilter(),
+        resultValueFilter({ resultValuePath: "checks[1].status" }),
+      ]).map((filter: HclFilter): HclTestValue => {
+        return filter["custom_code_monitor_options"] ?? null;
+      }),
+    ).toEqual([
+      { call: "jsonencode", args: [{ resultValuePath: "status" }] },
+      null,
+      { call: "jsonencode", args: [{ resultValuePath: "checks[1].status" }] },
+    ]);
+  });
+
+  test('a path cleared in the dashboard leaves {}, written as jsonencode({}) because the provider reads it as "{}"', () => {
+    expect(exportedFilters([resultValueFilter({})])).toEqual([
+      {
+        check_on: "Result Value",
+        filter_type: "Not Equal To",
+        value: "UP",
+        custom_code_monitor_options: { call: "jsonencode", args: [{}] },
+      },
+    ]);
+  });
+
+  test("options that are not an object are left out, as the provider leaves them", () => {
+    for (const options of ["status", ["status"], null, 42, true]) {
+      expect({
+        options,
+        filters: exportedFilters([resultValueFilter(options)]),
+      }).toEqual({
+        options,
+        filters: [
+          {
+            check_on: "Result Value",
+            filter_type: "Not Equal To",
+            value: "UP",
+          },
+        ],
+      });
+    }
+  });
+
+  test("keys the dashboard does not know yet stay in the JSON, as the provider keeps them", () => {
+    expect(
+      exportedFilters([
+        resultValueFilter({ resultValuePath: "healthy", someFutureOption: 1 }),
+      ])[0]?.["custom_code_monitor_options"],
+    ).toEqual({
+      call: "jsonencode",
+      args: [{ resultValuePath: "healthy", someFutureOption: 1 }],
+    });
+  });
+
+  test("every raw-JSON option is written from its own CriteriaFilter key", () => {
+    expect(FILTER_JSON_OPTIONS.length).toBeGreaterThanOrEqual(4);
+
+    for (const option of FILTER_JSON_OPTIONS) {
+      const value: Record<string, unknown> = { example: option.apiKey };
+
+      expect({
+        option: option.apiKey,
+        filters: exportedFilters([
+          {
+            checkOn: "Result Value",
+            filterType: "Equal To",
+            value: "UP",
+            [option.apiKey]: value,
+          },
+        ]),
+      }).toEqual({
+        option: option.apiKey,
+        filters: [
+          {
+            check_on: "Result Value",
+            filter_type: "Equal To",
+            value: "UP",
+            [option.attributeName]: { call: "jsonencode", args: [value] },
+          },
+        ],
+      });
+    }
+  });
+
+  test("a filter carrying every option writes each one, in the provider's order", () => {
+    const [filter] = exportedFilters([
+      {
+        checkOn: "Result Value",
+        filterType: "Equal To",
+        value: "UP",
+        customCodeMonitorOptions: { resultValuePath: "status" },
+        databaseMonitorOptions: { metricType: "connections" },
+        snmpMonitorOptions: { oid: "1.3.6.1" },
+        metricMonitorOptions: { metricAlias: "m1" },
+      },
+    ]);
+
+    expect(Object.keys(filter!)).toEqual([
+      "check_on",
+      "filter_type",
+      "value",
+      "metric_monitor_options",
+      "snmp_monitor_options",
+      "database_monitor_options",
+      "custom_code_monitor_options",
+    ]);
+  });
+
+  test("the printed configuration reads as written by hand", () => {
+    const printed: string = printHclExpression(
+      monitorStepsToHcl(
+        customCodeMonitor([
+          resultValueFilter({ resultValuePath: "status" }),
+          {
+            checkOn: "Result Value",
+            filterType: "Greater Than",
+            value: 500,
+            customCodeMonitorOptions: { resultValuePath: "checks[0].latency" },
+          },
+          resultValueFilter(),
+        ]),
+        context(),
+      )!,
+    );
+
+    expect(printed).toContain(
+      [
+        "        filters = [",
+        "          {",
+        '            check_on    = "Result Value"',
+        '            filter_type = "Not Equal To"',
+        '            value       = "UP"',
+        "            custom_code_monitor_options = jsonencode({",
+        '              resultValuePath = "status"',
+        "            })",
+        "          },",
+      ].join("\n"),
+    );
+    expect(printed).toContain('resultValuePath = "checks[0].latency"');
+    // One option per filter that has a path: the third has none.
+    expect(printed.split("custom_code_monitor_options").length - 1).toBe(2);
+    // The server's step id stays out, as everywhere else.
+    expect(printed).not.toContain("server-generated-step-id");
   });
 });
 
