@@ -657,6 +657,33 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   saved. See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **The one record a write names, and a change of a record's labels, keep to
+  the caller's permissions too.** The one record a create or a change names
+  in a field of its own - an alert's monitor, the monitor a status page
+  resource shows, a cost budget's service, the incident a runbook run is
+  linked to - follows the rule the records a write lists follow, under either
+  of its names: one outside the caller's permission to read that kind of
+  record, or carrying a label a block on reading it takes away, is refused
+  with the `400` that names the field and the ID, and nothing is written. A
+  change checks it only when it names another record. OneUptime's global
+  probes and AI agents stay open to every project. The records a service
+  fills in for its caller - the monitors, status pages and on-call policies
+  an incident template adds to an incident declared from it - are checked
+  the same way, before anything is saved and before the incident takes its
+  number. A change of the labels a record carries keeps it within the
+  caller's permission to change it: restricted to labels, the record keeps
+  one of them, and a block with labels on changing it refuses giving it one
+  of its labels; either is refused with a `422` that names the labels. A
+  creator whose permission to create reaches only what they own is made the
+  owner right after the save, before anything else happens to the record,
+  and when that fails the record is removed again and the create is refused
+  with a `500`. The owners of monitors, incidents, alerts, scheduled
+  maintenance events and their templates are now read through the record
+  they own, as a status page's and a service's are. Roles and API keys whose
+  permissions reach the whole project work as before; give a custom role or
+  an API key restricted to labels the read of the records it names. See
+  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
+  and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
   record you may not read answers `404`.** The same rule now holds in the
   places it did not yet reach:
