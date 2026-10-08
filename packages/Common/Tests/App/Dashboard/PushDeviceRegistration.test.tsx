@@ -537,34 +537,32 @@ describe("registering this browser", () => {
 });
 
 describe("when this browser cannot be registered, the dialog says why and what to do", () => {
-  test("notifications blocked for the site: said as soon as the dialog opens, and the browser is not asked again", async () => {
+  test("notifications blocked for the site: the browser says so when asked, and the dialog says how to unblock them", async () => {
     browser.permission = "denied";
+    browser.promptAnswer = "denied";
 
     render(<PushMethods />);
 
-    await openRegisterDialog();
+    const modal: HTMLElement = await openRegisterDialog();
+
+    // Nothing is claimed before the browser is asked.
+    expect(
+      within(modal).queryByText(
+        BROWSER_PUSH_PROBLEM_MESSAGES[BrowserPushProblem.PermissionBlocked],
+      ),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(modal).getByRole("button", { name: "Register Device" }),
+    );
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         BROWSER_PUSH_PROBLEM_MESSAGES[BrowserPushProblem.PermissionBlocked],
       ),
     ).toBeVisible();
-
-    fireEvent.click(
-      within(screen.getByTestId("modal")).getByRole("button", {
-        name: "Register Device",
-      }),
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          BROWSER_PUSH_PROBLEM_MESSAGES[BrowserPushProblem.PermissionBlocked],
-        ),
-      ).toBeVisible();
-    });
-
-    expect(browser.requestPermission).not.toHaveBeenCalled();
+    expect(browser.requestPermission).toHaveBeenCalledTimes(1);
+    expect(browser.register).not.toHaveBeenCalled();
     expect(registerCalls()).toHaveLength(0);
   });
 

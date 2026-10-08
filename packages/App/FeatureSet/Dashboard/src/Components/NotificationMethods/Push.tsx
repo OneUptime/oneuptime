@@ -47,26 +47,16 @@ interface RegisteredBrowser {
 }
 
 /*
- * What stops this browser from being registered before anything is asked of
- * the person: a server without push keys, an insecure page, a browser
- * without push, an iPhone that has not added OneUptime to its Home Screen,
- * or notifications this site was already refused.
+ * What stops this browser from being registered, known before anything is
+ * asked of the person: a server without push keys, an insecure page, a
+ * browser without push, an iPhone that has not added OneUptime to its Home
+ * Screen. Permission is asked for, and answered, on Register Device.
  */
 function getProblemBeforeAsking(): BrowserPushProblem | null {
-  const problem: BrowserPushProblem | null = getBrowserPushProblem({
+  return getBrowserPushProblem({
     environment: readBrowserPushEnvironment(window),
     vapidPublicKey: VAPID_PUBLIC_KEY,
   });
-
-  if (problem) {
-    return problem;
-  }
-
-  if (window.Notification.permission === "denied") {
-    return BrowserPushProblem.PermissionBlocked;
-  }
-
-  return null;
 }
 
 const Push: () => JSX.Element = (): ReactElement => {
@@ -138,14 +128,7 @@ const Push: () => JSX.Element = (): ReactElement => {
     setDeviceName(name);
     setError("");
 
-    /*
-     * Permission is not part of this check: askForNotificationPermission
-     * asks for it, and says what to do when it was refused.
-     */
-    const problem: BrowserPushProblem | null = getBrowserPushProblem({
-      environment: readBrowserPushEnvironment(window),
-      vapidPublicKey: VAPID_PUBLIC_KEY,
-    });
+    const problem: BrowserPushProblem | null = getProblemBeforeAsking();
 
     if (problem) {
       setError(BROWSER_PUSH_PROBLEM_MESSAGES[problem]);

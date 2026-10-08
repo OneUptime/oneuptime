@@ -562,15 +562,22 @@ describe("asking for permission to show notifications", () => {
     expect(api.requestPermission).not.toHaveBeenCalled();
   });
 
-  test("a browser that blocked them is told how to unblock them, and not asked: it would never show the prompt", async () => {
+  test("a site whose notifications are blocked is still asked - the browser answers at once, without a prompt - and is told how to unblock them", async () => {
     const api: NotificationPermissionApi & { requestPermission: jest.Mock } =
-      notificationApi({ permission: "denied" });
+      notificationApi({ permission: "denied", answer: "denied" });
 
     expectProblem(
       await rejectionOf(askForNotificationPermission(api)),
       BrowserPushProblem.PermissionBlocked,
     );
-    expect(api.requestPermission).not.toHaveBeenCalled();
+    expect(api.requestPermission).toHaveBeenCalledTimes(1);
+  });
+
+  test("Notification.permission is not taken at its word: a browser that reports denied but grants when asked goes on", async () => {
+    const api: NotificationPermissionApi & { requestPermission: jest.Mock } =
+      notificationApi({ permission: "denied", answer: "granted" });
+
+    await expect(askForNotificationPermission(api)).resolves.toBeUndefined();
   });
 
   test("allowed at the prompt", async () => {

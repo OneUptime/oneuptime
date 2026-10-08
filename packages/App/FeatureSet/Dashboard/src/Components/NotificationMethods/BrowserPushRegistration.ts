@@ -44,10 +44,10 @@ export const BROWSER_PUSH_PROBLEM_MESSAGES: Record<BrowserPushProblem, string> =
       "On iPhone and iPad, push notifications work once OneUptime is on your Home Screen. In Safari, tap Share, then Add to Home Screen, open OneUptime from your Home Screen and register it there. You can also install the OneUptime On-Call app.",
     ),
     [BrowserPushProblem.NotSupported]: translationKey(
-      "This browser cannot receive push notifications. Use a recent version of Chrome, Edge, Firefox or Safari, or install the OneUptime On-Call app.",
+      "This browser cannot receive push notifications here. Use a regular (not private) window of a recent Chrome, Edge, Firefox or Safari, or install the OneUptime On-Call app.",
     ),
     [BrowserPushProblem.PermissionBlocked]: translationKey(
-      "Notifications are blocked for OneUptime in this browser. Click the icon at the left of the address bar, allow notifications for this site, and then register this browser again.",
+      "Notifications are blocked for OneUptime in this browser. Click the icon at the left of the address bar, allow notifications for this site, and then register this browser again. Private and incognito windows block them for every site: use a regular window.",
     ),
     [BrowserPushProblem.PermissionDismissed]: translationKey(
       "The browser's permission prompt closed without an answer. Register this browser again and choose Allow when the browser asks.",
@@ -312,10 +312,13 @@ export interface NotificationPermissionApi {
 }
 
 /*
- * Asks for permission to show notifications - only when the browser has not
- * answered already, so a person who allowed them is not asked again, and a
- * person who blocked them is told how to unblock them rather than shown a
- * prompt the browser will never open.
+ * Asks for permission to show notifications, unless they are allowed
+ * already, and says what to do when they are not.
+ *
+ * A site whose notifications are blocked is asked too: the browser answers
+ * "denied" at once, without a prompt. Notification.permission is not
+ * trusted for that on its own, because it is not always true - Chromium
+ * reports "denied" in a context where requestPermission grants.
  *
  * Call it first, straight from the click: browsers only open the prompt for
  * a page the person just interacted with.
@@ -325,10 +328,6 @@ export async function askForNotificationPermission(
 ): Promise<void> {
   if (notificationApi.permission === "granted") {
     return;
-  }
-
-  if (notificationApi.permission === "denied") {
-    throw new BrowserPushError(BrowserPushProblem.PermissionBlocked);
   }
 
   const answer: NotificationPermission =
