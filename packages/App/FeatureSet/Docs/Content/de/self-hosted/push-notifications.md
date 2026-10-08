@@ -39,10 +39,13 @@ Prüfen Sie DNS und HTTPS aus dem sendenden Container oder Pod zum Ziel der gew�
 - Überprüfen Sie, ob das Gerät in der Tabelle `UserPush` in Ihrer Datenbank registriert ist
 - Prüfen Sie OneUptime-Server-Logs auf Expo Push API-Fehler
 - Bestätigen Sie, dass das Gerät eine aktive Internetverbindung hat und Benachrichtigungsberechtigungen aktiviert sind
+- Prüfen Sie **User Settings > Notification Methods > Push**: Ein als **Keine Benachrichtigungen** markiertes Gerät empfängt keine Benachrichtigungen mehr und muss erneut registriert werden (siehe unten)
 
 ### „DeviceNotRegistered"-Fehler in den Logs
 
-Der Expo Push-Token ist nicht mehr gültig. Dies bedeutet normalerweise, dass die App deinstalliert wurde oder der Benutzer Benachrichtigungsberechtigungen widerrufen hat. Der Token wird automatisch bereinigt.
+Expo beantwortet einen Push mit `DeviceNotRegistered`, wenn die mobile App vom Gerät entfernt wurde oder das Push-Token des Geräts nicht mehr gültig ist. OneUptime sendet dann nicht mehr an dieses Gerät. Es wird als nicht mehr empfangend markiert statt gelöscht, sodass seine Benachrichtigungsregeln erhalten bleiben, und das Push-Protokoll sowie die On-Call-Zeitleiste nennen den Grund. **User Settings > Notification Methods > Push** zeigt es als **Keine Benachrichtigungen** an. Die anderen Geräte und Benachrichtigungsmethoden seines Besitzers werden weiterhin benachrichtigt.
+
+Um das Gerät zurückzuholen, öffnen Sie darauf die mobile App, während Sie angemeldet sind. Die App registriert sich erneut, wodurch ihr Push-Token bei Expo erneuert wird, und das Gerät empfängt wieder Benachrichtigungen, mit seinen Regeln. Wurde die App entfernt, installieren Sie sie erneut und melden Sie sich an. Über das Push-Relay (ohne `EXPO_ACCESS_TOKEN`) funktioniert das genauso: Das Relay meldet `DeviceNotRegistered` an Ihre Instanz.
 
 ## Support
 

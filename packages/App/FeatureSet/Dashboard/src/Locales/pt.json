@@ -26983,5 +26983,8 @@
   "Branding Logo": "Branding Logo",
   "Branding Product Name": "Branding Product Name",
   "Branding Updated At": "Branding Updated At",
-  "Branding Website URL": "Branding Website URL"
+  "Branding Website URL": "Branding Website URL",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "O aplicativo móvel foi removido deste dispositivo, ou o token push dele não é mais válido. Abra o aplicativo móvel no dispositivo para registrá-lo novamente.",
+  "Waiting for {{name}} to register it again": "Aguardando {{name}} registrá-lo novamente",
+  "{{identifier}} (not receiving notifications)": "{{identifier}} (não está recebendo notificações)"
 }

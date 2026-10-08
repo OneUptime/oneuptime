@@ -7,6 +7,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import PushDeviceType from "Common/Types/PushNotification/PushDeviceType";
+import { isExpoPushDeviceType } from "Common/Types/PushNotification/ExpoPushDeviceType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -355,6 +356,7 @@ const Push: () => JSX.Element = (): ReactElement => {
         refreshToggle={refreshToggle}
         selectMoreFields={{
           isVerified: true,
+          deviceType: true,
         }}
         actionButtons={[
           {
@@ -434,16 +436,23 @@ const Push: () => JSX.Element = (): ReactElement => {
                     <></>
                   )}
                   {/*
-                   * Its push subscription is gone, and nothing is sent to it
-                   * (UserPushService.markWebPushSubscriptionAsGone). The list
-                   * used to show it like any other device.
+                   * Its push subscription is gone - or, for a phone, Expo
+                   * said its push token is - and nothing is sent to it
+                   * (UserPushService.markWebPushSubscriptionAsGone,
+                   * markExpoPushTokenAsGone). The list used to show it like
+                   * any other device. A phone comes back when its app is
+                   * opened, which registers it again.
                    */}
                   {item.isVerified === false ? (
                     <Pill
                       text="Not receiving notifications"
                       color={Red500}
                       size={PillSize.Small}
-                      tooltip="This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to."
+                      tooltip={
+                        isExpoPushDeviceType(item.deviceType)
+                          ? "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again."
+                          : "This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to."
+                      }
                     />
                   ) : (
                     <></>

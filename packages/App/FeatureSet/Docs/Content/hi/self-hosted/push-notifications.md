@@ -39,10 +39,13 @@ Notification भेजने वाले container या pod से चुन�
 - सत्यापित करें कि device आपके database की `UserPush` table में registered है
 - Expo Push API errors के लिए OneUptime server logs जांचें
 - Confirm करें कि device में active internet connection और notification permissions enabled हैं
+- **User Settings > Notification Methods > Push** check करें: **सूचनाएँ नहीं मिल रहीं** के रूप में marked device को notifications मिलना बंद हो गया है और उसे फिर से register करना होगा (नीचे देखें)
 
 ### Logs में "DeviceNotRegistered" errors
 
-Expo Push Token अब valid नहीं है। इसका मतलब आमतौर पर है कि app uninstall हो गई या user ने notification permissions revoke कर दिए। Token automatically clean up होगा।
+जब mobile app device से हटा दिया गया हो या device का push token अब valid न हो, तो Expo push का जवाब `DeviceNotRegistered` से देता है। इसके बाद OneUptime उस device पर भेजना बंद कर देता है। Device को delete करने के बजाय notifications न पाने वाले के रूप में marked किया जाता है, इसलिए उसके notification rules बने रहते हैं, और push log तथा on-call timeline कारण बताते हैं। **User Settings > Notification Methods > Push** में यह **सूचनाएँ नहीं मिल रहीं** के रूप में दिखता है। इसके owner के बाकी devices और notification methods पर अब भी notifications जाते हैं।
+
+Device को वापस लाने के लिए, sign in रहते हुए उस पर mobile app खोलें। App फिर से register होता है, जिससे Expo के साथ उसका push token renew हो जाता है, और device अपने rules के साथ फिर से notifications पाने लगता है। अगर app हटा दिया गया था, तो उसे फिर से install करें और sign in करें। Push relay के ज़रिए (बिना `EXPO_ACCESS_TOKEN` के) भी यह इसी तरह काम करता है: relay आपके instance को `DeviceNotRegistered` की सूचना देता है।
 
 ## Support
 

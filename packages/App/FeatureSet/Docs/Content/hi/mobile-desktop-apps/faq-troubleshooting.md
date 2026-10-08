@@ -38,7 +38,8 @@ Mobile push, Expo Push के माध्यम से APNs (iOS) और FCM (A
 2. Battery optimisation disabled है और background activity allowed है (Android)।
 3. Do Not Disturb या Focus modes बंद हैं, या app exception list पर है।
 4. आप sign in हैं — push token केवल आपके sign in करने के बाद ही server के साथ register होता है।
-5. **केवल Self-hosted:** Push notifications आपके OneUptime instance पर configured हैं। [Push Notifications](/docs/self-hosted/push-notifications) guide देखें।
+5. OneUptime में **User Settings > Notification Methods > Push** के अंतर्गत phone **सूचनाएँ नहीं मिल रहीं** के रूप में marked नहीं है। अगर है, तो sign in रहते हुए phone पर app खोलें ताकि वह फिर से register हो जाए।
+6. **केवल Self-hosted:** Push notifications आपके OneUptime instance पर configured हैं। [Push Notifications](/docs/self-hosted/push-notifications) guide देखें।
 
 ### क्या मेरे phone पर data सुरक्षित है?
 

@@ -96,6 +96,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 
 const USER_ID: string = "7f000000-0000-4000-8000-0000000000a1";
 const PROJECT_ID: string = "7f000000-0000-4000-8000-0000000000b1";
@@ -750,6 +751,94 @@ test("a device that no longer receives notifications says so in the list", async
   const listRequest: { select: Record<string, unknown> } = getListMock.mock
     .calls[0]![0] as never;
   expect(listRequest.select["isVerified"]).toBe(true);
+});
+
+/*
+ * A phone stops receiving notifications when Expo says its push token is
+ * gone (UserPushService.markExpoPushTokenAsGone). What brings it back is on
+ * the phone, not in this browser: opening the mobile app registers it again.
+ */
+describe("why a device no longer receives notifications, and how to bring it back", () => {
+  function deviceOfType(
+    id: string,
+    name: string,
+    deviceType: PushDeviceType,
+  ): UserPush {
+    const model: UserPush = device(id, name, false);
+    model.deviceType = deviceType;
+    return model;
+  }
+
+  async function tooltipOf(deviceName: string): Promise<string> {
+    const row: HTMLElement = (await screen.findByText(deviceName)).closest(
+      "tr",
+    )!;
+    const pill: HTMLElement = within(row)
+      .getByText("Not receiving notifications")
+      .closest("[data-ou-pill]")!;
+
+    fireEvent.mouseEnter(pill);
+
+    let text: string = "";
+
+    await waitFor(() => {
+      const tooltips: Array<string> = screen
+        .getAllByRole("tooltip")
+        .map((tooltip: HTMLElement): string => {
+          return tooltip.textContent || "";
+        });
+
+      text = tooltips[tooltips.length - 1] || "";
+      expect(text).not.toBe("");
+    });
+
+    fireEvent.mouseLeave(pill);
+
+    return text;
+  }
+
+  test.each([
+    ["an iPhone", PushDeviceType.iOS],
+    ["an Android phone", PushDeviceType.Android],
+  ])(
+    "%s: open the mobile app on it to register it again",
+    async (_name: string, deviceType: PushDeviceType) => {
+      devices = [deviceOfType(PHONE_DEVICE_ID, "Phone on call", deviceType)];
+
+      render(<PushMethods />);
+
+      expect(await tooltipOf("Phone on call")).toBe(
+        "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.",
+      );
+    },
+  );
+
+  test("a browser: register it again from that browser", async () => {
+    devices = [
+      deviceOfType(NEW_DEVICE_ID, "Firefox on Linux", PushDeviceType.Web),
+    ];
+
+    render(<PushMethods />);
+
+    expect(await tooltipOf("Firefox on Linux")).toBe(
+      "This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to.",
+    );
+  });
+
+  test("the list reads each device's type, which decides what to say", async () => {
+    devices = [
+      deviceOfType(PHONE_DEVICE_ID, "Phone on call", PushDeviceType.iOS),
+    ];
+
+    render(<PushMethods />);
+
+    await screen.findByText("Phone on call");
+
+    const listRequest: { select: Record<string, unknown> } = getListMock.mock
+      .calls[0]![0] as never;
+    expect(listRequest.select["deviceType"]).toBe(true);
+    expect(listRequest.select["isVerified"]).toBe(true);
+  });
 });
 
 describe("when this browser cannot be registered, the dialog says why and what to do", () => {

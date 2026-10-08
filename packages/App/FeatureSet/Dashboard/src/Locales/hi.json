@@ -26983,5 +26983,8 @@
   "Branding Logo": "Branding Logo",
   "Branding Product Name": "Branding Product Name",
   "Branding Updated At": "Branding Updated At",
-  "Branding Website URL": "Branding Website URL"
+  "Branding Website URL": "Branding Website URL",
+  "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.": "इस डिवाइस से मोबाइल ऐप हटा दिया गया है, या इसका पुश टोकन अब मान्य नहीं है। इसे फिर से रजिस्टर करने के लिए डिवाइस पर मोबाइल ऐप खोलें।",
+  "Waiting for {{name}} to register it again": "{{name}} द्वारा फिर से रजिस्टर किए जाने की प्रतीक्षा",
+  "{{identifier}} (not receiving notifications)": "{{identifier}} (सूचनाएँ नहीं मिल रहीं)"
 }

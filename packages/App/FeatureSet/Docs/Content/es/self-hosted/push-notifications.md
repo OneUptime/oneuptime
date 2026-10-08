@@ -39,10 +39,13 @@ Comprueba DNS y HTTPS desde el contenedor o pod emisor al destino del modo selec
 - Verifica que el dispositivo esté registrado en la tabla `UserPush` de tu base de datos
 - Comprueba los registros del servidor de OneUptime para detectar errores de la API de Expo Push
 - Confirma que el dispositivo tenga una conexión a internet activa y los permisos de notificación habilitados
+- Revisa **User Settings > Notification Methods > Push**: un dispositivo marcado como **No recibe notificaciones** dejó de recibirlas y debe registrarse de nuevo (consulta más abajo)
 
 ### Errores "DeviceNotRegistered" en los registros
 
-El token Push de Expo ya no es válido. Esto generalmente significa que la aplicación fue desinstalada o el usuario revocó los permisos de notificación. El token se limpiará automáticamente.
+Expo responde a un push con `DeviceNotRegistered` cuando la aplicación móvil se eliminó del dispositivo o el token push del dispositivo ya no es válido. OneUptime deja entonces de enviar a ese dispositivo. Se marca como que no recibe notificaciones en lugar de eliminarse, así que sus reglas de notificación se conservan, y el registro de push y la línea de tiempo de guardia indican el motivo. **User Settings > Notification Methods > Push** lo muestra como **No recibe notificaciones**. Los demás dispositivos y métodos de notificación de su propietario siguen recibiendo los avisos.
+
+Para recuperar el dispositivo, abre la aplicación móvil en él con la sesión iniciada. La aplicación se registra de nuevo, lo que renueva su token push con Expo, y el dispositivo vuelve a recibir notificaciones con sus reglas. Si la aplicación se eliminó, instálala de nuevo e inicia sesión. A través del relé push (sin `EXPO_ACCESS_TOKEN`) funciona igual: el relé informa `DeviceNotRegistered` a tu instancia.
 
 ## Soporte
 
