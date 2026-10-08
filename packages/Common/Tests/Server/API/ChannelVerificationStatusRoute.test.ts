@@ -1,9 +1,11 @@
 import UserCallAPI from "../../../Server/API/UserCallAPI";
+import UserEmailAPI from "../../../Server/API/UserEmailAPI";
 import UserIncomingCallNumberAPI from "../../../Server/API/UserIncomingCallNumberAPI";
 import UserSmsAPI from "../../../Server/API/UserSmsAPI";
 import UserWhatsAppAPI from "../../../Server/API/UserWhatsAppAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import UserCallService from "../../../Server/Services/UserCallService";
+import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserIncomingCallNumberService from "../../../Server/Services/UserIncomingCallNumberService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
@@ -41,6 +43,7 @@ jest.mock("../../../Server/Utils/Response", () => {
   };
 });
 
+jest.mock("../../../Server/Services/UserEmailService");
 jest.mock("../../../Server/Services/UserSmsService");
 jest.mock("../../../Server/Services/UserCallService");
 jest.mock("../../../Server/Services/UserWhatsAppService");
@@ -51,7 +54,7 @@ jest.mock("../../../Server/Services/UserNotificationRuleService");
  * POST <channel>/verification-status - what the verify dialog asks when it
  * opens, instead of announcing that a code was sent. Every channel with a
  * code registers it through ChannelVerificationStatusRoute, so this runs the
- * same cases against all four and a channel that loses the route, or answers
+ * same cases against all five and a channel that loses the route, or answers
  * somebody else, fails here.
  */
 
@@ -72,6 +75,14 @@ interface Channel {
 }
 
 const CHANNELS: Array<Channel> = [
+  {
+    name: "UserEmailAPI",
+    statusPath: "/user-email/verification-status",
+    service: UserEmailService,
+    build: () => {
+      new UserEmailAPI();
+    },
+  },
   {
     name: "UserSmsAPI",
     statusPath: "/user-sms/verification-status",

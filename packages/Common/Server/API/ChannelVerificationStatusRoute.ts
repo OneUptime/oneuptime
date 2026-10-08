@@ -26,8 +26,8 @@ import ObjectID from "../../Types/ObjectID";
  * The verify dialog asks this when it opens, instead of announcing that a
  * code was sent - which it used to do whatever had happened, including
  * nothing at all, because the project had no Twilio account. Every channel
- * with a code (SMS, calls, WhatsApp, incoming call numbers) registers the same
- * route through this one function, so they answer alike.
+ * with a code (email, SMS, calls, WhatsApp, incoming call numbers) registers
+ * the same route through this one function, so they answer alike.
  *
  * Only the row's owner gets an answer: the same refusals, in the same words,
  * as the verify route gives anybody else. There is nothing here to guess at

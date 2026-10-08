@@ -13,7 +13,9 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
-import ChannelVerification from "../Utils/ChannelVerification";
+import ChannelVerification, {
+  ChannelVerificationStatus,
+} from "../Utils/ChannelVerification";
 import Model from "../../Models/DatabaseModels/UserEmail";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -131,6 +133,27 @@ export class Service extends DatabaseService<Model> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * Where this address's code stands, for its owner's verify dialog
+   * (ChannelVerification.getStatus). The item is read by the caller, who
+   * has already checked whose it is.
+   *
+   * Nothing is said to stand in the way of an email: the mail service
+   * decides how to send it (the server's SMTP, the project's, or
+   * OneUptime's own), and the code still goes out fire-and-forget - the
+   * end-to-end stack, which has no mailbox, confirms addresses with the
+   * code it is handed (onCreateSuccess) whether or not the mail went out.
+   */
+  @CaptureSpan()
+  public async getVerificationStatus(
+    item: Model,
+  ): Promise<ChannelVerificationStatus> {
+    return ChannelVerification.getStatus({
+      item: item,
+      cannotSendReason: null,
+    });
   }
 
   @CaptureSpan()

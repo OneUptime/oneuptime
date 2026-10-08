@@ -176,7 +176,8 @@ interface Channel {
   verifyAnswersWithCallHandOver: boolean;
   /*
    * The channels with a verify dialog answer a resend with where the new
-   * code stands; email still answers empty.
+   * code stands. All five have one now; the flag stays so a channel added
+   * without one says so here.
    */
   resendAnswersWithStatus: boolean;
 }
@@ -192,7 +193,7 @@ const CHANNELS: Array<Channel> = [
     },
     createsDefaultRules: true,
     verifyAnswersWithCallHandOver: false,
-    resendAnswersWithStatus: false,
+    resendAnswersWithStatus: true,
   },
   {
     name: "UserSmsAPI",

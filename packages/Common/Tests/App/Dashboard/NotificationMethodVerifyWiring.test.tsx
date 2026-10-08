@@ -21,7 +21,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * HOW THE LISTS HAND A NUMBER TO THE VERIFY DIALOG.
  *
- * The person's SMS, call, WhatsApp and incoming call number lists each:
+ * The person's email, SMS, call, WhatsApp and incoming call number lists
+ * each:
  *
  *   - open the verify dialog straight after a number is added - adding it
  *     sent the code, so typing it in is the next step, not something to be
@@ -83,6 +84,7 @@ jest.mock("react-i18next", () => {
   };
 });
 
+import EmailMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Email";
 import SMSMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/SMS";
 import CallMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Call";
 import WhatsAppMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/WhatsApp";
@@ -94,11 +96,13 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
+import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserIncomingCallNumber from "../../../Models/DatabaseModels/UserIncomingCallNumber";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import OneUptimeDate from "../../../Types/Date";
+import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
@@ -116,9 +120,35 @@ interface MethodList {
   modelType: DatabaseBaseModelType;
   route: string;
   dialogTitle: string;
+  // Where the code goes: the row's address or number.
+  destination: string;
+  identify: (model: BaseModel, destination: string) => void;
 }
 
+const byPhone: (model: BaseModel, destination: string) => void = (
+  model: BaseModel,
+  destination: string,
+): void => {
+  (model as unknown as Record<string, unknown>)["phone"] = new Phone(
+    destination,
+  );
+};
+
 const METHOD_LISTS: Array<MethodList> = [
+  {
+    name: "Email",
+    Component: EmailMethods,
+    tableId: "user-emails",
+    modelType: UserEmail,
+    route: "/user-email",
+    dialogTitle: "Verify Email",
+    destination: "jane@example.com",
+    identify: (model: BaseModel, destination: string): void => {
+      (model as unknown as Record<string, unknown>)["email"] = new Email(
+        destination,
+      );
+    },
+  },
   {
     name: "SMS",
     Component: SMSMethods,
@@ -126,6 +156,8 @@ const METHOD_LISTS: Array<MethodList> = [
     modelType: UserSMS,
     route: "/user-sms",
     dialogTitle: "Verify Phone Number",
+    destination: PHONE,
+    identify: byPhone,
   },
   {
     name: "Call",
@@ -134,6 +166,8 @@ const METHOD_LISTS: Array<MethodList> = [
     modelType: UserCall,
     route: "/user-call",
     dialogTitle: "Verify Phone Number",
+    destination: PHONE,
+    identify: byPhone,
   },
   {
     name: "WhatsApp",
@@ -142,6 +176,8 @@ const METHOD_LISTS: Array<MethodList> = [
     modelType: UserWhatsApp,
     route: "/user-whatsapp",
     dialogTitle: "Verify WhatsApp Number",
+    destination: PHONE,
+    identify: byPhone,
   },
   {
     name: "Incoming call numbers",
@@ -150,6 +186,8 @@ const METHOD_LISTS: Array<MethodList> = [
     modelType: UserIncomingCallNumber,
     route: "/user-incoming-call-number",
     dialogTitle: "Verify Phone Number",
+    destination: PHONE,
+    identify: byPhone,
   },
 ];
 
@@ -173,9 +211,7 @@ const row: (
 ): BaseModel => {
   const model: BaseModel = new list.modelType();
   model.id = new ObjectID(ITEM_ID);
-  (model as unknown as Record<string, unknown>)["phone"] = new Phone(
-    values.phone || PHONE,
-  );
+  list.identify(model, values.phone || list.destination);
   (model as unknown as Record<string, unknown>)["isVerified"] =
     values.isVerified;
   return model;
@@ -289,7 +325,7 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
       projectId: expect.anything(),
       itemId: ITEM_ID,
     });
-    expect(document.body.textContent).toContain(PHONE);
+    expect(document.body.textContent).toContain(list.destination);
   });
 
   test("Verify opens the same dialog, and the list offers no Resend Code of its own", async () => {

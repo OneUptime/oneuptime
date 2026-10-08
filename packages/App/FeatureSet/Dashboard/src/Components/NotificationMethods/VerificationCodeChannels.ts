@@ -5,11 +5,11 @@ import {
 
 /*
  * What the verify dialog (VerificationCodeModal) says, channel by channel:
- * the people's own SMS numbers, call numbers, WhatsApp numbers and numbers
- * for incoming calls (User Settings > Notification Methods, and Incoming
- * Call Phone Numbers).
+ * the people's own email addresses, SMS numbers, call numbers, WhatsApp
+ * numbers and numbers for incoming calls (User Settings > Notification
+ * Methods, and Incoming Call Phone Numbers).
  *
- * The dialog used to be four copies of a form whose description was fixed
+ * The dialog used to be five copies of a form whose description was fixed
  * text - "We have sent a SMS with your verification code" - shown whatever
  * had happened, including when nothing could be sent because the project had
  * no Twilio account. Sending another code was a separate row action behind
@@ -27,6 +27,7 @@ import {
  */
 
 export enum VerificationCodeChannel {
+  Email = "Email",
   SMS = "SMS",
   Call = "Call",
   WhatsApp = "WhatsApp",
@@ -80,6 +81,26 @@ const SMS_COPY: Omit<
 const VERIFICATION_CODE_CHANNELS: Readonly<
   Record<VerificationCodeChannel, VerificationCodeChannelDefinition>
 > = {
+  [VerificationCodeChannel.Email]: {
+    channel: VerificationCodeChannel.Email,
+    apiRoute: "/user-email",
+    title: translationKey("Verify Email"),
+    codeSentSentence: translationKey(
+      "We emailed a 6-digit code to {{destination}} at {{sentAt}}.",
+    ),
+    codeExpiredSentence: translationKey(
+      "The code we emailed to {{destination}} has expired.",
+    ),
+    noCodeSentence: translationKey(
+      "There is no code waiting for {{destination}}.",
+    ),
+    sendCodeNextStep: translationKey("Send a new code to verify this address."),
+    sendCodeButtonText: translationKey("Send a new code"),
+    sendingCodeButtonText: translationKey("Sending…"),
+    notArrivedHint: translationKey(
+      "Emails can take a few minutes, and sometimes land in spam. If it does not come, Project Settings > Notification Logs shows what happened to it.",
+    ),
+  },
   [VerificationCodeChannel.SMS]: {
     channel: VerificationCodeChannel.SMS,
     apiRoute: "/user-sms",
@@ -185,7 +206,7 @@ export const VerificationCodeCopy: {
   ),
   alreadyVerified: translationKey("{{destination}} is verified."),
   statusUnavailable: translationKey(
-    "We could not check whether a code is waiting for this number. If you have one, you can still enter it.",
+    "We could not check whether a code is waiting. If you have one, you can still enter it.",
   ),
   doneButtonText: translationKey("Done"),
 };

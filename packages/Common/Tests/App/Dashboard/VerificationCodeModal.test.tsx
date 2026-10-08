@@ -27,8 +27,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * and they asked whether they had to press Resend Code before Verify, or
  * whether Verify sent a code too.
  *
- * VerificationCodeModal, shared by the SMS, call, WhatsApp and incoming call
- * number lists, asks the server where the code stands and says that. These
+ * VerificationCodeModal, shared by the email, SMS, call, WhatsApp and
+ * incoming call number lists, asks the server where the code stands and says
+ * that. These
  * render it with only the network stubbed and pin every state a person can
  * meet: a code waiting (and until when), the cooldown before another, an
  * expired or missing code, no code possible at all and why, a send or a
@@ -627,7 +628,7 @@ describe("when the status cannot be read", () => {
     await open();
 
     expect(statusText()).toBe(
-      "We could not check whether a code is waiting for this number. If you have one, you can still enter it.",
+      "We could not check whether a code is waiting. If you have one, you can still enter it.",
     );
     expect(codeInput()).toBeInTheDocument();
     expect(submitButton()).toHaveTextContent("Verify");
@@ -639,6 +640,7 @@ describe("when the status cannot be read", () => {
 
 describe("each channel", () => {
   test.each([
+    [VerificationCodeChannel.Email, "/user-email"],
     [VerificationCodeChannel.SMS, "/user-sms"],
     [VerificationCodeChannel.Call, "/user-call"],
     [VerificationCodeChannel.WhatsApp, "/user-whatsapp"],
@@ -669,6 +671,32 @@ describe("each channel", () => {
     ).toHaveTextContent("Call me with a new code");
     expect(document.body.textContent).toContain(
       "A number you have verified for SMS is verified for calls without a code, so you can verify it there instead.",
+    );
+  });
+
+  test("an email address's dialog speaks of email, and of the spam folder", async () => {
+    render(
+      <VerificationCodeModal
+        channel={VerificationCodeChannel.Email}
+        itemId={ITEM_ID}
+        destination={"jane@example.com"}
+        onClose={() => {}}
+        onVerified={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(VERIFICATION_CODE_STATUS_TEST_ID),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent("Verify Email");
+    expect(statusText()).toContain(
+      "We emailed a 6-digit code to jane@example.com at",
+    );
+    expect(document.body.textContent).toContain(
+      "Emails can take a few minutes, and sometimes land in spam.",
     );
   });
 

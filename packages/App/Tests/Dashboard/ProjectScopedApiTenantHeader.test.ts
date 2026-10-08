@@ -619,10 +619,6 @@ describe("the pages that call project-scoped custom routes", () => {
 describe("user-scoped notification endpoints carry projectId in the body", () => {
   const USER_SCOPED: Array<{ page: Array<string>; route: string }> = [
     {
-      page: ["Components", "NotificationMethods", "Email.tsx"],
-      route: "/user-email/",
-    },
-    {
       page: ["Components", "NotificationMethods", "Push.tsx"],
       route: "/user-push/",
     },
@@ -635,9 +631,9 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
       route: "/user-webhook/",
     },
     /*
-     * The SMS, call, WhatsApp and incoming call number lists verify through
-     * one dialog, which posts to the channel's route (verify, resend,
-     * verification-status) - see the test below.
+     * The email, SMS, call, WhatsApp and incoming call number lists verify
+     * through one dialog, which posts to the channel's route (verify,
+     * resend, verification-status) - see the test below.
      */
     {
       page: ["Components", "NotificationMethods", "VerificationCodeModal.tsx"],
@@ -666,6 +662,7 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
   );
 
   test.each([
+    ["Email.tsx", "Email", "/user-email"],
     ["SMS.tsx", "SMS", "/user-sms"],
     ["Call.tsx", "Call", "/user-call"],
     ["WhatsApp.tsx", "WhatsApp", "/user-whatsapp"],

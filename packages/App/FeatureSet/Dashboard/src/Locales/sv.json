@@ -26450,12 +26450,16 @@
   "The code we sent to {{destination}} has expired.": "The code we sent to {{destination}} has expired.",
   "There is no code waiting for {{destination}}.": "There is no code waiting for {{destination}}.",
   "We called {{destination}} at {{sentAt}} and read out a 6-digit code.": "We called {{destination}} at {{sentAt}} and read out a 6-digit code.",
-  "We could not check whether a code is waiting for this number. If you have one, you can still enter it.": "We could not check whether a code is waiting for this number. If you have one, you can still enter it.",
   "We sent a 6-digit code by SMS to {{destination}} at {{sentAt}}.": "We sent a 6-digit code by SMS to {{destination}} at {{sentAt}}.",
   "We sent a 6-digit code on WhatsApp to {{destination}} at {{sentAt}}.": "We sent a 6-digit code on WhatsApp to {{destination}} at {{sentAt}}.",
   "You can ask for a new code in {{count}} seconds.": "You can ask for a new code in {{count}} seconds.",
   "You can ask for a new code in {{count}} seconds._one": "You can ask for a new code in {{count}} second.",
   "{{destination}} is already verified for SMS, so it is verified for calls too. No code needed.": "{{destination}} is already verified for SMS, so it is verified for calls too. No code needed.",
   "{{destination}} is verified.": "{{destination}} is verified.",
-  "{{destination}} is verified. It is verified for calls too, so you will not need another code there.": "{{destination}} is verified. It is verified for calls too, so you will not need another code there."
+  "{{destination}} is verified. It is verified for calls too, so you will not need another code there.": "{{destination}} is verified. It is verified for calls too, so you will not need another code there.",
+  "Emails can take a few minutes, and sometimes land in spam. If it does not come, Project Settings > Notification Logs shows what happened to it.": "Emails can take a few minutes, and sometimes land in spam. If it does not come, Project Settings > Notification Logs shows what happened to it.",
+  "Send a new code to verify this address.": "Send a new code to verify this address.",
+  "The code we emailed to {{destination}} has expired.": "The code we emailed to {{destination}} has expired.",
+  "We could not check whether a code is waiting. If you have one, you can still enter it.": "We could not check whether a code is waiting. If you have one, you can still enter it.",
+  "We emailed a 6-digit code to {{destination}} at {{sentAt}}.": "We emailed a 6-digit code to {{destination}} at {{sentAt}}."
 }

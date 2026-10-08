@@ -262,7 +262,8 @@ interface MethodTable {
   /*
    * The NORMAL-styled code action that would take the button without the
    * mark. Unset where a new code is sent from the verify dialog instead
-   * (SMS, calls, WhatsApp, incoming call numbers), which then says how.
+   * (email, SMS, calls, WhatsApp, incoming call numbers), which then says
+   * how.
    */
   codeActionTitle?: string | undefined;
   codeActionDialogTitle?: string | undefined;
@@ -276,9 +277,8 @@ const METHOD_TABLES: Array<MethodTable> = [
     Component: EmailMethods,
     modelType: UserEmail,
     columns: { email: new Email("jane@example.com") as never },
-    codeActionTitle: "Resend Code",
     verifyDialogTitle: "Verify Email",
-    codeActionDialogTitle: "Resend Code",
+    sendCodeInDialogText: "Send a new code",
   },
   {
     name: "SMS",

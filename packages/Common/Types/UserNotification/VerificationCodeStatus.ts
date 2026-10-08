@@ -2,12 +2,13 @@ import { JSONObject } from "../JSON";
 
 /*
  * Where the verification code of a person's unverified notification method
- * stands - an SMS or call number, a WhatsApp number, a number for incoming
- * calls - as the channel's verification-status route answers it, and as a
- * resend answers too (Server/API/ChannelVerificationStatusRoute). The server
- * works it out (Server/Utils/ChannelVerification.getStatus); the dashboard's
- * verify dialog reads it, so both sides share this one definition of what
- * goes over the wire.
+ * stands - an email address, an SMS or call number, a WhatsApp number, a
+ * number for incoming calls - as the channel's verification-status route
+ * answers it, and as a resend answers too
+ * (Server/API/ChannelVerificationStatusRoute). The server works it out
+ * (Server/Utils/ChannelVerification.getStatus); the dashboard's verify
+ * dialog reads it, so both sides share this one definition of what goes
+ * over the wire.
  */
 
 export enum VerificationCodeState {
