@@ -219,7 +219,9 @@ const ABSOLUTE_DOCS_LINK: RegExp =
   /^https?:\/\/(?:www\.)?oneuptime\.com\/docs\//;
 const QUERY_OR_HASH: RegExp = /[?#]/;
 const NOT_A_WORD: RegExp = /[^a-z0-9]+/;
-const PLURAL_ENDING: RegExp = /(?:es|s)$/;
+const ENDS_IN_IES: RegExp = /ies$/;
+const ENDS_IN_ES: RegExp = /es$/;
+const ENDS_IN_S: RegExp = /s$/;
 // Code samples, inline code and diagrams: raw syntax inside them is content.
 const RENDERED_CODE: RegExp =
   /<pre>[\s\S]*?<\/pre>|<code\b[\s\S]*?<\/code>|<div class="mermaid">[\s\S]*?<\/div>/g;
@@ -235,21 +237,32 @@ const RAW_SYNTAX: Array<[RegExp, string]> = [
 
 const GETTING_STARTED: DocsPage = "introduction/getting-started";
 
-// The words of a title that say what it is about: "Monitors" -> "monitor".
+/*
+ * The words of a title that say what it is about, each with the forms its
+ * singular may take: "Websites" is "website" (or "websit"), "Policies" is
+ * "policy", "Statuses" is "status". Two titles are about the same thing when
+ * they share one of them.
+ */
 const titleWords: (text: string) => Set<string> = (
   text: string,
 ): Set<string> => {
-  return new Set(
-    text
-      .toLowerCase()
-      .split(NOT_A_WORD)
-      .filter((word: string): boolean => {
-        return word.length > 1 && word !== "the" && word !== "and";
-      })
-      .map((word: string): string => {
-        return word.replace(PLURAL_ENDING, "");
-      }),
-  );
+  const words: Set<string> = new Set();
+  for (const word of text.toLowerCase().split(NOT_A_WORD)) {
+    if (word.length < 2 || word === "the" || word === "and") {
+      continue;
+    }
+    words.add(word);
+    if (ENDS_IN_IES.test(word)) {
+      words.add(word.replace(ENDS_IN_IES, "y"));
+    }
+    if (ENDS_IN_ES.test(word)) {
+      words.add(word.replace(ENDS_IN_ES, ""));
+    }
+    if (ENDS_IN_S.test(word)) {
+      words.add(word.replace(ENDS_IN_S, ""));
+    }
+  }
+  return words;
 };
 
 /*
