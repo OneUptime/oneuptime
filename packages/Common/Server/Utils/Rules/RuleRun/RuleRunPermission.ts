@@ -130,19 +130,27 @@ function requirePermission(data: {
     );
   };
 
-  if (!CallerPermission.isGrantedAny(data.props, required, options)) {
+  if (!HeldPermissionsUtil.isGrantedAny(held, required, options)) {
     /*
      * Held through the wildcard alone, which a block with labels takes away
-     * for a run: said as a block on the permission itself is said.
+     * for a run: said as a block on the permission itself is said - after a
+     * block with no labels on the model's list, which refuses first, as it
+     * does below.
      */
     if (
       wildcard &&
       carriesLabels &&
-      CallerPermission.isGrantedAny(data.props, required, {
+      HeldPermissionsUtil.isGrantedAny(held, required, {
         ...options,
         labelledBlocksRefuse: false,
       })
     ) {
+      TablePermission.checkTableLevelBlockPermissions(
+        data.modelType,
+        data.props,
+        data.requestType,
+      );
+
       refuseBlockedForSomeLabels(wildcard);
     }
 

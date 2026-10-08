@@ -623,6 +623,26 @@ describe("RuleRunPermission.assertCanRun - blocks on some labels", () => {
     );
   });
 
+  it("names a block with no labels on the resource's own permission before the wildcard's block on some labels", () => {
+    expect(() => {
+      assertCanRun(
+        RuleRunType.MonitorLabelRule,
+        propsWith({
+          permissions: [
+            Permission.EditMonitorLabelRule,
+            Permission.EditAllOperationalResources,
+          ],
+          blockedPermissions: [Permission.EditProjectMonitor],
+          labelledBlockedPermissions: [Permission.EditAllOperationalResources],
+        }),
+      );
+    }).toThrow(
+      new NotAuthorizedException(
+        `You are not authorized to update Monitor because ${Permission.EditProjectMonitor} is in your team's permission block list.`,
+      ),
+    );
+  });
+
   it("still says what is missing when the wildcard is not held at all", () => {
     expect(() => {
       assertCanRun(
