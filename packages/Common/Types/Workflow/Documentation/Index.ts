@@ -25,6 +25,7 @@ import {
 } from "./DocumentationContext";
 import {
   getDiscordDocumentation,
+  getIRCDocumentation,
   getMicrosoftTeamsDocumentation,
   getSendEmailDocumentation,
   getSlackDocumentation,
@@ -61,6 +62,7 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
     getMicrosoftTeamsDocumentation,
   [ComponentID.DiscordSendMessageToChannel]: getDiscordDocumentation,
   [ComponentID.TelegramSendMessageToChat]: getTelegramDocumentation,
+  [ComponentID.IRCSendMessageToChannel]: getIRCDocumentation,
   [ComponentID.JavaScriptCode]: getJavaScriptDocumentation,
   [ComponentID.JsonToText]: getJsonToTextDocumentation,
   [ComponentID.TextToJson]: getTextToJsonDocumentation,

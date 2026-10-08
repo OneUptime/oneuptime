@@ -86,6 +86,12 @@ Pubblica un messaggio in un canale Discord tramite un URL di webhook in entrata.
 
 Manda un messaggio a una chat Telegram usando un token del bot e un chat ID.
 
+## IRC
+
+Manda un messaggio a un canale IRC su qualsiasi rete IRC: Libera.Chat, OFTC o un server tuo. Il blocco si collega via TLS, entra nel canale, invia il messaggio ed esce.
+
+Compila **IRC Server** (solo il nome host, ad esempio `irc.libera.chat`), **Channel** (ad esempio `#ops`) e **Message Text**. Ogni riga viene inviata come un messaggio IRC a sé, fino a 15 righe. Le impostazioni facoltative coprono il nickname, la porta, una password del server e **SASL Username** e **SASL Password** per le reti che richiedono l'accesso.
+
 ## Email
 
 Manda un'email attraverso un server SMTP che inserisci nel blocco.

@@ -6,6 +6,7 @@ import ConditionComponents from "./Components/Condition";
 import DiscordComponents from "./Components/Discord";
 import EmailComponents from "./Components/Email";
 import IncomingEmailComponents from "./Components/IncomingEmail";
+import IRCComponents from "./Components/IRC";
 import JsonComponents from "./Components/JSON";
 import JavaScriptComponents from "./Components/JavaScript";
 import LogComponents from "./Components/Log";
@@ -26,6 +27,7 @@ const components: Array<ComponentMetadata> = [
   ...SlackComponents,
   ...DiscordComponents,
   ...TelegramComponents,
+  ...IRCComponents,
   ...ConditionComponents,
   ...JsonComponents,
   ...JavaScriptComponents,
@@ -75,6 +77,11 @@ export const Categories: Array<ComponentCategory> = [
   {
     name: "Telegram",
     description: "Integrate OneUptime with your Telegram chats and channels.",
+    icon: IconProp.SendMessage,
+  },
+  {
+    name: "IRC",
+    description: "Integrate OneUptime with your IRC channels.",
     icon: IconProp.SendMessage,
   },
   {

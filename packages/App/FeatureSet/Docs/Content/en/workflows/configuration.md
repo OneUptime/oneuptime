@@ -109,7 +109,7 @@ Only people who can edit the workflow — **Project Owner**, **Project Admin**, 
 
 ## Outbound network access
 
-API and other HTTP blocks make their requests from OneUptime. If you self-host, make sure your installation can reach the services you're calling. If you use OneUptime Cloud, our outbound IP ranges are listed in [IP Addresses](/docs/configuration/ip-addresses) so you can allow them on the other side.
+API and other HTTP blocks make their requests from OneUptime, and the IRC block connects from OneUptime to the IRC server's port. If you self-host, make sure your installation can reach the services you're calling. If you use OneUptime Cloud, our outbound IP ranges are listed in [IP Addresses](/docs/configuration/ip-addresses) so you can allow them on the other side.
 
 ## AI components
 
@@ -167,7 +167,7 @@ The steps that read and change OneUptime records — the Find, Create, Update an
 
 When a check refuses a step, the step takes its **Error** output without making the refused change, and the run log names the step and the reason in plain words, for example *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Read it under the workflow's [Runs](/docs/workflows/runs-and-logs). A Create Many step creates its records one at a time and stops at the first one refused: the records it created before that one are kept.
 
-Steps that talk to other systems — API, Email, Slack, Microsoft Teams, Discord, Telegram, Custom Code and Generate Text with AI — don't read or change OneUptime records, so none of this changes them.
+Steps that talk to other systems — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code and Generate Text with AI — don't read or change OneUptime records, so none of this changes them.
 
 ## Plan limits
 

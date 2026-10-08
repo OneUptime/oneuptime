@@ -58,7 +58,7 @@
 거의 모든 텍스트 필드가 변수를 받습니다.
 
 - API 블록의 URL.
-- Slack, Teams, Discord, Telegram, 이메일의 메시지 텍스트.
+- Slack, Teams, Discord, Telegram, IRC, 이메일의 메시지 텍스트.
 - 이메일의 제목과 본문.
 - 헤더와 본문 필드(문자열 값 안에서).
 - **If / Else** 블록의 양쪽 값.

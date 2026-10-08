@@ -778,17 +778,34 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     /*
+     * An incoming webhook's card cannot carry a screenshot's base64 (and a
+     * Teams webhook refuses a message that large): an image whose address
+     * is a data: URL is its alt text. A text longer than a message can
+     * carry - a response body or a log of megabytes - is cut, with a note,
+     * to a card within the budget (fitMarkdownText, measuring the card each
+     * cut makes: a table's HTML is several times its Markdown): Teams would
+     * refuse it, and the regular expressions the card is built with cannot
+     * read megabytes safely. A text that fits makes the card it always made.
+     */
+    const fittedMarkdown: string = MicrosoftTeamsMessageSize.fitMarkdownText(
+      ChatInlineImages.toText(markdown),
+      (fitted: string): number => {
+        return MicrosoftTeamsMessageSize.getSizeInBytes(
+          this.buildMessageCardFromFittedMarkdown(fitted),
+        );
+      },
+    );
+
+    return this.buildMessageCardFromFittedMarkdown(fittedMarkdown);
+  }
+
+  private static buildMessageCardFromFittedMarkdown(
+    markdownWithoutInlineImages: string,
+  ): JSONObject {
+    /*
      * Teams MessageCard has limited markdown support. Headings like '##' are not supported
      * and single newlines can collapse. Convert common patterns to a structured card.
      */
-
-    /*
-     * An incoming webhook's card cannot carry a screenshot's base64 (and a
-     * Teams webhook refuses a message that large): an image whose address
-     * is a data: URL is its alt text.
-     */
-    const markdownWithoutInlineImages: string =
-      ChatInlineImages.toText(markdown);
 
     // First, convert markdown tables to HTML
     const markdownWithHtmlTables: string = this.convertMarkdownTablesToHtml(
@@ -3088,7 +3105,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   /*
    * A text block. An image whose address is a data: URL - a screenshot in a
    * description - is its alt text here: sendMessage shows it as an image of
-   * its own before a markdown block gets here (WorkspaceInlineImages).
+   * its own before a markdown block gets here (WorkspaceInlineImages). A
+   * text longer than a message can carry is cut, with a note
+   * (fitMarkdownText).
    */
   @CaptureSpan()
   public static override getMarkdownBlock(data: {
@@ -3096,7 +3115,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): JSONObject {
     return {
       type: "TextBlock",
-      text: ChatInlineImages.toText(data.payloadMarkdownBlock.text),
+      text: MicrosoftTeamsMessageSize.fitMarkdownText(
+        ChatInlineImages.toText(data.payloadMarkdownBlock.text),
+      ),
       wrap: true,
       markdown: true,
     };

@@ -58,7 +58,7 @@ Variáveis locais só existem durante a execução atual. Cada nova execução c
 Quase todo campo de texto aceita variáveis:
 
 - A URL de um bloco de API.
-- O texto da mensagem em Slack, Teams, Discord, Telegram, Email.
+- O texto da mensagem em Slack, Teams, Discord, Telegram, IRC, Email.
 - O assunto e o corpo de um e-mail.
 - Campos de cabeçalho e de corpo (dentro de valores de texto).
 - Os dois lados de um bloco **If / Else**.
