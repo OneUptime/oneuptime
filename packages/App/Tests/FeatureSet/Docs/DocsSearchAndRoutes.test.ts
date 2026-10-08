@@ -360,6 +360,32 @@ describe("a docs page", () => {
     },
   );
 
+  it.each(["en", "de", "fa"])(
+    "offers its own Markdown in %s, to view or to copy",
+    async (lang: string) => {
+      const html: string = await (
+        await fetch(`${origin}/docs/${lang}/monitor/website-monitor`)
+      ).text();
+      const markdownUrl: string = `/docs/as-markdown/${lang}/monitor/website-monitor`;
+      const t: ReturnType<typeof makeT> = makeT(lang);
+
+      expect(html).toContain(
+        `<a class="docs-page-action" href="${markdownUrl}" target="_blank" rel="noopener">`,
+      );
+      expect(html).toContain(t("ui.viewAsMarkdown"));
+      // The copy button waits for the script, which knows about the clipboard.
+      expect(html).toContain(
+        `data-copy-page data-markdown-url="${markdownUrl}" hidden>`,
+      );
+      expect(html).toContain(t("ui.copyPage"));
+
+      const markdown: Response = await fetch(`${origin}${markdownUrl}`);
+      expect(markdown.status).toBe(200);
+      expect(markdown.headers.get("content-type")).toContain("text/markdown");
+      expect((await markdown.text()).startsWith("# ")).toBe(true);
+    },
+  );
+
   it("lists the sidebar in its sections", async () => {
     const html: string = await (
       await fetch(`${origin}/docs/en/monitor/website-monitor`)

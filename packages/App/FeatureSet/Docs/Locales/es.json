@@ -56,7 +56,9 @@
     "calloutWarning": "Advertencia",
     "calloutCaution": "Precaución",
     "calloutDanger": "Peligro",
-    "detailsSummary": "Detalles"
+    "detailsSummary": "Detalles",
+    "copyPage": "Copiar página",
+    "viewAsMarkdown": "Ver como Markdown"
   },
   "navSections": {
     "Get Started": "Primeros pasos",

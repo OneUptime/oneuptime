@@ -56,7 +56,9 @@
     "calloutWarning": "Предупреждение",
     "calloutCaution": "Осторожно",
     "calloutDanger": "Опасно",
-    "detailsSummary": "Подробнее"
+    "detailsSummary": "Подробнее",
+    "copyPage": "Копировать страницу",
+    "viewAsMarkdown": "Открыть в Markdown"
   },
   "navSections": {
     "Get Started": "Начало работы",

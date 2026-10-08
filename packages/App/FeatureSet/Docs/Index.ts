@@ -609,6 +609,7 @@ const DocsFeatureSet: FeatureSet = {
             category: localizedCategory,
             link: localizedLink,
             pageDescription: summarizeDocsPage(content.markdown).description,
+            markdownUrl: `/docs/as-markdown/${lang}/${fullPath}`,
             githubPath: fullPath,
             enableGoogleTagManager: GoogleTagManagerEnabled,
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,

@@ -56,7 +56,9 @@
     "calloutWarning": "警告",
     "calloutCaution": "注意",
     "calloutDanger": "危険",
-    "detailsSummary": "詳細"
+    "detailsSummary": "詳細",
+    "copyPage": "ページをコピー",
+    "viewAsMarkdown": "Markdown で表示"
   },
   "navSections": {
     "Get Started": "はじめに",

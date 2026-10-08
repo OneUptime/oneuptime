@@ -56,7 +56,9 @@
     "calloutWarning": "警告",
     "calloutCaution": "小心",
     "calloutDanger": "危险",
-    "detailsSummary": "详情"
+    "detailsSummary": "详情",
+    "copyPage": "复制页面",
+    "viewAsMarkdown": "以 Markdown 查看"
   },
   "navSections": {
     "Get Started": "快速入门",

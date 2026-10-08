@@ -56,7 +56,9 @@
     "calloutWarning": "경고",
     "calloutCaution": "주의",
     "calloutDanger": "위험",
-    "detailsSummary": "자세히"
+    "detailsSummary": "자세히",
+    "copyPage": "페이지 복사",
+    "viewAsMarkdown": "Markdown으로 보기"
   },
   "navSections": {
     "Get Started": "시작하기",

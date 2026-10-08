@@ -56,7 +56,9 @@
     "calloutWarning": "警告",
     "calloutCaution": "小心",
     "calloutDanger": "危險",
-    "detailsSummary": "詳細資訊"
+    "detailsSummary": "詳細資訊",
+    "copyPage": "複製頁面",
+    "viewAsMarkdown": "以 Markdown 檢視"
   },
   "navSections": {
     "Get Started": "快速入門",

@@ -56,7 +56,9 @@
     "calloutWarning": "चेतावनी",
     "calloutCaution": "सावधानी",
     "calloutDanger": "खतरा",
-    "detailsSummary": "विवरण"
+    "detailsSummary": "विवरण",
+    "copyPage": "पेज कॉपी करें",
+    "viewAsMarkdown": "Markdown के रूप में देखें"
   },
   "navSections": {
     "Get Started": "शुरुआत करें",

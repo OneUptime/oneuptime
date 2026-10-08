@@ -56,7 +56,9 @@
     "calloutWarning": "Varning",
     "calloutCaution": "Försiktighet",
     "calloutDanger": "Fara",
-    "detailsSummary": "Detaljer"
+    "detailsSummary": "Detaljer",
+    "copyPage": "Kopiera sida",
+    "viewAsMarkdown": "Visa som Markdown"
   },
   "navSections": {
     "Get Started": "Kom igång",

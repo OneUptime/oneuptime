@@ -17,6 +17,10 @@
  * To run:
  *   npm run docs:localize-anchors            (report what would change)
  *   npm run docs:localize-anchors -- --apply (change it)
+ *
+ * --lang <code> and --page <category/page> (each repeatable) limit it to
+ * some languages or pages - translators working side by side each rewrite
+ * only their own files.
  */
 import slugify from "../../packages/Common/Server/Types/MarkdownSlugify";
 import * as fs from "fs";
@@ -28,6 +32,26 @@ const CONTENT_DIR: string = path.resolve(
 );
 const DEFAULT_LANGUAGE: string = "en";
 const APPLY: boolean = process.argv.includes("--apply");
+
+// Every value given after a flag, e.g. --lang de --lang fr.
+const valuesOf: (flag: string) => Array<string> = (
+  flag: string,
+): Array<string> => {
+  const values: Array<string> = [];
+  process.argv.forEach((argument: string, index: number): void => {
+    if (argument === flag && process.argv[index + 1]) {
+      values.push(process.argv[index + 1]!);
+    }
+  });
+  return values;
+};
+
+const ONLY_LANGUAGES: Array<string> = valuesOf("--lang");
+const ONLY_PAGES: Array<string> = valuesOf("--page").map(
+  (page: string): string => {
+    return page.replace(/\.md$/, "");
+  },
+);
 
 const FENCE: RegExp = /^ {0,3}(`{3,}|~{3,})/;
 
@@ -144,12 +168,17 @@ const unresolved: Array<string> = [];
 for (const lang of fs.readdirSync(CONTENT_DIR)) {
   if (
     lang === DEFAULT_LANGUAGE ||
-    !fs.statSync(path.join(CONTENT_DIR, lang)).isDirectory()
+    !fs.statSync(path.join(CONTENT_DIR, lang)).isDirectory() ||
+    (ONLY_LANGUAGES.length > 0 && !ONLY_LANGUAGES.includes(lang))
   ) {
     continue;
   }
 
   for (const page of listPages(lang)) {
+    if (ONLY_PAGES.length > 0 && !ONLY_PAGES.includes(page)) {
+      continue;
+    }
+
     const file: string = pageFile(lang, page);
     const markdown: string = fs.readFileSync(file, "utf8");
     const ownAnchors: Set<string> = new Set(headingAnchors(markdown));

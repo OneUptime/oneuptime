@@ -56,7 +56,9 @@
     "calloutWarning": "Advarsel",
     "calloutCaution": "Forsiktig",
     "calloutDanger": "Fare",
-    "detailsSummary": "Detaljer"
+    "detailsSummary": "Detaljer",
+    "copyPage": "Kopier side",
+    "viewAsMarkdown": "Vis som Markdown"
   },
   "navSections": {
     "Get Started": "Kom i gang",

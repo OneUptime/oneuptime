@@ -56,7 +56,9 @@
     "calloutWarning": "هشدار",
     "calloutCaution": "احتیاط",
     "calloutDanger": "خطر",
-    "detailsSummary": "جزئیات"
+    "detailsSummary": "جزئیات",
+    "copyPage": "کپی صفحه",
+    "viewAsMarkdown": "مشاهده به‌صورت Markdown"
   },
   "navSections": {
     "Get Started": "شروع کار",

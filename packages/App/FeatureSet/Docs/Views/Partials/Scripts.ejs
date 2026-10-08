@@ -8,7 +8,8 @@
         noResults: <%- JSON.stringify(t('ui.searchNoResults')) %>,
         copy: <%- JSON.stringify(t('ui.copy')) %>,
         copied: <%- JSON.stringify(t('ui.copied')) %>,
-        copyCode: <%- JSON.stringify(t('ui.copyCode')) %>
+        copyCode: <%- JSON.stringify(t('ui.copyCode')) %>,
+        copyPage: <%- JSON.stringify(t('ui.copyPage')) %>
     };
     window.__docsLang = <%- JSON.stringify(typeof lang !== 'undefined' && lang ? lang : 'en') %>;
     window.__docsSearchIndex = <%- JSON.stringify(nav.reduce(function(acc, group){
@@ -238,6 +239,48 @@
                 }).catch(function () {
                     /* Clipboard blocked (insecure origin, denied permission). */
                 });
+            });
+        });
+
+        /* ======================== Copy the page ======================== */
+        /*
+         * Copies the page's Markdown - what /docs/as-markdown serves, with the
+         * generated tables filled in - for pasting into an AI assistant or an
+         * issue. Fetched on the click, so pages that are only read do not pay
+         * for it.
+         */
+        document.querySelectorAll('[data-copy-page]').forEach(function (button) {
+            if (!navigator.clipboard || !navigator.clipboard.writeText || !window.fetch) {
+                return;
+            }
+            var label = button.querySelector('.docs-page-action__label');
+            button.removeAttribute('hidden');
+            button.addEventListener('click', function () {
+                window.fetch(button.getAttribute('data-markdown-url'))
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Markdown not found');
+                        }
+                        return response.text();
+                    })
+                    .then(function (markdown) {
+                        return navigator.clipboard.writeText(markdown);
+                    })
+                    .then(function () {
+                        button.classList.add('is-copied');
+                        if (label) {
+                            label.textContent = i18n.copied || 'Copied';
+                        }
+                        window.setTimeout(function () {
+                            button.classList.remove('is-copied');
+                            if (label) {
+                                label.textContent = i18n.copyPage || 'Copy page';
+                            }
+                        }, 2000);
+                    })
+                    .catch(function () {
+                        /* Offline or clipboard blocked: "View as Markdown" still works. */
+                    });
             });
         });
 
