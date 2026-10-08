@@ -337,21 +337,39 @@ export default class RelationListPermission {
       return true;
     }
 
+    return RelationListPermission.getTableRead(modelType, props).isReader;
+  }
+
+  /*
+   * How `props` holds the read of `modelType`'s table - the one answer both
+   * mayReadTable and the records a write names (findReachableIds) are given:
+   * blocked, when a block with no labels takes every one of its read
+   * permissions away; a reader, when it holds one of them or the table's
+   * read wildcard and is not blocked; or neither. OneUptime and master
+   * admins are the callers' to answer before asking.
+   */
+  private static getTableRead(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+  ): { isBlocked: boolean; isReader: boolean } {
     const readPermissions: Array<Permission> =
       TablePermission.getTablePermission(modelType, DatabaseRequestType.Read);
 
     const held: HeldPermissions = TablePermission.getHeldPermissions(props);
 
     if (HeldPermissionsUtil.isBlockedFromAny(held, readPermissions)) {
-      return false;
+      return { isBlocked: true, isReader: false };
     }
 
-    return HeldPermissionsUtil.isGrantedAny(held, readPermissions, {
-      wildcard: TablePermission.getModelWildcard(
-        modelType,
-        DatabaseRequestType.Read,
-      ),
-    });
+    return {
+      isBlocked: false,
+      isReader: HeldPermissionsUtil.isGrantedAny(held, readPermissions, {
+        wildcard: TablePermission.getModelWildcard(
+          modelType,
+          DatabaseRequestType.Read,
+        ),
+      }),
+    };
   }
 
   /*
@@ -661,31 +679,15 @@ export default class RelationListPermission {
   }): Promise<Set<string> | null> {
     const listedModelType: DatabaseBaseModelType = data.list.listedModelType;
 
-    const readPermissions: Array<Permission> =
-      TablePermission.getTablePermission(
-        listedModelType,
-        DatabaseRequestType.Read,
-      );
-
-    const held: HeldPermissions = TablePermission.getHeldPermissions(
-      data.props,
-    );
+    const tableRead: { isBlocked: boolean; isReader: boolean } =
+      RelationListPermission.getTableRead(listedModelType, data.props);
 
     // A block with no labels on reading them takes every one of them away.
-    if (HeldPermissionsUtil.isBlockedFromAny(held, readPermissions)) {
+    if (tableRead.isBlocked) {
       return new Set<string>();
     }
 
-    const isReader: boolean = HeldPermissionsUtil.isGrantedAny(
-      held,
-      readPermissions,
-      {
-        wildcard: TablePermission.getModelWildcard(
-          listedModelType,
-          DatabaseRequestType.Read,
-        ),
-      },
-    );
+    const isReader: boolean = tableRead.isReader;
 
     /*
      * A setting that holds credentials is named only by a caller who may

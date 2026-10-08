@@ -1,9 +1,12 @@
+import ProjectReferencesService from "../../../Server/Services/ProjectReferencesService";
 import RunbookService, {
   Service as RunbookServiceType,
 } from "../../../Server/Services/RunbookService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import Query from "../../../Server/Types/Database/Query";
 import ProjectReferenceCheck, {
   JsonReferenceColumn,
 } from "../../../Server/Utils/Database/ProjectReferenceCheck";
@@ -37,10 +40,11 @@ jest.mock("../../../Server/Utils/Logger");
  * A runbook's SSH and Kubernetes steps name the credential they run with in
  * its steps. A create or an update names one only when its caller may read
  * credentials (Project Owner, Project Admin or Read Runbook Credential, and
- * no block with no labels taking that away); an update asks only about the
- * credentials the runbook's steps do not name already; each credential
- * named is held to the project with every other reference the runbook
- * names (the steps are a JSON reference column of the project check).
+ * no block with no labels taking that away), asked before the project
+ * check; an update asks only about the credentials some runbook it may
+ * write does not name already; each credential named is held to the
+ * project with every other reference the runbook names (the steps are a
+ * JSON reference column of the project check).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -202,6 +206,14 @@ beforeEach(() => {
     runbook.steps = storedSteps as unknown as JSONArray;
     return [runbook];
   }) as never);
+
+  // The rows the caller may update: the update's query, in its project.
+  getJestSpyOn(ModelPermission, "getUpdatableQuery").mockImplementation((async (
+    _modelType: unknown,
+    query: Query<Runbook>,
+  ) => {
+    return { ...query, projectId: PROJECT_ID };
+  }) as never);
 });
 
 afterEach(() => {
@@ -344,22 +356,36 @@ describe("creating a runbook", () => {
     }
   });
 
-  test("asks the project check first", async () => {
-    const order: Array<string> = [];
-
+  test("is refused before the project check, the same for a credential that is not the project's", async () => {
+    // Were it asked, the project check would know only CREDENTIAL_A.
     getJestSpyOn(ProjectReferenceCheck, "validateCreate").mockImplementation(
       (async () => {
-        order.push("project");
+        throw new UnreadableReferenceException(
+          `This runbook references records that are not in this project: Credential "${CREDENTIAL_B}"`,
+        );
       }) as never,
     );
 
     const refusal: unknown = await createRunbook(
-      [sshStep(CREDENTIAL_A)],
+      [sshStep(CREDENTIAL_A), kubernetesStep(CREDENTIAL_B)],
       RUNBOOK_ADMIN,
     );
 
-    expect(order).toEqual(["project"]);
+    expect(ProjectReferenceCheck.validateCreate).not.toHaveBeenCalled();
     expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect((refusal as Error).message).toContain(
+      `Credential "${CREDENTIAL_A}", Credential "${CREDENTIAL_B}"`,
+    );
+  });
+
+  test("asks the project check for a caller who may read credentials", async () => {
+    expect(
+      await createRunbook(
+        [sshStep(CREDENTIAL_A)],
+        member([row(Permission.ProjectAdmin)]),
+      ),
+    ).toBeUndefined();
+    expect(ProjectReferenceCheck.validateCreate).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -427,16 +453,91 @@ describe("changing a runbook's steps", () => {
     expect(RunbookService.findBy).not.toHaveBeenCalled();
   });
 
-  test("reads the runbooks the update writes as OneUptime, by the update's own query in the caller's project", async () => {
+  test("reads, as OneUptime, only the runbooks the caller may update, as the update itself is narrowed", async () => {
     storedSteps = [];
 
     await updateRunbook([sshStep(CREDENTIAL_A)], RUNBOOK_ADMIN);
 
+    expect(ModelPermission.getUpdatableQuery).toHaveBeenCalledWith(
+      Runbook,
+      { _id: RUNBOOK_ID },
+      RUNBOOK_ADMIN,
+      { steps: [expect.objectContaining({ type: RunbookStepType.SSH })] },
+    );
     expect(RunbookService.findBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { _id: RUNBOOK_ID, projectId: PROJECT_ID },
         props: { isRoot: true },
       }),
     );
+  });
+
+  test("that writes no runbook names no credential, whatever runbooks it may not write hold", async () => {
+    getJestSpyOn(RunbookService, "findBy").mockResolvedValue([] as never);
+
+    expect(
+      await updateRunbook([sshStep(CREDENTIAL_B)], RUNBOOK_ADMIN),
+    ).toBeUndefined();
+  });
+
+  test("is refused before the project check", async () => {
+    storedSteps = [sshStep(CREDENTIAL_A)];
+
+    const refusal: unknown = await updateRunbook(
+      [kubernetesStep(CREDENTIAL_B)],
+      RUNBOOK_ADMIN,
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+    expect(ProjectReferenceCheck.validateUpdate).not.toHaveBeenCalled();
+  });
+
+  test("hands on what the hook it extends returns", async () => {
+    storedSteps = [sshStep(CREDENTIAL_A)];
+
+    const updateBy: UpdateBy<Runbook> = {
+      query: { _id: RUNBOOK_ID },
+      data: { steps: [sshStep(CREDENTIAL_A)] } as never,
+      props: RUNBOOK_ADMIN,
+      limit: 1,
+      skip: 0,
+    } as unknown as UpdateBy<Runbook>;
+
+    const handedOn: OnUpdate<Runbook> = {
+      updateBy: { ...updateBy },
+      carryForward: { from: "the hook it extends" },
+    };
+
+    getJestSpyOn(
+      ProjectReferencesService.prototype as unknown as RunbookInternals,
+      "onBeforeUpdate",
+    ).mockResolvedValue(handedOn as never);
+
+    expect(await internals.onBeforeUpdate(updateBy)).toBe(handedOn);
+  });
+});
+
+describe("creating a runbook hands on", () => {
+  test("what the hook it extends returns", async () => {
+    const runbook: Runbook = new Runbook();
+    runbook.projectId = PROJECT_ID;
+    runbook.steps = [sshStep(CREDENTIAL_A)] as unknown as JSONArray;
+
+    const handedOn: OnCreate<Runbook> = {
+      createBy: { data: runbook, props: RUNBOOK_ADMIN },
+      carryForward: { from: "the hook it extends" },
+    };
+
+    getJestSpyOn(
+      ProjectReferencesService.prototype as unknown as RunbookInternals,
+      "onBeforeCreate",
+    ).mockResolvedValue(handedOn as never);
+
+    expect(
+      await internals.onBeforeCreate({
+        data: runbook,
+        props: member([row(Permission.ProjectOwner)]),
+      }),
+    ).toBe(handedOn);
   });
 });
