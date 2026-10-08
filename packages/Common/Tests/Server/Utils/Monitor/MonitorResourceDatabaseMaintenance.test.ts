@@ -100,6 +100,7 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDeviceOwnerUserService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
@@ -136,6 +137,7 @@ import {
   test,
 } from "@jest/globals";
 import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
+import { idsOfCondition } from "../../TestingUtils/ScheduledMaintenanceProgressWorld";
 
 // The house workaround for @jest/globals vs @types/jest spy typing.
 type SpyLike = {
@@ -154,6 +156,17 @@ const ENGINE_METRICS_STOPPED: string =
   "database-postgresql-engine-metrics-stopped";
 
 type MaintenanceState = "scheduled" | "ongoing" | "ended";
+
+/*
+ * The project's state for each kind of window. The events in progress are
+ * asked for by the states they are in progress in - the ongoing state here
+ * (Common/Utils/ScheduledMaintenanceStart) - not by a flag.
+ */
+const STATE_IDS: Record<MaintenanceState, string> = {
+  scheduled: "5c000000-0000-4000-8000-000000000001",
+  ongoing: "5c000000-0000-4000-8000-000000000002",
+  ended: "5c000000-0000-4000-8000-000000000003",
+};
 
 interface FakeMaintenanceEvent {
   projectId: string;
@@ -419,27 +432,36 @@ describe("MonitorResourceUtil.monitorResource: scheduled maintenance on a databa
 
     lockMock.mockResolvedValue({});
 
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getInProgressScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue([new ObjectID(STATE_IDS.ongoing)]);
+
     /*
      * Honours the two parts of the maintenance query that decide the
-     * outcome: the project, and whether the event is ongoing right now.
+     * outcome: the project, and whether the event is in a state it is in
+     * progress in right now.
      */
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")
       .mockImplementation((args: unknown): Promise<never> => {
         const query: {
           projectId?: ObjectID;
-          currentScheduledMaintenanceState?: { isOngoingState?: boolean };
+          currentScheduledMaintenanceStateId?: unknown;
         } = (args as { query: Record<string, never> }).query;
 
-        const onlyOngoing: boolean =
-          query.currentScheduledMaintenanceState?.isOngoingState === true;
+        const inStates: Array<string> | null = idsOfCondition(
+          query.currentScheduledMaintenanceStateId,
+        );
 
         return Promise.resolve(
           maintenanceEvents
             .filter((event: FakeMaintenanceEvent): boolean => {
               return (
                 event.projectId === query.projectId?.toString() &&
-                (!onlyOngoing || event.state === "ongoing")
+                (!inStates || inStates.includes(STATE_IDS[event.state]))
               );
             })
             .map(toScheduledMaintenance) as never,

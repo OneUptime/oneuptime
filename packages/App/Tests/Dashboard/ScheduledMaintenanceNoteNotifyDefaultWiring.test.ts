@@ -195,8 +195,13 @@ describe("Scheduled maintenance change state", () => {
     expect(source).toContain(
       "subscriberNotificationSettings?: | ScheduledMaintenanceStateChangeSubscriberNotificationSetting | undefined;",
     );
+    /*
+     * With the move itself: the project's states, placed as the header
+     * places them, and the state the event is in - a state of the
+     * project's own starts or ends the event only by its place.
+     */
     expect(source).toContain(
-      "const notifySubscribersByDefault: boolean = PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange( props.subscriberNotificationSettings, selectedScheduledMaintenanceState, );",
+      "const notifySubscribersByDefault: boolean = PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange( props.subscriberNotificationSettings, selectedScheduledMaintenanceState, { states: placeScheduledMaintenanceStates(stateFlags), currentState: currentScheduledMaintenanceState, }, );",
     );
   });
 

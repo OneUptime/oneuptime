@@ -258,7 +258,11 @@ function stubChannel(
   ).mockResolvedValue(options.answer || SENT);
 
   getJestSpyOn(ProjectService, "findOneById").mockResolvedValue(
-    projectWith({ balanceInCents: options.balanceInCents }),
+    projectWith(
+      options.balanceInCents === undefined
+        ? {}
+        : { balanceInCents: options.balanceInCents },
+    ),
   );
 
   getJestSpyOn(

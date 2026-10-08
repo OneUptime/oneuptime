@@ -4463,6 +4463,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     data: PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
     switchStamps: Array<SwitchStamp>,
+    // The encrypted columns as the update gave them. See getRowWrite.
+    encryptedColumnsAsGiven: Record<string, unknown> = {},
   ): Promise<Map<string, RealtimeReadAccess>> {
     const accessByProject: Map<string, RealtimeReadAccess> = new Map<
       string,
@@ -4500,6 +4502,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               item: item,
               data: data,
               switchStamps: switchStamps,
+              encryptedColumnsAsGiven: encryptedColumnsAsGiven,
             }),
           );
         },
@@ -7321,6 +7324,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        */
       this.coerceBooleanColumns(onUpdate.updateBy.data);
 
+      /*
+       * What the update writes to the encrypted columns, as it was given -
+       * kept before they are encrypted below. Each write encrypts afresh,
+       * with a salt of its own, so its ciphertext never matches what a row
+       * holds; the read before the write decrypts the row, and these are
+       * what decide whether the write changes it (getRowWrite). Writing
+       * back the secret a row holds - every save of a form that sends it
+       * does - is no change of it.
+       */
+      const encryptedColumnsAsGiven: Record<string, unknown> =
+        this.getEncryptedColumnsAsGiven(onUpdate.updateBy.data);
+
       // Encrypt data
       updateBy.data = (await this.encrypt(
         updateBy.data,
@@ -7561,6 +7576,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           data,
           updateBy.props,
           switchStamps,
+          encryptedColumnsAsGiven,
         );
 
       for (const item of items) {
@@ -7573,6 +7589,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           item: item,
           data: data,
           switchStamps: switchStamps,
+          encryptedColumnsAsGiven: encryptedColumnsAsGiven,
         });
 
         const updatedItem: any = rowWrite.updatedItem;
@@ -7945,12 +7962,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    *   switch the row already stands at.
    * - comparedAs: what decides whether the write changes the row
    *   (getChangedColumns) - what it is written with, a rule's switch as the
-   *   rule reads it.
+   *   rule reads it, and an encrypted column as the update gave it
+   *   (encryptedColumnsAsGiven), before it was encrypted: the row is read
+   *   decrypted, and a ciphertext - salted afresh on every write - never
+   *   matches it.
    */
   private getRowWrite(data: {
     item: TBaseModel;
     data: PartialEntity<TBaseModel>;
     switchStamps: Array<SwitchStamp>;
+    encryptedColumnsAsGiven?: Record<string, unknown> | undefined;
   }): RowWrite<TBaseModel> {
     const { item } = data;
     const update: Record<string, unknown> = data.data as Record<
@@ -8019,12 +8040,50 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       comparedAs["isEnabled"] = update["isEnabled"];
     }
 
+    for (const [column, valueAsGiven] of Object.entries(
+      data.encryptedColumnsAsGiven || {},
+    )) {
+      if (Object.prototype.hasOwnProperty.call(comparedAs, column)) {
+        comparedAs[column] = valueAsGiven;
+      }
+    }
+
     return {
       item: item,
       updatedItem: updatedItem,
       written: written as PartialEntity<TBaseModel>,
       comparedAs: comparedAs,
     };
+  }
+
+  /*
+   * The encrypted columns an update writes, as it gives them - the ones
+   * encrypt() encrypts (a value that is set), each a copy: encrypt() writes
+   * the ciphertext of an object's values into the object itself.
+   */
+  private getEncryptedColumnsAsGiven(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): Record<string, unknown> {
+    const asGiven: Record<string, unknown> = {};
+    const values: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const column of this.model.getEncryptedColumns().columns) {
+      const value: unknown = values[column];
+
+      if (!value || typeof value === "function") {
+        continue;
+      }
+
+      asGiven[column] =
+        typeof value === Typeof.Object
+          ? { ...(value as Record<string, unknown>) }
+          : value;
+    }
+
+    return asGiven;
   }
 
   /*
