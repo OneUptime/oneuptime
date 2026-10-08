@@ -219,6 +219,7 @@
     "GitLab": "GitLab",
     "Discord": "Discord",
     "Telegram": "Telegram",
+    "IRC": "IRC",
     "Custom Probes": "カスタム プローブ",
     "Incoming Request Ingress": "受信リクエスト Ingress",
     "OpenTelemetry": "OpenTelemetry",

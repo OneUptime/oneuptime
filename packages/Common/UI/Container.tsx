@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import { getProductName } from "./Utils/ProductBranding";
 
 type Props = {
   children: Array<ReactElement>;
@@ -7,7 +8,7 @@ type Props = {
 
 const Container: FunctionComponent<Props> = ({ children, title }: Props) => {
   useEffect(() => {
-    document.title = `OneUptime | ${title}`;
+    document.title = `${getProductName()} | ${title}`;
   }, []);
 
   return <div>{children}</div>;

@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { registerEmailBrandHelpers } from "./Fixtures/EmailBrandHelpers";
 
 const TEMPLATES_DIR: string = Path.resolve(
   __dirname,
@@ -222,6 +223,7 @@ beforeAll(() => {
       return left !== right ? options.fn(this) : options.inverse(this);
     },
   );
+  registerEmailBrandHelpers(handlebars);
 });
 
 /*

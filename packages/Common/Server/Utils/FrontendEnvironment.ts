@@ -6,6 +6,10 @@ import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { ExpressRequest, ExpressResponse } from "./Express";
 import Response from "./Response";
 import { JSONObject } from "../../Types/JSON";
+import ProductBrandingUtil, {
+  PRODUCT_BRANDING_ENVIRONMENT_KEY,
+  ProductBranding,
+} from "../../Types/Branding/ProductBranding";
 
 export const FRONTEND_ENVIRONMENT_CACHE_CONTROL: string =
   "private, no-store, no-cache, must-revalidate";
@@ -40,6 +44,20 @@ export const getFrontendEnvironmentVariables: () => JSONObject =
       isEnterpriseEditionExpected && !isEnterpriseEditionLoaded
         ? "true"
         : "false";
+
+    /*
+     * How the installation names and shows itself, only when the enterprise
+     * module says it may differ from OneUptime's own (see
+     * Types/Branding/ProductBranding.ts). Otherwise the key is not there at
+     * all, and the frontends show OneUptime.
+     */
+    const productBranding: ProductBranding | null =
+      EnterpriseEdition.getProductBranding();
+
+    if (productBranding) {
+      frontendEnv[PRODUCT_BRANDING_ENVIRONMENT_KEY] =
+        ProductBrandingUtil.toEnvironmentValue(productBranding);
+    }
 
     return frontendEnv;
   };

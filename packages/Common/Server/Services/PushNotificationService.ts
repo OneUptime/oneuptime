@@ -21,6 +21,7 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog";
@@ -227,10 +228,17 @@ export default class PushNotificationService {
     pushRequest: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
-    // Held to what the push services take (fitMessage), for every device.
+    /*
+     * The installation's own name and icon, when it goes by one - and then
+     * held to what the push services take (fitMessage), for every device.
+     */
     const request: PushNotificationRequest = {
       ...pushRequest,
-      message: this.fitMessage(pushRequest.message),
+      message: this.fitMessage(
+        ProductBrandingText.brandPushMessage(pushRequest.message, [
+          PushNotificationUtil.DEFAULT_ICON,
+        ]),
+      ),
     };
 
     logger.info(

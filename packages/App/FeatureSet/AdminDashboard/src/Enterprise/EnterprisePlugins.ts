@@ -1,3 +1,4 @@
+import Route from "Common/Types/API/Route";
 import { LicenseManagerComponent } from "Common/UI/Components/EditionLabel/LicenseManager";
 import { ComponentType, ExoticComponent } from "react";
 
@@ -37,6 +38,30 @@ export type NoPluginProps = Record<string, never>;
 export type EnterprisePluginComponent =
   | ComponentType<NoPluginProps>
   | ExoticComponent<NoPluginProps>;
+
+/*
+ * A page an Enterprise area adds to Settings, at /admin/settings/<path>.
+ * Core registers the route and renders the component inside Suspense; the
+ * page draws everything else itself, the Settings side menu included, and
+ * decides on its own whether it has anything to show (a page that depends on
+ * the license renders nothing while the license does not allow it, exactly
+ * as a route that does not exist).
+ */
+export interface EnterpriseSettingsPage {
+  // One path segment: letters, digits and hyphens.
+  path: string;
+  component: EnterprisePluginComponent;
+}
+
+// The settings path of every Enterprise settings page.
+export const ENTERPRISE_SETTINGS_PAGES_BASE_PATH: string = "/admin/settings";
+
+// One Enterprise settings page's route; core's router and its menu entry use it.
+export const getEnterpriseSettingsPageRoute: (path: string) => Route = (
+  path: string,
+): Route => {
+  return new Route(`${ENTERPRISE_SETTINGS_PAGES_BASE_PATH}/${path}`);
+};
 
 export interface AdminDashboardEnterprisePlugins {
   /*
@@ -79,6 +104,15 @@ export interface AdminDashboardEnterprisePlugins {
    * Common/UI/Components/EditionLabel/LicenseManager.ts.
    */
   LicenseManager?: LicenseManagerComponent | undefined;
+
+  /*
+   * Settings pages (see EnterpriseSettingsPage), and their entries in the
+   * Settings side menu: one component the core side menu renders at the end
+   * of its first section, which draws its own items - or nothing, for a page
+   * the license does not allow, so no trace of it shows.
+   */
+  SettingsPages?: ReadonlyArray<EnterpriseSettingsPage> | undefined;
+  SettingsSideMenuItems?: EnterprisePluginComponent | undefined;
 }
 
 // Names of the screens a plugin can provide (everything but the marker).
@@ -104,6 +138,8 @@ const PLUGIN_KEY_SET: Record<AdminDashboardEnterprisePluginKey, true> = {
   EnterpriseLicensesList: true,
   EnterpriseLicenseView: true,
   LicenseManager: true,
+  SettingsPages: true,
+  SettingsSideMenuItems: true,
 };
 
 export const ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS: ReadonlyArray<AdminDashboardEnterprisePluginKey> =

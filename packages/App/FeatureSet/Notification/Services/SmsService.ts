@@ -49,6 +49,7 @@ import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
 
 export default class SmsService {
@@ -90,7 +91,8 @@ export default class SmsService {
     try {
       const notSentReason: string | null = await this.sendSmsInternal(
         to,
-        message,
+        // The installation's own name, when it goes by one.
+        ProductBrandingText.brandText(message),
         options,
       );
 

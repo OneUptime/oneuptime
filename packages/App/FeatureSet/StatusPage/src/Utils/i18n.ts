@@ -1,6 +1,10 @@
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
+import {
+  getProductNamePostProcess,
+  productNamePostProcessor,
+} from "Common/UI/Utils/ProductNameTranslation";
 
 import {
   DEFAULT_STATUS_PAGE_LANGUAGE,
@@ -94,7 +98,10 @@ const convertDetectedLanguage: (lng: string) => string = (
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
+  .use(productNamePostProcessor)
   .init({
+    // The installation's own name in every sentence, when it has one.
+    postProcess: getProductNamePostProcess(),
     resources: {
       en: { translation: en },
       de: { translation: de },

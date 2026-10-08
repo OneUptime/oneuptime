@@ -46,6 +46,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import {
   fitTextsToBudget,
   MAX_CALL_TWIML_LENGTH,
@@ -138,7 +139,11 @@ export default class CallService {
     let outcome: "success" | "failure" = "success";
 
     try {
-      await this.makeCallInternal(callRequest, options);
+      await this.makeCallInternal(
+        // The installation's own name in what the call says, when it goes by one.
+        ProductBrandingText.brandCallRequest(callRequest),
+        options,
+      );
     } catch (err) {
       outcome = "failure";
       throw err;
