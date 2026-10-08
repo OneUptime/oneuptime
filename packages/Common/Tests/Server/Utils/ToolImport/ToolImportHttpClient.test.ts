@@ -14,6 +14,9 @@ import { FixtureApi, json, RecordingSleep } from "./ToolImportFixtureTransport";
 import axios from "axios";
 import type { SpyInstance } from "jest-mock";
 
+// axios.request, as the transport calls it.
+type AxiosRequest = (config: unknown) => Promise<unknown>;
+
 /*
  * The one door an import has to another tool. These pin the rules every
  * tool's read relies on: only the tool's own hosts, never a redirect; backing
@@ -463,10 +466,10 @@ describe("createToolImportTransport: the production transport", () => {
   });
 
   test("only HTTPS to an allowed host is ever sent", async () => {
-    const send: SpyInstance<typeof axios.request> = jest.spyOn(
+    const send: SpyInstance<AxiosRequest> = jest.spyOn(
       axios,
       "request",
-    );
+    ) as unknown as SpyInstance<AxiosRequest>;
     const transport: ToolImportTransport = createToolImportTransport([
       "api.opsgenie.com",
     ]);
@@ -487,13 +490,13 @@ describe("createToolImportTransport: the production transport", () => {
   });
 
   test("it never follows a redirect, caps the response, hands every status back and parses JSON", async () => {
-    const send: SpyInstance<typeof axios.request> = jest
+    const send: SpyInstance<AxiosRequest> = jest
       .spyOn(axios, "request")
       .mockResolvedValue({
         status: 429,
         data: JSON.stringify({ message: "slow down" }),
         headers: { "Retry-After": "5", "X-Other": 3 },
-      } as never);
+      } as never) as unknown as SpyInstance<AxiosRequest>;
 
     const transport: ToolImportTransport = createToolImportTransport([
       "api.opsgenie.com",

@@ -370,7 +370,7 @@ export function opsGenieApi(): FixtureApi {
 }
 
 // Opsgenie's error envelope, as it answers a refused request.
-export function opsGenieError(status: number, message: string): unknown {
+export function opsGenieError(_status: number, message: string): unknown {
   return {
     message: message,
     took: 0.003,

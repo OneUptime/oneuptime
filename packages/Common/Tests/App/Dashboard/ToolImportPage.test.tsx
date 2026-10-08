@@ -28,6 +28,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
+import { APIRequestOptions } from "../../../Utils/API";
 import {
   ToolImportAction,
   ToolImportOutcome,
@@ -205,9 +206,9 @@ beforeEach(() => {
   jest
     .spyOn(API, "get")
     .mockImplementation(
-      async (options: {
-        url: URL;
-      }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      async (
+        options: APIRequestOptions,
+      ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
         const route: string = routeOf(options.url);
         server.gets.push(route);
 
@@ -229,12 +230,14 @@ beforeEach(() => {
   jest
     .spyOn(API, "post")
     .mockImplementation(
-      async (options: {
-        url: URL;
-        data?: JSONObject;
-      }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      async (
+        options: APIRequestOptions,
+      ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
         const route: string = routeOf(options.url);
-        server.posts.push({ route, body: options.data || {} });
+        server.posts.push({
+          route,
+          body: (options.data || {}) as JSONObject,
+        });
 
         if (route === "/tool-import/read") {
           return respond(server.readAnswer);
@@ -255,6 +258,8 @@ async function renderPage(): Promise<RenderResult> {
     <MemoryRouter>
       <ImportFromTool
         pageRoute={RouteMap[PageMap.SETTINGS_IMPORT_FROM_TOOL] as Route}
+        currentProject={null}
+        hasPaymentMethod={false}
       />
     </MemoryRouter>,
   );
