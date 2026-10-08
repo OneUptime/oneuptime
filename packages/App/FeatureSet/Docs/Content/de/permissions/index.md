@@ -108,6 +108,23 @@ Eine Berechtigung kann nicht gleichzeitig in beiden Listen Einschränkungs-Label
 
 Die Erlaubt-Einträge eines Benutzers addieren sich über alle seine Teams, eine Sperre gilt aber für alles, was der Benutzer tut: Eine Sperre ohne Labels in einem Team entzieht die Fähigkeit auch dann, wenn ein anderes Team sie erlaubt, und ein Sperr-Eintrag gewährt nie etwas. Hat jemand weniger Zugriff als erwartet, prüfen Sie jedes seiner Teams auf eine Sperre; hat er mehr, prüfen Sie jedes Team auf eine Erlaubnis.
 
+### Einen Status ändern
+
+Ein Vorfall, ein Alarm, eine Alarm- oder Vorfall-Episode und eine geplante Wartung wechseln ihren Status, und ein Monitor seinen Monitorstatus, durch eine neue Zeile in ihrer Statuszeitachse. Bestätigen, Beheben, Status ändern, die Seite der Statuszeitachse, die API und Workflows fügen alle eine solche Zeile hinzu. Dafür braucht es die Berechtigung, Einträge dieser Zeitachse anzulegen, zusammen mit einer Berechtigung, den Datensatz zu lesen, den sie ändert:
+
+| Um den Status zu ändern von | Braucht es |
+| --- | --- |
+| Einem Vorfall | **Create Incident State Timeline** |
+| Einem Alarm | **Create Alert State Timeline** |
+| Einer Alarm-Episode | **Create Alert Episode State Timeline** |
+| Einer Vorfall-Episode | **Create Incident Episode State Timeline** |
+| Einer geplanten Wartung | **Create Scheduled Maintenance State Timeline** |
+| Einem Monitor (seinem Status) | **Create Monitor Status Timeline** |
+
+Den neuen Status - und was dazugehört, etwa wann eine Episode behoben wurde oder wann eine Wartung ihre Abonnenten das nächste Mal erinnert - schreibt OneUptime danach selbst in den Datensatz. Ein Statuswechsel braucht also nicht zusätzlich eine Berechtigung, den Datensatz zu bearbeiten: Eine eigene Rolle mit **Create Incident State Timeline**, aber ohne **Edit Incident** ändert den Status eines Vorfalls. Wollen Sie ein Team davon abhalten, Status zu ändern, sperren Sie die Berechtigung zum Anlegen in der Zeitachse; eine Sperre auf **Edit Incident** lässt Statuswechsel unberührt. Labels, Eigentümer und private Datensätze schränken die Berechtigung zum Anlegen in der Zeitachse ein wie jede andere, über den Datensatz, dessen Status sie ändert: siehe die Regeln zum Geltungsbereich weiter unten.
+
+Nur der Status wird für Sie geschrieben. Eine Notiz, die mit einem Statuswechsel gesendet wird, wird als Sie gepostet und braucht die eigene Berechtigung der Notiz, wie unter [Status und Schweregrade](/docs/incidents/states-and-severities) beschrieben. Die Alarme eines Vorfalls beim Deklarieren zu bestätigen, braucht weiterhin auch **Edit Alert**: siehe [Verknüpfte Alarme](/docs/incidents/linked-alerts).
+
 ## Geltungsbereich: wie weit eine Erlaubt-Berechtigung reicht
 
 Jede Erlaubt-Berechtigung wird mit einem Geltungsbereich vergeben, den Sie beim Hinzufügen wählen:

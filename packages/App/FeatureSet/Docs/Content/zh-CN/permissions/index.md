@@ -108,6 +108,23 @@ OneUptime 中的一切都存在于**项目**之内。谁能在项目里做什么
 
 用户的允许条目会在其所有团队之间累加，但阻止适用于该用户所做的一切：某个团队上不带标签的阻止，即使另一个团队允许，也会取消这项能力；阻止条目本身永远不授予任何权限。如果某人的权限少于预期，请在他所属的每个团队里查找阻止；如果多于预期，请在每个团队里查找允许。
 
+### 更改状态
+
+事件、告警、告警片段或事件片段以及计划维护，通过在其状态时间线上新增一行来更改状态，监控器的状态也是如此。确认、解决、更改状态、状态时间线页面、API 和工作流都会添加这样一行。添加它需要该时间线自身的创建权限，以及读取它所更改记录的权限：
+
+| 要更改其状态的对象 | 所需权限 |
+| --- | --- |
+| 事件 | **Create Incident State Timeline** |
+| 告警 | **Create Alert State Timeline** |
+| 告警片段 | **Create Alert Episode State Timeline** |
+| 事件片段 | **Create Incident Episode State Timeline** |
+| 计划维护 | **Create Scheduled Maintenance State Timeline** |
+| 监控器（其状态） | **Create Monitor Status Timeline** |
+
+随后，记录的新状态以及随之而来的值（例如片段何时被解决，或计划维护下次何时提醒其订阅者）由 OneUptime 自己写入。因此，更改状态不需要另外的记录编辑权限：拥有 **Create Incident State Timeline** 但没有 **Edit Incident** 的自定义角色可以更改事件的状态。若要阻止某个团队更改状态，请阻止时间线的创建权限；阻止 **Edit Incident** 不会影响状态更改。标签、所有者和私密记录会像收窄任何其他权限一样，通过其状态被更改的记录来收窄时间线的创建权限：请参阅下文的范围规则。
+
+替你写入的只有状态。随更改一起发布的备注以你的身份发布，并且需要备注自己的权限，详见[状态与严重级别](/docs/incidents/states-and-severities)。在声明事件的同时确认其告警，仍然还需要 **Edit Alert**：请参阅[关联的告警](/docs/incidents/linked-alerts)。
+
 ## 范围：一条允许权限能覆盖多远
 
 每条允许权限在添加时都会选定一个范围：

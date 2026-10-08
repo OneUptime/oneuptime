@@ -108,6 +108,23 @@ Un permiso no puede llevar etiquetas de restricción en ambas listas a la vez; O
 
 Los permisos concedidos a un usuario se suman entre todos sus equipos, pero un bloqueo se aplica a todo lo que hace el usuario: un bloqueo sin etiquetas en un equipo retira la capacidad aunque otro equipo la conceda, y una entrada de bloqueo nunca concede nada. Si alguien tiene menos acceso del que espera, busque un bloqueo en cada uno de sus equipos; si tiene más, busque un permiso concedido en cada uno.
 
+### Cambiar un estado
+
+Un incidente, una alerta, un episodio de alertas o de incidentes y un mantenimiento programado cambian de estado, y un monitor cambia de estado, con una fila nueva en su línea de tiempo de estados. Reconocer, resolver, cambiar el estado, la página de la línea de tiempo de estados, la API y los flujos de trabajo añaden todos una. Añadirla requiere el permiso de creación de esa línea de tiempo, junto con un permiso para leer el registro que cambia:
+
+| Para cambiar el estado de | Se necesita |
+| --- | --- |
+| Un incidente | **Create Incident State Timeline** |
+| Una alerta | **Create Alert State Timeline** |
+| Un episodio de alertas | **Create Alert Episode State Timeline** |
+| Un episodio de incidentes | **Create Incident Episode State Timeline** |
+| Un mantenimiento programado | **Create Scheduled Maintenance State Timeline** |
+| Un monitor (su estado) | **Create Monitor Status Timeline** |
+
+Después, el registro recibe el nuevo estado de la propia OneUptime, con lo que lo acompaña, como cuándo se resolvió un episodio o cuándo un mantenimiento vuelve a avisar a sus suscriptores. Así que un cambio no requiere además un permiso para editar el registro: un rol personalizado con **Create Incident State Timeline** pero sin **Edit Incident** cambia el estado de un incidente. Para impedir que un equipo cambie estados, bloquee el permiso de creación de la línea de tiempo; un bloqueo de **Edit Incident** no afecta a los cambios de estado. Las etiquetas, los propietarios y los registros privados acotan el permiso de creación de la línea de tiempo como acotan cualquier otro, a través del registro cuyo estado cambia: consulte las reglas de alcance más abajo.
+
+Solo el estado se escribe por usted. Una nota publicada con un cambio se publica en su nombre y requiere el permiso propio de la nota, como se describe en [Estados y gravedades](/docs/incidents/states-and-severities). Reconocer las alertas de un incidente mientras lo declara sigue requiriendo también **Edit Alert**: consulte [Alertas vinculadas](/docs/incidents/linked-alerts).
+
 ## Alcance: hasta dónde llega un permiso concedido
 
 Todo permiso concedido lleva un alcance, elegido al añadirlo:

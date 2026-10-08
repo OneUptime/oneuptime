@@ -108,6 +108,23 @@ En behörighet kan inte bära begränsningsetiketter i båda listorna samtidigt;
 
 En användares tillåtelser läggs ihop över alla dennes team, men en blockering gäller allt användaren gör: en blockering utan etiketter i ett team tar bort förmågan även där ett annat team tillåter den, och en blockering ger aldrig något. Har någon mindre åtkomst än du väntar dig, leta efter en blockering i vart och ett av personens team; har hen mer, leta efter en tillåtelse i varje team.
 
+### Ändra ett tillstånd
+
+En incident, ett larm, en larm- eller incidentepisod och ett planerat underhåll byter tillstånd, och en monitor byter status, genom en ny rad på sin tillståndstidslinje. Att kvittera, lösa, byta tillstånd, sidan med tillståndstidslinjen, API:t och arbetsflöden lägger alla till en sådan rad. Det kräver tidslinjens egen behörighet att skapa, tillsammans med en behörighet att läsa posten den ändrar:
+
+| För att ändra tillståndet för | Krävs |
+| --- | --- |
+| En incident | **Create Incident State Timeline** |
+| Ett larm | **Create Alert State Timeline** |
+| En larmepisod | **Create Alert Episode State Timeline** |
+| En incidentepisod | **Create Incident Episode State Timeline** |
+| Ett planerat underhåll | **Create Scheduled Maintenance State Timeline** |
+| En monitor (dess status) | **Create Monitor Status Timeline** |
+
+Posten får sedan det nya tillståndet av OneUptime själv, tillsammans med det som hör till, till exempel när en episod löstes eller när ett underhåll nästa gång påminner sina prenumeranter. En ändring kräver alltså inte också en behörighet att redigera posten: en anpassad roll med **Create Incident State Timeline** men utan **Edit Incident** ändrar en incidents tillstånd. Vill du hindra ett team från att ändra tillstånd blockerar du tidslinjens behörighet att skapa; en blockering av **Edit Incident** lämnar tillståndsändringar i fred. Etiketter, ägare och privata poster smalnar av tidslinjens behörighet att skapa precis som de smalnar av alla andra, genom posten vars tillstånd den ändrar: se reglerna för omfattning nedan.
+
+Bara tillståndet skrivs åt dig. En anteckning som skickas med en ändring skickas som dig och kräver anteckningens egen behörighet, som beskrivs i [Tillstånd och allvarlighetsgrader](/docs/incidents/states-and-severities). Att kvittera en incidents larm medan du deklarerar den kräver fortfarande också **Edit Alert**: se [Länkade larm](/docs/incidents/linked-alerts).
+
 ## Omfattning: hur långt en tillåten behörighet når
 
 Varje tillåten behörighet ges med en omfattning som du väljer när du lägger till den:
