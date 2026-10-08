@@ -8,6 +8,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Models from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -32,6 +33,7 @@ import {
   TerraformValueKind,
   TERRAFORM_RESOURCE_META_ARGUMENTS,
   toTerraformSnakeCase,
+  toTerraformTypeSnakeCase,
 } from "../../../Utils/DeveloperDocs/TerraformSchema";
 
 /*
@@ -67,7 +69,7 @@ function attributeNames(modelType: DatabaseBaseModelType): Array<string> {
   );
 }
 
-describe("toTerraformSnakeCase (the provider's StringUtils.toSnakeCase)", () => {
+describe("toTerraformSnakeCase (the provider's attribute names, StringUtils.toLegacySnakeCase)", () => {
   test.each([
     ["isEnabled", "is_enabled"],
     ["monitorSteps", "monitor_steps"],
@@ -86,6 +88,21 @@ describe("toTerraformSnakeCase (the provider's StringUtils.toSnakeCase)", () => 
   });
 });
 
+describe("toTerraformTypeSnakeCase (the provider's type names, StringUtils.toSnakeCase)", () => {
+  test.each([
+    ["IoT Fleet", "iot_fleet"],
+    ["vCenter", "vcenter"],
+    ["vCenter Label Rule", "vcenter_label_rule"],
+    ["WhatsApp Log", "whatsapp_log"],
+    ["On-Call Policy", "on_call_policy"],
+    ["Status Page", "status_page"],
+    ["APIKey", "api_key"],
+    ["Patriot Fleet", "patriot_fleet"],
+  ])("%s -> %s", (input: string, expected: string) => {
+    expect(toTerraformTypeSnakeCase(input)).toBe(expected);
+  });
+});
+
 describe("resource type names", () => {
   test.each([
     [Workflow, "oneuptime_workflow"],
@@ -93,7 +110,8 @@ describe("resource type names", () => {
     [StatusPage, "oneuptime_status_page"],
     [OnCallDutyPolicy, "oneuptime_on_call_policy"],
     [ScheduledMaintenance, "oneuptime_scheduled_maintenance_event"],
-    [VMwareVCenter, "oneuptime_v_center"],
+    [VMwareVCenter, "oneuptime_vcenter"],
+    [IoTFleet, "oneuptime_iot_fleet"],
     [DockerSwarmCluster, "oneuptime_docker_swarm_cluster"],
   ])("%p is %s", (modelType: DatabaseBaseModelType, expected: string) => {
     expect(getTerraformTypeName(modelType)).toBe(expected);

@@ -13,7 +13,12 @@ import { OpenAPISpec } from "../Core/Types";
  * Models:
  *  - Monitor: full CRUD + list/count. Exercises enums, dates, entity/scalar
  *    arrays, complex objects, write-only secrets, immutable fields, computed
- *    server-managed fields.
+ *    server-managed fields, relations (x-oneuptime-relation) and the
+ *    bookkeeping fields every model carries (deletedAt, version).
+ *  - Monitor Status: create + get + list, the target of Monitor's relation.
+ *  - IoT Fleet: create + get + list. Its tag splits into io_t_fleet the old
+ *    way, so it is registered as iot_fleet with a deprecated alias.
+ *  - Label: list only (a relation target that is only a data source).
  *  - EmailLog: list/count only (a resource must not be generated).
  *  - File: create + delete only (no read/update endpoints).
  */
@@ -56,7 +61,8 @@ const monitorCreateSchema: any = {
           _id: { type: "string", format: "uuid" },
         },
       },
-      description: "Attached labels",
+      description: "Attached labels..",
+      "x-oneuptime-relation": { tag: "Label", tableName: "Label" },
     },
     tags: {
       type: "array",
@@ -83,6 +89,20 @@ const monitorCreateSchema: any = {
       description: "Cannot change after create",
     },
     projectId: { type: "string", description: "Project id" },
+    customJavaScript: {
+      type: "string",
+      description: "Script injected into the page",
+    },
+    currentMonitorStatusId: {
+      type: "string",
+      format: "uuid",
+      description:
+        "Whats the current status of this monitor?. Permissions - Create: [Project Owner], Read: [Project Member], Update: [Edit Monitor]",
+      "x-oneuptime-relation": {
+        tag: "Monitor Status",
+        tableName: "MonitorStatus",
+      },
+    },
   },
 };
 
@@ -107,6 +127,8 @@ const monitorUpdateSchema: any = {
       description: "Monitor steps",
     },
     serverMeta: { type: "object", description: "Arbitrary nested metadata" },
+    currentMonitorStatusId:
+      monitorCreateSchema.properties.currentMonitorStatusId,
   },
 };
 
@@ -135,6 +157,63 @@ const monitorModelSchema: any = {
       description: "Server-generated token",
     },
     createdAt: dateTimeWrapper,
+    currentMonitorStatusId:
+      monitorCreateSchema.properties.currentMonitorStatusId,
+    createdByUserId: {
+      type: "string",
+      format: "uuid",
+      description: "User who created this monitor",
+    },
+    deletedAt: dateTimeWrapper,
+    deletedByUserId: { type: "string", description: "User who deleted it" },
+    version: { type: "number", description: "Object version" },
+    priority: { type: "number", description: "Sort priority" },
+    isPaused: { type: "boolean", description: "Is monitoring paused" },
+  },
+};
+
+const monitorStatusSchema: any = {
+  type: "object",
+  description: "MonitorStatus model",
+  required: ["name"],
+  properties: {
+    _id: { type: "string", format: "uuid" },
+    name: { type: "string", description: "Name of the status" },
+    color: {
+      type: "object",
+      description: "Color of the status",
+      example: { _type: "Color", value: "#ff0000" },
+    },
+    priority: { type: "number", description: "Priority" },
+    isOperationalState: { type: "boolean", description: "Operational?" },
+  },
+};
+
+const iotFleetSchema: any = {
+  type: "object",
+  description: "IoTFleet model",
+  required: ["name", "monitorStatusId"],
+  properties: {
+    _id: { type: "string", format: "uuid" },
+    name: { type: "string", description: "Name of the fleet" },
+    monitorStatusId: {
+      type: "string",
+      format: "uuid",
+      description: "Status the fleet's monitors start in",
+      "x-oneuptime-relation": {
+        tag: "Monitor Status",
+        tableName: "MonitorStatus",
+      },
+    },
+  },
+};
+
+const labelSchema: any = {
+  type: "object",
+  description: "Label model",
+  properties: {
+    _id: { type: "string", format: "uuid" },
+    name: { type: "string", description: "Name of the label" },
   },
 };
 
@@ -218,6 +297,48 @@ function listResponse(schemaRef: any): any {
   };
 }
 
+// Create + get-item + get-list for a model whose schemas are all one.
+function crudPaths(data: {
+  path: string;
+  table: string;
+  tag: string;
+  schema: string;
+}): Record<string, any> {
+  const ref: any = { $ref: `#/components/schemas/${data.schema}` };
+  return {
+    [data.path]: {
+      post: {
+        operationId: `create${data.table}`,
+        tags: [data.tag],
+        requestBody: requestBody(ref),
+        responses: itemResponse(ref, "201"),
+      } as any,
+    },
+    [`${data.path}/get-list`]: {
+      post: {
+        operationId: `list${data.table}`,
+        tags: [data.tag],
+        responses: listResponse(ref),
+      } as any,
+    },
+    [`${data.path}/{id}/get-item`]: {
+      post: {
+        operationId: `get${data.table}`,
+        tags: [data.tag],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: itemResponse(ref),
+      } as any,
+    },
+  };
+}
+
 export function buildFixtureSpec(): OpenAPISpec {
   return {
     openapi: "3.0.0",
@@ -234,6 +355,12 @@ export function buildFixtureSpec(): OpenAPISpec {
           "A Monitor continuously checks the health and availability of a service.",
       },
       { name: "EmailLog", description: "Logs of outbound email." },
+      {
+        name: "Monitor Status",
+        description: "The states a monitor can be in.",
+      },
+      { name: "IoT Fleet", description: "A fleet of IoT devices." },
+      { name: "Label", description: "Labels organize resources." },
     ],
     paths: {
       "/monitor": {
@@ -327,6 +454,25 @@ export function buildFixtureSpec(): OpenAPISpec {
           },
         } as any,
       },
+      ...crudPaths({
+        path: "/monitor-status",
+        table: "MonitorStatus",
+        tag: "Monitor Status",
+        schema: "MonitorStatus",
+      }),
+      ...crudPaths({
+        path: "/iot-fleet",
+        table: "IoTFleet",
+        tag: "IoT Fleet",
+        schema: "IoTFleet",
+      }),
+      "/label/get-list": {
+        post: {
+          operationId: "listLabel",
+          tags: ["Label"],
+          responses: listResponse({ $ref: "#/components/schemas/Label" }),
+        } as any,
+      },
       "/file": {
         post: {
           operationId: "createFile",
@@ -357,6 +503,9 @@ export function buildFixtureSpec(): OpenAPISpec {
         EmailLog: emailLogModelSchema,
         FileCreateSchema: fileCreateSchema,
         FileReadSchema: fileReadSchema,
+        MonitorStatus: monitorStatusSchema,
+        IoTFleet: iotFleetSchema,
+        Label: labelSchema,
       },
     },
   } as OpenAPISpec;

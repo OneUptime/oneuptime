@@ -46,7 +46,8 @@ describe("shipped examples", () => {
   });
 
   test("enum attributes use an allowed value, not a placeholder", () => {
-    expect(monitorDoc).toContain('monitor_type = "Manual"');
+    // A monitor with steps is a Website monitor, not the first enum value.
+    expect(monitorDoc).toMatch(/monitor_type\s+= "Website"/);
     expect(monitorDoc).not.toContain('"example-monitor_type"');
   });
 });
@@ -88,9 +89,9 @@ describe("curation", () => {
     expect(monitorDoc).toContain("checks the health and availability");
   });
 
-  test("typed monitor steps render as nested blocks, not jsonencode", () => {
+  test("typed monitor steps render as nested attributes, not jsonencode", () => {
     expect(monitorDoc).toContain("monitor_destination");
-    expect(monitorDoc).toContain("Block List");
+    expect(monitorDoc).toContain("`monitor_steps` (Attributes List)");
     expect(monitorDoc).not.toContain('monitor_steps = "example-');
   });
 });
