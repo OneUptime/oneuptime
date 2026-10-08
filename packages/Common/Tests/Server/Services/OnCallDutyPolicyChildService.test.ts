@@ -16,6 +16,7 @@ import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import CreateScopeException from "../../../Server/Types/Database/Permissions/CreateScopeException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -340,6 +341,11 @@ describe.each(CHILDREN)(
           expect(createSpy).toHaveBeenCalledTimes(1);
         } else {
           await expect(operation).rejects.toThrow(NotAuthorizedException);
+          /*
+           * A policy outside what the create grant reaches: its own type,
+           * so the first rule of a new policy is added for its creator.
+           */
+          await expect(operation).rejects.toBeInstanceOf(CreateScopeException);
           expect(createSpy).not.toHaveBeenCalled();
           expect(reads).toHaveLength(2);
         }

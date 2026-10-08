@@ -18,6 +18,8 @@ import TeamService from "../../../Server/Services/TeamService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
+import CreateScopeException from "../../../Server/Types/Database/Permissions/CreateScopeException";
+import { UnreadableParentException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -650,6 +652,91 @@ describe("once the policy is saved", () => {
     await expect(createPolicy(ALL_KINDS)).rejects.toThrow("name is required");
 
     expect(ruleCreates).toHaveLength(0);
+  });
+
+  /*
+   * The picks are not lost to a creator whose own permissions do not reach
+   * the policy they just made - their read of policies, or their
+   * permission to add escalation rules, limited to labels the new policy
+   * does not carry: OneUptime adds the rule for them, naming them, as it
+   * writes a new monitor's first status row.
+   */
+  test.each([
+    [
+      "the new policy is not one the creator may read",
+      new UnreadableParentException(
+        `This escalation rule references records that are not in this project: On-Call Policy "${POLICY_ID.toString()}". Please pick values from this project and try again.`,
+      ),
+    ],
+    [
+      "the new policy is outside the creator's permission to add rules",
+      new CreateScopeException(
+        "Your access lets you create Escalation Rules only for records with one of these labels: Production.",
+      ),
+    ],
+  ])(
+    "when %s, OneUptime adds the rule for its creator",
+    async (_name: string, failure: Error) => {
+      // Refused as the creator; written by OneUptime.
+      ruleCreateError = failure;
+      policyCreateSpy.mockImplementation(async function (
+        this: DatabaseService<BaseModel>,
+        createBy: CreateBy<BaseModel>,
+      ): Promise<BaseModel> {
+        if (this.modelType === OnCallDutyPolicy) {
+          const policy: OnCallDutyPolicy = createBy.data as OnCallDutyPolicy;
+          policy.id = POLICY_ID;
+          policy.projectId = createBy.props.tenantId || policy.projectId!;
+          return policy;
+        }
+
+        ruleCreates.push(createBy as CreateBy<OnCallDutyPolicyEscalationRule>);
+
+        if (!createBy.props.isRoot && ruleCreateError) {
+          throw ruleCreateError;
+        }
+
+        createBy.data.id = RULE_ID;
+        return createBy.data;
+      });
+
+      const policy: OnCallDutyPolicy = await createPolicy(ALL_KINDS);
+
+      expect(policy.id?.toString()).toBe(POLICY_ID.toString());
+      expect(ruleCreates).toHaveLength(2);
+
+      // First as the creator, with the rule's own checks...
+      expect(ruleCreates[0]!.props.userId).toEqual(CALLER_ID);
+      expect(ruleCreates[0]!.props.isRoot).toBeFalsy();
+
+      // ...then by OneUptime, naming the creator, with the same picks.
+      expect(ruleCreates[1]!.props).toEqual({
+        isRoot: true,
+        userId: CALLER_ID,
+      });
+      expect(ruleCreates[1]!.miscDataProps).toEqual(
+        ruleCreates[0]!.miscDataProps,
+      );
+      expect(ruleCreates[1]!.data.onCallDutyPolicyId?.toString()).toBe(
+        POLICY_ID.toString(),
+      );
+      expect(ruleCreates[1]!.data.projectId?.toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect(loggerErrorSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("any other refusal is logged, never written around", async () => {
+    ruleCreateError = new NotAuthorizedException(
+      "You do not have permissions to create Escalation Rule.",
+    );
+
+    const policy: OnCallDutyPolicy = await createPolicy(ALL_KINDS);
+
+    expect(policy.id?.toString()).toBe(POLICY_ID.toString());
+    expect(ruleCreates).toHaveLength(1);
+    expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
   });
 });
 
