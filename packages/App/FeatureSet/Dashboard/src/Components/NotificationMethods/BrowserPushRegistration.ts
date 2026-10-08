@@ -10,7 +10,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * spinning for good.
  */
 
-// Registered with its default scope, /dashboard/.
+/*
+ * Registered with its default scope, /dashboard/, here and nowhere else: the
+ * Dashboard's pages (views/index.ejs) do not register it themselves.
+ */
 export const DASHBOARD_SERVICE_WORKER_URL: string = "/dashboard/sw.js";
 
 /*
