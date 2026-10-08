@@ -19,9 +19,7 @@ import IRCClient, {
   IRCError,
   IRCSASLCredentials,
 } from "../../../../Utils/IRC/IRCClient";
-import IRCMessageText, {
-  PreparedIRCText,
-} from "../../../../Utils/IRC/IRCMessageText";
+import IRCMessageText from "../../../../Utils/IRC/IRCMessageText";
 import IRCValidation from "../../../../Utils/IRC/IRCValidation";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import net from "net";
@@ -35,6 +33,9 @@ export const IRC_MAX_STEP_TIME_IN_MS: number = 60 * 1000;
 
 // Less than this left of the workflow's own time, and the step does not start.
 export const IRC_MIN_STEP_TIME_IN_MS: number = 5 * 1000;
+
+// Less than this left once the server is looked up, and it does not connect.
+export const IRC_MIN_CONVERSATION_TIME_IN_MS: number = 2 * 1000;
 
 // Kept back from the workflow's time, so the run can still record the result.
 const WORKFLOW_TIME_MARGIN_IN_MS: number = 2 * 1000;
@@ -53,7 +54,8 @@ export interface IRCSettings {
   channelKey?: string | undefined;
   serverPassword?: string | undefined;
   sasl?: IRCSASLCredentials | undefined;
-  text: PreparedIRCText;
+  // As typed; IRCClient cuts it into lines for the nickname it is sent as.
+  text: string;
 }
 
 export default class SendMessageToChannel extends ComponentCode {
@@ -112,13 +114,12 @@ export default class SendMessageToChannel extends ComponentCode {
       throw options.onError(error as Exception);
     }
 
-    if (settings.text.isTruncated) {
-      options.log(
-        `Message Text is longer than ${IRC_MAX_LINES} IRC lines. The first ${IRC_MAX_LINES - 1} are sent, and a last line says the message was cut short.`,
-      );
-    }
-
     try {
+      /*
+       * The step's time starts now, before the server is looked up: the
+       * lookup can take seconds of it.
+       */
+      const startedAt: number = Date.now();
       const timeoutInMs: number = SendMessageToChannel.getTimeoutInMs(options);
 
       /*
@@ -137,6 +138,15 @@ export default class SendMessageToChannel extends ComponentCode {
           targetLabel: "IRC server",
         });
 
+      const conversationTimeInMs: number =
+        timeoutInMs - (Date.now() - startedAt);
+
+      if (conversationTimeInMs < IRC_MIN_CONVERSATION_TIME_IN_MS) {
+        throw new IRCError(
+          "Not enough of the workflow's run time is left to send a message to IRC.",
+        );
+      }
+
       await IRCClient.sendMessage({
         host: settings.host,
         port: settings.port,
@@ -148,8 +158,9 @@ export default class SendMessageToChannel extends ComponentCode {
         channelKey: settings.channelKey,
         serverPassword: settings.serverPassword,
         sasl: settings.sasl,
-        lines: settings.text.lines,
-        timeoutInMs: timeoutInMs,
+        text: settings.text,
+        maxLines: IRC_MAX_LINES,
+        timeoutInMs: conversationTimeInMs,
         log: (message: string) => {
           options.log(message);
         },
@@ -260,16 +271,18 @@ export default class SendMessageToChannel extends ComponentCode {
       throw new BadDataException("IRC message not found.");
     }
 
-    const text: PreparedIRCText = IRCMessageText.prepare({
-      text: rawText,
-      maxBytesPerLine: IRCMessageText.getMaxTextBytes({
-        nickname: IRCClient.getLongestNicknameCandidate(nickname),
-        target: target,
-      }),
-      maxLines: IRC_MAX_LINES,
-    });
+    // Whatever nickname it goes out as, a message with no line to send has none.
+    const hasLine: boolean =
+      IRCMessageText.prepare({
+        text: rawText,
+        maxBytesPerLine: IRCMessageText.getMaxTextBytes({
+          nickname: nickname,
+          target: target,
+        }),
+        maxLines: 1,
+      }).lines.length > 0;
 
-    if (text.lines.length === 0) {
+    if (!hasLine) {
       throw new BadDataException(
         "Message Text has nothing to send: it is blank, or holds only characters IRC cannot carry.",
       );
@@ -287,7 +300,7 @@ export default class SendMessageToChannel extends ComponentCode {
       sasl: saslUsername
         ? { username: saslUsername, password: saslPassword }
         : undefined,
-      text: text,
+      text: rawText,
     };
   }
 

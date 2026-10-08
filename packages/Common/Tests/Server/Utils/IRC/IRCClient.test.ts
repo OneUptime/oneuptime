@@ -1,5 +1,6 @@
 import IRCClient, {
   IRC_DEFAULT_PACING,
+  IRC_DEFAULT_REFUSAL_GRACE_IN_MS,
   IRCError,
   IRCSendOptions,
   IRCSendResult,
@@ -15,6 +16,7 @@ import {
   startFakeIRCServer,
 } from "./FakeIRCServer";
 import { TestCertificate, createTestCertificate } from "./TestCertificate";
+import IRCValidation from "../../../../Server/Utils/IRC/IRCValidation";
 import dns from "dns";
 import net from "net";
 import tls from "tls";
@@ -73,9 +75,12 @@ function options(
     nicknames: NICKNAMES,
     target: "#ops",
     joinChannel: true,
-    lines: ["Deploy finished"],
+    text: "Deploy finished",
+    maxLines: 15,
     timeoutInMs: 5000,
     pacing: { burst: 20, intervalInMs: 10 },
+    // The tests that are about it set it; the rest need not wait a second.
+    refusalGraceInMs: 0,
     ...overrides,
   };
 }
@@ -117,7 +122,7 @@ describe("IRCClient — a message delivered", () => {
 
     const result: IRCSendResult = await IRCClient.sendMessage(
       options(fakeServer, {
-        lines: ["Incident #42 declared", "Severity: Critical"],
+        text: "Incident #42 declared\nSeverity: Critical",
         log: (message: string) => {
           log.push(message);
         },
@@ -208,7 +213,7 @@ describe("IRCClient — a message delivered", () => {
 
     await IRCClient.sendMessage(
       options(fakeServer, {
-        lines: ["one", "two"],
+        text: "one\ntwo",
         pacing: { burst: 1, intervalInMs: 100 },
       }),
     );
@@ -237,6 +242,90 @@ describe("IRCClient — a message delivered", () => {
     );
 
     expect(result.linesSent).toBe(1);
+  });
+});
+
+describe("IRCClient — the message, in lines", () => {
+  test("is sized for the nickname the server gives, not the one asked for", async () => {
+    // A bouncer, or a network that ties nicknames to accounts.
+    const forced: string = "a-much-longer-bouncer-nickname";
+    const fakeServer: FakeIRCServer = await start({ forcedNickname: forced });
+    const text: string = Array.from(
+      { length: 300 },
+      (_: unknown, index: number) => {
+        return `word${index}`;
+      },
+    ).join(" ");
+
+    const result: IRCSendResult = await IRCClient.sendMessage(
+      options(fakeServer, { text: text }),
+    );
+
+    expect(result.nickname).toBe(forced);
+
+    const privmsgs: Array<string> = linesSent(fakeServer).filter(
+      (line: string) => {
+        return line.startsWith("PRIVMSG");
+      },
+    );
+
+    expect(privmsgs.length).toBeGreaterThan(3);
+
+    for (const line of privmsgs) {
+      // What the server passes on, with the longest user and host it allows.
+      const relayed: string = `:${forced}!${"u".repeat(10)}@${"h".repeat(63)} ${line}\r\n`;
+
+      expect(Buffer.byteLength(relayed, "utf8")).toBeLessThanOrEqual(512);
+    }
+  });
+
+  test("a message too long is cut short, and the run log says so", async () => {
+    const fakeServer: FakeIRCServer = await start();
+    const log: Array<string> = [];
+
+    await IRCClient.sendMessage(
+      options(fakeServer, {
+        text: Array.from({ length: 40 }, (_: unknown, index: number) => {
+          return `line ${index + 1}`;
+        }).join("\n"),
+        maxLines: 5,
+        log: (message: string) => {
+          log.push(message);
+        },
+      }),
+    );
+
+    expect(
+      linesSent(fakeServer).filter((line: string) => {
+        return line.startsWith("PRIVMSG");
+      }),
+    ).toEqual([
+      "PRIVMSG #ops :line 1",
+      "PRIVMSG #ops :line 2",
+      "PRIVMSG #ops :line 3",
+      "PRIVMSG #ops :line 4",
+      "PRIVMSG #ops :… (message cut short: it is longer than 5 IRC lines)",
+    ]);
+    expect(log).toContain(
+      "Message Text is longer than 5 IRC lines. The first 4 are sent, and a last line says the message was cut short.",
+    );
+  });
+
+  test("a message with nothing to send sends nothing", async () => {
+    const fakeServer: FakeIRCServer = await start();
+
+    const error: Error = await sendAndGetError(
+      options(fakeServer, { text: " \n\t\u0001\n" }),
+    );
+
+    expect(error.message).toBe(
+      "Message Text has nothing to send: it is blank, or holds only characters IRC cannot carry.",
+    );
+    expect(
+      linesSent(fakeServer).some((line: string) => {
+        return line.startsWith("PRIVMSG");
+      }),
+    ).toBe(false);
   });
 });
 
@@ -277,8 +366,47 @@ describe("IRCClient — the nickname", () => {
 
     expect(error).toBeInstanceOf(IRCError);
     expect(error.message).toBe(
-      "Every nickname tried is taken on this IRC server: OneUptime, OneUptime_, OneUptime__, OneUptime123. Set another Nickname.",
+      "Every nickname tried is taken or refused on this IRC server: OneUptime, OneUptime_, OneUptime__, OneUptime123. Set another Nickname.",
     );
+  });
+
+  test("a server that refuses a longer nickname gets one as long as the one asked for", async () => {
+    // InspIRCd refuses a nickname past its limit with 432.
+    const fakeServer: FakeIRCServer = await start({
+      takenNicknames: ["OneUptime"],
+      refuseNicknamesLongerThan: 9,
+    });
+    const log: Array<string> = [];
+
+    const result: IRCSendResult = await IRCClient.sendMessage(
+      options(fakeServer, {
+        nicknames: IRCClient.getNicknameCandidates("OneUptime"),
+        log: (message: string) => {
+          log.push(message);
+        },
+      }),
+    );
+
+    expect(result.nickname).toBe("OneUptim_");
+    expect(log).toContain(
+      'The IRC server refused the nickname "OneUptime_": Erroneous Nickname. Trying "OneUptime__".',
+    );
+  });
+
+  test("a server that cuts a longer nickname short gets one as long as the one asked for", async () => {
+    // Solanum cuts a nickname to its NICKLEN - back to the one that is taken.
+    const fakeServer: FakeIRCServer = await start({
+      takenNicknames: ["OneUptime"],
+      truncateNicknamesTo: 9,
+    });
+
+    const result: IRCSendResult = await IRCClient.sendMessage(
+      options(fakeServer, {
+        nicknames: IRCClient.getNicknameCandidates("OneUptime"),
+      }),
+    );
+
+    expect(result.nickname).toBe("OneUptim_");
   });
 
   test("stops at a nickname the server will not have", async () => {
@@ -651,6 +779,76 @@ describe("IRCClient — joining the channel", () => {
     },
   );
 
+  test("a channel the server put it in is not the one it asked for", async () => {
+    const fakeServer: FakeIRCServer = await start({
+      autoJoin: "#welcome",
+      joinReply: `:${SERVER_NAME} 474 {nick} #ops :Cannot join channel (+b) - you are banned`,
+    });
+
+    const error: Error = await sendAndGetError(options(fakeServer));
+
+    expect(error.message).toBe(
+      "Could not join #ops: Cannot join channel (+b) - you are banned.",
+    );
+    expect(
+      linesSent(fakeServer).some((line: string) => {
+        return line.startsWith("PRIVMSG");
+      }),
+    ).toBe(false);
+  });
+
+  test("waits for its own channel past one the server put it in", async () => {
+    const fakeServer: FakeIRCServer = await start({ autoJoin: "#welcome" });
+    const log: Array<string> = [];
+
+    await IRCClient.sendMessage(
+      options(fakeServer, {
+        log: (message: string) => {
+          log.push(message);
+        },
+      }),
+    );
+
+    expect(log).toContain("Joined #ops.");
+    expect(linesSent(fakeServer)).toContain("PRIVMSG #ops :Deploy finished");
+  });
+
+  test("an error reply about the channel it has no name for is a refusal too", async () => {
+    // Solanum's 480: the channel is throttling joins (+j).
+    const fakeServer: FakeIRCServer = await start({
+      joinReply: `:${SERVER_NAME} 480 {nick} #ops :Cannot join channel (+j) - throttle exceeded, try again later`,
+    });
+    const startedAt: number = Date.now();
+
+    const error: Error = await sendAndGetError(options(fakeServer));
+
+    expect(error.message).toBe(
+      "Could not join #ops: Cannot join channel (+j) - throttle exceeded, try again later.",
+    );
+    // At once, not after the whole deadline.
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+
+  test("an error reply about another channel is not about this one", async () => {
+    const fakeServer: FakeIRCServer = await start({
+      onMessage: (message: FakeIRCMessage, connection: FakeIRCConnection) => {
+        if (message.command === "JOIN") {
+          connection.send(
+            `:${SERVER_NAME} 480 ${connection.nickname} #elsewhere :Cannot join channel (+j)`,
+          );
+        }
+
+        return false;
+      },
+    });
+
+    const result: IRCSendResult = await IRCClient.sendMessage(
+      options(fakeServer),
+    );
+
+    expect(result.linesSent).toBe(1);
+  });
+
   test("an IRCv3 FAIL for the JOIN fails it too", async () => {
     const fakeServer: FakeIRCServer = await start({
       joinReply: `:${SERVER_NAME} FAIL JOIN CHANNEL_RENAMED #ops :This channel has moved`,
@@ -713,6 +911,22 @@ describe("IRCClient — the server refuses the message", () => {
     },
   );
 
+  test("an error reply about the channel it has no name for is a refusal too", async () => {
+    // UnrealIRCd's 408: the channel takes no colours (+c).
+    const fakeServer: FakeIRCServer = await start({
+      privmsgReply: `:${SERVER_NAME} 408 {nick} #ops :You cannot use colors on this channel. Not sent: \u000304red\u0003`,
+    });
+
+    const error: Error = await sendAndGetError(
+      options(fakeServer, { text: "\u000304red\u0003 alert" }),
+    );
+
+    expect(error.message).toBe(
+      // The colour codes in the server's words are taken out.
+      "Could not send to #ops: You cannot use colors on this channel. Not sent: red.",
+    );
+  });
+
   test("an IRCv3 FAIL for the PRIVMSG fails it too", async () => {
     const fakeServer: FakeIRCServer = await start({
       privmsgReply: `:${SERVER_NAME} FAIL PRIVMSG MESSAGE_REJECTED #ops :Message looks like spam`,
@@ -732,7 +946,7 @@ describe("IRCClient — the server refuses the message", () => {
 
     await sendAndGetError(
       options(fakeServer, {
-        lines: ["one", "two", "three"],
+        text: "one\ntwo\nthree",
         pacing: { burst: 1, intervalInMs: 300 },
       }),
     );
@@ -757,13 +971,86 @@ describe("IRCClient — the server refuses the message", () => {
   });
 });
 
+describe("IRCClient — a refusal after the PONG, as through a bouncer", () => {
+  /*
+   * ZNC and soju answer a PING themselves, so the PONG comes back before
+   * the network has answered the lines in front of it.
+   */
+  test("still fails the message when it comes a moment after the PONG", async () => {
+    const fakeServer: FakeIRCServer = await start({
+      privmsgReply: `:${SERVER_NAME} 404 {nick} #ops :Cannot send to nick/channel`,
+      privmsgReplyDelayInMs: 150,
+    });
+
+    const error: Error = await sendAndGetError(
+      options(fakeServer, { refusalGraceInMs: 1000 }),
+    );
+
+    expect(error.message).toBe(
+      "Could not send to #ops: Cannot send to nick/channel.",
+    );
+    expect(linesSent(fakeServer)).not.toContain("QUIT :Sent from OneUptime");
+  });
+
+  test("listens only a moment: a refusal much later than that is not waited for", async () => {
+    const fakeServer: FakeIRCServer = await start({
+      privmsgReply: `:${SERVER_NAME} 404 {nick} #ops :Cannot send to nick/channel`,
+      privmsgReplyDelayInMs: 1500,
+    });
+
+    const result: IRCSendResult = await IRCClient.sendMessage(
+      options(fakeServer, { refusalGraceInMs: 100 }),
+    );
+
+    expect(result.linesSent).toBe(1);
+  });
+
+  test("running out of time while listening does not undo a delivered message", async () => {
+    const fakeServer: FakeIRCServer = await start();
+    const startedAt: number = Date.now();
+
+    const result: IRCSendResult = await IRCClient.sendMessage(
+      options(fakeServer, { refusalGraceInMs: 10_000, timeoutInMs: 600 }),
+    );
+
+    expect(result.linesSent).toBe(1);
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+
+  test("a connection closed while listening ends the wait, the message delivered", async () => {
+    const fakeServer: FakeIRCServer = await start({
+      onMessage: (message: FakeIRCMessage, connection: FakeIRCConnection) => {
+        if (message.command === "PING") {
+          connection.send(
+            `:${SERVER_NAME} PONG ${SERVER_NAME} :${message.params[0]}`,
+          );
+          connection.close();
+          return true;
+        }
+
+        return false;
+      },
+    });
+
+    const result: IRCSendResult = await IRCClient.sendMessage(
+      options(fakeServer, { refusalGraceInMs: 10_000 }),
+    );
+
+    expect(result.linesSent).toBe(1);
+  });
+
+  test("by default, for a second", () => {
+    expect(IRC_DEFAULT_REFUSAL_GRACE_IN_MS).toBe(1000);
+  });
+});
+
 describe("IRCClient — pacing, so the server does not take it for a flood", () => {
   test("sends a burst at once, then waits between lines", async () => {
     const fakeServer: FakeIRCServer = await start();
 
     await IRCClient.sendMessage(
       options(fakeServer, {
-        lines: ["1", "2", "3", "4", "5"],
+        text: "1\n2\n3\n4\n5",
         pacing: { burst: 2, intervalInMs: 150 },
       }),
     );
@@ -1027,23 +1314,29 @@ describe("IRCClient — something that is not an IRC server", () => {
 });
 
 describe("IRCClient — nothing it is given can start a line of its own", () => {
-  test("a line break in the message never reaches the server as a command", async () => {
+  test("a line break in the message starts a new PRIVMSG, never a command", async () => {
     const fakeServer: FakeIRCServer = await start();
 
-    const error: Error = await sendAndGetError(
-      options(fakeServer, { lines: ["bad\r\nQUIT :injected", "fine"] }),
+    await IRCClient.sendMessage(
+      options(fakeServer, {
+        text: "bad\r\nQUIT :injected\rPRIVMSG NickServ :DROP\nfine",
+      }),
     );
 
-    // Refused while building the line, before a byte of it was written.
-    expect(error).not.toBeInstanceOf(IRCError);
-    expect(error.message).toBe(
-      "The last parameter of PRIVMSG would break the IRC line it is in.",
+    expect(linesSent(fakeServer)).toEqual(
+      expect.arrayContaining([
+        "PRIVMSG #ops :bad",
+        "PRIVMSG #ops :QUIT :injected",
+        "PRIVMSG #ops :PRIVMSG NickServ :DROP",
+        "PRIVMSG #ops :fine",
+      ]),
     );
+    // The only QUIT is the client's own, and nothing went to NickServ.
     expect(
-      linesSent(fakeServer).some((line: string) => {
-        return line.startsWith("QUIT") || line.startsWith("PRIVMSG");
+      linesSent(fakeServer).filter((line: string) => {
+        return line.startsWith("QUIT") || line.startsWith("PRIVMSG NickServ");
       }),
-    ).toBe(false);
+    ).toEqual(["QUIT :Sent from OneUptime"]);
   });
 
   test.each([
@@ -1298,19 +1591,34 @@ describe("IRCClient helpers", () => {
     expect(candidates[3]).toMatch(/^Bot[1-9][0-9]{2}$/);
   });
 
-  test("lines are sized for the longest nickname that may be tried", () => {
-    for (let attempt: number = 0; attempt < 20; attempt++) {
-      const longest: number = Math.max(
-        ...IRCClient.getNicknameCandidates("OneUptime").map(
-          (candidate: string) => {
-            return candidate.length;
-          },
-        ),
-      );
+  test("then the same endings in place of its last characters, for a server whose limit it fills", () => {
+    const candidates: Array<string> =
+      IRCClient.getNicknameCandidates("OneUptime");
 
-      expect(IRCClient.getLongestNicknameCandidate("OneUptime").length).toBe(
-        longest,
-      );
+    expect(candidates).toHaveLength(6);
+    expect(candidates[4]).toBe("OneUptim_");
+    expect(candidates[5]).toMatch(/^OneUpt[1-9][0-9]{2}$/);
+    // As long as the nickname itself.
+    expect(candidates[5]!.length).toBe("OneUptime".length);
+  });
+
+  test("every candidate is a nickname, and none is tried twice", () => {
+    for (const nickname of ["a", "ab", "Bot_", "OneUptime", "x".repeat(30)]) {
+      const candidates: Array<string> =
+        IRCClient.getNicknameCandidates(nickname);
+
+      expect(new Set(candidates).size).toBe(candidates.length);
+      expect(candidates[0]).toBe(nickname);
+
+      for (const candidate of candidates) {
+        expect({
+          candidate,
+          valid: IRCValidation.getNicknameProblem(candidate) === null,
+        }).toEqual({
+          candidate,
+          valid: true,
+        });
+      }
     }
   });
 

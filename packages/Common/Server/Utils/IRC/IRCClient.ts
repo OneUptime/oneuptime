@@ -2,6 +2,8 @@ import DataSourceEgressGuard, {
   ResolvedAddress,
 } from "../DataSource/EgressGuard";
 import IRCMessageUtil, { IRCMessage } from "./IRCMessage";
+import IRCMessageText, { PreparedIRCText } from "./IRCMessageText";
+import IRCValidation from "./IRCValidation";
 import crypto from "crypto";
 import net from "net";
 import tls from "tls";
@@ -26,7 +28,10 @@ import tls from "tls";
  *   - IRC never says "delivered". A failed PRIVMSG is answered with an error
  *     numeric and a successful one with nothing, so after the last line the
  *     client sends a PING and waits for its PONG: a server answers in order,
- *     so by then any refusal of the message has already arrived.
+ *     so by then any refusal of the message has already arrived. A bouncer
+ *     (ZNC, soju) answers a PING itself, ahead of the network's answers to
+ *     the lines before it, so the client listens a moment longer before it
+ *     calls the message delivered.
  *
  *   - What comes back is shown to the author on the Error port. Only what an
  *     IRC server says in IRC - an error reply's text - is ever quoted. A
@@ -66,17 +71,25 @@ export interface IRCSendOptions {
   useTls: boolean;
   // Tried in turn while the server says the one before is taken.
   nicknames: Array<string>;
-  // A channel, or the nickname of the person to message.
+  // The channel to post in.
   target: string;
   joinChannel: boolean;
   channelKey?: string | undefined;
   serverPassword?: string | undefined;
   sasl?: IRCSASLCredentials | undefined;
-  // Already split to fit (IRCMessageText.prepare).
-  lines: Array<string>;
+  /*
+   * The message, as typed. It is cut into lines (IRCMessageText.prepare) once
+   * the server has said which nickname it is sent as, since that nickname is
+   * part of every line the server passes on.
+   */
+  text: string;
+  // The most IRC lines it is sent as; a longer message is cut short.
+  maxLines: number;
   // For everything, from connecting to quitting.
   timeoutInMs: number;
   pacing?: IRCPacing | undefined;
+  // How long to listen for a late refusal after the PONG.
+  refusalGraceInMs?: number | undefined;
   log?: ((message: string) => void) | undefined;
 }
 
@@ -108,6 +121,19 @@ const MAX_INCOMING_BYTES: number = 1024 * 1024;
 // How long QUIT may take before the socket is closed anyway.
 const QUIT_GRACE_IN_MS: number = 2000;
 
+/*
+ * How long to go on listening for a refusal once the PONG is back. A server
+ * has answered every line by then, but a bouncer answers the PING itself, and
+ * the network's answer comes after it by a round trip from the bouncer.
+ */
+export const IRC_DEFAULT_REFUSAL_GRACE_IN_MS: number = 1000;
+
+/*
+ * The fewest bytes of text a line is given, whatever nickname the server
+ * gives the client, so preparing the message never fails on it.
+ */
+const MIN_TEXT_BYTES_PER_LINE: number = 64;
+
 // The longest reply text quoted back to the author.
 const MAX_QUOTED_REPLY_LENGTH: number = 200;
 
@@ -128,6 +154,8 @@ enum Phase {
   Joining = "Joining",
   Sending = "Sending",
   Confirming = "Confirming",
+  // The PONG is back; listening a moment longer for a late refusal.
+  Settling = "Settling",
   Quitting = "Quitting",
 }
 
@@ -198,18 +226,32 @@ export default class IRCClient {
 
   /*
    * The nicknames tried for `nickname`, in order: itself, then with "_" and
-   * "__", then with a number. The number is the last resort, so two runs at
-   * the same moment rarely end up as the same nickname.
+   * "__", then with a number, so two runs at the same moment rarely end up
+   * as the same nickname.
+   *
+   * Then the same ending in place of its last characters, as long as the
+   * nickname itself: a server whose NICKLEN the nickname already fills
+   * refuses a longer one (InspIRCd), or cuts it back down to the nickname
+   * that was taken (Solanum).
    */
   public static getNicknameCandidates(nickname: string): Array<string> {
-    const number: number = 100 + crypto.randomInt(900);
+    const number: string = String(100 + crypto.randomInt(900));
 
-    return [nickname, `${nickname}_`, `${nickname}__`, `${nickname}${number}`];
-  }
+    const candidates: Array<string> = [
+      nickname,
+      `${nickname}_`,
+      `${nickname}__`,
+      `${nickname}${number}`,
+      `${nickname.substring(0, nickname.length - 1)}_`,
+      `${nickname.substring(0, nickname.length - number.length)}${number}`,
+    ];
 
-  // The longest of getNicknameCandidates(nickname), to size lines for.
-  public static getLongestNicknameCandidate(nickname: string): string {
-    return `${nickname}000`;
+    return candidates.filter((candidate: string, index: number) => {
+      return (
+        candidates.indexOf(candidate) === index &&
+        IRCValidation.getNicknameProblem(candidate) === null
+      );
+    });
   }
 
   /*
@@ -323,6 +365,15 @@ class IRCSession {
     ReturnType<typeof setTimeout>
   >();
 
+  /*
+   * Waits that the deadline ends rather than fails: once the PONG is back the
+   * message is delivered, and running out of time while listening for a late
+   * refusal, or while the server closes the connection after QUIT, does not
+   * change that.
+   */
+  private isPastDeadline: boolean = false;
+  private softWaitEnders: Set<() => void> = new Set<() => void>();
+
   private nicknameIndex: number = 0;
   private nickname: string;
 
@@ -337,6 +388,13 @@ class IRCSession {
 
   public async run(): Promise<IRCSendResult> {
     this.deadlineTimer = setTimeout(() => {
+      this.isPastDeadline = true;
+
+      if (this.phase === Phase.Settling || this.phase === Phase.Quitting) {
+        this.endSoftWaits();
+        return;
+      }
+
       this.fail(this.getTimeoutError());
     }, this.options.timeoutInMs);
 
@@ -613,9 +671,21 @@ class IRCSession {
 
         // ERR_ERRONEUSNICKNAME
         case "432": {
-          throw new IRCError(
-            `The IRC server refused the nickname ${JSON.stringify(this.nickname)}: ${IRCClient.describeReply(message)}. Set another Nickname.`,
+          /*
+           * The nickname as set is refused outright. A fallback can be
+           * refused for being longer than the server allows, and the next
+           * one may still do.
+           */
+          if (this.nicknameIndex === 0) {
+            throw new IRCError(
+              `The IRC server refused the nickname ${JSON.stringify(this.nickname)}: ${IRCClient.describeReply(message)}. Set another Nickname.`,
+            );
+          }
+
+          this.tryNextNickname(
+            `The IRC server refused the nickname ${JSON.stringify(this.nickname)}: ${IRCClient.describeReply(message)}.`,
           );
+          return false;
         }
 
         // ERR_PASSWDMISMATCH
@@ -639,7 +709,9 @@ class IRCSession {
 
         default: {
           if (NICKNAME_TAKEN_REPLIES.has(message.command)) {
-            this.tryNextNickname();
+            this.tryNextNickname(
+              `The nickname ${JSON.stringify(this.nickname)} is taken.`,
+            );
           } else if (SASL_FAILURE_REPLIES.has(message.command)) {
             throw new IRCError(
               `SASL sign-in failed: ${IRCClient.describeReply(message)}. Check SASL Username and SASL Password.`,
@@ -708,20 +780,19 @@ class IRCSession {
     }
   }
 
-  private tryNextNickname(): void {
+  // `why` says what happened to the nickname before: taken, or refused.
+  private tryNextNickname(why: string): void {
     this.nicknameIndex++;
 
     const next: string | undefined = this.options.nicknames[this.nicknameIndex];
 
     if (!next) {
       throw new IRCError(
-        `Every nickname tried is taken on this IRC server: ${this.options.nicknames.join(", ")}. Set another Nickname.`,
+        `Every nickname tried is taken or refused on this IRC server: ${this.options.nicknames.join(", ")}. Set another Nickname.`,
       );
     }
 
-    this.log(
-      `The nickname ${JSON.stringify(this.nickname)} is taken. Trying ${JSON.stringify(next)}.`,
-    );
+    this.log(`${why} Trying ${JSON.stringify(next)}.`);
 
     this.nickname = next;
     this.send({ command: "NICK", middle: [next] });
@@ -744,20 +815,26 @@ class IRCSession {
     });
 
     await this.waitFor((message: IRCMessage): boolean => {
-      // The server echoes our JOIN back once we are in.
+      /*
+       * The server echoes our JOIN back once we are in - this channel's: a
+       * server can put every client in a channel of its own choosing
+       * (UnrealIRCd's auto-join, InspIRCd's conn_join) as well.
+       */
       if (
         message.command === "JOIN" &&
         IRCMessageUtil.isSameName(
           IRCMessageUtil.getNickname(message.source),
           this.nickname,
-        )
+        ) &&
+        IRCMessageUtil.isSameName(message.params[0] || "", channel)
       ) {
         return true;
       }
 
       if (
         JOIN_FAILURE_REPLIES.has(message.command) ||
-        IRCSession.isStandardFailure(message, "JOIN")
+        IRCSession.isStandardFailure(message, "JOIN") ||
+        IRCSession.isErrorAbout(message, channel)
       ) {
         throw new IRCError(
           `Could not join ${channel}: ${IRCClient.describeReply(message)}.${
@@ -781,11 +858,13 @@ class IRCSession {
 
     const target: string = this.options.target;
     const pacing: IRCPacing = this.options.pacing || IRC_DEFAULT_PACING;
+    const lines: Array<string> = this.prepareLines();
 
     this.replyCheck = (message: IRCMessage): Error | null => {
       if (
         !SEND_FAILURE_REPLIES.has(message.command) &&
-        !IRCSession.isStandardFailure(message, "PRIVMSG")
+        !IRCSession.isStandardFailure(message, "PRIVMSG") &&
+        !IRCSession.isErrorAbout(message, target)
       ) {
         return null;
       }
@@ -800,7 +879,7 @@ class IRCSession {
       );
     };
 
-    for (let index: number = 0; index < this.options.lines.length; index++) {
+    for (let index: number = 0; index < lines.length; index++) {
       if (index >= pacing.burst) {
         await this.sleep(pacing.intervalInMs);
       }
@@ -808,7 +887,7 @@ class IRCSession {
       this.send({
         command: "PRIVMSG",
         middle: [target],
-        trailing: this.options.lines[index] as string,
+        trailing: lines[index] as string,
       });
     }
 
@@ -829,15 +908,58 @@ class IRCSession {
       );
     });
 
+    /*
+     * Unless a bouncer answered the PING itself, without waiting for the
+     * network: so listen a moment longer for a refusal, which still fails
+     * the step. Running out of time now does not.
+     */
+    this.phase = Phase.Settling;
+
+    await this.waitAWhile(
+      this.options.refusalGraceInMs ?? IRC_DEFAULT_REFUSAL_GRACE_IN_MS,
+    );
+
     this.replyCheck = null;
 
     this.log(
-      `Sent ${this.options.lines.length} ${
-        this.options.lines.length === 1 ? "line" : "lines"
-      } to ${target}.`,
+      `Sent ${lines.length} ${lines.length === 1 ? "line" : "lines"} to ${target}.`,
     );
 
-    return this.options.lines.length;
+    return lines.length;
+  }
+
+  /*
+   * The message in IRC lines, sized for the nickname the server has given
+   * us - the one it puts in front of every line it passes on - which a
+   * bouncer, or a network that ties nicknames to accounts, can make another
+   * than the one asked for.
+   */
+  private prepareLines(): Array<string> {
+    const prepared: PreparedIRCText = IRCMessageText.prepare({
+      text: this.options.text,
+      maxBytesPerLine: Math.max(
+        MIN_TEXT_BYTES_PER_LINE,
+        IRCMessageText.getMaxTextBytes({
+          nickname: this.nickname,
+          target: this.options.target,
+        }),
+      ),
+      maxLines: this.options.maxLines,
+    });
+
+    if (prepared.lines.length === 0) {
+      throw new IRCError(
+        "Message Text has nothing to send: it is blank, or holds only characters IRC cannot carry.",
+      );
+    }
+
+    if (prepared.isTruncated) {
+      this.log(
+        `Message Text is longer than ${this.options.maxLines} IRC lines. The first ${this.options.maxLines - 1} are sent, and a last line says the message was cut short.`,
+      );
+    }
+
+    return prepared.lines;
   }
 
   /*
@@ -857,23 +979,57 @@ class IRCSession {
 
       const socket: net.Socket | null = this.socket;
 
-      if (!socket || socket.destroyed) {
+      if (!socket || socket.destroyed || this.isPastDeadline) {
         return;
       }
 
       await this.track<void>((resolve: () => void) => {
+        const end: () => void = (): void => {
+          this.softWaitEnders.delete(end);
+          resolve();
+        };
+
         const timer: ReturnType<typeof setTimeout> = setTimeout(
-          resolve,
+          end,
           QUIT_GRACE_IN_MS,
         );
         this.timers.add(timer);
+        this.softWaitEnders.add(end);
 
-        socket.once("close", () => {
-          resolve();
-        });
+        socket.once("close", end);
       });
     } catch {
       // Already delivered; see above.
+    }
+  }
+
+  /*
+   * A pause the deadline ends early, rather than failing the session. A
+   * refusal still fails it, like any other wait.
+   */
+  private async waitAWhile(milliseconds: number): Promise<void> {
+    if (this.isPastDeadline || milliseconds <= 0) {
+      return;
+    }
+
+    await this.track<void>((resolve: () => void) => {
+      const end: () => void = (): void => {
+        this.softWaitEnders.delete(end);
+        resolve();
+      };
+
+      const timer: ReturnType<typeof setTimeout> = setTimeout(
+        end,
+        milliseconds,
+      );
+      this.timers.add(timer);
+      this.softWaitEnders.add(end);
+    });
+  }
+
+  private endSoftWaits(): void {
+    for (const end of Array.from(this.softWaitEnders)) {
+      end();
     }
   }
 
@@ -1012,6 +1168,12 @@ class IRCSession {
 
   private onConnectionLost(error: Error | null): void {
     if (this.isFinished || this.failure || this.phase === Phase.Quitting) {
+      return;
+    }
+
+    // After the PONG the message is delivered; a closed connection ends the wait.
+    if (this.phase === Phase.Settling) {
+      this.endSoftWaits();
       return;
     }
 
@@ -1219,6 +1381,8 @@ class IRCSession {
         return `sending to ${this.options.target}`;
       case Phase.Confirming:
         return `waiting for the IRC server to confirm the message`;
+      case Phase.Settling:
+        return `listening for a late refusal of the message`;
       case Phase.Quitting:
         return "disconnecting";
     }
@@ -1226,6 +1390,23 @@ class IRCSession {
 
   private log(message: string): void {
     this.options.log?.(message);
+  }
+
+  /*
+   * An error numeric (4xx or 5xx) about `name`, the way they all name it:
+   * "<our nick> <name> :<why>". Servers have their own for a JOIN or a
+   * PRIVMSG they refuse (Solanum's 480 for +j, UnrealIRCd's 448 and 500), so
+   * one about the channel is taken as a refusal even when it is not listed.
+   */
+  private static isErrorAbout(message: IRCMessage, name: string): boolean {
+    const numeric: number = Number(message.command);
+
+    return (
+      message.command.length === 3 &&
+      numeric >= 400 &&
+      numeric <= 599 &&
+      IRCMessageUtil.isSameName(message.params[1] || "", name)
+    );
   }
 
   // IRCv3 standard replies: "FAIL PRIVMSG <code> :<description>".

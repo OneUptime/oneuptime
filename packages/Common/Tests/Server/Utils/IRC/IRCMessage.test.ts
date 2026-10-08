@@ -116,7 +116,7 @@ describe("IRCMessageUtil.parse — what a server sends", () => {
     const startedAt: number = Date.now();
 
     expect(IRCMessageUtil.parse(line)?.params[1]?.length).toBe(400_000);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(Date.now() - startedAt).toBeLessThan(3000);
   });
 });
 

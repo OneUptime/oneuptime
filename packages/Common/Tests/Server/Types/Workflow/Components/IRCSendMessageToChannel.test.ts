@@ -12,7 +12,6 @@ import IRCClient, {
   IRCSendOptions,
   IRCSendResult,
 } from "../../../../../Server/Utils/IRC/IRCClient";
-import IRCMessageText from "../../../../../Server/Utils/IRC/IRCMessageText";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -273,7 +272,7 @@ describe("Send Message to IRC — reading the settings", () => {
       channelKey: undefined,
       serverPassword: undefined,
       sasl: undefined,
-      text: { lines: ["Deploy finished"], isTruncated: false },
+      text: "Deploy finished",
     });
   });
 
@@ -502,40 +501,20 @@ describe("Send Message to IRC — reading the settings", () => {
   });
 
   test("Message Text from a reference that holds an object or a number is sent as text", () => {
-    expect(
-      settingsFor({ text: { status: "down", count: 2 } }).text.lines,
-    ).toEqual(['{"status":"down","count":2}']);
-    expect(settingsFor({ text: 42 }).text.lines).toEqual(["42"]);
+    expect(settingsFor({ text: { status: "down", count: 2 } }).text).toBe(
+      '{"status":"down","count":2}',
+    );
+    expect(settingsFor({ text: 42 }).text).toBe("42");
   });
 
-  test("Message Text: each line a message, sized for the longest nickname it may use", () => {
-    const longText: string = "word ".repeat(400);
-    const settings: IRCSettings = settingsFor({
-      nickname: "a-rather-long-nickname",
-      channel: "#a-rather-long-channel-name",
-      text: `first\r\nsecond\n${longText}`,
-    });
-    const maxBytes: number = IRCMessageText.getMaxTextBytes({
-      nickname: IRCClient.getLongestNicknameCandidate("a-rather-long-nickname"),
-      target: "#a-rather-long-channel-name",
-    });
+  /*
+   * Cut into lines by IRCClient, once the server has said which nickname
+   * the message goes out as: that nickname is in every line it passes on.
+   */
+  test("Message Text is kept as typed, line breaks and all, for the client to cut", () => {
+    const text: string = `first\r\nsecond\n${"word ".repeat(400)}`;
 
-    expect(settings.text.lines.slice(0, 2)).toEqual(["first", "second"]);
-
-    for (const line of settings.text.lines) {
-      expect(Buffer.byteLength(line, "utf8")).toBeLessThanOrEqual(maxBytes);
-    }
-  });
-
-  test(`Message Text longer than ${IRC_MAX_LINES} lines is cut, and says so`, () => {
-    const settings: IRCSettings = settingsFor({
-      text: Array.from({ length: 30 }, (_: unknown, index: number) => {
-        return `line ${index}`;
-      }).join("\n"),
-    });
-
-    expect(settings.text.isTruncated).toBe(true);
-    expect(settings.text.lines).toHaveLength(IRC_MAX_LINES);
+    expect(settingsFor({ text: text }).text).toBe(text);
   });
 });
 
@@ -619,9 +598,11 @@ describe("Send Message to IRC — what the run does with it", () => {
       channelKey: "hunter2",
       serverPassword: "bouncer-pass",
       sasl: { username: "deploy", password: "correct horse" },
-      lines: ["one", "two"],
-      timeoutInMs: IRC_MAX_STEP_TIME_IN_MS,
+      text: "one\ntwo",
+      maxLines: IRC_MAX_LINES,
     });
+    expect(sent.timeoutInMs).toBeGreaterThan(IRC_MAX_STEP_TIME_IN_MS - 1000);
+    expect(sent.timeoutInMs).toBeLessThanOrEqual(IRC_MAX_STEP_TIME_IN_MS);
     expect(sent.nicknames.slice(0, 3)).toEqual([
       "deploy-bot",
       "deploy-bot_",
@@ -786,18 +767,60 @@ describe("Send Message to IRC — what the run does with it", () => {
     },
   );
 
-  test("a message cut short says so in the run log", async () => {
-    const run: LoggedRun = makeRun();
+  test("hands the whole message on, with the line limit the client cuts it to", async () => {
+    const text: string = "line\n".repeat(40);
 
     await new SendMessageToChannel().run(
-      args({ text: "line\n".repeat(40) }),
-      run.options,
+      args({ text: text }),
+      makeRun().options,
     );
 
-    expect(run.logged).toContain(
-      `Message Text is longer than ${IRC_MAX_LINES} IRC lines. The first ${IRC_MAX_LINES - 1} are sent, and a last line says the message was cut short.`,
+    expect(sentOptions()).toMatchObject({
+      text: text,
+      maxLines: IRC_MAX_LINES,
+    });
+  });
+
+  /*
+   * The egress guard looks the server up first, which can take seconds of
+   * the step's time; the clock is faked so the lookup can take four of them.
+   */
+  test("the step's time includes looking the server up", async () => {
+    let now: number = 1_000_000;
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return now;
+    });
+    guardSpy.mockImplementation(async () => {
+      now += 4_000;
+      return [{ address: "198.51.100.7", family: 4 }];
+    });
+
+    await new SendMessageToChannel().run(args(), makeRun(90_000).options);
+
+    expect(sentOptions().timeoutInMs).toBe(IRC_MAX_STEP_TIME_IN_MS - 4_000);
+  });
+
+  test("a lookup that leaves too little time does not connect", async () => {
+    let now: number = 1_000_000;
+    jest.spyOn(Date, "now").mockImplementation((): number => {
+      return now;
+    });
+    guardSpy.mockImplementation(async () => {
+      now += 4_500;
+      return [{ address: "198.51.100.7", family: 4 }];
+    });
+
+    // 8 seconds left, 2 kept back: 6 for the step, 4.5 of them on the lookup.
+    const result: RunReturnType = await new SendMessageToChannel().run(
+      args(),
+      makeRun(8_000).options,
     );
-    expect(sentOptions().lines).toHaveLength(IRC_MAX_LINES);
+
+    expect(result.executePort?.id).toBe("error");
+    expect(result.returnValues["error"]).toBe(
+      "Not enough of the workflow's run time is left to send a message to IRC.",
+    );
+    expect(sendSpy).not.toHaveBeenCalled();
   });
 
   test("Disable TLS dials 6667 without TLS", async () => {

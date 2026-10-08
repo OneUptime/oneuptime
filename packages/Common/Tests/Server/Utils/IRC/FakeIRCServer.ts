@@ -67,6 +67,23 @@ export interface FakeIRCServerOptions {
   joinEchoNickname?: string | undefined;
   // The reply to the first PRIVMSG, instead of silence.
   privmsgReply?: string | undefined;
+  /*
+   * How long after the PRIVMSG that reply comes. With PING answered at
+   * once, this is a bouncer: it answers the PING itself, and the network's
+   * refusal comes later.
+   */
+  privmsgReplyDelayInMs?: number | undefined;
+  // A channel the server puts every client in once it is registered.
+  autoJoin?: string | undefined;
+  // Nicknames are cut to this length, as Solanum does with NICKLEN.
+  truncateNicknamesTo?: number | undefined;
+  // Nicknames longer than this are refused (432), as InspIRCd does.
+  refuseNicknamesLongerThan?: number | undefined;
+  /*
+   * The nickname the client is given whatever it asks for, as a bouncer or
+   * a network that ties nicknames to accounts does.
+   */
+  forcedNickname?: string | undefined;
   // Whether PING is answered. On by default.
   answerPing?: boolean | undefined;
   // Answer a line any way at all. Returning true skips the default.
@@ -197,6 +214,12 @@ export const startFakeIRCServer: (
       }
 
       isRegistered = true;
+
+      if (options.forcedNickname) {
+        nickname = options.forcedNickname;
+        connection.nickname = nickname;
+      }
+
       send(
         `:${SERVER_NAME} 001 ${nickname} :Welcome to the Fake IRC Network ${nickname}`,
       );
@@ -209,6 +232,15 @@ export const startFakeIRCServer: (
       );
       send(`:${SERVER_NAME} 372 ${nickname} :- Be nice.`);
       send(`:${SERVER_NAME} 376 ${nickname} :End of /MOTD command.`);
+
+      if (options.autoJoin) {
+        send(
+          `:${nickname}!~oneuptime@client.fake.test JOIN ${options.autoJoin}`,
+        );
+        send(
+          `:${SERVER_NAME} 366 ${nickname} ${options.autoJoin} :End of /NAMES list.`,
+        );
+      }
     };
 
     const handle: (message: FakeIRCMessage) => void = (
@@ -310,7 +342,21 @@ export const startFakeIRCServer: (
         }
 
         case "NICK": {
-          const wanted: string = message.params[0] || "";
+          let wanted: string = message.params[0] || "";
+
+          if (
+            options.refuseNicknamesLongerThan !== undefined &&
+            wanted.length > options.refuseNicknamesLongerThan
+          ) {
+            send(
+              `:${SERVER_NAME} 432 ${target()} ${wanted} :Erroneous Nickname`,
+            );
+            return;
+          }
+
+          if (options.truncateNicknamesTo !== undefined) {
+            wanted = wanted.substring(0, options.truncateNicknamesTo);
+          }
 
           if ((options.erroneousNicknames || []).includes(wanted)) {
             send(
@@ -393,7 +439,19 @@ export const startFakeIRCServer: (
         case "PRIVMSG": {
           if (options.privmsgReply && !isPrivmsgAnswered) {
             isPrivmsgAnswered = true;
-            send(options.privmsgReply.replace("{nick}", nickname));
+
+            const reply: string = options.privmsgReply.replace(
+              "{nick}",
+              nickname,
+            );
+
+            if (options.privmsgReplyDelayInMs) {
+              setTimeout(() => {
+                send(reply);
+              }, options.privmsgReplyDelayInMs);
+            } else {
+              send(reply);
+            }
           }
 
           return;

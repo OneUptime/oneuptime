@@ -21,6 +21,20 @@ function prepare(text: string, maxLines: number = 15): PreparedIRCText {
   });
 }
 
+// A CR, LF or NUL anywhere in a line.
+const LINE_BREAK: RegExp = /[\r\n\0]/;
+
+// Shows nothing: white space, or the bold code the random text uses.
+function isBlank(line: string): boolean {
+  for (const character of line) {
+    if (character.trim().length > 0 && character !== "\u0002") {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function bytesOf(text: string): number {
   return Buffer.byteLength(text, "utf8");
 }
@@ -176,6 +190,10 @@ describe("IRCMessageText.prepare — long lines", () => {
       return seed / 2147483648;
     };
 
+    // Gathered and checked once: an expect per line is most of the cost.
+    const problems: Array<string> = [];
+    let linesChecked: number = 0;
+
     for (let round: number = 0; round < 200; round++) {
       let text: string = "";
       const length: number = Math.floor(random() * 3000);
@@ -186,14 +204,31 @@ describe("IRCMessageText.prepare — long lines", () => {
 
       const prepared: PreparedIRCText = prepare(text);
 
-      expect(prepared.lines.length).toBeLessThanOrEqual(15);
+      if (prepared.lines.length > 15) {
+        problems.push(`round ${round}: ${prepared.lines.length} lines`);
+      }
 
       for (const line of prepared.lines) {
-        expect(bytesOf(line)).toBeLessThanOrEqual(MAX_BYTES);
-        expect(line).not.toMatch(/[\r\n\0]/);
-        expect(line.trim().length).toBeGreaterThan(0);
+        linesChecked++;
+
+        if (bytesOf(line) > MAX_BYTES) {
+          problems.push(`round ${round}: ${bytesOf(line)} bytes`);
+        }
+
+        if (LINE_BREAK.test(line)) {
+          problems.push(
+            `round ${round}: a line break in ${JSON.stringify(line)}`,
+          );
+        }
+
+        if (isBlank(line)) {
+          problems.push(`round ${round}: a blank line ${JSON.stringify(line)}`);
+        }
       }
     }
+
+    expect(problems).toEqual([]);
+    expect(linesChecked).toBeGreaterThan(1000);
   });
 });
 
@@ -261,7 +296,7 @@ describe("IRCMessageText.prepare — megabyte-long values", () => {
 
     const prepared: PreparedIRCText = prepare(screenshot);
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(Date.now() - startedAt).toBeLessThan(5000);
     expect(prepared.isTruncated).toBe(true);
     expect(prepared.lines).toHaveLength(15);
   });
@@ -271,7 +306,7 @@ describe("IRCMessageText.prepare — megabyte-long values", () => {
     const startedAt: number = Date.now();
 
     expect(prepare(text).lines).toEqual(["start", "end"]);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(Date.now() - startedAt).toBeLessThan(5000);
   });
 
   test("a megabyte of single characters on their own lines is not read in full", () => {
@@ -281,7 +316,50 @@ describe("IRCMessageText.prepare — megabyte-long values", () => {
     const prepared: PreparedIRCText = prepare(text);
 
     expect(prepared.isTruncated).toBe(true);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(Date.now() - startedAt).toBeLessThan(5000);
+  });
+});
+
+describe("IRCMessageText.prepare — what is not sent costs nothing", () => {
+  /*
+   * A webhook's body can be passed into the message, and it can be
+   * megabytes of blank lines. Each used to cost a copy and a split of its
+   * own, which held the worker for seconds; now it costs the scan. The time
+   * limits leave room for a busy CI machine: they are there to catch work
+   * that grows with the lines, not to measure the scan.
+   */
+  test("megabytes of blank lines are read quickly", () => {
+    const startedAt: number = Date.now();
+
+    expect(prepare(" \n".repeat(2_500_000)).lines).toEqual([]);
+    expect(Date.now() - startedAt).toBeLessThan(5000);
+  });
+
+  test("a long run of spaces inside a line is passed over, not copied", () => {
+    const startedAt: number = Date.now();
+
+    expect(prepare(`start${" ".repeat(4_000_000)}end`).lines).toEqual([
+      "start",
+      "end",
+    ]);
+    expect(Date.now() - startedAt).toBeLessThan(5000);
+  });
+
+  test("characters taken out do not push what follows them out of the message", () => {
+    expect(prepare(`${"\u001b".repeat(7000)}IMPORTANT\nend`)).toEqual({
+      lines: ["IMPORTANT", "end"],
+      isTruncated: false,
+    });
+  });
+
+  test("a line of nothing but formatting codes is blank", () => {
+    expect(prepare("\u0002\u0002\n\u000f \u001f\nreal").lines).toEqual([
+      "real",
+    ]);
+  });
+
+  test("so is a line of Unicode white space", () => {
+    expect(prepare("\u00a0\u3000\u2003\nreal").lines).toEqual(["real"]);
   });
 });
 

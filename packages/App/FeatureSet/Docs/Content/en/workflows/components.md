@@ -91,7 +91,7 @@ Post a message to an IRC channel on any IRC network: Libera.Chat, OFTC, or a ser
 
 Under **More fields**:
 
-- **Nickname** — who the message is from. Defaults to `OneUptime`. If the nickname is taken, the block tries it with an underscore, then with a number.
+- **Nickname** — who the message is from. Defaults to `OneUptime`. If the nickname is taken, the block tries it with an underscore or a number added, and then with one in place of its last characters, for a server that takes no longer nickname.
 - **Port** — defaults to `6697`, or `6667` with **Disable TLS** on.
 - **Disable TLS** — the block connects over TLS and checks the server's certificate. Turn this on only for a server that does not offer TLS; any password is then sent unencrypted. To trust a certificate from your own certificate authority, a self-hosted install sets `NODE_EXTRA_CA_CERTS` instead.
 - **Channel Key** — the key of a channel that has one (mode `+k`).
@@ -101,7 +101,7 @@ Under **More fields**:
 
 **Outputs**:
 
-- **Success** — fires once the server has taken every line. The block checks this by asking the server to answer a ping after the last line: a server answers in order, so any refusal of the message comes back first.
+- **Success** — fires once the server has taken every line. The block checks this by asking the server to answer a ping after the last line: a server answers in order, so any refusal of the message comes back first. A bouncer such as ZNC answers the ping itself, so the block listens a second longer for the network's answer behind it.
 - **Error** — fires when the server can't be reached, refuses the connection, the nickname, a password or the channel, or refuses the message. Passes along why, in the server's own words where it gave them. A missing **IRC Server**, **Channel** or **Message Text**, or a setting that could never work, stops the run instead.
 
 Each run of the block is a connection of its own, and IRC networks limit how often one address may connect: a burst of messages can be refused with a reason such as "Reconnecting too fast", and takes **Error** like any other refusal. For a workflow that can fire many times a minute, gather what it has to say into one message, or send it through a server of your own.

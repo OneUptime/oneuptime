@@ -9,9 +9,12 @@
  * since a server disconnects a client that sends too much at once.
  *
  * The text can be anything a trigger carried - a synthetic monitor's
- * screenshot arrives as megabytes of base64 on one line - so nothing here runs
- * a regular expression over it (see "Megabyte-long values" in AGENTS.md), and
- * no more of it is read than the capped lines can hold.
+ * screenshot arrives as megabytes of base64 on one line, and a webhook's body
+ * can be megabytes of blank lines - so nothing here runs a regular expression
+ * over it (see "Megabyte-long values" in AGENTS.md). The text is read once,
+ * a character at a time; what is not sent (blank lines, control characters,
+ * a long run of spaces) costs a comparison and no more, and reading stops as
+ * soon as there are more lines than can be sent.
  */
 
 export interface PreparedIRCText {
@@ -43,9 +46,20 @@ const FORMATTING_CODES: ReadonlySet<number> = new Set<number>([
   0x02, 0x03, 0x04, 0x0f, 0x11, 0x16, 0x1d, 0x1e, 0x1f,
 ]);
 
+/*
+ * The white space String.prototype.trim removes beyond ASCII. A line of
+ * nothing else is blank, and so is a piece of one.
+ */
+const UNICODE_SPACES: ReadonlySet<number> = new Set<number>([
+  0x00a0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006,
+  0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000,
+  0xfeff,
+]);
+
 const TAB: number = 0x09;
 const LINE_FEED: number = 0x0a;
 const CARRIAGE_RETURN: number = 0x0d;
+const SPACE_CODE: number = 0x20;
 const DELETE: number = 0x7f;
 
 export default class IRCMessageText {
@@ -90,16 +104,12 @@ export default class IRCMessageText {
     // One line more than allowed is enough to know the message is too long.
     const linesWanted: number = data.maxLines + 1;
 
-    /*
-     * A line of IRC holds no more characters than it holds bytes, so no more
-     * of any one line of the message than this can ever be sent.
-     */
-    const maxCharactersPerLine: number = linesWanted * data.maxBytesPerLine;
-
     let position: number = 0;
 
     while (position < text.length && lines.length < linesWanted) {
+      // Where the line ends, and whether it shows anything at all.
       let lineEnd: number = position;
+      let isVisible: boolean = false;
 
       while (lineEnd < text.length) {
         const code: number = text.charCodeAt(lineEnd);
@@ -108,15 +118,25 @@ export default class IRCMessageText {
           break;
         }
 
+        if (!isVisible && !IRCMessageText.isBlankCode(code)) {
+          isVisible = true;
+        }
+
         lineEnd++;
       }
 
-      const line: string = IRCMessageText.sanitizeLine(
-        text.substring(
-          position,
-          Math.min(lineEnd, position + maxCharactersPerLine),
-        ),
-      );
+      // A blank line is left out: IRC refuses an empty message.
+      if (isVisible) {
+        for (const piece of IRCMessageText.splitRange({
+          text: text,
+          start: position,
+          end: lineEnd,
+          maxBytes: data.maxBytesPerLine,
+          maxPieces: linesWanted - lines.length,
+        })) {
+          lines.push(piece);
+        }
+      }
 
       // CRLF is one line break, and so are a lone CR and a lone LF.
       position = lineEnd;
@@ -128,14 +148,6 @@ export default class IRCMessageText {
         position += 2;
       } else if (position < text.length) {
         position += 1;
-      }
-
-      for (const piece of IRCMessageText.splitLine(
-        line,
-        data.maxBytesPerLine,
-        linesWanted - lines.length,
-      )) {
-        lines.push(piece);
       }
     }
 
@@ -164,80 +176,30 @@ export default class IRCMessageText {
 
       if (code === TAB) {
         sanitized += SPACE;
-        continue;
+      } else if (!IRCMessageText.isRemoved(code)) {
+        sanitized += line.charAt(index);
       }
-
-      if ((code < 0x20 && !FORMATTING_CODES.has(code)) || code === DELETE) {
-        continue;
-      }
-
-      sanitized += line.charAt(index);
     }
 
     return sanitized;
   }
 
   /*
-   * Cuts a line into pieces of at most maxBytes bytes of UTF-8, and returns
-   * no more than maxPieces of them. A piece ends at the last space before the
-   * limit when that leaves it at least half full; otherwise it is cut at the
-   * limit, between two characters. Blank pieces are dropped: IRC refuses an
-   * empty message.
+   * Cuts a line into pieces of at most maxBytes bytes of UTF-8, sanitized as
+   * sanitizeLine does, and returns no more than maxPieces of them.
    */
   public static splitLine(
     line: string,
     maxBytes: number,
     maxPieces: number,
   ): Array<string> {
-    const pieces: Array<string> = [];
-    let current: string = "";
-    let currentBytes: number = 0;
-
-    const addPiece: (piece: string) => void = (piece: string): void => {
-      if (piece.trim().length > 0) {
-        pieces.push(piece);
-      }
-    };
-
-    // Iterating a string yields whole code points, never half a surrogate pair.
-    for (const character of line) {
-      if (pieces.length >= maxPieces) {
-        return pieces;
-      }
-
-      const characterBytes: number = IRCMessageText.getByteLength(character);
-
-      while (current.length > 0 && currentBytes + characterBytes > maxBytes) {
-        const lastSpace: number = current.lastIndexOf(SPACE);
-
-        if (
-          lastSpace > 0 &&
-          IRCMessageText.getByteLength(current.substring(0, lastSpace)) * 2 >=
-            maxBytes
-        ) {
-          addPiece(current.substring(0, lastSpace));
-          current = current.substring(lastSpace + 1);
-        } else {
-          addPiece(current);
-          current = "";
-        }
-
-        if (pieces.length >= maxPieces) {
-          return pieces;
-        }
-
-        currentBytes = IRCMessageText.getByteLength(current);
-      }
-
-      current += character;
-      currentBytes += characterBytes;
-    }
-
-    if (pieces.length < maxPieces) {
-      addPiece(current);
-    }
-
-    return pieces;
+    return IRCMessageText.splitRange({
+      text: line,
+      start: 0,
+      end: line.length,
+      maxBytes: maxBytes,
+      maxPieces: maxPieces,
+    });
   }
 
   /*
@@ -248,19 +210,166 @@ export default class IRCMessageText {
     let bytes: number = 0;
 
     for (const character of text) {
-      const codePoint: number = character.codePointAt(0) as number;
-
-      if (codePoint < 0x80) {
-        bytes += 1;
-      } else if (codePoint < 0x800) {
-        bytes += 2;
-      } else if (codePoint < 0x10000) {
-        bytes += 3;
-      } else {
-        bytes += 4;
-      }
+      bytes += IRCMessageText.getCodePointBytes(
+        character.codePointAt(0) as number,
+      );
     }
 
     return bytes;
+  }
+
+  /*
+   * text[start, end) cut into pieces of at most maxBytes bytes, no more than
+   * maxPieces of them. A piece ends at the last space before the limit when
+   * that leaves it at least half full, and loses the spaces it ends with;
+   * otherwise it is cut at the limit, between two characters. Blank pieces
+   * are dropped.
+   *
+   * Reads one character at a time and keeps no more than one piece in hand,
+   * so a long line costs what its first maxPieces pieces cost, and a run of
+   * spaces longer than a piece - which could only ever make a blank one - is
+   * passed over without being copied.
+   */
+  private static splitRange(data: {
+    text: string;
+    start: number;
+    end: number;
+    maxBytes: number;
+    maxPieces: number;
+  }): Array<string> {
+    const text: string = data.text;
+    const pieces: Array<string> = [];
+    let current: string = "";
+    let currentBytes: number = 0;
+    let isCurrentBlank: boolean = true;
+
+    const addPiece: (piece: string) => void = (piece: string): void => {
+      if (!IRCMessageText.isBlankText(piece)) {
+        pieces.push(piece);
+      }
+    };
+
+    let index: number = data.start;
+
+    while (index < data.end) {
+      if (pieces.length >= data.maxPieces) {
+        return pieces;
+      }
+
+      const code: number = text.charCodeAt(index);
+
+      if (IRCMessageText.isRemoved(code)) {
+        index++;
+        continue;
+      }
+
+      const isSpace: boolean = code === SPACE_CODE || code === TAB;
+
+      if (isSpace && isCurrentBlank && currentBytes >= data.maxBytes) {
+        index++;
+        continue;
+      }
+
+      // One whole character: both halves of a surrogate pair together.
+      let character: string = isSpace ? SPACE : text.charAt(index);
+      let codePoint: number = isSpace ? SPACE_CODE : code;
+
+      if (code >= 0xd800 && code <= 0xdbff && index + 1 < data.end) {
+        const low: number = text.charCodeAt(index + 1);
+
+        if (low >= 0xdc00 && low <= 0xdfff) {
+          character = text.substring(index, index + 2);
+          codePoint = (code - 0xd800) * 0x400 + (low - 0xdc00) + 0x10000;
+        }
+      }
+
+      index += character.length;
+
+      const characterBytes: number =
+        IRCMessageText.getCodePointBytes(codePoint);
+
+      while (
+        current.length > 0 &&
+        currentBytes + characterBytes > data.maxBytes
+      ) {
+        const lastSpace: number = current.lastIndexOf(SPACE);
+
+        if (
+          lastSpace > 0 &&
+          IRCMessageText.getByteLength(current.substring(0, lastSpace)) * 2 >=
+            data.maxBytes
+        ) {
+          // Spaces at the end of a piece cut between words show nothing.
+          addPiece(current.substring(0, lastSpace).trimEnd());
+          current = current.substring(lastSpace + 1);
+        } else {
+          addPiece(current);
+          current = "";
+        }
+
+        if (pieces.length >= data.maxPieces) {
+          return pieces;
+        }
+
+        currentBytes = IRCMessageText.getByteLength(current);
+        isCurrentBlank = IRCMessageText.isBlankText(current);
+      }
+
+      current += character;
+      currentBytes += characterBytes;
+
+      if (isCurrentBlank && !IRCMessageText.isBlankCode(codePoint)) {
+        isCurrentBlank = false;
+      }
+    }
+
+    if (pieces.length < data.maxPieces) {
+      addPiece(current);
+    }
+
+    return pieces;
+  }
+
+  // A control character IRC cannot carry: everything but formatting and tab.
+  private static isRemoved(code: number): boolean {
+    return (
+      (code < SPACE_CODE && code !== TAB && !FORMATTING_CODES.has(code)) ||
+      code === DELETE
+    );
+  }
+
+  // Shows nothing: white space, or a control or formatting character.
+  private static isBlankCode(code: number): boolean {
+    return code <= SPACE_CODE || code === DELETE || UNICODE_SPACES.has(code);
+  }
+
+  private static isBlankText(text: string): boolean {
+    for (let index: number = 0; index < text.length; index++) {
+      if (!IRCMessageText.isBlankCode(text.charCodeAt(index))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * A lone surrogate is encoded as U+FFFD, three bytes, which is what a code
+   * point below 0x10000 is counted as here.
+   */
+  private static getCodePointBytes(codePoint: number): number {
+    if (codePoint < 0x80) {
+      return 1;
+    }
+
+    if (codePoint < 0x800) {
+      return 2;
+    }
+
+    if (codePoint < 0x10000) {
+      return 3;
+    }
+
+    return 4;
   }
 }
