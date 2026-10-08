@@ -19,6 +19,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useCardRuledListClassName } from "../Card/CardSurface";
 
 /*
  * A card of switches for one record: the card's title and the line under
@@ -100,6 +101,7 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const ruledListClassName: string = useCardRuledListClassName();
   const [positions, setPositions] = useState<SwitchPositions | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -216,7 +218,7 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
        * project's Notification Channels card and the status page's "What
        * your status page shows".
        */
-      <div className="-mx-5 -mb-6 divide-y divide-gray-200 border-t border-gray-200 md:-mx-6">
+      <div className={ruledListClassName}>
         {props.switches.map(
           (definition: ModelSwitchesCardSwitch<TBaseModel>): ReactElement => {
             return (
