@@ -238,9 +238,15 @@ const ASCII_PUNCTUATION_PATTERN: RegExp = /[!-/:-@[-`{-~]/;
  * Before a value on its line: only indentation, list markers ("-", "*", "+",
  * "1." or "1)" and a space), quote markers (">") - and other values, which
  * may be empty. A value there starts a block of its own.
+ *
+ * The whitespace after a list marker is one space or tab and then any run of
+ * them: written as "[ \t]+[ \t￼]*", a run of tabs could be split between the
+ * two parts in as many ways as it is long, and a text that does not match -
+ * "*\t\t*\t\t* ... x" - was tried every way, doubling the time with each
+ * marker (twenty-six took two seconds). Each text now reads one way only.
  */
 const LINE_START_PREFIX_PATTERN: RegExp =
-  /^[ \t￼]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+[ \t￼]*|>[ \t￼]*)*$/;
+  /^[ \t￼]*(?:(?:[-*+]|\d{1,9}[.)])[ \t][ \t￼]*|>[ \t￼]*)*$/;
 
 const TABLE_ROW_PATTERN: RegExp = /^[ \t]*\|/;
 

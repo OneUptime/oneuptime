@@ -812,6 +812,11 @@ export enum ProjectAiNoticeContext {
   Insights = "Insights",
   // Project Settings → AI Features, where Enable AI is the page itself.
   AiFeatures = "AiFeatures",
+  /*
+   * The AI Insights page of a cluster, a resource, or the Incidents' and
+   * Alerts' AI section: what AI found out, which stops growing with AI off.
+   */
+  ActivityInsights = "ActivityInsights",
 }
 
 // Project.enableAi, as the page knows it.
@@ -978,6 +983,14 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     aiOffDescription: AI_OFF_EVENT_PAGE,
     providerConsequence: translationKey(
       "Until it has one, no AI feature in this project can run.",
+    ),
+  },
+  [ProjectAiNoticeContext.ActivityInsights]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project, so nothing new is investigated or fixed, and nothing new shows up on this page.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, nothing new is investigated, so nothing new shows up on this page.",
     ),
   },
 };

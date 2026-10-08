@@ -45,6 +45,48 @@ describe("FeedMarkdown.multilineText - a text of many lines", () => {
   });
 });
 
+describe("FeedMarkdown - the markers before a value on its line", () => {
+  /*
+   * Whether a value starts its line is read from the template's text before
+   * it. That text was read with a pattern that could split a run of tabs
+   * after a list marker two ways, so every "\t\t*" in a text that does not
+   * start the line doubled the time: these twenty-eight took most of a
+   * minute.
+   */
+  const MARKERS: number = 28;
+  const BUDGET_IN_MS: number = 1000;
+  const VALUE: string = "# heading";
+
+  const placeAfter: (prefix: string) => { text: string; tookMs: number } = (
+    prefix: string,
+  ): { text: string; tookMs: number } => {
+    // A template made at run time, as the tag is called with one.
+    const literals: TemplateStringsArray = Object.assign([prefix, ""], {
+      raw: [prefix, ""],
+    });
+    const started: number = performance.now();
+    const text: string = mdText(literals, VALUE).toString();
+
+    return { text: text, tookMs: performance.now() - started };
+  };
+
+  test("after markers and then a word, the value is read at once, inside the line", () => {
+    const prefix: string = `*${"\t\t*".repeat(MARKERS)}x `;
+    const placed: { text: string; tookMs: number } = placeAfter(prefix);
+
+    expect(placed.text).toBe(`${prefix}${VALUE}`);
+    expect(placed.tookMs).toBeLessThan(BUDGET_IN_MS);
+  });
+
+  test("after markers only, the value is read at once and starts the line", () => {
+    const prefix: string = `*${"\t\t*".repeat(MARKERS)}\t`;
+    const placed: { text: string; tookMs: number } = placeAfter(prefix);
+
+    expect(placed.text).toBe(`${prefix}\\${VALUE}`);
+    expect(placed.tookMs).toBeLessThan(BUDGET_IN_MS);
+  });
+});
+
 describe("FeedMarkdown - backslashes a template ends in before a value", () => {
   const VALUE: string = "[x](https://evil.example)";
   const ESCAPED_VALUE: string = "\\[x\\](https://evil.example)";

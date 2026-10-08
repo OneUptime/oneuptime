@@ -18,6 +18,11 @@ import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIInsightService from "../Services/AIInsightService";
+import InsightHighlights from "../Utils/AI/SRE/Insights/InsightHighlights";
+import {
+  AI_INSIGHT_HIGHLIGHTS_PATH,
+  AIInsightHighlights,
+} from "../../Types/AI/AIInsightHighlights";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -165,6 +170,44 @@ router.post(
         insightId: result.insightId.toString(),
         status: result.status,
       });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * What the AI Insights inbox leads with: the open finding to look at first
+ * (with what triage concluded), the service behind the most open findings,
+ * and what is new this week (InsightHighlights). Read under the caller's
+ * own props, pinned to the project they are in: they hear only about the
+ * findings they may read.
+ * Body: {}. Response: AIInsightHighlights.
+ */
+router.post(
+  AI_INSIGHT_HIGHLIGHTS_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const projectId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const highlights: AIInsightHighlights = await InsightHighlights.read({
+        projectId,
+        props,
+      });
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        highlights as unknown as JSONObject,
+      );
       return;
     } catch (err) {
       next(err);

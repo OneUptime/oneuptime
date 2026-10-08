@@ -150,6 +150,18 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       "A subscriber managing a subscription from an email link: the contact field is read-only and only one of the three ever shows, the pickers open only when an 'all' box is unticked, and Unsubscribe must not be hidden behind a Next.",
   },
   /*
+   * The maintainer, on the Network product: "make it as simple as possible
+   * to use ... natural to use ... it should basically wow users." Adding a
+   * device was a three-step wizard of fourteen fields; it asks four things
+   * now, on one page, and folds the rest.
+   */
+  {
+    file: `${DASHBOARD}/Pages/NetworkDevice/Devices.tsx`,
+    form: "ModelTable: Network Devices",
+    reason:
+      "Add Device: the four things only the person adding a device can answer - its hostname, a name (optional, it defaults to the hostname), its site and the probe that reaches it (filled in whenever there is one answer) - then two folded headers that say what they hold: SNMP (a sentence saying the device is pinged without it) and More fields (description, role, MAC address, the per-device Ping monitor). A step between them would put Add Device behind a Next for a form whose every other question is optional.",
+  },
+  /*
    * Adding monitors to a status page asks only for the monitors; what is
    * shown beside them is folded under Advanced at its defaults. The status
    * page resource forms were three and four steps before that.
@@ -1446,5 +1458,146 @@ describe("the project's forms", () => {
         return `${problem.form.file}:${problem.form.line} ${problem.form.label}: ${problem.message}`;
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * A list helper - a function that returns several fields, spread into a
+ * form - can be handed the folded section its fields go in:
+ * `...getSnmpConfigFormFields({ collapsibleSection: SNMP })` puts all nine
+ * SNMP fields under one SNMP header on the Add Device form. The detector
+ * has to see them folded, or that form reads as fifteen rows instead of
+ * the six it draws.
+ */
+describe("the long form detector and list helpers", () => {
+  const HELPER: string = `
+    export function getThings(options) {
+      const fields = [${field("a")}, ${field("b")}, ${field("c")}];
+      if (!options) { return fields; }
+      return fields.map((item) => { return { ...item, collapsibleSection: options.collapsibleSection }; });
+    }`;
+
+  test("folds every field a list helper returns when its call names a folded section", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getThings } from "./Things";
+        const FOLD = { id: "things", title: "Things" };
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[${field("hostname")}, ...getThings({ collapsibleSection: FOLD })]} />;`,
+      "Things.ts": HELPER,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.collapsibleSection];
+      }),
+    ).toEqual([
+      ["hostname", undefined],
+      ["a", "FOLD"],
+      ["b", "FOLD"],
+      ["c", "FOLD"],
+    ]);
+    expect(countFormRows(form)).toBe(2);
+    expect(findLongFormsWithoutSteps([form])).toEqual([]);
+  });
+
+  test("a list helper called without a folded section leaves its fields open", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getThings } from "./Things";
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[${field("hostname")}, ...getThings({ stepId: "one" })]} />;`,
+      "Things.ts": HELPER,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return candidate.collapsibleSection;
+      }),
+    ).toEqual([undefined, undefined, undefined, undefined]);
+    expect(countFormRows(form)).toBe(4);
+  });
+
+  /*
+   * Only the fold is read from a list helper's call: a step written there
+   * stays the helper's own business, as it always was (the helper's own
+   * tests pin that every field it returns carries the step it was handed).
+   */
+  test("reads no step from a list helper's call", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getThings } from "./Things";
+        const FOLD = { id: "things", title: "Things" };
+        const Page = () => <ModelTable name="Things" isCreateable={true} formFields={[${field("hostname")}, ...getThings({ stepId: "one", collapsibleSection: FOLD })]} />;`,
+      "Things.ts": HELPER,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return candidate.stepId;
+      }),
+    ).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
+  test("a section a returned field names itself wins over the call's", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getMixed } from "./Mixed";
+        const FOLD = { id: "fold", title: "Fold" };
+        const Page = () => <ModelTable name="Mixed" isCreateable={true} formFields={[...getMixed({ collapsibleSection: FOLD })]} />;`,
+      "Mixed.ts": `
+        const OWN = { id: "own", title: "Own" };
+        export function getMixed(options) {
+          return [${field("a")}, ${field("b", "collapsibleSection: OWN,")}];
+        }`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.collapsibleSection];
+      }),
+    ).toEqual([
+      ["a", "FOLD"],
+      ["b", "OWN"],
+    ]);
+  });
+
+  test("two calls of one helper do not share a fold", () => {
+    const forms: Array<FormFacts> = scan({
+      "Page.tsx": `
+        import { getThings } from "./Things";
+        const FOLD = { id: "things", title: "Things" };
+        const Page = () => <>
+          <ModelTable name="Folded" isCreateable={true} formFields={[...getThings({ collapsibleSection: FOLD })]} />
+          <ModelTable name="Open" isCreateable={true} formFields={[...getThings({ stepId: "one" })]} />
+        </>;`,
+      "Things.ts": HELPER,
+    });
+
+    expect(forms).toHaveLength(2);
+    expect(countFormRows(forms[0]!)).toBe(1);
+    expect(countFormRows(forms[1]!)).toBe(3);
+  });
+
+  test("a single-field helper's fold is still read from its call", () => {
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getOne } from "./One";
+        const FOLD = { id: "fold", title: "Fold" };
+        const Page = () => <ModelTable name="One" isCreateable={true} formFields={[${field("hostname")}, getOne({ collapsibleSection: FOLD }), ${field("x", "collapsibleSection: FOLD,")}]} />;`,
+      "One.ts": `
+        export function getOne(options) {
+          return ${field("mac")};
+        }`,
+    });
+
+    expect(
+      form.fields.map((candidate: FormFieldFacts) => {
+        return [candidate.key, candidate.collapsibleSection];
+      }),
+    ).toEqual([
+      ["hostname", undefined],
+      ["mac", "FOLD"],
+      ["x", "FOLD"],
+    ]);
+    expect(countFormRows(form)).toBe(2);
   });
 });
