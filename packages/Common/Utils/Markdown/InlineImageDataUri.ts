@@ -30,7 +30,8 @@
  * its bytes are.
  *
  * Pure, with no Node or browser APIs: the dashboard and the server both use it.
- * Linear in the length of the URL.
+ * Linear in the length of the URL, and no regular expression runs over the
+ * data (see isBase64).
  */
 
 export type InlineImageMimeType =
@@ -58,8 +59,6 @@ export interface InlineImageDataUri {
 
 const DATA_URI_PREFIX_PATTERN: RegExp =
   /^data:image\/(?:png|jpe?g|gif|webp);base64,/i;
-
-const BASE64_PATTERN: RegExp = /^[A-Za-z0-9+/]+={0,2}$/;
 
 const BASE64_ALPHABET: string =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -117,6 +116,57 @@ const IMAGE_SIGNATURES: ReadonlyArray<ImageSignature> = [
     ],
   },
 ];
+
+const EQUALS_SIGN: number = "=".charCodeAt(0);
+
+// Whether a UTF-16 code unit is in base64's standard alphabet.
+export const isBase64Character: (code: number) => boolean = (
+  code: number,
+): boolean => {
+  return (
+    (code >= 0x41 && code <= 0x5a) || // A-Z
+    (code >= 0x61 && code <= 0x7a) || // a-z
+    (code >= 0x30 && code <= 0x39) || // 0-9
+    code === 0x2b || // +
+    code === 0x2f // /
+  );
+};
+
+/*
+ * Whether `base64` is base64 in the standard alphabet - at least one
+ * character of it, then at most two "=" - as Buffer.toString("base64")
+ * writes it.
+ *
+ * A loop, not a regular expression. V8 matches one with a backtracking
+ * stack that can grow with every character a quantifier takes, and once a
+ * long-running process has compiled enough code, V8 stops optimizing the
+ * regular expressions it compiles. /^[A-Za-z0-9+/]+={0,2}$/ then ran out of
+ * stack - "Maximum call stack size exceeded" - on a screenshot of three
+ * megabytes. This uses the same small stack at any length.
+ */
+const isBase64: (base64: string) => boolean = (base64: string): boolean => {
+  let end: number = base64.length;
+
+  for (
+    let padding: number = 0;
+    padding < 2 && end > 0 && base64.charCodeAt(end - 1) === EQUALS_SIGN;
+    padding++
+  ) {
+    end--;
+  }
+
+  if (end === 0) {
+    return false;
+  }
+
+  for (let index: number = 0; index < end; index++) {
+    if (!isBase64Character(base64.charCodeAt(index))) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 /*
  * The first `byteCount` bytes `base64` decodes to (fewer when it is shorter).
@@ -203,7 +253,7 @@ export const parseInlineImageDataUri: ParseInlineImageDataUriFunction = (
 
   const base64: string = url.slice(prefix[0].length);
 
-  if (base64.length % 4 !== 0 || !BASE64_PATTERN.test(base64)) {
+  if (base64.length % 4 !== 0 || !isBase64(base64)) {
     return null;
   }
 

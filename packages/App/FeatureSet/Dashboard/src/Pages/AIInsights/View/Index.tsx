@@ -26,9 +26,19 @@ import {
   formatDroppedScopeHint,
   resolveServiceIdsByNames,
 } from "../../../Utils/MetricsCrossSignalPivot";
+import {
+  AIInsightMetricShape,
+  buildAIInsightMonitorRoute,
+  getAIInsightMonitorBlocker,
+} from "../../../Utils/AIInsightMonitorPrefill";
+import {
+  fetchAIInsightMetricShape,
+  toAIInsightMonitorInput,
+} from "../../../Utils/AIInsightMonitorData";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
@@ -58,6 +68,10 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import Link from "Common/UI/Components/Link/Link";
 import React, {
   FunctionComponent,
@@ -456,6 +470,51 @@ const AIInsightViewPage: FunctionComponent<
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
+  /*
+   * What a drifting metric IS, for the Create Monitor button: a cumulative
+   * counter or a histogram cannot carry a threshold from this insight, and
+   * saying so here beats a form that opens on a monitor that never clears.
+   * MetricDrift only, one newest-point read, and best-effort — while it is
+   * unknown the button stays available (Monitor Create checks again).
+   */
+  const [metricShape, setMetricShape] = useState<AIInsightMetricShape | null>(
+    null,
+  );
+
+  const driftMetricName: string =
+    insightType === AIInsightType.MetricDrift
+      ? insight?.metricName || insight?.evidence?.metricDrift?.metricName || ""
+      : "";
+  const driftEntityId: string =
+    insightType === AIInsightType.MetricDrift
+      ? insight?.evidence?.metricDrift?.primaryEntityId || ""
+      : "";
+
+  useEffect(() => {
+    if (!driftMetricName) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    fetchAIInsightMetricShape({
+      metricName: driftMetricName,
+      primaryEntityId: driftEntityId || undefined,
+    })
+      .then((shape: AIInsightMetricShape | null) => {
+        if (!isCancelled) {
+          setMetricShape(shape);
+        }
+      })
+      .catch(() => {
+        // Best-effort — an unknown shape is not held against the metric.
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [driftMetricName, driftEntityId]);
+
   if (!hasLoadedOnce) {
     return <PageLoader isVisible={true} />;
   }
@@ -486,6 +545,27 @@ const AIInsightViewPage: FunctionComponent<
     humanVerdict === AIInsightHumanVerdict.Confirmed && !isDismissed;
   const isDismissNoOp: boolean =
     humanVerdict === AIInsightHumanVerdict.Dismissed && isDismissed;
+
+  /*
+   * Create Monitor: the way from a quiet insight to an incident the next time
+   * it happens. Gated on creating monitors like every other way into Monitor
+   * Create — hidden while the permission snapshot cannot say, disabled with
+   * the reason when it says no — and disabled with the reason when this
+   * insight cannot become a monitor at all.
+   */
+  const createMonitorGate: PermissionGateResult = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  );
+  const createMonitorBlocker: string | null = getAIInsightMonitorBlocker(
+    toAIInsightMonitorInput(insight),
+    { metricShape: metricShape },
+  );
+  const isCreateMonitorShown: boolean =
+    createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason);
+  const createMonitorDisabledReason: string | null = createMonitorGate.isAllowed
+    ? createMonitorBlocker
+    : createMonitorGate.disabledReason || null;
 
   /*
    * The triage strip: a tinted panel rather than a bare colored line, so a
@@ -692,6 +772,27 @@ const AIInsightViewPage: FunctionComponent<
                     .join(" ")}
                   onClick={() => {
                     Navigation.navigate(investigationLink.route);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+              {isCreateMonitorShown ? (
+                <Button
+                  title="Create Monitor"
+                  icon={IconProp.Bell}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  className={DISABLED_ACTION_CLASS}
+                  disabled={Boolean(createMonitorDisabledReason)}
+                  tooltip={
+                    createMonitorDisabledReason ||
+                    "Opens a new monitor pre-filled from this insight. Review the threshold and save it, and the next time this happens the monitor opens an incident."
+                  }
+                  onClick={() => {
+                    Navigation.navigate(
+                      buildAIInsightMonitorRoute(modelId.toString()),
+                    );
                   }}
                 />
               ) : (

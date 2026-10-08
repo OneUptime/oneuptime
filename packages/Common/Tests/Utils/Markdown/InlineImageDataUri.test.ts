@@ -186,6 +186,12 @@ describe("parseInlineImageDataUri - everything else", () => {
     ],
     ["missing padding", `data:image/png;base64,${PNG.replace(/[=]+$/, "")}`],
     ["too much padding", `data:image/png;base64,${PNG}==`],
+    ["padding alone", "data:image/png;base64,===="],
+    ["three padding characters", "data:image/png;base64,i==="],
+    [
+      "a letter outside base64's alphabet",
+      `data:image/png;base64,${PNG.slice(0, 40)}é${PNG.slice(41)}`,
+    ],
     [
       "padding in the middle",
       `data:image/png;base64,iVBO=w0KGgoAAAANSUhEUgAAAAEAAAAB`,
@@ -230,6 +236,21 @@ describe("parseInlineImageDataUri - everything else", () => {
       }
     },
   );
+
+  test("takes exactly base64's alphabet in the data, ASCII character by character", () => {
+    const base64Alphabet: string =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    for (let code: number = 0; code < 128; code++) {
+      const character: string = String.fromCharCode(code);
+      const url: string = `data:image/png;base64,${PNG.slice(0, 40)}${character}${PNG.slice(41)}`;
+
+      expect([code, parseInlineImageDataUri(url) !== null]).toEqual([
+        code,
+        base64Alphabet.includes(character),
+      ]);
+    }
+  });
 
   test("is not fooled by a value that is not a string at run time", () => {
     expect(parseInlineImageDataUri(42 as unknown as string)).toBeNull();
