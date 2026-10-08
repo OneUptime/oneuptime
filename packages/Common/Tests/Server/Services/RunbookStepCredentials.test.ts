@@ -428,14 +428,14 @@ describe("changing a runbook's steps", () => {
     expect(RunbookService.findBy).not.toHaveBeenCalled();
   });
 
-  test("reads the runbooks the update writes as OneUptime, by the update's own query", async () => {
+  test("reads the runbooks the update writes as OneUptime, by the update's own query in the caller's project", async () => {
     storedSteps = [];
 
     await updateRunbook([sshStep(CREDENTIAL_A)], RUNBOOK_ADMIN);
 
     expect(RunbookService.findBy).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: { _id: RUNBOOK_ID },
+        query: { _id: RUNBOOK_ID, projectId: PROJECT_ID },
         props: { isRoot: true },
       }),
     );

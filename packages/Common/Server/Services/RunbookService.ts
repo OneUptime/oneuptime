@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import Query from "../Types/Database/Query";
 import RelationListPermission from "../Types/Database/Permissions/RelationListPermission";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { JsonReferenceColumn } from "../Utils/Database/ProjectReferenceCheck";
@@ -186,10 +187,18 @@ export class Service extends ProjectReferencesService<Model> {
     ) {
       /*
        * Only the credentials some runbook the update writes does not name
-       * already: its query names only the rows its caller may write.
+       * already. Hooks run before the caller's project and scope narrow the
+       * query, so it is pinned to the caller's project here; any other row
+       * it still matches is one more runbook that must hold the credential,
+       * never one fewer.
        */
       const runbooks: Array<Model> = await this.findBy({
-        query: updateBy.query,
+        query: {
+          ...(updateBy.query as Record<string, unknown>),
+          ...(updateBy.props.tenantId
+            ? { projectId: updateBy.props.tenantId }
+            : {}),
+        } as Query<Model>,
         select: {
           _id: true,
           steps: true,
