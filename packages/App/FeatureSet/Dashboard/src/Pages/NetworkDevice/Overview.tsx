@@ -11,6 +11,17 @@ import {
   OverviewVendor,
   fetchNetworkOverview,
 } from "../../Components/Network/NetworkSummaryApi";
+import NetworkHealthHero from "../../Components/Network/NetworkHealthHero";
+import NetworkGetStarted from "../../Components/Network/NetworkGetStarted";
+import {
+  NetworkHealthVerdict,
+  getNetworkHealthVerdict,
+} from "../../Components/Network/NetworkHealthVerdict";
+import {
+  NetworkQuickAction,
+  getNetworkQuickActionRoute,
+} from "../../Components/Network/NetworkQuickActions";
+import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import Route from "Common/Types/API/Route";
 import { Gray500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
@@ -23,7 +34,6 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -49,9 +59,13 @@ const FLEET_BY_VENDOR_TITLE: string = "Fleet by vendor";
 
 /*
  * Network Overview — the mission-control landing page for the whole
- * Network area. One glance answers: is the fleet healthy, which devices
- * and sites need attention right now, what is the fleet made of, and is
- * discovery finding anything new.
+ * Network area. It opens with the answer people come for: one sentence that
+ * says whether the network is healthy and, if not, what is wrong
+ * (NetworkHealthHero), whether anything alerts on it, and the two ways to
+ * bring more of it in. Below that, at a glance: which devices and sites
+ * need attention right now, what the fleet is made of, and whether
+ * discovery is finding anything new. With nothing on it yet, it shows the
+ * two ways in instead (NetworkGetStarted).
  *
  * Every number here used to be worked out in this component, from every
  * device and every site downloaded into the browser. That reads badly at
@@ -74,6 +88,36 @@ const NetworkOverview: FunctionComponent<
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * How many enabled alert policies the project has - whether anything turns
+   * a device going down into an incident. Null when it could not be read
+   * (a role without access to alert policies): the hero then leaves the
+   * line out rather than claim there are none.
+   */
+  const [enabledAlertPolicyCount, setEnabledAlertPolicyCount] = useState<
+    number | null
+  >(null);
+
+  /*
+   * Read apart from the page's own data, and allowed to fail on its own: a
+   * line about alerting is never worth an error page.
+   */
+  const fetchEnabledAlertPolicyCount: (projectId: ObjectID) => Promise<void> =
+    async (projectId: ObjectID): Promise<void> => {
+      try {
+        const count: number = await ModelAPI.count<NetworkAlertPolicy>({
+          modelType: NetworkAlertPolicy,
+          query: {
+            projectId: projectId,
+            isEnabled: true,
+          },
+        });
+
+        setEnabledAlertPolicyCount(count);
+      } catch {
+        setEnabledAlertPolicyCount(null);
+      }
+    };
 
   const fetchOverviewData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -89,6 +133,7 @@ const NetworkOverview: FunctionComponent<
       const [overview, scanResult]: [
         NetworkOverviewSummary,
         ListResult<NetworkDeviceDiscoveryScan>,
+        void,
       ] = await Promise.all([
         fetchNetworkOverview(),
         ModelAPI.getList<NetworkDeviceDiscoveryScan>({
@@ -110,6 +155,7 @@ const NetworkOverview: FunctionComponent<
             createdAt: SortOrder.Descending,
           },
         }),
+        fetchEnabledAlertPolicyCount(projectId),
       ]);
 
       setSummary(overview);
@@ -143,52 +189,27 @@ const NetworkOverview: FunctionComponent<
     down: 0,
     pending: 0,
     interfacesDown: 0,
+    snmpFailing: 0,
   };
 
-  // Onboarding: nothing in the Network area yet.
-  if (fleet.total === 0 && (summary?.siteCount || 0) === 0) {
-    return (
-      <Card
-        title="Welcome to Network Monitoring"
-        description="Monitor switches, routers, firewalls and everything else on the wire — reachability for every device, plus topology, interfaces, traffic and per-site health rollups over SNMP."
-      >
-        <EmptyState
-          id="network-overview-empty-state"
-          icon={IconProp.Signal}
-          title="Bring your network in"
-          description="Add a device by hand, or point a discovery scan at a subnet and import what answers. Your probes ping every device on its schedule, and walk it over SNMP once it has credentials — interfaces, topology, and health come in automatically."
-          footer={
-            <div className="flex w-full justify-center gap-3">
-              <Button
-                title="Add Device"
-                icon={IconProp.Add}
-                buttonStyle={ButtonStyleType.PRIMARY}
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.NETWORK_DEVICES] as Route,
-                    ),
-                  );
-                }}
-              />
-              <Button
-                title="Discover Devices"
-                icon={IconProp.Search}
-                buttonStyle={ButtonStyleType.NORMAL}
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
-                    ),
-                  );
-                }}
-              />
-            </div>
-          }
-        />
-      </Card>
-    );
+  /*
+   * First run: nothing in the Network area yet. The two ways in, each one
+   * click from its form (NetworkGetStarted). A project with sites but no
+   * devices gets the same choice - its sites are waiting for devices.
+   */
+  if (fleet.total === 0) {
+    return <NetworkGetStarted />;
   }
+
+  const verdict: NetworkHealthVerdict | null = getNetworkHealthVerdict({
+    totalDevices: fleet.total,
+    devicesUp: fleet.up,
+    devicesDown: fleet.down,
+    devicesPending: fleet.pending,
+    interfacesDown: fleet.interfacesDown,
+    unhealthySites: summary?.unhealthySiteCount || 0,
+    snmpFailingDevices: fleet.snmpFailing,
+  });
 
   const attentionDevices: Array<OverviewAttentionDevice> =
     summary?.attentionDevices || [];
@@ -218,6 +239,15 @@ const NetworkOverview: FunctionComponent<
 
   return (
     <Fragment>
+      {verdict ? (
+        <NetworkHealthHero
+          verdict={verdict}
+          devicesPending={fleet.pending}
+          enabledAlertPolicyCount={enabledAlertPolicyCount}
+        />
+      ) : (
+        <></>
+      )}
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <InfoCard
           title="Devices"
@@ -320,7 +350,9 @@ const NetworkOverview: FunctionComponent<
                 {endpointCount}
               </div>
               <div className="mt-2 text-sm text-gray-500">
-                {translator.translateText("Discovered via ARP / FDB.")}
+                {translator.translateText(
+                  "Plugged into your switches and routers.",
+                )}
               </div>
             </div>
           }
@@ -330,7 +362,7 @@ const NetworkOverview: FunctionComponent<
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card
           title="Devices needing attention"
-          description="Unreachable devices first (the last poll, or the bound monitor, could not reach them), then devices whose SNMP walk is failing, then devices with down interfaces."
+          description="Devices that are down first, then devices whose details are not being read over SNMP, then devices with ports down."
         >
           {attentionDevices.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
@@ -409,7 +441,7 @@ const NetworkOverview: FunctionComponent<
 
         <Card
           title="Sites needing attention"
-          description="Sites whose health rollup is not operational — the worst status of any device below them."
+          description="Sites whose health is not operational: the worst status of any device in them."
         >
           {attentionSites.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
@@ -516,16 +548,16 @@ const NetworkOverview: FunctionComponent<
 
         <Card
           title="Recent discovery scans"
-          description="Address-range sweeps that find devices to import - ping only, or ping plus SNMP."
+          description="Scans of an address range that find devices to add."
           rightElement={
             <Button
-              title="Run a Scan"
+              title="Start a Scan"
               icon={IconProp.Search}
               buttonStyle={ButtonStyleType.OUTLINE}
               onClick={() => {
                 Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
+                  getNetworkQuickActionRoute(
+                    NetworkQuickAction.DiscoverDevices,
                   ),
                 );
               }}
@@ -535,7 +567,7 @@ const NetworkOverview: FunctionComponent<
           {recentScans.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
               {translator.translateText(
-                "No scans yet. Point one at a subnet or octet range and import what answers.",
+                "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add.",
               )}
             </p>
           ) : (

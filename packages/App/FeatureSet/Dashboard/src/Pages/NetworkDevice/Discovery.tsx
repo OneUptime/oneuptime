@@ -65,6 +65,17 @@ import {
 import ScanModeUtil, {
   ScanMethodLabel,
 } from "Common/Utils/NetworkDiscovery/ScanModeUtil";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  getDefaultProbeId,
+  getProbeDropdownOptions,
+} from "../../Components/NetworkDevice/ProbeOptions";
+import {
+  NetworkQuickAction,
+  clearNetworkQuickAction,
+  isNetworkQuickActionRequested,
+} from "../../Components/Network/NetworkQuickActions";
 import {
   buildDeviceName,
   buildFallbackDeviceName,
@@ -138,13 +149,25 @@ interface ReviewRequest {
 }
 
 /*
- * The scan's optional name — the first field of the create wizard, and the
- * first field of the Edit dialog.
+ * More fields on the new-scan form: the name, how hosts are named, and the
+ * schedule. A scan is defined by three questions - what to sweep, from
+ * which probe, and whether to read what answers over SNMP - and those are
+ * all the form shows. Everything else has a default that suits a first
+ * scan, and the folded header lists it by name, its set values as chips,
+ * so nothing is hidden. Built once: BasicForm and FormStepsScan both join
+ * consecutive fields into one fold by this one object.
+ */
+const DISCOVERY_SCAN_MORE_FIELDS: FormFieldCollapsibleSection<NetworkDeviceDiscoveryScan> =
+  getAdvancedFormSection<NetworkDeviceDiscoveryScan>();
+
+/*
+ * The scan's optional name, under More fields.
  *
- * It carries a `stepId` because the wizard is stepped. The Edit dialog is not,
- * and simply does not read it: BasicForm renders every field when a form
- * declares no steps, and Validation skips its step guard for the same reason.
- * See Common/UI/Components/Forms/BasicForm.
+ * Not required, and no longer the first thing asked (issue #3391 made it
+ * the first field so a scan could be told apart in the list): someone
+ * sweeping one subnet needs no name, and the list shows the scan target
+ * when there is none. Someone running many scans opens More fields, where
+ * it is the first field.
  */
 const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
   field: {
@@ -152,30 +175,26 @@ const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
   },
   title: "Name",
   stepId: "scan-target",
+  collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
   fieldType: FormFieldSchemaType.Text,
   required: false,
   placeholder: "Router Discovery - Region 1100",
-  /*
-   * Deliberately the FIRST thing the wizard asks for, and deliberately not
-   * required. A scan is identified in the list by whatever is here, falling
-   * back to its target — so the question is worth asking before the target is
-   * typed, and worth not insisting on for the operator sweeping one subnet
-   * once (issue #3391).
-   */
   description:
-    "Optional. What this scan is for - 'Router Discovery - Region 1100' - so you can tell it apart from other scans without matching address ranges by eye. The list shows the scan target instead when this is empty.",
+    "What this scan is for, so you can tell it apart from other scans. The list shows the scan target when this is empty.",
   customValidation: validateScanName,
 };
 
 /*
- * The three questions a discovery scan is defined by, in the order they are
- * asked. Declared once and handed to BOTH the create wizard on the table and
- * the Edit dialog below, because a step the edit form does not have is a
- * setting that can be created and then never corrected — which is the whole
- * of OneUptime issue #3444. Both walk them: long forms are stepped, edit
- * forms included, and an edit dialog saves from any step and opens any step
- * from its step list, so the toggle an operator came to flip is one click
- * away rather than behind every step before it.
+ * The steps of a scan, declared once and handed to BOTH the create wizard on
+ * the table and the Edit dialog below, because a step the edit form does not
+ * have is a setting that can be created and then never corrected — which is
+ * the whole of OneUptime issue #3444.
+ *
+ * Two, and only one for a ping sweep. What to scan comes first, with its
+ * More fields fold (name, naming, and the schedule that used to be a third
+ * step of its own); the credentials come second, and only when the scan
+ * reads SNMP. An edit dialog opens any step from its step list, so the
+ * setting an operator came to change is one click away.
  */
 const DISCOVERY_SCAN_FORM_STEPS: Array<FormStep<NetworkDeviceDiscoveryScan>> = [
   { title: "Scan Target", id: "scan-target" },
@@ -191,7 +210,6 @@ const DISCOVERY_SCAN_FORM_STEPS: Array<FormStep<NetworkDeviceDiscoveryScan>> = [
    * and an inline arrow could carry a `]}` that truncates its match.
    */
   { title: "SNMP Credentials", id: "snmp", showIf: isSnmpStepNeeded },
-  { title: "Schedule", id: "schedule" },
 ];
 
 export type GetDiscoveryScanFormFieldsFunction = (
@@ -212,7 +230,6 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
   probes: Array<Probe>,
 ): Array<ModelField<NetworkDeviceDiscoveryScan>> => {
   return [
-    SCAN_NAME_FORM_FIELD,
     {
       field: {
         cidr: true,
@@ -296,7 +313,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * a probe in another network and wait for an empty result.
        */
       description:
-        "The probe that sweeps this subnet. It has to be able to reach the subnet directly — a probe in another network, or outside the firewall, will scan and find nothing. If you have no probe deployed on this network yet, create a custom probe and run it there; it appears in this list once it connects.",
+        "The probe that sweeps the range. It has to reach it directly - a probe in another network, or outside the firewall, scans and finds nothing.",
       sideLink: {
         text: "Create a custom probe",
         url: RouteUtil.populateRouteParams(
@@ -315,21 +332,16 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * unnamed probe row — a global probe, or one registered before it
        * was named — did not degrade the dropdown: it threw during render
        * and blanked the entire Discovery Scans page, including the list
-       * of existing scans.
+       * of existing scans. The Add Device form shares the helper now.
        */
-      dropdownOptions: probes
-        .filter((probe: Probe) => {
-          return Boolean(probe._id);
-        })
-        .map((probe: Probe) => {
-          return {
-            label:
-              probe.name ||
-              translateTemplate("Probe {{id}}", { id: String(probe._id) }),
-            value: probe._id!,
-          };
-        }),
+      dropdownOptions: getProbeDropdownOptions(probes),
       required: true,
+      /*
+       * The project's one custom probe, when it has exactly one: a question
+       * with one answer is not a question. An Edit dialog reads the scan's
+       * own probe - a default only fills an empty field.
+       */
+      defaultValue: getDefaultProbeId(probes),
       placeholder: "Probe",
     },
     /*
@@ -353,11 +365,8 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * FieldLabel appends "(Optional)" to every non-required field.
        */
       hideOptionalLabel: true,
-      sectionTitle: "What to check",
-      sectionDescription:
-        "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
       description:
-        "Leave this on to identify what answers, using the credentials on the next step. Turn it off for an ICMP-only sweep: no SNMP packet is sent, no credentials are asked for, and the SNMP step is skipped. Everything an ICMP-only scan finds imports as a device pinged by the scan's probe; add SNMP credentials later for inventory.",
+        "Every scan pings each address to find what is alive. Leave this on to also read what answers over SNMP - its name, vendor and interfaces - with the credentials on the next step. Turn it off to only ping: no credentials are asked for, and every device found is added as a pinged device.",
       /*
        * Clear the credentials on the way past. Hiding the fields is not enough
        * on its own: ModelForm builds the request body from every DECLARED field
@@ -412,16 +421,21 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       },
     },
     /*
+     * More fields starts here: the name, the naming switches and the
+     * schedule, one fold at the end of the first step (and nothing after
+     * them on it - a fold holds consecutive fields).
+     */
+    SCAN_NAME_FORM_FIELD,
+    /*
      * Whether the probe asks still-unnamed hosts for their NetBIOS name
      * (OneUptime issue #3677): the Windows machines that otherwise sit in the
      * Review dialog as bare addresses, because they have no PTR record and no
      * SNMP.
      *
-     * UNDER "What to check", with no heading of its own, because unlike the
-     * naming toggle below it IS a packet the scan puts on the wire — one UDP
-     * datagram to port 137 of each such host, plus a retry — and that is
-     * exactly what the heading is about. It must come BEFORE the "Device
-     * names" heading, or BasicForm would draw it under that heading instead.
+     * Under More fields, with the other naming switch: most scans leave it
+     * as it is. It IS a packet the scan puts on the wire - one UDP datagram
+     * to port 137 of each such host, plus a retry - which its description
+     * says.
      *
      * On the scan-target step and with no `showIf`, for the naming toggle's
      * reason: an ICMP-only scan removes the SNMP step, and a host with no SNMP
@@ -456,6 +470,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       },
       title: "Look up NetBIOS names for hosts DNS doesn't name",
       stepId: "scan-target",
+      collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: true,
@@ -468,13 +483,11 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
      * How the hosts this scan finds are NAMED when they import (OneUptime
      * issue #3678): "core-sw-01" rather than "core-sw-01.corp.example.com".
      *
-     * Its own section, directly after the "What to check" questions (the
-     * method toggle and the NetBIOS lookup), for two reasons. "What to check"
-     * is about what the probe SENDS, and this sends nothing — filing it under
-     * that heading would read as another packet the scan puts on the wire. And it must stay on the scan-target step, never on
-     * the SNMP step: an ICMP-only scan removes that step, and a host with no
-     * SNMP is exactly the host named by its reverse-DNS FQDN, so the setting
-     * would vanish for the scans it matters most to.
+     * Under More fields, after the NetBIOS lookup. It must stay on the
+     * scan-target step, never on the SNMP step: an ICMP-only scan removes
+     * that step, and a host with no SNMP is exactly the host named by its
+     * reverse-DNS FQDN, so the setting would vanish for the scans it matters
+     * most to.
      *
      * No `showIf`, for the same reason: every scan names its hosts, whatever
      * it checks.
@@ -499,16 +512,65 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       },
       title: "Name devices by their short hostname",
       stepId: "scan-target",
+      collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: false,
       // A toggle is always answered one way or the other; see isSnmpEnabled.
       hideOptionalLabel: true,
-      sectionTitle: "Device names",
-      sectionDescription:
-        "What each device imported from this scan is called. A host is named by the name it reports over SNMP, then by its reverse-DNS name, then by the NetBIOS name it reports if the scan looked one up, then by its address.",
       description:
         "Name imported devices by the first part of a fully qualified hostname - 'core-sw-01' instead of 'core-sw-01.corp.example.com'. The full DNS name is kept on the device as its DNS Name (a name the device reports over SNMP stays in full as its System Name), and names that are not fully qualified, such as addresses, are left as they are. It changes only what devices are called, so no rescan is needed: Review Results uses it the next time it opens, and so do auto-import rules. Devices already imported keep their names. Label and owner rules whose name patterns were written against full names (such as *.corp.example.com) will not match the new short names.",
+    },
+    {
+      field: {
+        isRecurring: true,
+      },
+      title: "Repeat this scan",
+      /*
+       * On the first step, under More fields: the schedule used to be a
+       * step of its own that every scan walked through to reach the button,
+       * for a switch most first scans leave off.
+       */
+      stepId: "scan-target",
+      collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      // "Repeat this scan (Optional)" is noise on a toggle. Same as the method toggle above.
+      hideOptionalLabel: true,
+      description:
+        "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
+    },
+    /*
+     * Only meaningful together with the toggle above, so it reveals
+     * itself the same way the v3 credential fields do in
+     * SnmpConfigFormFields.ts: showIf on the controlling value.
+     */
+    {
+      field: {
+        rescanIntervalInMinutes: true,
+      },
+      title: "Rescan Interval (Minutes)",
+      stepId: "scan-target",
+      collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
+      fieldType: FormFieldSchemaType.Number,
+      required: true,
+      placeholder: "60",
+      description: translateTemplate(
+        "How often to re-run this scan, in minutes. Minimum {{minutes}} minutes.",
+        { minutes: MINIMUM_RESCAN_INTERVAL_IN_MINUTES },
+      ),
+      /*
+       * One validator rather than a `validation: { minValue }` beside it:
+       * the built-in minimum runs the value through parseInt, so "20.5"
+       * reads as 20 and clears a floor of 15 before failing the INSERT
+       * against an integer column — and customValidation runs last, so a
+       * minValue declared alongside would only have its message
+       * overwritten. See DiscoveryScanFormValidation.
+       */
+      customValidation: validateRescanInterval,
+      showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
+        return Boolean(item.isRecurring);
+      },
     },
     /*
      * The scan's ORDERED LIST of SNMP credential sets, first match wins.
@@ -578,50 +640,6 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
             }
           />
         );
-      },
-    },
-    {
-      field: {
-        isRecurring: true,
-      },
-      title: "Repeat this scan",
-      stepId: "schedule",
-      fieldType: FormFieldSchemaType.Toggle,
-      required: false,
-      // "Repeat this scan (Optional)" is noise on a toggle. Same as the method toggle above.
-      hideOptionalLabel: true,
-      description:
-        "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
-    },
-    /*
-     * Only meaningful together with the toggle above, so it reveals
-     * itself the same way the v3 credential fields do in
-     * SnmpConfigFormFields.ts: showIf on the controlling value.
-     */
-    {
-      field: {
-        rescanIntervalInMinutes: true,
-      },
-      title: "Rescan Interval (Minutes)",
-      stepId: "schedule",
-      fieldType: FormFieldSchemaType.Number,
-      required: true,
-      placeholder: "60",
-      description: translateTemplate(
-        "How often to re-run this scan, in minutes. Minimum {{minutes}} minutes.",
-        { minutes: MINIMUM_RESCAN_INTERVAL_IN_MINUTES },
-      ),
-      /*
-       * One validator rather than a `validation: { minValue }` beside it:
-       * the built-in minimum runs the value through parseInt, so "20.5"
-       * reads as 20 and clears a floor of 15 before failing the INSERT
-       * against an integer column — and customValidation runs last, so a
-       * minValue declared alongside would only have its message
-       * overwritten. See DiscoveryScanFormValidation.
-       */
-      customValidation: validateRescanInterval,
-      showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
-        return Boolean(item.isRecurring);
       },
     },
   ];
@@ -707,6 +725,22 @@ const NetworkDeviceDiscovery: FunctionComponent<
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * Opened from a "Discover Devices" link (the Overview, the Devices list's
+   * empty state): the new-scan form opens as soon as the table is drawn,
+   * after the probes are in. Read once, and the action leaves the address
+   * at once so a refresh does not open the form again.
+   */
+  const [isNewScanRequested] = useState<boolean>((): boolean => {
+    return isNetworkQuickActionRequested(NetworkQuickAction.DiscoverDevices);
+  });
+
+  useEffect(() => {
+    if (isNewScanRequested) {
+      clearNetworkQuickAction();
+    }
+  }, [isNewScanRequested]);
 
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const liveUpdates: DiscoveryScanLiveUpdates = useDiscoveryScanLiveUpdates();
@@ -1399,6 +1433,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={false}
+        /*
+         * "Start Scan": a scan starts as soon as it is saved, and inside
+         * Network it needs no "Network Device Discovery" in front of it.
+         */
+        createVerb="Start"
+        singularName="Scan"
+        pluralName="Scans"
+        showCreateForm={isNewScanRequested}
         showRefreshButton={true}
         refreshToggle={refreshToggle}
         onFetchSuccess={liveUpdates.onRowsLoaded}
@@ -1503,10 +1545,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
         cardProps={{
           title: "Discovery Scans",
           description:
-            "Sweep a subnet or octet range from a probe - ping only, or ping plus SNMP - then review what answered and import the devices you want to monitor.",
+            "Scan an address range to find the devices on it, then pick the ones to add. A scan pings every address, and reads the ones that answer over SNMP when you give it credentials.",
         }}
         noItemsMessage={
-          "No discovery scans yet. Start one to sweep a subnet or octet range and see what answers."
+          "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add."
         }
         formSteps={DISCOVERY_SCAN_FORM_STEPS}
         formFields={getDiscoveryScanFormFields(probes)}
