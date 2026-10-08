@@ -737,6 +737,38 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   an API key restricted to labels the read of the records it names. See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **Who owns a resource, and a setting that holds credentials, are named
+  only by someone who may read them.** The owners of every resource - on-call
+  policies and schedules, monitor groups, dashboards, incoming call
+  policies, workflows, runbooks, probes, hosts and clusters, SLOs and the
+  rest - are now listed, read, added and removed through the resource they
+  own, as a monitor's, a status page's and a service's are: a role or an API
+  key restricted to labels reaches the owners of the resources carrying its
+  labels, a block with labels on reading the resource leaves out their
+  owners, and a permission on owners alone reaches none. The owners of
+  incoming call policies now take the policy's own roles (`SettingsAdmin`,
+  `SettingsMember`, `SettingsViewer`) instead of the on-call ones. A create or
+  a change that names an SMTP server, a call and SMS provider, a runbook
+  credential, SNMP credentials, a video call connection or an API key - a
+  status page's SMTP server or call and SMS provider, an incoming call
+  policy's provider, the credential a Kubernetes cluster gives OneUptime AI,
+  a network device's or site's SNMP credentials, a video call's connection,
+  an API key permission's key, the credential of a runbook's SSH and
+  Kubernetes steps - needs a permission to read that kind of setting, and
+  is otherwise refused with the `400` that names the field and the ID; a
+  change that keeps the setting a record names already is not asked about.
+  A role that edits status pages but cannot read the project's SMTP servers
+  or call and SMS providers, such as `StatusPageAdmin`, no longer picks one
+  for a status page; a runbook author needs `ReadRunbookCredential` to name a
+  credential in a step. Searching for numbers to buy, and listing the numbers
+  a call and SMS provider owns, take the same read of the provider they
+  name. Where a project was bought - its reseller, its reseller plan and its
+  license - is set by OneUptime alone: a create of a project that sends
+  `resellerId`, `resellerPlanId`, `resellerLicenseId` or their relations is
+  refused with a `400` that names the field, as a change of them already was.
+  See
+  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
+  and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
   record you may not read answers `404`.** The same rule now holds in the
   places it did not yet reach:

@@ -154,6 +154,8 @@ Ejere har to opgaver:
 
 Ejerskab i sig selv giver ingenting. At eje en monitor giver ikke ret til at redigere den, medmindre et af dine teams også har en monitortilladelse. Ejerskab indsnævrer adgang; det udvider den aldrig.
 
+Hvem der ejer en ressource, læses gennem ressourcen. Ejerne af en monitor eller af en anden ressource vises, læses, tilføjes og fjernes kun af en, der må læse ressourcen, og en tilladelse til ejere alene når ikke ejerne af en ressource, du ikke må læse.
+
 ## Labels
 
 Labels er projektdækkende markeringer, du sætter på ressourcer. De tjener to formål: filtrering og gruppering i dashboardet samt begrænsning af tilladelser som beskrevet ovenfor.
@@ -205,6 +207,8 @@ For en logget ind bruger, i rækkefølge:
 Hvert felt i en post læses med postens egen læsetilladelse: en tilladelse til en anden slags post åbner det aldrig. Nogle felter er bevidst snævrere. Hemmeligheder læses kun af personer, der må redigere eller administrere den post, de hører til, f.eks. en monitors nøgler til indgående anmodninger og indgående e-mail og dens serveragentnøgle eller et workflows webhook- og e-mailnøgler. At se optagelsen af en sessionsafspilning kræver **Watch Session Replays**, ikke kun **List Session Replays**. Telemetri læses signal for signal: **Read Telemetry Service Log** læser logs, **Read Telemetry Service Traces** læser traces, og **Read Telemetry Service Metrics** læser metrics, metrikdiagrammer inklusive.
 
 Felter følger samme regel. En blokering uden labels på et felts tilladelse fjerner feltet, og for en driftsressource åbner den tilsvarende **All Operational Resources**-tilladelse hvert felt, som alle, der må læse eller ændre posten, må åbne — men ikke et felt, der bevidst er snævrere, som en hemmelig nøgle.
+
+En indstilling, der indeholder legitimationsoplysninger, angives kun af en, der må læse den. En oprettelse eller en ændring angiver en SMTP-server, en opkalds- og SMS-udbyder, en runbook-legitimation, SNMP-legitimationsoplysninger, en videoopkaldsforbindelse eller en API-nøgle — som den SMTP-server, en statusside sender e-mail med, eller den legitimation, et runbook-trin kører med — kun når du må læse den slags indstilling; en, du ikke må læse, afvises, som om den ikke fandtes, mens en post beholder den, den allerede angiver. At søge efter numre at købe hos en opkalds- og SMS-udbyder eller vise de numre, den ejer, kræver samme læseadgang.
 
 Samme regel afgør alt andet, der spørger, om du har en tilladelse: handlinger, der ikke er en simpel læsning eller skrivning — at tilføje SMS-, opkalds- eller AI-kredit, betale en faktura eller teste en notifikationsregel — og de knapper, OneUptime viser. En knap, du ikke må bruge, vises låst og siger hvorfor; er en blokering i et af dine teams grunden, nævner den den blokerede tilladelse.
 

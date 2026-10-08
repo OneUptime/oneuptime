@@ -20,7 +20,8 @@ import Project from "Common/Models/DatabaseModels/Project";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import { ICallProvider } from "Common/Types/Call/CallProvider";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
+import Permission, { UserPermission } from "Common/Types/Permission";
+import UserType from "Common/Types/UserType";
 import Phone from "Common/Types/Phone";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock } from "jest-mock";
@@ -154,6 +155,10 @@ jest.mock("../../FeatureSet/Notification/Utils/TwilioConfigHelper", () => {
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
   return {
+    ...(jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
     __esModule: true,
     HttpProtocol: "https://",
     Host: "oneuptime.example",
@@ -270,6 +275,37 @@ const EDIT_DATABASE_PROPS: Record<string, unknown> = {
   isMasterAdmin: false,
   userTenantAccessPermission: {},
 };
+
+// A signed-in member of the project holding `permissions` there.
+function memberProps(
+  permissions: Array<Permission | UserPermission>,
+): Record<string, unknown> {
+  return {
+    isRoot: false,
+    isMasterAdmin: false,
+    userId: new ObjectID("66666666-6666-4666-8666-666666666666"),
+    userType: UserType.User,
+    tenantId: PROJECT_ID,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: permissions.map(
+          (permission: Permission | UserPermission): UserPermission => {
+            return typeof permission === "string"
+              ? {
+                  _type: "UserPermission",
+                  permission: permission,
+                  labelIds: [],
+                  isBlockPermission: false,
+                }
+              : permission;
+          },
+        ),
+      },
+    },
+  };
+}
 
 const registeredPermissionChecks: Array<any> = (
   UserMiddleware.requirePermission as unknown as AnyMock
@@ -487,6 +523,9 @@ describe("phone-number route authorization", () => {
 describe("phone-number discovery routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    commonApi.getDatabaseCommonInteractionProps
+      .mockReset()
+      .mockResolvedValue(memberProps([Permission.ProjectMember]));
     projectService.findOneById.mockResolvedValue(makeProject());
     configService.findOneById.mockResolvedValue(makeConfig());
     twilioConfig.mockResolvedValue(TWILIO_CONFIG);
@@ -679,6 +718,130 @@ describe("phone-number discovery routes", () => {
     });
     expectNextError(result.next, "Project Call/SMS Config not found");
 
+    expect(provider.searchAvailableNumbers).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The Call/SMS config the search and list routes look numbers up with is
+ * named by the caller, and holds the provider account's credentials: only a
+ * caller who may read the project's call and SMS settings names one, as a
+ * create or an update that names one is held to that read. Attaching,
+ * buying and releasing use the policy's own config, which is not the
+ * caller's to name: the editors in the tests below hold no read of the
+ * settings at all.
+ */
+describe("phone-number discovery names a config only its caller may read", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    projectService.findOneById.mockResolvedValue(makeProject());
+    configService.findOneById.mockResolvedValue(makeConfig());
+    twilioConfig.mockResolvedValue(TWILIO_CONFIG);
+    providerFactory.getProviderWithConfig.mockReturnValue(
+      provider as unknown as ICallProvider,
+    );
+    provider.searchAvailableNumbers.mockResolvedValue([]);
+    provider.listOwnedNumbers.mockResolvedValue([]);
+    responseUtil.sendJsonObjectResponse.mockImplementation(
+      (_request: ExpressRequest, response: ExpressResponse) => {
+        return response;
+      },
+    );
+  });
+
+  const ROUTES: Array<[string, Record<string, unknown>]> = [
+    [
+      "/search",
+      { projectCallSMSConfigId: CONFIG_ID.toString(), countryCode: "US" },
+    ],
+    ["/list-owned", { projectCallSMSConfigId: CONFIG_ID.toString() }],
+  ];
+
+  test.each(ROUTES)(
+    "%s answers a caller who may read incoming call policies but not call and SMS settings as if the config were not there",
+    async (route: string, body: Record<string, unknown>): Promise<void> => {
+      commonApi.getDatabaseCommonInteractionProps
+        .mockReset()
+        .mockResolvedValue(
+          memberProps([Permission.ReadProjectIncomingCallPolicy]),
+        );
+
+      const result: Invocation = await invoke("post", route, { body });
+
+      expectNextError(
+        result.next,
+        "Project Call/SMS Config not found for this project",
+      );
+      expect(configService.findOneById).not.toHaveBeenCalled();
+      expect(twilioConfig).not.toHaveBeenCalled();
+      expect(provider.searchAvailableNumbers).not.toHaveBeenCalled();
+      expect(provider.listOwnedNumbers).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(ROUTES)(
+    "%s answers a caller whose block with no labels takes the settings read away the same way",
+    async (route: string, body: Record<string, unknown>): Promise<void> => {
+      commonApi.getDatabaseCommonInteractionProps.mockReset().mockResolvedValue(
+        memberProps([
+          Permission.ProjectMember,
+          {
+            _type: "UserPermission",
+            permission: Permission.ReadProjectCallSMSConfig,
+            labelIds: [],
+            isBlockPermission: true,
+          },
+        ]),
+      );
+
+      const result: Invocation = await invoke("post", route, { body });
+
+      expectNextError(
+        result.next,
+        "Project Call/SMS Config not found for this project",
+      );
+      expect(configService.findOneById).not.toHaveBeenCalled();
+      expect(twilioConfig).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(ROUTES)(
+    "%s lets a caller who may read call and SMS settings name the project's config",
+    async (route: string, body: Record<string, unknown>): Promise<void> => {
+      commonApi.getDatabaseCommonInteractionProps
+        .mockReset()
+        .mockResolvedValue(
+          memberProps([
+            Permission.ReadProjectIncomingCallPolicy,
+            Permission.ReadProjectCallSMSConfig,
+          ]),
+        );
+
+      const result: Invocation = await invoke("post", route, { body });
+
+      expect(result.next).not.toHaveBeenCalled();
+      expect(configService.findOneById).toHaveBeenCalledTimes(1);
+      expect(
+        provider.searchAvailableNumbers.mock.calls.length +
+          provider.listOwnedNumbers.mock.calls.length,
+      ).toBe(1);
+    },
+  );
+
+  test("a caller who may read the settings still names no other project's config", async () => {
+    configService.findOneById.mockResolvedValue(makeConfig(OTHER_PROJECT_ID));
+
+    const result: Invocation = await invoke("post", "/search", {
+      body: {
+        projectCallSMSConfigId: CONFIG_ID.toString(),
+        countryCode: "US",
+      },
+    });
+
+    expectNextError(
+      result.next,
+      "Project Call/SMS Config not found for this project",
+    );
     expect(provider.searchAvailableNumbers).not.toHaveBeenCalled();
   });
 });

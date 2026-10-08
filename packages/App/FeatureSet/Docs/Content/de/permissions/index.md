@@ -154,6 +154,8 @@ Eigentümer erfüllen zwei Aufgaben:
 
 Eigentümerschaft allein gewährt nichts. Eigentümer eines Monitors zu sein erlaubt dessen Bearbeitung nur dann, wenn eines Ihrer Teams zusätzlich eine Monitor-Berechtigung hält. Eigentümerschaft grenzt Zugriff ein; sie erweitert ihn nie.
 
+Wer eine Ressource besitzt, wird über die Ressource gelesen. Die Eigentümer eines Monitors oder einer anderen Ressource werden nur von jemandem aufgelistet, gelesen, hinzugefügt und entfernt, der diese Ressource lesen darf, und eine Berechtigung nur für Eigentümer erreicht die Eigentümer keiner Ressource, die Sie nicht lesen dürfen.
+
 ## Labels
 
 Labels sind projektweite Markierungen, die Sie an Ressourcen anbringen. Sie dienen zwei Zwecken: Filtern und Gruppieren im Dashboard sowie dem Einschränken von Berechtigungen wie oben beschrieben.
@@ -205,6 +207,8 @@ Für einen angemeldeten Benutzer, der Reihe nach:
 Jedes Feld eines Datensatzes wird mit der eigenen Leseberechtigung des Datensatzes gelesen: Eine Berechtigung für eine andere Art von Datensatz öffnet es nie. Manche Felder sind bewusst enger. Geheimnisse lesen nur Personen, die den Datensatz bearbeiten oder verwalten dürfen, zu dem sie gehören – etwa die Schlüssel eines Monitors für eingehende Anfragen und eingehende E-Mails und sein Server-Agent-Schlüssel oder die Webhook- und E-Mail-Schlüssel eines Workflows. Die Aufzeichnung einer Session-Wiedergabe anzusehen braucht **Watch Session Replays**, nicht nur **List Session Replays**. Telemetrie wird Signal für Signal gelesen: **Read Telemetry Service Log** liest Logs, **Read Telemetry Service Traces** liest Traces und **Read Telemetry Service Metrics** liest Metriken, Metrikdiagramme eingeschlossen.
 
 Felder folgen derselben Regel. Eine Sperre ohne Labels auf der Berechtigung eines Feldes entzieht das Feld, und bei einer operativen Ressource öffnet die passende **All Operational Resources**-Berechtigung jedes Feld, das alle öffnen dürfen, die den Datensatz lesen oder ändern dürfen – nicht aber ein bewusst engeres Feld wie einen geheimen Schlüssel.
+
+Eine Einstellung, die Zugangsdaten enthält, nennt nur, wer sie lesen darf. Ein Anlegen oder eine Änderung nennt einen SMTP-Server, einen Anruf- und SMS-Anbieter, Runbook-Zugangsdaten, SNMP-Zugangsdaten, eine Videoanruf-Verbindung oder einen API-Schlüssel – etwa den SMTP-Server, über den eine Statusseite E-Mails sendet, oder die Zugangsdaten, mit denen ein Runbook-Schritt läuft – nur, wenn Sie diese Art von Einstellung lesen dürfen; eine, die Sie nicht lesen dürfen, wird abgelehnt, als gäbe es sie nicht, während ein Datensatz die behält, die er bereits nennt. Bei einem Anruf- und SMS-Anbieter nach Nummern zum Kauf zu suchen oder die Nummern aufzulisten, die er besitzt, braucht dieselbe Leseberechtigung.
 
 Dieselbe Regel entscheidet über alles andere, was fragt, ob Sie eine Berechtigung halten: Aktionen, die kein einfaches Lesen oder Schreiben sind – etwa SMS-, Anruf- oder KI-Guthaben aufladen, eine Rechnung bezahlen oder eine Benachrichtigungsregel testen – und die Schaltflächen, die OneUptime anzeigt. Eine Schaltfläche, die Sie nicht verwenden dürfen, wird gesperrt angezeigt und sagt, warum; ist eine Sperre in einem Ihrer Teams der Grund, nennt sie die gesperrte Berechtigung.
 
