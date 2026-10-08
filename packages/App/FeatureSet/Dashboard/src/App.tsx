@@ -135,6 +135,12 @@ const InitRoutes: React.LazyExoticComponent<
   return import("./Routes/InitRoutes");
 });
 
+const ConnectReturn: React.LazyExoticComponent<
+  React.FunctionComponent<RoutesProps>
+> = lazy(() => {
+  return import("./Pages/ConnectReturn/ConnectReturn");
+});
+
 const LogsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/LogsRoutes");
 });
@@ -1060,6 +1066,23 @@ const App: () => JSX.Element = () => {
                 <MyOnCallPolicies
                   {...commonPageProps}
                   pageRoute={RouteMap[PageMap.MY_ON_CALL_POLICIES] as Route}
+                />
+              }
+            />
+
+            {/*
+             * A Slack, Microsoft Teams or GitHub connection that came back
+             * without a project the server could trust: passed on to the
+             * provider's page in the project that is open.
+             */}
+            <PageRoute
+              path={RouteMap[PageMap.CONNECT_RETURN]?.toString() || ""}
+              element={
+                <ConnectReturn
+                  {...commonPageProps}
+                  pageRoute={RouteMap[PageMap.CONNECT_RETURN] as Route}
+                  projects={projects}
+                  isLoading={isLoading}
                 />
               }
             />

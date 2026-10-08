@@ -42,6 +42,15 @@ import ObjectID from "../../../Types/ObjectID";
  * The plan comes from ProjectService.getCurrentPlan, cached for 60 seconds
  * on each server, so asking costs nothing on the hot path. Billing off: no
  * plans, nothing is read or refused.
+ *
+ * ONE RULE FOR SERVER ADMINS. OneUptime itself and a server admin (master
+ * admin) acting in a project are held to no plan, on every path
+ * (isHeldToNoPlan): a request through the API carries no plan for a server
+ * admin, as CommonAPI reads it through withPlan, and every plan check lets one
+ * through even should their props carry one. So an operator can always fix a
+ * project - create, change or remove what its plan does not include - as the
+ * CRUD create path always let them. A server admin who is no longer one is
+ * held to the plan like anyone else.
  */
 
 interface CurrentPlanReader {
@@ -53,18 +62,32 @@ export default class CallerPlan {
     "OneUptime could not confirm which plan this project is on, so nothing was changed. Please try again in a moment.";
 
   /*
-   * Whether billing holds these props to a plan they do not carry: they act
-   * in a project on a server with billing on, and are neither OneUptime
-   * itself nor a server admin, whom no plan binds.
+   * OneUptime itself or a server admin: no plan holds them, whatever their
+   * props carry. Every plan check asks this first.
    */
-  public static isPlanMissing(props: DatabaseCommonInteractionProps): boolean {
+  public static isHeldToNoPlan(props: DatabaseCommonInteractionProps): boolean {
+    return Boolean(props.isRoot) || Boolean(props.isMasterAdmin);
+  }
+
+  /*
+   * Whether billing holds these props to their project's plan: they act in a
+   * project on a server with billing on, and are neither OneUptime itself nor
+   * a server admin.
+   */
+  public static isHeldToPlan(props: DatabaseCommonInteractionProps): boolean {
     return (
       IsBillingEnabled &&
-      !props.isRoot &&
-      !props.isMasterAdmin &&
-      Boolean(props.tenantId) &&
-      !props.currentPlan
+      !CallerPlan.isHeldToNoPlan(props) &&
+      Boolean(props.tenantId)
     );
+  }
+
+  /*
+   * Whether billing holds these props to a plan they do not carry: they are
+   * held to their project's plan (isHeldToPlan) and carry none.
+   */
+  public static isPlanMissing(props: DatabaseCommonInteractionProps): boolean {
+    return CallerPlan.isHeldToPlan(props) && !props.currentPlan;
   }
 
   /*

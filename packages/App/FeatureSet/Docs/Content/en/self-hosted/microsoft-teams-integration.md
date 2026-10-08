@@ -313,6 +313,19 @@ If they differ, the user messaging the bot is signed in to a different Microsoft
 
 Two or more OneUptime projects have connected the same Microsoft tenant. A bot message only carries a tenant id, so OneUptime cannot tell which project you mean and refuses rather than guessing. Disconnect Microsoft Teams from all but one project.
 
+### Connecting did not finish
+
+When Microsoft sends you back and the connection was not made (granting admin consent, or signing in with Microsoft), the Microsoft Teams page you started from (**Settings > Microsoft Teams Integration**, or your own **User Settings** when you were connecting your account) says **Microsoft Teams was not connected**, with one sentence saying why, in your language. The rest of the page loads as usual, so you can try again right there. It never shows what Microsoft itself answered (an `AADSTS` code, say): that is in the OneUptime server log, with the reason.
+
+- **"This connection link is invalid, has expired, or has already been used. Please start again."** The link works once, for 15 minutes, in the browser that started it. Start again from the Microsoft Teams page and finish within 15 minutes, in the same browser.
+- **"You do not have permission to connect this project to Microsoft Teams."** Granting admin consent for the project needs **Project Owner**, **Project Admin** or **Project Member**. It is asked again when Microsoft sends you back.
+- **"You are no longer a member of this project."** Connecting your own Microsoft account needs you to be a member of the project when Microsoft sends you back.
+- **"You signed in to a different Microsoft 365 organization from the one this connection is for."** Sign in with an account from the Microsoft 365 organization that granted admin consent, or that the project is connected to.
+- **"Your Microsoft 365 organization has no teams yet."** Create a team in Microsoft Teams, then grant admin consent again.
+- **"The connection was cancelled, so nothing was changed."** Consent was not granted in Microsoft. Start again and accept it.
+- **"Microsoft Teams is not set up on this OneUptime server."** Set the Microsoft Teams app's client ID and secret (see [Step 6](#step-6-configure-oneuptime-environment-variables)) and restart OneUptime.
+- **"OneUptime could not finish connecting. Please try again."** Microsoft answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the app registration's settings.
+
 ## Support
 
 We would like to improve this integration, so feedback is more than welcome. Please send us any at [hello@oneuptime.com](mailto:hello@oneuptime.com)

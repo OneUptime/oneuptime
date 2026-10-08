@@ -1,11 +1,8 @@
 import User from "../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import ServerException from "../../Types/Exception/ServerException";
 import UserType from "../../Types/UserType";
 import UserService from "../Services/UserService";
-import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import WorkspaceActionAuthorization from "../Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceOAuthState, {
@@ -33,29 +30,13 @@ import CommonAPI from "./CommonAPI";
  * with no labels takes its permission away, a server admin is let through
  * where the start lets one through). Tests/Server/API/ConnectCallbacksAskAgain
  * keeps every connect callback on it.
+ *
+ * A refusal here is a NotAuthorizedException. The callback does not show its
+ * sentence: ConnectCallback.route answers it on the page the connection
+ * started from, as "no permission" or "not a member", and answers a check
+ * that failed rather than refused as "could not finish".
  */
 export default class WorkspaceOAuthCallbackAccess {
-  /*
-   * What a callback answers when its question was not answered yes: a refusal
-   * as it is, with its own sentence and status; anything else - a read that
-   * failed - logged here and answered with a plain sentence, never with its
-   * raw message.
-   */
-  public static readonly COULD_NOT_CHECK_MESSAGE: string =
-    "OneUptime could not finish connecting. Please try again.";
-
-  public static answerFor(error: unknown): Exception {
-    if (error instanceof Exception) {
-      return error;
-    }
-
-    logger.error(error);
-
-    return new ServerException(
-      WorkspaceOAuthCallbackAccess.COULD_NOT_CHECK_MESSAGE,
-    );
-  }
-
   /*
    * The props of the person `record` names, in its project, as they are now -
    * what a callback asks its permission question of. Refuses with

@@ -23,8 +23,6 @@ import UserService from "../../../Server/Services/UserService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import MicrosoftTeamsAPIClass from "../../../Server/API/MicrosoftTeamsAPI";
-import WorkspaceOAuthCallbackAccess from "../../../Server/API/WorkspaceOAuthCallbackAccess";
 import logger from "../../../Server/Utils/Logger";
 import {
   AppApiClientUrl,
@@ -54,7 +52,10 @@ import {
  * an ID token proves, never a query parameter. Before either writes, it asks
  * again whether that member may still finish: admin consent needs a role
  * that may manage the connection, signing in needs membership
- * (WorkspaceOAuthCallbackAccess).
+ * (WorkspaceOAuthCallbackAccess). Every answer is a redirect to the Microsoft
+ * Teams page the connection started from, with a code for a refusal
+ * (ConnectCallback.route); Tests/Server/API/ConnectCallbacksAnswer drives the
+ * failures.
  */
 
 const TEAMS_CLIENT_ID: string = "3f1a8c52-7d0e-4b9a-9d61-2c4b5e6f7a80";
@@ -419,6 +420,32 @@ describe("Microsoft Teams OAuth state", () => {
     expect(postSpy).not.toHaveBeenCalled();
   }
 
+  // The project's Microsoft Teams page, which every callback answers on.
+  function teamsPage(): string {
+    return `${DashboardClientUrl.toString()}/${projectId.toString()}/settings/microsoft-teams-integration`;
+  }
+
+  // Sent back to the Microsoft Teams page, told `code` (ConnectCallback.route).
+  function expectAnsweredOnTeamsPage(
+    response: ProbeResponse,
+    code: string,
+  ): void {
+    expect(response.status).toBe(302);
+    expect(response.location).toBe(`${teamsPage()}?error=${code}`);
+  }
+
+  /*
+   * A state that cannot be spent names no project anyone may trust: the
+   * Dashboard opens the Microsoft Teams page of the project the person has
+   * open, and tells them the link cannot be used.
+   */
+  function expectLinkRefused(response: ProbeResponse): void {
+    expect(response.status).toBe(302);
+    expect(response.location).toBe(
+      `${DashboardClientUrl.toString()}/connect-return?provider=microsoft-teams&error=link-invalid`,
+    );
+  }
+
   describe("GET /microsoft-teams/admin-consent (start)", () => {
     test("refuses an anonymous caller and issues no state", async () => {
       const response: ProbeResponse = await get(
@@ -536,10 +563,7 @@ describe("Microsoft Teams OAuth state", () => {
           state: `${projectId.toString()}:${userId.toString()}`,
         });
 
-        expect(response.status).toBe(400);
-        expect((response.body as JSONObject)["message"]).toBe(
-          WorkspaceOAuthState.INVALID_STATE_MESSAGE,
-        );
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -550,7 +574,7 @@ describe("Microsoft Teams OAuth state", () => {
           admin_consent: "True",
         });
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -568,7 +592,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
       });
 
@@ -582,7 +606,7 @@ describe("Microsoft Teams OAuth state", () => {
           state,
         });
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -598,7 +622,7 @@ describe("Microsoft Teams OAuth state", () => {
           other.browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
       });
 
       test("refuses a replayed consent-screen state", async () => {
@@ -612,9 +636,9 @@ describe("Microsoft Teams OAuth state", () => {
         expect(
           (await callback(ADMIN_CONSENT_CALLBACK, query, browser)).status,
         ).toBe(302);
-        expect(
-          (await callback(ADMIN_CONSENT_CALLBACK, query, browser)).status,
-        ).toBe(400);
+        expectLinkRefused(
+          await callback(ADMIN_CONSENT_CALLBACK, query, browser),
+        );
       });
 
       test("refuses an expired state", async () => {
@@ -633,7 +657,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
       });
 
@@ -646,7 +670,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
       });
     });
@@ -751,11 +775,8 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(302);
-        expect(response.location).toContain(
-          `/${projectId.toString()}/settings/microsoft-teams-integration`,
-        );
-        expect(response.location).toContain("error=access_denied");
+        expectAnsweredOnTeamsPage(response, "cancelled");
+        expect(response.location).not.toContain("access_denied");
       });
 
       test("refuses consent for a tenant other than the one the project is bound to", async () => {
@@ -771,9 +792,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(302);
-        expect(response.location).toContain("error=");
-        expect(response.location).not.toContain("login.microsoftonline.com");
+        expectAnsweredOnTeamsPage(response, "teams-other-tenant");
         expect(mockCacheStore.size).toBe(0);
         expectNoTokenRequested();
         expectNothingWritten();
@@ -783,19 +802,11 @@ describe("Microsoft Teams OAuth state", () => {
     describe("the person who started it, asked again", () => {
       /*
        * Refused on the project's Microsoft Teams page, as every other failure
-       * after the state is, with the refusal's own sentence.
+       * after the state is, told that they may no longer connect it - never
+       * which of the reasons it was.
        */
       function expectRefusedOnIntegrationPage(response: ProbeResponse): void {
-        expect(response.status).toBe(302);
-        expect(
-          response.location!.startsWith(DashboardClientUrl.toString()),
-        ).toBe(true);
-        expect(new globalThis.URL(response.location!).pathname).toContain(
-          `/${projectId.toString()}/settings/microsoft-teams-integration`,
-        );
-        expect(queryOf(response.location!).get("error")).toBe(
-          MicrosoftTeamsAPIClass.CONNECT_PERMISSION_MESSAGE,
-        );
+        expectAnsweredOnTeamsPage(response, "no-permission");
       }
 
       test("back from the consent screen: someone who may no longer connect the project is not sent on to sign in", async () => {
@@ -843,13 +854,7 @@ describe("Microsoft Teams OAuth state", () => {
           start.browser,
         );
 
-        expect(response.status).toBe(302);
-        expect(
-          response.location!.startsWith(DashboardClientUrl.toString()),
-        ).toBe(true);
-        expect(queryOf(response.location!).get("error")).toBe(
-          "Failed to finalize Microsoft Teams admin consent",
-        );
+        expectAnsweredOnTeamsPage(response, "could-not-finish");
         expect(response.location).not.toContain("TeamMember");
         expectNoTokenRequested();
         expectNothingWritten();
@@ -959,11 +964,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(302);
-        expect(response.location).toContain("error=");
-        expect(response.location).toContain(
-          `/${projectId.toString()}/settings/microsoft-teams-integration`,
-        );
+        expectAnsweredOnTeamsPage(response, "teams-other-tenant");
 
         // Only the code exchange ran; no app token was fetched for anyone.
         expect(postSpy).toHaveBeenCalledTimes(1);
@@ -1083,7 +1084,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(replay.status).toBe(400);
+        expectLinkRefused(replay);
         expect(refreshProjectAuth).toHaveBeenCalledTimes(1);
       });
 
@@ -1096,7 +1097,7 @@ describe("Microsoft Teams OAuth state", () => {
           state: signInState,
         });
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -1119,7 +1120,7 @@ describe("Microsoft Teams OAuth state", () => {
           browser,
         );
 
-        expect(response.status).toBe(400);
+        expectLinkRefused(response);
         expectNoTokenRequested();
         expectNothingWritten();
       });
@@ -1172,7 +1173,7 @@ describe("Microsoft Teams OAuth state", () => {
         state: `${projectId.toString()}:${userId.toString()}`,
       });
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNoTokenRequested();
       expectNothingWritten();
     });
@@ -1251,7 +1252,7 @@ describe("Microsoft Teams OAuth state", () => {
         browser,
       );
 
-      expect(replay.status).toBe(400);
+      expectLinkRefused(replay);
       expect(refreshUserAuth).toHaveBeenCalledTimes(1);
     });
 
@@ -1263,7 +1264,7 @@ describe("Microsoft Teams OAuth state", () => {
         state,
       });
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNoTokenRequested();
       expectNothingWritten();
     });
@@ -1277,7 +1278,7 @@ describe("Microsoft Teams OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(400);
+      expectLinkRefused(response);
       expectNoTokenRequested();
     });
 
@@ -1291,10 +1292,7 @@ describe("Microsoft Teams OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(422);
-      expect((response.body as JSONObject)["message"]).toBe(
-        WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-      );
+      expectAnsweredOnTeamsPage(response, "not-a-member");
       expectNoTokenRequested();
       expectNothingWritten();
     });
@@ -1309,11 +1307,8 @@ describe("Microsoft Teams OAuth state", () => {
         browser,
       );
 
-      expect(response.status).toBe(500);
-      expect((response.body as JSONObject)["message"]).toBe(
-        WorkspaceOAuthCallbackAccess.COULD_NOT_CHECK_MESSAGE,
-      );
-      expect(JSON.stringify(response.body)).not.toContain("TeamMember");
+      expectAnsweredOnTeamsPage(response, "could-not-finish");
+      expect(response.location).not.toContain("TeamMember");
       expectNoTokenRequested();
       expectNothingWritten();
     });

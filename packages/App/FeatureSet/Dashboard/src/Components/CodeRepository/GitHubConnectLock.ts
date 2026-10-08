@@ -47,6 +47,27 @@ export const GITHUB_CONNECT_PERMISSION_REASON: string = translationKey(
 
 const NOT_LOCKED: GitHubConnectLock = { isLocked: false };
 
+/*
+ * The plan sentence, in the reader's language, naming the plan code
+ * repositories are sold on: what the locked card says, and what the page says
+ * when GitHub sends the browser back refused for the plan. Undefined where
+ * code repositories need no plan.
+ */
+export const getGitHubConnectPlanReason: () => string | undefined = ():
+  | string
+  | undefined => {
+  const requiredPlan: PlanType | null =
+    new CodeRepository().getCreateBillingPlan() || null;
+
+  if (!requiredPlan) {
+    return undefined;
+  }
+
+  return getGlobalTranslator().translateTemplate(GITHUB_CONNECT_PLAN_REASON, {
+    planName: requiredPlan,
+  });
+};
+
 export const getGitHubConnectLock: (
   options?: PermissionGateOptions | undefined,
 ) => GitHubConnectLock = (
@@ -59,12 +80,7 @@ export const getGitHubConnectLock: (
   if (requiredPlan && isKnownToBeBelowPlan(requiredPlan)) {
     return {
       isLocked: true,
-      reason: getGlobalTranslator().translateTemplate(
-        GITHUB_CONNECT_PLAN_REASON,
-        {
-          planName: requiredPlan,
-        },
-      ),
+      reason: getGitHubConnectPlanReason(),
     };
   }
 

@@ -7,6 +7,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import ConnectCallbackUtil, {
+  ConnectStartPage,
+} from "../../../Types/Workspace/ConnectCallback";
 
 /*
  * Every redirect-based flow that ends with OneUptime writing a Slack,
@@ -30,6 +33,12 @@ export interface WorkspaceOAuthStateRecord {
   flow: WorkspaceOAuthFlow;
   projectId: ObjectID;
   userId: ObjectID;
+  /*
+   * The page the flow was started from, which its callback sends the browser
+   * back to (ConnectCallback): the project's settings unless the start said
+   * the person's own settings.
+   */
+  startPage: ConnectStartPage;
   // Microsoft Entra tenant the flow is pinned to, when it is pinned to one.
   tenantId?: string | undefined;
   // OpenID Connect nonce the ID token returned by this flow must carry.
@@ -89,9 +98,6 @@ export default class WorkspaceOAuthState {
   public static readonly BROWSER_BINDING_COOKIE_NAME: string =
     "oneuptime-workspace-oauth-binding";
 
-  public static readonly INVALID_STATE_MESSAGE: string =
-    "This connection link is invalid, has expired, or has already been used. Please start connecting again from your OneUptime project settings.";
-
   /*
    * Who may start a flow that binds a Slack workspace or Microsoft 365 tenant
    * to a project. These are the roles that could create that binding through
@@ -110,6 +116,8 @@ export default class WorkspaceOAuthState {
     flow: WorkspaceOAuthFlow;
     projectId: ObjectID;
     userId: ObjectID;
+    // Where the callback sends the browser back to; the project's settings by default.
+    startPage?: ConnectStartPage | undefined;
     tenantId?: string | undefined;
     includeOidcNonce?: boolean | undefined;
   }): Promise<CreatedWorkspaceOAuthState> {
@@ -148,6 +156,7 @@ export default class WorkspaceOAuthState {
       flow: data.flow,
       projectId: data.projectId.toString(),
       userId: data.userId.toString(),
+      startPage: data.startPage || ConnectStartPage.ProjectSettings,
       browserBindingHash: WorkspaceOAuthState.hash(browserBinding),
       expiresAt: new Date(
         Date.now() + WorkspaceOAuthState.EXPIRES_IN_SECONDS * 1000,
@@ -260,6 +269,8 @@ export default class WorkspaceOAuthState {
       flow,
       projectId: new ObjectID(projectId),
       userId: new ObjectID(userId),
+      // A record written before start pages were recorded goes to the project's settings.
+      startPage: ConnectCallbackUtil.readStartPage(record["startPage"]),
       tenantId: (record["tenantId"] as string | undefined) || undefined,
       oidcNonce: (record["oidcNonce"] as string | undefined) || undefined,
     };
