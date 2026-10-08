@@ -13,11 +13,24 @@ import { DeveloperDocsScope } from "../DeveloperDocs/DeveloperDocsPages";
 
 /*
  * The one side menu for the whole Network area. Both the Network Devices
- * and Network Sites sections render this same component, so wherever the
- * user lands they see the entire product as one coherent thing instead of
- * two disconnected page groups. Day-to-day inventory comes first, followed
- * by topology, then the collapsed rule and definition sections, and
- * Advanced, which holds the archived devices.
+ * and Network Sites route families render this same component, so wherever
+ * the user lands they see the entire product as one coherent thing.
+ *
+ * "It has so many options. It confuses people." (the maintainer) The menu is
+ * built from what someone opening Network actually comes for, in the order
+ * they come for it, and nothing else is open:
+ *
+ *   - Overview: is my network healthy, and if not, what and where?
+ *   - Devices: the things on it, and the way to add one.
+ *   - Sites: where they are.
+ *   - Map: the network drawn - by location when there are sites, as one
+ *     device graph when there are none.
+ *   - Discovery: find the devices you have not added yet.
+ *
+ * Everything else is folded down to a section title, one click away and
+ * open by itself on any of its own pages: the deeper Topology views and the
+ * links drawn by hand, the Rules that automate, the Settings that are set up
+ * once, the archive and the Developer pages.
  */
 const NetworkSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -52,36 +65,13 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.BuildingOffice,
         },
         {
-          link: {
-            title: "Endpoints",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route,
-            ),
-          },
-          icon: IconProp.Squares,
-        },
-        {
-          link: {
-            title: "Discovery Scans",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
-            ),
-          },
-          icon: IconProp.Search,
-        },
-      ],
-    },
-    {
-      title: "Topology",
-      items: [
-        {
           /*
            * `to` resets the map's query-backed drill state. `activeRoute`
            * deliberately omits that query so the item still highlights on
            * the map page and names itself in the mobile menu summary.
            */
           link: {
-            title: "Network Map",
+            title: "Map",
             to: getNetworkMapRootRoute(),
           },
           activeRoute: RouteUtil.populateRouteParams(
@@ -91,12 +81,46 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Discovery",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
+            ),
+          },
+          icon: IconProp.Search,
+        },
+      ],
+    },
+    /*
+     * The deeper views of how the network is wired, and the links drawn by
+     * hand for cables discovery cannot see. The Map above is where people
+     * look; these are where they dig, so they wait folded.
+     */
+    {
+      title: "Topology",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
             title: "Device Topology",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route,
             ),
           },
           icon: IconProp.Graph,
+        },
+        {
+          /*
+           * What is plugged into the switches and routers - learned from
+           * their ARP and forwarding tables, and only when a device collects
+           * endpoints, which is off by default.
+           */
+          link: {
+            title: "Endpoints",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route,
+            ),
+          },
+          icon: IconProp.Squares,
         },
         {
           link: {
@@ -184,33 +208,34 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * Set up once, in the order people need them: how devices raise
+     * incidents, then the credentials that let a device be read over SNMP,
+     * then the vocabularies (roles, site types) and the OID lists.
+     */
     {
       title: "Settings",
       defaultCollapsed: true,
       items: [
         {
+          /*
+           * A definition, not a rule: a policy is the intent "alert on
+           * devices like these"; the engine that provisions the monitors
+           * is what runs, and it is not something an operator opens. The
+           * Overview says whether any policy is on, and links here.
+           */
           link: {
-            title: "Device Roles",
+            title: "Alert Policies",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES] as Route,
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES] as Route,
             ),
           },
-          icon: IconProp.Identification,
-        },
-        {
-          link: {
-            title: "OID Collection Templates",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES] as Route,
-            ),
-          },
-          icon: IconProp.List,
+          icon: IconProp.Alert,
         },
         {
           /*
-           * Beside the OID templates on purpose: both are named sets a
-           * device links to rather than copies from — one says what a
-           * device COLLECTS, this says what it is walked WITH.
+           * Named credential sets a device is walked WITH; a device or a
+           * whole site points at one, so a community string is typed once.
            */
           link: {
             title: "SNMP Credentials",
@@ -223,18 +248,13 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.Key,
         },
         {
-          /*
-           * A definition, not a rule: a policy is the intent "alert on
-           * devices like these"; the engine that provisions the monitors
-           * is what runs, and it is not something an operator opens.
-           */
           link: {
-            title: "Alert Policies",
+            title: "Device Roles",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES] as Route,
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES] as Route,
             ),
           },
-          icon: IconProp.Alert,
+          icon: IconProp.Identification,
         },
         {
           link: {
@@ -244,6 +264,15 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Layers,
+        },
+        {
+          link: {
+            title: "OID Collection Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES] as Route,
+            ),
+          },
+          icon: IconProp.List,
         },
       ],
     },
