@@ -21,6 +21,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useCardRuledBodyClassName } from "../Card/CardSurface";
 
 /*
  * A card that is one switch: the card's title and the line under it, then
@@ -106,6 +107,7 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const [isOn, setIsOn] = useState<boolean | null>(null);
   const [item, setItem] = useState<TBaseModel | null>(null);
   /*
@@ -286,7 +288,7 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
        * status page's Channels and "What your status page shows" cards. The
        * lines under the switch, if any, are a row of their own below it.
        */
-      <div className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6">
+      <div className={ruledBodyClassName}>
         <div className="px-5 py-4 md:px-6">
           <ModelSwitchRow<TBaseModel>
             /*
