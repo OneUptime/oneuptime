@@ -4,10 +4,14 @@ import {
   DOCS_CALLOUT_TYPES,
   DOCS_CONTAINER_NAMES,
   DocsContainerMatch,
+  docsSafeUrl,
   docsTabKey,
   readDocsContainer,
   splitDocsTabs,
 } from "../../../Server/Types/MarkdownDocsExtensions";
+import slugify, {
+  slugifyMarkdownHeading,
+} from "../../../Server/Types/MarkdownSlugify";
 
 /*
  * The docs' block components - steps, tabs, cards, collapsible sections and
@@ -494,6 +498,230 @@ describe("the docs renderer's components", () => {
         expect(html).not.toContain("docs-callout");
         expect(html).toContain(":::steps");
       },
+    );
+  });
+
+  describe("titles and summaries written in Markdown", () => {
+    test("escape raw HTML in a callout's title", async () => {
+      const html: string = await docs(
+        ':::warning <img src=x onerror="alert(1)"> first\nx\n:::',
+      );
+
+      expect(html).not.toContain("<img src=x");
+      expect(html).toContain(
+        '<span class="docs-callout__label">&lt;img src=x onerror=&quot;alert(1)&quot;&gt; first</span>',
+      );
+    });
+
+    test("escape raw HTML in a summary", async () => {
+      const html: string = await docs(
+        ":::details <script>alert(1)</script> Why?\nx\n:::",
+      );
+
+      expect(html).not.toContain("<script>");
+      expect(html).toContain(
+        '<summary class="docs-details__summary">&lt;script&gt;alert(1)&lt;/script&gt; Why?</summary>',
+      );
+    });
+
+    test("escape a card's title and description", async () => {
+      const html: string = await docs(
+        ':::cards\n- [<b onmouseover="x">A</b>](/docs/a/b): <i onclick="y">desc</i>\n:::',
+      );
+
+      expect(html).not.toContain("<b onmouseover");
+      expect(html).not.toContain("<i onclick");
+      expect(html).toContain("&lt;b onmouseover=&quot;x&quot;&gt;");
+    });
+
+    test("keep a code block's language from leaving its attributes", async () => {
+      const html: string = await docs(
+        '```bash"onmouseover="alert(1)\necho\n```',
+      );
+
+      expect(html).not.toContain('"onmouseover="');
+      expect(html).toContain(
+        'data-language="bash&quot;onmouseover=&quot;alert(1)"',
+      );
+    });
+  });
+
+  describe("inline code", () => {
+    test("shows quotes, angle brackets and ampersands as the author typed them", async () => {
+      const html: string = await docs(
+        'Compare `"UP"`, run `oneuptime <resource> list` and `a && b`.',
+      );
+
+      // Escaped once - which the browser shows as typed - not twice.
+      expect(html).toContain(
+        '<code class="docs-code-inline">&quot;UP&quot;</code>',
+      );
+      expect(html).toContain(
+        '<code class="docs-code-inline">oneuptime &lt;resource&gt; list</code>',
+      );
+      expect(html).toContain(
+        '<code class="docs-code-inline">a &amp;&amp; b</code>',
+      );
+      expect(html).not.toContain("&amp;quot;");
+      expect(html).not.toContain("&amp;lt;");
+    });
+
+    test("never lets markup in a code span through", async () => {
+      const html: string = await docs("Run `<script>alert(1)</script>` now.");
+
+      expect(html).not.toContain("<script>");
+      expect(html).toContain(
+        '<code class="docs-code-inline">&lt;script&gt;alert(1)&lt;/script&gt;</code>',
+      );
+    });
+
+    test("in a heading, keeps the word between angle brackets in the anchor", async () => {
+      const html: string = await docs("### `oneuptime <resource> list`");
+
+      expect(html).toContain('id="oneuptime-resource-list"');
+      expect(html).toContain(
+        '<code class="docs-code-inline">oneuptime &lt;resource&gt; list</code>',
+      );
+    });
+  });
+
+  describe("link and image addresses", () => {
+    test("cannot end the attribute they are written into", async () => {
+      const link: string = await docs(
+        '[Docs](/docs/a/b"onmouseover="alert(1))',
+      );
+      const image: string = await docs('![Logo](/x.png"onerror="alert(1))');
+
+      expect(link).not.toContain('"onmouseover="');
+      expect(link).toContain('href="/docs/a/b%22onmouseover=%22alert(1)"');
+      expect(image).not.toContain('"onerror="');
+      expect(image).toContain('src="/x.png%22onerror=%22alert(1)"');
+    });
+
+    test.each([
+      "javascript:alert(1)",
+      "JavaScript:alert(1)",
+      "vbscript:msgbox(1)",
+      "data:text/html,<script>alert(1)</script>",
+      "<java\tscript:alert(1)>",
+    ])("a link to %s is shown as its text alone", async (href: string) => {
+      const html: string = await docs(`Click [here](${href}) now.`);
+
+      expect(html).not.toContain("<a ");
+      expect(html.toLowerCase()).not.toContain("script:");
+      expect(html).toContain("<p>Click here now.</p>");
+    });
+
+    test("an image may be a data: image, never a script", async () => {
+      const dataImage: string = await docs(
+        "![Dot](data:image/png;base64,iVBORw0KGgo=)",
+      );
+      const script: string = await docs("![Dot](javascript:alert(1))");
+
+      expect(dataImage).toContain('src="data:image/png;base64,iVBORw0KGgo="');
+      expect(script).not.toContain("<img");
+      expect(script).toContain("Dot");
+    });
+
+    test("a card whose link would run script is a card that goes nowhere", async () => {
+      const html: string = await docs(
+        ":::cards\n- [Run](javascript:alert(1)): Never a link.\n- [Safe](/docs/a/b): A link.\n:::",
+      );
+
+      expect(html).not.toContain("javascript:");
+      expect(html).toContain(
+        '<div class="docs-card docs-card--static"><span class="docs-card__icon" aria-hidden="true"></span><span class="docs-card__body">Run: Never a link.</span></div>',
+      );
+      expect(html).toContain('<a class="docs-card" href="/docs/a/b">');
+    });
+
+    test("ordinary addresses keep working, ampersands written as entities", async () => {
+      const html: string = await docs(
+        "[A](/docs/a/b#c) [B](https://example.com/?a=1&b=2) [C](mailto:hi@example.com) [D](#here)",
+      );
+
+      expect(html).toContain('href="/docs/a/b#c"');
+      expect(html).toContain('href="https://example.com/?a=1&amp;b=2"');
+      expect(html).toContain('href="mailto:hi@example.com"');
+      expect(html).toContain('href="#here"');
+    });
+  });
+});
+
+describe("docsSafeUrl", () => {
+  test.each([
+    ["/docs/a/b", "/docs/a/b"],
+    ["#anchor", "#anchor"],
+    ["https://example.com/?a=1&b=2", "https://example.com/?a=1&amp;b=2"],
+    ['/x"y', "/x%22y"],
+    ["/x<y>", "/x%3Cy%3E"],
+    ["mailto:hi@example.com", "mailto:hi@example.com"],
+  ])("writes %s as %s", (href: string, expected: string) => {
+    expect(docsSafeUrl(href)).toBe(expected);
+  });
+
+  test.each([
+    "javascript:alert(1)",
+    "  javascript:alert(1)",
+    "\u0001\u001fjavascript:alert(1)",
+    "java\tscript:alert(1)",
+    "java\nscript:alert(1)",
+    "JAVASCRIPT:alert(1)",
+    "vbscript:x",
+    "data:text/html,x",
+    "data:image/png;base64,AAAA",
+  ])("refuses %j for a link", (href: string) => {
+    expect(docsSafeUrl(href)).toBeNull();
+  });
+
+  test("lets an image be a data: image, and nothing else of data:", () => {
+    expect(docsSafeUrl("data:image/png;base64,AAAA", { isImage: true })).toBe(
+      "data:image/png;base64,AAAA",
+    );
+    expect(docsSafeUrl("data:text/html,x", { isImage: true })).toBeNull();
+    expect(docsSafeUrl("javascript:x", { isImage: true })).toBeNull();
+  });
+
+  test("leaves no way for an entity to spell a script scheme", () => {
+    // The browser would decode &#106; to "j" inside the attribute.
+    expect(docsSafeUrl("&#106;avascript:alert(1)")).toBe(
+      "&amp;#106;avascript:alert(1)",
+    );
+  });
+});
+
+describe("slugifyMarkdownHeading", () => {
+  test.each([
+    ["Install the agent", "install-the-agent"],
+    ["`oneuptime <resource> list`", "oneuptime-resource-list"],
+    ["Users & Teams", "users-teams"],
+    ["A & B; C", "a-b-c"],
+    ["See [the guide](/docs/a/b)", "see-the-guide"],
+    ["`ceph_health_status` is 1", "ceph_health_status-is-1"],
+    ["Überprüfen", "überprüfen"],
+  ])("gives %j the anchor %j", (heading: string, anchor: string) => {
+    expect(slugifyMarkdownHeading(heading)).toBe(anchor);
+  });
+
+  test.each([
+    "Install the agent",
+    "`oneuptime <resource> list`",
+    "Users & Teams",
+    "A & B; C",
+    '`a && b` and "quotes"',
+    "Don't panic",
+    "Set up `probe-1` (optional)",
+  ])("gives %j the anchor the renderer gives it", async (heading: string) => {
+    const html: string = await docs(`## ${heading}`);
+    const id: RegExpMatchArray | null = html.match(/<h2 id="([^"]*)"/);
+
+    expect(id).not.toBeNull();
+    expect(slugifyMarkdownHeading(heading)).toBe(id![1]);
+  });
+
+  test("is slugify for a heading with nothing to escape", () => {
+    expect(slugifyMarkdownHeading("Plain heading 2")).toBe(
+      slugify("Plain heading 2"),
     );
   });
 });

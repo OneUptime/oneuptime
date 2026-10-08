@@ -106,6 +106,54 @@ const FENCE_OPEN: RegExp = /^ {0,3}(`{3,}|~{3,})/;
 const TAB_LINE: RegExp = /^ {0,3}@tab[ \t]+(.+?)[ \t]*$/;
 // A card link that leaves the docs.
 const EXTERNAL_URL: RegExp = /^https?:\/\//i;
+// What a browser ignores anywhere in an address before reading its scheme.
+const URL_IGNORED_CHARACTERS: RegExp = /[\t\n\r]/g;
+// Schemes that run script when the address is followed.
+const SCRIPT_SCHEME: RegExp = /^(?:javascript|vbscript|data):/i;
+const IMAGE_DATA_URL: RegExp = /^data:image\//i;
+
+/*
+ * A link or image address from a docs page, made safe to put in a
+ * double-quoted attribute. marked hands the address over as written, so a
+ * `"` in it would end the attribute and start one of the author's own: `&`
+ * is written as an entity, and quotes and angle brackets are percent-encoded,
+ * as a browser sends them anyway. An address that runs script when it is
+ * followed - javascript:, vbscript:, or a data: address other than an image
+ * the page shows - is refused (null), and the text is shown without a link.
+ * The docs are written in the repository, so this is a guard against a
+ * mistake, not a sanitizer for strangers' Markdown.
+ */
+export const docsSafeUrl: (
+  href: string,
+  options?: { isImage?: boolean | undefined } | undefined,
+) => string | null = (
+  href: string,
+  options?: { isImage?: boolean | undefined } | undefined,
+): string | null => {
+  const withoutIgnored: string = href.replace(URL_IGNORED_CHARACTERS, "");
+  // A browser also skips leading control characters and spaces.
+  let start: number = 0;
+  while (
+    start < withoutIgnored.length &&
+    withoutIgnored.charCodeAt(start) <= 0x20
+  ) {
+    start++;
+  }
+  const scheme: string = withoutIgnored.slice(start);
+
+  if (
+    SCRIPT_SCHEME.test(scheme) &&
+    !(options?.isImage && IMAGE_DATA_URL.test(scheme))
+  ) {
+    return null;
+  }
+
+  return href
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "%22")
+    .replace(/</g, "%3C")
+    .replace(/>/g, "%3E");
+};
 
 interface FenceState {
   marker: string;
@@ -406,8 +454,10 @@ const renderCards: (
       const found: { link: Tokens.Link; topIndex: number } | null =
         findLink(inline);
       const more: string = rest.length > 0 ? parser.parse(rest) : "";
+      const href: string | null = found ? docsSafeUrl(found.link.href) : null;
 
-      if (!found) {
+      if (!found || href === null) {
+        // No link, or one that would run script: a card that goes nowhere.
         cards.push(
           `<div class="docs-card docs-card--static"><span class="docs-card__icon" aria-hidden="true"></span><span class="docs-card__body">${parser.parseInline(inline)}${more}</span></div>`,
         );
@@ -421,7 +471,6 @@ const renderCards: (
       const title: string = parser.parseInline(found.link.tokens);
       const description: string =
         parser.parseInline(before) + parser.parseInline(after) + more;
-      const href: string = escapeHtml(found.link.href);
       const isExternal: boolean = EXTERNAL_URL.test(found.link.href);
       const external: string = isExternal
         ? ' target="_blank" rel="noopener noreferrer"'

@@ -4,6 +4,7 @@ import markdownSlugify from "./MarkdownSlugify";
 import {
   DOCS_CALLOUT_TYPES,
   docsMarkdownExtensions,
+  docsSafeUrl,
   renderDocsCallout,
 } from "./MarkdownDocsExtensions";
 import SafeHtml from "../../Types/SafeHtml";
@@ -1333,9 +1334,9 @@ export default class Markdown {
      * `code` arrives ALREADY escaped — marked escapes codespan text before
      * it reaches the renderer — so escaping again here would turn a typed
      * "<img>" into the literal "&lt;img&gt;" on screen rather than the
-     * "<img>" the author wrote. (The Docs and BlogValidation renderers do
-     * escape a second time; that is a separate defect in those surfaces,
-     * not a pattern to copy.)
+     * "<img>" the author wrote. (The blog's renderers do escape a second
+     * time; that is a separate defect in those surfaces, not a pattern to
+     * copy. The docs renderer no longer does.)
      */
     renderer.codespan = function (code: string): string {
       return (
@@ -1640,15 +1641,31 @@ export default class Markdown {
       return `<blockquote class="docs-quote">${quote}</blockquote>`;
     };
 
+    /*
+     * marked hands a link's or an image's address over as written, so it
+     * goes through docsSafeUrl before it is put in an attribute: a quote in
+     * it cannot end the attribute, and a javascript: address is shown as
+     * text, not as a link.
+     */
     renderer.image = function (href, title, text) {
+      const src: string | null = href
+        ? docsSafeUrl(href, { isImage: true })
+        : null;
+
+      if (src === null) {
+        return text || "";
+      }
+
       const titleAttr: string = title
         ? ` title="${Markdown.escapeHtml(title)}"`
         : "";
-      return `<img src="${href}" alt="${text || ""}"${titleAttr} class="docs-image" loading="lazy" decoding="async" />`;
+      return `<img src="${src}" alt="${text || ""}"${titleAttr} class="docs-image" loading="lazy" decoding="async" />`;
     };
 
     renderer.link = function (href, title, text) {
-      if (!href) {
+      const safeHref: string | null = href ? docsSafeUrl(href) : null;
+
+      if (safeHref === null) {
         return text as string;
       }
 
@@ -1666,7 +1683,7 @@ export default class Markdown {
         ? '<svg class="docs-link__external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>'
         : "";
 
-      return `<a class="docs-link" href="${href}"${titleAttr}${externalAttrs}>${text}${marker}</a>`;
+      return `<a class="docs-link" href="${safeHref}"${titleAttr}${externalAttrs}>${text}${marker}</a>`;
     };
 
     renderer.code = function (code, language) {
@@ -1754,10 +1771,13 @@ export default class Markdown {
       return `<${tag}${align}>${content}</${tag}>`;
     };
 
-    // Inline code
+    /*
+     * Inline code. marked has escaped the code already, so it goes in as it
+     * is: escaping it again showed every quote, `<` and `&` in inline code
+     * as its entity - `"UP"` read "&quot;UP&quot;" on the page.
+     */
     renderer.codespan = function (code) {
-      const escaped: string = Markdown.escapeHtml(code);
-      return `<code class="docs-code-inline">${escaped}</code>`;
+      return `<code class="docs-code-inline">${code}</code>`;
     };
 
     this.docsRenderer = renderer;
