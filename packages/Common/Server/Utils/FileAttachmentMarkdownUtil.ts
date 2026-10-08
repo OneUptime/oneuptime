@@ -5,7 +5,10 @@ import ObjectID from "../../Types/ObjectID";
 import FileService from "../Services/FileService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 export interface FileAttachmentMarkdownInput {
   modelId: ObjectID;
@@ -16,13 +19,13 @@ export interface FileAttachmentMarkdownInput {
 export default class FileAttachmentMarkdownUtil {
   public static async buildAttachmentMarkdown(
     input: FileAttachmentMarkdownInput,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     if (
       !input.modelId ||
       !input.attachmentIds ||
       input.attachmentIds.length === 0
     ) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const uniqueIds: Array<string> = Array.from(
@@ -38,7 +41,7 @@ export default class FileAttachmentMarkdownUtil {
     );
 
     if (uniqueIds.length === 0) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const files: Array<File> = await FileService.findBy({
@@ -57,7 +60,7 @@ export default class FileAttachmentMarkdownUtil {
     });
 
     if (!files.length) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
     const fileById: Map<string, File> = new Map(
@@ -70,7 +73,7 @@ export default class FileAttachmentMarkdownUtil {
         }),
     );
 
-    const attachmentLines: Array<string> = [];
+    const attachmentLinks: Array<MarkdownText> = [];
 
     for (const id of input.attachmentIds) {
       const key: string = id.toString();
@@ -83,24 +86,24 @@ export default class FileAttachmentMarkdownUtil {
       /*
        * The file's name is whatever the uploader called it, placed inside
        * the link's own text of a feed item that is posted to Slack and Teams
-       * too, so every Markdown character in it is escaped: a "]" cannot end
-       * the text early and point the link somewhere else, "![...](...)" is
-       * no image and "<!channel>" mentions nobody.
+       * too, as text (FeedMarkdown.link): a "]" cannot end the text early
+       * and point the link somewhere else, "![...](...)" is no image and
+       * "<!channel>" mentions nobody.
        */
-      const fileName: string = escapeMarkdownInline(file.name || "Attachment");
+      const fileName: string = file.name || "Attachment";
 
       const route: Route = Route.fromString(AppApiRoute.toString())
         .addRoute(input.attachmentApiPath)
         .addRoute(`/${input.modelId.toString()}`)
         .addRoute(`/${key}`);
 
-      attachmentLines.push(`- [${fileName}](${route.toString()})`);
+      attachmentLinks.push(FeedMarkdown.link(fileName, route.toString()));
     }
 
-    if (!attachmentLines.length) {
-      return "";
+    if (!attachmentLinks.length) {
+      return FeedMarkdown.empty();
     }
 
-    return `\n\n**Attachments:**\n${attachmentLines.join("\n")}\n`;
+    return mdText`\n\n**Attachments:**\n${FeedMarkdown.bulletList(attachmentLinks)}\n`;
   }
 }

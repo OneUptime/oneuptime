@@ -26,6 +26,10 @@ import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -179,9 +183,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createdModel.onCallDutyPolicy?.id;
 
     if (feedOnCallDutyPolicyId) {
-      const noCoverageSuffix: string = userOnSchedule
-        ? ""
-        : " ⚠️ **No one is currently on call in this schedule**, so alerts escalating to this rule will not notify anyone until coverage resumes.";
+      const noCoverageSuffix: MarkdownText = userOnSchedule
+        ? FeedMarkdown.empty()
+        : mdText` ⚠️ **No one is currently on call in this schedule**, so alerts escalating to this rule will not notify anyone until coverage resumes.`;
 
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: feedOnCallDutyPolicyId,
@@ -189,7 +193,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         onCallDutyPolicyFeedEventType:
           OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
         displayColor: userOnSchedule ? Gray500 : Red500,
-        feedInfoInMarkdown: `📅 Added on-call schedule **${createdModel.onCallDutyPolicySchedule?.name || ""}** from the [On-Call Policy ${createdModel.onCallDutyPolicy?.name || ""}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(createdModel.projectId!, feedOnCallDutyPolicyId)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.${noCoverageSuffix}`,
+        feedInfoInMarkdown:
+          mdText`📅 Added on-call schedule **${createdModel.onCallDutyPolicySchedule?.name || ""}** from the [On-Call Policy ${createdModel.onCallDutyPolicy?.name || ""}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(createdModel.projectId!, feedOnCallDutyPolicyId)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.${noCoverageSuffix}`.toString(),
         userId: createdModel.createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -377,7 +382,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           onCallDutyPolicyFeedEventType:
             OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
           displayColor: Red500,
-          feedInfoInMarkdown: `📅 Removed on-call schedule **${onCallSchedule.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`,
+          feedInfoInMarkdown:
+            mdText`📅 Removed on-call schedule **${onCallSchedule.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

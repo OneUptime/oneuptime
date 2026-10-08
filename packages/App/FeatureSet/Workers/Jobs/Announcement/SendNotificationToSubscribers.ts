@@ -47,7 +47,7 @@ import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpda
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new
@@ -395,11 +395,6 @@ const notifySubscribersOfAnnouncement: (data: {
           announcementDescription: announcement.description || "",
         };
 
-        // The default Slack and Teams messages place the title the same way.
-        const announcementTitleInMarkdown: string = escapeMarkdownValue(
-          announcement.title || "",
-        );
-
         // Send email to Email subscribers.
 
         for (const subscriber of subscribers) {
@@ -530,11 +525,12 @@ const notifySubscribersOfAnnouncement: (data: {
                   );
               } else {
                 // Default markdown message
-                slackMessage = `## ${copy.chatHeading} - ${announcementTitleInMarkdown}
+                slackMessage =
+                  mdText`## ${copy.chatHeading} - ${announcement.title || ""}
 
-**Description:** ${announcement.description || ""}
+**Description:** ${FeedMarkdown.asMarkdown(announcement.description || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
               }
 
               // send Slack notification here.
@@ -562,11 +558,12 @@ const notifySubscribersOfAnnouncement: (data: {
                   );
               } else {
                 // Default markdown message
-                teamsMessage = `## ${copy.chatHeading} - ${announcementTitleInMarkdown}
+                teamsMessage =
+                  mdText`## ${copy.chatHeading} - ${announcement.title || ""}
 
-**Description:** ${announcement.description || ""}
+**Description:** ${FeedMarkdown.asMarkdown(announcement.description || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
               }
 
               // send Teams notification here.

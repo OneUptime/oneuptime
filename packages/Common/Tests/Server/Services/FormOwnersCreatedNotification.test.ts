@@ -91,6 +91,7 @@ import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 type OnBeforeCreate = (
   createBy: CreateBy<Incident>,
 ) => Promise<OnCreate<Incident>>;
@@ -475,7 +476,7 @@ describe("the Incident Created notification of an incident reported through a fo
     // The root cause names the declaring user.
     jest
       .spyOn(UserService, "getUserMarkdownString")
-      .mockResolvedValue("Ada" as never);
+      .mockResolvedValue(FeedMarkdown.asMarkdown("Ada") as never);
 
     const incident: Incident = new Incident();
     incident.projectId = PROJECT_ID;

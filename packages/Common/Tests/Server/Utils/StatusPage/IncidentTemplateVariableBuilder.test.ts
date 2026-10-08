@@ -76,6 +76,14 @@ import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 import { Token, Tokens, marked } from "marked";
 
+import { MarkdownText } from "Common/Utils/Markdown/FeedMarkdown";
+// The lines are MarkdownText; these tests read their text.
+function textOf(lines: Array<MarkdownText>): Array<string> {
+  return lines.map((line: MarkdownText): string => {
+    return line.toString();
+  });
+}
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
@@ -449,7 +457,7 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
       await build({ definitions: DEFINITIONS, customFields: VALUES }),
     );
 
-    expect(site.customFieldsMarkdownLines).toEqual([
+    expect(textOf(site.customFieldsMarkdownLines)).toEqual([
       "**Affected Location:** Site 03",
       "**Customer Impact:** 0",
     ]);
@@ -609,7 +617,7 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
     );
 
     expect(site.customFieldRows).toEqual([]);
-    expect(site.customFieldsMarkdownLines).toEqual([]);
+    expect(textOf(site.customFieldsMarkdownLines)).toEqual([]);
     expect(site.plainText["incident.customFields.affected_location"]).toBe("");
     expect(site.plainText["incident.customFields.internal_ticket"]).toBe("");
     expect(site.emailBody["incident.customFields.customer_impact"]).toBe("");
@@ -660,7 +668,7 @@ describe("IncidentTemplateVariableBuilder which fields reach subscribers", () =>
     const site: IncidentStatusPageTemplateVariables = forSite03(variables);
 
     expect(site.customFieldRows).toEqual([]);
-    expect(site.customFieldsMarkdownLines).toEqual([]);
+    expect(textOf(site.customFieldsMarkdownLines)).toEqual([]);
     expect(site.plainText["incident.customFields.site"]).toBe("");
     expect(variables.getWebhookCustomFields()).toEqual({
       impact: { name: "Impact", type: CustomFieldType.Markdown, value: null },
@@ -782,7 +790,7 @@ describe("IncidentTemplateVariableBuilder field order", () => {
       "No order A",
       "No order B",
     ]);
-    expect(site.customFieldsMarkdownLines[0]).toBe("**First:** 1");
+    expect(textOf(site.customFieldsMarkdownLines)[0]).toBe("**First:** 1");
   });
 
   test("the project's fields are read in creation order, for the order to break ties by", async () => {
@@ -907,7 +915,7 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
       expect(site.customFieldRows).toEqual([
         { title: "Expected Resolution", plainText: "2026-09-27" },
       ]);
-      expect(site.customFieldsMarkdownLines).toEqual([
+      expect(textOf(site.customFieldsMarkdownLines)).toEqual([
         "**Expected Resolution:** 2026-09-27",
       ]);
       expect(site.emailBody["incident.customFields.expected_resolution"]).toBe(
@@ -921,8 +929,8 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
       );
 
       await variables.recordIncludedFieldsSent();
-      expect(variables.getSentCustomFieldsMarkdown()).toContain(
-        "- **Expected Resolution:** 2026\\-09\\-27",
+      expect(variables.getSentCustomFieldsMarkdown().toString()).toContain(
+        "- **Expected Resolution:** 2026-09-27",
       );
     },
   );
@@ -1041,7 +1049,7 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
       }),
     );
 
-    expect(site.customFieldsMarkdownLines).toEqual([
+    expect(textOf(site.customFieldsMarkdownLines)).toEqual([
       "**Impact:**\n- EU\n- US",
       "**Notes:**\nline 1\nline 2",
     ]);
@@ -1415,7 +1423,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
       customFields: VALUES,
     });
 
-    expect(variables.getSentCustomFieldsMarkdown()).toBe("");
+    expect(variables.getSentCustomFieldsMarkdown().toString()).toBe("");
   });
 
   test("a default message records the included fields that hold a value", async () => {
@@ -1426,7 +1434,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
 
     await variables.recordIncludedFieldsSent();
 
-    expect(variables.getSentCustomFieldsMarkdown()).toBe(
+    expect(variables.getSentCustomFieldsMarkdown().toString()).toBe(
       [
         "**Custom fields sent:**",
         "",
@@ -1452,11 +1460,11 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
       undefined,
     ]);
 
-    expect(variables.getSentCustomFieldsMarkdown()).toBe(
+    expect(variables.getSentCustomFieldsMarkdown().toString()).toBe(
       [
         "**Custom fields sent:**",
         "",
-        "- **Internal \\[ticket\\]:** OPS\\-4411",
+        "- **Internal \\[ticket\\]:** OPS-4411",
       ].join("\n"),
     );
   });
@@ -1478,15 +1486,15 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
       "Ticket {{incident.customFields.internal_ticket}} at {{incident.customFields.empty}}",
     ]);
 
-    expect(older.getSentCustomFieldsMarkdown()).toBe(
+    expect(older.getSentCustomFieldsMarkdown().toString()).toBe(
       [
         "**Custom fields sent:**",
         "",
-        "- **Internal \\[ticket\\]:** OPS\\-4411",
+        "- **Internal \\[ticket\\]:** OPS-4411",
       ].join("\n"),
     );
-    expect(older.getSentCustomFieldsMarkdown()).toBe(
-      documented.getSentCustomFieldsMarkdown(),
+    expect(older.getSentCustomFieldsMarkdown().toString()).toBe(
+      documented.getSentCustomFieldsMarkdown().toString(),
     );
   });
 
@@ -1501,7 +1509,10 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
     ]);
 
     expect(
-      variables.getSentCustomFieldsMarkdown().match(/Internal/g),
+      variables
+        .getSentCustomFieldsMarkdown()
+        .toString()
+        .match(/Internal/g),
     ).toHaveLength(1);
   });
 
@@ -1520,7 +1531,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
     await variables.recordIncludedFieldsSent();
     await variables.recordIncludedFieldsSent();
 
-    const markdown: string = variables.getSentCustomFieldsMarkdown();
+    const markdown: string = variables.getSentCustomFieldsMarkdown().toString();
 
     expect(markdown.match(/Affected Location/g)).toHaveLength(1);
     expect(markdown.indexOf("Affected Location")).toBeLessThan(
@@ -1771,7 +1782,7 @@ describe("IncidentTemplateVariableBuilder custom Slack and Teams values", () => 
       }),
     );
 
-    expect(site.customFieldsMarkdownLines).toEqual([
+    expect(textOf(site.customFieldsMarkdownLines)).toEqual([
       `**\\[Open\\](https://evil.example) \\<${WORD_JOINER}!here>:** EU \\[x\\](https://evil.example)`,
       "**\\<b>Notes\\</b>:**\nline \\[1\\](https://evil.example)\nline \\<2>",
     ]);
@@ -1806,7 +1817,7 @@ describe("IncidentTemplateVariableBuilder custom Slack and Teams values", () => 
     );
 
     expect(site.markdown["incident.customFields.impact"]).toBe(markdown);
-    expect(site.customFieldsMarkdownLines).toEqual([
+    expect(textOf(site.customFieldsMarkdownLines)).toEqual([
       `**Impact:**\n${markdown}`,
     ]);
   });

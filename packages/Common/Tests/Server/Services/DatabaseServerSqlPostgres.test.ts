@@ -17,6 +17,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { DataSource } from "typeorm";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The hand-written Postgres of the Databases product, EXECUTED - not string
  * matched. The unit suites replace manager.query with a mock, so a renamed
@@ -199,7 +200,7 @@ describePostgres("Databases SQL against Postgres", () => {
       .mockResolvedValue(undefined);
     jest
       .spyOn(DatabaseServerService, "getDatabaseServerMarkdownLink")
-      .mockResolvedValue("[Database x](/x)");
+      .mockResolvedValue(FeedMarkdown.asMarkdown("[Database x](/x)"));
     jest
       .spyOn(DatabaseServerLabelRuleEngineService, "applyRulesToDatabaseServer")
       .mockResolvedValue(undefined);

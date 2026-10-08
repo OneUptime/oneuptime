@@ -12,6 +12,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import DatabaseServerService from "./DatabaseServerService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -119,10 +120,11 @@ export class Service extends ProjectReferencesService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.OwnerTeamRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
-          projectId,
-          databaseServerId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
+            projectId,
+            databaseServerId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -171,10 +173,11 @@ export class Service extends ProjectReferencesService<Model> {
           databaseServerFeedEventType:
             DatabaseServerFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
-            projectId,
-            databaseServerId,
-          )}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
+              projectId,
+              databaseServerId,
+            )}.`.toString(),
           userId: createdByUserId || undefined,
         });
       }

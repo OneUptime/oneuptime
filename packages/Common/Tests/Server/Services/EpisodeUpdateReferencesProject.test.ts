@@ -24,6 +24,7 @@ import {
   test,
 } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 /*
@@ -155,7 +156,7 @@ beforeEach(() => {
 
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("a teammate" as never);
+    .mockResolvedValue(FeedMarkdown.asMarkdown("a teammate") as never);
 });
 
 afterEach(() => {

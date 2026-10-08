@@ -2747,7 +2747,7 @@ ${IMPACT_DETAILS}
 
       // The field left out of subscriber notifications went out: it is recorded.
       expect(feedItems()[0]!["moreInformationInMarkdown"]).toContain(
-        "- **Internal Ticket:** OPS\\-4411",
+        "- **Internal Ticket:** OPS-4411",
       );
     },
   );

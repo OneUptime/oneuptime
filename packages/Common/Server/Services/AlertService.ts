@@ -118,11 +118,12 @@ import StartingStageUtil, {
 } from "../../Utils/StartingStage";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
-import {
-  escapeMarkdownInline,
-  escapeMarkdownValue,
-} from "../../Utils/Markdown/MarkdownEscape";
+
 import { StateListType } from "../../Utils/StateOrder";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The two spellings a write of an alert's monitor arrives under: the FK
@@ -1060,12 +1061,11 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (raisedByUserId && !createBy.data.rootCause) {
-      createBy.data.rootCause = `Alert created by ${await UserService.getUserMarkdownString(
-        {
+      createBy.data.rootCause =
+        mdText`Alert created by ${await UserService.getUserMarkdownString({
           userId: raisedByUserId,
           projectId: projectId,
-        },
-      )}`;
+        })}`.toString();
     }
 
     const carryForward: StartingStageCarryForward = {
@@ -1559,20 +1559,21 @@ export class Service extends ProjectReferencesService<Model> {
        * plain text too. The description stays Markdown: that is what it is
        * written in.
        */
-      let feedInfoInMarkdown: string = `#### 🚨 Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber?.toString()} Created:
+      let feedInfoInMarkdown: string =
+        mdText`#### 🚨 Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber?.toString()} Created:
            
-**${escapeMarkdownValue(alert.title || "No title provided.")}**:
+**${alert.title || "No title provided."}**:
      
-${alert.description || "No description provided."}
+${FeedMarkdown.asMarkdown(alert.description || "No description provided.")}
      
-`;
+`.toString();
 
       if (alert.currentAlertState?.name) {
-        feedInfoInMarkdown += `🔴 **Alert State**: ${escapeMarkdownValue(alert.currentAlertState.name)} \n\n`;
+        feedInfoInMarkdown += mdText`🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;
       }
 
       if (alert.alertSeverity?.name) {
-        feedInfoInMarkdown += `⚠️ **Severity**: ${escapeMarkdownValue(alert.alertSeverity.name)} \n\n`;
+        feedInfoInMarkdown += mdText`⚠️ **Severity**: ${alert.alertSeverity.name} \n\n`;
       }
 
       /*
@@ -1597,26 +1598,26 @@ ${alert.description || "No description provided."}
           projectId: alert.projectId!,
           resources: resources,
         })) {
-          feedInfoInMarkdown += `${resourceLine}\n`;
+          feedInfoInMarkdown += mdText`${resourceLine}\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
       }
 
       if (alert.rootCause) {
-        feedInfoInMarkdown += `\n
+        feedInfoInMarkdown += mdText`\n
 📄 **Root Cause**:
      
-${alert.rootCause || "No root cause provided."}
+${FeedMarkdown.asMarkdown(alert.rootCause || "No root cause provided.")}
      
 `;
       }
 
       if (alert.remediationNotes) {
-        feedInfoInMarkdown += `\n 
+        feedInfoInMarkdown += mdText`\n 
 🎯 **Remediation Notes**:
      
-${alert.remediationNotes || "No remediation notes provided."}
+${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provided.")}
      
      
      `;
@@ -2073,7 +2074,8 @@ ${alert.remediationNotes || "No remediation notes provided."}
         const alertNumberWithPrefix: string | undefined =
           alert!.alertNumberWithPrefix || undefined;
 
-        let feedInfoInMarkdown: string = `**[Alert ${alertNumberWithPrefix || "#" + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) was updated.**`;
+        let feedInfoInMarkdown: string =
+          mdText`**[Alert ${alertNumberWithPrefix || "#" + alertNumber}](${(await this.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) was updated.**`.toString();
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
@@ -2094,15 +2096,19 @@ ${alert.remediationNotes || "No remediation notes provided."}
          * notes and labels the update really changed: writing back what the
          * alert holds - every save of a card sends its fields - adds none.
          */
-        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
-          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
-          changes: fieldChanges,
-          projectId: projectId,
-          recordName: "Alert",
-        });
+        const fieldsMarkdown: MarkdownText =
+          await EventFieldChange.getFeedMarkdown({
+            written: onUpdate.updateBy.data as unknown as Record<
+              string,
+              unknown
+            >,
+            changes: fieldChanges,
+            projectId: projectId,
+            recordName: "Alert",
+          });
 
-        if (fieldsMarkdown) {
-          feedInfoInMarkdown += fieldsMarkdown;
+        if (!fieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += fieldsMarkdown.toString();
           shouldAddAlertFeed = true;
         }
 
@@ -2121,8 +2127,8 @@ ${alert.remediationNotes || "No remediation notes provided."}
             });
 
           if (alertSeverity) {
-            feedInfoInMarkdown += `\n\n**⚠️ Alert Severity**:
-${escapeMarkdownValue(alertSeverity.name)}
+            feedInfoInMarkdown += mdText`\n\n**⚠️ Alert Severity**:
+${alertSeverity.name}
 `;
 
             shouldAddAlertFeed = true;
@@ -2249,39 +2255,39 @@ ${escapeMarkdownValue(alertSeverity.name)}
     projectId: ObjectID;
     monitorChange: AlertMonitorChange;
     monitorsById: Dictionary<Monitor>;
-  }): Promise<string> {
-    const oldMonitor: string | null = await this.getMonitorFeedLink({
+  }): Promise<MarkdownText> {
+    const oldMonitor: MarkdownText | null = await this.getMonitorFeedLink({
       projectId: data.projectId,
       monitorId: data.monitorChange.oldMonitorId,
       monitorsById: data.monitorsById,
     });
 
-    const newMonitor: string | null = await this.getMonitorFeedLink({
+    const newMonitor: MarkdownText | null = await this.getMonitorFeedLink({
       projectId: data.projectId,
       monitorId: data.monitorChange.newMonitorId,
       monitorsById: data.monitorsById,
     });
 
     if (oldMonitor && newMonitor) {
-      return `\n\n**🌎 Monitor**: changed from ${oldMonitor} to ${newMonitor}\n`;
+      return mdText`\n\n**🌎 Monitor**: changed from ${oldMonitor} to ${newMonitor}\n`;
     }
 
     if (newMonitor) {
-      return `\n\n**🌎 Monitor**: set to ${newMonitor}\n`;
+      return mdText`\n\n**🌎 Monitor**: set to ${newMonitor}\n`;
     }
 
     if (oldMonitor) {
-      return `\n\n**🗑️ Monitor**: ${oldMonitor} removed\n`;
+      return mdText`\n\n**🗑️ Monitor**: ${oldMonitor} removed\n`;
     }
 
-    return "";
+    return FeedMarkdown.empty();
   }
 
   private async getMonitorFeedLink(data: {
     projectId: ObjectID;
     monitorId: ObjectID | null;
     monitorsById: Dictionary<Monitor>;
-  }): Promise<string | null> {
+  }): Promise<MarkdownText | null> {
     if (!data.monitorId) {
       return null;
     }
@@ -2294,11 +2300,11 @@ ${escapeMarkdownValue(alertSeverity.name)}
      * to, but the line still says the monitor changed.
      */
     if (!monitor) {
-      return "an unknown monitor";
+      return mdText`an unknown monitor`;
     }
 
     // The name is plain text inside the link's own text.
-    return `[${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, data.monitorId)).toString()})`;
+    return mdText`[${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, data.monitorId)).toString()})`;
   }
 
   // Whether another open alert raised by hand is still on the monitor.

@@ -38,6 +38,7 @@ import {
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The resource services' half of "synced with the agent, and I should not
  * be able to manually edit it": while a resource's AI agent sets
@@ -297,10 +298,14 @@ describe.each(WIRING)(
         .mockResolvedValue(undefined as never);
       jest
         .spyOn(wiring.service, wiring.linkMethod)
-        .mockResolvedValue("[resource](https://x)" as never);
+        .mockResolvedValue(
+          FeedMarkdown.asMarkdown("[resource](https://x)") as never,
+        );
       jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue("[Jane](https://oneuptime.example/user)");
+        .mockResolvedValue(
+          FeedMarkdown.asMarkdown("[Jane](https://oneuptime.example/user)"),
+        );
     });
 
     afterEach(() => {

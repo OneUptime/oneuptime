@@ -16,7 +16,6 @@ import {
   getMonitorTypeCriteriaValidationError,
   isMonitorTypeCriteriaValue,
 } from "../../Utils/Rules/MonitorTypeRuleCriteria";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import RuleCriteriaMatcher, {
   isValidRuleCriteria,
 } from "../../Utils/Rules/RuleCriteriaMatcher";
@@ -32,6 +31,10 @@ import MonitorService from "./MonitorService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 /**
  * What a sync did, so callers (and tests) can assert on the outcome without
@@ -964,7 +967,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
     }
 
     try {
-      const sloLink: string =
+      const sloLink: MarkdownText =
         await ServiceLevelObjectiveService.getSloMarkdownLink({
           projectId: slo.projectId,
           sloId: slo.id,
@@ -998,16 +1001,16 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
             displayColor: Green500,
             feedInfoInMarkdown:
               count === 1
-                ? `🔗 Monitor rules attached ${this.describeMonitorNames({
+                ? mdText`🔗 Monitor rules attached ${this.describeMonitorNames({
                     monitorIds: data.monitorIdsAttached,
                     monitorNameById: monitorNameById,
-                  })} to ${sloLink}. It now counts towards this SLO.`
-                : `🔗 Monitor rules attached ${count} monitors to ${sloLink}: ${this.describeMonitorNames(
+                  })} to ${sloLink}. It now counts towards this SLO.`.toString()
+                : mdText`🔗 Monitor rules attached ${count} monitors to ${sloLink}: ${this.describeMonitorNames(
                     {
                       monitorIds: data.monitorIdsAttached,
                       monitorNameById: monitorNameById,
                     },
-                  )}.`,
+                  )}.`.toString(),
             moreInformationInMarkdown: this.listMonitorsInDetails({
               title: "Monitors attached",
               monitorIds: data.monitorIdsAttached,
@@ -1029,16 +1032,16 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
             displayColor: Gray500,
             feedInfoInMarkdown:
               count === 1
-                ? `✂️ Monitor rules detached ${this.describeMonitorNames({
+                ? mdText`✂️ Monitor rules detached ${this.describeMonitorNames({
                     monitorIds: data.monitorIdsDetached,
                     monitorNameById: monitorNameById,
-                  })} from ${sloLink}. It no longer matches any enabled monitor rule of this SLO.`
-                : `✂️ Monitor rules detached ${count} monitors from ${sloLink}: ${this.describeMonitorNames(
+                  })} from ${sloLink}. It no longer matches any enabled monitor rule of this SLO.`.toString()
+                : mdText`✂️ Monitor rules detached ${count} monitors from ${sloLink}: ${this.describeMonitorNames(
                     {
                       monitorIds: data.monitorIdsDetached,
                       monitorNameById: monitorNameById,
                     },
-                  )}.`,
+                  )}.`.toString(),
             moreInformationInMarkdown: this.listMonitorsInDetails({
               title: "Monitors detached",
               monitorIds: data.monitorIdsDetached,
@@ -1122,7 +1125,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
   private getSortedMonitorNames(data: {
     monitorIds: Array<string>;
     monitorNameById: Map<string, string>;
-  }): Array<string> {
+  }): Array<MarkdownText> {
     return data.monitorIds
       .slice(0, MAX_MONITORS_LISTED_IN_FEED_DETAILS)
       .map((id: string): string => {
@@ -1135,8 +1138,8 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
 
         return a.localeCompare(b, undefined, { sensitivity: "base" });
       })
-      .map((name: string): string => {
-        return name ? `**${escapeMarkdownInline(name)}**` : "a monitor";
+      .map((name: string): MarkdownText => {
+        return name ? mdText`**${name}**` : mdText`a monitor`;
       });
   }
 
@@ -1144,23 +1147,23 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
   private describeMonitorNames(data: {
     monitorIds: Array<string>;
     monitorNameById: Map<string, string>;
-  }): string {
-    const names: Array<string> = this.getSortedMonitorNames(data);
-    const named: Array<string> = names.slice(
+  }): MarkdownText {
+    const names: Array<MarkdownText> = this.getSortedMonitorNames(data);
+    const named: Array<MarkdownText> = names.slice(
       0,
       MAX_MONITORS_NAMED_IN_FEED_HEADLINE,
     );
     const remaining: number = data.monitorIds.length - named.length;
 
     if (remaining > 0) {
-      return `${named.join(", ")} and ${remaining} more`;
+      return mdText`${FeedMarkdown.join(named)} and ${remaining} more`;
     }
 
     if (named.length <= 1) {
-      return named[0] || "a monitor";
+      return named[0] || mdText`a monitor`;
     }
 
-    return `${named.slice(0, -1).join(", ")} and ${named[named.length - 1]}`;
+    return mdText`${FeedMarkdown.join(named.slice(0, -1))} and ${named[named.length - 1]}`;
   }
 
   /*
@@ -1176,22 +1179,16 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
       return undefined;
     }
 
-    const names: Array<string> = this.getSortedMonitorNames(data);
+    const names: Array<MarkdownText> = this.getSortedMonitorNames(data);
     const notListed: number = data.monitorIds.length - names.length;
 
-    const lines: Array<string> = [
-      `**${data.title} (${data.monitorIds.length})**`,
-      "",
-      ...names.map((name: string): string => {
-        return `- ${name}`;
-      }),
-    ];
+    const bullets: Array<MarkdownText> = [...names];
 
     if (notListed > 0) {
-      lines.push(`- …and ${notListed} more not listed here.`);
+      bullets.push(mdText`…and ${notListed} more not listed here.`);
     }
 
-    return lines.join("\n");
+    return mdText`**${data.title} (${data.monitorIds.length})**\n\n${FeedMarkdown.bulletList(bullets)}`.toString();
   }
 }
 

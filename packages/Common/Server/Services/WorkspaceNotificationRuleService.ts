@@ -1,5 +1,4 @@
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
@@ -64,6 +63,10 @@ import AlertEpisodeService from "./AlertEpisodeService";
 import ProjectService from "./ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -202,7 +205,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         {
           _type: "WorkspacePayloadMarkdown",
           // The rule's name is plain text in the Markdown message.
-          text: `This is a test message for rule **${escapeMarkdownValue(rule.name?.trim())}**`,
+          text: mdText`This is a test message for rule **${rule.name?.trim()}**`.toString(),
         } as WorkspacePayloadMarkdown,
       ],
     });
@@ -401,7 +404,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             log.channelId = thread.channel.id;
             log.channelName = thread.channel.name;
             log.threadId = thread.threadId;
-            log.message = `This is a test message for rule **${rule.name?.trim()}**`;
+            log.message =
+              mdText`This is a test message for rule **${rule.name?.trim()}**`.toString();
             log.status = WorkspaceNotificationStatus.Success;
             log.statusMessage = "Test message posted to workspace chat";
             log.userId = data.testByUserId;
@@ -561,11 +565,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       destinationName = teamChannel.name || "";
     }
 
-    const messageText: string = await this.getTestNotificationMarkdown({
-      projectId: data.projectId,
-      testByUserId: data.testByUserId,
-      destinationKind: isChat ? "chat" : "channel",
-    });
+    const messageText: string = (
+      await this.getTestNotificationMarkdown({
+        projectId: data.projectId,
+        testByUserId: data.testByUserId,
+        destinationKind: isChat ? "chat" : "channel",
+      })
+    ).toString();
 
     const payload: WorkspaceMessagePayload = {
       _type: "WorkspaceMessagePayload",
@@ -857,7 +863,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     testByUserId: ObjectID;
     destinationKind: "channel" | "chat";
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     let projectName: string = "";
 
     try {
@@ -877,34 +883,28 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.error(err);
     }
 
-    let userMarkdown: string = "";
+    let userMarkdown: MarkdownText = FeedMarkdown.empty();
 
     try {
-      userMarkdown = (
-        (await UserService.getUserMarkdownString({
-          userId: data.testByUserId,
-          projectId: data.projectId,
-        })) || ""
-      ).trim();
+      userMarkdown = await UserService.getUserMarkdownString({
+        userId: data.testByUserId,
+        projectId: data.projectId,
+      });
     } catch (err) {
       logger.error("Could not load user for test notification:");
       logger.error(err);
     }
 
-    let sentence: string = "This is a test notification sent";
-
     // The project's name is plain text in a Markdown message.
-    if (projectName) {
-      sentence += ` from the OneUptime project **${escapeMarkdownValue(projectName)}**`;
-    }
+    const fromProject: MarkdownText = projectName
+      ? mdText` from the OneUptime project **${projectName}**`
+      : FeedMarkdown.empty();
 
-    if (userMarkdown) {
-      sentence += ` by ${userMarkdown}`;
-    }
+    const byUser: MarkdownText = userMarkdown.isEmpty()
+      ? FeedMarkdown.empty()
+      : mdText` by ${userMarkdown}`;
 
-    sentence += `. If you can see this message, OneUptime can post notifications to this ${data.destinationKind}. No action is needed.`;
-
-    return `**Test notification from OneUptime**\n\n${sentence}`;
+    return mdText`**Test notification from OneUptime**\n\nThis is a test notification sent${fromProject}${byUser}. If you can see this message, OneUptime can post notifications to this ${data.destinationKind}. No action is needed.`;
   }
 
   /*
@@ -1969,10 +1969,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                 messageBlocks: [
                   {
                     _type: "WorkspacePayloadMarkdown",
-                    text: `${await UserService.getUserMarkdownString({
+                    text: mdText`${await UserService.getUserMarkdownString({
                       userId: userId,
                       projectId: data.projectId,
-                    })} cannot be invited to the channel because the account is not connected to ${data.workspaceType}. Please go to User Settings > ${data.workspaceType} on OneUptime Dashboard and connect the account.`,
+                    })} cannot be invited to the channel because the account is not connected to ${data.workspaceType}. Please go to User Settings > ${data.workspaceType} on OneUptime Dashboard and connect the account.`.toString(),
                   } as WorkspacePayloadMarkdown,
                 ],
               } as WorkspaceMessagePayload,
@@ -2203,10 +2203,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                 messageBlocks: [
                   {
                     _type: "WorkspacePayloadMarkdown",
-                    text: `${await UserService.getUserMarkdownString({
+                    text: mdText`${await UserService.getUserMarkdownString({
                       userId: userId,
                       projectId: data.projectId,
-                    })} cannot be invited to the channel because the account is not connected to ${workspaceType}. Please go to User Settings > ${workspaceType} on OneUptime Dashboard and connect the account.`,
+                    })} cannot be invited to the channel because the account is not connected to ${workspaceType}. Please go to User Settings > ${workspaceType} on OneUptime Dashboard and connect the account.`.toString(),
                   } as WorkspacePayloadMarkdown,
                 ],
               } as WorkspaceMessagePayload,

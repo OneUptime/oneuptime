@@ -9,6 +9,7 @@ import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMai
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 RunCron(
   "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -102,9 +103,10 @@ RunCron(
       const projectId: ObjectID = event.projectId!;
       const scheduledMaintenanceId: ObjectID = event.id!;
 
-      const scheduledMaintenanceFeedText: string = `🗓️ **Reminder Notification Sent to Subscribers for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
+      const scheduledMaintenanceFeedText: string =
+        mdText`🗓️ **Reminder Notification Sent to Subscribers for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
             
-Reminder notification sent to status page subscribers for this scheduled maintenance event.`;
+Reminder notification sent to status page subscribers for this scheduled maintenance event.`.toString();
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: event.id!,

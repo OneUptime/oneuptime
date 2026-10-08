@@ -32,6 +32,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "ceph-cluster-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -478,7 +479,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async getCephClusterMarkdownLink(
     projectId: ObjectID,
     cephClusterId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getCephClusterName({
       cephClusterId: cephClusterId,
     });
@@ -487,7 +488,7 @@ export class Service extends ProjectReferencesService<Model> {
       cephClusterId,
     );
 
-    return `[Ceph Cluster ${name}](${link.toString()})`;
+    return mdText`[Ceph Cluster ${name}](${link.toString()})`;
   }
 
   private async writeCephClusterCreatedFeed(
@@ -635,7 +636,7 @@ export class Service extends ProjectReferencesService<Model> {
       getResourceMarkdownLink: (
         projectId: ObjectID,
         cephClusterId: ObjectID,
-      ): Promise<string> => {
+      ): Promise<MarkdownText> => {
         return this.getCephClusterMarkdownLink(projectId, cephClusterId);
       },
       createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
@@ -702,7 +703,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string =
+      const resourceMarkdownLink: MarkdownText =
         await this.getCephClusterMarkdownLink(projectId, cephClusterId);
 
       if (isArchiveChange) {
@@ -714,8 +715,8 @@ export class Service extends ProjectReferencesService<Model> {
             : CephClusterFeedEventType.CephClusterRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

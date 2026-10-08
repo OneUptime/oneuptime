@@ -38,6 +38,10 @@ import {
   AgentAiSettingsSource,
   isAgentAiSettingsSourceAgent,
 } from "../../../../Types/AI/AgentAiSettings";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The rules for an operator's write of a resource's OneUptime AI access
@@ -888,7 +892,7 @@ export default class ResourceAiAccessSettings {
     getResourceMarkdownLink: (
       projectId: ObjectID,
       resourceId: ObjectID,
-    ) => Promise<string>;
+    ) => Promise<MarkdownText>;
     createFeedItem: (item: ResourceAiAccessFeedItem) => Promise<void>;
   }): Promise<void> {
     const carryForward: ResourceAiAccessWriteCarryForward | null =
@@ -966,8 +970,8 @@ export default class ResourceAiAccessSettings {
   public static describeChanges(data: {
     updateData: JSONObject;
     previous: ResourceAiAccessSettingsSnapshot | undefined;
-  }): Array<string> {
-    const changes: Array<string> = [];
+  }): Array<MarkdownText> {
+    const changes: Array<MarkdownText> = [];
     const { updateData, previous } = data;
 
     if (updateData["isAiInvestigationEnabled"] !== undefined) {
@@ -976,7 +980,7 @@ export default class ResourceAiAccessSettings {
 
       if (!previous || previous.isAiInvestigationEnabled !== isEnabled) {
         changes.push(
-          `AI investigation with read-only commands turned **${
+          mdText`AI investigation with read-only commands turned **${
             isEnabled ? "on" : "off"
           }**`,
         );
@@ -991,11 +995,11 @@ export default class ResourceAiAccessSettings {
 
       if (!previous) {
         changes.push(
-          `AI remediation set to **${RESOURCE_AI_REMEDIATION_MODE_LABELS[mode]}**`,
+          mdText`AI remediation set to **${RESOURCE_AI_REMEDIATION_MODE_LABELS[mode]}**`,
         );
       } else if (previous.aiRemediationMode !== mode) {
         changes.push(
-          `AI remediation changed from **${
+          mdText`AI remediation changed from **${
             RESOURCE_AI_REMEDIATION_MODE_LABELS[previous.aiRemediationMode]
           }** to **${RESOURCE_AI_REMEDIATION_MODE_LABELS[mode]}**`,
         );
@@ -1014,8 +1018,8 @@ export default class ResourceAiAccessSettings {
       ) {
         changes.push(
           patterns.length === 0
-            ? "AI command allowlist cleared"
-            : `AI command allowlist changed to ${describePatternCount(
+            ? mdText`AI command allowlist cleared`
+            : mdText`AI command allowlist changed to ${describePatternCount(
                 patterns.length,
               )}${
                 previous
@@ -1054,7 +1058,7 @@ export default class ResourceAiAccessSettings {
     getResourceMarkdownLink: (
       projectId: ObjectID,
       resourceId: ObjectID,
-    ) => Promise<string>;
+    ) => Promise<MarkdownText>;
     createFeedItem: (item: ResourceAiAccessFeedItem) => Promise<void>;
   }): Promise<void> {
     for (const resourceId of data.updatedItemIds) {
@@ -1063,10 +1067,11 @@ export default class ResourceAiAccessSettings {
           resourceId.toString()
         ];
 
-      const changes: Array<string> = ResourceAiAccessSettings.describeChanges({
-        updateData: data.updateData,
-        previous,
-      });
+      const changes: Array<MarkdownText> =
+        ResourceAiAccessSettings.describeChanges({
+          updateData: data.updateData,
+          previous,
+        });
 
       if (changes.length === 0) {
         continue;
@@ -1086,14 +1091,26 @@ export default class ResourceAiAccessSettings {
         continue;
       }
 
-      const userMarkdown: string = data.updatedByUserId
-        ? (await UserService.getUserMarkdownString({
+      /*
+       * The person who made the change, as a link; a user who cannot be
+       * read is "A user", and a write without one is an API key's.
+       */
+      const userLink: MarkdownText | null = data.updatedByUserId
+        ? await UserService.getUserMarkdownString({
             userId: data.updatedByUserId,
             projectId,
-          })) || "A user"
-        : "";
+          })
+        : null;
 
-      const actor: string = userMarkdown ? `**${userMarkdown}**` : "An API key";
+      const userMarkdown: MarkdownText | null = userLink
+        ? userLink.isEmpty()
+          ? mdText`A user`
+          : userLink
+        : null;
+
+      const actor: MarkdownText = userMarkdown
+        ? mdText`**${userMarkdown}**`
+        : mdText`An API key`;
 
       /*
        * Yellow when the change lets AI do more (the same test the permission
@@ -1106,8 +1123,8 @@ export default class ResourceAiAccessSettings {
         ? Yellow500
         : Gray500;
 
-      const moreInformation: Array<string> = [
-        `**Changed by**: ${userMarkdown || "An API key (no user)"}`,
+      const moreInformation: Array<MarkdownText> = [
+        mdText`**Changed by**: ${userMarkdown || "An API key (no user)"}`,
       ];
 
       const allowlist: Array<string> =
@@ -1120,11 +1137,11 @@ export default class ResourceAiAccessSettings {
         allowlist.length > 0
       ) {
         moreInformation.push(
-          `**AI command allowlist**:\n\n${allowlist
-            .map((pattern: string): string => {
-              return `- \`${pattern.replace(/`/g, "'")}\``;
-            })
-            .join("\n")}`,
+          mdText`**AI command allowlist**:\n\n${FeedMarkdown.bulletList(
+            allowlist.map((pattern: string): MarkdownText => {
+              return FeedMarkdown.code(pattern);
+            }),
+          )}`,
         );
       }
 
@@ -1132,15 +1149,15 @@ export default class ResourceAiAccessSettings {
         resourceId,
         projectId,
         displayColor,
-        feedInfoInMarkdown: `🤖 ${actor} changed what OneUptime AI may do on ${await data.getResourceMarkdownLink(
-          projectId,
-          resourceId,
-        )}:\n\n${changes
-          .map((change: string): string => {
-            return `- ${change}`;
-          })
-          .join("\n")}`,
-        moreInformationInMarkdown: moreInformation.join("\n\n"),
+        feedInfoInMarkdown:
+          mdText`🤖 ${actor} changed what OneUptime AI may do on ${await data.getResourceMarkdownLink(
+            projectId,
+            resourceId,
+          )}:\n\n${FeedMarkdown.bulletList(changes)}`.toString(),
+        moreInformationInMarkdown: FeedMarkdown.join(
+          moreInformation,
+          "\n\n",
+        ).toString(),
         userId: data.updatedByUserId,
       });
     }

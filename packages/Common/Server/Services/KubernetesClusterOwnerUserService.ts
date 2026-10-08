@@ -10,6 +10,7 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import KubernetesClusterService from "./KubernetesClusterService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -87,10 +88,11 @@ export class Service extends ProjectReferencesService<Model> {
         kubernetesClusterFeedEventType:
           KubernetesClusterFeedEventType.OwnerUserRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
-          projectId,
-          kubernetesClusterId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+            projectId,
+            kubernetesClusterId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -117,15 +119,14 @@ export class Service extends ProjectReferencesService<Model> {
         kubernetesClusterFeedEventType:
           KubernetesClusterFeedEventType.OwnerUserAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-          {
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
             userId: userId,
             projectId: projectId,
-          },
-        )}** as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
-          projectId,
-          kubernetesClusterId,
-        )}.`,
+          })}** as an owner of ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+            projectId,
+            kubernetesClusterId,
+          )}.`.toString(),
         userId: createdByUserId || undefined,
       });
     }

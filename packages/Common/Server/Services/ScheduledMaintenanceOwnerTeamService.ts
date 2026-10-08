@@ -1,6 +1,5 @@
 import Team from "../../Models/DatabaseModels/Team";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import TeamService from "./TeamService";
@@ -15,6 +14,7 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import logger from "../Utils/Logger";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -82,7 +82,8 @@ export class Service extends ProjectReferencesService<Model> {
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
               displayColor: Red500,
-              feedInfoInMarkdown: `Removed team **${escapeMarkdownValue(team.name)}** from the scheduled maintenance as the owner.`,
+              feedInfoInMarkdown:
+                mdText`Removed team **${team.name}** from the scheduled maintenance as the owner.`.toString(),
               userId: deleteByUserId || undefined,
             },
           );
@@ -126,7 +127,8 @@ export class Service extends ProjectReferencesService<Model> {
             scheduledMaintenanceFeedEventType:
               ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
             displayColor: Gray500,
-            feedInfoInMarkdown: `Added team **${escapeMarkdownValue(team.name)}** to the scheduled maintenance as the owner.`,
+            feedInfoInMarkdown:
+              mdText`Added team **${team.name}** to the scheduled maintenance as the owner.`.toString(),
             userId: createdByUserId || undefined,
           },
         );

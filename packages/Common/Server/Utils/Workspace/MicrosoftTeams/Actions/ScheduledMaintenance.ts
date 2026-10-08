@@ -35,10 +35,12 @@ import MicrosoftTeamsCardChoices, {
 } from "../MicrosoftTeamsCardChoices";
 import { MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES } from "../MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
-import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
 import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../MicrosoftTeamsTimezone";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 // ScheduledMaintenance.title is a ShortText column.
 const MICROSOFT_TEAMS_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH: number =
@@ -390,7 +392,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         case MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance:
           // The title and the state's name are plain text; the description is Markdown.
           await turnContext.sendActivity(
-            `**${escapeMarkdownValue(scheduledMaintenance.title)}**\n\n${scheduledMaintenance.description}\n\nStarts: ${scheduledMaintenance.startsAt}\nEnds: ${scheduledMaintenance.endsAt}\nStatus: ${escapeMarkdownValue(scheduledMaintenance.currentScheduledMaintenanceState?.name)}`,
+            mdText`**${scheduledMaintenance.title}**\n\n${FeedMarkdown.asMarkdown(scheduledMaintenance.description)}\n\nStarts: ${String(scheduledMaintenance.startsAt)}\nEnds: ${String(scheduledMaintenance.endsAt)}\nStatus: ${scheduledMaintenance.currentScheduledMaintenanceState?.name}`.toString(),
           );
           break;
 
@@ -876,13 +878,14 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     endsAt: Date;
     timezone: MicrosoftTeamsUserTimezone;
   }): Promise<string> {
-    let message: string = `✅ Scheduled maintenance created successfully!\n\n**Starts:** ${MicrosoftTeamsTimezone.format(
-      data.startsAt,
-      data.timezone,
-    )}\n\n**Ends:** ${MicrosoftTeamsTimezone.format(
-      data.endsAt,
-      data.timezone,
-    )}`;
+    let message: string =
+      mdText`✅ Scheduled maintenance created successfully!\n\n**Starts:** ${MicrosoftTeamsTimezone.format(
+        data.startsAt,
+        data.timezone,
+      )}\n\n**Ends:** ${MicrosoftTeamsTimezone.format(
+        data.endsAt,
+        data.timezone,
+      )}`.toString();
 
     if (MicrosoftTeamsTimezone.isUtcOffsetOnly(data.timezone)) {
       message += `\n\nMicrosoft Teams did not say which time zone you are in, so these times were read at your current offset, ${data.timezone.label}. If daylight saving time changes before then, check them in OneUptime.`;

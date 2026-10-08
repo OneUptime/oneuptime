@@ -11,7 +11,11 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -232,36 +236,24 @@ class IncidentOnCallRuleEngineServiceClass {
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${escapeMarkdownValue(ruleNames[0])}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${escapeMarkdownValue(n)}**`;
-              })
-              .join(", ");
-
-      const policiesPart: string =
-        policyNames.length > 0
-          ? policyNames
-              .map((n: string) => {
-                return `\n- ${escapeMarkdownValue(n)}`;
-              })
-              .join("")
-          : "\n- (no named policies)";
-
-      const feedInfoInMarkdown: string = `📞 **Incident On-Call Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAttached the following on-call ${
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "📞",
+          ruleKind: "Incident On-Call Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAttached the following on-call ${
         policyNames.length === 1 ? "policy" : "policies"
-      } to the incident:${policiesPart}`;
+      } to the incident:\n${FeedMarkdown.bulletList(policyNames, {
+        whenEmpty: "(no named policies)",
+      })}`;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id,
         projectId: incident.projectId,
         incidentFeedEventType: IncidentFeedEventType.OnCallRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(

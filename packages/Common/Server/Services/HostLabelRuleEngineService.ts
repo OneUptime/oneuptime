@@ -20,6 +20,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 class HostLabelRuleEngineServiceClass
   implements RuleRunEngine<Host, HostLabelRule>
@@ -224,15 +226,15 @@ class HostLabelRuleEngineServiceClass
       projectId: host.projectId,
       hostFeedEventType: HostFeedEventType.LabelRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await HostService.getHostMarkdownLink(
-        host.projectId,
-        host.id,
-      )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
-        .map((name: string) => {
-          return `\`${name}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`🏷️ ${newLabelIds.length} label(s) were attached to ${await HostService.getHostMarkdownLink(
+          host.projectId,
+          host.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Label",
+        ruleNames: matchedRuleNames,
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(newLabelIds.length);

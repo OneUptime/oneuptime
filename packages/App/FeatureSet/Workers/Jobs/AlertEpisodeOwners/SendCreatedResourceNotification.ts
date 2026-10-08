@@ -26,7 +26,7 @@ import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedServ
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "AlertEpisodeOwner:SendCreatedResourceEmail",
@@ -73,8 +73,9 @@ RunCron(
       const episodeDisplayNumber: string =
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
-      const episodeFeedText: string = `🔔 **Owner Alert Episode Created Notification Sent**:
-      Notification sent to owners because [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`;
+      const episodeFeedText: string =
+        mdText`🔔 **Owner Alert Episode Created Notification Sent**:
+      Notification sent to owners because [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`.toString();
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       const episodeCreatedDate: Date = episode.createdAt!;
@@ -217,7 +218,7 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
+          moreEpisodeFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()})\n`;
         } catch (e) {
           logger.error(
             "Error in sending alert episode created resource notification",
