@@ -373,7 +373,7 @@ export default class MicrosoftTeamsAlertActions {
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
       const message: string =
-        mdText`**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${FeedMarkdown.asMarkdown(alert.description || "No description")}\n**State:** ${alert.currentAlertState?.name || "Unknown"}\n**Severity:** ${alert.alertSeverity?.name || "Unknown"}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString() : "Unknown"}`.toString();
+        mdText`**Alert Details**\n\n**Title:** ${alert.title}\n**Description:** ${FeedMarkdown.asChatMarkdown(alert.description || "No description")}\n**State:** ${alert.currentAlertState?.name || "Unknown"}\n**Severity:** ${alert.alertSeverity?.name || "Unknown"}\n**Created At:** ${alert.createdAt ? new Date(alert.createdAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;
