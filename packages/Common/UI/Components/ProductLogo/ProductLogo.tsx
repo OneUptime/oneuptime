@@ -20,6 +20,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 export const getDarkThemeLogo: (logo: string) => string = (
   logo: string,
 ): string => {
+  // Not a data: URL string (a test's asset stub): nothing to recolour.
+  if (typeof logo !== "string") {
+    return logo;
+  }
+
   const base64Marker: string = "base64,";
   const markerIndex: number = logo.indexOf(base64Marker);
 

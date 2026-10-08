@@ -62,18 +62,21 @@ const IMAGE_FIELDS: ReadonlyArray<ProductBrandingStringField> = [
 
 /*
  * The word replaced in the product's own sentences: "OneUptime" as a word of
- * its own. Not when it is part of something longer - an identifier
+ * its own - including the first half of a compound a language joins with a
+ * hyphen ("OneUptime-Konto") and the Scandinavian genitive ("OneUptimes
+ * logo"). Not when it is part of something longer - an identifier
  * (OneUptimeReplay), a header (X-OneUptime-Signature), a path
- * (github.com/OneUptime/oneuptime), a domain (OneUptime.com), an address -
- * and never in another case, so commands, URLs and environment variables
- * (oneuptime, ONEUPTIME_URL) are left exactly as they are.
+ * (github.com/OneUptime/oneuptime), a domain (OneUptime.com), a handle
+ * (@OneUptime, a chat app's own name) - and never in another case, so
+ * commands, URLs and environment variables (oneuptime, ONEUPTIME_URL) are
+ * left exactly as they are.
  *
  * No lookbehind: the frontends run this in every browser OneUptime supports,
  * and an engine without lookbehind fails to parse the whole bundle. The
  * character before the word is captured instead and put back.
  */
 const PRODUCT_NAME_WORD: RegExp =
-  /(^|[^A-Za-z0-9_\-/.@])OneUptime(?![A-Za-z0-9_\-/@]|\.[A-Za-z0-9])/g;
+  /(^|[^A-Za-z0-9_\-/.@])OneUptime(s?)(?![A-Za-z0-9_/@]|\.[A-Za-z0-9])/g;
 
 // Characters a product name may not hold besides control characters: < > { }.
 const FORBIDDEN_PRODUCT_NAME_CHARACTERS: ReadonlyArray<string> = [
@@ -148,8 +151,8 @@ export default class ProductBrandingUtil {
 
     return text.replace(
       PRODUCT_NAME_WORD,
-      (_match: string, before: string): string => {
-        return `${before}${productName}`;
+      (_match: string, before: string, genitive: string): string => {
+        return `${before}${productName}${genitive}`;
       },
     );
   }
