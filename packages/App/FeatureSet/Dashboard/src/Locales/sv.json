@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "Ingenting fördes över.",
   "Now bringing over {{kind}}.": "För nu över: {{kind}}.",
   "Now reading {{kind}}.": "Läser nu: {{kind}}.",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "Med abonnemanget Free har en policy en eskaleringsregel, så bara det första steget förs över.",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "Med abonnemanget Free har en policy en eskaleringsregel, så bara ett steg förs över: det första som larmar någon som förs över.",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "När OneUptime larmar rätt personer stänger du av aviseringarna i {{tool}}, så att ingen larmas två gånger.",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "En import för över högst {{limit}} av dessa. Kör importen igen för resten.",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime har redan ett team med det här namnet. Det används som det är, och medlemmarna lämnas som de är.",

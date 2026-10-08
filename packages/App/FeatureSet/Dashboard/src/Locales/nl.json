@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "Er is niets overgenomen.",
   "Now bringing over {{kind}}.": "Nu bezig met overnemen: {{kind}}.",
   "Now reading {{kind}}.": "Nu bezig met uitlezen: {{kind}}.",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "Met het Free-abonnement heeft een beleid één escalatieregel, dus alleen de eerste stap wordt overgenomen.",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "Met het Free-abonnement heeft een beleid één escalatieregel, dus maar één stap wordt overgenomen: de eerste die iemand oproept die wordt overgenomen.",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "Zodra OneUptime de juiste personen oproept, schakelt u de meldingen in {{tool}} uit, zodat niemand twee keer wordt opgeroepen.",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "Eén import neemt er hooguit {{limit}} over. Voer de import opnieuw uit voor de rest.",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime heeft al een team met deze naam. Het wordt gebruikt zoals het is, en de leden blijven zoals ze zijn.",

@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "چیزی منتقل نشد.",
   "Now bringing over {{kind}}.": "در حال انتقال: {{kind}}.",
   "Now reading {{kind}}.": "در حال خواندن: {{kind}}.",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "در طرح Free هر سیاست یک قاعده تشدید دارد، پس فقط گام اول منتقل می‌شود.",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "در طرح Free هر سیاست یک قاعده تشدید دارد، پس فقط یک گام منتقل می‌شود: نخستین گامی که یکی از افرادی را که منتقل می‌شوند فرا می‌خواند.",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "وقتی OneUptime افراد درست را فرا می‌خواند، اعلان‌ها را در {{tool}} خاموش کنید تا کسی دو بار فراخوانده نشود.",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "هر درون‌ریزی حداکثر {{limit}} مورد از این‌ها را منتقل می‌کند. برای بقیه، درون‌ریزی را دوباره اجرا کنید.",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime از قبل تیمی با این نام دارد. همان‌طور که هست استفاده می‌شود و اعضایش تغییری نمی‌کنند.",

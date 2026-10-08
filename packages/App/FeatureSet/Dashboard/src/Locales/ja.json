@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "何も取り込まれませんでした。",
   "Now bringing over {{kind}}.": "取り込み中: {{kind}}",
   "Now reading {{kind}}.": "読み取り中: {{kind}}",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "Free プランではポリシーのエスカレーションルールは 1 つなので、最初のステップだけが取り込まれます。",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "Free プランではポリシーのエスカレーションルールは 1 つなので、取り込まれるステップは 1 つだけです。取り込む対象の誰かを呼び出す最初のステップです。",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "OneUptime が正しい人を呼び出すようになったら、二重に呼び出されないように {{tool}} の通知をオフにします。",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "1 回のインポートで取り込めるのは最大 {{limit}} 件です。残りはもう一度インポートしてください。",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime にはこの名前のチームがすでにあります。そのまま使われ、メンバーも変更されません。",

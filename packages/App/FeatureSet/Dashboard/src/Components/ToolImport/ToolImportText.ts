@@ -298,7 +298,7 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
     "It repeats from a later step. OneUptime repeats the whole policy.",
   ),
   [ToolImportNoteCode.PolicyFreePlanOneLevel]: translationKey(
-    "On the Free plan a policy has one escalation rule, so only the first step comes over.",
+    "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.",
   ),
   [ToolImportNoteCode.PolicyLevelLeftOut]: translationKey(
     "Step {{level}} pages nobody who is being brought over, so it is left out.",

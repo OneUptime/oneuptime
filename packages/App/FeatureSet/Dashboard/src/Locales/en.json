@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "Nothing was brought over.",
   "Now bringing over {{kind}}.": "Now bringing over {{kind}}.",
   "Now reading {{kind}}.": "Now reading {{kind}}.",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "On the Free plan a policy has one escalation rule, so only the first step comes over.",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "One import brings over at most {{limit}} of these. Run the import again for the rest.",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.",

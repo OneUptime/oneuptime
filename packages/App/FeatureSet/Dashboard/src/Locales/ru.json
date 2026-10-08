@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "Ничего не перенесено.",
   "Now bringing over {{kind}}.": "Сейчас переносятся: {{kind}}.",
   "Now reading {{kind}}.": "Сейчас читаются: {{kind}}.",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "На тарифе Free в политике одно правило эскалации, поэтому переносится только первый шаг.",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "На тарифе Free в политике одно правило эскалации, поэтому переносится только один шаг: первый, который оповещает кого-то из переносимых.",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "Когда OneUptime будет оповещать нужных людей, отключите уведомления в {{tool}}, чтобы никого не оповещали дважды.",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "Один импорт переносит не больше {{limit}} таких записей. Запустите импорт снова, чтобы перенести остальное.",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "В OneUptime уже есть команда с таким названием. Она используется как есть, а её участники остаются прежними.",

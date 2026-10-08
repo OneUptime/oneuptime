@@ -69,7 +69,7 @@ import {
  * what it creates, in what order, with whose props, what each record names,
  * what it remembers, how it reports, and how it carries on when one create
  * is refused, resumes after a worker stopped, and never makes anything
- * twice. ToolImportApplierPostgres runs the same import through the real
+ * twice. ToolImportPostgres runs an import end to end through the real
  * services and a real database.
  */
 
@@ -745,6 +745,75 @@ describe("ToolImportApplier: what was not ticked, and what was not brought over"
     await runImport({ isLimitedToOneLevelPerPolicy: true });
 
     expect(world.createsOf("OnCallDutyPolicyEscalationRule")).toHaveLength(1);
+  });
+
+  /*
+   * On the Free plan schedules are not brought over (they need Growth), and
+   * most policies page a schedule first: the one level made is the first
+   * that pages someone, not a first level left with nobody to page.
+   */
+  test("on the Free plan the one level made is the first that pages someone being brought over", async () => {
+    const world: ApplierWorld = new ApplierWorld();
+    const { report } = await runImport({
+      snapshot: snapshot({
+        people: [person("mia")],
+        policies: [
+          policy("esc", "Escalation", [
+            level({ schedules: ["not-brought-over"], wait: 5 }),
+            level({ people: ["mia"], wait: 30 }),
+            level({ people: ["mia"], wait: 60 }),
+          ]),
+        ],
+      }),
+      selectedKeys: () => {
+        return ["OnCallPolicy:esc"];
+      },
+      isLimitedToOneLevelPerPolicy: true,
+    });
+
+    const rules: Array<RecordedCreate> = world.createsOf(
+      "OnCallDutyPolicyEscalationRule",
+    );
+
+    expect(rules).toHaveLength(1);
+    expect(
+      (rules[0]!.data as OnCallDutyPolicyEscalationRule).escalateAfterInMinutes,
+    ).toBe(30);
+    expect(
+      (rules[0]!.miscDataProps?.["users"] as Array<ObjectID>).map(
+        (id: ObjectID) => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([MEMBER_USER_ID]);
+    expect(outcomeOf(report, "OnCallPolicy:esc").outcome).toBe(
+      ToolImportOutcome.Created,
+    );
+    // The level that was not made says nothing of its own: one level is the plan's.
+    expect(outcomeOf(report, "OnCallPolicy:esc").notes).toEqual([]);
+  });
+
+  test("on the Free plan a policy none of whose levels pages anyone is not made", async () => {
+    const world: ApplierWorld = new ApplierWorld();
+    const { report } = await runImport({
+      snapshot: snapshot({
+        policies: [
+          policy("esc", "Escalation", [
+            level({ schedules: ["not-brought-over"] }),
+          ]),
+        ],
+      }),
+      selectedKeys: () => {
+        return ["OnCallPolicy:esc"];
+      },
+      isLimitedToOneLevelPerPolicy: true,
+    });
+
+    expect(outcomeOf(report, "OnCallPolicy:esc")).toMatchObject({
+      outcome: ToolImportOutcome.Skipped,
+      reason: { code: ToolImportNoteCode.NothingToPage },
+    });
+    expect(world.createsOf("OnCallDutyPolicy")).toEqual([]);
   });
 
   test("a matched record is what the import's records name", async () => {

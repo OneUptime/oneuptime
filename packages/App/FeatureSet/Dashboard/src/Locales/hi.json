@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "कुछ नहीं लाया गया।",
   "Now bringing over {{kind}}.": "अभी लाए जा रहे हैं: {{kind}}।",
   "Now reading {{kind}}.": "अभी पढ़े जा रहे हैं: {{kind}}।",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "Free प्लान में एक नीति में एक एस्केलेशन नियम होता है, इसलिए सिर्फ़ पहला चरण लाया जाता है।",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "Free प्लान में एक नीति में एक एस्केलेशन नियम होता है, इसलिए सिर्फ़ एक चरण लाया जाता है: पहला चरण जो लाए जा रहे किसी व्यक्ति को पेज करता है।",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "जब OneUptime सही लोगों को पेज करने लगे, तो {{tool}} में सूचनाएं बंद कर दें ताकि किसी को दो बार पेज न किया जाए।",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "एक इंपोर्ट इनमें से ज़्यादा से ज़्यादा {{limit}} लाता है। बाकी के लिए इंपोर्ट फिर से चलाएं।",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime में इस नाम की टीम पहले से है। इसे जैसी है वैसी इस्तेमाल किया जाता है, और इसके सदस्य जैसे हैं वैसे ही रहते हैं।",

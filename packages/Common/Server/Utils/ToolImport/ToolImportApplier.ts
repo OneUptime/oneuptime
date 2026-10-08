@@ -113,6 +113,24 @@ import ToolImportProjectStateReader from "./ToolImportProjectStateReader";
  * made again.
  */
 
+// A policy's level, with whom it pages of what the import brings over.
+interface ResolvedPolicyLevel {
+  level: ImportedPolicyLevel;
+  // Its place in the other tool's policy, from 1.
+  position: number;
+  // What of it does not come over (people, teams, schedules left out).
+  notes: Array<ToolImportNote>;
+  userIds: Array<string>;
+  teamIds: Array<string>;
+  scheduleIds: Array<string>;
+}
+
+function pagesSomeone(level: ResolvedPolicyLevel): boolean {
+  return (
+    level.userIds.length + level.teamIds.length + level.scheduleIds.length > 0
+  );
+}
+
 export interface ToolImportApplyInput {
   runId: ObjectID;
   projectId: ObjectID;
@@ -923,52 +941,46 @@ class ApplyRun {
       item,
     );
     const notes: Array<ToolImportNote> = [];
-    const maxLevels: number = this.input.isLimitedToOneLevelPerPolicy
-      ? 1
-      : TOOL_IMPORT_MAX_LEVELS_PER_POLICY;
 
-    const levels: Array<{
-      level: ImportedPolicyLevel;
-      userIds: Array<string>;
-      teamIds: Array<string>;
-      scheduleIds: Array<string>;
-    }> = source.levels.slice(0, maxLevels).map((level: ImportedPolicyLevel) => {
-      return {
-        level: level,
-        userIds: this.resolveTargets(
-          ToolImportResourceKind.Person,
-          level.personSourceIds,
-          notes,
-        ),
-        teamIds: this.resolveTargets(
-          ToolImportResourceKind.Team,
-          level.teamSourceIds,
-          notes,
-        ),
-        scheduleIds: this.resolveTargets(
-          ToolImportResourceKind.OnCallSchedule,
-          level.scheduleSourceIds,
-          notes,
-        ),
-      };
-    });
+    // Each level, with whom it pages of what this import brings over.
+    const resolved: Array<ResolvedPolicyLevel> = source.levels
+      .slice(0, TOOL_IMPORT_MAX_LEVELS_PER_POLICY)
+      .map((level: ImportedPolicyLevel, index: number): ResolvedPolicyLevel => {
+        const levelNotes: Array<ToolImportNote> = [];
 
-    const pagesAnyone: boolean = levels.some(
-      (level: {
-        userIds: Array<string>;
-        teamIds: Array<string>;
-        scheduleIds: Array<string>;
-      }): boolean => {
-        return (
-          level.userIds.length +
-            level.teamIds.length +
-            level.scheduleIds.length >
-          0
-        );
+        return {
+          level: level,
+          position: index + 1,
+          notes: levelNotes,
+          userIds: this.resolveTargets(
+            ToolImportResourceKind.Person,
+            level.personSourceIds,
+            levelNotes,
+          ),
+          teamIds: this.resolveTargets(
+            ToolImportResourceKind.Team,
+            level.teamSourceIds,
+            levelNotes,
+          ),
+          scheduleIds: this.resolveTargets(
+            ToolImportResourceKind.OnCallSchedule,
+            level.scheduleSourceIds,
+            levelNotes,
+          ),
+        };
+      });
+
+    const paging: Array<ResolvedPolicyLevel> = resolved.filter(
+      (level: ResolvedPolicyLevel): boolean => {
+        return pagesSomeone(level);
       },
     );
 
-    if (!pagesAnyone) {
+    if (paging.length === 0) {
+      for (const level of resolved) {
+        notes.push(...level.notes);
+      }
+
       this.report(
         item,
         ToolImportOutcome.Skipped,
@@ -978,6 +990,20 @@ class ApplyRun {
         notes,
       );
       return;
+    }
+
+    /*
+     * On the Free plan a policy has one level: the first that pages someone
+     * being brought over. A policy whose first level pages a schedule the
+     * plan does not include still pages whom its next level does.
+     */
+    const levels: Array<ResolvedPolicyLevel> = this.input
+      .isLimitedToOneLevelPerPolicy
+      ? paging.slice(0, 1)
+      : resolved;
+
+    for (const level of levels) {
+      notes.push(...level.notes);
     }
 
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
@@ -1003,23 +1029,11 @@ class ApplyRun {
 
     let order: number = 1;
 
-    for (let index: number = 0; index < levels.length; index++) {
-      const level: {
-        level: ImportedPolicyLevel;
-        userIds: Array<string>;
-        teamIds: Array<string>;
-        scheduleIds: Array<string>;
-      } = levels[index]!;
-
-      if (
-        level.userIds.length +
-          level.teamIds.length +
-          level.scheduleIds.length ===
-        0
-      ) {
+    for (const level of levels) {
+      if (!pagesSomeone(level)) {
         notes.push(
           makeToolImportNote(ToolImportNoteCode.PolicyLevelLeftOut, {
-            level: index + 1,
+            level: level.position,
           }),
         );
         continue;

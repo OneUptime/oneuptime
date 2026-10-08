@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "Rien n'a été importé.",
   "Now bringing over {{kind}}.": "Import en cours : {{kind}}.",
   "Now reading {{kind}}.": "Lecture en cours : {{kind}}.",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "Avec l'offre Free, une politique a une seule règle d'escalade ; seule la première étape est donc importée.",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "Avec l'offre Free, une politique a une seule règle d'escalade ; une seule étape est donc importée : la première qui alerte quelqu'un qui est importé.",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "Dès que OneUptime alerte les bonnes personnes, désactivez les notifications dans {{tool}} pour que personne ne soit alerté deux fois.",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "Un import en reprend au plus {{limit}}. Relancez l'import pour le reste.",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime a déjà une équipe de ce nom. Elle est utilisée telle quelle, et ses membres restent inchangés.",

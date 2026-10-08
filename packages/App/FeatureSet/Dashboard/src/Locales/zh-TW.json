@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "沒有匯入任何內容。",
   "Now bringing over {{kind}}.": "正在匯入：{{kind}}。",
   "Now reading {{kind}}.": "正在讀取：{{kind}}。",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "在 Free 方案中，一個策略只有一條上報規則，因此只匯入第一個步驟。",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "在 Free 方案中，一個策略只有一條上報規則，因此只匯入一個步驟：第一個會呼叫要匯入的人的步驟。",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "當 OneUptime 能呼叫到正確的人後，請在 {{tool}} 中關閉通知，以免有人被重複呼叫。",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "一次匯入最多帶入 {{limit}} 個此類項目。請再次執行匯入以帶入其餘部分。",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime 中已有同名團隊。它會按原樣使用，成員保持不變。",

@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "Intet blev overført.",
   "Now bringing over {{kind}}.": "Overfører nu: {{kind}}.",
   "Now reading {{kind}}.": "Læser nu: {{kind}}.",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "På Free-abonnementet har en politik én eskaleringsregel, så kun det første trin overføres.",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "På Free-abonnementet har en politik én eskaleringsregel, så kun ét trin overføres: det første, der tilkalder en, der overføres.",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "Når OneUptime tilkalder de rigtige personer, så slå notifikationerne fra i {{tool}}, så ingen tilkaldes to gange.",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "Én import overfører højst {{limit}} af disse. Kør importen igen for resten.",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime har allerede et team med dette navn. Det bruges som det er, og dets medlemmer forbliver som de er.",

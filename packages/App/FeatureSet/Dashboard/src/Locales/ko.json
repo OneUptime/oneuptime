@@ -26823,7 +26823,7 @@
   "Nothing was brought over.": "아무것도 가져오지 않았습니다.",
   "Now bringing over {{kind}}.": "지금 가져오는 중: {{kind}}",
   "Now reading {{kind}}.": "지금 읽는 중: {{kind}}",
-  "On the Free plan a policy has one escalation rule, so only the first step comes over.": "Free 요금제에서는 정책에 에스컬레이션 규칙이 하나뿐이므로 첫 단계만 가져옵니다.",
+  "On the Free plan a policy has one escalation rule, so only one step comes over: the first that pages someone being brought over.": "Free 요금제에서는 정책에 에스컬레이션 규칙이 하나뿐이므로 한 단계만 가져옵니다. 가져오는 대상 중 누군가를 호출하는 첫 단계입니다.",
   "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.": "OneUptime이 올바른 사람을 호출하면 두 번 호출되지 않도록 {{tool}}에서 알림을 끄세요.",
   "One import brings over at most {{limit}} of these. Run the import again for the rest.": "가져오기 한 번에 최대 {{limit}}개까지 가져옵니다. 나머지는 가져오기를 다시 실행하세요.",
   "OneUptime already has a team of this name. It is used as it is, and its members are left as they are.": "OneUptime에 이미 이 이름의 팀이 있습니다. 그대로 사용하며 구성원도 바꾸지 않습니다.",
