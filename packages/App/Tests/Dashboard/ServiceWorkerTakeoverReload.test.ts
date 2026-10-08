@@ -1,4 +1,4 @@
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import vm from "vm";
@@ -52,7 +52,8 @@ interface Page {
   setController: (worker: FakeWorker | null) => void;
   // The browser telling the page its controller changed.
   controllerChanged: () => void;
-  reload: jest.Mock;
+  // How many times the page asked the browser to reload it.
+  reloads: () => number;
   registerCalls: Array<Array<unknown>>;
 }
 
@@ -63,7 +64,7 @@ function loadPage(data: {
   const listeners: Record<string, Array<Listener>> = {};
   const windowListeners: Record<string, Array<Listener>> = {};
   const registerCalls: Array<Array<unknown>> = [];
-  const reload: jest.Mock = jest.fn();
+  let reloads: number = 0;
 
   const serviceWorker: Record<string, unknown> = {
     controller: data.controller,
@@ -92,7 +93,11 @@ function loadPage(data: {
 
   const sandbox: Record<string, unknown> = {
     navigator: { serviceWorker: serviceWorker },
-    location: { reload: reload },
+    location: {
+      reload: (): void => {
+        reloads++;
+      },
+    },
     console: { log: (): void => {}, error: (): void => {} },
     setInterval: (): number => {
       return 0;
@@ -128,7 +133,9 @@ function loadPage(data: {
         listener();
       }
     },
-    reload: reload,
+    reloads: (): number => {
+      return reloads;
+    },
     registerCalls: registerCalls,
   };
 }
@@ -168,7 +175,7 @@ describe.each(["refused", "accepted"] as const)(
       page.setController(FIRST_WORKER);
       page.controllerChanged();
 
-      expect(page.reload).not.toHaveBeenCalled();
+      expect(page.reloads()).toBe(0);
     });
 
     test("a newer worker taking over from the one that served the page reloads it, once", async () => {
@@ -180,7 +187,7 @@ describe.each(["refused", "accepted"] as const)(
       page.controllerChanged();
       page.controllerChanged();
 
-      expect(page.reload).toHaveBeenCalledTimes(1);
+      expect(page.reloads()).toBe(1);
     });
 
     test("after the first worker took control, a newer one taking over reloads", async () => {
@@ -191,12 +198,12 @@ describe.each(["refused", "accepted"] as const)(
       page.setController(FIRST_WORKER);
       page.controllerChanged();
 
-      expect(page.reload).not.toHaveBeenCalled();
+      expect(page.reloads()).toBe(0);
 
       page.setController(NEWER_WORKER);
       page.controllerChanged();
 
-      expect(page.reload).toHaveBeenCalledTimes(1);
+      expect(page.reloads()).toBe(1);
     });
   },
 );
@@ -206,7 +213,7 @@ test("a browser without service workers loads the page and nothing else happens"
 
   const sandbox: Record<string, unknown> = {
     navigator: {},
-    location: { reload: jest.fn() },
+    location: { reload: (): void => {} },
     console: { log: (): void => {} },
     addEventListener: (type: string): void => {
       windowListeners.push(type);
