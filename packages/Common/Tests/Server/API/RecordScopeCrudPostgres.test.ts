@@ -152,6 +152,8 @@ const TABLES: Array<string> = [
   "AlertInternalNote",
   "AlertOwnerUser",
   "AlertOwnerTeam",
+  "StatusPageOwnerUser",
+  "StatusPageOwnerTeam",
   "Service",
   "ServiceLabel",
   "ServiceOwnerUser",
@@ -841,6 +843,14 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     expect(outcome.item).toBeUndefined();
   };
 
+  // A read by id that reaches nothing: answered as a missing record (404).
+  const expectNotFound: (outcome: Outcome) => void = (
+    outcome: Outcome,
+  ): void => {
+    expect(outcome.error).toBeInstanceOf(NotFoundException);
+    expect(outcome.item).toBeUndefined();
+  };
+
   const homeUser: Caller = { kind: "user", tenantId: homeProjectId };
 
   const acrossProjects: Caller = { kind: "user", isMultiTenant: true };
@@ -1375,13 +1385,11 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       );
 
       test("another project's records are not read by id", async () => {
-        expect((await getItem("/alert", caller, otherAlertId)).item).toBeNull();
-        expect(
-          (await getItem("/alert", caller, otherLabelledAlertId)).item,
-        ).toBeNull();
-        expect(
-          (await getItem("/alert-internal-note", caller, otherNoteId)).item,
-        ).toBeNull();
+        expectNotFound(await getItem("/alert", caller, otherAlertId));
+        expectNotFound(await getItem("/alert", caller, otherLabelledAlertId));
+        expectNotFound(
+          await getItem("/alert-internal-note", caller, otherNoteId),
+        );
       });
 
       test("another project's records are not changed by id", async () => {
@@ -1468,9 +1476,9 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
           );
         }
 
-        expect(
-          (await getItem("/alert", labelCaller, otherLabelledAlertId)).item,
-        ).toBeNull();
+        expectNotFound(
+          await getItem("/alert", labelCaller, otherLabelledAlertId),
+        );
         expect(await readColumn("Alert", otherLabelledAlertId, "title")).toBe(
           titleBefore,
         );
@@ -1514,7 +1522,7 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         return otherProjectRowIds.includes(id);
       }),
     ).toEqual([]);
-    expect((await getItem("/alert", caller, otherAlertId)).item).toBeNull();
+    expectNotFound(await getItem("/alert", caller, otherAlertId));
   });
 
   /*
@@ -1543,6 +1551,36 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     ].map((permission: Permission): PermissionRow => {
       return { permission: permission, labelIds: labelIds, isBlock: true };
     });
+  };
+
+  // The All Operational Resources read, edit and delete permissions.
+  const wildcardRows: (data: {
+    labelIds?: Array<ObjectID>;
+    isBlock?: boolean;
+  }) => Array<PermissionRow> = (data: {
+    labelIds?: Array<ObjectID>;
+    isBlock?: boolean;
+  }): Array<PermissionRow> => {
+    return [
+      Permission.ReadAllOperationalResources,
+      Permission.EditAllOperationalResources,
+      Permission.DeleteAllOperationalResources,
+    ].map((permission: Permission): PermissionRow => {
+      return {
+        permission: permission,
+        ...(data.labelIds ? { labelIds: data.labelIds } : {}),
+        ...(data.isBlock ? { isBlock: true } : {}),
+      };
+    });
+  };
+
+  // An alert's notes, read, changed and deleted over the project.
+  const noteGrants: () => Array<PermissionRow> = (): Array<PermissionRow> => {
+    return [
+      { permission: Permission.ReadAlertInternalNote },
+      { permission: Permission.EditAlertInternalNote },
+      { permission: Permission.DeleteAlertInternalNote },
+    ];
   };
 
   const matrix: Array<[string, () => MatrixCase]> = [
@@ -1602,6 +1640,63 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
             ...alertBlocks([productionLabelId]),
           ],
           readable: ["staging"],
+        };
+      },
+    ],
+    /*
+     * The All Operational Resources permissions grant an alert like its own
+     * permissions do, and narrow it the same way: limited to labels, they
+     * reach the alerts carrying them, and a block with labels on one takes
+     * those alerts away. The notes, which are not operational resources,
+     * are granted over the project and read through the alerts.
+     */
+    [
+      "an All Operational Resources grant limited to labels",
+      (): MatrixCase => {
+        return {
+          rows: [
+            ...wildcardRows({ labelIds: [productionLabelId] }),
+            ...noteGrants(),
+          ],
+          readable: ["production"],
+        };
+      },
+    ],
+    [
+      "an All Operational Resources grant and a block with labels on it",
+      (): MatrixCase => {
+        return {
+          rows: [
+            ...wildcardRows({}),
+            ...wildcardRows({ labelIds: [productionLabelId], isBlock: true }),
+            ...noteGrants(),
+          ],
+          readable: ["staging", "unlabelled"],
+        };
+      },
+    ],
+    [
+      "an All Operational Resources grant limited to labels beside the alerts' own grant over the project",
+      (): MatrixCase => {
+        return {
+          rows: [
+            { permission: Permission.AlertMember },
+            ...wildcardRows({ labelIds: [productionLabelId] }),
+          ],
+          readable: ["production", "staging", "unlabelled"],
+        };
+      },
+    ],
+    [
+      "a block with labels on an All Operational Resources permission the caller is not granted",
+      (): MatrixCase => {
+        return {
+          // The alerts are granted by their own permissions, not the wildcard.
+          rows: [
+            { permission: Permission.AlertMember },
+            ...wildcardRows({ labelIds: [productionLabelId], isBlock: true }),
+          ],
+          readable: ["production", "staging", "unlabelled"],
         };
       },
     ],
@@ -1704,7 +1799,7 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
                 ) {
                   expect(read.item?.id?.toString()).toBe(idOf[key]!.toString());
                 } else {
-                  expect(read.item).toBeNull();
+                  expectNotFound(read);
                 }
               }
             }
@@ -2180,6 +2275,290 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         ]);
       },
     );
+  });
+
+  /*
+   * A RECORD READ THROUGH A PARENT ITS CALLER OWNS. When the caller's
+   * grants to read the parent reach only the parents they or their teams
+   * own, the records read through a parent are those of the owned parents
+   * - whatever the scope of the permission for the records themselves -
+   * for listing, counting, reading, changing and deleting alike. The member
+   * owns the staging alert, and the staging status page here.
+   */
+  describe("a record read through a parent its caller owns", () => {
+    const stagingPageOwnerId: ObjectID = ObjectID.generate();
+
+    beforeAll(async () => {
+      await insert("StatusPageOwnerUser", {
+        _id: stagingPageOwnerId,
+        projectId: homeProjectId,
+        userId: memberId,
+        statusPageId: stagingStatusPageId,
+        version: 1,
+      });
+    });
+
+    afterAll(async () => {
+      await removeRows([["StatusPageOwnerUser", "_id", stagingPageOwnerId]]);
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    test.each([
+      ["over the project", undefined],
+      ["limited to owned records too", PermissionScope.Owned],
+    ] as Array<[string, PermissionScope | undefined]>)(
+      "the notes of the owned alerts only, with the note permissions granted %s",
+      async (_label: string, noteScope: PermissionScope | undefined) => {
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          { permission: Permission.ReadAlert, scope: PermissionScope.Owned },
+          ...[
+            Permission.ReadAlertInternalNote,
+            Permission.EditAlertInternalNote,
+            Permission.DeleteAlertInternalNote,
+          ].map((permission: Permission): PermissionRow => {
+            return {
+              permission: permission,
+              ...(noteScope ? { scope: noteScope } : {}),
+            };
+          }),
+        ]);
+
+        const listed: Outcome = await list("/alert-internal-note", homeUser);
+
+        expect(listed.error).toBeUndefined();
+        expect(listed.ids).toEqual([stagingNoteId.toString()]);
+        expect(listed.count).toBe(1);
+        expect((await count("/alert-internal-note", homeUser)).count).toBe(1);
+
+        // The alerts themselves keep to the owned one, as before.
+        expect((await list("/alert", homeUser)).ids).toEqual([
+          stagingAlertId.toString(),
+        ]);
+
+        expect(
+          (
+            await getItem("/alert-internal-note", homeUser, stagingNoteId)
+          ).item?.id?.toString(),
+        ).toBe(stagingNoteId.toString());
+
+        for (const noteId of [productionNoteId, unlabelledNoteId]) {
+          expectNotFound(
+            await getItem("/alert-internal-note", homeUser, noteId),
+          );
+
+          const before: unknown = await readColumn(
+            "AlertInternalNote",
+            noteId,
+            "note",
+          );
+          const outcome: Outcome = await update(
+            "/alert-internal-note",
+            homeUser,
+            noteId,
+            { note: `Changed ${ObjectID.generate().toString()}` },
+          );
+
+          // A note of an alert the caller may not read: answered as missing.
+          expect(outcome.error).toBeInstanceOf(NotFoundException);
+          expect(await readColumn("AlertInternalNote", noteId, "note")).toEqual(
+            before,
+          );
+        }
+
+        const value: string = `Changed ${ObjectID.generate().toString()}`;
+        const changed: Outcome = await update(
+          "/alert-internal-note",
+          homeUser,
+          stagingNoteId,
+          { note: value },
+        );
+
+        expect(changed.error).toBeUndefined();
+        expect(changed.isEmptySuccess).toBe(true);
+        expect(
+          await readColumn("AlertInternalNote", stagingNoteId, "note"),
+        ).toBe(value);
+      },
+    );
+
+    test("a note is deleted only on an alert the caller owns", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadAlert, scope: PermissionScope.Owned },
+        { permission: Permission.ReadAlertInternalNote },
+        { permission: Permission.DeleteAlertInternalNote },
+      ]);
+
+      for (const [label, isOwned] of [
+        ["an owned alert", true],
+        ["an alert somebody else owns", false],
+      ] as Array<[string, boolean]>) {
+        const alertId: ObjectID = ObjectID.generate();
+        const noteId: ObjectID = ObjectID.generate();
+        const ownerId: ObjectID = ObjectID.generate();
+
+        await insertAlert({
+          id: alertId,
+          projectId: homeProjectId,
+          title: "Disposable alert",
+        });
+        await insertNote({
+          id: noteId,
+          projectId: homeProjectId,
+          alertId: alertId,
+        });
+        await insert("AlertOwnerUser", {
+          _id: ownerId,
+          projectId: homeProjectId,
+          userId: isOwned ? memberId : outsiderId,
+          alertId: alertId,
+          version: 1,
+        });
+
+        const outcome: Outcome = await remove(
+          "/alert-internal-note",
+          homeUser,
+          noteId,
+        );
+
+        expect([label, await rowExists("AlertInternalNote", noteId)]).toEqual([
+          label,
+          !isOwned,
+        ]);
+
+        if (isOwned) {
+          expect(outcome.isEmptySuccess).toBe(true);
+        } else {
+          expect(outcome.error).toBeInstanceOf(NotFoundException);
+        }
+
+        await removeRows([
+          ["AlertOwnerUser", "_id", ownerId],
+          ["AlertInternalNote", "_id", noteId],
+          ["Alert", "_id", alertId],
+        ]);
+      }
+    });
+
+    test("a service's update by query keeps to the notes of owned alerts", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadAlert, scope: PermissionScope.Owned },
+        { permission: Permission.ReadAlertInternalNote },
+        { permission: Permission.EditAlertInternalNote },
+      ]);
+
+      const props: DatabaseCommonInteractionProps = await propsOf(homeUser);
+      const value: string = `Changed ${ObjectID.generate().toString()}`;
+
+      await noteService.updateBy({
+        query: { _id: new Includes(homeNoteIds) },
+        data: { note: value },
+        props: props,
+        limit: 50,
+        skip: 0,
+      });
+
+      for (const [noteId, isOwned] of [
+        [productionNoteId, false],
+        [stagingNoteId, true],
+        [unlabelledNoteId, false],
+      ] as Array<[ObjectID, boolean]>) {
+        expect([
+          noteId.toString(),
+          (await readColumn("AlertInternalNote", noteId, "note")) === value,
+        ]).toEqual([noteId.toString(), isOwned]);
+      }
+    });
+
+    /*
+     * A status page's announcements are linked to their status pages
+     * through a join table: an announcement is reached when one of its
+     * status pages is one the caller owns.
+     */
+    test("the announcements of the owned status pages only", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        {
+          permission: Permission.ReadProjectStatusPage,
+          scope: PermissionScope.Owned,
+        },
+        { permission: Permission.ReadStatusPageAnnouncement },
+        { permission: Permission.EditStatusPageAnnouncement },
+      ]);
+
+      const expected: Array<string> = sorted([
+        stagingAnnouncementId,
+        bothPagesAnnouncementId,
+      ]);
+
+      const listed: Outcome = await list("/status-page-announcement", homeUser);
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(expected);
+      expect(listed.count).toBe(expected.length);
+
+      for (const announcementId of [
+        productionAnnouncementId,
+        noPageAnnouncementId,
+      ]) {
+        expectNotFound(
+          await getItem("/status-page-announcement", homeUser, announcementId),
+        );
+
+        const outcome: Outcome = await update(
+          "/status-page-announcement",
+          homeUser,
+          announcementId,
+          { title: `Changed ${ObjectID.generate().toString()}` },
+        );
+
+        expect(outcome.error).toBeInstanceOf(NotFoundException);
+        expect(
+          await readColumn("StatusPageAnnouncement", announcementId, "title"),
+        ).toBe("Synthetic announcement");
+      }
+
+      const value: string = `Changed ${ObjectID.generate().toString()}`;
+      const changed: Outcome = await update(
+        "/status-page-announcement",
+        homeUser,
+        stagingAnnouncementId,
+        { title: value },
+      );
+
+      expect(changed.error).toBeUndefined();
+      expect(
+        await readColumn(
+          "StatusPageAnnouncement",
+          stagingAnnouncementId,
+          "title",
+        ),
+      ).toBe(value);
+
+      await database.query(
+        `UPDATE "${schema}"."StatusPageAnnouncement" SET "title" = 'Synthetic announcement' WHERE "_id" = $1`,
+        [stagingAnnouncementId.toString()],
+      );
+    });
+
+    test("a grant over the project on the status pages reaches every announcement", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.ReadProjectStatusPage },
+        { permission: Permission.ReadStatusPageAnnouncement },
+      ]);
+
+      const listed: Outcome = await list("/status-page-announcement", homeUser);
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(
+        sorted([
+          productionAnnouncementId,
+          stagingAnnouncementId,
+          bothPagesAnnouncementId,
+          noPageAnnouncementId,
+        ]),
+      );
+    });
   });
 
   /*
@@ -2952,12 +3331,21 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
             id,
           );
 
+          const isExpected: boolean = expected.some(
+            (expectedId: ObjectID): boolean => {
+              return expectedId.toString() === id.toString();
+            },
+          );
+
           expect([id.toString(), Boolean(read.item)]).toEqual([
             id.toString(),
-            expected.some((expectedId: ObjectID): boolean => {
-              return expectedId.toString() === id.toString();
-            }),
+            isExpected,
           ]);
+
+          if (!isExpected) {
+            // One it may not read is answered as a missing one.
+            expectNotFound(read);
+          }
         }
       },
     );
@@ -3038,6 +3426,10 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
           expect(read.item ? read.item.id!.toString() : null).toBe(
             expected.includes(id) ? id : null,
           );
+
+          if (!expected.includes(id)) {
+            expectNotFound(read);
+          }
         }
       },
     );
@@ -3058,9 +3450,7 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         expect(listed.count).toBe(0);
       }
 
-      expect(
-        (await getItem("/ai-insight", homeUser, otherInsightId)).item,
-      ).toBeNull();
+      expectNotFound(await getItem("/ai-insight", homeUser, otherInsightId));
     });
 
     test("a block with labels holds on a delete", async () => {

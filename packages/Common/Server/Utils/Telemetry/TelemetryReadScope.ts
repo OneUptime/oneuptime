@@ -98,6 +98,48 @@ export default class TelemetryReadScopeUtil {
     return scope.readableIds === null && scope.blockedIds.length === 0;
   }
 
+  /*
+   * The resources two scopes both reach: those readable under each (every
+   * resource of the project only when both read every one), less every
+   * resource either takes away. An update or a delete keeps to the resources
+   * its own grants and the read's both reach.
+   */
+  public static getScopeOfBoth(
+    first: TelemetryReadScope,
+    second: TelemetryReadScope,
+  ): TelemetryReadScope {
+    const blockedIds: Array<string> = Array.from(
+      new Set<string>([
+        ...TelemetryReadScopeUtil.getBlockedIds(first),
+        ...TelemetryReadScopeUtil.getBlockedIds(second),
+      ]),
+    );
+
+    if (first.readableIds === null || second.readableIds === null) {
+      const readable: TelemetryReadScope =
+        first.readableIds === null ? second : first;
+
+      return {
+        readableIds:
+          readable.readableIds === null
+            ? null
+            : TelemetryReadScopeUtil.filterReadableIds(
+                { readableIds: null, blockedIds: blockedIds },
+                readable.readableIds,
+              ),
+        blockedIds: blockedIds,
+      };
+    }
+
+    return {
+      readableIds: TelemetryReadScopeUtil.filterReadableIds(
+        { readableIds: second.readableIds, blockedIds: blockedIds },
+        first.readableIds,
+      ),
+      blockedIds: blockedIds,
+    };
+  }
+
   // A resource id as every comparison here reads it: lower case.
   public static normalizeId(resourceId: ObjectID | string): string {
     return resourceId.toString().trim().toLowerCase();

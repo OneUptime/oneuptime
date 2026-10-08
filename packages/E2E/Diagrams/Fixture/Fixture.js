@@ -17,6 +17,7 @@ import "Common/UI/Styles/Theme.css";
  *           diagram.
  *   plain   the sequence diagram only: nothing that needs KaTeX.
  *   broken  a diagram that does not parse.
+ *   mixed   the one that does not parse, then both kinds that do.
  *   none    no diagram at all.
  *
  * ?theme=dark turns the dark theme on before anything renders; the Toggle
@@ -50,6 +51,7 @@ const MARKDOWN = {
   all: ["## Diagrams", "", FLOWCHART, "", SEQUENCE].join("\n"),
   plain: ["## Diagrams", "", SEQUENCE].join("\n"),
   broken: ["## Diagrams", "", BROKEN].join("\n"),
+  mixed: ["## Diagrams", "", BROKEN, "", FLOWCHART, "", SEQUENCE].join("\n"),
   none: ["## No diagrams", "", "Just text, and `code`."].join("\n"),
 };
 

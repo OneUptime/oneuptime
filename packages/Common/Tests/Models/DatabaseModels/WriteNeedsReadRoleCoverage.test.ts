@@ -64,20 +64,13 @@ const AUTOMATIC_PERMISSIONS: Set<string> = new Set<string>([
 const WRITES_WITHOUT_READ: Array<string> = [];
 
 /*
- * Lines of the parent sweep that are deliberate. May only shrink.
- *
- * A status page's single sign-on providers list ProjectUser and Public on
- * their read lists for the status page's own sign-in page, which reads them
- * as root (StatusPageAPI, the Identity routes). Through the API they are
- * read like every other record of a status page: only by someone who may
- * read the status page.
+ * Lines of the parent sweep that are deliberate. May only shrink - and is
+ * empty: a status page's single sign-on providers no longer list ProjectUser
+ * and Public on their read lists (the status page's own sign-in page reads
+ * them as root), so every model read through another one is read only by
+ * roles that may read that other one.
  */
-const READS_WITHOUT_PARENT: Array<string> = [
-  "StatusPageOIDC (read through StatusPage) read: ProjectUser",
-  "StatusPageOIDC (read through StatusPage) read: Public",
-  "StatusPageSSO (read through StatusPage) read: ProjectUser",
-  "StatusPageSSO (read through StatusPage) read: Public",
-];
+const READS_WITHOUT_PARENT: Array<string> = [];
 
 /*
  * The models whose shipped readers do not read the record they are read

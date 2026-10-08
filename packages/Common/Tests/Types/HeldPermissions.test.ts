@@ -773,6 +773,77 @@ describe("HeldPermissionsUtil.getGrantingPermissions", () => {
   });
 });
 
+/*
+ * A write needs a read: the one rule, and the one wording, the database
+ * models (TablePermission.checkTableLevelReadForWrite) and the analytics
+ * models (AnalyticsDatabase/ModelPermission) refuse an update or a delete
+ * with when the caller may read none of the table's records.
+ */
+describe("HeldPermissionsUtil.getReadForWriteRefusal", () => {
+  const MONITOR_READ: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ReadProjectMonitor,
+  ];
+
+  const refusalFor: (
+    rows: Array<UserPermission>,
+    readPermissions?: Array<Permission>,
+  ) => string | null = (
+    rows: Array<UserPermission>,
+    readPermissions?: Array<Permission>,
+  ): string | null => {
+    return HeldPermissionsUtil.getReadForWriteRefusal(held(rows), {
+      readPermissions: readPermissions ?? MONITOR_READ,
+      wildcard: Permission.ReadAllOperationalResources,
+      recordName: "Monitor",
+      operation: "delete",
+    });
+  };
+
+  test("a caller who may read the table may write it", () => {
+    expect(refusalFor([row(Permission.ReadProjectMonitor)])).toBeNull();
+    // Limited to labels or owned records, the read still lets some in.
+    expect(
+      refusalFor([row(Permission.ReadProjectMonitor, { labelled: true })]),
+    ).toBeNull();
+    // The operational-resource wildcard reads it too.
+    expect(
+      refusalFor([row(Permission.ReadAllOperationalResources)]),
+    ).toBeNull();
+  });
+
+  test("a caller who holds none of its read permissions is told which they need", () => {
+    expect(refusalFor([row(Permission.EditProjectMonitor)])).toBe(
+      "You do not have permissions to delete Monitor: changing or deleting a record needs permission to read it too. You need one of these permissions: Project Owner, Read Monitor",
+    );
+  });
+
+  test("a block with no labels on a read permission refuses, whatever else is held", () => {
+    expect(
+      refusalFor([
+        row(Permission.ReadAllOperationalResources),
+        row(Permission.ReadProjectMonitor, { isBlock: true }),
+      ]),
+    ).toBe(
+      `You are not authorized to delete Monitor because you may not read it: ${Permission.ReadProjectMonitor} is in your team's permission block list.`,
+    );
+
+    // A block with labels only leaves the records carrying them out.
+    expect(
+      refusalFor([
+        row(Permission.ReadProjectMonitor),
+        row(Permission.ReadProjectMonitor, { isBlock: true, labelled: true }),
+      ]),
+    ).toBeNull();
+  });
+
+  test("a table nobody may read is written by nobody", () => {
+    expect(refusalFor([row(Permission.ReadAllOperationalResources)], [])).toBe(
+      "delete on Monitor is not allowed: nobody may read it.",
+    );
+  });
+});
+
 describe("HeldPermissionsUtil.isLoaded", () => {
   test("a snapshot with anything in it, a block included, is loaded", () => {
     expect(HeldPermissionsUtil.isLoaded(held([]))).toBe(false);

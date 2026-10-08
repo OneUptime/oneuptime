@@ -152,15 +152,18 @@ export default class TablePermission {
    * (HeldPermissionsUtil.getGrantingPermissions): the model's own list, and
    * its wildcard unless a block with no labels takes the wildcard away or
    * the list is empty (nobody may do the operation). For a later step that
-   * weighs the scope of the rows that grant (OwnedScopePermission).
+   * weighs the scope of the rows that grant (OwnedScopePermission), or the
+   * labels they are limited to (AccessControlPermission). `held` is what the
+   * caller holds when the step has read it already (getHeldPermissions).
    */
   public static getGrantingPermissions(
     modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
     props: DatabaseCommonInteractionProps,
+    held?: HeldPermissions,
   ): Array<Permission> {
     return HeldPermissionsUtil.getGrantingPermissions(
-      TablePermission.getHeldPermissions(props),
+      held ?? TablePermission.getHeldPermissions(props),
       {
         modelPermissions: TablePermission.getTablePermission(modelType, type),
         wildcard: TablePermission.getModelWildcard(modelType, type),
@@ -174,7 +177,9 @@ export default class TablePermission {
    * may read none of the table's records changes and deletes none of them:
    * one who holds none of the table's read permissions (nor its read
    * wildcard), or whose block with no labels takes one of them away. Refused
-   * like a missing write permission, naming the read permissions it needs.
+   * like a missing write permission, naming the read permissions it needs
+   * (HeldPermissionsUtil.getReadForWriteRefusal - the analytics models
+   * refuse with the same rule and words).
    */
   @CaptureSpan()
   public static checkTableLevelReadForWrite(
@@ -182,50 +187,25 @@ export default class TablePermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): void {
-    const model: BaseModel = new modelType();
-    const readPermissions: Array<Permission> =
-      TablePermission.getTablePermission(modelType, DatabaseRequestType.Read);
-    const held: HeldPermissions = TablePermission.getHeldPermissions(props);
-
-    const blockedReadPermission: Permission | undefined = readPermissions.find(
-      (permission: Permission): boolean => {
-        return held.blocked.includes(permission);
-      },
-    );
-
-    if (blockedReadPermission) {
-      throw new NotAuthorizedException(
-        `You are not authorized to ${type} ${model.singularName} because you may not read it: ${blockedReadPermission} is in your team's permission block list.`,
-      );
-    }
-
-    if (
-      HeldPermissionsUtil.isGrantedAny(held, readPermissions, {
+    const refusal: string | null = HeldPermissionsUtil.getReadForWriteRefusal(
+      TablePermission.getHeldPermissions(props),
+      {
+        readPermissions: TablePermission.getTablePermission(
+          modelType,
+          DatabaseRequestType.Read,
+        ),
         wildcard: TablePermission.getModelWildcard(
           modelType,
           DatabaseRequestType.Read,
         ),
-      })
-    ) {
-      return;
-    }
-
-    const titles: Array<string> =
-      PermissionHelper.getPermissionTitles(readPermissions);
-
-    if (titles.length === 0) {
-      throw new NotAuthorizedException(
-        `${type} on ${model.singularName} is not allowed: nobody may read it.`,
-      );
-    }
-
-    throw new NotAuthorizedException(
-      `You do not have permissions to ${type} ${
-        model.singularName
-      }: changing or deleting a record needs permission to read it too. You need one of these permissions: ${titles.join(
-        ", ",
-      )}`,
+        recordName: new modelType().singularName,
+        operation: type,
+      },
     );
+
+    if (refusal) {
+      throw new NotAuthorizedException(refusal);
+    }
   }
 
   @CaptureSpan()

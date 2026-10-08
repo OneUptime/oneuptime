@@ -46,7 +46,9 @@ made with the frontends' esbuild settings by
 images run right after Common is copied in (`packages/Common/UI/esbuild-mermaid.js`
 has the details). Upgrading mermaid or katex in `packages/Common/package.json`
 is all it takes to keep it current. To draw diagrams from a server run outside
-Docker, run that script once.
+Docker, run that script once; without it, the docs and the blog show each
+diagram as its source under "This diagram could not be drawn." and log one
+console error.
 
 ## Refreshing highlight.js
 

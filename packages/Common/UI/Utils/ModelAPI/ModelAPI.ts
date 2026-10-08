@@ -433,12 +433,35 @@ export default class ModelAPI {
       throw new BadDataException("This model does not support get operations.");
     }
 
-    return this.post<TBaseModel>({
-      modelType: data.modelType,
-      apiUrl: apiUrl,
-      select: data.select,
-      requestOptions: data.requestOptions,
-    });
+    try {
+      return await this.post<TBaseModel>({
+        modelType: data.modelType,
+        apiUrl: apiUrl,
+        select: data.select,
+        requestOptions: data.requestOptions,
+      });
+    } catch (error) {
+      /*
+       * The API's get-item route answers 404 for a record that does not
+       * exist or that the caller may not read: no record, which every
+       * caller of getItem already handles as null. A route of the caller's
+       * own (overrideRequestUrl) says what its 404 means itself - a route
+       * that is not there answers 404 too - so its failures are raised.
+       */
+      if (
+        !data.requestOptions?.overrideRequestUrl &&
+        ModelAPI.isNotFound(error)
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  // Whether a request failed because the record is not one the caller can reach.
+  public static isNotFound(error: unknown): boolean {
+    return error instanceof HTTPErrorResponse && error.statusCode === 404;
   }
 
   public static async post<TBaseModel extends BaseModel>(data: {
