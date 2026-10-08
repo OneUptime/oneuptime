@@ -52,10 +52,13 @@
  *
  * Fenced code is read in linear time by every parser: its content costs no
  * inline work, and a code block is only held back - whole, as text - when
- * there are more lines than limits.maxLines. limits.holdBackCodeBlockContent
- * holds back its content as one token, so a parser whose time grows with
- * lines (slackify) reads one - the caller writes it back as it was, in the
- * code block.
+ * there are more lines than limits.maxLines. With
+ * limits.holdBackCodeBlockContent, where the lines of code would hold back
+ * more than that, the content of each code block is held back as one token
+ * instead, so a parser whose time grows with lines (remark, slackify) reads
+ * one - the caller writes it back as it was, in the code block. A text whose
+ * lines are within limits.maxLines with its code as written keeps its code
+ * as it is.
  *
  * The measuring is conservative: when it cannot tell whether two lines are
  * one block or two for the parser, it counts them as one, which can only
@@ -1355,6 +1358,24 @@ const chooseSegmentsToHoldBack: (
   return heldBack;
 };
 
+// Whether two sets of segments hold the same segments.
+const isSameSegmentSet: (a: Set<Segment>, b: Set<Segment>) => boolean = (
+  a: Set<Segment>,
+  b: Set<Segment>,
+): boolean => {
+  if (a.size !== b.size) {
+    return false;
+  }
+
+  for (const segment of a) {
+    if (!b.has(segment)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 // Where a segment's first line starts, and its last line ends.
 const getSegmentStart: (segment: Segment) => number = (
   segment: Segment,
@@ -1414,10 +1435,31 @@ export const holdBackSlowMarkdown: (
     countWordUnderscores: appliedLimits.countWordUnderscores,
   });
 
-  const heldBack: Set<Segment> = chooseSegmentsToHoldBack(
+  let heldBack: Set<Segment> = chooseSegmentsToHoldBack(
     segments,
     appliedLimits,
   );
+
+  /*
+   * The content of fenced code is held back as one token only where that
+   * keeps something from being held back as text: when the code, as
+   * written, holds back nothing more, every code block stays as it is.
+   */
+  if (appliedLimits.holdBackCodeBlockContent) {
+    const codeAsWritten: SlowMarkdownLimits = {
+      ...appliedLimits,
+      holdBackCodeBlockContent: false,
+    };
+    const heldWithCodeAsWritten: Set<Segment> = chooseSegmentsToHoldBack(
+      segments,
+      codeAsWritten,
+    );
+
+    if (isSameSegmentSet(heldWithCodeAsWritten, heldBack)) {
+      appliedLimits = codeAsWritten;
+      heldBack = heldWithCodeAsWritten;
+    }
+  }
 
   const pieces: Array<string> = [];
   let copiedUpTo: number = 0;

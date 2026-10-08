@@ -389,26 +389,58 @@ describe("holdBackSlowMarkdown - which runs are held back", () => {
     expect(recorded.lines).toEqual([block]);
   });
 
-  test("the content of fenced code is held back as one token where the parser asks for it", () => {
+  test("the content of fenced code is held back as one token where its lines would hold back more", () => {
     const content: string = "line *a\nline [b";
     const text: string = `${FILLER}\`\`\`js\n${content}\n\`\`\`\n\nafter`;
 
+    /*
+     * The filler, the code block's three lines and "after" make five; with
+     * its two lines of content it is six. Held to five lines, the content
+     * is held back as one token, and the code block stays a code block...
+     */
     const recorded: Recorded = holdBack(text, {
       holdBackCodeBlockContent: true,
+      maxLines: 5,
     });
 
     expect(recorded.result).toBe(`${FILLER}\`\`\`js\n<C0>\n\`\`\`\n\nafter`);
     expect(recorded.code).toEqual([content]);
-    /*
-     * ...and costs one line: the filler, the code block's three and
-     * "after" make five; with its two lines of content it is six.
-     */
-    expect(
-      holdBack(text, { holdBackCodeBlockContent: true, maxLines: 5 }).lines,
-    ).toEqual([]);
+    expect(recorded.lines).toEqual([]);
+
+    // ...where a parser that does not ask for it has the block held back whole.
     expect(
       holdBack(text, { holdBackCodeBlockContent: false, maxLines: 5 }).lines,
     ).toEqual([`\`\`\`js\n${content}\n\`\`\``]);
+  });
+
+  test("fenced code within the lines a text may have stays as it was written", () => {
+    const content: string = "line *a\nline [b";
+    const text: string = `${FILLER}\`\`\`js\n${content}\n\`\`\`\n\nafter`;
+
+    for (const maxLines of [6, 2048, Number.POSITIVE_INFINITY]) {
+      const recorded: Recorded = holdBack(text, {
+        holdBackCodeBlockContent: true,
+        maxLines: maxLines,
+      });
+
+      expect([maxLines, recorded.result === text]).toEqual([maxLines, true]);
+      expect(recorded.code).toEqual([]);
+    }
+  });
+
+  test("code held back as tokens only when that keeps a run from being held back as text", () => {
+    const block: string = "```\na\nb\nc\nd\n```";
+    const text: string = `${FILLER}${block}\n\nlast words`;
+
+    // Seven lines as written; five with the block's content as one token.
+    const recorded: Recorded = holdBack(text, {
+      holdBackCodeBlockContent: true,
+      maxLines: 5,
+    });
+
+    expect(recorded.result).toBe(`${FILLER}\`\`\`\n<C0>\n\`\`\`\n\nlast words`);
+    expect(recorded.code).toEqual(["a\nb\nc\nd"]);
+    expect(putBack(recorded)).toBe(text);
   });
 
   test("a text in which nothing is costly comes back exactly as it was", () => {
