@@ -5,7 +5,7 @@ import MarkdownDataUrls, {
   isDataUrl,
 } from "../../../Utils/Markdown/MarkdownDataUrls";
 import {
-  DashboardDataUrlUse,
+  DashboardDataUrls,
   dataUrlUsesAsDashboard,
 } from "./DashboardMarkdownDataUrls";
 import { describe, expect, test } from "@jest/globals";
@@ -35,9 +35,11 @@ function find(markdown: string): MarkdownDataUrlUses {
 
 // Each use as [kind, the text it covers].
 function usesOf(markdown: string): Array<[DataUrlUseKind, string]> {
-  return find(markdown).uses.map((use: DataUrlUse): [DataUrlUseKind, string] => {
-    return [use.kind, markdown.slice(use.start, use.end)];
-  });
+  return find(markdown).uses.map(
+    (use: DataUrlUse): [DataUrlUseKind, string] => {
+      return [use.kind, markdown.slice(use.start, use.end)];
+    },
+  );
 }
 
 // A PNG of this many bytes: the PNG signature, then random-looking bytes.
@@ -195,13 +197,22 @@ describe("MarkdownDataUrls.find - never in code", () => {
     ["a code span", `\`![x](${DATA_URL})\``],
     ["a code span of two backticks", `\`\`a \` ![x](${DATA_URL})\`\``],
     ["a fenced code block", "```\n![x](" + DATA_URL + ")\n```"],
-    ["a fenced code block with an info string", "```js\n![x](" + DATA_URL + ")\n```"],
+    [
+      "a fenced code block with an info string",
+      "```js\n![x](" + DATA_URL + ")\n```",
+    ],
     ["a tilde fence", "~~~\n![x](" + DATA_URL + ")\n~~~"],
-    ["a fence closed by a longer one", "````\n```\n![x](" + DATA_URL + ")\n`````"],
+    [
+      "a fence closed by a longer one",
+      "````\n```\n![x](" + DATA_URL + ")\n`````",
+    ],
     ["a fence never closed", "```\n![x](" + DATA_URL + ")"],
     ["an indented code block", `    ![x](${DATA_URL})`],
     ["a tab-indented code block", `\t![x](${DATA_URL})`],
-    ["a fence in a list item", "- item\n\n  ```\n  ![x](" + DATA_URL + ")\n  ```"],
+    [
+      "a fence in a list item",
+      "- item\n\n  ```\n  ![x](" + DATA_URL + ")\n  ```",
+    ],
     ["a fence in a block quote", "> ```\n> ![x](" + DATA_URL + ")\n> ```"],
     ["an indented code block in a block quote", `>     ![x](${DATA_URL})`],
   ])("%s", (_label: string, markdown: string) => {
@@ -231,13 +242,13 @@ describe("MarkdownDataUrls.find - never in code", () => {
   test("raw HTML hides what is inside it", () => {
     expect(find(`<!-- ![x](${DATA_URL}) -->`).uses).toEqual([]);
     expect(find(`<div>\n![x](${DATA_URL})\n</div>`).uses).toEqual([]);
-    expect(
-      find(`a <span title="![x](${DATA_URL})">text</span>`).uses,
-    ).toEqual([]);
+    expect(find(`a <span title="![x](${DATA_URL})">text</span>`).uses).toEqual(
+      [],
+    );
     // A backtick in an attribute does not open a code span.
-    expect(
-      usesOf(`<a title="\`">x</a> ![y](${DATA_URL}) \``),
-    ).toEqual([[DataUrlUseKind.Image, `![y](${DATA_URL})`]]);
+    expect(usesOf(`<a title="\`">x</a> ![y](${DATA_URL}) \``)).toEqual([
+      [DataUrlUseKind.Image, `![y](${DATA_URL})`],
+    ]);
   });
 
   test("an escaped ! makes a link of the image", () => {
@@ -265,9 +276,7 @@ describe("MarkdownDataUrls.find - text and structure around a use", () => {
   });
 
   test("an autolink to a data: URL adds nothing to a link's text", () => {
-    expect(find(`[a <${DATA_URL}> b](${DATA_URL})`).uses[0]!.text).toBe(
-      "a b",
-    );
+    expect(find(`[a <${DATA_URL}> b](${DATA_URL})`).uses[0]!.text).toBe("a b");
   });
 
   test("the top-level block a use is in ends after the whole list, quote or table", () => {
@@ -275,7 +284,9 @@ describe("MarkdownDataUrls.find - text and structure around a use", () => {
     const quote: string = `> ![x](${DATA_URL})\n> quoted\nlazy\n\nAfter`;
     const table: string = `| a | b |\n|---|---|\n| ![x](${DATA_URL}) | c |\n| d | e |\n\nAfter`;
 
-    expect(find(list).uses[0]!.topLevelBlockEnd).toBe(list.indexOf("\n\nAfter"));
+    expect(find(list).uses[0]!.topLevelBlockEnd).toBe(
+      list.indexOf("\n\nAfter"),
+    );
     expect(find(quote).uses[0]!.topLevelBlockEnd).toBe(
       quote.indexOf("\n\nAfter"),
     );
@@ -484,14 +495,13 @@ function ownKeysOf(markdown: string): Array<string> {
 describe("MarkdownDataUrls.find - the same as the dashboard's parser", () => {
   test("on handwritten corner cases and 3000 generated texts", () => {
     const texts: Array<string> = HANDWRITTEN.concat(generateTexts(3000, 4532));
-    const expected: Array<Array<DashboardDataUrlUse>> =
-      dataUrlUsesAsDashboard(texts);
+    const expected: Array<DashboardDataUrls> = dataUrlUsesAsDashboard(texts);
 
     const mismatches: Array<string> = [];
 
     texts.forEach((text: string, index: number): void => {
       const mine: Array<string> = ownKeysOf(text);
-      const theirs: Array<string> = expected[index]!.map(keyOf).sort();
+      const theirs: Array<string> = expected[index]!.uses.map(keyOf).sort();
 
       if (mine.join(" ") !== theirs.join(" ")) {
         mismatches.push(
@@ -516,21 +526,36 @@ const TIME_BOUND_IN_MS: number = 5000;
 
 describe("MarkdownDataUrls.find - linear time", () => {
   test.each([
-    ["an 8 MB screenshot", (png: string): string => {
-      return `Timeout\n![Login page](data:image/png;base64,${png})\n\nmore`;
-    }],
-    ["an 8 MB screenshot by reference", (png: string): string => {
-      return `![Login page][s]\n\n[s]: data:image/png;base64,${png}`;
-    }],
-    ["an 8 MB screenshot in a code block", (png: string): string => {
-      return "```\n![x](data:image/png;base64," + png + ")\n```";
-    }],
-    ["an 8 MB screenshot in a code span", (png: string): string => {
-      return "`![x](data:image/png;base64," + png + ")`";
-    }],
-    ["an 8 MB screenshot that never closes", (png: string): string => {
-      return "![x](data:image/png;base64," + png;
-    }],
+    [
+      "an 8 MB screenshot",
+      (png: string): string => {
+        return `Timeout\n![Login page](data:image/png;base64,${png})\n\nmore`;
+      },
+    ],
+    [
+      "an 8 MB screenshot by reference",
+      (png: string): string => {
+        return `![Login page][s]\n\n[s]: data:image/png;base64,${png}`;
+      },
+    ],
+    [
+      "an 8 MB screenshot in a code block",
+      (png: string): string => {
+        return "```\n![x](data:image/png;base64," + png + ")\n```";
+      },
+    ],
+    [
+      "an 8 MB screenshot in a code span",
+      (png: string): string => {
+        return "`![x](data:image/png;base64," + png + ")`";
+      },
+    ],
+    [
+      "an 8 MB screenshot that never closes",
+      (png: string): string => {
+        return "![x](data:image/png;base64," + png;
+      },
+    ],
   ])("%s", (_label: string, shape: (png: string) => string) => {
     const png: string = pngOfSize(6 * 1024 * 1024);
     const markdown: string = shape(png);
@@ -549,51 +574,96 @@ describe("MarkdownDataUrls.find - linear time", () => {
   });
 
   test.each([
-    ["nested list markers", (length: number): string => {
-      return "- ".repeat(length / 2) + "data:";
-    }],
-    ["nested quotes", (length: number): string => {
-      return "> ".repeat(length / 2) + "data:";
-    }],
-    ["opening brackets", (length: number): string => {
-      return "[".repeat(length) + `![x](${DATA_URL})`;
-    }],
-    ["closing brackets", (length: number): string => {
-      return "]".repeat(length) + "data:";
-    }],
-    ["nested brackets with a definition", (length: number): string => {
-      return `[a]: ${DATA_URL}\n\n${"[".repeat(length / 2)}a${"]".repeat(length / 2)}`;
-    }],
-    ["image openers", (length: number): string => {
-      return "![".repeat(length / 2) + "data:";
-    }],
-    ["backticks", (length: number): string => {
-      return "`a ``b ".repeat(length / 7) + "data:";
-    }],
-    ["unclosed links", (length: number): string => {
-      return "[a](".repeat(length / 4) + "data:";
-    }],
-    ["unclosed links with a definition", (length: number): string => {
-      return `[a]: ${DATA_URL}\n\n${"[a](".repeat(length / 4)}`;
-    }],
-    ["unclosed titles", (length: number): string => {
-      return '[a](b "'.repeat(length / 7) + "data:";
-    }],
-    ["unclosed attributes", (length: number): string => {
-      return '<a b="'.repeat(length / 6) + "data:";
-    }],
-    ["unclosed comments", (length: number): string => {
-      return "<!--".repeat(length / 4) + "data:";
-    }],
-    ["unclosed autolinks", (length: number): string => {
-      return "<a:".repeat(length / 3) + "data:";
-    }],
-    ["emphasis", (length: number): string => {
-      return "*a ".repeat(length / 3) + `![x](${DATA_URL})`;
-    }],
-    ["images", (length: number): string => {
-      return `![x](${DATA_URL}) `.repeat(Math.max(1, length / 100));
-    }],
+    [
+      "nested list markers",
+      (length: number): string => {
+        return "- ".repeat(length / 2) + "data:";
+      },
+    ],
+    [
+      "nested quotes",
+      (length: number): string => {
+        return "> ".repeat(length / 2) + "data:";
+      },
+    ],
+    [
+      "opening brackets",
+      (length: number): string => {
+        return "[".repeat(length) + `![x](${DATA_URL})`;
+      },
+    ],
+    [
+      "closing brackets",
+      (length: number): string => {
+        return "]".repeat(length) + "data:";
+      },
+    ],
+    [
+      "nested brackets with a definition",
+      (length: number): string => {
+        return `[a]: ${DATA_URL}\n\n${"[".repeat(length / 2)}a${"]".repeat(length / 2)}`;
+      },
+    ],
+    [
+      "image openers",
+      (length: number): string => {
+        return "![".repeat(length / 2) + "data:";
+      },
+    ],
+    [
+      "backticks",
+      (length: number): string => {
+        return "`a ``b ".repeat(length / 7) + "data:";
+      },
+    ],
+    [
+      "unclosed links",
+      (length: number): string => {
+        return "[a](".repeat(length / 4) + "data:";
+      },
+    ],
+    [
+      "unclosed links with a definition",
+      (length: number): string => {
+        return `[a]: ${DATA_URL}\n\n${"[a](".repeat(length / 4)}`;
+      },
+    ],
+    [
+      "unclosed titles",
+      (length: number): string => {
+        return '[a](b "'.repeat(length / 7) + "data:";
+      },
+    ],
+    [
+      "unclosed attributes",
+      (length: number): string => {
+        return '<a b="'.repeat(length / 6) + "data:";
+      },
+    ],
+    [
+      "unclosed comments",
+      (length: number): string => {
+        return "<!--".repeat(length / 4) + "data:";
+      },
+    ],
+    [
+      "unclosed autolinks",
+      (length: number): string => {
+        return "<a:".repeat(length / 3) + "data:";
+      },
+    ],
+    [
+      "emphasis",
+      (length: number): string => {
+        return "*a ".repeat(length / 3) + `![x](${DATA_URL})`;
+      },
+    ],
+    [
+      "images",
+      (length: number): string => {
+        return `![x](${DATA_URL}) `.repeat(Math.max(1, length / 100));
+      },
+    ],
   ])("%s", (_label: string, shape: (length: number) => string) => {
     for (const length of [20000, 160000]) {
       const markdown: string = shape(length);

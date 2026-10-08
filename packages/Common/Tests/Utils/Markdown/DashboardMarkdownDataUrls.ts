@@ -3,12 +3,12 @@ import path from "path";
 
 /*
  * Where the dashboard's Markdown parser finds the images, links, autolinks
- * and link reference definitions whose address is a data: URL. The
- * dashboard (react-markdown with remark-gfm) and Slack's conversion
- * (slackify-markdown) both read Markdown with micromark and its GitHub
- * extensions; Jest does not load micromark's ES modules, so it is run here in
- * a child process: mdast-util-from-markdown with micromark-extension-gfm,
- * which gives every node where it is in the text.
+ * and link reference definitions whose address is a data: URL, and its code
+ * spans and code blocks. The dashboard (react-markdown with remark-gfm) and
+ * Slack's conversion (slackify-markdown) both read Markdown with micromark
+ * and its GitHub extensions; Jest does not load micromark's ES modules, so it
+ * is run here in a child process: mdast-util-from-markdown with
+ * micromark-extension-gfm, which gives every node where it is in the text.
  *
  * A reference ("![alt][label]", "[text]") is reported with the definition's
  * address. A definition ends, in micromark, where its destination or title
@@ -55,8 +55,13 @@ const FIND_SCRIPT: string = `
       });
 
       const uses = [];
+      const code = [];
 
       walk(tree, (node) => {
+        if (node.type === "code" || node.type === "inlineCode") {
+          code.push([node.position.start.offset, node.position.end.offset]);
+        }
+
         let url = null;
         let kind = null;
 
@@ -86,7 +91,7 @@ const FIND_SCRIPT: string = `
         }
       });
 
-      return uses;
+      return { uses: uses, code: code };
     });
 
     process.stdout.write(JSON.stringify(results));
@@ -99,14 +104,20 @@ export interface DashboardDataUrlUse {
   end: number;
 }
 
+export interface DashboardDataUrls {
+  uses: Array<DashboardDataUrlUse>;
+  // Every code span and code block, as [start, end) in the text.
+  code: Array<[number, number]>;
+}
+
 export type DataUrlUsesAsDashboardFunction = (
   texts: Array<string>,
-) => Array<Array<DashboardDataUrlUse>>;
+) => Array<DashboardDataUrls>;
 
 // What the dashboard's parser finds in each text, in order.
 export const dataUrlUsesAsDashboard: DataUrlUsesAsDashboardFunction = (
   texts: Array<string>,
-): Array<Array<DashboardDataUrlUse>> => {
+): Array<DashboardDataUrls> => {
   return JSON.parse(
     childProcess.execFileSync(
       process.execPath,
@@ -119,5 +130,5 @@ export const dataUrlUsesAsDashboard: DataUrlUsesAsDashboardFunction = (
         maxBuffer: 256 * 1024 * 1024,
       },
     ),
-  ) as Array<Array<DashboardDataUrlUse>>;
+  ) as Array<DashboardDataUrls>;
 };
