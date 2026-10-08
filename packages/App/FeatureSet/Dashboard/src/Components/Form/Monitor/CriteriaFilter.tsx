@@ -399,6 +399,33 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           )}
 
         {criteriaFilter?.checkOn &&
+          criteriaFilter?.checkOn === CheckOn.ResultValue && (
+            <div className="mt-1">
+              <FieldLabelElement
+                title="Field Path (Optional)"
+                description="Compare one field of the data your script returns instead of the whole value - for example status, cpu_busy_percent or data.items[0].value. Use dots for nested fields and [n] for array items. Leave empty to compare the whole result."
+              />
+
+              <Input
+                placeholder="status or data.items[0].value"
+                value={
+                  criteriaFilter?.customCodeMonitorOptions?.resultValuePath ||
+                  ""
+                }
+                onChange={(value: string) => {
+                  props.onChange?.({
+                    ...criteriaFilter,
+                    customCodeMonitorOptions: {
+                      ...criteriaFilter?.customCodeMonitorOptions,
+                      resultValuePath: value || undefined,
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+        {criteriaFilter?.checkOn &&
           (criteriaFilter.checkOn === CheckOn.SnmpOidValue ||
             criteriaFilter.checkOn === CheckOn.SnmpOidExists) &&
           (() => {
