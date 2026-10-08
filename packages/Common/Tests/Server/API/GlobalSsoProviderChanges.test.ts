@@ -42,6 +42,7 @@ import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
 import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
+import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
   afterEach,
   beforeEach,
@@ -183,29 +184,17 @@ const askedValues: (value: unknown) => Array<string> | null = (
   throw new Error(`This test cannot read the query value ${String(value)}`);
 };
 
+/*
+ * Whether a row matches a repository `where`, as Postgres would decide it:
+ * values and ids, and the operators the services write - ids among those
+ * read, rows deleted before (deletedAt set), several conditions on one
+ * column together (InMemoryRepository).
+ */
 const matches: (row: Row, where: Record<string, unknown>) => boolean = (
   row: Row,
   where: Record<string, unknown>,
 ): boolean => {
-  for (const [column, value] of Object.entries(where || {})) {
-    const asked: Array<string> | null = askedValues(value);
-
-    if (asked === null) {
-      continue;
-    }
-
-    const held: unknown = row[column];
-
-    if (
-      held === undefined ||
-      held === null ||
-      !asked.includes(String(held).toLowerCase())
-    ) {
-      return false;
-    }
-  }
-
-  return true;
+  return rowMatchesWhere(row, where);
 };
 
 const toStored: (value: unknown) => unknown = (value: unknown): unknown => {
@@ -1777,14 +1766,14 @@ describe("the server's Require SSO for Login", () => {
     expect(configTable.writes).toEqual([]);
   });
 
-  test("the lock is kept before each page of projects the check reads, and once more before the write", async () => {
+  test("the lock is kept before each page of projects the check reads, once it is done, and once more right before the write", async () => {
     globalSamlTable.rows = [
       { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
     ];
 
     await expect(updateServerRule(true)).resolves.toBe("done");
 
-    expect(kept).toEqual([SERVER_LOCK, SERVER_LOCK]);
+    expect(kept).toEqual([SERVER_LOCK, SERVER_LOCK, SERVER_LOCK]);
   });
 
   test("turning it off, or saving it on again, is never refused", async () => {

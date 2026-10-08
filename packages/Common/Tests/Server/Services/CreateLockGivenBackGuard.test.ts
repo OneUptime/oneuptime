@@ -14,8 +14,9 @@ import path from "path";
  * A CREATE THAT TAKES A LOCK GIVES IT BACK, HOWEVER IT ENDS.
  *
  * A service whose create hooks take a lock - a state timeline takes its
- * event's in onBeforeCreate, ProjectService the server's sign-in rules in
- * onCreatePermitted - gives it back in onCreateSuccess once the record is
+ * event's in onBeforeCreate, ProjectService and a global SSO provider's
+ * attachments the server's sign-in rules in onCreatePermitted - gives it
+ * back in onCreateSuccess once the record is
  * saved. A create refused or failed after the lock was taken never gets
  * there: a check DatabaseService.create runs after the hooks, the INSERT,
  * or a success hook that throws before it gives the lock back. Such a lock
@@ -45,13 +46,19 @@ const SERVICES_DIR: string = path.join(COMMON_DIR, "Server", "Services");
 // The create hooks that run before the record is written.
 const HOOKS_THAT_TAKE: Array<string> = ["onBeforeCreate", "onCreatePermitted"];
 
-// Taking a lock, by hand or through the helpers that do.
+/*
+ * Taking a lock, by hand or through the helpers that do. A global SSO
+ * provider's attachment takes the one on the server's sign-in rules for its
+ * check (GlobalSsoProviderChanges.beforeAttachmentCreate), and keeps it
+ * alive while it is written (ProjectSsoProviderChanges.holdForWrite): one
+ * nobody gave back would be kept alive for minutes.
+ */
 const TAKES_A_LOCK: RegExp =
-  /\b(Semaphore\.lock|StateChangeLock\.take|SsoRequirementChanges\.beforeProjectCreate|ProjectSsoProviderChanges\.lockSignInChange)\s*\(/;
+  /\b(Semaphore\.lock|StateChangeLock\.take|SsoRequirementChanges\.beforeProjectCreate|ProjectSsoProviderChanges\.lockSignInChange|GlobalSsoProviderChanges\.beforeAttachmentCreate)\s*\(/;
 
 // Giving one back.
 const GIVES_IT_BACK: RegExp =
-  /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange)\s*\(/;
+  /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange|GlobalSsoProviderChanges\.afterWrite)\s*\(/;
 
 // onCreateError takes what onBeforeCreate handed back.
 const ERROR_HOOK_TAKES_THE_CREATE: RegExp =
@@ -63,6 +70,8 @@ const ERROR_HOOK_TAKES_THE_CREATE: RegExp =
 const LOCKING_CREATES: Record<string, string> = {
   "AlertEpisodeStateTimelineService.ts": "the alert episode",
   "AlertStateTimelineService.ts": "the alert",
+  "GlobalOidcProjectService.ts": "the server's sign-in rules",
+  "GlobalSsoProjectService.ts": "the server's sign-in rules",
   "IncidentEpisodeStateTimelineService.ts": "the incident episode",
   "IncidentStateTimelineService.ts": "the incident",
   "MonitorStatusTimelineService.ts": "the monitor (failing closed)",

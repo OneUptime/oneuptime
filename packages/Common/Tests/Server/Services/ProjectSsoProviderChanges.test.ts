@@ -45,6 +45,7 @@ import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import { getJestSpyOn } from "../../Spy";
+import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
   afterEach,
   beforeEach,
@@ -224,29 +225,17 @@ const askedValues: (value: unknown) => Array<string> | null = (
   throw new Error(`This test cannot read the query value ${String(value)}`);
 };
 
+/*
+ * Whether a row matches a repository `where`, as Postgres would decide it:
+ * values and ids, and the operators the services write - ids among those
+ * read, rows deleted before (deletedAt set), several conditions on one
+ * column together (InMemoryRepository).
+ */
 const matches: (row: Row, where: Record<string, unknown>) => boolean = (
   row: Row,
   where: Record<string, unknown>,
 ): boolean => {
-  for (const [column, value] of Object.entries(where || {})) {
-    const asked: Array<string> | null = askedValues(value);
-
-    if (asked === null) {
-      continue;
-    }
-
-    const held: unknown = row[column];
-
-    if (
-      held === undefined ||
-      held === null ||
-      !asked.includes(String(held).toLowerCase())
-    ) {
-      return false;
-    }
-  }
-
-  return true;
+  return rowMatchesWhere(row, where);
 };
 
 // The repository of a provider table, over the rows above.
@@ -1367,13 +1356,35 @@ describe("the check and the write hold the project's lock", () => {
   );
 
   test.each(KINDS)(
-    "%s: the locks are kept while the check runs, and once more before the write",
+    "%s: the locks are kept while the check runs, once it is done, and once more right before the write",
     async (_label: string, kind: ProviderKind) => {
       leaveItLast(kind);
 
       await expect(turnOff(kind)).resolves.toBe(1);
 
-      // Before the page of projects the check reads, and once it is done.
+      /*
+       * Before the page of projects the check reads, once it is done (the
+       * update's onBeforeUpdate), and right before the write (its
+       * onUpdatePermitted, the last step before it).
+       */
+      expect(kept).toEqual([
+        PROJECT_ID.toString(),
+        SERVER_LOCK,
+        PROJECT_ID.toString(),
+        SERVER_LOCK,
+        PROJECT_ID.toString(),
+        SERVER_LOCK,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a delete keeps its locks while the check runs and once more when it is done, the last step before the delete",
+    async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+
+      await expect(remove(kind)).resolves.toBe(1);
+
       expect(kept).toEqual([
         PROJECT_ID.toString(),
         SERVER_LOCK,
