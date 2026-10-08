@@ -7,9 +7,11 @@ import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import logger from "../../../Server/Utils/Logger";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { getJestSpyOn } from "../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -63,7 +65,7 @@ function createdPage(): StatusPage {
   return page;
 }
 
-function pickedOwners(): CreateBy<StatusPage>["miscDataProps"] {
+function pickedOwners(): JSONObject {
   return {
     ownerUsers: [OWNER_USER_ID],
     ownerTeams: [OWNER_TEAM_ID],
@@ -87,6 +89,8 @@ function stubTheCreate(events: Array<string>): void {
     });
 }
 
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -96,12 +100,12 @@ describe("the owners picked when a status page is created", () => {
     const events: Array<string> = [];
     stubTheCreate(events);
 
-    const addOwners: jest.SpiedFunction<typeof StatusPageService.addOwners> =
-      jest
-        .spyOn(StatusPageService, "addOwners")
-        .mockImplementation(async (): Promise<void> => {
-          events.push("owners");
-        });
+    const addOwners: SpyInstance = getJestSpyOn(
+      StatusPageService,
+      "addOwners",
+    ).mockImplementation(async (): Promise<void> => {
+      events.push("owners");
+    });
 
     const props: DatabaseCommonInteractionProps = creatorProps();
 
@@ -114,8 +118,21 @@ describe("the owners picked when a status page is created", () => {
     expect(events).toEqual(["created", "owners"]);
     expect(addOwners).toHaveBeenCalledTimes(1);
 
-    const [projectId, statusPageId, userIds, teamIds, notifyOwners, asProps] =
-      addOwners.mock.calls[0]!;
+    const [projectId, statusPageId, userIds, teamIds, notifyOwners, asProps]: [
+      ObjectID,
+      ObjectID,
+      Array<ObjectID>,
+      Array<ObjectID>,
+      boolean,
+      DatabaseCommonInteractionProps,
+    ] = addOwners.mock.calls[0] as [
+      ObjectID,
+      ObjectID,
+      Array<ObjectID>,
+      Array<ObjectID>,
+      boolean,
+      DatabaseCommonInteractionProps,
+    ];
 
     expect(projectId.toString()).toBe(PROJECT_ID.toString());
     expect(statusPageId.toString()).toBe(PAGE_ID.toString());
@@ -134,8 +151,10 @@ describe("the owners picked when a status page is created", () => {
       .spyOn(StatusPageOwnerRuleEngineService, "applyRulesToStatusPage")
       .mockResolvedValue(undefined as never);
 
-    const addOwners: jest.SpiedFunction<typeof StatusPageService.addOwners> =
-      jest.spyOn(StatusPageService, "addOwners").mockResolvedValue(undefined);
+    const addOwners: SpyInstance = getJestSpyOn(
+      StatusPageService,
+      "addOwners",
+    ).mockResolvedValue(undefined);
 
     const onCreate: OnCreate<StatusPage> = {
       createBy: {
@@ -161,8 +180,10 @@ describe("the owners picked when a status page is created", () => {
   test("a create that runs no hooks adds none", async () => {
     stubTheCreate([]);
 
-    const addOwners: jest.SpiedFunction<typeof StatusPageService.addOwners> =
-      jest.spyOn(StatusPageService, "addOwners").mockResolvedValue(undefined);
+    const addOwners: SpyInstance = getJestSpyOn(
+      StatusPageService,
+      "addOwners",
+    ).mockResolvedValue(undefined);
 
     await StatusPageService.create({
       data: new StatusPage(),
@@ -176,8 +197,10 @@ describe("the owners picked when a status page is created", () => {
   test("a create that picks no owners adds none", async () => {
     stubTheCreate([]);
 
-    const addOwners: jest.SpiedFunction<typeof StatusPageService.addOwners> =
-      jest.spyOn(StatusPageService, "addOwners").mockResolvedValue(undefined);
+    const addOwners: SpyInstance = getJestSpyOn(
+      StatusPageService,
+      "addOwners",
+    ).mockResolvedValue(undefined);
 
     await StatusPageService.create({
       data: new StatusPage(),
@@ -199,12 +222,13 @@ describe("the owners picked when a status page is created", () => {
       },
     );
 
-    jest.spyOn(StatusPageService, "addOwners").mockRejectedValue(refused);
-    const logged: jest.SpiedFunction<typeof logger.error> = jest
-      .spyOn(logger, "error")
-      .mockImplementation((): void => {
-        settled();
-      });
+    getJestSpyOn(StatusPageService, "addOwners").mockRejectedValue(refused);
+    const logged: SpyInstance = getJestSpyOn(
+      logger,
+      "error",
+    ).mockImplementation((): void => {
+      settled();
+    });
 
     const page: StatusPage = await StatusPageService.create({
       data: new StatusPage(),

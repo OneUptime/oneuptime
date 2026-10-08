@@ -291,11 +291,13 @@ describe("a create under a parent reads the parent as its creator would", () => 
       props: props,
     });
 
-    expect(lookup._id).toBe(INCIDENT_ID);
-    expect(lookup.projectId).toBeInstanceOf(Includes);
-    expect(
-      (lookup.projectId as unknown as Includes).values.map(String),
-    ).toEqual([PROJECT_ID.toString()]);
+    const named: Record<string, unknown> = lookup as Record<string, unknown>;
+
+    expect(named["_id"]).toBe(INCIDENT_ID);
+    expect(named["projectId"]).toBeInstanceOf(Includes);
+    expect((named["projectId"] as Includes).values.map(String)).toEqual([
+      PROJECT_ID.toString(),
+    ]);
   });
 
   test("a request that names its project reads the parents of that project, as before", async () => {
@@ -307,7 +309,9 @@ describe("a create under a parent reads the parent as its creator would", () => 
     );
 
     expect(parentReads).toHaveLength(1);
-    expect(parentReads[0]!.findBy.query.projectId).toBeUndefined();
+    expect(
+      (parentReads[0]!.findBy.query as Record<string, unknown>)["projectId"],
+    ).toBeUndefined();
     expect(parentReads[0]!.findBy.props.tenantId).toBe(PROJECT_ID);
   });
 
