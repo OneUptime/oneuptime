@@ -477,6 +477,7 @@ export class Service extends ProjectReferencesService<Model> {
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
         onCreate.createBy.props,
+        true,
       );
     }
 
@@ -490,6 +491,12 @@ export class Service extends ProjectReferencesService<Model> {
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the template are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -501,6 +508,7 @@ export class Service extends ProjectReferencesService<Model> {
       userIds: userIds,
       teamIds: teamIds,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 }

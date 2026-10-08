@@ -2,6 +2,9 @@ import DatabaseConfig from "../DatabaseConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import BasePermission from "../Types/Database/Permissions/BasePermission";
+import CreatePermission from "../Types/Database/Permissions/CreatePermission";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import UpdateBy from "../Types/Database/UpdateBy";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import CookieUtil from "../Utils/Cookie";
@@ -556,13 +559,25 @@ export class Service extends ProjectReferencesService<StatusPage> {
    * success hook), so a teammate whose read of status pages reaches only the
    * ones they own adds them as themselves, with the same checks as adding
    * them by hand - an owner row is created only under a page its creator may
-   * read (CreatePermission.checkParentPermission). In the background, as
-   * before: a failure is logged, and the page is kept.
+   * read (CreatePermission.checkParentPermission).
+   *
+   * Whether the creator may add owners at all is asked before anything is
+   * saved (checkOwnersPickedCanBeAdded): a refused pick refuses the create,
+   * so nobody gets a page without the owners they asked for. A creator
+   * whose read of status pages, or whose permission to add owners, does not
+   * reach the page they just made - limited to labels it does not carry -
+   * has OneUptime add the owners for them (OwnerRuleAssignment.createOwner),
+   * rather than lose what they picked. In the background, as before: any
+   * other failure is logged, and the page is kept.
    */
   @CaptureSpan()
   public override async create(
     createBy: CreateBy<StatusPage>,
   ): Promise<StatusPage> {
+    if (!createBy.props.ignoreHooks) {
+      this.checkOwnersPickedCanBeAdded(createBy);
+    }
+
     const createdItem: StatusPage = await super.create(createBy);
 
     if (!createBy.props.ignoreHooks) {
@@ -570,6 +585,71 @@ export class Service extends ProjectReferencesService<StatusPage> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * See create: owners picked by a creator who may not add a status page's
+   * owners - who holds no permission to create its owner rows, or none to
+   * read status pages, which those rows are read through - refuse the
+   * create before the page is saved. Root and master admin creates add any
+   * owner. Throws; returns nothing.
+   */
+  private checkOwnersPickedCanBeAdded(createBy: CreateBy<StatusPage>): void {
+    const props: DatabaseCommonInteractionProps = createBy.props;
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const ownerUsers: Array<unknown> =
+      (createBy.miscDataProps?.["ownerUsers"] as Array<unknown>) || [];
+    const ownerTeams: Array<unknown> =
+      (createBy.miscDataProps?.["ownerTeams"] as Array<unknown>) || [];
+
+    if (ownerUsers.length === 0 && ownerTeams.length === 0) {
+      return;
+    }
+
+    const projectId: ObjectID | undefined =
+      props.tenantId || createBy.data.projectId;
+    // Not known yet; any id checks the same column permissions.
+    const placeholderId: ObjectID = ObjectID.getZeroObjectID();
+
+    if (ownerUsers.length > 0) {
+      const row: StatusPageOwnerUser = new StatusPageOwnerUser();
+      row.statusPageId = placeholderId;
+      row.userId = placeholderId;
+
+      if (projectId) {
+        row.projectId = projectId;
+      }
+
+      CreatePermission.checkCreatePermissions(StatusPageOwnerUser, row, props);
+      BasePermission.isHeldToParentRead(
+        StatusPageOwnerUser,
+        StatusPage,
+        props,
+        DatabaseRequestType.Create,
+      );
+    }
+
+    if (ownerTeams.length > 0) {
+      const row: StatusPageOwnerTeam = new StatusPageOwnerTeam();
+      row.statusPageId = placeholderId;
+      row.teamId = placeholderId;
+
+      if (projectId) {
+        row.projectId = projectId;
+      }
+
+      CreatePermission.checkCreatePermissions(StatusPageOwnerTeam, row, props);
+      BasePermission.isHeldToParentRead(
+        StatusPageOwnerTeam,
+        StatusPage,
+        props,
+        DatabaseRequestType.Create,
+      );
+    }
   }
 
   // See create.
@@ -597,6 +677,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
       ownerTeams,
       false,
       createBy.props,
+      true,
     ).catch((error: Error) => {
       logger.error(`Error in StatusPageService owner assignment: ${error}`, {
         projectId: createdItem.projectId?.toString(),
@@ -744,6 +825,12 @@ export class Service extends ProjectReferencesService<StatusPage> {
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the status page are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -756,6 +843,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 

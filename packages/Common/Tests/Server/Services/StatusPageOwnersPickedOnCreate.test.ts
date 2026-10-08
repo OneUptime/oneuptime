@@ -12,6 +12,9 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -36,22 +39,40 @@ const OWNER_TEAM_ID: ObjectID = new ObjectID(
   "55555555-5555-4555-8555-555555555555",
 );
 
-// A teammate whose read of status pages reaches only the ones they own.
-function creatorProps(): DatabaseCommonInteractionProps {
+// A permission row of the creator's.
+function grant(
+  permission: Permission,
+  scope?: PermissionScope,
+): Record<string, unknown> {
+  return {
+    permission: permission,
+    labelIds: [],
+    isBlockPermission: false,
+    ...(scope ? { scope: scope } : {}),
+  };
+}
+
+/*
+ * A teammate who creates status pages and adds their owners, and whose
+ * read of status pages reaches only the ones they own.
+ */
+function creatorProps(
+  permissions: Array<Record<string, unknown>> = [
+    grant(Permission.CreateProjectStatusPage),
+    grant(Permission.CreateStatusPageOwnerUser),
+    grant(Permission.CreateStatusPageOwnerTeam),
+    grant(Permission.ReadProjectStatusPage, PermissionScope.Owned),
+  ],
+): DatabaseCommonInteractionProps {
   return {
     userId: USER_ID,
     tenantId: PROJECT_ID,
     userType: UserType.User,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
         projectId: PROJECT_ID,
-        permissions: [
-          {
-            permission: Permission.CreateProjectStatusPage,
-            labelIds: [],
-            isBlockPermission: false,
-          },
-        ],
+        permissions: permissions,
       } as never,
     },
   };
@@ -118,13 +139,22 @@ describe("the owners picked when a status page is created", () => {
     expect(events).toEqual(["created", "owners"]);
     expect(addOwners).toHaveBeenCalledTimes(1);
 
-    const [projectId, statusPageId, userIds, teamIds, notifyOwners, asProps]: [
+    const [
+      projectId,
+      statusPageId,
+      userIds,
+      teamIds,
+      notifyOwners,
+      asProps,
+      onCreatorsBehalf,
+    ]: [
       ObjectID,
       ObjectID,
       Array<ObjectID>,
       Array<ObjectID>,
       boolean,
       DatabaseCommonInteractionProps,
+      boolean,
     ] = addOwners.mock.calls[0] as [
       ObjectID,
       ObjectID,
@@ -132,6 +162,7 @@ describe("the owners picked when a status page is created", () => {
       Array<ObjectID>,
       boolean,
       DatabaseCommonInteractionProps,
+      boolean,
     ];
 
     expect(projectId.toString()).toBe(PROJECT_ID.toString());
@@ -140,6 +171,102 @@ describe("the owners picked when a status page is created", () => {
     expect(teamIds).toEqual([OWNER_TEAM_ID]);
     expect(notifyOwners).toBe(false);
     expect(asProps).toBe(props);
+    /*
+     * The owners picked with the page: added by OneUptime for its creator
+     * when their own permissions do not reach the new page.
+     */
+    expect(onCreatorsBehalf).toBe(true);
+  });
+
+  test.each([
+    [
+      "no permission to add a page's people as owners",
+      [
+        grant(Permission.CreateProjectStatusPage),
+        grant(Permission.CreateStatusPageOwnerTeam),
+        grant(Permission.ReadProjectStatusPage),
+      ],
+      "Status Page User Owner",
+    ],
+    [
+      "no permission to add a page's teams as owners",
+      [
+        grant(Permission.CreateProjectStatusPage),
+        grant(Permission.CreateStatusPageOwnerUser),
+        grant(Permission.ReadProjectStatusPage),
+      ],
+      "Status Page Team Owner",
+    ],
+    [
+      "no permission to read status pages, which owner rows are read through",
+      [
+        grant(Permission.CreateProjectStatusPage),
+        grant(Permission.CreateStatusPageOwnerUser),
+        grant(Permission.CreateStatusPageOwnerTeam),
+      ],
+      "you need one of these permissions to read Status Pages",
+    ],
+  ] as Array<[string, Array<Record<string, unknown>>, string]>)(
+    "a creator with %s is refused before the page is saved",
+    async (
+      _name: string,
+      permissions: Array<Record<string, unknown>>,
+      message: string,
+    ) => {
+      const events: Array<string> = [];
+      stubTheCreate(events);
+
+      const addOwners: SpyInstance = getJestSpyOn(
+        StatusPageService,
+        "addOwners",
+      ).mockResolvedValue(undefined);
+
+      const attempt: Promise<StatusPage> = StatusPageService.create({
+        data: new StatusPage(),
+        props: creatorProps(permissions),
+        miscDataProps: pickedOwners(),
+      });
+
+      await expect(attempt).rejects.toThrow(NotAuthorizedException);
+      await expect(attempt).rejects.toThrow(message);
+
+      expect(events).toEqual([]);
+      expect(addOwners).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a creator who picks only people needs no permission to add teams", async () => {
+    const events: Array<string> = [];
+    stubTheCreate(events);
+
+    getJestSpyOn(StatusPageService, "addOwners").mockResolvedValue(undefined);
+
+    await StatusPageService.create({
+      data: new StatusPage(),
+      props: creatorProps([
+        grant(Permission.CreateProjectStatusPage),
+        grant(Permission.CreateStatusPageOwnerUser),
+        grant(Permission.ReadProjectStatusPage),
+      ]),
+      miscDataProps: { ownerUsers: [OWNER_USER_ID] },
+    });
+
+    expect(events).toEqual(["created"]);
+  });
+
+  test("OneUptime's own create adds any owner it is given", async () => {
+    const events: Array<string> = [];
+    stubTheCreate(events);
+
+    getJestSpyOn(StatusPageService, "addOwners").mockResolvedValue(undefined);
+
+    await StatusPageService.create({
+      data: new StatusPage(),
+      props: { isRoot: true, tenantId: PROJECT_ID },
+      miscDataProps: pickedOwners(),
+    });
+
+    expect(events).toEqual(["created"]);
   });
 
   test("are not added by the success hook, which runs before the creator owns the page", async () => {

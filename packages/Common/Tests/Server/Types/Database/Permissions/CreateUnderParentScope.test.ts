@@ -1,6 +1,7 @@
 import CreatePermission, {
   CreateParent,
   ReadableParentIdsFinder,
+  RecordIdsFinder,
 } from "../../../../../Server/Types/Database/Permissions/CreatePermission";
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
 import Query from "../../../../../Server/Types/Database/Query";
@@ -227,17 +228,62 @@ const announcementOn: (
   return announcement;
 };
 
+// A lookup by OneUptime in the project, finding these records.
+interface ProjectLookup {
+  find: RecordIdsFinder;
+  calls: Array<{
+    modelType: { new (): BaseModel };
+    ids: Array<string>;
+    query: Query<BaseModel>;
+  }>;
+}
+
+const projectLookupFinding: (inProjectIds: Array<string>) => ProjectLookup = (
+  inProjectIds: Array<string>,
+): ProjectLookup => {
+  const lookup: ProjectLookup = {
+    calls: [],
+    find: async (data: {
+      modelType: { new (): BaseModel };
+      ids: Array<string>;
+      query: Query<BaseModel>;
+    }): Promise<Array<string>> => {
+      lookup.calls.push(data);
+
+      return data.ids.filter((id: string): boolean => {
+        return inProjectIds
+          .map((inProjectId: string): string => {
+            return inProjectId.toLowerCase();
+          })
+          .includes(id.toLowerCase());
+      });
+    },
+  };
+
+  return lookup;
+};
+
+/*
+ * The check as DatabaseService asks it. A model's service holds its
+ * references to its project (ProjectReferencesService) unless a test says
+ * it does not (`referencesCheckedInProject: false`, a service such as the
+ * workflow log's).
+ */
 const check: <TBaseModel extends BaseModel>(data: {
   modelType: { new (): TBaseModel };
   data: TBaseModel;
   props: DatabaseCommonInteractionProps;
   lookup: Lookup;
+  projectLookup?: ProjectLookup;
+  referencesCheckedInProject?: boolean;
   checkedParentIds?: Array<string>;
 }) => Promise<Array<string>> = async <TBaseModel extends BaseModel>(data: {
   modelType: { new (): TBaseModel };
   data: TBaseModel;
   props: DatabaseCommonInteractionProps;
   lookup: Lookup;
+  projectLookup?: ProjectLookup;
+  referencesCheckedInProject?: boolean;
   checkedParentIds?: Array<string>;
 }): Promise<Array<string>> => {
   return await ModelPermission.checkCreateParentPermission({
@@ -245,6 +291,9 @@ const check: <TBaseModel extends BaseModel>(data: {
     data: data.data,
     props: data.props,
     findReadableParentIds: data.lookup.find,
+    findParentIdsInProject: (data.projectLookup || projectLookupFinding([]))
+      .find,
+    referencesCheckedInProject: data.referencesCheckedInProject ?? true,
     checkedParentIds: data.checkedParentIds,
   });
 };
@@ -761,6 +810,42 @@ describe("a record read through another one is created only under a parent its c
 
       expect(lookup.calls).toEqual([]);
     });
+
+    test("with no reference check of its service, every parent is looked up, for a caller who reads them all too", async () => {
+      for (const rows of [
+        [everywhere(Permission.StatusPageAdmin)],
+        [everywhere(Permission.ProjectAdmin)],
+        [everywhere(Permission.ProjectOwner)],
+      ]) {
+        const lookup: Lookup = lookupFinding([PAGE_A]);
+
+        await expect(
+          check({
+            modelType: StatusPageAnnouncement,
+            data: announcementOn([{ _id: PAGE_A }]),
+            props: member(rows),
+            lookup: lookup,
+            referencesCheckedInProject: false,
+          }),
+        ).resolves.toEqual([PAGE_A]);
+
+        expect(lookup.calls).toHaveLength(1);
+        expect(lookup.calls[0]?.ids).toEqual([PAGE_A]);
+
+        // A page of another project reads like a missing one.
+        const refusal: unknown = await refusalOf(
+          check({
+            modelType: StatusPageAnnouncement,
+            data: announcementOn([{ _id: PAGE_B }]),
+            props: member(rows),
+            lookup: lookupFinding([PAGE_A]),
+            referencesCheckedInProject: false,
+          }),
+        );
+
+        expect(refusal).toBeInstanceOf(UnreadableParentException);
+      }
+    });
   });
 
   describe("a create that names no parent - a record of the whole project", () => {
@@ -911,6 +996,7 @@ describe("a record read through another one is created only under a parent its c
       link.incidentId = new ObjectID(INCIDENT_ID);
 
       const lookup: Lookup = lookupFinding([]);
+      const projectLookup: ProjectLookup = projectLookupFinding([]);
 
       await expect(
         check({
@@ -918,10 +1004,58 @@ describe("a record read through another one is created only under a parent its c
           data: link,
           props: member(ALERT_RESPONDER),
           lookup: lookup,
+          projectLookup: projectLookup,
         }),
       ).resolves.toEqual([INCIDENT_ID]);
 
+      // The service's own reference check holds it to the project.
       expect(lookup.calls).toEqual([]);
+      expect(projectLookup.calls).toEqual([]);
+    });
+
+    test("with no reference check of its service, the parent need only be the project's: looked up by OneUptime", async () => {
+      const link: IncidentAlert = new IncidentAlert();
+      link.incidentId = new ObjectID(INCIDENT_ID);
+
+      const lookup: Lookup = lookupFinding([]);
+      const projectLookup: ProjectLookup = projectLookupFinding([INCIDENT_ID]);
+
+      await expect(
+        check({
+          modelType: IncidentAlert,
+          data: link,
+          props: member(ALERT_RESPONDER),
+          lookup: lookup,
+          projectLookup: projectLookup,
+          referencesCheckedInProject: false,
+        }),
+      ).resolves.toEqual([INCIDENT_ID]);
+
+      // Never as the caller, who reads no incidents.
+      expect(lookup.calls).toEqual([]);
+      expect(projectLookup.calls).toHaveLength(1);
+      expect(projectLookup.calls[0]?.modelType).toBe(Incident);
+      expect(projectLookup.calls[0]?.ids).toEqual([INCIDENT_ID]);
+
+      // An incident of another project, or none, reads like a missing one.
+      const foreign: IncidentAlert = new IncidentAlert();
+      foreign.incidentId = new ObjectID(OTHER_INCIDENT_ID);
+
+      const refusal: unknown = await refusalOf(
+        check({
+          modelType: IncidentAlert,
+          data: foreign,
+          props: member(ALERT_RESPONDER),
+          lookup: lookupFinding([]),
+          projectLookup: projectLookupFinding([INCIDENT_ID]),
+          referencesCheckedInProject: false,
+        }),
+      );
+
+      expect(refusal).toBeInstanceOf(UnreadableParentException);
+      expect((refusal as Error).message).toContain(
+        `references records that are not in this project: Incident "${OTHER_INCIDENT_ID}"`,
+      );
     });
 
     test("a caller who reads some incidents is held to them", async () => {

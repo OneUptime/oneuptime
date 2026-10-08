@@ -9,8 +9,10 @@ import Query from "../../Types/Database/Query";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
 import {
   ProjectScopedReferenceException,
-  UnreadableParentException,
+  UnreadableReferenceException,
 } from "../Database/ProjectScopedReferenceRefusal";
+import CreateScopeException from "../../Types/Database/Permissions/CreateScopeException";
+import logger from "../Logger";
 
 /*
  * An owner row is unique per (resource, user or team, project): every
@@ -139,13 +141,25 @@ export default class OwnerRuleAssignment {
    * a member of the project, or the owner service refused the row as naming
    * a record that is not the project's (a team of another project). Every
    * other failure is thrown as before - a resource its caller may not read
-   * among them (UnreadableParentException): that is the caller's access,
-   * not a stale owner, and is not skipped as one.
+   * among them (UnreadableReferenceException), or an owner row their
+   * permission to add owners does not reach (CreateScopeException): that is
+   * the caller's access, not a stale owner, and is not skipped as one.
+   *
+   * `onCreatorsBehalf`: the owners picked in the form that created the
+   * resource, added for the person who just created it. A refusal of their
+   * reach - the new resource is not one they may read, or not one their
+   * permission to add owners reaches - is then not theirs to fix: the
+   * resource is theirs, made a moment ago, and they were allowed to add
+   * owners at all (the services check that before anything is saved). So
+   * OneUptime writes the row for them instead (root, naming them), as it
+   * writes a new monitor's first status row, rather than drop what they
+   * picked.
    */
   public static async createOwner<TOwner extends BaseModel>(data: {
     ownerService: DatabaseService<TOwner>;
     owner: TOwner;
     props: DatabaseCommonInteractionProps;
+    onCreatorsBehalf?: boolean | undefined;
   }): Promise<boolean> {
     if (!(await OwnerRuleAssignment.isOwnerInProject(data))) {
       return false;
@@ -160,9 +174,62 @@ export default class OwnerRuleAssignment {
       return true;
     } catch (error) {
       if (
+        data.onCreatorsBehalf &&
+        !data.props.isRoot &&
+        OwnerRuleAssignment.isOutOfReach(error)
+      ) {
+        return await OwnerRuleAssignment.createOwnerForCreator(data);
+      }
+
+      if (
         PostgresErrorTranslator.isUniqueViolation(error) ||
         (error instanceof ProjectScopedReferenceException &&
-          !(error instanceof UnreadableParentException))
+          !(error instanceof UnreadableReferenceException))
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Whether a write was refused because what it writes is outside the
+   * caller's reach - a record it names that they may not read, or a record
+   * their create permission does not reach - rather than for a missing
+   * permission.
+   */
+  public static isOutOfReach(error: unknown): boolean {
+    return (
+      error instanceof UnreadableReferenceException ||
+      error instanceof CreateScopeException
+    );
+  }
+
+  // See createOwner: the row written by OneUptime, for the resource's creator.
+  private static async createOwnerForCreator<TOwner extends BaseModel>(data: {
+    ownerService: DatabaseService<TOwner>;
+    owner: TOwner;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    logger.info(
+      `An owner picked when creating ${data.owner.singularName || "a resource"} is added by OneUptime for its creator: the new resource is outside what their own permissions reach.`,
+    );
+
+    try {
+      await data.ownerService.create({
+        data: data.owner,
+        props: {
+          isRoot: true,
+          userId: data.props.userId,
+        },
+      });
+
+      return true;
+    } catch (error) {
+      if (
+        PostgresErrorTranslator.isUniqueViolation(error) ||
+        error instanceof ProjectScopedReferenceException
       ) {
         return false;
       }
@@ -199,6 +266,8 @@ export default class OwnerRuleAssignment {
     isOwnerNotified?: boolean | undefined;
     createdByUserId?: ObjectID | undefined;
     props: DatabaseCommonInteractionProps;
+    // The owners picked when the resource was created. See createOwner.
+    onCreatorsBehalf?: boolean | undefined;
   }): Promise<OwnersToAssign> {
     const ownersToAdd: OwnersToAssign =
       await OwnerRuleAssignment.getOwnersNotYetAssigned({
@@ -229,6 +298,7 @@ export default class OwnerRuleAssignment {
           ownerService: data.ownerTeamService,
           owner: owner,
           props: data.props,
+          onCreatorsBehalf: data.onCreatorsBehalf,
         })
       ) {
         added.teamIds.push(teamId);
@@ -252,6 +322,7 @@ export default class OwnerRuleAssignment {
           ownerService: data.ownerUserService,
           owner: owner,
           props: data.props,
+          onCreatorsBehalf: data.onCreatorsBehalf,
         })
       ) {
         added.userIds.push(userId);

@@ -43,6 +43,9 @@ import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationR
 import TeamMemberService from "./TeamMemberService";
 import CreateBy from "../Types/Database/CreateBy";
 import CreatePermission from "../Types/Database/Permissions/CreatePermission";
+import BasePermission from "../Types/Database/Permissions/BasePermission";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -173,6 +176,19 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         join.modelType,
         join.row,
         data.props,
+      );
+    }
+
+    /*
+     * An escalation rule is read through its policy: adding one needs a
+     * permission to read on-call policies, as adding it by hand does.
+     */
+    if (!data.props.isRoot && !data.props.isMasterAdmin) {
+      BasePermission.isHeldToParentRead(
+        OnCallDutyPolicyEscalationRule,
+        OnCallDutyPolicy,
+        data.props,
+        DatabaseRequestType.Create,
       );
     }
 
@@ -334,6 +350,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   /*
    * Adds the first escalation rule of a policy just created, paging the
    * first responders. Never throws: the policy is saved already.
+   *
+   * The rule is created as the caller. A caller whose own permissions do
+   * not reach the policy they just made - their read of policies, or their
+   * permission to add escalation rules, limited to labels it does not carry
+   * - is refused that (an out-of-reach refusal: UnreadableReferenceException
+   * or CreateScopeException); what they picked is then not lost: OneUptime
+   * creates the rule for them (root, naming them), as it writes a new
+   * monitor's first status row. Whether they may add escalation rules and
+   * page those responders at all was asked before the policy was saved
+   * (checkFirstRespondersCanBePaged).
    */
   @CaptureSpan()
   public async addFirstEscalationRule(data: {
@@ -351,32 +377,36 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         );
       }
 
-      /*
-       * The responders go to the rule as its own create takes them: the
-       * rule's create hook turns these lists into its join rows.
-       */
-      const miscDataProps: JSONObject = {
-        onCallSchedules: data.responders.onCallSchedules.map(
-          (id: string): ObjectID => {
-            return new ObjectID(id);
-          },
-        ),
-        teams: data.responders.teams.map((id: string): ObjectID => {
-          return new ObjectID(id);
-        }),
-        users: data.responders.users.map((id: string): ObjectID => {
-          return new ObjectID(id);
-        }),
-      };
+      try {
+        await this.createFirstEscalationRule({
+          policyId: policyId,
+          projectId: projectId,
+          responders: data.responders,
+          props: data.props,
+        });
+      } catch (error) {
+        if (data.props.isRoot || !OwnerRuleAssignment.isOutOfReach(error)) {
+          throw error;
+        }
 
-      await OnCallDutyPolicyEscalationRuleService.create({
-        data: this.getFirstEscalationRule({
-          projectId: new ObjectID(projectId.toString()),
-          onCallDutyPolicyId: new ObjectID(policyId.toString()),
-        }),
-        miscDataProps: miscDataProps,
-        props: data.props,
-      });
+        logger.info(
+          "The first escalation rule of a new on-call policy is added by OneUptime for its creator: the new policy is outside what their own permissions reach.",
+          {
+            projectId: projectId.toString(),
+            onCallDutyPolicyId: policyId.toString(),
+          } as LogAttributes,
+        );
+
+        await this.createFirstEscalationRule({
+          policyId: policyId,
+          projectId: projectId,
+          responders: data.responders,
+          props: {
+            isRoot: true,
+            userId: data.props.userId,
+          },
+        });
+      }
     } catch (error) {
       logger.error(
         `Error adding the first escalation rule of a new on-call policy in OnCallDutyPolicyService.addFirstEscalationRule: ${error}`,
@@ -386,6 +416,41 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         } as LogAttributes,
       );
     }
+  }
+
+  // The first escalation rule, as addFirstEscalationRule creates it.
+  private async createFirstEscalationRule(data: {
+    policyId: ObjectID;
+    projectId: ObjectID;
+    responders: FirstResponderIds;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    /*
+     * The responders go to the rule as its own create takes them: the
+     * rule's create hook turns these lists into its join rows.
+     */
+    const miscDataProps: JSONObject = {
+      onCallSchedules: data.responders.onCallSchedules.map(
+        (id: string): ObjectID => {
+          return new ObjectID(id);
+        },
+      ),
+      teams: data.responders.teams.map((id: string): ObjectID => {
+        return new ObjectID(id);
+      }),
+      users: data.responders.users.map((id: string): ObjectID => {
+        return new ObjectID(id);
+      }),
+    };
+
+    await OnCallDutyPolicyEscalationRuleService.create({
+      data: this.getFirstEscalationRule({
+        projectId: new ObjectID(data.projectId.toString()),
+        onCallDutyPolicyId: new ObjectID(data.policyId.toString()),
+      }),
+      miscDataProps: miscDataProps,
+      props: data.props,
+    });
   }
 
   protected override async onCreateSuccess(

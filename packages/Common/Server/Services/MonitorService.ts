@@ -2140,6 +2140,7 @@ ${createdItem.description?.trim() || "No description provided."}
               ] as Array<ObjectID>) || [],
               false,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -2423,6 +2424,12 @@ ${createdItem.description?.trim() || "No description provided."}
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the monitor are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -2435,6 +2442,7 @@ ${createdItem.description?.trim() || "No description provided."}
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 

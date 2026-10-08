@@ -19,14 +19,24 @@ import ObjectID from "../../../Types/ObjectID";
 export class ProjectScopedReferenceException extends BadDataException {}
 
 /*
- * Thrown when a record is created under a parent its creator may not read
- * (CreatePermission.checkParentPermission). Worded and answered like every
- * other reference refusal, so such a parent reads like one that does not
- * exist; its own type lets code that writes under many parents at once (a
- * status change across monitors) leave out the ones its caller may not read
- * and go on with the others.
+ * Thrown when a write names a record its caller may not read: a parent the
+ * record is created under or moved to, or an entry of a list it names - an
+ * incident's monitors, a maintenance event's status pages
+ * (RelationListPermission). Worded and answered like every other reference
+ * refusal, so such a record reads like one that does not exist; its own type
+ * tells it from a record that is not the project's, for code that acts for a
+ * person on what they just made (OwnerRuleAssignment).
  */
-export class UnreadableParentException extends ProjectScopedReferenceException {}
+export class UnreadableReferenceException extends ProjectScopedReferenceException {}
+
+/*
+ * The parent case: a record created under, or moved to, a parent its caller
+ * may not read (CreatePermission.checkParentPermission,
+ * UpdatePermission.checkParentPermission). Its own type lets code that
+ * writes under many parents at once (a status change across monitors) leave
+ * out the ones its caller may not read and go on with the others.
+ */
+export class UnreadableParentException extends UnreadableReferenceException {}
 
 // The one refusal every reference check answers with.
 export function getReferenceRefusalMessage(data: {

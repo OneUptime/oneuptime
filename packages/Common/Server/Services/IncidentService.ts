@@ -3628,6 +3628,7 @@ export class Service extends ProjectReferencesService<Model> {
               ] as Array<ObjectID>) || [],
               notifyOwners,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -4711,6 +4712,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the incident are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -4723,6 +4730,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 

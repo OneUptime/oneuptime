@@ -511,10 +511,32 @@ describe("refused before anything is saved", () => {
         Permission.CreateProjectOnCallDutyPolicy,
         Permission.CreateProjectOnCallDutyPolicyEscalationRule,
         Permission.CreateProjectOnCallDutyPolicyEscalationRuleTeam,
+        Permission.ReadProjectOnCallDutyPolicy,
       ]),
     );
 
     expect(ruleCreates).toHaveLength(1);
+  });
+
+  test("a caller who may add rules and people but read no on-call policy, which a rule is read through", async () => {
+    const attempt: Promise<OnCallDutyPolicy> = createPolicy(
+      { teams: [TEAM_ID] },
+      callerProps([
+        Permission.CreateProjectOnCallDutyPolicy,
+        Permission.CreateProjectOnCallDutyPolicyEscalationRule,
+        Permission.CreateProjectOnCallDutyPolicyEscalationRuleTeam,
+      ]),
+    );
+
+    await expect(attempt).rejects.toThrow(NotAuthorizedException);
+    await expect(attempt).rejects.toThrow(
+      "It is read through its On-Call Policy, and you need one of these permissions to read On-Call Duty Policies:",
+    );
+
+    expect(policyWasSaved()).toBe(false);
+    expect(ruleCreates).toHaveLength(0);
+    // Refused before anything is looked up.
+    expect(membershipQueries).toHaveLength(0);
   });
 
   test.each([

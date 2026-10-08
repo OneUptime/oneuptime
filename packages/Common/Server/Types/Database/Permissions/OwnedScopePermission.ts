@@ -345,6 +345,29 @@ export default class OwnedScopePermission {
     return data.query;
   }
 
+  /*
+   * Whether a model's records have owner rows of their own (OwnerTableRegistry:
+   * the operational resources and the rest that carry owners) - the ones
+   * whose creator becomes an owner (DatabaseService.autoOwnerOnCreate).
+   */
+  public static hasOwnerTables(modelType: { new (): BaseModel }): boolean {
+    return this.getOwnerTableRegistry().has(
+      (modelType as unknown as { name: string }).name,
+    );
+  }
+
+  /*
+   * The records the caller or one of their teams owns, by id: of the model
+   * itself, or - for a model that takes its owners from a parent
+   * (@OwnedThrough) - of that parent. In the request's project.
+   */
+  public static async getOwnedIds(
+    modelType: { new (): BaseModel },
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Array<ObjectID>> {
+    return await OwnedScopePermission.getAllowedResourceIds(modelType, props);
+  }
+
   private static getOwnerTableRegistry(): Map<string, OwnerTablePair> {
     /*
      * Services in this registry extend DatabaseService, which imports this

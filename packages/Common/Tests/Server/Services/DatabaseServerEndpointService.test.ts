@@ -718,6 +718,39 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           return database.row.id!.toString();
         });
     }) as never);
+    /*
+     * An endpoint a label-scoped editor adds names a database carrying one
+     * of the labels their permission to add it is limited to
+     * (CreateScopePermission): the labels of the same fake table.
+     */
+    getJestSpyOn(
+      DatabaseService as never,
+      "findRecordLabels",
+    ).mockImplementation((async (lookup: {
+      ids: Array<string>;
+    }): Promise<Record<string, Array<string>>> => {
+      const asked: Array<string> = lookup.ids.map((id: string): string => {
+        return id.toLowerCase();
+      });
+      const labels: Record<string, Array<string>> = {};
+
+      for (const database of databases) {
+        const id: string = database.row.id!.toString().toLowerCase();
+
+        if (asked.includes(id)) {
+          labels[id] = database.labelIds.map((labelId: string): string => {
+            return labelId.toLowerCase();
+          });
+        }
+      }
+
+      return labels;
+    }) as never);
+    getJestSpyOn(DatabaseService as never, "findLabelNames").mockImplementation(
+      (async (lookup: { labelIds: Array<string> }): Promise<Array<string>> => {
+        return lookup.labelIds;
+      }) as never,
+    );
     // The Feed item an added alias writes - see "the database's Feed".
     getJestSpyOn(
       DatabaseServerFeedService,
