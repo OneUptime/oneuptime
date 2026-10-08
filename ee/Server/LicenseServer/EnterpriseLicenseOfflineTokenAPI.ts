@@ -141,6 +141,7 @@ export default class EnterpriseLicenseOfflineTokenAPI {
           expiresAt: true,
           userLimit: true,
           isEvaluationLicense: true,
+          canBeWhiteLabelled: true,
         },
         props: {
           isRoot: true,

@@ -98,6 +98,12 @@ export interface LicenseTokenSubject {
   userLimit: number | null;
   isEvaluation: boolean;
   expiresAt: Date | null | undefined;
+  /*
+   * EnterpriseLicense.canBeWhiteLabelled. Signed into the token as the
+   * canBeWhiteLabelled claim only when true (see buildClaims); the legacy
+   * HS256 token never carries it, because an installation cannot verify one.
+   */
+  canBeWhiteLabelled?: boolean | undefined;
 }
 
 export interface ParsedLicenseSigningKey {
@@ -371,6 +377,11 @@ export default class LicenseSigner {
   /*
    * The claims of a signed license (design §7). exp is the license's own
    * expiry; instanceId binds the token to one installation.
+   *
+   * canBeWhiteLabelled is added only for a license with the switch on. A
+   * license without it gets exactly the claims it got before the switch
+   * existed - no `false` - so its token tells the customer nothing about an
+   * option they do not have.
    */
   public static buildClaims(data: {
     subject: LicenseTokenSubject;
@@ -378,7 +389,7 @@ export default class LicenseSigner {
     now: Date;
     instanceId?: string | undefined;
   }): LicenseTokenClaims {
-    return {
+    const claims: LicenseTokenClaims = {
       iss: LICENSE_TOKEN_ISSUER,
       aud: LICENSE_TOKEN_AUDIENCE,
       sub: data.subject.licenseId,
@@ -391,6 +402,12 @@ export default class LicenseSigner {
       iat: toSeconds(data.now),
       exp: toSeconds(data.expiresAt),
     };
+
+    if (data.subject.canBeWhiteLabelled === true) {
+      claims.canBeWhiteLabelled = true;
+    }
+
+    return claims;
   }
 
   /*
