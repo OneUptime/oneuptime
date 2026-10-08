@@ -228,18 +228,16 @@ export default class PushNotificationService {
     pushRequest: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
-    /*
-     * The installation's own name and icon, when it goes by one - and then
-     * held to what the push services take (fitMessage), for every device.
-     */
+    // The installation's own name and icon, when it goes by one.
     const request: PushNotificationRequest = {
       ...pushRequest,
-      message: this.fitMessage(
-        ProductBrandingText.brandPushMessage(pushRequest.message, [
-          PushNotificationUtil.DEFAULT_ICON,
-        ]),
-      ),
+      message: ProductBrandingText.brandPushMessage(pushRequest.message, [
+        PushNotificationUtil.DEFAULT_ICON,
+      ]),
     };
+
+    // Held to what the push services take (fitMessage), as branded, for every device.
+    request.message = this.fitMessage(request.message);
 
     logger.info(
       `Sending push notification to ${request.devices?.length} devices`,
