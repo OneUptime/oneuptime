@@ -294,10 +294,7 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem", () => {
     });
 
     const rows: Array<StatusPageSubscriber> =
-      await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(
-        updateBy,
-        SELECT,
-      );
+      await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(updateBy, SELECT);
 
     expect(rows).toEqual([]);
     expect(updateBy.query).toEqual({ statusPageId: STATUS_PAGE_ID });

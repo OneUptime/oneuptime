@@ -146,9 +146,9 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
 
     expect(runRule).toBeGreaterThan(0);
     expect(page.indexOf(paragraph)).toBeGreaterThan(runRule);
-    expect(paragraphs(page.slice(runRule, page.indexOf(paragraph)))).toHaveLength(
-      1,
-    );
+    expect(
+      paragraphs(page.slice(runRule, page.indexOf(paragraph))),
+    ).toHaveLength(1);
   });
 
   test("the LLM provider page says who can see a provider, right after the provider form's fields", () => {
@@ -170,9 +170,9 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
 
     expect(lastField).toBeGreaterThan(0);
     expect(setUp.indexOf(paragraph)).toBeGreaterThan(lastField);
-    expect(paragraphs(setUp.slice(lastField, setUp.indexOf(paragraph)))).toHaveLength(
-      1,
-    );
+    expect(
+      paragraphs(setUp.slice(lastField, setUp.indexOf(paragraph))),
+    ).toHaveLength(1);
   });
 
   test("the AI SRE page says what approving an SSH command and running without asking take", () => {

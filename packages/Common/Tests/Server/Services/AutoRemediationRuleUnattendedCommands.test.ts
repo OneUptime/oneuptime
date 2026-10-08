@@ -767,7 +767,11 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
 
         return named.includes(AGENT_RUNNER)
           ? ([
-              { _id: AGENT_RUNNER, id: new ObjectID(AGENT_RUNNER), name: "agent" },
+              {
+                _id: AGENT_RUNNER,
+                id: new ObjectID(AGENT_RUNNER),
+                name: "agent",
+              },
             ] as unknown as Array<Runner>)
           : [];
       });

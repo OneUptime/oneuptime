@@ -474,7 +474,10 @@ describe("StatusPageSubscriberService - a visitor's subscription on the status p
    * for by the hook alone, with the very row the sign-up hands it.
    */
   function signUpRunsTheCreateHook(): jest.SpyInstance {
-    return getJestSpyOn(StatusPageSubscriberService, "create").mockImplementation(
+    return getJestSpyOn(
+      StatusPageSubscriberService,
+      "create",
+    ).mockImplementation(
       async (
         createBy: CreateBy<StatusPageSubscriber>,
       ): Promise<StatusPageSubscriber> => {
@@ -728,9 +731,7 @@ describe("StatusPageSubscriberService - a change is held to the subscribers it c
   }
 
   test("a change of one subscriber names it, in a window of one", async () => {
-    contactLookup.mockResolvedValue([
-      subscriber(SUBSCRIBER_ID.toString(), []),
-    ]);
+    contactLookup.mockResolvedValue([subscriber(SUBSCRIBER_ID.toString(), [])]);
 
     const updateBy: UpdateBy<StatusPageSubscriber> = {
       query: { _id: SUBSCRIBER_ID.toString() },

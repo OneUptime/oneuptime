@@ -379,9 +379,9 @@ describePostgres(
       expect(refused.message).not.toContain(own.toString());
 
       // The update now names the project's two subscriptions, and no other.
-      const held: unknown = (updateBy.query as unknown as Record<string, unknown>)[
-        "_id"
-      ];
+      const held: unknown = (
+        updateBy.query as unknown as Record<string, unknown>
+      )["_id"];
       const heldIds: Array<string> = Object.values(
         (held as { objectLiteralParameters: Record<string, unknown> })
           .objectLiteralParameters,
