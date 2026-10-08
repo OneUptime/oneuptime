@@ -42,12 +42,12 @@ import {
 } from "./SideMenuHarness";
 
 /*
- * The Dashboard's products menu draws each folded category as a row of one
- * list, with an icon of its own: one that names the whole category, chosen
- * in the Dashboard's catalog (NavigationItems.tsx) by the same translated
- * name its products carry. A name that drifts from the items' - or a
- * category added without an icon - fails quietly: the row just gets the
- * menu's generic icon. These hold the catalog to giving every folded
+ * The Dashboard's products menu draws each category as a row of one list,
+ * Essentials first, with an icon of its own: one that names the whole
+ * category, chosen in the Dashboard's catalog (NavigationItems.tsx) by the
+ * same translated name its products carry. A name that drifts from the
+ * items' - or a category added without an icon - fails quietly: the row just
+ * gets the menu's generic icon. These hold the catalog to giving every
  * category a distinct icon that Icon can draw, and the desktop menu and the
  * phone menu to drawing it.
  */
@@ -55,7 +55,9 @@ import {
 const translation: i18n = createInstance();
 const ORIGINAL_WIDTH: number = window.innerWidth;
 
-const FOLDED: Array<string> = [
+// Every category, as the menu's rows: Essentials, open, then the folded ones.
+const CATEGORIES: Array<string> = [
+  "Essentials",
   "Observability",
   "AI",
   "Code",
@@ -66,6 +68,7 @@ const FOLDED: Array<string> = [
 ];
 
 const EXPECTED_ICONS: Record<string, IconProp> = {
+  Essentials: IconProp.Star,
   Observability: IconProp.PresentationChartLine,
   AI: IconProp.Sparkles,
   Code: IconProp.Code,
@@ -226,18 +229,16 @@ afterEach(() => {
   setViewportWidth(ORIGINAL_WIDTH);
 });
 
-describe("the Dashboard's catalog gives every folded category an icon", () => {
-  test("one for each category but the ones that are always open, by the names the items carry", () => {
+describe("the Dashboard's catalog gives every category an icon", () => {
+  test("one for each category, the essentials too, by the names the items carry", () => {
     const items: DashboardNavigationItems = catalog();
-    const folded: Array<string> = Array.from(
+    const categories: Array<string> = Array.from(
       new Set(items.moreMenuItems.map(categoryOf)),
-    ).filter((category: string): boolean => {
-      return !items.moreMenuCategoriesAlwaysOpen.includes(category);
-    });
+    );
 
-    expect(folded).toEqual(FOLDED);
+    expect(categories).toEqual(CATEGORIES);
     expect(Object.keys(items.moreMenuCategoryIcons).sort()).toEqual(
-      [...folded].sort(),
+      [...categories].sort(),
     );
   });
 
@@ -325,17 +326,21 @@ describe("the Dashboard's catalog gives every folded category an icon", () => {
     }
   });
 
-  test("the essentials, which never fold, have no row and so no icon", () => {
+  test("the essentials, which the menu opens on, are a row with an icon of their own too", () => {
     const items: DashboardNavigationItems = catalog();
 
-    for (const category of items.moreMenuCategoriesAlwaysOpen) {
-      expect(items.moreMenuCategoryIcons[category]).toBeUndefined();
+    expect(items.moreMenuCategoriesOpenByDefault).toEqual(["Essentials"]);
+    for (const category of items.moreMenuCategoriesOpenByDefault) {
+      expect([category, items.moreMenuCategoryIcons[category]]).toEqual([
+        category,
+        IconProp.Star,
+      ]);
     }
   });
 });
 
 describe("the desktop products menu draws them", () => {
-  test("every folded category is a row of one list, drawn with its icon", () => {
+  test("every category is a row of one list, drawn with its icon", () => {
     setViewportWidth(DESKTOP_WIDTH);
     render(withTranslation(<DashboardNavbar show={true} />));
     fireEvent.click(screen.getByRole("button", { name: "Products" }));
@@ -354,7 +359,7 @@ describe("the desktop products menu draws them", () => {
     });
 
     expect(lists).toHaveLength(1);
-    for (const category of FOLDED) {
+    for (const category of CATEGORIES) {
       expect(lists[0]).toContainElement(
         within(dialog).getByRole("button", { name: category }),
       );
@@ -402,7 +407,7 @@ describe("the desktop products menu draws them", () => {
 });
 
 describe("the phone menu draws them", () => {
-  test("every folded category's row is drawn with its icon, before its name", () => {
+  test("every category's row is drawn with its icon, before its name", () => {
     setViewportWidth(MOBILE_WIDTH);
     render(withTranslation(<DashboardNavbar show={true} />));
     fireEvent.click(screen.getByTestId("mobile-nav-toggle"));
@@ -411,7 +416,7 @@ describe("the phone menu draws them", () => {
       .getByRole("link", { name: "Home" })
       .closest("nav") as HTMLElement;
 
-    for (const category of FOLDED) {
+    for (const category of CATEGORIES) {
       const heading: HTMLElement = within(menu).getByRole("heading", {
         level: 3,
         name: category,

@@ -3,13 +3,14 @@ import { expect, Locator, Page, test } from "@playwright/test";
 /*
  * The products menu opens on the essentials instead of every product.
  *
- * The Dashboard's menu always opens on its seven Essentials, which never
- * fold: a plain heading, with no chevron, and no remembered fold hides them.
- * Every other section is folded into a row of one list below them: its
- * icon, its name, what its products are called, how many and a chevron. A
- * click anywhere on the row, or Enter on it, opens it; search ignores
+ * Every section of the Dashboard's menu is a row of one list: its icon, its
+ * name, what its products are called, how many and a chevron. The menu
+ * always opens with the first row, its seven Essentials, open, their cards
+ * under the row: folding them lasts until the menu closes, and no
+ * remembered fold hides them. Every other section starts folded. A click
+ * anywhere on a row, or Enter on it, opens or folds it; search ignores
  * folding; the section of the page the user is on opens by itself; and what
- * someone opens or folds among those sections is remembered on their
+ * someone opens or folds among the other sections is remembered on their
  * browser. On a phone the menu toggle lists the products the same way.
  *
  * These run the production menu and catalog in a real browser, where layout
@@ -40,6 +41,12 @@ const FOLDED_SECTIONS: Array<string> = [
   "Settings",
 ];
 
+// Every section, as the rows of the list: Essentials first.
+const SECTIONS: Array<string> = ["Essentials", ...FOLDED_SECTIONS];
+
+// Where the menu remembers the sections someone opened or folded.
+const FOLDS_STORAGE_KEY: string = "oneuptime-navbar-product-categories";
+
 const productsMenu: (page: Page) => Locator = (page: Page): Locator => {
   return page.getByRole("dialog", { name: "Products menu" });
 };
@@ -51,7 +58,7 @@ const sectionToggle: (page: Page, name: string) => Locator = (
   return productsMenu(page).getByRole("button", { name, exact: true });
 };
 
-// The heading of a section, whether it folds (a button inside) or not.
+// The heading of a section's row, with the button that folds it inside.
 const sectionHeading: (page: Page, name: string) => Locator = (
   page: Page,
   name: string,
@@ -175,6 +182,15 @@ test.describe("the desktop products menu", () => {
       await expect(page.getByRole("option").nth(index)).toContainText(title);
     }
 
+    // Essentials have a row like every other section's, the first, open.
+    await expect(sectionToggle(page, "Essentials")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(
+      (await boxOf(sectionToggle(page, "Essentials"))).height,
+    ).toBeLessThan(ONE_LINE);
+
     for (const section of FOLDED_SECTIONS) {
       await expect(sectionToggle(page, section)).toHaveAttribute(
         "aria-expanded",
@@ -202,15 +218,27 @@ test.describe("the desktop products menu", () => {
       "Monitors",
     );
 
-    // Essentials have a plain heading: nothing on screen folds them.
-    await expect(sectionHeading(page, "Essentials")).toBeVisible();
-    await expect(sectionToggle(page, "Essentials")).toHaveCount(0);
+    // One row per section, in the catalog's order, Essentials first.
+    const toggles: Locator = productsMenu(page).locator(
+      "#navbar-menu-listbox button[aria-expanded]",
+    );
+    await expect(toggles).toHaveCount(SECTIONS.length);
+    for (const [index, section] of SECTIONS.entries()) {
+      await expect(toggles.nth(index)).toHaveText(section);
+    }
+    // No plain heading is left above the list: every heading is a row's.
     await expect(
-      productsMenu(page).locator("#navbar-menu-listbox button[aria-expanded]"),
-    ).toHaveCount(FOLDED_SECTIONS.length);
+      productsMenu(page).locator("#navbar-menu-listbox h3"),
+    ).toHaveCount(SECTIONS.length);
+    await expect(
+      sectionHeading(page, "Essentials").getByRole("button", {
+        name: "Essentials",
+        exact: true,
+      }),
+    ).toHaveCount(1);
   });
 
-  test("the folded sections are the rows of one list, its columns lining every row up", async ({
+  test("every section is a row of one list, its columns lining every row up", async ({
     page,
     isMobile,
   }: {
@@ -219,13 +247,13 @@ test.describe("the desktop products menu", () => {
   }) => {
     test.skip(isMobile, "From sm up a row is one line; narrower, see below.");
 
-    const list: Locator = sectionLine(page, FOLDED_SECTIONS[0]!).locator(
+    const list: Locator = sectionLine(page, "Essentials").locator(
       "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' divide-y ')][1]",
     );
     await expect(list).toHaveCount(1);
-    // Every folded section is a row of that one list.
+    // Every section, Essentials too, is a row of that one list.
     await expect(list.locator("button[aria-expanded]")).toHaveCount(
-      FOLDED_SECTIONS.length,
+      SECTIONS.length,
     );
     // A frame around the list, and a rule between its rows.
     await expect(list).toHaveCSS("border-top-width", "1px");
@@ -290,13 +318,39 @@ test.describe("the desktop products menu", () => {
       expect(gap).toBeLessThanOrEqual(1.5);
     }
 
-    // The list is as wide as the cards above it.
-    const essentials: Box = await boxOf(
-      productsMenu(page).getByRole("group", { name: "Essentials" }),
+    /*
+     * The open Essentials row lists no products, and lines up its icon, its
+     * name and its count with the folded rows below it.
+     */
+    const essentialsLine: Locator = sectionLine(page, "Essentials");
+    const essentialsIcon: Box = await boxOf(
+      essentialsLine.locator("div[aria-hidden='true']").first(),
     );
+    const essentialsName: Box = await boxOf(sectionToggle(page, "Essentials"));
+    const essentialsCount: Box = await boxOf(sectionCount(page, "Essentials"));
+    await expect(sectionProducts(page, "Essentials")).toHaveCount(0);
+    expect(Math.round(essentialsIcon.x)).toBe(Math.round(first.icon.x));
+    expect(Math.round(essentialsName.x)).toBe(Math.round(first.name.x));
+    expect(Math.round(essentialsCount.x + essentialsCount.width)).toBe(
+      Math.round(first.count.x + first.count.width),
+    );
+    expect((await boxOf(essentialsLine)).height).toBeLessThanOrEqual(48);
+
+    // The list spans the menu's content box: nothing sits beside it.
+    const content: { x: number; width: number } = await productsMenu(page)
+      .locator("#navbar-menu-listbox")
+      .evaluate((element: HTMLElement): { x: number; width: number } => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        const paddingLeft: number = parseFloat(style.paddingLeft);
+        return {
+          x: element.getBoundingClientRect().left + paddingLeft,
+          width:
+            element.clientWidth - paddingLeft - parseFloat(style.paddingRight),
+        };
+      });
     const listBox: Box = await boxOf(list);
-    expect(Math.round(listBox.x)).toBe(Math.round(essentials.x));
-    expect(Math.round(listBox.width)).toBe(Math.round(essentials.width));
+    expect(Math.round(listBox.x)).toBe(Math.round(content.x));
+    expect(Math.round(listBox.width)).toBe(Math.round(content.width));
 
     // A long list of products is cut off with an ellipsis, not wrapped.
     await expect(sectionProducts(page, "Infrastructure")).toHaveCSS(
@@ -317,8 +371,15 @@ test.describe("the desktop products menu", () => {
       "Below sm only; the Dashboard shows its phone menu there.",
     );
 
+    // The open Essentials row's name starts where every folded row's does.
+    const essentialsName: Box = await boxOf(sectionToggle(page, "Essentials"));
+
     for (const section of FOLDED_SECTIONS) {
       const name: Box = await boxOf(sectionToggle(page, section));
+      expect([section, Math.round(name.x)]).toEqual([
+        section,
+        Math.round(essentialsName.x),
+      ]);
       const products: Box = await boxOf(sectionProducts(page, section));
       const count: Box = await boxOf(sectionCount(page, section));
 
@@ -358,6 +419,36 @@ test.describe("the desktop products menu", () => {
     // The open row keeps its count; its chevron turns down.
     await expect(sectionCount(page, "Resources")).toHaveText("5");
     await expect(sectionProducts(page, "Resources")).toHaveCount(0);
+  });
+
+  test("the essentials' cards are inside the list, under their row and above the first folded one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const list: Locator = sectionLine(page, "Essentials").locator(
+      "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' divide-y ')][1]",
+    );
+    const listBox: Box = await boxOf(list);
+    const row: Box = await boxOf(sectionLine(page, "Essentials"));
+    const next: Box = await boxOf(sectionLine(page, "Observability"));
+
+    for (const title of ESSENTIALS) {
+      const card: Locator = list.getByRole("option", {
+        name: new RegExp(`^${title}`),
+      });
+      await expect(card).toHaveCount(1);
+      const box: Box = await boxOf(card);
+      expect([title, box.y >= row.y + row.height]).toEqual([title, true]);
+      expect([title, box.y + box.height <= next.y]).toEqual([title, true]);
+      // Inset from the list's frame on both sides.
+      expect([title, box.x > listBox.x]).toEqual([title, true]);
+      expect([title, box.x + box.width < listBox.x + listBox.width]).toEqual([
+        title,
+        true,
+      ]);
+    }
+    await expect(sectionCount(page, "Essentials")).toHaveText("7");
   });
 
   test("a click anywhere on a folded line opens it, and focus stays in the search box", async ({
@@ -404,6 +495,21 @@ test.describe("the desktop products menu", () => {
     const observability: Locator = sectionToggle(page, "Observability");
 
     const observabilityId: string = (await observability.getAttribute("id"))!;
+    const essentialsId: string = (await sectionToggle(
+      page,
+      "Essentials",
+    ).getAttribute("id"))!;
+
+    // Up from Monitors is the Essentials row, and Down comes back.
+    await expect(page.getByRole("option", { selected: true })).toContainText(
+      "Monitors",
+    );
+    await search.press("ArrowUp");
+    await expect(search).toHaveAttribute("aria-activedescendant", essentialsId);
+    await search.press("ArrowDown");
+    await expect(page.getByRole("option", { selected: true })).toContainText(
+      "Monitors",
+    );
 
     /*
      * Down walks the rows of Essentials (three across on a desktop, one on a
@@ -495,18 +601,89 @@ test.describe("the desktop products menu", () => {
     await expect(page.getByRole("option").last()).toContainText("Tasks");
   });
 
+  test("the essentials fold for the moment, and are open again on the next visit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const essentials: Locator = sectionToggle(page, "Essentials");
+
+    await essentials.click();
+
+    await expect(essentials).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(1);
+    await expect(page.getByRole("combobox")).toBeFocused();
+    // Folded, their row says what they hold, as every folded row does.
+    await expect(sectionProducts(page, "Essentials")).toContainText(
+      "Monitors, Incidents, Alerts",
+    );
+    expect(
+      (await boxOf(sectionProducts(page, "Essentials"))).height,
+    ).toBeLessThan(ONE_LINE);
+
+    // A second click opens them again.
+    await essentials.click();
+    await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length);
+
+    // Folded again, then a reload: they are open, and nothing was stored.
+    await essentials.click();
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await openMenuAt(page, "/home");
+
+    await expect(sectionToggle(page, "Essentials")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length);
+    expect(
+      await page.evaluate((key: string): string | null => {
+        return window.localStorage.getItem(key);
+      }, FOLDS_STORAGE_KEY),
+    ).toBeNull();
+  });
+
+  test("Enter on the essentials' row folds them, and opens them again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const search: Locator = page.getByRole("combobox");
+    const essentials: Locator = sectionToggle(page, "Essentials");
+
+    // Left from Monitors, the first product, is the Essentials row.
+    await search.press("ArrowLeft");
+    await expect(search).toHaveAttribute(
+      "aria-activedescendant",
+      (await essentials.getAttribute("id"))!,
+    );
+
+    await search.press("Enter");
+    await expect(essentials).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(1);
+
+    await search.press("Enter");
+    await expect(essentials).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length);
+    await search.press("ArrowRight");
+    await expect(page.getByRole("option", { selected: true })).toContainText(
+      "Monitors",
+    );
+  });
+
   test("the essentials are open on every visit, even where a fold of them was remembered", async ({
     page,
   }: {
     page: Page;
   }) => {
-    // What the menu stored when Essentials could still be folded.
-    await page.evaluate(() => {
+    // What the menu stored when a fold of Essentials was remembered.
+    await page.evaluate((key: string) => {
       window.localStorage.setItem(
-        "oneuptime-navbar-product-categories",
+        key,
         JSON.stringify({ Essentials: false, Code: true }),
       );
-    });
+    }, FOLDS_STORAGE_KEY);
 
     await openMenuAt(page, "/home");
 
@@ -514,6 +691,10 @@ test.describe("the desktop products menu", () => {
     for (const [index, title] of ESSENTIALS.entries()) {
       await expect(page.getByRole("option").nth(index)).toContainText(title);
     }
+    await expect(sectionToggle(page, "Essentials")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     await expect(sectionToggle(page, "Code")).toHaveAttribute(
       "aria-expanded",
       "true",
@@ -521,11 +702,6 @@ test.describe("the desktop products menu", () => {
     await expect(page.getByRole("option", { selected: true })).toContainText(
       "Monitors",
     );
-
-    // A click on their heading changes nothing.
-    await sectionHeading(page, "Essentials").click();
-    await expect(page.getByRole("option")).toHaveCount(ESSENTIALS.length + 1);
-    await expect(page.getByRole("dialog")).toHaveCount(1);
   });
 });
 
@@ -537,6 +713,11 @@ test("the section of the current page opens by itself, with its product selected
   await openMenuAt(page, "/kubernetes");
 
   await expect(sectionToggle(page, "Infrastructure")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  // The essentials are open beside it.
+  await expect(sectionToggle(page, "Essentials")).toHaveAttribute(
     "aria-expanded",
     "true",
   );
@@ -570,13 +751,12 @@ test("on a phone, the menu toggle lists the essentials and folds the other secti
     await expect(navLink(navbar, title)).toBeVisible();
   }
   await expect(navLink(navbar, "Kubernetes")).toHaveCount(0);
-  // Essentials sit under a plain heading that never folds.
-  await expect(
-    navbar.getByRole("heading", { name: "Essentials", exact: true }),
-  ).toBeVisible();
-  await expect(
-    navbar.getByRole("button", { name: "Essentials", exact: true }),
-  ).toHaveCount(0);
+  // Essentials are a row like every other section's, open.
+  const essentials: Locator = navbar.getByRole("button", {
+    name: "Essentials",
+    exact: true,
+  });
+  await expect(essentials).toHaveAttribute("aria-expanded", "true");
 
   const infrastructure: Locator = navbar.getByRole("button", {
     name: "Infrastructure",
@@ -585,39 +765,59 @@ test("on a phone, the menu toggle lists the essentials and folds the other secti
   await expect(infrastructure).toHaveAttribute("aria-expanded", "false");
 
   /*
-   * A folded section's row is drawn as the product rows are: its icon
-   * before its name, at the same place, with what it holds on a second line
+   * A section's row is drawn as the top-level rows are: its icon before its
+   * name, where Home's is, with what a folded one holds on a second line
    * under the name.
    */
-  const productIcon: Box = await boxOf(
-    navLink(navbar, "Monitors").locator("svg"),
-  );
-  const heading: Locator = navbar.getByRole("heading", {
-    name: "Infrastructure",
-    exact: true,
-  });
-  const sectionIcon: Box = await boxOf(heading.locator("svg"));
+  const homeIcon: Box = await boxOf(navLink(navbar, "Home").locator("svg"));
+  const sectionIcon: (name: string) => Promise<Box> = async (
+    name: string,
+  ): Promise<Box> => {
+    return boxOf(
+      navbar.getByRole("heading", { name, exact: true }).locator("svg"),
+    );
+  };
+  const infrastructureIcon: Box = await sectionIcon("Infrastructure");
+  const essentialsIcon: Box = await sectionIcon("Essentials");
   const name: Box = await boxOf(infrastructure);
   const products: Box = await boxOf(
     navbar.getByText(/^Hosts, Kubernetes, Docker/),
   );
-  expect(Math.round(sectionIcon.x)).toBe(Math.round(productIcon.x));
-  expect(sectionIcon.x).toBeLessThan(name.x);
+  expect(Math.round(infrastructureIcon.x)).toBe(Math.round(homeIcon.x));
+  expect(Math.round(essentialsIcon.x)).toBe(Math.round(homeIcon.x));
+  expect(infrastructureIcon.x).toBeLessThan(name.x);
   expect(products.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
   expect(Math.round(products.x)).toBe(Math.round(name.x));
 
-  // A rule sets the folded sections apart from the essentials above them.
+  // The essentials' products are indented under their row.
+  const monitorsIcon: Box = await boxOf(
+    navLink(navbar, "Monitors").locator("svg"),
+  );
+  expect(monitorsIcon.x).toBeGreaterThan(essentialsIcon.x + 8);
+
+  // One rule sets the sections apart from Home above them.
+  await expect(
+    navbar.getByRole("group", { name: "Essentials", exact: true }),
+  ).toHaveCSS("border-top-width", "1px");
   await expect(
     navbar.getByRole("group", { name: "Observability", exact: true }),
-  ).toHaveCSS("border-top-width", "1px");
+  ).toHaveCSS("border-top-width", "0px");
+
+  // A tap folds the essentials, and the menu stays open; another opens them.
+  await essentials.click();
+  await expect(essentials).toHaveAttribute("aria-expanded", "false");
+  await expect(navLink(navbar, "Monitors")).toHaveCount(0);
+  await expect(navLink(navbar, "Home")).toBeVisible();
+  await essentials.click();
+  await expect(navLink(navbar, "Monitors")).toBeVisible();
 
   await infrastructure.click();
 
   // The menu stays open, with the section's products under it, indented.
   const kubernetes: Locator = navLink(navbar, "Kubernetes");
   await expect(kubernetes).toBeVisible();
-  expect((await boxOf(kubernetes.locator("svg"))).x).toBeGreaterThan(
-    sectionIcon.x + 8,
+  expect(Math.round((await boxOf(kubernetes.locator("svg"))).x)).toBe(
+    Math.round(monitorsIcon.x),
   );
   await kubernetes.click();
 
