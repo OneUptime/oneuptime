@@ -299,7 +299,7 @@ describe("a checked sign-in change holds its locks for its write", () => {
     expect(keeps).toEqual([]);
   });
 
-  test("a lock found gone while the write runs is said loudly and kept no more; the others are still kept", async () => {
+  test("a lock found gone while the write runs is kept no more, and said loudly once the change is written without it; the others are still kept", async () => {
     const project: SemaphoreMutex = lock("project");
     const server: SemaphoreMutex = lock("server");
 
@@ -312,15 +312,53 @@ describe("a checked sign-in change holds its locks for its write", () => {
     expect(keeps).toEqual(["project", "server"]);
     expect(isKept(project)).toBe(true);
     expect(isKept(server)).toBe(false);
-    expect(errors).toEqual([
-      "SSO sign-in change: a lock was lost while its change was being written; another change to who can sign in may have been written at the same time.",
+    // The write may not have started: a change with a step before it takes the lock again there.
+    expect(warnings).toEqual([
+      "SSO sign-in change: a lock kept for its change's write was lost; it is taken again, with the change checked again, if the write has not started.",
     ]);
+    expect(errors).toEqual([]);
 
     keeps = [];
     await nextRound();
 
     expect(keeps).toEqual(["project"]);
-    expect(errors).toHaveLength(1);
+
+    // Written without it: said loudly, once.
+    await ProjectSsoProviderChanges.releaseAfterWrite([project, server]);
+
+    expect(errors).toEqual([
+      "SSO sign-in change: a lock was lost while its change was being written; another change to who can sign in may have been written at the same time.",
+    ]);
+    expect(released).toEqual(["project", "server"]);
+  });
+
+  test("a lock found gone before the write, and taken again right before it, is nothing to say once the change is written", async () => {
+    const project: SemaphoreMutex = lock("project");
+    const locks: Array<SemaphoreMutex> = [project];
+
+    // Held once the check is done; lost while a step runs before the write.
+    await ProjectSsoProviderChanges.holdForWrite(locks);
+    lost.add("project");
+    await nextRound();
+
+    // Right before the write: taken again, and checked again.
+    await ProjectSsoProviderChanges.holdForWrite(
+      locks,
+      async (): Promise<Array<SemaphoreMutex>> => {
+        lost.delete("project");
+        return [lock("project")];
+      },
+    );
+
+    expect(locks[0]).not.toBe(project);
+
+    await ProjectSsoProviderChanges.releaseAfterWrite(locks);
+
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([
+      "SSO sign-in change: a lock kept for its change's write was lost; it is taken again, with the change checked again, if the write has not started.",
+      "SSO sign-in change: a lock was gone right before the change was written; it is taken again, and the change checked again.",
+    ]);
   });
 
   test("once every lock is gone, nothing more is kept", async () => {
@@ -867,7 +905,7 @@ describe("a write the database may still apply keeps its locks until the databas
     ]);
   });
 
-  test("a lock found gone while the write ran is not kept again once the write fails without an answer: it was said once, and is nobody's to keep", async () => {
+  test("a lock found gone while the write ran is not kept again once the write fails without an answer: it is nobody's to keep, and the write may still land without it - said loudly, once", async () => {
     const project: SemaphoreMutex = lock("project");
     const server: SemaphoreMutex = lock("server");
 
@@ -876,7 +914,7 @@ describe("a write the database may still apply keeps its locks until the databas
     lost.add("server");
     await nextRound();
 
-    expect(errors).toHaveLength(1);
+    expect(errors).toEqual([]);
 
     await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
       [project, server],
@@ -885,6 +923,9 @@ describe("a write the database may still apply keeps its locks until the databas
 
     expect(isKept(project)).toBe(true);
     expect(isKept(server)).toBe(false);
+    expect(errors).toEqual([
+      "SSO sign-in change: a lock was lost while its write, failed without an answer from the database, may still land; another change to who can sign in may be checked before it does.",
+    ]);
 
     keeps = [];
     await nextRound();

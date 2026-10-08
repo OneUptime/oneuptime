@@ -18,8 +18,8 @@ import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import RelationIdUtil from "./Database/RelationIdUtil";
 import logger from "./Logger";
-import { StatementContext } from "./Database/StatementOutcome";
 import ProjectSsoProviderChanges, {
+  SignInChangeFailure,
   SignInChangeRecheck,
 } from "./ProjectSsoProviderChanges";
 import SsoSignInsEnded from "./SsoSignInsEnded";
@@ -759,7 +759,10 @@ export default class GlobalSsoProviderChanges {
     });
   }
 
-  // Gives a write's lock back, once.
+  /*
+   * Gives a write's lock back, once (ProjectSsoProviderChanges.
+   * releaseAfterWrite: one lost while the write was kept is said).
+   */
   public static async release(
     write: GlobalSsoProviderWrite | null | undefined,
   ): Promise<void> {
@@ -767,7 +770,7 @@ export default class GlobalSsoProviderChanges {
       return;
     }
 
-    await ProjectSsoProviderChanges.releaseSignInChange(
+    await ProjectSsoProviderChanges.giveBack(
       GlobalSsoProviderChanges.takeLocks(write),
     );
   }
@@ -784,7 +787,7 @@ export default class GlobalSsoProviderChanges {
   // A failed write's lock, given back once - or kept while the write may still land.
   private static async giveBackAfterFailure<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
-    failure: { error: unknown; context?: StatementContext | undefined },
+    failure: SignInChangeFailure,
   ): Promise<void> {
     const key: WriteKey = keyOf(written);
     const write: GlobalSsoProviderWrite | undefined =
@@ -796,10 +799,9 @@ export default class GlobalSsoProviderChanges {
       return;
     }
 
-    await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
+    await ProjectSsoProviderChanges.giveBack(
       GlobalSsoProviderChanges.takeLocks(write),
-      failure.error,
-      failure.context,
+      failure,
     );
   }
 
@@ -912,9 +914,7 @@ export default class GlobalSsoProviderChanges {
       const again: GlobalSsoProviderWrite =
         await GlobalSsoProviderChanges.lockWorkAndCheck(data.work);
 
-      write.reachChanges = again.reachChanges;
-      write.isReachUnknown = again.isReachUnknown;
-      write.touchesRestrictedProvider = again.touchesRestrictedProvider;
+      ProjectSsoProviderChanges.takeWorkedOutAgain(write, again);
 
       return again.locks || [];
     };

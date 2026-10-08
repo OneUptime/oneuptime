@@ -8,9 +8,9 @@ import GlobalConfigService from "../Services/GlobalConfigService";
 import ProjectService from "../Services/ProjectService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { StatementContext } from "./Database/StatementOutcome";
 import ProjectSsoProviderChanges, {
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+  SignInChangeFailure,
   SignInChangeRecheck,
 } from "./ProjectSsoProviderChanges";
 import logger from "./Logger";
@@ -996,9 +996,7 @@ export default class SsoRequirementChanges {
    */
   private static async release(
     key: UpdateBy<BaseModel> | CreateBy<BaseModel>,
-    failure?:
-      | { error: unknown; context?: StatementContext | undefined }
-      | undefined,
+    failure?: SignInChangeFailure | undefined,
   ): Promise<void> {
     const write: SsoRequirementWrite | undefined =
       SsoRequirementChanges.writes.get(key);
@@ -1009,16 +1007,7 @@ export default class SsoRequirementChanges {
 
     SsoRequirementChanges.writes.delete(key);
 
-    if (failure) {
-      await ProjectSsoProviderChanges.giveBackAfterFailedWrite(
-        write.locks,
-        failure.error,
-        failure.context,
-      );
-      return;
-    }
-
-    await ProjectSsoProviderChanges.releaseSignInChange(write.locks);
+    await ProjectSsoProviderChanges.giveBack(write.locks, failure);
   }
 
   // The projects an update names, to lock them before they are read again.

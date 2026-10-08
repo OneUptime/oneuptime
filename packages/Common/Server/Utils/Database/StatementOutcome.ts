@@ -32,6 +32,17 @@ import { QueryFailedError } from "typeorm";
  * the transaction. So there only a COMMIT whose answer never came may still
  * apply (StatementContext.inOwnTransaction).
  *
+ * All of this holds while the database cancels a statement at its own
+ * statement timeout before the client stops waiting for it
+ * (DATABASE_STATEMENT_TIMEOUT_MS below DATABASE_QUERY_TIMEOUT_MS, as by
+ * default): the answer then comes, and the ROLLBACK queued behind it is
+ * sent. With no statement timeout on the database - behind a pooler that
+ * drops the one the app sends, with none set on the role (HelmChart/Docs/
+ * Postgres.md) - a statement can outlast the ROLLBACK's own wait as well,
+ * which node-postgres then drops unsent, and the transaction stays open on
+ * a pooled connection: nothing then bounds when it lands, as nothing bounds
+ * an UPDATE the client stopped waiting for.
+ *
  * TypeORM hands every failure of a statement it sent as a QueryFailedError,
  * the driver's error on it (driverError). node-postgres reports the
  * database's own answer as a DatabaseError, which always carries the

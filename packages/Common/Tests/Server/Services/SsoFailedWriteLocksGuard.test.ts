@@ -176,11 +176,24 @@ describe("the helpers decide by what failed", () => {
       expect(callArguments(text, new RegExp(`\\.${through}`))[0]).toMatch(
         /\berror\b/,
       );
+      // Through the one helper that gives a change's locks back.
       expect(methodText(classSource, through)).toMatch(
-        /ProjectSsoProviderChanges\.giveBackAfterFailedWrite\s*\(/,
+        /ProjectSsoProviderChanges\.giveBack\s*\(/,
       );
     },
   );
+
+  test("the one helper that gives a change's locks back leaves a failed write to giveBackAfterFailedWrite", () => {
+    const text: string = methodText(
+      readClassSource(path.join(UTILS_DIR, "ProjectSsoProviderChanges.ts")),
+      "giveBack",
+    );
+
+    expect(text).toMatch(/failure\?: SignInChangeFailure/);
+    expect(text).toMatch(
+      /ProjectSsoProviderChanges\.giveBackAfterFailedWrite\s*\(/,
+    );
+  });
 
   test.each([
     ["SsoRequirementChanges.ts", "afterFailedProjectCreate"],
