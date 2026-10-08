@@ -14,7 +14,7 @@ import ProjectSsoProviderChanges, {
   WRITE_KEEP_INTERVAL_IN_MS,
   WRITE_KEEP_LIMIT_IN_MS,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
-import { PostgresStatementTimeoutMs } from "../../../Server/EnvironmentConfig";
+import { PostgresQueryTimeoutMs } from "../../../Server/EnvironmentConfig";
 import ProjectSso from "../../../Models/DatabaseModels/ProjectSso";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
@@ -394,7 +394,7 @@ describe("a checked sign-in change holds its locks for its write", () => {
     expect(keeps).toHaveLength(rounds);
     expect(isKept(project)).toBe(false);
     expect(errors).toEqual([
-      "SSO sign-in change: still being written 120 seconds after its check; its locks are no longer kept, and run out.",
+      "SSO sign-in change: still being written 60 seconds after its check; its locks are no longer kept, and run out.",
     ]);
 
     await nextRound();
@@ -420,7 +420,7 @@ describe("a checked sign-in change holds its locks for its write", () => {
 
     expect(isKept(project)).toBe(false);
     expect(errors).toEqual([
-      "SSO sign-in change: still being written 120 seconds after its check; its locks are no longer kept, and run out.",
+      "SSO sign-in change: still being written 60 seconds after its check; its locks are no longer kept, and run out.",
     ]);
 
     // It comes back at last: nothing more is kept, and no lock counts as lost.
@@ -502,9 +502,9 @@ describe("a checked sign-in change holds its locks for its write", () => {
     expect(WRITE_KEEP_INTERVAL_IN_MS * 3).toBeLessThanOrEqual(
       LOCK_TIMEOUT_IN_MS,
     );
-    expect(WRITE_KEEP_LIMIT_IN_MS).toBeGreaterThan(
-      PostgresStatementTimeoutMs * 3,
-    );
+    // Longer than the client waits for any one statement; far shorter than holding everyone for good.
+    expect(WRITE_KEEP_LIMIT_IN_MS).toBeGreaterThan(PostgresQueryTimeoutMs);
+    expect(WRITE_KEEP_LIMIT_IN_MS).toBeLessThanOrEqual(60_000);
   });
 });
 
@@ -607,6 +607,12 @@ describe("a write that names its rows by a filter writes only the rows its check
     // Its window is those rows.
     expect(write.skip).toBe(0);
     expect(write.limit).toBe(2);
+  });
+
+  test("the ids of the rows read are what a write is held to", () => {
+    expect(
+      ProjectSsoProviderChanges.idsOf([{ id: READ_ONE }, { id: READ_TWO }]),
+    ).toEqual([READ_ONE, READ_TWO]);
   });
 
   test("an update that read no row writes none", () => {

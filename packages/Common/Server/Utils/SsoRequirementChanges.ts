@@ -9,7 +9,6 @@ import ProjectService from "../Services/ProjectService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectSsoProviderChanges, {
-  PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
 } from "./ProjectSsoProviderChanges";
 import logger from "./Logger";
@@ -64,7 +63,10 @@ import SsoSignInWays, {
  * An update that names its projects by a filter writes exactly the projects
  * it read under their locks (ProjectSsoProviderChanges.writeOnlyTheRowsRead):
  * a project that comes to match the filter afterwards - one created a
- * moment later - was never checked, and is left alone.
+ * moment later - was never checked, and is left alone. One that comes to
+ * match it between the read that picks the projects to lock and the read
+ * under the locks was never locked: the update is refused, to be saved
+ * again ("Another change to who can sign in with SSO is being saved").
  */
 
 export const NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE: string =
@@ -253,15 +255,8 @@ export default class SsoRequirementChanges {
         },
       });
 
-      const projectIdsRead: Array<string> = [];
-
-      for (const project of projects) {
-        const projectId: string | null = toIdString(project.id);
-
-        if (projectId) {
-          projectIdsRead.push(projectId);
-        }
-      }
+      const projectIdsRead: Array<string> =
+        SsoRequirementChanges.projectIdsOf(projects);
 
       /*
        * Read under the projects' locks, a write that names its projects by
@@ -276,7 +271,7 @@ export default class SsoRequirementChanges {
           return !locked.has(projectId);
         })
       ) {
-        throw new BadDataException(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
+        throw new BadDataException(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
       }
 
       // The write goes to exactly the projects read under the locks.
@@ -865,6 +860,11 @@ export default class SsoRequirementChanges {
       },
     });
 
+    return SsoRequirementChanges.projectIdsOf(projects);
+  }
+
+  // The ids of the projects read.
+  private static projectIdsOf(projects: Array<Project>): Array<string> {
     const ids: Array<string> = [];
 
     for (const project of projects) {

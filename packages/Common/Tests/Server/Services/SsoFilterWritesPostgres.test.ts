@@ -8,7 +8,10 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import logger from "../../../Server/Utils/Logger";
-import { PROVIDER_CHANGE_IN_PROGRESS_MESSAGE } from "../../../Server/Utils/ProjectSsoProviderChanges";
+import {
+  PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
+  SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+} from "../../../Server/Utils/ProjectSsoProviderChanges";
 import RealtimeAccessChanges from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import Entities from "../../../Models/DatabaseModels/Index";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -787,7 +790,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
       };
 
       await expect(requireSsoForGroup()).resolves.toBe(
-        PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
       );
 
       const rows: Map<string, Record<string, unknown>> = await rowsOf(

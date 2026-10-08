@@ -1873,6 +1873,85 @@ describe.each([
       expect(lockObjects.size).toBe(0);
     });
 
+    test("turning providers on by a filter whose providers cannot be read goes on with its own filter - nothing about it is checked - and every server is told", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      getJestSpyOn(kind.providerService, "findAllBy").mockRejectedValue(
+        new Error("The database could not read the providers") as never,
+      );
+
+      await expect(
+        kind.providerService.updateBy({
+          query: { name: "Okta" },
+          data: { isEnabled: true } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(lockObjects.size).toBe(0);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("turning attachments on by a filter whose attachments cannot be read goes on the same way, and every server is told", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME, false),
+      ];
+
+      getJestSpyOn(kind.attachmentService, "findAllBy").mockRejectedValue(
+        new Error("The database could not read the attachments") as never,
+      );
+
+      await expect(
+        kind.attachmentService.updateBy({
+          query: { [kind.providerColumn]: PROVIDER },
+          data: { isEnabled: true } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.attachmentTable().rows[0]!["isEnabled"]).toBe(true);
+      expect(lockObjects.size).toBe(0);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
+    test("a provider turned on whose attachments cannot be read once it is held to the providers read is written all the same - those only - and every server is told", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+
+      afterRead(kind.providerService, "restrictToAttachedProjects", () => {
+        kind
+          .providerTable()
+          .rows.unshift(providerNamed(OTHER_PROVIDER, "Okta", false));
+      });
+      getJestSpyOn(GlobalProviderAttachmentRows, "read").mockRejectedValue(
+        new Error("The database could not read the attachments") as never,
+      );
+
+      await expect(
+        kind.providerService.updateBy({
+          query: { name: "Okta" },
+          data: { isEnabled: true } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(providerRow(kind, OTHER_PROVIDER)!["isEnabled"]).toBe(false);
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+      ]);
+    });
+
     test("deleting providers by a filter deletes the ones read under the lock, and leaves one that comes to match afterwards", async () => {
       afterRead(kind.providerService, "restrictToAttachedProjects", () => {
         kind

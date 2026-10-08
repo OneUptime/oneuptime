@@ -82,7 +82,10 @@ import SsoSignInWays, {
  *     afterwards - created, renamed, turned on or attached a moment later -
  *     was never checked, nor worked out, and is left alone. A delete,
  *     a hard delete included, reaches no other row that is there, only rows
- *     deleted before, which sign nobody in.
+ *     deleted before, which sign nobody in. A write that only lets more
+ *     people in and whose rows could not be read goes on with its own
+ *     filter - nothing about it is checked - and every server is told
+ *     (workOutUnlocked).
  *
  * Every server hearing of the change is the services' part
  * (announceGlobalSignInChange): told when the write changed where a
@@ -254,7 +257,7 @@ export default class GlobalSsoProviderChanges {
       ProjectSsoProviderChanges.writeOnlyTheRowsRead({
         service: data.service,
         write: data.updateBy,
-        rowIds: GlobalSsoProviderChanges.idsOf(read),
+        rowIds: ProjectSsoProviderChanges.idsOf(read),
         isDelete: false,
       });
 
@@ -378,7 +381,7 @@ export default class GlobalSsoProviderChanges {
         ProjectSsoProviderChanges.writeOnlyTheRowsRead({
           service: data.service,
           write: data.deleteBy,
-          rowIds: GlobalSsoProviderChanges.idsOf(providers),
+          rowIds: ProjectSsoProviderChanges.idsOf(providers),
           isDelete: true,
         });
 
@@ -539,7 +542,7 @@ export default class GlobalSsoProviderChanges {
       ProjectSsoProviderChanges.writeOnlyTheRowsRead({
         service: data.service,
         write: data.updateBy,
-        rowIds: GlobalSsoProviderChanges.idsOf(matched),
+        rowIds: ProjectSsoProviderChanges.idsOf(matched),
         isDelete: false,
       });
 
@@ -640,7 +643,7 @@ export default class GlobalSsoProviderChanges {
         ProjectSsoProviderChanges.writeOnlyTheRowsRead({
           service: data.service,
           write: data.deleteBy,
-          rowIds: GlobalSsoProviderChanges.idsOf(matched),
+          rowIds: ProjectSsoProviderChanges.idsOf(matched),
           isDelete: true,
         });
 
@@ -770,8 +773,11 @@ export default class GlobalSsoProviderChanges {
    * another write makes at that moment: a write that turns a provider or
    * an attachment off, or restricts it, tells the servers itself whatever
    * it read (the services' success hooks), and any other answer a server
-   * holds runs out within a minute. Never throws: when the read fails, the
-   * write counts as a change.
+   * holds runs out within a minute. Never throws: when working it out
+   * fails, the write counts as a change, and every server is told. One whose
+   * rows could not be read at all goes on with its own filter: nothing about
+   * a write that only lets more people in is checked, and every server asks
+   * again whatever it reaches.
    */
   private static async workOutUnlocked(data: {
     key: WriteKey;
@@ -854,13 +860,6 @@ export default class GlobalSsoProviderChanges {
       await ProjectSsoProviderChanges.releaseSignInChange(locks);
       throw err;
     }
-  }
-
-  // The ids of rows the hooks read.
-  private static idsOf(rows: Array<{ id: string }>): Array<string> {
-    return rows.map((row: { id: string }): string => {
-      return row.id;
-    });
   }
 
   /*

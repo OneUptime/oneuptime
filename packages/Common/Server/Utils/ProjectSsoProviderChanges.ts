@@ -165,13 +165,15 @@ export const WRITE_KEEP_INTERVAL_IN_MS: number = 2_500;
 
 /*
  * The longest the locks of a change are kept alive while it is written:
- * longer than any write of one takes - every statement of it gives up long
- * before (DATABASE_STATEMENT_TIMEOUT_MS) - so only a write that never ends
- * gets there. Its locks are then no longer kept, and run out
- * LOCK_TIMEOUT_IN_MS later, rather than holding every other change to who
- * can sign in for as long as the process lives.
+ * longer than any statement of the write may run (the database gives up on
+ * one after DATABASE_STATEMENT_TIMEOUT_MS, the client a little later), so a
+ * write that is still going is held to the end; one stuck longer than that
+ * - a step after its statements that never returns - is no longer kept,
+ * and its locks run out LOCK_TIMEOUT_IN_MS later, rather than holding every
+ * other change to who can sign in waiting. Every change gives its locks
+ * back once it is written or has failed, well before this.
  */
-export const WRITE_KEEP_LIMIT_IN_MS: number = 120_000;
+export const WRITE_KEEP_LIMIT_IN_MS: number = 60_000;
 
 const LOCK_NAMESPACE: string = "ProjectSsoProviderChanges.keepAWayIn";
 
@@ -837,9 +839,7 @@ export default class ProjectSsoProviderChanges {
       ProjectSsoProviderChanges.writeOnlyTheRowsRead({
         service: data.service,
         write: data.write,
-        rowIds: rows.map((row: ProjectSsoProviderRow): string => {
-          return row.id;
-        }),
+        rowIds: ProjectSsoProviderChanges.idsOf(rows),
         isDelete: data.isDelete,
       });
 
@@ -951,6 +951,13 @@ export default class ProjectSsoProviderChanges {
       data.write.skip = 0;
       data.write.limit = ids.length;
     }
+  }
+
+  // The ids of the rows a check read, to hold its write to (writeOnlyTheRowsRead).
+  public static idsOf(rows: Array<{ id: string }>): Array<string> {
+    return rows.map((row: { id: string }): string => {
+      return row.id;
+    });
   }
 
   /*

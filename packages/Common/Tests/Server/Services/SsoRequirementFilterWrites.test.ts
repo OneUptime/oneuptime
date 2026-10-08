@@ -9,7 +9,6 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import logger from "../../../Server/Utils/Logger";
 import ProjectSsoProviderChanges, {
-  PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
   SERVER_SIGN_IN_LOCK_KEY,
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
@@ -306,7 +305,7 @@ describe("Require SSO for Login written to projects named by a filter", () => {
     };
 
     await expect(requireSsoForGroup()).resolves.toBe(
-      PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
+      SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
     );
 
     expect(writtenProjects()).toEqual([]);
