@@ -88,10 +88,6 @@ Compila i seguenti campi:
 - **URL di base** (opzionale): URL endpoint API personalizzato (richiesto per Azure OpenAI, Ollama e OpenAI Compatible; opzionale per gli altri)
 - **Altri campi**, chiuso sotto i campi qui sopra: **Imposta come predefinito**, attivo per un nuovo provider perché le funzionalità AI usano solo il provider predefinito del progetto, e **Parametri aggiuntivi**, un oggetto JSON facoltativo di parametri extra inviati al provider con ogni richiesta (per esempio `{"temperature": 0.2}`)
 
-### Chi può vedere un provider
-
-I provider LLM di un progetto li leggono solo i suoi membri che possono leggere le impostazioni del progetto: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** e **Read LLM**. La **Chiave API** di un provider la leggono solo i proprietari e gli amministratori del progetto. L'elenco **Fornitori LLM globali** nella stessa pagina - i provider condivisi a cui un progetto ricorre - mostra il loro nome, la descrizione e il prezzo a chiunque abbia effettuato l'accesso, e nient'altro di loro.
-
 ## Configurazione Specifica per Provider
 
 ### OpenAI

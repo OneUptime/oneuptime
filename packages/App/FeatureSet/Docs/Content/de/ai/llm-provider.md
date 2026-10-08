@@ -88,10 +88,6 @@ Füllen Sie die folgenden Felder aus:
 - **Basis-URL** (optional): Benutzerdefinierte API-Endpunkt-URL (erforderlich für Azure OpenAI, Ollama und OpenAI Compatible; optional für andere)
 - **Weitere Felder**, unter den Feldern oben eingeklappt: **Als Standard festlegen**, bei einem neuen Anbieter eingeschaltet, weil KI-Funktionen nur den Standardanbieter des Projekts verwenden, und **Zusätzliche Parameter**, ein optionales JSON-Objekt mit weiteren Parametern, das bei jeder Anfrage an den Anbieter gesendet wird (zum Beispiel `{"temperature": 0.2}`)
 
-### Wer einen Anbieter sehen kann
-
-Die LLM-Anbieter eines Projekts lesen nur seine Mitglieder, die die Einstellungen des Projekts lesen dürfen: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** und **Read LLM**. Den **API-Schlüssel** eines Anbieters lesen nur die Eigentümer und Administratoren des Projekts. Die Liste **Globale LLM-Anbieter** auf derselben Seite - die gemeinsamen Anbieter, auf die ein Projekt zurückgreift - zeigt jedem Angemeldeten ihren Namen, ihre Beschreibung und ihren Preis und sonst nichts über sie.
-
 ## Anbieterspezifische Konfiguration
 
 ### OpenAI

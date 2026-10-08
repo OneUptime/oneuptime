@@ -139,8 +139,6 @@ Todo permiso concedido lleva un alcance, elegido al añadirlo:
 
 **Etiquetas** es la versión más manual de la misma idea: marque los recursos y luego conceda permisos restringidos a esas marcas.
 
-**Actuar sobre todo el proyecto requiere un permiso que lo alcance.** **Run Now** aplica una regla a cada recurso del proyecto, y las reglas de asignación de sitio, de etiquetas de dispositivos y de importación automática de una red a cada dispositivo de red o escaneo, así que requiere permisos con el alcance de todos los recursos del proyecto: un permiso restringido a etiquetas o a recursos propios no basta, y un bloqueo con etiquetas sobre los recursos que cambia una ejecución la rechaza, porque también cambiaría los recursos que llevan esas etiquetas.
-
 Algunos roles son de proyecto completo por definición y no ofrecen alcance alguno, porque acotarlos no significaría nada: «Billing Admin, pero solo para la facturación que me pertenece» no describe nada:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -221,8 +219,6 @@ Las actualizaciones en vivo también terminan con el inicio de sesión que las a
 Todo usuario con sesión iniciada tiene además un pequeño conjunto de permisos automáticos que cubren cosas como leer su propio perfil y sus propias reglas de notificación. No son permisos de administración y no dan acceso a los datos de nadie más.
 
 Los permisos resueltos se almacenan en caché por usuario y proyecto, y se refrescan cuando cambia la pertenencia a equipos o los permisos de equipo. Si cambia permisos y un usuario no ve el cambio de inmediato, pídale que recargue.
-
-Un comando se ejecuta con una credencial de runbook solo para quien puede leer credenciales de runbook (**Read Runbook Credential**; los propietarios y administradores del proyecto pueden). Aprobar un plan de comandos de IA con un comando SSH, que se ejecuta con la credencial que OneUptime AI eligió entre las de su Runner, requiere esa lectura, y también guardar una regla de corrección automática que deja que OneUptime AI ejecute sus comandos sin preguntar, cuando el guardado lo activa o añade patrones a la lista de permitidos o Runners.
 
 ## Recetas
 

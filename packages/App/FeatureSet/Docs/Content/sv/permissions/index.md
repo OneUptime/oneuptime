@@ -139,8 +139,6 @@ Varje tillåten behörighet ges med en omfattning som du väljer när du lägger
 
 **Etiketter** är den mer manuella varianten av samma idé: märk resurser och ge sedan behörigheter begränsade till de märkningarna.
 
-**Att verka på hela projektet kräver en behörighet som når hela projektet.** **Run Now** tillämpar en regel på varje resurs i projektet, och ett nätverks regler för platstilldelning, enhetsetiketter och automatisk import på varje nätverksenhet eller skanning, så det kräver behörigheter med omfattningen alla resurser i projektet: en behörighet som är begränsad till etiketter eller till egna resurser räcker inte, och en blockering med etiketter på de resurser en körning ändrar avvisar körningen, eftersom den också skulle ändra resurserna som har de etiketterna.
-
 Vissa roller är projektomfattande per definition och erbjuder ingen omfattning alls, eftersom det vore meningslöst att smalna av dem — "Billing Admin, men bara för den fakturering jag äger" beskriver ingenting:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -221,8 +219,6 @@ Liveuppdateringar upphör också med inloggningen som startade dem. När du logg
 Varje inloggad användare har dessutom en liten uppsättning automatiska behörigheter som täcker sådant som att läsa sin egen profil och sina egna aviseringsregler. Det är inga administratörsbehörigheter och de ger inte åtkomst till någon annans data.
 
 Upplösta behörigheter cachas per användare och projekt och uppdateras när teammedlemskap eller teambehörigheter ändras. Om du ändrar behörigheter och en användare inte ser ändringen direkt, be hen ladda om.
-
-Ett kommando körs med runbook-inloggningsuppgifter bara för någon som får läsa runbook-inloggningsuppgifter (**Read Runbook Credential**; projektägare och projektadministratörer får det). Att godkänna en AI-kommandoplan med ett SSH-kommando, som körs med de inloggningsuppgifter som OneUptime AI valde bland dem på dess Runner, kräver den läsbehörigheten, och det gör även att spara en auto-remediation-regel som låter OneUptime AI köra sina kommandon utan att fråga, när sparandet slår på det eller lägger till mönster i tillåtelselistan eller Runners.
 
 ## Recept
 

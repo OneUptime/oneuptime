@@ -139,8 +139,6 @@ Elke toegestane machtiging krijgt een bereik, dat u kiest bij het toevoegen:
 
 **Labels** is de handmatiger variant van hetzelfde idee: markeer resources en ken vervolgens machtigingen toe die tot die markeringen beperkt zijn.
 
-**Werken op het hele project vraagt een machtiging die het hele project bereikt.** **Run Now** past een regel toe op elke resource van het project, en de regels voor sitetoewijzing, apparaatlabels en automatische import van een netwerk op elk netwerkapparaat of elke scan; het vraagt dus machtigingen met als bereik alle resources in het project: een machtiging die beperkt is tot labels of tot eigen resources is niet genoeg, en een blokkering met labels op de resources die een run wijzigt, weigert de run, omdat die ook de resources met die labels zou wijzigen.
-
 Sommige rollen zijn per definitie projectbreed en bieden helemaal geen bereik, omdat ze inperken niets zou betekenen — "Billing Admin, maar alleen voor de facturatie die van mij is" beschrijft niets:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -221,8 +219,6 @@ Live-updates eindigen ook met de aanmelding waarmee ze zijn gestart. Afmelden, u
 Elke ingelogde gebruiker heeft daarnaast een kleine set automatische machtigingen voor zaken als het lezen van zijn eigen profiel en zijn eigen meldingsregels. Dat zijn geen beheerdersrechten en ze ontsluiten niemand anders' gegevens.
 
 Opgeloste machtigingen worden per gebruiker en project gecachet en vernieuwd wanneer teamlidmaatschap of teammachtigingen wijzigen. Ziet een gebruiker een wijziging niet meteen, laat hem dan herladen.
-
-Een opdracht draait alleen met runbook-inloggegevens voor iemand die runbook-inloggegevens mag lezen (**Read Runbook Credential**; projecteigenaren en projectbeheerders mogen dat). Een AI-opdrachtplan met een SSH-opdracht goedkeuren, die draait met de inloggegevens die OneUptime AI koos uit die van zijn Runner, vraagt die leesmachtiging, en dat geldt ook voor het opslaan van een auto-remediation-regel die OneUptime AI zijn opdrachten zonder te vragen laat uitvoeren, wanneer het opslaan dat aanzet of allowlist-patronen of Runners toevoegt.
 
 ## Recepten
 

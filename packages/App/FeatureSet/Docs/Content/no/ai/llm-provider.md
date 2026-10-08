@@ -88,10 +88,6 @@ Fyll inn følgende felt:
 - **Basis-URL** (valgfritt): Egendefinert API-endepunkt-URL (påkrevd for Azure OpenAI, Ollama og OpenAI-kompatibel; valgfritt for andre)
 - **Flere felt**, slått sammen under feltene over: **Angi som standard**, som er slått på for en ny leverandør fordi AI-funksjoner bare bruker prosjektets standardleverandør, og **Ekstra parametere**, et valgfritt JSON-objekt med ekstra parametere som sendes til leverandøren med hver forespørsel (for eksempel `{"temperature": 0.2}`)
 
-### Hvem kan se en leverandør
-
-Et prosjekts LLM-leverandører leses bare av medlemmene som kan lese prosjektets innstillinger: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** og **Read LLM**. En leverandørs **API-nøkkel** leses bare av prosjektets eiere og administratorer. Listen **Globale LLM-leverandører** på samme side - de delte leverandørene et prosjekt faller tilbake på - viser navn, beskrivelse og pris for alle som er logget inn, og ingenting annet om dem.
-
 ## Leverandørspesifikk konfigurasjon
 
 ### OpenAI

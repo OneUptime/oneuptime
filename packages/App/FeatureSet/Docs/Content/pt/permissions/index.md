@@ -139,8 +139,6 @@ Toda permissão concedida vem com um escopo, escolhido no momento em que você a
 
 **Rótulos** é a versão mais manual da mesma ideia: marque os recursos e conceda permissões restritas a essas marcações.
 
-**Agir sobre todo o projeto exige uma permissão que o alcance.** **Run Now** aplica uma regra a cada recurso do projeto, e as regras de atribuição de site, de rótulos de dispositivos e de importação automática de uma rede a cada dispositivo de rede ou varredura; por isso exige permissões com o escopo de todos os recursos do projeto: uma permissão restrita a rótulos ou a recursos próprios não basta, e um bloqueio com rótulos nos recursos que uma execução altera a recusa, porque ela também alteraria os recursos que levam esses rótulos.
-
 Algumas funções são de projeto inteiro por definição e não oferecem escopo algum, porque restringi-las não faria sentido — "Billing Admin, mas só para o faturamento que é meu" não descreve nada:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -221,8 +219,6 @@ As atualizações ao vivo também terminam com o login que as abriu. Sair, troca
 Todo usuário autenticado detém ainda um pequeno conjunto de permissões automáticas que cobrem coisas como ler o próprio perfil e as próprias regras de notificação. Não são permissões administrativas e não dão acesso aos dados de mais ninguém.
 
 As permissões resolvidas ficam em cache por usuário e projeto, e são atualizadas quando a participação em equipes ou as permissões da equipe mudam. Se você alterar permissões e um usuário não vir a mudança na hora, peça que ele recarregue.
-
-Um comando é executado com uma credencial de runbook só para quem pode ler credenciais de runbook (**Read Runbook Credential**; proprietários e administradores do projeto podem). Aprovar um plano de comandos de IA com um comando SSH, que é executado com a credencial que a OneUptime AI escolheu entre as do seu Runner, exige essa leitura, e o mesmo vale para salvar uma regra de remediação automática que deixa a OneUptime AI executar seus comandos sem perguntar, quando o salvamento ativa isso ou adiciona padrões à lista de permissões ou Runners.
 
 ## Receitas
 

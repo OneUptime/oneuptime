@@ -88,10 +88,6 @@ OneUptime वर्तमान में निम्नलिखित LLM pro
 - **बेस URL** (वैकल्पिक): Custom API endpoint URL (Azure OpenAI, Ollama, और OpenAI Compatible के लिए आवश्यक; अन्य के लिए वैकल्पिक)
 - **और फ़ील्ड**, ऊपर के fields के नीचे सिमटा हुआ: **डिफ़ॉल्ट के रूप में सेट करें**, जो नए provider के लिए चालू रहता है क्योंकि AI सुविधाएं केवल project के डिफ़ॉल्ट provider का उपयोग करती हैं, और **अतिरिक्त पैरामीटर**, अतिरिक्त parameters का एक वैकल्पिक JSON object जो हर request के साथ provider को भेजा जाता है (उदाहरण के लिए `{"temperature": 0.2}`)
 
-### कौन किसी provider को देख सकता है
-
-किसी प्रोजेक्ट के LLM providers को केवल उसके वे सदस्य पढ़ते हैं जो प्रोजेक्ट की सेटिंग्स पढ़ सकते हैं: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** और **Read LLM**। किसी provider की **API कुंजी** केवल प्रोजेक्ट के owners और admins पढ़ते हैं। उसी पेज की **वैश्विक LLM प्रदाता** सूची - वे साझा providers जिन पर कोई प्रोजेक्ट वापस लौटता है - साइन इन किए हुए हर व्यक्ति को उनका नाम, विवरण और कीमत दिखाती है, और उनके बारे में और कुछ नहीं।
-
 ## Provider-विशिष्ट Configuration
 
 ### OpenAI
