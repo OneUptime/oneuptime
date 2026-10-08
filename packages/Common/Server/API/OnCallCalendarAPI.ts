@@ -1,10 +1,4 @@
-import {
-  DisableOnCallCalendarFeed,
-  Host,
-  HttpProtocol,
-  ProvisionSsl,
-  TrustedProxyHops,
-} from "../EnvironmentConfig";
+import { DisableOnCallCalendarFeed } from "../EnvironmentConfig";
 import OnCallCalendarFeedCache from "../Infrastructure/OnCallCalendarFeedCache";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallCalendarFeedRateLimit from "../Middleware/OnCallCalendarFeedRateLimit";
@@ -43,7 +37,6 @@ import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPoli
 import OnCallDutyPolicyScheduleCalendarFeed from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import UserOnCallCalendarFeed from "../../Models/DatabaseModels/UserOnCallCalendarFeed";
-import Protocol from "../../Types/API/Protocol";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -74,10 +67,24 @@ import { OnCallCalendarFeedKind } from "../../Types/OnCallDutyPolicy/OnCallCalen
  * add nothing, but a browser holding an expired session cookie would be
  * answered 401 before the token was even read, and an `apikey` header -- even
  * an empty one -- would hijack the request into API-key authentication. The
- * pipeline is, in order: kill switch -> scheme guard -> rate limit -> shape
- * guard -> token lookup (current hash, then the rotated-out hash inside its
- * grace) -> the renderer, which re-derives authorisation on every fetch
- * (a valid token is not authorisation) -> response -> bookkeeping.
+ * pipeline is, in order: kill switch -> rate limit -> shape guard -> token
+ * lookup (current hash, then the rotated-out hash inside its grace) -> the
+ * renderer, which re-derives authorisation on every fetch (a valid token is
+ * not authorisation) -> response -> bookkeeping.
+ *
+ * NO SCHEME REDIRECT. These routes answer on whatever scheme reached the app
+ * and never redirect. They used to send plain http to https (301) when
+ * HTTP_PROTOCOL=https, PROVISION_SSL=true and the forwarded scheme said http.
+ * The app cannot see the scheme the CLIENT used: every proxying location in
+ * Nginx/default.conf.template sets `X-Forwarded-Proto $scheme`, which is the
+ * scheme of the hop INTO Nginx, and on any install whose TLS ends in front of
+ * Nginx -- a CDN, a load balancer, OneUptime Cloud itself -- that hop is http
+ * on every request. The 301 then pointed at the very URL the client had just
+ * asked for: an endless loop, so Google Calendar, Outlook and Apple Calendar
+ * all fetched nothing, and every feed URL the dashboard handed out was dead.
+ * Nothing needs the redirect: the links are built from HOST and HTTP_PROTOCOL
+ * (an https install hands out https links), and sending plain http to https
+ * is the edge proxy's job, the one hop that knows what the client spoke.
  *
  * ONE RESPONSE RULE, applied everywhere:
  *   unknown / malformed / expired token          -> 404, generic body
@@ -276,105 +283,6 @@ export function killSwitchMiddleware(
   }
 
   return next();
-}
-
-/*
- * The X-Forwarded-Proto entry written by OUR proxy, read the way ClientIp
- * reads X-Forwarded-For: counting in from the right by TRUSTED_PROXY_HOPS,
- * never the leftmost (caller-supplied) entry. With no trusted proxies there
- * is no trustworthy header at all, and undefined is returned.
- */
-export function resolveTrustedForwardedProto(
-  req: ExpressRequest,
-  options?: { trustedProxyHops?: number | undefined } | undefined,
-): string | undefined {
-  const configuredHops: number =
-    options?.trustedProxyHops === undefined
-      ? TrustedProxyHops
-      : options.trustedProxyHops;
-
-  const hops: number =
-    Number.isFinite(configuredHops) && configuredHops > 0
-      ? Math.floor(configuredHops)
-      : 0;
-
-  if (hops === 0) {
-    return undefined;
-  }
-
-  const header: string | Array<string> | undefined = req.headers?.[
-    "x-forwarded-proto"
-  ] as string | Array<string> | undefined;
-
-  if (header === undefined || header === null) {
-    return undefined;
-  }
-
-  const raw: string = Array.isArray(header) ? header.join(",") : header;
-
-  if (!raw.trim()) {
-    return undefined;
-  }
-
-  const entries: Array<string> = raw.split(",");
-
-  if (entries.length < hops) {
-    return undefined;
-  }
-
-  const entry: string | undefined = entries[entries.length - hops];
-
-  return entry ? entry.trim().toLowerCase() : undefined;
-}
-
-/*
- * Scheme guard. An https instance whose proxy reports the request arrived
- * over plain http answers 301 to the https URL, so a link pasted without the
- * "s" is corrected once instead of served in the clear forever. The target
- * is built from HOST, never from the request's own Host header (an open
- * redirect otherwise). Nginx only does this itself when billing is on.
- *
- * It only fires when OUR nginx terminates TLS (PROVISION_SSL=true). Every
- * proxying location in Nginx/default.conf.template sets
- * `X-Forwarded-Proto $scheme`, REPLACING whatever an outer proxy sent, so on
- * an install that terminates TLS on an external reverse proxy
- * (PROVISION_SSL=false with HTTP_PROTOCOL=https -- the topology
- * config.example.env documents) nginx always reports `http` even though the
- * client spoke https. Redirecting there would 301 to the very URL the client
- * just asked for: an endless loop, ERR_TOO_MANY_REDIRECTS in a browser and a
- * dead subscription in every calendar client. Serving the feed is the right
- * answer; the settings page still shows `protocolWarning` when the install
- * really is plain http.
- */
-export function schemeGuardMiddleware(
-  req: ExpressRequest,
-  res: ExpressResponse,
-  next: NextFunction,
-): void {
-  if (HttpProtocol !== Protocol.HTTPS) {
-    return next();
-  }
-
-  if (!ProvisionSsl) {
-    return next();
-  }
-
-  const forwardedProto: string | undefined = resolveTrustedForwardedProto(req);
-
-  if (forwardedProto !== "http") {
-    return next();
-  }
-
-  const host: string = OnCallCalendarFeedUrls.normalizeHost(Host);
-
-  if (!host) {
-    return next();
-  }
-
-  const originalUrl: string = req.originalUrl || req.url || "/";
-
-  res.set("Cache-Control", "no-store");
-  res.redirect(301, `${Protocol.HTTPS}${host}${originalUrl}`);
 }
 
 // -- Helpers ----------------------------------------------------------------
@@ -1315,7 +1223,6 @@ async function serveFeed(data: {
 router.get(
   PERSONAL_FEED_ROUTE,
   killSwitchMiddleware,
-  schemeGuardMiddleware,
   OnCallCalendarFeedRateLimit.getMiddleware(),
   async (
     req: ExpressRequest,
@@ -1393,7 +1300,6 @@ router.get(
 router.get(
   SCHEDULE_FEED_ROUTE,
   killSwitchMiddleware,
-  schemeGuardMiddleware,
   OnCallCalendarFeedRateLimit.getMiddleware(),
   async (
     req: ExpressRequest,
@@ -1450,7 +1356,6 @@ router.get(
 router.get(
   PROJECT_FEED_ROUTE,
   killSwitchMiddleware,
-  schemeGuardMiddleware,
   OnCallCalendarFeedRateLimit.getMiddleware(),
   async (
     req: ExpressRequest,

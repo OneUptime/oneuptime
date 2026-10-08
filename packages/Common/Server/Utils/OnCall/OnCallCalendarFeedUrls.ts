@@ -1,6 +1,10 @@
 import { Host, HttpProtocol } from "../../EnvironmentConfig";
 import { AppApiRoute } from "../../../ServiceRoute";
 import Protocol from "../../../Types/API/Protocol";
+import CalendarSubscriptionLinks, {
+  CalendarSubscriptionLinkSet,
+  GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX,
+} from "../../../Types/Calendar/CalendarSubscriptionLinks";
 import { OnCallCalendarFeedKind } from "../../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
 
 /*
@@ -15,12 +19,16 @@ import { OnCallCalendarFeedKind } from "../../../Types/OnCallDutyPolicy/OnCallCa
  *
  *   https     the plain URL. Google Calendar ("From URL"), Outlook on the web
  *             and Thunderbird take this as-is.
- *   webcal    the same URL under the webcal:// scheme (webcals:// when the
- *             instance serves https). Apple Calendar on macOS and iOS opens it
- *             straight into a "Subscribe" sheet; Windows without Outlook has no
- *             handler for it, which the docs explain.
- *   googleAdd Google Calendar's add-by-URL deep link, the https URL encoded
- *             into its `cid` parameter.
+ *   webcal    the same URL under the webcal:// scheme - always webcal://,
+ *             never webcals://, which iOS refuses to open. Apple Calendar on
+ *             macOS and iOS opens it straight into a "Subscribe" sheet and
+ *             Outlook for Windows into its own; both fetch it over https when
+ *             the server serves https. Windows without Outlook has no handler
+ *             for it, which the docs explain.
+ *   googleAdd Google Calendar's add-by-URL deep link, with the webcal:// form
+ *             of the URL encoded into its `cid` parameter. Given the https://
+ *             form there, Google answers "Unable to add calendar. Check the
+ *             URL." (CalendarSubscriptionLinks explains both rules.)
  *
  * The path segments are a public contract shared with the Nginx access-log
  * exemption (`^/api/on-call-calendar/(user|schedule|project)/`) and the
@@ -34,7 +42,7 @@ export const SCHEDULE_FEED_FILE_NAME: string = "schedule.ics";
 export const PROJECT_FEED_FILE_NAME: string = "project.ics";
 
 export const GOOGLE_CALENDAR_ADD_BY_URL: string =
-  "https://calendar.google.com/calendar/r?cid=";
+  GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX;
 
 export const HOST_WARNING: string =
   "HOST is not set to a public address, so calendar apps outside this machine cannot reach this link. Set HOST to the address your team uses to open OneUptime.";
@@ -144,18 +152,15 @@ export default class OnCallCalendarFeedUrls {
       options.token,
     );
 
-    const https: string = `${protocol}${host}${path}`;
+    const links: CalendarSubscriptionLinkSet = CalendarSubscriptionLinks.build(
+      `${protocol}${host}${path}`,
+    );
 
-    const webcalScheme: string =
-      protocol === Protocol.HTTPS ? "webcals://" : "webcal://";
-
-    const webcal: string = `${webcalScheme}${host}${path}`;
-
-    const googleAdd: string = `${GOOGLE_CALENDAR_ADD_BY_URL}${encodeURIComponent(
-      https,
-    )}`;
-
-    return { https, webcal, googleAdd };
+    return {
+      https: links.https,
+      webcal: links.webcal,
+      googleAdd: links.googleAdd,
+    };
   }
 
   /*

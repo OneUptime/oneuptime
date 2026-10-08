@@ -16,12 +16,16 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * The subscription URLs the settings page hands out. What matters: the path
  * segments match the Nginx access-log exemption and the API routes exactly,
- * webcal follows the instance scheme, the Google link carries the https URL
- * encoded, and the two warnings fire on the deployments where the link
- * would not work or would leak.
+ * the webcal link is always webcal:// (iOS does not open webcals://), the
+ * Google link carries the webcal:// form of the URL in `cid` (given https://
+ * Google answers "Unable to add calendar. Check the URL."), and the two
+ * warnings fire on the deployments where the link would not work or would
+ * leak.
  */
 
 const TOKEN: string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP_";
+
+const WEBCAL_PREFIX_PATTERN: RegExp = /^webcal:\/\//;
 
 describe("OnCallCalendarFeedUrls", () => {
   describe("route paths", () => {
@@ -118,7 +122,7 @@ describe("OnCallCalendarFeedUrls", () => {
   });
 
   describe("buildFeedUrls", () => {
-    test("https instance: https URL, webcals:// link and an encoded Google link", () => {
+    test("https instance: https URL, webcal:// link and a Google link whose cid is the webcal:// URL", () => {
       const urls: FeedUrls = OnCallCalendarFeedUrls.buildFeedUrls({
         kind: OnCallCalendarFeedKind.Personal,
         token: TOKEN,
@@ -130,11 +134,38 @@ describe("OnCallCalendarFeedUrls", () => {
         `https://oneuptime.example.com/api/on-call-calendar/user/${TOKEN}/shifts.ics`,
       );
       expect(urls.webcal).toBe(
-        `webcals://oneuptime.example.com/api/on-call-calendar/user/${TOKEN}/shifts.ics`,
+        `webcal://oneuptime.example.com/api/on-call-calendar/user/${TOKEN}/shifts.ics`,
       );
       expect(urls.googleAdd).toBe(
-        `${GOOGLE_CALENDAR_ADD_BY_URL}${encodeURIComponent(urls.https)}`,
+        `${GOOGLE_CALENDAR_ADD_BY_URL}${encodeURIComponent(urls.webcal)}`,
       );
+    });
+
+    /*
+     * Regression: the Google link was cid=<the https:// URL>, which Google
+     * Calendar opens and then rejects with "Unable to add calendar. Check the
+     * URL." - the "direct link displays an error" a customer reported.
+     */
+    test.each([
+      OnCallCalendarFeedKind.Personal,
+      OnCallCalendarFeedKind.Schedule,
+      OnCallCalendarFeedKind.Project,
+    ])("the %s feed's Google link never carries an https:// or webcals:// address", (kind: OnCallCalendarFeedKind) => {
+      const urls: FeedUrls = OnCallCalendarFeedUrls.buildFeedUrls({
+        kind,
+        token: TOKEN,
+        host: "oneuptime.example.com",
+        protocol: Protocol.HTTPS,
+      });
+
+      const cid: string | null = new URL(urls.googleAdd).searchParams.get(
+        "cid",
+      );
+
+      expect(cid).toBe(urls.https.replace("https://", "webcal://"));
+      expect(cid?.startsWith("https:")).toBe(false);
+      expect(cid?.startsWith("webcals:")).toBe(false);
+      expect(urls.webcal.startsWith("webcals:")).toBe(false);
     });
 
     test("http instance: the `https` key still carries the instance URL, and webcal is webcal://", () => {
@@ -154,7 +185,7 @@ describe("OnCallCalendarFeedUrls", () => {
       expect(urls.webcal.startsWith("webcals://")).toBe(false);
     });
 
-    test("the Google link decodes back to the https URL", () => {
+    test("the Google link decodes back to the feed's webcal:// address, encoded whole", () => {
       const urls: FeedUrls = OnCallCalendarFeedUrls.buildFeedUrls({
         kind: OnCallCalendarFeedKind.Project,
         token: TOKEN,
@@ -166,8 +197,12 @@ describe("OnCallCalendarFeedUrls", () => {
         GOOGLE_CALENDAR_ADD_BY_URL.length,
       );
 
-      expect(decodeURIComponent(cid)).toBe(urls.https);
+      expect(decodeURIComponent(cid)).toBe(urls.webcal);
+      expect(decodeURIComponent(cid).replace("webcal://", "https://")).toBe(
+        urls.https,
+      );
       expect(cid).not.toContain("/");
+      expect(cid).not.toContain(":");
     });
 
     test("a HOST that carries a scheme or a trailing slash is normalised", () => {
@@ -193,7 +228,9 @@ describe("OnCallCalendarFeedUrls", () => {
         protocol: Protocol.HTTPS,
       });
 
-      expect(urls.webcal.replace(/^webcals:\/\//, "https://")).toBe(urls.https);
+      expect(urls.webcal.replace(WEBCAL_PREFIX_PATTERN, "https://")).toBe(
+        urls.https,
+      );
     });
 
     test("the defaults come from the environment (a string either way)", () => {
