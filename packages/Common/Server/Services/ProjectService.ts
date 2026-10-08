@@ -776,14 +776,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Session replay is gated on the project's org-wide allow flag, and the
-   * ingest gate caches the resolved policy per pod. Turning the flag off has
-   * to reach every pod now, not after the cache TTL plus the config
-   * endpoint's browser cache - roughly six minutes - so the Redis kill key
-   * is written here. Best effort: a Redis outage only means the ordinary
-   * cache expiry applies.
+   * An update that failed - refused or thrown, an auto recharge charge
+   * included - once a stricter sign-in rule held its locks: they are given
+   * back (SsoRequirementChanges).
    */
-  // An update that failed once a stricter sign-in rule held its locks: they are given back.
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
@@ -796,6 +792,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
     return error;
   }
 
+  /*
+   * Session replay is gated on the project's org-wide allow flag, and the
+   * ingest gate caches the resolved policy per pod. Turning the flag off has
+   * to reach every pod now, not after the cache TTL plus the config
+   * endpoint's browser cache - roughly six minutes - so the Redis kill key
+   * is written here. Best effort: a Redis outage only means the ordinary
+   * cache expiry applies.
+   */
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -1001,9 +1005,11 @@ export class ProjectService extends ProjectReferencesService<Model> {
    *
    *   - turning Require SSO for Login on, or requiring another provider,
    *     needs an SSO provider that signs people in to the project
-   *     (Utils/SsoRequirementChanges). Checked under the project's lock and
-   *     the lock on the server's sign-in rules, held until the write is done
-   *     (onUpdateSuccess), and before anything is charged below;
+   *     (Utils/SsoRequirementChanges). Checked under the project's lock -
+   *     and, when the project would rely on more than its own providers that
+   *     are on, the lock on the server's sign-in rules - held until the
+   *     write is done (onUpdateSuccess) or fails (onUpdateError, a charge
+   *     below that fails included), and before anything is charged below;
    *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn).
    */
   @CaptureSpan()
@@ -1012,12 +1018,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
 
-    try {
-      await this.chargeAutoRechargeTurnedOn(updateBy);
-    } catch (err) {
-      await SsoRequirementChanges.afterUpdate(updateBy);
-      throw err;
-    }
+    await this.chargeAutoRechargeTurnedOn(updateBy);
   }
 
   /*

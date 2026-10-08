@@ -112,9 +112,14 @@ export interface SsoRequirementWrite {
 
 export default class SsoRequirementChanges {
   /*
-   * The writes worked out before they run, for the success hooks to give
-   * the locks back: keyed by the UpdateBy the services hand back from
-   * onBeforeUpdate, which DatabaseService passes on to onUpdateSuccess.
+   * The writes worked out before they run, for the success and error hooks
+   * to give the locks back: keyed by the UpdateBy the services hand back
+   * from onBeforeUpdate, which DatabaseService passes on to
+   * onUpdatePermitted. ProjectService and GlobalConfigService hand back the
+   * very object they were given, so it is also the one the success hook is
+   * handed (the caller's); the suites that give the locks back after each
+   * write (SsoRequirementChanges.test, GlobalSsoProviderChanges.test) fail
+   * if one ever does not.
    */
   private static writes: WeakMap<UpdateBy<BaseModel>, SsoRequirementWrite> =
     new WeakMap<UpdateBy<BaseModel>, SsoRequirementWrite>();
@@ -146,7 +151,14 @@ export default class SsoRequirementChanges {
       ? toIdString(written["requireSsoWithSsoProviderId"])
       : null;
 
-    // Asks for less, or the same: nothing to check.
+    /*
+     * Asks for less, or the same: nothing to check. A provider required by
+     * a project that does not require SSO itself is checked all the same:
+     * the server's Require SSO for Login holds the project to it too, and a
+     * server turning that on at this moment reads the project's rule under
+     * the lock on the server's sign-in rules, which this write then holds
+     * (SsoSignInWays.dependsOnServerRules).
+     */
     if (requireSsoForLogin !== true && !requiredProviderId) {
       return null;
     }

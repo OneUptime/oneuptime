@@ -169,6 +169,33 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A hard delete runs no success hook (DatabaseService.hardDeleteBy): the
+   * lock its check took (onBeforeDelete) is given back here, whatever
+   * happened, and the projects of the attachments it deleted are asked
+   * again on every server, as onDeleteSuccess does for a provider
+   * restricted to its attached projects.
+   */
+  @CaptureSpan()
+  public override async hardDeleteBy(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<number> {
+    let deleted: number = 0;
+
+    try {
+      deleted = await super.hardDeleteBy(deleteBy);
+    } finally {
+      await GlobalSsoProviderChanges.afterWrite(deleteBy);
+    }
+
+    if (deleted > 0) {
+      clearGlobalSsoAuthorizationCaches();
+      announceGlobalSignInChange();
+    }
+
+    return deleted;
+  }
+
+  /*
    * An attachment is checked, under the lock on the server's sign-in rules,
    * once every permission and clash check has passed (onCreatePermitted).
    * The lock is given back once it is written (onCreateSuccess), and here

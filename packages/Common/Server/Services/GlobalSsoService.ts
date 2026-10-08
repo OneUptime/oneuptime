@@ -214,6 +214,32 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A hard delete runs no success hook (DatabaseService.hardDeleteBy): the
+   * lock its check took (onBeforeDelete) is given back here, whatever
+   * happened, and a provider it deleted vouches for nobody, as
+   * onDeleteSuccess says.
+   */
+  @CaptureSpan()
+  public override async hardDeleteBy(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<number> {
+    let deleted: number = 0;
+
+    try {
+      deleted = await super.hardDeleteBy(deleteBy);
+    } finally {
+      await GlobalSsoProviderChanges.afterWrite(deleteBy);
+    }
+
+    if (deleted > 0) {
+      clearGlobalSsoAuthorizationCaches();
+      announceGlobalSignInChange();
+    }
+
+    return deleted;
+  }
+
+  /*
    * A SAML provider created without a signature method, a digest method or
    * a description gets the usual ones (Types/SSO/SamlProviderDefaults),
    * before the required-field check runs: the columns stay required, so the

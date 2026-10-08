@@ -3,6 +3,7 @@ import Semaphore, {
   SemaphoreLockTimeoutError,
 } from "../../../Server/Infrastructure/Semaphore";
 import AuditLogService from "../../../Server/Services/AuditLogService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import GlobalOidcProjectService from "../../../Server/Services/GlobalOidcProjectService";
 import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
@@ -17,6 +18,7 @@ import {
 } from "../../../Server/Utils/Express";
 import { clearGlobalSsoAuthorizationCaches } from "../../../Server/Utils/GlobalSsoAuthorization";
 import logger from "../../../Server/Utils/Logger";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import { SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE } from "../../../Server/Utils/ProjectSsoProviderChanges";
 import RealtimeAccessChanges, {
   RealtimeAccessChange,
@@ -28,6 +30,8 @@ import GlobalOidcProject from "../../../Models/DatabaseModels/GlobalOidcProject"
 import GlobalSso from "../../../Models/DatabaseModels/GlobalSso";
 import GlobalSsoProject from "../../../Models/DatabaseModels/GlobalSsoProject";
 import Project from "../../../Models/DatabaseModels/Project";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -356,6 +360,9 @@ interface ProviderKind {
   label: string;
   providerApi: BaseAPI<any, any>;
   attachmentApi: BaseAPI<any, any>;
+  // The services underneath, for the writes no route makes (the retention job's hard delete).
+  providerService: DatabaseService<any>;
+  attachmentService: DatabaseService<any>;
   providerTable: () => Table;
   attachmentTable: () => Table;
   // The other kind's provider table, which the check reads too.
@@ -373,6 +380,8 @@ const SAML: ProviderKind = {
     GlobalSsoProject as never,
     GlobalSsoProjectService as never,
   ),
+  providerService: GlobalSsoService as unknown as DatabaseService<any>,
+  attachmentService: GlobalSsoProjectService as unknown as DatabaseService<any>,
   providerTable: (): Table => {
     return globalSamlTable;
   },
@@ -395,6 +404,9 @@ const OIDC: ProviderKind = {
     GlobalOidcProject as never,
     GlobalOidcProjectService as never,
   ),
+  providerService: GlobalOidcService as unknown as DatabaseService<any>,
+  attachmentService:
+    GlobalOidcProjectService as unknown as DatabaseService<any>,
   providerTable: (): Table => {
     return globalOidcTable;
   },
@@ -790,7 +802,7 @@ describe.each([
       ]);
     });
 
-    test("turned on again, it keeps that time: turning on writes none and takes no lock", async () => {
+    test("turned on again, it keeps that time: turning on writes none, and holds the lock while it is written", async () => {
       await updateProvider(kind, { isEnabled: false });
       const endedAt: unknown = providerRow(kind)!["signInsEndedAt"];
       events = [];
@@ -802,7 +814,23 @@ describe.each([
       expect(providerRow(kind)!["isEnabled"]).toBe(true);
       expect(providerRow(kind)!["signInsEndedAt"]).toEqual(endedAt);
       expect(kind.providerTable().writes[1]!.set).toEqual({ isEnabled: true });
-      expect(events).toEqual([`write:${PROVIDER}`]);
+      // A write turning it off at the same moment waits, and then reads it on.
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `write:${PROVIDER}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    });
+
+    test("turning it on is never refused, even for a project that requires SSO and has no provider yet", async () => {
+      providerRow(kind)!["isEnabled"] = false;
+      projects = [project(ACME, "Acme")];
+
+      await expect(updateProvider(kind, { isEnabled: true })).resolves.toBe(
+        "done",
+      );
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
     });
 
     test("turning off one that is off already keeps the time it has", async () => {
@@ -1032,10 +1060,161 @@ describe.each([
     });
   });
 
+  describe("a write that names no provider, and a hard delete, which runs no success hook", () => {
+    beforeEach(() => {
+      projects = [project(ACME, "Acme")];
+      ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+    });
+
+    test("an update or delete that names no provider takes no lock", async () => {
+      await expect(
+        kind.providerService.updateBy({
+          query: { name: "No such provider" },
+          data: { isEnabled: false } as never,
+          limit: 10,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(0);
+      await expect(
+        kind.providerService.deleteBy({
+          query: { name: "No such provider" },
+          limit: 10,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(0);
+
+      expect(events).toEqual([]);
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+    });
+
+    test("the retention job's hard delete of rows deleted long ago takes no lock", async () => {
+      await expect(
+        kind.providerService.hardDeleteBy({
+          query: {
+            deletedAt: QueryHelper.lessThan(OneUptimeDate.getSomeDaysAgo(30)),
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(0);
+
+      expect(events).toEqual([]);
+      expect(providerRow(kind)).toBeDefined();
+    });
+
+    test("a hard delete of a provider gives the lock back once it is done, and every server is told", async () => {
+      await expect(
+        kind.providerService.hardDeleteBy({
+          query: { _id: PROVIDER },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(providerRow(kind)).toBeUndefined();
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `delete:${PROVIDER}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(announced).toHaveLength(1);
+    });
+
+    test("a hard delete that would strand a project is refused, and one the database fails gives the lock back", async () => {
+      ownSaml = [];
+
+      await expect(
+        kind.providerService.hardDeleteBy({
+          query: { _id: PROVIDER },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(NO_PROVIDER_FOR_ACME);
+
+      ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+      failing = "delete";
+
+      await expect(
+        kind.providerService.hardDeleteBy({
+          query: { _id: PROVIDER },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow("The database could not delete the row");
+
+      expect(providerRow(kind)).toBeDefined();
+      expect(announced).toEqual([]);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    });
+  });
+
   describe("its attachments, when it is restricted to its attached projects", () => {
     beforeEach(() => {
       providerRow(kind)!["restrictToAttachedProjects"] = true;
       projects = [project(ACME, "Acme"), project(BETA, "Beta")];
+    });
+
+    test("a hard delete of an attachment gives the lock back once it is done", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+      ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+
+      await expect(
+        kind.attachmentService.hardDeleteBy({
+          query: { _id: ATTACHED_TO_ACME },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.attachmentTable().deleted).toEqual([ATTACHED_TO_ACME]);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `delete:${ATTACHED_TO_ACME}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(announced).toHaveLength(1);
+    });
+
+    test("an update or delete that names no attachment takes no lock", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+
+      await expect(
+        kind.attachmentService.updateBy({
+          query: { _id: ATTACHED_TO_ACME },
+          data: { isEnabled: false } as never,
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(0);
+      await expect(
+        kind.attachmentService.deleteBy({
+          query: { projectId: GAMMA },
+          limit: 10,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ).resolves.toBe(0);
+
+      expect(events).toEqual([]);
+      expect(kind.attachmentTable().rows).toHaveLength(1);
     });
 
     test("the first attachment narrows it from every project to one: refused when that strands another project", async () => {

@@ -763,27 +763,45 @@ export default class SsoSignInWays {
     }
   }
 
-  // Every project the query names, a page at a time, the locks kept before each.
+  /*
+   * Every project the query names, a page at a time, the locks kept before
+   * each. Each page starts after the last project the one before it read,
+   * by id, not at a count of rows: a project that leaves the query's set
+   * while the pages are read - one that turns Require SSO for Login on or
+   * off under its own lock - moves no other project from one page to the
+   * next, so none is passed over.
+   */
   private static async forEachPage(
     query: Query<Project>,
     evaluate: (projects: Array<CandidateProject>) => Promise<void>,
     keepLocks: () => Promise<void>,
   ): Promise<void> {
-    for (let skip: number = 0; ; skip += PROJECT_PAGE_SIZE) {
+    let lastId: string | null = null;
+
+    for (;;) {
       await keepLocks();
 
       const projects: Array<CandidateProject> =
         await SsoSignInWays.readProjects({
-          query,
-          skip,
+          query: lastId
+            ? {
+                ...query,
+                _id: QueryHelper.greaterThan(new ObjectID(lastId)),
+              }
+            : query,
+          skip: 0,
           limit: PROJECT_PAGE_SIZE,
         });
 
       await evaluate(projects);
 
-      if (projects.length < PROJECT_PAGE_SIZE) {
+      const last: CandidateProject | undefined = projects[projects.length - 1];
+
+      if (projects.length < PROJECT_PAGE_SIZE || !last) {
         return;
       }
+
+      lastId = last.id;
     }
   }
 

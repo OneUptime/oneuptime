@@ -98,6 +98,60 @@ const respondWithMasterPasswordAccess: (
   return true;
 };
 
+type EndRefreshInput = {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  statusPageId: ObjectID;
+  // The session the refresh named, ended here, and why; none when there is none to end.
+  revoke?: { sessionId: ObjectID; reason: string } | undefined;
+  // What a visitor who is not signed in with the page's master password is told.
+  message: string;
+};
+
+/*
+ * A refresh that cannot renew the session: the session it named, when
+ * there is one, is ended, both of the page's sign-in cookies are removed,
+ * and the visitor is answered as one signed in with the page's master
+ * password, when they are, or as signed out.
+ */
+const endRefresh: (data: EndRefreshInput) => Promise<void> = async (
+  data: EndRefreshInput,
+): Promise<void> => {
+  if (data.revoke) {
+    await StatusPagePrivateUserSessionService.revokeSessionById(
+      data.revoke.sessionId,
+      {
+        reason: data.revoke.reason,
+      },
+    );
+  }
+
+  CookieUtil.removeCookie(
+    data.res,
+    CookieUtil.getUserTokenKey(data.statusPageId),
+  );
+  CookieUtil.removeCookie(
+    data.res,
+    CookieUtil.getRefreshTokenKey(data.statusPageId),
+  );
+
+  if (
+    respondWithMasterPasswordAccess({
+      req: data.req,
+      res: data.res,
+      statusPageId: data.statusPageId,
+    })
+  ) {
+    return;
+  }
+
+  return Response.sendErrorResponse(
+    data.req,
+    data.res,
+    new NotAuthenticatedException(data.message),
+  );
+};
+
 type FinalizeStatusPageLoginInput = {
   req: ExpressRequest;
   res: ExpressResponse;
@@ -325,29 +379,12 @@ router.post(
         CookieUtil.getRefreshTokenFromExpressRequest(req, statusPageId);
 
       if (!refreshToken) {
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException(
-            "Refresh token missing. Please login again.",
-          ),
-        );
+          statusPageId,
+          message: "Refresh token missing. Please login again.",
+        });
       }
 
       const session: StatusPagePrivateUserSession | null =
@@ -361,123 +398,54 @@ router.post(
         !session.statusPageId ||
         StatusPagePrivateUserSessionService.isLoginCodeSession(session)
       ) {
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          message: "Session expired. Please login again.",
+        });
       }
 
       if (session.statusPageId.toString() !== statusPageId.toString()) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: "Status page mismatch",
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: "Status page mismatch",
+          },
+          message: "Session expired. Please login again.",
+        });
       }
 
       if (
         session.refreshTokenExpiresAt &&
         OneUptimeDate.hasExpired(session.refreshTokenExpiresAt)
       ) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: "Refresh token expired",
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: "Refresh token expired",
+          },
+          message: "Session expired. Please login again.",
+        });
       }
 
       if (!session.statusPagePrivateUserId) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: "Session missing user",
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: "Session missing user",
+          },
+          message: "Session expired. Please login again.",
+        });
       }
 
       const user: StatusPagePrivateUser | null =
@@ -495,34 +463,16 @@ router.post(
         });
 
       if (!user) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: "User not found",
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Account no longer exists."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: "User not found",
+          },
+          message: "Account no longer exists.",
+        });
       }
 
       /*
@@ -536,34 +486,16 @@ router.post(
           sessionId: session.id,
         }))
       ) {
-        await StatusPagePrivateUserSessionService.revokeSessionById(
-          session.id,
-          {
-            reason: SIGN_IN_NO_LONGER_ACCEPTED_REASON,
-          },
-        );
-
-        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
-        CookieUtil.removeCookie(
-          res,
-          CookieUtil.getRefreshTokenKey(statusPageId),
-        );
-
-        if (
-          respondWithMasterPasswordAccess({
-            req,
-            res,
-            statusPageId,
-          })
-        ) {
-          return;
-        }
-
-        return Response.sendErrorResponse(
+        return await endRefresh({
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
-        );
+          statusPageId,
+          revoke: {
+            sessionId: session.id,
+            reason: SIGN_IN_NO_LONGER_ACCEPTED_REASON,
+          },
+          message: "Session expired. Please login again.",
+        });
       }
 
       const renewedSession: StatusPageSessionMetadata =

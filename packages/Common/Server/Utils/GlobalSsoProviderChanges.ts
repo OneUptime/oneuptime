@@ -61,10 +61,13 @@ import SsoSignInWays, {
  *     passed (the services' onUpdatePermitted and onCreatePermitted; a
  *     delete has no later hook than onBeforeDelete), kept while the check
  *     reads, and given back as soon as the write is done (afterWrite, first
- *     in the success hooks) or fails (the error hooks). A write that only
- *     lets a provider sign more people in - turning it or an attachment on,
- *     lifting the restriction, a new certificate - takes no lock and is
- *     never refused.
+ *     in the success hooks, and once a hard delete, which runs none, is
+ *     done) or fails (the error hooks). A write that names no row takes
+ *     none. Turning a provider on is never refused: it holds the lock only
+ *     so that a provider turned off at the same moment is read as it is,
+ *     and its sign-ins end. A write that otherwise only lets a provider sign
+ *     more people in - turning an attachment on, lifting the restriction, a
+ *     new certificate - takes no lock and is never refused.
  *
  * Every server hearing of the change is the services' part
  * (announceGlobalSignInChange).
@@ -163,7 +166,12 @@ export default class GlobalSsoProviderChanges {
   /*
    * The writes worked out before they run, for the hooks after them: keyed
    * by the UpdateBy, DeleteBy or CreateBy the services hand back from their
-   * before-hooks, which DatabaseService passes on to the later ones.
+   * before-hooks, which DatabaseService passes on to the later ones. The
+   * services hand back the very object they were given, so the key the
+   * permitted hook is handed is the one the success and error hooks are -
+   * DatabaseService hands those the caller's object - and the suites that
+   * give the lock back after each write (GlobalSsoProviderChanges.test)
+   * fail if one ever does not.
    */
   private static writes: WeakMap<WriteKey, GlobalSsoProviderWrite> =
     new WeakMap<WriteKey, GlobalSsoProviderWrite>();
@@ -173,7 +181,11 @@ export default class GlobalSsoProviderChanges {
    * once every permission check has passed): one that turns it off or
    * restricts it to its attached projects is checked, under the lock on the
    * server's sign-in rules, against the projects it would stop signing
-   * people in to. Null for any other update, which takes no lock.
+   * people in to. One that turns it on holds the lock too, and is never
+   * refused: a write turning it off at the same moment then reads it on,
+   * and writes when its sign-ins ended (beforeProviderWrite), which a read
+   * made before the turning-on write would miss. Null for any other update,
+   * and for one that names no provider, which take no lock.
    */
   public static async beforeProviderUpdate<TModel extends BaseModel>(data: {
     providerType: GlobalSsoProviderType;
@@ -189,20 +201,28 @@ export default class GlobalSsoProviderChanges {
         "restrictToAttachedProjects",
       );
 
-    if (isEnabled !== false && restrictToAttachedProjects !== true) {
+    if (isEnabled === undefined && restrictToAttachedProjects !== true) {
       return null;
     }
 
+    const readNamed: () => Promise<
+      Array<GlobalProviderRow>
+    > = async (): Promise<Array<GlobalProviderRow>> => {
+      return await GlobalSsoProviderChanges.readProviders({
+        service: data.service,
+        query: data.updateBy.query,
+        limit: data.updateBy.limit,
+        skip: data.updateBy.skip,
+      });
+    };
+
     return await GlobalSsoProviderChanges.lockAndCheck({
       key: keyOf(data.updateBy),
+      namesAnyRow: async (): Promise<boolean> => {
+        return (await readNamed()).length > 0;
+      },
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-        const providers: Array<GlobalProviderRow> =
-          await GlobalSsoProviderChanges.readProviders({
-            service: data.service,
-            query: data.updateBy.query,
-            limit: data.updateBy.limit,
-            skip: data.updateBy.skip,
-          });
+        const providers: Array<GlobalProviderRow> = await readNamed();
 
         const attachments: Map<
           string,
@@ -272,23 +292,33 @@ export default class GlobalSsoProviderChanges {
   /*
    * Before a global provider is deleted (onBeforeDelete): it stops signing
    * people in anywhere, so the projects it signed people in to are checked
-   * under the lock.
+   * under the lock. A delete that names no provider that is there - one
+   * deleted already, or the retention job's purge of rows deleted long ago
+   * (a hard delete) - takes no lock.
    */
   public static async beforeProviderDelete<TModel extends BaseModel>(data: {
     providerType: GlobalSsoProviderType;
     service: DatabaseService<TModel>;
     deleteBy: DeleteBy<TModel>;
   }): Promise<GlobalSsoProviderWrite | null> {
+    const readNamed: () => Promise<
+      Array<GlobalProviderRow>
+    > = async (): Promise<Array<GlobalProviderRow>> => {
+      return await GlobalSsoProviderChanges.readProviders({
+        service: data.service,
+        query: data.deleteBy.query,
+        limit: data.deleteBy.limit,
+        skip: data.deleteBy.skip,
+      });
+    };
+
     return await GlobalSsoProviderChanges.lockAndCheck({
       key: keyOf(data.deleteBy),
+      namesAnyRow: async (): Promise<boolean> => {
+        return (await readNamed()).length > 0;
+      },
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-        const providers: Array<GlobalProviderRow> =
-          await GlobalSsoProviderChanges.readProviders({
-            service: data.service,
-            query: data.deleteBy.query,
-            limit: data.deleteBy.limit,
-            skip: data.deleteBy.skip,
-          });
+        const providers: Array<GlobalProviderRow> = await readNamed();
 
         const attachments: Map<
           string,
@@ -326,7 +356,7 @@ export default class GlobalSsoProviderChanges {
    * first attachment of a provider restricted to its attached projects
    * narrows it from every project to that one, and one added off to none.
    * Checked under the lock either way, so a provider restricted at the same
-   * moment reads it.
+   * moment reads it: a new row has nothing to read before the lock.
    */
   public static async beforeAttachmentCreate(data: {
     providerType: GlobalSsoProviderType;
@@ -427,17 +457,25 @@ export default class GlobalSsoProviderChanges {
         )
       : null;
 
+    const readNamed: () => Promise<Array<AttachmentRow>> = async (): Promise<
+      Array<AttachmentRow>
+    > => {
+      return await GlobalSsoProviderChanges.readAttachmentRows({
+        providerType: data.providerType,
+        service: data.service,
+        query: data.updateBy.query,
+        limit: data.updateBy.limit,
+        skip: data.updateBy.skip,
+      });
+    };
+
     return await GlobalSsoProviderChanges.lockAndCheck({
       key: keyOf(data.updateBy),
+      namesAnyRow: async (): Promise<boolean> => {
+        return (await readNamed()).length > 0;
+      },
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-        const matched: Array<AttachmentRow> =
-          await GlobalSsoProviderChanges.readAttachmentRows({
-            providerType: data.providerType,
-            service: data.service,
-            query: data.updateBy.query,
-            limit: data.updateBy.limit,
-            skip: data.updateBy.skip,
-          });
+        const matched: Array<AttachmentRow> = await readNamed();
 
         return {
           reachChanges:
@@ -471,17 +509,25 @@ export default class GlobalSsoProviderChanges {
     service: DatabaseService<TModel>;
     deleteBy: DeleteBy<TModel>;
   }): Promise<GlobalSsoProviderWrite | null> {
+    const readNamed: () => Promise<Array<AttachmentRow>> = async (): Promise<
+      Array<AttachmentRow>
+    > => {
+      return await GlobalSsoProviderChanges.readAttachmentRows({
+        providerType: data.providerType,
+        service: data.service,
+        query: data.deleteBy.query,
+        limit: data.deleteBy.limit,
+        skip: data.deleteBy.skip,
+      });
+    };
+
     return await GlobalSsoProviderChanges.lockAndCheck({
       key: keyOf(data.deleteBy),
+      namesAnyRow: async (): Promise<boolean> => {
+        return (await readNamed()).length > 0;
+      },
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
-        const matched: Array<AttachmentRow> =
-          await GlobalSsoProviderChanges.readAttachmentRows({
-            providerType: data.providerType,
-            service: data.service,
-            query: data.deleteBy.query,
-            limit: data.deleteBy.limit,
-            skip: data.deleteBy.skip,
-          });
+        const matched: Array<AttachmentRow> = await readNamed();
 
         return {
           reachChanges:
@@ -497,9 +543,9 @@ export default class GlobalSsoProviderChanges {
   }
 
   /*
-   * Once the write is done (first in the success hooks) or has failed (the
-   * error hooks, and a create's own wrapper): its lock is given back, once.
-   * Never throws.
+   * Once the write is done (first in the success hooks, and once a hard
+   * delete is done: it runs none) or has failed (the error hooks, and a
+   * create's own wrapper): its lock is given back, once. Never throws.
    */
   public static async afterWrite<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
@@ -537,14 +583,30 @@ export default class GlobalSsoProviderChanges {
   /*
    * Takes the lock on the server's sign-in rules, works the write out from
    * what it reads under it, and refuses it when it would strand a project.
+   *
+   * An update or delete first reads the rows it names: one that names none
+   * changes no provider's reach and takes no lock (namesAnyRow). Otherwise
+   * the rows are read again under the lock, and only there is it decided
+   * whether the write narrows a provider's reach: that depends on the
+   * provider's switch and restriction and on its other attachments, which
+   * other writes change, so a decision made before the lock could be
+   * overtaken by one of them - an attachment removed while its provider is
+   * restricted to its attached projects. A new attachment has no row to
+   * read first, and always takes the lock.
+   *
    * The lock is kept while the check reads, page by page, and once more
    * when it is done, so the write has the whole time; it is held for the
    * write (afterWrite), or given back at once when the write is refused.
    */
   private static async lockAndCheck(data: {
     key: WriteKey;
+    namesAnyRow?: (() => Promise<boolean>) | undefined;
     work: () => Promise<Omit<GlobalSsoProviderWrite, "locks">>;
-  }): Promise<GlobalSsoProviderWrite> {
+  }): Promise<GlobalSsoProviderWrite | null> {
+    if (data.namesAnyRow && !(await data.namesAnyRow())) {
+      return null;
+    }
+
     const locks: Array<SemaphoreMutex> =
       await ProjectSsoProviderChanges.lockSignInChange({
         projectIds: [],

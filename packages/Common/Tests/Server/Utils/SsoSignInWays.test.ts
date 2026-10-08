@@ -161,6 +161,35 @@ const askedValues: (value: unknown) => Array<string> | null = (
   throw new Error(`This test cannot read the query value ${String(value)}`);
 };
 
+// The value a query asks a column to be above (QueryHelper.greaterThan), or null.
+const askedAfter: (value: unknown) => string | null = (
+  value: unknown,
+): string | null => {
+  const operator: {
+    _type?: unknown;
+    _getSql?: unknown;
+    _objectLiteralParameters?: Record<string, unknown>;
+  } = (value || {}) as {
+    _type?: unknown;
+    _getSql?: unknown;
+    _objectLiteralParameters?: Record<string, unknown>;
+  };
+
+  if (operator._type !== "raw" || typeof operator._getSql !== "function") {
+    return null;
+  }
+
+  const sql: string = (operator._getSql as (alias: string) => string)("column");
+
+  if (!sql.startsWith("(column >")) {
+    return null;
+  }
+
+  return String(
+    Object.values(operator._objectLiteralParameters || {})[0],
+  ).toLowerCase();
+};
+
 const asks: (
   query: Record<string, unknown>,
   column: string,
@@ -170,6 +199,14 @@ const asks: (
   column: string,
   held: unknown,
 ): boolean => {
+  const after: string | null = askedAfter(query[column]);
+
+  if (after !== null) {
+    return (
+      held !== null && held !== undefined && String(held).toLowerCase() > after
+    );
+  }
+
   const asked: Array<string> | null = askedValues(query[column]);
 
   return (
@@ -1231,19 +1268,62 @@ describe("the projects a change would leave with no way in", () => {
     expect(stranded.count).toBe(1200);
     expect(stranded.firstProjects).toHaveLength(STRANDED_PROJECTS_NAMED);
     expect(namesOf(stranded)).toEqual(["Project 1", "Project 2", "Project 3"]);
+    // Each page starts after the last project the one before it read.
     expect(
       projectPageReads.mock.calls.map((call: Array<unknown>): unknown => {
-        const read: Record<string, unknown> = call[0] as Record<
-          string,
-          unknown
-        >;
-        return [read["skip"], read["limit"], read["sort"]];
+        const read: {
+          query: Record<string, unknown>;
+          skip: number;
+          limit: number;
+          sort: unknown;
+        } = call[0] as {
+          query: Record<string, unknown>;
+          skip: number;
+          limit: number;
+          sort: unknown;
+        };
+        return [
+          askedAfter(read.query["_id"]),
+          read.skip,
+          read.limit,
+          read.sort,
+        ];
       }),
     ).toEqual([
-      [0, 500, { _id: SortOrder.Ascending }],
-      [500, 500, { _id: SortOrder.Ascending }],
-      [1000, 500, { _id: SortOrder.Ascending }],
+      [null, 0, 500, { _id: SortOrder.Ascending }],
+      [id(1500), 0, 500, { _id: SortOrder.Ascending }],
+      [id(2000), 0, 500, { _id: SortOrder.Ascending }],
     ]);
+  });
+
+  test("a project that leaves the projects being read while they are read passes none of the others over", async () => {
+    for (let n: number = 1; n <= 600; n++) {
+      projects.push(
+        project(id(1000 + n), `Project ${n}`, { requireSsoForLogin: false }),
+      );
+    }
+
+    const readPage: (data: unknown) => Promise<Array<Project>> =
+      projectPageReads.getMockImplementation() as (
+        data: unknown,
+      ) => Promise<Array<Project>>;
+
+    // The first project turns Require SSO for Login on, under its own lock, once the first page is read.
+    projectPageReads.mockImplementation((async (
+      data: unknown,
+    ): Promise<Array<Project>> => {
+      const page: Array<Project> = await readPage(data);
+
+      projects[0]!.requireSsoForLogin = true;
+
+      return page;
+    }) as never);
+
+    const stranded: StrandedProjects = await SsoSignInWays.findStrandedProjects(
+      { turnsOnServerRule: true },
+    );
+
+    expect(stranded.count).toBe(600);
   });
 });
 

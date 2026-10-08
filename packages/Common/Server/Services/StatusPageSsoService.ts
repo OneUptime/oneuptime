@@ -46,8 +46,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
-    await SsoSignInsEnded.stampWhenTurnedOffByDatabase<Model>({
-      service: this,
+    SsoSignInsEnded.stampWhenTurnedOffByDatabase<Model>({
       updateBy: updateBy,
     });
   }

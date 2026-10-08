@@ -316,22 +316,11 @@ describe("a write that turns a provider off writes when, in the same write", () 
  * A status page provider's time is written by the database, in the row's
  * own write (DatabaseService.getRowWriteSql): its sessions are compared
  * with it by the time the database gave them, so no difference between the
- * app's clock and the database's moves the line. Against Postgres in
- * StatusPageSsoSessionsPostgres.test.
+ * app's clock and the database's moves the line, and the database decides
+ * each row as it holds it then, so nothing is read before the write.
+ * Against Postgres in StatusPageSsoSessionsPostgres.test.
  */
 describe("a status page provider's turning-off write is stamped by the database", () => {
-  type Row = Record<string, unknown>;
-
-  const serviceOver: (rows: Array<Row>) => DatabaseService<BaseModel> = (
-    rows: Array<Row>,
-  ): DatabaseService<BaseModel> => {
-    return {
-      findAllBy: jest.fn(async (): Promise<Array<Row>> => {
-        return rows;
-      }),
-    } as unknown as DatabaseService<BaseModel>;
-  };
-
   const updateOf: (data: Record<string, unknown>) => UpdateBy<BaseModel> = (
     data: Record<string, unknown>,
   ): UpdateBy<BaseModel> => {
@@ -344,13 +333,10 @@ describe("a status page provider's turning-off write is stamped by the database"
     } as unknown as UpdateBy<BaseModel>;
   };
 
-  test("the write that turns a provider off names the column; the database works its value out", async () => {
+  test("the write that turns a provider off names the column; the database works its value out", () => {
     const updateBy: UpdateBy<BaseModel> = updateOf({ isEnabled: false });
 
-    await SsoSignInsEnded.stampWhenTurnedOffByDatabase({
-      service: serviceOver([{ _id: "provider", isEnabled: true }]),
-      updateBy: updateBy,
-    });
+    SsoSignInsEnded.stampWhenTurnedOffByDatabase({ updateBy: updateBy });
 
     const data: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
@@ -362,45 +348,23 @@ describe("a status page provider's turning-off write is stamped by the database"
     });
   });
 
-  test("the time is the database's own, for a row that was on; a row off already keeps its time", () => {
+  test("the time is the database's own, for a row that is on as it is written; a row off already keeps its time", () => {
     expect(SIGN_INS_ENDED_BY_DATABASE_SQL).toBe(
       'CASE WHEN "isEnabled" = true THEN now() ELSE "signInsEndedAt" END',
     );
   });
 
-  test("a write whose providers are all off already names no time", async () => {
-    const updateBy: UpdateBy<BaseModel> = updateOf({ isEnabled: false });
-
-    await SsoSignInsEnded.stampWhenTurnedOffByDatabase({
-      service: serviceOver([{ _id: "provider", isEnabled: false }]),
-      updateBy: updateBy,
-    });
-
-    expect(updateBy.data).toEqual({ isEnabled: false });
-    expect(SsoSignInsEnded.getDatabaseStampSql(updateBy.data)).toEqual({});
-  });
-
-  test("turning it on, or changing anything else, names no time, reads nothing and asks the database for none", async () => {
+  test("turning it on, or changing anything else, names no time and asks the database for none", () => {
     for (const data of [
       { isEnabled: true },
       { name: "Renamed" },
       { publicCertificate: "rotated" },
     ]) {
-      const service: DatabaseService<BaseModel> = serviceOver([
-        { _id: "provider", isEnabled: true },
-      ]);
       const updateBy: UpdateBy<BaseModel> = updateOf(data);
 
-      await SsoSignInsEnded.stampWhenTurnedOffByDatabase({
-        service: service,
-        updateBy: updateBy,
-      });
+      SsoSignInsEnded.stampWhenTurnedOffByDatabase({ updateBy: updateBy });
 
       expect(updateBy.data).toEqual(data);
-      expect(
-        (service as unknown as { findAllBy: ReturnType<typeof jest.fn> })
-          .findAllBy,
-      ).not.toHaveBeenCalled();
       expect(SsoSignInsEnded.getDatabaseStampSql(updateBy.data)).toEqual({});
     }
   });
