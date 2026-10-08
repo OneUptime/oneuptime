@@ -532,6 +532,27 @@
                 color: #3b82f6;
             }
 
+            /* A diagram that could not be drawn: a short note right above its code. */
+            .blog-body .blog-diagram-note {
+                margin-bottom: 0;
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            /* !important, like the code block margin it shortens. */
+            .blog-body .blog-diagram-note + pre,
+            .blog-body .blog-diagram-note + .mermaid {
+                margin-top: 0.5rem !important;
+            }
+
+            .blog-body .mermaid[data-diagram="source"] {
+                white-space: pre-wrap;
+                font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+                font-size: 14px;
+                line-height: 1.6;
+                text-align: left;
+            }
+
             /* Collapsible code blocks */
             .collapsible-code.collapsed {
                 max-height: 400px;
@@ -762,7 +783,8 @@
             <div class="pb-24">
                 <div class="mx-auto max-w-4xl px-6 lg:px-8">
                     <div class="relative" id="content-wrapper">
-                        <!-- Floating TOC -->
+                        <!-- Floating TOC: only for a post with an h2 heading to list (the page script also drops it when it finds none). -->
+                        <% if (/<h2[\s>]/i.test(blogPost.htmlBody || '')) { %>
                         <div class="floating-toc max-xl:hidden xl:block" id="floating-toc">
                             <div class="floating-toc-inner">
                                 <h2 class="text-xs font-semibold tracking-wider text-blue-600 uppercase mb-3 flex items-center gap-2">
@@ -772,6 +794,7 @@
                                 <nav id="toc" aria-label="Table of contents" class="overflow-y-auto max-h-[50vh] pr-1"></nav>
                             </div>
                         </div>
+                        <% } %>
 
                         <!-- Main content -->
                         <article>
@@ -947,6 +970,17 @@
             <% } %>
             <script>
                 (function(){
+                    /*
+                     * The page's features, one function each, run one by one at
+                     * the bottom. A feature with nothing to do returns from its
+                     * own function, and one that fails is logged, so neither
+                     * stops the others: a post without an h2 heading has no
+                     * table of contents, which used to return from this whole
+                     * script and leave the rest of the page without back to
+                     * top, image hints, heading links, the lightbox, long code
+                     * folding, copy link and the validation report.
+                     */
+
                     // Language name mapping for display
                     var langNames = {
                         'js': 'JavaScript', 'javascript': 'JavaScript', 'ts': 'TypeScript', 'typescript': 'TypeScript',
@@ -961,7 +995,7 @@
                     };
 
                     // Add copy button and language label to code blocks
-                    try {
+                    function codeBlockHeaders() {
                         var codeBlocks = document.querySelectorAll('.blog-body pre');
                         codeBlocks.forEach(function(pre) {
                             var codeEl = pre.querySelector('code');
@@ -1013,10 +1047,10 @@
                             pre.style.position = 'relative';
                             pre.insertBefore(header, pre.firstChild);
                         });
-                    } catch(e) {}
+                    }
 
                     // Reading time
-                    try {
+                    function readingTime() {
                         const container = document.querySelector('.blog-body');
                         if(container){
                             const text = container.textContent || '';
@@ -1028,10 +1062,10 @@
                             const el2 = document.getElementById('reading-time-inline');
                             if(el2){ el2.textContent = rt; }
                         }
-                    } catch (e) {}
+                    }
 
                     // Reading progress indicator
-                    try {
+                    function readingProgress() {
                         const progressBar = document.getElementById('reading-progress');
                         const target = document.querySelector('.blog-body');
                         if(progressBar && target){
@@ -1060,15 +1094,20 @@
                             });
                             update();
                         }
-                    } catch (e) {}
+                    }
 
                     // TOC with active state tracking and sticky positioning
-                    try {
+                    function tableOfContents() {
                         const container = document.querySelector('.blog-body');
                         const contentWrapper = document.getElementById('content-wrapper');
                         if(!container){ return; }
                         const headings = container.querySelectorAll('h2');
-                        if(!headings.length){ return; }
+                        if(!headings.length){
+                            // Nothing to list: leave out the empty "On this page" panel.
+                            var emptyToc = document.getElementById('floating-toc');
+                            if(emptyToc){ emptyToc.remove(); }
+                            return;
+                        }
                         const toc = document.getElementById('toc');
                         const floatingToc = document.getElementById('floating-toc');
                         if(!toc){ return; }
@@ -1131,10 +1170,10 @@
                         window.addEventListener('scroll', updateToc, { passive: true });
                         window.addEventListener('resize', updateToc, { passive: true });
                         updateToc();
-                    } catch (e) {}
+                    }
 
                     // Back to top button
-                    try {
+                    function backToTop() {
                         const backToTopBtn = document.getElementById('back-to-top');
                         if(backToTopBtn){
                             const toggleVisibility = () => {
@@ -1150,10 +1189,10 @@
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                             });
                         }
-                    } catch (e) {}
+                    }
 
                     // Stabilize images inside blog body (add width/height if missing & lazy-load non-hero images)
-                    try {
+                    function imageHints() {
                         const imgs = document.querySelectorAll('.blog-body img');
                         imgs.forEach((img, index) => {
                             // If width/height already specified, skip dimension inference
@@ -1182,10 +1221,10 @@
                                 img.classList.add('block');
                             }
                         });
-                    } catch(e) {}
+                    }
 
                     // Anchor links on headings
-                    try {
+                    function headingLinks() {
                         var headingsForAnchors = document.querySelectorAll('.blog-body h1, .blog-body h2, .blog-body h3, .blog-body h4');
                         headingsForAnchors.forEach(function(h) {
                             if(!h.id){
@@ -1199,10 +1238,10 @@
                             anchor.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>';
                             h.appendChild(anchor);
                         });
-                    } catch(e) {}
+                    }
 
                     // Image lightbox
-                    try {
+                    function imageLightbox() {
                         var overlay = document.getElementById('lightbox-overlay');
                         var lightboxImg = document.getElementById('lightbox-img');
                         if(overlay && lightboxImg) {
@@ -1231,10 +1270,10 @@
                                 }
                             });
                         }
-                    } catch(e) {}
+                    }
 
                     // Collapsible long code blocks (>100 lines)
-                    try {
+                    function longCodeFolding() {
                         var allPres = document.querySelectorAll('.blog-body pre');
                         allPres.forEach(function(pre) {
                             var codeEl = pre.querySelector('code');
@@ -1259,10 +1298,10 @@
                                 pre.parentNode.insertBefore(expandBtn, pre.nextSibling);
                             }
                         });
-                    } catch(e) {}
+                    }
 
                     // Time remaining indicator
-                    try {
+                    function timeRemaining() {
                         var blogBody = document.querySelector('.blog-body');
                         var timeRemainingEl = document.getElementById('time-remaining');
                         var timeRemainingText = document.getElementById('time-remaining-text');
@@ -1292,10 +1331,10 @@
                             window.addEventListener('scroll', updateTimeRemaining, { passive: true });
                             updateTimeRemaining();
                         }
-                    } catch(e) {}
+                    }
 
                     // Copy link buttons
-                    try {
+                    function copyLinkButtons() {
                         var copyLinkBtns = document.querySelectorAll('.copy-link-btn');
                         copyLinkBtns.forEach(function(btn) {
                             btn.addEventListener('click', function() {
@@ -1312,10 +1351,10 @@
                                 });
                             });
                         });
-                    } catch(e) {}
+                    }
 
                     // Validation report modal: open from the footer badge, lazily load the report on first open.
-                    try {
+                    function validationReport() {
                         var validationModal = document.getElementById('validation-modal');
                         var validationOpenBtn = document.getElementById('validation-open');
                         if (validationModal && validationOpenBtn) {
@@ -1378,7 +1417,28 @@
                                 }
                             });
                         }
-                    } catch(e) {}
+                    }
+
+                    [
+                        codeBlockHeaders,
+                        readingTime,
+                        readingProgress,
+                        tableOfContents,
+                        backToTop,
+                        imageHints,
+                        headingLinks,
+                        imageLightbox,
+                        longCodeFolding,
+                        timeRemaining,
+                        copyLinkButtons,
+                        validationReport
+                    ].forEach(function(feature){
+                        try {
+                            feature();
+                        } catch (error) {
+                            console.error('Blog page: ' + feature.name + ' did not run', error);
+                        }
+                    });
                 })();
             </script>
             <script type="module">
@@ -1387,43 +1447,106 @@
                  * image builds mermaid from its source, with the dependencies
                  * npm installed (Common/Scripts/build-mermaid-browser.js).
                  *
-                 * A module of its own rather than a section of the script
-                 * above, which stops at its table of contents on a post with
-                 * no h2 headings: a diagram must not depend on one.
+                 * A module of its own, so it can import that build.
                  *
                  * The blocks are collected before the first await. Module
                  * scripts run before DOMContentLoaded, and the highlight.js
                  * loader in the head strips the language-mermaid class off
                  * them then.
+                 *
+                 * A diagram that cannot be drawn is its code block again, under
+                 * a short note saying so, and the others are drawn as usual.
+                 * Without the build, every one is.
                  */
                 const mermaidCodeBlocks = Array.prototype.slice.call(document.querySelectorAll('.blog-body pre code.language-mermaid, .blog-body pre code.mermaid, .blog-body pre code[class*="language-mermaid"], .blog-body pre code[class*="mermaid"]'));
                 if (mermaidCodeBlocks.length > 0) {
+                    // Above a diagram that could not be drawn, whatever is shown in its place.
+                    const sayNotDrawn = (element) => {
+                        const note = document.createElement('p');
+                        note.className = 'blog-diagram-note';
+                        note.textContent = 'This diagram could not be drawn.';
+                        element.before(note);
+                    };
+                    // A diagram the post writes as HTML, not as a fenced block, shows its source as written.
+                    const showSource = (diagram, source) => {
+                        diagram.textContent = source;
+                        diagram.setAttribute('data-diagram', 'source');
+                        sayNotDrawn(diagram);
+                    };
+                    let mermaid = null;
                     try {
-                        const mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
-                        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                        mermaid.initialize({
-                            startOnLoad: false,
-                            securityLevel: 'loose', // Content is trusted (owned blog); allows links & styling
-                            theme: prefersDark ? 'dark' : 'default'
-                        });
-                        mermaidCodeBlocks.forEach((codeEl, i) => {
-                            // Avoid double-processing
-                            if (codeEl.dataset.mermaidProcessed) { return; }
-                            const pre = codeEl.closest('pre');
-                            if (!pre) { return; }
-                            const def = codeEl.textContent.trim(); // Use textContent to ignore highlight.js span wrappers
-                            const container = document.createElement('div');
-                            container.className = 'mermaid my-6';
-                            // Provide a deterministic ID (optional)
-                            container.id = 'mermaid-diagram-' + (i + 1);
-                            container.textContent = def;
-                            pre.replaceWith(container);
-                            codeEl.dataset.mermaidProcessed = 'true';
-                        });
-                        // Every .mermaid element: the blocks above, and any a post writes as HTML.
-                        await mermaid.run();
+                        mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
                     } catch (error) {
-                        console.error('Mermaid could not render the diagrams in this post', error);
+                        console.error('Mermaid could not be loaded, so the diagrams in this post are shown as code', error);
+                        mermaidCodeBlocks.forEach((codeEl) => {
+                            const pre = codeEl.closest('pre');
+                            if (pre) { sayNotDrawn(pre); }
+                        });
+                        Array.prototype.slice.call(document.querySelectorAll('.mermaid')).forEach((diagram) => {
+                            if (!diagram.closest('pre')) { showSource(diagram, diagram.textContent); }
+                        });
+                    }
+                    if (mermaid) {
+                        try {
+                            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                            mermaid.initialize({
+                                startOnLoad: false,
+                                /*
+                                 * Strict, like the docs and every frontend: a click
+                                 * cannot call a page function, a link cannot be a
+                                 * javascript: URL, and mermaid sanitizes the SVG it
+                                 * returns. Labels keep their HTML (bold, line breaks,
+                                 * links) either way, and no post's diagram uses a
+                                 * click callback.
+                                 */
+                                securityLevel: 'strict',
+                                // A diagram that does not parse is left empty, not given mermaid's error graphic.
+                                suppressErrorRendering: true,
+                                theme: prefersDark ? 'dark' : 'default'
+                            });
+                            // Each diagram's code block, to put back if it cannot be drawn.
+                            const codeBlockOf = new Map();
+                            mermaidCodeBlocks.forEach((codeEl, i) => {
+                                // Avoid double-processing
+                                if (codeEl.dataset.mermaidProcessed) { return; }
+                                const pre = codeEl.closest('pre');
+                                if (!pre) { return; }
+                                const def = codeEl.textContent.trim(); // Use textContent to ignore highlight.js span wrappers
+                                const container = document.createElement('div');
+                                container.className = 'mermaid my-6';
+                                // Provide a deterministic ID (optional)
+                                container.id = 'mermaid-diagram-' + (i + 1);
+                                container.textContent = def;
+                                pre.replaceWith(container);
+                                codeBlockOf.set(container, pre);
+                                codeEl.dataset.mermaidProcessed = 'true';
+                            });
+                            // Every .mermaid element: the blocks above, and any a post writes as HTML.
+                            const diagrams = Array.prototype.slice.call(document.querySelectorAll('.mermaid'));
+                            const sources = diagrams.map((diagram) => {
+                                return diagram.textContent;
+                            });
+                            try {
+                                await mermaid.run();
+                            } catch (error) {
+                                // run() draws every diagram it can before it throws.
+                                console.error('Mermaid could not render the diagrams in this post', error);
+                            }
+                            diagrams.forEach((diagram, index) => {
+                                if (diagram.querySelector('svg')) {
+                                    return;
+                                }
+                                const codeBlock = codeBlockOf.get(diagram);
+                                if (codeBlock) {
+                                    diagram.replaceWith(codeBlock);
+                                    sayNotDrawn(codeBlock);
+                                } else {
+                                    showSource(diagram, sources[index]);
+                                }
+                            });
+                        } catch (error) {
+                            console.error('Mermaid could not render the diagrams in this post', error);
+                        }
                     }
                 }
             </script>

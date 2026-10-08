@@ -1,6 +1,7 @@
 import { FormType } from "../../Components/Forms/ModelForm";
 import { APP_API_URL } from "../../Config";
 import API from "../API/API";
+import DatabaseModelAPI from "../ModelAPI/ModelAPI";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import BaseListResult from "../../../Types/BaseDatabase/ListResult";
 import RequestOptions from "../API/RequestOptions";
@@ -457,12 +458,30 @@ export default class ModelAPI {
       throw new BadDataException("This model does not support get operations.");
     }
 
-    return this.post<TAnalyticsBaseModel>(
-      modelType,
-      apiUrl,
-      select,
-      requestOptions,
-    );
+    try {
+      return await this.post<TAnalyticsBaseModel>(
+        modelType,
+        apiUrl,
+        select,
+        requestOptions,
+      );
+    } catch (error) {
+      /*
+       * The API's get-item route answers 404 for a row that does not exist
+       * or that the caller may not read: no row, which callers of getItem
+       * handle as null - the rule the database models' ModelAPI.getItem
+       * follows, a route of the caller's own (overrideRequestUrl) raising its
+       * failures.
+       */
+      if (
+        !requestOptions?.overrideRequestUrl &&
+        DatabaseModelAPI.isNotFound(error)
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
   }
 
   public static async post<TAnalyticsBaseModel extends AnalyticsBaseModel>(

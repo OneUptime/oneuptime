@@ -1,6 +1,7 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import QueryHelper from "../QueryHelper";
+import QueryUtil from "../QueryUtil";
 import TablePermission from "./TablePermission";
 /*
  * Type-only import: keeps the OwnerTablePair shape available without
@@ -19,12 +20,15 @@ import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
+import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../../Types/Permission";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
+import logger from "../../../Utils/Logger";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -233,6 +237,112 @@ export default class OwnedScopePermission {
     }
 
     return query;
+  }
+
+  /*
+   * Narrows the records of a model read through another one
+   * (@CanAccessIfCanReadOn - an incident's notes, a status page's
+   * announcements) to those of the parents the caller or one of their teams
+   * owns: for a caller whose grants on the parent reach only the records
+   * they own (isLimitedToOwnedRecords on the parent). A parent named by a
+   * key column keeps the rows whose key names an owned parent; parents
+   * through a join table keep the rows linked to at least one owned parent.
+   * A row with no parent, or with none the caller owns, is left out - as it
+   * is when the parent's read is limited to labels. The caller's own
+   * filters stay as sent.
+   */
+  public static async addOwnedParentsToQuery<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    query: Query<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+    parentModelType: { new (): BaseModel };
+    // The @CanAccessIfCanReadOn relation, and its column.
+    relation: string;
+    relationColumn: TableColumnMetadata;
+  }): Promise<Query<TBaseModel>> {
+    /*
+     * A parent that takes its owners from a record of its own
+     * (@OwnedThrough) has no owner rows to look up here. No model is read
+     * through such a parent (Tests/Models/DatabaseModels
+     * /ParentOwnedScopeCoverage); one that were would reach none of its
+     * rows rather than every one of them.
+     */
+    const ownedParentIds: Array<ObjectID> = new data.parentModelType()
+      .ownedThrough
+      ? []
+      : await OwnedScopePermission.getAllowedResourceIds(
+          data.parentModelType,
+          data.props,
+        );
+
+    if (ownedParentIds.length === 0) {
+      // No owned parent: no record of theirs is reached.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data.query as any)._id = QueryHelper.equalTo(
+        ObjectID.getZeroObjectID().toString(),
+      );
+
+      return data.query;
+    }
+
+    if (
+      data.relationColumn.type === TableColumnType.Entity &&
+      data.relationColumn.manyToOneRelationColumn
+    ) {
+      const parentKey: string = data.relationColumn.manyToOneRelationColumn;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data.query as any)[parentKey] = combineWithPrivacyClause(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (data.query as any)[parentKey],
+        QueryHelper.any(ownedParentIds),
+      );
+
+      return data.query;
+    }
+
+    const parentLinks: ReturnType<
+      typeof QueryUtil.getManyToManyRelationMetadata
+    > =
+      data.relationColumn.type === TableColumnType.EntityArray
+        ? QueryUtil.getManyToManyRelationMetadata(data.modelType, data.relation)
+        : null;
+
+    /*
+     * A parent the rule cannot follow - neither a key column nor a join
+     * table - is a misconfigured model (Tests/Models/DatabaseModels
+     * /ParentOwnedScopeCoverage holds every model to one the rule follows):
+     * it reaches none of its rows, as a caller who owns no parent does,
+     * never every one of them - and says so in the log.
+     */
+    if (!parentLinks) {
+      logger.error(
+        `${new data.modelType().singularName} is read through ${data.relation}, which the owned scope of ${new data.parentModelType().singularName} cannot follow: no key column or join table. The read reaches no records.`,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data.query as any)._id = QueryHelper.equalTo(
+        ObjectID.getZeroObjectID().toString(),
+      );
+
+      return data.query;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (data.query as any)._id = combineWithPrivacyClause(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data.query as any)._id,
+      QueryHelper.anyOfEntitiesInManyToMany({
+        values: ownedParentIds,
+        joinTableName: parentLinks.joinTableName,
+        ownerColumnName: parentLinks.ownerColumnName,
+        relationColumnName: parentLinks.relationColumnName,
+      }),
+    );
+
+    return data.query;
   }
 
   private static getOwnerTableRegistry(): Map<string, OwnerTablePair> {

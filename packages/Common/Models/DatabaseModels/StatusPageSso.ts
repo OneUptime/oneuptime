@@ -45,9 +45,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   ],
   read: [
     Permission.ProjectOwner,
-    Permission.ProjectUser,
-    Permission.Public,
     Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
     Permission.ReadStatusPageSSO,
   ],
   delete: [
@@ -83,8 +83,8 @@ export default class StatusPageSSO extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageSSO,
     ],
     update: [],
@@ -119,8 +119,8 @@ export default class StatusPageSSO extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageSSO,
     ],
     update: [],
@@ -229,8 +229,8 @@ export default class StatusPageSSO extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageSSO,
     ],
     update: [
@@ -264,8 +264,8 @@ export default class StatusPageSSO extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageSSO,
     ],
     update: [
@@ -357,9 +357,9 @@ export default class StatusPageSSO extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageSSO,
-      Permission.ProjectUser,
-      Permission.Public,
     ],
     update: [
       Permission.ProjectOwner,
@@ -572,8 +572,8 @@ export default class StatusPageSSO extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageSSO,
     ],
     update: [

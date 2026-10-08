@@ -43,9 +43,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   ],
   read: [
     Permission.ProjectOwner,
-    Permission.ProjectUser,
-    Permission.Public,
     Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
     Permission.ReadStatusPageOIDC,
   ],
   delete: [
@@ -82,8 +82,8 @@ export default class StatusPageOIDC extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageOIDC,
     ],
     update: [],
@@ -118,8 +118,8 @@ export default class StatusPageOIDC extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageOIDC,
     ],
     update: [],
@@ -228,8 +228,8 @@ export default class StatusPageOIDC extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageOIDC,
     ],
     update: [
@@ -263,8 +263,8 @@ export default class StatusPageOIDC extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageOIDC,
     ],
     update: [
@@ -633,8 +633,8 @@ export default class StatusPageOIDC extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
-      Permission.Public,
+      Permission.ProjectMember,
+      Permission.Viewer,
       Permission.ReadStatusPageOIDC,
     ],
     update: [

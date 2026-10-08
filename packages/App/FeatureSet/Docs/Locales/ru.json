@@ -18,6 +18,7 @@
     "copy": "Копировать",
     "copied": "Скопировано",
     "copyCode": "Копировать код",
+    "diagramNotDrawn": "Не удалось построить эту диаграмму.",
     "searchHintNavigate": "для навигации",
     "searchHintSelect": "чтобы выбрать",
     "pagination": "Навигация по страницам",

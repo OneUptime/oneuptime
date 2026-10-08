@@ -172,6 +172,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **`oneuptime` CLI 在 `--version` 中报告真实版本号**，不再是占位内容。
 - **Runner 已从项目设置移到运行手册。** Runner 现在位于 **运行手册 → Runbook 代理**（`…/runbooks/runners`），Runner Credentials 位于 **运行手册 → Runbook 代理 → 凭据**（`…/runbooks/runner-credentials`），就在由它们执行步骤的 Runbook 旁边。旧的 `…/settings/runners` 和 `…/settings/runner-credentials` URL 会重定向，书签仍然有效。其他都没有变化：Runner 的 ID、密钥、能力和权限保持不变，仍然执行 AI 代码修复和 AI 修复命令。早于此版本的 Runner 镜像仍会在日志消息中输出“Project Settings > Runners”；请将其理解为 运行手册 → Runbook 代理。
 - **`RunbookMember` 运行 Runbook，但不构建 Runbook。** 该角色不再创建或删除 Runbook、Runner 及其所有者，并且只运行其标签和范围所及的 Runbook；构建 Runbook 的人需要 `RunbookAdmin`。账单角色现在可以读取账单页面：`BillingViewer` 只读，`BillingMember` 还能下载发票并修改账单联系信息。
+- **每个授予都会收窄它触及的范围，按 ID 读取你不能读取的记录会回答 `404`。** `POST /api/<resource>/<id>/get-item` 现在回答 `404`，而不是正文为空的 `200`；限定到标签的 **All Operational Resources** 权限只触及带有这些标签的资源；通过事件或其他记录读取的记录遵循该记录的"拥有"范围；删除遥测数据限于调用方能读取的内容，每次一个项目；状态页的 SSO 和 OIDC 提供方由项目角色读取，而不是每个成员。Terraform 会把它不再能读取的资源从状态中移除。
 - 哪些端点发生了移动或收紧，包括 `GET /api/global-config/license` 以及自托管部署不再提供的许可证服务器端点，见上面的 [API and endpoint changes](#api-and-endpoint-changes)。
 
 ### IPv6 监控器：Ping、Port 和 SSL

@@ -185,14 +185,14 @@ function useBulkLabelActions<T extends BaseModel>(
 
         /*
          * A row that was deleted or filtered out between the table load
-         * and this action comes back as HTTP 200 with an empty body, which
-         * hydrates into a truthy but empty model — so "no labels" and
-         * "could not read it" are the same value here unless we look at
-         * `_id`, which a real read always carries. Without the check, add
-         * mode would treat the item as unlabelled and replace its entire
-         * label set with the selection: exactly the clobber the merge
-         * below exists to prevent. Fail the item instead; the user sees it
-         * in the failed list and nothing is lost.
+         * and this action comes back as null (the API answers 404). A
+         * model without an `_id` - which a real read always carries - is
+         * treated the same way: "no labels" and "could not read it" must
+         * not be the same value here. Without the check, add mode would
+         * treat the item as unlabelled and replace its entire label set
+         * with the selection: exactly the clobber the merge below exists
+         * to prevent. Fail the item instead; the user sees it in the
+         * failed list and nothing is lost.
          */
         if (!currentItem || !currentItem._id) {
           throw new BadDataException(

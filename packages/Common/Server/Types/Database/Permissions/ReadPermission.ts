@@ -19,6 +19,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import UserAttribution from "../../../../Types/Database/UserAttribution";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import Permission, { UserPermission } from "../../../../Types/Permission";
+import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import { FindOperator } from "typeorm";
@@ -264,7 +265,10 @@ export default class ReadPermission {
 
   /*
    * The caller's block rows with labels on one of the permissions the
-   * operation accepts on this model.
+   * operation accepts on this model - or on its *AllOperationalResources
+   * wildcard while the wildcard is what grants it
+   * (HeldPermissionsUtil.getLabelBlockingPermissions): a block on the
+   * wildcard takes away what the wildcard grants.
    */
   public static getLabelledBlockRows(
     modelType: { new (): BaseModel },
@@ -275,12 +279,16 @@ export default class ReadPermission {
       return [];
     }
 
-    const modelPermissions: Array<string> = TablePermission.getTablePermission(
-      modelType,
-      type,
-    ).map((permission: Permission): string => {
-      return permission.toString();
-    });
+    const modelPermissions: Array<string> =
+      HeldPermissionsUtil.getLabelBlockingPermissions(
+        TablePermission.getHeldPermissions(props),
+        {
+          modelPermissions: TablePermission.getTablePermission(modelType, type),
+          wildcard: TablePermission.getModelWildcard(modelType, type),
+        },
+      ).map((permission: Permission): string => {
+        return permission.toString();
+      });
 
     return DatabaseCommonInteractionPropsUtil.getUserPermissions(
       props,

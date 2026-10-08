@@ -20,6 +20,9 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import QueryHelper from "../QueryHelper";
 import QueryUtil from "../QueryUtil";
@@ -34,6 +37,8 @@ import Dictionary from "../../../../Types/Dictionary";
 type AccessControlPermissionContext = {
   nonAccessControlPermissions: Array<Permission>;
   accessControlPermissions: Array<UserPermission>;
+  // What the caller holds, for the wildcards the grants count.
+  held: HeldPermissions;
 };
 
 export default class AccessControlPermission {
@@ -55,34 +60,18 @@ export default class AccessControlPermission {
 
     TablePermission.checkTableLevelBlockPermissions(modelType, props, type);
 
-    const blockPermissionWithLabels: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Block,
-      ).filter((permission: UserPermission) => {
-        return permission.labelIds && permission.labelIds.length > 0;
-      });
-
-    if (blockPermissionWithLabels.length === 0) {
-      return;
-    }
-
-    const modelPermissions: Array<Permission> =
-      TablePermission.getTablePermission(modelType, type);
-
+    /*
+     * The block rows with labels that weigh this operation: on one of the
+     * model's own permissions for it, or on its wildcard while the wildcard
+     * is what grants (ReadPermission.getLabelledBlockRows) - the rows the
+     * record rule leaves records out by.
+     */
     const blockPermissionsBelongToThisModel: Array<UserPermission> =
-      blockPermissionWithLabels.filter((blockPermission: UserPermission) => {
-        let isModelPermission: boolean = false;
-
-        for (const permission of modelPermissions) {
-          if (permission.toString() === blockPermission.permission.toString()) {
-            isModelPermission = true;
-            break;
-          }
-        }
-
-        return isModelPermission;
-      });
+      ReadPermission.getLabelledBlockRows(
+        modelType,
+        props,
+        type as RecordOperation,
+      );
 
     if (blockPermissionsBelongToThisModel.length === 0) {
       return;
@@ -842,6 +831,17 @@ export default class AccessControlPermission {
     });
   }
 
+  /*
+   * The labels the caller's grants for an operation on a model are limited
+   * to: none when one of them reaches the whole project, or when none is
+   * limited to labels. The grants are the rows the table check counts
+   * (TablePermission.getGrantingPermissions): the model's own permissions
+   * for the operation and, on an operational resource, its
+   * *AllOperationalResources wildcard - so a wildcard limited to labels
+   * narrows the records to those labels, as one of the model's own
+   * permissions limited to them does, and a wildcard over the whole
+   * project reaches every record.
+   */
   @CaptureSpan()
   public static getAccessControlIdsForModel(
     modelType: DatabaseBaseModelType,
@@ -851,23 +851,40 @@ export default class AccessControlPermission {
   ): Array<ObjectID> {
     context = context ?? this.buildPermissionContext(props);
 
-    let labelIds: Array<ObjectID> = [];
+    return ArrayUtil.removeDuplicatesFromObjectIDArray(
+      this.getAccessControlIdsByPermissions(
+        TablePermission.getGrantingPermissions(
+          modelType,
+          type,
+          props,
+          context.held,
+        ),
+        context,
+      ),
+    );
+  }
 
-    // check model level permissions.
-
-    const modelLevelPermissions: Array<Permission> =
-      TablePermission.getTablePermission(modelType, type);
-
-    const modelLevelLabelIds: Array<ObjectID> =
-      this.getAccessControlIdsByPermissions(modelLevelPermissions, context);
-
-    labelIds = [...labelIds, ...modelLevelLabelIds];
-
-    // get distinct labelIds
-    const distinctLabelIds: Array<ObjectID> =
-      ArrayUtil.removeDuplicatesFromObjectIDArray(labelIds);
-
-    return distinctLabelIds;
+  /*
+   * The permissions whose allow rows grant an operation on one column: the
+   * column's own list for it and, for a column that lets in everyone its
+   * table does, the table's wildcard (HeldPermissionsUtil.getColumnWildcard)
+   * - as the column check counts them (ColumnPermission).
+   */
+  private static getColumnGrantingPermissions(
+    modelType: DatabaseBaseModelType,
+    type: DatabaseRequestType,
+    columnPermissions: Array<Permission>,
+    held: HeldPermissions,
+  ): Array<Permission> {
+    return HeldPermissionsUtil.getGrantingPermissions(held, {
+      modelPermissions: columnPermissions,
+      wildcard: HeldPermissionsUtil.getColumnWildcard({
+        isOperationalResource: new modelType().isOperationalResource,
+        operation: type,
+        tablePermissions: TablePermission.getTablePermission(modelType, type),
+        columnPermissions: columnPermissions,
+      }),
+    });
   }
 
   @CaptureSpan()
@@ -913,26 +930,31 @@ export default class AccessControlPermission {
         continue;
       }
 
-      if (type === DatabaseRequestType.Read && accessControl.read) {
-        const columnReadLabelIds: Array<ObjectID> =
-          this.getAccessControlIdsByPermissions(accessControl.read, context);
+      const columnPermissions: Array<Permission> | undefined =
+        type === DatabaseRequestType.Read
+          ? accessControl.read
+          : type === DatabaseRequestType.Create
+            ? accessControl.create
+            : type === DatabaseRequestType.Update
+              ? accessControl.update
+              : undefined;
 
-        labelIds = [...labelIds, ...columnReadLabelIds];
+      if (!columnPermissions) {
+        continue;
       }
 
-      if (type === DatabaseRequestType.Create && accessControl.create) {
-        const columnCreateLabelIds: Array<ObjectID> =
-          this.getAccessControlIdsByPermissions(accessControl.create, context);
-
-        labelIds = [...labelIds, ...columnCreateLabelIds];
-      }
-
-      if (type === DatabaseRequestType.Update && accessControl.update) {
-        const columnUpdateLabelIds: Array<ObjectID> =
-          this.getAccessControlIdsByPermissions(accessControl.update, context);
-
-        labelIds = [...labelIds, ...columnUpdateLabelIds];
-      }
+      labelIds = [
+        ...labelIds,
+        ...this.getAccessControlIdsByPermissions(
+          this.getColumnGrantingPermissions(
+            modelType,
+            type,
+            columnPermissions,
+            context.held,
+          ),
+          context,
+        ),
+      ];
     }
 
     // get distinct labelIds
@@ -955,6 +977,8 @@ export default class AccessControlPermission {
         PermissionHelper.getNonAccessControlPermissions(userPermissions),
       accessControlPermissions:
         PermissionHelper.getAccessControlPermissions(userPermissions),
+      // What the table check holds the caller to, read the same way.
+      held: TablePermission.getHeldPermissions(props),
     };
   }
 
