@@ -632,9 +632,9 @@ export default class SeriesLabelDisplay {
    * alert/incident descriptions (which is what Slack, email and the
    * mobile push actually show).
    *
-   * A label's name and value come from the telemetry itself: the name is
-   * escaped as text and the value shown as code (markdownCodeSpan), so a
-   * backtick cannot close the span early and nothing in either is read as
+   * A label's name and value come from the telemetry itself: mdText places
+   * the name as text and the value as code (writing the span around it), so
+   * a backtick cannot close the span early and nothing in either is read as
    * Markdown or as a chat mention.
    */
   public static buildMarkdownBlock(

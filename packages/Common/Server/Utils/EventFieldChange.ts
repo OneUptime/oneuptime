@@ -80,7 +80,7 @@ export interface EventFieldKind {
   textColumns: ReadonlyArray<EventTextColumn>;
   /*
    * Those of them that hold Markdown, shown in the feed as written. Every
-   * other text is plain text: quoted inertly (escapeMarkdownValue), so it
+   * other text is plain text: quoted inertly (mdText), so it
    * reads as typed and cannot become a link, an image or HTML.
    */
   markdownColumns: ReadonlyArray<EventTextColumn>;

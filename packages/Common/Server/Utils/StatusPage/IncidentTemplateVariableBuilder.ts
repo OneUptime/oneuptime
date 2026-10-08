@@ -56,7 +56,7 @@ import FeedMarkdown, {
  *     it reads as, Markdown flattened to plain text, nothing escaped.
  *   - markdown, for custom Slack and Microsoft Teams messages: Markdown
  *     kept as it was written, and every plain value - the title, a name, a
- *     custom field's text - escaped (escapeMarkdownValue), so it reads as
+ *     custom field's text - escaped (FeedMarkdown.templateText), so it reads as
  *     typed and cannot become a link, an image, raw HTML or a chat mention
  *     wherever the template places it. The addresses (statusPageUrl,
  *     detailsUrl) are OneUptime's own and go in as they are.

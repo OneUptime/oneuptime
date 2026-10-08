@@ -138,7 +138,7 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
     /*
      * The model wrote this from what it read, telemetry included: it stays
      * Markdown, but nothing in it acts on its own where the note is shown -
-     * the feed, Slack and Teams (neutralizeAiWrittenMarkdown).
+     * the feed, Slack and Teams (FeedMarkdown.aiWritten).
      */
     internalNote.note = FeedMarkdown.aiWritten(note).toString();
     internalNote.createdByUserId = userId;
@@ -258,7 +258,7 @@ export const CreateAlertNoteTool: ObservabilityTool = {
     /*
      * The model wrote this from what it read, telemetry included: it stays
      * Markdown, but nothing in it acts on its own where the note is shown -
-     * the feed, Slack and Teams (neutralizeAiWrittenMarkdown).
+     * the feed, Slack and Teams (FeedMarkdown.aiWritten).
      */
     internalNote.note = FeedMarkdown.aiWritten(note).toString();
     internalNote.createdByUserId = userId;

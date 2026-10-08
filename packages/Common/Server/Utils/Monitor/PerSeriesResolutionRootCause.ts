@@ -2,8 +2,8 @@ import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Why one series' alert or incident was auto-resolved.
  *
@@ -17,8 +17,8 @@ import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
  *
  * The root cause is Markdown (the state timeline's feed item, posted to
  * Slack and Teams, and the resolved email show it), and the series' labels
- * come from the telemetry: both they and the criteria's name are escaped,
- * so they read as written.
+ * come from the telemetry: both they and the criteria's name are placed as
+ * text (mdText), so they read as written.
  */
 export default class PerSeriesResolutionRootCause {
   public static build(input: {
@@ -36,14 +36,14 @@ export default class PerSeriesResolutionRootCause {
         ]?.data?.name?.trim() || ""
       : "";
 
-    const series: string = seriesSummary
-      ? `Series "${escapeMarkdownValue(seriesSummary)}"`
-      : "This series";
+    const series: MarkdownText = seriesSummary
+      ? mdText`Series "${seriesSummary}"`
+      : mdText`This series`;
 
-    const criteria: string = criteriaName
-      ? `criteria "${escapeMarkdownValue(criteriaName)}"`
-      : "the criteria that raised it";
+    const criteria: MarkdownText = criteriaName
+      ? mdText`criteria "${criteriaName}"`
+      : mdText`the criteria that raised it`;
 
-    return `${series} no longer satisfies ${criteria}.`;
+    return mdText`${series} no longer satisfies ${criteria}.`.toString();
   }
 }

@@ -430,7 +430,7 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
      * The model wrote this from what it read, telemetry included: it stays
      * Markdown, but nothing in it acts on its own where the update is shown -
      * the status page, subscribers' messages, the feed, Slack and Teams
-     * (neutralizeAiWrittenMarkdown).
+     * (FeedMarkdown.aiWritten).
      */
     publicNote.note = FeedMarkdown.aiWritten(note).toString();
     publicNote.postedAt = OneUptimeDate.getCurrentDate();

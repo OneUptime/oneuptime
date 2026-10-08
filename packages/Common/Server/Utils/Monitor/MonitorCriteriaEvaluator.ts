@@ -42,7 +42,6 @@ import RootCauseList, {
   RootCauseListItem,
 } from "./RootCauseList";
 import DataToProcess from "./DataToProcess";
-import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -149,6 +148,11 @@ import PlatformResourceIdentity, {
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
 
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+  MarkdownValue,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /**
  * A cross-signal deep link into a telemetry explorer, plus the scope
  * fields that could not be carried into that explorer's URL grammar
@@ -238,6 +242,7 @@ interface CriteriaMetricTarget {
 interface PlatformAffectedRow<I> {
   identity: I;
   value: number | null;
+  // Plain text.
   formattedValue: string;
   /*
    * Set when the row's value belongs to a DIFFERENT filter than the one
@@ -245,7 +250,7 @@ interface PlatformAffectedRow<I> {
    * other filter. It names that filter's metric next to the value, and
    * the row is never ranked against rows in the list's own unit.
    */
-  valueNote?: string | undefined;
+  valueNote?: MarkdownText | undefined;
   /*
    * The series' labels, when none of them names a platform object (a
    * monitor grouped by a PVC name, say). The row is then titled by them
@@ -442,7 +447,7 @@ export default class MonitorCriteriaEvaluator {
 
       const isFirstMatch: boolean = matchedCriteria.length === 0;
 
-      const contextBlock: string | null =
+      const contextBlock: MarkdownText | null =
         await MonitorCriteriaEvaluator.buildRootCauseContext({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
@@ -461,38 +466,38 @@ export default class MonitorCriteriaEvaluator {
 
       /*
        * A root cause is Markdown, shown on the dashboard, in email and in
-       * the record's Slack and Teams channels. The criteria's name, what
-       * each filter found (rootCause: text the monitored system can write,
-       * escaped where the findings are joined in
-       * isMonitorInstanceCriteriaFiltersMet) and the probe's own account of
-       * a failure are text: escaped, so they read as written and cannot
-       * become a link, an image, raw HTML or a chat mention.
+       * the record's Slack and Teams channels. The criteria's name and the
+       * probe's own account of a failure are text, placed as text (mdText),
+       * so they read as written and cannot become a link, an image, raw HTML
+       * or a chat mention. What each filter found (rootCause) is Markdown
+       * isMonitorInstanceCriteriaFiltersMet wrote, its findings placed as
+       * text there.
        */
-      let renderedRootCause: string = `
+      let renderedRootCause: MarkdownText = mdText`
 **Created because the following criteria was met**:
 
-**Criteria Name**: ${escapeMarkdownValue(criteriaInstance.data?.name)}
+**Criteria Name**: ${criteriaInstance.data?.name}
 `;
 
       if (contextBlock && isMetricMonitor) {
-        renderedRootCause += `
+        renderedRootCause = mdText`${renderedRootCause}
 ${contextBlock}
 `;
       }
 
-      renderedRootCause += `
-**Filter Conditions Met**: ${rootCause}
+      renderedRootCause = mdText`${renderedRootCause}
+**Filter Conditions Met**: ${FeedMarkdown.asMarkdown(rootCause)}
 `;
 
       if (contextBlock && !isMetricMonitor) {
-        renderedRootCause += `
+        renderedRootCause = mdText`${renderedRootCause}
 ${contextBlock}
 `;
       }
 
       if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
-        renderedRootCause += `
-**Cause**: ${escapeMarkdownValue((input.dataToProcess as ProbeMonitorResponse).failureCause || "")}
+        renderedRootCause = mdText`${renderedRootCause}
+**Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
 `;
       }
 
@@ -505,7 +510,7 @@ ${contextBlock}
        */
       if (isFirstMatch) {
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
-        input.probeApiIngestResponse.rootCause = renderedRootCause;
+        input.probeApiIngestResponse.rootCause = renderedRootCause.toString();
 
         if (perSeriesMatches.length > 0 || isPerSeriesMonitor) {
           /*
@@ -521,7 +526,7 @@ ${contextBlock}
       if (criteriaInstance.data?.id) {
         matchedCriteria.push({
           criteriaId: criteriaInstance.data.id.toString(),
-          rootCause: renderedRootCause,
+          rootCause: renderedRootCause.toString(),
           perSeriesMatches: perSeriesMatches,
         });
       }
@@ -908,9 +913,9 @@ ${contextBlock}
        * messages so the incident message reflects exactly what
        * breached on this specific series.
        */
-      const rootCauseLines: Array<string> = matched.map(
+      const rootCauseLines: Array<MarkdownText> = matched.map(
         (r: MetricSeriesEvaluationResult) => {
-          return `- ${escapeMarkdownValue(r.rootCause)}`;
+          return mdText`- ${r.rootCause}`;
         },
       );
 
@@ -918,7 +923,7 @@ ${contextBlock}
         criteriaMetId: criteriaId,
         fingerprint,
         labels: entry.labels,
-        rootCause: rootCauseLines.join("\n"),
+        rootCause: FeedMarkdown.join(rootCauseLines, "\n").toString(),
         metricContext: matched[0]?.context,
         metricContexts: matched.map((r: MetricSeriesEvaluationResult) => {
           return r.context;
@@ -1007,13 +1012,12 @@ ${contextBlock}
      * What this returns becomes a root cause, which is Markdown; what it
      * records in the evaluation summary is shown as plain text. A filter's
      * finding can quote what the monitored system sent - a response body, a
-     * header, a log line, an email - so the root cause gets each finding
-     * escaped (escapeMarkdownValue) and the summary keeps it as written.
+     * header, a log line, an email - so the root cause places each finding
+     * as text (mdText) and the summary keeps it as written.
      */
     if (filterCondition === FilterCondition.All) {
       if (allFiltersMet && input.criteriaResult.filters.length > 0) {
         let message: string = "All filters met.";
-        let rootCause: string = "All filters met.";
 
         if (matchedFilterMessages.length > 0) {
           message += matchedFilterMessages
@@ -1021,17 +1025,18 @@ ${contextBlock}
               return `\n- ${item}`;
             })
             .join("");
-          rootCause += matchedFilterMessages
-            .map((item: string) => {
-              return `\n- ${escapeMarkdownValue(item)}`;
-            })
-            .join("");
         }
+
+        const findings: Array<MarkdownText> = matchedFilterMessages.map(
+          (item: string): MarkdownText => {
+            return mdText`\n- ${item}`;
+          },
+        );
 
         input.criteriaResult.met = true;
         input.criteriaResult.message = message;
 
-        return rootCause;
+        return mdText`All filters met.${FeedMarkdown.join(findings, "")}`.toString();
       }
 
       input.criteriaResult.met = false;
@@ -1050,7 +1055,7 @@ ${contextBlock}
         input.criteriaResult.met = true;
         input.criteriaResult.message = firstMatch;
 
-        return escapeMarkdownValue(firstMatch);
+        return mdText`${firstMatch}`.toString();
       }
 
       input.criteriaResult.met = false;
@@ -1500,7 +1505,7 @@ ${contextBlock}
      * platform contexts list exactly these as the affected resources.
      */
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-  }): Promise<string | null> {
+  }): Promise<MarkdownText | null> {
     // Handle Kubernetes monitors with rich resource context
     if (input.monitor.monitorType === MonitorType.Kubernetes) {
       return await MonitorCriteriaEvaluator.buildKubernetesRootCauseContext(
@@ -1565,9 +1570,9 @@ ${contextBlock}
       });
     }
 
-    const requestDetails: Array<string> = [];
-    const responseDetails: Array<string> = [];
-    const failureDetails: Array<string> = [];
+    const requestDetails: Array<MarkdownText> = [];
+    const responseDetails: Array<MarkdownText> = [];
+    const failureDetails: Array<MarkdownText> = [];
 
     const probeResponse: ProbeMonitorResponse | null =
       MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
@@ -1579,7 +1584,7 @@ ${contextBlock}
       });
 
     if (destination) {
-      requestDetails.push(`- Destination: ${escapeMarkdownValue(destination)}`);
+      requestDetails.push(mdText`- Destination: ${destination}`);
     }
 
     const port: string | null = MonitorCriteriaEvaluator.getMonitorPortString({
@@ -1588,7 +1593,7 @@ ${contextBlock}
     });
 
     if (port) {
-      requestDetails.push(`- Destination Port: ${port}`);
+      requestDetails.push(mdText`- Destination Port: ${port}`);
     }
 
     const requestMethod: string | null =
@@ -1599,13 +1604,13 @@ ${contextBlock}
 
     if (requestMethod) {
       requestDetails.push(
-        `- Request Method: ${escapeMarkdownValue(requestMethod)}`,
+        mdText`- Request Method: ${requestMethod}`,
       );
     }
 
     if (probeResponse?.responseCode !== undefined) {
       responseDetails.push(
-        `- Response Status Code: ${probeResponse.responseCode}`,
+        mdText`- Response Status Code: ${probeResponse.responseCode}`,
       );
     }
 
@@ -1615,12 +1620,12 @@ ${contextBlock}
       );
 
     if (responseTime) {
-      responseDetails.push(`- Response Time: ${responseTime}`);
+      responseDetails.push(mdText`- Response Time: ${responseTime}`);
     }
 
     if (probeResponse?.isTimeout !== undefined) {
       responseDetails.push(
-        `- Timed Out: ${probeResponse.isTimeout ? "Yes" : "No"}`,
+        mdText`- Timed Out: ${probeResponse.isTimeout ? "Yes" : "No"}`,
       );
     }
 
@@ -1630,7 +1635,7 @@ ${contextBlock}
      * confidence, and the count was already collected but never shown.
      */
     if (probeResponse?.totalAttempts !== undefined) {
-      responseDetails.push(`- Attempts: ${probeResponse.totalAttempts}`);
+      responseDetails.push(mdText`- Attempts: ${probeResponse.totalAttempts}`);
     }
 
     // Add Request Failed Details if available
@@ -1640,42 +1645,42 @@ ${contextBlock}
 
       if (requestFailedDetails.failedPhase) {
         failureDetails.push(
-          `- Failed Phase: ${escapeMarkdownValue(requestFailedDetails.failedPhase)}`,
+          mdText`- Failed Phase: ${requestFailedDetails.failedPhase}`,
         );
       }
 
       if (requestFailedDetails.errorCode) {
         failureDetails.push(
-          `- Error Code: ${escapeMarkdownValue(requestFailedDetails.errorCode)}`,
+          mdText`- Error Code: ${requestFailedDetails.errorCode}`,
         );
       }
 
       if (requestFailedDetails.errorDescription) {
         failureDetails.push(
-          `- Error Description: ${escapeMarkdownValue(requestFailedDetails.errorDescription)}`,
+          mdText`- Error Description: ${requestFailedDetails.errorDescription}`,
         );
       }
 
       if (requestFailedDetails.rawErrorMessage) {
         failureDetails.push(
-          `- Raw Error Message: ${escapeMarkdownValue(requestFailedDetails.rawErrorMessage)}`,
+          mdText`- Raw Error Message: ${requestFailedDetails.rawErrorMessage}`,
         );
       }
     }
 
-    const sections: Array<string> = [];
+    const sections: Array<MarkdownText> = [];
 
     if (requestDetails.length > 0) {
-      sections.push(`**Request Details**\n${requestDetails.join("\n")}`);
+      sections.push(mdText`**Request Details**\n${FeedMarkdown.join(requestDetails, "\n")}`);
     }
 
     if (responseDetails.length > 0) {
-      sections.push(`\n\n**Response Snapshot**\n${responseDetails.join("\n")}`);
+      sections.push(mdText`\n\n**Response Snapshot**\n${FeedMarkdown.join(responseDetails, "\n")}`);
     }
 
     if (failureDetails.length > 0) {
       sections.push(
-        `\n\n**Request Failed Details**\n${failureDetails.join("\n")}`,
+        mdText`\n\n**Request Failed Details**\n${FeedMarkdown.join(failureDetails, "\n")}`,
       );
     }
 
@@ -1683,7 +1688,7 @@ ${contextBlock}
       return null;
     }
 
-    return sections.join("\n");
+    return FeedMarkdown.join(sections, "\n");
   }
 
   /*
@@ -1709,7 +1714,7 @@ ${contextBlock}
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     const ctx: MetricCriteriaContext | undefined =
       MonitorCriteriaEvaluator.getMetricCriteriaContext(input.criteriaInstance);
 
@@ -1723,10 +1728,10 @@ ${contextBlock}
         isFormula: ctx.isFormula,
       });
 
-    const lines: Array<string> = [];
-    lines.push(`- Metric: ${RootCauseList.code(ctx.metricName)}`);
+    const lines: Array<MarkdownText> = [];
+    lines.push(mdText`- Metric: ${RootCauseList.code(ctx.metricName)}`);
     if (ctx.alias) {
-      lines.push(`- Alias: ${RootCauseList.code(ctx.alias)}`);
+      lines.push(mdText`- Alias: ${RootCauseList.code(ctx.alias)}`);
     }
     /*
      * Spell the unit out — "Bytes", not the UCUM "By" the exporter wrote —
@@ -1739,16 +1744,16 @@ ${contextBlock}
     );
     if (readableUnit) {
       // An unknown unit is shown as the exporter wrote it: text.
-      lines.push(`- Unit: ${escapeMarkdownValue(readableUnit)}`);
+      lines.push(mdText`- Unit: ${readableUnit}`);
     }
     if (ctx.aggregationType) {
-      lines.push(`- Aggregation: ${ctx.aggregationType}`);
+      lines.push(mdText`- Aggregation: ${ctx.aggregationType}`);
     }
     if (ctx.isFormula && ctx.formulaExpression) {
-      lines.push(`- Formula: ${RootCauseList.code(ctx.formulaExpression)}`);
+      lines.push(mdText`- Formula: ${RootCauseList.code(ctx.formulaExpression)}`);
     }
     if (ctx.timeWindowMinutes) {
-      lines.push(`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
+      lines.push(mdText`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
     }
 
     /*
@@ -1757,7 +1762,7 @@ ${contextBlock}
      * b is container.memory.usage in bytes" without clicking away.
      */
     if (ctx.components && ctx.components.length > 0) {
-      const componentLines: Array<string> = ctx.components.map(
+      const componentLines: Array<MarkdownText> = ctx.components.map(
         (component: MetricComponent) => {
           const componentUnit: string | null =
             MetricValueFormatter.getReadableUnit(
@@ -1768,36 +1773,37 @@ ${contextBlock}
               }),
             );
           // A unit no catalog knows is shown as the exporter wrote it: text.
-          const unitSuffix: string = componentUnit
-            ? ` — unit: ${escapeMarkdownValue(componentUnit)}`
-            : "";
-          const typeSuffix: string = component.isFormula ? " (formula)" : "";
-          return `  - ${RootCauseList.code(component.alias)} = ${RootCauseList.code(component.name)}${typeSuffix}${unitSuffix}`;
+          const unitSuffix: MarkdownText = componentUnit
+            ? mdText` — unit: ${componentUnit}`
+            : FeedMarkdown.empty();
+          const typeSuffix: MarkdownText = component.isFormula
+            ? mdText` (formula)`
+            : FeedMarkdown.empty();
+          return mdText`  - ${RootCauseList.code(component.alias)} = ${RootCauseList.code(component.name)}${typeSuffix}${unitSuffix}`;
         },
       );
-      lines.push(`- Components:\n${componentLines.join("\n")}`);
+      lines.push(mdText`- Components:\n${FeedMarkdown.join(componentLines, "\n")}`);
     }
 
     const filterKeys: Array<string> = Object.keys(ctx.filterAttributes || {});
     if (filterKeys.length > 0) {
-      const filterLines: Array<string> = filterKeys.map((k: string) => {
+      const filterLines: Array<MarkdownText> = filterKeys.map((k: string) => {
         const v: unknown = (ctx.filterAttributes as Record<string, unknown>)[k];
-        return `  - ${RootCauseList.code(k)} = ${RootCauseList.code(String(v))}`;
+        return mdText`  - ${RootCauseList.code(k)} = ${RootCauseList.code(String(v))}`;
       });
-      lines.push(`- Filters:\n${filterLines.join("\n")}`);
+      lines.push(mdText`- Filters:\n${FeedMarkdown.join(filterLines, "\n")}`);
     }
 
     if (ctx.groupBy.length > 0) {
       lines.push(
-        `- Grouped By: ${ctx.groupBy
+        mdText`- Grouped By: ${FeedMarkdown.join(ctx.groupBy
           .map((g: string) => {
             return RootCauseList.code(g);
-          })
-          .join(", ")}`,
+          }), ", ")}`,
       );
     }
 
-    const sections: Array<string> = [`**Metric Details**\n${lines.join("\n")}`];
+    const sections: Array<MarkdownText> = [mdText`**Metric Details**\n${FeedMarkdown.join(lines, "\n")}`];
 
     const breachingSamples: Array<MetricBreachingSample> =
       ctx.breachingSamples && ctx.breachingSamples.length > 0
@@ -1808,7 +1814,7 @@ ${contextBlock}
 
     if (breachingSamples.length > 0) {
       sections.push(
-        `\n\n${MonitorCriteriaEvaluator.formatBreachingSamplesSection({
+        mdText`\n\n${MonitorCriteriaEvaluator.formatBreachingSamplesSection({
           samples: breachingSamples,
           totalSamples: ctx.totalSamplesInWindow,
           unit: ctx.unit,
@@ -1830,7 +1836,7 @@ ${contextBlock}
       });
 
     if (deepLink) {
-      sections.push(`\n\n[Open metric in dashboard](${deepLink})`);
+      sections.push(mdText`\n\n[Open metric in dashboard](${deepLink})`);
     }
 
     /*
@@ -1848,7 +1854,7 @@ ${contextBlock}
 
     if (logsLink) {
       sections.push(
-        `\n\n[Open logs in dashboard](${logsLink.url})${MonitorCriteriaEvaluator.formatScopeDroppedHint(
+        mdText`\n\n[Open logs in dashboard](${logsLink.url})${MonitorCriteriaEvaluator.formatScopeDroppedHint(
           logsLink.dropped,
         )}`,
       );
@@ -1863,13 +1869,13 @@ ${contextBlock}
 
     if (tracesLink) {
       sections.push(
-        `\n\n[Open traces in dashboard](${tracesLink.url})${MonitorCriteriaEvaluator.formatScopeDroppedHint(
+        mdText`\n\n[Open traces in dashboard](${tracesLink.url})${MonitorCriteriaEvaluator.formatScopeDroppedHint(
           tracesLink.dropped,
         )}`,
       );
     }
 
-    return sections.join("\n");
+    return FeedMarkdown.join(sections, "\n");
   }
 
   /**
@@ -1959,7 +1965,7 @@ ${contextBlock}
      * `attributes`; only these keys are lifted out of it.
      */
     seriesLabelKeys?: Array<string> | undefined;
-  }): string {
+  }): MarkdownText {
     const MAX_SAMPLES_SHOWN: number = 20;
 
     // Sort chronologically and de-duplicate any accidental repeats
@@ -2032,17 +2038,16 @@ ${contextBlock}
           details.push({
             label: RootCauseList.code(component.alias),
             // A unit no catalog knows is labelled as the exporter wrote it: text.
-            value: escapeMarkdownValue(
-              MetricValueFormatter.format({
-                value: match.value,
-                unit: component.unit,
-                metricName:
-                  MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
-                    metricName: component.name,
-                    isFormula: component.isFormula,
-                  }),
-              }),
-            ),
+            value: MetricValueFormatter.format({
+              value: match.value,
+              unit: component.unit,
+              metricName: MonitorCriteriaEvaluator.metricNameForUnitHeuristics(
+                {
+                  metricName: component.name,
+                  isFormula: component.isFormula,
+                },
+              ),
+            }),
           });
         }
 
@@ -2066,25 +2071,23 @@ ${contextBlock}
 
         return {
           title: RootCauseList.code(new Date(s.timestamp).toISOString()),
-          value: `**${escapeMarkdownValue(
-            MetricValueFormatter.format({
+          value: mdText`**${MetricValueFormatter.format({
               value: s.value,
               unit: input.unit,
               metricName: input.unitHeuristicMetricName,
-            }),
-          )}**`,
+            })}**`,
           details: details,
         };
       },
     );
 
-    const lines: Array<string> = [
-      `**Breaching Samples**`,
-      MonitorCriteriaEvaluator.formatBreachingSamplesSummary({
+    const lines: Array<MarkdownText> = [
+      mdText`**Breaching Samples**`,
+      mdText`${MonitorCriteriaEvaluator.formatBreachingSamplesSummary({
         breachingCount: sorted.length,
         totalSamples: input.totalSamples,
-      }),
-      "",
+      })}`,
+      FeedMarkdown.empty(),
       RootCauseList.render(items),
     ];
 
@@ -2094,12 +2097,12 @@ ${contextBlock}
        * continuation of the last item, not a paragraph of its own.
        */
       lines.push(
-        "",
-        `_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
+        FeedMarkdown.empty(),
+        mdText`_Showing the first ${displayedSamples.length} of ${sorted.length} breaching samples._`,
       );
     }
 
-    return lines.join("\n");
+    return FeedMarkdown.join(lines, "\n");
   }
 
   private static formatBreachingSamplesSummary(input: {
@@ -2358,12 +2361,12 @@ ${contextBlock}
     return input.isFormula ? undefined : input.metricName;
   }
 
-  private static formatScopeDroppedHint(dropped: Array<string>): string {
+  private static formatScopeDroppedHint(dropped: Array<string>): MarkdownText {
     if (dropped.length === 0) {
-      return "";
+      return FeedMarkdown.empty();
     }
 
-    return ` _(scope partially carried — not applied: ${dropped.join(", ")})_`;
+    return mdText` _(scope partially carried — not applied: ${FeedMarkdown.join(dropped, ", ")})_`;
   }
 
   /**
@@ -2415,8 +2418,8 @@ ${contextBlock}
    * Render the value of one resource from the worker's raw scan, in the
    * unit getPlatformMetricUnit resolves. Unemphasised: the list bolds it
    * (it is the one number on the line a reader scans for), a sentence
-   * may not. Escaped for the Markdown it goes into: a unit the catalog does
-   * not know is labelled as the exporter wrote it.
+   * may not. Plain text, placed as text wherever it goes: a unit the
+   * catalog does not know is labelled as the exporter wrote it.
    */
   private static formatPlatformMetricValue(input: {
     platform: PlatformName;
@@ -2425,18 +2428,16 @@ ${contextBlock}
     metricUnit?: string | undefined;
     attributes?: Record<string, unknown> | undefined;
   }): string {
-    return escapeMarkdownValue(
-      MetricValueFormatter.format({
-        value: input.value,
-        unit: MonitorCriteriaEvaluator.getPlatformMetricUnit({
-          platform: input.platform,
-          metricName: input.metricName,
-          metricUnit: input.metricUnit,
-          attributes: input.attributes,
-        }),
+    return MetricValueFormatter.format({
+      value: input.value,
+      unit: MonitorCriteriaEvaluator.getPlatformMetricUnit({
+        platform: input.platform,
         metricName: input.metricName,
+        metricUnit: input.metricUnit,
+        attributes: input.attributes,
       }),
-    );
+      metricName: input.metricName,
+    });
   }
 
   /**
@@ -2477,14 +2478,14 @@ ${contextBlock}
   private static describePlatformMetricName(input: {
     metricName: string;
     friendlyName?: string | undefined;
-  }): string {
+  }): MarkdownText {
     const friendlyName: string = (input.friendlyName || "").trim();
 
     if (!friendlyName || friendlyName === input.metricName) {
       return RootCauseList.code(input.metricName);
     }
 
-    return `${escapeMarkdownValue(friendlyName)} (${RootCauseList.code(input.metricName)})`;
+    return mdText`${friendlyName} (${RootCauseList.code(input.metricName)})`;
   }
 
   /**
@@ -2701,16 +2702,16 @@ ${contextBlock}
     target: CriteriaMetricTarget | null;
     breakdown?: { metricName: string; metricFriendlyName: string } | undefined;
     fallbackMetricName?: string | undefined;
-  }): Array<string> {
+  }): Array<MarkdownText> {
     const target: CriteriaMetricTarget | null = input.target;
 
     const describeMetric: (
       metricName: string,
       attributes?: Record<string, unknown> | undefined,
-    ) => string = (
+    ) => MarkdownText = (
       metricName: string,
       attributes?: Record<string, unknown> | undefined,
-    ): string => {
+    ): MarkdownText => {
       const breakdownFriendlyName: string | undefined =
         input.breakdown?.metricName === metricName
           ? input.breakdown.metricFriendlyName
@@ -2729,20 +2730,20 @@ ${contextBlock}
     };
 
     if (target?.isFormula) {
-      const lines: Array<string> = [
-        `- Metric: ${target.displayName ? escapeMarkdownValue(target.displayName) : RootCauseList.code(target.alias)}`,
+      const lines: Array<MarkdownText> = [
+        mdText`- Metric: ${target.displayName ? target.displayName : RootCauseList.code(target.alias)}`,
       ];
 
       if (target.formulaExpression) {
         lines.push(
-          `- Formula: ${RootCauseList.code(target.formulaExpression)}`,
+          mdText`- Formula: ${RootCauseList.code(target.formulaExpression)}`,
         );
       }
 
       for (const component of target.components) {
         if (component.metricName) {
           lines.push(
-            `  - ${RootCauseList.code(component.alias)} = ${describeMetric(
+            mdText`  - ${RootCauseList.code(component.alias)} = ${describeMetric(
               component.metricName,
               component.metricAttributes,
             )}`,
@@ -2755,13 +2756,13 @@ ${contextBlock}
 
     if (target?.metricName) {
       return [
-        `- Metric: ${describeMetric(target.metricName, target.metricAttributes)}`,
+        mdText`- Metric: ${describeMetric(target.metricName, target.metricAttributes)}`,
       ];
     }
 
     if (input.breakdown) {
       return [
-        `- Metric: ${MonitorCriteriaEvaluator.describePlatformMetricName({
+        mdText`- Metric: ${MonitorCriteriaEvaluator.describePlatformMetricName({
           metricName: input.breakdown.metricName,
           friendlyName: input.breakdown.metricFriendlyName,
         })}`,
@@ -2769,7 +2770,7 @@ ${contextBlock}
     }
 
     if (input.fallbackMetricName) {
-      return [`- Metric: ${RootCauseList.code(input.fallbackMetricName)}`];
+      return [mdText`- Metric: ${RootCauseList.code(input.fallbackMetricName)}`];
     }
 
     return [];
@@ -2882,9 +2883,11 @@ ${contextBlock}
         const context: MetricCriteriaContext | undefined =
           targetContext || matchedContexts[0];
 
-        const valueNote: string | undefined =
+        const valueNote: MarkdownText | undefined =
           !targetContext && context
-            ? context.displayName || `\`${context.alias}\``
+            ? context.displayName
+              ? mdText`${context.displayName}`
+              : RootCauseList.code(context.alias)
             : undefined;
 
         const seriesIdentity: I = input.toIdentity(
@@ -2939,21 +2942,19 @@ ${contextBlock}
           value: value,
           ...(valueNote ? { valueNote: valueNote } : {}),
           ...(seriesLabels ? { seriesLabels: seriesLabels } : {}),
-          // Escaped: a unit no catalog knows is the exporter's own text.
+          // Plain text: a unit no catalog knows is the exporter's own text.
           formattedValue:
             value === null
               ? "no data"
-              : escapeMarkdownValue(
-                  MetricValueFormatter.format({
-                    value: value,
-                    unit: context?.unit,
-                    metricName:
-                      MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
-                        metricName: context?.metricName,
-                        isFormula: context?.isFormula,
-                      }),
-                  }),
-                ),
+              : MetricValueFormatter.format({
+                  value: value,
+                  unit: context?.unit,
+                  metricName:
+                    MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                      metricName: context?.metricName,
+                      isFormula: context?.isFormula,
+                    }),
+                }),
         };
       },
     );
@@ -3142,10 +3143,10 @@ ${contextBlock}
    */
   private static renderAffectedRowValue<I>(
     row: PlatformAffectedRow<I>,
-  ): string {
+  ): MarkdownText {
     return row.valueNote
-      ? `**${row.formattedValue}** (${row.valueNote})`
-      : `**${row.formattedValue}**`;
+      ? mdText`**${row.formattedValue}** (${row.valueNote})`
+      : mdText`**${row.formattedValue}**`;
   }
 
   private static getNonEmptyLabels(
@@ -3171,10 +3172,10 @@ ${contextBlock}
    */
   private static getSeriesLabelEntry(input: {
     labels: JSONObject;
-    value: string;
+    value: MarkdownValue;
   }): AffectedResourceListEntry {
-    const name: string = Object.keys(input.labels)
-      .map((key: string) => {
+    const name: MarkdownText = FeedMarkdown.join(
+      Object.keys(input.labels).map((key: string): MarkdownText => {
         const displayKey: string = key.startsWith("resource.")
           ? key.substring("resource.".length)
           : key;
@@ -3182,8 +3183,8 @@ ${contextBlock}
         return AffectedResourceList.code(
           `${displayKey}=${String(input.labels[key])}`,
         );
-      })
-      .join(", ");
+      }),
+    );
 
     return {
       kind: "Series",
@@ -3375,7 +3376,7 @@ ${contextBlock}
   private static getKubernetesAffectedResourceEntry(input: {
     resource: KubernetesResourceIdentity;
     clusterName: string;
-    value: string;
+    value: MarkdownValue;
   }): AffectedResourceListEntry {
     const resource: KubernetesResourceIdentity = input.resource;
 
@@ -3383,12 +3384,12 @@ ${contextBlock}
     const workloadLabel: string = resource.workloadType || "Workload";
 
     let kind: string = "Cluster";
-    let name: string = AffectedResourceList.code(input.clusterName);
+    let name: MarkdownText = AffectedResourceList.code(input.clusterName);
 
     if (resource.containerName) {
       kind = "Container";
       name = resource.podName
-        ? `${AffectedResourceList.code(resource.containerName)} in pod ${AffectedResourceList.code(resource.podName)}`
+        ? mdText`${AffectedResourceList.code(resource.containerName)} in pod ${AffectedResourceList.code(resource.podName)}`
         : AffectedResourceList.code(resource.containerName);
     } else if (resource.podName) {
       kind = "Pod";
@@ -3446,7 +3447,7 @@ ${contextBlock}
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-  }): Promise<string | null> {
+  }): Promise<MarkdownText | null> {
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
@@ -3496,11 +3497,11 @@ ${contextBlock}
       breakdown?.metricName ||
       "";
 
-    const sections: Array<string> = [];
+    const sections: Array<MarkdownText> = [];
 
     // Cluster context
-    const clusterDetails: Array<string> = [];
-    clusterDetails.push(`- Cluster: ${escapeMarkdownValue(clusterName)}`);
+    const clusterDetails: Array<MarkdownText> = [];
+    clusterDetails.push(mdText`- Cluster: ${clusterName}`);
     clusterDetails.push(
       ...MonitorCriteriaEvaluator.describeCriteriaMetric({
         platform: "kubernetes",
@@ -3521,12 +3522,12 @@ ${contextBlock}
 
     if (namespaceFilter) {
       clusterDetails.push(
-        `- Namespace: ${escapeMarkdownValue(namespaceFilter)}`,
+        mdText`- Namespace: ${namespaceFilter}`,
       );
     }
 
     sections.push(
-      `**Kubernetes Cluster Details**\n${clusterDetails.join("\n")}`,
+      mdText`**Kubernetes Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
     );
 
     /*
@@ -3568,7 +3569,7 @@ ${contextBlock}
       });
 
     if (!rows || rows.length === 0) {
-      return sections.join("\n");
+      return FeedMarkdown.join(sections, "\n");
     }
 
     // Show top 10 affected resources
@@ -3612,7 +3613,7 @@ ${contextBlock}
      * different filter than the one analysed, which no sentence below
      * ("memory usage is at ...") can describe.
      */
-    const analysis: string | null =
+    const analysis: MarkdownText | null =
       topRow.value === null || topRow.valueNote
         ? null
         : MonitorCriteriaEvaluator.buildKubernetesRootCauseAnalysis({
@@ -3639,7 +3640,7 @@ ${contextBlock}
           });
 
     if (analysis) {
-      sections.push(`\n\n**Root Cause Analysis**\n${analysis}`);
+      sections.push(mdText`\n\n**Root Cause Analysis**\n${analysis}`);
     }
 
     // Fetch recent container logs for the top affected resource during CrashLoopBackOff
@@ -3684,7 +3685,8 @@ ${contextBlock}
           });
 
         if (logs.length > 0) {
-          const logLines: Array<string> = logs.map((log: JSONObject) => {
+          const logLines: Array<MarkdownText> = logs.map(
+            (log: JSONObject): MarkdownText => {
             const timestamp: string = log["time"] ? String(log["time"]) : "";
             const severity: string = log["severityText"]
               ? String(log["severityText"])
@@ -3694,11 +3696,12 @@ ${contextBlock}
              * A log line is whatever the container printed: shown as code,
              * so nothing in it is read as Markdown or as a chat mention.
              */
-            return `${RootCauseList.code(timestamp)} **${escapeMarkdownValue(severity)}** ${RootCauseList.code(body)}`;
-          });
+            return mdText`${RootCauseList.code(timestamp)} **${severity}** ${RootCauseList.code(body)}`;
+            },
+          );
 
           sections.push(
-            `\n\n**Recent Container Logs** (${escapeMarkdownValue(topResource.podName || "unknown pod")} / ${escapeMarkdownValue(topResource.containerName || "unknown container")}, last 15 minutes)\n\n${logLines.join("\n\n")}`,
+            mdText`\n\n**Recent Container Logs** (${topResource.podName || "unknown pod"} / ${topResource.containerName || "unknown container"}, last 15 minutes)\n\n${FeedMarkdown.join(logLines, "\n\n")}`,
           );
         }
       } catch (err) {
@@ -3713,7 +3716,7 @@ ${contextBlock}
       }
     }
 
-    return sections.join("\n");
+    return FeedMarkdown.join(sections, "\n");
   }
 
   /**
@@ -3737,7 +3740,7 @@ ${contextBlock}
   private static describeCriteriaMetricLine(input: {
     ctx: MetricCriteriaContext | undefined;
     metricViewConfig: MetricsViewConfig | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     const ctx: MetricCriteriaContext | undefined = input.ctx;
 
     if (ctx?.isFormula) {
@@ -3754,14 +3757,14 @@ ${contextBlock}
       ).trim();
 
       if (legend && legend !== ctx.alias) {
-        return `- Metric: ${escapeMarkdownValue(legend)}`;
+        return mdText`- Metric: ${legend}`;
       }
 
-      return `- Metric: ${RootCauseList.code(ctx.alias)} (formula)`;
+      return mdText`- Metric: ${RootCauseList.code(ctx.alias)} (formula)`;
     }
 
     if (ctx?.metricName) {
-      return `- Metric: ${RootCauseList.code(ctx.metricName)}`;
+      return mdText`- Metric: ${RootCauseList.code(ctx.metricName)}`;
     }
 
     const firstQueryMetricName: string | undefined = input.metricViewConfig
@@ -3770,7 +3773,7 @@ ${contextBlock}
       | undefined;
 
     return firstQueryMetricName
-      ? `- Metric: ${RootCauseList.code(firstQueryMetricName)}`
+      ? mdText`- Metric: ${RootCauseList.code(firstQueryMetricName)}`
       : null;
   }
 
@@ -3792,15 +3795,15 @@ ${contextBlock}
    */
   private static buildTelemetryResourceRootCauseContext(input: {
     heading: string;
-    identityLines: Array<string> | null;
+    identityLines: Array<MarkdownText> | null;
     monitor: Monitor;
     monitorStep: MonitorStep;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
-  }): string | null {
-    const sections: Array<string> = [];
+  }): MarkdownText | null {
+    const sections: Array<MarkdownText> = [];
 
     if (input.identityLines) {
-      const metricLine: string | null =
+      const metricLine: MarkdownText | null =
         MonitorCriteriaEvaluator.describeCriteriaMetricLine({
           ctx: MonitorCriteriaEvaluator.getMetricCriteriaContext(
             input.criteriaInstance,
@@ -3808,14 +3811,14 @@ ${contextBlock}
           metricViewConfig: MonitorStep.getMetricsViewConfig(input.monitorStep),
         });
 
-      const lines: Array<string> = metricLine
+      const lines: Array<MarkdownText> = metricLine
         ? [...input.identityLines, metricLine]
         : input.identityLines;
 
-      sections.push(`**${input.heading}**\n${lines.join("\n")}`);
+      sections.push(mdText`**${input.heading}**\n${FeedMarkdown.join(lines, "\n")}`);
     }
 
-    const metricDetails: string | null = input.criteriaInstance
+    const metricDetails: MarkdownText | null = input.criteriaInstance
       ? MonitorCriteriaEvaluator.buildMetricRootCauseContext({
           criteriaInstance: input.criteriaInstance,
           monitor: input.monitor,
@@ -3825,38 +3828,38 @@ ${contextBlock}
 
     if (metricDetails) {
       sections.push(
-        sections.length > 0 ? `\n\n${metricDetails}` : metricDetails,
+        sections.length > 0 ? mdText`\n\n${metricDetails}` : metricDetails,
       );
     }
 
-    return sections.length > 0 ? sections.join("\n") : null;
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
   }
 
   private static buildDockerRootCauseContext(input: {
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     // Docker host context
     const dockerMonitor: MonitorStepDockerMonitor | undefined =
       input.monitorStep.data?.dockerMonitor;
 
-    let hostDetails: Array<string> | null = null;
+    let hostDetails: Array<MarkdownText> | null = null;
 
     if (dockerMonitor) {
       hostDetails = [
-        `- Host: ${escapeMarkdownValue(dockerMonitor.hostIdentifier || "Unknown")}`,
+        mdText`- Host: ${dockerMonitor.hostIdentifier || "Unknown"}`,
       ];
 
       if (dockerMonitor.containerFilters?.containerName) {
         hostDetails.push(
-          `- Container Name Filter: ${escapeMarkdownValue(dockerMonitor.containerFilters.containerName)}`,
+          mdText`- Container Name Filter: ${dockerMonitor.containerFilters.containerName}`,
         );
       }
 
       if (dockerMonitor.containerFilters?.containerImage) {
         hostDetails.push(
-          `- Container Image Filter: ${escapeMarkdownValue(dockerMonitor.containerFilters.containerImage)}`,
+          mdText`- Container Image Filter: ${dockerMonitor.containerFilters.containerImage}`,
         );
       }
     }
@@ -3874,7 +3877,7 @@ ${contextBlock}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     // Host context
     const hostMonitor: MonitorStepHostMonitor | undefined =
       input.monitorStep.data?.hostMonitor;
@@ -3883,7 +3886,7 @@ ${contextBlock}
       heading: "Host Details",
       identityLines: hostMonitor
         ? [
-            `- Host: ${escapeMarkdownValue(hostMonitor.hostIdentifier || "Unknown")}`,
+            mdText`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`,
           ]
         : null,
       monitor: input.monitor,
@@ -3896,27 +3899,27 @@ ${contextBlock}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     // Podman host context
     const podmanMonitor: MonitorStepPodmanMonitor | undefined =
       input.monitorStep.data?.podmanMonitor;
 
-    let hostDetails: Array<string> | null = null;
+    let hostDetails: Array<MarkdownText> | null = null;
 
     if (podmanMonitor) {
       hostDetails = [
-        `- Host: ${escapeMarkdownValue(podmanMonitor.hostIdentifier || "Unknown")}`,
+        mdText`- Host: ${podmanMonitor.hostIdentifier || "Unknown"}`,
       ];
 
       if (podmanMonitor.containerFilters?.containerName) {
         hostDetails.push(
-          `- Container Name Filter: ${escapeMarkdownValue(podmanMonitor.containerFilters.containerName)}`,
+          mdText`- Container Name Filter: ${podmanMonitor.containerFilters.containerName}`,
         );
       }
 
       if (podmanMonitor.containerFilters?.containerImage) {
         hostDetails.push(
-          `- Container Image Filter: ${escapeMarkdownValue(podmanMonitor.containerFilters.containerImage)}`,
+          mdText`- Container Image Filter: ${podmanMonitor.containerFilters.containerImage}`,
         );
       }
     }
@@ -3934,16 +3937,16 @@ ${contextBlock}
     monitorStep: MonitorStep;
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     // IoT fleet / device context
     const iotMonitor: MonitorStepIoTMonitor | undefined =
       input.monitorStep.data?.iotMonitor;
 
-    let deviceDetails: Array<string> | null = null;
+    let deviceDetails: Array<MarkdownText> | null = null;
 
     if (iotMonitor) {
       deviceDetails = [
-        `- Fleet: ${escapeMarkdownValue(iotMonitor.fleetIdentifier || "Unknown")}`,
+        mdText`- Fleet: ${iotMonitor.fleetIdentifier || "Unknown"}`,
       ];
 
       /*
@@ -3963,25 +3966,25 @@ ${contextBlock}
         String(breachingDeviceId) !== ""
       ) {
         deviceDetails.push(
-          `- Device: ${AffectedResourceList.code(String(breachingDeviceId))}`,
+          mdText`- Device: ${AffectedResourceList.code(String(breachingDeviceId))}`,
         );
       }
 
       if (iotMonitor.resourceFilters?.deviceId) {
         deviceDetails.push(
-          `- Device ID Filter: ${escapeMarkdownValue(iotMonitor.resourceFilters.deviceId)}`,
+          mdText`- Device ID Filter: ${iotMonitor.resourceFilters.deviceId}`,
         );
       }
 
       if (iotMonitor.resourceFilters?.deviceType) {
         deviceDetails.push(
-          `- Device Type Filter: ${escapeMarkdownValue(iotMonitor.resourceFilters.deviceType)}`,
+          mdText`- Device Type Filter: ${iotMonitor.resourceFilters.deviceType}`,
         );
       }
 
       if (iotMonitor.resourceFilters?.scope) {
         deviceDetails.push(
-          `- Scope Filter: ${escapeMarkdownValue(iotMonitor.resourceFilters.scope)}`,
+          mdText`- Scope Filter: ${iotMonitor.resourceFilters.scope}`,
         );
       }
     }
@@ -4040,24 +4043,24 @@ ${contextBlock}
   private static getProxmoxAffectedResourceEntry(input: {
     resource: ProxmoxResourceIdentity;
     clusterName: string;
-    value: string;
+    value: MarkdownValue;
   }): AffectedResourceListEntry {
     const resource: ProxmoxResourceIdentity = input.resource;
 
     let kind: string =
       MonitorCriteriaEvaluator.getProxmoxAffectedResourceKind(resource);
-    let name: string = AffectedResourceList.codeWithId({
+    let name: MarkdownText = AffectedResourceList.codeWithId({
       name: resource.resourceName,
       id: resource.resourceId,
     });
 
-    if (!name && resource.nodeName) {
+    if (name.isEmpty() && resource.nodeName) {
       // A per-node series that carries no id of its own.
       kind = "Node";
       name = AffectedResourceList.code(resource.nodeName);
     }
 
-    if (!name) {
+    if (name.isEmpty()) {
       // Nothing narrower than the cluster — a cluster-wide series.
       kind = "Cluster";
       name = AffectedResourceList.code(input.clusterName);
@@ -4087,7 +4090,7 @@ ${contextBlock}
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
@@ -4112,11 +4115,11 @@ ${contextBlock}
     const clusterName: string =
       breakdown?.clusterName || proxmoxMonitor?.clusterIdentifier || "Unknown";
 
-    const sections: Array<string> = [];
+    const sections: Array<MarkdownText> = [];
 
     if (proxmoxMonitor || breakdown) {
-      const clusterDetails: Array<string> = [];
-      clusterDetails.push(`- Cluster: ${escapeMarkdownValue(clusterName)}`);
+      const clusterDetails: Array<MarkdownText> = [];
+      clusterDetails.push(mdText`- Cluster: ${clusterName}`);
       clusterDetails.push(
         ...MonitorCriteriaEvaluator.describeCriteriaMetric({
           platform: "proxmox",
@@ -4131,30 +4134,30 @@ ${contextBlock}
 
       if (proxmoxMonitor?.resourceFilters?.scope) {
         clusterDetails.push(
-          `- Scope Filter: ${escapeMarkdownValue(proxmoxMonitor.resourceFilters.scope)}`,
+          mdText`- Scope Filter: ${proxmoxMonitor.resourceFilters.scope}`,
         );
       }
 
       if (proxmoxMonitor?.resourceFilters?.pveId) {
         clusterDetails.push(
-          `- Resource ID Filter: ${escapeMarkdownValue(proxmoxMonitor.resourceFilters.pveId)}`,
+          mdText`- Resource ID Filter: ${proxmoxMonitor.resourceFilters.pveId}`,
         );
       }
 
       if (proxmoxMonitor?.resourceFilters?.nodeName) {
         clusterDetails.push(
-          `- Node Filter: ${escapeMarkdownValue(proxmoxMonitor.resourceFilters.nodeName)}`,
+          mdText`- Node Filter: ${proxmoxMonitor.resourceFilters.nodeName}`,
         );
       }
 
       if (proxmoxMonitor?.resourceFilters?.guestId) {
         clusterDetails.push(
-          `- Guest ID Filter: ${escapeMarkdownValue(proxmoxMonitor.resourceFilters.guestId)}`,
+          mdText`- Guest ID Filter: ${proxmoxMonitor.resourceFilters.guestId}`,
         );
       }
 
       sections.push(
-        `**Proxmox Cluster Details**\n${clusterDetails.join("\n")}`,
+        mdText`**Proxmox Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
       );
     }
 
@@ -4242,22 +4245,22 @@ ${contextBlock}
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
-      const resultDetails: Array<string> = [];
+      const resultDetails: Array<MarkdownText> = [];
 
       for (const result of metricResponse.metricResult) {
         if (result.data && result.data.length > 0) {
           resultDetails.push(
-            `- ${result.data.length} metric data point(s) returned`,
+            mdText`- ${result.data.length} metric data point(s) returned`,
           );
         }
       }
 
       if (resultDetails.length > 0) {
-        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
       }
     }
 
-    return sections.length > 0 ? sections.join("\n") : null;
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
   }
 
   /*
@@ -4307,14 +4310,14 @@ ${contextBlock}
   private static getVMwareAffectedResourceEntry(input: {
     resource: VMwareResourceIdentity;
     vcenterName: string;
-    value: string;
+    value: MarkdownValue;
   }): AffectedResourceListEntry {
     const resource: VMwareResourceIdentity = input.resource;
 
     const kind: string | undefined =
       MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(resource);
 
-    let name: string = "";
+    let name: MarkdownText = FeedMarkdown.empty();
     let showHost: boolean = false;
 
     switch (kind) {
@@ -4373,7 +4376,7 @@ ${contextBlock}
       });
     }
 
-    if (!kind || !name) {
+    if (!kind || name.isEmpty()) {
       // No vSphere identity on the series — it describes the vCenter as a whole.
       return {
         kind: "vCenter",
@@ -4397,7 +4400,7 @@ ${contextBlock}
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
@@ -4422,11 +4425,11 @@ ${contextBlock}
     const vcenterName: string =
       breakdown?.vcenterName || vmwareMonitor?.vcenterIdentifier || "Unknown";
 
-    const sections: Array<string> = [];
+    const sections: Array<MarkdownText> = [];
 
     if (vmwareMonitor || breakdown) {
-      const vcenterDetails: Array<string> = [];
-      vcenterDetails.push(`- vCenter: ${escapeMarkdownValue(vcenterName)}`);
+      const vcenterDetails: Array<MarkdownText> = [];
+      vcenterDetails.push(mdText`- vCenter: ${vcenterName}`);
       vcenterDetails.push(
         ...MonitorCriteriaEvaluator.describeCriteriaMetric({
           platform: "vmware",
@@ -4444,41 +4447,41 @@ ${contextBlock}
        */
       if (vmwareMonitor?.resourceFilters?.datacenterName) {
         vcenterDetails.push(
-          `- Datacenter Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.datacenterName)}`,
+          mdText`- Datacenter Filter: ${vmwareMonitor.resourceFilters.datacenterName}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.clusterName) {
         vcenterDetails.push(
-          `- Cluster Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.clusterName)}`,
+          mdText`- Cluster Filter: ${vmwareMonitor.resourceFilters.clusterName}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.hostName) {
         vcenterDetails.push(
-          `- Host Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.hostName)}`,
+          mdText`- Host Filter: ${vmwareMonitor.resourceFilters.hostName}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.vmName) {
         vcenterDetails.push(
-          `- Virtual Machine Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.vmName)}`,
+          mdText`- Virtual Machine Filter: ${vmwareMonitor.resourceFilters.vmName}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.datastoreName) {
         vcenterDetails.push(
-          `- Datastore Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.datastoreName)}`,
+          mdText`- Datastore Filter: ${vmwareMonitor.resourceFilters.datastoreName}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.resourcePoolPath) {
         vcenterDetails.push(
-          `- Resource Pool Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.resourcePoolPath)}`,
+          mdText`- Resource Pool Filter: ${vmwareMonitor.resourceFilters.resourcePoolPath}`,
         );
       }
 
-      sections.push(`**vCenter Details**\n${vcenterDetails.join("\n")}`);
+      sections.push(mdText`**vCenter Details**\n${FeedMarkdown.join(vcenterDetails, "\n")}`);
     }
 
     // Affected resources: a ranked list of object, host and cluster
@@ -4567,22 +4570,22 @@ ${contextBlock}
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
-      const resultDetails: Array<string> = [];
+      const resultDetails: Array<MarkdownText> = [];
 
       for (const result of metricResponse.metricResult) {
         if (result.data && result.data.length > 0) {
           resultDetails.push(
-            `- ${result.data.length} metric data point(s) returned`,
+            mdText`- ${result.data.length} metric data point(s) returned`,
           );
         }
       }
 
       if (resultDetails.length > 0) {
-        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
       }
     }
 
-    return sections.length > 0 ? sections.join("\n") : null;
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
   }
 
   /*
@@ -4592,12 +4595,12 @@ ${contextBlock}
   private static getDockerSwarmAffectedResourceEntry(input: {
     resource: DockerSwarmResourceIdentity;
     clusterName: string;
-    value: string;
+    value: MarkdownValue;
   }): AffectedResourceListEntry {
     const resource: DockerSwarmResourceIdentity = input.resource;
 
     let kind: string = "Cluster";
-    let name: string = AffectedResourceList.code(input.clusterName);
+    let name: MarkdownText = AffectedResourceList.code(input.clusterName);
 
     if (resource.containerName) {
       kind = "Task";
@@ -4640,7 +4643,7 @@ ${contextBlock}
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
@@ -4667,11 +4670,11 @@ ${contextBlock}
       dockerSwarmMonitor?.clusterIdentifier ||
       "Unknown";
 
-    const sections: Array<string> = [];
+    const sections: Array<MarkdownText> = [];
 
     if (dockerSwarmMonitor || breakdown) {
-      const clusterDetails: Array<string> = [];
-      clusterDetails.push(`- Cluster: ${escapeMarkdownValue(clusterName)}`);
+      const clusterDetails: Array<MarkdownText> = [];
+      clusterDetails.push(mdText`- Cluster: ${clusterName}`);
       clusterDetails.push(
         ...MonitorCriteriaEvaluator.describeCriteriaMetric({
           platform: "dockerSwarm",
@@ -4686,30 +4689,30 @@ ${contextBlock}
 
       if (dockerSwarmMonitor?.resourceFilters?.serviceName) {
         clusterDetails.push(
-          `- Service Filter: ${escapeMarkdownValue(dockerSwarmMonitor.resourceFilters.serviceName)}`,
+          mdText`- Service Filter: ${dockerSwarmMonitor.resourceFilters.serviceName}`,
         );
       }
 
       if (dockerSwarmMonitor?.resourceFilters?.nodeName) {
         clusterDetails.push(
-          `- Node Filter: ${escapeMarkdownValue(dockerSwarmMonitor.resourceFilters.nodeName)}`,
+          mdText`- Node Filter: ${dockerSwarmMonitor.resourceFilters.nodeName}`,
         );
       }
 
       if (dockerSwarmMonitor?.resourceFilters?.containerName) {
         clusterDetails.push(
-          `- Container Name Filter: ${escapeMarkdownValue(dockerSwarmMonitor.resourceFilters.containerName)}`,
+          mdText`- Container Name Filter: ${dockerSwarmMonitor.resourceFilters.containerName}`,
         );
       }
 
       if (dockerSwarmMonitor?.resourceFilters?.containerImage) {
         clusterDetails.push(
-          `- Container Image Filter: ${escapeMarkdownValue(dockerSwarmMonitor.resourceFilters.containerImage)}`,
+          mdText`- Container Image Filter: ${dockerSwarmMonitor.resourceFilters.containerImage}`,
         );
       }
 
       sections.push(
-        `**Docker Swarm Cluster Details**\n${clusterDetails.join("\n")}`,
+        mdText`**Docker Swarm Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`,
       );
     }
 
@@ -4800,22 +4803,22 @@ ${contextBlock}
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
-      const resultDetails: Array<string> = [];
+      const resultDetails: Array<MarkdownText> = [];
 
       for (const result of metricResponse.metricResult) {
         if (result.data && result.data.length > 0) {
           resultDetails.push(
-            `- ${result.data.length} metric data point(s) returned`,
+            mdText`- ${result.data.length} metric data point(s) returned`,
           );
         }
       }
 
       if (resultDetails.length > 0) {
-        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
       }
     }
 
-    return sections.length > 0 ? sections.join("\n") : null;
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
   }
 
   /*
@@ -5015,7 +5018,7 @@ ${contextBlock}
     resource: CephResourceIdentity;
     clusterName: string;
     metricName: string;
-    value: string;
+    value: MarkdownValue;
   }): AffectedResourceListEntry {
     const resource: CephResourceIdentity = input.resource;
 
@@ -5027,30 +5030,30 @@ ${contextBlock}
      * the reader a pool called OSD_NEARFULL was the problem. So a name is
      * treated as a pool only when it arrives with a pool id.
      */
-    const pool: string = resource.poolId
+    const pool: MarkdownText = resource.poolId
       ? AffectedResourceList.codeWithId({
           name: resource.poolName,
           id: resource.poolId,
         })
-      : "";
+      : FeedMarkdown.empty();
 
-    const otherName: string = resource.poolId
-      ? ""
+    const otherName: MarkdownText = resource.poolId
+      ? FeedMarkdown.empty()
       : AffectedResourceList.code(resource.poolName);
 
     const otherNameKind: string =
       input.metricName === "ceph_health_detail" ? "Health Check" : "Resource";
 
     let kind: string = "Cluster";
-    let name: string = AffectedResourceList.code(input.clusterName);
+    let name: MarkdownText = AffectedResourceList.code(input.clusterName);
 
     if (resource.daemon) {
       kind = "Daemon";
       name = AffectedResourceList.code(resource.daemon);
-    } else if (pool) {
+    } else if (!pool.isEmpty()) {
       kind = "Pool";
       name = pool;
-    } else if (otherName) {
+    } else if (!otherName.isEmpty()) {
       kind = otherNameKind;
       name = otherName;
     } else if (resource.hostname) {
@@ -5060,11 +5063,11 @@ ${contextBlock}
 
     const details: Array<AffectedResourceListDetail> = [];
 
-    if (pool && name !== pool) {
+    if (!pool.isEmpty() && name.toString() !== pool.toString()) {
       details.push({ label: "Pool", value: pool });
     }
 
-    if (otherName && name !== otherName) {
+    if (!otherName.isEmpty() && name.toString() !== otherName.toString()) {
       details.push({
         label: otherNameKind === "Resource" ? "Name" : otherNameKind,
         value: otherName,
@@ -5092,7 +5095,7 @@ ${contextBlock}
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
@@ -5117,11 +5120,11 @@ ${contextBlock}
     const clusterName: string =
       breakdown?.clusterName || cephMonitor?.clusterIdentifier || "Unknown";
 
-    const sections: Array<string> = [];
+    const sections: Array<MarkdownText> = [];
 
     if (cephMonitor || breakdown) {
-      const clusterDetails: Array<string> = [];
-      clusterDetails.push(`- Cluster: ${escapeMarkdownValue(clusterName)}`);
+      const clusterDetails: Array<MarkdownText> = [];
+      clusterDetails.push(mdText`- Cluster: ${clusterName}`);
       clusterDetails.push(
         ...MonitorCriteriaEvaluator.describeCriteriaMetric({
           platform: "ceph",
@@ -5134,17 +5137,17 @@ ${contextBlock}
 
       if (cephMonitor?.resourceFilters?.osdId) {
         clusterDetails.push(
-          `- OSD Filter: ${escapeMarkdownValue(cephMonitor.resourceFilters.osdId)}`,
+          mdText`- OSD Filter: ${cephMonitor.resourceFilters.osdId}`,
         );
       }
 
       if (cephMonitor?.resourceFilters?.poolId) {
         clusterDetails.push(
-          `- Pool ID Filter: ${escapeMarkdownValue(cephMonitor.resourceFilters.poolId)}`,
+          mdText`- Pool ID Filter: ${cephMonitor.resourceFilters.poolId}`,
         );
       }
 
-      sections.push(`**Ceph Cluster Details**\n${clusterDetails.join("\n")}`);
+      sections.push(mdText`**Ceph Cluster Details**\n${FeedMarkdown.join(clusterDetails, "\n")}`);
     }
 
     // Affected resources: a ranked list of daemon, pool and host
@@ -5246,22 +5249,22 @@ ${contextBlock}
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
-      const resultDetails: Array<string> = [];
+      const resultDetails: Array<MarkdownText> = [];
 
       for (const result of metricResponse.metricResult) {
         if (result.data && result.data.length > 0) {
           resultDetails.push(
-            `- ${result.data.length} metric data point(s) returned`,
+            mdText`- ${result.data.length} metric data point(s) returned`,
           );
         }
       }
 
       if (resultDetails.length > 0) {
-        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
       }
     }
 
-    return sections.length > 0 ? sections.join("\n") : null;
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
   }
 
   /*
@@ -5312,14 +5315,14 @@ ${contextBlock}
     resource: StorageArrayResourceIdentity;
     arrayName: string;
     metricName: string;
-    value: string;
+    value: MarkdownValue;
   }): AffectedResourceListEntry {
     const resource: StorageArrayResourceIdentity = input.resource;
     const objectKind: StorageArrayResourceKind | null =
       MonitorCriteriaEvaluator.getStorageArrayObjectKind(input.metricName);
 
     let kind: string = "Storage Array";
-    let name: string = AffectedResourceList.code(input.arrayName);
+    let name: MarkdownText = AffectedResourceList.code(input.arrayName);
 
     if (resource.alertSummary) {
       kind = "Alert";
@@ -5391,7 +5394,7 @@ ${contextBlock}
     monitor: Monitor;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
 
@@ -5415,15 +5418,15 @@ ${contextBlock}
     const arrayName: string =
       breakdown?.arrayName || storageArrayMonitor?.arrayIdentifier || "Unknown";
 
-    const sections: Array<string> = [];
+    const sections: Array<MarkdownText> = [];
 
     if (storageArrayMonitor || breakdown) {
-      const arrayDetails: Array<string> = [];
-      arrayDetails.push(`- Storage Array: ${escapeMarkdownValue(arrayName)}`);
+      const arrayDetails: Array<MarkdownText> = [];
+      arrayDetails.push(mdText`- Storage Array: ${arrayName}`);
 
       if (storageArrayMonitor?.storageSystem) {
         arrayDetails.push(
-          `- Platform: ${StorageSystemUtil.getDisplayName(
+          mdText`- Platform: ${StorageSystemUtil.getDisplayName(
             storageArrayMonitor.storageSystem,
           )}`,
         );
@@ -5459,12 +5462,12 @@ ${contextBlock}
         if (typeof filterValue === "string" && filterValue.trim()) {
           // A filter is text the monitor's author typed.
           arrayDetails.push(
-            `- ${filterLabels[filterKey]}: ${escapeMarkdownValue(filterValue.trim())}`,
+            mdText`- ${filterLabels[filterKey]}: ${filterValue.trim()}`,
           );
         }
       }
 
-      sections.push(`**Storage Array Details**\n${arrayDetails.join("\n")}`);
+      sections.push(mdText`**Storage Array Details**\n${FeedMarkdown.join(arrayDetails, "\n")}`);
     }
 
     // Affected resources: a ranked list of the array's objects
@@ -5570,22 +5573,22 @@ ${contextBlock}
       metricResponse.metricResult &&
       metricResponse.metricResult.length > 0
     ) {
-      const resultDetails: Array<string> = [];
+      const resultDetails: Array<MarkdownText> = [];
 
       for (const result of metricResponse.metricResult) {
         if (result.data && result.data.length > 0) {
           resultDetails.push(
-            `- ${result.data.length} metric data point(s) returned`,
+            mdText`- ${result.data.length} metric data point(s) returned`,
           );
         }
       }
 
       if (resultDetails.length > 0) {
-        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+        sections.push(mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`);
       }
     }
 
-    return sections.length > 0 ? sections.join("\n") : null;
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
   }
 
   private static buildKubernetesRootCauseAnalysis(input: {
@@ -5600,10 +5603,10 @@ ${contextBlock}
      */
     topResourceValue?: string | undefined;
     target?: CriteriaMetricTarget | null | undefined;
-  }): string | null {
+  }): MarkdownText | null {
     const { breakdown, topResource } = input;
     const metricName: string = breakdown.metricName;
-    const lines: Array<string> = [];
+    const lines: Array<MarkdownText> = [];
 
     /*
      * The pod, container, node and workload names come from the cluster's
@@ -5638,18 +5641,18 @@ ${contextBlock}
       metricName.includes("restart")
     ) {
       lines.push(
-        `Container restart count is elevated, indicating a potential CrashLoopBackOff condition.`,
+        mdText`Container restart count is elevated, indicating a potential CrashLoopBackOff condition.`,
       );
       if (topResource.containerName) {
         lines.push(
-          `The container ${RootCauseList.code(topResource.containerName)} in pod ${RootCauseList.code(topResource.podName || "unknown")} has restarted **${topResourceValue}** times.`,
+          mdText`The container ${RootCauseList.code(topResource.containerName)} in pod ${RootCauseList.code(topResource.podName || "unknown")} has restarted **${topResourceValue}** times.`,
         );
       }
       lines.push(
-        `Common causes: application crash on startup, misconfigured environment variables, missing dependencies, OOM (Out of Memory) kills, failed health checks, or missing config maps/secrets.`,
+        mdText`Common causes: application crash on startup, misconfigured environment variables, missing dependencies, OOM (Out of Memory) kills, failed health checks, or missing config maps/secrets.`,
       );
       lines.push(
-        `Recommended actions: Check container logs with ${RootCauseList.code(`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous`)} and inspect events with ${RootCauseList.code(`kubectl describe pod ${topResource.podName || "<pod-name>"}`)}.`,
+        mdText`Recommended actions: Check container logs with ${RootCauseList.code(`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous`)} and inspect events with ${RootCauseList.code(`kubectl describe pod ${topResource.podName || "<pod-name>"}`)}.`,
       );
     } else if (metricName === "k8s.pod.phase") {
       /*
@@ -5662,30 +5665,30 @@ ${contextBlock}
        * (1 = Pending ... 5 = Unknown). So this branch never ran and every
        * pod-phase alert fell through to the generic Kubernetes text.
        */
-      lines.push(`Pods are stuck in Pending phase and unable to be scheduled.`);
+      lines.push(mdText`Pods are stuck in Pending phase and unable to be scheduled.`);
       lines.push(
-        `Common causes: insufficient CPU/memory resources on nodes, node affinity/taint restrictions preventing scheduling, PersistentVolumeClaim pending, or resource quota exceeded.`,
+        mdText`Common causes: insufficient CPU/memory resources on nodes, node affinity/taint restrictions preventing scheduling, PersistentVolumeClaim pending, or resource quota exceeded.`,
       );
       if (topResource.podName) {
         lines.push(
-          `Recommended actions: Check scheduling events with ${RootCauseList.code(`kubectl describe pod ${topResource.podName}`)} and verify node resources with \`kubectl describe nodes\`.`,
+          mdText`Recommended actions: Check scheduling events with ${RootCauseList.code(`kubectl describe pod ${topResource.podName}`)} and verify node resources with \`kubectl describe nodes\`.`,
         );
       }
     } else if (
       metricName === "k8s.node.condition_ready" ||
       (metricName.includes("node") && metricName.includes("condition"))
     ) {
-      lines.push(`One or more nodes have transitioned to a NotReady state.`);
+      lines.push(mdText`One or more nodes have transitioned to a NotReady state.`);
       if (topResource.nodeName) {
         lines.push(
-          `Node ${RootCauseList.code(topResource.nodeName)} is reporting NotReady (value: ${topResourceValue}).`,
+          mdText`Node ${RootCauseList.code(topResource.nodeName)} is reporting NotReady (value: ${topResourceValue}).`,
         );
       }
       lines.push(
-        `Common causes: kubelet process failure, node resource exhaustion (disk pressure, memory pressure, PID pressure), network connectivity issues, or underlying VM/hardware failure.`,
+        mdText`Common causes: kubelet process failure, node resource exhaustion (disk pressure, memory pressure, PID pressure), network connectivity issues, or underlying VM/hardware failure.`,
       );
       lines.push(
-        `Recommended actions: Check node conditions with ${RootCauseList.code(`kubectl describe node ${topResource.nodeName || "<node-name>"}`)} and verify kubelet status on the node.`,
+        mdText`Recommended actions: Check node conditions with ${RootCauseList.code(`kubectl describe node ${topResource.nodeName || "<node-name>"}`)} and verify kubelet status on the node.`,
       );
     } else if (
       metricName === "k8s.node.cpu.utilization" ||
@@ -5708,17 +5711,17 @@ ${contextBlock}
         metricName.includes("cpu") &&
         metricName.includes("utilization"))
     ) {
-      lines.push(`Node CPU utilization has exceeded the configured threshold.`);
+      lines.push(mdText`Node CPU utilization has exceeded the configured threshold.`);
       if (topResource.nodeName) {
         lines.push(
-          `Node ${RootCauseList.code(topResource.nodeName)} is at **${topResourceValue}** CPU utilization.`,
+          mdText`Node ${RootCauseList.code(topResource.nodeName)} is at **${topResourceValue}** CPU utilization.`,
         );
       }
       lines.push(
-        `Common causes: resource-intensive workloads, insufficient resource limits on pods, noisy neighbor pods consuming excessive CPU, or insufficient cluster capacity.`,
+        mdText`Common causes: resource-intensive workloads, insufficient resource limits on pods, noisy neighbor pods consuming excessive CPU, or insufficient cluster capacity.`,
       );
       lines.push(
-        `Recommended actions: Identify top CPU consumers with \`kubectl top pods --all-namespaces --sort-by=cpu\` and consider scaling the cluster or adjusting pod resource limits.`,
+        mdText`Recommended actions: Identify top CPU consumers with \`kubectl top pods --all-namespaces --sort-by=cpu\` and consider scaling the cluster or adjusting pod resource limits.`,
       );
     } else if (
       metricName === "k8s.node.memory.usage" ||
@@ -5728,18 +5731,18 @@ ${contextBlock}
         metricName.includes("usage"))
     ) {
       lines.push(
-        `Node memory utilization has exceeded the configured threshold.`,
+        mdText`Node memory utilization has exceeded the configured threshold.`,
       );
       if (topResource.nodeName) {
         lines.push(
-          `Node ${RootCauseList.code(topResource.nodeName)} memory usage is at **${topResourceValue}**.`,
+          mdText`Node ${RootCauseList.code(topResource.nodeName)} memory usage is at **${topResourceValue}**.`,
         );
       }
       lines.push(
-        `Common causes: memory leaks in applications, insufficient memory limits on pods, too many pods scheduled on the node, or growing dataset sizes.`,
+        mdText`Common causes: memory leaks in applications, insufficient memory limits on pods, too many pods scheduled on the node, or growing dataset sizes.`,
       );
       lines.push(
-        `Recommended actions: Check memory consumers with \`kubectl top pods --all-namespaces --sort-by=memory\` and review pod memory limits. Consider scaling the cluster or adding nodes with more memory.`,
+        mdText`Recommended actions: Check memory consumers with \`kubectl top pods --all-namespaces --sort-by=memory\` and review pod memory limits. Consider scaling the cluster or adding nodes with more memory.`,
       );
     } else if (
       /*
@@ -5753,34 +5756,34 @@ ${contextBlock}
       metricName.includes("unavailable")
     ) {
       lines.push(
-        `Deployment has unavailable replicas, indicating a mismatch between desired and available replicas.`,
+        mdText`Deployment has unavailable replicas, indicating a mismatch between desired and available replicas.`,
       );
       if (topResource.workloadName) {
         lines.push(
-          `${escapeMarkdownValue(topResource.workloadType || "Deployment")} ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** unavailable replica(s).`,
+          mdText`${topResource.workloadType || "Deployment"} ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** unavailable replica(s).`,
         );
       }
       lines.push(
-        `Common causes: failed rolling update, image pull errors (wrong image tag or missing registry credentials), pod crash loops, insufficient cluster resources to schedule new pods, or PodDisruptionBudget blocking updates.`,
+        mdText`Common causes: failed rolling update, image pull errors (wrong image tag or missing registry credentials), pod crash loops, insufficient cluster resources to schedule new pods, or PodDisruptionBudget blocking updates.`,
       );
       lines.push(
-        `Recommended actions: Check deployment rollout status with ${RootCauseList.code(`kubectl rollout status deployment/${topResource.workloadName || "<deployment>"}`)} and inspect pod events.`,
+        mdText`Recommended actions: Check deployment rollout status with ${RootCauseList.code(`kubectl rollout status deployment/${topResource.workloadName || "<deployment>"}`)} and inspect pod events.`,
       );
     } else if (
       metricName === "k8s.job.failed_pods" ||
       (metricName.includes("job") && metricName.includes("fail"))
     ) {
-      lines.push(`Kubernetes Job has failed pods.`);
+      lines.push(mdText`Kubernetes Job has failed pods.`);
       if (topResource.workloadName) {
         lines.push(
-          `Job ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** failed pod(s).`,
+          mdText`Job ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** failed pod(s).`,
         );
       }
       lines.push(
-        `Common causes: application error or non-zero exit code, resource limits exceeded (OOMKilled), misconfigured command or arguments, missing environment variables, or timeout exceeded.`,
+        mdText`Common causes: application error or non-zero exit code, resource limits exceeded (OOMKilled), misconfigured command or arguments, missing environment variables, or timeout exceeded.`,
       );
       lines.push(
-        `Recommended actions: Check job status with ${RootCauseList.code(`kubectl describe job ${topResource.workloadName || "<job-name>"}`)} and review pod logs for the failed pod(s).`,
+        mdText`Recommended actions: Check job status with ${RootCauseList.code(`kubectl describe job ${topResource.workloadName || "<job-name>"}`)} and review pod logs for the failed pod(s).`,
       );
     } else if (
       metricName === "k8s.node.filesystem.usage" ||
@@ -5788,34 +5791,34 @@ ${contextBlock}
       metricName.includes("filesystem")
     ) {
       lines.push(
-        `Node disk/filesystem usage has exceeded the configured threshold.`,
+        mdText`Node disk/filesystem usage has exceeded the configured threshold.`,
       );
       if (topResource.nodeName) {
         lines.push(
-          `Node ${RootCauseList.code(topResource.nodeName)} filesystem usage is at **${topResourceValue}**.`,
+          mdText`Node ${RootCauseList.code(topResource.nodeName)} filesystem usage is at **${topResourceValue}**.`,
         );
       }
       lines.push(
-        `Common causes: container image layers consuming disk space, excessive logging, large emptyDir volumes, or accumulation of unused container images.`,
+        mdText`Common causes: container image layers consuming disk space, excessive logging, large emptyDir volumes, or accumulation of unused container images.`,
       );
       lines.push(
-        `Recommended actions: Clean up unused images with \`docker system prune\` or \`crictl rmi --prune\`, check for large log files, and review PersistentVolumeClaim usage.`,
+        mdText`Recommended actions: Clean up unused images with \`docker system prune\` or \`crictl rmi --prune\`, check for large log files, and review PersistentVolumeClaim usage.`,
       );
     } else if (
       metricName === "k8s.daemonset.misscheduled_nodes" ||
       metricName.includes("daemonset")
     ) {
-      lines.push(`DaemonSet has misscheduled or unavailable nodes.`);
+      lines.push(mdText`DaemonSet has misscheduled or unavailable nodes.`);
       if (topResource.workloadName) {
         lines.push(
-          `DaemonSet ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** misscheduled node(s).`,
+          mdText`DaemonSet ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** misscheduled node(s).`,
         );
       }
       lines.push(
-        `Common causes: node taints preventing scheduling, incorrect node selectors, or node affinity rules excluding certain nodes.`,
+        mdText`Common causes: node taints preventing scheduling, incorrect node selectors, or node affinity rules excluding certain nodes.`,
       );
       lines.push(
-        `Recommended actions: Check DaemonSet status with ${RootCauseList.code(`kubectl describe daemonset ${topResource.workloadName || "<daemonset>"}`)} and verify node labels and taints.`,
+        mdText`Recommended actions: Check DaemonSet status with ${RootCauseList.code(`kubectl describe daemonset ${topResource.workloadName || "<daemonset>"}`)} and verify node labels and taints.`,
       );
     } else {
       /*
@@ -5828,47 +5831,47 @@ ${contextBlock}
       const target: CriteriaMetricTarget | null | undefined = input.target;
 
       if (target?.isFormula) {
-        const formulaName: string = target.displayName
-          ? escapeMarkdownValue(target.displayName)
+        const formulaName: MarkdownText = target.displayName
+          ? mdText`${target.displayName}`
           : RootCauseList.code(target.alias);
-        const expression: string = target.formulaExpression
-          ? ` (${RootCauseList.code(target.formulaExpression)})`
-          : "";
+        const expression: MarkdownText = target.formulaExpression
+          ? mdText` (${RootCauseList.code(target.formulaExpression)})`
+          : FeedMarkdown.empty();
         lines.push(
-          `${formulaName}${expression} has breached the configured threshold.`,
+          mdText`${formulaName}${expression} has breached the configured threshold.`,
         );
       } else {
-        const friendlyName: string =
+        const friendlyName: MarkdownText =
           breakdown.metricFriendlyName &&
           breakdown.metricFriendlyName !== metricName
-            ? ` (${escapeMarkdownValue(breakdown.metricFriendlyName)})`
-            : "";
+            ? mdText` (${breakdown.metricFriendlyName})`
+            : FeedMarkdown.empty();
         lines.push(
-          `Kubernetes metric ${RootCauseList.code(metricName)}${friendlyName} has breached the configured threshold.`,
+          mdText`Kubernetes metric ${RootCauseList.code(metricName)}${friendlyName} has breached the configured threshold.`,
         );
       }
       if (topResource.podName) {
         lines.push(
-          `Most affected pod: ${RootCauseList.code(topResource.podName)} (**${topResourceValue}**)`,
+          mdText`Most affected pod: ${RootCauseList.code(topResource.podName)} (**${topResourceValue}**)`,
         );
       } else if (topResource.workloadName) {
         lines.push(
-          `Most affected ${escapeMarkdownValue(topResource.workloadType || "workload")}: ${RootCauseList.code(topResource.workloadName)} (**${topResourceValue}**)`,
+          mdText`Most affected ${topResource.workloadType || "workload"}: ${RootCauseList.code(topResource.workloadName)} (**${topResourceValue}**)`,
         );
       }
       if (topResource.nodeName) {
         lines.push(
           topResource.podName
-            ? `Most affected node: ${RootCauseList.code(topResource.nodeName)}`
-            : `Most affected node: ${RootCauseList.code(topResource.nodeName)} (**${topResourceValue}**)`,
+            ? mdText`Most affected node: ${RootCauseList.code(topResource.nodeName)}`
+            : mdText`Most affected node: ${RootCauseList.code(topResource.nodeName)} (**${topResourceValue}**)`,
         );
       }
       lines.push(
-        `Recommended actions: Investigate the affected resources using \`kubectl describe\` and \`kubectl logs\` commands.`,
+        mdText`Recommended actions: Investigate the affected resources using \`kubectl describe\` and \`kubectl logs\` commands.`,
       );
     }
 
-    return lines.join("\n");
+    return FeedMarkdown.join(lines, "\n");
   }
 
   private static getMonitorDestinationString(input: {

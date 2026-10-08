@@ -1,6 +1,6 @@
 import { WHOLE_EMAIL_ADDRESS } from "../../../Types/Form/FormPublic";
-import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
 import FeedMarkdown, {
+  MarkdownText,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
 
@@ -16,13 +16,13 @@ import FeedMarkdown, {
  * record's Slack and Teams channels as well, so everything placed in it is
  * made inert where it is placed:
  *
- *   - names, labels and one-line answers are escaped
- *     (escapeMarkdownInline, which also breaks chat control sequences):
- *     "[x](javascript:...)" reaches the responders as those characters,
- *     "<!channel>" mentions nobody;
- *   - a multi-line answer is escaped line by line, keeping its lines;
+ *   - names, labels and one-line answers are text, placed with mdText
+ *     (which also breaks chat control sequences): "[x](javascript:...)"
+ *     reaches the responders as those characters, "<!channel>" mentions
+ *     nobody;
+ *   - a multi-line answer is placed line by line, keeping its lines;
  *   - a Markdown answer is Markdown by design, and goes through
- *     neutralizeUntrustedMarkdown, as a description does: no image or
+ *     FeedMarkdown.writtenOutside, as a description does: no image or
  *     diagram that acts on its own, and no chat mention;
  *   - the submitter's address is an autolink, <jane@example.com>, so every
  *     renderer links the whole of it - or, for an address an autolink would
@@ -80,13 +80,14 @@ const getMailtoLink: GetMailtoLinkFunction = (email: string): string => {
   )}`;
 };
 
-type EscapeFunction = (value: string | null | undefined) => string;
+type LineFunction = (value: string | null | undefined) => string;
 
-// One line of plain text, inert wherever it is placed.
-const escapeLine: EscapeFunction = (
-  value: string | null | undefined,
-): string => {
-  return escapeMarkdownInline(value).trim();
+/*
+ * One line of plain text, placed as text (mdText) wherever it goes - which
+ * also turns a line break in it into a space.
+ */
+const line: LineFunction = (value: string | null | undefined): string => {
+  return String(value ?? "").trim();
 };
 
 export type GetFormSubmitterTextFunction = (data: {
@@ -108,7 +109,7 @@ export const getFormSubmitterEmailText: GetFormSubmitterTextFunction = (data: {
   }
 
   if (!WHOLE_EMAIL_ADDRESS.test(email)) {
-    return escapeLine(email);
+    return mdText`${line(email)}`.toString();
   }
 
   return EXPLICIT_LINK_ADDRESS_PATTERN.test(email)
@@ -141,26 +142,26 @@ export type GetFormSubmissionNoteFunction = (data: {
   answers?: Array<FormNoteAnswer> | undefined;
 }) => string;
 
-type FormatAnswerFunction = (answer: FormNoteAnswer) => string;
+type FormatAnswerFunction = (answer: FormNoteAnswer) => MarkdownText;
 
 const formatAnswerValue: FormatAnswerFunction = (
   answer: FormNoteAnswer,
-): string => {
+): MarkdownText => {
   switch (answer.format) {
     case FormNoteAnswerFormat.Markdown:
-      return FeedMarkdown.writtenOutside(answer.displayValue).toString().trim();
+      return FeedMarkdown.writtenOutside(answer.displayValue).trim();
 
     case FormNoteAnswerFormat.MultiLine:
       // A hard break ends each line, so the answer keeps its lines.
-      return answer.displayValue
-        .split(LINE_BREAKS)
-        .map((line: string): string => {
-          return escapeLine(line);
-        })
-        .join("  \n");
+      return FeedMarkdown.join(
+        answer.displayValue.split(LINE_BREAKS).map((text: string): string => {
+          return line(text);
+        }),
+        "  \n",
+      );
 
     default:
-      return escapeLine(answer.displayValue);
+      return mdText`${line(answer.displayValue)}`;
   }
 };
 
@@ -177,40 +178,43 @@ export const getFormSubmissionNote: GetFormSubmissionNoteFunction = (data: {
   templateName?: string | null | undefined;
   answers?: Array<FormNoteAnswer> | undefined;
 }): string => {
-  const formName: string = escapeLine(data.formName);
-  const form: string = formName
-    ? mdText`the form **${formName}**`.toString()
-    : "a form";
+  const formName: string = line(data.formName);
+  const form: MarkdownText = formName
+    ? mdText`the form **${formName}**`
+    : mdText`a form`;
 
-  const submitterName: string = escapeLine(data.submitterName);
-  const submitterEmail: string = getFormSubmitterEmailText({
-    email: data.submitterEmail,
-  });
+  const submitterName: string = line(data.submitterName);
+  // Markdown: an autolink, a mailto: link, or the value as text.
+  const submitterEmail: MarkdownText = FeedMarkdown.asMarkdown(
+    getFormSubmitterEmailText({
+      email: data.submitterEmail,
+    }),
+  );
 
-  let sentence: string = `Submitted anonymously through ${form}.`;
+  let sentence: MarkdownText = mdText`Submitted anonymously through ${form}.`;
 
-  if (submitterName && submitterEmail) {
-    sentence = `Submitted through ${form} by ${submitterName} (${submitterEmail}).`;
-  } else if (submitterName || submitterEmail) {
-    sentence = `Submitted through ${form} by ${submitterName || submitterEmail}.`;
+  if (submitterName && !submitterEmail.isEmpty()) {
+    sentence = mdText`Submitted through ${form} by ${submitterName} (${submitterEmail}).`;
+  } else if (submitterName) {
+    sentence = mdText`Submitted through ${form} by ${submitterName}.`;
+  } else if (!submitterEmail.isEmpty()) {
+    sentence = mdText`Submitted through ${form} by ${submitterEmail}.`;
   }
 
-  const parts: Array<string> = [sentence];
+  const parts: Array<MarkdownText> = [sentence];
 
-  // A template's name is the team's own words, escaped all the same.
-  const templateName: string = escapeLine(data.templateName);
+  // A template's name is the team's own words, placed as text all the same.
+  const templateName: string = line(data.templateName);
 
   if (templateName) {
-    parts.push(
-      mdText`Started from the template **${templateName}**.`.toString(),
-    );
+    parts.push(mdText`Started from the template **${templateName}**.`);
   }
 
   for (const answer of data.answers || []) {
-    const label: string = escapeLine(answer.label) || "Question";
-    const value: string = formatAnswerValue(answer);
+    const label: string = line(answer.label) || "Question";
+    const value: MarkdownText = formatAnswerValue(answer);
 
-    if (!value) {
+    if (value.isEmpty()) {
       continue;
     }
 
@@ -221,10 +225,10 @@ export const getFormSubmissionNote: GetFormSubmissionNoteFunction = (data: {
      */
     parts.push(
       answer.format === FormNoteAnswerFormat.Markdown
-        ? mdText`**${label}**\n\n${value}`.toString()
-        : mdText`**${label}**  \n${value}`.toString(),
+        ? mdText`**${label}**\n\n${value}`
+        : mdText`**${label}**  \n${value}`,
     );
   }
 
-  return parts.join("\n\n");
+  return FeedMarkdown.join(parts, "\n\n").toString();
 };

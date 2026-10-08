@@ -145,7 +145,7 @@ const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
 
 /*
  * A line (already trimmed) that opens or closes a fence: three or more
- * backticks or tildes - as leniently as neutralizeAiWrittenMarkdown finds
+ * backticks or tildes - as leniently as FeedMarkdown.aiWritten finds
  * one, so code that keeps its characters there is shown as code here.
  */
 const MESSAGE_CARD_FENCE_PATTERN: RegExp = /^(`{3,}|~{3,})/;

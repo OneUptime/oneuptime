@@ -117,6 +117,11 @@ export class MarkdownText {
   public isEmpty(): boolean {
     return this.markdown.length === 0;
   }
+
+  // The same Markdown without the white space around it.
+  public trim(): MarkdownText {
+    return new MarkdownText(CONSTRUCTION_KEY, this.markdown.trim());
+  }
 }
 
 // What may be placed into `mdText`: text, numbers, OneUptime's own values, Markdown.
@@ -802,7 +807,11 @@ const TABLE_CELL_SEPARATOR_PATTERN: RegExp = /\|/g;
 
 // What starts a block when it starts a line: a heading, a quote, a list, a fence, a table.
 const LINE_START_MARKER_PATTERN: RegExp = /^[#>+\-=|]/;
-const LINE_START_ORDERED_LIST_PATTERN: RegExp = /^(\d{1,9})([.)])/;
+/*
+ * A number that starts an ordered list: "1." or "1)" and then a space, a tab
+ * or the end of the line. "1.07 GB" starts no list, so it is left as it is.
+ */
+const LINE_START_ORDERED_LIST_PATTERN: RegExp = /^(\d{1,9})([.)])(?=[ \t]|$)/;
 
 type EscapeSentenceValueFunction = (
   text: string,
@@ -1203,6 +1212,13 @@ export interface BulletListOptions {
   whenEmpty?: string | undefined;
 }
 
+export interface NumberedListItem {
+  // The item's line, after its number.
+  line: MarkdownValue;
+  // Bullets nested under the item, one per line.
+  bullets?: ReadonlyArray<MarkdownValue> | undefined;
+}
+
 export default class FeedMarkdown {
   /**
    * A value as inline code, exactly as written (markdownCodeSpan): a backtick
@@ -1264,6 +1280,41 @@ export default class FeedMarkdown {
     literals.push("");
 
     return renderUncached(literals, bullets);
+  }
+
+  /**
+   * A numbered list from 1, in the order given: each item's line after its
+   * number, and its bullets nested under it. A bullet belongs to its item
+   * only when it is indented to the item's content column, one past the
+   * number - three spaces under "1.", four under "10." - so that is where
+   * each item's bullets go. No line break before the first item.
+   */
+  public static numberedList(
+    items: ReadonlyArray<NumberedListItem>,
+  ): MarkdownText {
+    if (items.length === 0) {
+      return makeMarkdownText("");
+    }
+
+    const literals: Array<string> = [];
+    const values: Array<MarkdownValue> = [];
+
+    items.forEach((item: NumberedListItem, index: number): void => {
+      const marker: string = `${index + 1}.`;
+      const indent: string = " ".repeat(marker.length + 1);
+
+      literals.push(`${index > 0 ? "\n" : ""}${marker} `);
+      values.push(item.line);
+
+      for (const bullet of item.bullets || []) {
+        literals.push(`\n${indent}- `);
+        values.push(bullet);
+      }
+    });
+
+    literals.push("");
+
+    return renderUncached(literals, values);
   }
 
   // A link: [label](address), the label as text, the address encoded.
@@ -1352,6 +1403,15 @@ export default class FeedMarkdown {
    */
   public static withoutChatSequences(text: string | null | undefined): string {
     return neutralizeChatControlSequences(text || "");
+  }
+
+  /**
+   * Text as a reader sees it: without the invisible word joiners escaping
+   * puts into a chat mention or Markdown - to compare a placed value with
+   * the text it was placed into.
+   */
+  public static withoutInvisibleBreaks(text: string | null | undefined): string {
+    return (text || "").split(WORD_JOINER).join("");
   }
 
   // Nothing: a MarkdownText to build on.

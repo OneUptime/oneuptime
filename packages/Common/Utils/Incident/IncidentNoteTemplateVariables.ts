@@ -33,7 +33,7 @@ import FeedMarkdown from "../Markdown/FeedMarkdown";
  *
  * The note is Markdown, and after posting it is rendered for the team, on the
  * status page and in subscriber emails. So every plain value is escaped with
- * escapeMarkdownValue - a title cannot become a link, an image or HTML -
+ * FeedMarkdown.templateText - a title cannot become a link, an image or HTML -
  * while a Rich text (Markdown) custom field is placed as the Markdown it is.
  * The renderers then do the rest, as for any note: raw HTML is dropped or
  * escaped, and links keep only safe protocols.
@@ -144,7 +144,7 @@ export type FormatCustomFieldValueForNoteFunction = (data: {
 /**
  * One custom field value as it reads in a note: Yes or No, the options of a
  * multi-select joined with commas, a date and time in the author's time zone,
- * Rich text as its Markdown. Every other value is escaped (escapeMarkdownValue).
+ * Rich text as its Markdown. Every other value is escaped (FeedMarkdown.templateText).
  */
 export const formatCustomFieldValueForNote: FormatCustomFieldValueForNoteFunction =
   (data: {

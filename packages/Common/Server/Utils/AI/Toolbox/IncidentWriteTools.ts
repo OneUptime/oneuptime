@@ -142,7 +142,7 @@ export const CreateIncidentTool: ObservabilityTool = {
     /*
      * The model wrote the description from what it read, telemetry included:
      * it stays Markdown, but nothing in it acts on its own in the incident's
-     * feed, Slack and Teams (neutralizeAiWrittenMarkdown).
+     * feed, Slack and Teams (FeedMarkdown.aiWritten).
      */
     incident.description = FeedMarkdown.aiWritten(description).toString();
     incident.incidentSeverityId = severity.id!;

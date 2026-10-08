@@ -817,7 +817,7 @@ export default class MonitorTemplateUtil {
    * an incoming request or email, a certificate's fields, a device's SNMP
    * values, a series' labels. Each such text - every string anywhere in the
    * map, and every key, since {{responseBody}} places a whole object as
-   * JSON - is neutralized (neutralizeUntrustedValue): wherever the template
+   * JSON - is neutralized (FeedMarkdown.reportedValue): wherever the template
    * places it, in a sentence or inside the author's own code span or block,
    * it reads exactly as sent, and no renderer finds a mention, a link, an
    * image, a diagram or an HTML tag in it. Numbers and booleans stay what
