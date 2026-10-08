@@ -807,13 +807,24 @@ const escapeSentenceStyle: EscapeSentenceStyleFunction = (
 
 const TABLE_CELL_SEPARATOR_PATTERN: RegExp = /\|/g;
 
-// What starts a block when it starts a line: a heading, a quote, a list, a fence, a table.
-const LINE_START_MARKER_PATTERN: RegExp = /^[#>+\-=|]/;
+/*
+ * What starts a block when it starts a line, after the value's own
+ * indentation ("   # Heading" is a heading too): a heading, a quote, a list,
+ * a setext underline, a table.
+ */
+const LINE_START_MARKER_PATTERN: RegExp = /^([ \t]*)([#>+\-=|])/;
 /*
  * A number that starts an ordered list: "1." or "1)" and then a space, a tab
  * or the end of the line. "1.07 GB" starts no list, so it is left as it is.
  */
-const LINE_START_ORDERED_LIST_PATTERN: RegExp = /^(\d{1,9})([.)])(?=[ \t]|$)/;
+const LINE_START_ORDERED_LIST_PATTERN: RegExp =
+  /^([ \t]*)(\d{1,9})([.)])(?=[ \t]|$)/;
+/*
+ * Indentation that makes a line code: a tab, or four spaces. An invisible
+ * word joiner in front of it starts the line instead, and the value reads as
+ * it was typed.
+ */
+const LINE_START_CODE_INDENTATION_PATTERN: RegExp = /^(?: {0,3}\t| {4})/;
 
 type EscapeSentenceValueFunction = (
   text: string,
@@ -832,9 +843,13 @@ const escapeSentenceValue: EscapeSentenceValueFunction = (
 
   if (placed.startsLine) {
     if (LINE_START_MARKER_PATTERN.test(escaped)) {
-      escaped = `\\${escaped}`;
+      escaped = escaped.replace(LINE_START_MARKER_PATTERN, "$1\\$2");
     } else {
-      escaped = escaped.replace(LINE_START_ORDERED_LIST_PATTERN, "$1\\$2");
+      escaped = escaped.replace(LINE_START_ORDERED_LIST_PATTERN, "$1$2\\$3");
+    }
+
+    if (LINE_START_CODE_INDENTATION_PATTERN.test(escaped)) {
+      escaped = `${WORD_JOINER}${escaped}`;
     }
   }
 

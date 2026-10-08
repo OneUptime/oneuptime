@@ -853,7 +853,7 @@ describe("Incident docs", () => {
       const eventFieldChange: string = readSource(EVENT_FIELD_CHANGE_FILE);
 
       expect(eventFieldChange).toMatch(
-        /data\.column === "title" \|\| \(data\.column === "name" && !data\.isMarkdown\)\s*\?\s*text\s*:/,
+        /data\.column === "title" \|\|\s*\(data\.column === "name" && !data\.isMarkdown\)\s*\?\s*text\s*:/,
       );
       expect(eventFieldChange).toMatch(
         /return mdText`\\n\\n\*\*\$\{this\.getHeading\(data\.column, data\.recordName\)\}\*\*: \\n\$\{shown\}\\n`;/,

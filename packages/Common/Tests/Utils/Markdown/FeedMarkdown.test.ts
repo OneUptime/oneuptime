@@ -429,6 +429,37 @@ describe("md: a value that starts a line", () => {
     },
   );
 
+  /*
+   * A value's own leading spaces are not shown, and they could only hide a
+   * marker ("   # Heading" is a heading too) or indent the value into code.
+   */
+  test.each([
+    ...BLOCK_STARTING_VALUES.map((value: string): string => {
+      return `   ${value}`;
+    }),
+    "\t# Heading",
+    "    indented four spaces, which is code",
+  ])("starts no block with its own indentation: %p", (value: string) => {
+    for (const markdown of [
+      mdText`${value}`.toString(),
+      mdText`Labels:\n${value}`.toString(),
+    ]) {
+      expectOnlyText([markdown]);
+    }
+
+    expect(textOfEmail(mdText`${value}`.toString())).toBe(value.trimStart());
+
+    const inList: Array<Token> = tokensOf(mdText`- ${value}`.toString());
+
+    expect(
+      inList.filter((token: Token): boolean => {
+        return ["heading", "blockquote", "code", "hr", "table"].includes(
+          token.type,
+        );
+      }),
+    ).toEqual([]);
+  });
+
   test("inside a quote", () => {
     const tokens: Array<Token> = tokensOf(
       mdText`> ${"# not a heading"}`.toString(),
