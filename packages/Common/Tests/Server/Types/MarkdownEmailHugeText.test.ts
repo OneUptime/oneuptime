@@ -26,9 +26,13 @@ jest.mock("marked", () => {
 
 import { Renderer, marked } from "marked";
 import Markdown, {
+  EMAIL_IMAGE_STYLE,
   MAX_MARKED_EMAIL_MARKDOWN_LENGTH,
   MarkdownContentType,
 } from "../../../Server/Types/Markdown";
+import EmailInlineImages, {
+  EmailHtmlWithInlineImages,
+} from "../../../Server/Utils/Mail/EmailInlineImages";
 import logger from "../../../Server/Utils/Logger";
 import { OVER_LONG_LINE_LENGTH } from "../../../Utils/Markdown/OverLongText";
 
@@ -71,6 +75,24 @@ const renderWithMarkedAlone: RenderFunction = async (
   const renderer: Renderer = Markdown["getEmailRenderer"]();
 
   return await marked(markdown, { renderer: renderer });
+};
+
+/*
+ * What the email renderer makes of one piece of Markdown, before an email
+ * field is held to what an email carries (MarkdownEmailSizeCap.test.ts):
+ * the last resort is a step of it.
+ */
+const renderOnePiece: RenderFunction = async (
+  markdown: string,
+): Promise<string> => {
+  // The renderer set up as convertToHTML sets it up; that call is not counted.
+  await render("");
+  mockMarkedState.calls = [];
+
+  return await Markdown["renderEmailMarkdown"](
+    markdown,
+    Markdown["getEmailRenderer"](),
+  );
 };
 
 // Over 64 KB of plain words on one line, with no space at either end.
@@ -257,27 +279,56 @@ describe("Markdown email renderer - the last resort", () => {
     );
   });
 
+  test("if marked still runs out of stack, a screenshot stays an image - attached as it is sent, never its base64 as text", async () => {
+    mockMarkedState.failWith = new RangeError(
+      "Maximum call stack size exceeded",
+    );
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    // A real 1x1 PNG, as the probe reports a screenshot.
+    const png: string =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const notAnImage: string = Buffer.from("not an image").toString("base64");
+
+    const html: string = await render(
+      `**Down** <b>\n\n![Screenshot of the page](data:image/png;base64,${png} "Shot")\n\nThen ![a file](data:text/plain;base64,${notAnImage}) and & more`,
+    );
+
+    expect(html).toBe(
+      `<p>**Down** &lt;b&gt;<br>\n<br>\n<img src="data:image/png;base64,${png}" alt="Screenshot of the page" style="${EMAIL_IMAGE_STYLE}"><br>\n<br>\nThen a file and &amp; more</p>\n`,
+    );
+
+    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+
+    expect(attached.inlineImages).toHaveLength(1);
+    expect(attached.html.includes("base64")).toBe(false);
+    expect(attached.html.includes(notAnImage)).toBe(false);
+  });
+
   test("Markdown with more than a megabyte left once over-long text is held back is sent as text, and marked never reads it", async () => {
     const logged: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation((): void => {});
-    // Table rows are not plain lines: none of them is held back.
-    const rows: string = "| web-01 | <down> & out |\n".repeat(
-      Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 26) + 1,
+    /*
+     * Table rows are not plain lines, and these cost marked little to read
+     * (Utils/Markdown/SlowMarkdown): none of them is held back.
+     */
+    const rows: string = "| web-01 | down -> out & in |\n".repeat(
+      Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 30) + 1,
     );
 
-    const html: string = await render(`# Disk full\n\n${rows}\nAfter`);
+    const html: string = await renderOnePiece(`# Disk full\n\n${rows}\nAfter`);
 
     expect(mockMarkedState.calls).toHaveLength(0);
     // Booleans, so a failure does not print a megabyte.
     expect(
       html.startsWith(
-        "<p># Disk full<br>\n<br>\n| web-01 | &lt;down&gt; &amp; out |<br>\n",
+        "<p># Disk full<br>\n<br>\n| web-01 | down -&gt; out &amp; in |<br>\n",
       ),
     ).toBe(true);
     expect(
       html.endsWith(
-        "| web-01 | &lt;down&gt; &amp; out |<br>\n<br>\nAfter</p>\n",
+        "| web-01 | down -&gt; out &amp; in |<br>\n<br>\nAfter</p>\n",
       ),
     ).toBe(true);
     expect(logged).toHaveBeenCalledTimes(1);
@@ -292,15 +343,13 @@ describe("Markdown email renderer - the last resort", () => {
       .repeat(Math.ceil(MAX_MARKED_EMAIL_MARKDOWN_LENGTH / 6) + 1)
       .slice(0, MAX_MARKED_EMAIL_MARKDOWN_LENGTH);
 
-    const html: string = await render(lines);
+    const html: string = await renderOnePiece(lines);
 
     expect(mockMarkedState.calls).toHaveLength(1);
     expect(mockMarkedState.calls[0] === lines).toBe(true);
     expect(html.startsWith("<p>a | b\na | b")).toBe(true);
 
-    mockMarkedState.calls = [];
-
-    const text: string = await render(`${lines}a`);
+    const text: string = await renderOnePiece(`${lines}a`);
 
     expect(mockMarkedState.calls).toHaveLength(0);
     expect(text.startsWith("<p>a | b<br>\na | b")).toBe(true);
@@ -309,7 +358,7 @@ describe("Markdown email renderer - the last resort", () => {
   test("Markdown that is long only for what is held back still goes to marked", async () => {
     const markdown: string = `# Disk full\n\n${"a".repeat(16 * 1024 * 1024)}\n\n${LOG_LINES.join("\n")}`;
 
-    const html: string = await render(markdown);
+    const html: string = await renderOnePiece(markdown);
 
     expect(mockMarkedState.calls).toHaveLength(1);
     expect(mockMarkedState.calls[0]!.length).toBeLessThan(16 * 1024);

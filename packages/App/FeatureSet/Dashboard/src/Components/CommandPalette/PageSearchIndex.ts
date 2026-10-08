@@ -324,6 +324,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Label,
             keywords: ["tags", "create label"],
           },
+          {
+            page: PageMap.SETTINGS_IMPORT_FROM_TOOL,
+            title: "Import from another tool",
+            icon: IconProp.InboxArrowDown,
+            keywords: [
+              "import",
+              "migrate",
+              "migration",
+              "move to oneuptime",
+              "switch to oneuptime",
+              "opsgenie",
+            ],
+          },
         ],
       },
       {

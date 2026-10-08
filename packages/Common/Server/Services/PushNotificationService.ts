@@ -35,6 +35,26 @@ import PushNotificationLogService from "./PushNotificationLogService";
 import PushStatus from "../../Types/PushNotification/PushStatus";
 import AndroidNotificationChannel from "../../Types/PushNotification/AndroidNotificationChannel";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  fitTextsToBudget,
+  MAX_PUSH_TEXT_BYTES,
+  TextSizeFunction,
+  TRUNCATED_NAME_NOTE,
+  TRUNCATED_TEXT_NOTE,
+} from "../../Utils/MessageFit";
+
+// A text's size in a push notification: as JSON writes it, in UTF-8.
+const getPushTextSize: TextSizeFunction = (text: string): number => {
+  return Buffer.byteLength(JSON.stringify(text), "utf8");
+};
+
+// A web address, with or without its scheme ("https://", "//").
+const WEB_ADDRESS_PATTERN: RegExp = /^(?:https?:)?\/\//i;
+
+// An address a notification opens: never cut.
+const isAddress: (value: string) => boolean = (value: string): boolean => {
+  return WEB_ADDRESS_PATTERN.test(value) || value.startsWith("/");
+};
 
 /*
  * The push services the browsers actually use. A Web Push subscription is a
@@ -279,6 +299,76 @@ export default class PushNotificationService {
     logger.info("Web push notifications initialized successfully");
   }
 
+  /*
+   * A notification's text held to what every push service takes: Expo (and
+   * APNs and FCM behind it) and web push refuse a notification of more than
+   * 4,096 bytes, and it is lost. Its title, body and the texts of its data
+   * are held to MAX_PUSH_TEXT_BYTES together, as JSON writes them in UTF-8:
+   * the longest cut first, all to about the same size, the body ending with
+   * a note that the rest is in OneUptime and a title or a name with "…".
+   * An address in its data - where it opens - is never cut. A notification
+   * that fits is sent as it always was.
+   */
+  public static fitMessage(
+    message: PushNotificationMessage,
+  ): PushNotificationMessage {
+    const data: { [key: string]: any } = message.data || {};
+    const textKeys: Array<string> = Object.keys(data).filter(
+      (key: string): boolean => {
+        return typeof data[key] === "string" && !isAddress(data[key]);
+      },
+    );
+    const texts: Array<string> = [
+      message.title || "",
+      message.body || "",
+      ...textKeys.map((key: string): string => {
+        return data[key] as string;
+      }),
+    ];
+
+    // The rest of the data, its texts left out, takes what it takes.
+    const otherData: { [key: string]: any } = { ...data };
+
+    for (const key of textKeys) {
+      otherData[key] = "";
+    }
+
+    const budget: number =
+      MAX_PUSH_TEXT_BYTES -
+      Buffer.byteLength(JSON.stringify(otherData), "utf8");
+
+    const totalSize: number = texts.reduce(
+      (total: number, text: string): number => {
+        return total + getPushTextSize(text);
+      },
+      0,
+    );
+
+    if (totalSize <= budget) {
+      return message;
+    }
+
+    const fitted: Array<string> = fitTextsToBudget(texts, budget, {
+      measure: getPushTextSize,
+      getNote: (index: number): string => {
+        return index === 1 ? TRUNCATED_TEXT_NOTE : TRUNCATED_NAME_NOTE;
+      },
+    });
+
+    const fittedData: { [key: string]: any } = { ...data };
+
+    textKeys.forEach((key: string, index: number): void => {
+      fittedData[key] = fitted[index + 2];
+    });
+
+    return {
+      ...message,
+      title: fitted[0]!,
+      body: fitted[1]!,
+      ...(message.data ? { data: fittedData } : {}),
+    };
+  }
+
   public static async sendPushNotification(
     pushRequest: PushNotificationRequest,
     options: PushNotificationOptions = {},
@@ -290,6 +380,9 @@ export default class PushNotificationService {
         PushNotificationUtil.DEFAULT_ICON,
       ]),
     };
+
+    // Held to what the push services take (fitMessage), as branded, for every device.
+    request.message = this.fitMessage(request.message);
 
     logger.info(
       `Sending push notification to ${request.devices?.length} devices`,
@@ -1023,11 +1116,21 @@ export default class PushNotificationService {
     const sound: ExpoPushSound =
       data.sound === undefined ? "default" : data.sound;
 
-    const expoPushMessage: ExpoPushMessage = {
-      to: data.to,
+    /*
+     * What another server relays is held to what Expo takes as well
+     * (fitMessage): a server of an older version relays its text as it is.
+     */
+    const fitted: PushNotificationMessage = this.fitMessage({
       title: data.title || "",
       body: data.body || "",
-      data: data.data || {},
+      ...(data.data ? { data: data.data } : {}),
+    });
+
+    const expoPushMessage: ExpoPushMessage = {
+      to: data.to,
+      title: fitted.title,
+      body: fitted.body,
+      data: (fitted.data as { [key: string]: string } | undefined) || {},
       sound: sound,
       priority: (data.priority as "default" | "normal" | "high") || "high",
       channelId: data.channelId || "default",

@@ -60,7 +60,7 @@ Post a message to a Slack channel through an incoming webhook.
 **Settings**:
 
 - **Slack Incoming Webhook URL** — the webhook for the channel to post to. Slack's guide to [creating one](https://api.slack.com/messaging/webhooks) takes a couple of minutes.
-- **Message Text** — the text to send. It's sent exactly as you type it, so use Slack's own formatting: `*bold*`, `_italic_`, `~strikethrough~` and `<https://example.com|a link>`.
+- **Message Text** — the text to send. It's sent exactly as you type it, so use Slack's own formatting: `*bold*`, `_italic_`, `~strikethrough~` and `<https://example.com|a link>`. A text longer than one Slack section (3,000 characters) goes as several; past ten sections it is cut and ends with "… (truncated — see OneUptime for the full text)".
 
 ## Microsoft Teams
 
@@ -69,15 +69,15 @@ Post a message to a Microsoft Teams channel.
 **Settings**:
 
 - **Teams Incoming Webhook URL** — the channel webhook to post to. Microsoft's guide shows how to [create one with Teams Workflows](https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams).
-- **Message Text** — the text to send.
+- **Message Text** — the text to send. A message bigger than an incoming webhook takes (about 12,000 characters, measured as it is sent) is cut and ends with "… (truncated — see OneUptime for the full text)".
 
 ## Discord
 
-Post a message to a Discord channel through an incoming webhook URL.
+Post a message to a Discord channel through an incoming webhook URL. A message longer than 2,000 characters, Discord's limit, is cut and ends with "… (truncated — see OneUptime for the full text)".
 
 ## Telegram
 
-Send a message to a Telegram chat using a bot token and chat ID.
+Send a message to a Telegram chat using a bot token and chat ID. A message longer than 4,096 characters, Telegram's limit, is cut and ends with "… (truncated — see OneUptime for the full text)".
 
 ## IRC
 

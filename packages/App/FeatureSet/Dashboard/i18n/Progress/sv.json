@@ -13,6 +13,7 @@
     "VMware vCenter",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
-    "{{count}} process"
+    "{{count}} process",
+    "{{count}} rotation"
   ]
 }

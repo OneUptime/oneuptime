@@ -249,11 +249,14 @@ If a path does not exist, the placeholder is left in the output exactly as writt
 
 A description and remediation notes are Markdown: they are shown on the incident's or alert's page, in email, and in its Slack and Microsoft Teams channels. The values a template places there are what the monitored system sent - a response body or header, an incoming request or email, a device's or a series' labels - so each one is placed as text. It reads exactly as it was sent, wherever the template puts it, and a link, an image, an HTML tag or a Slack mention such as `<!channel>` in it shows as text instead of acting. A bare web address in a value is still made a link, one that shows where it goes. The Markdown you write in the template itself renders as you wrote it.
 
-A value can be of any size - a response body or a log of many megabytes - and the notification still goes out with it:
+A value can be of any size - a response body or a log of many megabytes - and the notification still goes out with it. Each channel carries what it takes, and a description too long for it is cut, at a line break where there is one, ending with "… (truncated — see OneUptime for the full text)":
 
-- An email carries all of it. A line longer than 64 KB, or a long paragraph of plain lines, reads as plain text where it is, and the rest of the description renders as usual. A description with more than a megabyte left that is not plain text - a long table, a log whose every line holds a `|`, a `<` or a backtick - is sent as plain text, line by line.
-- The incident's or alert's page shows it the same way, and shows a description with more than 128 KB left that is not plain text as plain text, line by line.
-- A Slack message carries at most what Slack shows of one (about 30,000 characters), and a Microsoft Teams message about 40,000 characters. A longer description is cut, at a line break where there is one, and ends with "… (truncated — see OneUptime for the full text)".
+- **Email**: each description, note or root cause carries up to about 256 KB of the email's text, and the note at the end of a longer one links to the incident or alert. A whole email - its text and its screenshots - stays under 3 MB, which every mail server and Microsoft Graph take: a screenshot that does not fit beside the text is left out, with a note in its place.
+- **The incident's or alert's page** shows all of it. A description with more than 128 KB that would take long to lay out is shown as plain text, line by line.
+- **Slack** carries at most what Slack shows of a message (about 30,000 characters). **Microsoft Teams** carries about 40,000 characters in a message from the OneUptime app, and about 12,000 through an incoming webhook (status page subscribers, workflows) - measured as the message is sent, so a table counts as the HTML it becomes.
+- **SMS, phone calls, push notifications, WhatsApp and Telegram** carry what their providers take: see [How the levels page people](/docs/on-call/escalation-rules#how-the-levels-page-people).
+
+Every channel renders the text in time that grows with its length. A part that would take a renderer far longer - a line longer than 64 KB, a long paragraph of plain lines, a paragraph full of `*`, `_` or `[` that never close, quotes or lists nested more than sixteen deep, and on the incident's or alert's page a table or list of more than a thousand lines - reads as plain text where it is, and the rest of the description renders as usual.
 
 ## Advanced Usage
 

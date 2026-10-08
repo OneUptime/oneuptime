@@ -107,11 +107,21 @@ import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMainte
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
-import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
+import MicrosoftTeamsMessageSize, {
+  MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
+} from "./MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import MicrosoftTeamsInlineImages from "./MicrosoftTeamsInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
+import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
+import {
+  MessageCardFact,
+  MessageCardLink,
+  findFact,
+  findMessageCardLinks,
+  withLinksAsText,
+} from "./MicrosoftTeamsMessageCardText";
 
 /*
  * AI Ops - observability assistant imports. These power the natural-language
@@ -132,18 +142,6 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
-
-/*
- * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
- * into a button. Only a link Markdown itself would read: a "[" written as
- * "\[" - a title or a name escaped where it was placed (MarkdownEscape) - opens
- * no link, and a "]" written as "\]" does not end the link's text. A "["
- * after an even run of backslashes ("\\[") is not escaped: the backslashes
- * are a literal one, and a link follows. So text that only looks like a link
- * stays text, as it does in every other place the message is shown.
- */
-const MESSAGE_CARD_LINK_PATTERN: RegExp =
-  /(?<!(?:^|[^\\])(?:\\\\)*\\)\[((?:[^\]\\]|\\.)+)\]\(([^)]+)\)/g;
 
 // A CommonMark backslash escape: a backslash before ASCII punctuation.
 const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
@@ -709,22 +707,36 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * Teams MessageCard supports HTML in the text field.
    */
   private static convertMarkdownTablesToHtml(markdown: string): string {
-    // Regular expression to match markdown tables
-    const tableRegex: RegExp =
-      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
+    // Tables are found in one pass over the lines (Utils/Markdown/PipeTables).
+    return replacePipeTables(markdown, (lines: Array<string>): string => {
+      // Parse header row
+      const headerLine: string = lines[0] || "";
+      const headers: Array<string> = headerLine
+        .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
+        .map((cell: string) => {
+          return cell.trim();
+        })
+        .filter((cell: string) => {
+          return cell.length > 0;
+        });
 
-    return markdown.replace(
-      tableRegex,
-      (_match: string, table: string): string => {
-        const lines: Array<string> = table.trim().split("\n");
+      // Skip separator line (line with dashes) and get data rows
+      const dataRows: Array<string> = lines.slice(2);
 
-        if (lines.length < 2) {
-          return table;
-        }
+      // Build HTML table
+      let html: string =
+        '<table style="border-collapse: collapse; width: 100%;">';
 
-        // Parse header row
-        const headerLine: string = lines[0] || "";
-        const headers: Array<string> = headerLine
+      // Header row
+      html += "<tr>";
+      for (const header of headers) {
+        html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${escapeMessageCardCell(header)}</strong></th>`;
+      }
+      html += "</tr>";
+
+      // Data rows
+      for (const row of dataRows) {
+        const cells: Array<string> = row
           .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
           .map((cell: string) => {
             return cell.trim();
@@ -733,70 +745,61 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             return cell.length > 0;
           });
 
-        // Skip separator line (line with dashes) and get data rows
-        const dataRows: Array<string> = lines.slice(2);
+        if (cells.length === 0) {
+          continue;
+        }
 
-        // Build HTML table
-        let html: string =
-          '<table style="border-collapse: collapse; width: 100%;">';
-
-        // Header row
         html += "<tr>";
-        for (const header of headers) {
-          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${escapeMessageCardCell(header)}</strong></th>`;
+        for (const cell of cells) {
+          html += `<td style="border: 1px solid #ddd; padding: 8px;">${escapeMessageCardCell(cell)}</td>`;
         }
         html += "</tr>";
+      }
 
-        // Data rows
-        for (const row of dataRows) {
-          const cells: Array<string> = row
-            .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
-            .map((cell: string) => {
-              return cell.trim();
-            })
-            .filter((cell: string) => {
-              return cell.length > 0;
-            });
+      html += "</table>";
 
-          if (cells.length === 0) {
-            continue;
-          }
-
-          html += "<tr>";
-          for (const cell of cells) {
-            html += `<td style="border: 1px solid #ddd; padding: 8px;">${escapeMessageCardCell(cell)}</td>`;
-          }
-          html += "</tr>";
-        }
-
-        html += "</table>";
-
-        return "\n" + html + "\n";
-      },
-    );
+      return html;
+    });
   }
 
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     /*
      * An incoming webhook's card cannot carry a screenshot's base64 (and a
      * Teams webhook refuses a message that large): an image whose address
-     * is a data: URL is its alt text. A text longer than a message can
-     * carry - a response body or a log of megabytes - is cut, with a note,
-     * to a card within the budget (fitMarkdownText, measuring the card each
-     * cut makes: a table's HTML is several times its Markdown): Teams would
-     * refuse it, and the regular expressions the card is built with cannot
-     * read megabytes safely. A text that fits makes the card it always made.
+     * is a data: URL is its alt text. The card is measured as it is sent,
+     * whatever the size of its text - a table that fits as Markdown can be
+     * HTML several times as big - and when it is more than an incoming
+     * webhook takes (MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES) its
+     * text is cut, in proportion and with a note, until the card fits
+     * (fitMarkdownText). A card that fits is the card it always was.
      */
+    let lastCard: { markdown: string; card: JSONObject } | null = null;
+
+    // The card for a text, built once however often it is measured.
+    const buildCard: (fitted: string) => JSONObject = (
+      fitted: string,
+    ): JSONObject => {
+      if (!lastCard || lastCard.markdown !== fitted) {
+        lastCard = {
+          markdown: fitted,
+          card: this.buildMessageCardFromFittedMarkdown(fitted),
+        };
+      }
+
+      return lastCard.card;
+    };
+
     const fittedMarkdown: string = MicrosoftTeamsMessageSize.fitMarkdownText(
       ChatInlineImages.toText(markdown),
       (fitted: string): number => {
-        return MicrosoftTeamsMessageSize.getSizeInBytes(
-          this.buildMessageCardFromFittedMarkdown(fitted),
+        return MicrosoftTeamsMessageSize.getIncomingWebhookSizeInBytes(
+          buildCard(fitted),
         );
       },
+      MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
     );
 
-    return this.buildMessageCardFromFittedMarkdown(fittedMarkdown);
+    return buildCard(fittedMarkdown);
   }
 
   private static buildMessageCardFromFittedMarkdown(
@@ -841,7 +844,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         .replace(/^\*\*|\*\*$/g, "") // remove stray bold markers if any
         .trim();
       // Remove markdown link syntax from title for cleaner rendering
-      title = title.replace(MESSAGE_CARD_LINK_PATTERN, "$1");
+      title = withLinksAsText(title, findMessageCardLinks(title));
       // Sanitize unmatched bold markers if any remain
       const boldCountTitle: number = (title.match(/\*\*/g) || []).length;
       if (boldCountTitle % 2 !== 0) {
@@ -849,8 +852,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
       lines.shift();
     }
-
-    const linkRegex: RegExp = new RegExp(MESSAGE_CARD_LINK_PATTERN); // [text](url)
 
     // Helper to clean up unmatched bold markers that can break rendering
     const sanitizeMarkdownText: (text: string) => string = (
@@ -901,48 +902,40 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       // Extract links to actions and keep link display text in-place (without markdown)
-      let lineWithoutLinks: string = line;
-      let match: RegExpExecArray | null = null;
-      while ((match = linkRegex.exec(line))) {
-        const linkText: string = match[1] ?? "";
+      const links: Array<MessageCardLink> = findMessageCardLinks(line);
+
+      for (const link of links) {
         // The button's name is plain text: an escape in the link's text is undone.
-        const name: string = linkText.replace(
+        const name: string = link.text.replace(
           MARKDOWN_BACKSLASH_ESCAPE_PATTERN,
           "$1",
         );
-        const url: string = match[2] ?? "";
         actions.push({
           ["@type"]: "OpenUri",
           name: name,
           targets: [
             {
               os: "default",
-              uri: url,
+              uri: link.url,
             },
           ],
         });
-        /*
-         * Replace the markdown link with just its text to preserve sentence
-         * flow. The section is read as Markdown, so the text stays as it was
-         * written, escapes and all: unescaped, a title's "[x](...)" would turn
-         * into a link there. Replaced by a function, so a "$" in the text is
-         * not read as a replacement pattern.
-         */
-        lineWithoutLinks = lineWithoutLinks
-          .replace(match[0], (): string => {
-            return linkText;
-          })
-          .trim();
       }
 
+      /*
+       * Replace the markdown link with just its text to preserve sentence
+       * flow. The section is read as Markdown, so the text stays as it was
+       * written, escapes and all: unescaped, a title's "[x](...)" would turn
+       * into a link there.
+       */
+      const lineWithoutLinks: string = withLinksAsText(line, links).trim();
+
       // Parse facts of the form **Label:** value
-      const factMatch: RegExpExecArray | null = new RegExp(
-        "\\*\\*(.*?):\\*\\*\\s*(.*)",
-      ).exec(lineWithoutLinks);
+      const factMatch: MessageCardFact | null = findFact(lineWithoutLinks);
 
       if (factMatch) {
-        const name: string = (factMatch[1] ?? "").trim();
-        const value: string = (factMatch[2] ?? "").trim();
+        const name: string = factMatch.name.trim();
+        const value: string = factMatch.value.trim();
         if (
           name.toLowerCase() === "description" ||
           name.toLowerCase() === "note"
@@ -2857,7 +2850,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(
       `Built adaptive card with ${body.length} body elements and ${actions.length} actions`,
     );
-    return card;
+
+    /*
+     * Each text block fits on its own (getMarkdownBlock), but a card
+     * carries many: the card is measured as it is sent, and one over what
+     * Teams takes has its longest text blocks cut to fit (fitAdaptiveCard).
+     */
+    return MicrosoftTeamsMessageSize.fitAdaptiveCard(card);
   }
 
   private static convertAdaptiveCardToHtml(adaptiveCard: JSONObject): string {
@@ -3106,8 +3105,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * A text block. An image whose address is a data: URL - a screenshot in a
    * description - is its alt text here: sendMessage shows it as an image of
    * its own before a markdown block gets here (WorkspaceInlineImages). A
-   * text longer than a message can carry is cut, with a note
-   * (fitMarkdownText).
+   * text more than a message can carry, measured as it is sent, is cut,
+   * with a note (fitMarkdownText).
    */
   @CaptureSpan()
   public static override getMarkdownBlock(data: {

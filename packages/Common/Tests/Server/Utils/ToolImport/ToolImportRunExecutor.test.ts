@@ -1,0 +1,979 @@
+import ToolImportRun from "../../../../Models/DatabaseModels/ToolImportRun";
+import Queue from "../../../../Server/Infrastructure/Queue";
+import Semaphore, {
+  SemaphoreLockTimeoutError,
+} from "../../../../Server/Infrastructure/Semaphore";
+import ToolImportRunService from "../../../../Server/Services/ToolImportRunService";
+import ToolImportApplier from "../../../../Server/Utils/ToolImport/ToolImportApplier";
+import ToolImportProjectStateReader from "../../../../Server/Utils/ToolImport/ToolImportProjectStateReader";
+import ToolImportRunExecutor, {
+  TOOL_IMPORT_RUN_JOB,
+  TOOL_IMPORT_STALE_RUN_MS,
+} from "../../../../Server/Utils/ToolImport/ToolImportRunExecutor";
+import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import LessThan from "../../../../Types/BaseDatabase/LessThan";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
+import { TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS } from "../../../../Types/ToolImport/ToolImportLimits";
+import {
+  ToolImportOutcome,
+  ToolImportPlan,
+  ToolImportReport,
+} from "../../../../Types/ToolImport/ToolImportPlan";
+import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
+import ToolImportRunStatus from "../../../../Types/ToolImport/ToolImportRunStatus";
+import { ToolImportSnapshot } from "../../../../Types/ToolImport/ToolImportSnapshot";
+import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
+import { OPSGENIE_KEY, opsGenieApi, opsGenieError } from "./OpsGenieFixtures";
+import { FixtureApi, json } from "./ToolImportFixtureTransport";
+import {
+  fullAccess,
+  person,
+  projectState,
+  snapshot,
+} from "./ToolImportSnapshotFixtures";
+
+/*
+ * The run's life around the read and the import: who may start what, one
+ * import of a project at a time, the job (which carries the run's id and
+ * never the key), the key cleared the moment the read ends however it
+ * ends, the import acting as the person with what they may do now, the
+ * report stored, and the sweep that fails what a dead worker left behind.
+ * The read runs the real Opsgenie adapter against a fixture Opsgenie.
+ */
+
+jest.mock("../../../../Server/Services/ToolImportRunService", () => {
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn(),
+      findBy: jest.fn(),
+      findOneBy: jest.fn(),
+      findOneById: jest.fn(),
+      updateOneById: jest.fn(),
+    },
+  };
+});
+jest.mock("../../../../Server/Infrastructure/Queue", () => {
+  return {
+    __esModule: true,
+    default: { addJob: jest.fn() },
+    QueueName: { Worker: "Worker" },
+  };
+});
+jest.mock("../../../../Server/Infrastructure/Semaphore", () => {
+  return {
+    __esModule: true,
+    default: { lock: jest.fn(), release: jest.fn() },
+    SemaphoreLockTimeoutError: class extends Error {},
+  };
+});
+jest.mock(
+  "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization",
+  () => {
+    return {
+      __esModule: true,
+      default: { getProjectMemberProps: jest.fn() },
+    };
+  },
+);
+jest.mock("../../../../Server/Utils/Billing/CallerPlan", () => {
+  const actual: { default: Record<string, unknown> } = jest.requireActual(
+    "../../../../Server/Utils/Billing/CallerPlan",
+  );
+
+  /*
+   * The props a test builds carry their plan already: withPlan hands them
+   * back as they are, and every other rule is the real one.
+   */
+  const CallerPlanWithTestProps: Record<string, unknown> = Object.create(
+    actual.default,
+  );
+  CallerPlanWithTestProps["withPlan"] = jest.fn(async (props: unknown) => {
+    return props;
+  });
+
+  return { __esModule: true, default: CallerPlanWithTestProps };
+});
+jest.mock(
+  "../../../../Server/Utils/ToolImport/ToolImportProjectStateReader",
+  () => {
+    return {
+      __esModule: true,
+      default: { readState: jest.fn(), readAccess: jest.fn() },
+    };
+  },
+);
+jest.mock("../../../../Server/Utils/ToolImport/ToolImportApplier", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../../Server/Utils/ToolImport/ToolImportApplier",
+  );
+
+  return {
+    __esModule: true,
+    ...actual,
+    default: { apply: jest.fn() },
+  };
+});
+
+const PROJECT_ID: ObjectID = ObjectID.generate();
+const USER_ID: ObjectID = ObjectID.generate();
+const OTHER_USER_ID: ObjectID = ObjectID.generate();
+
+const PROPS: DatabaseCommonInteractionProps = {
+  tenantId: PROJECT_ID,
+  userId: USER_ID,
+};
+
+// The runs table, in memory.
+class Runs {
+  public rows: Map<string, Record<string, unknown>> = new Map<
+    string,
+    Record<string, unknown>
+  >();
+  public updates: Array<{ id: string; data: Record<string, unknown> }> = [];
+
+  public add(row: Record<string, unknown>): string {
+    const id: string = (row["_id"] as string) || ObjectID.generate().toString();
+    this.rows.set(id, {
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      projectId: PROJECT_ID,
+      createdByUserId: USER_ID,
+      ...row,
+      _id: id,
+    });
+    return id;
+  }
+
+  public get(id: string | ObjectID): Record<string, unknown> {
+    return this.rows.get(id.toString())!;
+  }
+
+  public toModel(row: Record<string, unknown>): ToolImportRun {
+    const run: ToolImportRun = new ToolImportRun();
+    Object.assign(run, row);
+    run.id = new ObjectID(row["_id"] as string);
+    return run;
+  }
+
+  public matches(
+    row: Record<string, unknown>,
+    query: Record<string, unknown>,
+  ): boolean {
+    return Object.entries(query).every(([key, expected]: [string, unknown]) => {
+      const actual: unknown = row[key];
+
+      if (expected instanceof Includes) {
+        return (expected.values as Array<unknown>)
+          .map((value: unknown) => {
+            return String(value);
+          })
+          .includes(String(actual));
+      }
+
+      if (expected instanceof LessThan) {
+        return (
+          actual instanceof Date &&
+          actual.getTime() < (expected.value as Date).getTime()
+        );
+      }
+
+      return String(actual) === String(expected);
+    });
+  }
+
+  public install(): void {
+    (ToolImportRunService.create as jest.Mock).mockImplementation(
+      async (args: { data: ToolImportRun }): Promise<ToolImportRun> => {
+        const row: Record<string, unknown> = { ...args.data } as Record<
+          string,
+          unknown
+        >;
+        const id: string = this.add(row);
+        return this.toModel(this.get(id));
+      },
+    );
+
+    (ToolImportRunService.findOneById as jest.Mock).mockImplementation(
+      async (args: { id: ObjectID }): Promise<ToolImportRun | null> => {
+        const row: Record<string, unknown> | undefined = this.rows.get(
+          args.id.toString(),
+        );
+        return row ? this.toModel(row) : null;
+      },
+    );
+
+    (ToolImportRunService.findOneBy as jest.Mock).mockImplementation(
+      async (args: {
+        query: Record<string, unknown>;
+      }): Promise<ToolImportRun | null> => {
+        const row: Record<string, unknown> | undefined = [
+          ...this.rows.values(),
+        ].find((candidate: Record<string, unknown>) => {
+          return this.matches(candidate, args.query);
+        });
+        return row ? this.toModel(row) : null;
+      },
+    );
+
+    (ToolImportRunService.findBy as jest.Mock).mockImplementation(
+      async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<ToolImportRun>> => {
+        return [...this.rows.values()]
+          .filter((candidate: Record<string, unknown>) => {
+            return this.matches(candidate, args.query);
+          })
+          .map((row: Record<string, unknown>) => {
+            return this.toModel(row);
+          });
+      },
+    );
+
+    (ToolImportRunService.updateOneById as jest.Mock).mockImplementation(
+      async (args: {
+        id: ObjectID;
+        data: Record<string, unknown>;
+      }): Promise<void> => {
+        const row: Record<string, unknown> = this.get(args.id);
+        this.updates.push({ id: args.id.toString(), data: args.data });
+        Object.assign(row, args.data, { updatedAt: new Date() });
+      },
+    );
+  }
+}
+
+let runs: Runs;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  runs = new Runs();
+  runs.install();
+  (Semaphore.lock as jest.Mock).mockResolvedValue({ key: "lock" });
+  (Semaphore.release as jest.Mock).mockResolvedValue(undefined);
+  (Queue.addJob as jest.Mock).mockResolvedValue(undefined);
+  ToolImportRunExecutor.transportFactory = (): never => {
+    throw new Error("A test must give the read a fixture transport.");
+  };
+});
+
+describe("ToolImportRunExecutor.validateReadRequest", () => {
+  test("a known tool, one of its regions and a key on its own", () => {
+    expect(
+      ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.OpsGenie,
+        region: "EU",
+        apiKey: `  ${OPSGENIE_KEY}\n`,
+      }),
+    ).toEqual({
+      source: ToolImportSource.OpsGenie,
+      region: {
+        value: "EU",
+        title: "EU (api.eu.opsgenie.com)",
+        host: "api.eu.opsgenie.com",
+      },
+      apiKey: OPSGENIE_KEY,
+    });
+  });
+
+  test.each([
+    [
+      "an unknown tool",
+      { source: "PagerDuty", region: "", apiKey: "k" },
+      "Choose a tool to import from.",
+    ],
+    [
+      "a region the tool does not have",
+      { source: "OpsGenie", region: "MARS", apiKey: "k" },
+      "Choose one of Opsgenie's regions.",
+    ],
+    [
+      "an empty key",
+      { source: "OpsGenie", region: "US", apiKey: "   " },
+      "Paste your Opsgenie API key.",
+    ],
+    [
+      "a key that is not text",
+      { source: "OpsGenie", region: "US", apiKey: 12345 },
+      "Paste your Opsgenie API key.",
+    ],
+    [
+      "a key with spaces in it",
+      { source: "OpsGenie", region: "US", apiKey: "two words" },
+      "That does not look like your Opsgenie API key. Paste the key on its own.",
+    ],
+    [
+      "a key longer than any key",
+      { source: "IncidentIo", region: "", apiKey: "k".repeat(513) },
+      "That does not look like your incident.io API key. Paste the key on its own.",
+    ],
+  ] as Array<[string, Record<string, unknown>, string]>)(
+    "refuses %s",
+    (_label: string, request: Record<string, unknown>, message: string) => {
+      expect(() => {
+        return ToolImportRunExecutor.validateReadRequest(
+          request as { source: unknown; region: unknown; apiKey: unknown },
+        );
+      }).toThrow(message);
+    },
+  );
+});
+
+describe("ToolImportRunExecutor.startRead", () => {
+  test("creates a Reading run with the key on it, and queues a job that carries only the run's id", async () => {
+    const runId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      source: ToolImportSource.OpsGenie,
+      region: "EU",
+      apiKey: OPSGENIE_KEY,
+    });
+
+    expect(runs.get(runId)).toMatchObject({
+      source: ToolImportSource.OpsGenie,
+      region: "EU",
+      status: ToolImportRunStatus.Reading,
+      apiKey: OPSGENIE_KEY,
+    });
+    expect(String(runs.get(runId)["createdByUserId"])).toBe(USER_ID.toString());
+
+    expect(Queue.addJob).toHaveBeenCalledWith(
+      "Worker",
+      `${runId.toString()}-read`,
+      TOOL_IMPORT_RUN_JOB,
+      { runId: runId.toString() },
+      { attempts: 1 },
+    );
+    expect(
+      JSON.stringify((Queue.addJob as jest.Mock).mock.calls),
+    ).not.toContain(OPSGENIE_KEY);
+    expect(Semaphore.release).toHaveBeenCalled();
+  });
+
+  test("a tool with one API stores no region", async () => {
+    const runId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      source: ToolImportSource.IncidentIo,
+      region: undefined,
+      apiKey: "inc_key_123456",
+    });
+
+    expect(runs.get(runId)["region"]).toBeUndefined();
+  });
+
+  test("only one import of a project reads or imports at a time", async () => {
+    runs.add({ status: ToolImportRunStatus.Importing, updatedAt: new Date() });
+
+    await expect(
+      ToolImportRunExecutor.startRead({
+        projectId: PROJECT_ID,
+        userId: OTHER_USER_ID,
+        source: ToolImportSource.OpsGenie,
+        region: "US",
+        apiKey: OPSGENIE_KEY,
+      }),
+    ).rejects.toThrow("Another import is running in this project.");
+    expect(Queue.addJob).not.toHaveBeenCalled();
+    expect(Semaphore.release).toHaveBeenCalled();
+  });
+
+  test("an import a dead worker left running does not block a new one: it is failed first", async () => {
+    const stuckId: string = runs.add({
+      status: ToolImportRunStatus.Reading,
+      apiKey: "old-key",
+      updatedAt: new Date(Date.now() - TOOL_IMPORT_STALE_RUN_MS - 60_000),
+    });
+
+    await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      source: ToolImportSource.OpsGenie,
+      region: "US",
+      apiKey: OPSGENIE_KEY,
+    });
+
+    expect(runs.get(stuckId)).toMatchObject({
+      status: ToolImportRunStatus.Failed,
+      apiKey: null,
+    });
+  });
+
+  test("reading again discards the person's earlier previews and what was read for them, not anyone else's", async () => {
+    const mine: string = runs.add({
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: { people: [] },
+    });
+    const theirs: string = runs.add({
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: { people: [] },
+      createdByUserId: OTHER_USER_ID,
+    });
+    const finished: string = runs.add({
+      status: ToolImportRunStatus.Completed,
+      report: { items: [] },
+    });
+
+    const runId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      source: ToolImportSource.OpsGenie,
+      region: "US",
+      apiKey: OPSGENIE_KEY,
+    });
+
+    expect(runs.get(mine)).toMatchObject({
+      status: ToolImportRunStatus.Cancelled,
+      snapshot: null,
+      apiKey: null,
+    });
+    expect(runs.get(theirs)).toMatchObject({
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: { people: [] },
+    });
+    expect(runs.get(finished)["status"]).toBe(ToolImportRunStatus.Completed);
+    expect(runs.get(runId)["status"]).toBe(ToolImportRunStatus.Reading);
+  });
+
+  test("a job that cannot be queued fails the run, and clears its key", async () => {
+    (Queue.addJob as jest.Mock).mockRejectedValue(new Error("valkey down"));
+
+    await expect(
+      ToolImportRunExecutor.startRead({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        source: ToolImportSource.OpsGenie,
+        region: "US",
+        apiKey: OPSGENIE_KEY,
+      }),
+    ).rejects.toThrow("The import could not be queued. Try again.");
+
+    const row: Record<string, unknown> = [...runs.rows.values()][0]!;
+
+    expect(row).toMatchObject({
+      status: ToolImportRunStatus.Failed,
+      apiKey: null,
+    });
+  });
+});
+
+describe("ToolImportRunExecutor: the worker reads", () => {
+  function readingRun(): string {
+    return runs.add({
+      source: ToolImportSource.OpsGenie,
+      region: "US",
+      status: ToolImportRunStatus.Reading,
+      apiKey: OPSGENIE_KEY,
+    });
+  }
+
+  test("what was read is stored for the preview, and the key is cleared", async () => {
+    const api: FixtureApi = opsGenieApi();
+    ToolImportRunExecutor.transportFactory = (hosts: Array<string>) => {
+      expect(hosts).toEqual(["api.opsgenie.com", "api.eu.opsgenie.com"]);
+      return api.transport;
+    };
+
+    const runId: string = readingRun();
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(row["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(row["apiKey"]).toBeNull();
+    expect(row["accountName"]).toBe("acme");
+    expect(row["progress"]).toBeNull();
+    expect((row["snapshot"] as ToolImportSnapshot).people).toHaveLength(3);
+    expect(JSON.stringify(row["snapshot"])).not.toContain(OPSGENIE_KEY);
+  });
+
+  test("the read's progress names what it reads", async () => {
+    ToolImportRunExecutor.transportFactory = () => {
+      return opsGenieApi().transport;
+    };
+
+    const runId: string = readingRun();
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const kinds: Array<unknown> = runs.updates
+      .filter(
+        (update: { id: string; data: Record<string, unknown> }): boolean => {
+          return Boolean(update.data["progress"]);
+        },
+      )
+      .map((update: { id: string; data: Record<string, unknown> }): unknown => {
+        return (update.data["progress"] as JSONObject)["kind"];
+      });
+
+    expect(kinds).toEqual([
+      ToolImportResourceKind.Person,
+      ToolImportResourceKind.Team,
+      ToolImportResourceKind.OnCallSchedule,
+      ToolImportResourceKind.OnCallPolicy,
+      ToolImportResourceKind.Service,
+    ]);
+  });
+
+  test("a refused key fails the run with what to check, clears the key, and never stores it in the error", async () => {
+    const api: FixtureApi = opsGenieApi().add({
+      path: "/v2/account",
+      answers: [json(opsGenieError(401, `bad key ${OPSGENIE_KEY}`), 401)],
+    });
+    ToolImportRunExecutor.transportFactory = () => {
+      return api.transport;
+    };
+
+    const runId: string = readingRun();
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(row["status"]).toBe(ToolImportRunStatus.Failed);
+    expect(row["apiKey"]).toBeNull();
+    expect(row["snapshot"]).toBeNull();
+    expect(row["error"]).toContain("Opsgenie did not accept the API key");
+    expect(String(row["error"])).not.toContain(OPSGENIE_KEY);
+    expect(row["completedAt"]).toBeInstanceOf(Date);
+  });
+
+  test("a run whose key is gone asks for it again", async () => {
+    ToolImportRunExecutor.transportFactory = () => {
+      return opsGenieApi().transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.OpsGenie,
+      region: "US",
+      status: ToolImportRunStatus.Reading,
+      apiKey: null,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(runs.get(runId)).toMatchObject({
+      status: ToolImportRunStatus.Failed,
+      error: "The API key is no longer here. Paste it again to read the tool.",
+    });
+  });
+
+  test("a run another worker holds is left to it", async () => {
+    (Semaphore.lock as jest.Mock).mockRejectedValue(
+      new SemaphoreLockTimeoutError("held"),
+    );
+
+    const runId: string = readingRun();
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(runs.get(runId)["status"]).toBe(ToolImportRunStatus.Reading);
+    expect(ToolImportRunService.findOneById).not.toHaveBeenCalled();
+  });
+
+  test("a finished run is left as it is", async () => {
+    const runId: string = runs.add({
+      source: ToolImportSource.OpsGenie,
+      status: ToolImportRunStatus.Completed,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(runs.updates).toEqual([]);
+    expect(Semaphore.release).toHaveBeenCalled();
+  });
+});
+
+describe("ToolImportRunExecutor: the person starts it", () => {
+  const TEAM_ID: string = ObjectID.generate().toString();
+
+  function readyRun(overrides: Record<string, unknown> = {}): string {
+    return runs.add({
+      source: ToolImportSource.OpsGenie,
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: snapshot({ people: [person("alice")] }),
+      ...overrides,
+    });
+  }
+
+  test("starting stores what was ticked and queues the import", async () => {
+    const runId: string = readyRun();
+
+    await ToolImportRunExecutor.startImport({
+      runId: new ObjectID(runId),
+      projectId: PROJECT_ID,
+      props: PROPS,
+      selection: { selectedKeys: ["Person:alice"], inviteTeamId: TEAM_ID },
+    });
+
+    expect(runs.get(runId)).toMatchObject({
+      status: ToolImportRunStatus.Importing,
+      selection: { selectedKeys: ["Person:alice"], inviteTeamId: TEAM_ID },
+      progress: { done: 0, total: 1 },
+      error: null,
+    });
+    expect(runs.get(runId)["startedAt"]).toBeInstanceOf(Date);
+    expect(Queue.addJob).toHaveBeenCalledWith(
+      "Worker",
+      `${runId}-import`,
+      TOOL_IMPORT_RUN_JOB,
+      { runId: runId },
+      { attempts: 1 },
+    );
+  });
+
+  test("only the person who read the tool may start its import", async () => {
+    const runId: string = readyRun({ createdByUserId: OTHER_USER_ID });
+
+    await expect(
+      ToolImportRunExecutor.startImport({
+        runId: new ObjectID(runId),
+        projectId: PROJECT_ID,
+        props: PROPS,
+        selection: { selectedKeys: ["Person:alice"] },
+      }),
+    ).rejects.toThrow("This import was not found.");
+    expect(Queue.addJob).not.toHaveBeenCalled();
+  });
+
+  test("a run of another project is not found", async () => {
+    const runId: string = readyRun({ projectId: ObjectID.generate() });
+
+    await expect(
+      ToolImportRunExecutor.startImport({
+        runId: new ObjectID(runId),
+        projectId: PROJECT_ID,
+        props: PROPS,
+        selection: { selectedKeys: ["Person:alice"] },
+      }),
+    ).rejects.toThrow("This import was not found.");
+  });
+
+  test("an import that already started cannot start again", async () => {
+    const runId: string = readyRun({ status: ToolImportRunStatus.Importing });
+
+    await expect(
+      ToolImportRunExecutor.startImport({
+        runId: new ObjectID(runId),
+        projectId: PROJECT_ID,
+        props: PROPS,
+        selection: { selectedKeys: ["Person:alice"] },
+      }),
+    ).rejects.toThrow("already started");
+  });
+
+  test("a preview older than a day expires instead of starting", async () => {
+    const runId: string = readyRun({
+      updatedAt: new Date(
+        Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 1000,
+      ),
+    });
+
+    await expect(
+      ToolImportRunExecutor.startImport({
+        runId: new ObjectID(runId),
+        projectId: PROJECT_ID,
+        props: PROPS,
+        selection: { selectedKeys: ["Person:alice"] },
+      }),
+    ).rejects.toThrow("more than a day old");
+    expect(runs.get(runId)).toMatchObject({
+      status: ToolImportRunStatus.Expired,
+      snapshot: null,
+    });
+  });
+
+  test("ticking nothing, or something that is not an item, is refused", async () => {
+    const runId: string = readyRun();
+
+    await expect(
+      ToolImportRunExecutor.startImport({
+        runId: new ObjectID(runId),
+        projectId: PROJECT_ID,
+        props: PROPS,
+        selection: { selectedKeys: [] },
+      }),
+    ).rejects.toThrow("Tick at least one thing to bring over.");
+
+    await expect(
+      ToolImportRunExecutor.startImport({
+        runId: new ObjectID(runId),
+        projectId: PROJECT_ID,
+        props: PROPS,
+        selection: { selectedKeys: ["Rocket:1"] },
+      }),
+    ).rejects.toThrow(BadDataException);
+
+    expect(runs.get(runId)["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+  });
+
+  test("a preview can be discarded by the person who read it, which forgets what was read", async () => {
+    const runId: string = readyRun();
+
+    await ToolImportRunExecutor.cancel({
+      runId: new ObjectID(runId),
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(runs.get(runId)).toMatchObject({
+      status: ToolImportRunStatus.Cancelled,
+      snapshot: null,
+      apiKey: null,
+    });
+
+    await expect(
+      ToolImportRunExecutor.cancel({
+        runId: new ObjectID(runId),
+        projectId: PROJECT_ID,
+        props: PROPS,
+      }),
+    ).rejects.toThrow("Only a preview that was not started can be discarded.");
+  });
+
+  test("the preview is worked out for the person looking, from what was read", async () => {
+    const plan: ToolImportPlan = {} as ToolImportPlan;
+    (ToolImportProjectStateReader.readState as jest.Mock).mockResolvedValue(
+      projectState(),
+    );
+    (ToolImportProjectStateReader.readAccess as jest.Mock).mockResolvedValue(
+      fullAccess(),
+    );
+
+    const runId: string = readyRun();
+    const result: ToolImportPlan = await ToolImportRunExecutor.getPlan({
+      run: runs.toModel(runs.get(runId)),
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(plan).toBeDefined();
+    expect(
+      result.items.map((item: { key: string }): string => {
+        return item.key;
+      }),
+    ).toEqual(["Person:alice"]);
+    expect(ToolImportProjectStateReader.readAccess).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+    expect(ToolImportProjectStateReader.readState).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      source: ToolImportSource.OpsGenie,
+    });
+  });
+});
+
+describe("ToolImportRunExecutor: the worker imports, as the person", () => {
+  const TEAM_ID: string = ObjectID.generate().toString();
+  const REPORT: ToolImportReport = {
+    items: [
+      {
+        key: "Person:alice",
+        kind: ToolImportResourceKind.Person,
+        sourceId: "alice",
+        name: "ALICE",
+        outcome: ToolImportOutcome.Invited,
+        recordIds: [],
+        notes: [],
+      },
+    ],
+  };
+
+  function importingRun(inviteTeamId: string): string {
+    return runs.add({
+      source: ToolImportSource.OpsGenie,
+      status: ToolImportRunStatus.Importing,
+      snapshot: snapshot({ people: [person("alice")] }),
+      selection: { selectedKeys: ["Person:alice"], inviteTeamId: inviteTeamId },
+    });
+  }
+
+  beforeEach(() => {
+    (
+      WorkspaceActionAuthorization.getProjectMemberProps as jest.Mock
+    ).mockResolvedValue(PROPS);
+    (ToolImportProjectStateReader.readState as jest.Mock).mockResolvedValue(
+      projectState(),
+    );
+    (ToolImportProjectStateReader.readAccess as jest.Mock).mockResolvedValue(
+      fullAccess({ inviteTeams: [{ id: TEAM_ID, name: "Members" }] }),
+    );
+    (ToolImportApplier.apply as jest.Mock).mockResolvedValue(REPORT);
+  });
+
+  test("the person's props are read again from the database, the plan worked out again, and the report stored", async () => {
+    const runId: string = importingRun(TEAM_ID);
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(
+      WorkspaceActionAuthorization.getProjectMemberProps,
+    ).toHaveBeenCalledWith({
+      userId: expect.anything(),
+      projectId: expect.anything(),
+    });
+
+    const input: Record<string, unknown> = (
+      ToolImportApplier.apply as jest.Mock
+    ).mock.calls[0]![0] as Record<string, unknown>;
+
+    expect(input["props"]).toBe(PROPS);
+    expect(input["selection"]).toEqual({
+      selectedKeys: ["Person:alice"],
+      inviteTeamId: TEAM_ID,
+    });
+    expect((input["plan"] as ToolImportPlan).items[0]!.key).toBe(
+      "Person:alice",
+    );
+
+    expect(runs.get(runId)).toMatchObject({
+      status: ToolImportRunStatus.Completed,
+      report: REPORT,
+      snapshot: null,
+      progress: null,
+    });
+    expect(runs.get(runId)["completedAt"]).toBeInstanceOf(Date);
+  });
+
+  test("a team the person may no longer invite to invites nobody", async () => {
+    const runId: string = importingRun(ObjectID.generate().toString());
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const input: Record<string, unknown> = (
+      ToolImportApplier.apply as jest.Mock
+    ).mock.calls[0]![0] as Record<string, unknown>;
+
+    expect((input["selection"] as JSONObject)["inviteTeamId"]).toBeNull();
+  });
+
+  test("someone who left the project since is not imported for", async () => {
+    (
+      WorkspaceActionAuthorization.getProjectMemberProps as jest.Mock
+    ).mockRejectedValue(new NotAuthorizedException("not a member"));
+
+    const runId: string = importingRun(TEAM_ID);
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(ToolImportApplier.apply).not.toHaveBeenCalled();
+    expect(runs.get(runId)).toMatchObject({
+      status: ToolImportRunStatus.Failed,
+      error:
+        "You are no longer a member of this project, so the import was stopped.",
+      snapshot: null,
+    });
+  });
+
+  test("an import that throws is failed with the reason", async () => {
+    (ToolImportApplier.apply as jest.Mock).mockRejectedValue(
+      new Error("database went away"),
+    );
+
+    const runId: string = importingRun(TEAM_ID);
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(runs.get(runId)).toMatchObject({
+      status: ToolImportRunStatus.Failed,
+      error: "database went away",
+    });
+  });
+});
+
+describe("ToolImportRunExecutor.sweepStaleRuns", () => {
+  test("runs a dead worker left behind are failed, keys cleared; previews nobody started expire", async () => {
+    const now: Date = new Date();
+    const old: Date = new Date(now.getTime() - TOOL_IMPORT_STALE_RUN_MS - 1000);
+
+    const stuckRead: string = runs.add({
+      status: ToolImportRunStatus.Reading,
+      apiKey: "a-key",
+      updatedAt: old,
+    });
+    const stuckImport: string = runs.add({
+      status: ToolImportRunStatus.Importing,
+      updatedAt: old,
+    });
+    const freshRead: string = runs.add({
+      status: ToolImportRunStatus.Reading,
+      apiKey: "b-key",
+      updatedAt: now,
+    });
+    const oldPreview: string = runs.add({
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: snapshot(),
+      updatedAt: new Date(
+        now.getTime() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 1000,
+      ),
+    });
+    const freshPreview: string = runs.add({
+      status: ToolImportRunStatus.ReadyToReview,
+      updatedAt: now,
+    });
+
+    await ToolImportRunExecutor.sweepStaleRuns(now);
+
+    expect(runs.get(stuckRead)).toMatchObject({
+      status: ToolImportRunStatus.Failed,
+      apiKey: null,
+      error: "The read stopped before it finished. Read the tool again.",
+    });
+    expect(runs.get(stuckImport)).toMatchObject({
+      status: ToolImportRunStatus.Failed,
+      error:
+        "The import stopped before it finished. What it created is kept: run the import again to bring over the rest.",
+    });
+    expect(runs.get(freshRead)).toMatchObject({
+      status: ToolImportRunStatus.Reading,
+      apiKey: "b-key",
+    });
+    expect(runs.get(oldPreview)).toMatchObject({
+      status: ToolImportRunStatus.Expired,
+      snapshot: null,
+    });
+    expect(runs.get(freshPreview)["status"]).toBe(
+      ToolImportRunStatus.ReadyToReview,
+    );
+  });
+});
+
+describe("ToolImportRunExecutor: small rules", () => {
+  test("a failure's message never carries the key", () => {
+    expect(
+      ToolImportRunExecutor.describeFailure(
+        new Error(`refused abcd-1234-efgh`),
+        "abcd-1234-efgh",
+      ),
+    ).toBe("refused [REDACTED]");
+  });
+
+  test("a preview is old after a day", () => {
+    const run: ToolImportRun = new ToolImportRun();
+    run.updatedAt = new Date(
+      Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS + 60_000,
+    );
+    expect(ToolImportRunExecutor.isReviewExpired(run)).toBe(false);
+
+    run.updatedAt = new Date(
+      Date.now() - TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS - 60_000,
+    );
+    expect(ToolImportRunExecutor.isReviewExpired(run)).toBe(true);
+  });
+
+  test("a stored snapshot that is not one reads as nothing", () => {
+    const run: ToolImportRun = new ToolImportRun();
+    run.snapshot = { people: "x" } as unknown as JSONObject;
+    expect(ToolImportRunExecutor.readSnapshot(run)).toBeNull();
+
+    run.snapshot = snapshot() as unknown as JSONObject;
+    expect(ToolImportRunExecutor.readSnapshot(run)).not.toBeNull();
+  });
+});

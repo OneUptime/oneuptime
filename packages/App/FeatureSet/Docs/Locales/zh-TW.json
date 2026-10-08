@@ -73,6 +73,7 @@
   },
   "navGroups": {
     "Introduction": "簡介",
+    "Moving to OneUptime": "移轉到 OneUptime",
     "Installation": "安裝",
     "Mobile & Desktop Apps": "行動和桌面應用程式",
     "Configuration": "設定",
@@ -108,6 +109,8 @@
   },
   "navLinks": {
     "Getting Started": "快速入門",
+    "Moving from Opsgenie": "從 Opsgenie 移轉",
+    "Moving from incident.io": "從 incident.io 移轉",
     "Local Development": "本機開發",
     "Docker Compose": "Docker Compose",
     "Upgrading": "升級",

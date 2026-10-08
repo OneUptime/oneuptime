@@ -73,6 +73,7 @@
   },
   "navGroups": {
     "Introduction": "Introduksjon",
+    "Moving to OneUptime": "Bytt til OneUptime",
     "Installation": "Installasjon",
     "Mobile & Desktop Apps": "Mobil- og skrivebordsapper",
     "Configuration": "Konfigurasjon",
@@ -108,6 +109,8 @@
   },
   "navLinks": {
     "Getting Started": "Kom i gang",
+    "Moving from Opsgenie": "Bytt fra Opsgenie",
+    "Moving from incident.io": "Bytt fra incident.io",
     "Local Development": "Lokal utvikling",
     "Docker Compose": "Docker Compose",
     "Upgrading": "Oppgradering",

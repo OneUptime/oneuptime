@@ -73,6 +73,7 @@
   },
   "navGroups": {
     "Introduction": "소개",
+    "Moving to OneUptime": "OneUptime으로 이전",
     "Installation": "설치",
     "Mobile & Desktop Apps": "모바일 및 데스크톱 앱",
     "Configuration": "구성",
@@ -108,6 +109,8 @@
   },
   "navLinks": {
     "Getting Started": "시작하기",
+    "Moving from Opsgenie": "Opsgenie에서 이전",
+    "Moving from incident.io": "incident.io에서 이전",
     "Local Development": "로컬 개발",
     "Docker Compose": "Docker Compose",
     "Upgrading": "업그레이드",

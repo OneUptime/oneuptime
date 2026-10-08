@@ -7,6 +7,7 @@
     "CloudWatch Metric Streams",
     "Runbook: {{name}}",
     "Runner",
+    "Start import",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web"
   ]
