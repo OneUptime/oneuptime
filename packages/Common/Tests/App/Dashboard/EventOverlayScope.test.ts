@@ -11,8 +11,13 @@ import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
 import Wildcard from "../../../Types/BaseDatabase/Wildcard";
 import ObjectID from "../../../Types/ObjectID";
+import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
+import { buildQueryConfigsFromSerializedQueries } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricConfigReconstruct";
 
 const RESOURCE_A: string = "11111111-1111-4111-8111-111111111111";
 const RESOURCE_B: string = "22222222-2222-4222-8222-222222222222";
@@ -32,6 +37,20 @@ function scope(attributes: Record<string, unknown>): EventOverlayScope {
 function expectSuppressed(result: EventOverlayScope): void {
   expect(result.incidentQueries).toEqual([]);
   expect(result.alertQueries).toEqual([]);
+}
+
+/*
+ * The incidents or alerts raised on one metric: a query in their
+ * telemetryQuery reads it (#4472).
+ */
+function raisedOn(metricName: string): Record<string, unknown> {
+  return {
+    telemetryQuery: {
+      metricViewData: {
+        queryConfigs: [{ metricQueryData: { filterData: { metricName } } }],
+      },
+    },
+  };
 }
 
 const ID_RELATIONS: Array<[string, string]> = [
@@ -720,27 +739,38 @@ describe("event overlay resource scope", () => {
     /*
      * `name`, `host` and `component_name` are generic keys: without the
      * array they are not a storage array's objects at all, and must not
-     * become series-label predicates.
+     * become series-label predicates. The chart is as unscoped as one with
+     * no filter.
      */
     for (const childKey of ["name", "host", "component_name"]) {
       const result: EventOverlayScope = scope({ [childKey]: "x" });
-      expect(result.incidentQueries).toEqual([{}]);
-      expect(result.alertQueries).toEqual([{}]);
+      expect(result).toEqual(scope({}));
+      expect(result.incidentQueries).toEqual([raisedOn("cpu")]);
+      expect(result.alertQueries).toEqual([raisedOn("cpu")]);
     }
   });
 
-  test("retains project-wide events only for genuinely unscoped metrics", () => {
-    const unscoped: EventOverlayScope = {
+  test("keeps the project's timeline only for a caller with no chart at all", () => {
+    const projectWide: EventOverlayScope = {
       incidentQueries: [{}],
       alertQueries: [{}],
       changeEventQueries: [{}],
     };
-    expect(getEventOverlayScope(undefined)).toEqual(unscoped);
-    expect(getEventOverlayScope([])).toEqual(unscoped);
+    expect(getEventOverlayScope(undefined)).toEqual(projectWide);
+    expect(getEventOverlayScope([])).toEqual(projectWide);
+  });
+
+  test("a metric filtered to no resource shows what was raised on that metric", () => {
+    const metricScoped: EventOverlayScope = {
+      incidentQueries: [raisedOn("cpu")],
+      alertQueries: [raisedOn("cpu")],
+      changeEventQueries: [{}],
+    };
+    expect(scope({})).toEqual(metricScoped);
     expect(scope({ projectId: RESOURCE_A, probeId: RESOURCE_B })).toEqual(
-      unscoped,
+      metricScoped,
     );
-    expect(scope({ "http.method": "GET" })).toEqual(unscoped);
+    expect(scope({ "http.method": "GET" })).toEqual(metricScoped);
   });
 
   test("deduplicates repeated resource queries and canonicalizes the refresh identity", () => {
@@ -1013,5 +1043,312 @@ describe("database overlays match by id, never by the stamped display name", () 
         ]),
       }),
     );
+  });
+});
+
+/*
+ * Issue #4472. The metric explorer opened from the Metrics list charts one
+ * metric with no resource filter, and its Events overlay drew every incident
+ * and alert in the project: a status page monitor's outage on a container's
+ * CPU chart. A chart like that now overlays the incidents and alerts raised
+ * on the metric it plots, and change events as before.
+ */
+describe("incidents and alerts on a chart filtered to no resource", () => {
+  function metricConfig(
+    metricName: unknown,
+    attributes: Record<string, unknown> = {},
+  ): MetricQueryConfigData {
+    return {
+      metricQueryData: { filterData: { metricName, attributes } },
+    } as MetricQueryConfigData;
+  }
+
+  // The explorer's queries for a `metricQueries` URL parameter.
+  function explorerQueries(
+    serialized: Array<Record<string, unknown>>,
+  ): Array<MetricQueryConfigData> {
+    return buildQueryConfigsFromSerializedQueries(
+      MetricExplorerUrl.parseMetricQueriesParam(JSON.stringify(serialized)),
+    );
+  }
+
+  test("the explorer opened from the Metrics list overlays what was raised on its metric", () => {
+    // What MetricsViewer's row click writes for an unfiltered list.
+    const result: EventOverlayScope = getEventOverlayScope(
+      explorerQueries([
+        {
+          metricName: "container_cpu_cfs_periods_total",
+          aggregationType: MetricsAggregationType.Avg,
+        },
+      ]),
+    );
+
+    expect(result.incidentQueries).toEqual([
+      raisedOn("container_cpu_cfs_periods_total"),
+    ]);
+    expect(result.alertQueries).toEqual([
+      raisedOn("container_cpu_cfs_periods_total"),
+    ]);
+    expect(result.incidentQueries).not.toContainEqual({});
+    expect(result.alertQueries).not.toContainEqual({});
+    expect(result.changeEventQueries).toEqual([{}]);
+  });
+
+  test("the explorer opened from a host's Metrics tab keeps that host's events", () => {
+    // What the same row click writes on a host page (Host/View/Metrics).
+    const result: EventOverlayScope = getEventOverlayScope(
+      explorerQueries([
+        {
+          metricName: "system.cpu.utilization",
+          aggregationType: MetricsAggregationType.Avg,
+          attributes: { "resource.host.name": "web-1" },
+          eventScope: { "resource.host.name": "web-1" },
+        },
+      ]),
+    );
+
+    expect(result.incidentQueries).toEqual([
+      { hosts: { hostIdentifier: "web-1" } },
+    ]);
+    expect(result.alertQueries).toEqual([
+      { hosts: { hostIdentifier: "web-1" } },
+    ]);
+    expect(result.changeEventQueries).toEqual([
+      { attributes: { "resource.host.name": "web-1" } },
+    ]);
+  });
+
+  test.each([
+    ["host.name", "hosts"],
+    ["resource.k8s.cluster.name", "kubernetesClusters"],
+    ["resource.service.name", "services"],
+  ])(
+    "a chart filtered to a resource by %s is not narrowed to its metric",
+    (key: string, relation: string) => {
+      const result: EventOverlayScope = getEventOverlayScope([
+        metricConfig("cpu", { [key]: "prod" }),
+      ]);
+      for (const queries of [result.incidentQueries, result.alertQueries]) {
+        expect(queries).toHaveLength(1);
+        expect(Object.keys(queries[0]!)).toEqual([relation]);
+        expect(queries[0]).not.toHaveProperty("telemetryQuery");
+      }
+    },
+  );
+
+  test("a chart filtered to a monitor keeps that monitor's events", () => {
+    const result: EventOverlayScope = getEventOverlayScope([
+      metricConfig("oneuptime.monitor.response.time", {
+        monitorId: RESOURCE_A,
+      }),
+    ]);
+    expect(result.incidentQueries).toEqual([{ monitors: { _id: RESOURCE_A } }]);
+    expect(result.alertQueries).toEqual([{ monitorId: RESOURCE_A }]);
+  });
+
+  test("names the metric where every metric-evaluating monitor records it, and nothing else", () => {
+    /*
+     * Spelled out rather than built with raisedOn: this is the path
+     * MonitorResource writes, and containment asks nothing more of it.
+     */
+    const expected: Record<string, unknown> = {
+      telemetryQuery: {
+        metricViewData: {
+          queryConfigs: [
+            {
+              metricQueryData: {
+                filterData: { metricName: "system.memory.usage" },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const result: EventOverlayScope = getEventOverlayScope([
+      metricConfig("system.memory.usage"),
+    ]);
+    expect(result.incidentQueries).toEqual([expected]);
+    expect(result.alertQueries).toEqual([expected]);
+  });
+
+  test("the chart's other filters do not change which metric it names", () => {
+    expect(
+      getEventOverlayScope([
+        metricConfig("http.server.duration", {
+          "http.method": "GET",
+          "http.route": new Includes(["/a", "/b"]),
+        }),
+      ]),
+    ).toEqual(getEventOverlayScope([metricConfig("http.server.duration")]));
+  });
+
+  test("grouping, aggregation and display settings do not change the scope", () => {
+    const plain: MetricQueryConfigData = metricConfig("cpu");
+    const dressed: MetricQueryConfigData = {
+      ...metricConfig("cpu"),
+      id: "chart-a",
+      color: "#123456",
+      warningThreshold: 80,
+      transformAsRate: true,
+    };
+    dressed.metricQueryData.groupByAttributeKeys = ["host.name"];
+    dressed.metricQueryData.filterData.aggegationType =
+      MetricsAggregationType.Max;
+    expect(getEventOverlayScope([dressed])).toEqual(
+      getEventOverlayScope([plain]),
+    );
+  });
+
+  test("each unscoped metric on a chart contributes its own events", () => {
+    const result: EventOverlayScope = getEventOverlayScope([
+      metricConfig("memory"),
+      metricConfig("cpu"),
+      metricConfig("memory"),
+    ]);
+    expect(result.incidentQueries).toEqual([
+      raisedOn("cpu"),
+      raisedOn("memory"),
+    ]);
+    expect(result.alertQueries).toEqual(result.incidentQueries);
+    expect(result.changeEventQueries).toEqual([{}]);
+  });
+
+  test("an unscoped query beside a resource-scoped one no longer opens the whole project", () => {
+    const result: EventOverlayScope = getEventOverlayScope([
+      metricConfig("system.cpu.utilization", { "host.name": "web-1" }),
+      metricConfig("container_cpu_cfs_periods_total"),
+    ]);
+    expect(result.incidentQueries).toEqual(
+      expect.arrayContaining([
+        { hosts: { hostIdentifier: "web-1" } },
+        raisedOn("container_cpu_cfs_periods_total"),
+      ]),
+    );
+    expect(result.incidentQueries).toHaveLength(2);
+    expect(result.alertQueries).toEqual(result.incidentQueries);
+    // Change events keep their project-wide reading for the unscoped query.
+    expect(result.changeEventQueries).toEqual([{}]);
+  });
+
+  test("the scope reads the same whatever order the queries come in", () => {
+    const first: Array<MetricQueryConfigData> = [
+      metricConfig("cpu"),
+      metricConfig("memory", { "host.name": "web-1" }),
+    ];
+    const second: Array<MetricQueryConfigData> = [
+      metricConfig("memory", { "host.name": "web-1" }),
+      metricConfig("cpu"),
+    ];
+    expect(JSON.stringify(getEventOverlayScope(first))).toBe(
+      JSON.stringify(getEventOverlayScope(second)),
+    );
+  });
+
+  test("a blank draft beside an unscoped metric does not widen it", () => {
+    expect(
+      getEventOverlayScope([metricConfig("cpu"), metricConfig("")]),
+    ).toEqual(getEventOverlayScope([metricConfig("cpu")]));
+    expect(
+      getEventOverlayScope([metricConfig("   "), metricConfig("cpu")]),
+    ).toEqual(getEventOverlayScope([metricConfig("cpu")]));
+  });
+
+  test("drafts alone still request nothing", () => {
+    expect(
+      getEventOverlayScope([metricConfig(""), metricConfig(undefined)]),
+    ).toEqual({
+      incidentQueries: [],
+      alertQueries: [],
+      changeEventQueries: [],
+    });
+  });
+
+  test.each([42, true, { name: "cpu" }, ["cpu"]])(
+    "a metric name that is not text (%p) overlays no incident or alert",
+    (metricName: unknown) => {
+      const result: EventOverlayScope = getEventOverlayScope([
+        metricConfig(metricName),
+      ]);
+      expectSuppressed(result);
+    },
+  );
+
+  test("keeps metric names with quotes, wildcards and other text verbatim", () => {
+    for (const metricName of [
+      'it\'s "quoted"',
+      "100%_of_cpu",
+      "cpu*",
+      "métrica.cpu",
+      " padded ",
+    ]) {
+      expect(
+        getEventOverlayScope([metricConfig(metricName)]).incidentQueries,
+      ).toEqual([raisedOn(metricName)]);
+    }
+  });
+
+  test("a suppressed resource stays suppressed rather than falling back to the metric", () => {
+    expectSuppressed(
+      getEventOverlayScope([
+        metricConfig("cpu", { networkDeviceId: RESOURCE_A }),
+      ]),
+    );
+    expectSuppressed(
+      getEventOverlayScope([
+        metricConfig("cpu", { "resource.container.runtime": "docker" }),
+      ]),
+    );
+    expectSuppressed(
+      getEventOverlayScope([metricConfig("cpu", { monitorId: "not-a-uuid" })]),
+    );
+  });
+
+  test("an explicit event scope still decides the chart's events", () => {
+    const declared: MetricQueryConfigData = metricConfig("cpu");
+    declared.eventScope = { hostId: RESOURCE_A };
+    expect(getEventOverlayScope([declared]).incidentQueries).toEqual([
+      { hosts: { _id: RESOURCE_A } },
+    ]);
+
+    const empty: MetricQueryConfigData = metricConfig("cpu");
+    empty.eventScope = {};
+    expect(getEventOverlayScope([empty])).toEqual({
+      incidentQueries: [],
+      alertQueries: [],
+      changeEventQueries: [],
+    });
+  });
+
+  test("more unscoped metrics than the request budget are refused, not widened", () => {
+    const configs: Array<MetricQueryConfigData> = Array.from(
+      { length: EVENT_OVERLAY_SCOPE_QUERY_LIMIT + 1 },
+      (_: unknown, index: number): MetricQueryConfigData => {
+        return metricConfig(`metric.${index}`);
+      },
+    );
+    expectSuppressed(getEventOverlayScope(configs));
+    expect(
+      getEventOverlayScope(configs.slice(0, EVENT_OVERLAY_SCOPE_QUERY_LIMIT))
+        .incidentQueries,
+    ).toHaveLength(EVENT_OVERLAY_SCOPE_QUERY_LIMIT);
+  });
+
+  test("survives the list request's serialization unchanged", () => {
+    for (const query of getEventOverlayScope([metricConfig("cpu")])
+      .incidentQueries) {
+      const sent: JSONObject = JSON.parse(
+        JSON.stringify(JSONFunctions.serialize(query as JSONObject)),
+      );
+      expect(JSONFunctions.deserialize(sent)).toEqual(query);
+    }
+  });
+
+  test("does not mutate the chart's query", () => {
+    const query: MetricQueryConfigData = metricConfig("cpu", {
+      "http.method": "GET",
+    });
+    const before: string = JSON.stringify(query);
+    getEventOverlayScope([query]);
+    expect(JSON.stringify(query)).toBe(before);
   });
 });

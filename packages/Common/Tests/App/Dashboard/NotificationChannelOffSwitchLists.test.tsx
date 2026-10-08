@@ -150,8 +150,12 @@ interface MethodList {
   modelType: DatabaseBaseModelType;
   // The identifying columns of a row.
   columns: JSONObject;
-  // The row action that sends a new code.
-  codeActionTitle: string;
+  /*
+   * The row action that sends a new code - unset where the verify dialog
+   * sends it instead (SMS, calls, WhatsApp, incoming call numbers), and says
+   * up front when the server would refuse to.
+   */
+  codeActionTitle?: string | undefined;
   // Whether the server refuses that action while the channel is off.
   isCodeActionRefusedWhileOff: boolean;
   // The empty list's heading while the channel is on.
@@ -165,7 +169,6 @@ const METHOD_LISTS: Array<MethodList> = [
     Component: SMSMethods,
     modelType: UserSMS,
     columns: { phone: new Phone("+15551230100") as never },
-    codeActionTitle: "Resend Code",
     isCodeActionRefusedWhileOff: true,
     usualEmptyTitle: "No phone numbers found",
   },
@@ -175,7 +178,6 @@ const METHOD_LISTS: Array<MethodList> = [
     Component: CallMethods,
     modelType: UserCall,
     columns: { phone: new Phone("+15551230199") as never },
-    codeActionTitle: "Resend Code",
     isCodeActionRefusedWhileOff: true,
     usualEmptyTitle: "No phone numbers found",
   },
@@ -185,7 +187,6 @@ const METHOD_LISTS: Array<MethodList> = [
     Component: WhatsAppMethods,
     modelType: UserWhatsApp,
     columns: { phone: new Phone("+15551230123") as never },
-    codeActionTitle: "Resend Code",
     isCodeActionRefusedWhileOff: false,
     usualEmptyTitle: "No WhatsApp numbers found",
   },
@@ -205,7 +206,6 @@ const METHOD_LISTS: Array<MethodList> = [
     Component: IncomingCallNumberMethods,
     modelType: UserIncomingCallNumber,
     columns: { phone: new Phone("+15551230177") as never },
-    codeActionTitle: "Resend Code",
     isCodeActionRefusedWhileOff: true,
     usualEmptyTitle: "No phone numbers found",
   },
@@ -558,7 +558,13 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     // It can still be removed.
     expect(labels).toContain("Delete");
 
-    if (list.isCodeActionRefusedWhileOff) {
+    if (!list.codeActionTitle) {
+      /*
+       * No code from the row at all: the verify dialog sends one, and asks
+       * the server first whether it can (VerificationCodeModal).
+       */
+      expect(labels).toEqual(["Delete"]);
+    } else if (list.isCodeActionRefusedWhileOff) {
       // The server refuses to send a code while the channel is off.
       expect(labels).not.toContain(list.codeActionTitle);
     } else {
@@ -575,7 +581,10 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
 
     const [row] = screen.getAllByTestId("row-actions");
 
-    expect(menuLabelsOf(row!)).toEqual([list.codeActionTitle, "Delete"]);
+    // A new code comes from the verify dialog where the list has no action.
+    expect(menuLabelsOf(row!)).toEqual(
+      list.codeActionTitle ? [list.codeActionTitle, "Delete"] : ["Delete"],
+    );
   });
 
   test("turned on from the panel, Add appears at once and the panel stays, saying it is on", async () => {
