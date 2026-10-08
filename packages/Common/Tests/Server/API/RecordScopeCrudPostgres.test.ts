@@ -20,8 +20,12 @@ import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertInternalNote from "../../../Models/DatabaseModels/AlertInternalNote";
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
+import DashboardOwnerTeam from "../../../Models/DatabaseModels/DashboardOwnerTeam";
+import DashboardOwnerUser from "../../../Models/DatabaseModels/DashboardOwnerUser";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
+import IncomingCallPolicyOwnerTeam from "../../../Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
+import IncomingCallPolicyOwnerUser from "../../../Models/DatabaseModels/IncomingCallPolicyOwnerUser";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import Label from "../../../Models/DatabaseModels/Label";
 import LlmCostBudget from "../../../Models/DatabaseModels/LlmCostBudget";
@@ -29,8 +33,12 @@ import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnn
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageOwnerTeam from "../../../Models/DatabaseModels/StatusPageOwnerTeam";
 import MetricPipelineRule from "../../../Models/DatabaseModels/MetricPipelineRule";
+import MonitorGroupOwnerTeam from "../../../Models/DatabaseModels/MonitorGroupOwnerTeam";
+import MonitorGroupOwnerUser from "../../../Models/DatabaseModels/MonitorGroupOwnerUser";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyOwnerTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
+import OnCallDutyPolicyOwnerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import Service from "../../../Models/DatabaseModels/Service";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -96,6 +104,9 @@ import { DataSource, Logger } from "typeorm";
  *     about too; a creator who may create only what they own owns it, or
  *     it is not created.
  *   - An AI insight follows the service it names.
+ *   - Who owns an on-call policy, a monitor group, a dashboard or an
+ *     incoming call policy is listed, read, added and removed through the
+ *     record they own.
  *   - The work per request does not grow with the rows it reads.
  *
  * The services are plain DatabaseServices: the pipeline under test is
@@ -202,6 +213,18 @@ const TABLES: Array<string> = [
   "OnCallDutyPolicyOwnerUser",
   "OnCallDutyPolicyOwnerTeam",
   "LlmCostBudget",
+  "MonitorGroup",
+  "MonitorGroupLabel",
+  "MonitorGroupOwnerUser",
+  "MonitorGroupOwnerTeam",
+  "Dashboard",
+  "DashboardLabel",
+  "DashboardOwnerUser",
+  "DashboardOwnerTeam",
+  "IncomingCallPolicy",
+  "IncomingCallPolicyLabel",
+  "IncomingCallPolicyOwnerUser",
+  "IncomingCallPolicyOwnerTeam",
 ];
 
 interface PermissionRow {
@@ -307,6 +330,23 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     LlmCostBudget,
     new DatabaseService(LlmCostBudget) as DatabaseService<BaseModel>,
   );
+
+  // Who owns what, each kind through the record it owns.
+  for (const ownerModelType of [
+    OnCallDutyPolicyOwnerUser,
+    OnCallDutyPolicyOwnerTeam,
+    MonitorGroupOwnerUser,
+    MonitorGroupOwnerTeam,
+    DashboardOwnerUser,
+    DashboardOwnerTeam,
+    IncomingCallPolicyOwnerUser,
+    IncomingCallPolicyOwnerTeam,
+  ] as Array<{ new (): BaseModel }>) {
+    new BaseAPI(
+      ownerModelType,
+      new DatabaseService(ownerModelType) as DatabaseService<BaseModel>,
+    );
+  }
 
   // The signed-in member: in the home project and the second project.
   const memberId: ObjectID = ObjectID.generate();
@@ -5962,6 +6002,438 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         sorted([chartedAlertId, chartedProductionAlertId]),
       );
     });
+  });
+
+  /*
+   * WHO OWNS A RECORD, READ THROUGH THE RECORD. The owners of an on-call
+   * policy, a monitor group, a dashboard and an incoming call policy are
+   * listed, counted, read, added and removed through the record they own
+   * (@CanAccessIfCanReadOn): a caller whose read of those records is
+   * limited to a label reaches the owners of the records carrying it and
+   * no others, whatever their permission on the owner rows themselves. A
+   * record they may not read is answered like one that is not there.
+   */
+  describe("who owns a record, read through the record", () => {
+    interface OwnerTableCase {
+      ownerTable: string;
+      path: string;
+      ownerColumn: "userId" | "teamId";
+      ownerPermissions: Array<Permission>;
+    }
+
+    interface OwnedKind {
+      kind: string;
+      recordTable: string;
+      labelTable: string;
+      recordColumn: string;
+      readRecords: Permission;
+      recordColumns: Dictionary<unknown>;
+      owners: Array<OwnerTableCase>;
+    }
+
+    const KINDS: Array<OwnedKind> = [
+      {
+        kind: "on-call policy",
+        recordTable: "OnCallDutyPolicy",
+        labelTable: "OnCallDutyPolicyLabel",
+        recordColumn: "onCallDutyPolicyId",
+        readRecords: Permission.ReadProjectOnCallDutyPolicy,
+        recordColumns: {},
+        owners: [
+          {
+            ownerTable: "OnCallDutyPolicyOwnerUser",
+            path: "/onCallDutyPolicy-owner-user",
+            ownerColumn: "userId",
+            ownerPermissions: [
+              Permission.ReadOnCallDutyPolicyOwnerUser,
+              Permission.CreateOnCallDutyPolicyOwnerUser,
+              Permission.DeleteOnCallDutyPolicyOwnerUser,
+            ],
+          },
+          {
+            ownerTable: "OnCallDutyPolicyOwnerTeam",
+            path: "/on-call-duty-policy-owner-team",
+            ownerColumn: "teamId",
+            ownerPermissions: [
+              Permission.ReadOnCallDutyPolicyOwnerTeam,
+              Permission.CreateOnCallDutyPolicyOwnerTeam,
+              Permission.DeleteOnCallDutyPolicyOwnerTeam,
+            ],
+          },
+        ],
+      },
+      {
+        kind: "monitor group",
+        recordTable: "MonitorGroup",
+        labelTable: "MonitorGroupLabel",
+        recordColumn: "monitorGroupId",
+        readRecords: Permission.ReadMonitorGroup,
+        recordColumns: {},
+        owners: [
+          {
+            ownerTable: "MonitorGroupOwnerUser",
+            path: "/monitor-group-owner-user",
+            ownerColumn: "userId",
+            ownerPermissions: [
+              Permission.ReadMonitorGroupOwnerUser,
+              Permission.CreateMonitorGroupOwnerUser,
+              Permission.DeleteMonitorGroupOwnerUser,
+            ],
+          },
+          {
+            ownerTable: "MonitorGroupOwnerTeam",
+            path: "/monitor-group-owner-team",
+            ownerColumn: "teamId",
+            ownerPermissions: [
+              Permission.ReadMonitorGroupOwnerTeam,
+              Permission.CreateMonitorGroupOwnerTeam,
+              Permission.DeleteMonitorGroupOwnerTeam,
+            ],
+          },
+        ],
+      },
+      {
+        kind: "dashboard",
+        recordTable: "Dashboard",
+        labelTable: "DashboardLabel",
+        recordColumn: "dashboardId",
+        readRecords: Permission.ReadDashboard,
+        recordColumns: {
+          dashboardViewConfig: { _type: "DashboardViewConfig", components: [] },
+        },
+        owners: [
+          {
+            ownerTable: "DashboardOwnerUser",
+            path: "/dashboard-owner-user",
+            ownerColumn: "userId",
+            ownerPermissions: [
+              Permission.ReadDashboardOwnerUser,
+              Permission.CreateDashboardOwnerUser,
+              Permission.DeleteDashboardOwnerUser,
+            ],
+          },
+          {
+            ownerTable: "DashboardOwnerTeam",
+            path: "/dashboard-owner-team",
+            ownerColumn: "teamId",
+            ownerPermissions: [
+              Permission.ReadDashboardOwnerTeam,
+              Permission.CreateDashboardOwnerTeam,
+              Permission.DeleteDashboardOwnerTeam,
+            ],
+          },
+        ],
+      },
+      {
+        kind: "incoming call policy",
+        recordTable: "IncomingCallPolicy",
+        labelTable: "IncomingCallPolicyLabel",
+        recordColumn: "incomingCallPolicyId",
+        readRecords: Permission.ReadProjectIncomingCallPolicy,
+        recordColumns: {},
+        owners: [
+          {
+            ownerTable: "IncomingCallPolicyOwnerUser",
+            path: "/incoming-call-policy-owner-user",
+            ownerColumn: "userId",
+            ownerPermissions: [
+              Permission.ReadIncomingCallPolicyOwnerUser,
+              Permission.CreateIncomingCallPolicyOwnerUser,
+              Permission.DeleteIncomingCallPolicyOwnerUser,
+            ],
+          },
+          {
+            ownerTable: "IncomingCallPolicyOwnerTeam",
+            path: "/incoming-call-policy-owner-team",
+            ownerColumn: "teamId",
+            ownerPermissions: [
+              Permission.ReadIncomingCallPolicyOwnerTeam,
+              Permission.CreateIncomingCallPolicyOwnerTeam,
+              Permission.DeleteIncomingCallPolicyOwnerTeam,
+            ],
+          },
+        ],
+      },
+    ];
+
+    const CASES: Array<OwnedKind & OwnerTableCase> = KINDS.flatMap(
+      (kind: OwnedKind): Array<OwnedKind & OwnerTableCase> => {
+        return kind.owners.map(
+          (owner: OwnerTableCase): OwnedKind & OwnerTableCase => {
+            return { ...kind, ...owner };
+          },
+        );
+      },
+    );
+
+    afterAll(async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+    });
+
+    describe.each(CASES)(
+      "$ownerTable, through the $kind it names",
+      (data: OwnedKind & OwnerTableCase) => {
+        // A record carrying each label, and an owner row on each.
+        const productionRecordId: ObjectID = ObjectID.generate();
+        const stagingRecordId: ObjectID = ObjectID.generate();
+        const productionOwnerRowId: ObjectID = ObjectID.generate();
+        const stagingOwnerRowId: ObjectID = ObjectID.generate();
+
+        const insertRecord: (
+          id: ObjectID,
+          labelId: ObjectID,
+        ) => Promise<void> = async (
+          id: ObjectID,
+          labelId: ObjectID,
+        ): Promise<void> => {
+          await insert(data.recordTable, {
+            _id: id,
+            projectId: homeProjectId,
+            name: `Owned ${id.toString()}`,
+            slug: `owned-${id.toString()}`,
+            version: 1,
+            ...data.recordColumns,
+          });
+          await insert(data.labelTable, {
+            [data.recordColumn]: id,
+            labelId: labelId,
+          });
+        };
+
+        const insertOwnerRow: (
+          id: ObjectID,
+          recordId: ObjectID,
+          ownerId: ObjectID,
+        ) => Promise<void> = async (
+          id: ObjectID,
+          recordId: ObjectID,
+          ownerId: ObjectID,
+        ): Promise<void> => {
+          await insert(data.ownerTable, {
+            _id: id,
+            projectId: homeProjectId,
+            [data.recordColumn]: recordId,
+            [data.ownerColumn]: ownerId,
+            version: 1,
+          });
+        };
+
+        // Somebody the owner rows name: the member, or their team.
+        const owner: () => ObjectID = (): ObjectID => {
+          return data.ownerColumn === "userId" ? memberId : homeTeamId;
+        };
+
+        const ownerRowsOf: (recordId: ObjectID) => Promise<number> = async (
+          recordId: ObjectID,
+        ): Promise<number> => {
+          const rows: Array<{ count: string }> = await database.query(
+            `SELECT COUNT(*) AS "count" FROM "${schema}"."${data.ownerTable}" WHERE "${data.recordColumn}" = $1`,
+            [recordId.toString()],
+          );
+
+          return Number(rows[0]?.count || 0);
+        };
+
+        // A read of the records limited to the production label.
+        const readerOfProduction: () => Promise<void> =
+          async (): Promise<void> => {
+            await setTeamPermissions(homeTeamId, homeProjectId, [
+              {
+                permission: data.readRecords,
+                labelIds: [productionLabelId],
+              },
+              ...data.ownerPermissions.map(
+                (permission: Permission): PermissionRow => {
+                  return { permission: permission };
+                },
+              ),
+            ]);
+          };
+
+        beforeAll(async () => {
+          await insertRecord(productionRecordId, productionLabelId);
+          await insertRecord(stagingRecordId, stagingLabelId);
+          await insertOwnerRow(
+            productionOwnerRowId,
+            productionRecordId,
+            owner(),
+          );
+          await insertOwnerRow(stagingOwnerRowId, stagingRecordId, owner());
+        });
+
+        afterAll(async () => {
+          await removeRows([
+            [data.ownerTable, data.recordColumn, productionRecordId],
+            [data.ownerTable, data.recordColumn, stagingRecordId],
+            [data.labelTable, data.recordColumn, productionRecordId],
+            [data.labelTable, data.recordColumn, stagingRecordId],
+            [data.recordTable, "_id", productionRecordId],
+            [data.recordTable, "_id", stagingRecordId],
+          ]);
+        });
+
+        test("lists and counts the owners of the records carrying the label only", async () => {
+          await readerOfProduction();
+
+          const listed: Outcome = await list(data.path, homeUser);
+
+          expect(listed.error).toBeUndefined();
+          expect(listed.ids).toContain(productionOwnerRowId.toString());
+          expect(listed.ids).not.toContain(stagingOwnerRowId.toString());
+
+          const counted: Outcome = await count(data.path, homeUser);
+
+          expect(counted.count).toBe(listed.ids!.length);
+        });
+
+        test("reads an owner by id only through a record carrying the label", async () => {
+          await readerOfProduction();
+
+          const read: Outcome = await getItem(
+            data.path,
+            homeUser,
+            productionOwnerRowId,
+          );
+
+          expect(read.item?.id?.toString()).toBe(
+            productionOwnerRowId.toString(),
+          );
+
+          expectNotFound(
+            await getItem(data.path, homeUser, stagingOwnerRowId),
+          );
+        });
+
+        test("adds an owner only to a record carrying the label", async () => {
+          await readerOfProduction();
+
+          const added: Outcome = await send({
+            uri: data.path,
+            caller: homeUser,
+            body: {
+              data: JSONFunctions.serialize({
+                [data.recordColumn]: productionRecordId,
+                [data.ownerColumn]: ObjectID.generate(),
+              }),
+            },
+          });
+
+          expect(added.error).toBeUndefined();
+          expect(await ownerRowsOf(productionRecordId)).toBe(2);
+
+          const refused: Outcome = await send({
+            uri: data.path,
+            caller: homeUser,
+            body: {
+              data: JSONFunctions.serialize({
+                [data.recordColumn]: stagingRecordId,
+                [data.ownerColumn]: ObjectID.generate(),
+              }),
+            },
+          });
+
+          // A record the caller may not read reads like a missing one.
+          expect(refused.error).toBeInstanceOf(BadDataException);
+          expect((refused.error as Error).message).toContain(
+            `references records that are not in this project`,
+          );
+          expect((refused.error as Error).message).toContain(
+            `"${stagingRecordId.toString()}"`,
+          );
+          expect(await ownerRowsOf(stagingRecordId)).toBe(1);
+
+          await database.query(
+            `DELETE FROM "${schema}"."${data.ownerTable}" WHERE "${data.recordColumn}" = $1 AND "_id" <> $2`,
+            [productionRecordId.toString(), productionOwnerRowId.toString()],
+          );
+        });
+
+        test("removes an owner only from a record carrying the label", async () => {
+          await readerOfProduction();
+
+          expectNotFound(await remove(data.path, homeUser, stagingOwnerRowId));
+          expect(await rowExists(data.ownerTable, stagingOwnerRowId)).toBe(
+            true,
+          );
+
+          const removed: Outcome = await remove(
+            data.path,
+            homeUser,
+            productionOwnerRowId,
+          );
+
+          expect(removed.isEmptySuccess).toBe(true);
+          expect(await ownerRowsOf(productionRecordId)).toBe(0);
+
+          // Put back for the tests after this one.
+          await insertOwnerRow(
+            productionOwnerRowId,
+            productionRecordId,
+            owner(),
+          );
+        });
+
+        test("a read of every record of the kind reaches the owners of each", async () => {
+          await setTeamPermissions(homeTeamId, homeProjectId, [
+            { permission: data.readRecords },
+            ...data.ownerPermissions.map(
+              (permission: Permission): PermissionRow => {
+                return { permission: permission };
+              },
+            ),
+          ]);
+
+          const listed: Outcome = await list(data.path, homeUser);
+
+          expect(listed.ids).toEqual(
+            expect.arrayContaining([
+              productionOwnerRowId.toString(),
+              stagingOwnerRowId.toString(),
+            ]),
+          );
+
+          const read: Outcome = await getItem(
+            data.path,
+            homeUser,
+            stagingOwnerRowId,
+          );
+
+          expect(read.item?.id?.toString()).toBe(stagingOwnerRowId.toString());
+        });
+
+        test("a permission on the owner rows alone, with no read of the records, reaches no owner", async () => {
+          await setTeamPermissions(
+            homeTeamId,
+            homeProjectId,
+            data.ownerPermissions.map(
+              (permission: Permission): PermissionRow => {
+                return { permission: permission };
+              },
+            ),
+          );
+
+          const listed: Outcome = await list(data.path, homeUser);
+
+          if (listed.error) {
+            expectRefused(listed);
+          } else {
+            expect(listed.ids).not.toContain(productionOwnerRowId.toString());
+            expect(listed.ids).not.toContain(stagingOwnerRowId.toString());
+          }
+
+          const read: Outcome = await getItem(
+            data.path,
+            homeUser,
+            productionOwnerRowId,
+          );
+
+          expect(read.item).toBeUndefined();
+          expect(read.error).toBeInstanceOf(Exception);
+        });
+      },
+    );
   });
 
   /*
