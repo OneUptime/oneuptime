@@ -205,14 +205,40 @@ Without inbound access, browser authorization and outbound API/Git operations ma
 
 ### Common Issues
 
-**"This GitHub connection link is invalid, has expired, or has already been used":**
+When GitHub sends you back and the installation was not connected, **Code Repositories** says **GitHub was not connected**, with one sentence saying why, in your language. It never shows what GitHub itself answered: that is in the OneUptime server log, with the reason. The sentences are:
+
+**"This connection link is invalid, has expired, or has already been used. Please start again.":**
 
 - Start again from **Code Repositories** and finish on GitHub within 15 minutes, in the same browser
 - Installing the app from its page on GitHub does not connect it to a project. Start from **Code Repositories** in OneUptime
 
 **"You do not have permission to add code repositories to this project":**
 
-- Connecting needs permission to add code repositories (see Step 9). Ask a project admin to grant it
+- Connecting needs permission to add code repositories (see Step 9). Ask a project admin to grant it. It is asked again when GitHub sends you back, so a permission taken away in the meantime ends the connection here too
+
+**"Connecting GitHub needs the ... plan.":**
+
+- On OneUptime Cloud, code repositories need the plan the sentence names. Upgrade the project's plan, then connect again
+
+**"GitHub did not confirm who installed the app, so the installation could not be checked.":**
+
+- Turn on **Request user authorization (OAuth) during installation** in the GitHub App's settings (see Step 1), then connect again
+
+**"OneUptime could not confirm that your GitHub account can manage this installation.":**
+
+- The GitHub account that finished the installation does not administer it. Install the app with an account that owns the organization or user it is installed on, or ask an owner to
+
+**"GitHub did not send an installation back.":**
+
+- When an organization member requests the app instead of installing it, an owner of the organization has to approve the request first. Connect again once they have
+
+**"The GitHub App is not set up on this OneUptime server.":**
+
+- Set both `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` (see Step 8) and restart OneUptime
+
+**"OneUptime could not finish connecting. Please try again.":**
+
+- GitHub answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the GitHub App's settings
 
 **Not redirected back to OneUptime after installing the GitHub App:**
 
