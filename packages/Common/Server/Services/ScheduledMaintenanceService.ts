@@ -1696,6 +1696,17 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: ScheduledMaintenanceOwnerUserService,
+      ownerTeamService: ScheduledMaintenanceOwnerTeamService,
+      resourceIdColumn: "scheduledMaintenanceId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
         "ProjectId required to create scheduled maintenance.",
@@ -2023,6 +2034,7 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
               ] as Array<ObjectID>) || [],
               false,
               onCreate.createBy.props,
+              true,
             );
           }
           return Promise.resolve();
@@ -2295,6 +2307,12 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the event are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -2307,6 +2325,7 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 

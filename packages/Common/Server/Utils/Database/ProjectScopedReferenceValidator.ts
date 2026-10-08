@@ -25,6 +25,7 @@ export {
   resolveReferenceId,
   resolveReferenceIds,
   UnreadableParentException,
+  UnreadableReferenceException,
 } from "./ProjectScopedReferenceRefusal";
 
 /*

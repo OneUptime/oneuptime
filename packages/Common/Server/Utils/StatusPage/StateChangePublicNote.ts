@@ -13,15 +13,17 @@ import StateChangeNote, { StateChangeNoteType } from "../StateChangeNote";
  * message subscribers get about the change, and the change itself is
  * recorded as sent by it (StateChangeSubscriberNotification). So:
  *
- *  - The note is posted whenever the change is saved, or the change is not
- *    saved. The scheduled maintenance timeline posts its note before the
- *    change, as the person changing the state, so a note they may not post
- *    refuses the change. The incident timeline posts its note once the
- *    change is saved, so that the note comes after the change in the
- *    incident feed and in Slack, and a refused note used to leave a change
- *    recorded as sent by a note that never existed: nobody was told. Both
- *    now ask first (assertCallerMayPost), with the very check the note's own
- *    create runs, and refuse the whole change with one plain message - the
+ *  - The note is posted whenever the change is saved, and never without it.
+ *    Both timelines post it once the change is saved (onCreateSuccess), as
+ *    the person changing the state, so it comes after the change in the
+ *    event's feed and in Slack and Microsoft Teams, and a change that is
+ *    refused or fails to save leaves no note behind - and tells no
+ *    subscriber about a change that never happened. (The scheduled
+ *    maintenance timeline posted its note first until #4442 found it.)
+ *    Whether the person may post it is asked before (assertCallerMayPost),
+ *    with the very check the note's own create runs, and a change whose
+ *    note they may not post is refused whole with one plain message, so a
+ *    change is never recorded as sent by a note that was never posted - the
  *    rule every state timeline holds its note to, the private notes of
  *    alerts and episodes included (Server/Utils/StateChangeNote).
  *

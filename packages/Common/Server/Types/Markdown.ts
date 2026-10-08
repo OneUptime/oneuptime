@@ -2,6 +2,10 @@ import { Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
 import SafeHtml from "../../Types/SafeHtml";
+import {
+  InlineImageDataUri,
+  parseInlineImageDataUri,
+} from "../../Utils/Markdown/InlineImageDataUri";
 
 export type MarkdownRenderer = Renderer;
 
@@ -62,7 +66,10 @@ const URL_NAMED_CHARACTER_REFERENCES: Record<string, string> = {
 
 /*
  * The schemes an email may link to, and load an image from. A destination
- * with no scheme is also allowed (see Markdown.getEmailUrl).
+ * with no scheme is also allowed (see Markdown.getEmailUrl). An image may
+ * also be an inline raster image, a data: URL that carries a PNG, JPEG, GIF
+ * or WebP itself (see Utils/Markdown/InlineImageDataUri) - never data: as a
+ * scheme, which would let any data: URL through.
  */
 export const EMAIL_LINK_SCHEMES: ReadonlyArray<string> = [
   "http",
@@ -70,6 +77,15 @@ export const EMAIL_LINK_SCHEMES: ReadonlyArray<string> = [
   "mailto",
 ];
 export const EMAIL_IMAGE_SCHEMES: ReadonlyArray<string> = ["http", "https"];
+
+/*
+ * Every image in an email is scaled down to the width of the card it sits
+ * in, never up. A screenshot is 1280 pixels wide or more, and the card leaves
+ * about 416 (see getEmailRenderer); left at its own width it pushed the card
+ * wider than a phone's screen, which is where an on-call engineer reads it.
+ * Outlook's Word engine ignores max-width and shows the image at its own size.
+ */
+export const EMAIL_IMAGE_STYLE: string = "max-width:100%;height:auto;";
 
 type HoldFunction = (value: string) => string;
 
@@ -851,6 +867,15 @@ export default class Markdown {
      * other link renders as its text alone, and any other image as its alt
      * text, so the words the author wrote still read in place.
      *
+     * An image may also be an inline raster image: a data: URL whose bytes
+     * are a PNG, JPEG, GIF or WebP (parseInlineImageDataUri). That is the
+     * only way a synthetic monitor's screenshot reaches a description, and
+     * it is fetched from nowhere and runs nothing. It is written out as the
+     * parser rebuilt it, and MailService sends it as an inline attachment
+     * the HTML points at by Content-ID, which Gmail and Outlook show and a
+     * data: URL they do not. A data: link stays a link's text, whatever it
+     * carries.
+     *
      * The markup is marked's own. `text` is the link's rendered inline
      * content, and `title` and an image's alt text arrive already escaped by
      * marked's tokenizer, so escaping them again would show "&amp;".
@@ -876,10 +901,12 @@ export default class Markdown {
       title: string | null,
       text: string,
     ): string {
-      const url: string | null = Markdown.getEmailUrl(
-        href,
-        EMAIL_IMAGE_SCHEMES,
-      );
+      const inlineImage: InlineImageDataUri | null =
+        parseInlineImageDataUri(href);
+
+      const url: string | null = inlineImage
+        ? Markdown.escapeHtml(inlineImage.dataUri)
+        : Markdown.getEmailUrl(href, EMAIL_IMAGE_SCHEMES);
 
       if (url === null) {
         return text;
@@ -887,7 +914,7 @@ export default class Markdown {
 
       const titleAttribute: string = title ? ` title="${title}"` : "";
 
-      return `<img src="${url}" alt="${text}"${titleAttribute}>`;
+      return `<img src="${url}" alt="${text}"${titleAttribute} style="${EMAIL_IMAGE_STYLE}">`;
     };
 
     this.emailRenderer = renderer;
