@@ -219,6 +219,7 @@
     "GitLab": "GitLab",
     "Discord": "Discord",
     "Telegram": "Telegram",
+    "IRC": "IRC",
     "Custom Probes": "自定义探针",
     "Incoming Request Ingress": "入站请求 Ingress",
     "OpenTelemetry": "OpenTelemetry",

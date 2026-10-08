@@ -938,6 +938,10 @@ const DocsNav: NavGroup[] = [
         title: "Telegram",
         url: "/docs/integrations/telegram",
       },
+      {
+        title: "IRC",
+        url: "/docs/integrations/irc",
+      },
     ],
   },
   {
