@@ -52,7 +52,10 @@ import {
   TRUNCATED_TEXT_NOTE_PLAIN,
 } from "Common/Utils/MessageFit";
 
-// How long a text is once TwiML has escaped it for XML.
+/*
+ * How long a text is once Twilio's TwiML builder has escaped it: "&", "<"
+ * and ">" as references, quotes as they are.
+ */
 const getTwimlTextLength: (text: string) => number = (text: string): number => {
   if (typeof text !== "string") {
     return 0;
@@ -67,13 +70,14 @@ const getTwimlTextLength: (text: string) => number = (text: string): number => {
       length += 4; // &amp;
     } else if (code === 0x3c || code === 0x3e) {
       length += 3; // &lt; &gt;
-    } else if (code === 0x22 || code === 0x27) {
-      length += 5; // &quot; &apos;
     }
   }
 
   return length;
 };
+
+// generateTwimlForCall cuts a call's texts shorter at most this many times.
+const MAX_TWIML_FIT_ATTEMPTS: number = 4;
 
 /**
  * Extracts the main sayMessage values from a CallRequest's data array for call summary.
@@ -531,8 +535,9 @@ export default class CallService {
    * MAX_CALL_TWIML_LENGTH characters, and the call is not made: a call whose
    * spoken texts make it longer - a template that placed a description -
    * has them cut, the longest first and all to about the same length, each
-   * ending with a note that the rest is in OneUptime (fitTextsToBudget). A
-   * call that fits is made as it always was.
+   * ending with a note that the rest is in OneUptime (fitTextsToBudget). The
+   * TwiML is built again and measured, and the texts cut shorter while it is
+   * still over. A call that fits is made as it always was.
    */
   public static generateTwimlForCall(callRequest: CallRequest): string {
     const spoken: Array<string> = [];
@@ -549,29 +554,41 @@ export default class CallService {
       return twiml;
     }
 
-    const spokenLength: number = spoken.reduce(
-      (total: number, text: string): number => {
-        return total + getTwimlTextLength(text);
-      },
-      0,
-    );
+    // What the TwiML takes besides its texts: each text one character.
+    const overhead: number =
+      this.buildTwimlForCall(callRequest, (): string => {
+        return "x";
+      }).length - spoken.length;
 
-    const fitted: Array<string> = fitTextsToBudget(
-      spoken,
-      MAX_CALL_TWIML_LENGTH - (twiml.length - spokenLength),
-      {
+    let budget: number = MAX_CALL_TWIML_LENGTH - overhead;
+    let fittedTwiml: string = twiml;
+
+    for (
+      let attempt: number = 0;
+      attempt < MAX_TWIML_FIT_ATTEMPTS && budget > 0;
+      attempt++
+    ) {
+      const fitted: Array<string> = fitTextsToBudget(spoken, budget, {
         measure: getTwimlTextLength,
         getNote: (): string => {
           return TRUNCATED_TEXT_NOTE_PLAIN;
         },
-      },
-    );
+      });
 
-    let next: number = 0;
+      let next: number = 0;
 
-    return this.buildTwimlForCall(callRequest, (): string => {
-      return fitted[next++] ?? "";
-    });
+      fittedTwiml = this.buildTwimlForCall(callRequest, (): string => {
+        return fitted[next++] ?? "";
+      });
+
+      if (fittedTwiml.length <= MAX_CALL_TWIML_LENGTH) {
+        return fittedTwiml;
+      }
+
+      budget -= fittedTwiml.length - MAX_CALL_TWIML_LENGTH;
+    }
+
+    return fittedTwiml;
   }
 
   /*
