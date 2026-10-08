@@ -1922,6 +1922,15 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   public async refreshReminderSchedule(data: {
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;
+    /*
+     * Set when all that asks for the refresh is the event's start moving -
+     * startsAtBefore is where it was. The schedule then follows the start
+     * only where it is counted from it: the matching rule waits for the
+     * start (remindWhileScheduled off), and the start - where it was or
+     * where it is now - is still ahead. Anywhere else the interval running
+     * now is left alone, as each refresh starts it over.
+     */
+    startMovedFrom?: { startsAtBefore: Date | null } | undefined;
   }): Promise<void> {
     const scheduledMaintenance: Model | null = await this.findOneById({
       id: data.scheduledMaintenanceId,
@@ -1942,6 +1951,9 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     let nextReminderNotificationAt: Date | null = null;
+
+    // Whether the first reminder is counted from the event's start.
+    let isCountedFromTheStart: boolean = false;
 
     if (scheduledMaintenance.enableReminders !== false) {
       const matchingRule: ScheduledMaintenanceReminderRule | null =
@@ -1978,7 +1990,21 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
           referenceDate,
           matchingRule.reminderIntervalInMinutes,
         );
+
+        const startsAtBefore: Date | null | undefined =
+          data.startMovedFrom?.startsAtBefore;
+
+        isCountedFromTheStart =
+          !matchingRule.remindWhileScheduled &&
+          ((Boolean(scheduledMaintenance.startsAt) &&
+            OneUptimeDate.isInTheFuture(scheduledMaintenance.startsAt!)) ||
+            (Boolean(startsAtBefore) &&
+              OneUptimeDate.isInTheFuture(startsAtBefore!)));
       }
+    }
+
+    if (data.startMovedFrom && !isCountedFromTheStart) {
+      return;
     }
 
     await this.updateOneById({
@@ -3340,8 +3366,11 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
          * sent back as it is changes nothing. The event is read back rather
          * than the ids in the payload being looked up: the read is held to
          * this project, and it names the whole list the card now shows. An
-         * edit that leaves it affecting nothing has no list to show, as
-         * before; the monitors taken off are named below.
+         * edit that leaves it affecting nothing has no list to show: when it
+         * took off something besides monitors - a host, a cluster, a service
+         * - one line says nothing else is affected now, or the feed would
+         * not record the edit at all; the monitors taken off are named
+         * below.
          */
         const affectedResourcesChanged: boolean =
           this.getAffectedResourceListColumns().some(
@@ -3375,6 +3404,17 @@ ${FeedMarkdown.join(
   "\n",
 )}
 `;
+
+              shouldAddScheduledMaintenanceFeed = true;
+            } else if (
+              changedListColumns.some((column: string): boolean => {
+                return (
+                  column !== "monitors" &&
+                  this.getAffectedResourceListColumns().includes(column)
+                );
+              })
+            ) {
+              feedInfoInMarkdown += mdText`\n\n**Resources Affected**: \n${ScheduledMaintenanceFieldChange.noOtherResourcesLine}\n`;
 
               shouldAddScheduledMaintenanceFeed = true;
             }
@@ -3507,15 +3547,41 @@ ${FeedMarkdown.join(
          * runs when it changed neither: each refresh starts the interval
          * over, so writing back the labels the event has, as every save of
          * its Maintenance Details card does, must not.
+         *
+         * A start that really moved - another instant, not the same time
+         * spelled another way (EventFieldChange.isInstantChanged) - asks
+         * for it too, but the schedule follows only where the first
+         * reminder is counted from the start: a rule that waits for it
+         * (refreshReminderSchedule's startMovedFrom). Moved earlier, the
+         * reminders would otherwise come late; nothing else moves them.
          */
+        const isStartMoved: boolean =
+          fieldChanges.timeColumns.includes("startsAt");
+
         if (
           onUpdate.updateBy.props.tenantId &&
-          (fieldChanges.labels || fieldChanges.enableReminders)
+          (fieldChanges.labels ||
+            fieldChanges.enableReminders ||
+            isStartMoved)
         ) {
+          const startsAtBeforeUpdate: unknown =
+            carryForward?.valuesBeforeUpdate?.[
+              scheduledMaintenanceId.toString()
+            ]?.startsAt;
+
           try {
             await this.refreshReminderSchedule({
               scheduledMaintenanceId: scheduledMaintenanceId,
               projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+              startMovedFrom:
+                fieldChanges.labels || fieldChanges.enableReminders
+                  ? undefined
+                  : {
+                      startsAtBefore:
+                        typeof startsAtBeforeUpdate === "number"
+                          ? new Date(startsAtBeforeUpdate)
+                          : null,
+                    },
             });
           } catch (reminderError) {
             logger.error(
