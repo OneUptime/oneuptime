@@ -6,8 +6,11 @@ import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageM
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
-import Permission from "../../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+  HeldPermissionsOptions,
+} from "../../../../Types/HeldPermissions";
+import Permission, { PermissionHelper } from "../../../../Types/Permission";
 import {
   RuleRunType,
   RuleRunTypeMetadata,
@@ -38,7 +41,15 @@ import RuleRunRegistry, {
  *
  * A grant limited to specific labels, or to owned resources, is not enough: a
  * run reaches every resource in the project (or, for an SLO monitor rule, any
- * SLO's rules), not just the labelled or owned ones.
+ * SLO's rules), not just the labelled or owned ones. For the same reason a
+ * team's block on some labels takes the run away: the run would change the
+ * records carrying those labels too, which the block keeps the caller from
+ * changing anywhere else.
+ *
+ * The network automation rules' Run now (site assignment, device label and
+ * auto import rules: App/FeatureSet/BaseAPI/API/NetworkRuleRun) reaches every
+ * network device of the project the same way, and asks the same question
+ * here (assertMayChangeEveryRecord).
  */
 
 /*
@@ -68,12 +79,24 @@ const SYNC_RULE_MODEL_TYPES: Record<SyncRuleRunType, DatabaseBaseModelType> = {
  *
  * Then no block with no labels on the model's list, refused with the message
  * that names it (checkTableLevelBlockPermissions), as a normal API write is.
+ *
+ * And, for a model whose records carry labels (an access control column: a
+ * monitor, an incident, a network device, ...), no block with labels either
+ * (labelledBlocksRefuse): the run changes every record, those carrying the
+ * blocked labels included, where the CRUD path would leave them out. A model
+ * whose records carry no labels (the rules, the owner rows) is not narrowed
+ * by such a block anywhere, so it does not refuse here either.
  */
 function requirePermission(data: {
   props: DatabaseCommonInteractionProps;
   modelType: DatabaseBaseModelType;
   requestType: DatabaseRequestType.Create | DatabaseRequestType.Update;
   message: string;
+  /*
+   * The permission to name when no grant reaches the whole project, so the
+   * caller knows what to ask for.
+   */
+  missingPermission?: Permission | undefined;
 }): void {
   const model: DatabaseBaseModel = new data.modelType();
   const required: Array<Permission> =
@@ -81,16 +104,63 @@ function requirePermission(data: {
       ? model.getCreatePermissions()
       : model.getUpdatePermissions()) || [];
 
-  if (
-    !CallerPermission.isGrantedAny(data.props, required, {
-      projectWideOnly: true,
-      wildcard: HeldPermissionsUtil.getModelWildcard({
-        isOperationalResource: model.isOperationalResource,
-        operation: data.requestType,
-      }),
-    })
-  ) {
-    throw new NotAuthorizedException(data.message);
+  const carriesLabels: boolean = Boolean(model.getAccessControlColumn());
+
+  const wildcard: Permission | null = HeldPermissionsUtil.getModelWildcard({
+    isOperationalResource: model.isOperationalResource,
+    operation: data.requestType,
+  });
+
+  const options: HeldPermissionsOptions = {
+    projectWideOnly: true,
+    wildcard: wildcard,
+    labelledBlocksRefuse: carriesLabels,
+  };
+
+  const held: HeldPermissions = CallerPermission.getHeld(data.props);
+
+  // A block with labels on `permission`: the same answer wherever it is.
+  const refuseBlockedForSomeLabels: (permission: Permission) => never = (
+    permission: Permission,
+  ): never => {
+    throw new NotAuthorizedException(
+      `${data.message} ${PermissionHelper.getTitle(
+        permission,
+      )} is in your team's permission block list for some labels.`,
+    );
+  };
+
+  if (!HeldPermissionsUtil.isGrantedAny(held, required, options)) {
+    /*
+     * Held through the wildcard alone, which a block with labels takes away
+     * for a run: said as a block on the permission itself is said - after a
+     * block with no labels on the model's list, which refuses first, as it
+     * does below.
+     */
+    if (
+      wildcard &&
+      carriesLabels &&
+      HeldPermissionsUtil.isGrantedAny(held, required, {
+        ...options,
+        labelledBlocksRefuse: false,
+      })
+    ) {
+      TablePermission.checkTableLevelBlockPermissions(
+        data.modelType,
+        data.props,
+        data.requestType,
+      );
+
+      refuseBlockedForSomeLabels(wildcard);
+    }
+
+    throw new NotAuthorizedException(
+      data.missingPermission
+        ? `${data.message} Missing permission: ${PermissionHelper.getTitle(
+            data.missingPermission,
+          )}, for all resources in the project.`
+        : data.message,
+    );
   }
 
   TablePermission.checkTableLevelBlockPermissions(
@@ -98,6 +168,29 @@ function requirePermission(data: {
     data.props,
     data.requestType,
   );
+
+  if (!carriesLabels) {
+    return;
+  }
+
+  /*
+   * What is left after the table check above, which refuses a block with no
+   * labels: a block with labels on one of the model's own permissions.
+   */
+  const refusingBlocks: Array<Permission> =
+    HeldPermissionsUtil.getRefusingBlocks(held, {
+      labelledBlocksRefuse: true,
+    });
+
+  const blocked: Permission | undefined = required.find(
+    (permission: Permission): boolean => {
+      return refusingBlocks.includes(permission);
+    },
+  );
+
+  if (blocked) {
+    refuseBlockedForSomeLabels(blocked);
+  }
 }
 
 export default class RuleRunPermission {
@@ -159,5 +252,29 @@ export default class RuleRunPermission {
         message: `You do not have permission to add owners to ${meta.resourcePlural}, which running this rule does.`,
       });
     }
+  }
+
+  /*
+   * The same question for a run outside the registry - a network automation
+   * rule's Run now, which edits or imports network devices and creates
+   * monitors across the whole project: may the caller do `requestType` on
+   * every record of `modelType` in the project? A project-wide grant (or the
+   * model's wildcard), no block on the model's list, and - for a model whose
+   * records carry labels - no block on some labels either; refused with
+   * `message`, naming `missingPermission` when no grant reaches the whole
+   * project. A master admin may, as the write path lets them.
+   */
+  public static assertMayChangeEveryRecord(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    requestType: DatabaseRequestType.Create | DatabaseRequestType.Update;
+    message: string;
+    missingPermission?: Permission | undefined;
+  }): void {
+    if (data.props.isMasterAdmin) {
+      return;
+    }
+
+    requirePermission(data);
   }
 }

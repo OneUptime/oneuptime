@@ -548,6 +548,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/StatusPageSubscriberUnsubscribePostgres.test.ts --forceExit
 
+      # Clones the migrated Monitor, StatusPageResource, StatusPageSubscriber
+      # and subscriber resource join tables into an isolated schema. A
+      # subscription names only resources of its own status page: the page's
+      # resources are found by id (a visitor's without those whose monitor is
+      # archived), what a subscriber names already is read through the join
+      # table, an update adds only its page's resources and reads only the
+      # request's project - every page in one read, and only the
+      # subscriptions its caller may write - and the subscriber jobs read
+      # each named resource with its page and tell a subscriber only through
+      # its own page's.
+      - name: Test subscriber resources on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SUBSCRIBER_RESOURCES_TESTS: "true"
+          SUBSCRIBER_RESOURCES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SUBSCRIBER_RESOURCES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SUBSCRIBER_RESOURCES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/StatusPage/StatusPageSubscriberResourcesPostgres.test.ts --forceExit
+
       # Clones the migrated IncidentPublicNote and Incident tables into an
       # isolated schema. A subscriber job claims a Pending notification with
       # one compare-and-set UPDATE, and the sweeper fails an interrupted one

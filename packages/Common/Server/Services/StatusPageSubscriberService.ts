@@ -73,6 +73,7 @@ import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../Utils/StatusPage/StatusPageEmailLogo";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StatusPageSubscriberResources from "../Utils/StatusPage/StatusPageSubscriberResources";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -141,6 +142,17 @@ interface UnsubscribedAtCarryForward {
  * it unsubscribes.
  */
 const statusPageSignUps: WeakSet<Model> = new WeakSet<Model>();
+
+/*
+ * The updates a visitor makes from the status page's manage subscription
+ * page (see updateFromManageSubscriptionPage), held the same way: the very
+ * update objects, only for the length of the update. A visitor picks from
+ * what the page shows them, so the resources such an update adds are held to
+ * those (StatusPageSubscriberResources).
+ */
+const manageSubscriptionPageUpdates: WeakSet<UpdateBy<Model>> = new WeakSet<
+  UpdateBy<Model>
+>();
 
 /*
  * What a visitor signing up by SMS hears when SMS sign-ups are not open:
@@ -233,6 +245,38 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Change the subscription a visitor manages on the status page itself
+   * (StatusPageAPI's update-subscription endpoint), as root like the rest of
+   * that endpoint. The one update that is a visitor's: the resources it adds
+   * must be ones the page shows (see checkResourcesOnPages).
+   */
+  @CaptureSpan()
+  public async updateFromManageSubscriptionPage(data: {
+    subscriberId: ObjectID;
+    data: UpdateBy<Model>["data"];
+  }): Promise<number> {
+    const updateBy: UpdateBy<Model> = {
+      query: {
+        _id: data.subscriberId.toString(),
+      },
+      data: data.data,
+      limit: 1,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    };
+
+    manageSubscriptionPageUpdates.add(updateBy);
+
+    try {
+      return await this.updateBy(updateBy);
+    } finally {
+      manageSubscriptionPageUpdates.delete(updateBy);
+    }
+  }
+
+  /*
    * Whether the team added this subscriber, rather than it signing up on the
    * status page. Is Added By Team says so for every subscriber created since
    * it existed; Created By is read as well for the ones created before, until
@@ -284,6 +328,21 @@ export class Service extends ProjectReferencesService<Model> {
       } as LogAttributes);
       throw new BadDataException("Project ID is required.");
     }
+
+    /*
+     * The resources it names are resources of its own status page - for a
+     * sign-up on the page, ones the page shows - answered like an id that
+     * matches nothing (StatusPageSubscriberResources): after the project
+     * check above (super.onBeforeCreate), which answers the same, and before
+     * anything else here reads a record.
+     */
+    await StatusPageSubscriberResources.assertOnPage({
+      statusPageId: data.data.statusPageId,
+      ids: StatusPageSubscriberResources.getNamedIds(
+        data.data.statusPageResources,
+      ),
+      shownToVisitorsOnly: statusPageSignUps.has(data.data),
+    });
 
     const projectId: ObjectID = data.data.projectId;
     logger.debug(`Project ID: ${projectId}`, {
@@ -679,6 +738,9 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
+    // The resources it adds are its page's. See checkResourcesOnPages.
+    await this.checkResourcesOnPages(updateBy);
+
     const isUnsubscribed: unknown = (
       updateBy.data as unknown as JSONObject | undefined
     )?.["isUnsubscribed"];
@@ -714,6 +776,49 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward };
+  }
+
+  /*
+   * An update that names resources may add only resources of each changed
+   * subscriber's own status page - for a visitor's change on the manage
+   * subscription page, ones the page shows (StatusPageSubscriberResources).
+   * What a subscriber names already is left alone, so the dashboard and the
+   * manage subscription page, which send the whole list back on every save,
+   * never lock a subscription against editing. The subscribers are the rows
+   * the update writes - the ones its caller may write - and the update is
+   * held to them (findRowsAndHoldUpdateToThem): a subscriber the caller
+   * cannot reach says nothing, and one the check did not read is not
+   * written.
+   */
+  private async checkResourcesOnPages(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const named: Array<string> = StatusPageSubscriberResources.getNamedIds(
+      (updateBy.data as unknown as JSONObject | undefined)?.[
+        StatusPageSubscriberResources.RESOURCES_COLUMN
+      ],
+    );
+
+    if (named.length === 0) {
+      return;
+    }
+
+    const subscribers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        statusPageId: true,
+        statusPageResources: {
+          _id: true,
+        },
+      },
+    );
+
+    await StatusPageSubscriberResources.assertUpdateOnPages({
+      subscribers: subscribers,
+      named: named,
+      shownToVisitorsOnly: manageSubscriptionPageUpdates.has(updateBy),
+    });
   }
 
   @CaptureSpan()
@@ -2051,7 +2156,14 @@ Stay informed about service availability! 🚀`.toString();
         slackIncomingWebhookUrl: true,
         microsoftTeamsIncomingWebhookUrl: true,
         isSubscribedToAllResources: true,
-        statusPageResources: true,
+        /*
+         * With each resource's page: a subscriber is told about an event
+         * only through resources of its own page (shouldSendNotification).
+         */
+        statusPageResources: {
+          _id: true,
+          statusPageId: true,
+        },
         isSubscribedToAllEventTypes: true,
         statusPageEventTypes: true,
         // Every sender puts this subscriber's unsubscribe link in its message.
@@ -2470,12 +2582,30 @@ Stay informed about service availability! 🚀`.toString();
         "Subscriber can choose resources and is not subscribed to all resources.",
         { statusPageId: data.statusPage?.id?.toString() } as LogAttributes,
       );
+      /*
+       * Only the subscriber's resources of this status page count: a
+       * subscription names its own page's resources (StatusPageSubscriber
+       * Resources refuses any other on every write), and one saved before
+       * that was checked is told nothing through a resource of another page.
+       * The subscriber jobs read each resource with its page
+       * (getSubscribersByStatusPage); one read without it counts as another
+       * page's. The event's resources are this page's already: the senders
+       * hand over the event's resources on each page.
+       */
+      const statusPageId: ObjectID | string | undefined =
+        data.statusPage.id || data.statusPage._id;
+
       const subscriberResourceIds: Array<string> =
-        data.subscriber.statusPageResources?.map(
-          (resource: StatusPageResource) => {
+        data.subscriber.statusPageResources
+          ?.filter((resource: StatusPageResource): boolean => {
+            return StatusPageSubscriberResources.isOnPage(
+              resource,
+              statusPageId,
+            );
+          })
+          .map((resource: StatusPageResource) => {
             return resource.id?.toString() as string;
-          },
-        ) || [];
+          }) || [];
 
       logger.debug(`Subscriber Resource IDs: ${subscriberResourceIds}`, {
         statusPageId: data.statusPage?.id?.toString(),

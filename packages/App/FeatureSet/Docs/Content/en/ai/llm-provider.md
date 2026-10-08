@@ -90,6 +90,8 @@ Fill in the following fields:
 - **Base URL** (optional): Custom API endpoint URL (required for Azure OpenAI, Ollama, and OpenAI Compatible; optional for others)
 - **More fields**, folded under the fields above: **Set as Default**, which is on for a new provider because AI features only use the project's default provider, and **Additional Parameters**, an optional JSON object of extra parameters sent to the provider with every request (for example `{"temperature": 0.2}`)
 
+**Who can see a provider.** A project's LLM providers are read only by its members who may read the project's settings: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** and **Read LLM**. A provider's **API Key** is read by the project's owners and admins alone. The **Global LLM Providers** list on the same page - the shared providers a project falls back to - shows their name, description and price to anyone signed in, and nothing else about them.
+
 ## Provider-Specific Configuration
 
 ### OpenAI
