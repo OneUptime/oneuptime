@@ -259,10 +259,16 @@ interface MethodTable {
   modelType: DatabaseBaseModelType;
   // The identifying columns of one row; isVerified is added per row.
   columns: JSONObject;
-  // The NORMAL-styled code action that would take the button without the mark.
-  codeActionTitle: string;
+  /*
+   * The NORMAL-styled code action that would take the button without the
+   * mark. Unset where a new code is sent from the verify dialog instead
+   * (email, SMS, calls, WhatsApp, incoming call numbers), which then says
+   * how.
+   */
+  codeActionTitle?: string | undefined;
+  codeActionDialogTitle?: string | undefined;
+  sendCodeInDialogText?: string | undefined;
   verifyDialogTitle: string;
-  codeActionDialogTitle: string;
 }
 
 const METHOD_TABLES: Array<MethodTable> = [
@@ -271,36 +277,32 @@ const METHOD_TABLES: Array<MethodTable> = [
     Component: EmailMethods,
     modelType: UserEmail,
     columns: { email: new Email("jane@example.com") as never },
-    codeActionTitle: "Resend Code",
     verifyDialogTitle: "Verify Email",
-    codeActionDialogTitle: "Resend Code",
+    sendCodeInDialogText: "Send a new code",
   },
   {
     name: "SMS",
     Component: SMSMethods,
     modelType: UserSMS,
     columns: { phone: new Phone("+15551230100") as never },
-    codeActionTitle: "Resend Code",
     verifyDialogTitle: "Verify Phone Number",
-    codeActionDialogTitle: "Resend Code",
+    sendCodeInDialogText: "Send a new code",
   },
   {
     name: "Call",
     Component: CallMethods,
     modelType: UserCall,
     columns: { phone: new Phone("+15551230199") as never },
-    codeActionTitle: "Resend Code",
     verifyDialogTitle: "Verify Phone Number",
-    codeActionDialogTitle: "Resend Code",
+    sendCodeInDialogText: "Call me with a new code",
   },
   {
     name: "WhatsApp",
     Component: WhatsAppMethods,
     modelType: UserWhatsApp,
     columns: { phone: new Phone("+15551230123") as never },
-    codeActionTitle: "Resend Code",
     verifyDialogTitle: "Verify WhatsApp Number",
-    codeActionDialogTitle: "Resend Code",
+    sendCodeInDialogText: "Send a new code",
   },
   {
     name: "Telegram",
@@ -316,9 +318,8 @@ const METHOD_TABLES: Array<MethodTable> = [
     Component: IncomingCallNumberMethods,
     modelType: UserIncomingCallNumber,
     columns: { phone: new Phone("+15551230177") as never },
-    codeActionTitle: "Resend Code",
     verifyDialogTitle: "Verify Phone Number",
-    codeActionDialogTitle: "Resend Code",
+    sendCodeInDialogText: "Send a new code",
   },
 ];
 
@@ -412,6 +413,18 @@ describe.each(METHOD_TABLES)(
       const { unverified } = await renderMethodTable(table);
 
       expect(rowButtonLabels(unverified)).toEqual(["Verify", "More actions"]);
+
+      if (!table.codeActionTitle) {
+        /*
+         * A new code is sent from the verify dialog, next to the field it
+         * is for - so the menu has nothing but Delete, and nobody wonders
+         * whether Resend has to come before Verify.
+         */
+        expect(within(unverified).queryByText("Resend Code")).toBeNull();
+        expect(menuLabels(openMenuIn(unverified))).toEqual(["Delete"]);
+        return;
+      }
+
       expect(within(unverified).queryByText(table.codeActionTitle)).toBeNull();
 
       // Delete sinks below the code action, as destructive actions always do.
@@ -464,6 +477,20 @@ describe.each(METHOD_TABLES)(
     test("the code action still works from the menu", async () => {
       const { unverified } = await renderMethodTable(table);
 
+      if (!table.codeActionTitle) {
+        // Where there is none, the verify dialog offers the new code.
+        fireEvent.click(
+          within(unverified).getByRole("button", { name: "Verify" }),
+        );
+
+        await waitFor(() => {
+          expect(
+            screen.getByTestId("modal-footer-submit-button"),
+          ).toHaveTextContent(table.sendCodeInDialogText!);
+        });
+        return;
+      }
+
       fireEvent.click(
         within(openMenuIn(unverified)).getByRole("menuitem", {
           name: table.codeActionTitle,
@@ -472,7 +499,7 @@ describe.each(METHOD_TABLES)(
 
       await waitFor(() => {
         expect(screen.getByTestId("modal-title")).toHaveTextContent(
-          table.codeActionDialogTitle,
+          table.codeActionDialogTitle!,
         );
       });
     });

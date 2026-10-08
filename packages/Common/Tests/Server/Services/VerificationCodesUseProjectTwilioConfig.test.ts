@@ -224,18 +224,22 @@ describe("the code that verifies a number for incoming call routing", () => {
     expect(sent.options["isSensitive"]).toBe(true);
   });
 
-  test("a failed lookup sends nothing and does not throw at the caller", async () => {
+  /*
+   * It used to be sent fire-and-forget, so a failure here was swallowed and
+   * the person was told the code was on its way. Now the caller hears it
+   * (and issueAndSendVerificationCode turns it into the person's answer).
+   */
+  test("a failed lookup sends nothing, and the caller is told", async () => {
     jest
       .spyOn(ProjectCallSMSConfigService, "getProjectDefaultTwilioConfig")
       .mockRejectedValue(new Error("lookup failed"));
 
-    expect(() => {
+    await expect(
       UserIncomingCallNumberService.sendVerificationCode(
         incomingCallNumber(),
         CODE,
-      );
-    }).not.toThrow();
-    await flush();
+      ),
+    ).rejects.toThrow("lookup failed");
 
     expect(sentSms).toHaveLength(0);
   });

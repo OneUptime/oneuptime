@@ -619,18 +619,6 @@ describe("the pages that call project-scoped custom routes", () => {
 describe("user-scoped notification endpoints carry projectId in the body", () => {
   const USER_SCOPED: Array<{ page: Array<string>; route: string }> = [
     {
-      page: ["Components", "NotificationMethods", "SMS.tsx"],
-      route: "/user-sms/",
-    },
-    {
-      page: ["Components", "NotificationMethods", "Email.tsx"],
-      route: "/user-email/",
-    },
-    {
-      page: ["Components", "NotificationMethods", "Call.tsx"],
-      route: "/user-call/",
-    },
-    {
       page: ["Components", "NotificationMethods", "Push.tsx"],
       route: "/user-push/",
     },
@@ -639,16 +627,17 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
       route: "/user-telegram/",
     },
     {
-      page: ["Components", "NotificationMethods", "WhatsApp.tsx"],
-      route: "/user-whatsapp/",
-    },
-    {
       page: ["Components", "NotificationMethods", "Webhook.tsx"],
       route: "/user-webhook/",
     },
+    /*
+     * The email, SMS, call, WhatsApp and incoming call number lists verify
+     * through one dialog, which posts to the channel's route (verify,
+     * resend, verification-status) - see the test below.
+     */
     {
-      page: ["Components", "NotificationMethods", "IncomingCallNumber.tsx"],
-      route: "/user-incoming-call-number/",
+      page: ["Components", "NotificationMethods", "VerificationCodeModal.tsx"],
+      route: "definition.apiRoute",
     },
   ];
 
@@ -669,6 +658,54 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
           "projectId: ProjectUtil.getCurrentProjectId()!",
         );
       }
+    },
+  );
+
+  test.each([
+    ["Email.tsx", "Email", "/user-email"],
+    ["SMS.tsx", "SMS", "/user-sms"],
+    ["Call.tsx", "Call", "/user-call"],
+    ["WhatsApp.tsx", "WhatsApp", "/user-whatsapp"],
+    [
+      "IncomingCallNumber.tsx",
+      "IncomingCallNumber",
+      "/user-incoming-call-number",
+    ],
+  ])(
+    "%s verifies through the dialog, on its own channel's route",
+    (file: string, channel: string, route: string) => {
+      const listSource: string = squash(
+        fs.readFileSync(
+          path.join(DASHBOARD_SRC, "Components", "NotificationMethods", file),
+          "utf8",
+        ),
+      );
+
+      // No raw call of its own left to carry projectId, or to forget it.
+      expect(
+        readRawApiCalls(
+          path.join(DASHBOARD_SRC, "Components", "NotificationMethods", file),
+        ),
+      ).toEqual([]);
+      expect(listSource).toContain(
+        `<VerificationCodeModal channel={VerificationCodeChannel.${channel}}`,
+      );
+
+      const channels: string = squash(
+        fs.readFileSync(
+          path.join(
+            DASHBOARD_SRC,
+            "Components",
+            "NotificationMethods",
+            "VerificationCodeChannels.ts",
+          ),
+          "utf8",
+        ),
+      );
+
+      expect(channels).toContain(
+        `channel: VerificationCodeChannel.${channel}, apiRoute: "${route}",`,
+      );
     },
   );
 });

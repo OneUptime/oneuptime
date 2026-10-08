@@ -1,48 +1,28 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL } from "Common/UI/Config";
-import API from "Common/UI/Utils/API/API";
 import User from "Common/UI/Utils/User";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, { ReactElement, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import VerificationCodeModal from "./VerificationCodeModal";
+import { VerificationCodeChannel } from "./VerificationCodeChannels";
 
 const Email: () => JSX.Element = (): ReactElement => {
-  const [showVerificationCodeModal, setShowVerificationCodeModal] =
-    useState<boolean>(false);
-
-  const [showResendCodeModal, setShowResendCodeModal] =
-    useState<boolean>(false);
-
-  const [error, setError] = useState<string>("");
-  const [currentItem, setCurrentItem] = useState<UserEmail | null>(null);
+  // The address whose verify dialog is open.
+  const [verifyItem, setVerifyItem] = useState<UserEmail | null>(null);
   const [refreshToggle, setRefreshToggle] = useState<string>(
     OneUptimeDate.getCurrentDate().toString(),
   );
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const [showVerificationCodeResentModal, setShowVerificationCodeResentModal] =
-    useState<boolean>(false);
-
-  useEffect(() => {
-    setError("");
-  }, [showVerificationCodeModal]);
 
   /*
    * Deleting an email address cascades to every notification rule that uses it,
@@ -76,6 +56,18 @@ const Email: () => JSX.Element = (): ReactElement => {
           model.userId = User.getUserId();
           return Promise.resolve(model);
         }}
+        /*
+         * Adding an address emails its code, so the next step - typing it
+         * in - opens straight away instead of waiting to be found behind
+         * Verify.
+         */
+        onCreateSuccess={(item: UserEmail): Promise<UserEmail> => {
+          if (!item.isVerified) {
+            setVerifyItem(item);
+          }
+
+          return Promise.resolve(item);
+        }}
         createVerb={"Add"}
         actionButtons={[
           {
@@ -84,8 +76,7 @@ const Email: () => JSX.Element = (): ReactElement => {
             icon: IconProp.Check,
             /*
              * Entering the code is what an unverified row is waiting for, so
-             * Verify is the row's button and Resend Code (styled NORMAL, which
-             * would otherwise win) goes in the ⋯ menu.
+             * Verify is the row's button, whatever else the row offers.
              */
             placement: ActionButtonPlacement.Primary,
             isVisible: (item: UserEmail): boolean => {
@@ -95,41 +86,17 @@ const Email: () => JSX.Element = (): ReactElement => {
 
               return true;
             },
+            /*
+             * The one way to verify, and to get a new code: sending another
+             * one is in the dialog, next to the field it is for.
+             */
             onClick: async (
               item: UserEmail,
               onCompleteAction: VoidFunction,
               onError: ErrorFunction,
             ) => {
               try {
-                setCurrentItem(item);
-                setShowVerificationCodeModal(true);
-                onCompleteAction();
-              } catch (err) {
-                onCompleteAction();
-                onError(err as Error);
-              }
-            },
-          },
-          {
-            title: "Resend Code",
-            buttonStyleType: ButtonStyleType.NORMAL,
-            icon: IconProp.Email,
-            isVisible: (item: UserEmail): boolean => {
-              if (item["isVerified"]) {
-                return false;
-              }
-
-              return true;
-            },
-            onClick: async (
-              item: UserEmail,
-              onCompleteAction: VoidFunction,
-              onError: ErrorFunction,
-            ) => {
-              try {
-                setCurrentItem(item);
-                setShowResendCodeModal(true);
-
+                setVerifyItem(item);
                 onCompleteAction();
               } catch (err) {
                 onCompleteAction();
@@ -189,127 +156,16 @@ const Email: () => JSX.Element = (): ReactElement => {
 
       {deleteGuard.deletionModal}
 
-      {showVerificationCodeModal && currentItem ? (
-        <BasicFormModal
-          title={"Verify Email"}
+      {verifyItem ? (
+        <VerificationCodeModal
+          channel={VerificationCodeChannel.Email}
+          itemId={verifyItem.id?.toString() || verifyItem._id || ""}
+          destination={verifyItem.email?.toString() || ""}
           onClose={() => {
-            setShowVerificationCodeModal(false);
+            setVerifyItem(null);
           }}
-          isLoading={isLoading}
-          submitButtonText={"Verify"}
-          onSubmit={async (item: JSONObject) => {
-            setIsLoading(true);
-            try {
-              const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                await API.post({
-                  url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    "/user-email/verify",
-                  ),
-                  data: {
-                    code: item["code"],
-                    projectId: ProjectUtil.getCurrentProjectId()!,
-                    itemId: currentItem["_id"],
-                  },
-                });
-
-              if (response.isFailure()) {
-                setError(API.getFriendlyMessage(response));
-                setIsLoading(false);
-              } else {
-                setIsLoading(false);
-                setShowVerificationCodeModal(false);
-                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
-              }
-            } catch (e) {
-              setError(API.getFriendlyMessage(e));
-              setIsLoading(false);
-            }
-          }}
-          formProps={{
-            name: "Verify Email",
-            error: error || "",
-            fields: [
-              {
-                title: "Verification Code",
-                description: `We have sent verification code to your email. Please don't forget to check your spam.`,
-                field: {
-                  code: true,
-                },
-                placeholder: "123456",
-                required: true,
-                validation: {
-                  minLength: 6,
-                  maxLength: 6,
-                },
-                /*
-                 * Text, not Number. A verification code is a six-character
-                 * string that happens to be digits, and one in ten of them
-                 * starts with a zero — which a numeric input silently eats,
-                 * turning "012345" into "12345". That was always wrong; it
-                 * matters more now that a code only gets five attempts before
-                 * it is burned, so a mangled entry costs the user their
-                 * budget for a mistake the form made.
-                 */
-                fieldType: FormFieldSchemaType.Text,
-              },
-            ],
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {showResendCodeModal && currentItem ? (
-        <ConfirmModal
-          title={`Resend Code`}
-          error={error}
-          description={"Are you sure you want to resend verification code?"}
-          submitButtonText={"Resend Code"}
-          onClose={() => {
-            setShowResendCodeModal(false);
-            setError("");
-          }}
-          isLoading={isLoading}
-          onSubmit={async () => {
-            try {
-              const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                await API.post({
-                  url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    "/user-email/resend-verification-code",
-                  ),
-                  data: {
-                    projectId: ProjectUtil.getCurrentProjectId()!,
-                    itemId: currentItem["_id"],
-                  },
-                });
-
-              if (response.isFailure()) {
-                setError(API.getFriendlyMessage(response));
-                setIsLoading(false);
-              } else {
-                setIsLoading(false);
-                setShowResendCodeModal(false);
-                setShowVerificationCodeResentModal(true);
-              }
-            } catch (err) {
-              setError(API.getFriendlyMessage(err));
-              setIsLoading(false);
-            }
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {showVerificationCodeResentModal ? (
-        <ConfirmModal
-          title={`Code sent successfully`}
-          error={error}
-          description={`We have sent a verification code to your email. Please don't forget to check your spam.`}
-          submitButtonText={"Close"}
-          onSubmit={async () => {
-            setShowVerificationCodeResentModal(false);
-            setError("");
+          onVerified={() => {
+            setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
           }}
         />
       ) : (
