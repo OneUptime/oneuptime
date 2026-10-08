@@ -89,7 +89,10 @@ describe("the AI SRE page documents the project's own daily limits", () => {
       });
     }
 
-    expect(text).toContain(`**${ProjectAiDailyLimitsCopy.cardTitle}** card`);
+    // A section of More settings, which is one card.
+    expect(text).toContain(
+      `**${ProjectAiDailyLimitsCopy.cardTitle}** section`,
+    );
     expect(text).toContain(
       "**Project Settings → AI Features**, folded under **More settings**",
     );
