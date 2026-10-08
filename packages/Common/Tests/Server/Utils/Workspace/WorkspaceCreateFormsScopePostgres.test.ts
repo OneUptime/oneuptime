@@ -37,6 +37,7 @@ import { MicrosoftTeamsCardChoice } from "../../../../Server/Utils/Workspace/Mic
 import { MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import SlackActionType from "../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAuthAction, {
+  SlackAction,
   SlackRequest,
 } from "../../../../Server/Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../../../../Server/Utils/Workspace/Slack/Actions/Incident";
@@ -969,12 +970,11 @@ describePostgres(
         );
         expect(slackRequest.isAuthorized).toBe(true);
 
-        const action: { actionType?: SlackActionType; actionValue?: string } =
-          slackRequest.actions!.find(
-            (candidate: { actionType?: SlackActionType }) => {
-              return candidate.actionType === SlackActionType.SubmitNewIncident;
-            },
-          )!;
+        const action: SlackAction = slackRequest.actions!.find(
+          (candidate: SlackAction): boolean => {
+            return candidate.actionType === SlackActionType.SubmitNewIncident;
+          },
+        )!;
 
         await SlackIncidentActions.submitNewIncident({
           slackRequest: slackRequest,

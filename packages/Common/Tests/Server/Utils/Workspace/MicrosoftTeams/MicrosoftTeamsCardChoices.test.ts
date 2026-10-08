@@ -1350,7 +1350,7 @@ function onlyArgumentOf(spy: SpyInstance<(data: unknown) => unknown>): unknown {
   return spy.mock.calls[0]![0];
 }
 
-function expectedFindBy(fetcher: FetcherCase): JSONObject {
+function expectedFindBy(fetcher: FetcherCase): Record<string, unknown> {
   return {
     query: { projectId: PROJECT_ID, ...(fetcher.extraQuery || {}) },
     select: { _id: true, name: true },
