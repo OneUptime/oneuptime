@@ -8,6 +8,7 @@
     "Incident {{number}}: {{title}}",
     "Offline",
     "Precision",
+    "Revision",
     "Runbook: {{name}}",
     "Runner",
     "VMware vCenter",

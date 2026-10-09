@@ -792,6 +792,68 @@ describe("POST /probe/network-device/list", () => {
     expect(devices[2]!["collectEndpoints"]).toBe(false);
   });
 
+  /*
+   * Transceiver health is matched to the ports the interface walk finds, so
+   * it rides that walk: on wherever interfaces are walked, off where they
+   * are not, and never part of a ping-only poll.
+   */
+  test("collectTransceivers follows the interface walk", async () => {
+    const walked: ObjectID = ObjectID.generate();
+    const unsetWalk: ObjectID = ObjectID.generate();
+    const notWalked: ObjectID = ObjectID.generate();
+
+    deviceService.claimDevicesForPolling.mockResolvedValue([
+      walked,
+      unsetWalk,
+      notWalked,
+    ] as never);
+    deviceService.findBy.mockResolvedValue([
+      makeDevice({
+        id: walked,
+        projectId: projectId,
+        hostname: "10.0.0.1",
+        walkInterfaces: true,
+      }),
+      makeDevice({
+        id: unsetWalk,
+        projectId: projectId,
+        hostname: "10.0.0.2",
+      }),
+      makeDevice({
+        id: notWalked,
+        projectId: projectId,
+        hostname: "10.0.0.3",
+        walkInterfaces: false,
+      }),
+    ] as never);
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const devices: Array<JSONObject> = respondedDevices();
+    expect(devices.length).toBe(3);
+    expect(devices[0]!["collectTransceivers"]).toBe(true);
+    expect(devices[1]!["collectTransceivers"]).toBe(true);
+    expect(devices[2]!["collectTransceivers"]).toBe(false);
+  });
+
+  test("a ping-only device is never asked for transceivers", async () => {
+    const deviceId: ObjectID = ObjectID.generate();
+    deviceService.claimDevicesForPolling.mockResolvedValue([deviceId] as never);
+    deviceService.findBy.mockResolvedValue([
+      makeDevice({
+        id: deviceId,
+        projectId: projectId,
+        hostname: "10.0.0.9",
+        snmpVersion: "V2c",
+        snmpCommunityString: undefined,
+      }),
+    ] as never);
+
+    await callListEndpoint(makeRequest({ probeId, body: PING_CAPABLE_BODY }));
+
+    expect(respondedDevices()[0]!).not.toHaveProperty("collectTransceivers");
+  });
+
   test("a device with no hostname is skipped — the probe cannot poll it", async () => {
     const withHostname: ObjectID = ObjectID.generate();
     const withoutHostname: ObjectID = ObjectID.generate();

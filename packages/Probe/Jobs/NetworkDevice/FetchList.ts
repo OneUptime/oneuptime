@@ -83,6 +83,12 @@ export interface DevicePollConfig {
    */
   pollMode?: NetworkDevicePollMode | undefined;
   collectEndpoints: boolean;
+  /*
+   * Read the device's transceivers (SFP/SFP+/QSFP health) during its walk.
+   * Absent from servers that predate transceiver health, which then keep
+   * getting exactly the walk they always did.
+   */
+  collectTransceivers?: boolean | undefined;
   // Emitted only for snmp mode: the hydrated credentials for the walk.
   snmpMonitor?: MonitorStepSnmpMonitor | undefined;
 }
@@ -285,6 +291,13 @@ async function walkDevice(
          * from the device's collectEndpoints column enables it.
          */
         collectEndpoints: device.collectEndpoints === true,
+        /*
+         * Transceiver health rides the interface walk too, and only when the
+         * server asks for it. The static part of a device's optics is cached
+         * on this probe under the device's id and address.
+         */
+        collectTransceivers: device.collectTransceivers === true,
+        transceiverCacheKey: `${device.networkDeviceId}@${snmpMonitor.hostname}`,
       },
     );
 

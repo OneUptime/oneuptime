@@ -49,6 +49,7 @@ import AIAgentRunLimitsHelper, {
 import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
+import NetworkTransceiverContext from "./NetworkTransceiverContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -451,6 +452,34 @@ export default class AIIncidentInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not resolve infrastructure access for incident ${incidentId.toString()}; investigating it with OneUptime data only: ${error}`,
+        );
+      }
+
+      /*
+       * The optics of the network devices the incident's monitors watch:
+       * still detected or not, readings against the device's thresholds,
+       * and received power over the last weeks. Enrichment only.
+       */
+      try {
+        contextSummary += await NetworkTransceiverContext.buildContextSection({
+          projectId,
+          monitorIds: (contextData.incident.monitors || [])
+            .map((monitor: { id?: ObjectID | null }) => {
+              return monitor.id;
+            })
+            .filter(
+              (
+                monitorId: ObjectID | null | undefined,
+              ): monitorId is ObjectID => {
+                return Boolean(monitorId);
+              },
+            ),
+          focusText: `${contextData.incident.title || ""}\n${contextData.incident.rootCause || ""}`,
+          seriesLabels: contextData.incident.seriesLabels,
+        });
+      } catch (error) {
+        logger.error(
+          `AI: could not read transceivers for incident ${incidentId.toString()}; investigating it without them: ${error}`,
         );
       }
     } catch (error) {

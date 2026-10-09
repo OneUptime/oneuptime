@@ -4,11 +4,13 @@
     "untranslated": 16624
   },
   "sameAsEnglish": [
+    "Alarm",
     "CloudWatch Metric Streams",
     "Runbook: {{name}}",
     "Runner",
     "Start import",
     "VMware vCenter",
-    "kubectl set image deployment/web * -n web"
+    "kubectl set image deployment/web * -n web",
+    "{{count}} alarm"
   ]
 }

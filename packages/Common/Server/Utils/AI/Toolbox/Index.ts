@@ -19,6 +19,7 @@ import {
   QueryTelemetryResourcesTool,
   QueryResourceTelemetryTool,
 } from "./ResourceTools";
+import { QueryNetworkTransceiversTool } from "./TransceiverTools";
 import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import {
   GetOnCallStatusTool,
@@ -107,6 +108,8 @@ export default class AIToolbox {
     QueryRumWebVitalsTool,
     QueryTelemetryResourcesTool,
     QueryResourceTelemetryTool,
+    // A network device's optics, port by port, with their trend.
+    QueryNetworkTransceiversTool,
     QueryScheduledMaintenanceTool,
     /*
      * Platform reads: the operational surface an on-call product exists to

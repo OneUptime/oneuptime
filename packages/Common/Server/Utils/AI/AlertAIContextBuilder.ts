@@ -47,6 +47,9 @@ export default class AlertAIContextBuilder {
         monitor: {
           name: true,
         },
+        // For the affected network device's transceivers (NetworkTransceiverContext).
+        monitorId: true,
+        seriesLabels: true,
         serviceLevelObjectives: {
           name: true,
         },
