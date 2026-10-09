@@ -34,6 +34,11 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import {
+  readsOfRowsCallerMayWrite,
+  RowsCallerMayWriteRead,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../../TestingUtils/RowsCallerMayWrite";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -41,6 +46,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * Saving a dropdown custom field whose options changed (#4564), the way every
@@ -69,6 +75,8 @@ const ADMIN_PROPS: DatabaseCommonInteractionProps = {
 
 interface FakeDefinitionService {
   service: DatabaseService<any>;
+  // The read of the fields an update writes, which holds the update to them.
+  findRowsAndHold: MockFunction;
   findBy: MockFunction;
   findOneById: MockFunction;
   restore: MockFunction;
@@ -118,6 +126,8 @@ function fakeRepository(tableName: string, answer: unknown): unknown {
 }
 
 function definitionService(): FakeDefinitionService {
+  const findRowsAndHold: MockFunction = getJestMockFunction();
+  findRowsAndHold.mockResolvedValue([] as never);
   const findBy: MockFunction = getJestMockFunction();
   findBy.mockResolvedValue([] as never);
   const findOneById: MockFunction = getJestMockFunction();
@@ -133,6 +143,7 @@ function definitionService(): FakeDefinitionService {
 
   return {
     service: {
+      findRowsAndHoldUpdateToThem: findRowsAndHold,
       findBy: findBy,
       findOneById: findOneById,
       updateColumnsByIdWithoutHooks: restore,
@@ -140,6 +151,7 @@ function definitionService(): FakeDefinitionService {
         return { manager: { transaction: transaction } };
       },
     } as unknown as DatabaseService<any>,
+    findRowsAndHold,
     findBy,
     findOneById,
     restore,
@@ -258,7 +270,7 @@ describe("prepareCustomFieldOptionEdit", () => {
       }),
     ).toBeNull();
 
-    expect(definitions.findBy).not.toHaveBeenCalled();
+    expect(definitions.findRowsAndHold).not.toHaveBeenCalled();
   });
 
   test("new options without renames only matter for a field others copy", async () => {
@@ -273,10 +285,10 @@ describe("prepareCustomFieldOptionEdit", () => {
       }),
     ).toBeNull();
 
-    expect(definitions.findBy).not.toHaveBeenCalled();
+    expect(definitions.findRowsAndHold).not.toHaveBeenCalled();
 
     // A monitor field: incident, alert and maintenance fields can copy it.
-    definitions.findBy.mockResolvedValue([
+    definitions.findRowsAndHold.mockResolvedValue([
       definition(MonitorCustomField, {
         id: fieldId,
         name: "Facility",
@@ -306,7 +318,7 @@ describe("prepareCustomFieldOptionEdit", () => {
 
   test("reads the renames from the write's misc data, and what the field held before it", async () => {
     const definitions: FakeDefinitionService = definitionService();
-    definitions.findBy.mockResolvedValue([
+    definitions.findRowsAndHold.mockResolvedValue([
       definition(IncidentCustomField, {
         id: fieldId,
         name: "Facility",
@@ -315,18 +327,18 @@ describe("prepareCustomFieldOptionEdit", () => {
       }),
     ] as never);
 
+    const updateBy: UpdateBy<any> = update({
+      payload: { dropdownOptions: "Facility Alpha\nFacility B" },
+      miscDataProps: {
+        renamedDropdownOptions: [{ from: "Facility A", to: "Facility Alpha" }],
+      },
+    });
+
     const carryForward: CustomFieldOptionEditCarryForward | null =
       await prepareCustomFieldOptionEdit({
         definitionModelType: IncidentCustomField,
         definitionService: definitions.service,
-        updateBy: update({
-          payload: { dropdownOptions: "Facility Alpha\nFacility B" },
-          miscDataProps: {
-            renamedDropdownOptions: [
-              { from: "Facility A", to: "Facility Alpha" },
-            ],
-          },
-        }),
+        updateBy: updateBy,
       });
 
     expect(carryForward).toEqual({
@@ -341,47 +353,20 @@ describe("prepareCustomFieldOptionEdit", () => {
       renames: [{ from: "Facility A", to: "Facility Alpha" }],
     });
 
-    const read: JSONObject = definitions.findBy.mock.calls[0]![0] as JSONObject;
-
-    // Read as root, but only in the caller's project.
-    expect(read["query"]).toEqual({
-      _id: fieldId.toString(),
-      projectId: projectId,
-    });
-    expect((read["props"] as JSONObject)["isRoot"]).toBe(true);
-    expect(read["select"]).toEqual({
+    /*
+     * The fields read are the ones the update writes, and the update is held
+     * to them: the very update, with what the check needs.
+     */
+    expect(definitions.findRowsAndHold).toHaveBeenCalledTimes(1);
+    expect(definitions.findRowsAndHold.mock.calls[0]![0]).toBe(updateBy);
+    expect(definitions.findRowsAndHold.mock.calls[0]![1]).toEqual({
       _id: true,
       projectId: true,
       name: true,
       customFieldType: true,
       dropdownOptions: true,
     });
-  });
-
-  test("a root write is read as it was written", async () => {
-    const definitions: FakeDefinitionService = definitionService();
-    definitions.findBy.mockResolvedValue([
-      definition(IncidentCustomField, {
-        id: fieldId,
-        name: "Facility",
-        customFieldType: CustomFieldType.Dropdown,
-        dropdownOptions: "A",
-      }),
-    ] as never);
-
-    await prepareCustomFieldOptionEdit({
-      definitionModelType: IncidentCustomField,
-      definitionService: definitions.service,
-      updateBy: update({
-        payload: { dropdownOptions: "B" },
-        miscDataProps: { renamedDropdownOptions: [{ from: "A", to: "B" }] },
-        props: { isRoot: true },
-      }),
-    });
-
-    expect(
-      (definitions.findBy.mock.calls[0]![0] as JSONObject)["query"],
-    ).toEqual({ _id: fieldId.toString() });
+    expect(definitions.findBy).not.toHaveBeenCalled();
   });
 
   test("refuses a rename list that is not one", async () => {
@@ -402,12 +387,12 @@ describe("prepareCustomFieldOptionEdit", () => {
       ),
     );
 
-    expect(definitions.findBy).not.toHaveBeenCalled();
+    expect(definitions.findRowsAndHold).not.toHaveBeenCalled();
   });
 
   test("refuses renaming the options of several fields in one write", async () => {
     const definitions: FakeDefinitionService = definitionService();
-    definitions.findBy.mockResolvedValue([
+    definitions.findRowsAndHold.mockResolvedValue([
       definition(IncidentCustomField, {
         id: fieldId,
         name: "Facility",
@@ -439,7 +424,7 @@ describe("prepareCustomFieldOptionEdit", () => {
 
   test("refuses renames on a field that is not a dropdown", async () => {
     const definitions: FakeDefinitionService = definitionService();
-    definitions.findBy.mockResolvedValue([
+    definitions.findRowsAndHold.mockResolvedValue([
       definition(TeamCustomField, {
         id: fieldId,
         name: "Cost Centre",
@@ -461,7 +446,7 @@ describe("prepareCustomFieldOptionEdit", () => {
 
   test("checks the renames against the options the write saves", async () => {
     const definitions: FakeDefinitionService = definitionService();
-    definitions.findBy.mockResolvedValue([
+    definitions.findRowsAndHold.mockResolvedValue([
       definition(IncidentCustomField, {
         id: fieldId,
         name: "Facility",
@@ -507,7 +492,7 @@ describe("prepareCustomFieldOptionEdit", () => {
 
   test("without new options, the renames are checked against the options the field has", async () => {
     const definitions: FakeDefinitionService = definitionService();
-    definitions.findBy.mockResolvedValue([
+    definitions.findRowsAndHold.mockResolvedValue([
       definition(IncidentCustomField, {
         id: fieldId,
         name: "Facility",
@@ -567,6 +552,158 @@ describe("prepareCustomFieldOptionEdit", () => {
         }),
       }),
     ).toBeNull();
+  });
+});
+
+describe("prepareCustomFieldOptionEdit: the fields a teammate's update writes", () => {
+  /*
+   * The real read of the fields (DatabaseService.findRowsAndHoldUpdateToThem)
+   * with the database stubbed: a teammate may write the fields of their own
+   * project (stubRowsCallerMayWriteLikeFindBy narrows the read to it), and
+   * the suite's findBy answers that read, and the read of those fields by id.
+   */
+  const OTHER_PROJECT: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+
+  function answerFields(fields: Array<IncidentCustomField>): MockFunction {
+    const findBy: MockFunction = getJestMockFunction();
+
+    findBy.mockImplementation((async (read: {
+      query: JSONObject;
+    }): Promise<Array<IncidentCustomField>> => {
+      const inProject: unknown = read.query["projectId"];
+
+      return fields.filter((field: IncidentCustomField): boolean => {
+        return (
+          !inProject ||
+          String(inProject) === String(field.getColumnValue("projectId"))
+        );
+      });
+    }) as never);
+
+    jest
+      .spyOn(IncidentCustomFieldService, "findBy")
+      .mockImplementation(findBy as never);
+    stubRowsCallerMayWriteLikeFindBy(IncidentCustomFieldService, findBy);
+
+    return findBy;
+  }
+
+  test("reads the field among those the caller may write, and holds the update to it", async () => {
+    const findBy: MockFunction = answerFields([
+      definition(IncidentCustomField, {
+        id: fieldId,
+        name: "Facility",
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: "Facility A\nFacility B",
+      }),
+    ]);
+
+    const updateBy: UpdateBy<any> = update({
+      payload: { dropdownOptions: "Facility Alpha\nFacility B" },
+      miscDataProps: {
+        renamedDropdownOptions: [{ from: "Facility A", to: "Facility Alpha" }],
+      },
+    });
+
+    const carryForward: CustomFieldOptionEditCarryForward | null =
+      await prepareCustomFieldOptionEdit({
+        definitionModelType: IncidentCustomField,
+        definitionService: IncidentCustomFieldService,
+        updateBy: updateBy,
+      });
+
+    expect(
+      carryForward?.fields.map(
+        (field: { id: ObjectID; dropdownOptions: string | null }) => {
+          return [field.id.toString(), field.dropdownOptions];
+        },
+      ),
+    ).toEqual([[fieldId.toString(), "Facility A\nFacility B"]]);
+
+    // Among the fields the caller may write: those of their project.
+    const writable: RowsCallerMayWriteRead = readsOfRowsCallerMayWrite(
+      IncidentCustomFieldService,
+    )[0]!;
+    expect(writable.query["_id"]).toBe(fieldId.toString());
+    expect(String(writable.query["projectId"])).toBe(projectId.toString());
+
+    // Then that one, by id, as root, with what the check needs.
+    const read: JSONObject = findBy.mock.calls[0]![0] as JSONObject;
+    expect(read["query"]).toEqual({ _id: fieldId.toString() });
+    expect((read["props"] as JSONObject)["isRoot"]).toBe(true);
+    expect(read["select"]).toEqual({
+      _id: true,
+      projectId: true,
+      name: true,
+      customFieldType: true,
+      dropdownOptions: true,
+    });
+
+    // And the update writes the field whose options were checked.
+    expect(DatabaseService.getOneRowIdNamedBy(updateBy.query)?.toString()).toBe(
+      fieldId.toString(),
+    );
+  });
+
+  test("a field the caller may not write is not checked: nothing is refused about it, and the update writes nothing", async () => {
+    // A text field of another project: renames on it would be refused.
+    answerFields([
+      definition(IncidentCustomField, {
+        id: fieldId,
+        name: "Cost Centre",
+        customFieldType: CustomFieldType.Text,
+        project: OTHER_PROJECT,
+      }),
+    ]);
+
+    const updateBy: UpdateBy<any> = update({
+      payload: { description: "Where the money goes" },
+      miscDataProps: { renamedDropdownOptions: [{ from: "A", to: "B" }] },
+    });
+
+    await expect(
+      prepareCustomFieldOptionEdit({
+        definitionModelType: IncidentCustomField,
+        definitionService: IncidentCustomFieldService,
+        updateBy: updateBy,
+      }),
+    ).resolves.toBeNull();
+
+    // Held to none of the fields: "any of" no id.
+    const held: unknown = (updateBy.query as JSONObject)["_id"];
+    expect(held).toBeInstanceOf(FindOperator);
+    expect((held as FindOperator<unknown>).value).toEqual([]);
+  });
+
+  test("OneUptime's own update reads the fields its query names, in its window", async () => {
+    const findBy: MockFunction = answerFields([
+      definition(IncidentCustomField, {
+        id: fieldId,
+        name: "Facility",
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: "A",
+        project: OTHER_PROJECT,
+      }),
+    ]);
+
+    await expect(
+      prepareCustomFieldOptionEdit({
+        definitionModelType: IncidentCustomField,
+        definitionService: IncidentCustomFieldService,
+        updateBy: update({
+          payload: { dropdownOptions: "B" },
+          miscDataProps: { renamedDropdownOptions: [{ from: "A", to: "B" }] },
+          props: { isRoot: true },
+        }),
+      }),
+    ).resolves.not.toBeNull();
+
+    expect(readsOfRowsCallerMayWrite(IncidentCustomFieldService)).toEqual([]);
+    expect(
+      (findBy.mock.calls[0]![0] as JSONObject)["query"] as JSONObject,
+    ).toEqual({ _id: fieldId.toString() });
   });
 });
 

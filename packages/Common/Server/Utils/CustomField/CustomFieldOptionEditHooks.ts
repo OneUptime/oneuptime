@@ -27,7 +27,6 @@ import ObjectID from "../../../Types/ObjectID";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import ModelPermission from "../../Types/Database/Permissions/Index";
-import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Logger";
@@ -159,9 +158,11 @@ export interface PrepareCustomFieldOptionEditInput {
  * further than the field itself. Throws, refusing the write, for renames
  * that cannot be made.
  *
- * The fields are read as root, like the incident field rename reads them,
- * and limited to the caller's project: the update's own permission check
- * has not run yet, and a refusal must say nothing about another project.
+ * The fields are the ones the update writes, read as the incident field
+ * rename reads them (findRowsAndHoldUpdateToThem): for a teammate, only the
+ * ones they may write, with the update held to them, so a refusal never
+ * tells them about a field they cannot reach, and the fields written are
+ * the fields whose options were checked.
  */
 export const prepareCustomFieldOptionEdit: (
   input: PrepareCustomFieldOptionEditInput,
@@ -195,31 +196,14 @@ export const prepareCustomFieldOptionEdit: (
     return null;
   }
 
-  const props: DatabaseCommonInteractionProps = input.updateBy.props;
-
-  const query: Query<any> =
-    !props.isRoot && props.tenantId
-      ? {
-          ...input.updateBy.query,
-          projectId: props.tenantId,
-        }
-      : input.updateBy.query;
-
-  const fields: Array<BaseModel> = await input.definitionService.findBy({
-    query: query,
-    select: {
+  const fields: Array<BaseModel> =
+    await input.definitionService.findRowsAndHoldUpdateToThem(input.updateBy, {
       _id: true,
       projectId: true,
       name: true,
       customFieldType: true,
       dropdownOptions: true,
-    },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: {
-      isRoot: true,
-    },
-  });
+    });
 
   if (read.renames.length > 0) {
     /*
