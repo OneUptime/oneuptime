@@ -308,6 +308,6 @@ describe("the network pages read the same asset facts as Inventory", () => {
     const list: string = readCode("Pages", "NetworkDevice", "Devices.tsx");
 
     expect(list).toContain("getNetworkDeviceAssetFacts(item)");
-    expect(list).toContain("sysDescr: true, sysObjectId: true,");
+    expect(list).toContain("sysObjectId: true, sysDescr: true,");
   });
 });

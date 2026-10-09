@@ -1895,9 +1895,6 @@ const NetworkDevices: FunctionComponent<
           interfacesDown: true,
           sysName: true,
           deviceModel: true,
-          // What the Vendor / Model cell reads beyond its own column.
-          sysDescr: true,
-          sysObjectId: true,
           /*
            * What "Shorten Names to Hostname" plans its confirmation from and
            * checks each row against before renaming it. Selected explicitly
@@ -1916,7 +1913,9 @@ const NetworkDevices: FunctionComponent<
            * device gets (its SNMP identity, and whether an OID Collection
            * Template already decides what it collects). Selected here rather
            * than left to the Site, Role and Template columns, which a viewer
-           * can hide - and two of which are hidden by default.
+           * can hide - and two of which are hidden by default. The SNMP
+           * identity is also what the Vendor / Model cell reads a maker and a
+           * model from when ENTITY-MIB gave none (issue #4569).
            */
           siteId: true,
           networkDeviceRoleId: true,
