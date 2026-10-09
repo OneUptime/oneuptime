@@ -27237,5 +27237,7 @@
   "{{count}} {{itemsName}} not changed_one": "{{count}} {{itemName}} नहीं बदला",
   "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "हर डिवाइस को उसके वेंडर के हेल्थ OID और SNMP टेबल मिलते हैं — CPU, मेमोरी, तापमान, पंखे — ठीक वैसे जैसे ऑटो इंपोर्ट नियम देते हैं। जिस डिवाइस के वेंडर का कोई टेम्पलेट नहीं है वह जैसा है वैसा रहता है, और जो कुछ लागू हुआ उसे डिवाइस की सेटिंग्स में बदला जा सकता है।",
   "Match each device's vendor": "हर डिवाइस के वेंडर से मिलाएँ",
-  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "मिलान सुरक्षित विकल्प है: यह हर डिवाइस का टेम्पलेट उसके SNMP वॉक की रिपोर्ट से चुनता है, ताकि मिले-जुले चयन में भी हर डिवाइस को सही टेम्पलेट मिले।"
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "मिलान सुरक्षित विकल्प है: यह हर डिवाइस का टेम्पलेट उसके SNMP वॉक की रिपोर्ट से चुनता है, ताकि मिले-जुले चयन में भी हर डिवाइस को सही टेम्पलेट मिले।",
+  "Last Saved by User": "Last Saved by User",
+  "Last Saved by User ID": "Last Saved by User ID"
 }

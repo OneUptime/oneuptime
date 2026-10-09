@@ -27237,5 +27237,7 @@
   "{{count}} {{itemsName}} not changed_one": "{{count}} {{itemName}} nicht geändert",
   "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "Jedes Gerät erhält die Integritäts-OIDs und SNMP-Tabellen seines Herstellers – CPU, Arbeitsspeicher, Temperatur, Lüfter –, wie bei Regeln für automatischen Import. Ein Gerät, für dessen Hersteller es keine Vorlage gibt, bleibt unverändert, und alles Angewendete lässt sich in den Einstellungen des Geräts ändern.",
   "Match each device's vendor": "Hersteller jedes Geräts erkennen",
-  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "Der Abgleich ist die sichere Wahl: Er wählt die Vorlage jedes Geräts anhand dessen, was sein SNMP-Walk meldet – so erhält auch eine gemischte Auswahl überall die richtige."
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "Der Abgleich ist die sichere Wahl: Er wählt die Vorlage jedes Geräts anhand dessen, was sein SNMP-Walk meldet – so erhält auch eine gemischte Auswahl überall die richtige.",
+  "Last Saved by User": "Last Saved by User",
+  "Last Saved by User ID": "Last Saved by User ID"
 }

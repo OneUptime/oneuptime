@@ -27237,5 +27237,7 @@
   "{{count}} {{itemsName}} not changed_one": "{{itemName}} {{count}}개 변경 안 됨",
   "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "각 디바이스는 자동 가져오기 규칙과 마찬가지로 해당 벤더의 상태 OID와 SNMP 테이블(CPU, 메모리, 온도, 팬)을 받습니다. 템플릿이 없는 벤더의 디바이스는 그대로 두며, 적용된 내용은 디바이스 설정에서 변경할 수 있습니다.",
   "Match each device's vendor": "각 디바이스의 벤더에 맞춤",
-  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "일치가 안전한 선택입니다. 각 디바이스의 SNMP 워크 결과를 보고 템플릿을 고르므로, 섞인 선택에서도 모든 디바이스에 맞는 템플릿이 적용됩니다."
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "일치가 안전한 선택입니다. 각 디바이스의 SNMP 워크 결과를 보고 템플릿을 고르므로, 섞인 선택에서도 모든 디바이스에 맞는 템플릿이 적용됩니다.",
+  "Last Saved by User": "Last Saved by User",
+  "Last Saved by User ID": "Last Saved by User ID"
 }

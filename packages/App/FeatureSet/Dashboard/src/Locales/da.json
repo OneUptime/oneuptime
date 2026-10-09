@@ -27237,5 +27237,7 @@
   "{{count}} {{itemsName}} not changed_one": "{{count}} {{itemName}} ikke ændret",
   "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "Hver enhed får sundheds-OID'erne og SNMP-tabellerne for sin producent — CPU, hukommelse, temperatur, blæsere — som regler for automatisk import gør. En enhed, hvis producent ikke har en skabelon, forbliver uændret, og alt anvendt kan ændres i enhedens indstillinger.",
   "Match each device's vendor": "Match hver enheds producent",
-  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "Matchning er det sikre valg: den vælger hver enheds skabelon ud fra det, dens SNMP-walk rapporterer, så en blandet markering får den rigtige overalt."
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "Matchning er det sikre valg: den vælger hver enheds skabelon ud fra det, dens SNMP-walk rapporterer, så en blandet markering får den rigtige overalt.",
+  "Last Saved by User": "Last Saved by User",
+  "Last Saved by User ID": "Last Saved by User ID"
 }

@@ -27237,5 +27237,7 @@
   "{{count}} {{itemsName}} not changed_one": "{{count}} 个{{itemName}}未更改",
   "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "每台设备都会获得其厂商的健康 OID 和 SNMP 表（CPU、内存、温度、风扇），与自动导入规则的做法相同。厂商没有模板的设备保持不变，已应用的内容都可以在设备设置中更改。",
   "Match each device's vendor": "按每台设备的厂商匹配",
-  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "匹配是稳妥的选择：它会根据每台设备 SNMP 遍历报告的内容为其选择模板，因此混合选择中的每台设备都能获得正确的模板。"
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "匹配是稳妥的选择：它会根据每台设备 SNMP 遍历报告的内容为其选择模板，因此混合选择中的每台设备都能获得正确的模板。",
+  "Last Saved by User": "Last Saved by User",
+  "Last Saved by User ID": "Last Saved by User ID"
 }

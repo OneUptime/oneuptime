@@ -27237,5 +27237,7 @@
   "{{count}} {{itemsName}} not changed_one": "{{itemName}}: {{count}} 件変更なし",
   "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "各デバイスには、自動インポートルールと同じように、そのベンダーのヘルス OID と SNMP テーブル (CPU、メモリ、温度、ファン) が適用されます。テンプレートのないベンダーのデバイスはそのままで、適用した内容はデバイスの設定でいつでも変更できます。",
   "Match each device's vendor": "各デバイスのベンダーに合わせる",
-  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "照合が安全な選択です。各デバイスの SNMP ウォークが報告する内容からテンプレートを選ぶため、混在した選択でもすべてに正しいものが適用されます。"
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "照合が安全な選択です。各デバイスの SNMP ウォークが報告する内容からテンプレートを選ぶため、混在した選択でもすべてに正しいものが適用されます。",
+  "Last Saved by User": "Last Saved by User",
+  "Last Saved by User ID": "Last Saved by User ID"
 }
