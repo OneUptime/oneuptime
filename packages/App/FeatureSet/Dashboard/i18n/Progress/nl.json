@@ -12,6 +12,7 @@
     "Runbook: {{name}}",
     "Runner",
     "VMware vCenter",
+    "Website",
     "agent {{version}}",
     "cluster",
     "host",

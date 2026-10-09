@@ -13,6 +13,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import {
   getToolImportSourceDefinition,
   isToolImportAddressGiven,
+  isToolImportFileUpload,
   ToolImportCredentialField,
   ToolImportRegion,
   ToolImportSourceDefinition,
@@ -157,27 +158,66 @@ function connectionsOf(source: ToolImportSource): Array<Connection> {
   });
 }
 
+// The tools read with their key, over their API.
+const API_SOURCES: Array<ToolImportSource> = AllToolImportSources.filter(
+  (source: ToolImportSource): boolean => {
+    return !isToolImportFileUpload(getToolImportSourceDefinition(source));
+  },
+);
+
+// The tools read from a file the person uploads.
+const FILE_SOURCES: Array<ToolImportSource> = AllToolImportSources.filter(
+  (source: ToolImportSource): boolean => {
+    return isToolImportFileUpload(getToolImportSourceDefinition(source));
+  },
+);
+
 describe("ToolImportAdapterRegistry", () => {
   test("every tool has exactly one adapter, and the registry hands out the one asked for", () => {
     const registered: Array<ToolImportSource> =
       ToolImportAdapterRegistry.getRegisteredSources();
+    const registeredFiles: Array<ToolImportSource> =
+      ToolImportAdapterRegistry.getRegisteredFileSources();
 
-    expect([...registered].sort()).toEqual([...AllToolImportSources].sort());
-    expect(new Set(registered).size).toBe(registered.length);
+    // A tool read over its API has an API adapter; one read from a file, a file adapter.
+    expect([...registered].sort()).toEqual([...API_SOURCES].sort());
+    expect([...registeredFiles].sort()).toEqual([...FILE_SOURCES].sort());
+    expect(new Set([...registered, ...registeredFiles]).size).toBe(
+      AllToolImportSources.length,
+    );
 
-    for (const source of AllToolImportSources) {
+    for (const source of API_SOURCES) {
       expect(ToolImportAdapterRegistry.getAdapter(source).source).toBe(source);
+      expect(() => {
+        ToolImportAdapterRegistry.getFileAdapter(source);
+      }).toThrow(BadDataException);
     }
+
+    for (const source of FILE_SOURCES) {
+      expect(ToolImportAdapterRegistry.getFileAdapter(source).source).toBe(
+        source,
+      );
+      expect(() => {
+        ToolImportAdapterRegistry.getAdapter(source);
+      }).toThrow(BadDataException);
+    }
+  });
+
+  test("Uptime Kuma, which has no API to read, is the one tool read from a file", () => {
+    expect(FILE_SOURCES).toEqual([ToolImportSource.UptimeKuma]);
   });
 
   test("a tool without an adapter is refused, never guessed", () => {
     expect(() => {
       ToolImportAdapterRegistry.getAdapter("Elsewhere" as ToolImportSource);
     }).toThrow(BadDataException);
+    expect(() => {
+      ToolImportAdapterRegistry.getFileAdapter("Elsewhere" as ToolImportSource);
+    }).toThrow(BadDataException);
   });
 });
 
-describe.each(AllToolImportSources)(
+describe.each(API_SOURCES)(
   "the %s adapter keeps the rules every tool's adapter keeps",
   (source: ToolImportSource) => {
     const adapter: ToolImportAdapter =

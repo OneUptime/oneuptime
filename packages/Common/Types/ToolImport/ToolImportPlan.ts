@@ -1,5 +1,6 @@
 import CustomFieldType from "../CustomField/CustomFieldType";
 import BadDataException from "../Exception/BadDataException";
+import MonitorType from "../Monitor/MonitorType";
 import ObjectID from "../ObjectID";
 import {
   makeToolImportNote,
@@ -54,6 +55,15 @@ export interface ToolImportItemSummary {
   repeatTimes?: number | undefined;
   fieldType?: CustomFieldType | undefined;
   optionCount?: number | undefined;
+  // A monitor: what it becomes, what it checks, and how often (seconds).
+  monitorType?: MonitorType | undefined;
+  destination?: string | undefined;
+  intervalSeconds?: number | undefined;
+  // A status page: how many monitors it shows, in how many groups.
+  resourceCount?: number | undefined;
+  groupCount?: number | undefined;
+  // A subscriber: the status page whose updates they get.
+  statusPageName?: string | undefined;
 }
 
 export interface ToolImportPlanItem {
@@ -109,6 +119,18 @@ export interface ToolImportSelection {
   selectedKeys: Array<string>;
   // The team new people are invited to; null invites nobody.
   inviteTeamId: string | null;
+  /*
+   * That the person confirmed the status page subscribers they ticked
+   * agreed to get updates from them, and that they may move those
+   * subscriptions to OneUptime. An import brings no subscriber over
+   * without it.
+   */
+  subscribersConsent?: boolean | undefined;
+}
+
+// Whether a ticked key is a status page subscriber's.
+export function isToolImportSubscriberKey(key: string): boolean {
+  return key.startsWith(`${ToolImportResourceKind.StatusPageSubscriber}:`);
 }
 
 export enum ToolImportOutcome {
@@ -227,7 +249,35 @@ export function readToolImportSelection(value: unknown): ToolImportSelection {
     inviteTeamId = rawTeamId;
   }
 
-  return { selectedKeys: keys, inviteTeamId: inviteTeamId };
+  const selection: ToolImportSelection = {
+    selectedKeys: keys,
+    inviteTeamId: inviteTeamId,
+  };
+
+  // Only a plain true is a consent: nothing else a body can carry is one.
+  if (body["subscribersConsent"] === true) {
+    selection.subscribersConsent = true;
+  }
+
+  return selection;
+}
+
+/*
+ * Status page subscribers come over only with the person's word that they
+ * may move them: a selection that ticks any without it is refused, with a
+ * message the page can show.
+ */
+export function assertToolImportSubscribersConsent(
+  selection: ToolImportSelection,
+): void {
+  if (
+    selection.subscribersConsent !== true &&
+    selection.selectedKeys.some(isToolImportSubscriberKey)
+  ) {
+    throw new BadDataException(
+      "Confirm that you may move the subscribers you ticked, or untick them.",
+    );
+  }
 }
 
 export function getEmptyToolImportOutcomeCounts(): ToolImportOutcomeCounts {

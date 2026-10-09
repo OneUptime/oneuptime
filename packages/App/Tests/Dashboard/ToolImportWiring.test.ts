@@ -272,6 +272,8 @@ describe("the page and the server agree", () => {
 
     expect(serves("get", TOOL_IMPORT_ROUTES.runs)).toBe(true);
     expect(serves("post", TOOL_IMPORT_ROUTES.read)).toBe(true);
+    // An uptime tool's file (Uptime Kuma) is read from an upload.
+    expect(serves("post", TOOL_IMPORT_ROUTES.upload)).toBe(true);
     expect(serves("get", toServerRoute(TOOL_IMPORT_ROUTES.run(RUN_ID)))).toBe(
       true,
     );

@@ -1,5 +1,6 @@
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   OPSGENIE_REGION_EU,
   OPSGENIE_REGION_US,
@@ -60,6 +61,9 @@ export const TOOL_IMPORT_KIND_TITLES: Record<ToolImportResourceKind, string> = {
   ),
   [ToolImportResourceKind.OnCallSchedule]: translationKey("On-Call Schedules"),
   [ToolImportResourceKind.OnCallPolicy]: translationKey("On-Call Policies"),
+  [ToolImportResourceKind.Monitor]: translationKey("Monitors"),
+  [ToolImportResourceKind.StatusPage]: translationKey("Status Pages"),
+  [ToolImportResourceKind.StatusPageSubscriber]: translationKey("Subscribers"),
 };
 
 /*
@@ -80,6 +84,9 @@ export const TOOL_IMPORT_KIND_TERMS: Record<ToolImportResourceKind, string> = {
   ),
   [ToolImportResourceKind.OnCallSchedule]: translationKey("on-call schedules"),
   [ToolImportResourceKind.OnCallPolicy]: translationKey("on-call policies"),
+  [ToolImportResourceKind.Monitor]: translationKey("monitors"),
+  [ToolImportResourceKind.StatusPage]: translationKey("status pages"),
+  [ToolImportResourceKind.StatusPageSubscriber]: translationKey("subscribers"),
 };
 
 // One line under a section's title: what each item becomes in OneUptime.
@@ -114,6 +121,29 @@ export const TOOL_IMPORT_KIND_DESCRIPTIONS: Record<
   [ToolImportResourceKind.OnCallPolicy]: translationKey(
     "Each step becomes an escalation rule that pages the same schedules, people and teams.",
   ),
+  [ToolImportResourceKind.Monitor]: translationKey(
+    "Each check becomes a monitor of the same type, checked by your project's probes with the same rules for up and down.",
+  ),
+  [ToolImportResourceKind.StatusPage]: translationKey(
+    "Created with their groups and the monitors they show.",
+  ),
+  [ToolImportResourceKind.StatusPageSubscriber]: translationKey(
+    "People who get a status page's updates by email. They start unticked: tick them only if you may move their subscriptions.",
+  ),
+};
+
+// What each monitor type an import creates is called.
+export const TOOL_IMPORT_MONITOR_TYPE_LABELS: Partial<
+  Record<MonitorType, string>
+> = {
+  [MonitorType.Website]: translationKey("Website"),
+  [MonitorType.API]: translationKey("API"),
+  [MonitorType.Ping]: translationKey("Ping"),
+  [MonitorType.Port]: translationKey("Port"),
+  [MonitorType.SSLCertificate]: translationKey("SSL Certificate"),
+  [MonitorType.DNS]: translationKey("DNS"),
+  [MonitorType.IncomingRequest]: translationKey("Incoming Request"),
+  [MonitorType.Manual]: translationKey("Manual"),
 };
 
 // The badge on an item in the preview.
@@ -371,7 +401,190 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
   [ToolImportNoteCode.ShiftBasedSchedulesNotRead]: translationKey(
     "{{tool}}'s shift-based schedules cannot be read yet, so they are not shown. Create them in OneUptime.",
   ),
+  [ToolImportNoteCode.MonitorTypeNotSupported]: translationKey(
+    "OneUptime has no monitor that does what {{tool}}'s {{type}} checks do, so it is left out.",
+  ),
+  [ToolImportNoteCode.MonitorAddressUnreadable]: translationKey(
+    "OneUptime cannot read its address, {{address}}, so it is left out.",
+  ),
+  [ToolImportNoteCode.MonitorUpsideDown]: translationKey(
+    "It counts as up when its check fails in {{tool}}, which no OneUptime monitor does, so it is left out.",
+  ),
+  [ToolImportNoteCode.MonitorNeedsPaymentMethod]: translationKey(
+    "Monitors have usage charges, even on the Free plan. Add a payment method in Project Settings, then Billing, to bring them over.",
+  ),
+  [ToolImportNoteCode.MonitorPlanLimit]: translationKey(
+    "The Free plan has room for {{limit}} monitors, and this project has no room left for this one. Upgrade the plan to bring it over.",
+  ),
+  [ToolImportNoteCode.StatusPagePlanLimit]: translationKey(
+    "The Free plan has room for {{limit}} status pages, and this project has no room left for this one. Upgrade the plan to bring it over.",
+  ),
+  [ToolImportNoteCode.SubscriberPlanLimit]: translationKey(
+    "The Free plan has room for {{limit}} subscribers, and this project has no room left for them. Upgrade the plan to bring them over.",
+  ),
+  [ToolImportNoteCode.SubscriberNotConfirmed]: translationKey(
+    "They never confirmed their subscription in {{tool}}, so they are left out.",
+  ),
+  [ToolImportNoteCode.SubscriberPageLeftOut]: translationKey(
+    "Their status page is not being brought over, so they are left out.",
+  ),
+  [ToolImportNoteCode.SubscriberNotConsented]: translationKey(
+    "Subscribers come over only when you confirm that you may move them, so they are left out.",
+  ),
+  [ToolImportNoteCode.MonitorAlreadyChecked]: translationKey(
+    "OneUptime already checks this with {{name}}, so that monitor is used as it is.",
+  ),
+  [ToolImportNoteCode.SubscriberAlreadySubscribed]: translationKey(
+    "They already get this status page's updates.",
+  ),
+  [ToolImportNoteCode.MonitorIntervalChanged]: translationKey(
+    "{{tool}} checks it every {{every}}. OneUptime checks it every {{oneUptimeEvery}}, the closest it offers.",
+  ),
+  [ToolImportNoteCode.MonitorTimeoutShortened]: translationKey(
+    "{{tool}} waits {{timeout}} for an answer. OneUptime waits at most a minute.",
+  ),
+  [ToolImportNoteCode.MonitorHeaderLeftOut]: translationKey(
+    "Its {{header}} header may hold a secret, so it is not copied. Add it to the monitor with a monitor secret.",
+  ),
+  [ToolImportNoteCode.MonitorSignInLeftOut]: translationKey(
+    "It signs in with a password in {{tool}}. Passwords are not copied: add it to the monitor with a monitor secret.",
+  ),
+  [ToolImportNoteCode.MonitorBodyLeftOut]: translationKey(
+    "Its request body is not a JSON object, the only kind OneUptime sends, so it is left out.",
+  ),
+  [ToolImportNoteCode.MonitorPaused]: translationKey(
+    "It is paused in {{tool}}, so it starts unticked, and comes over paused.",
+  ),
+  [ToolImportNoteCode.MonitorNewHeartbeatAddress]: translationKey(
+    "It gets a new address in OneUptime. Once it is imported, open it, copy its address, and point the job that pings it there.",
+  ),
+  [ToolImportNoteCode.MonitorKeywordCaseSensitive]: translationKey(
+    "OneUptime matches its keyword exactly, capital letters included.",
+  ),
+  [ToolImportNoteCode.MonitorChecksPortOnly]: translationKey(
+    "OneUptime checks that its port answers, not the {{protocol}} conversation on it.",
+  ),
+  [ToolImportNoteCode.MonitorAssertionsLeftOut]: translationKey(
+    "The checks it makes on what the answer says are not brought over. Add them as criteria in OneUptime.",
+  ),
+  [ToolImportNoteCode.MonitorDnsAnswersLeftOut]: translationKey(
+    "The answers it expects are not brought over. Add them as criteria in OneUptime.",
+  ),
+  [ToolImportNoteCode.MonitorStatusNotCopied]: translationKey(
+    "It is not shown as operational in {{tool}} right now. It comes over operational: change its status in OneUptime when you switch.",
+  ),
+  [ToolImportNoteCode.StatusPagePrivate]: translationKey(
+    "Only some people may see it in {{tool}}. It comes over private: choose who may see it in OneUptime.",
+  ),
+  [ToolImportNoteCode.StatusPageCustomDomain]: translationKey(
+    "{{domain}} does not come over. Add it under Custom Domains in OneUptime, then point it at OneUptime.",
+  ),
+  [ToolImportNoteCode.StatusPageBrandingLeftOut]: translationKey(
+    "Its logo and colors do not come over. Add them under Branding in OneUptime.",
+  ),
+  [ToolImportNoteCode.StatusPageResourceNotSupported]: translationKey(
+    "{{name}} shows something a OneUptime status page cannot show, so it is left out.",
+  ),
+  [ToolImportNoteCode.StatusPageMonitorLeftOut]: translationKey(
+    "The monitor {{name}} is not being brought over, so the page does not show it.",
+  ),
+  [ToolImportNoteCode.StatusPageSubscriberChoiceNeedsPlan]: translationKey(
+    "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.",
+  ),
+  [ToolImportNoteCode.StatusPageGroupsNeedPlan]: translationKey(
+    "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.",
+  ),
+  [ToolImportNoteCode.StatusPageGroupsNotAllowed]: translationKey(
+    "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.",
+  ),
+  [ToolImportNoteCode.SubscribersLeftOut]: translationKey(
+    "{{count}} of its subscribers get updates by text message, webhook, Slack or Microsoft Teams. Only email subscribers come over.",
+  ),
+  [ToolImportNoteCode.SubscriberFollowsWholePage]: translationKey(
+    "Not every part of the page they follow is being brought over, so they get updates about the whole page.",
+  ),
+  [ToolImportNoteCode.MaintenanceWindowsNotRead]: translationKey(
+    "{{tool}} has {{count}} maintenance windows. They do not come over: plan them as scheduled maintenance in OneUptime.",
+  ),
+  [ToolImportNoteCode.MonitorsFromMetricsFile]: translationKey(
+    "This file is Uptime Kuma's metrics page, which does not say how often each monitor is checked or what it looks for. They come over checked every 5 minutes: check each one after the import.",
+  ),
 };
+
+/*
+ * How long something takes, in the largest whole unit: "30 seconds",
+ * "5 minutes", "2 hours", "1 day".
+ */
+export const TOOL_IMPORT_DURATIONS: {
+  seconds: PluralTemplate;
+  minutes: PluralTemplate;
+  hours: PluralTemplate;
+  days: PluralTemplate;
+} = {
+  seconds: {
+    one: "{{count}} second",
+    other: "{{count}} seconds",
+  },
+  minutes: {
+    one: "{{count}} minute",
+    other: "{{count}} minutes",
+  },
+  hours: {
+    one: "{{count}} hour",
+    other: "{{count}} hours",
+  },
+  days: {
+    one: "{{count}} day",
+    other: "{{count}} days",
+  },
+};
+
+// The note values that are a number of seconds, written as a duration.
+const DURATION_VALUES: ReadonlyArray<string> = [
+  "every",
+  "oneUptimeEvery",
+  "timeout",
+];
+
+export function describeToolImportDuration(
+  seconds: number,
+  translator: Translator,
+): string {
+  const whole: number = Math.max(0, Math.round(seconds));
+
+  if (whole % 86400 === 0 && whole >= 86400) {
+    return translator.translatePlural(
+      TOOL_IMPORT_DURATIONS.days,
+      whole / 86400,
+    );
+  }
+
+  if (whole % 3600 === 0 && whole >= 3600) {
+    return translator.translatePlural(
+      TOOL_IMPORT_DURATIONS.hours,
+      whole / 3600,
+    );
+  }
+
+  if (whole % 60 === 0 && whole >= 60) {
+    return translator.translatePlural(
+      TOOL_IMPORT_DURATIONS.minutes,
+      whole / 60,
+    );
+  }
+
+  return translator.translatePlural(TOOL_IMPORT_DURATIONS.seconds, whole);
+}
+
+/*
+ * A duration put into a sentence, worded in that sentence's language: a
+ * locale without the sentence reads it all in English, duration included.
+ */
+export function durationValue(seconds: number): TemplateValue {
+  return composedValue((translator: Translator): string => {
+    return describeToolImportDuration(seconds, translator);
+  });
+}
 
 /*
  * What the page says about a tool: one line for the picker, the steps to
@@ -504,6 +717,94 @@ export const TOOL_IMPORT_TOOL_COPY: Record<
     apiUrlLabel: translationKey("Grafana OnCall API URL"),
     keyLabel: translationKey("Grafana OnCall API key"),
   },
+  [ToolImportSource.UptimeRobot]: {
+    description: translationKey(
+      "Monitors, heartbeats and public status pages.",
+    ),
+    keySteps: [
+      translationKey("In UptimeRobot, go to Integrations & API, then API."),
+      translationKey(
+        "Create a Read-only API key, or copy the one you have. The import never changes anything in UptimeRobot.",
+      ),
+      translationKey("Copy the key and paste it here."),
+    ],
+    keyLabel: translationKey("UptimeRobot API key"),
+  },
+  [ToolImportSource.AtlassianStatuspage]: {
+    description: translationKey(
+      "Status pages with their components, groups and email subscribers.",
+    ),
+    keySteps: [
+      translationKey(
+        "In Statuspage, select your avatar at the bottom left, then API info. Only an account owner can create a key.",
+      ),
+      translationKey(
+        "Select Create key and name it OneUptime import. The import never changes anything in Atlassian Statuspage.",
+      ),
+      translationKey("Copy the key and paste it here."),
+    ],
+    keyLabel: translationKey("Atlassian Statuspage API key"),
+  },
+  [ToolImportSource.BetterStack]: {
+    description: translationKey(
+      "Monitors, heartbeats and status pages with their email subscribers.",
+    ),
+    keySteps: [
+      translationKey(
+        "In Better Stack, go to API tokens, then Team-based tokens, and select your team.",
+      ),
+      translationKey(
+        "Under Uptime API tokens, create a token named OneUptime import. The import never changes anything in Better Stack.",
+      ),
+      translationKey("Copy the token and paste it here as the API key."),
+    ],
+    keyLabel: translationKey("Better Stack API key"),
+  },
+  [ToolImportSource.Pingdom]: {
+    description: translationKey(
+      "Uptime checks: HTTP, TCP, ping, DNS and mail server checks.",
+    ),
+    keySteps: [
+      translationKey(
+        "In My Pingdom, open Settings, then Pingdom API, and select Add API token.",
+      ),
+      translationKey(
+        "Name it OneUptime import and choose Read access. The import never changes anything in Pingdom.",
+      ),
+      translationKey("Copy the token and paste it here as the API key."),
+    ],
+    keyLabel: translationKey("Pingdom API key"),
+  },
+  [ToolImportSource.StatusCake]: {
+    description: translationKey("Uptime, SSL and heartbeat checks."),
+    keySteps: [
+      translationKey(
+        "In StatusCake, open your account panel and go to API Keys.",
+      ),
+      translationKey(
+        "Create a key named OneUptime import. The import never changes anything in StatusCake.",
+      ),
+      translationKey("Copy the key and paste it here."),
+    ],
+    keyLabel: translationKey("StatusCake API key"),
+  },
+  [ToolImportSource.UptimeKuma]: {
+    description: translationKey(
+      "Monitors, from Uptime Kuma's backup file or its metrics page.",
+    ),
+    keySteps: [
+      translationKey(
+        "On Uptime Kuma 1, go to Settings, then Backup, and select Export. Keep the JSON file it saves.",
+      ),
+      translationKey(
+        "On Uptime Kuma 2, which has no export, add an API key under Settings, then API Keys. Open /metrics on your Uptime Kuma, sign in with no user name and the key as the password, and save the page as a text file.",
+      ),
+      translationKey(
+        "Choose the file here. It is read once to find your monitors and is never stored. The import never changes anything in Uptime Kuma.",
+      ),
+    ],
+    keyLabel: translationKey("Uptime Kuma backup or metrics file"),
+  },
 };
 
 export const TOOL_IMPORT_PLURALS: {
@@ -518,6 +819,8 @@ export const TOOL_IMPORT_PLURALS: {
   others: PluralTemplate;
   usesLeftOut: PluralTemplate;
   done: PluralTemplate;
+  monitorsShown: PluralTemplate;
+  groups: PluralTemplate;
 } = {
   members: {
     one: "{{count}} member",
@@ -563,6 +866,14 @@ export const TOOL_IMPORT_PLURALS: {
   done: {
     one: "{{count}} of {{total}} done",
     other: "{{count}} of {{total}} done",
+  },
+  monitorsShown: {
+    one: "shows {{count}} monitor",
+    other: "shows {{count}} monitors",
+  },
+  groups: {
+    one: "{{count}} group",
+    other: "{{count}} groups",
   },
 };
 
@@ -611,7 +922,11 @@ export const TOOL_IMPORT_SERVER_MESSAGES: ReadonlyArray<string> = [
   ),
   translationKey("Choose a team to invite people to."),
   translationKey("Choose a tool to import from."),
+  translationKey("Choose the file to read."),
   translationKey("Choose what to bring over."),
+  translationKey(
+    "Confirm that you may move the subscribers you ticked, or untick them.",
+  ),
   translationKey("Only a preview that was not started can be discarded."),
   translationKey(
     "The API key is no longer here. Paste it again to read the tool.",
@@ -624,7 +939,27 @@ export const TOOL_IMPORT_SERVER_MESSAGES: ReadonlyArray<string> = [
   translationKey(
     "This import has already started, or is no longer waiting to be started.",
   ),
+  translationKey(
+    "This file is larger than 10 MB, which is more than an import reads.",
+  ),
   translationKey("This import was not found."),
+  translationKey(
+    "This is not an Uptime Kuma backup or metrics file. Upload the JSON file Settings > Backup > Export gives, or the page /metrics shows.",
+  ),
+  translationKey(
+    "This file is not an Uptime Kuma backup: it has no list of monitors.",
+  ),
+  translationKey(
+    "This file is not an Uptime Kuma backup: it is nested deeper than a backup is.",
+  ),
+  translationKey(
+    "This file is not an Uptime Kuma backup: it is not valid JSON.",
+  ),
+  translationKey(
+    "This metrics file is longer than an Uptime Kuma metrics page can be.",
+  ),
+  translationKey("This Uptime Kuma file has no monitors in it."),
+  translationKey("This tool is read with its API key, not from a file."),
   translationKey(
     "This preview is more than a day old. Read the tool again to import what it has now.",
   ),
@@ -695,6 +1030,10 @@ function toTemplateValue(
 
   if (key === "date" && typeof value === "string") {
     return formatToolImportDate(value, translator.language);
+  }
+
+  if (DURATION_VALUES.includes(key) && typeof value === "number") {
+    return durationValue(value);
   }
 
   if (typeof value === "number") {
@@ -827,6 +1166,59 @@ export function describeToolImportSummary(
         ),
       );
     }
+  }
+
+  if (kind === ToolImportResourceKind.Monitor) {
+    const typeLabel: string | undefined = summary.monitorType
+      ? TOOL_IMPORT_MONITOR_TYPE_LABELS[summary.monitorType]
+      : undefined;
+
+    if (typeLabel) {
+      parts.push(translator.translateText(typeLabel) || typeLabel);
+    }
+
+    if (summary.intervalSeconds) {
+      parts.push(
+        translator.translateTemplate("every {{duration}}", {
+          duration: durationValue(summary.intervalSeconds),
+        }),
+      );
+    }
+
+    if (summary.destination) {
+      parts.push(summary.destination);
+    }
+  }
+
+  if (kind === ToolImportResourceKind.StatusPage) {
+    if (summary.resourceCount !== undefined) {
+      parts.push(
+        translator.translatePlural(
+          TOOL_IMPORT_PLURALS.monitorsShown,
+          summary.resourceCount,
+        ),
+      );
+    }
+
+    if (summary.groupCount) {
+      parts.push(
+        translator.translatePlural(
+          TOOL_IMPORT_PLURALS.groups,
+          summary.groupCount,
+        ),
+      );
+    }
+  }
+
+  if (
+    kind === ToolImportResourceKind.StatusPageSubscriber &&
+    summary.statusPageName
+  ) {
+    parts.push(
+      translator.translateTemplate("Subscribed to {{page}}", {
+        page: summary.statusPageName,
+      }),
+    );
   }
 
   if (kind === ToolImportResourceKind.IncidentCustomField) {
