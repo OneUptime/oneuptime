@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/root",
-    "version": "14.0.25",
+    "version": "14.0.26",
     "private": true,
     "description": "One Complete Observability platform.",
     "main": "ts",
