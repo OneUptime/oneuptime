@@ -91,18 +91,13 @@ export class Service extends ProjectReferencesService<Model> {
        * updateBy matches by query rather than by id, so check every row the
        * write would touch: one unbound row is enough to leak a token.
        */
-      const repositories: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const repositories: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           projectId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       for (const repository of repositories) {
         if (!repository.projectId) {

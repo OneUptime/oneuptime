@@ -106,6 +106,7 @@ import { PublicForm } from "../../../Types/Form/FormPublic";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -372,6 +373,14 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<Array<Form>> => {
       return storedForms;
     }) as never) as unknown as MockedFn;
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(FormService, () => {
+    return storedForms;
+  });
 
   jest
     .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")

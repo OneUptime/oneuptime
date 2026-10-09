@@ -190,14 +190,23 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
     limit?: number;
   }
 
-  let finds: Array<Request>;
+  // The reads of the rows a write reaches, each holding the write to them.
+  interface Hold {
+    updateBy: UpdateBy<BaseModel>;
+    select: Record<string, unknown>;
+  }
+
+  let holds: Array<Hold>;
   let lookups: Array<Request>;
   let targets: Array<BaseModel>;
   let clash: BaseModel | null;
 
   const service: any = {
-    findBy: async (request: Request): Promise<Array<BaseModel>> => {
-      finds.push(request);
+    findRowsAndHoldUpdateToThem: async (
+      updateBy: UpdateBy<BaseModel>,
+      select: Record<string, unknown>,
+    ): Promise<Array<BaseModel>> => {
+      holds.push({ updateBy, select });
       return targets;
     },
     findOneBy: async (request: Request): Promise<BaseModel | null> => {
@@ -236,7 +245,7 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
   }
 
   beforeEach(() => {
-    finds = [];
+    holds = [];
     lookups = [];
     targets = [storedHost("web-01")];
     clash = null;
@@ -247,24 +256,23 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
 
     await expect(check(updateBy)).resolves.toBeUndefined();
 
-    expect(finds).toHaveLength(1);
+    expect(holds).toHaveLength(1);
     expect(lookups).toHaveLength(1);
     expect((updateBy.data as any).hostIdentifier).toBe("web-02");
   });
 
-  test("reads the rows the write reaches, as root, from the narrowed query", async () => {
+  test("reads the rows the write reaches through the read that holds the write to them", async () => {
     const updateBy: UpdateBy<Host> = hostUpdate({ hostIdentifier: "web-02" });
 
     await check(updateBy);
 
-    expect(finds[0]!.query).toBe(updateBy.query);
-    expect(finds[0]!.select).toEqual({
+    expect(holds).toHaveLength(1);
+    expect(holds[0]!.updateBy).toBe(updateBy);
+    expect(holds[0]!.select).toEqual({
       _id: true,
       projectId: true,
       hostIdentifier: true,
     });
-    expect(finds[0]!.props).toEqual({ isRoot: true });
-    expect(finds[0]!.limit).toBe(2);
   });
 
   test("looks the new identifier up in the project, case and spaces aside, other rows only, archived ones included", async () => {
@@ -327,7 +335,7 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
       ),
     );
 
-    expect(finds).toEqual([]);
+    expect(holds).toEqual([]);
     expect(lookups).toEqual([]);
   });
 
@@ -339,7 +347,7 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
       check(hostUpdate({ hostIdentifier: "web-01", description: "Front end" })),
     ).resolves.toBeUndefined();
 
-    expect(finds).toHaveLength(1);
+    expect(holds).toHaveLength(1);
     expect(lookups).toEqual([]);
   });
 
@@ -358,7 +366,7 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
 
     await check(updateBy);
 
-    expect(finds).toEqual([]);
+    expect(holds).toEqual([]);
     expect(lookups).toEqual([]);
     expect((updateBy.data as any).hostIdentifier).toBeUndefined();
   });
@@ -373,7 +381,7 @@ describe("DiscoveredResourceUpdate.checkMatchColumn", () => {
     await expect(check(updateBy)).resolves.toBeUndefined();
 
     expect((updateBy.data as any).hostIdentifier).toBe(" web-02 ");
-    expect(finds).toEqual([]);
+    expect(holds).toEqual([]);
     expect(lookups).toEqual([]);
   });
 

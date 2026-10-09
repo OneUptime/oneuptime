@@ -1339,7 +1339,7 @@ describe("runScan — reverse DNS lookups that failed (OneUptime issue #3916)", 
       "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 2500 answered ping. " +
         "Reverse DNS lookups failed for 30 of 2,500 hosts; " +
         "hover the (i) beside an unnamed host for the reason, and rescan to try again. " +
-        "NetBIOS lookups are capped at 2,000 hosts per scan, so 500 unnamed hosts were not asked " +
+        "NetBIOS lookups are capped at 2,000 hosts per scan, so 500 hosts were not asked " +
         "(raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).",
     );
   });
@@ -1503,7 +1503,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     const message: string = finalStatusMessage();
     expect(message).toBe(
       "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 2500 answered ping. " +
-        "NetBIOS lookups are capped at 2,000 hosts per scan, so 500 unnamed hosts were not asked " +
+        "NetBIOS lookups are capped at 2,000 hosts per scan, so 500 hosts were not asked " +
         "(raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).",
     );
 
@@ -1549,7 +1549,7 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     const message: string = finalStatusMessage();
     expect(message).toBe(
       "Swept 65534 hosts with ICMP ping only (Check SNMP is off for this scan): 4200 answered ping. " +
-        "NetBIOS lookups are capped at 4,000 hosts per scan, so 200 unnamed hosts were not asked.",
+        "NetBIOS lookups are capped at 4,000 hosts per scan, so 200 hosts were not asked.",
     );
     expect(message).not.toContain("PROBE_DISCOVERY_NETBIOS_MAX_HOSTS");
   });
@@ -1663,9 +1663,12 @@ describe("runScan — a NetBIOS lookup cut short", () => {
 
   test("a global probe whose sweep left nobody unnamed says nothing about NetBIOS", async () => {
     /*
-     * NetBIOS only ever asks hosts SNMP and reverse DNS left unnamed. With
-     * none, a custom probe would have sent nothing either, so "it was not
-     * looked up" would explain a gap that does not exist.
+     * Since issue #4518 the lookup would have asked these forty too — their
+     * own Windows names outrank their PTR names — but every one of them is
+     * listed by a name, so there is no address in the Review dialog to
+     * explain. The Scan form turns NetBIOS on by default and the bundled
+     * probes are global: a sentence here would ride on every such scan, with
+     * nothing an operator could do about it.
      */
     jest.spyOn(DiscoveryNetbiosPolicy, "isGlobalProbe").mockReturnValue(true);
     scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(40)) as never);
@@ -1676,6 +1679,26 @@ describe("runScan — a NetBIOS lookup cut short", () => {
     expect(finalStatusMessage()).toBe(
       "Swept 4094 hosts with ICMP ping only (Check SNMP is off for this scan): 40 answered ping.",
     );
+    expect(
+      uploadedDevices(finalUpload()).some((device: DiscoveredHost) => {
+        return "netbiosNameStatus" in device;
+      }),
+    ).toBe(false);
+  });
+
+  test("a global probe whose sweep SNMP named entirely says nothing about NetBIOS", async () => {
+    /*
+     * A host with an SNMP name is never asked for its NetBIOS name. With every
+     * host named that way, a custom probe would have sent nothing either, so
+     * "it was not looked up" would explain a gap that does not exist.
+     */
+    jest.spyOn(DiscoveryNetbiosPolicy, "isGlobalProbe").mockReturnValue(true);
+    scanSpy.mockResolvedValue(makeIcmpOnlyResult(makeHosts(40, 40)) as never);
+    mockReverseDnsPass({ namedCount: 0, lookedUpCount: 40 });
+
+    await runScan(makeIcmpOnlyScan({ isNetbiosLookupEnabled: true }));
+
+    expect(finalStatusMessage()).not.toContain("NetBIOS");
     expect(
       uploadedDevices(finalUpload()).some((device: DiscoveredHost) => {
         return "netbiosNameStatus" in device;
@@ -1934,7 +1957,7 @@ describe("runScan — the NetBIOS host cap the seam is asked for", () => {
       expect(message.length).toBeLessThanOrEqual(MAX_STATUS_MESSAGE_LENGTH);
       expect(message).toBe(
         "Swept 65534 hosts with ICMP ping only (Check SNMP is off for this scan): 3200 answered ping. " +
-          "NetBIOS lookups are capped at 3,000 hosts per scan, so 200 unnamed hosts were not asked " +
+          "NetBIOS lookups are capped at 3,000 hosts per scan, so 200 hosts were not asked " +
           "(raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).",
       );
       expect(message).not.toContain("2,000");
@@ -2050,8 +2073,8 @@ describe("runScan — the uploaded message fits the column", () => {
       isTimeBudgetExhausted: true,
     });
     /*
-     * The double names the first 310 addresses, which include the 12 SNMP
-     * hosts: 3,000 - 310 = 2,690 still unnamed, and 690 over the cap.
+     * NetBIOS is handed every host SNMP did not name, the ones reverse DNS
+     * named included (issue #4518): 3,000 - 12 = 2,988, and 988 over the cap.
      */
     const netbiosCalls: Array<NetbiosPassCall> = mockNetbiosPass({
       namedCount: 90,
@@ -2065,7 +2088,7 @@ describe("runScan — the uploaded message fits the column", () => {
     await runScan(makeScan({ isNetbiosLookupEnabled: true }));
 
     expect(netbiosCalls).toHaveLength(1);
-    expect(netbiosCalls[0]!.ipAddresses).toHaveLength(2690);
+    expect(netbiosCalls[0]!.ipAddresses).toHaveLength(2988);
 
     const body: JSONObject = finalUpload();
     expect(body["success"]).toBe(true);
@@ -2082,7 +2105,7 @@ describe("runScan — the uploaded message fits the column", () => {
     const reverseDnsNote: string =
       "Reverse DNS hit its 3m 27s limit; 1,976 of 3,000 hosts not looked up.";
     const capNote: string =
-      "NetBIOS skipped 690 hosts over its 2,000-host cap.";
+      "NetBIOS skipped 988 hosts over its 2,000-host cap.";
     const netbiosTimeNote: string =
       "NetBIOS hit its 2m limit; 600 of 2,000 hosts not queried.";
 
@@ -2090,7 +2113,7 @@ describe("runScan — the uploaded message fits the column", () => {
     expect(
       message.endsWith(`… ${reverseDnsNote} ${capNote} ${netbiosTimeNote}`),
     ).toBe(true);
-    // Reverse DNS first: NetBIOS only ever asked what it left unnamed.
+    // Reverse DNS first: it runs first, and decides whom NetBIOS asks first.
     expect(message.indexOf(reverseDnsNote)).toBeLessThan(
       message.indexOf(capNote),
     );
@@ -2249,7 +2272,10 @@ describe("runScan — the uploaded message fits the column", () => {
       lookedUpCount: 640,
       isTimeBudgetExhausted: true,
     });
-    // Reverse DNS named the first 200: 1,300 left, 300 over a 1,000-host cap.
+    /*
+     * NetBIOS is handed every host SNMP did not name (issue #4518): 1,500 - 12
+     * = 1,488, the 188 reverse DNS named last, and 488 over a 1,000-host cap.
+     */
     const netbiosCalls: Array<NetbiosPassCall> = mockNetbiosPass({
       namedCount: 0,
       queriedCount: 1000,
@@ -2260,7 +2286,7 @@ describe("runScan — the uploaded message fits the column", () => {
     await runScan(makeScan({ isNetbiosLookupEnabled: true }));
 
     expect(netbiosCalls).toHaveLength(1);
-    expect(netbiosCalls[0]!.ipAddresses).toHaveLength(1300);
+    expect(netbiosCalls[0]!.ipAddresses).toHaveLength(1488);
 
     const message: string = finalStatusMessage();
     expect(message).toBe(
@@ -2269,7 +2295,7 @@ describe("runScan — the uploaded message fits the column", () => {
         "were probed over SNMP as well (ICMP is likely filtered on this network). " +
         "40 host(s) replied with an SNMP error rather than silence; most common: Error: Authentication failure. " +
         "Reverse DNS hit its 1m 43s limit; 860 of 1,500 hosts not looked up. " +
-        "NetBIOS skipped 300 hosts over its 1,000-host cap.",
+        "NetBIOS skipped 488 hosts over its 1,000-host cap.",
     );
     expect(message).not.toContain("…");
     // The note is its own sentence, not a continuation of the quoted error.
@@ -2366,7 +2392,8 @@ describe("runScan — the uploaded message fits the column", () => {
       INCOMPLETE_ICMP_SWEEP_CAVEAT +
         " Swept 65534 hosts with ICMP ping only (Check SNMP is off for this scan): 3000 answered ping. " +
         "Reverse DNS hit its 3m 27s limit; 1,976 of 3,000 hosts not looked up. " +
-        "NetBIOS skipped 690 hosts over its 2,000-host cap. " +
+        // All 3,000: none has an SNMP name (issue #4518).
+        "NetBIOS skipped 1,000 hosts over its 2,000-host cap. " +
         "NetBIOS hit its 2m limit; 600 of 2,000 hosts not queried.",
     );
     expect(message).not.toContain("…");
@@ -2473,7 +2500,8 @@ describe("runScan — the uploaded message fits the column", () => {
         " Swept 32768 hosts with ICMP ping only (Check SNMP is off for this scan): 6000 answered ping." +
         " Reverse DNS hit its 10m limit; 2,400 of 6,000 hosts not looked up." +
         " Reverse DNS failed for 1,800 of 6,000 hosts; rescan to retry." +
-        " NetBIOS skipped 3,950 hosts over its 2,000-host cap." +
+        // All 6,000 go to NetBIOS: none has an SNMP name (issue #4518).
+        " NetBIOS skipped 4,000 hosts over its 2,000-host cap." +
         " …",
     );
     expect(message.split("…")).toHaveLength(2);

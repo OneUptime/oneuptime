@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Every rule (label, owner, on-call, grouping, privacy, reminder and the
@@ -465,6 +466,12 @@ describe("rule and owner services", () => {
 
       // The record holds nothing yet.
       jest.spyOn(service, "findBy").mockResolvedValue([] as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the update
+       * path makes before the hooks: what the read above answers.
+       */
+      stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
 
       await expect(
         callHook(service, "onBeforeUpdate", {

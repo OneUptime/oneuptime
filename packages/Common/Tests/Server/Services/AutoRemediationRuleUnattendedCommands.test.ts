@@ -709,17 +709,22 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
     expect(ruleFind).not.toHaveBeenCalled();
   });
 
-  it("reads the rules the change writes, pinned to the caller's project", async () => {
+  it("reads the rules the change writes among those the caller may write, in their project", async () => {
     await update(
       { executionMode: AutoRemediationExecutionMode.FullAuto },
       editor(RULE_EDITOR),
     );
 
+    // The rules the caller may write, found in their project.
+    const mayWrite: { query: JSONObject } = rowsCallerMayWrite.mock
+      .calls[0]![0] as { query: JSONObject };
+    expect(mayWrite.query["projectId"]).toBe(PROJECT_ID);
+
+    // Then those, by id, as root.
     const read: { query: JSONObject; props: JSONObject } = ruleFind.mock
       .calls[0]![0] as { query: JSONObject; props: JSONObject };
 
     expect(read.query["_id"]).toBe(RULE_ID.toString());
-    expect(read.query["projectId"]).toBe(PROJECT_ID);
     expect(read.props["isRoot"]).toBe(true);
   });
 

@@ -231,17 +231,9 @@ export class Service extends ProjectReferencesService<Model> {
      * The update may clear one criterion while another only exists on the
      * stored row, so validate the RESULTING state of every matched row.
      */
-    const existingRules: Array<Model> = await this.findBy({
-      /*
-       * Hooks run before DatabaseService applies tenant permissions. Scope
-       * this privileged snapshot now so a guessed cross-project rule ID
-       * cannot become a state oracle through template validation errors.
-       */
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
+    const existingRules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         criteria: true,
@@ -253,12 +245,7 @@ export class Service extends ProjectReferencesService<Model> {
         isEnabled: true,
         monitorTemplateId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const data: Record<string, unknown> = updateBy.data as unknown as Record<
       string,

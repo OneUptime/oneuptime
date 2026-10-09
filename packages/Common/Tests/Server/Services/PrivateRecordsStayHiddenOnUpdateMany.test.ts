@@ -30,6 +30,7 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { idsNamedBy as idsNamedByCondition } from "../TestingUtils/QueryConditions";
 
 /*
  * One write to many incidents or episodes - a workflow's Update Many, which
@@ -114,6 +115,14 @@ interface FakeTable {
 function idsNamedBy(condition: unknown): Array<string> | null {
   if (condition === undefined || condition === null) {
     return null;
+  }
+
+  // "Any of" (QueryHelper.any): a raw condition over the ids it names.
+  if (
+    condition instanceof FindOperator &&
+    typeof (condition as FindOperator<unknown>).getSql === "function"
+  ) {
+    return idsNamedByCondition(condition);
   }
 
   if (condition instanceof FindOperator) {

@@ -29,11 +29,17 @@ import {
   FormTargetOptionsSource,
   getFormTargetField,
 } from "./FormTargetCatalog";
-import FormTargetType from "./FormTargetType";
+import FormTargetType, { FORM_TARGET_TYPE_TEXT } from "./FormTargetType";
 import {
+  defineOwnValue,
   describeFormTemplate,
   findFormTemplate,
+  FormQuestionAsked,
   FormTemplate,
+  FormTemplateFieldSetting,
+  FormTemplateFieldSettings,
+  getFormQuestionAsked,
+  getFormTemplateFieldSetting,
   isFormTemplateId,
   readFormTemplates,
 } from "./FormTemplate";
@@ -56,12 +62,17 @@ import {
  * buildPublicForm turns a stored form into what the page is told, and is
  * also what the dashboard's preview draws, so the preview is the page. A
  * hidden question is built with the rest - the server answers it - but
- * never told to the page; nor is any template's answer to one.
+ * never told to the page unless one of the form's templates asks it; nor is
+ * any template's answer to a question that template does not ask.
  *
- * A form's templates (FormTemplate) reach the page as their answers to the
- * questions it asks, each checked as a submission's answer to that question
- * would be (getFormTemplateAnswers), so a template never fills in what the
- * submit would refuse.
+ * A form's templates (FormTemplate) reach the page as how each asks the
+ * page's questions (Required, Optional, Hidden: its fieldSettings) and its
+ * answers to the questions it asks, each checked as a submission's answer to
+ * that question would be (getFormTemplateAnswers), so a template never fills
+ * in what the submit would refuse. Which questions a submission is asked,
+ * and which it must answer, follow the template it starts from
+ * (getPublicFormForTemplate) - on the page, in the preview and in the
+ * server's check of the submission alike.
  *
  * Pure, with no database or React imports: the server enforces these rules,
  * and the public page can show the same limits before anything is sent.
@@ -153,19 +164,29 @@ export interface PublicFormField {
   maxLength?: number | undefined;
   // An option to choose to begin with: the form's own severity.
   defaultValue?: string | undefined;
+  /*
+   * The form hides it: it is asked only when the form is filled in from a
+   * template that asks it (see getPublicFormForTemplate). A question the form
+   * hides and no template asks is never told to the page.
+   */
+  isHidden?: boolean | undefined;
 }
 
 /*
  * A template as the public page is told about it: its name, whether the
- * form opens with it, and its answers to the questions the page asks -
- * never to a hidden question, never one the question would refuse. Keyed by
- * question id, in the shape a submission sends them.
+ * form opens with it, how it asks the page's questions where it asks them
+ * otherwise than the form (fieldSettings, by question id), and its answers
+ * to the questions it asks - never to a question it does not ask, never one
+ * the question would refuse. Answers are keyed by question id, in the shape
+ * a submission sends them.
  */
 export interface PublicFormTemplate {
   id: string;
   name: string;
   isDefault?: boolean | undefined;
   answers: JSONObject;
+  // Left out for a template that asks every question as the form does.
+  fieldSettings?: FormTemplateFieldSettings | undefined;
 }
 
 // Everything the public page is told about a form.
@@ -173,7 +194,12 @@ export interface PublicForm {
   name: string;
   // Shown at the top of the page, as Markdown.
   description?: string | undefined;
-  // The questions, in the order to ask them.
+  /*
+   * The questions, in the order to ask them: every question the form asks,
+   * and every one it hides that a template asks (isHidden). Which of them
+   * are asked, and required, follows the template the form is filled in
+   * from: getPublicFormForTemplate.
+   */
   fields: Array<PublicFormField>;
   isCaptchaRequired: boolean;
   /*
@@ -291,12 +317,19 @@ export type FormFieldBinding =
 export interface BuiltPublicForm {
   form: PublicForm;
   /*
-   * The hidden questions the form can answer, in the form's order: built as
-   * the page's are, never told to it. Never required.
+   * The questions the form hides, in the form's order (isHidden): built as
+   * the page's are, and told to it only when a template asks them. The form
+   * itself never requires one.
    */
   hiddenFields: Array<PublicFormField>;
   // Every question the form can answer - asked or hidden - in its order.
   allFields: Array<PublicFormField>;
+  /*
+   * The questions the form's target cannot be created without (a
+   * maintenance event's start and end): asked, and required, whatever a
+   * template says. Never told to the page.
+   */
+  lockedFieldIds: Array<string>;
   // Where each question's answer goes, by question id.
   bindings: Record<string, FormFieldBinding>;
   /*
@@ -509,9 +542,12 @@ const readHelpText: ReadHelpTextFunction = (
  * with no option left. Its answers would have nowhere to go, or nothing to
  * be, and a page must not ask what it cannot take.
  *
- * A hidden question is built like any other, into hiddenFields, and never
- * into the page's questions. The form's templates are told to the page with
- * their answers to the page's questions only (getFormTemplateAnswers).
+ * A hidden question is built like any other, into hiddenFields, and into
+ * the page's questions only when one of the form's templates asks it. The
+ * form's templates are told to the page with how each asks the page's
+ * questions, and with their answers to the questions each asks
+ * (getFormTemplateAnswers) - never a template's answer to a question it
+ * hides, nor a setting for a question the target cannot do without.
  */
 export const buildPublicForm: BuildPublicFormFunction = (data: {
   form: PublicFormSource;
@@ -549,6 +585,7 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
     [];
   const hiddenFields: Array<PublicFormField> = [];
   const allFields: Array<PublicFormField> = [];
+  const lockedFieldIds: Array<string> = [];
 
   const customFieldsById: Map<string, FormCustomFieldDefinition> = new Map<
     string,
@@ -691,6 +728,10 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
           label: field.label,
           definition: definition,
         };
+
+        if (definition.isRequiredByTarget && !definition.hasDefault) {
+          lockedFieldIds.push(field.id);
+        }
         break;
       }
 
@@ -767,15 +808,61 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
     allFields.push(base);
 
     if (field.isHidden) {
-      // Nobody is asked it, so nothing can require it.
+      /*
+       * The form does not ask it, so the form never requires it: only a
+       * template that asks it can.
+       */
       base.isRequired = false;
+      base.isHidden = true;
       hiddenFields.push(base);
-    } else {
-      publicForm.fields.push(base);
     }
   }
 
   const templates: Array<FormTemplate> = readFormTemplates(data.form.templates);
+  const locked: Set<string> = new Set<string>(lockedFieldIds);
+
+  /*
+   * How each template asks the questions the form can answer: a setting for
+   * a question the form does not have, or cannot ask now, is not one, and
+   * nor is a setting for a question the target cannot do without.
+   */
+  const settingsOf: Map<string, FormTemplateFieldSettings> = new Map<
+    string,
+    FormTemplateFieldSettings
+  >();
+  const askedByATemplate: Set<string> = new Set<string>();
+
+  for (const template of templates) {
+    const settings: FormTemplateFieldSettings = {};
+
+    for (const field of allFields) {
+      const setting: FormTemplateFieldSetting | undefined =
+        getFormTemplateFieldSetting(template, field.id);
+
+      if (!setting || locked.has(field.id)) {
+        continue;
+      }
+
+      defineOwnValue<FormTemplateFieldSetting>(settings, field.id, setting);
+
+      if (setting !== FormTemplateFieldSetting.Hidden) {
+        askedByATemplate.add(field.id);
+      }
+    }
+
+    settingsOf.set(template.id, settings);
+  }
+
+  // Every question the form asks, and every one it hides that a template asks.
+  publicForm.fields = allFields.filter((field: PublicFormField): boolean => {
+    return !field.isHidden || askedByATemplate.has(field.id);
+  });
+
+  const pageFieldIds: Set<string> = new Set<string>(
+    publicForm.fields.map((field: PublicFormField): string => {
+      return field.id;
+    }),
+  );
 
   if (templates.length > 0) {
     publicForm.templates = templates.map(
@@ -783,11 +870,36 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
         const publicTemplate: PublicFormTemplate = {
           id: template.id,
           name: template.name,
-          answers: getFormTemplateAnswers({
-            template: template,
-            fields: publicForm.fields,
-          }),
+          answers: {},
         };
+
+        const settings: FormTemplateFieldSettings =
+          settingsOf.get(template.id) || {};
+        const told: FormTemplateFieldSettings = {};
+
+        for (const fieldId of Object.keys(settings)) {
+          if (pageFieldIds.has(fieldId)) {
+            defineOwnValue<FormTemplateFieldSetting>(
+              told,
+              fieldId,
+              settings[fieldId]!,
+            );
+          }
+        }
+
+        if (Object.keys(told).length > 0) {
+          publicTemplate.fieldSettings = told;
+        }
+
+        // Its answers to the questions it asks, and to no other.
+        publicTemplate.answers = getFormTemplateAnswers({
+          template: template,
+          fields: getPublicFormForTemplate({
+            form: publicForm,
+            template: publicTemplate,
+            lockedFieldIds: lockedFieldIds,
+          }).fields,
+        });
 
         if (template.isDefault) {
           publicTemplate.isDefault = true;
@@ -802,10 +914,73 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
     form: publicForm,
     hiddenFields: hiddenFields,
     allFields: allFields,
+    lockedFieldIds: lockedFieldIds,
     bindings: bindings,
     skipped: skipped,
   };
 };
+
+export type GetPublicFormForTemplateFunction = (data: {
+  form: PublicForm;
+  // The template the form is filled in from; none for the form's own.
+  template?:
+    | { fieldSettings?: FormTemplateFieldSettings | null | undefined }
+    | null
+    | undefined;
+  /*
+   * The questions the form's target cannot be created without
+   * (BuiltPublicForm.lockedFieldIds): asked, and required, whatever the
+   * template says. The server, which knows them, passes them; the page is
+   * never told a setting for one (buildPublicForm), so it needs none.
+   */
+  lockedFieldIds?: Array<string> | undefined;
+}) => PublicForm;
+
+/**
+ * The form as it is asked when it is filled in from this template - or from
+ * none: its questions narrowed to the ones that are asked, each required as
+ * the template, or else the form, says (getFormQuestionAsked). A question
+ * the form hides is asked only when the template asks it; one the template
+ * hides is left out; a question the target cannot do without is always
+ * asked, and required. The page draws these questions, the dashboard's
+ * preview draws them, and the server holds a submission to them - so a
+ * template that makes a question required is required everywhere at once.
+ */
+export const getPublicFormForTemplate: GetPublicFormForTemplateFunction =
+  (data: {
+    form: PublicForm;
+    template?:
+      | { fieldSettings?: FormTemplateFieldSettings | null | undefined }
+      | null
+      | undefined;
+    lockedFieldIds?: Array<string> | undefined;
+  }): PublicForm => {
+    const fields: Array<PublicFormField> = [];
+    const locked: Set<string> = new Set<string>(data.lockedFieldIds || []);
+
+    for (const field of data.form.fields || []) {
+      const asked: FormQuestionAsked = getFormQuestionAsked({
+        isRequired: field.isRequired === true,
+        isHidden: field.isHidden === true,
+        isLocked: locked.has(field.id),
+        setting: getFormTemplateFieldSetting(data.template, field.id),
+      });
+
+      if (!asked.isAsked) {
+        continue;
+      }
+
+      const askedField: PublicFormField = {
+        ...field,
+        isRequired: asked.isRequired,
+      };
+
+      delete askedField.isHidden;
+      fields.push(askedField);
+    }
+
+    return { ...data.form, fields: fields };
+  };
 
 /*
  * The message templates, worded as the form's own client-side checks word
@@ -878,6 +1053,19 @@ const hasOwn: HasOwnFunction = (
   key: string,
 ): boolean => {
   return Object.prototype.hasOwnProperty.call(target, key);
+};
+
+type IsSameJsonFunction = (first: unknown, second: unknown) => boolean;
+
+/*
+ * Whether two answers, as stored, are the same: text, numbers, yes/no and
+ * lists of those (readFormTemplates reads nothing deeper), compared as JSON.
+ */
+const isSameJson: IsSameJsonFunction = (
+  first: unknown,
+  second: unknown,
+): boolean => {
+  return JSON.stringify(first) === JSON.stringify(second);
 };
 
 /*
@@ -1066,30 +1254,6 @@ const getMaxChoices: GetMaxChoicesFunction = (
   field: PublicFormField,
 ): number => {
   return Math.max(FORM_MULTI_SELECT_MAX_CHOICES, (field.options || []).length);
-};
-
-type DefineAnswerFunction = (
-  target: JSONObject,
-  key: string,
-  value: JSONValue,
-) => void;
-
-/*
- * Defined, not assigned: a key such as "__proto__" would set the object's
- * prototype instead of storing the answer. (Question ids cannot be such a
- * key - FORM_FIELD_ID_PATTERN - but the answers object is a stranger's.)
- */
-const defineAnswer: DefineAnswerFunction = (
-  target: JSONObject,
-  key: string,
-  value: JSONValue,
-): void => {
-  Object.defineProperty(target, key, {
-    value: value,
-    enumerable: true,
-    writable: true,
-    configurable: true,
-  });
 };
 
 type ValidateOneAnswerFunction = (data: {
@@ -1375,7 +1539,7 @@ export const validateFormSubmission: ValidateFormSubmissionFunction = (data: {
     });
 
     if (value !== undefined) {
-      defineAnswer(accepted, field.id, value);
+      defineOwnValue<JSONValue>(accepted, field.id, value);
     }
   }
 
@@ -1473,7 +1637,7 @@ export const getFormTemplateAnswers: GetFormTemplateAnswersFunction = (data: {
     });
 
     if (result.isValid && result.value !== undefined) {
-      defineAnswer(answers, field.id, result.value);
+      defineOwnValue<JSONValue>(answers, field.id, result.value);
     }
   }
 
@@ -1488,27 +1652,60 @@ export type ValidateFormTemplateAnswersFunction = (data: {
   templates: unknown;
   // Every question the form can answer, hidden ones too: allFields.
   fields: Array<PublicFormField>;
+  /*
+   * The questions the form's target cannot be created without
+   * (BuiltPublicForm.lockedFieldIds): no template may make one optional, or
+   * hide it.
+   */
+  lockedFieldIds?: Array<string> | undefined;
+  // What the form creates, named in that refusal.
+  targetType?: FormTargetType | undefined;
+  /*
+   * The templates the form holds now, for a write that changes them: an
+   * answer or a setting a template already held, unchanged, is not judged
+   * again.
+   */
+  heldTemplates?: unknown;
 }) => string | null;
 
 /**
  * Null when every answer every template holds suits its question, checked
- * as getFormTemplateAnswers reads it; otherwise one message naming every
- * problem (the first eight). An answer to a question the form cannot answer
- * - one it does not have, or one it cannot ask now (its custom field was
- * deleted) - is refused, and so is an answer its question would refuse.
- * The server runs this on every write of a form's templates, so a template
- * never quietly fills in less than it was saved with.
+ * as getFormTemplateAnswers reads it, and every question a template asks its
+ * own way is one it may; otherwise one message naming every problem (the
+ * first eight). An answer to a question the form cannot answer - one it does
+ * not have, or one it cannot ask now (its custom field was deleted) - is
+ * refused, and so is an answer its question would refuse; so is a setting
+ * for a question the form cannot answer, and one that makes a question the
+ * target cannot do without optional or hidden. The server runs this on every
+ * write of a form's templates, so a template never quietly fills in less, or
+ * asks otherwise, than it was saved with.
+ *
+ * Every change saves the whole list, so on a write that changes a form's
+ * templates, what a template already held (heldTemplates: same template,
+ * same question, same answer or setting) is not judged again: a question
+ * removed or changed since must not keep an admin from saving another
+ * template, or moving one. Such an answer or setting is never used
+ * (getFormTemplateAnswers, buildPublicForm), and the next save of its own
+ * template through the editor drops it.
  */
 export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
   (data: {
     templates: unknown;
     fields: Array<PublicFormField>;
+    lockedFieldIds?: Array<string> | undefined;
+    targetType?: FormTargetType | undefined;
+    heldTemplates?: unknown;
   }): string | null => {
     const problems: Array<string> = [];
     const fieldsById: Map<string, PublicFormField> = new Map<
       string,
       PublicFormField
     >();
+    const locked: Set<string> = new Set<string>(data.lockedFieldIds || []);
+    const created: string = data.targetType
+      ? FORM_TARGET_TYPE_TEXT[data.targetType].nounWithArticle
+      : "the record the form creates";
+    const held: Array<FormTemplate> = readFormTemplates(data.heldTemplates);
 
     for (const field of data.fields || []) {
       fieldsById.set(field.id, field);
@@ -1521,7 +1718,20 @@ export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
           name: template.name,
         });
 
+        const heldTemplate: FormTemplate | undefined = findFormTemplate(
+          held,
+          template.id,
+        );
+
         for (const key of Object.keys(template.answers)) {
+          if (
+            heldTemplate &&
+            hasOwn(heldTemplate.answers, key) &&
+            isSameJson(heldTemplate.answers[key], template.answers[key])
+          ) {
+            continue;
+          }
+
           const field: PublicFormField | undefined = fieldsById.get(key);
 
           if (!field) {
@@ -1538,6 +1748,42 @@ export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
 
           if (!result.isValid) {
             problems.push(`${name}: ${result.errors.join(" ")}`);
+          }
+        }
+
+        const settings: FormTemplateFieldSettings =
+          template.fieldSettings || {};
+
+        for (const key of Object.keys(settings)) {
+          if (
+            heldTemplate &&
+            getFormTemplateFieldSetting(heldTemplate, key) === settings[key]
+          ) {
+            continue;
+          }
+
+          const field: PublicFormField | undefined = fieldsById.get(key);
+
+          if (!field) {
+            problems.push(
+              `${name} has a setting for a question the form does not ask (${key}).`,
+            );
+            continue;
+          }
+
+          const setting: FormTemplateFieldSetting = settings[key]!;
+
+          if (
+            locked.has(key) &&
+            setting !== FormTemplateFieldSetting.Required
+          ) {
+            problems.push(
+              `${name}: ${field.label} cannot be ${
+                setting === FormTemplateFieldSetting.Hidden
+                  ? "hidden"
+                  : "optional"
+              }: ${created} cannot be created without it.`,
+            );
           }
         }
       },
@@ -1599,6 +1845,60 @@ export const getFormSubmissionTemplate: GetFormSubmissionTemplateFunction =
     }
 
     return findFormTemplate(readFormTemplates(data.templates), data.templateId);
+  };
+
+export interface FormQuestionsForTemplate {
+  /*
+   * The questions the submission was asked, each required as the template
+   * it started from (or the form) says: the request is read for these, and
+   * for nothing else.
+   */
+  asked: Array<PublicFormField>;
+  /*
+   * Every other question the form can answer - the ones the form hides and
+   * the template does not ask, and the ones the template hides: only the
+   * template answers them.
+   */
+  answeredByTemplate: Array<PublicFormField>;
+}
+
+export type GetFormQuestionsForTemplateFunction = (data: {
+  built: BuiltPublicForm;
+  // The template the submission started from, while the form has it.
+  templateId: string | null | undefined;
+}) => FormQuestionsForTemplate;
+
+/**
+ * The questions of a submission that started from this template (or from
+ * none), split the way the server reads them: the ones the page asked - as
+ * the page itself worked them out, from what it was told
+ * (getPublicFormForTemplate) - and the ones only the template answers.
+ */
+export const getFormQuestionsForTemplate: GetFormQuestionsForTemplateFunction =
+  (data: {
+    built: BuiltPublicForm;
+    templateId: string | null | undefined;
+  }): FormQuestionsForTemplate => {
+    const asked: Array<PublicFormField> = getPublicFormForTemplate({
+      form: data.built.form,
+      template: findPublicFormTemplate(data.built.form, data.templateId),
+      lockedFieldIds: data.built.lockedFieldIds,
+    }).fields;
+
+    const askedIds: Set<string> = new Set<string>(
+      asked.map((field: PublicFormField): string => {
+        return field.id;
+      }),
+    );
+
+    return {
+      asked: asked,
+      answeredByTemplate: data.built.allFields.filter(
+        (field: PublicFormField): boolean => {
+          return !askedIds.has(field.id);
+        },
+      ),
+    };
   };
 
 export type FindPublicFormTemplateFunction = (

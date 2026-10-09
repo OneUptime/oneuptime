@@ -23,7 +23,10 @@ import {
   stubGenericReferenceCheck,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
-import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -339,10 +342,15 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
           return undefined;
         });
 
+      // The Runners the caller may write: found in their project.
+      expect(
+        readsOfRowsCallerMayWrite(RunnerService)[0]!.query["projectId"],
+      ).toBe(PROJECT_ID);
+
+      // Then those, by id.
       const query: Record<string, unknown> = (
         findBy.mock.calls[0]![0] as { query: Record<string, unknown> }
       ).query;
-      expect(query["projectId"]).toBe(PROJECT_ID);
       expect(query["_id"]).toBe(AGENT_RUNNER_ID.toString());
     });
 

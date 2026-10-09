@@ -27,6 +27,8 @@ const FORCE10_SYS_OBJECT_ID: string = "1.3.6.1.4.1.6027.1.3.4"; // S-series
 // Ubiquiti EdgeSwitch firmware reports Broadcom's FASTPATH arc, not 41112.
 const EDGESWITCH_SYS_OBJECT_ID: string = "1.3.6.1.4.1.4413";
 const DELL_SYS_OBJECT_ID: string = "1.3.6.1.4.1.674.10895.3031"; // PowerConnect
+// A Meraki MX polled locally (issue #4569); no ENTITY-MIB names its maker.
+const MERAKI_SYS_OBJECT_ID: string = "1.3.6.1.4.1.29671.2.110";
 
 describe("SnmpVendorTemplateUtil.getEnterpriseNumber", () => {
   test("extracts the enterprise number from a Cisco sysObjectID", () => {
@@ -99,6 +101,7 @@ describe("SnmpVendorTemplateUtil.getVendorNameBySysObjectId", () => {
     [FORCE10_SYS_OBJECT_ID, "Force10"],
     [EDGESWITCH_SYS_OBJECT_ID, "Broadcom"],
     [DELL_SYS_OBJECT_ID, "Dell"],
+    [MERAKI_SYS_OBJECT_ID, "Cisco Meraki"],
   ])("%s resolves to vendor %s", (sysObjectId: string, vendor: string) => {
     expect(SnmpVendorTemplateUtil.getVendorNameBySysObjectId(sysObjectId)).toBe(
       vendor,

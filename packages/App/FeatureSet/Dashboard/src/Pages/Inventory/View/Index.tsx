@@ -8,6 +8,7 @@ import {
   InventoryTypeBadge,
 } from "../../../Components/Inventory/InventoryBadges";
 import InventoryAttributes from "../../../Components/Inventory/InventoryAttributes";
+import InventoryAssetDetailsCard from "../../../Components/Inventory/InventoryAssetDetailsCard";
 import {
   InventorySourceDescriptor,
   getInventorySourceDescriptor,
@@ -41,7 +42,8 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * An inventory item at a glance: what it is, where it came from, whether it
- * is still reporting, and the attributes it is identified by.
+ * is still reporting, its asset details when it is a machine, and the
+ * attributes it is identified by.
  *
  * The header carries the three badges rather than a wall of key/value rows,
  * because those three facts are what a reader needs before anything else on
@@ -201,6 +203,12 @@ const InventoryItemOverview: FunctionComponent<
           ) : null}
         </div>
       </Card>
+
+      {/*
+       * Hosts and network devices: the same asset facts for both, with the
+       * unknown ones named (issue #4569). Nothing for any other type.
+       */}
+      <InventoryAssetDetailsCard item={entity} />
 
       <InventoryAttributes
         identifyingAttributes={entity.identifyingAttributes}

@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 /*
  * Generated with npm run generate-postgres-migration, then renumbered after
  * the last registered migration. Its index is built online, in a migration
- * of its own (AddVideoCallConnectionSignInIndex1800950000000).
+ * of its own (AddVideoCallConnectionSignInIndex1801050000000).
  *
  * The one-click Connect of a video call provider: someone signs in to Zoom,
  * Google or Microsoft and the connection keeps the sign-in.
@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Every column is nullable with no default, so adding them changes no row.
  */
-export class AddVideoCallConnectionSignIn1800900000000
+export class AddVideoCallConnectionSignIn1801000000000
   implements MigrationInterface
 {
-  public name: string = "AddVideoCallConnectionSignIn1800900000000";
+  public name: string = "AddVideoCallConnectionSignIn1801000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

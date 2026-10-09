@@ -5,7 +5,6 @@ import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import SubscriberTemplateIncidentRecordAccess from "../Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
@@ -88,9 +87,9 @@ export class Service extends DatabaseService<Model> {
    * across every template it would change: those it writes into a body or
    * subject that the template did not hold before, and, when it changes
    * where the template is sent (its channel or event type), every one the
-   * template will hold once written. The templates are read as root and
-   * limited to the caller's project, like other update hooks: the update's
-   * own permission check has not run yet, and only narrows the rows further.
+   * template will hold once written. The templates are read as root, from
+   * the ones the update writes (findRowsAndHoldUpdateToThem): the ones the
+   * caller may write, with the update held to them.
    */
   private async getIncidentRecordPlaceholdersToCheck(
     updateBy: UpdateBy<Model>,
@@ -139,24 +138,15 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-    const query: Query<Model> = updateBy.props.tenantId
-      ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-      : updateBy.query;
-
-    const templates: Array<Model> = await this.findBy({
-      query: query,
-      select: {
+    const templates: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         templateBody: true,
         emailSubject: true,
         eventType: true,
         notificationMethod: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const added: Set<string> = new Set<string>();
 

@@ -61,6 +61,26 @@ import {
 import TraceScrubPatternType from "../../../Types/Trace/TraceScrubPatternType";
 import { getJestSpyOn } from "../../Spy";
 import { inspect } from "util";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    LogScrubRuleService,
+    jest.spyOn(LogScrubRuleService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    TraceScrubRuleService,
+    jest.spyOn(TraceScrubRuleService, "findBy"),
+  );
+});
 
 /*
  * Contract under test - a log or trace scrub rule is refused unless ingest
@@ -662,7 +682,7 @@ describe.each(SUITES)("$name save-time hooks", (suite: Suite) => {
         customRegex: true,
         fieldsToScrub: true,
       });
-      expect(request.props).toEqual({ isRoot: true });
+      expect(request.props).toEqual({ isRoot: true, ignoreHooks: true });
     });
   });
 });
@@ -917,11 +937,19 @@ describe.each(SUITES)(
         }),
       ).rejects.toThrow(/needs a regular expression/);
 
+      // The rules the caller may write, found in this project only.
+      const writable: any = readsOfRowsCallerMayWrite(
+        suite.service as never,
+      )[0]!;
+      expect(writable.query["projectId"]).toBeDefined();
+      expect(inspect(writable.query["projectId"], { depth: 4 })).toContain(
+        PROJECT_ID.toString(),
+      );
+
+      // Then the one found, by id, within the update's query as its permission check narrowed it.
       expect(findBy).toHaveBeenCalledTimes(1);
       const request: any = findBy.mock.calls[0]![0];
-      expect(request.query["_id"]?.toString()).toBe(RULE_ID.toString());
-      // The tenant scope the permission check added: this project only.
-      expect(request.query["projectId"]).toBeDefined();
+      expect(request.query["_id"]).toBe(RULE_ID.toString());
       expect(inspect(request.query["projectId"], { depth: 4 })).toContain(
         PROJECT_ID.toString(),
       );

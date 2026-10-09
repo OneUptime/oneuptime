@@ -38,8 +38,8 @@ Every request passes the form's protections first: its own page, rate limits, th
 - **Protected in layers** — an **Accepting Submissions** switch, an optional **IP Allowlist**, a refusal of requests from other websites, rate limits, the instance's captcha, and size limits on every answer.
 - **Every submission kept** — each form's **Submissions** page, and **Forms → Submissions** for all of them, list the answers and link to what each submission created.
 - **Your own branding** — upload a logo for the top of the form's page and a favicon for the browser tab, in the **Branding** section of the **Build** page. Until you do, the form shows OneUptime's.
-- **Templates for common cases** — save named sets of answers, such as **Application Outage** or **Planned Maintenance**, and people pick one at the top of the form to fill it in, or open its own link. One form, and one bookmark, serves a whole team.
-- **Hidden questions** — hide a question nobody should have to answer, such as the incident's description, and let each template answer it instead.
+- **Templates for common cases** — save named sets of answers, such as **Application Outage** or **Planned Maintenance**, and people pick one at the top of the form to fill it in, or open its own link. Each template can also make a question required, optional or hidden for its case. One form, and one bookmark, serves a whole team.
+- **Hidden questions** — hide a question nobody should have to answer, such as the incident's description, and let each template answer it instead — or ask it, for the cases that need it.
 - **Duplicate Form** — start a form for another team from one that works, with its questions, templates and settings.
 
 ## What a form can create
@@ -76,7 +76,7 @@ On **On Submit**, check how a submission becomes an incident or event, and click
 
 ### Add templates, if people report the same cases
 
-On **Templates**, save a template for each case people report often: the form lists them over its questions and fills itself in from the one chosen. See [Templates](/docs/forms/building#templates).
+On **Templates**, save a template for each case people report often: the form lists them over its questions, fills itself in from the one chosen, and asks the questions as that template says — a question one case needs can be required in its template and hidden in the others. See [Templates](/docs/forms/building#templates).
 
 ### Share the link
 
@@ -91,7 +91,7 @@ On **Share**, copy the link and send it to the people who should use the form. S
 | Page | What it holds |
 | --- | --- |
 | **Build** | The form's name and description, its **Branding** — logo and favicon, folded — and the builder: its questions, the question palette and **Preview**. |
-| **Templates** | Named sets of answers people can start the form from, the one it opens with, and each one's own link. |
+| **Templates** | Named sets of answers people can start the form from, how each asks the questions, the one it opens with, and each one's own link. |
 | **On Submit** | What each submission creates, and how every field of it is filled in. **Edit Settings** changes the defaults and what always applies. |
 | **Share** | **Accepting Submissions**, the **Share Link**, the message shown after submitting, and the **IP Allowlist**. |
 | **Submissions** | Every submission made through the form, newest first, with its answers and what it created. |
@@ -195,11 +195,13 @@ Each question has an `id` of its own — letters, digits, `-` and `_` — a `sou
 | `TargetCustomField` | One of the incident's or event's custom fields, named by `customFieldId`. |
 | `Submitter` | The submitter's `Name` or `Email`, named by `submitterField`. |
 
-A question with `isHidden` set to `true` is not shown on the public page, is never required, and is answered only from the template a submission names.
+A question with `isHidden` set to `true` is not shown on the public page, is never required, and is answered only from the template a submission names — unless that template asks it. `isRequired` and `isHidden` are the form's default; each template can ask a question its own way.
 
 ### Templates in the API
 
-A form's templates are its `templates` column, a JSON list in the order the form lists them. Each template has an `id` of its own — letters, digits, `-` and `_` — a `name` of up to 100 characters, unique within the form, and `answers` keyed by question id, each as a submission sends it: text, a number, `true` or `false`, an option's value, or a list of values for a multi-select. `isDefault` set to `true` makes it the template the form opens with; a form has at most one, and up to 50 templates:
+A form's templates are its `templates` column, a JSON list in the order the form lists them. Each template has an `id` of its own — letters, digits, `-` and `_` — a `name` of up to 100 characters, unique within the form, and `answers` keyed by question id, each as a submission sends it: text, a number, `true` or `false`, an option's value, or a list of values for a multi-select. `isDefault` set to `true` makes it the template the form opens with; a form has at most one, and up to 50 templates.
+
+`fieldSettings`, keyed by question id too, says how the template asks a question: `Required`, `Optional` or `Hidden`. A question it does not list — or lists as `null` — is asked as the form asks it, and a maintenance event's `startsAt` and `endsAt` questions can only be `Required`:
 
 ```json
 {
@@ -212,6 +214,10 @@ A form's templates are its `templates` column, a JSON list in the order the form
         "answers": {
           "what": "The application is down",
           "office": "Berlin"
+        },
+        "fieldSettings": {
+          "office": "Required",
+          "email": "Optional"
         }
       }
     ]

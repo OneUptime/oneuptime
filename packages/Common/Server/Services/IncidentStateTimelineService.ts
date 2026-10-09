@@ -918,18 +918,10 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
   private async getIncidentIdsForTimelineQuery(
     updateBy: UpdateBy<IncidentStateTimeline>,
   ): Promise<Array<ObjectID>> {
-    const timelines: Array<IncidentStateTimeline> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const timelines: Array<IncidentStateTimeline> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         incidentId: true,
-      },
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+      });
 
     return this.getIncidentIdsFromTimelines(timelines);
   }

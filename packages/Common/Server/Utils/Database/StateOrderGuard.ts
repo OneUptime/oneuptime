@@ -203,13 +203,12 @@ export default class StateOrderGuard {
       return;
     }
 
-    const targets: Array<TBaseModel> = await StateOrderGuard.findTargets({
-      service: data.service,
-      query: data.updateBy.query,
-      tenantId: data.updateBy.props.tenantId,
-      limit: data.updateBy.limit,
-      skip: data.updateBy.skip,
-    });
+    // The rows the update writes, and the update held to them.
+    const targets: Array<TBaseModel> =
+      await data.service.findRowsAndHoldUpdateToThem(data.updateBy, {
+        _id: true,
+        projectId: true,
+      } as Select<TBaseModel>);
 
     for (const [projectKey, projectTargets] of StateOrderGuard.byProject(
       targets,

@@ -30,72 +30,93 @@ import { describe, expect, it } from "@jest/globals";
  * \uXXXX escape, for the reason ReverseDnsNameUtil.test.ts gives: the point of
  * several cases is that the character is invisible, and a literal one would be
  * unreviewable in a diff.
+ *
+ * CASE (OneUptime issue #4518). The name keeps the case the host reported.
+ * Until #4518 it was lower-cased to match the DNS names it ranked below; now
+ * it ranks above them as the host's own computer name, and Windows reports
+ * and shows that name in upper case — the reporter's displays are
+ * WB0024KDS03 — so that is how the device is named.
  */
 
 describe("normalizeNetbiosName — names that must survive", () => {
-  it("accepts an ordinary workstation name and lower-cases it", () => {
+  it("accepts an ordinary workstation name and keeps its case (issue #4518)", () => {
     /*
-     * NetBIOS upper-cases on the wire, so the case carries no intent. Lower
-     * case matches the estate's DNS names in the same list.
+     * Windows upper-cases NetBIOS names, and upper case is how Windows shows
+     * a computer name and how its SNMP agent reports one. The reporter's
+     * kitchen display is WB0024KDS03 to everyone who runs it.
      */
-    expect(normalizeNetbiosName("WORKSTATION01")).toBe("workstation01");
+    expect(normalizeNetbiosName("WORKSTATION01")).toBe("WORKSTATION01");
+    expect(normalizeNetbiosName("WB0024KDS03")).toBe("WB0024KDS03");
   });
 
   it("strips the space padding RFC 1001 puts on the 15-byte field", () => {
-    expect(normalizeNetbiosName("REG01          ")).toBe("reg01");
+    expect(normalizeNetbiosName("REG01          ")).toBe("REG01");
   });
 
   it("strips NUL padding, which some embedded stacks use instead", () => {
     expect(
       normalizeNetbiosName("REG01\u0000\u0000\u0000\u0000\u0000\u0000"),
-    ).toBe("reg01");
+    ).toBe("REG01");
   });
 
   it("strips mixed space and NUL padding in any order", () => {
-    expect(normalizeNetbiosName("REG01 \u0000 \u0000")).toBe("reg01");
-    expect(normalizeNetbiosName("REG01\u0000 \u0000 ")).toBe("reg01");
-    expect(normalizeNetbiosName("REG01\u0000\t")).toBe("reg01");
+    expect(normalizeNetbiosName("REG01 \u0000 \u0000")).toBe("REG01");
+    expect(normalizeNetbiosName("REG01\u0000 \u0000 ")).toBe("REG01");
+    expect(normalizeNetbiosName("REG01\u0000\t")).toBe("REG01");
   });
 
   it("trims leading whitespace", () => {
-    expect(normalizeNetbiosName("  REG01")).toBe("reg01");
-    expect(normalizeNetbiosName("\tREG01\n")).toBe("reg01");
+    expect(normalizeNetbiosName("  REG01")).toBe("REG01");
+    expect(normalizeNetbiosName("\tREG01\n")).toBe("REG01");
   });
 
   it("accepts hyphens and underscores inside the name", () => {
-    expect(normalizeNetbiosName("WB-0660-KDS01")).toBe("wb-0660-kds01");
-    expect(normalizeNetbiosName("FIN_SRV_2")).toBe("fin_srv_2");
+    expect(normalizeNetbiosName("WB-0660-KDS01")).toBe("WB-0660-KDS01");
+    expect(normalizeNetbiosName("FIN_SRV_2")).toBe("FIN_SRV_2");
   });
 
   it("accepts a leading underscore, which the shared label rule allows", () => {
-    expect(normalizeNetbiosName("_SVC1")).toBe("_svc1");
+    expect(normalizeNetbiosName("_SVC1")).toBe("_SVC1");
   });
 
   it("accepts a single letter", () => {
-    expect(normalizeNetbiosName("A")).toBe("a");
+    expect(normalizeNetbiosName("A")).toBe("A");
   });
 
   it("accepts a name that starts with digits as long as it has a letter", () => {
-    expect(normalizeNetbiosName("1PRINTER")).toBe("1printer");
-    expect(normalizeNetbiosName("0660A")).toBe("0660a");
+    expect(normalizeNetbiosName("1PRINTER")).toBe("1PRINTER");
+    expect(normalizeNetbiosName("0660A")).toBe("0660A");
   });
 
   it("accepts exactly fifteen characters", () => {
     const fifteen: string = "ABCDEFGHIJKLMNO";
 
     expect(fifteen).toHaveLength(MAX_NETBIOS_NAME_LENGTH);
-    expect(normalizeNetbiosName(fifteen)).toBe("abcdefghijklmno");
+    expect(normalizeNetbiosName(fifteen)).toBe("ABCDEFGHIJKLMNO");
   });
 
   it("accepts fifteen characters followed by padding", () => {
     // The padding is not part of the name, so it does not count to the limit.
     expect(normalizeNetbiosName("ABCDEFGHIJKLMNO\u0000   ")).toBe(
-      "abcdefghijklmno",
+      "ABCDEFGHIJKLMNO",
     );
   });
 
-  it("leaves an already-lower-case name as it is", () => {
+  it("leaves a lower-case or mixed-case name exactly as it was reported", () => {
+    /*
+     * Samba and some embedded stacks register names in the case they were
+     * configured with. Keeping it is keeping what the host said.
+     */
     expect(normalizeNetbiosName("fileserver")).toBe("fileserver");
+    expect(normalizeNetbiosName("FileServer")).toBe("FileServer");
+  });
+
+  it("an older probe's lower-cased answer reads back unchanged", () => {
+    /*
+     * Results stored before #4518 hold lower-cased names. Re-normalising them
+     * changes nothing, so a stored scan still names its hosts the way it did.
+     */
+    expect(normalizeNetbiosName("wb0024kds03")).toBe("wb0024kds03");
   });
 });
 
@@ -188,7 +209,7 @@ describe("normalizeNetbiosName — values that are not a name", () => {
 
   it("rejects non-ASCII, including latin1 bytes a raw decode produces", () => {
     expect(normalizeNetbiosName("K\u00d6LN01")).toBeUndefined();
-    expect(normalizeNetbiosName("HOST\u00a0")).toBe("host");
+    expect(normalizeNetbiosName("HOST\u00a0")).toBe("HOST");
     expect(normalizeNetbiosName("HO\u00a0ST")).toBeUndefined();
     expect(normalizeNetbiosName("\u0445OST")).toBeUndefined();
     expect(normalizeNetbiosName("HO\u200dST")).toBeUndefined();
@@ -233,13 +254,13 @@ describe("normalizeNetbiosName — values that are not a name", () => {
     expect(
       normalizeNetbiosName("A" + " ".repeat(200000) + "B"),
     ).toBeUndefined();
-    expect(normalizeNetbiosName("A" + " \u0000".repeat(100000))).toBe("a");
+    expect(normalizeNetbiosName("A" + " \u0000".repeat(100000))).toBe("A");
     expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 });
 
 describe("normalizeNetbiosName — agrees with the shared DNS label rule", () => {
-  it("accepts exactly what normalizeReverseDnsName accepts as a single short label, lower-cased", () => {
+  it("accepts exactly what normalizeReverseDnsName accepts as a single short label, case kept", () => {
     const labels: Array<string> = [
       "HOST",
       "host-1",
@@ -259,7 +280,7 @@ describe("normalizeNetbiosName — agrees with the shared DNS label rule", () =>
 
       expect({ label: label, netbios: netbiosVerdict }).toEqual({
         label: label,
-        netbios: dnsVerdict === label ? label.toLowerCase() : undefined,
+        netbios: dnsVerdict === label ? label : undefined,
       });
     }
   });
@@ -285,11 +306,11 @@ describe("normalizeNetbiosName — invariants", () => {
   it("produces a value Slug can turn into a non-empty slug", () => {
     const name: string | undefined = normalizeNetbiosName("REG01          ");
 
-    expect(name).toBe("reg01");
+    expect(name).toBe("REG01");
     expect(Slug.getSlug(name!)).toContain("reg01");
   });
 
-  it("property: every output is a lower-case single label of 1-15 safe characters with a letter, and stable", () => {
+  it("property: every output is a single label of 1-15 safe characters with a letter, the input's own characters, and stable", () => {
     /*
      * A deterministic LCG, not Math.random: a property test that fails on one
      * run in a thousand is a flaky test, and a flaky guard gets deleted.
@@ -338,10 +359,12 @@ describe("normalizeNetbiosName — invariants", () => {
 
       expect(result.length).toBeGreaterThanOrEqual(1);
       expect(result.length).toBeLessThanOrEqual(MAX_NETBIOS_NAME_LENGTH);
-      expect(result).toMatch(/^[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?$/);
-      expect(result).toMatch(/[a-z]/);
-      expect(result).not.toBe("__msbrowse__");
+      expect(result).toMatch(/^[A-Za-z0-9_](?:[A-Za-z0-9_-]*[A-Za-z0-9_])?$/);
+      expect(result).toMatch(/[A-Za-z]/);
+      expect(result.toLowerCase()).not.toBe("__msbrowse__");
       expect(normalizeNetbiosName(result)).toBe(result);
+      // Case kept: the output is the input with its padding trimmed off.
+      expect(value).toContain(result);
     }
 
     // A guard on the guard: a property that is never exercised proves nothing.

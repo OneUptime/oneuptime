@@ -27,6 +27,7 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 // Exercise the real paging boundaries without allocating ten thousand steps.
 jest.mock("../../../Types/Database/LimitMax", () => {
@@ -365,6 +366,12 @@ describe("MonitorTemplateService validates saved field exclusions", () => {
     const read: SpyInstance<typeof service.findBy> = jest
       .spyOn(service, "findBy")
       .mockResolvedValue([storedTemplate]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
     const validateReferences: SpyInstance<
       typeof MonitorStepsProjectValidator.validateMonitorStepsBelongToProject
     > = jest
@@ -403,6 +410,12 @@ describe("MonitorTemplateService validates saved field exclusions", () => {
       new TestableMonitorTemplateService();
     const storedTemplate: MonitorTemplate = buildTemplate([]);
     jest.spyOn(service, "findBy").mockResolvedValue([storedTemplate]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
     const validateReferences: SpyInstance<
       typeof MonitorStepsProjectValidator.validateMonitorStepsBelongToProject
     > = jest
@@ -432,6 +445,12 @@ describe("MonitorTemplateService validates saved field exclusions", () => {
       new TestableMonitorTemplateService();
     const storedTemplate: MonitorTemplate = buildTemplate(["requestHeaders"]);
     jest.spyOn(service, "findBy").mockResolvedValue([storedTemplate]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
     jest
       .spyOn(
         MonitorStepsProjectValidator,
@@ -455,6 +474,12 @@ describe("MonitorTemplateService validates saved field exclusions", () => {
       new TestableMonitorTemplateService();
     const storedTemplate: MonitorTemplate = buildTemplate(["requestHeaders"]);
     jest.spyOn(service, "findBy").mockResolvedValue([storedTemplate]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
     jest
       .spyOn(
         MonitorStepsProjectValidator,
@@ -484,6 +509,12 @@ describe("MonitorTemplateService validates saved field exclusions", () => {
     const read: SpyInstance<typeof service.findBy> = jest
       .spyOn(service, "findBy")
       .mockResolvedValue([buildTemplate(["not-a-field"])]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
     const validateReferences: SpyInstance<
       typeof MonitorStepsProjectValidator.validateMonitorStepsBelongToProject
     > = jest

@@ -20,6 +20,7 @@ import DefaultExplainUnnamedDiscoveredHost, {
   SNMP_NOT_CHECKED_SENTENCE,
   SNMP_NO_ANSWER_SENTENCE,
   SNMP_NO_SYSNAME_SENTENCE,
+  SNMP_UNUSABLE_SYSNAME_SENTENCE,
   TRANSIENT_FAILURE_TIP,
   UNNAMED_HOST_LABEL,
   explainUnnamedDiscoveredHost,
@@ -225,14 +226,25 @@ function textOf(data: {
 
 /*
  * The sentences a text may be built from, in the order they must appear:
- * SNMP, reverse DNS, NetBIOS (the order the sources win in), then the
- * reverse-DNS tip, then the ask-the-device tip. At most one from each group.
+ * SNMP, NetBIOS, reverse DNS (the order the sources win in since OneUptime
+ * issue #4518: the device's own names first), then the reverse-DNS tip, then
+ * the ask-the-device tip. At most one from each group.
  */
 const SENTENCE_GROUPS: Array<Array<string>> = [
   [
     SNMP_NOT_CHECKED_SENTENCE,
     SNMP_NO_ANSWER_SENTENCE,
     SNMP_NO_SYSNAME_SENTENCE,
+    SNMP_UNUSABLE_SYSNAME_SENTENCE,
+  ],
+  [
+    ...NETBIOS_COPY.map(
+      (entry: [DiscoveredHostNetbiosStatus, string]): string => {
+        return entry[1];
+      },
+    ),
+    NETBIOS_OFF_SENTENCE,
+    NETBIOS_NOT_RECORDED_SENTENCE,
   ],
   [
     ...REVERSE_DNS_COPY.map(
@@ -244,22 +256,13 @@ const SENTENCE_GROUPS: Array<Array<string>> = [
     ),
     REVERSE_DNS_NOT_RECORDED_SENTENCE,
   ],
-  [
-    ...NETBIOS_COPY.map(
-      (entry: [DiscoveredHostNetbiosStatus, string]): string => {
-        return entry[1];
-      },
-    ),
-    NETBIOS_OFF_SENTENCE,
-    NETBIOS_NOT_RECORDED_SENTENCE,
-  ],
   [NO_RECORD_TIP, TRANSIENT_FAILURE_TIP],
   [ASK_THE_DEVICE_TIP, ASK_THE_DEVICE_SNMP_TIP, ASK_THE_DEVICE_NETBIOS_TIP],
 ];
 
 const SNMP_GROUP: number = 0;
-const REVERSE_DNS_GROUP: number = 1;
-const NETBIOS_GROUP: number = 2;
+const NETBIOS_GROUP: number = 1;
+const REVERSE_DNS_GROUP: number = 2;
 const REVERSE_DNS_TIP_GROUP: number = 3;
 const ASK_THE_DEVICE_GROUP: number = 4;
 
@@ -813,7 +816,7 @@ describe("explainUnnamedDiscoveredHost — each reverse-DNS code", () => {
   );
 
   test.each(REVERSE_DNS_COPY)(
-    "%s on the reporter's scan sits between the SNMP and NetBIOS lines",
+    "%s on the reporter's scan follows the SNMP and NetBIOS lines (issue #4518)",
     (
       code: DiscoveredHostReverseDnsStatus,
       sentence: string,
@@ -830,8 +833,8 @@ describe("explainUnnamedDiscoveredHost — each reverse-DNS code", () => {
       ).toBe(
         [
           SNMP_NOT_CHECKED_SENTENCE,
-          sentence,
           netbiosSentence(DiscoveredHostNetbiosStatus.NoReply),
+          sentence,
           ...(tip ? [tip] : []),
           ASK_THE_DEVICE_SNMP_TIP,
         ].join(" "),
@@ -891,7 +894,7 @@ describe("explainUnnamedDiscoveredHost — each reverse-DNS code", () => {
 
 describe("explainUnnamedDiscoveredHost — each NetBIOS code", () => {
   test.each(NETBIOS_COPY)(
-    "%s reads as its own sentence, after the reverse-DNS line",
+    "%s reads as its own sentence, before the reverse-DNS line (issue #4518)",
     (code: DiscoveredHostNetbiosStatus, sentence: string) => {
       expect(
         explainUnnamedDiscoveredHost({
@@ -899,7 +902,7 @@ describe("explainUnnamedDiscoveredHost — each NetBIOS code", () => {
         }),
       ).toStrictEqual({
         label: UNNAMED_HOST_LABEL,
-        text: `${REVERSE_DNS_NOT_RECORDED_SENTENCE} ${sentence}`,
+        text: `${sentence} ${REVERSE_DNS_NOT_RECORDED_SENTENCE}`,
       });
     },
   );
@@ -918,8 +921,8 @@ describe("explainUnnamedDiscoveredHost — each NetBIOS code", () => {
       ).toBe(
         [
           SNMP_NO_ANSWER_SENTENCE,
-          reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
           sentence,
+          reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
           NO_RECORD_TIP,
         ].join(" "),
       );
@@ -942,8 +945,8 @@ describe("explainUnnamedDiscoveredHost — each NetBIOS code", () => {
       ).toBe(
         [
           SNMP_NO_ANSWER_SENTENCE,
-          REVERSE_DNS_NOT_RECORDED_SENTENCE,
           sentence,
+          REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ].join(" "),
       );
     },
@@ -965,8 +968,8 @@ describe("explainUnnamedDiscoveredHost — each NetBIOS code", () => {
       ).toBe(
         [
           SNMP_NO_ANSWER_SENTENCE,
-          REVERSE_DNS_NOT_RECORDED_SENTENCE,
           sentence,
+          REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ].join(" "),
       );
     },
@@ -992,8 +995,8 @@ describe("explainUnnamedDiscoveredHost — rows with no codes (older probes)", (
       label: UNNAMED_HOST_LABEL,
       text: [
         SNMP_NOT_CHECKED_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_NOT_RECORDED_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_SNMP_TIP,
       ].join(" "),
     });
@@ -1014,8 +1017,8 @@ describe("explainUnnamedDiscoveredHost — rows with no codes (older probes)", (
     ).toBe(
       [
         SNMP_NOT_CHECKED_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         GLOBAL_PROBE_NETBIOS_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_SNMP_TIP,
       ].join(" "),
     );
@@ -1052,8 +1055,8 @@ describe("explainUnnamedDiscoveredHost — rows with no codes (older probes)", (
     expect(textOf({ host: pingOnlyHost(), scan: ICMP_ONLY_SCAN })).toBe(
       [
         SNMP_NOT_CHECKED_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_OFF_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_TIP,
       ].join(" "),
     );
@@ -1063,8 +1066,8 @@ describe("explainUnnamedDiscoveredHost — rows with no codes (older probes)", (
     expect(textOf({ host: pingOnlyHost(), scan: SNMP_SCAN })).toBe(
       [
         SNMP_NO_ANSWER_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_OFF_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_NETBIOS_TIP,
       ].join(" "),
     );
@@ -1079,8 +1082,8 @@ describe("explainUnnamedDiscoveredHost — rows with no codes (older probes)", (
     ).toBe(
       [
         SNMP_NO_SYSNAME_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_NOT_RECORDED_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
       ].join(" "),
     );
   });
@@ -1093,8 +1096,8 @@ describe("explainUnnamedDiscoveredHost — rows with no codes (older probes)", (
     expect(textOf({ host: bareHost(), scan: SNMP_SCAN })).toBe(
       [
         SNMP_NO_SYSNAME_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_OFF_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_NETBIOS_TIP,
       ].join(" "),
     );
@@ -1173,8 +1176,8 @@ describe("explainUnnamedDiscoveredHost — the scan's state", () => {
       label: UNNAMED_HOST_LABEL,
       text: [
         SNMP_NOT_CHECKED_SENTENCE,
-        reverseDnsSentence(DiscoveredHostReverseDnsStatus.Timeout),
         NETBIOS_NOT_RECORDED_SENTENCE,
+        reverseDnsSentence(DiscoveredHostReverseDnsStatus.Timeout),
         TRANSIENT_FAILURE_TIP,
         ASK_THE_DEVICE_SNMP_TIP,
       ].join(" "),
@@ -1193,8 +1196,8 @@ describe("explainUnnamedDiscoveredHost — the scan's state", () => {
       label: UNNAMED_HOST_LABEL,
       text: [
         SNMP_NOT_CHECKED_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         netbiosSentence(DiscoveredHostNetbiosStatus.NoReply),
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_SNMP_TIP,
       ].join(" "),
     });
@@ -1232,8 +1235,8 @@ describe("explainUnnamedDiscoveredHost — the scan's state", () => {
     ).toBe(
       [
         SNMP_NOT_CHECKED_SENTENCE,
-        reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
         netbiosSentence(DiscoveredHostNetbiosStatus.NoReply),
+        reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
         NO_RECORD_TIP,
         ASK_THE_DEVICE_SNMP_TIP,
       ].join(" "),
@@ -1397,8 +1400,8 @@ describe("explainUnnamedDiscoveredHost — the NetBIOS line", () => {
     expect(textOf({ host: pingOnlyHost(), scan: SNMP_AND_NETBIOS_SCAN })).toBe(
       [
         SNMP_NO_ANSWER_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_NOT_RECORDED_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
       ].join(" "),
     );
   });
@@ -1413,8 +1416,8 @@ describe("explainUnnamedDiscoveredHost — the NetBIOS line", () => {
     ).toBe(
       [
         SNMP_NO_ANSWER_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         GLOBAL_PROBE_NETBIOS_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
       ].join(" "),
     );
   });
@@ -1441,8 +1444,8 @@ describe("explainUnnamedDiscoveredHost — the NetBIOS line", () => {
       }),
     ).toBe(
       [
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         netbiosSentence(DiscoveredHostNetbiosStatus.SkippedHostCap),
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
       ].join(" "),
     );
   });
@@ -1613,8 +1616,8 @@ describe("explainUnnamedDiscoveredHost — the tips", () => {
     ).toBe(
       [
         SNMP_NOT_CHECKED_SENTENCE,
-        reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
         NETBIOS_OFF_SENTENCE,
+        reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
         NO_RECORD_TIP,
         ASK_THE_DEVICE_TIP,
       ].join(" "),
@@ -1681,8 +1684,8 @@ describe("explainUnnamedDiscoveredHost — NetBIOS advice follows the address", 
     ).toBe(
       [
         SNMP_NO_ANSWER_SENTENCE,
-        reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
         NETBIOS_OFF_SENTENCE,
+        reverseDnsSentence(DiscoveredHostReverseDnsStatus.NoRecord),
         NO_RECORD_TIP,
       ].join(" "),
     );
@@ -1698,8 +1701,8 @@ describe("explainUnnamedDiscoveredHost — NetBIOS advice follows the address", 
     ).toBe(
       [
         SNMP_NOT_CHECKED_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_OFF_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_SNMP_TIP,
       ].join(" "),
     );
@@ -1741,8 +1744,8 @@ describe("explainUnnamedDiscoveredHost — NetBIOS advice follows the address", 
     ).toBe(
       [
         SNMP_NO_ANSWER_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         INELIGIBLE_ADDRESS_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
       ].join(" "),
     );
   });
@@ -2491,8 +2494,8 @@ describe("explainUnnamedDiscoveredHost — the reporter's twelve kitchen display
         label: UNNAMED_HOST_LABEL,
         text: [
           SNMP_NOT_CHECKED_SENTENCE,
-          reverseDnsSentence(code),
           GLOBAL_PROBE_NETBIOS_SENTENCE,
+          reverseDnsSentence(code),
           ...(tip ? [tip] : []),
           ASK_THE_DEVICE_SNMP_TIP,
         ].join(" "),
@@ -2534,13 +2537,129 @@ describe("explainUnnamedDiscoveredHost — the reporter's twelve kitchen display
       expect(text).toBe(
         [
           SNMP_NOT_CHECKED_SENTENCE,
-          REVERSE_DNS_NOT_RECORDED_SENTENCE,
           GLOBAL_PROBE_NETBIOS_SENTENCE,
+          REVERSE_DNS_NOT_RECORDED_SENTENCE,
           ASK_THE_DEVICE_SNMP_TIP,
         ].join(" "),
       );
       expect(text).not.toContain("PTR");
       expect(text).not.toContain("in time");
     }
+  });
+});
+
+/*
+ * OneUptime issue #4518 — the naming rule reads a placeholder sysName
+ * ("localhost") or an address as no name at all, so such a host is listed by
+ * its address and gets the explanation, which says the device answered with
+ * a name that is not usable rather than with no name. The sysName itself is
+ * never quoted: nothing the scanned network chose reaches the text.
+ */
+describe("explainUnnamedDiscoveredHost — an unusable sysName (issue #4518)", () => {
+  test.each([
+    ["a placeholder", "localhost"],
+    ["a placeholder in another case", "LOCALHOST.localdomain"],
+    ["the kernel's unset hostname", "(none)"],
+    ["the host's own address", ADDRESS],
+    ["an IPv6 address", "fe80::1"],
+    ["a name with a control character", "core\u001bsw"],
+  ])(
+    "%s leaves the host unnamed, and says the name was not usable",
+    (_label: string, sysName: string) => {
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: ADDRESS,
+        snmpReachable: true,
+        sysName: sysName,
+      };
+
+      expect(isDiscoveredHostNamed(host)).toBe(false);
+
+      const text: string = textOf({ host: host, scan: SNMP_SCAN });
+
+      expect(text.startsWith(SNMP_UNUSABLE_SYSNAME_SENTENCE)).toBe(true);
+      expect(text).not.toContain(SNMP_NO_SYSNAME_SENTENCE);
+      /*
+       * The value itself is never put in the text: whatever is left once the
+       * fixed sentence (which names "localhost" as an example) is taken out
+       * does not carry it.
+       */
+      expect(
+        text.replace(SNMP_UNUSABLE_SYSNAME_SENTENCE, "").toLowerCase(),
+      ).not.toContain(sysName.toLowerCase());
+    },
+  );
+
+  test("a blank sysName still says the device reported no name", () => {
+    const text: string = textOf({
+      host: { ipAddress: ADDRESS, snmpReachable: true, sysName: "   " },
+      scan: SNMP_SCAN,
+    });
+
+    expect(text.startsWith(SNMP_NO_SYSNAME_SENTENCE)).toBe(true);
+  });
+
+  test("a usable sysName names the host, so there is nothing to explain", () => {
+    const host: DiscoveredNetworkDevice = {
+      ipAddress: ADDRESS,
+      snmpReachable: true,
+      sysName: "core-sw-01",
+    };
+
+    expect(isDiscoveredHostNamed(host)).toBe(true);
+    expect(
+      explainUnnamedDiscoveredHost({ host: host, scan: SNMP_SCAN }),
+    ).toBeUndefined();
+  });
+
+  test("a placeholder sysName beside a NetBIOS or PTR name is named by those, with nothing to explain", () => {
+    for (const host of [
+      {
+        ipAddress: ADDRESS,
+        snmpReachable: true,
+        sysName: "localhost",
+        netbiosName: "WB0024KDS01",
+      },
+      {
+        ipAddress: ADDRESS,
+        snmpReachable: true,
+        sysName: "localhost",
+        dnsHostname: "kds01.wbhq.com",
+      },
+    ]) {
+      expect(isDiscoveredHostNamed(host)).toBe(true);
+      expect(
+        explainUnnamedDiscoveredHost({ host: host, scan: SNMP_SCAN }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("the sentence is fixed copy that names no value", () => {
+    expect(SNMP_UNUSABLE_SYSNAME_SENTENCE).toBe(
+      "SNMP: the device answered, but the name it reported (sysName) is not usable as a name, such as localhost or an IP address.",
+    );
+  });
+});
+
+/*
+ * Since #4518 the sentences follow the order the sources win in: the device's
+ * own names (SNMP, NetBIOS) before reverse DNS.
+ */
+describe("explainUnnamedDiscoveredHost — the device's own names are explained first (issue #4518)", () => {
+  test("SNMP, then NetBIOS, then reverse DNS", () => {
+    const text: string = textOf({
+      host: pingOnlyHost({
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.NoRecord,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.NoReply,
+      }),
+      scan: SNMP_AND_NETBIOS_SCAN,
+    });
+
+    const snmp: number = text.indexOf("SNMP:");
+    const netbios: number = text.indexOf("NetBIOS:");
+    const reverseDns: number = text.indexOf("Reverse DNS:");
+
+    expect(snmp).toBe(0);
+    expect(netbios).toBeGreaterThan(snmp);
+    expect(reverseDns).toBeGreaterThan(netbios);
   });
 });

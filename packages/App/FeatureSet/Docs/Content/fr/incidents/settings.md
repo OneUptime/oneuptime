@@ -90,11 +90,43 @@ Allez dans **Incidents → Paramètres → Champs personnalisés** (`/dashboard/
 - **Nom du champ** — obligatoire, au moins deux caractères. Le texte indicatif suggère un nom façon slug, comme `internal-service`.
 - **Description du champ** — facultatif.
 - **Type de champ** — obligatoire. C'est lui qui détermine la manière dont la donnée est saisie. Les types liste déroulante exigent en plus que leurs options soient listées.
-- **Options de la liste déroulante** — les valeurs proposées dans la liste, chacune avec une couleur facultative.
+- **Options de la liste déroulante** — les valeurs proposées dans la liste, chacune avec une couleur facultative. Faites glisser une option par sa poignée pour changer sa place dans la liste. Les options peuvent aussi être ajoutées, renommées et retirées une fois que des incidents ont des valeurs ; voir plus bas.
 
 Les définitions vivent dans leur propre modèle ; les valeurs, elles, vivent sur l'incident lui-même, dans la colonne `customFields`. Sur un incident donné, vous les renseignez depuis **Champs personnalisés** dans le menu latéral de l'incident (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **Une lacune à connaître.** Les définitions de champs personnalisés d'incident sont la seule partie de la famille Incidents à n'avoir aucun déclencheur de workflow — voyez la section workflows plus bas.
+
+### Modifier les options d'une liste déroulante
+
+Les options d'un champ **Liste déroulante (choix unique)** ou **Liste déroulante (choix multiple)** peuvent être modifiées à tout moment : ouvrez **Modifier** sur la ligne du champ. Un incident conserve le texte de l'option qui lui a été donnée ; l'effet d'une modification sur les incidents qui ont une option dépend donc de la modification :
+
+| Ce que vous faites d'une option      | Ce qui arrive aux incidents qui l'ont                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **L'ajouter**                        | Rien. Elle est proposée dès maintenant.                                                                                                     |
+| **La renommer** (changer son texte)  | Ils affichent le nouveau nom. Sous l'option, le formulaire indique combien d'incidents sont concernés.                                      |
+| **La retirer** (la corbeille à côté) | Ils la conservent, affichée comme _n'est plus une option_, sauf si vous leur choisissez une autre option sous **Ne sont plus des options**. |
+| **La faire glisser** par sa poignée  | Rien. Seul l'ordre dans lequel les options sont listées change.                                                                             |
+
+À l'ouverture, le formulaire compte combien d'incidents ont chaque valeur. **Ne sont plus des options** liste chaque option retirée qu'un incident a encore, et chaque valeur que des incidents ont sans qu'elle ait jamais été une option (une valeur écrite par l'API, par exemple), chacune avec le nombre d'incidents. Pour chacune, laissez-la telle quelle ou choisissez l'option que ces incidents doivent avoir à la place. **Annuler** rétablit une option retirée par erreur.
+
+Une option renommée, et une valeur pour laquelle vous choisissez une option, sont déplacées à l'enregistrement : sur chaque incident et chaque modèle d'incident du projet, dans les vues enregistrées de la liste des incidents qui filtrent dessus, et dans les réponses que les modèles de formulaire donnent pour le champ. Cela ne déclenche aucun workflow **On Update Incident** et ne change la date de dernière mise à jour d'aucun incident ; en cas d'échec, rien n'est déplacé et le champ garde ses anciennes options. Les workflows, les clients de l'API et les configurations Terraform qui écrivent une option avec son ancien texte ont besoin du nouveau.
+
+Un incident dont le champ ne propose plus la valeur l'affiche, marquée _n'est plus une option_, sur sa page **Champs personnalisés** et dans la liste des incidents. Modifier ses autres champs la conserve ; choisissez une autre option pour la changer.
+
+Les champs personnalisés de toutes les autres ressources fonctionnent de la même façon : moniteurs, alertes, maintenances planifiées, pages de statut, politiques d'astreinte, équipes, membres d'équipe et éléments d'inventaire. Renommer ou ajouter une option d'un champ de moniteur fait de même dans les champs d'incident, d'alerte et de maintenance planifiée qui le copient, pour qu'ils proposent toujours chaque valeur qu'ils copient.
+
+Par l'API, envoyez la nouvelle liste dans `dropdownOptions`, et les renommages dans `miscDataProps` :
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Chaque `to` doit être une option du champ une fois enregistré, et chaque `from` ne peut être renommé qu'une fois. Sans `renamedDropdownOptions`, seule la liste change et chaque valeur enregistrée reste telle quelle — c'est aussi ce que fait une modification de `dropdown_options` dans Terraform.
 
 ## Rôles d'incident
 

@@ -3,7 +3,7 @@ import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import ServerException from "../../../Types/Exception/ServerException";
 import ObjectID from "../../../Types/ObjectID";
@@ -165,13 +165,6 @@ function normalizeId(id: string): string {
   return id.trim().toLowerCase();
 }
 
-// An update's skip or limit, which it may carry as a PositiveNumber.
-function toNumber(
-  value: PositiveNumber | number | undefined,
-): number | undefined {
-  return value instanceof PositiveNumber ? value.toNumber() : value;
-}
-
 // The users table: a person, who has no project of their own.
 const USER_TABLE_NAME: string = "User";
 
@@ -326,12 +319,12 @@ export default class ProjectScopedReferenceValidator {
    *
    * With a project on the request, against that project. Without one -
    * OneUptime's own update, or a master admin's - against the project of
-   * each record the update matches, read the way the update reads them (its
-   * query, skip and limit): handing validateReferencesBelongToProject the
+   * each record the update writes, with the update held to those records
+   * (getHeldRelationIds): handing validateReferencesBelongToProject the
    * request's project alone would check nothing for those updates. There an
-   * id that every matched record of the project already holds is left
-   * alone, as ProjectReferenceCheck leaves it: writing back what a record
-   * holds attaches nothing new to it.
+   * id that every record of the project already holds is left alone, as
+   * ProjectReferenceCheck leaves it: writing back what a record holds
+   * attaches nothing new to it.
    */
   public static async validateUpdateReferences<
     TModel extends DatabaseBaseModel,
@@ -385,15 +378,13 @@ export default class ProjectScopedReferenceValidator {
 
     const heldIds: HeldRelationIds =
       await ProjectScopedReferenceValidator.getHeldRelationIds({
-        service: data.service as unknown as DatabaseService<DatabaseBaseModel>,
-        query: data.updateBy.query as unknown as Query<DatabaseBaseModel>,
+        service: data.service,
+        updateBy: data.updateBy,
         columns: written.map(
           (entry: { relation: ProjectScopedSingleRelation }): string => {
             return entry.relation.relation;
           },
         ),
-        skip: toNumber(data.updateBy.skip),
-        limit: toNumber(data.updateBy.limit),
       });
 
     for (const [projectId, held] of heldIds) {
@@ -745,28 +736,31 @@ export default class ProjectScopedReferenceValidator {
   }
 
   /*
-   * What the records an update matches already hold in each of `columns`,
+   * What the records an update writes already hold in each of `columns`,
    * grouped by project. Within a project an id counts as held only when
-   * EVERY matched record holds it: a bulk update writes the same list onto
-   * all of them, and a foreign id one record picked up long ago must not
-   * become a way to attach it to the rest.
+   * EVERY record holds it: a bulk update writes the same list onto all of
+   * them, and a foreign id one record picked up long ago must not become a
+   * way to attach it to the rest.
    *
-   * Read as root, like the services' own project fallback for updates, so the
-   * result is keyed by each record's project and a caller only ever gets the
-   * exemption for the project being checked.
+   * The records are the rows the update writes, and the update is held to
+   * them (DatabaseService.findRowsAndHoldUpdateToThem): what a record
+   * already holds is only ever worked out from a row the update then
+   * writes. Each is read as root, so the result is keyed by each record's
+   * project and a caller only ever gets the exemption for the project being
+   * checked.
    *
-   * One read per column. A find that selects several many-to-many relations
-   * joins them all and returns a row for every combination of their ids, and
-   * an alert or incident can save sixteen lists in one update (the dashboard
-   * sends every affected-resource list back on each edit).
+   * One read per column: the first is read with the rows themselves, and
+   * every other by those rows' ids. A find that selects several many-to-many
+   * relations joins them all and returns a row for every combination of
+   * their ids, and an alert or incident can save sixteen lists in one update
+   * (the dashboard sends every affected-resource list back on each edit).
    */
-  public static async getHeldRelationIds(data: {
-    service: DatabaseService<DatabaseBaseModel>;
-    query: Query<DatabaseBaseModel>;
+  public static async getHeldRelationIds<
+    TModel extends DatabaseBaseModel,
+  >(data: {
+    service: DatabaseService<TModel>;
+    updateBy: UpdateBy<TModel>;
     columns: Array<string>;
-    // The update's own, so the rows read are the rows it writes.
-    skip?: number | undefined;
-    limit?: number | undefined;
   }): Promise<HeldRelationIds> {
     const heldIds: HeldRelationIds = new Map();
 
@@ -774,26 +768,50 @@ export default class ProjectScopedReferenceValidator {
       .getModel()
       .getTenantColumn();
 
-    if (!tenantColumnName || data.columns.length === 0) {
+    const firstColumn: string | undefined = data.columns[0];
+
+    if (!tenantColumnName || !firstColumn) {
+      return heldIds;
+    }
+
+    const selectColumn: (column: string) => Select<TModel> = (
+      column: string,
+    ): Select<TModel> => {
+      return {
+        _id: true,
+        [tenantColumnName]: true,
+        [column]: {
+          _id: true,
+        },
+      } as Select<TModel>;
+    };
+
+    const rows: Array<TModel> = await data.service.findRowsAndHoldUpdateToThem(
+      data.updateBy,
+      selectColumn(firstColumn),
+    );
+
+    const rowIds: Array<string> = DatabaseService.getRowIds(rows);
+
+    if (rowIds.length === 0) {
       return heldIds;
     }
 
     for (const column of data.columns) {
-      const records: Array<DatabaseBaseModel> = await data.service.findBy({
-        query: data.query,
-        select: {
-          _id: true,
-          [tenantColumnName]: true,
-          [column]: {
-            _id: true,
-          },
-        } as Select<DatabaseBaseModel>,
-        limit: data.limit ?? LIMIT_MAX,
-        skip: data.skip ?? 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      const records: Array<TModel> =
+        column === firstColumn
+          ? rows
+          : await data.service.findBy({
+              query: {
+                _id: DatabaseService.idsCondition(rowIds),
+              } as Query<TModel>,
+              select: selectColumn(column),
+              limit: rowIds.length,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
 
       // Per project, the ids every record read so far holds in this column.
       const heldInColumn: Map<string, Set<string>> = new Map();

@@ -29,6 +29,23 @@ import {
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    MonitorService,
+    jest.spyOn(MonitorService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    MonitorTemplateService,
+    jest.spyOn(MonitorTemplateService, "findBy"),
+  );
+});
 
 /*
  * The records these tests name are their project's own: the services check
@@ -452,6 +469,7 @@ describe("missing-reference guard on write", () => {
       );
 
       const monitor: Monitor = new Monitor();
+      monitor.id = ObjectID.generate();
       monitor.projectId = PROJECT_ID;
       monitor.monitorSteps = stored as never;
 
@@ -494,8 +512,10 @@ describe("missing-reference guard on write", () => {
       const calls: Array<StepsValidatorCall> = spyOnStepsValidator();
 
       const first: Monitor = new Monitor();
+      first.id = ObjectID.generate();
       first.projectId = PROJECT_ID;
       const second: Monitor = new Monitor();
+      second.id = ObjectID.generate();
       second.projectId = MONITOR_ID;
 
       jest
@@ -618,6 +638,7 @@ describe("missing-reference guard on write", () => {
       const stored: JSONObject = stepsReferencing(MONITOR_STATUS_ID.toString());
 
       const template: MonitorTemplate = new MonitorTemplate();
+      template._id = "5d1e7a2c-3b4f-4e6a-9c8d-1f2a3b4c5d6e";
       template.projectId = PROJECT_ID;
       template.monitorSteps = stored as never;
 

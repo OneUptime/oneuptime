@@ -30,6 +30,22 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
+});
 
 /*
  * Sending the notification that an incident was created again.
@@ -440,12 +456,13 @@ describe("IncidentService.onBeforeUpdate: sending the 'created' notification aga
       },
     );
 
-    test("the incidents are read with the caller's own permissions and the update's own query", async () => {
+    test("the incidents are read among those the caller's update may write, and the update is held to them", async () => {
       const props: DatabaseCommonInteractionProps = makeProps([
         Permission.IncidentMember,
       ]);
+      const updateBy: UpdateBy<Incident> = resendUpdate({ props });
 
-      await runBeforeUpdate(resendUpdate({ props }));
+      await runBeforeUpdate(updateBy);
 
       const reads: Array<{
         query: Record<string, unknown>;
@@ -475,8 +492,16 @@ describe("IncidentService.onBeforeUpdate: sending the 'created' notification aga
       );
 
       expect(resendRead).toBeDefined();
-      expect(resendRead!.props).toBe(props);
+      // By id, among the incidents the caller may write - in their project.
+      expect(resendRead!.props).toEqual({ isRoot: true, ignoreHooks: true });
       expect(resendRead!.query["_id"]).toBe(incidentId);
+      expect(
+        readsOfRowsCallerMayWrite(IncidentService)[0]!.query["projectId"],
+      ).toEqual(projectId);
+      // The update writes only the incidents read.
+      expect((updateBy.query as Record<string, unknown>)["_id"]).toBe(
+        incidentId,
+      );
     });
 
     test("when the caller can see none of the incidents it matches, nothing is queued", async () => {

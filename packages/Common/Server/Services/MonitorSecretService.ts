@@ -10,7 +10,6 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
@@ -23,7 +22,6 @@ import MonitorSecretAccess, {
   MonitorSecretGrantee,
 } from "../../Types/Monitor/MonitorSecretAccess";
 import ObjectID from "../../Types/ObjectID";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorSecret from "../../Models/DatabaseModels/MonitorSecret";
@@ -124,13 +122,13 @@ export class Service extends ProjectReferencesService<MonitorSecret> {
      */
     const projectIds: Array<ObjectID> = updateBy.props.tenantId
       ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds =
       await ProjectScopedReferenceValidator.getHeldRelationIds({
-        service: this as unknown as DatabaseService<DatabaseBaseModel>,
-        query: updateBy.query as Query<DatabaseBaseModel>,
+        service: this,
+        updateBy: updateBy,
         columns: relations.map((relation: ProjectScopedRelation): string => {
           return relation.column;
         }),
@@ -417,32 +415,6 @@ export class Service extends ProjectReferencesService<MonitorSecret> {
         service: LabelService,
       },
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<MonitorSecret>,
-  ): Promise<Array<ObjectID>> {
-    const secrets: Array<MonitorSecret> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Map<string, ObjectID> = new Map();
-
-    for (const secret of secrets) {
-      if (secret.projectId) {
-        projectIds.set(secret.projectId.toString(), secret.projectId);
-      }
-    }
-
-    return Array.from(projectIds.values());
   }
 }
 

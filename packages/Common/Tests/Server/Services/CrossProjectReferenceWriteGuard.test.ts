@@ -37,6 +37,31 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    AlertService,
+    jest.spyOn(AlertService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    ScheduledMaintenanceService,
+    jest.spyOn(ScheduledMaintenanceService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    MonitorService,
+    jest.spyOn(MonitorService, "findBy"),
+  );
+});
 
 /*
  * The records these tests name are their project's own: the services check

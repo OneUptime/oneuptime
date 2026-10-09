@@ -54,7 +54,11 @@ import Field from "../Detail/Field";
 import ClassicFilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import { FormProps, FormSummaryConfig } from "../Forms/BasicForm";
-import { ModelField, ModelFormOnBeforeCreate } from "../Forms/ModelForm";
+import {
+  ModelField,
+  ModelFormOnBeforeCreate,
+  ModelFormOnBeforeUpdate,
+} from "../Forms/ModelForm";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
 import List from "../List/List";
@@ -219,6 +223,7 @@ export interface BaseTableCallbacks<
     modalType: ModalType;
     modelIdToEdit?: ObjectID | undefined;
     onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+    onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
     onSuccess?: ((item: TBaseModel) => void) | undefined;
     onClose?: (() => void) | undefined;
     /*
@@ -330,6 +335,13 @@ export interface BaseTableProps<
   onBeforeFetch?: (() => Promise<TBaseModel>) | undefined;
   createInitialValues?: FormValues<TBaseModel> | undefined;
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+  /*
+   * Runs on the Edit form just before it saves, with the model, the misc
+   * data the request carries (what it adds there is sent) and every value
+   * the form holds - ModelForm's onBeforeUpdate. A custom field's option
+   * renames ride along this way (#4564).
+   */
+  onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   // Runs after both create and edit; modalType identifies which form was saved.
   onCreateSuccess?:
     | ((item: TBaseModel, modalType?: ModalType) => Promise<TBaseModel>)
@@ -5136,6 +5148,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
             return item;
           },
+          onBeforeUpdate: props.onBeforeUpdate,
           onSuccess: async (item: TBaseModel): Promise<void> => {
             setShowModal(false);
             setCurrentPageNumber(1);

@@ -353,19 +353,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     const previous: Array<OverrideUserPair> = [];
 
     try {
-      const rows: Array<OnCallDutyPolicyUserOverride> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const rows: Array<OnCallDutyPolicyUserOverride> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           projectId: true,
           overrideUserId: true,
           routeAlertsToUserId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-      });
+        });
 
       for (const row of rows) {
         const projectId: ObjectID | undefined | null =
