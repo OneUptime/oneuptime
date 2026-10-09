@@ -65,6 +65,7 @@ import SlackIncidentActions from "../../../../../Server/Utils/Workspace/Slack/Ac
 import SlackIncidentEpisodeActions from "../../../../../Server/Utils/Workspace/Slack/Actions/IncidentEpisode";
 import SlackScheduledMaintenanceActions from "../../../../../Server/Utils/Workspace/Slack/Actions/ScheduledMaintenance";
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
+import URL from "../../../../../Types/API/URL";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Dictionary from "../../../../../Types/Dictionary";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -1181,4 +1182,63 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       });
     });
   }
+});
+
+/*
+ * Mark as Ongoing on an event that has started already is answered with
+ * what the event is: ongoing, or over. Nothing is written either way.
+ */
+describe("Slack Mark as Ongoing on an event that has started already", (): void => {
+  test.each([
+    ["ongoing", false, "is already in ongoing state."],
+    ["over", true, "is already complete."],
+  ])(
+    "an event that is %s is refused with what it is, and nothing is written",
+    async (
+      _label: string,
+      isCompleted: boolean,
+      ending: string,
+    ): Promise<void> => {
+      mockMember([Permission.ScheduledMaintenanceMember]);
+      const states: ProjectStates = maintenanceStates();
+      stubRecord({
+        service: ScheduledMaintenanceService,
+        makeRecord: (): unknown => {
+          return new ScheduledMaintenance();
+        },
+        stateColumn: "currentScheduledMaintenanceStateId",
+        currentStateId: states.acknowledged,
+      });
+      jest
+        .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
+        .mockResolvedValue(true);
+      jest
+        .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+        .mockResolvedValue(isCompleted);
+      jest
+        .spyOn(ScheduledMaintenanceService, "getScheduledMaintenanceNumber")
+        .mockResolvedValue({ number: 7, numberWithPrefix: "SM-7" });
+      jest
+        .spyOn(
+          ScheduledMaintenanceService,
+          "getScheduledMaintenanceLinkInDashboard",
+        )
+        .mockResolvedValue(URL.fromString("https://oneuptime.test/sm/7"));
+      const createSpy: AnySpy = stubCreate(
+        ScheduledMaintenanceStateTimelineService,
+      );
+
+      await SlackScheduledMaintenanceActions.handleScheduledMaintenanceAction(
+        handlerArgs(
+          SlackActionType.MarkScheduledMaintenanceAsOngoing,
+          ObjectID.generate().toString(),
+        ),
+      );
+
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(directMessageTexts()).toEqual([
+        `@member, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance SM-7](https://oneuptime.test/sm/7)** ${ending}`,
+      ]);
+    },
+  );
 });

@@ -1370,6 +1370,50 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
 
   test.each([
     {
+      label: "ongoing",
+      isCompleted: false,
+      answer: "Scheduled maintenance event is already ongoing.",
+    },
+    {
+      label: "over",
+      isCompleted: true,
+      answer: "Scheduled maintenance event is already complete.",
+    },
+  ])(
+    "Mark as Ongoing on an event that is $label is refused with what it is",
+    async ({
+      isCompleted,
+      answer,
+    }: {
+      isCompleted: boolean;
+      answer: string;
+    }): Promise<void> => {
+      stubMaintenance(true);
+      jest
+        .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
+        .mockResolvedValue(true);
+      jest
+        .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+        .mockResolvedValue(isCompleted);
+      const createSpy: AnySpy = stubCreate(
+        ScheduledMaintenanceStateTimelineService,
+      );
+
+      const turn: FakeTurn = await press({
+        actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
+        payload: { scheduledMaintenanceId: ObjectID.generate().toString() },
+        props: memberProps([Permission.ScheduledMaintenanceMember]),
+      });
+
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(repliesText(turn)).toEqual([
+        `Sorry, that action failed: ${answer}`,
+      ]);
+    },
+  );
+
+  test.each([
+    {
       noteType: "public",
       service: ScheduledMaintenancePublicNoteService,
       modelType: ScheduledMaintenancePublicNote,

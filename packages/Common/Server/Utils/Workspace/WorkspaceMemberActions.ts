@@ -150,9 +150,12 @@ export default class WorkspaceMemberActions {
 
   /*
    * Moves the record into `stateId`, as the member: the state timeline row
-   * the dashboard's state panel creates for the same change. The timeline
-   * service refuses a state of another project, the state the record is in
-   * already, and a move up the project's list of states.
+   * the dashboard's state panel creates for the same change, so it is
+   * refused where the dashboard's would be. Every timeline service refuses a
+   * state of another project and the state the record is in already; those
+   * of incidents, alerts and scheduled maintenance events also refuse a move
+   * up the project's list of states, while an episode's takes any other
+   * state, from chat as from the dashboard.
    */
   @CaptureSpan()
   public static async changeState(data: {
@@ -322,7 +325,8 @@ export default class WorkspaceMemberActions {
   /*
    * Mark as Ongoing, as the member: a move into the project's ongoing state
    * (ScheduledMaintenanceStartUtil), refused for an event that has started
-   * already - in its ongoing state or any state after it.
+   * already - in its ongoing state or any state after it - with what it is:
+   * complete, or ongoing.
    */
   @CaptureSpan()
   public static async markScheduledMaintenanceAsOngoing(data: {
@@ -344,8 +348,13 @@ export default class WorkspaceMemberActions {
         scheduledMaintenanceId: data.scheduledMaintenanceId,
       })
     ) {
+      // Started already: say whether it is over, too.
       throw new BadDataException(
-        "Scheduled maintenance event is already ongoing.",
+        (await ScheduledMaintenanceService.isScheduledMaintenanceCompleted({
+          scheduledMaintenanceId: data.scheduledMaintenanceId,
+        }))
+          ? "Scheduled maintenance event is already complete."
+          : "Scheduled maintenance event is already ongoing.",
       );
     }
 

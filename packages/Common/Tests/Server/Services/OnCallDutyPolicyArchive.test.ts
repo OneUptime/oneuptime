@@ -20,13 +20,14 @@ import type { SpyInstance } from "jest-mock";
 /*
  * An archived on-call policy pages no one.
  *
- * Everything that pages through a policy - an incident or alert opening, an
- * episode, Slack, Microsoft Teams, the AI assistant - calls executePolicy, so
- * that is where an archived policy is stopped. It does not stop silently: the
- * execution log is still written, as an error that says the policy is
- * archived, so "why was nobody paged?" has an answer on the incident. It is
- * written without the create hooks - those are what start escalating and post
- * "started executing" to the incident's feed.
+ * Every execution of a policy is the creation of its execution log - by
+ * executePolicy, when an incident, alert or episode opens or the AI
+ * assistant asks, or by a record's Execute On-Call Policy in the dashboard,
+ * the API, Slack or Microsoft Teams - so the log service's create is where
+ * an archived policy is stopped. It does not stop silently: the log is still
+ * written, as an error that says the policy is archived, so "why was nobody
+ * paged?" has an answer on the incident; and nothing follows it - no
+ * escalation, no "started executing" in the incident's feed.
  */
 
 const POLICY_ID: ObjectID = new ObjectID(
@@ -83,8 +84,29 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// The log service's own create hooks, which hold the archived rule.
+type BeforeCreateResult = {
+  createBy: { data: OnCallDutyPolicyExecutionLog };
+  carryForward: unknown;
+};
+
+type Hooks = {
+  onBeforeCreate: (createBy: unknown) => Promise<BeforeCreateResult>;
+  onCreateSuccess: (
+    onCreate: unknown,
+    createdItem: OnCallDutyPolicyExecutionLog,
+  ) => Promise<OnCallDutyPolicyExecutionLog>;
+};
+
+const hooks: Hooks = OnCallDutyPolicyExecutionLogService as unknown as Hooks;
+
 describe("executePolicy and an archived on-call policy", () => {
-  test("records a skipped execution instead of paging: an error that says the policy is archived", async () => {
+  beforeEach(() => {
+    // The records the log names belong to the project (checked elsewhere).
+    jest.spyOn(ProjectReferenceCheck, "validateCreate").mockResolvedValue();
+  });
+
+  test("writes the execution log through the log service's create, hooks and all", async () => {
     const { create } = stub(policy(true));
 
     await executeForIncident();
@@ -93,10 +115,9 @@ describe("executePolicy and an archived on-call policy", () => {
 
     const args: CreateArgs = create.mock.calls[0]![0] as unknown as CreateArgs;
 
-    expect(args.data.status).toBe(OnCallDutyPolicyStatus.Error);
-    expect(args.data.statusMessage).toBe(
-      ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
-    );
+    // The hooks hold the archived rule, so they run.
+    expect(args.props.isRoot).toBe(true);
+    expect(args.props.ignoreHooks).toBeUndefined();
     expect(args.data.onCallDutyPolicyId?.toString()).toBe(POLICY_ID.toString());
     expect(args.data.triggeredByIncidentId?.toString()).toBe(
       INCIDENT_ID.toString(),
@@ -106,17 +127,25 @@ describe("executePolicy and an archived on-call policy", () => {
     );
   });
 
-  test("writes that log without the hooks that would start escalating", async () => {
+  test("an archived policy's log is recorded as not executed, with the reason, and starts nothing", async () => {
     const { create } = stub(policy(true));
 
     await executeForIncident();
 
     const args: CreateArgs = create.mock.calls[0]![0] as unknown as CreateArgs;
 
-    expect(args.props.isRoot).toBe(true);
-    expect(args.props.ignoreHooks).toBe(true);
-    // What onBeforeCreate would have seeded, set by hand since it is skipped.
-    expect(args.data.onCallPolicyExecutionRepeatCount).toBe(1);
+    // What the log service's create makes of what executePolicy asked for.
+    const onCreate: BeforeCreateResult = await hooks.onBeforeCreate({
+      data: args.data,
+      props: args.props,
+    });
+
+    expect(onCreate.createBy.data.status).toBe(OnCallDutyPolicyStatus.Error);
+    expect(onCreate.createBy.data.statusMessage).toBe(
+      ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+    );
+    expect(onCreate.createBy.data.onCallPolicyExecutionRepeatCount).toBe(1);
+    expect(onCreate.carryForward).toEqual({ isPolicyArchived: true });
   });
 
   test("a live policy is executed as before: scheduled, with its hooks", async () => {
@@ -129,6 +158,16 @@ describe("executePolicy and an archived on-call policy", () => {
     expect(args.data.status).toBe(OnCallDutyPolicyStatus.Scheduled);
     expect(args.data.statusMessage).toBe("Scheduled.");
     expect(args.props.ignoreHooks).toBeUndefined();
+
+    const onCreate: BeforeCreateResult = await hooks.onBeforeCreate({
+      data: args.data,
+      props: args.props,
+    });
+
+    expect(onCreate.createBy.data.status).toBe(
+      OnCallDutyPolicyStatus.Scheduled,
+    );
+    expect(onCreate.carryForward).toEqual({ isPolicyArchived: false });
   });
 
   test("a policy read without the flag counts as live (the column's default)", async () => {
@@ -136,23 +175,25 @@ describe("executePolicy and an archived on-call policy", () => {
 
     await executeForIncident();
 
-    expect(
-      (create.mock.calls[0]![0] as unknown as CreateArgs).data.status,
-    ).toBe(OnCallDutyPolicyStatus.Scheduled);
+    const args: CreateArgs = create.mock.calls[0]![0] as unknown as CreateArgs;
+
+    const onCreate: BeforeCreateResult = await hooks.onBeforeCreate({
+      data: args.data,
+      props: args.props,
+    });
+
+    expect(onCreate.createBy.data.status).toBe(
+      OnCallDutyPolicyStatus.Scheduled,
+    );
   });
 
-  test("reads the archive flag when it looks the policy up", async () => {
-    const { findOneById } = stub(policy(false));
+  test("an unknown policy is refused, and no log is written", async () => {
+    const { create } = stub(null);
 
-    await executeForIncident();
-
-    expect(
-      (
-        findOneById.mock.calls[0]![0] as unknown as {
-          select: Record<string, unknown>;
-        }
-      ).select["isArchived"],
-    ).toBe(true);
+    await expect(executeForIncident()).rejects.toThrow(
+      `On-Call Duty Policy with id ${POLICY_ID.toString()} not found`,
+    );
+    expect(create).not.toHaveBeenCalled();
   });
 
   test("the message says nobody was paged and how to bring the policy back", () => {
@@ -172,21 +213,6 @@ describe("executePolicy and an archived on-call policy", () => {
  * as the same error, and start nothing after it.
  */
 describe("an execution log created for an archived on-call policy", () => {
-  type BeforeCreateResult = {
-    createBy: { data: OnCallDutyPolicyExecutionLog };
-    carryForward: unknown;
-  };
-
-  type Hooks = {
-    onBeforeCreate: (createBy: unknown) => Promise<BeforeCreateResult>;
-    onCreateSuccess: (
-      onCreate: unknown,
-      createdItem: OnCallDutyPolicyExecutionLog,
-    ) => Promise<OnCallDutyPolicyExecutionLog>;
-  };
-
-  const hooks: Hooks = OnCallDutyPolicyExecutionLogService as unknown as Hooks;
-
   function requested(): OnCallDutyPolicyExecutionLog {
     const log: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();

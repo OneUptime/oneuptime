@@ -812,6 +812,9 @@ describe("WorkspaceMemberActions.markScheduledMaintenanceAsOngoing", (): void =>
     jest
       .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
       .mockResolvedValue(true);
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+      .mockResolvedValue(false);
     const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
 
     await expect(
@@ -823,6 +826,32 @@ describe("WorkspaceMemberActions.markScheduledMaintenanceAsOngoing", (): void =>
       new BadDataException("Scheduled maintenance event is already ongoing."),
     );
 
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("an event that is over already is refused as complete, not as ongoing", async (): Promise<void> => {
+    const recordId: ObjectID = ObjectID.generate();
+    RECORD_KINDS[4]!.stubRead(ObjectID.generate());
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
+      .mockResolvedValue(true);
+    const completedSpy: AnySpy = jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+      .mockResolvedValue(true) as AnySpy;
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+
+    await expect(
+      WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
+        scheduledMaintenanceId: recordId,
+        props: memberProps,
+      }),
+    ).rejects.toThrow(
+      new BadDataException("Scheduled maintenance event is already complete."),
+    );
+
+    expect(completedSpy).toHaveBeenCalledWith({
+      scheduledMaintenanceId: recordId,
+    });
     expect(createSpy).not.toHaveBeenCalled();
   });
 

@@ -5,7 +5,9 @@ import URL from "../../../../Types/API/URL";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../Types/JSON";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
@@ -63,6 +65,8 @@ export enum MicrosoftTeamsReactionOutcome {
   AlreadyHandled = "AlreadyHandled",
   NotLinked = "NotLinked",
   NotAuthorized = "NotAuthorized",
+  // The note's own create refused it: a permission, the plan, or a value.
+  Refused = "Refused",
   NoText = "NoText",
   NotSupported = "NotSupported",
 }
@@ -654,14 +658,42 @@ export default class MicrosoftTeamsReactionNoteSync {
       return MicrosoftTeamsReactionOutcome.NoText;
     }
 
-    const saveResult: WorkspaceNoteSaveResult =
-      await WorkspaceReactionNote.saveNote({
+    let saveResult: WorkspaceNoteSaveResult;
+
+    try {
+      saveResult = await WorkspaceReactionNote.saveNote({
         resource: resource,
         noteType: reaction.noteType,
         props: props,
         note: text,
         sourceMessageKey: sourceMessageKey,
       });
+    } catch (err) {
+      /*
+       * Saved with the member's props, so the note's own create can still
+       * refuse it after the check above - a label, a column, the plan. A
+       * refusal is an answer, as the check's is: the claim is kept, so it is
+       * not tried again every minute, and the member is told why. Anything
+       * else is left for the next run to retry.
+       */
+      const refusal: string | null = this.getRefusalMessage(err);
+
+      if (refusal === null) {
+        throw err;
+      }
+
+      if (isFresh) {
+        await this.replyInThread({
+          channel: channel,
+          threadId: reaction.threadId,
+          text: reaction.reactingUserName
+            ? mdText`${reaction.reactingUserName}, could not save the message as a note: ${refusal}`.toString()
+            : mdText`Could not save the message as a note: ${refusal}`.toString(),
+        });
+      }
+
+      return MicrosoftTeamsReactionOutcome.Refused;
+    }
 
     if (saveResult === WorkspaceNoteSaveResult.Duplicate) {
       return MicrosoftTeamsReactionOutcome.AlreadySaved;
@@ -696,6 +728,24 @@ export default class MicrosoftTeamsReactionNoteSync {
     }
 
     return MicrosoftTeamsReactionOutcome.Saved;
+  }
+
+  /*
+   * The message of a refusal written for the person who asked - a
+   * permission, a plan the project is not on, a value the create would not
+   * take - or null for anything else, whose text is meant for operators.
+   */
+  private static getRefusalMessage(error: unknown): string | null {
+    if (
+      (error instanceof NotAuthorizedException ||
+        error instanceof BadDataException ||
+        error instanceof PaymentRequiredException) &&
+      error.message
+    ) {
+      return error.message;
+    }
+
+    return null;
   }
 
   private static async replyInThread(data: {

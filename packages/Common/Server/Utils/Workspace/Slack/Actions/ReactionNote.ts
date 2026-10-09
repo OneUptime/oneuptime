@@ -21,7 +21,9 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../../WorkspaceReactionNote";
 import SlackUtil from "../Slack";
-import SlackActionAuthorization from "./Authorization";
+import SlackActionAuthorization, {
+  SlackActionRequester,
+} from "./Authorization";
 
 export interface SlackReactionData {
   // Slack workspace (team) id.
@@ -213,14 +215,16 @@ export default class SlackReactionNoteActions {
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
 
+    const requester: SlackActionRequester = {
+      userId: oneUptimeUserId,
+      projectId: projectId,
+      projectAuthToken: authToken,
+      slackUserId: userId,
+    };
+
     const props: DatabaseCommonInteractionProps | null =
       await SlackActionAuthorization.authorize({
-        requester: {
-          userId: oneUptimeUserId,
-          projectId: projectId,
-          projectAuthToken: authToken,
-          slackUserId: userId,
-        },
+        requester: requester,
         modelType: WorkspaceReactionNote.getNoteModelType(
           resource.resourceType,
           noteType,
@@ -268,18 +272,30 @@ export default class SlackReactionNoteActions {
       return;
     }
 
-    let saveResult: WorkspaceNoteSaveResult;
+    const noteText: string = message.text;
+    let saveResult: WorkspaceNoteSaveResult | null;
 
     try {
-      saveResult = await WorkspaceReactionNote.saveNote({
-        resource: resource,
-        noteType: noteType,
-        props: props,
-        note: message.text,
-        sourceMessageKey: WorkspaceReactionNote.getSourceMessageKey({
-          channelId: channelId,
-          messageId: messageTs,
-        }),
+      /*
+       * Saved with the member's props, so the note's own create can still
+       * refuse it after the check above - a label, a column, the plan. Such
+       * a refusal is told to them, as a button's is.
+       */
+      saveResult = await SlackActionAuthorization.runForRequester({
+        requester: requester,
+        action: "save the message as a note",
+        run: async (): Promise<WorkspaceNoteSaveResult> => {
+          return await WorkspaceReactionNote.saveNote({
+            resource: resource,
+            noteType: noteType,
+            props: props,
+            note: noteText,
+            sourceMessageKey: WorkspaceReactionNote.getSourceMessageKey({
+              channelId: channelId,
+              messageId: messageTs,
+            }),
+          });
+        },
       });
     } catch (err) {
       logger.error("Error saving Slack message as a note:", {
@@ -287,6 +303,11 @@ export default class SlackReactionNoteActions {
         channelId: channelId,
       });
       logger.error(err);
+      return;
+    }
+
+    // Refused, and the member has been told why.
+    if (saveResult === null) {
       return;
     }
 

@@ -44,7 +44,10 @@ import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels
 import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SlackActionAuthorization from "./Authorization";
-import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import {
+  MarkdownText,
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackScheduledMaintenanceActions {
   // Changing an event's state, as a refusal names it.
@@ -643,10 +646,20 @@ export default class SlackScheduledMaintenanceActions {
           scheduledMaintenanceId: scheduledMaintenanceId,
         });
 
-        // send a message to the channel visible to user, that the scheduledMaintenance has already been acknowledged.
+        // Started already: ongoing, or over.
+        const isCompleted: boolean =
+          await ScheduledMaintenanceService.isScheduledMaintenanceCompleted({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+          });
+
+        const eventLink: MarkdownText = mdText`**[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**`;
+
+        // send a message to the channel visible to user, that the scheduledMaintenance has already started.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`.toString(),
+          text: isCompleted
+            ? mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the ${eventLink} is already complete.`.toString()
+            : mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the ${eventLink} is already in ongoing state.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({

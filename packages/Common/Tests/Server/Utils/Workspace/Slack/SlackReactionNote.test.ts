@@ -37,6 +37,9 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../../../../../Server/Utils/Workspace/WorkspaceReactionNote";
 import URL from "../../../../../Types/API/URL";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
@@ -366,6 +369,9 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
   });
 
   test("a failed save sends no confirmation", async () => {
+    const directMessageSpy: AnySpy = jest
+      .spyOn(SlackUtil, "sendDirectMessageToUser")
+      .mockResolvedValue(undefined as never) as AnySpy;
     saveSpy.mockRejectedValue(new Error("database is down"));
 
     await expect(
@@ -373,7 +379,60 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     ).resolves.toBeUndefined();
 
     expect(threadReplySpy).not.toHaveBeenCalled();
+    // Not a refusal: its text is for operators, not the member.
+    expect(directMessageSpy).not.toHaveBeenCalled();
   });
+
+  /*
+   * The note is saved with the member's props, so its own create can still
+   * refuse it after the check above let them through: a label, a column,
+   * the plan. The member is told why, as for a button.
+   */
+  test.each([
+    [
+      "a permission",
+      new NotAuthorizedException(
+        "You do not have permission to create Incident Internal Note.",
+      ),
+    ],
+    [
+      "a value",
+      new BadDataException(
+        'This incident internal note references records that are not in this project: Incident "42".',
+      ),
+    ],
+    [
+      "the plan",
+      new PaymentRequiredException(
+        "Please upgrade your plan to Growth to access this feature",
+      ),
+    ],
+  ])(
+    "a save its own create refuses (%s) is told to the member, and nothing is confirmed",
+    async (_what: string, refusal: Error) => {
+      const directMessageSpy: AnySpy = jest
+        .spyOn(SlackUtil, "sendDirectMessageToUser")
+        .mockResolvedValue(undefined as never) as AnySpy;
+      saveSpy.mockRejectedValue(refusal);
+
+      await expect(
+        SlackReactionNoteActions.handleEmojiReaction(reaction()),
+      ).resolves.toBeUndefined();
+
+      expect(directMessageSpy).toHaveBeenCalledTimes(1);
+      expect(directMessageSpy).toHaveBeenCalledWith({
+        authToken: "xoxb-" + projectId.toString(),
+        workspaceUserId: SLACK_USER_ID,
+        messageBlocks: [
+          {
+            _type: "WorkspacePayloadMarkdown",
+            text: `Could not save the message as a note: ${refusal.message}`,
+          },
+        ],
+      });
+      expect(threadReplySpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("a failed confirmation does not undo or fail the save", async () => {
     threadReplySpy.mockRejectedValue(new Error("not_in_channel"));
