@@ -1925,6 +1925,40 @@ describe("submitPublicForm - a template asks the questions its own way", () => {
     );
   });
 
+  test("a template that hides every question creates the incident in one click, from its own answers", async () => {
+    storedForm = buildIncidentForm({
+      fields: FIELDS_WITH_HIDDEN_NOTES as unknown as JSONArray,
+      templates: [
+        {
+          id: "restored",
+          name: "Service Restored",
+          answers: { title: "Service restored", region: "EU" },
+          fieldSettings: Object.fromEntries(
+            FIELDS_WITH_HIDDEN_NOTES.map(
+              (field: FormField): [string, string] => {
+                return [field.id, "Hidden"];
+              },
+            ),
+          ),
+        },
+      ] as unknown as JSONArray,
+    });
+
+    const result: PublicFormSubmissionResult = await submitFrom(
+      { title: "Typed anyway", name: "Mallory" },
+      "restored",
+    );
+
+    expect(result.reference).toBe("INC-42");
+    expect(createdIncident().title).toBe("Service restored");
+    expect(createdIncident().customFields).toEqual({ Region: "EU" });
+    // Nothing the request sent was read: every question was the template's.
+    expect(JSON.stringify(recordedSubmission().answers)).not.toContain(
+      "Typed anyway",
+    );
+    expect(recordedSubmission().submitterName).toBeUndefined();
+  });
+
   test("a maintenance event's start stays asked and required, even when a stored template says otherwise", async () => {
     const starts: FormField = MAINTENANCE_FIELDS[2]!;
 

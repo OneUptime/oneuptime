@@ -1379,6 +1379,52 @@ describe("templates that ask the questions their own way", () => {
     ]);
   });
 
+  test("a template that hides every question is one click: Submit, naming the template", async () => {
+    const ONE_CLICK: PublicForm = {
+      ...WITH_SETTINGS,
+      templates: [
+        {
+          id: "restored",
+          name: "Service Restored",
+          answers: {},
+          fieldSettings: Object.fromEntries(
+            WITH_SETTINGS.fields.map(
+              (field: { id: string }): [string, FormTemplateFieldSetting] => {
+                return [field.id, FormTemplateFieldSetting.Hidden];
+              },
+            ),
+          ),
+        },
+      ],
+    };
+
+    window.history.replaceState(
+      {},
+      "",
+      `/accounts/form/${SHARE_KEY}?template=restored`,
+    );
+    serveForm({ status: 200, data: ONE_CLICK as unknown as JSONObject });
+    serveSubmit({ status: 200, data: { reference: "INC-4" } });
+
+    await renderPage();
+
+    expect(screen.getByTestId("form-template-picker")).toHaveTextContent(
+      "Service Restored",
+    );
+    for (const field of WITH_SETTINGS.fields) {
+      expect(
+        screen.queryByTestId(`form-field-${field.id}`),
+      ).not.toBeInTheDocument();
+    }
+
+    await submit();
+
+    expect(submittedBodies()).toEqual([
+      { data: { answers: {}, templateId: "restored" } },
+    ]);
+    expect(screen.getByTestId("form-reference")).toHaveTextContent("INC-4");
+  });
+
   test("a template's link opens the form asked its way", async () => {
     window.history.replaceState(
       {},

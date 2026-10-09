@@ -558,6 +558,79 @@ describe("getPublicFormForTemplate - the form as one template asks it", () => {
     expect(getPublicFormForTemplate({ form: once, template })).toEqual(once);
   });
 
+  test("a question added to the form later is asked as the form asks it, in every template", () => {
+    const added: Array<FormField> = [
+      ...FIELDS,
+      {
+        id: "added-required",
+        source: FormFieldSource.Question,
+        type: CustomFieldType.Text,
+        label: "Ticket Number",
+        isRequired: true,
+      },
+      {
+        id: "added-hidden",
+        source: FormFieldSource.Question,
+        type: CustomFieldType.Text,
+        label: "Routing",
+        isRequired: false,
+        isHidden: true,
+      },
+    ];
+
+    const later: PublicForm = build({ fields: added }).form;
+
+    for (const templateId of ["outage", "maintenance", "restored"]) {
+      const asked: Array<PublicFormField> = getPublicFormForTemplate({
+        form: later,
+        template: templateOf(later, templateId),
+      }).fields;
+
+      expect({ templateId, required: requiredOf(asked)["added-required"] }).toEqual(
+        { templateId, required: true },
+      );
+      expect({
+        templateId,
+        asksHidden: idsOf(asked).includes("added-hidden"),
+      }).toEqual({ templateId, asksHidden: false });
+    }
+
+    // Never told to the page: no template asks it.
+    expect(idsOf(later.fields)).not.toContain("added-hidden");
+  });
+
+  test("a template that hides every question it can leaves a form of one button: Submit", () => {
+    const form: PublicForm = build({
+      fields: FIELDS.filter((field: FormField): boolean => {
+        return field.id !== "window" && field.id !== "notes";
+      }),
+      templates: [
+        {
+          id: "restored",
+          name: "Service Restored",
+          answers: { title: "Service restored" },
+          fieldSettings: {
+            title: "Hidden",
+            app: "Hidden",
+            facilities: "Hidden",
+            severity: "Hidden",
+            ticket: "Hidden",
+            email: "Hidden",
+          },
+        },
+      ],
+    }).form;
+
+    expect(
+      getPublicFormForTemplate({
+        form,
+        template: templateOf(form, "restored"),
+      }).fields,
+    ).toEqual([]);
+    // Its own answers are the server's to use: none is told to the page.
+    expect(templateOf(form, "restored").answers).toEqual({});
+  });
+
   test("a form with no questions asks none", () => {
     expect(
       getPublicFormForTemplate({
