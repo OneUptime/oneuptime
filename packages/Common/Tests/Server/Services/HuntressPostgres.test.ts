@@ -6,6 +6,7 @@ import HuntressConnectionService from "../../../Server/Services/HuntressConnecti
 import HuntressIncidentReportService from "../../../Server/Services/HuntressIncidentReportService";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
 import HuntressIncidentReportOutcome from "../../../Types/Huntress/HuntressIncidentReportOutcome";
+import QueryDeepPartialEntity from "../../../Types/Database/PartialEntity";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -393,12 +394,15 @@ describePostgres("Huntress against a migrated Postgres", () => {
         reportId: "4321",
       });
 
+      // Cast as the processor's own row update is: the JSON column's type is deep.
+      const update: QueryDeepPartialEntity<HuntressIncidentReport> = {
+        appliedMessageIds: ["msg_1", "msg_2"],
+        outcome: HuntressIncidentReportOutcome.IncidentOpened,
+      } as unknown as QueryDeepPartialEntity<HuntressIncidentReport>;
+
       await HuntressIncidentReportService.updateOneById({
         id: created.id!,
-        data: {
-          appliedMessageIds: ["msg_1", "msg_2"] as unknown as JSONArray,
-          outcome: HuntressIncidentReportOutcome.IncidentOpened,
-        },
+        data: update,
         props: { isRoot: true },
       });
 
