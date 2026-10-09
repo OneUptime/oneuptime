@@ -49,6 +49,8 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
   "/incident-episode/generate-postmortem-from-ai/",
   "/incident/subscriber-audience",
   "/status-page/listing-monitors",
+  // How many records hold each value of a custom field (#4564).
+  "/option-usage",
 ];
 
 /*
@@ -102,6 +104,14 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "StatusPage", "useStatusPagesListingMonitors.ts"],
     routePrefix: "/status-page/listing-monitors",
+  },
+  /*
+   * The option editor of every custom field settings page asks how many
+   * records hold each value through this one helper.
+   */
+  {
+    page: ["Components", "CustomFields", "CustomFieldOptionUsage.ts"],
+    routePrefix: "/option-usage",
   },
 ];
 

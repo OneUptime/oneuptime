@@ -301,13 +301,13 @@ describe("renaming", () => {
     );
   });
 
-  test("without the records' name, they are records", () => {
+  test("without the records' name, they are items", () => {
     renderEditor({ recordName: undefined });
 
     fireEvent.change(optionInput(0), { target: { value: "Facility Alpha" } });
 
     expect(screen.getByTestId("dropdown-option-renamed-0")).toHaveTextContent(
-      'Renamed from "Facility A": 12 records will show the new name.',
+      'Renamed from "Facility A": 12 items will show the new name.',
     );
   });
 

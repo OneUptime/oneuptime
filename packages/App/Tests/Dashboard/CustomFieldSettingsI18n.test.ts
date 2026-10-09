@@ -207,10 +207,23 @@ describe("the settings pages render the shared strings", () => {
       "CustomFields",
       "CreateMappedCustomFieldModal.tsx",
     );
+    /*
+     * The Dropdown Options field is built once for every settings page,
+     * the team members' included (#4564).
+     */
+    const optionsField: string = readSource(
+      "Components",
+      "CustomFields",
+      "CustomFieldOptionsField.tsx",
+    );
+
+    expect(optionsField).toContain(
+      "CustomFieldFormCopy.dropdownOptionsDescription",
+    );
+    expect(base).toContain("optionsField.formField");
 
     for (const key of [
       "fieldTypeDescription",
-      "dropdownOptionsDescription",
       "mapValueFromTitle",
       "mapValueFromDescription",
       "mapValueByHand",
@@ -236,8 +249,8 @@ describe("the settings pages render the shared strings", () => {
       expect(dialog).toContain(`copy.${key}`);
     }
 
-    // No English left behind in either.
-    for (const source of [base, dialog]) {
+    // No English left behind in any of them.
+    for (const source of [base, dialog, optionsField]) {
       for (const text of Object.values(CustomFieldFormCopy)) {
         expect(source).not.toContain(`"${text}"`);
       }

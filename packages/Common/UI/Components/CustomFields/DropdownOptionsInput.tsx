@@ -357,8 +357,8 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
 
   // What the field's records are called, in a sentence: "incident(s)".
   const recordName: CustomFieldRecordName = props.recordName || {
-    singular: "Record",
-    plural: "Records",
+    singular: "Item",
+    plural: "Items",
   };
 
   const recordTerms: { item: TranslatableTerm; items: TranslatableTerm } = {
