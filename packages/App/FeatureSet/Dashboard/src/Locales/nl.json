@@ -27335,5 +27335,10 @@
   "whsec_…": "whsec_…",
   "{{labels}}, and the report's organization": "{{labels}} en de organisatie van de melding",
   "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "De specifieke model- of implementatienaam die u wilt gebruiken (bijv. gpt-5.1 voor OpenAI, claude-sonnet-5-5 voor Anthropic, uw implementatienaam voor Azure OpenAI, llama-3.3-70b-versatile voor Groq, mistral-large-latest voor Mistral). Verplicht voor OpenAI-compatibele providers — de naam moet overeenkomen met een model dat uw server aanbiedt.",
-  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile"
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images": "{{count}} ingesloten afbeeldingen weggelaten ({{size}}): AI leest tekst, geen afbeeldingen",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "{{count}} ingesloten afbeelding weggelaten ({{size}}): AI leest tekst, geen afbeeldingen",
+  "Left out {{size}} of encoded data: AI reads text only": "{{size}} aan gecodeerde gegevens weggelaten: AI leest alleen tekst",
+  "Shortened {{count}} long texts: {{characters}} characters left out": "{{count}} lange teksten ingekort: {{characters}} tekens weggelaten",
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} lange tekst ingekort: {{characters}} tekens weggelaten"
 }

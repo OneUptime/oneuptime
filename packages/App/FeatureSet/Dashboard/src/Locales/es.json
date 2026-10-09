@@ -27335,5 +27335,10 @@
   "whsec_…": "whsec_…",
   "{{labels}}, and the report's organization": "{{labels}} y la organización del informe",
   "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "El nombre concreto del modelo o del despliegue que usar (p. ej., gpt-5.1 para OpenAI, claude-sonnet-5-5 para Anthropic, el nombre de tu despliegue para Azure OpenAI, llama-3.3-70b-versatile para Groq, mistral-large-latest para Mistral). Obligatorio para los proveedores compatibles con OpenAI: debe coincidir con un modelo que exponga tu servidor.",
-  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile"
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images": "Se omitieron {{count}} imágenes incrustadas ({{size}}): la IA lee texto, no imágenes",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "Se omitió {{count}} imagen incrustada ({{size}}): la IA lee texto, no imágenes",
+  "Left out {{size}} of encoded data: AI reads text only": "Se omitieron {{size}} de datos codificados: la IA solo lee texto",
+  "Shortened {{count}} long texts: {{characters}} characters left out": "Se acortaron {{count}} textos largos: se omitieron {{characters}} caracteres",
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "Se acortó {{count}} texto largo: se omitieron {{characters}} caracteres"
 }

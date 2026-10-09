@@ -27335,5 +27335,10 @@
   "whsec_…": "whsec_…",
   "{{labels}}, and the report's organization": "{{labels}} og rapportens organisation",
   "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "Det specifikke model- eller udrulningsnavn, der skal bruges (f.eks. gpt-5.1 til OpenAI, claude-sonnet-5-5 til Anthropic, dit udrulningsnavn til Azure OpenAI, llama-3.3-70b-versatile til Groq, mistral-large-latest til Mistral). Påkrævet for OpenAI-kompatible udbydere — det skal svare til en model, som din server stiller til rådighed.",
-  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile"
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images": "Udelod {{count}} indlejrede billeder ({{size}}): AI læser tekst, ikke billeder",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "Udelod {{count}} indlejret billede ({{size}}): AI læser tekst, ikke billeder",
+  "Left out {{size}} of encoded data: AI reads text only": "Udelod {{size}} kodede data: AI læser kun tekst",
+  "Shortened {{count}} long texts: {{characters}} characters left out": "Forkortede {{count}} lange tekster: {{characters}} tegn udeladt",
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "Forkortede {{count}} lang tekst: {{characters}} tegn udeladt"
 }

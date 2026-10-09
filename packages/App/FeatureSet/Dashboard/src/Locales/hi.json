@@ -27335,5 +27335,10 @@
   "whsec_…": "whsec_…",
   "{{labels}}, and the report's organization": "{{labels}}, और रिपोर्ट का संगठन",
   "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "उपयोग करने के लिए विशिष्ट मॉडल या परिनियोजन नाम (जैसे, OpenAI के लिए gpt-5.1, Anthropic के लिए claude-sonnet-5-5, Azure OpenAI के लिए आपके परिनियोजन का नाम, Groq के लिए llama-3.3-70b-versatile, Mistral के लिए mistral-large-latest)। OpenAI-संगत प्रदाताओं के लिए आवश्यक — यह आपके सर्वर द्वारा उपलब्ध कराए गए किसी मॉडल से मेल खाना चाहिए।",
-  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile"
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images": "{{count}} एम्बेडेड छवियाँ छोड़ी गईं ({{size}}): AI टेक्स्ट पढ़ता है, छवियाँ नहीं",
+  "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "{{count}} एम्बेडेड छवि छोड़ी गई ({{size}}): AI टेक्स्ट पढ़ता है, छवियाँ नहीं",
+  "Left out {{size}} of encoded data: AI reads text only": "{{size}} एन्कोडेड डेटा छोड़ा गया: AI केवल टेक्स्ट पढ़ता है",
+  "Shortened {{count}} long texts: {{characters}} characters left out": "{{count}} लंबे टेक्स्ट छोटे किए गए: {{characters}} वर्ण छोड़े गए",
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} लंबा टेक्स्ट छोटा किया गया: {{characters}} वर्ण छोड़े गए"
 }
