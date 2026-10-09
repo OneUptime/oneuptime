@@ -632,6 +632,87 @@ describe("getPublicFormForTemplate - the form as one template asks it", () => {
     expect(templateOf(form, "restored").answers).toEqual({});
   });
 
+  test("a question the target cannot do without stays asked, and required, whatever a template given here says", () => {
+    const fields: Array<FormField> = [
+      {
+        id: "starts",
+        source: FormFieldSource.TargetField,
+        targetField: "startsAt",
+        label: "Starts At",
+        isRequired: true,
+      },
+      {
+        id: "ticket",
+        source: FormFieldSource.Question,
+        type: CustomFieldType.Text,
+        label: "Change Ticket",
+        isRequired: false,
+      },
+    ];
+
+    const built: BuiltPublicForm = build({
+      fields,
+      targetType: FormTargetType.ScheduledMaintenance,
+      templates: [],
+    });
+
+    // A template read from somewhere else, not as the page is told it.
+    const told: { fieldSettings: Record<string, FormTemplateFieldSetting> } = {
+      fieldSettings: { starts: Hidden, ticket: Required },
+    };
+
+    expect(
+      requiredOf(
+        getPublicFormForTemplate({
+          form: built.form,
+          template: told,
+          lockedFieldIds: built.lockedFieldIds,
+        }).fields,
+      ),
+    ).toEqual({ starts: true, ticket: true });
+
+    // Without the lock the setting would be read: the server always passes it.
+    expect(
+      idsOf(
+        getPublicFormForTemplate({ form: built.form, template: told }).fields,
+      ),
+    ).toEqual(["ticket"]);
+  });
+
+  test("the server's split holds the lock even when the template it finds says otherwise", () => {
+    const built: BuiltPublicForm = build({
+      fields: [
+        {
+          id: "starts",
+          source: FormFieldSource.TargetField,
+          targetField: "startsAt",
+          label: "Starts At",
+          isRequired: true,
+        },
+        {
+          id: "ends",
+          source: FormFieldSource.TargetField,
+          targetField: "endsAt",
+          label: "Ends At",
+          isRequired: true,
+        },
+      ],
+      targetType: FormTargetType.ScheduledMaintenance,
+      templates: [{ id: "night", name: "Night Work", answers: {} }],
+    });
+
+    // As if the template told to the page carried a setting for the start.
+    built.form.templates![0]!.fieldSettings = { starts: Hidden };
+
+    const questions: FormQuestionsForTemplate = getFormQuestionsForTemplate({
+      built,
+      templateId: "night",
+    });
+
+    expect(requiredOf(questions.asked)).toEqual({ starts: true, ends: true });
+    expect(questions.answeredByTemplate).toEqual([]);
+  });
+
   test("a form with no questions asks none", () => {
     expect(
       getPublicFormForTemplate({

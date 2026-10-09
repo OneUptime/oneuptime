@@ -25,13 +25,15 @@ import {
   PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
 import {
+  defineOwnValue,
   FORM_MAX_TEMPLATES,
   FORM_TEMPLATE_NAME_MAX_LENGTH,
+  FormTemplateFieldSetting,
   FormTemplateFieldSettings,
-  isFormTemplateFieldSetting,
   isFormTemplateId,
+  readFormTemplateFieldSettings,
 } from "Common/Types/Form/FormTemplate";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { packPublicFormAnswers } from "Common/UI/Components/PublicForm/PublicFormFields";
 
@@ -274,31 +276,23 @@ const readTemplates: ReadTemplatesFunction = (data: {
     if (isPlainObject(rawAnswers)) {
       for (const key of Object.keys(rawAnswers)) {
         if (fieldIds.has(key)) {
-          Object.defineProperty(answers, key, {
-            value: rawAnswers[key],
-            enumerable: true,
-            writable: true,
-            configurable: true,
-          });
+          defineOwnValue<JSONValue>(answers, key, rawAnswers[key] as JSONValue);
         }
       }
     }
 
+    // Read as the server reads them, then kept for this page's questions.
     const fieldSettings: FormTemplateFieldSettings = {};
-    const rawSettings: unknown = entry["fieldSettings"];
+    const readSettings: FormTemplateFieldSettings =
+      readFormTemplateFieldSettings(entry["fieldSettings"]);
 
-    if (isPlainObject(rawSettings)) {
-      for (const key of Object.keys(rawSettings)) {
-        const setting: unknown = rawSettings[key];
-
-        if (fieldIds.has(key) && isFormTemplateFieldSetting(setting)) {
-          Object.defineProperty(fieldSettings, key, {
-            value: setting,
-            enumerable: true,
-            writable: true,
-            configurable: true,
-          });
-        }
+    for (const key of Object.keys(readSettings)) {
+      if (fieldIds.has(key)) {
+        defineOwnValue<FormTemplateFieldSetting>(
+          fieldSettings,
+          key,
+          readSettings[key]!,
+        );
       }
     }
 

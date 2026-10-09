@@ -31,6 +31,7 @@ import {
 } from "./FormTargetCatalog";
 import FormTargetType, { FORM_TARGET_TYPE_TEXT } from "./FormTargetType";
 import {
+  defineOwnValue,
   describeFormTemplate,
   findFormTemplate,
   FormQuestionAsked,
@@ -842,7 +843,7 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
         continue;
       }
 
-      defineSetting(settings, field.id, setting);
+      defineOwnValue<FormTemplateFieldSetting>(settings, field.id, setting);
 
       if (setting !== FormTemplateFieldSetting.Hidden) {
         askedByATemplate.add(field.id);
@@ -878,7 +879,11 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
 
         for (const fieldId of Object.keys(settings)) {
           if (pageFieldIds.has(fieldId)) {
-            defineSetting(told, fieldId, settings[fieldId]!);
+            defineOwnValue<FormTemplateFieldSetting>(
+              told,
+              fieldId,
+              settings[fieldId]!,
+            );
           }
         }
 
@@ -892,6 +897,7 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
           fields: getPublicFormForTemplate({
             form: publicForm,
             template: publicTemplate,
+            lockedFieldIds: lockedFieldIds,
           }).fields,
         });
 
@@ -914,29 +920,6 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
   };
 };
 
-type DefineSettingFunction = (
-  target: FormTemplateFieldSettings,
-  key: string,
-  setting: FormTemplateFieldSetting,
-) => void;
-
-/*
- * Defined, not assigned: a key such as "__proto__" would set the object's
- * prototype instead of storing the setting.
- */
-const defineSetting: DefineSettingFunction = (
-  target: FormTemplateFieldSettings,
-  key: string,
-  setting: FormTemplateFieldSetting,
-): void => {
-  Object.defineProperty(target, key, {
-    value: setting,
-    enumerable: true,
-    writable: true,
-    configurable: true,
-  });
-};
-
 export type GetPublicFormForTemplateFunction = (data: {
   form: PublicForm;
   // The template the form is filled in from; none for the form's own.
@@ -944,6 +927,13 @@ export type GetPublicFormForTemplateFunction = (data: {
     | { fieldSettings?: FormTemplateFieldSettings | null | undefined }
     | null
     | undefined;
+  /*
+   * The questions the form's target cannot be created without
+   * (BuiltPublicForm.lockedFieldIds): asked, and required, whatever the
+   * template says. The server, which knows them, passes them; the page is
+   * never told a setting for one (buildPublicForm), so it needs none.
+   */
+  lockedFieldIds?: Array<string> | undefined;
 }) => PublicForm;
 
 /**
@@ -951,9 +941,10 @@ export type GetPublicFormForTemplateFunction = (data: {
  * none: its questions narrowed to the ones that are asked, each required as
  * the template, or else the form, says (getFormQuestionAsked). A question
  * the form hides is asked only when the template asks it; one the template
- * hides is left out. The page draws these questions, the dashboard's preview
- * draws them, and the server holds a submission to them - so a template that
- * makes a question required is required everywhere at once.
+ * hides is left out; a question the target cannot do without is always
+ * asked, and required. The page draws these questions, the dashboard's
+ * preview draws them, and the server holds a submission to them - so a
+ * template that makes a question required is required everywhere at once.
  */
 export const getPublicFormForTemplate: GetPublicFormForTemplateFunction =
   (data: {
@@ -962,13 +953,16 @@ export const getPublicFormForTemplate: GetPublicFormForTemplateFunction =
       | { fieldSettings?: FormTemplateFieldSettings | null | undefined }
       | null
       | undefined;
+    lockedFieldIds?: Array<string> | undefined;
   }): PublicForm => {
     const fields: Array<PublicFormField> = [];
+    const locked: Set<string> = new Set<string>(data.lockedFieldIds || []);
 
     for (const field of data.form.fields || []) {
       const asked: FormQuestionAsked = getFormQuestionAsked({
         isRequired: field.isRequired === true,
         isHidden: field.isHidden === true,
+        isLocked: locked.has(field.id),
         setting: getFormTemplateFieldSetting(data.template, field.id),
       });
 
@@ -1262,30 +1256,6 @@ const getMaxChoices: GetMaxChoicesFunction = (
   return Math.max(FORM_MULTI_SELECT_MAX_CHOICES, (field.options || []).length);
 };
 
-type DefineAnswerFunction = (
-  target: JSONObject,
-  key: string,
-  value: JSONValue,
-) => void;
-
-/*
- * Defined, not assigned: a key such as "__proto__" would set the object's
- * prototype instead of storing the answer. (Question ids cannot be such a
- * key - FORM_FIELD_ID_PATTERN - but the answers object is a stranger's.)
- */
-const defineAnswer: DefineAnswerFunction = (
-  target: JSONObject,
-  key: string,
-  value: JSONValue,
-): void => {
-  Object.defineProperty(target, key, {
-    value: value,
-    enumerable: true,
-    writable: true,
-    configurable: true,
-  });
-};
-
 type ValidateOneAnswerFunction = (data: {
   field: PublicFormField;
   answer: unknown;
@@ -1569,7 +1539,7 @@ export const validateFormSubmission: ValidateFormSubmissionFunction = (data: {
     });
 
     if (value !== undefined) {
-      defineAnswer(accepted, field.id, value);
+      defineOwnValue<JSONValue>(accepted, field.id, value);
     }
   }
 
@@ -1667,7 +1637,7 @@ export const getFormTemplateAnswers: GetFormTemplateAnswersFunction = (data: {
     });
 
     if (result.isValid && result.value !== undefined) {
-      defineAnswer(answers, field.id, result.value);
+      defineOwnValue<JSONValue>(answers, field.id, result.value);
     }
   }
 
@@ -1912,6 +1882,7 @@ export const getFormQuestionsForTemplate: GetFormQuestionsForTemplateFunction =
     const asked: Array<PublicFormField> = getPublicFormForTemplate({
       form: data.built.form,
       template: findPublicFormTemplate(data.built.form, data.templateId),
+      lockedFieldIds: data.built.lockedFieldIds,
     }).fields;
 
     const askedIds: Set<string> = new Set<string>(

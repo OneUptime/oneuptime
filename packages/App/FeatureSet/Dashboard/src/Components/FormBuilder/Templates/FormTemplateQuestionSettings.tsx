@@ -10,6 +10,7 @@ import {
   FormTemplateFieldSetting,
   FormTemplateFieldSettings,
   getFormTemplateFieldSetting,
+  readFormTemplateFieldSettings,
 } from "Common/Types/Form/FormTemplate";
 import Dropdown, {
   DropdownOption,
@@ -49,12 +50,9 @@ const FormTemplateQuestionSettings: FunctionComponent<ComponentProps> = (
     return translateString(text) || text;
   };
 
-  const settings: FormTemplateFieldSettings | undefined =
-    props.value &&
-    typeof props.value === "object" &&
-    !Array.isArray(props.value)
-      ? (props.value as FormTemplateFieldSettings)
-      : undefined;
+  const settings: FormTemplateFieldSettings = readFormTemplateFieldSettings(
+    props.value,
+  );
 
   return (
     <div

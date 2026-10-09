@@ -4,6 +4,7 @@ import {
   PublicFormField,
 } from "Common/Types/Form/FormPublic";
 import {
+  defineOwnValue,
   FORM_TEMPLATE_FIELD_SETTINGS,
   FORM_TEMPLATE_NAME_MAX_LENGTH,
   FormQuestionAsked,
@@ -15,6 +16,7 @@ import {
   getFormTemplateFieldSetting,
   getFormTemplateLink,
   isFormTemplateFieldSetting,
+  readFormTemplateFieldSettings,
 } from "Common/Types/Form/FormTemplate";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -135,35 +137,23 @@ export const getFormTemplateEditorSettings: GetFormTemplateEditorSettingsFunctio
     questions: Array<FormTemplateEditorQuestion>;
   }): FormTemplateFieldSettings => {
     const kept: FormTemplateFieldSettings = {};
-
-    if (
-      !data.settings ||
-      typeof data.settings !== "object" ||
-      Array.isArray(data.settings)
-    ) {
-      return kept;
-    }
-
-    const stored: FormTemplateFieldSettings =
-      data.settings as FormTemplateFieldSettings;
+    const read: FormTemplateFieldSettings = readFormTemplateFieldSettings(
+      data.settings,
+    );
 
     for (const question of data.questions) {
       const setting: FormTemplateFieldSetting | undefined =
-        getFormTemplateFieldSetting(
-          { fieldSettings: stored },
-          question.field.id,
-        );
+        getFormTemplateFieldSetting({ fieldSettings: read }, question.field.id);
 
       if (!setting || question.isLocked) {
         continue;
       }
 
-      Object.defineProperty(kept, question.field.id, {
-        value: setting,
-        enumerable: true,
-        writable: true,
-        configurable: true,
-      });
+      defineOwnValue<FormTemplateFieldSetting>(
+        kept,
+        question.field.id,
+        setting,
+      );
     }
 
     return kept;
@@ -278,19 +268,12 @@ export const getFormTemplateQuestionAsked: GetFormTemplateQuestionAskedFunction 
     question: FormTemplateEditorQuestion;
     settings: unknown;
   }): FormQuestionAsked => {
-    const settings: FormTemplateFieldSettings | undefined =
-      data.settings &&
-      typeof data.settings === "object" &&
-      !Array.isArray(data.settings)
-        ? (data.settings as FormTemplateFieldSettings)
-        : undefined;
-
     return getFormQuestionAsked({
       isRequired: data.question.isRequired,
       isHidden: data.question.isHidden,
       isLocked: data.question.isLocked,
       setting: getFormTemplateFieldSetting(
-        { fieldSettings: settings },
+        { fieldSettings: readFormTemplateFieldSettings(data.settings) },
         data.question.field.id,
       ),
     });
@@ -361,36 +344,15 @@ export const setFormTemplateSetting: SetFormTemplateSettingFunction = (data: {
   fieldId: string;
   choice: string;
 }): FormTemplateFieldSettings => {
-  const next: FormTemplateFieldSettings = {};
-  const current: Record<string, unknown> =
-    data.settings &&
-    typeof data.settings === "object" &&
-    !Array.isArray(data.settings)
-      ? (data.settings as Record<string, unknown>)
-      : {};
+  // A copy, read as the server reads settings: never the editor's own object.
+  const next: FormTemplateFieldSettings = readFormTemplateFieldSettings(
+    data.settings,
+  );
 
-  for (const key of Object.keys(current)) {
-    const setting: unknown = current[key];
-
-    if (key === data.fieldId || !isFormTemplateFieldSetting(setting)) {
-      continue;
-    }
-
-    Object.defineProperty(next, key, {
-      value: setting,
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    });
-  }
+  delete next[data.fieldId];
 
   if (isFormTemplateFieldSetting(data.choice)) {
-    Object.defineProperty(next, data.fieldId, {
-      value: data.choice,
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    });
+    defineOwnValue<FormTemplateFieldSetting>(next, data.fieldId, data.choice);
   }
 
   return next;

@@ -295,21 +295,24 @@ const isAnswerValue: IsAnswerValueFunction = (value: unknown): boolean => {
   return isAnswerScalar(value);
 };
 
-type DefineFunction = (
-  target: JSONObject,
+export type DefineOwnValueFunction = <TValue>(
+  target: Record<string, TValue>,
   key: string,
-  value: JSONValue,
+  value: TValue,
 ) => void;
 
 /*
- * Defined, not assigned: a key such as "__proto__" would set the object's
- * prototype instead of storing the answer. (Question ids cannot be such a
- * key, but the value read here may come from anywhere.)
+ * Stores a value under a key of a form's own - a question id, a template's
+ * answer or setting - as the object's own property. Defined, not assigned:
+ * a key such as "__proto__" would set the object's prototype instead of
+ * storing the value. (Question ids cannot be such a key, but what forms read
+ * may come from anywhere: a stranger's request, a stored row.) Every forms
+ * module that keys an object by question id stores through this.
  */
-const define: DefineFunction = (
-  target: JSONObject,
+export const defineOwnValue: DefineOwnValueFunction = <TValue>(
+  target: Record<string, TValue>,
   key: string,
-  value: JSONValue,
+  value: TValue,
 ): void => {
   Object.defineProperty(target, key, {
     value: value,
@@ -342,7 +345,7 @@ const readAnswers: ReadAnswersFunction = (value: unknown): JSONObject => {
       continue;
     }
 
-    define(
+    defineOwnValue<JSONValue>(
       answers,
       key,
       Array.isArray(answer)
@@ -355,49 +358,48 @@ const readAnswers: ReadAnswersFunction = (value: unknown): JSONObject => {
   return answers;
 };
 
-type ReadFieldSettingsFunction = (value: unknown) => FormTemplateFieldSettings;
-
-/*
- * A template's settings, as read: an entry keyed by something that cannot
- * be a question id, or set to anything but a setting (null included: the
- * form's default), is dropped.
- */
-const readFieldSettings: ReadFieldSettingsFunction = (
+export type ReadFormTemplateFieldSettingsFunction = (
   value: unknown,
-): FormTemplateFieldSettings => {
-  const settings: FormTemplateFieldSettings = {};
+) => FormTemplateFieldSettings;
 
-  if (!isPlainObject(value)) {
+/**
+ * A template's settings, as read - stored, sent by the server to the public
+ * page, or held by the dashboard's editor: a copy, in which an entry keyed by
+ * something that cannot be a question id, or set to anything but a setting
+ * (null included: the form's default), is dropped. Never throws. Which
+ * questions a setting may be for is the reader's to narrow (the page's
+ * questions, the editor's).
+ */
+export const readFormTemplateFieldSettings: ReadFormTemplateFieldSettingsFunction =
+  (value: unknown): FormTemplateFieldSettings => {
+    const settings: FormTemplateFieldSettings = {};
+
+    if (!isPlainObject(value)) {
+      return settings;
+    }
+
+    let count: number = 0;
+
+    for (const key of Object.keys(value)) {
+      if (count >= FORM_MAX_FIELDS) {
+        break;
+      }
+
+      const setting: unknown = value[key];
+
+      if (
+        !FORM_FIELD_ID_PATTERN.test(key) ||
+        !isFormTemplateFieldSetting(setting)
+      ) {
+        continue;
+      }
+
+      defineOwnValue<FormTemplateFieldSetting>(settings, key, setting);
+      count++;
+    }
+
     return settings;
-  }
-
-  let count: number = 0;
-
-  for (const key of Object.keys(value)) {
-    if (count >= FORM_MAX_FIELDS) {
-      break;
-    }
-
-    const setting: unknown = value[key];
-
-    if (
-      !FORM_FIELD_ID_PATTERN.test(key) ||
-      !isFormTemplateFieldSetting(setting)
-    ) {
-      continue;
-    }
-
-    Object.defineProperty(settings, key, {
-      value: setting,
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    });
-    count++;
-  }
-
-  return settings;
-};
+  };
 
 export type ReadFormTemplatesFunction = (value: unknown) => Array<FormTemplate>;
 
@@ -441,9 +443,8 @@ export const readFormTemplates: ReadFormTemplatesFunction = (
       answers: readAnswers(entry["answers"]),
     };
 
-    const fieldSettings: FormTemplateFieldSettings = readFieldSettings(
-      entry["fieldSettings"],
-    );
+    const fieldSettings: FormTemplateFieldSettings =
+      readFormTemplateFieldSettings(entry["fieldSettings"]);
 
     if (Object.keys(fieldSettings).length > 0) {
       template.fieldSettings = fieldSettings;
@@ -935,7 +936,11 @@ export const limitFormTemplatesToQuestions: LimitFormTemplatesToQuestionsFunctio
 
         for (const key of Object.keys(template.answers)) {
           if (fieldIds.has(key)) {
-            define(limited.answers, key, template.answers[key] as JSONValue);
+            defineOwnValue<JSONValue>(
+              limited.answers,
+              key,
+              template.answers[key] as JSONValue,
+            );
           }
         }
 
@@ -943,12 +948,11 @@ export const limitFormTemplatesToQuestions: LimitFormTemplatesToQuestionsFunctio
 
         for (const key of Object.keys(template.fieldSettings || {})) {
           if (fieldIds.has(key)) {
-            Object.defineProperty(settings, key, {
-              value: template.fieldSettings![key],
-              enumerable: true,
-              writable: true,
-              configurable: true,
-            });
+            defineOwnValue<FormTemplateFieldSetting>(
+              settings,
+              key,
+              template.fieldSettings![key]!,
+            );
           }
         }
 
