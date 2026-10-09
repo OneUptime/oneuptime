@@ -12,6 +12,11 @@ import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import {
+  TRANSCEIVER_READING_TITLES,
+  TRANSCEIVER_READING_UNITS,
+  TransceiverReadingKind,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 
 // A threshold written as a plain number ("400", "-1", "99.5").
 const NUMERIC_VALUE: RegExp = /^-?\d+(\.\d+)?$/;
@@ -323,6 +328,20 @@ export default class CriteriaNameUtil {
       subject += ` ${oid}`;
     }
 
+    // "SNMP Transceiver Reading" names which reading.
+    const transceiverReading: string | undefined =
+      criteriaFilter.snmpMonitorOptions?.transceiverReading;
+
+    if (
+      checkOn === CheckOn.SnmpTransceiverReading &&
+      transceiverReading &&
+      TRANSCEIVER_READING_TITLES[transceiverReading as TransceiverReadingKind]
+    ) {
+      subject = `SNMP Transceiver ${
+        TRANSCEIVER_READING_TITLES[transceiverReading as TransceiverReadingKind]
+      }`;
+    }
+
     // Criteria on two fields of one result would otherwise share a name.
     const resultValuePath: string | undefined =
       criteriaFilter.customCodeMonitorOptions?.resultValuePath?.trim();
@@ -390,6 +409,15 @@ export default class CriteriaNameUtil {
         getDatabaseMetricByMetricType(
           criteriaFilter.databaseMonitorOptions.metricType,
         )?.unit || "";
+    } else if (
+      criteriaFilter.checkOn === CheckOn.SnmpTransceiverReading &&
+      criteriaFilter.snmpMonitorOptions?.transceiverReading
+    ) {
+      unit =
+        TRANSCEIVER_READING_UNITS[
+          criteriaFilter.snmpMonitorOptions
+            .transceiverReading as TransceiverReadingKind
+        ] || "";
     }
 
     return unit ? `${value} ${unit}` : value;

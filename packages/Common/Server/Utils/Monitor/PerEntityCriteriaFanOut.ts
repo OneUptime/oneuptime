@@ -1,4 +1,9 @@
-import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  CriteriaFilterUtil,
+} from "../../../Types/Monitor/CriteriaFilter";
+import { NetworkDeviceTransceiver } from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
@@ -68,6 +73,12 @@ export interface FanOutEntity {
    * response narrowed to that group (see LogGroupCriteriaFanOut).
    */
   dataToProcess?: DataToProcess | undefined;
+}
+
+// The name and alias a port is addressed by.
+interface InterfaceRef {
+  name?: string | undefined;
+  alias?: string | undefined;
 }
 
 export default class PerEntityCriteriaFanOut {
@@ -265,9 +276,31 @@ export default class PerEntityCriteriaFanOut {
       return [];
     }
 
-    const interfaces: Array<SnmpInterface> =
-      PerEntityCriteriaFanOut.getSnmpResponse(input.dataToProcess)
-        ?.interfaces || [];
+    const snmpResponse: SnmpMonitorResponse | undefined =
+      PerEntityCriteriaFanOut.getSnmpResponse(input.dataToProcess);
+
+    /*
+     * A criteria whose "*" filters are all transceiver ones fans out over
+     * the ports that have (or had) an optic rather than over every port:
+     * the per-criteria cap would otherwise spend itself on the copper ports
+     * of a big switch and never reach its uplinks. Any interface CheckOn in
+     * the mix keeps the full interface list, which covers those ports too.
+     */
+    const interfaces: Array<InterfaceRef> =
+      PerEntityCriteriaFanOut.isOnlyTransceiverFanOut(input.criteriaInstance)
+        ? (snmpResponse?.transceivers || []).map(
+            (transceiver: NetworkDeviceTransceiver): InterfaceRef => {
+              return {
+                name: transceiver.interfaceName,
+                alias: transceiver.interfaceAlias,
+              };
+            },
+          )
+        : (snmpResponse?.interfaces || []).map(
+            (walked: SnmpInterface): InterfaceRef => {
+              return { name: walked.name, alias: walked.alias };
+            },
+          );
 
     const seenInterfaceNames: Set<string> = new Set<string>();
     const entities: Array<FanOutEntity> = [];
@@ -336,10 +369,36 @@ export default class PerEntityCriteriaFanOut {
   private static isInterfaceScopedCheckOn(
     checkOn: CheckOn | undefined,
   ): boolean {
+    return CriteriaFilterUtil.isInterfaceScopedCheckOn(checkOn);
+  }
+
+  /*
+   * True when every "*" interface-scoped filter of the criteria is a
+   * transceiver one.
+   */
+  public static isOnlyTransceiverFanOut(
+    criteriaInstance: MonitorCriteriaInstance,
+  ): boolean {
+    const wildcardCheckOns: Array<CheckOn> = (
+      criteriaInstance.data?.filters || []
+    )
+      .filter((filter: CriteriaFilter) => {
+        return (
+          PerEntityCriteriaFanOut.isInterfaceScopedCheckOn(filter.checkOn) &&
+          PerEntityCriteriaFanOut.isWildcard(
+            filter.snmpMonitorOptions?.interfaceName,
+          )
+        );
+      })
+      .map((filter: CriteriaFilter) => {
+        return filter.checkOn;
+      });
+
     return (
-      checkOn === CheckOn.SnmpInterfaceIsDown ||
-      checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
-      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond
+      wildcardCheckOns.length > 0 &&
+      wildcardCheckOns.every((checkOn: CheckOn) => {
+        return CriteriaFilterUtil.isTransceiverCheckOn(checkOn);
+      })
     );
   }
 

@@ -20,6 +20,15 @@ import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import {
+  NetworkDeviceTransceiver,
+  SnmpTransceiverResult,
+  TRANSCEIVER_READING_KINDS,
+  TRANSCEIVER_READING_METRIC_NAMES,
+  TRANSCEIVER_READING_TITLES,
+  TRANSCEIVER_READING_UNITS,
+  TransceiverReadingKind,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -59,6 +68,12 @@ export default class NetworkDeviceMetricUtil {
   private static readonly maxInterfaceSeries: number =
     MAX_INTERFACE_METRIC_SERIES;
   private static readonly maxOidSeries: number = MAX_OID_METRIC_SERIES;
+
+  /*
+   * Transceiver readings per poll: five per optic, more on multi-lane ones.
+   * A fully populated 48-port QSFP switch stays well inside it.
+   */
+  public static readonly maxTransceiverPoints: number = 2048;
 
   // Retention handling mirrors MonitorMetricUtil (shared GlobalConfig knob).
   private static readonly DEFAULT_RETENTION_DAYS: number = 30;
@@ -380,6 +395,68 @@ export default class NetworkDeviceMetricUtil {
       }
     }
 
+    /*
+     * Transceiver readings of the monitored ports' optics: one series per
+     * port, reading and lane, so a month of received power is a chart of its
+     * own rather than only the page's daily sparkline. An optic that is not
+     * detected has no readings and writes nothing.
+     *
+     * Only optics the probe read on this poll: when a read fails the
+     * criteria still judge the stored optics (so alerts do not flap), and
+     * charting those again would draw old readings as new points.
+     */
+    let transceiverPoints: number = 0;
+    let droppedTransceiverPoints: number = 0;
+
+    const readThisPoll: Set<number> = new Set(
+      (data.snmpResponse?.transceiverResults || []).map(
+        (result: SnmpTransceiverResult) => {
+          return result.interfaceIndex;
+        },
+      ),
+    );
+
+    for (const transceiver of data.snmpResponse?.transceivers || []) {
+      if (
+        !transceiver.isPresent ||
+        !readThisPoll.has(transceiver.interfaceIndex)
+      ) {
+        continue;
+      }
+
+      for (const kind of TRANSCEIVER_READING_KINDS) {
+        for (const reading of transceiver.measurements?.[kind]?.readings ||
+          []) {
+          if (
+            transceiverPoints >= NetworkDeviceMetricUtil.maxTransceiverPoints
+          ) {
+            droppedTransceiverPoints++;
+            continue;
+          }
+
+          transceiverPoints++;
+
+          pushMetric({
+            metricName: TRANSCEIVER_READING_METRIC_NAMES[kind],
+            value: reading.value,
+            description:
+              NetworkDeviceMetricUtil.describeTransceiverMetric(kind),
+            unit: TRANSCEIVER_READING_UNITS[kind],
+            extraAttributes: NetworkDeviceMetricUtil.getTransceiverAttributes(
+              transceiver,
+              reading.lane,
+            ),
+          });
+        }
+      }
+    }
+
+    if (droppedTransceiverPoints > 0) {
+      logger.warn(
+        `Device ${data.networkDeviceId.toString()}: emitting metrics for first ${transceiverPoints} of ${transceiverPoints + droppedTransceiverPoints} transceiver readings`,
+      );
+    }
+
     if (metricRows.length === 0) {
       return;
     }
@@ -392,6 +469,35 @@ export default class NetworkDeviceMetricUtil {
     }).catch((err: Error) => {
       logger.error(err);
     });
+  }
+
+  public static describeTransceiverMetric(
+    kind: TransceiverReadingKind,
+  ): string {
+    return `Transceiver ${TRANSCEIVER_READING_TITLES[kind].toLowerCase()} of a network device port (SFP, SFP+, QSFP)`;
+  }
+
+  /*
+   * What names a transceiver series: its port, by name and index, and its
+   * lane on a multi-lane optic.
+   */
+  public static getTransceiverAttributes(
+    transceiver: NetworkDeviceTransceiver,
+    lane: number | undefined,
+  ): JSONObject {
+    const attributes: JSONObject = {
+      interfaceIndex: transceiver.interfaceIndex.toString(),
+    };
+
+    if (transceiver.interfaceName) {
+      attributes["interfaceName"] = transceiver.interfaceName;
+    }
+
+    if (lane !== undefined) {
+      attributes["lane"] = lane.toString();
+    }
+
+    return attributes;
   }
 
   // Row shape must stay in lockstep with MonitorMetricUtil.buildMonitorMetricRow.

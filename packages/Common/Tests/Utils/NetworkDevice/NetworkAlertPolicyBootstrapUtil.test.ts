@@ -339,11 +339,28 @@ describe("NetworkAlertPolicyBootstrapUtil.buildRecommendedPolicy", () => {
     );
   });
 
+  test("the policy and template descriptions name the transceiver alerts", () => {
+    const policy: NetworkAlertPolicy =
+      NetworkAlertPolicyBootstrapUtil.buildRecommendedPolicy({
+        projectId: ObjectID.generate(),
+        monitorTemplateId: ObjectID.generate(),
+      });
+
+    expect(policy.description).toContain(
+      "a transceiver disappears, passes its alarm threshold or loses received power",
+    );
+    expect(
+      NetworkAlertPolicyBootstrapUtil.buildRecommendedTemplateDescription(),
+    ).toContain(
+      "a transceiver is no longer detected, passes its alarm threshold or receives 2 dB less light than on its best recent day",
+    );
+  });
+
   /*
    * The policy's description is what an operator reads on the settings page
-   * against a policy that covers everything, and four of the pack's five
-   * items read an SNMP walk. A device with no credentials is pinged rather
-   * than walked, so on it those four are never evaluated — describing the
+   * against a policy that covers everything, and every item of the pack but
+   * reachability reads an SNMP walk. A device with no credentials is pinged
+   * rather than walked, so on it those are never evaluated — describing the
    * pack without that caveat promises interface and walk alerting that a
    * ping-only estate will never see.
    */

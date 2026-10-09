@@ -4,6 +4,7 @@ import NetworkDeviceAlertPackUtil, {
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import ObjectID from "../../../Types/ObjectID";
+import { TRANSCEIVER_RX_DROP_ALERT_DB } from "../../../Utils/NetworkDevice/TransceiverHealthUtil";
 
 function packItem(name: string): NetworkDeviceAlertPackItem {
   const item: NetworkDeviceAlertPackItem | undefined =
@@ -76,6 +77,90 @@ describe("NetworkDeviceAlertPackUtil.getPackItems", () => {
         }
       }
     });
+  });
+});
+
+/*
+ * The transceiver items: alerts, never incidents (a dark optic already takes
+ * its interface down, and "Interface down" pages for that), one per port.
+ */
+describe("NetworkDeviceAlertPackUtil - transceiver items", () => {
+  test("an optic no longer detected, per port", () => {
+    const item: NetworkDeviceAlertPackItem = packItem(
+      "Transceiver not detected",
+    );
+
+    expect(item.filters).toEqual([
+      {
+        checkOn: CheckOn.SnmpTransceiverNotDetected,
+        filterType: FilterType.True,
+        value: undefined,
+        snmpMonitorOptions: { interfaceName: "*" },
+      },
+    ]);
+    expect(item.description).toContain("still enabled");
+  });
+
+  test("an optic past the alarm threshold the device reports, per port", () => {
+    const item: NetworkDeviceAlertPackItem = packItem(
+      "Transceiver past its alarm threshold",
+    );
+
+    expect(item.filters).toEqual([
+      {
+        checkOn: CheckOn.SnmpTransceiverPastAlarmThreshold,
+        filterType: FilterType.True,
+        value: undefined,
+        snmpMonitorOptions: { interfaceName: "*" },
+      },
+    ]);
+  });
+
+  test(`received power ${TRANSCEIVER_RX_DROP_ALERT_DB} dB or more below its best recent day, per port`, () => {
+    const item: NetworkDeviceAlertPackItem = packItem(
+      "Transceiver RX power dropping",
+    );
+
+    expect(item.filters).toEqual([
+      {
+        checkOn: CheckOn.SnmpTransceiverRxPowerDrop,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: TRANSCEIVER_RX_DROP_ALERT_DB,
+        snmpMonitorOptions: { interfaceName: "*" },
+      },
+    ]);
+    expect(item.description).toContain(
+      `${TRANSCEIVER_RX_DROP_ALERT_DB} dB less light`,
+    );
+  });
+
+  test("every transceiver item alerts and never raises an incident", () => {
+    const transceiverItems: Array<NetworkDeviceAlertPackItem> =
+      NetworkDeviceAlertPackUtil.getPackItems().filter(
+        (item: NetworkDeviceAlertPackItem) => {
+          return item.name.startsWith("Transceiver");
+        },
+      );
+
+    expect(transceiverItems).toHaveLength(3);
+
+    for (const item of transceiverItems) {
+      expect(item.createAlerts).toBe(true);
+      expect(item.createIncidents).toBe(false);
+    }
+  });
+
+  test("a transceiver criteria never changes the monitor's status", () => {
+    const instances: Array<MonitorCriteriaInstance> =
+      NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+        downMonitorStatusId: ObjectID.generate(),
+      });
+
+    for (const instance of instances) {
+      if (instance.data?.name.startsWith("Transceiver")) {
+        expect(instance.data.changeMonitorStatus).toBe(false);
+      }
+    }
   });
 });
 

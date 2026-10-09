@@ -58,6 +58,18 @@ enum MonitorMetricType {
   SnmpTableValue = "oneuptime.monitor.snmp.table.value",
 
   /*
+   * Transceiver (SFP/SFP+/QSFP) readings, one series per port (and lane, on
+   * a multi-lane optic) - interfaceName / interfaceIndex / lane attributes.
+   * Written by the device's own poll, in display units: degrees C, volts,
+   * milliamps and dBm.
+   */
+  SnmpTransceiverTemperature = "oneuptime.monitor.snmp.transceiver.temperature",
+  SnmpTransceiverVoltage = "oneuptime.monitor.snmp.transceiver.voltage",
+  SnmpTransceiverBiasCurrent = "oneuptime.monitor.snmp.transceiver.bias.current",
+  SnmpTransceiverTxPower = "oneuptime.monitor.snmp.transceiver.tx.power",
+  SnmpTransceiverRxPower = "oneuptime.monitor.snmp.transceiver.rx.power",
+
+  /*
    * Extended server/VM metrics. Emitted when the agent payload contains them;
    * absent for older agents, which keeps the pipeline backwards-compatible.
    */
