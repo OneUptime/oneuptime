@@ -1123,6 +1123,26 @@ jobs:
           Tests/Server/Utils/TeamMember/ProjectMembershipPostgres.test.ts
           --forceExit
 
+      # Clones the migrated UserPush, PushNotificationLog and
+      # UserOnCallLogTimeline tables into an isolated schema. An Expo push
+      # receipt saying DeviceNotRegistered stops every phone with the token
+      # being verified - every account and project, never a browser - so
+      # paging and readiness no longer find it; the push log and the page's
+      # timeline row that said "sent" say "not delivered", an acknowledged
+      # page is left alone; a phone whose app registered again after the push
+      # stays verified; and a phone naming its old token carries the new one
+      # on its own device only.
+      - name: Test Expo push receipts on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EXPO_PUSH_RECEIPTS_TESTS: "true"
+          EXPO_PUSH_RECEIPTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXPO_PUSH_RECEIPTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXPO_PUSH_RECEIPTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ExpoPushReceiptsPostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

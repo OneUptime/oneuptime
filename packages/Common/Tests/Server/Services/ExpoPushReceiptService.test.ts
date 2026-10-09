@@ -475,11 +475,15 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
           userOnCallLogTimelineId: TIMELINE_ID,
         }),
       ]);
+      /*
+       * Expo documents MismatchSenderId for receipts; expo-server-sdk's type
+       * does not list it, so the receipt is built as Expo writes it.
+       */
       expoReceipts.set(receiptIdOf(1), {
         status: "error",
         message: message,
         details: { error: code },
-      });
+      } as unknown as ExpoPushReceipt);
 
       const summary: ExpoPushReceiptCheckSummary = await check();
 
