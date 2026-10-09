@@ -2420,6 +2420,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
 
     for (const moreField of selectMoreFields) {
+      /*
+       * Only what the viewer may read, by the rule every select follows
+       * (hasPermissionToReadField): the server refuses the whole list for
+       * one column the caller may not read, so a field asked for here that
+       * this viewer cannot read - a secret only owners and admins read
+       * back - is left out rather than blanking the table.
+       * serializeToTableColumns makes the same check for the cells.
+       */
+      if (
+        model.hasColumn(moreField as string) &&
+        !hasPermissionToReadField(moreField)
+      ) {
+        continue;
+      }
+
       if (
         model.hasColumn(moreField as string) &&
         model.isEntityColumn(moreField as string)

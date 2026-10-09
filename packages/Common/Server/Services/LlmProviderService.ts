@@ -1,6 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/LlmProvider";
 import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -23,6 +24,66 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * Whether Additional Parameters, as a write gives them, hold anything to
+   * send: an object or a list with at least one entry, text that is not
+   * blank, or any other JSON value. Nothing, null and an empty object, list
+   * or text send nothing. The migration that added hasAdditionalParams
+   * (1801000000000-AddLlmProviderHasAdditionalParams) asks the same of the
+   * stored parameters.
+   */
+  public static hasAdditionalParams(value: unknown): boolean {
+    if (value === undefined || value === null) {
+      return false;
+    }
+
+    if (typeof value === "string") {
+      return value.trim().length > 0;
+    }
+
+    if (typeof value === "object") {
+      return Object.keys(value as Record<string, unknown>).length > 0;
+    }
+
+    return true;
+  }
+
+  /*
+   * Whether a provider has Additional Parameters follows the parameters a
+   * create writes (LlmProvider.hasAdditionalParams), whatever the request
+   * says: written once every permission check has passed, as no caller may
+   * write it.
+   */
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    onCreate.createBy.data.hasAdditionalParams = Service.hasAdditionalParams(
+      onCreate.createBy.data.additionalParams,
+    );
+  }
+
+  // And the parameters an update writes. An update that leaves them leaves it.
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    if (data["additionalParams"] === undefined) {
+      return;
+    }
+
+    data["hasAdditionalParams"] = Service.hasAdditionalParams(
+      data["additionalParams"],
+    );
   }
 
   /*

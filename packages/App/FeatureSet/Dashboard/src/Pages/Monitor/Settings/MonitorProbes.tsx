@@ -30,6 +30,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import GlobalProbesOnNewMonitorsCard from "../../../Components/Probe/GlobalProbesOnNewMonitorsCard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -48,6 +49,16 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const advancedSection: FormFieldCollapsibleSection<Probe> =
     getAdvancedFormSection<Probe>();
+
+  /*
+   * A probe's key is read by project owners and admins alone (Probe.key).
+   * The table asks for it only for them (BaseModelTable leaves out what the
+   * viewer may not read), so only they get the action that shows it.
+   */
+  const canReadProbeKey: boolean = PermissionGate.canReadColumn(
+    new Probe(),
+    "key",
+  );
 
   return (
     <Fragment>
@@ -211,30 +222,34 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ]}
           showRefreshButton={true}
           searchableFields={["name", "description"]}
-          actionButtons={[
-            {
-              title: "Show ID and Key",
-              icon: IconProp.Key,
-              buttonStyleType: ButtonStyleType.NORMAL,
-              // Reveals the probe's ID and secret key for copying - a utility, not the row's button.
-              placement: ActionButtonPlacement.MoreMenu,
-              onClick: async (
-                item: Probe,
-                onCompleteAction: VoidFunction,
-                onError: ErrorFunction,
-              ) => {
-                try {
-                  setCurrentProbe(item);
-                  setShowKeyModal(true);
+          actionButtons={
+            canReadProbeKey
+              ? [
+                  {
+                    title: "Show ID and Key",
+                    icon: IconProp.Key,
+                    buttonStyleType: ButtonStyleType.NORMAL,
+                    // Reveals the probe's ID and secret key for copying - a utility, not the row's button.
+                    placement: ActionButtonPlacement.MoreMenu,
+                    onClick: async (
+                      item: Probe,
+                      onCompleteAction: VoidFunction,
+                      onError: ErrorFunction,
+                    ) => {
+                      try {
+                        setCurrentProbe(item);
+                        setShowKeyModal(true);
 
-                  onCompleteAction();
-                } catch (err) {
-                  onCompleteAction();
-                  onError(err as Error);
-                }
-              },
-            },
-          ]}
+                        onCompleteAction();
+                      } catch (err) {
+                        onCompleteAction();
+                        onError(err as Error);
+                      }
+                    },
+                  },
+                ]
+              : []
+          }
           filters={[
             {
               field: {

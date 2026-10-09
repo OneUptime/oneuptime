@@ -11,7 +11,6 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
-import IsPermissionsIf from "../../Types/Database/IsPermissionsIf";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -49,7 +48,6 @@ export enum ProbeConnectionStatus {
   update: PlanType.Growth,
   delete: PlanType.Free,
 })
-@IsPermissionsIf(Permission.Public, "projectId", null)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/probe"))
 @AccessControlColumn("labels")
@@ -75,7 +73,6 @@ export enum ProbeConnectionStatus {
     Permission.CreateProjectProbe,
   ],
   read: [
-    Permission.Public,
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
@@ -146,7 +143,19 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectProbe,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -178,7 +187,19 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectProbe,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -202,7 +223,19 @@ export default class Probe extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectProbe,
+    ],
     update: [],
   })
   @TableColumn({
@@ -230,7 +263,19 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectProbe,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -391,7 +436,19 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectProbe,
+    ],
     update: [],
   })
   @TableColumn({
@@ -423,7 +480,19 @@ export default class Probe extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectProbe,
     ],
-    read: [Permission.Public],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectProbe,
+    ],
     update: [],
   })
   @TableColumn({

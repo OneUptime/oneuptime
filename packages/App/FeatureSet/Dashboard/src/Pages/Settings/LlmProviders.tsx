@@ -309,9 +309,6 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               : "Configure LLM Providers for AI features. Connect to OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or other providers.",
           }}
           documentationLink={Route.fromString("/docs/ai/llm-provider")}
-          selectMoreFields={{
-            apiKey: true,
-          }}
           noItemsMessage={
             "No LLM Providers configured. Add an LLM Provider to enable AI features for your project."
           }
@@ -402,7 +399,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               placeholder: "http://ollama:11434",
               description:
-                "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+                "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint. Everyone who can see this project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
             },
             {
               field: {

@@ -67,7 +67,11 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
-import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import {
+  composedValue,
+  translatableTerm,
+  Translator,
+} from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import useAsyncEffect from "use-async-effect";
 import Query from "../../../Types/BaseDatabase/Query";
@@ -405,6 +409,107 @@ const ModelForm: <TBaseModel extends BaseModel>(
     );
   };
 
+  /*
+   * A field this edit writes that the user may not read back - a provider's
+   * API key, for a member who may change the provider but not see its
+   * secrets. One column in a select the caller may not read refuses the
+   * whole request (SelectPermission), so such a field is left out of the
+   * fetch (getFetchSelect), starts empty, and is sent only when it is filled
+   * in (isBlankWriteOnlyValue): leaving it blank keeps what is stored. Asked
+   * the way every select asks (PermissionGate.canReadColumn). A form that
+   * loads through a route of its own (fetchItemApiUrl) leaves that route to
+   * decide what it returns.
+   */
+  const isWriteOnlyField: (fieldName: string) => boolean = (
+    fieldName: string,
+  ): boolean => {
+    if (props.formType !== FormType.Update || props.fetchItemApiUrl) {
+      return false;
+    }
+
+    if (!model.hasColumn(fieldName)) {
+      return false;
+    }
+
+    return !PermissionGate.canReadColumn(model, fieldName, {
+      held: heldPermissions,
+    });
+  };
+
+  // What an edit loads: the fields it shows, less those it may not read.
+  const getFetchSelect: () => Select<TBaseModel> = (): Select<TBaseModel> => {
+    const select: Dictionary<unknown> = {
+      ...getSelectFields(),
+      ...getRelationSelect(),
+    } as Dictionary<unknown>;
+
+    for (const key of Object.keys(select)) {
+      if (isWriteOnlyField(key)) {
+        delete select[key];
+      }
+    }
+
+    return select as Select<TBaseModel>;
+  };
+
+  /*
+   * Whether a write-only field was left as it started: nothing typed, or
+   * only spaces, or nothing picked. Such a value is not sent, so the stored
+   * one stays.
+   */
+  const isBlankWriteOnlyValue: (value: unknown) => boolean = (
+    value: unknown,
+  ): boolean => {
+    if (value === undefined || value === null) {
+      return true;
+    }
+
+    if (typeof value === Typeof.String) {
+      return (value as string).trim().length === 0;
+    }
+
+    return Array.isArray(value) && value.length === 0;
+  };
+
+  /*
+   * How a write-only field is drawn on an edit: never required and never
+   * filled with a default, since blank keeps the stored value, and saying
+   * so under it. Its own help is looked up first, so the sentence reads in
+   * one language whether or not the reader's words it.
+   */
+  const getWriteOnlyFieldProps: (
+    field: Field<TBaseModel>,
+  ) => Partial<Field<TBaseModel>> = (
+    field: Field<TBaseModel>,
+  ): Partial<Field<TBaseModel>> => {
+    const ownDescription: string | undefined =
+      typeof field.description === "string" ? field.description : undefined;
+
+    return {
+      required: false,
+      defaultValue: undefined,
+      getDefaultValue: undefined,
+      placeholder: "Unchanged",
+      description:
+        field.description !== undefined && ownDescription === undefined
+          ? field.description
+          : translator
+              .translateTemplate(
+                "{{description}} Leave blank to keep the stored value.",
+                {
+                  description: composedValue((sentence: Translator): string => {
+                    return (
+                      (ownDescription &&
+                        sentence.translateText(ownDescription)) ||
+                      ""
+                    );
+                  }),
+                },
+              )
+              .trim(),
+    };
+  };
+
   const getFieldPermissions: (fieldName: string) => Array<Permission> = (
     fieldName: string,
   ): Array<Permission> => {
@@ -559,6 +664,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
             props.formType !== FormType.Create
               ? { required: false }
               : {}),
+            ...(isWriteOnlyField(key) ? getWriteOnlyFieldProps(field) : {}),
             field: {
               [key]: true,
             } as SelectFormFields<TBaseModel>,
@@ -622,7 +728,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
     let item: BaseModel | null = await modelAPI.getItem({
       modelType: props.modelType,
       id: props.modelIdToEdit,
-      select: { ...getSelectFields(), ...getRelationSelect() },
+      select: getFetchSelect(),
       requestOptions: {
         overrideRequestUrl: props.fetchItemApiUrl,
       },
@@ -1189,6 +1295,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
       const valuesToSend: JSONObject = {};
 
       for (const key in getSelectFields()) {
+        // A write-only field left blank keeps what is stored (isWriteOnlyField).
+        if (isWriteOnlyField(key) && isBlankWriteOnlyValue(values[key])) {
+          continue;
+        }
+
         (valuesToSend as any)[key] = values[key];
       }
 

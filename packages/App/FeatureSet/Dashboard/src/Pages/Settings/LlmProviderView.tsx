@@ -27,6 +27,9 @@ import React, {
 } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 // Set as Default and Additional Parameters, folded at the end of Provider Settings.
 const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
@@ -35,7 +38,19 @@ const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
 const LlmProviderView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
+
+  /*
+   * The Additional Parameters are read like the API key, by project owners
+   * and admins alone (LlmProvider.additionalParams). Everyone else who reads
+   * the provider is shown whether any are saved (hasAdditionalParams), never
+   * what they are.
+   */
+  const canReadAdditionalParams: boolean = PermissionGate.canReadColumn(
+    new LlmProvider(),
+    "additionalParams",
+  );
 
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
@@ -163,7 +178,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "http://ollama:11434",
             description:
-              "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+              "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint. Everyone who can see this project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
           },
           {
             field: {
@@ -234,14 +249,33 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               title: "Base URL",
               placeholder: "Not specified (using default)",
             },
-            {
-              field: {
-                additionalParams: true,
-              },
-              title: "Additional Parameters",
-              fieldType: FieldType.JSON,
-              placeholder: "None",
-            },
+            canReadAdditionalParams
+              ? {
+                  field: {
+                    additionalParams: true,
+                  },
+                  title: "Additional Parameters",
+                  fieldType: FieldType.JSON,
+                  placeholder: "None",
+                }
+              : {
+                  field: {
+                    hasAdditionalParams: true,
+                  },
+                  title: "Additional Parameters",
+                  description:
+                    "Only project owners and admins can read them, like the API key.",
+                  fieldType: FieldType.Boolean,
+                  getElement: (item: LlmProvider): ReactElement => {
+                    return (
+                      <span>
+                        {item.hasAdditionalParams
+                          ? translator.translateText("Saved")
+                          : translator.translateText("None")}
+                      </span>
+                    );
+                  },
+                },
             {
               field: {
                 isDefault: true,

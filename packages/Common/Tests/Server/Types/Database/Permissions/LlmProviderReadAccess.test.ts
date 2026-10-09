@@ -1,4 +1,5 @@
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
+import ColumnWriteRefusedException from "../../../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { ColumnAccessControl } from "../../../../../Types/BaseDatabase/AccessControl";
@@ -12,15 +13,24 @@ import { describe, expect, test } from "@jest/globals";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
- * AN LLM PROVIDER IS READ BY ITS PROJECT'S OWN MEMBERS ONLY.
+ * AN LLM PROVIDER IS READ BY ITS PROJECT'S OWN MEMBERS ONLY, AND WHAT IT SENDS
+ * THE PROVIDER BESIDES ITS ADDRESS AND MODEL BY THE PROJECT'S OWNERS AND
+ * ADMINS ALONE.
  *
- * A provider's base URL, model, parameters and price are its project's
- * configuration. Its read list names the project's members who may see the
- * project's settings - and not Permission.Public, which every caller holds,
- * signed in or not: with it, a read that named a project in its tenant
- * header passed the "is anyone logged in" check and every column check. The
- * shared global providers are listed to signed-in members by their own
- * route (LlmProviderAPI's global-llms: name, description and price only).
+ * A provider's base URL, model and price are its project's configuration.
+ * Its read list names the project's members who may see the project's
+ * settings - and not Permission.Public, which every caller holds, signed in
+ * or not: with it, a read that named a project in its tenant header passed
+ * the "is anyone logged in" check and every column check. The shared global
+ * providers are listed to signed-in members by their own route
+ * (LlmProviderAPI's global-llms: name, description and price only).
+ *
+ * The API key and the Additional Parameters are sent to the provider with
+ * every request, and the parameters can carry a token or a header just like
+ * the key, so both are read by the project's owners and admins alone. The
+ * members who read the provider but not its parameters read whether any are
+ * saved (hasAdditionalParams), which OneUptime writes from the parameters and
+ * no caller may.
  *
  * Driven through the real permission layer, no stubs.
  */
@@ -39,17 +49,54 @@ const READERS: Array<Permission> = [
   Permission.ReadProjectLlm,
 ];
 
-// Every column a reader sees, the API key aside.
+// Who reads what the provider is sent besides its address and model.
+const SECRET_READERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+];
+
+// Every reader who is not a secret reader.
+const OTHER_READERS: Array<Permission> = READERS.filter(
+  (permission: Permission): boolean => {
+    return !SECRET_READERS.includes(permission);
+  },
+);
+
+// The columns the provider sends besides its address and model.
+const SECRET_COLUMNS: Array<string> = ["apiKey", "additionalParams"];
+
+// Every column a reader sees: the configuration, less the secrets.
 const CONFIGURATION_SELECT: Record<string, boolean> = {
   name: true,
   description: true,
   llmType: true,
   modelName: true,
   baseUrl: true,
-  additionalParams: true,
+  hasAdditionalParams: true,
   isDefault: true,
   costPerMillionTokensInUSDCents: true,
 };
+
+// Who may change a provider: the model's own update list for its parameters.
+const WRITERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.EditProjectLlm,
+];
+
+/*
+ * What a writer holds to change a provider: the permission itself, and for
+ * the granular Edit permission the granular read beside it, since a write
+ * reaches only rows its caller may read.
+ */
+function writerPermissions(permission: Permission): Array<Permission> {
+  return permission === Permission.EditProjectLlm
+    ? [Permission.EditProjectLlm, Permission.ReadProjectLlm]
+    : [permission];
+}
 
 function member(data: {
   permissions: Array<Permission>;
@@ -91,6 +138,18 @@ async function read(
   );
 }
 
+async function update(
+  props: DatabaseCommonInteractionProps,
+  data: Record<string, unknown>,
+): Promise<unknown> {
+  return await ModelPermission.checkUpdateQueryPermissions(
+    LlmProvider,
+    {},
+    data as never,
+    props,
+  );
+}
+
 async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
   try {
     await promise;
@@ -98,7 +157,13 @@ async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
     return error;
   }
 
-  throw new Error("Expected the read to be refused, but it was allowed.");
+  throw new Error("Expected the request to be refused, but it was allowed.");
+}
+
+function readListOf(column: string): Array<Permission> {
+  return [
+    ...(new LlmProvider().getColumnAccessControlFor(column)?.read || []),
+  ].sort();
 }
 
 describe("LlmProvider - who may read it", () => {
@@ -109,7 +174,7 @@ describe("LlmProvider - who may read it", () => {
     expect([...readers].sort()).toEqual([...READERS].sort());
   });
 
-  test("no column is read by Public, and each reads with the table's readers", () => {
+  test("no column is read by Public; the configuration reads with the table's readers", () => {
     const model: LlmProvider = new LlmProvider();
 
     for (const column of Object.keys(
@@ -126,18 +191,40 @@ describe("LlmProvider - who may read it", () => {
     }
 
     for (const column of Object.keys(CONFIGURATION_SELECT)) {
-      expect(
-        [...(model.getColumnAccessControlFor(column)?.read || [])].sort(),
-      ).toEqual([...READERS].sort());
+      expect({ column: column, read: readListOf(column) }).toEqual({
+        column: column,
+        read: [...READERS].sort(),
+      });
     }
   });
 
-  test("the API key is read by the project's owners and admins alone", () => {
+  test.each(SECRET_COLUMNS)(
+    "%s is read by the project's owners and admins alone",
+    (column: string) => {
+      expect(readListOf(column)).toEqual([...SECRET_READERS].sort());
+    },
+  );
+
+  /*
+   * Whoever may change the provider may still replace its parameters, the
+   * way they may replace its key, without reading either.
+   */
+  test("the Additional Parameters are written by everyone who may change the provider", () => {
     expect(
       [
-        ...(new LlmProvider().getColumnAccessControlFor("apiKey")?.read || []),
+        ...(new LlmProvider().getColumnAccessControlFor("additionalParams")
+          ?.update || []),
       ].sort(),
-    ).toEqual([Permission.ProjectAdmin, Permission.ProjectOwner].sort());
+    ).toEqual([...WRITERS].sort());
+  });
+
+  test("whether parameters are saved is written by OneUptime alone", () => {
+    const access: ColumnAccessControl | undefined =
+      new LlmProvider().getColumnAccessControlFor("hasAdditionalParams") ||
+      undefined;
+
+    expect(access?.create).toEqual([]);
+    expect(access?.update).toEqual([]);
   });
 
   test("no row is readable by Public on a condition", () => {
@@ -162,6 +249,17 @@ describe("LlmProvider - reading it through the permission layer", () => {
 
       expect(error).toBeInstanceOf(NotAuthenticatedException);
       expect((error as Exception).code).toBe(401);
+    },
+  );
+
+  test.each(SECRET_COLUMNS)(
+    "a caller who is not signed in is asked to sign in for %s too",
+    async (column: string) => {
+      const error: unknown = await rejectionOf(
+        read({ tenantId: PROJECT_ID }, { [column]: true }),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthenticatedException);
     },
   );
 
@@ -201,14 +299,20 @@ describe("LlmProvider - reading it through the permission layer", () => {
     },
   );
 
-  test.each(
-    READERS.filter((permission: Permission): boolean => {
-      return (
-        permission !== Permission.ProjectOwner &&
-        permission !== Permission.ProjectAdmin
-      );
-    }),
-  )(
+  test.each(SECRET_READERS)(
+    "a member holding %s reads the API key and the Additional Parameters",
+    async (permission: Permission) => {
+      await expect(
+        read(member({ permissions: [permission] }), {
+          ...CONFIGURATION_SELECT,
+          apiKey: true,
+          additionalParams: true,
+        }),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  test.each(OTHER_READERS)(
     "a member holding %s still may not read the API key",
     async (permission: Permission) => {
       const error: unknown = await rejectionOf(
@@ -216,6 +320,172 @@ describe("LlmProvider - reading it through the permission layer", () => {
       );
 
       expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Exception).message).toContain(
+        "You do not have permissions to select on - apiKey.",
+      );
     },
   );
+
+  test.each(OTHER_READERS)(
+    "a member holding %s may not read the Additional Parameters",
+    async (permission: Permission) => {
+      const error: unknown = await rejectionOf(
+        read(member({ permissions: [permission] }), {
+          additionalParams: true,
+        }),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Exception).message).toContain(
+        "You do not have permissions to select on - additionalParams.",
+      );
+    },
+  );
+
+  test.each(OTHER_READERS)(
+    "a member holding %s reads whether Additional Parameters are saved",
+    async (permission: Permission) => {
+      await expect(
+        read(member({ permissions: [permission] }), {
+          hasAdditionalParams: true,
+        }),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  test("a project API key holding Viewer reads the configuration but not the parameters", async () => {
+    const apiKey: DatabaseCommonInteractionProps = member({
+      permissions: [Permission.Viewer],
+      userType: UserType.API,
+    });
+
+    await expect(read(apiKey)).resolves.toBeDefined();
+
+    expect(
+      await rejectionOf(read(apiKey, { additionalParams: true })),
+    ).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  /*
+   * Every reader against every column of the provider they may ask for:
+   * configuration columns for all of them, the key and the parameters for
+   * the project's owners and admins alone.
+   */
+  describe("the read matrix", () => {
+    const cases: Array<[Permission, string, boolean]> = [];
+
+    for (const permission of READERS) {
+      for (const column of Object.keys(CONFIGURATION_SELECT)) {
+        cases.push([permission, column, true]);
+      }
+
+      for (const column of SECRET_COLUMNS) {
+        cases.push([permission, column, SECRET_READERS.includes(permission)]);
+      }
+    }
+
+    test.each(cases)(
+      "%s reading %s is allowed: %s",
+      async (permission: Permission, column: string, allowed: boolean) => {
+        const attempt: Promise<unknown> = read(
+          member({ permissions: [permission] }),
+          { [column]: true },
+        );
+
+        if (allowed) {
+          await expect(attempt).resolves.toBeDefined();
+          return;
+        }
+
+        expect(await rejectionOf(attempt)).toBeInstanceOf(
+          NotAuthorizedException,
+        );
+      },
+    );
+  });
+});
+
+describe("LlmProvider - changing it through the permission layer", () => {
+  test.each(
+    WRITERS.filter((permission: Permission): boolean => {
+      return !SECRET_READERS.includes(permission);
+    }),
+  )(
+    "a member holding %s may replace the Additional Parameters without reading them",
+    async (permission: Permission) => {
+      await expect(
+        update(member({ permissions: writerPermissions(permission) }), {
+          additionalParams: { temperature: 0.2 },
+        }),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  test.each(WRITERS)(
+    "a member holding %s may not set whether parameters are saved",
+    async (permission: Permission) => {
+      const error: unknown = await rejectionOf(
+        update(member({ permissions: writerPermissions(permission) }), {
+          hasAdditionalParams: true,
+        }),
+      );
+
+      expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((error as ColumnWriteRefusedException).columnName).toBe(
+        "hasAdditionalParams",
+      );
+    },
+  );
+
+  test.each(OTHER_READERS.filter((permission: Permission): boolean => {
+    return !WRITERS.includes(permission);
+  }))(
+    "a member holding only %s may not change the provider at all",
+    async (permission: Permission) => {
+      expect(
+        await rejectionOf(
+          update(member({ permissions: [permission] }), {
+            additionalParams: { temperature: 0.2 },
+          }),
+        ),
+      ).toBeInstanceOf(NotAuthorizedException);
+    },
+  );
+
+  test("a create that names whether parameters are saved is refused, even for an owner", () => {
+    const provider: LlmProvider = new LlmProvider();
+    provider.name = "Provider";
+    provider.hasAdditionalParams = true;
+
+    let thrown: unknown = undefined;
+
+    try {
+      ModelPermission.checkCreatePermissions(
+        LlmProvider,
+        provider,
+        member({ permissions: [Permission.ProjectOwner] }),
+      );
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(ColumnWriteRefusedException);
+    expect((thrown as ColumnWriteRefusedException).columnName).toBe(
+      "hasAdditionalParams",
+    );
+  });
+
+  test("a create with Additional Parameters is allowed for a member who may create providers", () => {
+    const provider: LlmProvider = new LlmProvider();
+    provider.name = "Provider";
+    provider.additionalParams = { temperature: 0.2 };
+
+    expect(() => {
+      ModelPermission.checkCreatePermissions(
+        LlmProvider,
+        provider,
+        member({ permissions: [Permission.SettingsMember] }),
+      );
+    }).not.toThrow();
+  });
 });

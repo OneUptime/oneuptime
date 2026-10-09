@@ -478,7 +478,7 @@ export const QueryWorkflowsTool: ObservabilityTool = {
 export const QueryProbesTool: ObservabilityTool = {
   name: "query_probes",
   description:
-    "Query monitoring probes and their health: name, description, probe version, lastAlive heartbeat, a connected/disconnected judgment (same 3-minute staleness rule the dashboard status uses) and how many of this project's monitors each probe serves. Use this when a monitor is not being checked or checks look stale — a disconnected probe that serves the monitor is the usual cause; then use query_monitors to inspect the monitor itself. Includes the platform's global probes as well as this project's custom probes.",
+    "Query monitoring probes and their health: name, description, probe version (this project's custom probes), lastAlive heartbeat, a connected/disconnected judgment (same 3-minute staleness rule the dashboard status uses) and how many of this project's monitors each probe serves. Use this when a monitor is not being checked or checks look stale — a disconnected probe that serves the monitor is the usual cause; then use query_monitors to inspect the monitor itself. Includes the platform's global probes as well as this project's custom probes.",
   inputSchema: {
     type: "object",
     properties: {
@@ -513,20 +513,24 @@ export const QueryProbesTool: ObservabilityTool = {
      * Never select `key` here: it is the probe's auth secret (read-restricted
      * to project owners/admins), and the global fetch below runs as root.
      */
-    const probeSelect: {
+    const globalProbeSelect: {
       _id: boolean;
       name: boolean;
       description: boolean;
-      probeVersion: boolean;
       lastAlive: boolean;
       connectionStatus: boolean;
     } = {
       _id: true,
       name: true,
       description: true,
-      probeVersion: true,
       lastAlive: true,
       connectionStatus: true,
+    };
+
+    // A project's own probes, read as the caller, add their version.
+    const probeSelect: typeof globalProbeSelect & { probeVersion: boolean } = {
+      ...globalProbeSelect,
+      probeVersion: true,
     };
 
     // This project's custom probes — tenant-scoped through ctx.props.
@@ -546,8 +550,8 @@ export const QueryProbesTool: ObservabilityTool = {
      * can never return them — yet they run most monitors on OneUptime Cloud.
      * Mirror the platform's own user-facing /probe/global-probes endpoint
      * (Common/Server/API/ProbeAPI.ts): root props with the query pinned to
-     * isGlobalProbe: true, and a fixed select of the same non-secret columns
-     * that endpoint serves to every authenticated user.
+     * isGlobalProbe: true, and a fixed select of columns that endpoint serves
+     * to every signed-in user - never a global probe's key or version.
      */
     let globalProbes: Array<Probe> = [];
     if (includeGlobalProbes) {
@@ -555,7 +559,7 @@ export const QueryProbesTool: ObservabilityTool = {
         query: {
           isGlobalProbe: true,
         },
-        select: probeSelect,
+        select: globalProbeSelect,
         sort: {
           name: SortOrder.Ascending,
         },

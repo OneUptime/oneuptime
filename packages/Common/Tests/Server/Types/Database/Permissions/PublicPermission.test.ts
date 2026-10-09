@@ -3,7 +3,7 @@ import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/Databa
 import PublicPermission from "../../../../../Server/Types/Database/Permissions/PublicPermission";
 import Log from "../../../../../Models/AnalyticsModels/Log";
 import LogPipeline from "../../../../../Models/DatabaseModels/LogPipeline";
-import Probe from "../../../../../Models/DatabaseModels/Probe";
+import Reseller from "../../../../../Models/DatabaseModels/Reseller";
 import StatusPageSubscriber from "../../../../../Models/DatabaseModels/StatusPageSubscriber";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Exception from "../../../../../Types/Exception/Exception";
@@ -111,15 +111,18 @@ describe("PublicPermission", () => {
     });
 
     /*
-     * Probe genuinely carries Permission.Public in its TableAccessControl
-     * read list (status pages render probe names to logged-out visitors).
+     * Reseller genuinely carries Permission.Public in its TableAccessControl
+     * read list: the sign-up page reads a reseller's public settings before
+     * anyone is signed in.
      */
     it("is true for a model whose read list contains Permission.Public", () => {
-      expect(new Probe().readRecordPermissions).toContain(Permission.Public);
+      expect(new Reseller().readRecordPermissions).toContain(
+        Permission.Public,
+      );
 
       expect(
         PublicPermission.isPublicPermissionAllowed(
-          Probe,
+          Reseller,
           DatabaseRequestType.Read,
         ),
       ).toBe(true);
@@ -314,13 +317,13 @@ describe("PublicPermission", () => {
 
     /*
      * A model that IS public for the operation lets an anonymous caller
-     * through — that is what keeps logged-out status pages working — but only
-     * for that operation. Probe is public to read and not public to create.
+     * through — that is what keeps logged-out pages working — but only for
+     * that operation. Reseller is public to read and not public to create.
      */
     it("lets an anonymous caller read a publicly-readable model but not create it", () => {
       expect(() => {
         PublicPermission.checkIfUserIsLoggedIn(
-          Probe,
+          Reseller,
           anonymousProps(),
           DatabaseRequestType.Read,
         );
@@ -328,7 +331,7 @@ describe("PublicPermission", () => {
 
       expect(() => {
         PublicPermission.checkIfUserIsLoggedIn(
-          Probe,
+          Reseller,
           anonymousProps(),
           DatabaseRequestType.Create,
         );
@@ -342,14 +345,14 @@ describe("PublicPermission", () => {
        */
       const message: string = messageFromCheck(() => {
         PublicPermission.checkIfUserIsLoggedIn(
-          Probe,
+          Reseller,
           anonymousProps(),
           DatabaseRequestType.Create,
         );
       });
 
       expect(message).toBe(
-        "Authenticated user or a valid API key is needed to create record of Probe.",
+        "Authenticated user or a valid API key is needed to create record of Reseller.",
       );
     });
 
