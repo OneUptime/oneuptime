@@ -290,10 +290,7 @@ describe("the Asset Details card (issue #4569)", () => {
     expect(
       screen.queryByTestId("inventory-asset-details-unknown"),
     ).not.toBeInTheDocument();
-    expectValue(
-      InventoryAssetField.Location,
-      "London DC1 · Hall 2, Rack 14",
-    );
+    expectValue(InventoryAssetField.Location, "London DC1 · Hall 2, Rack 14");
     expectValue(InventoryAssetField.DnsName, "core-sw-01.corp.example.com");
   });
 
@@ -331,9 +328,7 @@ describe("the Asset Details card (issue #4569)", () => {
     expect(row(InventoryAssetField.SystemDescription).className).toContain(
       "lg:col-span-3",
     );
-    expect(row(InventoryAssetField.Model).className).not.toContain(
-      "col-span",
-    );
+    expect(row(InventoryAssetField.Model).className).not.toContain("col-span");
   });
 
   /*
@@ -493,7 +488,10 @@ describe("the Inventory list's asset columns", () => {
     const exportOf: (
       field: InventoryAssetField,
       target: InventoryItem,
-    ) => string = (field: InventoryAssetField, target: InventoryItem): string => {
+    ) => string = (
+      field: InventoryAssetField,
+      target: InventoryItem,
+    ): string => {
       const column: Columns<InventoryItem>[number] | undefined = columns.find(
         (candidate: Columns<InventoryItem>[number]): boolean => {
           return candidate.id === `${INVENTORY_ASSET_COLUMN_ID_PREFIX}${field}`;
@@ -521,10 +519,10 @@ describe("the Inventory list's asset columns", () => {
   });
 
   test("a cell shows the value, or a muted dash", () => {
-    const cellOf: (field: InventoryAssetField, target: InventoryItem) => void = (
+    const cellOf: (
       field: InventoryAssetField,
       target: InventoryItem,
-    ): void => {
+    ) => void = (field: InventoryAssetField, target: InventoryItem): void => {
       const column: Columns<InventoryItem>[number] | undefined = columns.find(
         (candidate: Columns<InventoryItem>[number]): boolean => {
           return candidate.id === `${INVENTORY_ASSET_COLUMN_ID_PREFIX}${field}`;

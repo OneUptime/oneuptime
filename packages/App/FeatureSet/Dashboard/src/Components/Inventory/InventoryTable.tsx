@@ -131,10 +131,7 @@ export function getInventoryAssetColumns(): Columns<InventoryItem> {
         disableSort: true,
         hideOnMobile: true,
         getElement: (item: InventoryItem): ReactElement => {
-          const value: string | undefined = getInventoryAssetValue(
-            item,
-            field,
-          );
+          const value: string | undefined = getInventoryAssetValue(item, field);
 
           if (!value) {
             return <span className="text-sm text-gray-400">-</span>;

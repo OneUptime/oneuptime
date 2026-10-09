@@ -279,7 +279,9 @@ describe("describeNetworkDevice (issues #4107, #4569)", () => {
 
   test("a blank software version falls back to the release the sysDescr names", () => {
     expect(
-      describeNetworkDevice(polledSwitch({ softwareVersion: "" }))["os.version"],
+      describeNetworkDevice(polledSwitch({ softwareVersion: "" }))[
+        "os.version"
+      ],
     ).toBe("16.12.4");
     expect(
       Object.keys(
@@ -714,7 +716,7 @@ describe("the NetworkDevice source selects every column it projects", () => {
     }
 
     return Object.assign(
-      Object.create(Object.getPrototypeOf(full)) as object,
+      Object.create(Object.getPrototypeOf(full)) as Record<string, unknown>,
       row,
     ) as T;
   }

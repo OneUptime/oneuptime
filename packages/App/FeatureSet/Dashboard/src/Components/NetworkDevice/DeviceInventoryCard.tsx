@@ -95,15 +95,15 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
   };
 
   type FactElementFunction = (
+    item: NetworkDevice,
     fact: keyof NetworkDeviceAssetFacts,
-  ) => (item: NetworkDevice) => ReactElement;
+  ) => ReactElement;
 
   const factElement: FactElementFunction = (
+    item: NetworkDevice,
     fact: keyof NetworkDeviceAssetFacts,
-  ): ((item: NetworkDevice) => ReactElement) => {
-    return (item: NetworkDevice): ReactElement => {
-      return <span>{getNetworkDeviceAssetFacts(item)[fact] || "-"}</span>;
-    };
+  ): ReactElement => {
+    return <span>{getNetworkDeviceAssetFacts(item)[fact] || "-"}</span>;
   };
 
   type HasFactFunction = (
@@ -143,7 +143,9 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Vendor",
             fieldType: FieldType.Element,
-            getElement: factElement("manufacturer"),
+            getElement: (item: NetworkDevice): ReactElement => {
+              return factElement(item, "manufacturer");
+            },
             showIf: hasFact("manufacturer"),
           },
           {
@@ -152,7 +154,9 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Model",
             fieldType: FieldType.Element,
-            getElement: factElement("model"),
+            getElement: (item: NetworkDevice): ReactElement => {
+              return factElement(item, "model");
+            },
             showIf: hasFact("model"),
           },
           {
@@ -171,7 +175,9 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Firmware Version",
             fieldType: FieldType.Element,
-            getElement: factElement("firmwareVersion"),
+            getElement: (item: NetworkDevice): ReactElement => {
+              return factElement(item, "firmwareVersion");
+            },
             showIf: hasFact("firmwareVersion"),
           },
           {
@@ -180,7 +186,9 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Operating System",
             fieldType: FieldType.Element,
-            getElement: factElement("operatingSystem"),
+            getElement: (item: NetworkDevice): ReactElement => {
+              return factElement(item, "operatingSystem");
+            },
             showIf: hasFact("operatingSystem"),
           },
           {
@@ -189,7 +197,9 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Software Version",
             fieldType: FieldType.Element,
-            getElement: factElement("osVersion"),
+            getElement: (item: NetworkDevice): ReactElement => {
+              return factElement(item, "osVersion");
+            },
             showIf: hasFact("osVersion"),
           },
           {

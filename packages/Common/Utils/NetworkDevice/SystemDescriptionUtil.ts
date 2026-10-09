@@ -88,7 +88,8 @@ const CISCO_IOS_XR: RegExp = /\bIOS XR\b/;
  * 16.x on, where it names its release train in brackets instead:
  * "Cisco IOS Software [Gibraltar], Catalyst L3 Switch Software ...".
  */
-const CISCO_IOS_XE: RegExp = /\bIOS[- ]XE\b|^Cisco IOS Software \[[A-Za-z]{2,20}\]/;
+const CISCO_IOS_XE: RegExp =
+  /\bIOS[- ]XE\b|^Cisco IOS Software \[[A-Za-z]{2,20}\]/;
 
 // "Cisco IOS Software, C2960 Software (C2960-LANBASEK9-M), Version 15.0(2)SE11, ..."
 const CISCO_IOS: RegExp =
@@ -136,9 +137,11 @@ const HUAWEI_VRP: RegExp = /Huawei Versatile Routing Platform/i;
 const HUAWEI_VERSION: RegExp =
   /\bVersion\s{1,4}(\d[\w.]{0,20})(?:\s{1,4}\(([^)]{1,60})\))?/;
 // A line of its own naming the chassis: "HUAWEI CE6810-48S4Q-EI".
-const HUAWEI_MODEL_LINE: RegExp = /^HUAWEI\s{1,4}([A-Za-z0-9][\w+-]{1,40})[ \t]*$/m;
+const HUAWEI_MODEL_LINE: RegExp =
+  /^HUAWEI\s{1,4}([A-Za-z0-9][\w+-]{1,40})[ \t]*$/m;
 // Or the description's first line is the model itself: "S5720-28X-PWR-SI-AC".
-const HUAWEI_MODEL_FIRST_LINE: RegExp = /^([A-Za-z]{1,6}\d[\w+-]{1,40})[ \t]*(?:\n|$)/;
+const HUAWEI_MODEL_FIRST_LINE: RegExp =
+  /^([A-Za-z]{1,6}\d[\w+-]{1,40})[ \t]*(?:\n|$)/;
 
 // --- Palo Alto Networks ------------------------------------------------------
 
@@ -166,8 +169,10 @@ const DELL_OS10_MODEL: RegExp = /System Type:\s{0,4}([A-Za-z0-9][\w+-]{0,39})/;
 
 // --- Ubiquiti ----------------------------------------------------------------
 
-// "EdgeSwitch 24-Port Lite, 1.9.3.5089037, Linux 3.6.5-f4a26ed5, 0.0.00.0000"
-// "USW-24-PoE, 6.5.59.14773, Linux 3.6.5"
+/*
+ * "EdgeSwitch 24-Port Lite, 1.9.3.5089037, Linux 3.6.5-f4a26ed5, 0.0.00.0000"
+ * "USW-24-PoE, 6.5.59.14773, Linux 3.6.5"
+ */
 const UBIQUITI_SWITCH: RegExp =
   /^((?:EdgeSwitch|USW|US)\b[^,]{0,60}),\s{0,4}(\d[\d.]{1,30}),\s{0,4}Linux\b/;
 
@@ -331,7 +336,9 @@ const RULES: ReadonlyArray<SystemDescriptionRule> = [
     recognise: HUAWEI_VRP,
     read: (text: string): SystemDescriptionFacts => {
       const version: RegExpExecArray | null = HUAWEI_VERSION.exec(text);
-      const release: string | undefined = version ? fact(version[1]) : undefined;
+      const release: string | undefined = version
+        ? fact(version[1])
+        : undefined;
       const build: string | undefined = version ? fact(version[2]) : undefined;
 
       const modelLine: RegExpExecArray | null = HUAWEI_MODEL_LINE.exec(text);
@@ -340,7 +347,11 @@ const RULES: ReadonlyArray<SystemDescriptionRule> = [
 
       return {
         manufacturer: "Huawei",
-        model: modelLine ? fact(modelLine[1]) : firstLine ? fact(firstLine[1]) : undefined,
+        model: modelLine
+          ? fact(modelLine[1])
+          : firstLine
+            ? fact(firstLine[1])
+            : undefined,
         operatingSystem: "Huawei VRP",
         osVersion: release && build ? `${release} (${build})` : release,
       };

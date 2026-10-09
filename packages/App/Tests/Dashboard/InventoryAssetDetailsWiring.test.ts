@@ -110,7 +110,9 @@ describe("the CMDB page documents the asset details (issue #4569)", () => {
 
   test("it says an unreported fact reads Unknown, and that the list exports them", () => {
     expect(sectionOf(doc, "## Asset Details")).toContain("**Unknown**");
-    expect(doc).toContain("[asset detail](#asset-details) is a column there too");
+    expect(doc).toContain(
+      "[asset detail](#asset-details) is a column there too",
+    );
   });
 
   test("the host table lists the keys a host can now be stamped with", () => {
@@ -167,9 +169,9 @@ describe("the card's help links land on headings that exist", () => {
     "the %s link",
     (kind: InventoryAssetKind, folder: string, file: string) => {
       const url: string = INVENTORY_ASSET_HELP[kind].docsUrl;
-      expect(url.startsWith(`/docs/${folder}/${file.replace(".md", "")}#`)).toBe(
-        true,
-      );
+      expect(
+        url.startsWith(`/docs/${folder}/${file.replace(".md", "")}#`),
+      ).toBe(true);
 
       const anchor: string = url.split("#")[1]!;
       const doc: string = readDoc(folder, file);
@@ -233,8 +235,11 @@ describe("the card reads in every Dashboard language", () => {
         continue;
       }
       for (const sentence of sentences) {
-        expect({ locale, sentence, translated: entries[sentence] !== sentence })
-          .toEqual({ locale, sentence, translated: true });
+        expect({
+          locale,
+          sentence,
+          translated: entries[sentence] !== sentence,
+        }).toEqual({ locale, sentence, translated: true });
       }
     }
   });
@@ -246,7 +251,10 @@ describe("the card reads in every Dashboard language", () => {
   test("the unknown-count sentences are plural keys with a _one form", () => {
     const english: Dictionary<string> = all["en"]!;
 
-    for (const kind of [InventoryAssetKind.Host, InventoryAssetKind.NetworkDevice]) {
+    for (const kind of [
+      InventoryAssetKind.Host,
+      InventoryAssetKind.NetworkDevice,
+    ]) {
       const plural: { one: string; other: string } =
         INVENTORY_ASSET_HELP[kind].unknown;
       expect(english[plural.other]).toBe(plural.other);

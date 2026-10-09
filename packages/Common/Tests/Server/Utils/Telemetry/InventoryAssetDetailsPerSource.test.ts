@@ -1,3 +1,4 @@
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import InventoryItem from "../../../../Models/DatabaseModels/InventoryItem";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceRole from "../../../../Models/DatabaseModels/NetworkDeviceRole";
@@ -14,7 +15,10 @@ import OtelEntityExtractor, {
   EntityAttributes,
   ExtractedEntity,
 } from "../../../../Server/Utils/Telemetry/TelemetryEntity";
+import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
+import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
 import EntityType from "../../../../Types/Telemetry/EntityType";
 import {
   INVENTORY_ASSET_ATTRIBUTE_KEYS,
@@ -307,7 +311,8 @@ describe("a Linux host", () => {
     "host.ip": ["10.0.0.1", "10.0.0.2", "fe80::1"],
     "host.mac": ["02-42-AC-11-00-02", "00-00-00-00-00-00"],
     "os.type": "linux",
-    "os.description": "Ubuntu 24.04.1 LTS (Noble Numbat) (Linux web-01 6.8.0-1015-aws)",
+    "os.description":
+      "Ubuntu 24.04.1 LTS (Noble Numbat) (Linux web-01 6.8.0-1015-aws)",
     "os.version": "24.04",
     "cloud.provider": "aws",
     "cloud.region": "us-east-1",
@@ -446,6 +451,105 @@ describe("every source, one vocabulary", () => {
       expect({ field, inHost: attributeKey in hostBag }).toEqual({
         field,
         inHost: true,
+      });
+    }
+  });
+});
+
+/*
+ * The API: what `/api/inventory-item` hands a caller - a CMDB sync, or the
+ * Dashboard itself. The CRUD API serialises the rows it read with
+ * BaseModel.toJSONArray (Response.sendEntityArrayResponse) and the
+ * Dashboard parses them back with BaseModel.fromJSONArray (ModelAPI), so
+ * this runs a mirrored device and a discovered host through exactly that,
+ * across a JSON wire, and reads what arrives.
+ */
+describe("the API hands every caller the same asset facts", () => {
+  function overTheWire(item: InventoryItem): JSONObject {
+    const sent: JSONArray = BaseModel.toJSONArray([item], InventoryItem);
+    return (JSON.parse(JSON.stringify(sent)) as JSONArray)[0] as JSONObject;
+  }
+
+  function merakiItem(): InventoryItem {
+    const device: NetworkDevice = new NetworkDevice();
+    device.name = "UN0362WANRTR01";
+    device.hostname = "10.241.124.1";
+    device.sysName = "UN0362WANRTR01";
+    device.sysDescr = "Meraki MX85";
+    const item: InventoryItem = mirroredItem(device);
+    item.entityType = EntityType.NetworkDevice;
+    return item;
+  }
+
+  test("a CMDB sync reads a network device's facts under the documented keys", () => {
+    const wire: JSONObject = overTheWire(merakiItem());
+
+    expect(wire["entityType"]).toBe(EntityType.NetworkDevice);
+    expect(wire["descriptiveAttributes"]).toMatchObject({
+      [INVENTORY_ASSET_ATTRIBUTE_KEYS[InventoryAssetField.Hostname]]:
+        "UN0362WANRTR01",
+      [INVENTORY_ASSET_ATTRIBUTE_KEYS[InventoryAssetField.IpAddress]]:
+        "10.241.124.1",
+      [INVENTORY_ASSET_ATTRIBUTE_KEYS[InventoryAssetField.Manufacturer]]:
+        "Cisco Meraki",
+      [INVENTORY_ASSET_ATTRIBUTE_KEYS[InventoryAssetField.Model]]: "MX85",
+      [INVENTORY_ASSET_ATTRIBUTE_KEYS[InventoryAssetField.DeviceType]]:
+        "Firewall",
+    });
+  });
+
+  test("the Dashboard reads the same details from the API as the server stored", () => {
+    for (const item of [merakiItem(), discoveredHost(WINDOWS_RESOURCE)]) {
+      const parsed: InventoryItem = BaseModel.fromJSONArray(
+        [overTheWire(item)],
+        InventoryItem,
+      )[0]!;
+
+      expect(getInventoryAssetDetails(parsed)).toEqual(
+        getInventoryAssetDetails(item),
+      );
+      expect(getInventoryAssetDetails(parsed)).toBeDefined();
+    }
+  });
+
+  test("the order jsonb hands the keys back in changes nothing", () => {
+    const item: InventoryItem = merakiItem();
+    const bag: Record<string, unknown> = item.descriptiveAttributes || {};
+    const reordered: JSONObject = {};
+    for (const key of Object.keys(bag).sort((a: string, b: string) => {
+      return a.length - b.length || (a < b ? -1 : 1);
+    })) {
+      reordered[key] = bag[key] as string;
+    }
+    const readBack: InventoryItem = mirroredItem(new NetworkDevice());
+    readBack.entityType = EntityType.NetworkDevice;
+    readBack.descriptiveAttributes = reordered;
+
+    expect(getInventoryAssetDetails(readBack)).toEqual(
+      getInventoryAssetDetails(item),
+    );
+  });
+
+  /*
+   * The CMDB page tells a sync to use an API key with Read Telemetry
+   * Service. Every column the asset details read must be readable with it,
+   * or the sync's select is refused as a whole.
+   */
+  test("an API key with Read Telemetry Service may read every column the details read", () => {
+    const model: InventoryItem = new InventoryItem();
+    for (const column of [
+      "entityType",
+      "identifyingAttributes",
+      "descriptiveAttributes",
+    ]) {
+      const access: ColumnAccessControl | null =
+        model.getColumnAccessControlFor(column);
+      expect({
+        column,
+        readable: access?.read?.includes(Permission.ReadTelemetryService),
+      }).toEqual({
+        column,
+        readable: true,
       });
     }
   });

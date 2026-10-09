@@ -144,7 +144,9 @@ export interface InventorySourceSpec<
    * rows rather than once per row - a network device's type is named by its
    * project's device roles. Optional; most sources need nothing.
    */
-  loadPageContext?: ((rows: Array<TModel>) => Promise<TPageContext>) | undefined;
+  loadPageContext?:
+    | ((rows: Array<TModel>) => Promise<TPageContext>)
+    | undefined;
   /** Non-identifying metadata worth showing on the entity. */
   describe(row: TModel, context: TPageContext | undefined): Dictionary<string>;
 }

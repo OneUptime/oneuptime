@@ -368,7 +368,10 @@ describe("parseSystemDescription reads each platform's sysDescr (issue #4569)", 
   test.each([
     ["a FortiGate (whose sysDescr has no fixed shape)", "FortiGate-60F"],
     ["a Cisco wireless controller", "Cisco Controller"],
-    ["a Cisco small-business switch", "SG350-28 28-Port Gigabit Managed Switch"],
+    [
+      "a Cisco small-business switch",
+      "SG350-28 28-Port Gigabit Managed Switch",
+    ],
     ["a sentence", "Main office printer on the second floor"],
     ["Ubuntu, which only looks like a UniFi model", "Ubuntu 22.04.3"],
     ["a UniFi-looking prefix with more after it", "U6-Lite 6.6.55 beta"],
@@ -399,8 +402,9 @@ describe("parseSystemDescription reads each platform's sysDescr (issue #4569)", 
     ).toBe("BIG-IP");
     // A pfSense box names FreeBSD; it is read as pfSense.
     expect(
-      parseSystemDescription("pfSense fw 2.7.2-RELEASE FreeBSD 14.0-CURRENT amd64")
-        .operatingSystem,
+      parseSystemDescription(
+        "pfSense fw 2.7.2-RELEASE FreeBSD 14.0-CURRENT amd64",
+      ).operatingSystem,
     ).toBe("pfSense");
   });
 
@@ -416,13 +420,13 @@ describe("parseSystemDescription reads each platform's sysDescr (issue #4569)", 
       model: "mx480",
       operatingSystem: "Junos OS",
     });
-    expect(parseSystemDescription("Arista Networks EOS version 4.28.0F")).toEqual(
-      {
-        manufacturer: "Arista",
-        operatingSystem: "Arista EOS",
-        osVersion: "4.28.0F",
-      },
-    );
+    expect(
+      parseSystemDescription("Arista Networks EOS version 4.28.0F"),
+    ).toEqual({
+      manufacturer: "Arista",
+      operatingSystem: "Arista EOS",
+      osVersion: "4.28.0F",
+    });
   });
 
   test("a description with Cisco's CRLF line ends reads like one without", () => {
@@ -471,7 +475,10 @@ describe("parseSystemDescription stays fast on hostile input", () => {
     ["a long word", "a".repeat(200000)],
     ["Linux and a long host name", `Linux ${"h".repeat(200000)}`],
     ["an HP prefix with no revision", `HP ${"x".repeat(200000)}`],
-    ["a Huawei banner over many lines", `Huawei Versatile Routing Platform${"\n".repeat(50000)}`],
+    [
+      "a Huawei banner over many lines",
+      `Huawei Versatile Routing Platform${"\n".repeat(50000)}`,
+    ],
     ["dots and digits", "1.".repeat(100000)],
     ["UniFi-like with no version", `UAP${"-".repeat(200000)}`],
   ])("%s", (_name: string, value: string) => {

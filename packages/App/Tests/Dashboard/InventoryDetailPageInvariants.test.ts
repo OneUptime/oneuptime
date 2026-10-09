@@ -121,7 +121,9 @@ describe("the asset details card", () => {
   });
 
   test("shows an unknown fact as Unknown rather than leaving it out", () => {
-    expect(card).toContain("<PlaceholderText text={INVENTORY_ASSET_UNKNOWN} />");
+    expect(card).toContain(
+      "<PlaceholderText text={INVENTORY_ASSET_UNKNOWN} />",
+    );
   });
 
   test("renders nothing for a type that is not a machine", () => {

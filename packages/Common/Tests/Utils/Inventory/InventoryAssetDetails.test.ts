@@ -223,7 +223,8 @@ describe("getInventoryAssetDetails (issue #4569)", () => {
         entityType: EntityType.NetworkDevice,
         descriptiveAttributes: {
           "os.name": "Cisco IOS",
-          "os.description": "Cisco IOS Software, C2960 Software, Version 15.0(2)SE11",
+          "os.description":
+            "Cisco IOS Software, C2960 Software, Version 15.0(2)SE11",
         },
       },
     );
@@ -239,7 +240,9 @@ describe("getInventoryAssetDetails (issue #4569)", () => {
       getInventoryAssetValue(
         {
           entityType: EntityType.NetworkDevice,
-          descriptiveAttributes: { "os.description": "Linux fw01 5.10.0 x86_64" },
+          descriptiveAttributes: {
+            "os.description": "Linux fw01 5.10.0 x86_64",
+          },
         },
         InventoryAssetField.DeviceType,
       ),
@@ -251,18 +254,18 @@ describe("getInventoryAssetDetails (issue #4569)", () => {
       entityType: EntityType.Host,
       identifyingAttributes: { "host.name": "web-01" },
     });
-    const device: InventoryAssetDetails | undefined = getInventoryAssetDetails(
-      { entityType: EntityType.NetworkDevice },
-    );
+    const device: InventoryAssetDetails | undefined = getInventoryAssetDetails({
+      entityType: EntityType.NetworkDevice,
+    });
 
     expect(fieldsOf(host)).toEqual([...INVENTORY_ASSET_FIELDS]);
     expect(fieldsOf(device)).toEqual([...INVENTORY_ASSET_FIELDS]);
   });
 
   test("an asset with nothing reported still lists every fact, each unknown", () => {
-    const device: InventoryAssetDetails | undefined = getInventoryAssetDetails(
-      { entityType: EntityType.NetworkDevice },
-    );
+    const device: InventoryAssetDetails | undefined = getInventoryAssetDetails({
+      entityType: EntityType.NetworkDevice,
+    });
 
     expect(device?.unknownFields).toEqual([...INVENTORY_ASSET_FIELDS]);
     for (const detail of device?.details || []) {
@@ -271,15 +274,13 @@ describe("getInventoryAssetDetails (issue #4569)", () => {
   });
 
   test("optional facts follow the core ones, and only when known", () => {
-    const device: InventoryAssetDetails | undefined = getInventoryAssetDetails(
-      {
-        entityType: EntityType.NetworkDevice,
-        descriptiveAttributes: {
-          "net.device.dns_name": "core-sw-01.corp.example.com",
-          "os.description": "Cisco IOS Software",
-        },
+    const device: InventoryAssetDetails | undefined = getInventoryAssetDetails({
+      entityType: EntityType.NetworkDevice,
+      descriptiveAttributes: {
+        "net.device.dns_name": "core-sw-01.corp.example.com",
+        "os.description": "Cisco IOS Software",
       },
-    );
+    });
 
     expect(fieldsOf(device)).toEqual([
       ...INVENTORY_ASSET_FIELDS,
@@ -344,7 +345,10 @@ describe("getInventoryAssetDetails (issue #4569)", () => {
     };
 
     expect(
-      read({ "os.description": "Windows Server 2022 10.0", "os.name": "Windows" }),
+      read({
+        "os.description": "Windows Server 2022 10.0",
+        "os.name": "Windows",
+      }),
     ).toBe("Windows Server 2022 10.0");
     expect(read({ "os.name": "Ubuntu", "os.type": "linux" })).toBe("Ubuntu");
     expect(read({ "os.type": "darwin" })).toBe("macOS");
@@ -445,7 +449,9 @@ describe("the asset vocabulary", () => {
   });
 
   test("only hosts and network devices are asset kinds", () => {
-    expect(getInventoryAssetKind(EntityType.Host)).toBe(InventoryAssetKind.Host);
+    expect(getInventoryAssetKind(EntityType.Host)).toBe(
+      InventoryAssetKind.Host,
+    );
     expect(getInventoryAssetKind(EntityType.NetworkDevice)).toBe(
       InventoryAssetKind.NetworkDevice,
     );

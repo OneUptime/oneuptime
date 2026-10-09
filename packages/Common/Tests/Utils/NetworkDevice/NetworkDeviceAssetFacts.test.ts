@@ -112,7 +112,8 @@ describe("getNetworkDeviceAssetFacts (issue #4569)", () => {
 
   test("ENTITY-MIB wins over the sysDescr for every fact both know", () => {
     const facts: NetworkDeviceAssetFacts = getNetworkDeviceAssetFacts({
-      sysDescr: "Juniper Networks, Inc. ex2200-24t-4g Ethernet Switch, kernel JUNOS 12.3R6.6, Build date",
+      sysDescr:
+        "Juniper Networks, Inc. ex2200-24t-4g Ethernet Switch, kernel JUNOS 12.3R6.6, Build date",
       deviceModel: "EX2200-24T-4G",
       softwareVersion: "12.3R6.6-entity",
       vendor: "Juniper Networks",
@@ -179,13 +180,19 @@ describe("the hostname is the device's own name, never its IP address", () => {
 
   test("a device named only by its address has no hostname", () => {
     expect(
-      getNetworkDeviceHostname({ name: "10.241.124.1", hostname: "10.241.124.1" }),
+      getNetworkDeviceHostname({
+        name: "10.241.124.1",
+        hostname: "10.241.124.1",
+      }),
     ).toBeUndefined();
   });
 
   test("a sysName that is an IP address or a placeholder does not name it", () => {
     expect(
-      getNetworkDeviceHostname({ sysName: "10.241.124.1", hostname: "10.241.124.1" }),
+      getNetworkDeviceHostname({
+        sysName: "10.241.124.1",
+        hostname: "10.241.124.1",
+      }),
     ).toBeUndefined();
     expect(
       getNetworkDeviceHostname({ sysName: "localhost", hostname: "10.0.0.1" }),
@@ -255,7 +262,10 @@ describe("the hostname is the device's own name, never its IP address", () => {
   test("the record's own name is not mistaken for a hostname", () => {
     // A name a person typed is the item's title, not something the device reports.
     expect(
-      getNetworkDeviceHostname({ name: "Store 0362 WAN router", hostname: "10.0.0.1" }),
+      getNetworkDeviceHostname({
+        name: "Store 0362 WAN router",
+        hostname: "10.0.0.1",
+      }),
     ).toBeUndefined();
   });
 
@@ -274,9 +284,12 @@ describe("the IP address and DNS name are facts of their own", () => {
     ["core-sw-01.corp.example.com", undefined],
     ["core-sw-01", undefined],
     ["", undefined],
-  ])("polled at %p, the IP address is %p", (hostname: string, ip: string | undefined) => {
-    expect(getNetworkDeviceIpAddress({ hostname })).toBe(ip);
-  });
+  ])(
+    "polled at %p, the IP address is %p",
+    (hostname: string, ip: string | undefined) => {
+      expect(getNetworkDeviceIpAddress({ hostname })).toBe(ip);
+    },
+  );
 
   test("the stored DNS name wins over the polled address", () => {
     expect(
@@ -288,18 +301,22 @@ describe("the IP address and DNS name are facts of their own", () => {
   });
 
   test("a device polled by DNS name has that DNS name", () => {
-    expect(getNetworkDeviceDnsName({ hostname: "core-sw-01.corp.example.com" })).toBe(
-      "core-sw-01.corp.example.com",
-    );
+    expect(
+      getNetworkDeviceDnsName({ hostname: "core-sw-01.corp.example.com" }),
+    ).toBe("core-sw-01.corp.example.com");
   });
 
   test("an IP address is never a DNS name", () => {
     expect(getNetworkDeviceDnsName({ hostname: "10.0.0.1" })).toBeUndefined();
-    expect(getNetworkDeviceDnsName({ hostname: "2001:db8::1" })).toBeUndefined();
+    expect(
+      getNetworkDeviceDnsName({ hostname: "2001:db8::1" }),
+    ).toBeUndefined();
   });
 
   test("a polled value that is no DNS name at all is not one", () => {
-    expect(getNetworkDeviceDnsName({ hostname: "core switch <1>" })).toBeUndefined();
+    expect(
+      getNetworkDeviceDnsName({ hostname: "core switch <1>" }),
+    ).toBeUndefined();
   });
 
   test.each([
@@ -428,9 +445,9 @@ describe("the device type is the role the map draws", () => {
   });
 
   test("the address-based name convention still classifies it", () => {
-    expect(getNetworkDeviceType({ hostname: "10.0.0.9", name: "edge-fw01" })).toBe(
-      "Firewall",
-    );
+    expect(
+      getNetworkDeviceType({ hostname: "10.0.0.9", name: "edge-fw01" }),
+    ).toBe("Firewall");
   });
 });
 
@@ -456,7 +473,8 @@ describe("the location", () => {
 
   test("the site is a fact of its own", () => {
     expect(
-      getNetworkDeviceAssetFacts(merakiMx({ site: { name: "Store 0362" } })).site,
+      getNetworkDeviceAssetFacts(merakiMx({ site: { name: "Store 0362" } }))
+        .site,
     ).toBe("Store 0362");
   });
 });
