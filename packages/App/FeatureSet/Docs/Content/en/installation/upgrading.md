@@ -1063,6 +1063,28 @@ API, SSO, or the Slack and Microsoft Teams apps.
   Terraform do not change. See
   [Slack](/docs/workspace-connections/slack#creating-incidents-and-maintenance-from-slack)
   and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#creating-incidents-and-maintenance-from-microsoft-teams).
+- **Slack and Microsoft Teams buttons act as the OneUptime member who
+  presses them.** **Acknowledge**, **Resolve**, **Change State**, **Mark as
+  Ongoing**, **Mark as Complete**, **Add Note** and **Execute On-Call
+  Policy** on incidents, alerts, episodes and scheduled maintenance events,
+  and notes saved from a message with a reaction, now make the change the
+  dashboard makes for the same action, with the member's own permissions,
+  and credit it to them. A member who may not make that change in
+  OneUptime, a record outside their labels or of another project, and a
+  change the project's plan doesn't include are refused, and nothing
+  changes. Microsoft Teams' **Acknowledge** and **Resolve** used to need
+  permission to edit the incident or alert; like the dashboard's state
+  panel, they now need permission to change its state (**Create Incident
+  State Timeline**, **Create Alert State Timeline**), so look over custom
+  roles that hold one of the two and not the other. **Change State** lists
+  only the states the member may read. Teams' **Escalate** executes its
+  policy for the incident, alert or episode its card is about, and a card
+  about none of them is answered instead. Executing an archived on-call
+  policy, from a record's **Execute On-Call Policy** or through the API
+  too, pages no one, and its execution log says why, as declaring an
+  incident with one already did. See
+  [Slack](/docs/workspace-connections/slack#acting-on-incidents-alerts-and-events-from-slack)
+  and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#acting-on-incidents-alerts-and-events-from-microsoft-teams).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

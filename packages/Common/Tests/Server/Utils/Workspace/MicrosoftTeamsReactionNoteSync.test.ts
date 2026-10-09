@@ -62,8 +62,10 @@ import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
@@ -79,6 +81,12 @@ import {
 
 const projectId: ObjectID = ObjectID.generate();
 const oneUptimeUserId: ObjectID = ObjectID.generate();
+
+// The member's own props, as WorkspaceActionAuthorization.authorize builds them.
+const memberProps: DatabaseCommonInteractionProps = {
+  userId: oneUptimeUserId,
+  tenantId: projectId,
+};
 const incidentId: ObjectID = ObjectID.generate();
 
 const TEAM_ID: string = "team-graph-id";
@@ -570,7 +578,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
 
     authorizeSpy = jest
       .spyOn(WorkspaceActionAuthorization, "authorize")
-      .mockResolvedValue({ userId: oneUptimeUserId });
+      .mockResolvedValue(memberProps);
 
     saveSpy = jest
       .spyOn(WorkspaceReactionNote, "saveNote")
@@ -617,13 +625,15 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       resources: [{ service: IncidentService, id: incidentId }],
     });
 
+    // Saved with the member's own props: the note is theirs.
     expect(saveSpy).toHaveBeenCalledWith({
       resource: watchedChannel().resource,
       noteType: WorkspaceNoteType.Private,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       sourceMessageKey: `${CHANNEL_ID}:1700000000200`,
     });
+    expect(saveSpy.mock.calls[0]![0].props).toBe(memberProps);
 
     expect(replySpy).toHaveBeenCalledWith({
       projectId: projectId,
@@ -845,6 +855,98 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     expect(replySpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * The note is saved with the member's props, so its own create can still
+   * refuse it after the check above let them through: a label, a column,
+   * the plan. That is an answer, not a failure.
+   */
+  test.each([
+    [
+      "a permission",
+      new NotAuthorizedException(
+        "You do not have permission to create Incident Internal Note.",
+      ),
+    ],
+    [
+      "a value",
+      new BadDataException(
+        'This incident internal note references records that are not in this project: Incident "42".',
+      ),
+    ],
+    [
+      "the plan",
+      new PaymentRequiredException(
+        "Please upgrade your plan to Growth to access this feature",
+      ),
+    ],
+  ])(
+    "a save its own create refuses (%s) is told to the member in the thread, and not retried",
+    async (_what: string, refusal: Error) => {
+      saveSpy.mockRejectedValue(refusal);
+
+      await expect(
+        MicrosoftTeamsReactionNoteSync.processReaction({
+          channel: watchedChannel(),
+          reaction: noteReaction(),
+          now: NOW,
+        }),
+      ).resolves.toBe(MicrosoftTeamsReactionOutcome.Refused);
+
+      expect(replySpy).toHaveBeenCalledTimes(1);
+      expect(replySpy.mock.calls[0]![0].parentMessageId).toBe("1700000000100");
+      expect(replySpy.mock.calls[0]![0].text).toBe(
+        `Jane Doe, could not save the message as a note: ${refusal.message}`,
+      );
+      // A refusal is an answer: the claim is kept, so it is not tried again.
+      expect(releaseSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a refused save is explained without a name when Teams gave none", async () => {
+    saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ reactingUserName: undefined }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "Could not save the message as a note: No.",
+    );
+  });
+
+  test("the reply to a refused save shows the member's name as written, not as formatting", async () => {
+    saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ reactingUserName: "*Jane* [Doe]" }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "\\*Jane\\* \\[Doe\\], could not save the message as a note: No.",
+    );
+  });
+
+  test("an old reaction whose save is refused gets no reply, and is not retried either", async () => {
+    saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction({
+          reactedAt: new Date(NOW.getTime() - 60 * 60 * 1000),
+        }),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.Refused);
+
+    expect(replySpy).not.toHaveBeenCalled();
+    expect(releaseSpy).not.toHaveBeenCalled();
+  });
+
   test("a message with nothing to save is skipped", async () => {
     await expect(
       MicrosoftTeamsReactionNoteSync.processReaction({
@@ -874,6 +976,8 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       "microsoft-teams-reaction-note",
       claimSpy.mock.calls[0]![1],
     );
+    // Not a refusal: its text is for operators, not the thread.
+    expect(replySpy).not.toHaveBeenCalled();
   });
 
   test("an unexpected authorization failure is not mistaken for a refusal", async () => {

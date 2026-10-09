@@ -9,6 +9,7 @@ import {
 import type { TurnContext } from "botbuilder";
 import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
 import IncidentEpisodeInternalNoteService from "../../../../Server/Services/IncidentEpisodeInternalNoteService";
@@ -16,6 +17,7 @@ import IncidentInternalNoteService from "../../../../Server/Services/IncidentInt
 import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import ScheduledMaintenanceInternalNoteService from "../../../../Server/Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
@@ -45,12 +47,13 @@ import Permission, {
 } from "../../../../Types/Permission";
 
 /*
- * Teams cards used to reach services that write as root. Incident and alert
- * acknowledge / resolve already had a check (MicrosoftTeamsActionAuthorization
- * tests pin it); notes, on-call pages, episodes, monitors and scheduled
- * maintenance did not. The permission logic below is real; only persistence
- * is stubbed. The props are what handleBotInvokeActivity hands every handler
- * for a current project member.
+ * Every Teams card action is asked, before anything is read out or written,
+ * whether the member who pressed it may do it: notes, on-call pages,
+ * episodes, monitors and scheduled maintenance, as acknowledge and resolve
+ * (MicrosoftTeamsMemberActions.test.ts pins what each one then writes). The
+ * permission logic below is real; only persistence is stubbed. The props are
+ * what handleBotInvokeActivity hands every handler for a current project
+ * member.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -153,11 +156,12 @@ describe("Microsoft Teams incident notes and on-call pages", (): void => {
 
     expect(lookupSpy.mock.calls[0]![0].props).toBe(props);
     expect(addNoteSpy).toHaveBeenCalledTimes(1);
+    // Posted with the member's own props: the note is theirs.
     expect(addNoteSpy.mock.calls[0]![0]).toMatchObject({
       note: "Looking.",
-      userId: userId,
       projectId: projectId,
     });
+    expect(addNoteSpy.mock.calls[0]![0].props).toBe(props);
   });
 
   test("a read-only member cannot page an on-call policy", async (): Promise<void> => {
@@ -415,7 +419,7 @@ describe("Microsoft Teams scheduled maintenance", (): void => {
       {
         scheduledMaintenanceId: ObjectID.generate().toString(),
         note: "Starting.",
-        isPublic: false,
+        noteType: "private",
       },
       request,
       readOnlyProps,
@@ -528,22 +532,25 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
 
   test("a member who may not execute on-call policies cannot escalate one, and is told why", async (): Promise<void> => {
     const executeSpy: SpyInstance<
-      typeof OnCallDutyPolicyService.executePolicy
+      typeof OnCallDutyPolicyExecutionLogService.create
     > = jest
-      .spyOn(OnCallDutyPolicyService, "executePolicy")
-      .mockResolvedValue();
+      .spyOn(OnCallDutyPolicyExecutionLogService, "create")
+      .mockResolvedValue(new OnCallDutyPolicyExecutionLog());
     const turnContext: TurnContext = createTurnContext();
 
     await expect(
       MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
         actionType: MicrosoftTeamsOnCallDutyActionType.EscalateOnCall,
         turnContext: turnContext,
-        actionPayload: { onCallDutyPolicyId: ObjectID.generate().toString() },
+        actionPayload: {
+          onCallDutyPolicyId: ObjectID.generate().toString(),
+          incidentId: ObjectID.generate().toString(),
+        },
         projectId: projectId,
         databaseProps: readOnlyProps,
       }),
     ).rejects.toThrow(
-      "You do not have permission to execute this on-call policy.",
+      "You do not have permission to execute this on-call policy for this incident.",
     );
 
     expect(executeSpy).not.toHaveBeenCalled();
@@ -553,30 +560,72 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
 
   test("a member who may execute policies cannot escalate one outside their read, or of another project", async (): Promise<void> => {
     const executeSpy: SpyInstance<
-      typeof OnCallDutyPolicyService.executePolicy
+      typeof OnCallDutyPolicyExecutionLogService.create
     > = jest
-      .spyOn(OnCallDutyPolicyService, "executePolicy")
-      .mockResolvedValue();
+      .spyOn(OnCallDutyPolicyExecutionLogService, "create")
+      .mockResolvedValue(new OnCallDutyPolicyExecutionLog());
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(new Incident());
     const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> = jest
       .spyOn(OnCallDutyPolicyService, "findOneBy")
       .mockResolvedValue(null);
     const props: DatabaseCommonInteractionProps = createDatabaseProps([
       Permission.OnCallMember,
+      Permission.IncidentMember,
     ]);
 
     await expect(
       MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
         actionType: MicrosoftTeamsOnCallDutyActionType.EscalateOnCall,
         turnContext: createTurnContext(),
-        actionPayload: { onCallDutyPolicyId: ObjectID.generate().toString() },
+        actionPayload: {
+          onCallDutyPolicyId: ObjectID.generate().toString(),
+          incidentId: ObjectID.generate().toString(),
+        },
         projectId: projectId,
         databaseProps: props,
       }),
     ).rejects.toThrow(
-      "You do not have permission to execute this on-call policy: the",
+      "You do not have permission to execute this on-call policy for this incident: the on-call policy was not found in this project",
     );
 
     expect(findSpy.mock.calls[0]![0].props).toBe(props);
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member cannot escalate for an incident outside their read", async (): Promise<void> => {
+    const executeSpy: SpyInstance<
+      typeof OnCallDutyPolicyExecutionLogService.create
+    > = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "create")
+      .mockResolvedValue(new OnCallDutyPolicyExecutionLog());
+    // Outside their labels, or another project's: not found for them.
+    const incidentLookup: SpyInstance<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(null);
+    const props: DatabaseCommonInteractionProps = createDatabaseProps([
+      Permission.OnCallMember,
+      Permission.IncidentMember,
+    ]);
+
+    await expect(
+      MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
+        actionType: MicrosoftTeamsOnCallDutyActionType.EscalateOnCall,
+        turnContext: createTurnContext(),
+        actionPayload: {
+          onCallDutyPolicyId: ObjectID.generate().toString(),
+          incidentId: ObjectID.generate().toString(),
+        },
+        projectId: projectId,
+        databaseProps: props,
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to execute this on-call policy for this incident: the incident was not found in this project",
+    );
+
+    expect(incidentLookup.mock.calls[0]![0].props).toBe(props);
+    expect(incidentLookup.mock.calls[0]![0].query).toMatchObject({
+      projectId: projectId,
+    });
     expect(executeSpy).not.toHaveBeenCalled();
   });
 });

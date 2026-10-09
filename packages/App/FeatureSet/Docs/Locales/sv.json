@@ -110,7 +110,10 @@
   "navLinks": {
     "Getting Started": "Kom igång",
     "Moving from Opsgenie": "Byt från Opsgenie",
+    "Moving from PagerDuty": "Byt från PagerDuty",
     "Moving from incident.io": "Byt från incident.io",
+    "Moving from Splunk On-Call": "Byt från Splunk On-Call",
+    "Moving from Grafana OnCall": "Byt från Grafana OnCall",
     "Local Development": "Lokal utveckling",
     "Docker Compose": "Docker Compose",
     "Upgrading": "Uppgradering",

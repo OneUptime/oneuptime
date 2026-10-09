@@ -15,18 +15,18 @@ import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import IncidentPublicNoteService from "../../../../Services/IncidentPublicNoteService";
 import IncidentInternalNoteService from "../../../../Services/IncidentInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
-import IncidentStateService from "../../../../Services/IncidentStateService";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
-import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import MicrosoftTeamsActionAuthorization from "./Authorization";
 import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventStateOption,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
@@ -55,6 +55,10 @@ export interface MicrosoftTeamsNewIncidentFormChoices {
 }
 
 export default class MicrosoftTeamsIncidentActions {
+  // What a change-state card says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No incident states are available to you in this project. Ask a project admin for access to them.";
+
   @CaptureSpan()
   public static isIncidentAction(data: { actionType: string }): boolean {
     // Check if the action is related to incidents
@@ -100,20 +104,6 @@ export default class MicrosoftTeamsIncidentActions {
 
     try {
       switch (action.actionType) {
-        case MicrosoftTeamsIncidentActionType.AckIncident:
-          await this.acknowledgeIncident({
-            teamsRequest,
-            action,
-          });
-          break;
-
-        case MicrosoftTeamsIncidentActionType.ResolveIncident:
-          await this.resolveIncident({
-            teamsRequest,
-            action,
-          });
-          break;
-
         case MicrosoftTeamsIncidentActionType.ViewIncident:
           // This is handled by opening the URL directly
           break;
@@ -148,181 +138,6 @@ export default class MicrosoftTeamsIncidentActions {
   }
 
   @CaptureSpan()
-  private static async acknowledgeIncident(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const incidentId: string = data.action.actionValue || "";
-
-    if (!incidentId) {
-      logger.error("No incident ID provided for acknowledge action", {
-        projectId: data.teamsRequest.projectId.toString(),
-      });
-      return;
-    }
-
-    logger.debug("Acknowledging incident: " + incidentId, {
-      projectId: data.teamsRequest.projectId.toString(),
-      incidentId: incidentId,
-    });
-
-    try {
-      // Get the incident
-      const incident: Incident | null = await IncidentService.findOneBy({
-        query: {
-          _id: incidentId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentIncidentState: {
-            _id: true,
-            name: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!incident) {
-        logger.error("Incident not found: " + incidentId, {
-          projectId: data.teamsRequest.projectId.toString(),
-          incidentId: incidentId,
-        });
-        return;
-      }
-
-      /*
-       * Already acknowledged, or further along, by the one rule
-       * (Common/Utils/AcknowledgedState): a state placed after Acknowledged
-       * counts too, so it is not moved back up its list.
-       */
-      if (
-        await IncidentService.isIncidentAcknowledged({
-          incidentId: incident.id!,
-        })
-      ) {
-        logger.debug("Incident is already acknowledged", {
-          projectId: data.teamsRequest.projectId.toString(),
-          incidentId: incidentId,
-        });
-        return;
-      }
-
-      // Acknowledge the incident
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await IncidentService.acknowledgeIncident(
-        new ObjectID(incidentId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Incident acknowledged successfully", {
-        projectId: data.teamsRequest.projectId.toString(),
-        incidentId: incidentId,
-      });
-    } catch (error) {
-      logger.error("Error acknowledging incident:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        incidentId: incidentId,
-      });
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
-  private static async resolveIncident(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const incidentId: string = data.action.actionValue || "";
-
-    if (!incidentId) {
-      logger.error("No incident ID provided for resolve action", {
-        projectId: data.teamsRequest.projectId.toString(),
-      });
-      return;
-    }
-
-    logger.debug("Resolving incident: " + incidentId, {
-      projectId: data.teamsRequest.projectId.toString(),
-      incidentId: incidentId,
-    });
-
-    try {
-      // Get the incident
-      const incident: Incident | null = await IncidentService.findOneBy({
-        query: {
-          _id: incidentId,
-          projectId: data.teamsRequest.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          currentIncidentState: {
-            _id: true,
-            name: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!incident) {
-        logger.error("Incident not found: " + incidentId, {
-          projectId: data.teamsRequest.projectId.toString(),
-          incidentId: incidentId,
-        });
-        return;
-      }
-
-      /*
-       * Check if already resolved
-       * Resolved by the one rule (Common/Utils/ResolvedState).
-       */
-      if (
-        await IncidentService.isIncidentResolved({ incidentId: incident.id! })
-      ) {
-        logger.debug("Incident is already resolved", {
-          projectId: data.teamsRequest.projectId.toString(),
-          incidentId: incidentId,
-        });
-        return;
-      }
-
-      // Resolve the incident
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await IncidentService.resolveIncident(
-        new ObjectID(incidentId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Incident resolved successfully", {
-        projectId: data.teamsRequest.projectId.toString(),
-        incidentId: incidentId,
-      });
-    } catch (error) {
-      logger.error("Error resolving incident:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        incidentId: incidentId,
-      });
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
   public static async handleBotIncidentAction(data: {
     actionType: string;
     actionValue: string;
@@ -337,7 +152,6 @@ export default class MicrosoftTeamsIncidentActions {
       actionValue,
       value,
       projectId,
-      oneUptimeUserId,
       databaseProps,
       turnContext,
     } = data;
@@ -359,13 +173,19 @@ export default class MicrosoftTeamsIncidentActions {
         resources: [{ service: IncidentService, id: incidentId }],
       });
 
-      await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
-        incidentId: incidentId,
-        projectId: projectId,
+      /*
+       * Acknowledged by the member, as the dashboard acknowledges it for
+       * them (WorkspaceMemberActions). A refusal is theirs to read:
+       * handleBotInvokeActivity tells them.
+       */
+      await WorkspaceMemberActions.acknowledge({
+        event: {
+          type: WorkspaceEventType.Incident,
+          id: incidentId,
+        },
         props: databaseProps,
       });
 
-      await IncidentService.acknowledgeIncident(incidentId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Incident acknowledged.");
       return;
     }
@@ -387,13 +207,15 @@ export default class MicrosoftTeamsIncidentActions {
         resources: [{ service: IncidentService, id: incidentId }],
       });
 
-      await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
-        incidentId: incidentId,
-        projectId: projectId,
+      // Resolved by the member, as the dashboard resolves it for them.
+      await WorkspaceMemberActions.resolve({
+        event: {
+          type: WorkspaceEventType.Incident,
+          id: incidentId,
+        },
         props: databaseProps,
       });
 
-      await IncidentService.resolveIncident(incidentId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Incident resolved.");
       return;
     }
@@ -424,9 +246,8 @@ export default class MicrosoftTeamsIncidentActions {
           createdAt: true,
           declaredAt: true,
         },
-        props: {
-          isRoot: true,
-        },
+        // Read as the member: an incident they may not read is not shown.
+        props: databaseProps,
       });
 
       if (!incident) {
@@ -499,19 +320,20 @@ export default class MicrosoftTeamsIncidentActions {
           resources: [{ service: IncidentService, id: incidentId }],
         });
 
+        // Posted by the member, as the dashboard posts it for them.
         if (noteType === "public") {
           await IncidentPublicNoteService.addNote({
             incidentId: incidentId,
             note: note.toString(),
             projectId: projectId,
-            userId: oneUptimeUserId,
+            props: databaseProps,
           });
-        } else if (noteType === "private") {
+        } else {
           await IncidentInternalNoteService.addNote({
             incidentId: incidentId,
             note: note.toString(),
             projectId: projectId,
-            userId: oneUptimeUserId,
+            props: databaseProps,
           });
         }
 
@@ -611,9 +433,17 @@ export default class MicrosoftTeamsIncidentActions {
           ],
         });
 
-        await OnCallDutyPolicyService.executePolicy(policyId, {
-          triggeredByIncidentId: incidentId,
-          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        /*
+         * Executed by the member, as the dashboard's Execute On-Call Policy
+         * executes it for them: an execution log triggered by the incident.
+         */
+        await WorkspaceMemberActions.executeOnCallPolicy({
+          event: {
+            type: WorkspaceEventType.Incident,
+            id: incidentId,
+          },
+          onCallDutyPolicyId: policyId,
+          props: databaseProps,
         });
 
         await MicrosoftTeamsReplies.sendBestEffort(
@@ -648,11 +478,32 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      // Send the input card
-      const card: JSONObject = await this.buildChangeIncidentStateCard(
+      /*
+       * Asked as the submit asks it, before the card is shown, and the card
+       * then offers the states the member may read.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: IncidentStateTimeline,
+        action: "change the state of this incident",
+        resources: [
+          { service: IncidentService, id: new ObjectID(actionValue) },
+        ],
+      });
+
+      const card: JSONObject | null = await this.buildChangeIncidentStateCard(
         actionValue,
         projectId,
+        databaseProps,
       );
+
+      if (!card) {
+        await turnContext.sendActivity(
+          MicrosoftTeamsIncidentActions.NO_STATES_MESSAGE,
+        );
+        return;
+      }
+
       await turnContext.sendActivity({
         attachments: [
           {
@@ -688,11 +539,16 @@ export default class MicrosoftTeamsIncidentActions {
           resources: [{ service: IncidentService, id: incidentId }],
         });
 
-        await IncidentService.updateOneById({
-          id: incidentId,
-          data: {
-            currentIncidentStateId: new ObjectID(incidentStateId.toString()),
+        /*
+         * The state change the dashboard makes: a row in the incident's
+         * state timeline, created by the member (WorkspaceMemberActions).
+         */
+        await WorkspaceMemberActions.changeState({
+          event: {
+            type: WorkspaceEventType.Incident,
+            id: incidentId,
           },
+          stateId: new ObjectID(incidentStateId.toString()),
           props: databaseProps,
         });
 
@@ -1079,28 +935,34 @@ export default class MicrosoftTeamsIncidentActions {
     };
   }
 
+  /*
+   * The states the member may read, in the project's order; null when they
+   * may read none, for the caller to say so instead of an empty card.
+   */
   private static async buildChangeIncidentStateCard(
     incidentId: string,
     projectId: ObjectID,
-  ): Promise<JSONObject> {
-    const incidentStates: Array<IncidentState> =
-      await IncidentStateService.getAllIncidentStates({
+    props: DatabaseCommonInteractionProps,
+  ): Promise<JSONObject | null> {
+    const incidentStates: Array<WorkspaceEventStateOption> =
+      await WorkspaceMemberActions.findStateOptions({
+        type: WorkspaceEventType.Incident,
         projectId: projectId,
-        props: {
-          isRoot: true,
-        },
+        props: props,
       });
 
-    const choices: Array<{ title: string; value: string }> = incidentStates
-      .map((state: IncidentState) => {
+    if (incidentStates.length === 0) {
+      return null;
+    }
+
+    const choices: Array<{ title: string; value: string }> = incidentStates.map(
+      (state: WorkspaceEventStateOption) => {
         return {
-          title: state.name || "",
-          value: state._id?.toString() || "",
+          title: state.name,
+          value: state.id.toString(),
         };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
+      },
+    );
 
     return {
       type: "AdaptiveCard",

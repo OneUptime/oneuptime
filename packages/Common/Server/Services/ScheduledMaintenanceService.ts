@@ -3791,7 +3791,8 @@ ${FeedMarkdown.join(
    * its project's ongoing state or any state after it - a state of the
    * project's own placed after Ongoing ("Verifying") as much as Ended. What
    * stops the reminders of a rule set to stop once the event is ongoing, and
-   * what Slack's Mark as Ongoing refuses, with "already in ongoing state".
+   * what Slack's and Teams' Mark as Ongoing refuse ("already in ongoing
+   * state", or "already complete" once isScheduledMaintenanceCompleted).
    */
   @CaptureSpan()
   public async isScheduledMaintenanceOngoing(data: {
@@ -3822,127 +3823,6 @@ ${FeedMarkdown.join(
       scheduledMaintenanceEvent: scheduledMaintenance,
       statesByProjectId: new Map<string, Array<ScheduledMaintenanceState>>(),
     });
-  }
-
-  @CaptureSpan()
-  public async markScheduledMaintenanceAsComplete(
-    scheduledMaintenanceId: ObjectID,
-    resolvedByUserId: ObjectID,
-  ): Promise<Model> {
-    const scheduledMaintenance: Model | null = await this.findOneById({
-      id: scheduledMaintenanceId,
-      select: {
-        projectId: true,
-        scheduledMaintenanceNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
-      throw new BadDataException("ScheduledMaintenance not found.");
-    }
-
-    const scheduledMaintenanceState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          projectId: scheduledMaintenance.projectId,
-          isResolvedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
-      throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
-      );
-    }
-
-    const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
-      new ScheduledMaintenanceStateTimeline();
-    scheduledMaintenanceStateTimeline.projectId =
-      scheduledMaintenance.projectId;
-    scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
-      scheduledMaintenanceId;
-    scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
-      scheduledMaintenanceState.id;
-    scheduledMaintenanceStateTimeline.createdByUserId = resolvedByUserId;
-
-    await ScheduledMaintenanceStateTimelineService.create({
-      data: scheduledMaintenanceStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // store scheduledMaintenance metric
-
-    return scheduledMaintenance;
-  }
-
-  @CaptureSpan()
-  public async markScheduledMaintenanceAsOngoing(
-    scheduledMaintenanceId: ObjectID,
-    markedByUserId: ObjectID,
-  ): Promise<Model> {
-    const scheduledMaintenance: Model | null = await this.findOneById({
-      id: scheduledMaintenanceId,
-      select: {
-        projectId: true,
-        scheduledMaintenanceNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
-      throw new BadDataException("ScheduledMaintenance not found.");
-    }
-
-    // The project's ongoing state: where Mark as Ongoing moves an event.
-    const scheduledMaintenanceState: ScheduledMaintenanceState =
-      await ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState(
-        {
-          projectId: scheduledMaintenance.projectId,
-          props: {
-            isRoot: true,
-          },
-        },
-      );
-
-    if (!scheduledMaintenanceState.id) {
-      throw new BadDataException(
-        "Ongoing state not found for this project. Please add an ongoing state from settings.",
-      );
-    }
-
-    const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
-      new ScheduledMaintenanceStateTimeline();
-    scheduledMaintenanceStateTimeline.projectId =
-      scheduledMaintenance.projectId;
-    scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
-      scheduledMaintenanceId;
-    scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
-      scheduledMaintenanceState.id;
-    scheduledMaintenanceStateTimeline.createdByUserId = markedByUserId;
-
-    await ScheduledMaintenanceStateTimelineService.create({
-      data: scheduledMaintenanceStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // store scheduledMaintenance metric
-
-    return scheduledMaintenance;
   }
 
   @CaptureSpan()

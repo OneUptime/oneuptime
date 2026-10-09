@@ -110,7 +110,10 @@
   "navLinks": {
     "Getting Started": "شروع به کار",
     "Moving from Opsgenie": "انتقال از Opsgenie",
+    "Moving from PagerDuty": "انتقال از PagerDuty",
     "Moving from incident.io": "انتقال از incident.io",
+    "Moving from Splunk On-Call": "انتقال از Splunk On-Call",
+    "Moving from Grafana OnCall": "انتقال از Grafana OnCall",
     "Local Development": "توسعه محلی",
     "Docker Compose": "Docker Compose",
     "Upgrading": "ارتقا",

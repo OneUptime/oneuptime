@@ -94,6 +94,50 @@ describe("registerPushDevice carries the critical alert opt-in", () => {
     expect(body["deviceName"]).toBeDefined();
   });
 
+  /*
+   * A phone set up from a backup of the old one gets a new token while the
+   * app keeps its data: it says which token it had before, and the server
+   * moves the device registered with it, rules and all, to the new token.
+   */
+  test("says which token it had before, when it has one to say", async () => {
+    await registerPushDevice({
+      deviceToken: "ExponentPushToken[new]",
+      projectId: "project-1",
+      previousDeviceToken: "ExponentPushToken[old]",
+    });
+
+    expect(lastBody()["deviceToken"]).toBe("ExponentPushToken[new]");
+    expect(lastBody()["previousDeviceToken"]).toBe("ExponentPushToken[old]");
+  });
+
+  test("with no token before, the request is what it always was: no previousDeviceToken at all", async () => {
+    await registerPushDevice({
+      deviceToken: "ExponentPushToken[abc]",
+      projectId: "project-1",
+      isCriticalAlertEnabled: true,
+    });
+
+    expect(Object.keys(lastBody()).sort()).toEqual(
+      [
+        "deviceName",
+        "deviceToken",
+        "deviceType",
+        "isCriticalAlertEnabled",
+        "projectId",
+      ].sort(),
+    );
+  });
+
+  test("an empty token before is no token", async () => {
+    await registerPushDevice({
+      deviceToken: "ExponentPushToken[abc]",
+      projectId: "project-1",
+      previousDeviceToken: "",
+    });
+
+    expect("previousDeviceToken" in lastBody()).toBe(false);
+  });
+
   test('an "already registered" response is still treated as success', async () => {
     postSpy().mockRejectedValue({
       response: {

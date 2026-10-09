@@ -51,6 +51,10 @@ export enum ToolImportNoteCode {
   RotationScheduledChange = "RotationScheduledChange",
   RotationLayers = "RotationLayers",
   RotationNobody = "RotationNobody",
+  RotationOneOff = "RotationOneOff",
+  RotationApproximated = "RotationApproximated",
+  RotationTimezoneConverted = "RotationTimezoneConverted",
+  ScheduleFromCalendarLink = "ScheduleFromCalendarLink",
   PolicyFirstStepWaits = "PolicyFirstStepWaits",
   PolicyWaitsForClose = "PolicyWaitsForClose",
   PolicyNextOnCall = "PolicyNextOnCall",
@@ -65,6 +69,14 @@ export enum ToolImportNoteCode {
   PolicyFreePlanOneLevel = "PolicyFreePlanOneLevel",
   PolicyLevelLeftOut = "PolicyLevelLeftOut",
   PolicyUnknownTarget = "PolicyUnknownTarget",
+  PolicyWebhookStep = "PolicyWebhookStep",
+  PolicyRunsAnotherPolicy = "PolicyRunsAnotherPolicy",
+  PolicyResolvesAlert = "PolicyResolvesAlert",
+  PolicyEmailAddress = "PolicyEmailAddress",
+  PolicyUserGroup = "PolicyUserGroup",
+  PolicyDeclaresIncident = "PolicyDeclaresIncident",
+  PolicyConditionalStep = "PolicyConditionalStep",
+  PolicyScheduleNotRead = "PolicyScheduleNotRead",
   PersonLeftOut = "PersonLeftOut",
   TeamLeftOut = "TeamLeftOut",
   ScheduleLeftOut = "ScheduleLeftOut",
@@ -75,6 +87,7 @@ export enum ToolImportNoteCode {
   CouldNotRead = "CouldNotRead",
   ReadIncomplete = "ReadIncomplete",
   ReadLimitReached = "ReadLimitReached",
+  ShiftBasedSchedulesNotRead = "ShiftBasedSchedulesNotRead",
 }
 
 export type ToolImportNoteValue = string | number;

@@ -7,6 +7,12 @@ export async function registerPushDevice(params: {
   deviceToken: string;
   projectId: string;
   isCriticalAlertEnabled?: boolean;
+  /*
+   * The token this app had before `deviceToken`, when it changed: the
+   * server moves the device registered with it, rules and all, to the new
+   * token. A server older than this ignores it.
+   */
+  previousDeviceToken?: string | undefined;
 }): Promise<void> {
   const deviceType: string =
     Platform.OS === "ios"
@@ -29,6 +35,9 @@ export async function registerPushDevice(params: {
        * just joined.
        */
       isCriticalAlertEnabled: Boolean(params.isCriticalAlertEnabled),
+      ...(params.previousDeviceToken
+        ? { previousDeviceToken: params.previousDeviceToken }
+        : {}),
     });
     logger.info(
       `[PushNotifications] Device registered successfully for project ${params.projectId}`,

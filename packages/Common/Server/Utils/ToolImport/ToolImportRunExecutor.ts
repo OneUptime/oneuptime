@@ -8,10 +8,21 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import {
   getToolImportSourceDefinition,
+  isToolImportAddressGiven,
   resolveToolImportRegion,
+  ToolImportCredentialField,
   ToolImportRegion,
   ToolImportSourceDefinition,
 } from "../../../Types/ToolImport/ToolImportCatalog";
+import {
+  decodeToolImportCredentials,
+  encodeToolImportCredentials,
+  getToolImportSecrets,
+  isToolImportApiKeyId,
+  readToolImportApiUrl,
+  ToolImportApiAddress,
+  ToolImportCredentials,
+} from "../../../Types/ToolImport/ToolImportCredentials";
 import {
   TOOL_IMPORT_MAX_API_KEY_LENGTH,
   TOOL_IMPORT_MAX_REQUESTS,
@@ -40,13 +51,16 @@ import Semaphore, {
 } from "../../Infrastructure/Semaphore";
 import ToolImportRunService from "../../Services/ToolImportRunService";
 import CallerPlan from "../Billing/CallerPlan";
+import DataSourceEgressGuard from "../DataSource/EgressGuard";
 import logger from "../Logger";
 import { redactLogString } from "../LogRedaction";
 import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorization";
 import ToolImportAdapterRegistry from "./ToolImportAdapterRegistry";
 import ToolImportApplier, { toErrorMessage } from "./ToolImportApplier";
 import {
+  createToolImportAddressTransport,
   createToolImportTransport,
+  ToolImportSleep,
   ToolImportTransport,
 } from "./ToolImportHttpClient";
 import {
@@ -97,26 +111,72 @@ export interface ToolImportStartReadData {
   source: unknown;
   region: unknown;
   apiKey: unknown;
+  // Splunk On-Call's API ID; ignored for a tool that has none.
+  apiKeyId?: unknown;
+  // The tool's API address; ignored for a tool whose hosts are fixed.
+  apiUrl?: unknown;
+}
+
+export interface ToolImportReadRequest {
+  source: ToolImportSource;
+  region: ToolImportRegion;
+  apiKey: string;
+  apiKeyId?: string | undefined;
+  apiUrl?: string | undefined;
+}
+
+export interface ToolImportTransportOptions {
+  // The address is the one the person gave (not a fixed host of the tool).
+  isAddressGiven: boolean;
+  toolName: string;
+  // Whether a given address may be plain http.
+  allowHttp: boolean;
 }
 
 export default class ToolImportRunExecutor {
   /*
-   * The transport reads go through. Tests replace it; it is never a real
-   * network call in a test.
+   * The transport reads go through: the tool's fixed hosts, or - for a tool
+   * whose address the person gives - that host through the egress guard.
+   * Tests replace it; it is never a real network call in a test.
    */
   public static transportFactory: (
     hosts: Array<string>,
-  ) => ToolImportTransport = createToolImportTransport;
+    options?: ToolImportTransportOptions | undefined,
+  ) => ToolImportTransport = (
+    hosts: Array<string>,
+    options?: ToolImportTransportOptions | undefined,
+  ): ToolImportTransport => {
+    return options?.isAddressGiven
+      ? createToolImportAddressTransport({
+          allowedHosts: hosts,
+          toolName: options.toolName,
+          allowHttp: options.allowHttp,
+        })
+      : createToolImportTransport(hosts);
+  };
+
+  /*
+   * How a read waits - for a tool's pace, or when it says to slow down.
+   * Undefined: really waits. Tests replace it so they never wait.
+   */
+  public static readSleep: ToolImportSleep | undefined = undefined;
+
+  /*
+   * Whether an address a person gives may be plain http: only where the
+   * install may reach private networks at all (a self-hosted OneUptime on
+   * the person's own network). OneUptime Cloud sends a key over https only.
+   */
+  public static allowsPlainHttpAddress(): boolean {
+    return !DataSourceEgressGuard.shouldBlockPrivateAddresses();
+  }
 
   public static validateReadRequest(data: {
     source: unknown;
     region: unknown;
     apiKey: unknown;
-  }): {
-    source: ToolImportSource;
-    region: ToolImportRegion;
-    apiKey: string;
-  } {
+    apiKeyId?: unknown;
+    apiUrl?: unknown;
+  }): ToolImportReadRequest {
     if (!isToolImportSource(data.source)) {
       throw new BadDataException("Choose a tool to import from.");
     }
@@ -132,6 +192,37 @@ export default class ToolImportRunExecutor {
       throw new BadDataException(
         `Choose one of ${definition.title}'s regions.`,
       );
+    }
+
+    const request: ToolImportReadRequest = {
+      source: data.source,
+      region: region,
+      apiKey: "",
+    };
+
+    if (
+      definition.credentialFields.includes(ToolImportCredentialField.ApiUrl)
+    ) {
+      request.apiUrl = this.validateApiUrl(definition, data.apiUrl);
+    }
+
+    if (
+      definition.credentialFields.includes(ToolImportCredentialField.ApiKeyId)
+    ) {
+      const apiKeyId: string =
+        typeof data.apiKeyId === "string" ? data.apiKeyId.trim() : "";
+
+      if (!apiKeyId) {
+        throw new BadDataException(`Paste your ${definition.title} API ID.`);
+      }
+
+      if (!isToolImportApiKeyId(apiKeyId)) {
+        throw new BadDataException(
+          `That does not look like your ${definition.title} API ID. Paste the ID on its own.`,
+        );
+      }
+
+      request.apiKeyId = apiKeyId;
     }
 
     const apiKey: string =
@@ -150,17 +241,45 @@ export default class ToolImportRunExecutor {
       );
     }
 
-    return { source: data.source, region: region, apiKey: apiKey };
+    request.apiKey = apiKey;
+
+    return request;
+  }
+
+  /*
+   * A tool's API address as the person pasted it, cleaned, or a refusal
+   * that says what is wrong with it. Whether its host may be reached is the
+   * egress guard's to say when the read calls it.
+   */
+  private static validateApiUrl(
+    definition: ToolImportSourceDefinition,
+    value: unknown,
+  ): string {
+    if (typeof value !== "string" || !value.trim()) {
+      throw new BadDataException(`Paste your ${definition.title} API URL.`);
+    }
+
+    const address: ToolImportApiAddress | null = readToolImportApiUrl(value);
+
+    if (!address) {
+      throw new BadDataException(
+        `That does not look like your ${definition.title} API URL. Copy it from ${definition.title}'s settings.`,
+      );
+    }
+
+    if (!address.isHttps && !this.allowsPlainHttpAddress()) {
+      throw new BadDataException(
+        `The ${definition.title} API URL must start with https://.`,
+      );
+    }
+
+    return address.url;
   }
 
   public static async startRead(
     data: ToolImportStartReadData,
   ): Promise<ObjectID> {
-    const request: {
-      source: ToolImportSource;
-      region: ToolImportRegion;
-      apiKey: string;
-    } = this.validateReadRequest(data);
+    const request: ToolImportReadRequest = this.validateReadRequest(data);
 
     const lock: SemaphoreMutex = await Semaphore.lock({
       namespace: "ToolImportAdmission",
@@ -186,7 +305,11 @@ export default class ToolImportRunExecutor {
       }
 
       run.status = ToolImportRunStatus.Reading;
-      run.apiKey = request.apiKey;
+      run.apiKey = encodeToolImportCredentials(request.source, {
+        apiKey: request.apiKey,
+        apiKeyId: request.apiKeyId,
+        apiUrl: request.apiUrl,
+      });
       run.createdByUserId = data.userId;
       run.progress = { done: 0, total: 0 };
 
@@ -390,22 +513,45 @@ export default class ToolImportRunExecutor {
   }
 
   private static async read(run: ToolImportRun): Promise<void> {
-    const apiKey: string = run.apiKey || "";
+    const credentials: ToolImportCredentials | null =
+      decodeToolImportCredentials(run.source!, run.apiKey);
 
     try {
       const definition: ToolImportSourceDefinition =
         getToolImportSourceDefinition(run.source!);
 
-      if (!apiKey) {
+      if (!credentials) {
         throw new BadDataException(
           "The API key is no longer here. Paste it again to read the tool.",
         );
       }
 
+      const isAddressGiven: boolean = isToolImportAddressGiven(definition);
+      let hosts: Array<string> = definition.hosts;
+
+      if (isAddressGiven) {
+        const address: ToolImportApiAddress | null = readToolImportApiUrl(
+          credentials.apiUrl,
+        );
+
+        if (!address) {
+          throw new BadDataException(
+            `The ${definition.title} API URL is no longer here. Read the tool again.`,
+          );
+        }
+
+        hosts = [address.hostname];
+      }
+
       const progress: ProgressWriter = new ProgressWriter(run.id!);
 
       const context: ToolImportReadContext = {
-        transport: this.transportFactory(definition.hosts),
+        transport: this.transportFactory(hosts, {
+          isAddressGiven: isAddressGiven,
+          toolName: definition.title,
+          allowHttp: this.allowsPlainHttpAddress(),
+        }),
+        sleep: this.readSleep,
         maxRequests: TOOL_IMPORT_MAX_REQUESTS,
         deadlineAt: Date.now() + TOOL_IMPORT_READ_TIMEOUT_MS,
         onProgress: async (kind: ToolImportResourceKind): Promise<void> => {
@@ -417,7 +563,9 @@ export default class ToolImportRunExecutor {
         await ToolImportAdapterRegistry.getAdapter(run.source!).read(
           {
             source: run.source!,
-            apiKey: apiKey,
+            apiKey: credentials.apiKey,
+            apiKeyId: credentials.apiKeyId,
+            apiUrl: credentials.apiUrl,
             region: run.region || "",
           },
           context,
@@ -436,9 +584,13 @@ export default class ToolImportRunExecutor {
         props: { isRoot: true },
       });
     } catch (error) {
-      await this.fail(run.id!, this.describeFailure(error, apiKey), {
-        clearSnapshot: true,
-      });
+      await this.fail(
+        run.id!,
+        this.describeFailure(error, getToolImportSecrets(credentials)),
+        {
+          clearSnapshot: true,
+        },
+      );
     }
   }
 
@@ -774,14 +926,19 @@ export default class ToolImportRunExecutor {
 
   /*
    * What a person reads when a run fails: the failure's own message, with
-   * the key cut out (the HTTP client already does; this is the last line)
-   * and the log redaction applied.
+   * the key - and its ID - cut out (the HTTP client already does; this is
+   * the last line) and the log redaction applied.
    */
-  public static describeFailure(error: unknown, apiKey: string): string {
+  public static describeFailure(
+    error: unknown,
+    secrets: string | Array<string>,
+  ): string {
     let message: string = toErrorMessage(error);
 
-    if (apiKey && apiKey.length >= 4) {
-      message = message.split(apiKey).join("[REDACTED]");
+    for (const secret of Array.isArray(secrets) ? secrets : [secrets]) {
+      if (secret && secret.length >= 4) {
+        message = message.split(secret).join("[REDACTED]");
+      }
     }
 
     return redactLogString(message);
