@@ -1250,10 +1250,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     let move: RuleMove | null = null;
 
-    if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
+    // The one row an update names by its id is the one it moves.
+    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
+
+    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
       const resource: Model | null = await this.findOneBy({
         query: {
-          _id: updateBy.query._id!,
+          _id: movedId,
         },
         props: {
           isRoot: true,

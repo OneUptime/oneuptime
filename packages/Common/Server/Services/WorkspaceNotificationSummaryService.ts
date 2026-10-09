@@ -51,7 +51,6 @@ import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/No
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import WorkspaceSummaryScheduleUtil, {
   WorkspaceSummaryScheduleColumns,
@@ -276,22 +275,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       return { updateBy: updateBy, carryForward: null };
     }
 
-    const summaries: Array<WorkspaceNotificationSummary> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const summaries: Array<WorkspaceNotificationSummary> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         recurringInterval: true,
         sendFirstReportAt: true,
         nextSendAt: true,
         isEnabled: true,
         timezone: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-    });
+      });
 
     const now: Date = OneUptimeDate.getCurrentDate();
 

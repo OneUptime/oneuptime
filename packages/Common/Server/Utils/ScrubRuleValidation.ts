@@ -1,5 +1,4 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
   checkScrubRuleCustomRegex,
@@ -8,7 +7,6 @@ import {
   ScrubRuleCustomRegexCheck,
   ScrubRuleCustomRegexProblem,
 } from "../../Types/Telemetry/ScrubRule";
-import FindBy from "../Types/Database/FindBy";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { isSqlExpressionValue } from "./DropFilterValidation";
@@ -169,10 +167,10 @@ export function validateScrubRuleCreate(
  * is stored.
  *
  * The services call this from onBeforeUpdateUniqueCheck, which runs once the
- * caller has passed the permission checks, with the query already narrowed to
- * the rows they may write - so the rows read here, as root, are never another
- * project's, and a refusal never tells a caller about a rule they may not
- * see. The rows are read only when the update touches a column that decides
+ * caller has passed the permission checks: the rows read here, as root, are
+ * the ones the update writes - those the caller may write - and the update is
+ * held to them, so they are never another project's, a refusal never tells a
+ * caller about a rule they may not see, and no rule is written unchecked. The rows are read only when the update touches a column that decides
  * whether the rule scrubs anything, so renaming a rule, switching it off or
  * dragging it to another place in the list costs no read - and is never held
  * up by a rule that was saved broken before this check existed.
@@ -181,8 +179,13 @@ export async function validateScrubRuleUpdate<
   TModel extends BaseModel & ScrubRuleCandidate,
 >(data: {
   updateBy: UpdateBy<TModel>;
-  // The service's own findBy.
-  findBy: (findBy: FindBy<TModel>) => Promise<Array<TModel>>;
+  /*
+   * The service's own findRowsAndHoldUpdateToThem for this update: the rows
+   * it writes, with the update held to them.
+   */
+  findRowsAndHoldUpdateToThem: (
+    select: Select<TModel>,
+  ) => Promise<Array<TModel>>;
   options: ScrubRuleValidationOptions;
 }): Promise<void> {
   const incoming: ScrubRuleCandidate = {
@@ -212,20 +215,12 @@ export async function validateScrubRuleUpdate<
     return;
   }
 
-  const storedRows: Array<TModel> = await data.findBy({
-    query: data.updateBy.query,
-    skip: 0,
-    limit: LIMIT_MAX,
-    select: {
-      _id: true,
-      patternType: true,
-      customRegex: true,
-      fieldsToScrub: true,
-    } as Select<TModel>,
-    props: {
-      isRoot: true,
-    },
-  });
+  const storedRows: Array<TModel> = await data.findRowsAndHoldUpdateToThem({
+    _id: true,
+    patternType: true,
+    customRegex: true,
+    fieldsToScrub: true,
+  } as Select<TModel>);
 
   for (const stored of storedRows) {
     const merged: ScrubRuleCandidate = {

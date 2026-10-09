@@ -5,7 +5,6 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import {
   getRunbookRuleCriteriaProblem,
   RUNBOOK_RULE_CRITERIA_FIELDS,
@@ -64,25 +63,14 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    /*
-     * onBeforeUpdate runs before the framework scopes the query to the
-     * caller's project, so scope the read here.
-     */
-    const rules: Array<Model> = await this.findBy({
-      query: {
-        ...updateBy.query,
-        ...(updateBy.props.tenantId
-          ? { projectId: updateBy.props.tenantId }
-          : {}),
-      },
-      select: {
+    // The rules the update writes, and the update held to them.
+    const rules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         triggerEntityType: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
 
     for (const rule of rules) {
       this.assertCriteriaFitTrigger({

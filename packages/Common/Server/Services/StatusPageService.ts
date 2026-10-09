@@ -1352,18 +1352,11 @@ export class Service extends ProjectReferencesService<StatusPage> {
     // is enabling SMS subscribers.
 
     if (updateBy.data.enableSmsSubscribers) {
-      const statusPagesToBeUpdated: Array<StatusPage> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const statusPagesToBeUpdated: Array<StatusPage> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-      });
+        });
 
       for (const statusPage of statusPagesToBeUpdated) {
         const isSMSEnabled: boolean =
@@ -1424,21 +1417,14 @@ export class Service extends ProjectReferencesService<StatusPage> {
       throw new BadDataException(problem);
     }
 
-    const statusPages: Array<StatusPage> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const statusPages: Array<StatusPage> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         isReportEnabled: true,
         reportStartDateTime: true,
         reportRecurringInterval: true,
         reportTimezone: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-    });
+      });
 
     const now: Date = OneUptimeDate.getCurrentDate();
 

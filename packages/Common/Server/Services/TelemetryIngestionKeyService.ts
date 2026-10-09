@@ -1,6 +1,5 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -13,7 +12,6 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import TelemetryIngestionKeyPolicy from "../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
 import OriginAllowList from "../../Utils/Telemetry/OriginAllowList";
@@ -294,16 +292,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (IsBillingEnabled && data["isEnabled"] === true) {
-      const keys: Array<Model> = await this.findBy({
-        query:
-          !updateBy.props.isRoot && updateBy.props.tenantId
-            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-            : updateBy.query,
-        select: { projectId: true },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      const keys: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        { projectId: true },
+      );
       const checkedProjects: Set<string> = new Set<string>();
 
       for (const key of keys) {
@@ -847,33 +839,22 @@ export class Service extends DatabaseService<Model> {
    * be read. Only _id and keyType are selected; nothing here needs anything
    * else.
    *
-   * The read runs as root because it is a policy check, not a data return: it
-   * must see every row the update will actually touch, including ones the
-   * caller could not read. The caller's tenant is still applied when the query
-   * does not name a project itself, so a broad query cannot be tricked into
-   * failing this check because of some other project's key.
+   * The read runs as root because it is a policy check, not a data return.
+   * The rows are the ones the update writes, and the update is held to them
+   * (findRowsAndHoldUpdateToThem): the check sees every row the write
+   * touches and no other, so a broad query is never failed by another
+   * project's key, and never writes a key the check did not see.
    */
   private async assertNoBrowserKeyIsBeingUpdated(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const query: Query<Model> = { ...updateBy.query };
-
-    if (!query.projectId && updateBy.props.tenantId) {
-      query.projectId = updateBy.props.tenantId;
-    }
-
-    const affectedKeys: Array<Model> = await this.findBy({
-      query: query,
-      select: {
+    const affectedKeys: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         keyType: true,
       },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-    });
+    );
 
     for (const affectedKey of affectedKeys) {
       if (affectedKey.keyType === TelemetryIngestionKeyType.Browser) {

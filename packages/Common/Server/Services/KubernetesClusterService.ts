@@ -496,7 +496,7 @@ export class Service extends ProjectReferencesService<Model> {
        */
       const projectIds: Array<ObjectID> = updateBy.props.tenantId
         ? [updateBy.props.tenantId]
-        : await this.getProjectIdsForUpdateQuery(updateBy);
+        : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
       const loaded: AiAccessBindingRows = {
         runners: new Map<string, Runner>(),
@@ -988,14 +988,9 @@ export class Service extends ProjectReferencesService<Model> {
       withKubernetesAiAgent: boolean;
     } = { withKubernetesAiAgent: false },
   ): Promise<Record<string, AiAccessSettingsSnapshot>> {
-    const clusters: Array<Model> = await this.findBy({
-      query: {
-        ...updateBy.query,
-        ...(updateBy.props.tenantId
-          ? { projectId: updateBy.props.tenantId }
-          : {}),
-      },
-      select: {
+    const clusters: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         clusterIdentifier: true,
@@ -1006,12 +1001,7 @@ export class Service extends ProjectReferencesService<Model> {
         aiAccessCredentialId: true,
         aiAccessConfiguredAt: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const settings: Record<string, AiAccessSettingsSnapshot> = {};
 
@@ -1406,33 +1396,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return credential;
-  }
-
-  @CaptureSpan()
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const clusters: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Record<string, ObjectID> = {};
-
-    for (const cluster of clusters) {
-      if (cluster.projectId) {
-        projectIds[cluster.projectId.toString()] = cluster.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()

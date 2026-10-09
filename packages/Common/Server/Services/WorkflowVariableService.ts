@@ -4,7 +4,6 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -682,13 +681,8 @@ export class Service extends ProjectReferencesService<Model> {
      * this caller cannot read - read access is label-gated - and a count that
      * cannot see it reports zero and waves the duplicate through.
      */
-    const tenantId: ObjectID | undefined = updateBy.props.tenantId;
-
-    const itemsBeingUpdated: Array<Model> = await this.findBy({
-      query: tenantId
-        ? { ...updateBy.query, projectId: tenantId }
-        : updateBy.query,
-      select: {
+    const itemsBeingUpdated: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         name: true,
         isSecret: true,
@@ -703,13 +697,7 @@ export class Service extends ProjectReferencesService<Model> {
         oauthScope: true,
         oauthAdditionalParameters: true,
         oauthClientAuthenticationMethod: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     if (isDeclassifying) {
       for (const item of itemsBeingUpdated) {

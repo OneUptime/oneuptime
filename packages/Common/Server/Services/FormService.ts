@@ -9,7 +9,6 @@ import ProjectService, { CurrentPlan } from "./ProjectService";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -356,20 +355,15 @@ export class Service extends DatabaseService<Model> {
         },
       )
     ) {
-      const forms: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const forms: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           projectId: true,
           logoFileId: true,
           faviconFileId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       /*
        * Hooks run before the permission layer narrows the update to the
@@ -427,21 +421,16 @@ export class Service extends DatabaseService<Model> {
      * drops it the next time the template is saved - refusing would keep an
      * admin from editing the questions until every template was redone.
      */
-    const forms: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const forms: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         targetType: true,
         fields: true,
         targetSettings: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const form of forms) {
       const targetType: FormTargetType = changesTarget

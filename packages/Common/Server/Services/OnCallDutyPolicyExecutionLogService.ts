@@ -456,10 +456,15 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    // if status is updtaed then check if this on-call is related to the incident, if yes, then add to incident feed.
-    if (onUpdate.updateBy.data.status && onUpdate.updateBy.query._id) {
-      const id: ObjectID = onUpdate.updateBy.query._id! as ObjectID;
+    /*
+     * if status is updtaed then check if this on-call is related to the incident, if yes, then add to incident feed.
+     * The one execution log an update names by its id.
+     */
+    const id: ObjectID | null = Service.getOneRowIdNamedBy(
+      onUpdate.updateBy.query,
+    );
 
+    if (onUpdate.updateBy.data.status && id) {
       const onCalldutyPolicyExecutionLog: Model | null = await this.findOneById(
         {
           id: id,

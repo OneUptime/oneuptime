@@ -6819,9 +6819,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The rows an update is about to write, read as OneUptime with `select`,
-   * for a check a service's onBeforeUpdate makes of them - and the update
-   * held to those very rows, so its write never reaches a row the check did
-   * not see.
+   * for a check a hook makes of them - and the update held to those very
+   * rows, so its write never reaches a row the check did not see.
    *
    * They are the rows the caller may write. Before the hooks the update path
    * read them with the caller's permissions, in the update's own window
@@ -6834,14 +6833,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * window, pinned to the request's project, since hooks run before the
    * framework scopes the update.
    *
+   * A relation is read by the rows' ids alone: read with the update's own
+   * query, a condition that query sets on the relation would leave out the
+   * part of it the condition does not match, and the check would judge a
+   * row by less than it holds.
+   *
    * The update then names the rows read, in the shapes its hooks already
    * read (pinQueryToRows), and by their ids even where those leave a query
    * over several rows without one: the write covers exactly the rows the
    * check saw, where a window read a second time need not hold the same
-   * rows. With no rows read the update is left as it is: it writes nothing
-   * either way, as what it writes is a part of what was read.
+   * rows. A later call for the same update - a second check, a hook of a
+   * subclass - reads within the rows an earlier one held it to. With no
+   * rows read the update is held to none: what it writes is a part of what
+   * was read.
+   *
+   * Every hook that judges an update by the rows it writes reads them here
+   * (UpdateChecksReadHeldRows, Common Tests, holds every hook to this).
    */
-  protected async findRowsAndHoldUpdateToThem(
+  public async findRowsAndHoldUpdateToThem(
     updateBy: UpdateBy<TBaseModel>,
     select: Select<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
@@ -6871,50 +6880,165 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       callerMayWrite = rowsTheCallerMayWrite.get(updateBy) || [];
-
-      if (callerMayWrite.length === 0) {
-        return [];
-      }
     }
 
-    const rows: Array<TBaseModel> = callerMayWrite
-      ? await this.findBy({
-          query: pinToProject({
-            ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
-            _id:
-              callerMayWrite.length === 1
-                ? callerMayWrite[0]!
-                : QueryHelper.any(callerMayWrite),
-          } as Query<TBaseModel>),
-          select: { ...select, _id: true } as Select<TBaseModel>,
-          skip: 0,
-          limit: callerMayWrite.length,
-          props: { isRoot: true, ignoreHooks: true },
-        })
-      : await this.findBy({
-          query: Array.isArray(updateBy.query)
-            ? (updateBy.query.map(
-                (each: Query<TBaseModel>): Query<TBaseModel> => {
-                  return pinToProject(each);
-                },
-              ) as unknown as Query<TBaseModel>)
-            : pinToProject(updateBy.query),
-          select: { ...select, _id: true } as Select<TBaseModel>,
-          skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
-          limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
-          props: { isRoot: true, ignoreHooks: true },
-        });
+    // A relation is read by the rows' ids alone. See above.
+    const readsRelations: boolean = Object.values(
+      select as Dictionary<unknown>,
+    ).some((value: unknown): boolean => {
+      return typeof value === "object" && value !== null;
+    });
 
-    const rowIds: Array<string> = [];
+    const rowSelect: Select<TBaseModel> = {
+      ...(readsRelations ? {} : select),
+      _id: true,
+    } as Select<TBaseModel>;
+
+    let rows: Array<TBaseModel> = [];
+
+    if (!callerMayWrite) {
+      rows = await this.findBy({
+        query: Array.isArray(updateBy.query)
+          ? (updateBy.query.map(
+              (each: Query<TBaseModel>): Query<TBaseModel> => {
+                return pinToProject(each);
+              },
+            ) as unknown as Query<TBaseModel>)
+          : pinToProject(updateBy.query),
+        select: rowSelect,
+        skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
+        limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+    } else if (callerMayWrite.length > 0) {
+      rows = await this.findBy({
+        query: pinToProject({
+          ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
+          _id: DatabaseService.idsCondition(callerMayWrite),
+        } as Query<TBaseModel>),
+        select: rowSelect,
+        skip: 0,
+        limit: callerMayWrite.length,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+    }
+
+    if (readsRelations && rows.length > 0) {
+      const readIds: Array<string> = DatabaseService.getRowIds(rows);
+
+      rows = await this.findBy({
+        query: pinToProject({
+          _id: DatabaseService.idsCondition(readIds),
+        } as Query<TBaseModel>),
+        select: { ...select, _id: true } as Select<TBaseModel>,
+        skip: 0,
+        limit: readIds.length,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+    }
+
+    const rowIds: Array<string> = DatabaseService.getRowIds(rows);
+
+    this.holdUpdateToRows(updateBy, rowIds);
+
+    if (callerMayWrite) {
+      // What a later call for this update reads within.
+      rowsTheCallerMayWrite.set(updateBy, rowIds);
+    }
+
+    return rows;
+  }
+
+  /*
+   * The projects of the rows an update writes, each once - for a check an
+   * update makes once per project when its request names no project
+   * (OneUptime's own update, or a master admin's) - with the update held to
+   * those rows (findRowsAndHoldUpdateToThem). None for a model with no
+   * project.
+   */
+  public async findProjectsOfRowsAndHoldUpdateToThem(
+    updateBy: UpdateBy<TBaseModel>,
+  ): Promise<Array<ObjectID>> {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (!tenantColumn) {
+      return [];
+    }
+
+    const rows: Array<TBaseModel> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      { [tenantColumn]: true } as Select<TBaseModel>,
+    );
+
+    const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
 
     for (const row of rows) {
-      if (row._id) {
-        rowIds.push(row._id.toString());
+      const projectId: unknown = (row as unknown as Dictionary<unknown>)[
+        tenantColumn
+      ];
+
+      if (!projectId) {
+        continue;
       }
+
+      const id: ObjectID =
+        projectId instanceof ObjectID
+          ? projectId
+          : new ObjectID(String(projectId));
+
+      projectIds.set(id.toString().toLowerCase(), id);
     }
 
+    return Array.from(projectIds.values());
+  }
+
+  /*
+   * The one row an update's query names by a plain id - a string or an
+   * ObjectID - or null when it names its rows some other way: by "any of"
+   * them (as findRowsAndHoldUpdateToThem holds an update to several rows),
+   * or not by id at all. A hook that acts on a single row reads its id with
+   * this, so an update of several rows is never taken for one of them.
+   */
+  public static getOneRowIdNamedBy(query: unknown): ObjectID | null {
+    if (!query || typeof query !== "object" || Array.isArray(query)) {
+      return null;
+    }
+
+    const id: unknown = (query as Dictionary<unknown>)["_id"];
+
+    if (id instanceof ObjectID) {
+      return id;
+    }
+
+    if (typeof id === "string" && id.trim()) {
+      return new ObjectID(id);
+    }
+
+    return null;
+  }
+
+  /*
+   * Holds an update to `rowIds` (findRowsAndHoldUpdateToThem): its query
+   * names them - in the shapes its hooks already read (pinQueryToRows), and
+   * by their ids where those leave a query over several rows without one -
+   * in a window that covers just them. With none, it names none.
+   */
+  private holdUpdateToRows(
+    updateBy: UpdateBy<TBaseModel>,
+    rowIds: Array<string>,
+  ): void {
+    const query: Dictionary<unknown> = Array.isArray(updateBy.query)
+      ? {}
+      : (updateBy.query as Dictionary<unknown>);
+
     if (rowIds.length === 0) {
-      return rows;
+      updateBy.query = {
+        ...query,
+        _id: DatabaseService.idsCondition([]),
+      } as Query<TBaseModel>;
+      updateBy.skip = 0;
+
+      return;
     }
 
     const pinned: PinnedQuery<TBaseModel> | null = this.pinQueryToRows(
@@ -6927,13 +7051,29 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       pinned && pinned.namesTheRows
         ? pinned.query
         : ({
-            ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
-            _id: rowIds.length === 1 ? rowIds[0]! : QueryHelper.any(rowIds),
+            ...query,
+            _id: DatabaseService.idsCondition(rowIds),
           } as Query<TBaseModel>);
     updateBy.skip = 0;
     updateBy.limit = rowIds.length;
+  }
 
-    return rows;
+  // One row by its plain id, several (or none) by "any of" them.
+  private static idsCondition(ids: Array<string>): unknown {
+    return ids.length === 1 ? ids[0]! : QueryHelper.any(ids);
+  }
+
+  // The ids of rows read, as strings.
+  private static getRowIds(rows: Array<BaseModel>): Array<string> {
+    const ids: Array<string> = [];
+
+    for (const row of rows) {
+      if (row._id) {
+        ids.push(row._id.toString());
+      }
+    }
+
+    return ids;
   }
 
   @CaptureSpan()

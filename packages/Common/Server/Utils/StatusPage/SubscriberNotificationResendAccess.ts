@@ -1,6 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
@@ -8,7 +7,6 @@ import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/St
 import SubscriberNotificationResend from "../../../Types/StatusPage/SubscriberNotificationResend";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
-import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import ColumnPermissions from "../../Types/Database/Permissions/ColumnPermission";
@@ -187,17 +185,14 @@ export default class SubscriberNotificationResendAccess {
       refusal: SubscriberNotificationResend.noPermissionToResendNoteMessage,
     });
 
-    const notes: Array<TNote> = await data.service.findBy({
-      query: updateBy.query as Query<TNote>,
-      select: {
+    const notes: Array<TNote> = await data.service.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         subscriberNotificationStatusOnNoteCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
       } as unknown as Select<TNote>,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: updateBy.props,
-    });
+    );
 
     for (const note of notes) {
       const record: JSONObject = note as unknown as JSONObject;
@@ -346,13 +341,11 @@ export default class SubscriberNotificationResendAccess {
       throw err;
     }
 
-    const rows: Array<TBaseModel> = await data.service.findBy({
-      query: updateBy.query as Query<TBaseModel>,
-      select: select as unknown as Select<TBaseModel>,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: updateBy.props,
-    });
+    const rows: Array<TBaseModel> =
+      await data.service.findRowsAndHoldUpdateToThem(
+        updateBy,
+        select as unknown as Select<TBaseModel>,
+      );
 
     for (const row of rows) {
       const record: JSONObject = row as unknown as JSONObject;

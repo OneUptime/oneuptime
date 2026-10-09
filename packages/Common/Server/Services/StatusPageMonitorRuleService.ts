@@ -453,24 +453,16 @@ export class Service extends ProjectReferencesService<Model> {
       query["projectId"] = updateBy.props.tenantId;
     }
 
-    return await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: {
+    return await this.findRowsAndHoldUpdateToThem(updateBy, {
+      _id: true,
+      projectId: true,
+      statusPageId: true,
+      monitorLabels: {
         _id: true,
-        projectId: true,
-        statusPageId: true,
-        monitorLabels: {
-          _id: true,
-        },
-        monitorNamePattern: true,
-        monitorDescriptionPattern: true,
-        criteria: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
+      monitorNamePattern: true,
+      monitorDescriptionPattern: true,
+      criteria: true,
     });
   }
 

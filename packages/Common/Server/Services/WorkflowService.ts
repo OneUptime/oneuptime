@@ -195,26 +195,33 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     /// save trigger and trigger args.
 
+    // The one workflow an update names by its id.
+    const workflowId: ObjectID | null = Service.getOneRowIdNamedBy(
+      onUpdate.updateBy.query,
+    );
+
+    if (!workflowId) {
+      return onUpdate;
+    }
+
     const updatedGraph: JSONObject | undefined = (onUpdate.updateBy.data as any)
       ?.graph as JSONObject | undefined;
 
     if (updatedGraph) {
       await this.saveTriggerFromGraph({
-        workflowId: new ObjectID(onUpdate.updateBy.query._id! as any),
+        workflowId: workflowId,
         graph: updatedGraph,
       });
     }
 
     logger.debug("Updating workflow on the workflow service", {
-      workflowId: onUpdate.updateBy.query._id?.toString(),
+      workflowId: workflowId.toString(),
     } as LogAttributes);
 
-    await this.notifyWorkflowService(
-      new ObjectID(onUpdate.updateBy.query._id! as any),
-    );
+    await this.notifyWorkflowService(workflowId);
 
     logger.debug("Updated workflow on the workflow service", {
-      workflowId: onUpdate.updateBy.query._id?.toString(),
+      workflowId: workflowId.toString(),
     } as LogAttributes);
 
     return onUpdate;

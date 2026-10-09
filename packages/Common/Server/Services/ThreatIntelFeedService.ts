@@ -4,7 +4,6 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import {
   THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
@@ -196,19 +195,14 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const matchedFeeds: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const matchedFeeds: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         apiToken: true,
         basicAuthPassword: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const feed of matchedFeeds) {
       const storesOtherKind: boolean = settingToken

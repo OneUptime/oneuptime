@@ -5698,13 +5698,9 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
-    const affectedRules: Array<Model> = await this.findBy({
-      query: this.narrowQueryToCallerEntitlement(
-        updateBy.query,
-        updateBy.props,
-        DatabaseRequestType.Update,
-      ),
-      select: {
+    const affectedRules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         userId: true,
         projectId: true,
@@ -5723,13 +5719,7 @@ export class Service extends ProjectReferencesService<Model> {
         userPushId: true,
         userWebhookId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     if (references.length > 0 && !isInternalWrite) {
       /*

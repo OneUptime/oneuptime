@@ -260,9 +260,8 @@ export class TeamComplianceSettingService extends ProjectReferencesService<Model
      * update lands. Scoped to the caller's project when there is one, so the
      * rows of another project are never checked, let alone described.
      */
-    const existingSettings: Array<Model> = await this.findBy({
-      query: TeamComplianceSettingService.getTargetQuery(updateBy),
-      select: {
+    const existingSettings: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         teamId: true,
         projectId: true,
@@ -276,13 +275,7 @@ export class TeamComplianceSettingService extends ProjectReferencesService<Model
         alertSeverities: {
           _id: true,
         },
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     if (!newRuleType) {
       /*
@@ -425,9 +418,9 @@ export class TeamComplianceSettingService extends ProjectReferencesService<Model
       await this.assertMayUpdate(updateBy);
     }
 
-    const rules: Array<Model> = await this.findBy({
-      query: TeamComplianceSettingService.getTargetQuery(updateBy),
-      select: {
+    const rules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         ruleType: true,
         options: true,
@@ -438,12 +431,7 @@ export class TeamComplianceSettingService extends ProjectReferencesService<Model
           _id: true,
         },
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     if (
       rules.some((rule: Model): boolean => {
@@ -452,20 +440,6 @@ export class TeamComplianceSettingService extends ProjectReferencesService<Model
     ) {
       throw new BadDataException(SEVERITIES_DELETED_ENABLE_MESSAGE);
     }
-  }
-
-  /*
-   * The update's own query, narrowed to the caller's project when there is
-   * one - a copy, so the caller's query object is left as it was.
-   */
-  private static getTargetQuery(updateBy: UpdateBy<Model>): JSONObject {
-    const query: JSONObject = { ...(updateBy.query as JSONObject) };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
-    return query;
   }
 
   /*

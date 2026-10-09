@@ -812,20 +812,11 @@ export default class ResourceAiAccessSettings {
     service: DatabaseService<TBaseModel>;
     updateBy: UpdateBy<TBaseModel>;
   }): Promise<Record<string, ResourceAiAccessSettingsSnapshot>> {
-    const rows: Array<TBaseModel> = await data.service.findBy({
-      query: {
-        ...data.updateBy.query,
-        ...(data.updateBy.props.tenantId
-          ? { projectId: data.updateBy.props.tenantId }
-          : {}),
-      } as never,
-      select: SETTINGS_SELECT as never,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const rows: Array<TBaseModel> =
+      await data.service.findRowsAndHoldUpdateToThem(
+        data.updateBy,
+        SETTINGS_SELECT as never,
+      );
 
     const settings: Record<string, ResourceAiAccessSettingsSnapshot> = {};
 

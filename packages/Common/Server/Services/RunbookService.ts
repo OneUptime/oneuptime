@@ -5,13 +5,10 @@ import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/Dat
 import Model from "../../Models/DatabaseModels/Runbook";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
-import ModelPermission from "../Types/Database/Permissions/Index";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { JsonReferenceColumn } from "../Utils/Database/ProjectReferenceCheck";
 import {
@@ -198,35 +195,23 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Of `ids`, the ones some runbook an update writes does not name already
-   * in its steps. The runbooks are read as OneUptime through the query the
-   * caller may update with (ModelPermission.getUpdatableQuery - the same
-   * narrowing the update itself gets, as DatabaseService reads the lists an
-   * update holds), so a runbook the update cannot write says nothing, and
-   * an update that writes no runbook names no credential.
+   * in its steps. The runbooks are the ones the update writes - those its
+   * caller may write - and the update is held to them
+   * (findRowsAndHoldUpdateToThem), so a runbook the update cannot write says
+   * nothing, one this did not read is not written, and an update that
+   * writes no runbook names no credential.
    */
   private async findCredentialsNotHeld(data: {
     updateBy: UpdateBy<Model>;
     ids: Array<string>;
   }): Promise<Array<string>> {
-    const query: Query<Model> = await ModelPermission.getUpdatableQuery(
-      Model,
-      data.updateBy.query,
-      data.updateBy.props,
-      data.updateBy.data,
-    );
-
-    const runbooks: Array<Model> = await this.findBy({
-      query: query,
-      select: {
+    const runbooks: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      data.updateBy,
+      {
         _id: true,
         steps: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const held: Array<Set<string>> = runbooks.map(
       (runbook: Model): Set<string> => {

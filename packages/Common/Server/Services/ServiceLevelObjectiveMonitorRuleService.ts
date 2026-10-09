@@ -767,15 +767,10 @@ export class Service extends ProjectReferencesService<Model> {
       query["projectId"] = updateBy.props.tenantId;
     }
 
-    return await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: RULE_SNAPSHOT_SELECT,
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    return await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      RULE_SNAPSHOT_SELECT,
+    );
   }
 
   /**

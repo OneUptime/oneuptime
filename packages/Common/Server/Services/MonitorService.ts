@@ -772,25 +772,16 @@ export class Service extends ProjectReferencesService<Model> {
        * refuses a monitor that was stored broken before the guard existed. See
        * MonitorStepsProjectValidator.
        */
-      const monitors: Array<Model> = await this.findBy({
-        query:
-          !updateBy.props.isRoot && updateBy.props.tenantId
-            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-            : updateBy.query,
-        select: {
+      const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           projectId: true,
           monitorType: true,
           monitorSteps: true,
           monitorTemplateId: true,
           autoProvisionedNetworkDeviceId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+      );
 
       const writtenMonitorTemplateId: ObjectID | null =
         RelationIdUtil.readConsistent(
@@ -869,7 +860,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (currentMonitorStatusReferences.length > 0) {
       const projectIds: Array<ObjectID> = updateBy.props.tenantId
         ? [updateBy.props.tenantId]
-        : await this.getProjectIdsForUpdateQuery(updateBy);
+        : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
       for (const projectId of projectIds) {
         await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
@@ -887,7 +878,7 @@ export class Service extends ProjectReferencesService<Model> {
       getProjectIds: async (): Promise<Array<ObjectID>> => {
         return updateBy.props.tenantId
           ? [updateBy.props.tenantId]
-          : await this.getProjectIdsForUpdateQuery(updateBy);
+          : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
       },
     });
 
@@ -904,19 +895,11 @@ export class Service extends ProjectReferencesService<Model> {
        * all targets — not once per monitor (a bulk update could match
        * thousands).
        */
-      const monitorsToValidate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const monitorsToValidate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           projectId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+        });
 
       await this.validateDependencyConfiguration({
         targets: monitorsToValidate.map((monitor: Model) => {
@@ -943,16 +926,10 @@ export class Service extends ProjectReferencesService<Model> {
         updateBy.data.disableActiveMonitoring === false ||
         updateBy.data.isArchived === false)
     ) {
-      const monitors: Array<Model> = await this.findBy({
-        query:
-          !updateBy.props.isRoot && updateBy.props.tenantId
-            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-            : updateBy.query,
-        select: { projectId: true, monitorType: true },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        { projectId: true, monitorType: true },
+      );
       const checkedProjects: Set<string> = new Set<string>();
 
       for (const monitor of monitors) {
@@ -1359,22 +1336,13 @@ export class Service extends ProjectReferencesService<Model> {
      * Two rows are enough to know the write targets more than one monitor,
      * which is itself the error: one address cannot route to two monitors.
      */
-    const targets: Array<Model> = await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
+    const targets: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         monitorType: true,
       },
-      limit: 2,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     if (targets.length > 1) {
       throw new BadDataException(
@@ -1465,33 +1433,6 @@ export class Service extends ProjectReferencesService<Model> {
         }),
       });
     }
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const monitors: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const monitor of monitors) {
-      if (monitor.projectId) {
-        projectIds[monitor.projectId.toString()] = monitor.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()

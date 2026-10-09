@@ -543,19 +543,12 @@ export class Service extends ProjectReferencesService<Model> {
           throw new BadDataException(WINDOWS_NOT_NUMERIC_ERROR_MESSAGE);
         }
 
-        const rulesToUpdate: Array<Model> = await this.findBy({
-          query: updateBy.query,
-          select: {
+        const rulesToUpdate: Array<Model> =
+          await this.findRowsAndHoldUpdateToThem(updateBy, {
             _id: true,
             longWindowInMinutes: true,
             shortWindowInMinutes: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+          });
 
         for (const rule of rulesToUpdate) {
           /*
@@ -1199,19 +1192,14 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const rulesToUpdate: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const rulesToUpdate: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         shouldCreateAlert: true,
         shouldCreateIncident: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const rule of rulesToUpdate) {
       const resultingShouldCreateAlert: boolean = isShouldCreateAlertUpdated
@@ -1444,7 +1432,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const projectIds: Array<ObjectID> = updateBy.props.tenantId
       ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
     for (const projectId of projectIds) {
       await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
@@ -1478,7 +1466,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const projectIds: Array<ObjectID> = updateBy.props.tenantId
       ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
     for (const projectId of projectIds) {
       await this.validateSeverityReferences({
@@ -1648,15 +1636,10 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
-    const rules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: select as unknown as Select<Model>,
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const rules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as unknown as Select<Model>,
+    );
 
     const projectIds: Dictionary<ObjectID> = {};
 
@@ -1873,32 +1856,6 @@ export class Service extends ProjectReferencesService<Model> {
         service: teamService,
       },
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const rules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const rule of rules) {
-      if (rule.projectId) {
-        projectIds[rule.projectId.toString()] = rule.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   /*

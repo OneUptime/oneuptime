@@ -1938,9 +1938,9 @@ export class Service extends ProjectReferencesService<Model> {
       query["projectId"] = updateBy.props.tenantId;
     }
 
-    const slos: Array<Model> = await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: {
+    const slos: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         monitors: {
           _id: true,
@@ -1949,12 +1949,7 @@ export class Service extends ProjectReferencesService<Model> {
           _id: true,
         },
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const sloIds: Array<ObjectID> = slos
       .map((slo: Model): ObjectID | null => {

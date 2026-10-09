@@ -5,7 +5,6 @@ import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import SubscriberTemplateIncidentRecordAccess from "../Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
@@ -139,24 +138,15 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-    const query: Query<Model> = updateBy.props.tenantId
-      ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-      : updateBy.query;
-
-    const templates: Array<Model> = await this.findBy({
-      query: query,
-      select: {
+    const templates: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         templateBody: true,
         emailSubject: true,
         eventType: true,
         notificationMethod: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const added: Set<string> = new Set<string>();
 

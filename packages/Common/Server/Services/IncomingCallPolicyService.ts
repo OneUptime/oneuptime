@@ -123,33 +123,18 @@ export class Service extends ProjectReferencesService<IncomingCallPolicy> {
 
     if (requestedProjectCallSMSConfigIds.length > 0) {
       /*
-       * Hooks run before DatabaseService applies update permissions. Scope the
-       * query here before inspecting rows, otherwise the invariant itself can
-       * disclose or block policies that the caller is not allowed to update.
-       * DatabaseService deliberately checks it again immediately before the
-       * write, preserving its normal authorization boundary.
+       * The policies the update writes - the ones its caller may write - with
+       * the update held to them, so the invariant neither discloses nor
+       * blocks a policy the caller may not update, and no policy is written
+       * that it did not check.
        */
-      updateBy.query = await ModelPermission.checkUpdateQueryPermissions(
-        IncomingCallPolicy,
-        updateBy.query,
-        updateBy.data,
-        updateBy.props,
-      );
-
-      const policies: Array<IncomingCallPolicy> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const policies: Array<IncomingCallPolicy> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           projectCallSMSConfigId: true,
           routingPhoneNumber: true,
           callProviderPhoneNumberId: true,
-        },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+        });
 
       const policiesChangingConfig: Array<IncomingCallPolicy> = policies.filter(
         (policy: IncomingCallPolicy): boolean => {

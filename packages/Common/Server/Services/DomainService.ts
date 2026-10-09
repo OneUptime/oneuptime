@@ -7,9 +7,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Text from "../../Types/Text";
 import Model from "../../Models/DatabaseModels/Domain";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import ObjectID from "../../Types/ObjectID";
-import { FindWhere } from "../../Types/BaseDatabase/Query";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -59,33 +56,17 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.isVerified && !updateBy.props.isRoot) {
-      const projectId: FindWhere<ObjectID> | undefined =
-        updateBy.query.projectId || updateBy.props.tenantId;
-
-      if (!projectId) {
-        throw new BadDataException(
-          "Project ID is required to verify the domain.",
-        );
-      }
-
-      // check the verification of the domain.
-
-      const items: Array<Model> = await this.findBy({
-        query: {
-          projectId,
-          ...updateBy.query,
-        },
-        select: {
+      /*
+       * Every domain the update verifies - the ones its caller may write -
+       * with the update held to them, so none is verified unchecked.
+       */
+      const items: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           domain: true,
           domainVerificationText: true,
         },
-
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       for (const item of items) {
         const domain: string | undefined = item?.domain?.toString();
@@ -98,9 +79,7 @@ export class Service extends DatabaseService<Model> {
 
         if (!verificationText) {
           throw new BadDataException(
-            "Domain verification text with id " +
-              updateBy.query._id +
-              " not found.",
+            "Domain verification text with id " + item._id + " not found.",
           );
         }
 

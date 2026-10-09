@@ -204,18 +204,13 @@ export default class SsoSignInsEnded {
     service: DatabaseService<TModel>;
     updateBy: UpdateBy<TModel>;
   }): Promise<boolean> {
-    const rows: Array<TModel> = await data.service.findAllBy({
-      query: data.updateBy.query,
-      select: {
+    const rows: Array<TModel> = await data.service.findRowsAndHoldUpdateToThem(
+      data.updateBy,
+      {
         _id: true,
         isEnabled: true,
       } as unknown as Select<TModel>,
-      limit: data.updateBy.limit,
-      skip: data.updateBy.skip,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return rows.some((row: TModel): boolean => {
       return (row as unknown as Record<string, unknown>)["isEnabled"] === true;

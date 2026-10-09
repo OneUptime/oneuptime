@@ -1,7 +1,6 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -14,14 +13,13 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import StatusPageService from "./StatusPageService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { validateCustomFieldCreateSettings } from "../../Types/CustomField/CustomFieldCreateSettings";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "../../Models/DatabaseModels/IncidentTemplateOwnerUser";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
   HeldRelationIds,
@@ -33,7 +31,6 @@ import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
@@ -189,14 +186,14 @@ export class Service extends ProjectReferencesService<Model> {
      */
     const projectIds: Array<ObjectID> = updateBy.props.tenantId
       ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -267,22 +264,15 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const templates: Array<Model> = await this.findBy({
-      query: updateBy.props.tenantId
-        ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-        : updateBy.query,
-      select: {
+    const templates: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         statusPages: {
           _id: true,
         },
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const addedIds: Array<string> = [];
 
@@ -367,32 +357,6 @@ export class Service extends ProjectReferencesService<Model> {
         service: MonitorStatusService,
       }),
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const templates: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const template of templates) {
-      if (template.projectId) {
-        projectIds[template.projectId.toString()] = template.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()
