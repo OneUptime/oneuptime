@@ -78,6 +78,32 @@ export interface ToolImportAdapter {
 }
 
 /*
+ * The contract of a tool read from a file the person uploads rather than
+ * over an API (Uptime Kuma): the file's text in, what it describes out, in
+ * the same shape every API adapter returns - so the preview, the import
+ * and the report are the same for it as for every other tool.
+ *
+ * Rules a file adapter keeps, on top of an API adapter's:
+ *  - The file is the person's, and anything could be in it. It is parsed
+ *    strictly (JSON.parse, no reviver magic), checked against the shape
+ *    the tool writes, and anything that is not that shape is refused with
+ *    a plain message - never executed, never merged into an object.
+ *  - Nothing secret it holds (passwords, tokens) is copied into the
+ *    snapshot, and the file itself is never stored.
+ *  - It reads at most TOOL_IMPORT_MAX_RECORDS_PER_KIND of a kind.
+ */
+export interface ToolImportFileAdapter {
+  source: ToolImportSource;
+
+  readFile(data: {
+    content: string;
+    // The file's name, cleaned (cleanUploadFileName), for the preview.
+    fileName: string;
+    now: Date;
+  }): ToolImportSnapshot;
+}
+
+/*
  * A read that cannot go on, with a message for the person: the key was
  * refused, the key may read nothing the import needs.
  */

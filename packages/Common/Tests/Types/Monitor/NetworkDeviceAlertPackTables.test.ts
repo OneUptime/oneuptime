@@ -66,9 +66,10 @@ describe("NetworkDeviceAlertPackUtil table health items", () => {
   });
 
   it("keeps the base pack unchanged when no tables are passed", () => {
-    expect(NetworkDeviceAlertPackUtil.getPackItems()).toHaveLength(5);
+    // Five device and interface items, three transceiver items.
+    expect(NetworkDeviceAlertPackUtil.getPackItems()).toHaveLength(8);
     expect(NetworkDeviceAlertPackUtil.buildCriteriaInstances({})).toHaveLength(
-      5,
+      8,
     );
   });
 
@@ -83,9 +84,10 @@ describe("NetworkDeviceAlertPackUtil table health items", () => {
         tables: tables,
       });
 
-    expect(instances).toHaveLength(6);
+    expect(instances).toHaveLength(9);
 
-    const tunnelCriteria: MonitorCriteriaInstance = instances[5]!;
+    // Table items come after the base pack.
+    const tunnelCriteria: MonitorCriteriaInstance = instances[8]!;
     expect(tunnelCriteria.data?.name).toBe("IPsec Tunnels: row unhealthy");
     expect(tunnelCriteria.data?.changeMonitorStatus).toBe(true);
     expect(tunnelCriteria.data?.monitorStatusId?.toString()).toBe(

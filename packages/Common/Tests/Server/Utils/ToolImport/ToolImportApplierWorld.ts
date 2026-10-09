@@ -1,10 +1,17 @@
 import { jest } from "@jest/globals";
+import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import ToolImportRecord from "../../../../Models/DatabaseModels/ToolImportRecord";
+import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import IncidentCustomFieldService from "../../../../Server/Services/IncidentCustomFieldService";
 import IncidentRoleService from "../../../../Server/Services/IncidentRoleService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
+import MonitorOwnerUserService from "../../../../Server/Services/MonitorOwnerUserService";
+import MonitorService from "../../../../Server/Services/MonitorService";
+import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import OnCallDutyPolicyEscalationRuleService from "../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyOwnerTeamService from "../../../../Server/Services/OnCallDutyPolicyOwnerTeamService";
 import OnCallDutyPolicyScheduleLayerService from "../../../../Server/Services/OnCallDutyPolicyScheduleLayerService";
@@ -14,6 +21,11 @@ import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallD
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import ServiceOwnerTeamService from "../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import StatusPageGroupService from "../../../../Server/Services/StatusPageGroupService";
+import StatusPageOwnerUserService from "../../../../Server/Services/StatusPageOwnerUserService";
+import StatusPageResourceService from "../../../../Server/Services/StatusPageResourceService";
+import StatusPageService from "../../../../Server/Services/StatusPageService";
+import StatusPageSubscriberService from "../../../../Server/Services/StatusPageSubscriberService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import TeamService from "../../../../Server/Services/TeamService";
 import ToolImportRecordService from "../../../../Server/Services/ToolImportRecordService";
@@ -49,6 +61,63 @@ type CreateArgs = {
 
 interface CreateSpyTarget {
   create: (args: CreateArgs) => Promise<BaseModel>;
+}
+
+interface UpdateByIdSpyTarget {
+  updateOneById: (args: never) => Promise<void>;
+}
+
+interface UpdateBySpyTarget {
+  updateBy: (args: never) => Promise<number>;
+}
+
+// An update the import made: by id, or by a query.
+export interface RecordedUpdate {
+  service: string;
+  id?: string | undefined;
+  query?: JSONObject | undefined;
+  data: JSONObject;
+  props: DatabaseCommonInteractionProps;
+}
+
+function monitorStatus(
+  id: string,
+  flags: { isOperationalState?: boolean; isOfflineState?: boolean },
+  priority: number,
+): MonitorStatus {
+  const status: MonitorStatus = new MonitorStatus();
+  status.id = new ObjectID(toUuid(id));
+  status.isOperationalState = Boolean(flags.isOperationalState);
+  status.isOfflineState = Boolean(flags.isOfflineState);
+  status.priority = priority;
+  return status;
+}
+
+function severityRecord<T extends IncidentSeverity | AlertSeverity>(
+  type: { new (): T },
+  id: string,
+  order: number,
+): T {
+  const severity: T = new type();
+  severity.id = new ObjectID(toUuid(id));
+  severity.order = order;
+  return severity;
+}
+
+/*
+ * A readable name as a UUID, the same every time: "status-offline" is
+ * always the same id, so a test can name the record it expects.
+ */
+export function toUuid(name: string): string {
+  let hash: number = 0;
+
+  for (const char of name) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+
+  const hex: string = hash.toString(16).padStart(8, "0").slice(0, 8);
+
+  return `${hex}-0000-4000-8000-${String(name.length).padStart(12, "0")}`;
 }
 
 export class ApplierWorld {
@@ -141,6 +210,114 @@ export class ApplierWorld {
       .mockImplementation(async (): Promise<Map<string, string>> => {
         return new Map(this.members);
       });
+  }
+
+  /*
+   * The services an uptime or status page import uses, stood in for the
+   * same way: their creates recorded and answered, the project's monitor
+   * statuses and severities answered from `statuses`, `incidentSeverities`
+   * and `alertSeverities` (each read recorded in `reads`), and every
+   * update the import makes - marking what it made as announced -
+   * recorded in `updates`.
+   */
+  public statuses: Array<MonitorStatus> = [
+    monitorStatus("status-operational", { isOperationalState: true }, 1),
+    monitorStatus("status-degraded", {}, 2),
+    monitorStatus("status-offline", { isOfflineState: true }, 3),
+  ];
+  public incidentSeverities: Array<IncidentSeverity> = [
+    severityRecord(IncidentSeverity, "incident-critical", 1),
+    severityRecord(IncidentSeverity, "incident-minor", 2),
+  ];
+  public alertSeverities: Array<AlertSeverity> = [
+    severityRecord(AlertSeverity, "alert-critical", 1),
+    severityRecord(AlertSeverity, "alert-major", 2),
+    severityRecord(AlertSeverity, "alert-minor", 3),
+    severityRecord(AlertSeverity, "alert-warning", 4),
+  ];
+  public reads: Array<string> = [];
+  public updates: Array<RecordedUpdate> = [];
+
+  public withMonitoring(): ApplierWorld {
+    const services: Record<string, unknown> = {
+      Monitor: MonitorService,
+      StatusPage: StatusPageService,
+      StatusPageGroup: StatusPageGroupService,
+      StatusPageResource: StatusPageResourceService,
+      StatusPageSubscriber: StatusPageSubscriberService,
+    };
+
+    for (const [name, service] of Object.entries(services)) {
+      jest
+        .spyOn(service as CreateSpyTarget, "create")
+        .mockImplementation(async (args: CreateArgs): Promise<BaseModel> => {
+          return await this.create(name, args);
+        });
+    }
+
+    jest.spyOn(MonitorStatusService, "findBy").mockImplementation((async () => {
+      this.reads.push("MonitorStatus");
+      return this.statuses;
+    }) as never);
+
+    jest
+      .spyOn(IncidentSeverityService, "findBy")
+      .mockImplementation((async () => {
+        this.reads.push("IncidentSeverity");
+        return this.incidentSeverities;
+      }) as never);
+
+    jest.spyOn(AlertSeverityService, "findBy").mockImplementation((async () => {
+      this.reads.push("AlertSeverity");
+      return this.alertSeverities;
+    }) as never);
+
+    const updateTargets: Record<string, unknown> = {
+      Monitor: MonitorService,
+      StatusPage: StatusPageService,
+    };
+
+    for (const [name, service] of Object.entries(updateTargets)) {
+      jest
+        .spyOn(service as UpdateByIdSpyTarget, "updateOneById")
+        .mockImplementation((async (args: {
+          id: ObjectID;
+          data: JSONObject;
+          props: DatabaseCommonInteractionProps;
+        }): Promise<void> => {
+          this.updates.push({
+            service: name,
+            id: args.id.toString(),
+            data: args.data,
+            props: args.props,
+          });
+        }) as never);
+    }
+
+    const ownerTargets: Record<string, unknown> = {
+      MonitorOwnerUser: MonitorOwnerUserService,
+      StatusPageOwnerUser: StatusPageOwnerUserService,
+    };
+
+    for (const [name, service] of Object.entries(ownerTargets)) {
+      jest
+        .spyOn(service as UpdateBySpyTarget, "updateBy")
+        .mockImplementation((async (args: {
+          query: JSONObject;
+          data: JSONObject;
+          props: DatabaseCommonInteractionProps;
+        }): Promise<number> => {
+          this.updates.push({
+            service: name,
+            query: args.query,
+            data: args.data,
+            props: args.props,
+          });
+          return 1;
+        }) as never);
+    }
+
+    return this;
   }
 
   // Makes `service` refuse the creates `refuse` returns an error for.

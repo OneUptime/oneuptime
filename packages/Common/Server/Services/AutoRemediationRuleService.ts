@@ -63,7 +63,7 @@ export class Service extends ProjectReferencesService<Model> {
      * SSH with any credential assigned to its Runners, and nobody approves
      * them (AiRemediationCredentialUse).
      */
-    AiRemediationCredentialUse.assertMaySaveRules({
+    await AiRemediationCredentialUse.assertMaySaveRules({
       props: createBy.props,
       changes: [{ before: null, after: createBy.data }],
     });
@@ -132,7 +132,8 @@ export class Service extends ProjectReferencesService<Model> {
         (column: keyof RuleCommandSettings): boolean => {
           return data[column] !== undefined;
         },
-      ) && !AiRemediationCredentialUse.mayUseCredentials(updateBy.props);
+      ) &&
+      !(await AiRemediationCredentialUse.mayUseCredentials(updateBy.props));
 
     const agentRunners: Array<Runner> =
       await RunnerService.findKubernetesAgentRunners(data["commandRunners"]);
@@ -155,7 +156,7 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (asksAboutCommandsWithoutAsking) {
-      AiRemediationCredentialUse.assertMaySaveRules({
+      await AiRemediationCredentialUse.assertMaySaveRules({
         props: updateBy.props,
         changes: rules.map((rule: Model): RuleCommandSettingsChange => {
           return Service.getCommandSettingsChange(rule, data);

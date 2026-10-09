@@ -18,6 +18,7 @@ import {
   SnmpTableDefinition,
   SnmpTableSnapshot,
 } from "../../Types/Monitor/SnmpMonitor/SnmpTable";
+import { NetworkDeviceTransceiver } from "../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
@@ -2654,6 +2655,37 @@ export default class NetworkDevice extends BaseModel {
     type: ColumnType.JSON,
   })
   public snmpTableSnapshot?: Array<SnmpTableSnapshot> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Transceiver Snapshot",
+    description:
+      "The transceivers (SFP, SFP+, QSFP and similar optics) in this device's ports: who made each one, its temperature, supply voltage, bias current and transmit and receive power against the device's own warning and alarm thresholds, its health, whether it is still detected, and a month of daily received power averages. Managed by the probe.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public transceiverSnapshot?: Array<NetworkDeviceTransceiver> = undefined;
 
   @ColumnAccessControl({
     create: [],

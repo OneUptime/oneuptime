@@ -48,6 +48,15 @@ import {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
+  SnmpTransceiverResult,
+  TransceiverMibSource,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import TransceiverWalker, {
+  TRANSCEIVER_WALK_BUDGET_MS,
+  TransceiverWalkResult,
+} from "../../Snmp/TransceiverWalker";
+import { TransceiverInterfaceCandidate } from "../../Snmp/TransceiverParsers";
+import {
   DEFAULT_SNMP_TABLE_MAX_ROWS,
   MAX_COLUMNS_PER_TABLE,
   MAX_EFFECTIVE_TABLES_PER_DEVICE,
@@ -248,6 +257,13 @@ const ENDPOINT_WALK_BUDGET_MS: number = 30000;
  */
 const TABLE_WALK_BUDGET_MS: number = 30000;
 
+// One cell of a GET built from a table OID, a column and a row index.
+interface TableCellRequest {
+  oid: string;
+  column: string;
+  rowIndex: string;
+}
+
 export interface SnmpWalkResult {
   interfaces: Array<SnmpInterface>;
   systemInfo?: SnmpSystemInfo | undefined;
@@ -256,6 +272,9 @@ export interface SnmpWalkResult {
   cdpNeighbors?: Array<CdpNeighbor> | undefined;
   arpEntries?: Array<ArpEntry> | undefined;
   fdbEntries?: Array<FdbEntry> | undefined;
+  transceiverResults?: Array<SnmpTransceiverResult> | undefined;
+  transceiverSource?: TransceiverMibSource | undefined;
+  transceiverWalkFailure?: string | undefined;
 }
 
 export interface SnmpQueryOptions {
@@ -273,6 +292,18 @@ export interface SnmpQueryOptions {
    * alongside.
    */
   collectEndpoints?: boolean | undefined;
+  /*
+   * Transceiver (SFP/SFP+/QSFP) health during the interface walk. Only an
+   * explicit true reads them - device polling sets it for every device that
+   * walks its interfaces - and only once the interface walk has answered,
+   * since optics are matched to the interfaces it found.
+   */
+  collectTransceivers?: boolean | undefined;
+  /*
+   * Who the device is, so the static part of its transceivers (thresholds,
+   * identity, entity tree) is read once and reused between polls.
+   */
+  transceiverCacheKey?: string | undefined;
 }
 
 export default class SnmpMonitor {
@@ -320,6 +351,10 @@ export default class SnmpMonitor {
       let cdpNeighbors: Array<CdpNeighbor> | undefined = undefined;
       let arpEntries: Array<ArpEntry> | undefined = undefined;
       let fdbEntries: Array<FdbEntry> | undefined = undefined;
+      let transceiverResults: Array<SnmpTransceiverResult> | undefined =
+        undefined;
+      let transceiverSource: TransceiverMibSource | undefined = undefined;
+      let transceiverWalkFailure: string | undefined = undefined;
       let interfaceWalkFailure: string | undefined = undefined;
 
       if (shouldWalkInterfaces) {
@@ -335,6 +370,9 @@ export default class SnmpMonitor {
           cdpNeighbors = walkResult.cdpNeighbors;
           arpEntries = walkResult.arpEntries;
           fdbEntries = walkResult.fdbEntries;
+          transceiverResults = walkResult.transceiverResults;
+          transceiverSource = walkResult.transceiverSource;
+          transceiverWalkFailure = walkResult.transceiverWalkFailure;
         } catch (err: unknown) {
           if (config.oids.length === 0) {
             // The walk was the only check — treat as device unreachable.
@@ -400,6 +438,13 @@ export default class SnmpMonitor {
         arpEntries: arpEntries,
         fdbEntries: fdbEntries,
         ...(tableResults ? { tableResults: tableResults } : {}),
+        ...(transceiverResults
+          ? { transceiverResults: transceiverResults }
+          : {}),
+        ...(transceiverSource ? { transceiverSource: transceiverSource } : {}),
+        ...(transceiverWalkFailure
+          ? { transceiverWalkFailure: transceiverWalkFailure }
+          : {}),
       };
     } catch (err: unknown) {
       logger.debug(
@@ -731,8 +776,15 @@ export default class SnmpMonitor {
 
       // Best-effort hardware identity (ENTITY-MIB chassis row).
       let entityInfo: SnmpEntityInfo | undefined = undefined;
+      // The same rows, reused by the transceiver read below.
+      let entityRows: SnmpTableRows | undefined = undefined;
       try {
-        entityInfo = await SnmpMonitor.walkEntityInfo(session);
+        entityRows = await SnmpMonitor.getTableColumns(
+          session,
+          ENT_PHYSICAL_TABLE_OID,
+          Object.values(ENT_PHYSICAL_COLUMNS),
+        );
+        entityInfo = SnmpMonitor.pickEntityInfo(entityRows);
       } catch (err) {
         logger.debug(
           `SNMP ENTITY-MIB walk failed for ${config.hostname} (device may not implement it): ${err}`,
@@ -759,6 +811,8 @@ export default class SnmpMonitor {
       }
 
       const interfaces: Array<SnmpInterface> = [];
+      // Every name each interface goes by, for matching optics to ports.
+      const transceiverInterfaces: Array<TransceiverInterfaceCandidate> = [];
 
       for (const interfaceIndex of Object.keys(ifTable)) {
         const row: Record<string, unknown> = ifTable[interfaceIndex]!;
@@ -787,6 +841,19 @@ export default class SnmpMonitor {
           highSpeedInMbps && highSpeedInMbps > 0
             ? highSpeedInMbps * 1000000
             : SnmpMonitor.toMetricNumber(column(IF_TABLE_COLUMNS.ifSpeed));
+
+        transceiverInterfaces.push({
+          interfaceIndex: parseInt(interfaceIndex, 10),
+          names: [
+            SnmpMonitor.toDisplayString(
+              extendedColumn(IF_X_TABLE_COLUMNS.ifName),
+            ),
+            SnmpMonitor.toDisplayString(column(IF_TABLE_COLUMNS.ifDescr)),
+            SnmpMonitor.toDisplayString(
+              extendedColumn(IF_X_TABLE_COLUMNS.ifAlias),
+            ),
+          ],
+        });
 
         interfaces.push({
           interfaceIndex: parseInt(interfaceIndex, 10),
@@ -881,6 +948,39 @@ export default class SnmpMonitor {
       }
 
       /*
+       * Best-effort transceiver health, after the interfaces it is matched
+       * to. Its own budget and its own failure: optics that cannot be read
+       * this poll leave everything else the walk found untouched, and the
+       * failure travels to the server so it keeps the last good readings
+       * rather than reading the gap as optics pulled.
+       */
+      let transceiverResults: Array<SnmpTransceiverResult> | undefined =
+        undefined;
+      let transceiverSource: TransceiverMibSource | undefined = undefined;
+      let transceiverWalkFailure: string | undefined = undefined;
+
+      if (options.collectTransceivers === true) {
+        try {
+          const transceiverWalk: TransceiverWalkResult =
+            await SnmpMonitor.walkTransceivers({
+              session: session,
+              sysObjectId: systemInfo?.sysObjectId,
+              interfaces: transceiverInterfaces,
+              entityRows: entityRows,
+              cacheKey: options.transceiverCacheKey,
+            });
+          transceiverResults = transceiverWalk.results;
+          transceiverSource = transceiverWalk.source;
+        } catch (err) {
+          transceiverWalkFailure =
+            (err as Error)?.message || String(err) || "Unknown error";
+          logger.debug(
+            `SNMP transceiver read failed for ${config.hostname}: ${transceiverWalkFailure}`,
+          );
+        }
+      }
+
+      /*
        * Best-effort ARP + FDB endpoint collection, gated on the step's
        * collectEndpoints flag. STRICTLY OPT-IN: only an explicit true turns
        * it on, so no existing monitor starts walking extra tables (and
@@ -925,6 +1025,9 @@ export default class SnmpMonitor {
         cdpNeighbors,
         arpEntries,
         fdbEntries,
+        transceiverResults,
+        transceiverSource,
+        transceiverWalkFailure,
       };
     } finally {
       session.close();
@@ -1281,19 +1384,130 @@ export default class SnmpMonitor {
   }
 
   /*
+   * The device's transceivers, read within their own budget through the
+   * bounded walks and chunked GETs below (TransceiverWalker).
+   */
+  private static async walkTransceivers(data: {
+    session: snmp.Session;
+    sysObjectId: string | undefined;
+    interfaces: Array<TransceiverInterfaceCandidate>;
+    entityRows: SnmpTableRows | undefined;
+    cacheKey: string | undefined;
+  }): Promise<TransceiverWalkResult> {
+    const deadlineAt: number = Date.now() + TRANSCEIVER_WALK_BUDGET_MS;
+
+    return await TransceiverWalker.collect({
+      sysObjectId: data.sysObjectId,
+      interfaces: data.interfaces,
+      entityRows: data.entityRows,
+      cacheKey: data.cacheKey,
+      access: {
+        walkColumns: (
+          tableOid: string,
+          columns: Array<number>,
+          maxRows: number,
+        ): Promise<SnmpTableRows> => {
+          return SnmpMonitor.getBoundedTableColumns(
+            data.session,
+            tableOid,
+            columns,
+            maxRows,
+            deadlineAt,
+          );
+        },
+        getCells: (
+          tableOid: string,
+          columns: Array<number>,
+          rowIndexes: Array<string>,
+        ): Promise<SnmpTableRows> => {
+          return SnmpMonitor.getTableCells({
+            session: data.session,
+            tableOid: tableOid,
+            columns: columns,
+            rowIndexes: rowIndexes,
+            deadlineAt: deadlineAt,
+          });
+        },
+      },
+    });
+  }
+
+  /*
+   * Exactly these cells of a table, with GETs of up to snmpGetChunkSize
+   * varbinds each - for the readings of known sensors, where walking the
+   * whole column would read every fan and power supply too. A cell the
+   * agent does not have (noSuchInstance) is left out of the result.
+   */
+  private static async getTableCells(data: {
+    session: snmp.Session;
+    tableOid: string;
+    columns: Array<number>;
+    rowIndexes: Array<string>;
+    deadlineAt: number;
+  }): Promise<SnmpTableRows> {
+    const cells: Array<TableCellRequest> = [];
+
+    for (const rowIndex of data.rowIndexes) {
+      for (const columnNumber of data.columns) {
+        cells.push({
+          oid: `${data.tableOid}.1.${columnNumber}.${rowIndex}`,
+          column: columnNumber.toString(),
+          rowIndex: rowIndex,
+        });
+      }
+    }
+
+    const table: SnmpTableRows = {};
+
+    for (
+      let offset: number = 0;
+      offset < cells.length;
+      offset += SnmpMonitor.snmpGetChunkSize
+    ) {
+      if (Date.now() > data.deadlineAt) {
+        throw new Error(
+          "SNMP transceiver read exceeded its time budget before every sensor was read",
+        );
+      }
+
+      const chunk: Array<TableCellRequest> = cells.slice(
+        offset,
+        offset + SnmpMonitor.snmpGetChunkSize,
+      );
+
+      const varbinds: Array<snmp.Varbind> = await SnmpMonitor.getOids(
+        data.session,
+        chunk.map((cell: TableCellRequest) => {
+          return cell.oid;
+        }),
+      );
+
+      chunk.forEach((cell: TableCellRequest, position: number) => {
+        const varbind: snmp.Varbind | undefined = varbinds[position];
+
+        if (!varbind || snmp.isVarbindError(varbind)) {
+          return;
+        }
+
+        if (!table[cell.rowIndex]) {
+          table[cell.rowIndex] = {};
+        }
+
+        table[cell.rowIndex]![cell.column] = varbind.value;
+      });
+    }
+
+    return table;
+  }
+
+  /*
    * Picks the device's hardware identity out of entPhysicalTable: the
    * chassis row when present, otherwise the lowest-indexed row that carries
    * a serial number (some devices only serialize their supervisor module).
    */
-  private static async walkEntityInfo(
-    session: snmp.Session,
-  ): Promise<SnmpEntityInfo | undefined> {
-    const table: SnmpTableRows = await SnmpMonitor.getTableColumns(
-      session,
-      ENT_PHYSICAL_TABLE_OID,
-      Object.values(ENT_PHYSICAL_COLUMNS),
-    );
-
+  private static pickEntityInfo(
+    table: SnmpTableRows,
+  ): SnmpEntityInfo | undefined {
     const rowKeys: Array<string> = Object.keys(table).sort(
       (a: string, b: string) => {
         return parseInt(a, 10) - parseInt(b, 10);

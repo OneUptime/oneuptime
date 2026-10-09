@@ -73,6 +73,7 @@ jest.mock("../../../Server/Utils/ToolImport/ToolImportRunExecutor", () => {
     __esModule: true,
     default: {
       startRead: jest.fn(),
+      startUpload: jest.fn(),
       startImport: jest.fn(),
       cancel: jest.fn(),
       getPlan: jest.fn(),
@@ -210,6 +211,7 @@ function run(overrides: Partial<ToolImportRun> = {}): ToolImportRun {
 const ROUTES: Array<[string, string]> = [
   ["GET", "/tool-import/runs"],
   ["POST", "/tool-import/read"],
+  ["POST", "/tool-import/upload"],
   ["GET", "/tool-import/run/:runId"],
   ["POST", "/tool-import/run/:runId/start"],
   ["POST", "/tool-import/run/:runId/cancel"],
@@ -250,6 +252,7 @@ describe("ToolImportAPI: who may call it", () => {
 
       expect(thrown).toBeInstanceOf(NotAuthenticatedException);
       expect(ToolImportRunExecutor.startRead).not.toHaveBeenCalled();
+      expect(ToolImportRunExecutor.startUpload).not.toHaveBeenCalled();
       expect(ToolImportRunService.findBy).not.toHaveBeenCalled();
     },
   );
@@ -427,6 +430,100 @@ describe("ToolImportAPI: reading a tool", () => {
         kinds: [ToolImportResourceKind.Person, ToolImportResourceKind.Team],
       });
     }).not.toThrow();
+  });
+});
+
+describe("ToolImportAPI: uploading a tool's file", () => {
+  const BACKUP: string = JSON.stringify({
+    version: "1.23.16",
+    monitorList: [
+      { id: 1, name: "Home", type: "http", url: "https://example.com" },
+    ],
+  });
+
+  test("reads the file as the person, in their project, and answers only the run's id", async () => {
+    const runId: ObjectID = ObjectID.generate();
+    (ToolImportRunExecutor.startUpload as jest.Mock).mockResolvedValue(runId);
+
+    const { thrown, payload } = await call("POST", "/tool-import/upload", {
+      body: { source: "UptimeKuma", fileName: "backup.json", content: BACKUP },
+    });
+
+    expect(thrown).toBeUndefined();
+    expect(ToolImportRunExecutor.startUpload).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: ME,
+      source: ToolImportSource.UptimeKuma,
+      fileName: "backup.json",
+      content: BACKUP,
+    });
+    expect(ToolImportRunExecutor.startRead).not.toHaveBeenCalled();
+    // The file goes in once and never comes back.
+    expect(payload).toEqual({ runId: runId.toString() });
+  });
+
+  test("an unknown tool is refused before the file is read", async () => {
+    const { thrown } = await call("POST", "/tool-import/upload", {
+      body: { source: "Nagios", content: BACKUP },
+    });
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect(ToolImportRunExecutor.startUpload).not.toHaveBeenCalled();
+  });
+
+  test("someone who may create no monitor is refused before the file is read", async () => {
+    callerProps = propsWith([Permission.Viewer]);
+
+    const { thrown } = await call("POST", "/tool-import/upload", {
+      body: { source: "UptimeKuma", content: BACKUP },
+    });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(ToolImportRunExecutor.startUpload).not.toHaveBeenCalled();
+  });
+
+  test("someone who may create monitors may upload", async () => {
+    callerProps = propsWith([Permission.CreateProjectMonitor]);
+    (ToolImportRunExecutor.startUpload as jest.Mock).mockResolvedValue(
+      ObjectID.generate(),
+    );
+
+    const { thrown } = await call("POST", "/tool-import/upload", {
+      body: { source: "UptimeKuma", content: BACKUP },
+    });
+
+    expect(thrown).toBeUndefined();
+    expect(ToolImportRunExecutor.startUpload).toHaveBeenCalled();
+  });
+
+  test("a project API key cannot upload: an import acts as a person", async () => {
+    callerProps = {
+      ...propsWith([Permission.ProjectOwner]),
+      userId: undefined,
+      userType: UserType.API,
+    };
+
+    const { thrown } = await call("POST", "/tool-import/upload", {
+      body: { source: "UptimeKuma", content: BACKUP },
+    });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(ToolImportRunExecutor.startUpload).not.toHaveBeenCalled();
+  });
+
+  test("what the file cannot be read for comes back as the reason", async () => {
+    (ToolImportRunExecutor.startUpload as jest.Mock).mockRejectedValue(
+      new BadDataException("This Uptime Kuma file has no monitors in it."),
+    );
+
+    const { thrown } = await call("POST", "/tool-import/upload", {
+      body: { source: "UptimeKuma", content: "{}" },
+    });
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect((thrown as Error).message).toBe(
+      "This Uptime Kuma file has no monitors in it.",
+    );
   });
 });
 

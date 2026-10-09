@@ -1,6 +1,10 @@
+import HTTPMethod from "../API/HTTPMethod";
 import CustomFieldType from "../CustomField/CustomFieldType";
 import DayOfWeek from "../Day/DayOfWeek";
+import Dictionary from "../Dictionary";
 import EventInterval from "../Events/EventInterval";
+import DnsRecordType from "../Monitor/DnsMonitor/DnsRecordType";
+import MonitorType from "../Monitor/MonitorType";
 import { ToolImportNote } from "./ToolImportNote";
 import ToolImportSource from "./ToolImportSource";
 
@@ -215,6 +219,134 @@ export interface ImportedIncidentCustomField {
   notes: Array<ToolImportNote>;
 }
 
+/*
+ * The status codes a check counts as up, both ends included: "2xx" is
+ * { from: 200, to: 299 }.
+ */
+export interface ImportedStatusCodeRange {
+  from: number;
+  to: number;
+}
+
+// A word a page must (or must not) contain for the check to count as up.
+export interface ImportedKeyword {
+  value: string;
+  // True: up while the answer contains it. False: up while it does not.
+  isPresent: boolean;
+  isCaseSensitive: boolean;
+}
+
+/*
+ * One check of an uptime tool, and what OneUptime makes of it: the monitor
+ * type that checks the same thing, with the same address, pace and rules
+ * for "up". A check OneUptime has no monitor for has no monitorType, and a
+ * note says what it was - the preview names it rather than drop it
+ * silently.
+ */
+export interface ImportedMonitor {
+  sourceId: string;
+  name: string;
+  description?: string | undefined;
+  // The tool's own name for its kind of check ("keyword", "httpcustom").
+  sourceType: string;
+  monitorType: MonitorType | null;
+  /*
+   * What it checks: a URL (Website, API, SSL Certificate), a host name or
+   * IP address (Ping, Port), or the name to look up (DNS). None for a
+   * heartbeat or a manual monitor.
+   */
+  destination?: string | undefined;
+  port?: number | undefined;
+  httpMethod?: HTTPMethod | undefined;
+  // Headers sent with each request; ones that may hold a secret are left out.
+  requestHeaders?: Dictionary<string> | undefined;
+  // A JSON object, the only body OneUptime's API monitors send.
+  requestBody?: string | undefined;
+  followRedirects?: boolean | undefined;
+  // How long one check may take.
+  timeoutSeconds?: number | undefined;
+  // How often the tool checks it.
+  intervalSeconds?: number | undefined;
+  // What counts as up; none for the usual every 2xx and 3xx.
+  acceptedStatusCodes?: Array<ImportedStatusCodeRange> | undefined;
+  keyword?: ImportedKeyword | undefined;
+  // SSL Certificate: how long before it expires the tool warns.
+  certificateExpiryWarningDays?: number | undefined;
+  // Heartbeats: down once no ping has arrived for this long.
+  heartbeatTimeoutSeconds?: number | undefined;
+  // DNS: the record to look up, and the server to ask (none: the default).
+  dnsRecordType?: DnsRecordType | undefined;
+  dnsServer?: string | undefined;
+  // Paused in the tool: it starts unticked, and comes over paused.
+  isPaused: boolean;
+  /*
+   * Why it cannot come over, when the adapter knows a more exact reason
+   * than "OneUptime has no such monitor" (a check that is up when it
+   * fails, say).
+   */
+  skipReason?: ToolImportNote | undefined;
+  notes: Array<ToolImportNote>;
+}
+
+export interface ImportedStatusPageGroup {
+  // Unique within its status page.
+  key: string;
+  name: string;
+  description?: string | undefined;
+}
+
+// A monitor shown on a status page.
+export interface ImportedStatusPageResource {
+  // Unique within its status page.
+  key: string;
+  // The monitor it shows (ImportedMonitor.sourceId).
+  monitorSourceId: string;
+  // The group it is shown in (ImportedStatusPageGroup.key), or none.
+  groupKey?: string | undefined;
+  displayName: string;
+  displayDescription?: string | undefined;
+  showUptimePercent: boolean;
+  showStatusHistoryChart: boolean;
+}
+
+export interface ImportedStatusPage {
+  sourceId: string;
+  name: string;
+  // For the team: what the page is for.
+  description?: string | undefined;
+  // For visitors: the page's title and what it says under it.
+  pageTitle?: string | undefined;
+  pageDescription?: string | undefined;
+  // False for a page only some people may see (a password, a team, an IP).
+  isPublic: boolean;
+  // How many days of history the page shows.
+  historyDays?: number | undefined;
+  allowsEmailSubscribers?: boolean | undefined;
+  // Whether visitors choose the parts of the page they follow.
+  allowsSubscribersToChooseResources?: boolean | undefined;
+  isHiddenFromSearchEngines?: boolean | undefined;
+  groups: Array<ImportedStatusPageGroup>;
+  // In the order the page shows them.
+  resources: Array<ImportedStatusPageResource>;
+  notes: Array<ToolImportNote>;
+}
+
+// Someone who gets a status page's updates by email.
+export interface ImportedStatusPageSubscriber {
+  sourceId: string;
+  // Lowercase.
+  email: string;
+  statusPageSourceId: string;
+  /*
+   * The parts of the page they follow (ImportedStatusPageResource.key).
+   * Empty: all of it.
+   */
+  resourceKeys: Array<string>;
+  // Why they cannot come over (they never confirmed), when the tool says.
+  skipReason?: ToolImportNote | undefined;
+  notes: Array<ToolImportNote>;
+}
+
 export interface ToolImportSnapshot {
   source: ToolImportSource;
   // When the read finished (ISO 8601).
@@ -230,6 +362,14 @@ export interface ToolImportSnapshot {
   incidentStates: Array<ImportedIncidentState>;
   incidentRoles: Array<ImportedIncidentRole>;
   incidentCustomFields: Array<ImportedIncidentCustomField>;
+  /*
+   * What uptime and status page tools bring. Optional: a snapshot stored
+   * before they existed has none, and reads as having none
+   * (getToolImportSnapshotMonitors and the two after it).
+   */
+  monitors?: Array<ImportedMonitor> | undefined;
+  statusPages?: Array<ImportedStatusPage> | undefined;
+  statusPageSubscribers?: Array<ImportedStatusPageSubscriber> | undefined;
   // About the read as a whole: what could not be read, and why.
   notes: Array<ToolImportNote>;
 }
@@ -249,6 +389,29 @@ export function getEmptyToolImportSnapshot(
     incidentStates: [],
     incidentRoles: [],
     incidentCustomFields: [],
+    monitors: [],
+    statusPages: [],
+    statusPageSubscribers: [],
     notes: [],
   };
+}
+
+export function getToolImportSnapshotMonitors(
+  snapshot: ToolImportSnapshot,
+): Array<ImportedMonitor> {
+  return Array.isArray(snapshot.monitors) ? snapshot.monitors : [];
+}
+
+export function getToolImportSnapshotStatusPages(
+  snapshot: ToolImportSnapshot,
+): Array<ImportedStatusPage> {
+  return Array.isArray(snapshot.statusPages) ? snapshot.statusPages : [];
+}
+
+export function getToolImportSnapshotSubscribers(
+  snapshot: ToolImportSnapshot,
+): Array<ImportedStatusPageSubscriber> {
+  return Array.isArray(snapshot.statusPageSubscribers)
+    ? snapshot.statusPageSubscribers
+    : [];
 }

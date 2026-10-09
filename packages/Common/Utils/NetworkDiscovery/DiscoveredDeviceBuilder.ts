@@ -322,8 +322,10 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
    * Turn on the device's vendor-health-template auto-apply. The rule
    * engine sets this — a zero-touch import should end with health metrics,
    * not an empty OID list waiting for a click. The manual Review dialog
-   * leaves it unset: an operator importing by hand gets the vendor banner
-   * and decides, which is the existing contract for hand-made devices.
+   * sets it from its "Apply each SNMP host's vendor template" toggle, which
+   * is on unless the operator turns it off for the batch. Hand-made devices
+   * (Add Device) still leave it off: their operator gets the vendor banner
+   * and decides.
    */
   autoApplyVendorHealthTemplate?: boolean | undefined;
   /*

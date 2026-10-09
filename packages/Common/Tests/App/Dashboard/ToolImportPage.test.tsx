@@ -29,6 +29,8 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import { APIRequestOptions } from "../../../Utils/API";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import { ToolImportCategory } from "../../../Types/ToolImport/ToolImportCatalog";
 import {
   ToolImportAction,
   ToolImportOutcome,
@@ -163,6 +165,7 @@ interface FakeImportApi {
   runs: Array<ToolImportRunView>;
   runAnswers: Map<string, Array<Answer>>;
   readAnswer: Answer;
+  uploadAnswer: Answer;
   gets: Array<string>;
   posts: Array<{ route: string; body: JSONObject }>;
 }
@@ -196,6 +199,7 @@ beforeEach(() => {
     runs: [],
     runAnswers: new Map(),
     readAnswer: { runId: RUN_ID },
+    uploadAnswer: { runId: RUN_ID },
     gets: [],
     posts: [],
   };
@@ -241,6 +245,10 @@ beforeEach(() => {
 
         if (route === "/tool-import/read") {
           return respond(server.readAnswer);
+        }
+
+        if (route === "/tool-import/upload") {
+          return respond(server.uploadAnswer);
         }
 
         return respond({});
@@ -967,5 +975,353 @@ describe("imports other people run, and links", () => {
     await screen.findByTestId("tool-import-picker", {}, WAIT);
     expect(server.gets).toEqual(["/tool-import/runs"]);
     expect(runQueryParam()).toBeNull();
+  });
+});
+
+describe("uptime monitoring and status page tools", () => {
+  const HOME_MONITOR: ToolImportPlanItem = planItem(
+    ToolImportResourceKind.Monitor,
+    "101",
+    "Home page",
+    {
+      summary: {
+        monitorType: MonitorType.Website,
+        destination: "https://example.com",
+        intervalSeconds: 300,
+      },
+    },
+  );
+  const PUBLIC_PAGE: ToolImportPlanItem = planItem(
+    ToolImportResourceKind.StatusPage,
+    "201",
+    "Public status",
+    { summary: { resourceCount: 1 }, references: [HOME_MONITOR.key] },
+  );
+  const ANN: ToolImportPlanItem = planItem(
+    ToolImportResourceKind.StatusPageSubscriber,
+    "s1",
+    "ann@example.com",
+    {
+      // Subscribers are never ticked for the person.
+      isSelectedByDefault: false,
+      summary: { statusPageName: "Public status" },
+      references: [PUBLIC_PAGE.key],
+    },
+  );
+  const MONITORING_PLAN: ToolImportPlan = {
+    source: ToolImportSource.BetterStack,
+    accountName: "Acme",
+    readAt: "2026-10-08T10:00:00.000Z",
+    items: [HOME_MONITOR, PUBLIC_PAGE, ANN],
+    inviteTeams: [],
+    defaultInviteTeamId: null,
+    notes: [],
+  };
+
+  test("the picker lists the on-call tools first, then the uptime monitoring and status page tools", async () => {
+    await renderPage();
+    await screen.findByTestId("tool-import-picker", {}, WAIT);
+
+    const onCall: HTMLElement = screen.getByTestId(
+      `tool-import-picker-group-${ToolImportCategory.OnCall}`,
+    );
+    const monitoring: HTMLElement = screen.getByTestId(
+      `tool-import-picker-group-${ToolImportCategory.Monitoring}`,
+    );
+
+    expect(onCall).toHaveTextContent("On-call and incident tools");
+    expect(monitoring).toHaveTextContent("Uptime monitoring and status pages");
+    expect(
+      onCall.compareDocumentPosition(monitoring) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    for (const source of [
+      ToolImportSource.UptimeRobot,
+      ToolImportSource.AtlassianStatuspage,
+      ToolImportSource.BetterStack,
+      ToolImportSource.Pingdom,
+      ToolImportSource.StatusCake,
+      ToolImportSource.UptimeKuma,
+    ]) {
+      expect(
+        within(monitoring).getByTestId(`tool-import-pick-${source}`),
+      ).toBeVisible();
+      expect(
+        within(onCall).queryByTestId(`tool-import-pick-${source}`),
+      ).not.toBeInTheDocument();
+    }
+
+    expect(
+      within(onCall).getByTestId(
+        `tool-import-pick-${ToolImportSource.OpsGenie}`,
+      ),
+    ).toBeVisible();
+  });
+
+  test("UptimeRobot is read with its API key alone, sent once", async () => {
+    answerRun(
+      RUN_ID,
+      details(
+        runView({
+          source: ToolImportSource.UptimeRobot,
+          status: ToolImportRunStatus.Reading,
+        }),
+      ),
+    );
+
+    await renderPage();
+    await pickTool(ToolImportSource.UptimeRobot);
+
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.getByText("UptimeRobot API key")).toBeVisible();
+    expect(screen.queryByTestId("tool-import-file")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("tool-import-api-key"), {
+      target: { value: API_KEY },
+    });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+
+    await screen.findByTestId("tool-import-progress", {}, WAIT);
+    expect(server.posts).toEqual([
+      {
+        route: "/tool-import/read",
+        body: { source: "UptimeRobot", region: "", apiKey: API_KEY },
+      },
+    ]);
+    expect(document.body.innerHTML).not.toContain(API_KEY);
+  });
+
+  test("Uptime Kuma is read from a file: no key is asked for, a file over 10 MB is refused on the page, and the file's text is sent once", async () => {
+    answerRun(
+      RUN_ID,
+      details(
+        runView({
+          source: ToolImportSource.UptimeKuma,
+          status: ToolImportRunStatus.ReadyToReview,
+        }),
+        {
+          plan: {
+            ...MONITORING_PLAN,
+            source: ToolImportSource.UptimeKuma,
+            accountName: "backup.json",
+            items: [HOME_MONITOR],
+          } as unknown as JSONObject,
+        },
+      ),
+    );
+
+    await renderPage();
+    await pickTool(ToolImportSource.UptimeKuma);
+
+    expect(screen.queryByTestId("tool-import-api-key")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Uptime Kuma backup or metrics file"),
+    ).toBeVisible();
+    expect(screen.getByTestId("tool-import-file-name")).toHaveTextContent(
+      "No file chosen",
+    );
+
+    // No file, no upload.
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+    expect(
+      await screen.findByText("Choose your Uptime Kuma file.", {}, WAIT),
+    ).toBeVisible();
+
+    // Too big: refused before it is read or sent.
+    const big: File = new File(["{}"], "huge.json", {
+      type: "application/json",
+    });
+    Object.defineProperty(big, "size", { value: 11 * 1024 * 1024 });
+    fireEvent.change(screen.getByTestId("tool-import-file"), {
+      target: { files: [big] },
+    });
+    expect(screen.getByTestId("tool-import-file-name")).toHaveTextContent(
+      "huge.json",
+    );
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+    expect(
+      await screen.findByText(
+        "This file is larger than 10 MB, which is more than an import reads.",
+        {},
+        WAIT,
+      ),
+    ).toBeVisible();
+    expect(server.posts).toEqual([]);
+
+    const backup: string = JSON.stringify({
+      version: "1.23.16",
+      monitorList: [
+        { id: 1, name: "Home page", type: "http", url: "https://example.com" },
+      ],
+    });
+    fireEvent.change(screen.getByTestId("tool-import-file"), {
+      target: {
+        files: [
+          new File([backup], "backup.json", { type: "application/json" }),
+        ],
+      },
+    });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+
+    await screen.findByTestId("tool-import-review", {}, WAIT);
+    expect(server.posts).toEqual([
+      {
+        route: "/tool-import/upload",
+        body: {
+          source: "UptimeKuma",
+          fileName: "backup.json",
+          content: backup,
+        },
+      },
+    ]);
+    expect(runQueryParam()).toBe(RUN_ID);
+    expect(ticked(HOME_MONITOR)).toBe(true);
+  });
+
+  test("a file the server cannot read says why, and keeps the form", async () => {
+    server.uploadAnswer = new HTTPErrorResponse(
+      400,
+      { message: "This Uptime Kuma file has no monitors in it." },
+      {},
+    );
+
+    await renderPage();
+    await pickTool(ToolImportSource.UptimeKuma);
+
+    fireEvent.change(screen.getByTestId("tool-import-file"), {
+      target: {
+        files: [new File(['{"monitorList":[]}'], "empty.json")],
+      },
+    });
+    fireEvent.click(screen.getByTestId("tool-import-read"));
+
+    expect(
+      await screen.findByText(
+        "This Uptime Kuma file has no monitors in it.",
+        {},
+        WAIT,
+      ),
+    ).toBeVisible();
+    expect(screen.getByTestId("tool-import-connect")).toBeVisible();
+    expect(runQueryParam()).toBeNull();
+  });
+
+  test("subscribers start unticked; ticking one asks for the person's word before the import can start, and the word is sent", async () => {
+    server.runs = [
+      runView({
+        source: ToolImportSource.BetterStack,
+        status: ToolImportRunStatus.ReadyToReview,
+      }),
+    ];
+    answerRun(
+      RUN_ID,
+      details(
+        runView({
+          source: ToolImportSource.BetterStack,
+          status: ToolImportRunStatus.ReadyToReview,
+        }),
+        { plan: MONITORING_PLAN as unknown as JSONObject },
+      ),
+    );
+
+    await renderPage();
+    await screen.findByTestId("tool-import-review", {}, WAIT);
+
+    expect(ticked(HOME_MONITOR)).toBe(true);
+    expect(ticked(PUBLIC_PAGE)).toBe(true);
+    expect(ticked(ANN)).toBe(false);
+    expect(
+      screen.getByTestId("tool-import-subscribers-consent"),
+    ).toHaveTextContent(
+      "These people agreed to get our status page updates, and I may move their subscriptions to OneUptime.",
+    );
+    expect(
+      screen.queryByTestId("tool-import-subscribers-consent-needed"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("tool-import-start")).not.toBeDisabled();
+
+    fireEvent.click(screen.getByTestId(`tool-import-tick-${ANN.key}`));
+
+    expect(
+      screen.getByTestId("tool-import-subscribers-consent-needed"),
+    ).toHaveTextContent(
+      "Confirm that you may move the subscribers you ticked, or untick them.",
+    );
+    expect(screen.getByTestId("tool-import-start")).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId("tool-import-subscribers-consent-tick"));
+
+    expect(
+      screen.queryByTestId("tool-import-subscribers-consent-needed"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("tool-import-start")).not.toBeDisabled();
+
+    answerRun(
+      RUN_ID,
+      details(
+        runView({
+          source: ToolImportSource.BetterStack,
+          status: ToolImportRunStatus.Importing,
+          progress: { done: 0, total: 3, kind: ToolImportResourceKind.Monitor },
+        }),
+      ),
+    );
+
+    fireEvent.click(screen.getByTestId("tool-import-start"));
+
+    expect(
+      await screen.findByText(
+        "Bringing your monitors over from Better Stack",
+        {},
+        WAIT,
+      ),
+    ).toBeVisible();
+    expect(server.posts).toEqual([
+      {
+        route: `/tool-import/run/${RUN_ID}/start`,
+        body: {
+          selectedKeys: [HOME_MONITOR.key, PUBLIC_PAGE.key, ANN.key],
+          inviteTeamId: null,
+          subscribersConsent: true,
+        },
+      },
+    ]);
+  });
+
+  test("with no subscriber ticked, no word is asked for or sent", async () => {
+    server.runs = [
+      runView({
+        source: ToolImportSource.BetterStack,
+        status: ToolImportRunStatus.ReadyToReview,
+      }),
+    ];
+    answerRun(
+      RUN_ID,
+      details(
+        runView({
+          source: ToolImportSource.BetterStack,
+          status: ToolImportRunStatus.ReadyToReview,
+        }),
+        { plan: MONITORING_PLAN as unknown as JSONObject },
+      ),
+    );
+
+    await renderPage();
+    await screen.findByTestId("tool-import-review", {}, WAIT);
+
+    fireEvent.click(screen.getByTestId("tool-import-start"));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(server.posts[0]).toEqual({
+      route: `/tool-import/run/${RUN_ID}/start`,
+      body: {
+        selectedKeys: [HOME_MONITOR.key, PUBLIC_PAGE.key],
+        inviteTeamId: null,
+      },
+    });
   });
 });

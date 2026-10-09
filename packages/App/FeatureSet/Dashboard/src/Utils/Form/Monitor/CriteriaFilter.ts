@@ -16,6 +16,11 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
+import {
+  TRANSCEIVER_READING_TITLES,
+  TRANSCEIVER_READING_UNITS,
+  TransceiverReadingKind,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -160,6 +165,22 @@ export default class CriteriaFilterUtil {
         text += "at " + resultValuePath + " ";
       }
 
+      const transceiverReading: string | undefined =
+        criteriaFilter?.snmpMonitorOptions?.transceiverReading;
+
+      if (
+        criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+        transceiverReading &&
+        TRANSCEIVER_READING_TITLES[transceiverReading as TransceiverReadingKind]
+      ) {
+        text +=
+          "(" +
+          TRANSCEIVER_READING_TITLES[
+            transceiverReading as TransceiverReadingKind
+          ] +
+          ") ";
+      }
+
       if (criteriaFilter?.snmpMonitorOptions?.interfaceName) {
         text +=
           "on interface " +
@@ -214,9 +235,22 @@ export default class CriteriaFilterUtil {
           ? ` ${databaseMetric.unit}`
           : "";
 
+        // A transceiver reading is in its own unit: dBm, °C, V or mA.
+        const transceiverUnit: string | undefined =
+          criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+          criteriaFilter?.snmpMonitorOptions?.transceiverReading
+            ? TRANSCEIVER_READING_UNITS[
+                criteriaFilter.snmpMonitorOptions
+                  .transceiverReading as TransceiverReadingKind
+              ]
+            : undefined;
+        const transceiverUnitSuffix: string = transceiverUnit
+          ? ` ${transceiverUnit}`
+          : "";
+
         text += `${criteriaFilter?.value.toString()}${
           isPercentage ? "%" : ""
-        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix} `;
+        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix}${transceiverUnitSuffix} `;
       }
     }
 
@@ -451,6 +485,12 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpInterfaceIsDown ||
           i.value === CheckOn.SnmpInterfaceUtilizationPercent ||
           i.value === CheckOn.SnmpInterfaceErrorsPerSecond ||
+          // Optics (SFP, SFP+, QSFP), port by port.
+          i.value === CheckOn.SnmpTransceiverNotDetected ||
+          i.value === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+          i.value === CheckOn.SnmpTransceiverPastWarningThreshold ||
+          i.value === CheckOn.SnmpTransceiverRxPowerDrop ||
+          i.value === CheckOn.SnmpTransceiverReading ||
           i.value === CheckOn.SnmpTableValue ||
           i.value === CheckOn.SnmpTableRowIsUnhealthy ||
           i.value === CheckOn.SnmpTableRowCount ||
@@ -823,10 +863,31 @@ export default class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpOidExists ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
-      checkOn === CheckOn.SnmpTableRowIsUnhealthy
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold
     ) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    /*
+     * A transceiver reading or the drop in received power is a number: dBm,
+     * degrees C, volts, milliamps or dB.
+     */
+    if (
+      checkOn === CheckOn.SnmpTransceiverReading ||
+      checkOn === CheckOn.SnmpTransceiverRxPowerDrop
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThanOrEqualTo
+        );
       });
     }
 
@@ -1632,6 +1693,15 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SnmpTrapVarbindValue) {
       return "tunnel is down";
+    }
+
+    // RX power in dBm - the reading most criteria are written on.
+    if (checkOn === CheckOn.SnmpTransceiverReading) {
+      return "-14";
+    }
+
+    if (checkOn === CheckOn.SnmpTransceiverRxPowerDrop) {
+      return "2";
     }
 
     if (checkOn === CheckOn.DnsResponseTime) {

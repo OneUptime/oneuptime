@@ -11,6 +11,7 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "../../Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import { NetworkAlertPolicyScopeUtil } from "../../Types/NetworkDevice/NetworkAlertPolicyScope";
 import ObjectID from "../../Types/ObjectID";
+import { TRANSCEIVER_RX_DROP_ALERT_DB } from "./TransceiverHealthUtil";
 
 /*
  * The "one click to alerting" path for network devices.
@@ -158,7 +159,7 @@ export default class NetworkAlertPolicyBootstrapUtil {
     policy.projectId = new ObjectID(data.projectId.toString());
     policy.name = RECOMMENDED_POLICY_NAME;
     policy.description =
-      "Every probe-polled device in the project gets a Network Device monitor cloned from the recommended alert pack: an incident when it stops answering ping and SNMP or an interface goes down, and an alert when its SNMP walk fails, an interface saturates or an interface logs errors. A device with no SNMP credentials is pinged rather than walked, so only the reachability item can fire on it until credentials are set. Narrow the scope to sites, roles or labels to cover fewer devices.";
+      "Every probe-polled device in the project gets a Network Device monitor cloned from the recommended alert pack: an incident when it stops answering ping and SNMP or an interface goes down, and an alert when its SNMP walk fails, an interface saturates or logs errors, or a transceiver disappears, passes its alarm threshold or loses received power. A device with no SNMP credentials is pinged rather than walked, so only the reachability item can fire on it until credentials are set. Narrow the scope to sites, roles or labels to cover fewer devices.";
     policy.isEnabled = true;
     policy.monitorTemplateId = new ObjectID(data.monitorTemplateId.toString());
     policy.scope = NetworkAlertPolicyScopeUtil.normalize({});
@@ -198,7 +199,7 @@ export default class NetworkAlertPolicyBootstrapUtil {
    * the tag that makes the template findable.
    */
   public static buildRecommendedTemplateDescription(): string {
-    return `The Recommended Alert Pack for network devices: an incident when a device stops answering ping and SNMP or an interface goes down, an alert when the SNMP walk fails, an interface runs above 80% utilization or an interface logs errors. Created by the "Create the recommended policy" action under Network > Settings > Alert Policies; edit the criteria here and every monitor the policy provisions follows. Keep the marker below so the action can find this template again.\n\n${RECOMMENDED_TEMPLATE_MARKER}`;
+    return `The Recommended Alert Pack for network devices: an incident when a device stops answering ping and SNMP or an interface goes down, an alert when the SNMP walk fails, an interface runs above 80% utilization or logs errors, or a transceiver is no longer detected, passes its alarm threshold or receives ${TRANSCEIVER_RX_DROP_ALERT_DB} dB less light than on its best recent day. Created by the "Create the recommended policy" action under Network > Settings > Alert Policies; edit the criteria here and every monitor the policy provisions follows. Keep the marker below so the action can find this template again.\n\n${RECOMMENDED_TEMPLATE_MARKER}`;
   }
 
   /*

@@ -21,6 +21,10 @@ import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/Netwo
 import { NetworkDevicePollMode } from "../../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import logger from "../../../../Server/Utils/Logger";
 import { JSONObject } from "../../../../Types/JSON";
+import {
+  NetworkDeviceTransceiver,
+  TransceiverHealth,
+} from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import { FindOperator } from "typeorm";
 
 /*
@@ -1695,5 +1699,118 @@ describe("NetworkInventoryUtil.updateFromWalk — monitor-backed device guard", 
     expect(update["isReachable"]).toBe(true);
     expect(update["lastPolledAt"]).toEqual(NOW);
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The transceiver snapshot arrives already merged with the stored one
+ * (NetworkDeviceWalkUtil.applyTransceivers). Inventory stores it - which
+ * optic sits in which port is inventory, like the SNMP tables - and keeps a
+ * muted port's optic out of what the criteria judge.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — transceiver snapshot", () => {
+  function optic(interfaceIndex: number): NetworkDeviceTransceiver {
+    return {
+      interfaceIndex: interfaceIndex,
+      interfaceName: `GigabitEthernet0/${interfaceIndex}`,
+      isPresent: true,
+      measurements: {},
+      health: TransceiverHealth.NotJudged,
+    };
+  }
+
+  async function runWalkWithOptics(input: {
+    snapshot: Array<NetworkDeviceTransceiver> | undefined;
+    snmpFields?: Partial<SnmpMonitorResponse> | undefined;
+  }): Promise<SnmpMonitorResponse> {
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse(
+      input.snmpFields,
+    );
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: new ObjectID(PROJECT_ID),
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: snmpResponse,
+      isOnline: true,
+      transceiverSnapshot: input.snapshot,
+    });
+
+    return snmpResponse;
+  }
+
+  test("the merged snapshot is stored on the device", async () => {
+    mockServices();
+    const snapshot: Array<NetworkDeviceTransceiver> = [optic(1), optic(2)];
+
+    await runWalkWithOptics({ snapshot: snapshot });
+
+    expect(deviceUpdatePayload()["transceiverSnapshot"]).toBe(snapshot);
+  });
+
+  test("no snapshot leaves the stored one alone; an empty one is stored as empty", async () => {
+    mockServices();
+    await runWalkWithOptics({ snapshot: undefined });
+    expect(deviceUpdatePayload()).not.toHaveProperty("transceiverSnapshot");
+
+    jest.restoreAllMocks();
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+    mockServices();
+    await runWalkWithOptics({ snapshot: [] });
+    expect(deviceUpdatePayload()["transceiverSnapshot"]).toEqual([]);
+  });
+
+  test("a monitor-backed device stores it too - it is inventory, not health", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    jest.spyOn(logger, "warn").mockImplementation(() => {
+      return undefined;
+    });
+
+    await runWalkWithOptics({ snapshot: [optic(1)] });
+
+    expect(deviceUpdatePayload()["transceiverSnapshot"]).toEqual([optic(1)]);
+  });
+
+  test("a muted port's optic is stored but never judged", async () => {
+    const muted: NetworkInterface = existingInterface(1);
+    muted.isMonitored = false;
+    mockServices([muted, existingInterface(2)]);
+    const snapshot: Array<NetworkDeviceTransceiver> = [optic(1), optic(2)];
+
+    const snmpResponse: SnmpMonitorResponse = await runWalkWithOptics({
+      snapshot: snapshot,
+      snmpFields: {
+        interfaces: [
+          walkedInterface({ interfaceIndex: 1 }),
+          walkedInterface({
+            interfaceIndex: 2,
+            name: "GigabitEthernet0/2",
+          }),
+        ],
+        transceivers: [optic(1), optic(2)],
+      },
+    });
+
+    expect(deviceUpdatePayload()["transceiverSnapshot"]).toHaveLength(2);
+    expect(
+      snmpResponse.transceivers!.map((entry: NetworkDeviceTransceiver) => {
+        return entry.interfaceIndex;
+      }),
+    ).toEqual([2]);
+  });
+
+  test("with nothing muted the judged optics are left as they are", async () => {
+    mockServices([existingInterface(1)]);
+
+    const snmpResponse: SnmpMonitorResponse = await runWalkWithOptics({
+      snapshot: [optic(1)],
+      snmpFields: {
+        interfaces: [walkedInterface({ interfaceIndex: 1 })],
+        transceivers: [optic(1)],
+      },
+    });
+
+    expect(snmpResponse.transceivers).toHaveLength(1);
   });
 });

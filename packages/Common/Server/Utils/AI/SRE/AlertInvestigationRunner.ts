@@ -46,6 +46,7 @@ import AIAgentRunLimitsHelper, {
 import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
+import NetworkTransceiverContext from "./NetworkTransceiverContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -242,6 +243,26 @@ export default class AIAlertInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not resolve infrastructure access for alert ${alertId.toString()}; investigating it with OneUptime data only: ${error}`,
+        );
+      }
+
+      /*
+       * The optics of the network device the alert is about, when it is:
+       * still detected or not, readings against the device's thresholds,
+       * and received power over the last weeks. Enrichment only.
+       */
+      try {
+        contextSummary += await NetworkTransceiverContext.buildContextSection({
+          projectId,
+          monitorIds: contextData.alert.monitorId
+            ? [contextData.alert.monitorId]
+            : [],
+          focusText: `${contextData.alert.title || ""}\n${contextData.alert.rootCause || ""}`,
+          seriesLabels: contextData.alert.seriesLabels,
+        });
+      } catch (error) {
+        logger.error(
+          `AI: could not read transceivers for alert ${alertId.toString()}; investigating it without them: ${error}`,
         );
       }
     } catch (error) {
