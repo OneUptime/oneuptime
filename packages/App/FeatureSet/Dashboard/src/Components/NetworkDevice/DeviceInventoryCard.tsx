@@ -2,6 +2,10 @@ import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/Networ
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import {
+  NetworkDeviceAssetFacts,
+  getNetworkDeviceAssetFacts,
+} from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -63,6 +67,13 @@ export const InventoryUptimeValue: FunctionComponent<
  * firmware/software versions, SNMP system fields, uptime, and freshness.
  * Every field is probe-managed (enriched from SNMP walks), so the card is
  * deliberately not editable — edits happen on the next poll, not here.
+ *
+ * Vendor, model, operating system and versions are the device's asset facts
+ * (Common/Utils/NetworkDevice/NetworkDeviceAssetFacts, issue #4569): what
+ * ENTITY-MIB reported, else what the sysDescr names - a Meraki MX implements
+ * no ENTITY-MIB, and its sysDescr is "Meraki MX85". The device's Inventory
+ * item shows the same values, so the two pages never disagree about what
+ * the box is.
  */
 const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -83,6 +94,30 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type FactElementFunction = (
+    fact: keyof NetworkDeviceAssetFacts,
+  ) => (item: NetworkDevice) => ReactElement;
+
+  const factElement: FactElementFunction = (
+    fact: keyof NetworkDeviceAssetFacts,
+  ): ((item: NetworkDevice) => ReactElement) => {
+    return (item: NetworkDevice): ReactElement => {
+      return <span>{getNetworkDeviceAssetFacts(item)[fact] || "-"}</span>;
+    };
+  };
+
+  type HasFactFunction = (
+    fact: keyof NetworkDeviceAssetFacts,
+  ) => (item: NetworkDevice) => boolean;
+
+  const hasFact: HasFactFunction = (
+    fact: keyof NetworkDeviceAssetFacts,
+  ): ((item: NetworkDevice) => boolean) => {
+    return (item: NetworkDevice): boolean => {
+      return Boolean(getNetworkDeviceAssetFacts(item)[fact]);
+    };
+  };
+
   return (
     <CardModelDetail<NetworkDevice>
       name="Device Inventory"
@@ -96,26 +131,29 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
         modelType: NetworkDevice,
         id: "network-device-inventory",
         modelId: props.modelId,
+        // What the asset facts read beyond the columns shown.
+        selectMoreFields: {
+          sysDescr: true,
+          sysObjectId: true,
+        },
         fields: [
           {
             field: {
               vendor: true,
             },
             title: "Vendor",
-            fieldType: FieldType.Text,
-            showIf: (item: NetworkDevice): boolean => {
-              return Boolean(item.vendor);
-            },
+            fieldType: FieldType.Element,
+            getElement: factElement("manufacturer"),
+            showIf: hasFact("manufacturer"),
           },
           {
             field: {
               deviceModel: true,
             },
             title: "Model",
-            fieldType: FieldType.Text,
-            showIf: (item: NetworkDevice): boolean => {
-              return Boolean(item.deviceModel);
-            },
+            fieldType: FieldType.Element,
+            getElement: factElement("model"),
+            showIf: hasFact("model"),
           },
           {
             field: {
@@ -132,20 +170,27 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
               firmwareVersion: true,
             },
             title: "Firmware Version",
-            fieldType: FieldType.Text,
-            showIf: (item: NetworkDevice): boolean => {
-              return Boolean(item.firmwareVersion);
+            fieldType: FieldType.Element,
+            getElement: factElement("firmwareVersion"),
+            showIf: hasFact("firmwareVersion"),
+          },
+          {
+            field: {
+              sysDescr: true,
             },
+            title: "Operating System",
+            fieldType: FieldType.Element,
+            getElement: factElement("operatingSystem"),
+            showIf: hasFact("operatingSystem"),
           },
           {
             field: {
               softwareVersion: true,
             },
             title: "Software Version",
-            fieldType: FieldType.Text,
-            showIf: (item: NetworkDevice): boolean => {
-              return Boolean(item.softwareVersion);
-            },
+            fieldType: FieldType.Element,
+            getElement: factElement("osVersion"),
+            showIf: hasFact("osVersion"),
           },
           {
             field: {

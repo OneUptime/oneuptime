@@ -37,6 +37,13 @@ import {
   InventoryLiveness,
 } from "./InventoryLiveness";
 import { getInventorySourceLabel } from "./InventorySource";
+import { INVENTORY_ASSET_FIELD_LABELS } from "./InventoryAssetLabels";
+import {
+  INVENTORY_ASSET_FIELDS,
+  InventoryAssetField,
+  getInventoryAssetValue,
+} from "Common/Utils/Inventory/InventoryAssetDetails";
+import Columns from "Common/UI/Components/ModelTable/Columns";
 import useCustomFieldFacets, {
   CustomFieldFacetsResult,
 } from "../CustomFields/useCustomFieldFacets";
@@ -93,6 +100,55 @@ const manualEntityTypeOptions: Array<DropdownOption> =
       value: descriptor.entityType,
     };
   });
+
+/*
+ * One column per asset fact (Common/Utils/Inventory/InventoryAssetDetails),
+ * hidden until the viewer turns it on from the column picker (OneUptime
+ * issue #4569). They are what a CMDB export wants - hostname, IP address,
+ * serial number, model, OS - in the same columns whether a row is a host or
+ * a network device, and the list's CSV export carries whichever are on.
+ *
+ * A row that is not a machine (a service, a pod) has no asset facts, and a
+ * fact a machine has not reported is unknown: both cells read as a muted
+ * dash, and both export as an empty cell. Each column reads the attribute
+ * bags, so they are selected however many asset columns are showing.
+ */
+export const INVENTORY_ASSET_COLUMN_ID_PREFIX: string = "inventory-asset-";
+
+export function getInventoryAssetColumns(): Columns<InventoryItem> {
+  return INVENTORY_ASSET_FIELDS.map(
+    (field: InventoryAssetField): Columns<InventoryItem>[number] => {
+      return {
+        field: {
+          entityType: true,
+          identifyingAttributes: true,
+          descriptiveAttributes: true,
+        },
+        id: `${INVENTORY_ASSET_COLUMN_ID_PREFIX}${field}`,
+        title: INVENTORY_ASSET_FIELD_LABELS[field],
+        type: FieldType.Element,
+        isHiddenByDefault: true,
+        disableSort: true,
+        hideOnMobile: true,
+        getElement: (item: InventoryItem): ReactElement => {
+          const value: string | undefined = getInventoryAssetValue(
+            item,
+            field,
+          );
+
+          if (!value) {
+            return <span className="text-sm text-gray-400">-</span>;
+          }
+
+          return <span className="text-sm text-gray-900">{value}</span>;
+        },
+        getExportValue: (item: InventoryItem): string => {
+          return getInventoryAssetValue(item, field) || "";
+        },
+      };
+    },
+  );
+}
 
 export interface ComponentProps {
   /**
@@ -170,6 +226,10 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
     useBulkArchiveActions<InventoryItem>({
       modelType: InventoryItem,
     });
+
+  const assetColumns: Columns<InventoryItem> = useMemo(() => {
+    return getInventoryAssetColumns();
+  }, []);
 
   /*
    * One clock for the whole render pass. Reading `new Date()` per cell would
@@ -462,6 +522,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             type: FieldType.DateTime,
             isHiddenByDefault: true,
           },
+          ...assetColumns,
         ]}
       />
     </Fragment>

@@ -27462,5 +27462,13 @@
   "Reverse-DNS name": "역방향 DNS 이름",
   "SNMP system name": "SNMP 시스템 이름",
   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "이 호스트가 NetBIOS로 스스로 보고한 Windows 컴퓨터 이름입니다. 호스트 자체 이름은 역방향 DNS 이름보다 우선합니다.",
-  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "이 스캔에서 가져온 각 디바이스의 이름입니다. 호스트는 먼저 자체 이름으로 지정됩니다. SNMP로 보고하는 이름, 그다음 스캔이 조회하는 경우 Windows 호스트가 보고하는 NetBIOS 이름입니다. 그다음은 역방향 DNS 이름, 마지막은 주소입니다."
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "이 스캔에서 가져온 각 디바이스의 이름입니다. 호스트는 먼저 자체 이름으로 지정됩니다. SNMP로 보고하는 이름, 그다음 스캔이 조회하는 경우 Windows 호스트가 보고하는 NetBIOS 이름입니다. 그다음은 역방향 DNS 이름, 마지막은 주소입니다.",
+  "Asset Details": "자산 세부 정보",
+  "How to collect them": "수집 방법",
+  "What this machine is and where it is, in the same terms for every host and network device. Unknown means nothing has reported it yet.": "이 머신이 무엇이고 어디에 있는지를 모든 호스트와 네트워크 장치에 같은 항목으로 보여 줍니다. '알 수 없음'은 아직 아무것도 보고되지 않았다는 뜻입니다.",
+  "Where each detail comes from": "각 항목의 출처",
+  "{{count}} details are unknown: this device has not reported them over SNMP.": "{{count}}개 항목을 알 수 없음: 이 장치가 SNMP로 보고하지 않았습니다.",
+  "{{count}} details are unknown: this device has not reported them over SNMP._one": "{{count}}개 항목을 알 수 없음: 이 장치가 SNMP로 보고하지 않았습니다.",
+  "{{count}} details are unknown: this host's collector has not reported them.": "{{count}}개 항목을 알 수 없음: 이 호스트의 컬렉터가 보고하지 않았습니다.",
+  "{{count}} details are unknown: this host's collector has not reported them._one": "{{count}}개 항목을 알 수 없음: 이 호스트의 컬렉터가 보고하지 않았습니다."
 }
