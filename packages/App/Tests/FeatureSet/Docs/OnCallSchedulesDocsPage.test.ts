@@ -415,12 +415,14 @@ describe("the On-Call Schedules docs page", () => {
           found: layers.includes(`**${dashboard["Add Layer"]}**`),
         }).toEqual({ lang, found: true });
 
-        // Each person's one colour, named with the timeline's page title.
+        /*
+         * Each person's one colour, on the timeline: named as the
+         * dashboard's side menu names that page (the docs' own title for it
+         * differs in Spanish).
+         */
         expect({
           lang,
-          found: layers.includes(
-            `**${readDocsLocale(lang).navLinks[TIMELINE_PAGE_TITLE]}**`,
-          ),
+          found: layers.includes(`**${dashboard[TIMELINE_PAGE_TITLE]}**`),
         }).toEqual({ lang, found: true });
 
         for (const fact of [

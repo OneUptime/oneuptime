@@ -180,7 +180,7 @@ Twilio liest die Nachrichten mit einer Sprachausgabe vor; schreiben Sie sie also
 
 ## Anrufprotokolle
 
-Jeder Anruf steht auf der Seite **Anrufprotokolle** der Richtlinie, unter **Protokolle** im Seitenmenü: der **Anrufer**, die **Angerufene Nummer**, sein **Status**, wer abgenommen hat (**Beantwortet von**), die **Dauer** und wann er **Gestartet am** ist. Klicken Sie bei einem Anruf auf **View Timeline**, um seinen **Anrufverlauf** zu sehen: jede Person, bei der es geklingelt hat, auf welcher Nummer und wie jeder Versuch endete.
+Jeder Anruf steht auf der Seite **Anrufprotokolle** der Richtlinie, unter **Protokolle** im Seitenmenü: der **Anrufer**, die **Angerufene Nummer**, sein **Status**, wer abgenommen hat (**Beantwortet von**), die **Dauer** und wann er begann (**Gestartet am**). Klicken Sie bei einem Anruf auf **View Timeline**, um seinen **Anrufverlauf** zu sehen: jede Person, bei der es geklingelt hat, auf welcher Nummer und wie jeder Versuch endete.
 
 | Status | Was passiert ist |
 | --- | --- |

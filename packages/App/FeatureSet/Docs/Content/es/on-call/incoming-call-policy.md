@@ -1,298 +1,286 @@
-# Política de llamadas entrantes (Integración con Twilio)
+# Política de llamadas entrantes
 
-Las Políticas de llamadas entrantes permiten que los llamantes externos lleguen a tus ingenieros de guardia marcando un número de teléfono dedicado. Cuando alguien llama, OneUptime enruta la llamada a través de tus reglas de escalada configuradas hasta que un ingeniero responde.
+Una política de llamadas entrantes da a tu equipo un número de teléfono que contacta con quien esté de guardia. Cuando alguien llama, OneUptime hace sonar, una tras otra, a las personas de las reglas de escalado de la política hasta que alguien contesta, y pasa la llamada. Los números y las llamadas funcionan con tu propia cuenta de Twilio.
 
-## Cómo funciona
-
-```mermaid
-flowchart TD
-    A[El llamante marca<br/>el número entrante] --> B[Twilio recibe la llamada]
-    B --> C[Twilio envía webhook<br/>a OneUptime]
-    C --> D[OneUptime reproduce<br/>el mensaje de bienvenida]
-    D --> E[Carga reglas de escalada]
-    E --> F{Regla 1:<br/>Intenta usuario de guardia}
-    F -->|Sin respuesta| G{Regla 2:<br/>Intenta ingeniero de respaldo}
-    F -->|Respondida| H[Conecta al llamante<br/>con el ingeniero]
-    G -->|Sin respuesta| I{Regla 3:<br/>Intenta gerente}
-    G -->|Respondida| H
-    I -->|Sin respuesta| J[Reproduce mensaje de<br/>sin respuesta y cuelga]
-    I -->|Respondida| H
-    H --> K[Llamada conectada]
-    K --> L[Llamada finaliza]
-    L --> M[Registra detalles de la llamada]
+```mermaid title="De una llamada telefónica a la persona de guardia"
+flowchart TB
+    caller["Quien llama marca el número de la política"] --> twilio["Twilio recibe la llamada"]
+    twilio --> greeting["OneUptime reproduce el saludo"]
+    greeting --> ring["Hacer sonar a la persona de la siguiente regla"]
+    ring --> answered{"¿Contesta<br/>a tiempo?"}
+    answered -->|"Sí"| connected["Se pasa la llamada"]
+    answered -->|"No"| more{"¿Otra regla?"}
+    more -->|"Sí"| ring
+    more -->|"No"| repeat{"¿Repetir la política?"}
+    repeat -->|"Sí"| ring
+    repeat -->|"No"| missed["Mensaje de sin respuesta<br/>y se cuelga"]
 ```
 
-## Flujo de enrutamiento de llamadas
+:::cards
+- [Configura una política](#configura-una-política): De tu cuenta de Twilio a una llamada de prueba, en siete pasos.
+- [Cómo se enruta una llamada](#cómo-se-enruta-una-llamada): A quién suena, durante cuánto tiempo y qué oye quien llama.
+- [Llamadas perdidas](#llamadas-perdidas): A quién se avisa y cómo reaccionar a ellas en un flujo de trabajo.
+- [Solución de problemas](#solución-de-problemas): Llamadas que nunca llegan o que nunca contactan con nadie.
+:::
 
-```mermaid
+## Antes de empezar
+
+| Necesitas | Por qué |
+| --- | --- |
+| Una cuenta de Twilio, con su Account SID y su Auth Token | Los números y las llamadas de la política funcionan con ella, y Twilio se los cobra. |
+| El plan **Growth**, en OneUptime Cloud | Un proyecto lo necesita para tener su propia configuración de Twilio. |
+| Un servidor de OneUptime al que Twilio pueda llegar, si lo alojas tú | Twilio envía cada llamada a `https://<your host>/notification/incoming-call/voice`. |
+| **SMS** activado en el proyecto | El número de cada persona se verifica con un código enviado por SMS. |
+| Un número verificado para cada persona | Una regla solo hace sonar a quienes añadieron y verificaron un número para llamadas entrantes en el proyecto. |
+
+## Configura una política
+
+:::steps
+### Añade tu cuenta de Twilio
+
+Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de notificaciones**. En la tarjeta **Configuración de Twilio**, haz clic en **Crear configuración de Twilio** y rellena el formulario:
+
+- **Nombre** y **Descripción**: para qué es la cuenta, por ejemplo «Línea de soporte».
+- **SID de cuenta de Twilio**: de la consola de Twilio. Empieza por `AC`.
+- **Token de autenticación de Twilio**: de la consola de Twilio.
+- **Número de teléfono principal de Twilio**: un número de esa cuenta, para los SMS y las llamadas que envía.
+- **Números de teléfono secundarios de Twilio**: opcional. Números que envían en lugar del principal a los destinatarios de su país.
+- **Establecer como predeterminado del proyecto**: activado para la primera configuración de Twilio del proyecto, de modo que los SMS y las llamadas a los miembros del proyecto también pasen por esta cuenta. Desactívalo si esta cuenta es solo para llamadas entrantes.
+
+### Crea la política
+
+Ve a **Guardia** > **Políticas de llamadas entrantes** y haz clic en **Crear Política de llamadas entrantes**. Ponle un **Nombre**, por ejemplo «Línea de soporte», y, si quieres, una **Descripción** y **Etiquetas**. Después ábrela desde la lista.
+
+### Elige la cuenta de Twilio
+
+La **Vista general** de la política muestra una tarjeta **Configuración** con tres pasos numerados. En el primero, haz clic en **Seleccionar**, elige la cuenta en **Configuración de Twilio** y haz clic en **Guardar**.
+
+### Añade un número de teléfono
+
+En el segundo paso, haz clic en **Añadir número de teléfono**. Elige **Usar un número de teléfono existente** para traer un número que tu cuenta de Twilio ya tiene, o **Reservar nuevo número de teléfono** para conseguir uno nuevo. OneUptime apunta el número hacia sí mismo, así que no hay nada que configurar en Twilio. Consulta [Números de teléfono](#números-de-teléfono).
+
+### Añade reglas de escalado
+
+En el tercer paso, haz clic en **Administrar reglas**. Añade una regla por cada programación de guardia o persona a la que hacer sonar, en el orden en que deben sonar. Consulta [Reglas de escalado](#reglas-de-escalado).
+
+### Verifica el número de cada persona
+
+Cada persona a la que una regla puede hacer sonar añade y verifica su propio número para llamadas entrantes. Consulta [Números de las personas de guardia](#números-de-las-personas-de-guardia).
+
+### Llama al número
+
+Cuando los tres pasos están hechos, la tarjeta pasa a ser **Números de teléfono y configuración de Twilio**. Llama al número desde cualquier teléfono y abre después los **Registros de llamadas** de la política para ver a quién sonó.
+:::
+
+## Cómo se enruta una llamada
+
+1. Twilio envía la llamada a OneUptime, que lee el **Mensaje de bienvenida** de la política.
+2. OneUptime hace sonar a la persona que nombra la primera regla de escalado: esa persona, o quien esté de guardia en ese momento en la programación de guardia de la regla, sustituciones de usuario incluidas. Su teléfono muestra el número de la política como llamante.
+3. Si contesta dentro de la **Duración del timbre** de la regla, se pasa la llamada, y el registro de llamadas guarda quién contestó.
+4. Si no, quien llama oye «Connecting you to the next available engineer.», y suena la persona de la siguiente regla.
+5. Después de la última regla, la política vuelve a empezar por la primera si **Repetir política si nadie responde** está activado, tantas veces como indique **Veces de repetición de la política**. Si no, quien llama oye el **Mensaje de sin respuesta**, y la llamada termina.
+
+```mermaid title="Las peticiones detrás de una llamada"
 sequenceDiagram
-    participant Llamante
+    participant Caller as Quien llama
     participant Twilio
     participant OneUptime
-    participant IngenieroDeGuardia
-
-    Llamante->>Twilio: Marca el número entrante
-    Twilio->>OneUptime: POST /incoming-call/voice
-    OneUptime->>Twilio: TwiML: Reproduce saludo
-    Twilio->>Llamante: "Por favor espere mientras le conectamos..."
-
-    loop Reglas de escalada
-        OneUptime->>OneUptime: Obtiene la siguiente regla de escalada
-        OneUptime->>Twilio: TwiML: Llama al usuario de guardia
-        Twilio->>IngenieroDeGuardia: Suena el teléfono
-        alt El ingeniero responde
-            IngenieroDeGuardia->>Twilio: Contesta
-            Twilio->>OneUptime: Estado de marcación: completado
-            Twilio->>Llamante: Conecta con el ingeniero
-            Note over Llamante,IngenieroDeGuardia: Llamada en curso
-        else Sin respuesta (tiempo de espera agotado)
-            Twilio->>OneUptime: Estado de marcación: sin-respuesta
-            OneUptime->>OneUptime: Intenta la siguiente regla
-        end
-    end
-
-    alt Todas las reglas agotadas
-        OneUptime->>Twilio: TwiML: Reproduce mensaje sin respuesta
-        Twilio->>Llamante: "Nadie está disponible..."
-        Twilio->>Llamante: Cuelga
-    end
+    participant Engineer as Persona de guardia
+    Caller->>Twilio: Marca el número de la política
+    Twilio->>OneUptime: POST /notification/incoming-call/voice
+    OneUptime-->>Twilio: Saludo, y después hacer sonar a la persona de la primera regla
+    Twilio->>Engineer: Suena durante la duración del timbre de la regla
+    Note over Twilio,Engineer: Nadie contesta a tiempo
+    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
+    OneUptime-->>Twilio: Hacer sonar a la persona de la siguiente regla
+    Twilio->>Engineer: Hace sonar a la siguiente persona
+    Engineer-->>Twilio: Contesta
+    Twilio-->>Caller: Pasa la llamada
 ```
 
-## Prerrequisitos
+Una regla se salta, sin hacer sonar a nadie, cuando ahora mismo no hay nadie a quien llamar para ella: su programación no tiene a nadie de guardia, la persona no tiene un número verificado para llamadas entrantes en este proyecto o ya no es miembro del proyecto. Cuando ninguna regla tiene a alguien a quien hacer sonar, quien llama oye el **Mensaje de nadie disponible**. Una política desactivada responde a cada llamada con «Sorry, this service is currently disabled.» y cuelga.
 
-- Una cuenta de Twilio: créala en [https://www.twilio.com](https://www.twilio.com)
-- Tu SID de cuenta y token de autenticación de Twilio
-- Acceso a tu instancia auto-alojada de OneUptime
+OneUptime comprueba la firma de Twilio en cada petición con el Auth Token de la configuración de Twilio, y rechaza la petición que no puede verificar.
 
-## Información general
+> [!TIP]
+> Guarda el número de la política como contacto en tu teléfono, por ejemplo «Línea de soporte», para reconocer una llamada enrutada cuando suene.
 
-La función de Política de llamadas entrantes funciona mediante:
+## Reglas de escalado
 
-1. Recibir llamadas entrantes en un número de teléfono de Twilio
-2. Reproducir un mensaje de bienvenida personalizable
-3. Enrutar la llamada a través de reglas de escalada (programaciones de guardia o personas)
-4. Conectar al llamante con el primer ingeniero de guardia disponible
-5. Escalar a la siguiente regla si nadie responde
+Las reglas de escalado deciden a quién suena cuando alguien llama al número de la política, de arriba abajo en la lista. Abre la política, elige **Reglas de escalado** en su menú lateral y haz clic en **Añadir regla de escalado**. Una regla es un solo paso corto:
 
-Dado que estás auto-alojando OneUptime, necesitarás configurar tu propia cuenta de Twilio. Esto te da control total sobre tus números de teléfono y facturación.
+- **A quién llamar**: una programación de guardia o una sola persona. Una programación hace sonar a quien esté de guardia en ella cuando entra la llamada. Las personas son los miembros de tu proyecto.
+- **Duración del timbre (en segundos)**: cuánto tiempo suena su teléfono antes de que la llamada pase a la siguiente regla. Empieza en 20 segundos, y Twilio acepta de 5 a 600.
+- **Nombre** y **Descripción** son opcionales, en **Más campos**. Una regla sin nombre aparece según su lugar en la lista: **Level 1**, **Level 2**.
 
-## Paso 1: Crear una cuenta de Twilio
+Las reglas se llaman de arriba abajo en la lista, y una regla nueva se añade al final. Para cambiar el orden, arrastra una regla por el asa de su esquina superior izquierda. Con el teclado, pon el foco en el asa, pulsa Espacio, muévela con las flechas y vuelve a pulsar Espacio.
 
-1. Ve a [https://www.twilio.com](https://www.twilio.com) y regístrate para obtener una cuenta
-2. Completa el proceso de verificación
-3. Anota tu **SID de cuenta** y **Token de autenticación** desde el panel de Twilio
+> [!WARNING]
+> **Cuidado con el buzón de voz**: mantén la **Duración del timbre** por debajo del tiempo que tarda el teléfono de la persona en enviar una llamada sin contestar al buzón de voz. Si su buzón contesta primero, quien llama queda conectado con él y la llamada no pasa a la siguiente regla. Twilio añade unos segundos propios a cada timbre. Por eso una regla nueva empieza en 20 segundos. Las reglas añadidas cuando el valor por defecto era de 30 segundos conservan sus 30: si sus llamadas acaban en el buzón de voz, baja la **Duración del timbre** de esas reglas.
 
-## Paso 2: Configurar la configuración de llamadas/SMS en OneUptime
+Por ejemplo, tres reglas que prueban dos rotaciones y después a una responsable:
 
-1. Inicia sesión en tu panel de OneUptime
-2. Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de Notificación**
-3. En **Configuración de Twilio**, haz clic en **Crear configuración de Twilio**
-4. Completa los siguientes campos:
-   - **Nombre**: Un nombre descriptivo (por ejemplo, "Configuración de Twilio para producción")
-   - **Descripción**: Descripción opcional
-   - **SID de cuenta de Twilio**: Tu SID de cuenta de Twilio (comienza con `AC`)
-   - **Token de autenticación de Twilio**: Tu token de autenticación de Twilio
-   - **Número de teléfono principal de Twilio**: Un número de teléfono de tu cuenta de Twilio para llamadas salientes
-   - **Establecer como predeterminado del proyecto**: activado en la primera configuración de Twilio del proyecto, así que los SMS y las llamadas a los miembros del proyecto también pasan por esta cuenta. Desactívalo si esta cuenta es solo para llamadas entrantes.
-5. Haz clic en **Guardar**
+| Nivel | A quién llamar | Duración del timbre |
+| --- | --- | --- |
+| Level 1 | Programación de guardia principal | 20 segundos |
+| Level 2 | Programación de guardia secundaria | 20 segundos |
+| Level 3 | Responsable de ingeniería (una persona) | 20 segundos |
 
-## Paso 3: Crear una Política de llamadas entrantes
+## Números de teléfono
 
-1. Ve a **Guardia** > **Políticas de Llamadas Entrantes**
-2. Haz clic en **Crear política de llamadas entrantes**
-3. Completa los siguientes campos:
-   - **Nombre**: Un nombre descriptivo (por ejemplo, "Línea de soporte")
-   - **Descripción**: Descripción opcional
-4. Haz clic en **Guardar**
+Una política puede tener varios números, y todos hacen sonar las mismas reglas. Cada número pertenece a una sola política. Añádelos con **Añadir número de teléfono** en la **Vista general** de la política:
 
-## Paso 4: Vincular la configuración de Twilio a la política
+:::tabs
+@tab Usar un número que ya tienes
+1. Haz clic en **Añadir número de teléfono** y después en **Usar un número de teléfono existente**. OneUptime lista los números de la cuenta de Twilio de la política.
+2. Haz clic en **Seleccionar** junto al número y después en **Asignar número**.
 
-1. Abre tu Política de llamadas entrantes recién creada
-2. En la tarjeta **Enrutamiento de número de teléfono**, busca el **Paso 2: Vincular configuración de Twilio**
-3. Haz clic en **Seleccionar configuración de Twilio** y elige la configuración que creaste en el Paso 2
-4. Guarda la selección
+Un número cuyas llamadas ya van a otro sitio lo indica con «Currently has a webhook configured». Asignarlo envía sus llamadas a OneUptime en su lugar.
+@tab Reservar un número nuevo
+1. Haz clic en **Añadir número de teléfono**, después en **Reservar nuevo número de teléfono** y en **Buscar números**.
+2. Elige un **País**. Si quieres, rellena **Código de área (opcional)**, por ejemplo 415, o **Contiene (opcional)** con dígitos que deba contener el número. Haz clic en **Buscar**: se listan hasta 10 números locales.
+3. Haz clic en **Reservar** junto a un número y confirma con **Reservar**. Twilio cobra el número a tu cuenta de Twilio.
+:::
 
-## Paso 5: Configurar un número de teléfono
+OneUptime configura el webhook de voz del número en `https://<your host>/notification/incoming-call/voice`, construido a partir de `HOST` y `HTTP_PROTOCOL` en una instalación autoalojada. Para pasar una política a otra cuenta de Twilio, libera primero sus números: la cuenta solo puede cambiar mientras la política no tiene ninguno.
 
-Tienes dos opciones para configurar un número de teléfono:
+Para liberar un número, haz clic en **Liberar** junto a él y confirma con **Liberar número**.
 
-### Opción A: Usar un número de teléfono de Twilio existente
+> [!CAUTION]
+> Liberar un número lo devuelve a Twilio, aunque lo hayas traído con **Usar un número de teléfono existente**, y puede que no lo recuperes. Eliminar una política, o la configuración de Twilio que usa, también libera sus números.
 
-Si ya tienes números de teléfono en tu cuenta de Twilio:
+## Números de las personas de guardia
 
-1. En la tarjeta **Número de teléfono**, haz clic en **Usar número existente**
-2. OneUptime obtendrá todos los números de teléfono de tu cuenta de Twilio
-3. Selecciona el número de teléfono que deseas usar
-4. Haz clic en **Usar este** para asignarlo a la política
+Una regla hace sonar a una persona en el número que verificó para llamadas entrantes en este proyecto, y se salta a quien no tenga ninguno. Cada persona añade el suyo:
 
-> **Nota**: Si el número de teléfono ya tiene un webhook configurado, se actualizará para apuntar a OneUptime.
+:::steps
+1. Abre **Ajustes de usuario** > **Política de llamadas entrantes** > **Números de teléfono entrantes**. **Política de llamadas entrantes** es una sección del menú lateral que empieza plegada.
+2. En la tarjeta **Números de teléfono para enrutamiento de llamadas entrantes**, haz clic en **Añadir Número de teléfono para enrutamiento de llamadas entrantes** y escribe el número con su prefijo de país, por ejemplo `+15551234567`.
+3. Escribe el código de 6 dígitos que OneUptime le envía por SMS en **Código de verificación** y haz clic en **Verificar**. **Send a new code** envía otro.
+:::
 
-### Opción B: Comprar un nuevo número de teléfono
+Cada persona puede tener un número verificado por proyecto. Para cambiarlo, elimina primero el número antiguo. Estos números son distintos de los números de teléfono de **Métodos de notificación**, que usan los avisos de guardia.
 
-Para comprar un nuevo número de teléfono directamente desde OneUptime:
+Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un propietario del proyecto o alguien con el rol **Billing Admin** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**.
 
-1. En la tarjeta **Número de teléfono**, haz clic en **Comprar nuevo número**
-2. Selecciona un **País** del menú desplegable
-3. Opcionalmente, ingresa un **Código de área** (por ejemplo, 415 para San Francisco)
-4. Opcionalmente, ingresa los dígitos que el número debe **Contener** (por ejemplo, 555)
-5. Haz clic en **Buscar** para encontrar los números disponibles
-6. Selecciona un número de teléfono de los resultados
-7. Haz clic en **Comprar** para adquirir el número
+## Mensajes de voz y ajustes de la política
 
-¡El número de teléfono se comprará de tu cuenta de Twilio y el webhook se **configurará automáticamente**, sin necesidad de configuración manual!
+Abre la política y elige **Ajustes** en **Avanzado** en su menú lateral. **Editar mensajes** en la tarjeta **Mensajes de voz** cambia lo que oyen quienes llaman; **Editar ajustes de la política** en la tarjeta **Ajustes de la política** cambia el resto.
 
-```mermaid
-flowchart LR
-    A[Crear política] --> B[Vincular configuración de Twilio]
-    B --> C{Elige opción de<br/>número de teléfono}
-    C -->|Existente| D[Seleccionar de<br/>cuenta de Twilio]
-    C -->|Nuevo| E[Buscar y comprar<br/>nuevo número]
-    D --> F[Webhook configurado automáticamente]
-    E --> F
-    F --> G[Agregar reglas de escalada]
-    G --> H[¡Política lista!]
-```
+| Ajuste | Qué hace | En una política nueva |
+| --- | --- | --- |
+| **Mensaje de bienvenida** | Se lee cuando se contesta la llamada, antes de que suene la primera persona. | "Please wait while we connect you to the on-call engineer." |
+| **Mensaje de sin respuesta** | Se lee cuando se han probado todas las reglas y nadie ha contestado. | "No one is available. Please try again later." |
+| **Mensaje de nadie disponible** | Se lee cuando ninguna regla tiene a alguien a quien hacer sonar. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Habilitado** | Una política desactivada rechaza todas las llamadas. | Activado |
+| **Repetir política si nadie responde** | Después de la última regla, volver a empezar por la primera. | Desactivado |
+| **Veces de repetición de la política** | Cuántas veces volver a empezar. | 1 |
 
-## Paso 6: Configurar las reglas de escalada
+Twilio lee los mensajes con una voz sintética, así que escríbelos como quieras que suenen.
 
-Las reglas de escalado deciden a quién se llama cuando alguien marca el número de la política, de arriba abajo en la lista:
+## Registros de llamadas
 
-1. Abre tu política de llamadas entrantes
-2. Ve a la pestaña **Reglas de escalado**
-3. Haz clic en **Añadir regla de escalado**
-4. Completa la regla. Es un solo paso:
-   - **A quién llamar**: una programación de guardia o una persona. Una programación hace sonar el teléfono de quien esté de guardia en ella cuando llega la llamada. Las personas son los miembros de tu proyecto.
-   - **Duración del timbre (en segundos)**: cuánto tiempo suena su teléfono antes de que la llamada pase a la siguiente regla. Empieza en 20 segundos, y Twilio acepta de 5 a 600.
-   - **Nombre** y **Descripción** son opcionales y están en **Más campos**. Una regla sin nombre se muestra según su lugar en la lista: **Level 1**, **Level 2**.
-5. Guárdala y añade una regla por cada programación o persona que se deba probar después
+Cada llamada aparece en la página **Registros de llamadas** de la política, en **Registros** en su menú lateral: el **Llamante**, el **Número llamado**, su **Estado**, quién la contestó (**Respondida por**), la **Duración** y cuándo empezó (**Iniciado en**). Haz clic en **View Timeline** en una llamada para ver su **Cronología de llamadas**: cada persona a la que sonó, en qué número y cómo terminó cada intento.
 
-Las reglas se llaman de arriba abajo en la lista, y una regla nueva se añade al final. Para cambiar el orden, arrastra una regla por el asa de su esquina superior izquierda; con el teclado, enfoca el asa, pulsa Espacio, muévela con las flechas y vuelve a pulsar Espacio.
+| Estado | Qué pasó |
+| --- | --- |
+| **Iniciado**, **Sonando**, **Escalado** | La llamada sigue en curso: entró, está sonando un teléfono o pasó a una regla posterior. |
+| **Completado** | Alguien contestó y se pasó la llamada. |
+| **Sin respuesta** | Se probaron todas las reglas de escalado y nadie contestó. Quien llamó oyó tu **Mensaje de sin respuesta**. |
+| **El llamante colgó** | Quien llamaba colgó mientras sonaba el teléfono de una persona. |
+| **Fallido** | No se pudo hacer sonar a nadie: ninguna regla de escalado tenía a una persona de guardia con un número verificado para llamadas entrantes (quien llamó oyó tu **Mensaje de nadie disponible**), o la política está desactivada. |
 
-> **Ojo con el buzón de voz**: mantén la **Duración del timbre** por debajo del tiempo que tarda el teléfono de la persona en enviar una llamada no contestada al buzón de voz. Si el buzón contesta antes, quien llama queda conectado a él y la llamada no pasa a la siguiente regla. Twilio añade unos segundos propios a cada timbre. Por eso una regla nueva empieza en 20 segundos. Las reglas añadidas cuando el valor predeterminado era de 30 segundos conservan sus 30: si sus llamadas acaban en el buzón de voz, baja la **Duración del timbre** de esas reglas.
+## Llamadas perdidas
 
-### Ejemplo de regla de escalada
+Una llamada se pierde cuando termina sin contactar con nadie: su estado es **Sin respuesta**, **El llamante colgó** o **Fallido**.
 
-```mermaid
-flowchart TD
-    subgraph "Cadena de escalada"
-        A[Level 1: Programación de guardia principal<br/>Sonar 20 segundos] --> B[Level 2: Programación de guardia secundaria<br/>Sonar 20 segundos]
-        B --> C[Level 3: Responsable de ingeniería<br/>Sonar 20 segundos]
-        C --> D[Mensaje sin respuesta]
-    end
-```
+### A quién se avisa
 
-| Nivel   | A quién llamar                          | Duración del timbre |
-| ------- | --------------------------------------- | ------------------- |
-| Level 1 | Programación de guardia principal       | 20 segundos         |
-| Level 2 | Programación de guardia secundaria      | 20 segundos         |
-| Level 3 | Responsable de ingeniería (una persona) | 20 segundos         |
+Cuando se pierde una llamada, OneUptime avisa a los propietarios de la política: los usuarios y los miembros de los equipos añadidos en la página **Propietarios** de la política. Si la política no tiene propietarios, se avisa en su lugar a los propietarios del proyecto.
 
-## Paso 7: Configurar mensajes de voz (opcional)
+El aviso dice quién llamó, qué número marcó, por qué nadie contestó, y a quién sonó y cómo terminó cada intento. Enlaza la llamada en el registro de llamadas.
 
-Personaliza los mensajes que escuchan los llamantes:
+Los propietarios reciben un correo por defecto. Cada persona puede elegir otros canales (SMS, llamada, push y más) o desactivarlo en **Ajustes de usuario** > **Ajustes de notificaciones**, en **De guardia** > **Políticas de llamadas entrantes** > **Llamada perdida**.
 
-1. Abre tu Política de llamadas entrantes
-2. Ve a **Ajustes**
-3. Configura:
-   - **Mensaje de bienvenida**: Reproducido cuando se responde la llamada
-   - **Mensaje de sin respuesta**: Reproducido cuando fallan todas las reglas de escalada
-   - **Mensaje de nadie disponible**: Reproducido cuando nadie está de guardia
+### Reacciona a las llamadas perdidas en un flujo de trabajo
 
-## Opciones de configuración
+Los registros de llamadas entrantes están disponibles como disparadores de flujos de trabajo:
 
-### Ajustes de la política
+- **On Create Incoming Call Log** se ejecuta cuando entra una llamada.
+- **On Update Incoming Call Log** se ejecuta a medida que avanza la llamada. La actualización que define **Ended At** es el final de la llamada.
 
-| Ajuste                             | Descripción                                           | Predeterminado                                                                 |
-| ---------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Mensaje de bienvenida              | Mensaje TTS reproducido cuando se responde la llamada | "Por favor espere mientras le conectamos con el ingeniero de guardia."         |
-| Mensaje sin respuesta              | Mensaje cuando fallan todas las reglas de escalada    | "Nadie está disponible. Por favor intente de nuevo más tarde."                 |
-| Mensaje sin nadie disponible       | Mensaje cuando nadie está de guardia                  | "Lo sentimos, pero actualmente no hay ningún ingeniero de guardia disponible." |
-| Repetir política si nadie responde | Reiniciar desde la primera regla si todas fallan      | Deshabilitado                                                                  |
-| Veces de repetición de la política | Número máximo de intentos de repetición               | 1                                                                              |
+Para actuar solo sobre las llamadas perdidas, por ejemplo para publicarlas en Slack o Microsoft Teams o abrir una incidencia:
 
-### Ajustes de la regla de escalada
+:::steps
+1. Añade el disparador **On Update Incoming Call Log**. Pon **Listen on** en **Ended At** y selecciona los campos que quieras usar, como **Status**, **Caller Phone Number** y **Routing Phone Number**.
+2. Añade un paso **If / Else**. Comprueba el **Status** del disparador, con la comparación **is not equal to** y `Completed`.
+3. Conecta tus pasos al puerto **Yes**.
+:::
 
-| Ajuste                            | Descripción                                                                                                                                                       |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A quién llamar                    | Una programación de guardia, que llama a quien esté de guardia en ella, o una persona. Cada regla llama a una de ellas                                            |
-| Duración del timbre (en segundos) | Cuánto tiempo suena el teléfono antes de que la llamada pase a la siguiente regla (predeterminado: 20; de 5 a 600)                                               |
-| Nombre y Descripción              | Opcionales, en Más campos. Una regla sin nombre se muestra como Level 1, Level 2, etc., según su lugar en la lista                                                 |
-| Orden                             | El lugar de la regla en la lista: las reglas se llaman de arriba abajo. Se cambia arrastrando las reglas; mediante la API, una regla nueva sin orden va al final |
+Un flujo de trabajo puede leer registros de llamadas con **Find One** y **Find Many**, pero no puede crearlos ni cambiarlos.
 
-Mediante la API, una regla indica `onCallDutyPolicyScheduleId` o `userId` (uno de los dos, nunca ambos) y `escalateAfterSeconds`: la duración del timbre, 20 si se omite.
+## Quién puede añadir y liberar números de teléfono
 
-## Ver registros de llamadas
+Los números de teléfono de una política siguen los mismos roles que la propia política:
 
-Para ver el historial de llamadas entrantes:
+- **Buscar números** - buscar en Twilio un número que reservar, o listar los números que ya tiene tu cuenta de Twilio - necesita permiso para leer las políticas de llamadas entrantes y para leer las configuraciones de llamadas y SMS, porque lee tu cuenta de Twilio a través de una de ellas. **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member** y **Settings Viewer** tienen ambos. En un rol personalizado, son **Read Incoming Call Policy** y **Read Call and SMS**.
+- **Reservar un número, usar uno existente y liberar uno** necesitan permiso para editar las políticas de llamadas entrantes: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin** y **Settings Member**, o **Edit Incoming Call Policy** en un rol personalizado. Cambian los números de una política que puedes editar: con un rol limitado a ciertas etiquetas, las políticas que llevan esas etiquetas.
 
-1. Ve a **Guardia** > **Políticas de Llamadas Entrantes**
-2. Haz clic en tu política
-3. Ve a la pestaña **Registros de Llamadas**
+Un bloqueo de equipo sin etiquetas sobre uno de estos permisos lo retira. Para cualquier otra persona, **Añadir número de teléfono** y **Liberar** siguen en la página, bloqueados, y su descripción emergente dice qué necesitan. La API rechaza su petición con una frase que dice qué necesita: "Looking up phone numbers needs permission to read incoming call policies and call and SMS settings." o "Adding or releasing a phone number needs permission to edit incoming call policies." Reservar un número se cobra a tu propia cuenta de Twilio, no a tu saldo de OneUptime, así que no necesita permiso de facturación.
 
-Los registros muestran:
+## Crear políticas con la API o Terraform
 
-- Número de teléfono del llamante
-- Estado de la llamada (Completada, Sin respuesta, Fallida, etc.)
-- Quién respondió la llamada
-- Duración de la llamada
-- Marca de tiempo
+| Recurso | Ruta de la API |
+| --- | --- |
+| Políticas de llamadas entrantes | `/api/incoming-call-policy` |
+| Sus reglas de escalado | `/api/incoming-call-policy-escalation-rule` |
+| Sus números de teléfono, solo lectura | `/api/incoming-call-policy-phone-number` |
+| Registros de llamadas, solo lectura | `/api/incoming-call-log` |
 
-## Configuración del número de teléfono del usuario
+Una regla creada mediante la API sin `escalateAfterSeconds` suena durante 20 segundos, y lo mismo una que Terraform crea sin `escalate_after_seconds`.
 
-Para que los usuarios puedan recibir llamadas entrantes, deben tener un número de teléfono verificado:
+### Ajustes de una regla de escalado
 
-1. Los usuarios van a **Ajustes de usuario** > **Métodos de Notificación**
-2. Agregan un número de teléfono en **Números de llamadas entrantes**
-3. Verifican el número de teléfono mediante código SMS
-
-Solo los usuarios con números de teléfono verificados pueden ser contactados a través de las reglas de escalada.
-
-Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** encendido. Un propietario del proyecto o alguien con **Billing Admin** o **Manage Billing** lo enciende en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**.
-
-## Liberar un número de teléfono
-
-Si ya no necesitas un número de teléfono:
-
-1. Abre tu Política de llamadas entrantes
-2. En la tarjeta **Número de teléfono**, haz clic en **Liberar número**
-3. Confirma la liberación
-
-> **Advertencia**: Los números liberados se devuelven a Twilio y puede que no estén disponibles para volver a comprarse.
+| Ajuste | Campo de la API | Qué contiene |
+| --- | --- | --- |
+| A quién llamar | `onCallDutyPolicyScheduleId` o `userId` | Uno de los dos, nunca ambos: la programación cuya persona de guardia suena, o la persona. |
+| Duración del timbre (en segundos) | `escalateAfterSeconds` | Cuánto tiempo suena el teléfono antes de que la llamada siga (por defecto: 20; de 5 a 600). |
+| Nombre y Descripción | `name`, `description` | Opcionales. Una regla sin nombre aparece como Level 1, Level 2 y así sucesivamente, según su lugar en la lista. |
+| Orden | `order` | Dónde está la regla en la lista: las reglas se llaman de arriba abajo. Una regla nueva sin orden va al final. |
 
 ## Solución de problemas
 
-### Las llamadas no se reciben
+:::details Las llamadas no llegan a OneUptime
+- En la consola de Twilio, abre el número: **A call comes in** debe ser el webhook `https://<your host>/notification/incoming-call/voice`, con HTTP POST. OneUptime lo configura al añadir el número, a partir de `HOST` y `HTTP_PROTOCOL`. Si han cambiado desde entonces, corrige el webhook en Twilio.
+- Un OneUptime autoalojado debe ser accesible desde Internet por https. El registro de llamadas del número en la consola de Twilio, y el **Debugger** de Twilio, muestran lo que respondió OneUptime.
+- Una respuesta `403` significa que la firma de la petición no cuadró. Comprueba que la configuración de Twilio tiene el **Token de autenticación de Twilio** actual de la cuenta, y que un proxy delante de OneUptime transmite el host y el esquema a los que llamó Twilio (`X-Forwarded-Host` y `X-Forwarded-Proto`).
+:::
 
-- Verifica que la configuración de Twilio esté correctamente vinculada a la política
-- Comprueba que tu instancia de OneUptime sea accesible desde internet
-- Verifica que el SID de cuenta y el token de autenticación de Twilio sean correctos
-- Revisa los registros de errores en la consola de Twilio
+:::details La llamada se contesta, pero no suena a nadie
+El registro de llamadas dice **Fallido**. Comprueba que la política está **Habilitado**, que la programación de guardia de cada regla tiene a alguien de guardia ahora mismo y que las personas a las que hacen sonar las reglas tienen un número verificado en **Ajustes de usuario** > **Política de llamadas entrantes** > **Números de teléfono entrantes**, en este proyecto. Las reglas solo hacen sonar a miembros del proyecto.
+:::
 
-### Las llamadas no se conectan con los ingenieros
+:::details Las llamadas acaban en el buzón de voz
+Si las llamadas acaban en el buzón de voz de una persona, pon la **Duración del timbre** de la regla por debajo del tiempo que tarda su teléfono en pasar al buzón. Un buzón que contesta cuenta como respuesta, y la llamada se queda ahí.
+:::
 
-- Verifica que los usuarios tengan números de teléfono verificados en su configuración de notificaciones
-- Comprueba que las reglas de escalada estén correctamente configuradas
-- Asegúrate de que los horarios de guardia tengan usuarios asignados para el momento actual
-- Verifica que la política esté habilitada
-- Si las llamadas acaban en el buzón de voz de un ingeniero, ajusta la **Duración del timbre** de la regla por debajo del tiempo que tarda su teléfono en pasar al buzón de voz
+:::details No se puede reservar un número nuevo
+En muchos países, Twilio necesita un paquete regulatorio (regulatory bundle) aprobado antes de vender números locales, y algunos números necesitan saldo positivo en Twilio. Configúralo en la consola de Twilio, o consigue allí el número y añádelo con **Usar un número de teléfono existente**.
+:::
 
-### Problemas de calidad de audio
+:::details No se puede cambiar la cuenta de Twilio de la política
+La cuenta solo puede cambiar mientras la política no tiene números de teléfono: la página dice «Remove all phone numbers to change». Liberar los números los devuelve a Twilio, así que planifica el cambio antes.
+:::
 
-- Asegúrate de que tu servidor tenga conectividad a internet estable
-- Revisa la página de estado de Twilio para ver si hay problemas en curso
-- Verifica que los números de teléfono estén en el formato correcto (formato E.164: +15551234567)
+:::details No llega el código para el número de una persona
+El SMS debe estar activado en el proyecto. En OneUptime Cloud, un proyecto sin su propia configuración de Twilio predeterminada paga los SMS con su saldo, que debe superar 1 USD. Los códigos pueden tardar un minuto en llegar; haz clic en **Send a new code** para enviar otro, y **Ajustes del proyecto** > **Notificaciones** > **Registros de notificación** muestra qué pasó con él.
+:::
 
-## Consideraciones de seguridad
+## Próximos pasos
 
-- Mantén tu token de autenticación de Twilio seguro y nunca lo expongas públicamente
-- Usa HTTPS para tu instancia de OneUptime
-- OneUptime valida las firmas de los webhooks para asegurarse de que las solicitudes vengan de Twilio
-- Considera restringir qué números de teléfono pueden llamar a tus políticas de llamadas entrantes
-
-## Soporte
-
-Para problemas con la función de Política de llamadas entrantes, por favor:
-
-1. Revisa los registros de errores en la consola de Twilio
-2. Revisa los registros del servidor de OneUptime
-3. Contacta con soporte en [hello@oneuptime.com](mailto:hello@oneuptime.com)
+:::cards
+- [Reglas de escalado](/docs/on-call/escalation-rules): Cómo una política de guardia avisa a las personas, nivel a nivel.
+- [Programaciones de guardia](/docs/on-call/schedules): Construye las rotaciones a las que llaman tus reglas.
+- [Flujos de trabajo](/docs/workflows/index): Reacciona a las llamadas perdidas: publícalas en un canal o abre una incidencia.
+- [Integración de SMS y voz de Twilio](/docs/self-hosted/twilio-integration): Configura Twilio para una instalación autoalojada.
+:::
