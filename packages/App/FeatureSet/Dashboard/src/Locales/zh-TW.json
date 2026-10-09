@@ -27123,5 +27123,10 @@
   "{{tool}} checks it every {{every}}. OneUptime checks it every {{oneUptimeEvery}}, the closest it offers.": "{{tool}} 每 {{every}} 檢查一次。OneUptime 每 {{oneUptimeEvery}} 檢查一次，這是它提供的最接近的間隔。",
   "{{tool}} has {{count}} maintenance windows. They do not come over: plan them as scheduled maintenance in OneUptime.": "{{tool}} 中有 {{count}} 個維護時段。它們不會匯入：請在 OneUptime 中將其安排為排定維護。",
   "{{tool}} waits {{timeout}} for an answer. OneUptime waits at most a minute.": "{{tool}} 會等待 {{timeout}} 的回應。OneUptime 最多等待一分鐘。",
-  "{{tool}}'s guide to its metrics page": "{{tool}} 的指標頁面指南"
+  "{{tool}}'s guide to its metrics page": "{{tool}} 的指標頁面指南",
+  "Bringing your status pages over from {{tool}}": "正在從 {{tool}} 搬移你的狀態頁面",
+  "Check your status pages": "檢查你的狀態頁面",
+  "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "當你的網域指向 OneUptime 後，請在 {{tool}} 中關閉該頁面，以免其訂閱者收到重複通知。",
+  "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "開啟每個狀態頁面，並與 {{tool}} 中的頁面比對。每個元件都是一個手動監測器：情況變化時，請在 OneUptime 中變更其狀態。",
+  "Turn off your page in {{tool}}": "在 {{tool}} 中關閉你的頁面"
 }

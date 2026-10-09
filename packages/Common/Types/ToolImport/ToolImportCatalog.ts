@@ -120,6 +120,12 @@ export interface ToolImportSourceDefinition {
   apiUrlExample?: string | undefined;
   // For a tool read from a file the person uploads: what the file may be.
   fileUpload?: ToolImportFileUpload | undefined;
+  /*
+   * For a tool that hosts status pages and checks nothing itself (Atlassian
+   * Statuspage): what its pages show comes over as manual monitors, and the
+   * report's last steps are about the page, not about checks.
+   */
+  isStatusPageHost?: boolean | undefined;
 }
 
 export const OPSGENIE_US_HOST: string = "api.opsgenie.com";
@@ -318,6 +324,7 @@ export const ToolImportCatalog: Record<
     credentialFields: [ToolImportCredentialField.ApiKey],
     // Statuspage answers each key once a second.
     minRequestIntervalMs: 1000,
+    isStatusPageHost: true,
   },
   [ToolImportSource.BetterStack]: {
     source: ToolImportSource.BetterStack,
@@ -406,6 +413,13 @@ export function isToolImportFileUpload(
   definition: ToolImportSourceDefinition,
 ): boolean {
   return Boolean(definition.fileUpload);
+}
+
+// True for a tool that hosts status pages and checks nothing itself.
+export function isToolImportStatusPageHost(
+  definition: ToolImportSourceDefinition,
+): boolean {
+  return definition.isStatusPageHost === true;
 }
 
 /*

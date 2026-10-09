@@ -7,11 +7,15 @@ import {
 import {
   getToolImportSourceDefinition,
   isToolImportAddressGiven,
+  isToolImportFileUpload,
+  isToolImportStatusPageHost,
+  ToolImportCategory,
   ToolImportSourceDefinition,
 } from "Common/Types/ToolImport/ToolImportCatalog";
 import {
   TOOL_IMPORT_MAX_ITEMS,
   TOOL_IMPORT_MAX_ITEMS_PER_KIND,
+  TOOL_IMPORT_MAX_UPLOAD_BYTES,
   TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS,
 } from "Common/Types/ToolImport/ToolImportLimits";
 import ToolImportResourceKind from "Common/Types/ToolImport/ToolImportResourceKind";
@@ -24,8 +28,8 @@ import path from "path";
 
 /*
  * The "Moving to OneUptime" pages - one per tool Project Settings > Import
- * from another tool brings a team over from - against the product they
- * describe. Markdown is not compiled, so nothing else notices a tool added
+ * from another tool brings a team, monitors or status pages over from -
+ * against the product they describe. Markdown is not compiled, so nothing else notices a tool added
  * without its page, a page that names a host the import never calls, a
  * limit that changed in code but not in the docs, or a button the page
  * tells a reader to select under a name the page does not show in their
@@ -195,9 +199,13 @@ describe.each(AllToolImportSources)(
     });
 
     test("names every host the import calls, and no other tool's, in every language", () => {
-      // A tool whose address the person gives calls no fixed host.
+      /*
+       * A tool whose address the person gives calls no fixed host, and one
+       * read from a file calls nothing at all.
+       */
       expect(definition.hosts.length === 0).toBe(
-        isToolImportAddressGiven(definition),
+        isToolImportAddressGiven(definition) ||
+          isToolImportFileUpload(definition),
       );
 
       for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
@@ -290,17 +298,40 @@ describe.each(AllToolImportSources)(
       const names: Array<string> = [
         "Project Settings",
         "Import from another tool",
-        "Read my {{tool}} account",
-        "Tick them too",
-        "Invite new people to",
         "Start import",
         "Earlier imports",
-        "Try again",
-        "On-Call Duty",
-        "On-Call Schedules",
-        "Readiness",
         copy.keyLabel,
       ];
+
+      // A file is chosen and read; an account is read with its key.
+      if (isToolImportFileUpload(definition)) {
+        names.push("Choose file", "Read the file");
+      } else {
+        names.push("Read my {{tool}} account", "Try again");
+      }
+
+      /*
+       * An on-call tool's page walks through inviting people and checking
+       * the schedules; an uptime tool's through the monitors it brings, and
+       * the status pages for a tool that has them.
+       */
+      if (definition.category === ToolImportCategory.OnCall) {
+        names.push(
+          "Tick them too",
+          "Invite new people to",
+          "On-Call Duty",
+          "On-Call Schedules",
+          "Readiness",
+        );
+      } else {
+        if (!isToolImportStatusPageHost(definition)) {
+          names.push("Monitors", "On-Call Duty", "On-Call Policies");
+        }
+
+        if (definition.kinds.includes(ToolImportResourceKind.StatusPage)) {
+          names.push("Tick them too", "Status Pages", "Custom Domains");
+        }
+      }
 
       // The key's ID and the API's address, for a tool that asks for them.
       if (copy.keyIdLabel) {
@@ -420,6 +451,9 @@ describe("what the pages promise in English", () => {
         "each of incident severities, states and roles",
       [ToolImportResourceKind.IncidentRole]:
         "each of incident severities, states and roles",
+      [ToolImportResourceKind.Monitor]: "monitors",
+      [ToolImportResourceKind.StatusPage]: "status pages",
+      [ToolImportResourceKind.StatusPageSubscriber]: "subscribers",
     };
 
     for (const source of AllToolImportSources) {
@@ -433,9 +467,50 @@ describe("what the pages promise in English", () => {
 
       for (const kind of getToolImportSourceDefinition(source).kinds) {
         expect(limits).toContain(
-          `${TOOL_IMPORT_MAX_ITEMS_PER_KIND[kind]} ${phrases[kind]}`,
+          `${TOOL_IMPORT_MAX_ITEMS_PER_KIND[kind].toLocaleString("en-US")} ${phrases[kind]}`,
         );
       }
+    }
+  });
+
+  test("a file tool's page states the largest file the upload reads, in every language", () => {
+    const megabytes: number = TOOL_IMPORT_MAX_UPLOAD_BYTES / (1024 * 1024);
+
+    expect(megabytes).toBe(10);
+
+    for (const source of AllToolImportSources.filter(
+      (candidate: ToolImportSource): boolean => {
+        return isToolImportFileUpload(getToolImportSourceDefinition(candidate));
+      },
+    )) {
+      expect(
+        sectionsOf(readPage("en", source))[SECTION_INDEX.limits]!.body,
+      ).toContain(`A file can be at most ${megabytes} MB.`);
+
+      for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        expect({
+          lang,
+          stated: numbersIn(
+            sectionsOf(readPage(lang, source))[SECTION_INDEX.limits]!.body,
+          ).has(megabytes),
+        }).toEqual({ lang, stated: true });
+      }
+    }
+  });
+
+  test("the pages that bring subscribers over say they come only with the person's word, and nobody is emailed", () => {
+    for (const source of AllToolImportSources.filter(
+      (candidate: ToolImportSource): boolean => {
+        return getToolImportSourceDefinition(candidate).kinds.includes(
+          ToolImportResourceKind.StatusPageSubscriber,
+        );
+      },
+    )) {
+      const page: string = readPage("en", source);
+
+      expect(page).toContain(
+        "confirm under them that they agreed to get your updates and that you may move them. Nobody is emailed.",
+      );
     }
   });
 

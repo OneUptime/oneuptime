@@ -3,6 +3,7 @@ import { TOOL_IMPORT_KIND_TERMS, TOOL_IMPORT_PLURALS } from "./ToolImportText";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   getToolImportSourceDefinition,
+  isToolImportStatusPageHost,
   ToolImportCategory,
   ToolImportSourceDefinition,
 } from "Common/Types/ToolImport/ToolImportCatalog";
@@ -26,6 +27,36 @@ export interface ComponentProps {
   run: ToolImportRunView;
 }
 
+/*
+ * What the person's own import is doing, in the words of what the tool
+ * holds: a team, monitors, or status pages.
+ */
+function getBringingOverTitle(
+  definition: ToolImportSourceDefinition,
+  translator: Translator,
+): string {
+  const values: { tool: string } = { tool: definition.title };
+
+  if (isToolImportStatusPageHost(definition)) {
+    return translator.translateTemplate(
+      "Bringing your status pages over from {{tool}}",
+      values,
+    );
+  }
+
+  if (definition.category === ToolImportCategory.Monitoring) {
+    return translator.translateTemplate(
+      "Bringing your monitors over from {{tool}}",
+      values,
+    );
+  }
+
+  return translator.translateTemplate(
+    "Bringing your team over from {{tool}}",
+    values,
+  );
+}
+
 const ToolImportProgressPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -35,8 +66,6 @@ const ToolImportProgressPanel: FunctionComponent<ComponentProps> = (
     run.source,
   );
   const tool: string = definition.title;
-  const isMonitoring: boolean =
-    definition.category === ToolImportCategory.Monitoring;
   const isReading: boolean = run.status === ToolImportRunStatus.Reading;
   const done: number = run.progress?.done || 0;
   const total: number = run.progress?.total || 0;
@@ -53,15 +82,7 @@ const ToolImportProgressPanel: FunctionComponent<ComponentProps> = (
           name: run.createdByUserName || translatableTerm("Someone"),
         })
     : run.isMine
-      ? isMonitoring
-        ? translator.translateTemplate(
-            "Bringing your monitors over from {{tool}}",
-            { tool: tool },
-          )
-        : translator.translateTemplate(
-            "Bringing your team over from {{tool}}",
-            { tool: tool },
-          )
+      ? getBringingOverTitle(definition, translator)
       : translator.translateTemplate("{{name}} is importing from {{tool}}", {
           tool: tool,
           name: run.createdByUserName || translatableTerm("Someone"),

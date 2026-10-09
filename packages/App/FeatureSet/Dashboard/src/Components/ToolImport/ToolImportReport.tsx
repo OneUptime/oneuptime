@@ -29,6 +29,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   getToolImportSourceDefinition,
+  isToolImportStatusPageHost,
   ToolImportCategory,
   ToolImportSourceDefinition,
 } from "Common/Types/ToolImport/ToolImportCatalog";
@@ -283,15 +284,59 @@ interface FinishStep {
 /*
  * What is left to do once an uptime or status page tool's import is done:
  * check the monitors (a heartbeat has a new address), choose who is told,
- * point the status page's domain at OneUptime, and stop the old checks.
+ * point the status page's domain at OneUptime, and stop the old checks -
+ * or, for a tool that only hosts status pages, check the pages, point the
+ * domain and close the old page.
  */
 function getMonitoringFinishSteps(data: {
   translator: Translator;
   toolTitle: string;
   bringsStatusPages: boolean;
+  isStatusPageHost: boolean;
 }): Array<FinishStep> {
   const translator: Translator = data.translator;
   const toolValues: { tool: string } = { tool: data.toolTitle };
+  const statusPagesLink: { title: string; route: Route } = {
+    title: translator.translateTemplate("Open Status Pages"),
+    route: RouteUtil.populateRouteParams(
+      RouteMap[PageMap.STATUS_PAGES] as Route,
+    ),
+  };
+
+  /*
+   * A tool that only hosts status pages checks nothing: what is left is
+   * the page itself, its address, and closing the old one.
+   */
+  if (data.isStatusPageHost) {
+    return [
+      {
+        title: translator.translateTemplate("Check your status pages"),
+        description: translator.translateTemplate(
+          "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.",
+          toolValues,
+        ),
+        link: statusPagesLink,
+      },
+      {
+        title: translator.translateTemplate(
+          "Point your status page's address at OneUptime",
+        ),
+        description: translator.translateTemplate(
+          "Add your domain under the status page's Custom Domains, then change its DNS record. Your visitors and subscribers then reach the new page.",
+        ),
+      },
+      {
+        title: translator.translateTemplate(
+          "Turn off your page in {{tool}}",
+          toolValues,
+        ),
+        description: translator.translateTemplate(
+          "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.",
+          toolValues,
+        ),
+      },
+    ];
+  }
 
   const steps: Array<FinishStep> = [
     {
@@ -328,12 +373,7 @@ function getMonitoringFinishSteps(data: {
       description: translator.translateTemplate(
         "Add your domain under the status page's Custom Domains, then change its DNS record. Your visitors and subscribers then reach the new page.",
       ),
-      link: {
-        title: translator.translateTemplate("Open Status Pages"),
-        route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.STATUS_PAGES] as Route,
-        ),
-      },
+      link: statusPagesLink,
     });
   }
 
@@ -356,11 +396,13 @@ const FinishTheSwitch: FunctionComponent<{
   docsPath: string;
   category: ToolImportCategory;
   bringsStatusPages: boolean;
+  isStatusPageHost: boolean;
 }> = (props: {
   toolTitle: string;
   docsPath: string;
   category: ToolImportCategory;
   bringsStatusPages: boolean;
+  isStatusPageHost: boolean;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const toolValues: { tool: string } = { tool: props.toolTitle };
@@ -371,6 +413,7 @@ const FinishTheSwitch: FunctionComponent<{
           translator: translator,
           toolTitle: props.toolTitle,
           bringsStatusPages: props.bringsStatusPages,
+          isStatusPageHost: props.isStatusPageHost,
         })
       : [
     {
@@ -644,6 +687,7 @@ const ToolImportReport: FunctionComponent<ComponentProps> = (
           bringsStatusPages={definition.kinds.includes(
             ToolImportResourceKind.StatusPage,
           )}
+          isStatusPageHost={isToolImportStatusPageHost(definition)}
         />
       )}
 

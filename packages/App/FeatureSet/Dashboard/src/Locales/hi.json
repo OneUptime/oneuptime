@@ -27123,5 +27123,10 @@
   "{{tool}} checks it every {{every}}. OneUptime checks it every {{oneUptimeEvery}}, the closest it offers.": "{{tool}} इसे हर {{every}} में जांचता है। OneUptime इसे हर {{oneUptimeEvery}} में जांचता है, जो इसके पास सबसे नज़दीकी विकल्प है।",
   "{{tool}} has {{count}} maintenance windows. They do not come over: plan them as scheduled maintenance in OneUptime.": "{{tool}} में {{count}} रखरखाव विंडो हैं। ये नहीं लाई जातीं: इन्हें OneUptime में अनुसूचित रखरखाव के रूप में शेड्यूल करें।",
   "{{tool}} waits {{timeout}} for an answer. OneUptime waits at most a minute.": "{{tool}} जवाब के लिए {{timeout}} इंतज़ार करता है। OneUptime अधिकतम एक मिनट इंतज़ार करता है।",
-  "{{tool}}'s guide to its metrics page": "मेट्रिक्स पृष्ठ पर {{tool}} की गाइड"
+  "{{tool}}'s guide to its metrics page": "मेट्रिक्स पृष्ठ पर {{tool}} की गाइड",
+  "Bringing your status pages over from {{tool}}": "{{tool}} से आपके स्थिति पृष्ठ लाए जा रहे हैं",
+  "Check your status pages": "अपने स्थिति पृष्ठ जांचें",
+  "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "जब आपका डोमेन OneUptime पर हो जाए, तो {{tool}} में पृष्ठ बंद कर दें ताकि उसके सब्सक्राइबर को दो बार न बताया जाए।",
+  "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "हर स्थिति पृष्ठ खोलें और उसकी तुलना {{tool}} वाले पृष्ठ से करें। हर कंपोनेंट एक मैनुअल मॉनिटर है: कुछ बदलने पर OneUptime में उसकी स्थिति बदलें।",
+  "Turn off your page in {{tool}}": "{{tool}} में अपना पृष्ठ बंद करें"
 }

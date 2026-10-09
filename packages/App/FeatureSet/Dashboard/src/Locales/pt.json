@@ -27123,5 +27123,10 @@
   "{{tool}} checks it every {{every}}. OneUptime checks it every {{oneUptimeEvery}}, the closest it offers.": "O {{tool}} o verifica a cada {{every}}. O OneUptime o verifica a cada {{oneUptimeEvery}}, o intervalo mais próximo que oferece.",
   "{{tool}} has {{count}} maintenance windows. They do not come over: plan them as scheduled maintenance in OneUptime.": "Janelas de manutenção no {{tool}}: {{count}}. Elas não são trazidas: planeje-as como manutenção programada no OneUptime.",
   "{{tool}} waits {{timeout}} for an answer. OneUptime waits at most a minute.": "O {{tool}} espera {{timeout}} por uma resposta. O OneUptime espera no máximo um minuto.",
-  "{{tool}}'s guide to its metrics page": "O guia do {{tool}} sobre a página de métricas"
+  "{{tool}}'s guide to its metrics page": "O guia do {{tool}} sobre a página de métricas",
+  "Bringing your status pages over from {{tool}}": "Trazendo suas páginas de status do {{tool}}",
+  "Check your status pages": "Confira suas páginas de status",
+  "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "Quando seu domínio apontar para o OneUptime, feche a página no {{tool}} para que os assinantes dela não sejam avisados duas vezes.",
+  "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "Abra cada página de status e compare-a com a do {{tool}}. Cada componente é um monitor manual: mude o status dele no OneUptime quando algo mudar.",
+  "Turn off your page in {{tool}}": "Desative sua página no {{tool}}"
 }

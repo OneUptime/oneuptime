@@ -27123,5 +27123,10 @@
   "{{tool}} checks it every {{every}}. OneUptime checks it every {{oneUptimeEvery}}, the closest it offers.": "{{tool}} آن را هر {{every}} بررسی می‌کند. OneUptime آن را هر {{oneUptimeEvery}} بررسی می‌کند که نزدیک‌ترین گزینه موجود است.",
   "{{tool}} has {{count}} maintenance windows. They do not come over: plan them as scheduled maintenance in OneUptime.": "{{tool}} دارای {{count}} بازه نگهداری است. این بازه‌ها منتقل نمی‌شوند: آن‌ها را در OneUptime به‌عنوان تعمیر و نگهداری زمان‌بندی‌شده برنامه‌ریزی کنید.",
   "{{tool}} waits {{timeout}} for an answer. OneUptime waits at most a minute.": "{{tool}} برای پاسخ {{timeout}} صبر می‌کند. OneUptime حداکثر یک دقیقه صبر می‌کند.",
-  "{{tool}}'s guide to its metrics page": "راهنمای {{tool}} درباره صفحه معیارها"
+  "{{tool}}'s guide to its metrics page": "راهنمای {{tool}} درباره صفحه معیارها",
+  "Bringing your status pages over from {{tool}}": "در حال آوردن صفحه‌های وضعیت شما از {{tool}}",
+  "Check your status pages": "صفحه‌های وضعیت خود را بررسی کنید",
+  "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "وقتی دامنه شما به OneUptime اشاره کرد، صفحه را در {{tool}} ببندید تا به مشترکان آن دو بار اطلاع داده نشود.",
+  "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "هر صفحه وضعیت را باز کنید و آن را با صفحه موجود در {{tool}} مقایسه کنید. هر جزء یک مانیتور دستی است: وقتی چیزی تغییر کرد، وضعیت آن را در OneUptime تغییر دهید.",
+  "Turn off your page in {{tool}}": "خاموش کردن صفحه خود در {{tool}}"
 }

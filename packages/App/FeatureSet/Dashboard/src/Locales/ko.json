@@ -27123,5 +27123,10 @@
   "{{tool}} checks it every {{every}}. OneUptime checks it every {{oneUptimeEvery}}, the closest it offers.": "{{tool}}은(는) {{every}}마다 검사합니다. OneUptime은 제공하는 간격 중 가장 가까운 {{oneUptimeEvery}}마다 검사합니다.",
   "{{tool}} has {{count}} maintenance windows. They do not come over: plan them as scheduled maintenance in OneUptime.": "{{tool}}에 유지 관리 기간이 {{count}}개 있습니다. 이는 가져오지 않으므로 OneUptime에서 예정된 유지 관리로 계획하세요.",
   "{{tool}} waits {{timeout}} for an answer. OneUptime waits at most a minute.": "{{tool}}은(는) 응답을 {{timeout}} 동안 기다립니다. OneUptime은 최대 1분까지 기다립니다.",
-  "{{tool}}'s guide to its metrics page": "{{tool}}의 메트릭 페이지 가이드"
+  "{{tool}}'s guide to its metrics page": "{{tool}}의 메트릭 페이지 가이드",
+  "Bringing your status pages over from {{tool}}": "{{tool}}에서 상태 페이지를 옮겨 오는 중",
+  "Check your status pages": "상태 페이지 확인",
+  "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "도메인이 OneUptime을 가리키게 되면 구독자가 두 번 알림을 받지 않도록 {{tool}}에서 페이지를 닫으세요.",
+  "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "각 상태 페이지를 열어 {{tool}}의 페이지와 비교하세요. 각 구성 요소는 수동 모니터이므로, 상황이 바뀌면 OneUptime에서 상태를 바꾸세요.",
+  "Turn off your page in {{tool}}": "{{tool}}에서 페이지 끄기"
 }

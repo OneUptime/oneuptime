@@ -27123,5 +27123,10 @@
   "{{tool}} checks it every {{every}}. OneUptime checks it every {{oneUptimeEvery}}, the closest it offers.": "{{tool}} kontrollerer den hvert {{every}}. OneUptime kontrollerer den hvert {{oneUptimeEvery}}, det nærmeste intervallet det tilbyr.",
   "{{tool}} has {{count}} maintenance windows. They do not come over: plan them as scheduled maintenance in OneUptime.": "Vedlikeholdsvinduer i {{tool}}: {{count}}. De overføres ikke: planlegg dem som planlagt vedlikehold i OneUptime.",
   "{{tool}} waits {{timeout}} for an answer. OneUptime waits at most a minute.": "{{tool}} venter {{timeout}} på et svar. OneUptime venter høyst ett minutt.",
-  "{{tool}}'s guide to its metrics page": "Veiledningen til {{tool}} om metrikksiden"
+  "{{tool}}'s guide to its metrics page": "Veiledningen til {{tool}} om metrikksiden",
+  "Bringing your status pages over from {{tool}}": "Statussidene dine overføres fra {{tool}}",
+  "Check your status pages": "Sjekk statussidene dine",
+  "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "Når domenet ditt peker mot OneUptime, lukker du siden i {{tool}}, så abonnentene ikke får beskjed to ganger.",
+  "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "Åpne hver statusside og sammenlign den med den i {{tool}}. Hver komponent er en manuell monitor: endre statusen i OneUptime når noe endrer seg.",
+  "Turn off your page in {{tool}}": "Slå av siden din i {{tool}}"
 }

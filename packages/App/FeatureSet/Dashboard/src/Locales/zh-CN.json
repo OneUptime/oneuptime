@@ -27123,5 +27123,10 @@
   "{{tool}} checks it every {{every}}. OneUptime checks it every {{oneUptimeEvery}}, the closest it offers.": "{{tool}} 每 {{every}} 检查一次。OneUptime 每 {{oneUptimeEvery}} 检查一次，这是它提供的最接近的间隔。",
   "{{tool}} has {{count}} maintenance windows. They do not come over: plan them as scheduled maintenance in OneUptime.": "{{tool}} 中有 {{count}} 个维护窗口。它们不会导入：请在 OneUptime 中将其安排为计划维护。",
   "{{tool}} waits {{timeout}} for an answer. OneUptime waits at most a minute.": "{{tool}} 会等待 {{timeout}} 的应答。OneUptime 最多等待一分钟。",
-  "{{tool}}'s guide to its metrics page": "{{tool}} 的指标页面指南"
+  "{{tool}}'s guide to its metrics page": "{{tool}} 的指标页面指南",
+  "Bringing your status pages over from {{tool}}": "正在从 {{tool}} 迁移你的状态页",
+  "Check your status pages": "检查你的状态页",
+  "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "当你的域名指向 OneUptime 后，请在 {{tool}} 中关闭该页面，以免其订阅者收到重复通知。",
+  "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "打开每个状态页，并与 {{tool}} 中的页面对比。每个组件都是一个手动监视器：情况变化时，请在 OneUptime 中更改其状态。",
+  "Turn off your page in {{tool}}": "在 {{tool}} 中关闭你的页面"
 }
