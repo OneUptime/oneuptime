@@ -54,6 +54,8 @@ const ENVIRONMENT_CONFIG: string = path.resolve(
 const HEADING_LINE: RegExp = /^(#{1,6})\s+(.+?)\s*$/;
 const FENCE_LINE: RegExp = /^\s*```/;
 const NUMBERED_STEP_LINE: RegExp = /^\d+\.\s/;
+const ONE_CLICK_DOCS_PATH: RegExp =
+  /VIDEO_CALL_ONE_CLICK_DOCS_PATH: string =\s*"([^"]+)"/;
 
 const DEFINITION_CASES: Array<[string, VideoCallProviderDefinition]> =
   VideoCallProviderCatalog.map(
@@ -389,8 +391,7 @@ describe("Video Calls docs - the permissions each provider needs", () => {
 describe("Video Calls docs - connecting in one click", () => {
   test("the Dashboard's How it works link opens a section of this page", () => {
     const source: string = fs.readFileSync(DASHBOARD_VIDEO_CALL_API, "utf8");
-    const match: RegExpExecArray | null =
-      /VIDEO_CALL_ONE_CLICK_DOCS_PATH: string =\s*"([^"]+)"/.exec(source);
+    const match: RegExpExecArray | null = ONE_CLICK_DOCS_PATH.exec(source);
 
     expect(match).not.toBe(null);
 

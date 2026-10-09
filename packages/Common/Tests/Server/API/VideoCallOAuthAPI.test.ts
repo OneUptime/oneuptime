@@ -10,6 +10,7 @@ import {
 import crypto from "crypto";
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
 import VideoCallConnectionService from "../../../Server/Services/VideoCallConnectionService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import { DashboardClientUrl } from "../../../Server/EnvironmentConfig";
@@ -24,6 +25,7 @@ import ZoomOAuthApp from "../../../Server/Utils/VideoCall/OAuth/ZoomOAuthApp";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceOAuthState from "../../../Server/Utils/Workspace/WorkspaceOAuthState";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -109,6 +111,19 @@ jest.mock("../../../Server/Services/VideoCallConnectionService", () => {
   };
 });
 
+/*
+ * With billing on, as CI runs this suite, the start and the callback read
+ * the project's plan (CallerPlan, through CommonAPI) before they answer.
+ */
+jest.mock("../../../Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getCurrentPlan: jest.fn(),
+    },
+  };
+});
+
 jest.mock("../../../Server/Utils/Logger");
 
 const ANSWER_WITHIN_MS: number = 5000;
@@ -132,6 +147,7 @@ const findOneBy: jest.Mock = VideoCallConnectionService.findOneBy as any;
 const connectWithSignIn: jest.Mock =
   VideoCallConnectionService.connectWithSignIn as any;
 const removeSignIn: jest.Mock = VideoCallConnectionService.removeSignIn as any;
+const getCurrentPlan: jest.Mock = ProjectService.getCurrentPlan as any;
 
 describe("Video call one-click Connect", () => {
   let app: RunningApp;
@@ -159,6 +175,10 @@ describe("Video call one-click Connect", () => {
     projectId = ObjectID.generate();
     userId = ObjectID.generate();
     callbackPermissions = [Permission.ProjectAdmin];
+
+    getCurrentPlan.mockImplementation(async () => {
+      return { plan: PlanType.Growth, isSubscriptionUnpaid: false };
+    });
 
     connectWithSignIn.mockImplementation(async () => {
       const connection: VideoCallConnection = new VideoCallConnection();
