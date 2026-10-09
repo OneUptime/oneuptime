@@ -14,8 +14,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * however often Huntress sends it. All four tables are new, so their indexes
  * and foreign keys are built while nothing writes to them.
  */
-export class AddHuntressConnections1800420000000 implements MigrationInterface {
-  public name: string = "AddHuntressConnections1800420000000";
+export class AddHuntressConnections1800700000000 implements MigrationInterface {
+  public name: string = "AddHuntressConnections1800700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

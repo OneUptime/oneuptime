@@ -1,6 +1,7 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import SnmpTableCriteria from "./SnmpTableCriteria";
+import SnmpTransceiverCriteria from "./SnmpTransceiverCriteria";
 import PerEntityCriteriaFanOut from "../PerEntityCriteriaFanOut";
 import {
   AnomalyDetectionSensitivity,
@@ -43,7 +44,8 @@ export default class SnmpMonitorCriteria {
       checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
       checkOn === CheckOn.SnmpTableValue ||
       checkOn === CheckOn.SnmpTableRowCount ||
-      checkOn === CheckOn.SnmpTableRowIsUnhealthy
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
+      CriteriaFilterUtil.isTransceiverCheckOn(checkOn)
     );
   }
 
@@ -336,6 +338,18 @@ export default class SnmpMonitorCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.SnmpTableRowIsUnhealthy) {
       return SnmpTableCriteria.evaluateTableRowIsUnhealthy({
         tables: snmpResponse?.tables,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    /*
+     * Transceivers, like tables, are judged on this poll's state - which
+     * already carries their history (missing for how many polls, a month of
+     * received power) - never over a window of stored samples.
+     */
+    if (CriteriaFilterUtil.isTransceiverCheckOn(input.criteriaFilter.checkOn)) {
+      return SnmpTransceiverCriteria.evaluate({
+        transceivers: snmpResponse?.transceivers,
         criteriaFilter: input.criteriaFilter,
       });
     }

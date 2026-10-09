@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 27189,
-    "untranslated": 4690
+    "keys": 27297,
+    "untranslated": 4692
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -49,6 +49,7 @@
     "Afghanistan",
     "Agent",
     "Aggregation",
+    "Alarm",
     "Alias",
     "Amazon EKS",
     "Andorra",
@@ -359,6 +360,7 @@
     "Registrar",
     "Repository",
     "Resolver",
+    "Revision",
     "Rotation",
     "Router",
     "Router Discovery - Region 1100",

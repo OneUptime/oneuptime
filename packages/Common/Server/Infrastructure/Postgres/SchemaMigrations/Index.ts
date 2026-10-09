@@ -67,7 +67,10 @@ import { EndSignInsOfGlobalAndStatusPageSsoProvidersAlreadyOff1799910000000 } fr
 import { EndStatusPageSsoSessionsWithoutProvider1799920000000 } from "./1799920000000-EndStatusPageSsoSessionsWithoutProvider";
 import { AddInstanceBranding1800200000000 } from "./1800200000000-AddInstanceBranding";
 import { AddToolImportTables1800300000000 } from "./1800300000000-AddToolImportTables";
-import { AddHuntressConnections1800420000000 } from "./1800420000000-AddHuntressConnections";
+import { AddNetworkDeviceTransceiverSnapshot1800500000000 } from "./1800500000000-AddNetworkDeviceTransceiverSnapshot";
+import { AddWorkflowLastSavedBy1800600000000 } from "./1800600000000-AddWorkflowLastSavedBy";
+import { AddWorkflowLastSavedByForeignKey1800650000000 } from "./1800650000000-AddWorkflowLastSavedByForeignKey";
+import { AddHuntressConnections1800700000000 } from "./1800700000000-AddHuntressConnections";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1335,5 +1338,8 @@ export default [
   EndStatusPageSsoSessionsWithoutProvider1799920000000,
   AddInstanceBranding1800200000000,
   AddToolImportTables1800300000000,
-  AddHuntressConnections1800420000000,
+  AddNetworkDeviceTransceiverSnapshot1800500000000,
+  AddWorkflowLastSavedBy1800600000000,
+  AddWorkflowLastSavedByForeignKey1800650000000,
+  AddHuntressConnections1800700000000,
 ];

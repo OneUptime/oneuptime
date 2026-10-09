@@ -1,14 +1,16 @@
 {
   "baseline": {
-    "keys": 27189,
-    "untranslated": 17023
+    "keys": 27297,
+    "untranslated": 17025
   },
   "sameAsEnglish": [
+    "Alarm",
     "CloudWatch Metric Streams",
     "Runbook: {{name}}",
     "Runner",
     "Start import",
     "VMware vCenter",
-    "kubectl set image deployment/web * -n web"
+    "kubectl set image deployment/web * -n web",
+    "{{count}} alarm"
   ]
 }

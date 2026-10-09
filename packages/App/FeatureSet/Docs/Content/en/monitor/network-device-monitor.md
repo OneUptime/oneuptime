@@ -4,7 +4,7 @@ Network Device monitoring covers switches, routers, firewalls, access points, PD
 
 Adding a device takes its address and a probe — a name and a site too, if you want them. From that moment the probe **pings** the device on its schedule and the device has an up/down status, appears on the network map and votes in its site's health rollup. Everything else is an upgrade on top of that same device:
 
-- **Add SNMP credentials** — on the device, or by pointing it at a reusable credential profile, or by setting a default profile on its site — and the same probe starts **walking** it as well: interfaces, hardware inventory, LLDP/CDP neighbours, health OIDs.
+- **Add SNMP credentials** — on the device, or by pointing it at a reusable credential profile, or by setting a default profile on its site — and the same probe starts **walking** it as well: interfaces and the optics in them, hardware inventory, LLDP/CDP neighbours, health OIDs.
 - **Add a monitor** and the device's polls raise **incidents and alerts**. [Alert policies](#alert-policies) are where the same intent is written once for a whole set of devices.
 - **Bind a monitor** on the device's Settings page as an **override**, for the rare device no probe can reach at all.
 
@@ -23,6 +23,7 @@ The Network Devices product is made up of:
 - **Alert policies** — write down once what a whole _set_ of devices should be alerted on, rather than per device. (Definitions ship now; the engine that turns them into monitors does not yet — see [Alert Policies](#alert-policies).)
 - **Network Device monitors** — the alerting layer: evaluate each device poll and trap against criteria and open incidents or alerts.
 - **SNMP tables** — lists a device keeps (IPsec tunnels, Wi-Fi radios, SSIDs, fabric neighbours, fans, power supplies) walked whole on every poll, charted per row and alertable per row. See [SNMP Tables](#snmp-tables).
+- **Transceiver health** — the SFP, SFP+ and QSFP optics in a device's ports: present or pulled, their temperature, voltage, bias current and light levels against the device's own thresholds, and a month of received power. See [Transceivers](#transceivers).
 - **SNMP traps** — probes run a trap receiver, so link-down events raise incidents in seconds instead of waiting for the next poll.
 - **Topology view** — a live network map built from LLDP neighbour data, complemented by CDP on Cisco estates.
 
@@ -102,6 +103,24 @@ For SNMPv3, the security level decides which of the remaining fields are asked f
 | SNMP v3 Privacy Key             | Privacy/encryption password                       | If Auth Priv                 |
 
 Credentials on a **credential profile** are encrypted at rest and readable only by the roles that may read a device's credentials. Credentials typed onto a device itself are guarded by the same read permissions, but are stored as ordinary columns rather than encrypted — one more reason to keep shared credentials on a profile.
+
+## Changing Many Devices at Once
+
+A discovery scan of a customer's network brings in dozens of devices that all belong in one site, share one role and come from one vendor. You do not open each of them: select them on the **Devices** list — tick the rows, or **Select All** to take every device the filters match — and open **Bulk Actions**.
+
+| Action | What it does |
+| ------ | ------------ |
+| **Set Site** / **Clear Site** | Moves every selected device into the site you pick, where it counts toward the site's health; a device without a probe of its own picks up the [site's default probe](#site-monitoring-defaults). **Clear Site** takes them out of their sites. A device a site assignment rule matches goes back to that rule's site on its next poll, so for devices discovery keeps finding, add a rule under **Network** -> **Rules** -> **Site Assignment Rules** instead — the **Set Site** dialog links to it. |
+| **Set Device Role** / **Clear Device Role** | Gives every selected device one role — the twenty switches that are all "Access Switch". Roles are the project's own, under **Network** -> **Settings** -> **Device Roles**, which the dialog links to. **Clear Device Role** has each device's role worked out from its SNMP identity again. |
+| **Apply Vendor Template** | Adds a [vendor template](#vendor-health-templates)'s health OIDs and SNMP tables to every selected device. **Match each device's vendor**, the dialog's first choice, picks each device's own template from what its SNMP walk reports, so a mixed selection gets the right one everywhere; or pick one template for all of them. |
+
+Each action is one dialog and one save for the whole selection, and every device goes through the same checks as an edit on its own Settings page: permissions, the label and owner scope of your role, and the limits on what a device may collect.
+
+**Apply Vendor Template** shows what it will do before it does anything: how many devices get which template, and how many it leaves alone and why. It adds to what each device already collects and removes nothing; a device that already has everything in the template is not written again. It leaves alone a device that is monitor-backed (nothing polls it, so it would collect nothing), one linked to an [OID Collection Template](#oid-collection-templates) (the template decides what it collects — add the vendor's OIDs there instead), and, when matching, one that has not been walked over SNMP yet or whose vendor has no template.
+
+When an action finishes, it lists how many devices changed, which failed and why — a device your role may not edit, a list over its limit — and which it **did not change** and why: a device already in that site or role, or one the vendor template leaves alone.
+
+The other bulk actions are described where they belong: **Set OID Collection Template** under [OID Collection Templates](#oid-collection-templates), **Set SNMP Credential Profile** and **Switch to Probe Polling** under [In bulk](#in-bulk), and **Shorten Names to Hostname** under [How discovered devices are named](#how-discovered-devices-are-named).
 
 ## What a Poll Actually Does
 
@@ -258,7 +277,9 @@ In the **Health OIDs** editor, the **Vendor Health Template** dropdown applies a
 | Extreme Networks Fabric Engine / VOSS                                                                                                                                           | vIST session, I-SID count                                                          | Fabric (IS-IS) adjacencies named by neighbour, CPU and memory per slot, temperature sensors, fans, power supplies |
 | Sophos Firewall (SFOS / XGS)                                                                                                                                                    | Memory, disk, swap, HA state and peer state, IPsec service, CPU temperature (v22+) | IPsec tunnels (status needs SFOS v20+), CPU cores                                                                 |
 
-The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template. Matching uses the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. Devices with **Auto-Apply Vendor Health Template** on get the template's OIDs **and** tables on their first poll.
+The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template. Matching uses the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. Devices with **Auto-Apply Vendor Health Template** on get the template's OIDs **and** tables on their first poll: devices an auto import rule brings in, and devices imported from **Review Results** with its vendor template switch on, which it is unless you turn it off.
+
+To give many devices their template at once — a whole discovered fleet that predates the switch, say — select them on the **Devices** list and use **Apply Vendor Template** (see [Changing Many Devices at Once](#changing-many-devices-at-once)).
 
 This is a one-shot copy and it forgets where it came from — editing nothing propagates afterwards. For anything beyond a single device, use an **OID Collection Template** below instead; the vendor profiles are offered as a starting point when you create one.
 
@@ -423,6 +444,48 @@ For Cambium access points, enable SNMP in the AP Group in cnMaestro
 (Configuration → Wi-Fi Profiles → AP Groups → Management → SNMP) and apply the
 **Cambium Networks Enterprise Wi-Fi** template to the access points.
 
+### Transceivers
+
+The SFP, SFP+, SFP28 and QSFP optics in a device's ports are read on every poll that walks interfaces — there is nothing to switch on and no template to apply. For each optic OneUptime keeps:
+
+- **What it is** — vendor, part number, serial number, revision, type and wavelength, as the optic itself reports them. Third-party optics (FS.com, FLEXOPTIX, Carritech and the rest) read the same as the switch vendor's own.
+- **Its readings** — temperature, supply voltage, laser bias current, and transmit and received power, from its digital optical monitoring (DOM, also called DDM). A QSFP reports power and bias per lane.
+- **The device's own thresholds** — the low and high warning and alarm limits the switch reports for each reading. An optic is judged against those and nothing else: OneUptime never invents limits of its own.
+- **A month of received power** — the daily average of the weakest lane over the last 30 days. A dirty connector, a bent fibre or an optic wearing out shows up here weeks before the link drops.
+
+The device's **Interfaces** tab opens with a **Transceivers** card: problems first, then one row per optic with its port, what it is, a status in words and its readings. A reading past a threshold is coloured and named (**Low alarm**, **High warning**), and a small chart of the month's received power sits beside the RX value; a QSFP's row shows its worst lane. Click a row for every lane against every threshold, the received power trend with its best day, and the optic's identity. A device that reports no optics — copper ports only, or an agent that does not expose them — shows no card at all.
+
+| Status        | Means                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Healthy       | Every reading the device has thresholds for is inside them.                                                                    |
+| Warning       | A reading is at or past a warning threshold.                                                                                   |
+| Alarm         | A reading is at or past an alarm threshold, or the device flags a loss of signal or a transmitter fault.                      |
+| Not detected  | The port had an optic and no longer reports one, while the port is still enabled. The page still names what used to be there. |
+| No thresholds | The optic reports readings, but the device reports no limits to judge them by. Alert on them with **SNMP Transceiver Reading**. |
+| Detected      | The optic reports no diagnostics at all — usual for copper SFPs and direct-attach cables.                                      |
+| Port disabled | The port is administratively shut, so its laser is off by design: its readings are shown but never judged.                    |
+
+**Where the readings come from.** The device's `sysObjectId` picks the MIB — the vendor's own table first where it carries what the standard one does not, ENTITY-SENSOR-MIB as the fallback:
+
+| Devices                                   | Read from                                                                          | Thresholds |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| Cisco                                     | CISCO-ENTITY-SENSOR-MIB, matched to ports through ENTITY-MIB                       | Yes        |
+| Arista                                    | ENTITY-SENSOR-MIB, with ARISTA-ENTITY-SENSOR-MIB thresholds                        | Yes        |
+| Juniper                                   | JUNIPER-DOM-MIB, with per-lane readings for multi-lane optics                      | Yes        |
+| HPE Comware and H3C                       | HH3C-TRANSCEIVER-INFO-MIB                                                          | Yes        |
+| HPE Aruba ProCurve / ArubaOS-Switch       | HP-ICF-TRANSCEIVER-MIB                                                             | Yes        |
+| MikroTik RouterOS                         | MIKROTIK-MIB (`mtxrOpticalTable`), with loss of signal and transmitter fault flags | No         |
+| Cambium Networks cnMatrix (4.5 and later) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB                                                   | No         |
+| Every other device                        | ENTITY-SENSOR-MIB (RFC 3433), matched to ports through ENTITY-MIB                  | No         |
+
+**What it costs.** The first poll reads everything. Every later poll reads only what changes — the readings, and the serial numbers that tell a swapped optic apart — and the rest (thresholds, identity, which optic sits in which port) is read again when an optic is inserted, removed or swapped, and at least once an hour. A device with none of these MIBs costs one request per MIB tried. The read has its own 20-second budget, and a read that times out or is cut short keeps the device's last good optics rather than reporting them gone.
+
+**Not detected, carefully.** An optic missing from an enabled port shows as **Not detected** on the page straight away, and counts as missing for alerting after two polls in a row, so an agent that answers empty once pages nobody. An optic pulled out of a port that is shut is simply forgotten. A muted interface keeps its optic on the page and is never alerted on.
+
+**Metrics.** Every reading is also a device metric, one series per port and lane, in the units the page shows: `oneuptime.monitor.snmp.transceiver.temperature` (°C), `oneuptime.monitor.snmp.transceiver.voltage` (V), `oneuptime.monitor.snmp.transceiver.bias.current` (mA), `oneuptime.monitor.snmp.transceiver.tx.power` and `oneuptime.monitor.snmp.transceiver.rx.power` (dBm), with the attributes `interfaceName`, `interfaceIndex` and `lane`. A dashboard can chart a link's light over months, and a Metrics monitor can alert on it.
+
+**OneUptime AI.** An investigation of an incident or alert raised by a Network Device monitor starts with the optics of the ports it is about — still detected or not, every reading against the device's thresholds, and the received power of the last weeks — and the AI can read any device's optics when you ask about them.
+
 ### Device Identity
 
 After the first successful **walk**, OneUptime reads the SNMPv2 system group and (where supported) the ENTITY-MIB, and fills in the device record automatically: system name, description, location, contact, uptime, vendor, model, serial number and firmware version. The vendor's registered enterprise OID (`sysObjectId`) is used as the device fingerprint to derive the vendor name and suggest a matching vendor OID template.
@@ -498,6 +561,8 @@ Octet ranges exist for networks that are not shaped like CIDR blocks. `10.16-22.
 - **Hosts that answered ping but no SNMP** — every host a [ping-only scan](#ping-only-scans) finds, and the ICMP-alive hosts an SNMP scan could not identify — import with no credentials. The probe pings them on their schedule; add SNMP credentials (or a credential profile on the device or its site) later and the same probe starts walking them as well.
 
 Devices that are already registered are flagged and skipped. Bind a [Ping](/docs/monitor/ping-monitor) or [IP](/docs/monitor/ip-monitor) monitor to an imported device only if you want that monitor's incidents — an [alert policy](#alert-policies) is usually the better answer at fleet scale.
+
+**Vendor templates on import.** When a scan found SNMP hosts, **Review Results** offers **Apply each SNMP host's vendor template on its first poll (recommended)**, on by default: each imported SNMP device gets the [vendor template](#vendor-health-templates) for what its first walk reports — its health OIDs and SNMP tables — as devices an auto import rule brings in do. A device whose vendor has no template is left as it is. Turn the switch off for a batch that should start without.
 
 ### How discovered devices are named
 
@@ -671,6 +736,11 @@ You can set up criteria to check poll results and trigger alerts or incidents.
 | SNMP Table Value                   | Compare one column of an [SNMP table](#snmp-tables) row by row; met when any row in scope matches. Row `*` raises one alert per row       | Not evaluated       |
 | SNMP Table Row Is Unhealthy        | True when a row in scope has a status outside its column's healthy values. Row `*` raises one alert per row                               | Not evaluated       |
 | SNMP Table Row Count               | Compare how many rows a table (or the rows in scope) has                                                                                  | Not evaluated       |
+| SNMP Transceiver Not Detected      | True when a port that had an optic has not reported one for two polls in a row, while the port is enabled                                | Not evaluated       |
+| SNMP Transceiver Past Alarm Threshold | True when an optic's reading is at or past an alarm threshold the device reports, or the device flags a loss of signal or a transmitter fault | Not evaluated |
+| SNMP Transceiver Past Warning Threshold | The same at the warning thresholds; an optic past an alarm threshold counts too                                                      | Not evaluated       |
+| SNMP Transceiver Reading           | Compare one reading — RX or TX power (dBm), temperature (°C), supply voltage (V) or bias current (mA) — with a value of your own; met when any lane of any optic in scope matches. For devices that report no thresholds | Not evaluated |
+| SNMP Transceiver RX Power Drop (in dB) | How far an optic's received power is below its best daily average of the last 30 days                                               | Not evaluated       |
 | SNMP Trap Received (Trap OID)      | Matches when a trap with the given OID arrives from the device                                                                            | n/a — trap-driven   |
 | SNMP Trap Varbind Value            | Compare the values a trap carries, optionally one varbind                                                                                 | n/a — trap-driven   |
 
@@ -687,6 +757,16 @@ active` and `Not Equal To 1` both catch a Sophos tunnel that is down. A table
 whose walk failed on this poll is not evaluated, rather than read as empty.
 Table criteria judge the current walk only — they are not evaluated over time.
 
+**Transceiver criteria** are scoped like the interface checks: empty judges
+every optic as one combined alert, `*` raises a separate alert for every port
+with an optic (each resolves on its own, and its title names the port), and
+anything else names one port by its name or alias. They judge the device's
+[transceivers](#transceivers) as of this poll, which already carry their
+history — how many polls an optic has been missing, a month of received power
+— so they are not evaluated over time either. A poll whose transceiver read
+failed leaves them judging the last good read, so an open alert does not
+resolve on a poll that could not look.
+
 ### Recommended Alert Pack
 
 Click **Add Recommended Alerts** on the criteria form to append a prebuilt set of criteria — the alerts most network operators want, without hand-building them each time. They are pre-filled automatically when you create the monitor from the device's page, and they are what the [recommended alert policy](#alert-policies)'s monitor template carries.
@@ -698,11 +778,22 @@ Click **Add Recommended Alerts** on the criteria form to append a prebuilt set o
 | Interface down      | An administratively-enabled interface goes operationally down | Incident |
 | Interface saturated | An interface runs above 80% utilization                       | Alert    |
 | Interface errors    | An interface logs more than 1 error per second                | Alert    |
+| Transceiver not detected | An optic is no longer detected in a port that is still enabled, for two polls in a row | Alert |
+| Transceiver past its alarm threshold | An optic's reading is past an alarm threshold the device reports, or the device flags a loss of signal or a transmitter fault | Alert |
+| Transceiver RX power dropping | An optic receives at least 2 dB less light than on its best day of the last 30 | Alert |
 
 When the device walks [SNMP tables](#snmp-tables) that declare healthy values,
 the pack also adds one **SNMP Table Row Is Unhealthy** criteria per such table,
 with Row `*` — an **incident** per row for tunnels and routing neighbours
 ("IPsec Tunnels: row unhealthy"), an **alert** per row for hardware tables.
+
+The three transceiver criteria raise one alert per port (`*`) and are alerts
+rather than incidents for the same reason as the walk: a dark optic already
+takes its interface down, and **Interface down** pages for that — these say
+why, or warn before it happens. 2 dB is about a third of the light gone: well
+past the few tenths of a dB a healthy link wobbles by from day to day, and
+early enough to clean a connector before the link loses its margin. None of
+them can fire on a device that reports no optics.
 
 "SNMP walk failing" is an alert rather than an incident on purpose: the device is not down, so waking somebody at 2am for it would be wrong — but its inventory has stopped refreshing and somebody should fix the credentials. It never fires on a ping-only device, because the criterion is not evaluated when no walk ran.
 
@@ -913,6 +1004,13 @@ Rules](#importing-automatically-with-auto-import-rules).
 - The SNMP view your credentials use may not include that subtree; a restricted v3 user often sees only the system group and IF-MIB.
 - Sophos tunnel status needs SFOS v20 or later; Cambium client counts read 0 before firmware 6.5.3.
 - A table listed under **Waiting for the first walk** has not been walked yet — it appears after the device's next successful SNMP poll.
+
+### The Transceivers card does not appear
+
+- The device reports no optics, or none it exposes over SNMP: walk ENTITY-SENSOR-MIB from the probe's network (`snmpwalk -v2c -c <community> <device> 1.3.6.1.2.1.99.1.1.1.1`) — no rows means the agent does not report sensors that way.
+- **Walk Interfaces** is off in the device's polling settings: transceivers are read with the interface walk and matched to the ports it finds.
+- The SNMP view your credentials use may not include ENTITY-MIB or the vendor's transceiver table; a restricted v3 user often sees only the system group and IF-MIB.
+- A Cambium cnMatrix switch reports its transceivers from firmware 4.5 on.
 
 ### Traps not arriving
 

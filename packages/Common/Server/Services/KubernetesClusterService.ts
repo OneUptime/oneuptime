@@ -28,6 +28,7 @@ import KubectlPolicy, {
 } from "../../Utils/AiRemediation/KubectlPolicy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -363,7 +364,7 @@ export class Service extends ProjectReferencesService<Model> {
      * them is a loosening like any other.
      */
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
-      this.assertMayChangeAiAccess({
+      await this.assertMayChangeAiAccess({
         data,
         props: createBy.props,
         current: [{ ...NEVER_CONFIGURED_AI_ACCESS, projectId }],
@@ -472,7 +473,7 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
       if (!updateBy.props.isMasterAdmin) {
-        this.assertMayChangeAiAccess({
+        await this.assertMayChangeAiAccess({
           data,
           props: updateBy.props,
           current: Object.values(previousAiAccessSettings),
@@ -793,11 +794,11 @@ export class Service extends ProjectReferencesService<Model> {
    * in the caller's tenant, so the answer does not depend on whether the id
    * exists; with no project to check against at all it fails closed.
    */
-  private assertMayChangeAiAccess(data: {
+  private async assertMayChangeAiAccess(data: {
     data: JSONObject;
     props: DatabaseCommonInteractionProps;
     current: Array<AiAccessSettingsSnapshot>;
-  }): void {
+  }): Promise<void> {
     const baselines: Array<AiAccessSettingsSnapshot> =
       data.current.length > 0
         ? data.current
@@ -826,15 +827,34 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (
         loosening.bindsCredential &&
-        !CallerPermission.holdsAnyOf(
-          data.props,
-          KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-          { projectId: baseline.projectId },
-        )
+        !(await this.mayBindCredential(data.props, baseline.projectId))
       ) {
-        throw new NotAuthorizedException(getAiAccessCredentialRefusal());
+        throw new NotAuthorizedException(
+          `${getAiAccessCredentialRefusal()}${RunbookCredentialReaders.getWorkflowNote(data.props)}`,
+        );
       }
     }
+  }
+
+  /*
+   * Whether `props` may bind a credential to a cluster in `projectId`: read
+   * credentials there. A workflow's step acts as a Project Admin, but is not
+   * lent that read: it may only when the person who last saved the
+   * workflow's steps may (RunbookCredentialReaders).
+   */
+  private async mayBindCredential(
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    if (RunbookCredentialReaders.isWorkflowStep(props)) {
+      return await RunbookCredentialReaders.mayRead(props);
+    }
+
+    return CallerPermission.holdsAnyOf(
+      props,
+      KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+      { projectId: projectId },
+    );
   }
 
   /*

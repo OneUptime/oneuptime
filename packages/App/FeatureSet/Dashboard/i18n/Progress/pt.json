@@ -1,9 +1,10 @@
 {
   "baseline": {
-    "keys": 27189,
-    "untranslated": 17015
+    "keys": 27297,
+    "untranslated": 17017
   },
   "sameAsEnglish": [
+    "Interface {{index}}",
     "Offline",
     "Runbook: {{name}}",
     "Runner",
