@@ -36,12 +36,14 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { getToolImportSourceDefinition } from "Common/Types/ToolImport/ToolImportCatalog";
 import {
+  isToolImportSubscriberKey,
   ToolImportAction,
   ToolImportInviteTeam,
   ToolImportPlan,
   ToolImportPlanItem,
   ToolImportSelection,
 } from "Common/Types/ToolImport/ToolImportPlan";
+import ToolImportResourceKind from "Common/Types/ToolImport/ToolImportResourceKind";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
@@ -75,6 +77,10 @@ import React, {
  * Nothing is created until they start it, and starting it again later never
  * creates anything twice: what an earlier import brought over is shown as
  * such and cannot be ticked.
+ *
+ * Status page subscribers start unticked, and come over only when the
+ * person also confirms they may move them: the box in their section, which
+ * the start button waits for while any subscriber is ticked.
  */
 
 const ACTION_COLORS: Record<ToolImportAction, Color> = {
@@ -232,7 +238,71 @@ interface SectionProps {
   selection: ReadonlySet<string>;
   itemsByKey: ReadonlyMap<string, ToolImportPlanItem>;
   onSetKeys: (keys: Array<string>, isTicked: boolean) => void;
+  // Shown between the section's heading and its items.
+  children?: ReactElement | undefined;
 }
+
+/*
+ * The person's word that they may move the subscribers they tick: what
+ * they agreed to, and what OneUptime will (not) do with it.
+ */
+const ToolImportSubscribersConsent: FunctionComponent<{
+  isConsented: boolean;
+  isNeeded: boolean;
+  onChange: (isConsented: boolean) => void;
+}> = (props: {
+  isConsented: boolean;
+  isNeeded: boolean;
+  onChange: (isConsented: boolean) => void;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const checkboxId: string = useId();
+
+  return (
+    <div
+      className="flex items-start gap-3 border-b border-gray-200 bg-white px-4 py-3"
+      data-testid="tool-import-subscribers-consent"
+    >
+      <div className="flex h-5 w-4 flex-shrink-0 items-center">
+        <input
+          id={checkboxId}
+          type="checkbox"
+          checked={props.isConsented}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            props.onChange(event.target.checked);
+          }}
+          data-testid="tool-import-subscribers-consent-tick"
+          className="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-600"
+        />
+      </div>
+      <div className="min-w-0 text-sm">
+        <label
+          htmlFor={checkboxId}
+          className="cursor-pointer font-medium text-gray-900"
+        >
+          {translator.translateText(
+            "These people agreed to get our status page updates, and I may move their subscriptions to OneUptime.",
+          )}
+        </label>
+        <p className="mt-0.5 text-gray-500">
+          {translator.translateText(
+            "Nobody is emailed now. Every update they get from OneUptime has a link to unsubscribe.",
+          )}
+        </p>
+        {props.isNeeded && !props.isConsented && (
+          <p
+            className="mt-1 text-amber-700"
+            data-testid="tool-import-subscribers-consent-needed"
+          >
+            {translator.translateText(
+              "Confirm that you may move the subscribers you ticked, or untick them.",
+            )}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const ToolImportReviewSection: FunctionComponent<SectionProps> = (
   props: SectionProps,
@@ -320,6 +390,7 @@ const ToolImportReviewSection: FunctionComponent<SectionProps> = (
           </span>
         )}
       </div>
+      {props.children}
       <ul className="divide-y divide-gray-200">
         {section.items
           .slice(0, shownCount)
@@ -388,6 +459,7 @@ const ToolImportReview: FunctionComponent<ComponentProps> = (
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [isDiscarding, setIsDiscarding] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [subscribersConsent, setSubscribersConsent] = useState<boolean>(false);
 
   const sections: Array<ToolImportPlanSection> = useMemo(() => {
     return getToolImportPlanSections(plan);
@@ -405,6 +477,11 @@ const ToolImportReview: FunctionComponent<ComponentProps> = (
 
   const selectedKeys: Array<string> = getSelectedKeys(plan, selection);
   const isInviting: boolean = hasTickedInvites(plan, selection);
+  const isMovingSubscribers: boolean = selectedKeys.some(
+    isToolImportSubscriberKey,
+  );
+  const isWaitingForConsent: boolean =
+    isMovingSubscribers && !subscribersConsent;
 
   const teamOptions: Array<DropdownOption> = plan.inviteTeams.map(
     (team: ToolImportInviteTeam): DropdownOption => {
@@ -422,7 +499,7 @@ const ToolImportReview: FunctionComponent<ComponentProps> = (
   };
 
   const start: () => Promise<void> = async (): Promise<void> => {
-    if (selectedKeys.length === 0 || isStarting) {
+    if (selectedKeys.length === 0 || isStarting || isWaitingForConsent) {
       return;
     }
 
@@ -433,6 +510,7 @@ const ToolImportReview: FunctionComponent<ComponentProps> = (
       await props.onStart({
         selectedKeys: selectedKeys,
         inviteTeamId: isInviting ? inviteTeamId : null,
+        ...(isMovingSubscribers ? { subscribersConsent: true } : {}),
       });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -521,7 +599,16 @@ const ToolImportReview: FunctionComponent<ComponentProps> = (
                 selection={selection}
                 itemsByKey={itemsByKey}
                 onSetKeys={onSetKeys}
-              />
+              >
+                {section.kind === ToolImportResourceKind.StatusPageSubscriber &&
+                section.selectableKeys.length > 0 ? (
+                  <ToolImportSubscribersConsent
+                    isConsented={subscribersConsent}
+                    isNeeded={isMovingSubscribers}
+                    onChange={setSubscribersConsent}
+                  />
+                ) : undefined}
+              </ToolImportReviewSection>
             );
           })}
         </div>
@@ -598,11 +685,15 @@ const ToolImportReview: FunctionComponent<ComponentProps> = (
                 void start();
               }}
               isLoading={isStarting}
-              disabled={selectedKeys.length === 0 || isDiscarding}
+              disabled={
+                selectedKeys.length === 0 || isDiscarding || isWaitingForConsent
+              }
               tooltip={
                 selectedKeys.length === 0
                   ? "Tick at least one thing to bring over."
-                  : undefined
+                  : isWaitingForConsent
+                    ? "Confirm that you may move the subscribers you ticked, or untick them."
+                    : undefined
               }
               dataTestId="tool-import-start"
             />

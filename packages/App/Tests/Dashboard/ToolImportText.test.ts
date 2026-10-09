@@ -1,4 +1,5 @@
 import {
+  describeToolImportDuration,
   describeToolImportNote,
   describeToolImportSummary,
   formatToolImportDate,
@@ -8,6 +9,7 @@ import {
   TOOL_IMPORT_KIND_DESCRIPTIONS,
   TOOL_IMPORT_KIND_TERMS,
   TOOL_IMPORT_KIND_TITLES,
+  TOOL_IMPORT_MONITOR_TYPE_LABELS,
   TOOL_IMPORT_NOTE_TEMPLATES,
   TOOL_IMPORT_OUTCOME_COUNTS,
   TOOL_IMPORT_OUTCOME_LABELS,
@@ -18,6 +20,8 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportText";
 import { TOOL_IMPORT_BRANDS } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportBrand";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import { TOOL_IMPORT_MONITOR_TYPES } from "Common/Types/ToolImport/ToolImportMonitorBuilder";
 import {
   getToolImportSourceDefinition,
   ToolImportCredentialField,
@@ -93,6 +97,15 @@ const NOTE_VALUES: ReadonlyArray<string> = [
   "category",
   "condition",
   "error",
+  // The uptime and status page tools' notes.
+  "type",
+  "address",
+  "header",
+  "protocol",
+  "domain",
+  "every",
+  "oneUptimeEvery",
+  "timeout",
 ];
 
 function valuesOf<T extends string>(record: Record<string, T>): Array<T> {
@@ -320,6 +333,15 @@ describe("the server's own messages are the ones the page translates", () => {
     path.join("Server", "API", "ToolImportAPI.ts"),
     path.join("Server", "Utils", "ToolImport", "ToolImportRunExecutor.ts"),
     path.join("Types", "ToolImport", "ToolImportPlan.ts"),
+    // An uploaded file is refused with the reason, in the adapter's words.
+    path.join(
+      "Server",
+      "Utils",
+      "ToolImport",
+      "Adapters",
+      "UptimeKuma",
+      "UptimeKumaAdapter.ts",
+    ),
   ];
 
   const serverText: string = SERVER_SOURCES.map((file: string): string => {
@@ -565,6 +587,223 @@ describe("an item's facts read as one line", () => {
         ENGLISH,
       ),
     ).toBe("alice@example.com");
+  });
+});
+
+describe("what the uptime and status page tools bring reads whole", () => {
+  test("a duration is said in the largest whole unit", () => {
+    expect(describeToolImportDuration(30, ENGLISH)).toBe("30 seconds");
+    expect(describeToolImportDuration(90, ENGLISH)).toBe("90 seconds");
+    expect(describeToolImportDuration(60, ENGLISH)).toBe("1 minute");
+    expect(describeToolImportDuration(300, ENGLISH)).toBe("5 minutes");
+    expect(describeToolImportDuration(3600, ENGLISH)).toBe("1 hour");
+    expect(describeToolImportDuration(7200, ENGLISH)).toBe("2 hours");
+    expect(describeToolImportDuration(86400, ENGLISH)).toBe("1 day");
+    expect(describeToolImportDuration(604800, ENGLISH)).toBe("7 days");
+    // Never a fraction, never below nothing.
+    expect(describeToolImportDuration(59.6, ENGLISH)).toBe("1 minute");
+    expect(describeToolImportDuration(-5, ENGLISH)).toBe("0 seconds");
+  });
+
+  test("the monitor notes read whole, durations and values included", () => {
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.MonitorIntervalChanged, {
+          every: 30,
+          oneUptimeEvery: 60,
+        }),
+        ENGLISH,
+        "UptimeRobot",
+      ),
+    ).toBe(
+      "UptimeRobot checks it every 30 seconds. OneUptime checks it every 1 minute, the closest it offers.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.MonitorTimeoutShortened, {
+          timeout: 90,
+        }),
+        ENGLISH,
+        "Pingdom",
+      ),
+    ).toBe(
+      "Pingdom waits 90 seconds for an answer. OneUptime waits at most a minute.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.MonitorTypeNotSupported, {
+          type: "UDP",
+        }),
+        ENGLISH,
+        "StatusCake",
+      ),
+    ).toBe(
+      "OneUptime has no monitor that does what StatusCake's UDP checks do, so it is left out.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.MonitorHeaderLeftOut, {
+          header: "Authorization",
+        }),
+        ENGLISH,
+        "Better Stack",
+      ),
+    ).toBe(
+      "Its Authorization header may hold a secret, so it is not copied. Add it to the monitor with a monitor secret.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.MonitorChecksPortOnly, {
+          protocol: "SMTP",
+        }),
+        ENGLISH,
+        "Pingdom",
+      ),
+    ).toBe(
+      "OneUptime checks that its port answers, not the SMTP conversation on it.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.MonitorPlanLimit, { limit: 10 }),
+        ENGLISH,
+        "UptimeRobot",
+      ),
+    ).toBe(
+      "The Free plan has room for 10 monitors, and this project has no room left for this one. Upgrade the plan to bring it over.",
+    );
+  });
+
+  test("the status page and subscriber notes read whole", () => {
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.StatusPageCustomDomain, {
+          domain: "status.example.com",
+        }),
+        ENGLISH,
+        "Atlassian Statuspage",
+      ),
+    ).toBe(
+      "status.example.com does not come over. Add it under Custom Domains in OneUptime, then point it at OneUptime.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.SubscribersLeftOut, {
+          count: 1200,
+        }),
+        ENGLISH,
+        "Atlassian Statuspage",
+      ),
+    ).toBe(
+      "1,200 of its subscribers get updates by text message, webhook, Slack or Microsoft Teams. Only email subscribers come over.",
+    );
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.SubscriberNotConfirmed),
+        ENGLISH,
+        "Better Stack",
+      ),
+    ).toBe(
+      "They never confirmed their subscription in Better Stack, so they are left out.",
+    );
+  });
+
+  test("a duration in a sentence the locale has not translated stays English with it", () => {
+    // The locale words the duration, but not the sentence around it.
+    const partial: Translator = createTranslator((text: string) => {
+      return (
+        {
+          "{{count}} seconds": "{{count}} Sekunden",
+          "{{count}} minutes": "{{count}} Minuten",
+          "{{count}} minutes_one": "{{count}} Minute",
+        } as Record<string, string>
+      )[text];
+    }, "de");
+
+    expect(
+      describeToolImportNote(
+        makeToolImportNote(ToolImportNoteCode.MonitorIntervalChanged, {
+          every: 30,
+          oneUptimeEvery: 60,
+        }),
+        partial,
+        "UptimeRobot",
+      ),
+    ).toBe(
+      "UptimeRobot checks it every 30 seconds. OneUptime checks it every 1 minute, the closest it offers.",
+    );
+
+    // And a locale that words both reads both in its own words.
+    const german: Translator = createTranslator((text: string) => {
+      return (
+        {
+          "every {{duration}}": "alle {{duration}}",
+          "{{count}} minutes": "{{count}} Minuten",
+        } as Record<string, string>
+      )[text];
+    }, "de");
+
+    expect(
+      describeToolImportSummary(
+        ToolImportResourceKind.Monitor,
+        { intervalSeconds: 300 },
+        german,
+      ),
+    ).toBe("alle 5 Minuten");
+  });
+
+  test("a monitor says its type, how often it is checked and where", () => {
+    expect(
+      describeToolImportSummary(
+        ToolImportResourceKind.Monitor,
+        {
+          monitorType: MonitorType.Website,
+          intervalSeconds: 300,
+          destination: "https://example.com",
+        },
+        ENGLISH,
+      ),
+    ).toBe("Website · every 5 minutes · https://example.com");
+    // A heartbeat is not checked on an interval.
+    expect(
+      describeToolImportSummary(
+        ToolImportResourceKind.Monitor,
+        { monitorType: MonitorType.IncomingRequest },
+        ENGLISH,
+      ),
+    ).toBe("Incoming Request");
+  });
+
+  test("a status page says how many monitors it shows and its groups, a subscriber its page", () => {
+    expect(
+      describeToolImportSummary(
+        ToolImportResourceKind.StatusPage,
+        { resourceCount: 1 },
+        ENGLISH,
+      ),
+    ).toBe("shows 1 monitor");
+    expect(
+      describeToolImportSummary(
+        ToolImportResourceKind.StatusPage,
+        { resourceCount: 4, groupCount: 2 },
+        ENGLISH,
+      ),
+    ).toBe("shows 4 monitors · 2 groups");
+    expect(
+      describeToolImportSummary(
+        ToolImportResourceKind.StatusPageSubscriber,
+        { statusPageName: "Public status" },
+        ENGLISH,
+      ),
+    ).toBe("Subscribed to Public status");
+  });
+
+  test("every monitor type the import creates has a label", () => {
+    for (const type of TOOL_IMPORT_MONITOR_TYPES) {
+      expect({
+        type,
+        label: Boolean(TOOL_IMPORT_MONITOR_TYPE_LABELS[type]),
+      }).toEqual({ type, label: true });
+    }
   });
 });
 

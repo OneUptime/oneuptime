@@ -9,6 +9,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   getToolImportSourceDefinition,
   isToolImportAddressGiven,
+  isToolImportFileUpload,
   resolveToolImportRegion,
   ToolImportCredentialField,
   ToolImportRegion,
@@ -25,11 +26,14 @@ import {
 } from "../../../Types/ToolImport/ToolImportCredentials";
 import {
   TOOL_IMPORT_MAX_API_KEY_LENGTH,
+  TOOL_IMPORT_MAX_FILE_NAME_LENGTH,
   TOOL_IMPORT_MAX_REQUESTS,
+  TOOL_IMPORT_MAX_UPLOAD_BYTES,
   TOOL_IMPORT_READ_TIMEOUT_MS,
   TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS,
 } from "../../../Types/ToolImport/ToolImportLimits";
 import {
+  assertToolImportSubscribersConsent,
   readToolImportSelection,
   ToolImportPlan,
   ToolImportProgress,
@@ -183,6 +187,14 @@ export default class ToolImportRunExecutor {
 
     const definition: ToolImportSourceDefinition =
       getToolImportSourceDefinition(data.source);
+
+    // A tool read from a file has nothing to read over an API.
+    if (isToolImportFileUpload(definition)) {
+      throw new BadDataException(
+        `${definition.title} is read from a file. Choose the file to read.`,
+      );
+    }
+
     const region: ToolImportRegion | null = resolveToolImportRegion(
       data.source,
       data.region,
@@ -338,6 +350,7 @@ export default class ToolImportRunExecutor {
 
     try {
       selection = readToolImportSelection(data.selection);
+      assertToolImportSubscribersConsent(selection);
     } catch (error) {
       throw new BadDataException(toErrorMessage(error));
     }
@@ -448,6 +461,7 @@ export default class ToolImportRunExecutor {
       await ToolImportProjectStateReader.readAccess({
         projectId: data.projectId,
         props: props,
+        kinds: getToolImportSourceDefinition(data.run.source).kinds,
       });
 
     return buildToolImportPlan({
@@ -455,6 +469,88 @@ export default class ToolImportRunExecutor {
       state: state,
       access: access,
     });
+  }
+
+  /*
+   * A tool read from a file the person uploads (Uptime Kuma, which has no
+   * API to read): the file's text is read here, at once, into what was
+   * found - and the run starts as a preview, ready to tick. The file
+   * itself is never stored, queued or logged: it can hold passwords and
+   * tokens, and only what the preview needs is kept.
+   */
+  public static async startUpload(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    source: unknown;
+    fileName: unknown;
+    content: unknown;
+  }): Promise<ObjectID> {
+    if (!isToolImportSource(data.source)) {
+      throw new BadDataException("Choose a tool to import from.");
+    }
+
+    const definition: ToolImportSourceDefinition =
+      getToolImportSourceDefinition(data.source);
+
+    if (!isToolImportFileUpload(definition)) {
+      throw new BadDataException(
+        "This tool is read with its API key, not from a file.",
+      );
+    }
+
+    if (typeof data.content !== "string" || !data.content.trim()) {
+      throw new BadDataException("Choose the file to read.");
+    }
+
+    if (
+      Buffer.byteLength(data.content, "utf8") > TOOL_IMPORT_MAX_UPLOAD_BYTES
+    ) {
+      throw new BadDataException(
+        "This file is larger than 10 MB, which is more than an import reads.",
+      );
+    }
+
+    const snapshot: ToolImportSnapshot =
+      ToolImportAdapterRegistry.getFileAdapter(data.source).readFile({
+        content: data.content,
+        fileName: cleanUploadFileName(data.fileName),
+        now: new Date(),
+      });
+
+    const lock: SemaphoreMutex = await Semaphore.lock({
+      namespace: "ToolImportAdmission",
+      key: data.projectId.toString(),
+      lockTimeout: 30_000,
+      acquireTimeout: 5_000,
+    });
+
+    try {
+      await this.assertNoActiveRun(data.projectId);
+      await this.discardPreviewsOf({
+        projectId: data.projectId,
+        userId: data.userId,
+      });
+
+      const run: ToolImportRun = new ToolImportRun();
+      run.projectId = data.projectId;
+      run.source = data.source;
+      run.status = ToolImportRunStatus.ReadyToReview;
+      run.snapshot = snapshot as never;
+      run.createdByUserId = data.userId;
+
+      if (snapshot.accountName) {
+        run.accountName = snapshot.accountName;
+      }
+
+      const created: ToolImportRun = await ToolImportRunService.create({
+        data: run,
+        props: { isRoot: true },
+      });
+
+      return created.id!;
+    } finally {
+      await this.release(lock);
+    }
   }
 
   // ---- The worker's side.
@@ -631,6 +727,7 @@ export default class ToolImportRunExecutor {
         await ToolImportProjectStateReader.readAccess({
           projectId: run.projectId!,
           props: props,
+          kinds: getToolImportSourceDefinition(run.source!).kinds,
         });
 
       const plan: ToolImportPlan = buildToolImportPlan({
@@ -662,6 +759,8 @@ export default class ToolImportRunExecutor {
         selection: { ...selection, inviteTeamId: inviteTeamId },
         props: props,
         isLimitedToOneLevelPerPolicy: access.isLimitedToOneLevelPerPolicy,
+        canLetSubscribersChooseResources: !access.subscriberChoiceRefusal,
+        canCreateStatusPageGroups: !access.statusPageGroupRefusal,
         now: new Date(),
         onProgress: async (value: ToolImportProgress): Promise<void> => {
           await progress.write(value, false);
@@ -967,6 +1066,23 @@ export default class ToolImportRunExecutor {
       );
     }
   }
+}
+
+const PATH_SEPARATORS: RegExp = /^.*[\\/]/;
+const NOT_PRINTABLE: RegExp = /[^\p{L}\p{N}\p{P}\p{Zs}\p{S}]+/gu;
+
+/*
+ * The name of an uploaded file, as the page shows it back: without the
+ * folders a browser may put before it, without anything that is not a
+ * printable character, and cut to a sensible length.
+ */
+export function cleanUploadFileName(value: unknown): string {
+  const name: string = (typeof value === "string" ? value : "")
+    .replace(PATH_SEPARATORS, "")
+    .replace(NOT_PRINTABLE, "")
+    .trim();
+
+  return name.slice(0, TOOL_IMPORT_MAX_FILE_NAME_LENGTH).trim();
 }
 
 /*

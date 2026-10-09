@@ -71,8 +71,8 @@ const DocsNav: NavGroup[] = [
   },
   /*
    * One page per tool that Project Settings > Import from another tool
-   * brings a team over from (Common/Types/ToolImport/ToolImportCatalog's
-   * docsPath).
+   * brings a team, monitors or status pages over from
+   * (Common/Types/ToolImport/ToolImportCatalog's docsPath).
    */
   {
     title: "Moving to OneUptime",
@@ -97,6 +97,30 @@ const DocsNav: NavGroup[] = [
       {
         title: "Moving from Grafana OnCall",
         url: "/docs/moving-to-oneuptime/grafana-oncall",
+      },
+      {
+        title: "Moving from UptimeRobot",
+        url: "/docs/moving-to-oneuptime/uptimerobot",
+      },
+      {
+        title: "Moving from Atlassian Statuspage",
+        url: "/docs/moving-to-oneuptime/atlassian-statuspage",
+      },
+      {
+        title: "Moving from Better Stack",
+        url: "/docs/moving-to-oneuptime/better-stack",
+      },
+      {
+        title: "Moving from Pingdom",
+        url: "/docs/moving-to-oneuptime/pingdom",
+      },
+      {
+        title: "Moving from StatusCake",
+        url: "/docs/moving-to-oneuptime/statuscake",
+      },
+      {
+        title: "Moving from Uptime Kuma",
+        url: "/docs/moving-to-oneuptime/uptime-kuma",
       },
     ],
   },

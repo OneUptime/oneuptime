@@ -30,12 +30,14 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const TOOL_IMPORT_ROUTES: {
   runs: string;
   read: string;
+  upload: string;
   run: (runId: string) => string;
   start: (runId: string) => string;
   cancel: (runId: string) => string;
 } = {
   runs: "/tool-import/runs",
   read: "/tool-import/read",
+  upload: "/tool-import/upload",
   run: (runId: string): string => {
     return `/tool-import/run/${encodeURIComponent(runId)}`;
   },
@@ -164,6 +166,31 @@ export async function startToolImportRead(data: {
   return body["runId"];
 }
 
+/*
+ * A tool read from a file (Uptime Kuma): the file's text goes up once, is
+ * read on the server at once, and comes back as a run waiting for review.
+ * The file is never stored.
+ */
+export async function uploadToolImportFile(data: {
+  source: ToolImportSource;
+  fileName: string;
+  content: string;
+}): Promise<string> {
+  const body: JSONObject = await postJson(TOOL_IMPORT_ROUTES.upload, {
+    source: data.source,
+    fileName: data.fileName,
+    content: data.content,
+  });
+
+  if (typeof body["runId"] !== "string") {
+    throw new Error(
+      translationKey("The import could not be started. Try again."),
+    );
+  }
+
+  return body["runId"];
+}
+
 export async function getToolImportRun(
   runId: string,
 ): Promise<ToolImportRunDetails> {
@@ -191,10 +218,17 @@ export async function startToolImport(
   runId: string,
   selection: ToolImportSelection,
 ): Promise<void> {
-  await postJson(TOOL_IMPORT_ROUTES.start(runId), {
+  const body: JSONObject = {
     selectedKeys: selection.selectedKeys,
     inviteTeamId: selection.inviteTeamId,
-  });
+  };
+
+  // Sent only when given: the server moves no subscriber without it.
+  if (selection.subscribersConsent === true) {
+    body["subscribersConsent"] = true;
+  }
+
+  await postJson(TOOL_IMPORT_ROUTES.start(runId), body);
 }
 
 export async function cancelToolImport(runId: string): Promise<void> {
