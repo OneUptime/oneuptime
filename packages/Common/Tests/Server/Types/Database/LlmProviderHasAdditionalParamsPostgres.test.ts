@@ -184,6 +184,76 @@ describePostgres("LlmProvider.hasAdditionalParams against Postgres", () => {
     );
   });
 
+  test("a list filtered by it keeps the rows the rule answers for", async () => {
+    const saved: Array<LlmProvider> = await providers.find({
+      select: { _id: true, name: true, hasAdditionalParams: true },
+      where: { hasAdditionalParams: true } as never,
+    });
+
+    expect(
+      saved
+        .map((row: LlmProvider): string => {
+          return row.name!;
+        })
+        .sort(),
+    ).toEqual(
+      SHAPES.filter((shape: [string, string | null, boolean]): boolean => {
+        return shape[2];
+      })
+        .map((shape: [string, string | null, boolean]): string => {
+          return shape[0];
+        })
+        .sort(),
+    );
+
+    const none: Array<LlmProvider> = await providers.find({
+      select: { _id: true, name: true },
+      where: { hasAdditionalParams: false } as never,
+    });
+
+    expect(none).toHaveLength(
+      SHAPES.filter((shape: [string, string | null, boolean]): boolean => {
+        return !shape[2];
+      }).length,
+    );
+  });
+
+  /*
+   * Ordered by the expression it is selected as: Postgres orders by the
+   * output column, and a list read through DatabaseService always selects a
+   * column it sorts by (addSortColumnsToSelect).
+   */
+  test("a list sorted by it puts the providers without parameters first", async () => {
+    const rows: Array<LlmProvider> = await providers.find({
+      select: { _id: true, name: true, hasAdditionalParams: true },
+      order: { hasAdditionalParams: "ASC", name: "ASC" } as never,
+    });
+
+    const answers: Array<boolean | undefined> = rows.map(
+      (row: LlmProvider): boolean | undefined => {
+        return row.hasAdditionalParams;
+      },
+    );
+
+    const firstSaved: number = answers.indexOf(true);
+
+    expect(firstSaved).toBeGreaterThan(0);
+    expect(
+      answers
+        .slice(0, firstSaved)
+        .every((answer: boolean | undefined): boolean => {
+          return answer === false;
+        }),
+    ).toBe(true);
+    expect(
+      answers
+        .slice(firstSaved)
+        .every((answer: boolean | undefined): boolean => {
+          return answer === true;
+        }),
+    ).toBe(true);
+  });
+
   test("the SQL the column is read with is the rule, run on its own", async () => {
     const rows: Array<{ name: string; saved: boolean }> = await database.query(
       `SELECT "name", ${getHasAdditionalParamsSql(`"provider"`)} AS "saved" FROM "${schema}"."LlmProvider" "provider"`,
