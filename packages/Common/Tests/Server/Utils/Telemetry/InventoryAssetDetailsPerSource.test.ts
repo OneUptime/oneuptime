@@ -146,7 +146,7 @@ describe("a network device that answers only its system group (a Meraki MX)", ()
   test("with ONLY its sysDescr and address, the address is never its hostname", () => {
     const values: AssetValues = valuesOf(
       getInventoryAssetDetails(
-        mirroredItem(merakiMx({ sysName: undefined, name: "10.241.124.1" })),
+        mirroredItem(merakiMx({ sysName: "", name: "10.241.124.1" })),
       ),
     );
 
