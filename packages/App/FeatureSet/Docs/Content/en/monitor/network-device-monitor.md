@@ -646,7 +646,7 @@ A discovered host is named by its own name first, then by its DNS name, then by 
 3. **Reverse-DNS name** — the host's PTR record, which the probe looks up after the sweep.
 4. **IP address** — when it has none of the above.
 
-The device's own names come first because they are the names the people who run it use: a Windows host called `WB0024KDS03` keeps that name even when its reverse zone calls it `wb-0024-kds03.wbhq.com`. The reverse-DNS name is not lost: **Review Results** shows it beside the address, and the device keeps it as its **DNS Name**. NetBIOS cuts a computer name to 15 characters, so a NetBIOS name that is the start of a longer reverse-DNS name (`WB-0024-KITCHEN` for `wb-0024-kitchen-display-03.wbhq.com`) gives way to the reverse-DNS name.
+The device's own names come first because they are the names the people who run it use: a Windows host called `WB0024KDS03` keeps that name even when its reverse zone calls it `wb-0024-kds03.wbhq.com`. The reverse-DNS name is not lost: **Review Results** shows it beside the address, and the device keeps it as its **DNS Name**. NetBIOS cuts a computer name to 15 characters, so a NetBIOS name that is the start of a longer reverse-DNS name (`WB-0024-KITCHEN` for `wb-0024-kitchen-display-03.wbhq.com`) gives way to the reverse-DNS name. Label and owner rules match on the device name, so a pattern written against DNS names (`*.wbhq.com`) does not match a device named by its own name; site assignment rules also try the DNS Name, so they keep matching.
 
 **Review Results** shows that name, and the device gets the same name whether you import it from there or an [auto import rule](#importing-automatically-with-auto-import-rules) does. The device's hostname is always the IP address.
 
