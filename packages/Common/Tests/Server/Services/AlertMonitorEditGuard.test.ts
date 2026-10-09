@@ -526,7 +526,7 @@ describe("AlertService.onBeforeUpdate: what the guard reads", () => {
     expect(query["projectId"]).toBeUndefined();
   });
 
-  test("a root caller's read uses the update's query, in the request's project", async () => {
+  test("a root caller's read uses the update's query as it is", async () => {
     await expect(
       runBeforeUpdate(
         { monitorId: NEW_MONITOR_ID },
@@ -538,7 +538,7 @@ describe("AlertService.onBeforeUpdate: what the guard reads", () => {
       query: JSONObject;
     };
 
-    expect(read.query).toEqual({ _id: ALERT_ID, projectId: PROJECT_ID });
+    expect(read.query).toEqual({ _id: ALERT_ID });
   });
 });
 

@@ -1324,8 +1324,9 @@ export class Service extends ProjectReferencesService<Model> {
     data["incomingEmailCustomLocalPart"] = localPart;
 
     /*
-     * Two rows are enough to know the write targets more than one monitor,
-     * which is itself the error: one address cannot route to two monitors.
+     * The monitors the update writes. More than one is itself the error -
+     * one address cannot route to two monitors - and the update is refused
+     * before it writes any of them.
      */
     const targets: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,

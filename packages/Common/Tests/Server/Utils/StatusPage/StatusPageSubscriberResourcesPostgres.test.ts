@@ -342,7 +342,7 @@ describePostgres(
         statusPageId: pageA,
         resources: [],
       });
-      // Another project's subscriber, which the update must not reach.
+      // Another project's subscriber, which an update of this project's does not reach.
       await seedSubscriber({
         statusPageId: otherProjectPage,
         projectId: otherProjectId,
@@ -350,7 +350,7 @@ describePostgres(
       });
 
       const updateBy: UpdateBy<StatusPageSubscriber> = {
-        query: {},
+        query: { projectId: projectId },
         data: {
           statusPageResources: [own, legacyForeign].map(
             (id: ObjectID): StatusPageResource => {
@@ -622,7 +622,7 @@ describePostgres(
       }
     });
 
-    test("an update adds only the subscriber's page's resources, keeps what it names already, and reads only the request's project", async () => {
+    test("an update adds only the subscriber's page's resources, keeps what it names already, and reads only the rows its query names", async () => {
       const ownArchived: ObjectID = await seedResource({
         statusPageId: pageA,
         monitorId: await seedMonitor({ isArchived: true }),
@@ -649,15 +649,23 @@ describePostgres(
         resources: [],
       });
 
+      /*
+       * OneUptime's update of one subscriber, made in this project: its
+       * query names the project unless `inAnyProject` says it does not.
+       */
       const checkUpdate: (data: {
         id: ObjectID;
         resources: Array<ObjectID>;
+        inAnyProject?: boolean;
       }) => Promise<void> = async (data: {
         id: ObjectID;
         resources: Array<ObjectID>;
+        inAnyProject?: boolean;
       }): Promise<void> => {
         const updateBy: UpdateBy<StatusPageSubscriber> = {
-          query: { _id: data.id.toString() },
+          query: data.inAnyProject
+            ? { _id: data.id.toString() }
+            : { _id: data.id.toString(), projectId: projectId },
           data: {
             statusPageResources: data.resources.map(
               (id: ObjectID): StatusPageResource => {
@@ -701,8 +709,8 @@ describePostgres(
       expect(refused.message).not.toContain(ownArchived.toString());
 
       /*
-       * A subscriber of another project is not read under this project:
-       * the update reaches nothing, and the framework answers it.
+       * An update that names this project does not reach another project's
+       * subscriber: nothing is read, and the update is held to nothing.
        */
       await expect(
         checkUpdate({
@@ -710,6 +718,20 @@ describePostgres(
           resources: [otherPage],
         }),
       ).resolves.toBeUndefined();
+
+      /*
+       * OneUptime's update by id alone writes that subscriber, in whatever
+       * project it is, so it is checked against the subscriber's own page.
+       */
+      const refusedElsewhere: Error = await refusalOf(
+        checkUpdate({
+          id: otherProjectSubscriber,
+          resources: [otherPage],
+          inAnyProject: true,
+        }),
+      );
+      expect(refusedElsewhere).toBeInstanceOf(ProjectScopedReferenceException);
+      expect(refusedElsewhere.message).toContain(otherPage.toString());
     });
 
     test("the subscriber jobs read each named resource with its page, and tell a subscriber only through its own page's", async () => {

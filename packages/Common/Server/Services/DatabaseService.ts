@@ -6825,10 +6825,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * asked about nor held. An update that reached the hook without that
    * read - one a hook handed on as another object, or one made outside the
    * update path - has them read here first, the same way. OneUptime and a
-   * master admin write any row the update's query names, so for them this
-   * reads that query, in its window - kept to the request's project when
-   * the request names one and the query names none, as their reads in a
-   * project are (queryInRequestProject).
+   * master admin write any row the update's query names - the framework
+   * adds nothing to it, not even the request's project - so for them this
+   * reads that query, in its window.
    *
    * A relation the update's query sets a condition on is read by the rows'
    * ids alone: read with that query, the condition would leave out the part
@@ -6871,7 +6870,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * the rows the caller may write. None when the caller may write none.
      */
     const rowsQuery: Query<TBaseModel> | null = !callerMayWrite
-      ? this.queryInRequestProject(updateBy.query, updateBy.props)
+      ? updateBy.query
       : callerMayWrite.length > 0
         ? DatabaseService.queryWithinRows(updateBy.query, callerMayWrite)
         : null;
@@ -7069,47 +7068,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * OneUptime's or a master admin's update query, read in the request's
-   * project as their reads there are (PermissionUtil
-   * .addTenantScopeToQueryAsRoot): a query - or a branch of an either-or
-   * one - that names no project is kept to the request's. One that names
-   * its project, or its rows by the project's own column, is read as it
-   * names them, so the condition is only ever added, never replaced. A
-   * request across projects, or in none, is read as it is.
-   */
-  private queryInRequestProject(
-    query: Query<TBaseModel>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<TBaseModel> {
-    const tenantColumn: string | null = this.getModel().getTenantColumn();
-
-    if (!tenantColumn || !props.tenantId || props.isMultiTenantRequest) {
-      return query;
-    }
-
-    const inProject: (each: unknown) => unknown = (each: unknown): unknown => {
-      if (!each || typeof each !== "object") {
-        return each;
-      }
-
-      const named: unknown = (each as Dictionary<unknown>)[tenantColumn];
-
-      if (named !== undefined && named !== null) {
-        return each;
-      }
-
-      return {
-        ...(each as Dictionary<unknown>),
-        [tenantColumn]: props.tenantId,
-      };
-    };
-
-    return (
-      Array.isArray(query) ? query.map(inProject) : inProject(query)
-    ) as Query<TBaseModel>;
-  }
-
-  /*
    * An update's query kept to `rowIds`, the rows its caller may write
    * (findRowsAndHoldUpdateToThem). Whatever else it says - a condition a
    * hook narrowed it by - stays. A query that names rows by _id names some
@@ -7158,13 +7116,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
   }
 
-  // One row by its plain id, several (or none) by "any of" them.
-  private static idsCondition(ids: Array<string>): unknown {
+  /*
+   * One row by its plain id, several (or none) by "any of" them - the
+   * condition findRowsAndHoldUpdateToThem holds an update by, for a read of
+   * the rows it returned.
+   */
+  public static idsCondition(ids: Array<string>): unknown {
     return ids.length === 1 ? ids[0]! : QueryHelper.any(ids);
   }
 
   // The ids of rows read back, under either name a row carries its id by.
-  private static getRowIds(rows: Array<BaseModel>): Array<string> {
+  public static getRowIds(rows: Array<BaseModel>): Array<string> {
     const ids: Array<string> = [];
 
     for (const row of rows) {

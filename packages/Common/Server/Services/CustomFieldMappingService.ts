@@ -19,9 +19,11 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import {
   CustomFieldMappingSourceEntry,
   CustomFieldMappingTargetEntry,
+  DatabaseServiceLike,
   getCustomFieldMappingTarget,
   getCustomFieldMappingTargetsForSource,
 } from "../Utils/CustomField/CustomFieldMappingRegistry";
+import DatabaseService from "./DatabaseService";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -405,11 +407,25 @@ export class CustomFieldMappingServiceClass {
       /*
        * The records the update writes, and the update held to them: the
        * values folded in below are worked out for the one record read, and
-       * written to no other.
+       * written to no other. Only an update of one record has them folded
+       * in, so an update that does not name one record by id has the ids of
+       * the records it writes read first, and goes on only when that is one.
        */
-      const affected: Array<BaseModel> = await target
-        .getTargetService()
-        .findRowsAndHoldUpdateToThem(
+      const targetService: DatabaseServiceLike = target.getTargetService();
+
+      if (!DatabaseService.getOneRowIdNamedBy(data.updateBy.query)) {
+        const written: Array<BaseModel> =
+          await targetService.findRowsAndHoldUpdateToThem(data.updateBy, {
+            _id: true,
+          });
+
+        if (written.length !== 1) {
+          return;
+        }
+      }
+
+      const affected: Array<BaseModel> =
+        await targetService.findRowsAndHoldUpdateToThem(
           data.updateBy,
           this.getTargetRecordSelect(target),
         );

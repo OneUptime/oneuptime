@@ -425,7 +425,7 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferences", () => {
     ).resolves.toBeUndefined();
   });
 
-  test("reads the records the update writes, as root: its query, skip and limit - then what they hold, by id", async () => {
+  test("reads the records the update writes, as root, with what they hold: its query, skip and limit", async () => {
     const findBy: SpyInstance = getJestSpyOn(
       IncidentEpisodeService,
       "findBy",
@@ -438,21 +438,19 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferences", () => {
       limit: 20,
     });
 
-    // The records the update writes: its own query, in its window.
+    /*
+     * The records the update writes - its own query, in its window - with
+     * what they hold: one relation is one read.
+     */
+    expect(findBy).toHaveBeenCalledTimes(1);
+
     const rows: Record<string, unknown> = findBy.mock.calls[0]![0];
 
     expect(rows["query"]).toEqual({ _id: EPISODE_ID });
     expect(rows["skip"]).toBe(5);
     expect(rows["limit"]).toBe(20);
     expect(rows["props"]).toEqual({ isRoot: true, ignoreHooks: true });
-    expect(rows["select"]).toEqual({ _id: true });
-
-    // Then what those records hold, by their ids.
-    const held: Record<string, unknown> = findBy.mock.calls[1]![0];
-
-    expect(held["query"]).toEqual({ _id: EPISODE_ID });
-    expect(held["props"]).toEqual({ isRoot: true });
-    expect(held["select"]).toEqual({
+    expect(rows["select"]).toEqual({
       _id: true,
       projectId: true,
       incidentSeverity: { _id: true },

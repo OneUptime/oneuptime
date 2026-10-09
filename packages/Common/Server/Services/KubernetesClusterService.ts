@@ -975,10 +975,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The AI access settings of every cluster an operator's update reaches,
-   * read before the write. onBeforeUpdate runs before the framework scopes
-   * the query to the caller's project, so scope it here: a caller must
-   * never learn anything about, or be judged against, another project's
-   * cluster.
+   * read before the write: the clusters the update writes, with the update
+   * held to them (findRowsAndHoldUpdateToThem). A caller is only ever
+   * judged against, and only ever learns about, a cluster they may write.
    */
   @CaptureSpan()
   private async getAiAccessSettingsForUpdateQuery(

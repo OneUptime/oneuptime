@@ -124,8 +124,7 @@ export class Service extends ProjectReferencesService<Model> {
         }
 
         /*
-         * A row whose `email` did not come back is treated as changed -- that
-         * only happens when the caller could not read the column, and on a
+         * A row with no `email` stored is treated as changed: on a
          * credential the safe assumption is the one that expires the token.
          */
         const currentEmail: string | undefined = user.email

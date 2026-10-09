@@ -903,7 +903,7 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
      * among those the caller may write (findRowsAndHoldUpdateToThem), asking
      * for a column the feed or the reminders compare. (The project reference
      * check reads the labels a record holds as well, when an update writes
-     * some: another read, for another question.)
+     * some, with each record's project: another read, for another question.)
      */
     function comparedReads(): Array<{
       query: Dictionary<unknown>;
@@ -920,6 +920,10 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
         })
         .filter((read: { props?: DatabaseCommonInteractionProps }): boolean => {
           return read.props?.ignoreHooks === true;
+        })
+        .filter((read: { select: Dictionary<unknown> }): boolean => {
+          // The project reference check's read asks for each record's project.
+          return read.select["projectId"] === undefined;
         })
         .filter((read: { select: Dictionary<unknown> }): boolean => {
           return [

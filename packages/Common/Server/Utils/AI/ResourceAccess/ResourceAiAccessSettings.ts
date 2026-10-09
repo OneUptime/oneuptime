@@ -801,10 +801,10 @@ export default class ResourceAiAccessSettings {
 
   /*
    * The AI access settings of every resource an operator's update reaches,
-   * read before the write. onBeforeUpdate runs before the framework scopes
-   * the query to the caller's project, so scope it here: a caller must
-   * never learn anything about, or be judged against, another project's
-   * resource.
+   * read before the write: the resources the update writes, with the update
+   * held to them (DatabaseService.findRowsAndHoldUpdateToThem). A caller is
+   * only ever judged against, and only ever learns about, a resource they
+   * may write.
    */
   public static async readSettingsForUpdateQuery<
     TBaseModel extends BaseModel,

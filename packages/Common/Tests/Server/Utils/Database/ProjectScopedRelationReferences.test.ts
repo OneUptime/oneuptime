@@ -44,11 +44,15 @@ function relations(): Array<ProjectScopedRelation> {
 }
 
 function incident(data: {
+  id?: string;
   projectId: ObjectID;
   monitorIds?: Array<string>;
   labelIds?: Array<string>;
 }): Incident {
   const model: Incident = new Incident();
+  if (data.id) {
+    model._id = data.id;
+  }
   model.projectId = data.projectId;
   model.monitors = (data.monitorIds || []).map((id: string) => {
     const monitor: Monitor = new Monitor();
@@ -199,7 +203,7 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
     jest.restoreAllMocks();
   });
 
-  it("reads the rows the update writes, holds the update to them, then each relation of those rows as root, one per query", async () => {
+  it("reads the rows the update writes with the first relation, holds the update to them, then each other relation of those rows as root, one per query", async () => {
     /*
      * Loading several many-to-many relations in one find joins them all,
      * so a row comes back for every combination of their ids. An alert
@@ -224,12 +228,19 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
       columns: ["monitors", "labels"],
     });
 
-    // The rows the update writes - and the update held to exactly them.
+    /*
+     * The rows the update writes, with the first relation - and the update
+     * held to exactly them.
+     */
     expect(held).toHaveBeenCalledTimes(1);
     expect(held.mock.calls[0]![0]).toBe(updateBy);
-    expect(held.mock.calls[0]![1]).toEqual({ _id: true });
+    expect(held.mock.calls[0]![1]).toEqual({
+      _id: true,
+      projectId: true,
+      monitors: { _id: true },
+    });
 
-    expect(findBy).toHaveBeenCalledTimes(2);
+    expect(findBy).toHaveBeenCalledTimes(1);
 
     const selects: Array<unknown> = findBy.mock.calls.map(
       (call: Parameters<typeof IncidentService.findBy>) => {
@@ -248,30 +259,35 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
     );
 
     expect(selects).toEqual([
-      { _id: true, projectId: true, monitors: { _id: true } },
       { _id: true, projectId: true, labels: { _id: true } },
     ]);
   });
 
   it("counts an id as held only when every row the update writes in the project holds it", async () => {
-    jest
-      .spyOn(IncidentService, "findRowsAndHoldUpdateToThem")
-      .mockResolvedValue([row(INCIDENT_A), row(INCIDENT_B), row(INCIDENT_C)]);
-    jest.spyOn(IncidentService, "findBy").mockResolvedValue([
+    const incidents: Array<Incident> = [
       incident({
+        id: INCIDENT_A,
         projectId: PROJECT_ID,
         monitorIds: [MONITOR_A, MONITOR_B.toUpperCase()],
         labelIds: [LABEL_A],
       }),
       incident({
+        id: INCIDENT_B,
         projectId: PROJECT_ID,
         monitorIds: [MONITOR_B, MONITOR_C],
       }),
       incident({
+        id: INCIDENT_C,
         projectId: OTHER_PROJECT_ID,
         monitorIds: [MONITOR_C],
       }),
-    ]);
+    ];
+
+    // The rows come with the first relation; the second is read for them.
+    jest
+      .spyOn(IncidentService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue(incidents);
+    jest.spyOn(IncidentService, "findBy").mockResolvedValue(incidents);
 
     const heldIds: HeldRelationIds =
       await ProjectScopedReferenceValidator.getHeldRelationIds({

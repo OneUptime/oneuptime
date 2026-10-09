@@ -30,8 +30,8 @@ import {
  * resources a subscription adds, the command settings a rule widens - reads
  * them with findRowsAndHoldUpdateToThem. For OneUptime and a master admin,
  * who write any row, they are the update's own rows, read by its own query
- * in its window - in the request's project when the query names none (the
- * first describe below); for anyone else they are the
+ * in its window, as their write reaches them (the first describe below);
+ * for anyone else they are the
  * rows the caller may write - found by the update path before the hooks, or
  * by the hook itself when the update reached it some other way - that the
  * update's query, as its hooks have narrowed it, still names (the second).
@@ -150,11 +150,7 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update",
 
     const read: ReturnType<typeof readWith> = readWith();
 
-    // In the request's project: the query names none.
-    expect(read.query).toEqual({
-      statusPageId: STATUS_PAGE_ID,
-      projectId: PROJECT_ID,
-    });
+    expect(read.query).toEqual({ statusPageId: STATUS_PAGE_ID });
     expect(read.select).toEqual({
       statusPageId: true,
       isUnsubscribed: true,
@@ -182,14 +178,15 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update",
   });
 
   /*
-   * OneUptime's update made in a project is read in that project, as its
-   * reads there are, and held to the rows read: a query that names no project
-   * reaches no other project's rows. A request in no project, or across
-   * projects, is read as it is.
+   * OneUptime's write of an update is not narrowed by the project its request
+   * names, so neither is the read of its rows: they are the rows the write
+   * reaches, every one of them checked - and none of them dropped from the
+   * write for being outside the request's project.
    */
-  it("adds nothing to OneUptime's own query when its request names no project, or reaches across projects", async () => {
+  it("adds nothing to OneUptime's own query, whatever project its request names", async () => {
     for (const props of [
       { isRoot: true },
+      { isRoot: true, tenantId: PROJECT_ID },
       { isRoot: true, tenantId: PROJECT_ID, isMultiTenantRequest: true },
     ]) {
       findBy.mockClear();
@@ -203,33 +200,7 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update",
     }
   });
 
-  /*
-   * The request's project is only ever added: a query that names its
-   * project already - or its rows by the project's own column, as a
-   * Project's do - is read as it names them, never moved to another one.
-   */
-  it("reads a query that names its project as it names it", async () => {
-    const OTHER_PROJECT_ID: ObjectID = new ObjectID(
-      "5e000000-0000-4000-8000-000000000008",
-    );
-
-    await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(
-      update({
-        query: {
-          statusPageId: STATUS_PAGE_ID,
-          projectId: OTHER_PROJECT_ID,
-        } as unknown as Query<StatusPageSubscriber>,
-      }),
-      SELECT,
-    );
-
-    expect(readWith().query).toEqual({
-      statusPageId: STATUS_PAGE_ID,
-      projectId: OTHER_PROJECT_ID,
-    });
-  });
-
-  it("reads each branch of an either-or query in the request's project", async () => {
+  it("reads an either-or query as it is", async () => {
     await rowsAnUpdateWrites().findRowsAndHoldUpdateToThem(
       update({
         query: [
@@ -241,8 +212,8 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update",
     );
 
     expect(readWith().query).toEqual([
-      { statusPageId: STATUS_PAGE_ID, projectId: PROJECT_ID },
-      { _id: ROW_C, projectId: PROJECT_ID },
+      { statusPageId: STATUS_PAGE_ID },
+      { _id: ROW_C },
     ]);
   });
 
@@ -295,7 +266,7 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - OneUptime's own update",
   });
 
   it("narrows an update that names its rows by id to the ones read", async () => {
-    // The update names A and B; only A is the request's project's.
+    // The update names A and B; only A is read - B was deleted meanwhile, say.
     const updateBy: UpdateBy<StatusPageSubscriber> = update({
       query: {
         _id: QueryHelper.any([ROW_A, ROW_B]),
@@ -642,7 +613,7 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - the rows the caller may 
     expect(idsNamedBy(held["_id"])).not.toContain(ROW_C);
   });
 
-  it("reads a master admin's update as OneUptime's: its own query, in its window, in the request's project", async () => {
+  it("reads a master admin's update as OneUptime's: its own query, in its window", async () => {
     const updateBy: UpdateBy<StatusPageSubscriber> = update({
       tenantId: PROJECT_ID,
       isMasterAdmin: true,
@@ -655,10 +626,7 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - the rows the caller may 
     const read: { query: JSONObject; limit: number } = findBy.mock
       .calls[0]![0] as { query: JSONObject; limit: number };
 
-    expect(read.query).toEqual({
-      statusPageId: STATUS_PAGE_ID,
-      projectId: PROJECT_ID,
-    });
+    expect(read.query).toEqual({ statusPageId: STATUS_PAGE_ID });
     expect(read.limit).toBe(LIMIT_MAX);
   });
 
@@ -780,7 +748,6 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - relations", () => {
     expect(readAt(0).query).toEqual({
       statusPageId: STATUS_PAGE_ID,
       statusPageResources: { _id: ROW_C },
-      projectId: PROJECT_ID,
     });
     expect(readAt(0).select).toEqual({ _id: true });
     expect(readAt(0).skip).toBe(20000);

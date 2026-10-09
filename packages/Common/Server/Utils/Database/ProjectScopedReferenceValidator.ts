@@ -749,10 +749,11 @@ export default class ProjectScopedReferenceValidator {
    * project and a caller only ever gets the exemption for the project being
    * checked.
    *
-   * One read per column. A find that selects several many-to-many relations
-   * joins them all and returns a row for every combination of their ids, and
-   * an alert or incident can save sixteen lists in one update (the dashboard
-   * sends every affected-resource list back on each edit).
+   * One read per column: the first is read with the rows themselves, and
+   * every other by those rows' ids. A find that selects several many-to-many
+   * relations joins them all and returns a row for every combination of
+   * their ids, and an alert or incident can save sixteen lists in one update
+   * (the dashboard sends every affected-resource list back on each edit).
    */
   public static async getHeldRelationIds<
     TModel extends DatabaseBaseModel,
@@ -767,43 +768,50 @@ export default class ProjectScopedReferenceValidator {
       .getModel()
       .getTenantColumn();
 
-    if (!tenantColumnName || data.columns.length === 0) {
+    const firstColumn: string | undefined = data.columns[0];
+
+    if (!tenantColumnName || !firstColumn) {
       return heldIds;
     }
 
-    const rowIds: Array<string> = [];
+    const selectColumn: (column: string) => Select<TModel> = (
+      column: string,
+    ): Select<TModel> => {
+      return {
+        _id: true,
+        [tenantColumnName]: true,
+        [column]: {
+          _id: true,
+        },
+      } as Select<TModel>;
+    };
 
-    for (const row of await data.service.findRowsAndHoldUpdateToThem(
+    const rows: Array<TModel> = await data.service.findRowsAndHoldUpdateToThem(
       data.updateBy,
-      { _id: true } as Select<TModel>,
-    )) {
-      if (row._id) {
-        rowIds.push(row._id.toString());
-      }
-    }
+      selectColumn(firstColumn),
+    );
+
+    const rowIds: Array<string> = DatabaseService.getRowIds(rows);
 
     if (rowIds.length === 0) {
       return heldIds;
     }
 
     for (const column of data.columns) {
-      const records: Array<TModel> = await data.service.findBy({
-        query: {
-          _id: rowIds.length === 1 ? rowIds[0]! : QueryHelper.any(rowIds),
-        } as Query<TModel>,
-        select: {
-          _id: true,
-          [tenantColumnName]: true,
-          [column]: {
-            _id: true,
-          },
-        } as Select<TModel>,
-        limit: rowIds.length,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      const records: Array<TModel> =
+        column === firstColumn
+          ? rows
+          : await data.service.findBy({
+              query: {
+                _id: DatabaseService.idsCondition(rowIds),
+              } as Query<TModel>,
+              select: selectColumn(column),
+              limit: rowIds.length,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
 
       // Per project, the ids every record read so far holds in this column.
       const heldInColumn: Map<string, Set<string>> = new Map();

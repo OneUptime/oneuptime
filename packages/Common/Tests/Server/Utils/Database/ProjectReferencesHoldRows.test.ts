@@ -136,17 +136,17 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
         columns: ["labels"],
       });
 
-    // The rows: the update's own window, not the first rows its query matches.
+    /*
+     * The rows, with the column: the update's own window, not the first rows
+     * its query matches. One column is one read.
+     */
+    expect(findBy).toHaveBeenCalledTimes(1);
+
     const rowsRead: Read = findBy.mock.calls[0]![0] as Read;
 
     expect(rowsRead.skip).toBe(10000);
     expect(rowsRead.limit).toBe(50);
-
-    // The column: read for those rows alone, by id.
-    const columnRead: Read = findBy.mock.calls[1]![0] as Read;
-
-    expect(idsNamedBy(columnRead.query["_id"])).toEqual([ROW_A]);
-    expect(columnRead.select["labels"]).toEqual({ _id: true });
+    expect(rowsRead.select["labels"]).toEqual({ _id: true });
 
     expect(
       Array.from(held.get(PROJECT_ID.toString())?.["labels"] || []),
@@ -156,6 +156,38 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
     expect((updateBy.query as JSONObject)["_id"]).toBe(ROW_A);
     expect(updateBy.skip).toBe(0);
     expect(updateBy.limit).toBe(1);
+  });
+
+  it("reads every other column for the rows the first was read with, by id", async () => {
+    const service: DatabaseService<Monitor> = new DatabaseService<Monitor>(
+      Monitor,
+    );
+
+    const findBy: jest.SpyInstance = stubMonitors(
+      service,
+      [monitor(ROW_A, [FOREIGN_LABEL])],
+      [monitor(ROW_IN_FIRST_WINDOW, [FOREIGN_LABEL])],
+    );
+
+    await ProjectScopedReferenceValidator.getHeldRelationIds({
+      service: service,
+      updateBy: update(
+        { isRoot: true, tenantId: PROJECT_ID },
+        { skip: 10000, limit: 50 },
+      ),
+      columns: ["labels", "hosts"],
+    });
+
+    expect(findBy).toHaveBeenCalledTimes(2);
+
+    // The first column comes with the rows; the second is read for them alone.
+    const columnRead: Read = findBy.mock.calls[1]![0] as Read;
+
+    expect(idsNamedBy(columnRead.query["_id"])).toEqual([ROW_A]);
+    expect(columnRead.select["hosts"]).toEqual({ _id: true });
+    expect(columnRead.select["labels"]).toBeUndefined();
+    expect(columnRead.skip).toBe(0);
+    expect(columnRead.limit).toBe(1);
   });
 
   it("holds nothing as held, and reads no column, when the update writes no row", async () => {

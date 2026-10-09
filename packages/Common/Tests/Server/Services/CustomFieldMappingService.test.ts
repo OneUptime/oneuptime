@@ -640,6 +640,93 @@ describe("CustomFieldMappingService.applyMappingsToUpdate", () => {
     });
   });
 
+  /*
+   * An update that does not name one alert by id may write several: the
+   * ids of the alerts it writes are read first, and an alert's fields and
+   * monitor only when it writes that one - with the update held to it.
+   */
+  test("an update by query reads the ids of the alerts it writes, then the one alert it writes in full", async () => {
+    stubAlertDefinitions(VENDOR_MAPPING);
+
+    const alert: Alert = new Alert();
+    alert._id = ALERT_ID.toString();
+    alert.projectId = PROJECT_ID;
+    alert.monitorId = MONITOR_ID;
+    alert.customFields = { Vendor: "Acme", Owner: "kate" };
+
+    const findAlerts: jest.SpyInstance = jest
+      .spyOn(AlertService, "findBy")
+      .mockResolvedValue([alert] as never);
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([
+        buildMonitor(MONITOR_ID, { Vendor: "Acme" }),
+      ] as never);
+
+    const updateBy: UpdateBy<Alert> = {
+      ...buildAlertUpdateBy({ customFields: { Owner: "raj" } }),
+      query: { monitorId: MONITOR_ID.toString() },
+      limit: 50,
+    } as unknown as UpdateBy<Alert>;
+
+    await CustomFieldMappingService.applyMappingsToUpdate({
+      definitionModelType: AlertCustomField,
+      updateBy: updateBy,
+    });
+
+    expect(findAlerts).toHaveBeenCalledTimes(2);
+
+    const idsRead: JSONObject = findAlerts.mock.calls[0]![0] as JSONObject;
+
+    expect(idsRead["select"]).toEqual({ _id: true });
+    expect(idsRead["limit"]).toBe(50);
+
+    // The one alert, read in full within the rows the update is held to.
+    const alertRead: JSONObject = findAlerts.mock.calls[1]![0] as JSONObject;
+
+    expect((alertRead["select"] as JSONObject)["customFields"]).toBe(true);
+    expect((alertRead["query"] as JSONObject)["_id"]).toBe(ALERT_ID.toString());
+
+    expect((updateBy.data as JSONObject)["customFields"]).toEqual({
+      Owner: "raj",
+      Vendor: "Acme",
+    });
+    expect((updateBy.query as JSONObject)["_id"]).toBe(ALERT_ID.toString());
+    expect(updateBy.limit).toBe(1);
+  });
+
+  test("an update by query that writes several alerts reads their ids alone, and leaves the payload as it is", async () => {
+    stubAlertDefinitions(VENDOR_MAPPING);
+
+    const first: Alert = new Alert();
+    first._id = ALERT_ID.toString();
+    const second: Alert = new Alert();
+    second._id = OTHER_MONITOR_ID.toString();
+
+    const findAlerts: jest.SpyInstance = jest
+      .spyOn(AlertService, "findBy")
+      .mockResolvedValue([first, second] as never);
+
+    const updateBy: UpdateBy<Alert> = {
+      ...buildAlertUpdateBy({ customFields: { Owner: "raj" } }),
+      query: { monitorId: MONITOR_ID.toString() },
+      limit: 50,
+    } as unknown as UpdateBy<Alert>;
+
+    await CustomFieldMappingService.applyMappingsToUpdate({
+      definitionModelType: AlertCustomField,
+      updateBy: updateBy,
+    });
+
+    expect(findAlerts).toHaveBeenCalledTimes(1);
+    expect((findAlerts.mock.calls[0]![0] as JSONObject)["select"]).toEqual({
+      _id: true,
+    });
+    expect((updateBy.data as JSONObject)["customFields"]).toEqual({
+      Owner: "raj",
+    });
+  });
+
   test("does not restore a mapped value on an alert with no monitor", async () => {
     stubAlertDefinitions(VENDOR_MAPPING);
     stubAffectedAlert({ customFields: { Vendor: "Typed by hand" } });
