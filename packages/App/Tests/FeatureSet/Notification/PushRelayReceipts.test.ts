@@ -78,7 +78,7 @@ jest.mock("Common/Server/Infrastructure/Redis", () => {
  * credentials. It keeps nothing: each server keeps its own receipt ids, and
  * asks about them when they are due (its workers' ExpoPushReceiptService).
  * The relay also answers Expo's other refusals with Expo's code and words
- * (502) instead of 500 "Server Error".
+ * (422) instead of 500 "Server Error".
  *
  * Neither side upgrades with the other, and both directions are run here:
  *  - an older server relaying through this relay sends as before, ignores
@@ -408,7 +408,7 @@ describe("the relay names the receipt of each push it sent (POST /send)", () => 
     ["MismatchSenderId", "The FCM sender id does not match"],
     ["ProviderError", "APNs failed"],
   ])(
-    "Expo's %s refusal is answered 502 with Expo's code and words, never the token",
+    "Expo's %s refusal is answered 422 with Expo's code and words, never the token",
     async (code: string, message: string) => {
       expoTickets.set(PHONE_TOKEN, {
         status: "error",
@@ -422,7 +422,7 @@ describe("the relay names the receipt of each push it sent (POST /send)", () => 
       );
 
       expect(answer).toBeInstanceOf(HTTPErrorResponse);
-      expect(answer.statusCode).toBe(502);
+      expect(answer.statusCode).toBe(422);
       expect(answer.jsonData).toEqual({
         message: `${message} ([push token])`,
         details: { error: code },
@@ -431,7 +431,7 @@ describe("the relay names the receipt of each push it sent (POST /send)", () => 
     },
   );
 
-  test("an error ticket with no code is answered 502 with its words alone", async () => {
+  test("an error ticket with no code is answered 422 with its words and empty details", async () => {
     expoTickets.set(PHONE_TOKEN, {
       status: "error",
       message: "Something went wrong",
@@ -442,8 +442,11 @@ describe("the relay names the receipt of each push it sent (POST /send)", () => 
       sendRequest(PHONE_TOKEN),
     );
 
-    expect(answer.statusCode).toBe(502);
-    expect(answer.jsonData).toEqual({ message: "Something went wrong" });
+    expect(answer.statusCode).toBe(422);
+    expect(answer.jsonData).toEqual({
+      message: "Something went wrong",
+      details: {},
+    });
   });
 });
 
@@ -738,6 +741,19 @@ describe("a self-hosted server relaying through it", () => {
     expect(kept()).toEqual([
       expect.objectContaining({ receiptId: RECEIPT_ID, attempts: 1 }),
     ]);
+  });
+
+  test("a refusal Expo gave no code for is said in Expo's words too", async () => {
+    expoTickets.set(PHONE_TOKEN, {
+      status: "error",
+      message: "Something went wrong",
+    });
+
+    const failure: unknown = await page();
+
+    expect((failure as Error).message).toBe(
+      "Expo push notification failed: Something went wrong",
+    );
   });
 
   test("Expo's other refusal at the send is said as a direct send says it", async () => {

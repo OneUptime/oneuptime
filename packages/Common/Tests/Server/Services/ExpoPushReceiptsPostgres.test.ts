@@ -597,4 +597,44 @@ describePostgres("Expo push receipts against Postgres", () => {
 
     expect(counted[0]!.count).toBe("3");
   });
+
+  /*
+   * An iPad set up from an iPhone's backup reports the iPhone's token. The
+   * iPhone still receives notifications, so its device is not taken over:
+   * the iPad gets a device of its own, and the iPhone is still paged.
+   */
+  test("a device with the old token that still receives notifications is not taken over", async () => {
+    const stillInUse: ObjectID = await seedDevice({
+      userId: userA,
+      projectId: projectOne,
+      deviceToken: OLD_TOKEN,
+      deviceType: PushDeviceType.iOS,
+      isVerified: true,
+      isCriticalAlertEnabled: true,
+    });
+
+    expect(
+      await UserPushService.renewExpoPushDevice({
+        userId: userA,
+        projectId: projectOne,
+        previousDeviceToken: OLD_TOKEN,
+        deviceToken: NEW_TOKEN,
+        deviceType: PushDeviceType.iOS,
+        deviceName: "iPad",
+        isCriticalAlertEnabled: false,
+      }),
+    ).toBeNull();
+
+    expect(await deviceRow(stillInUse)).toEqual(
+      expect.objectContaining({
+        deviceToken: OLD_TOKEN,
+        deviceName: "Pixel 8",
+        isVerified: true,
+        isCriticalAlertEnabled: true,
+      }),
+    );
+    expect(await verifiedDevicesOf(userA, projectOne)).toEqual([
+      `ios:${OLD_TOKEN}`,
+    ]);
+  });
 });

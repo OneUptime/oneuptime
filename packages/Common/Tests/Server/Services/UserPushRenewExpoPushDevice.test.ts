@@ -17,13 +17,17 @@ jest.mock("../../../Server/Utils/Logger");
 /*
  * UserPushService.renewExpoPushDevice: the mobile app got a new push token
  * on a phone where it kept its data (a phone set up from a backup of the
- * old one) and says which token it had before. The person's device in this
- * project registered with the old token carries the new one from now on,
- * verified, with its rules - nothing is created, and nothing deleted.
+ * old one) and says which token it had before. When the person's device in
+ * this project registered with the old token no longer receives
+ * notifications, it carries the new one from now on, verified, with its
+ * rules - nothing is created, and nothing deleted.
  *
  * The queries are pinned: only the caller's own device, in this project,
- * with exactly the old token, and only a phone or tablet - never a browser,
- * whose subscription has its own renewal (replaceWebPushSubscription).
+ * with exactly the old token, only a phone or tablet - never a browser,
+ * whose subscription has its own renewal (replaceWebPushSubscription) - and
+ * only one that no longer receives notifications: one that does may be a
+ * phone still in use (an iPad set up from an iPhone's backup reports the
+ * iPhone's token), and taking it over would silently stop paging it.
  */
 
 const USER_ID: ObjectID = new ObjectID("7f000000-0000-4000-8000-000000000601");
@@ -74,7 +78,7 @@ describe("UserPushService.renewExpoPushDevice", () => {
     jest.restoreAllMocks();
   });
 
-  test("finds the person's own phone in this project with the old token, as root", async () => {
+  test("finds the person's own phone in this project with the old token, as root, only if it no longer receives notifications", async () => {
     await UserPushService.renewExpoPushDevice(renewal());
 
     expect(find).toHaveBeenCalledTimes(1);
@@ -83,8 +87,10 @@ describe("UserPushService.renewExpoPushDevice", () => {
       .query as Record<string, unknown>;
 
     expect(Object.keys(query).sort()).toEqual(
-      ["deviceToken", "deviceType", "projectId", "userId"].sort(),
+      ["deviceToken", "deviceType", "isVerified", "projectId", "userId"].sort(),
     );
+    // A device still receiving notifications may be a phone still in use.
+    expect(query["isVerified"]).toBe(false);
     expect(query["userId"]).toBe(USER_ID);
     expect(query["projectId"]).toBe(PROJECT_ID);
     expect(query["deviceToken"]).toBe(OLD_TOKEN);
@@ -116,13 +122,15 @@ describe("UserPushService.renewExpoPushDevice", () => {
     } = update.mock.calls[0]![0] as never;
 
     /*
-     * Still the old token: another registration renewing it a moment
-     * earlier leaves this one nothing to do.
+     * Still the old token, and still not receiving: another registration
+     * renewing it a moment earlier, or the old phone registering it again,
+     * leaves this one nothing to take over.
      */
     expect(call.query).toEqual({
       _id: DEVICE_ID.toString(),
       userId: USER_ID,
       deviceToken: OLD_TOKEN,
+      isVerified: false,
     });
     expect(call.data).toEqual({
       deviceToken: NEW_TOKEN,
@@ -149,6 +157,17 @@ describe("UserPushService.renewExpoPushDevice", () => {
     ).toBe(true);
   });
 
+  test("a device with the old token that still receives notifications is not found, so not taken over", async () => {
+    // The query asks for one that does not receive: a verified one is not it.
+    find.mockResolvedValue(null);
+
+    expect(await UserPushService.renewExpoPushDevice(renewal())).toBeNull();
+    expect(
+      (find.mock.calls[0]![0].query as Record<string, unknown>)["isVerified"],
+    ).toBe(false);
+    expect(update).not.toHaveBeenCalled();
+  });
+
   test("no device with the old token here: nothing to renew", async () => {
     find.mockResolvedValue(null);
 
@@ -156,7 +175,7 @@ describe("UserPushService.renewExpoPushDevice", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  test("renewed a moment ago by another registration: nothing renewed now", async () => {
+  test("renewed a moment ago by another registration, or registered again by the old phone: nothing taken over now", async () => {
     update.mockResolvedValue(0);
 
     expect(await UserPushService.renewExpoPushDevice(renewal())).toBeNull();

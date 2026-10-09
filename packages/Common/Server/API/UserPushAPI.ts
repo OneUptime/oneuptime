@@ -224,9 +224,13 @@ export default class UserPushAPI extends BaseAPI<
            * gone is about the token as it was, and does not mark the phone
            * (ExpoPushReceiptService): an iPhone keeps its token through a
            * reinstall, so a page sent while the app was removed is refused
-           * in its receipt after the app is back.
+           * in its receipt after the app is back. Only an Expo push token
+           * from a phone is noted: nothing else is one a receipt names.
            */
-          if (isExpoPushDeviceType(req.body.deviceType)) {
+          if (
+            isExpoPushDeviceType(req.body.deviceType) &&
+            PushNotificationService.isValidExpoPushToken(req.body.deviceToken)
+          ) {
             await ExpoPushReceiptQueue.noteTokenRegistered(
               req.body.deviceToken,
             );
@@ -350,6 +354,37 @@ export default class UserPushAPI extends BaseAPI<
                 deviceId: renewedDevice._id!.toString(),
                 alreadyRegistered: true,
                 isVerified: true,
+              });
+            }
+
+            /*
+             * A registration a moment earlier - the app registers again
+             * when its projects change - may have renewed it already, after
+             * the lookup above. That device is this phone's: it is named,
+             * and no second device is made for the same token.
+             */
+            const renewedMeanwhile: UserPush | null =
+              await this.service.findOneBy({
+                query: {
+                  userId: userId,
+                  projectId: projectId,
+                  deviceToken: req.body.deviceToken,
+                },
+                select: {
+                  _id: true,
+                  isVerified: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            if (renewedMeanwhile) {
+              return Response.sendJsonObjectResponse(req, res, {
+                success: true,
+                deviceId: renewedMeanwhile._id!.toString(),
+                alreadyRegistered: true,
+                isVerified: Boolean(renewedMeanwhile.isVerified),
               });
             }
           }

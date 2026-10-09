@@ -93,10 +93,19 @@ describe("Self-hosted > Push Notifications, in English", () => {
     );
   });
 
-  it("says a phone set up from a backup takes over the old phone's device, with its rules", () => {
+  /*
+   * Only a device that no longer receives notifications is taken over: one
+   * that does may be a phone still in use (an iPad set up from an iPhone's
+   * backup reports the iPhone's token).
+   */
+  it("says a phone set up from a backup takes over the old phone's device, with its rules, once that no longer receives notifications", () => {
     expect(page).toContain(
-      "When an up-to-date mobile app is set up on a new phone from a backup of the old one, it tells OneUptime the push token it had before, and the old phone's device moves to the new phone with its rules.",
+      "When an up-to-date mobile app is set up on a new phone from a backup of the old one, it tells OneUptime the push token it had before; if the old phone's device no longer receives notifications, the new phone takes it over with its rules.",
     );
+    expect(page).toContain(
+      "takes over the old\n  phone's registration once that no longer receives notifications",
+    );
+    expect(page).not.toContain("the old phone's device moves to the new phone");
     expect(page).not.toContain(
       "reinstall or a new push token creates a new device registration",
     );

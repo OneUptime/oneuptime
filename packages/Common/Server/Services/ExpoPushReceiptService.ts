@@ -7,6 +7,7 @@ import PushNotificationService, {
 import PushNotificationLogService from "./PushNotificationLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import DefaultExpoPushReceiptQueue, {
+  ClaimedExpoPushReceipts,
   ExpoPushReceiptQueue,
   PendingExpoPushReceipt,
 } from "../Infrastructure/ExpoPushReceiptQueue";
@@ -69,6 +70,21 @@ export const EXPO_PUSH_RECEIPT_CHECK_TIME_BUDGET_MS: number = 3 * 60 * 1000;
 
 // The job's timeout: above the budget, so a healthy run is never cut short.
 export const EXPO_PUSH_RECEIPT_CHECK_TIMEOUT_MS: number = 4 * 60 * 1000;
+
+/*
+ * The most claims one run makes: twice what MAX_EXPO_PUSH_RECEIPTS_PER_RUN
+ * needs, so claims that take none of what they find (another worker was
+ * first, entries could not be read) do not end a run early, and a Redis that
+ * cannot remove what it finds cannot keep one going.
+ */
+export const MAX_EXPO_PUSH_RECEIPT_CLAIMS_PER_RUN: number = 60;
+
+/*
+ * How many receipts that say a push was not delivered are acted on at once:
+ * a burst of them - an outage of the push credentials refuses every push -
+ * costs a few seconds, not a database round trip after another.
+ */
+export const EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY: number = 10;
 
 export interface ExpoPushReceiptCheckSummary {
   // Receipts taken from the queue to read.
@@ -139,12 +155,16 @@ export default class ExpoPushReceiptService {
     };
 
     const startedAt: number = run.clock();
+    let claims: number = 0;
 
     while (
       run.summary.checked < MAX_EXPO_PUSH_RECEIPTS_PER_RUN &&
+      claims < MAX_EXPO_PUSH_RECEIPT_CLAIMS_PER_RUN &&
       run.clock() - startedAt < EXPO_PUSH_RECEIPT_CHECK_TIME_BUDGET_MS
     ) {
-      const batch: Array<PendingExpoPushReceipt> = await run.queue.claimDue({
+      claims++;
+
+      const claimed: ClaimedExpoPushReceipts = await run.queue.claimDue({
         now: run.clock(),
         limit: Math.min(
           MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST,
@@ -152,13 +172,19 @@ export default class ExpoPushReceiptService {
         ),
       });
 
-      if (batch.length === 0) {
+      // Nothing more is due.
+      if (claimed.found === 0) {
         break;
       }
 
-      run.summary.checked += batch.length;
+      // Taken by another worker, or unreadable: more may be due behind them.
+      if (claimed.receipts.length === 0) {
+        continue;
+      }
 
-      await ExpoPushReceiptService.checkBatch(batch, run);
+      run.summary.checked += claimed.receipts.length;
+
+      await ExpoPushReceiptService.checkBatch(claimed.receipts, run);
     }
 
     if (run.summary.checked > 0) {
@@ -281,6 +307,13 @@ export default class ExpoPushReceiptService {
     run: CheckRun,
   ): Promise<void> {
     const notReadyYet: Array<PendingExpoPushReceipt> = [];
+    const notDelivered: Array<{
+      entry: PendingExpoPushReceipt;
+      receipt: {
+        message: string;
+        details?: { error?: string | undefined } | undefined;
+      };
+    }> = [];
 
     for (const entry of pending) {
       const receipt: ExpoPushReceiptResult | undefined = receipts.get(
@@ -299,8 +332,34 @@ export default class ExpoPushReceiptService {
       }
 
       run.summary.notDelivered++;
+      notDelivered.push({ entry: entry, receipt: receipt });
+    }
 
-      await ExpoPushReceiptService.handleNotDelivered(entry, receipt, run);
+    // A few at a time (EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY).
+    for (
+      let start: number = 0;
+      start < notDelivered.length;
+      start += EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY
+    ) {
+      await Promise.all(
+        notDelivered
+          .slice(start, start + EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY)
+          .map(
+            (item: {
+              entry: PendingExpoPushReceipt;
+              receipt: {
+                message: string;
+                details?: { error?: string | undefined } | undefined;
+              };
+            }): Promise<void> => {
+              return ExpoPushReceiptService.handleNotDelivered(
+                item.entry,
+                item.receipt,
+                run,
+              );
+            },
+          ),
+      );
     }
 
     await ExpoPushReceiptService.lookAgainLater(
@@ -347,6 +406,7 @@ export default class ExpoPushReceiptService {
           registeredAgainSince: true,
         });
       } else {
+        // Checked and noted before anything is awaited: entries run together.
         if (!run.markedTokens.has(entry.deviceToken)) {
           run.markedTokens.add(entry.deviceToken);
           run.summary.tokensMarkedGone++;

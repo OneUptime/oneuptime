@@ -86,6 +86,18 @@ const TOKEN_REGISTERED_AT_TTL_SECONDS: number = 25 * 60 * 60;
 
 const DEFAULT_KEY_PREFIX: string = "expo-push-receipts";
 
+// What a claim found among the due receipts, and what of it is the caller's.
+export interface ClaimedExpoPushReceipts {
+  // The due receipts this caller took, to read.
+  receipts: Array<PendingExpoPushReceipt>;
+  /*
+   * How many due entries the claim found: those taken, those another worker
+   * took first, and those that could not be read and were dropped. While it
+   * is above nothing, more may be due.
+   */
+  found: number;
+}
+
 export class ExpoPushReceiptQueue {
   private readonly keyPrefix: string;
 
@@ -284,16 +296,18 @@ export class ExpoPushReceiptQueue {
    * taken by exactly one caller, even with several workers checking at
    * once: an entry is theirs only if their ZREM removed it. A taken entry
    * that is not handled (the worker dies) is lost; a later push's ticket
-   * still catches a gone token.
+   * still catches a gone token. Says, too, how many due entries it found:
+   * a claim can take none of what it found - another worker was first, or
+   * none could be read - while more are due behind them.
    */
   public async claimDue(data: {
     now: number;
     limit: number;
-  }): Promise<Array<PendingExpoPushReceipt>> {
+  }): Promise<ClaimedExpoPushReceipts> {
     const client: ClientType | null = this.getClient();
 
     if (!client || data.limit <= 0) {
-      return [];
+      return { receipts: [], found: 0 };
     }
 
     const key: string = this.getPendingKey();
@@ -308,7 +322,7 @@ export class ExpoPushReceiptQueue {
     );
 
     if (members.length === 0) {
-      return [];
+      return { receipts: [], found: 0 };
     }
 
     const pipeline: ReturnType<ClientType["pipeline"]> = client.pipeline();
@@ -348,7 +362,7 @@ export class ExpoPushReceiptQueue {
       );
     }
 
-    return claimed;
+    return { receipts: claimed, found: members.length };
   }
 
   /*

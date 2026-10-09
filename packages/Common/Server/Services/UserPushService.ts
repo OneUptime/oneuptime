@@ -366,13 +366,20 @@ export class Service extends DatabaseService<UserPush> {
   /**
    * The mobile app got a new push token on a phone where it kept its data -
    * a phone set up from a backup of the old one, say - and says which token
-   * it had before (the register route's previousDeviceToken). The person's
-   * device in this project registered with that token is the same phone: it
-   * carries the new token from now on, verified, with the rules its owner
-   * set up for it, and the name, type and critical-alerts setting the phone
-   * registers with now. Before, the new token got a new device with default
-   * rules, and the old one stayed - paged until Expo said its token was gone,
-   * then "Not receiving notifications" until somebody deleted it.
+   * it had before (the register route's previousDeviceToken). When the
+   * person's device in this project registered with that token no longer
+   * receives notifications - Expo said its token was gone - this phone takes
+   * it over: it carries the new token from now on, verified, with the rules
+   * its owner set up for it, and the name, type and critical-alerts setting
+   * the phone registers with now. Before, the new token got a new device
+   * with default rules, and the old one stayed "Not receiving
+   * notifications" until somebody deleted it.
+   *
+   * Only a device that no longer receives notifications. One that still
+   * does may be a phone still in use - an iPad set up from an iPhone's
+   * backup reports the iPhone's token - and taking it over would silently
+   * stop paging that phone. Then this phone gets a device of its own, as
+   * before.
    *
    * Like a browser's subscription-change (replaceWebPushSubscription), only
    * the caller's own iOS or Android device in this project, and only when
@@ -403,6 +410,7 @@ export class Service extends DatabaseService<UserPush> {
         projectId: data.projectId,
         deviceToken: data.previousDeviceToken,
         deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
+        isVerified: false,
       },
       select: {
         _id: true,
@@ -417,14 +425,16 @@ export class Service extends DatabaseService<UserPush> {
     }
 
     /*
-     * Still the old token: another registration may have renewed it a
-     * moment ago, and then this one has nothing to renew.
+     * Still the old token, and still not receiving: another registration may
+     * have renewed it a moment ago, or the old phone registered it again,
+     * and then this one has nothing to take over.
      */
     const renewedCount: number = await this.updateOneBy({
       query: {
         _id: previous._id.toString(),
         userId: data.userId,
         deviceToken: data.previousDeviceToken,
+        isVerified: false,
       },
       data: {
         deviceToken: data.deviceToken,

@@ -737,6 +737,29 @@ describe("POST /user-push/register", () => {
       },
     );
 
+    /*
+     * Only an Expo push token is one a receipt names; a note for anything
+     * else would keep nothing from being marked, and fill Redis with keys.
+     */
+    test.each([
+      ["a browser subscription", BROWSER_SUBSCRIPTION],
+      ["text that is not a token", "not-a-token"],
+    ])(
+      "a phone posting %s notes nothing",
+      async (_name: string, deviceToken: string) => {
+        await register(
+          overTheWire({
+            deviceToken: deviceToken,
+            deviceType: PushDeviceType.iOS,
+            deviceName: "iPhone 15",
+            projectId: PROJECT_ID.toString(),
+          }),
+        );
+
+        expect(noted).not.toHaveBeenCalled();
+      },
+    );
+
     test("a browser has no Expo receipts: nothing is noted", async () => {
       await register(
         overTheWire({
@@ -857,6 +880,45 @@ describe("POST /user-push/register", () => {
       expect(
         (lookup.mock.calls[0]![0].query as { deviceToken: string }).deviceToken,
       ).toBe(NEW_TOKEN);
+    });
+
+    /*
+     * The app registers again when its projects change, and two
+     * registrations of the same project can cross: the other one renewed
+     * the device after this one looked for the new token. That device is
+     * this phone's - it is named, and no second device is made.
+     */
+    test("renewed a moment ago by another registration: that device is named, and nothing is created", async () => {
+      renew.mockResolvedValue(null);
+      lookup.mockResolvedValueOnce(null).mockResolvedValueOnce({
+        _id: EXISTING_DEVICE_ID.toString(),
+        id: EXISTING_DEVICE_ID,
+        isVerified: true,
+      } as never);
+
+      const answer: Answer = await register(phone(PushDeviceType.iOS));
+
+      expect(answer).toEqual({
+        json: {
+          success: true,
+          deviceId: EXISTING_DEVICE_ID.toString(),
+          alreadyRegistered: true,
+          isVerified: true,
+        },
+      });
+      expect(create).not.toHaveBeenCalled();
+      expect(defaultRules).not.toHaveBeenCalled();
+
+      // Looked for again: the caller's own device, here, with the new token.
+      const again: {
+        userId: ObjectID;
+        projectId: ObjectID;
+        deviceToken: string;
+      } = lookup.mock.calls[1]![0].query as never;
+
+      expect(again.userId.toString()).toBe(USER_ID.toString());
+      expect(again.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(again.deviceToken).toBe(NEW_TOKEN);
     });
 
     test("no device here with the old token: a new device, with default rules, as before", async () => {

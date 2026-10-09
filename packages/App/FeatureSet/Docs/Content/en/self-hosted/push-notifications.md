@@ -146,7 +146,8 @@ first, and you will hear whether a real page would reach you.
 - Check the switch is on for **that** device - the setting is per device, and a
   reinstall or a new phone set up from scratch creates a new device
   registration (a phone set up from a backup of the old one takes over the old
-  phone's registration, with the setting the app had)
+  phone's registration once that no longer receives notifications, with the
+  setting the app had)
 - **iOS**: confirm the build carries Apple's critical alerts entitlement (see
   above), and that Critical Alerts is allowed under
   iOS Settings > Notifications > OneUptime On-Call
@@ -170,7 +171,7 @@ When Expo refuses a push outright, the push log gives the reason straight away. 
 
 Expo reports `DeviceNotRegistered` when the mobile app was removed from the device or the device's push token is no longer valid. It usually says so in a push's delivery receipt, which OneUptime reads about 15 minutes after the push, and sometimes refuses the push outright. Either way OneUptime stops sending to that device. It is marked as not receiving notifications rather than deleted, so its notification rules stay, and the push log and the on-call timeline of the page that did not arrive say why. **User Settings > Notification Methods > Push** shows it as **Not receiving notifications**. Its owner's other devices and notification methods are still paged.
 
-To bring the device back, open the mobile app on it while signed in. The app registers again, which renews its push token with Expo, and the device receives notifications again with its rules. If the app was removed, install it again and sign in. A receipt for a push sent before the app registered again does not mark the device. When an up-to-date mobile app is set up on a new phone from a backup of the old one, it tells OneUptime the push token it had before, and the old phone's device moves to the new phone with its rules.
+To bring the device back, open the mobile app on it while signed in. The app registers again, which renews its push token with Expo, and the device receives notifications again with its rules. If the app was removed, install it again and sign in. A receipt for a push sent before the app registered again does not mark the device. When an up-to-date mobile app is set up on a new phone from a backup of the old one, it tells OneUptime the push token it had before; if the old phone's device no longer receives notifications, the new phone takes it over with its rules.
 
 Through the push relay (no `EXPO_ACCESS_TOKEN`) this works the same way: the relay reports `DeviceNotRegistered` when it sends a push, and reads the delivery receipts your instance asks it about.
 

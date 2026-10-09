@@ -230,9 +230,12 @@ export type RelayPushReceiptsResult =
  */
 const EXPO_PUSH_RECEIPT_ID_PATTERN: RegExp = /^[A-Za-z0-9-]{1,128}$/;
 
-// An Expo push token, wherever one appears in a message.
+/*
+ * An Expo push token, wherever one appears in a message: either bracketed
+ * form, and the bare UUID form Expo.isExpoPushToken also accepts.
+ */
 const ANY_EXPO_PUSH_TOKEN_PATTERN: RegExp =
-  /(?:ExponentPushToken|ExpoPushToken)\[[^\]]*\]/g;
+  /(?:ExponentPushToken|ExpoPushToken)\[[^\]]*\]|\b[a-z\d]{8}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{4}-[a-z\d]{12}\b/gi;
 
 // The relay's send address ends in /send; its receipts are at /receipts.
 const RELAY_SEND_PATH_PATTERN: RegExp = /\/send\/?$/;
@@ -240,6 +243,14 @@ const RELAY_SEND_PATH_PATTERN: RegExp = /\/send\/?$/;
 // The most receipt ids one request asks for: Expo's own chunk size.
 export const MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST: number =
   Expo.pushNotificationReceiptChunkSizeLimit;
+
+/*
+ * How long a request for receipts - to Expo, or to the push relay - may
+ * take. One that has not answered by then fails, and its receipts are
+ * looked for again later: a run of the receipt check never waits on a
+ * request that hangs (its job's timeout would not stop it).
+ */
+export const EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS: number = 30 * 1000;
 
 export default class PushNotificationService {
   public static isWebPushInitialized = false;
@@ -368,32 +379,35 @@ export default class PushNotificationService {
 
   /*
    * How the push relay answers a send Expo refused for any reason but a gone
-   * token: 502, Expo's own message in `message` and its code in
-   * `details.error` - the shape of Expo's error ticket. A server older than
-   * this counts it as a failed send, as it did the 500 "Server Error" this
-   * used to be, and its log now says why; this one says it in the words a
-   * direct send uses (sendViaRelay). An error ticket that names no code is
-   * answered with the message alone.
+   * token: 422, Expo's own message in `message` and its code, when its
+   * ticket names one, in `details.error` - the shape of Expo's error
+   * ticket. A server older than this counts it as a failed send, as it did
+   * the 500 "Server Error" this used to be, and its log now says why; this
+   * one says it in the words a direct send uses (sendViaRelay).
+   *
+   * 422, not a 5xx: the relay worked, Expo refused the message. Proxies and
+   * CDNs in the way answer and rewrite 5xx of their own, and a client that
+   * retries server errors would resend a page Expo refused.
    */
-  public static readonly RELAY_EXPO_REFUSAL_STATUS_CODE: number = 502;
+  public static readonly RELAY_EXPO_REFUSAL_STATUS_CODE: number = 422;
 
   public static getRelayExpoRefusalAnswer(
     error: ExpoPushRefusedError,
   ): JSONObject {
     return {
       message: error.expoMessage,
-      ...(error.code ? { details: { error: error.code } } : {}),
+      details: error.code ? { error: error.code } : {},
     };
   }
 
   /*
-   * Expo's refusal in a relay's answer: 502 with Expo's code and message.
-   * Both are needed - a 502 from a proxy or a gateway in the way, even one
-   * with a JSON message, says nothing about the push.
+   * Expo's refusal in a relay's answer: 422, Expo's message, and `details`
+   * with Expo's code when there is one. The shape is needed as well as the
+   * status: a 422 from anything else in the way says nothing about the push.
    */
   public static getRelayExpoRefusal(
     response: HTTPErrorResponse,
-  ): { code: string; message: string } | null {
+  ): { code: string | undefined; message: string } | null {
     if (
       response.statusCode !==
       PushNotificationService.RELAY_EXPO_REFUSAL_STATUS_CODE
@@ -421,11 +435,11 @@ export default class PushNotificationService {
 
     const code: unknown = (details as JSONObject)["error"];
 
-    if (typeof code !== "string" || !code) {
+    if (code !== undefined && (typeof code !== "string" || !code)) {
       return null;
     }
 
-    return { code: code, message: message };
+    return { code: code as string | undefined, message: message };
   }
 
   // A field of a JSON object answer; nothing from a list or anything else.
@@ -1438,7 +1452,7 @@ export default class PushNotificationService {
          * said as a direct send says it. An older relay answers every such
          * refusal 500 "Server Error", which falls through to below.
          */
-        const refusal: { code: string; message: string } | null =
+        const refusal: { code: string | undefined; message: string } | null =
           PushNotificationService.getRelayExpoRefusal(response);
 
         if (refusal) {
@@ -1607,6 +1621,7 @@ export default class PushNotificationService {
    */
   public static async getExpoPushReceipts(
     receiptIds: Array<string>,
+    timeoutInMs: number = EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS,
   ): Promise<Map<string, ExpoPushReceiptResult>> {
     const receipts: Map<string, ExpoPushReceiptResult> = new Map<
       string,
@@ -1617,8 +1632,31 @@ export default class PushNotificationService {
       return receipts;
     }
 
-    const answer: { [id: string]: ExpoPushReceipt } =
-      await this.expoClient.getPushNotificationReceiptsAsync(receiptIds);
+    /*
+     * The SDK takes no timeout: a request that hangs is given up here
+     * (EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS), and its receipts are looked
+     * for again later.
+     */
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+    const answer: { [id: string]: ExpoPushReceipt } = await Promise.race([
+      this.expoClient.getPushNotificationReceiptsAsync(receiptIds),
+      new Promise<never>(
+        (_resolve: (value: never) => void, reject: (error: Error) => void) => {
+          timer = setTimeout(() => {
+            reject(
+              new Error(
+                `Expo did not answer for ${receiptIds.length} receipt(s) within ${timeoutInMs / 1000} seconds.`,
+              ),
+            );
+          }, timeoutInMs);
+        },
+      ),
+    ]).finally(() => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    });
 
     for (const receiptId of receiptIds) {
       if (!Object.prototype.hasOwnProperty.call(answer, receiptId)) {
@@ -1699,6 +1737,9 @@ export default class PushNotificationService {
         url: URL.fromString(receiptsUrl),
         data: {
           ids: receiptIds,
+        },
+        options: {
+          timeout: EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS,
         },
       });
 

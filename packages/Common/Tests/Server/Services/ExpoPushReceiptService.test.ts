@@ -26,10 +26,14 @@ import ExpoPushReceiptService, {
   EXPO_PUSH_RECEIPT_CHECK_JOB_NAME,
   EXPO_PUSH_RECEIPT_CHECK_TIME_BUDGET_MS,
   EXPO_PUSH_RECEIPT_CHECK_TIMEOUT_MS,
+  EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY,
   ExpoPushReceiptCheckSummary,
+  MAX_EXPO_PUSH_RECEIPT_CLAIMS_PER_RUN,
   MAX_EXPO_PUSH_RECEIPTS_PER_RUN,
 } from "../../../Server/Services/ExpoPushReceiptService";
-import PushNotificationService from "../../../Server/Services/PushNotificationService";
+import PushNotificationService, {
+  EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS,
+} from "../../../Server/Services/PushNotificationService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -564,7 +568,12 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
     expect(written).not.toContain(GONE_TOKEN);
     expect(written).not.toContain(OTHER_TOKEN);
     expect(written).not.toContain("someone-else");
-    expect(logUpdates[1]!.data["statusMessage"]).toBe(
+    // Handled together, so in either order.
+    expect(
+      logUpdates.map((update: { data: Record<string, unknown> }) => {
+        return update.data["statusMessage"];
+      }),
+    ).toContain(
       "Push notification not delivered. Expo could not deliver it to the device (MessageRateExceeded): Too many messages to [push token] and [push token]",
     );
   });
@@ -1044,5 +1053,206 @@ describe("receipts of pushes sent through the push relay", () => {
       ids: [receiptIdOf(2), receiptIdOf(4)],
     });
     expect(summary.delivered).toBe(4);
+  });
+});
+
+/*
+ * A claim can take none of what it finds: another worker was first, or the
+ * entries could not be read (written by another version) and were dropped.
+ * More may be due behind them, so the run goes on - within a cap on claims,
+ * so a Redis that cannot remove what it finds cannot keep a run going.
+ */
+describe("a run that finds what it cannot take", () => {
+  test("entries that cannot be read, at the head of the queue, do not end the run: the receipts behind them are read", async () => {
+    for (let index: number = 0; index < 300; index++) {
+      await redis.zadd(
+        queue.getPendingKey(),
+        SENT_AT - 60 * MINUTE + index,
+        `{damaged-${index}`,
+      );
+    }
+
+    await keep([pendingReceipt(1), pendingReceipt(2)]);
+    expoReceipts.set(receiptIdOf(1), { status: "ok" });
+    expoReceipts.set(receiptIdOf(2), { status: "ok" });
+
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(summary.delivered).toBe(2);
+    expect(redis.zcard(queue.getPendingKey())).toBe(0);
+  });
+
+  test("a claim another worker won whole does not end the run", async () => {
+    await keep(
+      Array.from({ length: 300 }, (_value: unknown, index: number) => {
+        return pendingReceipt(index + 1, { sentAt: SENT_AT - MINUTE });
+      }),
+    );
+    await keep([pendingReceipt(301)]);
+    expoReceipts.set(receiptIdOf(301), { status: "ok" });
+
+    // The other worker takes everything the first claim finds.
+    redis.beforeZrem = (members: Array<string>): void => {
+      for (const member of members) {
+        redis.sortedSets.get(queue.getPendingKey())!.delete(member);
+      }
+    };
+
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(summary.checked).toBe(1);
+    expect(summary.delivered).toBe(1);
+    expect(expoRequests).toEqual([[receiptIdOf(301)]]);
+  });
+
+  test("a Redis that cannot remove what it finds ends the run after its cap on claims", async () => {
+    await keep([pendingReceipt(1)]);
+    redis.failing.add("zrem");
+
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(summary.checked).toBe(0);
+    expect(
+      redis.calls.filter((call: string) => {
+        return call === "zrangebyscore";
+      }),
+    ).toHaveLength(MAX_EXPO_PUSH_RECEIPT_CLAIMS_PER_RUN);
+    expect(expoAsk).not.toHaveBeenCalled();
+  });
+
+  test("the cap on claims is twice what a full run needs", () => {
+    expect(MAX_EXPO_PUSH_RECEIPT_CLAIMS_PER_RUN).toBe(
+      (2 * MAX_EXPO_PUSH_RECEIPTS_PER_RUN) /
+        Expo.pushNotificationReceiptChunkSizeLimit,
+    );
+  });
+});
+
+/*
+ * A burst of receipts saying pushes were not delivered - an outage of the
+ * push credentials refuses every push - costs a few seconds, not a database
+ * round trip after another.
+ */
+describe("receipts that say a push was not delivered are acted on a few at a time", () => {
+  test("never more than 10 at once, and every one of them", async () => {
+    await keep(
+      Array.from({ length: 25 }, (_value: unknown, index: number) => {
+        return pendingReceipt(index + 1, {
+          deviceToken: `ExponentPushToken[burst-${index}]`,
+          pushNotificationLogId: `7f000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        });
+      }),
+    );
+
+    for (let index: number = 1; index <= 25; index++) {
+      expoReceipts.set(receiptIdOf(index), {
+        status: "error",
+        message: "The push credentials are not valid",
+        details: { error: "InvalidCredentials" },
+      });
+    }
+
+    let inFlight: number = 0;
+    let mostInFlight: number = 0;
+    const written: Array<string> = [];
+
+    jest
+      .spyOn(PushNotificationLogService, "updateOneBy")
+      .mockImplementation((async (updateBy: {
+        query: Record<string, unknown>;
+      }) => {
+        inFlight++;
+        mostInFlight = Math.max(mostInFlight, inFlight);
+
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 5);
+        });
+
+        inFlight--;
+        written.push(String(updateBy.query["_id"]));
+
+        return 1;
+      }) as never);
+
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY).toBe(10);
+    expect(summary.notDelivered).toBe(25);
+    expect(written).toHaveLength(25);
+    expect(new Set(written).size).toBe(25);
+    expect(mostInFlight).toBeGreaterThan(1);
+    expect(mostInFlight).toBeLessThanOrEqual(
+      EXPO_PUSH_RECEIPT_NOT_DELIVERED_CONCURRENCY,
+    );
+  });
+
+  test("a phone paged a dozen times is still marked once, though its receipts are handled together", async () => {
+    await keep(
+      Array.from({ length: 12 }, (_value: unknown, index: number) => {
+        return pendingReceipt(index + 1);
+      }),
+    );
+
+    for (let index: number = 1; index <= 12; index++) {
+      expoReceipts.set(receiptIdOf(index), deviceNotRegistered(GONE_TOKEN));
+    }
+
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(summary.notDelivered).toBe(12);
+    expect(summary.tokensMarkedGone).toBe(1);
+    expect(markAsGone).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * A request that hangs - a relay or a proxy that takes the connection and
+ * never answers - must not hold a run (its job's timeout would not stop it)
+ * nor the receipts it took: it is given up, and they are looked for again.
+ */
+describe("a request for receipts that does not answer", () => {
+  test("both are given 30 seconds", () => {
+    expect(EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS).toBe(30 * 1000);
+  });
+
+  test("Expo: given up after its timeout, with a reason that says so", async () => {
+    expoAsk.mockImplementation((() => {
+      return new Promise<never>(() => {});
+    }) as never);
+
+    await expect(
+      PushNotificationService.getExpoPushReceipts([receiptIdOf(1)], 20),
+    ).rejects.toThrow(
+      "Expo did not answer for 1 receipt(s) within 0.02 seconds.",
+    );
+  });
+
+  test("Expo: a run whose request was given up looks for the receipts again later", async () => {
+    await keep([pendingReceipt(1), pendingReceipt(2)]);
+
+    jest
+      .spyOn(PushNotificationService, "getExpoPushReceipts")
+      .mockRejectedValue(
+        new Error("Expo did not answer for 2 receipt(s) within 30 seconds."),
+      );
+
+    const summary: ExpoPushReceiptCheckSummary = await check();
+
+    expect(summary.couldNotFetch).toBe(2);
+    expect(
+      waiting().map((entry: [PendingExpoPushReceipt, number]) => {
+        return entry[0].attempts;
+      }),
+    ).toEqual([1, 1]);
+  });
+
+  test("the relay: asked with the same timeout", async () => {
+    await keep([pendingReceipt(1, { via: "relay" })]);
+
+    await check();
+
+    expect(relayPosts[0]!.options).toEqual({
+      timeout: EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS,
+    });
   });
 });

@@ -136,9 +136,18 @@ describe("the receipts queue on a real Valkey", () => {
 
     const now: number = SENT_AT + 20 * MINUTE;
 
-    expect(await queue.claimDue({ now: now, limit: 1 })).toEqual([early]);
-    expect(await queue.claimDue({ now: now, limit: 10 })).toEqual([late]);
-    expect(await queue.claimDue({ now: now, limit: 10 })).toEqual([]);
+    expect(await queue.claimDue({ now: now, limit: 1 })).toEqual({
+      receipts: [early],
+      found: 1,
+    });
+    expect(await queue.claimDue({ now: now, limit: 10 })).toEqual({
+      receipts: [late],
+      found: 1,
+    });
+    expect(await queue.claimDue({ now: now, limit: 10 })).toEqual({
+      receipts: [],
+      found: 0,
+    });
     expect(await clientA.zcard(queue.getPendingKey())).toBe(1);
   });
 
@@ -161,11 +170,11 @@ describe("the receipts queue on a real Valkey", () => {
         otherWorker.claimDue({ now: now, limit: 150 }),
       ]);
 
-      for (const taken of [...mine, ...theirs]) {
+      for (const taken of [...mine.receipts, ...theirs.receipts]) {
         takenBy.set(taken.receiptId, (takenBy.get(taken.receiptId) || 0) + 1);
       }
 
-      if (mine.length === 0 && theirs.length === 0) {
+      if (mine.found === 0 && theirs.found === 0) {
         break;
       }
     }
@@ -246,7 +255,7 @@ describe("the receipts queue on a real Valkey", () => {
     await productLike.add([receiptNumber(5)], SENT_AT);
 
     expect(
-      await productLike.claimDue({ now: SENT_AT + HOUR, limit: 10 }),
+      (await productLike.claimDue({ now: SENT_AT + HOUR, limit: 10 })).receipts,
     ).toEqual([receiptNumber(5)]);
   });
 });

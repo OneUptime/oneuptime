@@ -312,7 +312,7 @@ describe("the relay (POST /api/notification/push-relay/send)", () => {
    * It was 500 "Server Error", which told the server that relayed the page
    * nothing (PushRelayReceipts.test.ts covers every refusal).
    */
-  test("any other refusal from Expo is answered 502, with Expo's code and words", async () => {
+  test("any other refusal from Expo is answered 422, with Expo's code and words", async () => {
     expoAnswers.set(GONE_TOKEN, {
       status: "error",
       message: "Message too big",
@@ -322,7 +322,7 @@ describe("the relay (POST /api/notification/push-relay/send)", () => {
     const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await postToRelay(relayUrl, relayRequest(GONE_TOKEN));
 
-    expect(answer.statusCode).toBe(502);
+    expect(answer.statusCode).toBe(422);
     expect(answer.jsonData).toEqual({
       message: "Message too big",
       details: { error: "MessageTooBig" },

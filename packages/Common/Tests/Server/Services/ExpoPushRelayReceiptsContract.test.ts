@@ -49,7 +49,7 @@ import {
  *     from Expo with the relay's access token, which the server has none of.
  *     Its address is the send address with /receipts in place of /send.
  *  3. Expo's refusals other than a gone token (MessageTooBig,
- *     MessageRateExceeded, InvalidCredentials...) are answered 502 with
+ *     MessageRateExceeded, InvalidCredentials...) are answered 422 with
  *     Expo's code and message, the shape of Expo's own error ticket. They
  *     were 500 "Server Error", and the server that relayed the page could
  *     only log that. A server older than this still fails the send, and now
@@ -67,6 +67,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const TOKEN: string = "ExponentPushToken[contract-phone-000001]";
 
 const RECEIPT_ID: string = "2d9b7c1e-6f3a-4b8d-8e2f-0a1b2c3d4e5f";
+
+const PUSH_RELAY_ERROR_PATTERN: RegExp = /^Push relay error: /;
 const OTHER_RECEIPT_ID: string = "2d9b7c1e-6f3a-4b8d-8e2f-0a1b2c3d4e60";
 
 afterEach(() => {
@@ -74,8 +76,8 @@ afterEach(() => {
 });
 
 describe("the relay's answer to Expo's other refusals", () => {
-  test("502, Expo's message and its code, where Expo's own error ticket has them", () => {
-    expect(PushNotificationService.RELAY_EXPO_REFUSAL_STATUS_CODE).toBe(502);
+  test("422, Expo's message and its code, where Expo's own error ticket has them", () => {
+    expect(PushNotificationService.RELAY_EXPO_REFUSAL_STATUS_CODE).toBe(422);
     expect(
       PushNotificationService.getRelayExpoRefusalAnswer(
         new ExpoPushRefusedError({
@@ -89,19 +91,37 @@ describe("the relay's answer to Expo's other refusals", () => {
     });
   });
 
-  test("an error ticket that names no code is answered with its message alone", () => {
+  /*
+   * Not a 5xx: the relay worked, Expo refused the message. Proxies and CDNs
+   * answer and rewrite 5xx of their own, and a client that retries server
+   * errors would resend a page Expo refused.
+   */
+  test("is a client error, never a server error a proxy or a retry would take for its own", () => {
+    expect(
+      PushNotificationService.RELAY_EXPO_REFUSAL_STATUS_CODE,
+    ).toBeGreaterThanOrEqual(400);
+    expect(PushNotificationService.RELAY_EXPO_REFUSAL_STATUS_CODE).toBeLessThan(
+      500,
+    );
+    // Not the gone-token answer, nor the relay's own refusals and rate limit.
+    expect([400, 410, 429]).not.toContain(
+      PushNotificationService.RELAY_EXPO_REFUSAL_STATUS_CODE,
+    );
+  });
+
+  test("an error ticket that names no code is answered with its message and empty details", () => {
     expect(
       PushNotificationService.getRelayExpoRefusalAnswer(
         new ExpoPushRefusedError({ expoMessage: "Something went wrong" }),
       ),
-    ).toEqual({ message: "Something went wrong" });
+    ).toEqual({ message: "Something went wrong", details: {} });
   });
 
   test("is recognised as exactly that", () => {
     expect(
       PushNotificationService.getRelayExpoRefusal(
         new HTTPErrorResponse(
-          502,
+          422,
           { message: "Message too big", details: { error: "MessageTooBig" } },
           {},
         ),
@@ -109,37 +129,56 @@ describe("the relay's answer to Expo's other refusals", () => {
     ).toEqual({ code: "MessageTooBig", message: "Message too big" });
   });
 
+  test("a refusal that names no code is recognised too, with Expo's words", () => {
+    expect(
+      PushNotificationService.getRelayExpoRefusal(
+        new HTTPErrorResponse(
+          422,
+          PushNotificationService.getRelayExpoRefusalAnswer(
+            new ExpoPushRefusedError({ expoMessage: "Something went wrong" }),
+          ),
+          {},
+        ),
+      ),
+    ).toEqual({ code: undefined, message: "Something went wrong" });
+  });
+
   test.each([
     [
-      "a gateway's own 502, with a JSON message and no code",
-      502,
-      { message: "Internal server error" },
+      "a 422 from something else, with a JSON message and no details",
+      422,
+      { message: "Unprocessable" },
     ],
-    ["a 502 with no body worth reading", 502, {}],
+    ["a 422 with no body worth reading", 422, {}],
     [
-      "a 502 whose code is not text",
-      502,
+      "a 422 whose code is not text",
+      422,
       { message: "x", details: { error: 42 } },
     ],
     [
-      "a 502 whose code is empty",
-      502,
+      "a 422 whose code is empty",
+      422,
       { message: "x", details: { error: "" } },
     ],
     [
-      "a 502 whose details are a list",
-      502,
+      "a 422 whose details are a list",
+      422,
       { message: "x", details: [{ error: "MessageTooBig" }] },
     ],
     [
-      "a 502 whose details are text",
-      502,
+      "a 422 whose details are text",
+      422,
       { message: "x", details: "MessageTooBig" },
     ],
     [
-      "a 502 with a code but no message",
-      502,
+      "a 422 with a code but no message",
+      422,
       { details: { error: "MessageTooBig" } },
+    ],
+    [
+      "Expo's whole shape in a gateway's 502",
+      502,
+      { message: "x", details: { error: "MessageTooBig" } },
     ],
     [
       "Expo's code in an older relay's 500",
@@ -171,7 +210,7 @@ describe("the relay's answer to Expo's other refusals", () => {
   test("tells a server older than this why the send failed, in the words it logs", () => {
     const olderServerLog: string = `Push relay error: ${JSON.stringify(
       new HTTPErrorResponse(
-        502,
+        422,
         PushNotificationService.getRelayExpoRefusalAnswer(
           new ExpoPushRefusedError({
             code: "MessageRateExceeded",
@@ -724,7 +763,7 @@ describe("a send through a relay that answers Expo's other refusals (sendViaRela
     "%s: said as a direct send says it, and the phone is left as it is",
     async (code: string, message: string) => {
       relayAnswer = new HTTPErrorResponse(
-        502,
+        422,
         { message: message, details: { error: code } },
         {},
       );
@@ -743,7 +782,7 @@ describe("a send through a relay that answers Expo's other refusals (sendViaRela
 
   test("the same words as the same refusal sent directly", async () => {
     relayAnswer = new HTTPErrorResponse(
-      502,
+      422,
       { message: "Message too big", details: { error: "MessageTooBig" } },
       {},
     );
@@ -770,9 +809,23 @@ describe("a send through a relay that answers Expo's other refusals (sendViaRela
     expect((relayed as Error).message).toBe((direct as Error).message);
   });
 
+  test("a refusal that names no code is said in Expo's words too", async () => {
+    relayAnswer = new HTTPErrorResponse(
+      422,
+      { message: "Something went wrong", details: {} },
+      {},
+    );
+
+    const failure: unknown = await relayedSend();
+
+    expect((failure as Error).message).toBe(
+      "Expo push notification failed: Something went wrong",
+    );
+  });
+
   test("a relay that left the token in its words: it is taken out", async () => {
     relayAnswer = new HTTPErrorResponse(
-      502,
+      422,
       {
         message: `Too many messages to ${TOKEN}`,
         details: { error: "MessageRateExceeded" },
@@ -799,6 +852,18 @@ describe("a send through a relay that answers Expo's other refusals (sendViaRela
     expect((failure as Error).message).toBe(
       'Push relay error: {"message":"Internal server error"}',
     );
+  });
+
+  test("even with Expo's shape, a 502 is a gateway's, not the relay's refusal", async () => {
+    relayAnswer = new HTTPErrorResponse(
+      502,
+      { message: "Bad gateway", details: { error: "MessageTooBig" } },
+      {},
+    );
+
+    const failure: unknown = await relayedSend();
+
+    expect((failure as Error).message).toMatch(PUSH_RELAY_ERROR_PATTERN);
   });
 
   test("an older relay's 500 is said as it always was", async () => {
@@ -833,6 +898,14 @@ describe("what is said, and read, along the way", () => {
 
   test("the most ids one request asks about is Expo's own chunk size", () => {
     expect(MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST).toBe(300);
+  });
+
+  test("a push token in its bare UUID form is taken out too", () => {
+    expect(
+      PushNotificationService.withoutAnyPushToken(
+        "Sent to 2D9B7C1E-6F3A-4B8D-8E2F-0A1B2C3D4E5F, refused",
+      ),
+    ).toBe("Sent to [push token], refused");
   });
 
   test("every Expo push token is taken out of a message, in either spelling", () => {

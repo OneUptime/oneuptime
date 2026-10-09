@@ -400,14 +400,18 @@ describe("taking the receipts that are due (claimDue)", () => {
 
     const now: number = SENT_AT + 17 * MINUTE;
 
-    expect(await queue.claimDue({ now: now, limit: 2 })).toEqual([
-      receipts[1],
-      receipts[2],
-    ]);
-    expect(await queue.claimDue({ now: now, limit: 10 })).toEqual([
-      receipts[0],
-    ]);
-    expect(await queue.claimDue({ now: now, limit: 10 })).toEqual([]);
+    expect(await queue.claimDue({ now: now, limit: 2 })).toEqual({
+      receipts: [receipts[1], receipts[2]],
+      found: 2,
+    });
+    expect(await queue.claimDue({ now: now, limit: 10 })).toEqual({
+      receipts: [receipts[0]],
+      found: 1,
+    });
+    expect(await queue.claimDue({ now: now, limit: 10 })).toEqual({
+      receipts: [],
+      found: 0,
+    });
 
     // Not due yet: still waiting.
     expect(pending()).toEqual([[receipts[3], SENT_AT + 45 * MINUTE]]);
@@ -417,22 +421,24 @@ describe("taking the receipts that are due (claimDue)", () => {
     await queue.add([receipt()], SENT_AT);
 
     expect(
-      await queue.claimDue({
-        now: SENT_AT + EXPO_PUSH_RECEIPT_FIRST_CHECK_AFTER_MS,
-        limit: 1,
-      }),
+      (
+        await queue.claimDue({
+          now: SENT_AT + EXPO_PUSH_RECEIPT_FIRST_CHECK_AFTER_MS,
+          limit: 1,
+        })
+      ).receipts,
     ).toEqual([receipt()]);
   });
 
-  test("before 15 minutes have passed, nothing is due", async () => {
+  test("before 15 minutes have passed, nothing is due, and nothing is found", async () => {
     await queue.add([receipt()], SENT_AT);
 
     expect(
       await queue.claimDue({ now: SENT_AT + 15 * MINUTE - 1, limit: 10 }),
-    ).toEqual([]);
+    ).toEqual({ receipts: [], found: 0 });
   });
 
-  test("each receipt is taken by exactly one worker", async () => {
+  test("each receipt is taken by exactly one worker; what another took first still counts as found", async () => {
     const receipts: Array<PendingExpoPushReceipt> = [1, 2, 3, 4].map(
       (index: number) => {
         return receiptNumber(index);
@@ -447,37 +453,72 @@ describe("taking the receipts that are due (claimDue)", () => {
       redis.sortedSets.get(queue.getPendingKey())!.delete(members[3]!);
     };
 
-    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual([
-      receipts[0],
-      receipts[2],
-    ]);
+    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual({
+      receipts: [receipts[0], receipts[2]],
+      found: 4,
+    });
+  });
+
+  /*
+   * A claim can take none of what it found while more are due behind: the
+   * caller is told it found some, so it does not stop there.
+   */
+  test("all of a claim taken by another worker: none taken, but some found", async () => {
+    await queue.add([receiptNumber(1), receiptNumber(2)], SENT_AT);
+
+    redis.beforeZrem = (members: Array<string>): void => {
+      for (const member of members) {
+        redis.sortedSets.get(queue.getPendingKey())!.delete(member);
+      }
+    };
+
+    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual({
+      receipts: [],
+      found: 2,
+    });
   });
 
   test("an entry that cannot be read is dropped and said, the others still taken", async () => {
     await queue.add([receipt()], SENT_AT);
     await redis.zadd(queue.getPendingKey(), SENT_AT, "{damaged");
 
-    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual([
-      receipt(),
-    ]);
+    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual({
+      receipts: [receipt()],
+      found: 2,
+    });
     expect(redis.zcard(queue.getPendingKey())).toBe(0);
     expect(loggerMock.warn).toHaveBeenCalledTimes(1);
+  });
+
+  test("a claim of only entries that cannot be read takes none, finds them, and drops them", async () => {
+    await redis.zadd(queue.getPendingKey(), SENT_AT, "{damaged");
+    await redis.zadd(queue.getPendingKey(), SENT_AT, "[]");
+
+    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual({
+      receipts: [],
+      found: 2,
+    });
+    expect(redis.zcard(queue.getPendingKey())).toBe(0);
   });
 
   test("a limit of nothing takes nothing, and asks Redis nothing", async () => {
     await queue.add([receipt()], SENT_AT);
     redis.calls.length = 0;
 
-    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 0 })).toEqual([]);
+    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 0 })).toEqual({
+      receipts: [],
+      found: 0,
+    });
     expect(redis.calls).toEqual([]);
   });
 
-  test("Redis not connected: nothing to take", async () => {
+  test("Redis not connected: nothing to take, nothing found", async () => {
     isConnectedMock.mockReturnValue(false);
 
-    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual(
-      [],
-    );
+    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual({
+      receipts: [],
+      found: 0,
+    });
   });
 
   test("a Redis that fails is the run's failure, said to its caller", async () => {
