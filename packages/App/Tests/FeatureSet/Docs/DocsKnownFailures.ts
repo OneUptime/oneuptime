@@ -183,7 +183,7 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "incidents/declaring-incidents": {
-    sameShape: EVERY_TRANSLATION,
+    sameShape: EVERY_TRANSLATION_BUT_FA,
   },
   "incidents/index": {
     sameShape: EVERY_TRANSLATION_BUT_FA,
@@ -195,10 +195,10 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION_BUT_FA,
   },
   "incidents/settings": {
-    sameShape: EVERY_TRANSLATION,
+    sameShape: EVERY_TRANSLATION_BUT_FA,
   },
   "incidents/states-and-severities": {
-    sameShape: EVERY_TRANSLATION,
+    sameShape: EVERY_TRANSLATION_BUT_FA,
   },
   "installation/docker-compose": {
     sameShape: EVERY_TRANSLATION,

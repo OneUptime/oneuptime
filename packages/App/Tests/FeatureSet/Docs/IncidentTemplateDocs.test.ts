@@ -219,11 +219,17 @@ const TEMPLATE_ID_REFUSED: Record<string, string> = {
 /*
  * How the declaring page's note on it starts: a paragraph after the field
  * list. A workflow step declares from a template again (its Incident
- * Template setting), so the English note names the API key alone; the
- * Persian one follows when the translations catch up.
+ * Template setting), so the note names the API key alone, in English and
+ * in Persian.
  */
 const TEMPLATE_ID_NOTE_START: Record<string, string> = {
   en: "An API key cannot declare from a template",
+  fa: "کلید API نمی‌تواند از روی قالب اعلام کند",
+};
+
+// The note's old start, from when a workflow step could not declare from a template.
+const STALE_TEMPLATE_ID_NOTE_START: Record<string, string> = {
+  en: "An API key or a workflow step cannot declare from a template",
   fa: "کلید API یا گام یک گردش کار نمی‌تواند از روی قالب اعلام کند",
 };
 
@@ -1308,10 +1314,14 @@ describe("Incident docs", () => {
           ownParagraph: html.includes(`<p>${start}`),
           inListItem:
             html.lastIndexOf("<li", at) > html.lastIndexOf("</ul>", at),
+          stale: html.includes(
+            STALE_TEMPLATE_ID_NOTE_START[language] as string,
+          ),
         }).toEqual({
           language: language,
           found: true,
           ownParagraph: true,
+          stale: false,
           inListItem: false,
         });
       }
