@@ -68,9 +68,10 @@ export const HEARTBEAT_INGEST_LAG_MS: number = 60_000;
 
 /*
  * Upper bound on how far the ingest pipeline may backdate a heartbeat
- * from the ingest wall clock when trusting the batch's own scrape
+ * from when its batch arrived when trusting the batch's own scrape
  * timestamps (see the heartbeat stamping in OtelMetricsIngestService,
- * which imports this). The invariant that keeps a floored heartbeat
+ * which imports this). Arrival, not processing: a batch that waited in a
+ * backed-up queue keeps its place on the timeline (issue #2825). The invariant that keeps a floored heartbeat
  * rendering as UP here: this bound must stay <= one Minute bucket
  * (60s, where the floored stamp lands and proves the bucket up)
  * + HEARTBEAT_INGEST_LAG_MS (the unevaluable shadow) — with the
