@@ -1,4 +1,8 @@
-import { downloadPacketCapture, PacketCaptureFile, stopPacketCapture } from "./PacketCaptureApi";
+import {
+  downloadPacketCapture,
+  PacketCaptureFile,
+  stopPacketCapture,
+} from "./PacketCaptureApi";
 import PacketCaptureReadinessNotice from "./PacketCaptureReadinessNotice";
 import {
   CaptureStatusDisplay,
@@ -75,6 +79,16 @@ const TONE_COLORS: Record<PacketCaptureTone, Color> = {
   success: Green500,
   danger: Red500,
 };
+
+/*
+ * Whether a gated row button is shown at all: when the reader may use it,
+ * or when there is a reason to give for why not. Not allowed with no
+ * reason is the permission snapshot still loading - the button is hidden
+ * rather than shown locked with nothing to say (see PermissionGate).
+ */
+function isOfferedByGate(gate: PermissionGateResult): boolean {
+  return gate.isAllowed || Boolean(gate.disabledReason);
+}
 
 function toCaptureView(item: PacketCapture): CaptureView {
   return {
@@ -164,7 +178,6 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
       isCurrent = false;
     };
     // The query is rebuilt every render; what it depends on is listed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, props.probe.id?.toString(), props.networkDeviceId?.toString()]);
 
   const downloadGate: PermissionGateResult = PermissionGate.checkPermissions(
@@ -230,7 +243,10 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
       capture.maxDurationInSeconds > 0
         ? Math.max(
             0,
-            Math.min(100, (elapsedInSeconds / capture.maxDurationInSeconds) * 100),
+            Math.min(
+              100,
+              (elapsedInSeconds / capture.maxDurationInSeconds) * 100,
+            ),
           )
         : 0;
 
@@ -298,7 +314,10 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
       : "";
 
     return (
-      <div className="flex min-w-0 flex-col gap-1" data-testid="packet-capture-summary">
+      <div
+        className="flex min-w-0 flex-col gap-1"
+        data-testid="packet-capture-summary"
+      >
         <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="text-sm font-medium text-gray-900">
             {item.interfaceName === "any"
@@ -475,7 +494,10 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
             disabled: !downloadGate.isAllowed,
             tooltip: downloadGate.disabledReason,
             isVisible: (item: PacketCapture): boolean => {
-              return canDownloadCapture(toCaptureView(item));
+              return (
+                isOfferedByGate(downloadGate) &&
+                canDownloadCapture(toCaptureView(item))
+              );
             },
             onClick: async (
               item: PacketCapture,
@@ -506,7 +528,9 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
             disabled: !stopGate.isAllowed,
             tooltip: stopGate.disabledReason,
             isVisible: (item: PacketCapture): boolean => {
-              return canStopCapture(toCaptureView(item));
+              return (
+                isOfferedByGate(stopGate) && canStopCapture(toCaptureView(item))
+              );
             },
             onClick: async (
               item: PacketCapture,

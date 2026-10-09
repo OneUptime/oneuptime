@@ -52,14 +52,41 @@ describe("the Download badge", () => {
     "utf8",
   );
 
-  test("the table styles the Download action with a label and an icon of its own", () => {
+  function badge(): string {
     const start: number = table.indexOf("Download: {");
 
     expect(start).toBeGreaterThan(-1);
 
-    const style: string = table.substring(start, table.indexOf("},", start));
+    return table.substring(start, table.indexOf("},", start));
+  }
 
-    expect(style).toContain('label: "Download"');
-    expect(style).toContain("icon: IconProp.Download");
+  test("the table styles the Download action with a label and an icon of its own", () => {
+    expect(badge()).toContain('label: "Download"');
+    expect(badge()).toContain("icon: IconProp.Download");
+  });
+
+  /*
+   * The dark theme re-colours light utility classes under html.dark, one
+   * rule per class (Theme.css); a class with no rule keeps its pale light
+   * colour on a slate card. The badge draws with violet, which it remaps.
+   */
+  test("its colours are remapped for the dark theme", () => {
+    const theme: string = fs.readFileSync(
+      path.join(__dirname, "../../../../packages/Common/UI/Styles/Theme.css"),
+      "utf8",
+    );
+
+    for (const token of [
+      "border-violet-200",
+      "bg-violet-50",
+      "text-violet-700",
+      "text-violet-600",
+    ]) {
+      expect(badge()).toContain(token);
+      expect({ token: token, remapped: theme.includes(`.${token}`) }).toEqual({
+        token: token,
+        remapped: true,
+      });
+    }
   });
 });

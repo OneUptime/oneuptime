@@ -207,12 +207,15 @@ export function getInterfaceOptions(
 }
 
 // The durations the form offers on a probe: the usual ones, up to its maximum.
-export function getDurationChoices(maxDurationInSeconds: number): Array<number> {
-  const choices: Array<number> = PACKET_CAPTURE_DURATION_CHOICES_IN_SECONDS.filter(
-    (seconds: number): boolean => {
-      return seconds <= maxDurationInSeconds;
-    },
-  );
+export function getDurationChoices(
+  maxDurationInSeconds: number,
+): Array<number> {
+  const choices: Array<number> =
+    PACKET_CAPTURE_DURATION_CHOICES_IN_SECONDS.filter(
+      (seconds: number): boolean => {
+        return seconds <= maxDurationInSeconds;
+      },
+    );
 
   if (!choices.includes(maxDurationInSeconds)) {
     choices.push(maxDurationInSeconds);
@@ -272,7 +275,8 @@ export function formatBytes(bytes: number, translator: Translator): string {
 
 const LIMITS_SUMMARY: PluralTemplate = {
   one: "Stops after {{duration}}, {{count}} packet or {{size}}, whichever comes first.",
-  other: "Stops after {{duration}}, {{count}} packets or {{size}}, whichever comes first.",
+  other:
+    "Stops after {{duration}}, {{count}} packets or {{size}}, whichever comes first.",
 };
 
 // What the folded Limits section says while it is folded.
@@ -300,7 +304,8 @@ export function getSensitiveDataNotice(translator: Translator): string {
   return translator.translatePlural(
     {
       one: "Passwords, tokens and personal data that cross the wire end up in the file. Filter to what you need. Captures are deleted after {{count}} day, and every start and download is recorded in the audit log.",
-      other: "Passwords, tokens and personal data that cross the wire end up in the file. Filter to what you need. Captures are deleted after {{count}} days, and every start and download is recorded in the audit log.",
+      other:
+        "Passwords, tokens and personal data that cross the wire end up in the file. Filter to what you need. Captures are deleted after {{count}} days, and every start and download is recorded in the audit log.",
     },
     PACKET_CAPTURE_RETENTION_IN_DAYS,
   );
@@ -513,10 +518,13 @@ export function getCaptureStatusDisplay(
     return {
       label: label,
       tone: "active",
-      detail: translator.translateTemplate("Capturing · {{elapsed}} of {{total}}", {
-        elapsed: formatClock(elapsed),
-        total: formatClock(capture.maxDurationInSeconds),
-      }),
+      detail: translator.translateTemplate(
+        "Capturing · {{elapsed}} of {{total}}",
+        {
+          elapsed: formatClock(elapsed),
+          total: formatClock(capture.maxDurationInSeconds),
+        },
+      ),
     };
   }
 
@@ -532,24 +540,26 @@ export function getCaptureStatusDisplay(
   }
 
   const packetCount: number = capture.packetCount || 0;
-  const endReason: string | undefined = describeEndReason(capture, translator);
+
+  /*
+   * Why it stopped. When tcpdump stopped by itself the probe's message
+   * says so in tcpdump's own words ("tcpdump stopped by itself: ..."), so
+   * it is the note on its own rather than after the same sentence.
+   */
   const toolNote: string | undefined =
     capture.endReason === PacketCaptureEndReason.CaptureToolStopped &&
     capture.statusMessage
       ? capture.statusMessage
       : undefined;
+  const note: string | undefined =
+    toolNote || describeEndReason(capture, translator);
 
   if (packetCount === 0) {
     return {
       label: label,
       tone: "success",
-      detail:
-        translator.translateText("No packets matched the filter.") || "",
-      note: [endReason, toolNote]
-        .filter((part: string | undefined): boolean => {
-          return Boolean(part);
-        })
-        .join(" "),
+      detail: translator.translateText("No packets matched the filter.") || "",
+      note: note,
     };
   }
 
@@ -566,11 +576,7 @@ export function getCaptureStatusDisplay(
         size: formatBytes(capture.fileSizeInBytes || 0, translator),
       },
     ),
-    note: [endReason, toolNote]
-      .filter((part: string | undefined): boolean => {
-        return Boolean(part);
-      })
-      .join(" "),
+    note: note,
   };
 }
 

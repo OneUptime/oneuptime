@@ -143,12 +143,10 @@ router.post(
         );
       }
 
-      const isKept: boolean = await PacketCaptureService.recordProbeCapability(
-        {
-          probeId: probeId,
-          capability: capability,
-        },
-      );
+      const isKept: boolean = await PacketCaptureService.recordProbeCapability({
+        probeId: probeId,
+        capability: capability,
+      });
 
       if (!isKept) {
         return Response.sendJsonObjectResponse(req, res, {

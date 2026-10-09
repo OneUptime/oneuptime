@@ -178,9 +178,8 @@ const StartPacketCaptureModal: FunctionComponent<ComponentProps> = (
       customValidation: (
         values: FormValues<StartPacketCaptureFormValues>,
       ): string | null => {
-        return buildFilter(
-          values.filter as unknown as PacketCaptureFilterValue,
-        ).error;
+        return buildFilter(values.filter as unknown as PacketCaptureFilterValue)
+          .error;
       },
       getCustomElement: (
         values: FormValues<StartPacketCaptureFormValues>,

@@ -70,10 +70,9 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
     return readInitialValue(props.initialValue);
   });
 
+  // Report the starting value once, so the form holds it before any edit.
   useEffect(() => {
     props.onChange?.(value);
-    // Report the starting value once, so the form holds it before any edit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const update: (change: Partial<PacketCaptureFilterValue>) => void = (
