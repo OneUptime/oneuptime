@@ -239,9 +239,10 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
         );
       }) || "";
 
+    // The close names one more way in (CredentialsReachAiRunnersDocs).
     expect(
-      credentials.endsWith(
-        "Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners, or turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials.",
+      credentials.includes(
+        "Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners, turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials, ",
       ),
     ).toBe(true);
   });

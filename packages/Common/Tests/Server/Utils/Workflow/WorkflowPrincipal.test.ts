@@ -254,6 +254,58 @@ describe("the principal", () => {
 
     expect("workflowName" in props).toBe(false);
   });
+
+  /*
+   * The one permission a step is not lent: the read of runbook credentials
+   * is asked of the person who last saved the workflow
+   * (RunbookCredentialReaders), so the step carries who that is.
+   */
+  test("carries who last saved the workflow, and grants nothing for it", () => {
+    const savedBy: ObjectID = ObjectID.generate();
+
+    const props: DatabaseCommonInteractionProps =
+      WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: PROJECT_ID,
+        workflowId: WORKFLOW_ID,
+        savedByUserId: savedBy,
+      });
+
+    expect(props.workflowSavedByUserId).toBe(savedBy);
+    // Still no person: the saver is asked about, never acted as.
+    expect(props.userId).toBeUndefined();
+    expect(props.userType).toBe(UserType.Workflow);
+    expect(
+      HeldPermissionsUtil.isGrantedAny(heldBy(props), [
+        Permission.ProjectOwner,
+      ]),
+    ).toBe(false);
+  });
+
+  test("carries nobody when the workflow names nobody as its last saver", () => {
+    for (const savedBy of [null, undefined]) {
+      const props: DatabaseCommonInteractionProps =
+        WorkflowPrincipal.getPropsWithoutPlan({
+          projectId: PROJECT_ID,
+          workflowId: WORKFLOW_ID,
+          savedByUserId: savedBy,
+        });
+
+      expect("workflowSavedByUserId" in props).toBe(false);
+    }
+  });
+
+  test("carries who last saved it with the plan read too", async () => {
+    const savedBy: ObjectID = ObjectID.generate();
+
+    const props: DatabaseCommonInteractionProps =
+      await WorkflowPrincipal.getProps({
+        projectId: PROJECT_ID,
+        workflowId: WORKFLOW_ID,
+        savedByUserId: savedBy,
+      });
+
+    expect(props.workflowSavedByUserId).toBe(savedBy);
+  });
 });
 
 describe("the plan", () => {
