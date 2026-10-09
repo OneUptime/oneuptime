@@ -255,8 +255,8 @@ export class Service extends ProjectReferencesService<Model> {
    * unchanged name and a capability posted as false always pass: editing an
    * agent row's description or labels must still save. The Runners checked
    * are the ones the update writes - the ones its caller may write - read
-   * once for every check, and the update is held to them
-   * (findRowsAndHoldUpdateToThem).
+   * once for the name and capability checks, and again under the lock for
+   * the switch, and the update is held to them (findRowsAndHoldUpdateToThem).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(

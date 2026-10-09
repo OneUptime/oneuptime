@@ -366,11 +366,13 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
   }
 
   /*
-   * Refuses a write, by a caller who may not read runbook credentials, that
-   * assigns an SSH credential to a Runner that runs OneUptime AI's commands.
-   * `assigned` names, per project, the Runners the write assigns the
-   * credential to that it was not assigned to already. Read under the
-   * project's lock (AiCommandCredentialReach).
+   * Refuses a write that assigns an SSH credential to a Runner that runs
+   * OneUptime AI's commands. Asked only for a caller who may not read
+   * runbook credentials - both hooks let one who may through before they
+   * take the lock - so it asks nothing more of who the caller is. `assigned`
+   * names, per project, the Runners the write assigns the credential to that
+   * it was not assigned to already. Read under the project's lock
+   * (AiCommandCredentialReach).
    */
   public static async assertMayAssignToRunners(data: {
     props: DatabaseCommonInteractionProps;
@@ -385,13 +387,6 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
           return entry.runnerIds.length > 0;
         },
       );
-
-    if (
-      asked.length === 0 ||
-      (await RunbookCredentialReaders.mayRead(data.props))
-    ) {
-      return;
-    }
 
     for (const entry of asked) {
       const runners: Array<Runner> =

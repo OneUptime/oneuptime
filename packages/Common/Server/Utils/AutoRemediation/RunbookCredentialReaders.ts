@@ -1,5 +1,6 @@
 import RelationListPermission from "../../Types/Database/Permissions/RelationListPermission";
 import AccessTokenService from "../../Services/AccessTokenService";
+import WorkflowPrincipal from "../Workflow/WorkflowPrincipal";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PermissionHelper } from "../../../Types/Permission";
@@ -53,7 +54,7 @@ export default class RunbookCredentialReaders {
 
   // Whether `props` are a workflow step's (WorkflowPrincipal).
   public static isWorkflowStep(props: DatabaseCommonInteractionProps): boolean {
-    return props.userType === UserType.Workflow;
+    return WorkflowPrincipal.isWorkflow(props);
   }
 
   // The permissions that read runbook credentials, by title.
