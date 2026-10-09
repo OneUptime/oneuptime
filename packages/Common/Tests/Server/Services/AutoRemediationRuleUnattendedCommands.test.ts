@@ -384,7 +384,7 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
     ).toBeUndefined();
   });
 
-  it("refuses an approver who may not read credentials, and nobody else", () => {
+  it("refuses an approver who may not read credentials, and nobody else", async () => {
     const sshPlan: AiRemediationCommandPlan = plan([
       command({
         stepType: RunbookStepType.SSH,
@@ -393,12 +393,12 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
       }),
     ]);
 
-    expect(() => {
+    await expect(
       AiRemediationCredentialUse.assertApproverMayUseCredentials({
         plan: sshPlan,
         props: editor([Permission.ProjectMember]),
-      });
-    }).toThrow(NotAuthorizedException);
+      }),
+    ).rejects.toThrow(NotAuthorizedException);
 
     for (const props of [
       editor([Permission.ReadRunbookCredential]),
@@ -409,20 +409,20 @@ describe("AiRemediationCredentialUse - a plan's commands", () => {
         tenantId: PROJECT_ID,
       } as DatabaseCommonInteractionProps,
     ]) {
-      expect(() => {
+      await expect(
         AiRemediationCredentialUse.assertApproverMayUseCredentials({
           plan: sshPlan,
           props: props,
-        });
-      }).not.toThrow();
+        }),
+      ).resolves.toBeUndefined();
     }
 
-    expect(() => {
+    await expect(
       AiRemediationCredentialUse.assertApproverMayUseCredentials({
         plan: plan([command({})]),
         props: editor([Permission.ProjectMember]),
-      });
-    }).not.toThrow();
+      }),
+    ).resolves.toBeUndefined();
   });
 });
 
