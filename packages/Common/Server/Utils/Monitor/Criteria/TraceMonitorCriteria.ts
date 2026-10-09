@@ -120,8 +120,18 @@ export default class TraceMonitorCriteria {
           },
         ),
         spanStatusCodes: traceMonitorStep?.spanStatuses,
+        /*
+         * The count covers the window that ends now, so read the baseline of
+         * the hour that window mostly sits in. Keying it on "now" compares a
+         * window that has just crossed the top of the hour against the NEXT
+         * hour's baseline: after a busy hour that fires for a few minutes, and
+         * after a quiet one it goes deaf for as long.
+         */
         hourOfWeek: MetricBaselineServiceClass.computeHourOfWeek(
-          OneUptimeDate.getCurrentDate(),
+          OneUptimeDate.addRemoveSeconds(
+            OneUptimeDate.getCurrentDate(),
+            -windowSeconds / 2,
+          ),
         ),
         windowDays:
           input.criteriaFilter.metricMonitorOptions?.anomalyDetection
