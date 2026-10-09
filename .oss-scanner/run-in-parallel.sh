@@ -44,6 +44,8 @@ fi
 # the end. Trailing blanks would join a line to the next one under -L, which
 # is why they are stripped above.
 status=0
+# The script is single-quoted on purpose: its variables are the inner bash's.
+# shellcheck disable=SC2016
 printf '%s\n' "${lines}" |
   FAILURES="${failures}" xargs -P "${jobs}" -L 1 bash -c '
     set -o pipefail

@@ -97,13 +97,12 @@ RUN test -f Scripts/Install/MergeEnvTemplate.js \
     && test -f .oss-scanner/start-services.sh \
     || { echo "The build context is missing parts of the repository: build this with BuildKit, which reads .oss-scanner/Dockerfile.dockerignore instead of the root .dockerignore." >&2; exit 1; }
 
-# The App reads its views, static files and docs from the release image's
-# layout (/usr/src/app, /usr/src/Common, /usr/src/ee). These links give it
-# that layout over the checkout, so it runs from /src unchanged.
+# The App reads its views, static files and docs at the release image's
+# paths (/usr/src/app, /usr/src/Common). These links give it those paths over
+# the checkout, so it runs from /src unchanged; it finds ee/ next to itself.
 RUN mkdir -p /usr/src \
     && ln -s /src/packages/App /usr/src/app \
-    && ln -s /src/packages/Common /usr/src/Common \
-    && ln -s /src/ee /usr/src/ee
+    && ln -s /src/packages/Common /usr/src/Common
 
 # --- Dependencies ------------------------------------------------------------
 #
