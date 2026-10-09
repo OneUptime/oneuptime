@@ -402,10 +402,16 @@ export function getRxTrendView(
 
   return {
     trend: trend,
+    /*
+     * A receiver gone dark is an alarm of its own ("No light"); the size of
+     * the drop says nothing more about it.
+     */
     isDropping:
       transceiver.isPresent &&
       trend.dropDb !== undefined &&
-      trend.dropDb >= TRANSCEIVER_RX_DROP_ALERT_DB,
+      trend.dropDb >= TRANSCEIVER_RX_DROP_ALERT_DB &&
+      (trend.currentDbm === undefined ||
+        trend.currentDbm > TRANSCEIVER_MIN_POWER_DBM),
   };
 }
 
@@ -481,12 +487,22 @@ export interface SparklineGeometry {
   baselineY?: number | undefined;
 }
 
+/*
+ * The smallest stretch of dB a sparkline spans. Received power wobbles by a
+ * few tenths of a dB from day to day; scaled to fill the box, that wobble
+ * would draw a perfectly healthy optic as a jagged line. Two dB - the drop
+ * the recommended alert fires at - is the least a sparkline shows, so a calm
+ * optic draws a calm line and a real drop still fills the box.
+ */
+export const SPARKLINE_MIN_RANGE_DB: number = TRANSCEIVER_RX_DROP_ALERT_DB;
+
 export function getSparklineGeometry(data: {
   values: Array<number>;
   baseline?: number | undefined;
   width: number;
   height: number;
   padding?: number | undefined;
+  minRange?: number | undefined;
 }): SparklineGeometry {
   const padding: number = data.padding ?? 2;
 
@@ -496,8 +512,16 @@ export function getSparklineGeometry(data: {
 
   const all: Array<number> =
     data.baseline !== undefined ? [...data.values, data.baseline] : data.values;
-  const min: number = Math.min(...all);
-  const max: number = Math.max(...all);
+  let min: number = Math.min(...all);
+  let max: number = Math.max(...all);
+  const minRange: number = data.minRange ?? SPARKLINE_MIN_RANGE_DB;
+
+  if (max - min < minRange) {
+    const middle: number = (max + min) / 2;
+    min = middle - minRange / 2;
+    max = middle + minRange / 2;
+  }
+
   const range: number = max - min || 1;
   const innerWidth: number = data.width - padding * 2;
   const innerHeight: number = data.height - padding * 2;

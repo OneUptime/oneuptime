@@ -61,6 +61,18 @@ export interface ComponentProps {
   networkDeviceId: ObjectID;
 }
 
+// A day of the trend ("2026-09-13") as the reader's locale writes a date.
+function formatDay(day: string | undefined): string {
+  if (!day) {
+    return "";
+  }
+
+  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+    `${day}T12:00:00.000Z`,
+    true,
+  );
+}
+
 const PILL_CLASSES: Record<TransceiverTone, string> = {
   [TransceiverTone.Critical]: "bg-red-50 text-red-700",
   [TransceiverTone.Warning]: "bg-amber-50 text-amber-700",
@@ -209,7 +221,33 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
             </div>
           }
         >
-          <div className="-mx-1 overflow-x-auto" data-testid="transceiver-table">
+          {/*
+           * A phone gets a list - port, status, optic and the readings that
+           * matter in a few lines - rather than a table to scroll sideways
+           * past the received power.
+           */}
+          <ul
+            className="-my-1 divide-y divide-gray-100 md:hidden"
+            data-testid="transceiver-list"
+          >
+            {visible.map(
+              (transceiver: NetworkDeviceTransceiver): ReactElement => {
+                return (
+                  <TransceiverListItem
+                    key={transceiver.interfaceIndex}
+                    transceiver={transceiver}
+                    onOpen={() => {
+                      setSelectedIndex(transceiver.interfaceIndex);
+                    }}
+                  />
+                );
+              },
+            )}
+          </ul>
+          <div
+            className="-mx-1 hidden overflow-x-auto md:block"
+            data-testid="transceiver-table"
+          >
             <table className="min-w-full divide-y divide-gray-100 text-sm">
               <thead>
                 <tr>
@@ -385,10 +423,10 @@ const TransceiverRow: FunctionComponent<RowProps> = (
       </td>
       <td className="py-2.5 pr-4">
         <StatusPill view={status} />
-        {!transceiver.isPresent && transceiver.missingSince ? (
+        {!transceiver.isPresent && transceiver.lastSeenAt ? (
           <div className="mt-1 text-xs text-gray-500">
-            {translator.translateTemplate("Since {{time}}", {
-              time: OneUptimeDate.fromNow(new Date(transceiver.missingSince)),
+            {translator.translateTemplate("Last seen {{time}}", {
+              time: OneUptimeDate.fromNow(new Date(transceiver.lastSeenAt)),
             })}
           </div>
         ) : (
@@ -416,6 +454,127 @@ const TransceiverRow: FunctionComponent<RowProps> = (
         },
       )}
     </tr>
+  );
+};
+
+// The few readings a phone shows inline: light both ways and temperature.
+const LIST_READINGS: Array<TransceiverReadingKind> = [
+  TransceiverReadingKind.RxPower,
+  TransceiverReadingKind.TxPower,
+  TransceiverReadingKind.Temperature,
+];
+
+const TransceiverListItem: FunctionComponent<RowProps> = (
+  props: RowProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const transceiver: NetworkDeviceTransceiver = props.transceiver;
+  const status: TransceiverStatusView = getStatusView(transceiver);
+  const optic: string = [
+    transceiver.vendor,
+    transceiver.partNumber || transceiver.type,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const isJudged: boolean =
+    transceiver.health !== TransceiverHealth.PortDisabled;
+  const rxTrend: RxTrendView = getRxTrendView(transceiver);
+
+  return (
+    <li
+      className="cursor-pointer py-3"
+      data-testid={`transceiver-item-${transceiver.interfaceIndex}`}
+      onClick={props.onOpen}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <button
+            type="button"
+            className="text-left text-sm font-medium text-gray-900 hover:underline"
+            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+              event.stopPropagation();
+              props.onOpen();
+            }}
+          >
+            {transceiver.interfaceName ||
+              translator.translateTemplate("Interface {{index}}", {
+                index: transceiver.interfaceIndex.toString(),
+              })}
+          </button>
+          {transceiver.interfaceAlias ? (
+            <div className="truncate text-xs text-gray-500">
+              {transceiver.interfaceAlias}
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
+        <StatusPill view={status} />
+      </div>
+      <div
+        className={`mt-1 text-sm ${transceiver.isPresent ? "text-gray-700" : "text-gray-500"}`}
+      >
+        {optic || "—"}
+        {transceiver.serialNumber ? (
+          <span className="text-xs text-gray-500">
+            {" · "}
+            {translator.translateTemplate("S/N {{serial}}", {
+              serial: transceiver.serialNumber,
+            })}
+          </span>
+        ) : (
+          <></>
+        )}
+      </div>
+      {transceiver.isPresent ? (
+        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          {LIST_READINGS.map((kind: TransceiverReadingKind): ReactElement => {
+            const verdict: TransceiverReadingVerdict | undefined =
+              pickDisplayVerdict(transceiver, kind);
+
+            if (!verdict) {
+              return <Fragment key={kind}></Fragment>;
+            }
+
+            const tone: TransceiverTone = isJudged
+              ? getToneForLevel(verdict.level)
+              : TransceiverTone.Neutral;
+
+            return (
+              <span key={kind} className="whitespace-nowrap">
+                <span className="text-xs text-gray-500">
+                  {translator.translateText(
+                    TRANSCEIVER_READING_COLUMN_TITLES[kind],
+                  )}{" "}
+                </span>
+                <span className={VALUE_CLASSES[tone]}>
+                  {isNoLight(kind, verdict.value)
+                    ? translator.translateText("No light")
+                    : formatReadingValue(kind, verdict.value)}
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      ) : transceiver.lastSeenAt ? (
+        <div className="mt-1 text-xs text-gray-500">
+          {translator.translateTemplate("Last seen {{time}}", {
+            time: OneUptimeDate.fromNow(new Date(transceiver.lastSeenAt)),
+          })}
+        </div>
+      ) : (
+        <></>
+      )}
+      {rxTrend.isDropping && rxTrend.trend.dropDb !== undefined ? (
+        <div className="mt-1 text-xs text-amber-700">
+          {translator.translateTemplate("{{drop}} dB below its best day", {
+            drop: rxTrend.trend.dropDb.toFixed(1),
+          })}
+        </div>
+      ) : (
+        <></>
+      )}
+    </li>
   );
 };
 
@@ -678,10 +837,14 @@ const TransceiverDetails: FunctionComponent<DetailsProps> = (
 
         <div className="space-y-2" data-testid="transceiver-rx-trend">
           <h3 className="text-sm font-semibold text-gray-900">
-            {translator.translateTemplate(
-              "Received power, last {{days}} days",
-              { days: TRANSCEIVER_RX_BASELINE_DAYS.toString() },
-            )}
+            {transceiver.isPresent
+              ? translator.translateTemplate(
+                  "Received power, last {{days}} days",
+                  { days: TRANSCEIVER_RX_BASELINE_DAYS.toString() },
+                )
+              : translator.translateText(
+                  "Received power until it was last seen",
+                )}
           </h3>
           <TransceiverRxSparkline
             points={rxTrend.trend.points}
@@ -697,22 +860,33 @@ const TransceiverDetails: FunctionComponent<DetailsProps> = (
             <p
               className={`text-sm ${rxTrend.isDropping ? "text-amber-700" : "text-gray-700"}`}
             >
-              {translator.translateTemplate(
-                "Best day {{best}} dBm on {{day}}. Now {{now}} dBm, {{drop}} dB below it.",
-                {
-                  best: rxTrend.trend.baselineDbm.toFixed(2),
-                  day: rxTrend.trend.baselineDay || "",
-                  now: rxTrend.trend.currentDbm.toFixed(2),
-                  drop: rxTrend.trend.dropDb.toFixed(2),
-                },
-              )}
+              {rxTrend.trend.dropDb >= 0.1
+                ? translator.translateTemplate(
+                    "Best day {{best}} dBm on {{day}}. Now {{now}} dBm, {{drop}} dB below it.",
+                    {
+                      best: rxTrend.trend.baselineDbm.toFixed(2),
+                      day: formatDay(rxTrend.trend.baselineDay),
+                      now: rxTrend.trend.currentDbm.toFixed(2),
+                      drop: rxTrend.trend.dropDb.toFixed(2),
+                    },
+                  )
+                : translator.translateTemplate(
+                    "Best day {{best}} dBm on {{day}}. Now {{now}} dBm, as good as its best day.",
+                    {
+                      best: rxTrend.trend.baselineDbm.toFixed(2),
+                      day: formatDay(rxTrend.trend.baselineDay),
+                      now: rxTrend.trend.currentDbm.toFixed(2),
+                    },
+                  )}
             </p>
-          ) : (
+          ) : transceiver.isPresent ? (
             <p className="text-sm text-gray-500">
               {translator.translateText(
                 "The trend fills in one point a day; the baseline needs one full day of readings.",
               )}
             </p>
+          ) : (
+            <></>
           )}
         </div>
 
