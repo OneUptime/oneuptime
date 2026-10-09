@@ -194,7 +194,7 @@ Un lien partagé appartient au **projet**, pas à la personne qui l'a copié, et
 
 ### Flux de planning
 
-Sur la page d'un planning, la carte **S'abonner à ce planning** a deux moitiés : **Uniquement mes permanences sur ce planning** (votre lien personnel avec un filtre de planning) et **Permanences de tous sur ce planning (lien d'équipe partagé)**. Quiconque a la permission **Modifier** sur les plannings peut **Publier le lien partagé**, le renouveler avec **Régénérer le lien** ou le **Désactiver** ; quiconque peut lire le planning peut le copier. La carte indique quand le lien a été renouvelé pour la dernière fois.
+Sur la page d'un planning, la carte **S'abonner à ce planning** a deux moitiés : **Uniquement mes permanences sur ce planning** (votre lien personnel avec un filtre de planning) et **Permanences de tous sur ce planning (lien d'équipe partagé)**. Quiconque a la permission **Modifier** sur les plannings peut le publier avec **Publier le lien partagé**, le renouveler avec **Régénérer le lien** ou l'arrêter avec **Désactiver** ; quiconque peut lire le planning peut le copier. La carte indique quand le lien a été renouvelé pour la dernière fois.
 
 ### Flux de projet
 

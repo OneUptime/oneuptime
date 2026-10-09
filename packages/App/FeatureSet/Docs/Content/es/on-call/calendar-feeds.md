@@ -194,7 +194,7 @@ Un enlace compartido pertenece al **proyecto**, no a quien lo copió, y muestra 
 
 ### Feed de programación
 
-En la página de una programación, la tarjeta **Suscribirse a esta programación** tiene dos mitades: **Solo mis turnos en esta programación** (tu enlace personal con un filtro de programación) y **Turnos de todos en esta programación (enlace de equipo compartido)**. Quien tenga el permiso **Editar** sobre las programaciones puede **Publicar enlace compartido**, renovarlo con **Regenerar enlace** o **Desactivar**lo; quien pueda leer la programación puede copiarlo. La tarjeta muestra cuándo se renovó el enlace por última vez.
+En la página de una programación, la tarjeta **Suscribirse a esta programación** tiene dos mitades: **Solo mis turnos en esta programación** (tu enlace personal con un filtro de programación) y **Turnos de todos en esta programación (enlace de equipo compartido)**. Quien tenga el permiso **Editar** sobre las programaciones puede publicarlo con **Publicar enlace compartido**, renovarlo con **Regenerar enlace** o pararlo con **Desactivar**; quien pueda leer la programación puede copiarlo. La tarjeta muestra cuándo se renovó el enlace por última vez.
 
 ### Feed de proyecto
 
