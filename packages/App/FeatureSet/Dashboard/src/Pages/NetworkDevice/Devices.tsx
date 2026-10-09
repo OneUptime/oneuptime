@@ -156,6 +156,10 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 import { getMacAddressFormField } from "./MacAddressFormField";
+import {
+  NetworkDeviceAssetFacts,
+  getNetworkDeviceAssetFacts,
+} from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -1553,23 +1557,33 @@ const NetworkDevices: FunctionComponent<
             title: "Vendor / Model",
             type: FieldType.Element,
             hideOnMobile: true,
+            /*
+             * The device's asset facts (issue #4569), so the list names the
+             * same maker and model as the device's page and its Inventory
+             * item: ENTITY-MIB's, else what the sysDescr names - a Meraki MX
+             * implements no ENTITY-MIB and reports "Meraki MX85".
+             */
             getElement: (item: NetworkDevice): ReactElement => {
-              if (!item.vendor && !item.deviceModel) {
+              const facts: NetworkDeviceAssetFacts =
+                getNetworkDeviceAssetFacts(item);
+
+              if (!facts.manufacturer && !facts.model) {
                 return <span className="text-sm text-gray-400">—</span>;
               }
 
               return (
                 <div>
                   <div className="text-sm text-gray-900">
-                    {item.vendor || "—"}
+                    {facts.manufacturer || "—"}
                   </div>
-                  {item.deviceModel && (
-                    <div className="text-xs text-gray-500">
-                      {item.deviceModel}
-                    </div>
+                  {facts.model && (
+                    <div className="text-xs text-gray-500">{facts.model}</div>
                   )}
                 </div>
               );
+            },
+            getExportValue: (item: NetworkDevice): string => {
+              return getNetworkDeviceAssetFacts(item).manufacturer || "";
             },
           },
           {
@@ -1881,6 +1895,9 @@ const NetworkDevices: FunctionComponent<
           interfacesDown: true,
           sysName: true,
           deviceModel: true,
+          // What the Vendor / Model cell reads beyond its own column.
+          sysDescr: true,
+          sysObjectId: true,
           /*
            * What "Shorten Names to Hostname" plans its confirmation from and
            * checks each row against before renaming it. Selected explicitly

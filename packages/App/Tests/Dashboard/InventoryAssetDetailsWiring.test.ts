@@ -265,3 +265,49 @@ describe("the card reads in every Dashboard language", () => {
     }
   });
 });
+
+/*
+ * The device's own page and the Network device list name the same maker,
+ * model, operating system and versions as its Inventory item: all three read
+ * the device's asset facts, and fetch the columns those facts read.
+ */
+describe("the network pages read the same asset facts as Inventory", () => {
+  const COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+  const SPACE: RegExp = /\s+/g;
+
+  function readCode(...parts: Array<string>): string {
+    return fs
+      .readFileSync(path.join(DASHBOARD_SRC, ...parts), "utf8")
+      .replace(COMMENT, " ")
+      .replace(SPACE, " ");
+  }
+
+  test("the device's Inventory card shows the asset facts", () => {
+    const card: string = readCode(
+      "Components",
+      "NetworkDevice",
+      "DeviceInventoryCard.tsx",
+    );
+
+    expect(card).toContain("getNetworkDeviceAssetFacts(item)[fact]");
+    for (const fact of [
+      "manufacturer",
+      "model",
+      "firmwareVersion",
+      "operatingSystem",
+      "osVersion",
+    ]) {
+      expect(card).toContain(`factElement(item, "${fact}")`);
+    }
+    expect(card).toContain(
+      "selectMoreFields: { sysDescr: true, sysObjectId: true, }",
+    );
+  });
+
+  test("the device list's Vendor / Model column shows the asset facts", () => {
+    const list: string = readCode("Pages", "NetworkDevice", "Devices.tsx");
+
+    expect(list).toContain("getNetworkDeviceAssetFacts(item)");
+    expect(list).toContain("sysDescr: true, sysObjectId: true,");
+  });
+});

@@ -47,7 +47,6 @@ import {
   toOtelMacAddress,
 } from "../../../Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import { TopologyDeviceRoleInput } from "../../../Utils/Monitor/NetworkDeviceRoleCatalog";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import logger from "../Logger";
 import { truncateDescriptiveAttributeValue } from "./TelemetryEntity";
 
@@ -265,6 +264,13 @@ export function describeNetworkDevice(
  */
 export type DeviceRolesByProject = Map<string, Array<TopologyDeviceRoleInput>>;
 
+/*
+ * The role read's limit, per project on the page. A project is seeded with
+ * eleven roles and rarely adds more than a few, so this is room to spare for
+ * every project a page of devices spans.
+ */
+export const MAX_DEVICE_ROLES_READ_PER_PROJECT: number = 500;
+
 /**
  * The device roles of every project a page of devices belongs to, in one
  * query. Best-effort: a failed read leaves each device typed by the built-in
@@ -301,7 +307,7 @@ export async function loadDeviceRolesForDevices(
         query: { projectId: QueryHelper.any(projectIds) },
         select: { projectId: true, key: true, name: true },
         skip: 0,
-        limit: LIMIT_PER_PROJECT,
+        limit: projectIds.length * MAX_DEVICE_ROLES_READ_PER_PROJECT,
         props: { isRoot: true },
       });
 
