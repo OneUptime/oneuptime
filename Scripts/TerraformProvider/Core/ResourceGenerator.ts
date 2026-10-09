@@ -193,6 +193,11 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "provider_schema_smoke_test.go",
       "internal/provider",
     );
+    // Plans an update of every resource: replaces nothing it did not change.
+    await this.copyStaticFile(
+      "provider_update_plan_test.go",
+      "internal/provider",
+    );
     await this.copyStaticFile("legacynames.go", "internal/provider");
     await this.copyStaticFile("legacynames_test.go", "internal/provider");
 
