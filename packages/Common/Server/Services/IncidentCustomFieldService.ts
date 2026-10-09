@@ -19,6 +19,11 @@ import {
   validateCustomFieldMappingOnUpdate,
 } from "../Utils/CustomField/CustomFieldMappingValidator";
 import { renameCustomField } from "../Utils/CustomField/CustomFieldRename";
+import {
+  applyCustomFieldOptionEdit,
+  CustomFieldOptionEditCarryForward,
+  prepareCustomFieldOptionEdit,
+} from "../Utils/CustomField/CustomFieldOptionEditHooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -38,6 +43,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  *   - its name, which is what incidents store its values under. Renaming a
  *     field moves those values, and the saved views that name it, to the new
  *     name (see onUpdateSuccess).
+ *
+ * And, as every custom field definition service does, a dropdown field's
+ * options: renaming one moves the values that held it
+ * (CustomFieldOptionEditHooks, issue #4564).
  */
 
 /*
@@ -48,6 +57,16 @@ type RenameCarryForward = Dictionary<{
   oldName: string;
   projectId: ObjectID;
 }> | null;
+
+/*
+ * What onBeforeUpdate hands to onUpdateSuccess: the fields a write renames,
+ * and the option edit it makes (prepareCustomFieldOptionEdit). Null when
+ * there is neither.
+ */
+interface IncidentCustomFieldCarryForward {
+  renamedFields: RenameCarryForward;
+  optionEdit: CustomFieldOptionEditCarryForward | null;
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -85,7 +104,20 @@ export class Service extends DatabaseService<Model> {
       updateBy: updateBy,
     });
 
-    const carryForward: RenameCarryForward = await this.prepareRename(updateBy);
+    const renamedFields: RenameCarryForward =
+      await this.prepareRename(updateBy);
+
+    const optionEdit: CustomFieldOptionEditCarryForward | null =
+      await prepareCustomFieldOptionEdit({
+        definitionModelType: Model,
+        definitionService: this,
+        updateBy: updateBy,
+      });
+
+    const carryForward: IncidentCustomFieldCarryForward | null =
+      renamedFields || optionEdit
+        ? { renamedFields: renamedFields, optionEdit: optionEdit }
+        : null;
 
     return { updateBy, carryForward: carryForward };
   }
@@ -109,13 +141,28 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    const carryForward: IncidentCustomFieldCarryForward | null =
+      (onUpdate.carryForward as IncidentCustomFieldCarryForward | null) ||
+      null;
+
     /*
      * Before the mapping backfill below, which writes mapped values under the
      * field's name: by then the values already stored have to be under the
      * new name too.
      */
     await this.moveValuesOfRenamedFields({
-      carryForward: onUpdate.carryForward as RenameCarryForward,
+      carryForward: carryForward?.renamedFields || null,
+      updatedItemIds: updatedItemIds,
+    });
+
+    /*
+     * After the field's own rename, so renamed options are moved under the
+     * name the values are kept under now.
+     */
+    await applyCustomFieldOptionEdit({
+      definitionModelType: Model,
+      definitionService: this,
+      carryForward: carryForward?.optionEdit || null,
       updatedItemIds: updatedItemIds,
     });
 

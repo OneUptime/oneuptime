@@ -172,6 +172,7 @@ import AlertCustomFieldService, {
   Service as AlertCustomFieldServiceType,
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
+import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
@@ -2009,7 +2010,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         InventoryItemCustomField,
         InventoryItemCustomFieldServiceType
       >(
@@ -2480,10 +2481,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertCustomField, AlertCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         AlertCustomField,
-        AlertCustomFieldService,
-      ).getRouter(),
+        AlertCustomFieldServiceType
+      >(AlertCustomField, AlertCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -3719,10 +3720,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TeamMemberCustomField, TeamMemberCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         TeamMemberCustomField,
-        TeamMemberCustomFieldService,
-      ).getRouter(),
+        TeamMemberCustomFieldServiceType
+      >(TeamMemberCustomField, TeamMemberCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -4952,7 +4953,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         OnCallDutyPolicyCustomField,
         OnCallDutyPolicyCustomFieldServiceType
       >(
@@ -5564,7 +5565,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         ScheduledMaintenanceCustomField,
         ScheduledMaintenanceCustomFieldServiceType
       >(
@@ -5659,10 +5660,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentCustomField, IncidentCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         IncidentCustomField,
-        IncidentCustomFieldService,
-      ).getRouter(),
+        IncidentCustomFieldServiceType
+      >(IncidentCustomField, IncidentCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -5678,26 +5679,26 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         MonitorCustomField,
-        MonitorCustomFieldService,
-      ).getRouter(),
+        MonitorCustomFieldServiceType
+      >(MonitorCustomField, MonitorCustomFieldService).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TeamCustomField, TeamCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         TeamCustomField,
-        TeamCustomFieldService,
-      ).getRouter(),
+        TeamCustomFieldServiceType
+      >(TeamCustomField, TeamCustomFieldService).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<StatusPageCustomField, StatusPageCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         StatusPageCustomField,
-        StatusPageCustomFieldService,
-      ).getRouter(),
+        StatusPageCustomFieldServiceType
+      >(StatusPageCustomField, StatusPageCustomFieldService).getRouter(),
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
