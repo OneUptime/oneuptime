@@ -95,6 +95,8 @@ export function isHuntressOrganizationWatched(data: {
       return true;
     }
 
-    return Boolean(organizationName) && entry.toLowerCase() === organizationName;
+    return (
+      Boolean(organizationName) && entry.toLowerCase() === organizationName
+    );
   });
 }

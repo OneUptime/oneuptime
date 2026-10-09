@@ -23,7 +23,9 @@ describe("the signing secret dialog", () => {
     const secret: string = svixSecret(24);
 
     expect(getHuntressSigningSecretProblem(secret)).toBeNull();
-    expect(getHuntressSigningSecretProblem(secret.slice("whsec_".length))).toBeNull();
+    expect(
+      getHuntressSigningSecretProblem(secret.slice("whsec_".length)),
+    ).toBeNull();
     expect(getHuntressSigningSecretProblem(`  ${secret}\n`)).toBeNull();
   });
 
@@ -58,9 +60,10 @@ describe("the signing secret dialog", () => {
       const secret: string = svixSecret(bytes);
 
       expect(StandardWebhookSignature.isValidSecret(secret)).toBe(true);
-      expect({ bytes, problem: getHuntressSigningSecretProblem(secret) }).toEqual(
-        { bytes, problem: null },
-      );
+      expect({
+        bytes,
+        problem: getHuntressSigningSecretProblem(secret),
+      }).toEqual({ bytes, problem: null });
     }
   });
 

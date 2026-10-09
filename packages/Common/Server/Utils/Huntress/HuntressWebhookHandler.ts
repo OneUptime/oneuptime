@@ -1,7 +1,10 @@
 import HuntressConnection from "../../../Models/DatabaseModels/HuntressConnection";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { ParsedHuntressWebhook, parseHuntressWebhook } from "../../../Types/Huntress/HuntressWebhook";
+import {
+  ParsedHuntressWebhook,
+  parseHuntressWebhook,
+} from "../../../Types/Huntress/HuntressWebhook";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import HuntressConnectionService from "../../Services/HuntressConnectionService";
@@ -100,7 +103,11 @@ export default class HuntressWebhookHandler {
     }
 
     if (!connection.signingSecret) {
-      await this.recordError(connection, HUNTRESS_NO_SIGNING_SECRET_MESSAGE, now);
+      await this.recordError(
+        connection,
+        HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
+        now,
+      );
 
       return answer(401, { message: HUNTRESS_NO_SIGNING_SECRET_MESSAGE });
     }

@@ -20,7 +20,8 @@ const SVIX_SECRET: string = "whsec_plJ3nmyCDGBKInavdOK15jsl";
 const SVIX_BODY: string = '{"event_type":"ping","data":{"success":true}}';
 const SVIX_MESSAGE_ID: string = "msg_loFOjxBNrRLzqYUf";
 const SVIX_TIMESTAMP: string = "1731705121";
-const SVIX_SIGNATURE: string = "v1,rAvfW3dJ/X/qxhsaXPOyyCGmRKsaKWcsNccKXlIktD0=";
+const SVIX_SIGNATURE: string =
+  "v1,rAvfW3dJ/X/qxhsaXPOyyCGmRKsaKWcsNccKXlIktD0=";
 const SVIX_SIGNED_AT: Date = new Date(Number(SVIX_TIMESTAMP) * 1000);
 
 function headers(
@@ -168,9 +169,12 @@ describe("StandardWebhookSignature.verify", () => {
     ["id", { id: null }],
     ["timestamp", { timestamp: null }],
     ["signature", { signature: null }],
-  ])("refuses a request without its %s header", (_name: string, missing: Partial<StandardWebhookHeaders>) => {
-    expectFailure(verify(missing), StandardWebhookFailure.MissingHeaders);
-  });
+  ])(
+    "refuses a request without its %s header",
+    (_name: string, missing: Partial<StandardWebhookHeaders>) => {
+      expectFailure(verify(missing), StandardWebhookFailure.MissingHeaders);
+    },
+  );
 
   test("refuses a timestamp that is not whole seconds", () => {
     expectFailure(
@@ -196,11 +200,17 @@ describe("StandardWebhookSignature.verify", () => {
         .verified,
     ).toBe(true);
     expectFailure(
-      verify({}, { now: new Date(SVIX_SIGNED_AT.getTime() + tolerance + 1000) }),
+      verify(
+        {},
+        { now: new Date(SVIX_SIGNED_AT.getTime() + tolerance + 1000) },
+      ),
       StandardWebhookFailure.TimestampOutsideTolerance,
     );
     expectFailure(
-      verify({}, { now: new Date(SVIX_SIGNED_AT.getTime() - tolerance - 1000) }),
+      verify(
+        {},
+        { now: new Date(SVIX_SIGNED_AT.getTime() - tolerance - 1000) },
+      ),
       StandardWebhookFailure.TimestampOutsideTolerance,
     );
   });
@@ -296,9 +306,7 @@ describe("StandardWebhookSignature.decodeSecret", () => {
     const key: Buffer = crypto.randomBytes(24);
 
     expect(
-      StandardWebhookSignature.decodeSecret(
-        `whsec_${key.toString("base64")}`,
-      ),
+      StandardWebhookSignature.decodeSecret(`whsec_${key.toString("base64")}`),
     ).toEqual(key);
     expect(StandardWebhookSignature.isValidSecret(SVIX_SECRET)).toBe(true);
   });

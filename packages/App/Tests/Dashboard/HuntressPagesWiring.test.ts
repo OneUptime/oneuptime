@@ -1,10 +1,7 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import DocsNav, {
-  NavGroup,
-  NavLink,
-} from "../../FeatureSet/Docs/Utils/Nav";
+import DocsNav, { NavGroup, NavLink } from "../../FeatureSet/Docs/Utils/Nav";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../FeatureSet/Docs/Utils/I18n";
 
 /*
@@ -159,8 +156,9 @@ describe("the Huntress routes", () => {
   });
 
   test("the connection's page reads its id from the last segment", () => {
-    expect(readCode("Pages", "Incidents", "Integrations", "HuntressView.tsx"))
-      .toContain("Navigation.getLastParamAsObjectID()");
+    expect(
+      readCode("Pages", "Incidents", "Integrations", "HuntressView.tsx"),
+    ).toContain("Navigation.getLastParamAsObjectID()");
   });
 
   test("carry a breadcrumb trail back to Incidents", () => {

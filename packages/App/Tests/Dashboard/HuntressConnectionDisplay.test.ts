@@ -258,9 +258,9 @@ describe("a report row", () => {
         huntressIncidentReportId: "1234",
       }),
     ).toBe("Suspicious inbox rule");
-    expect(getHuntressReportHeadline({ huntressIncidentReportId: "1234" })).toBe(
-      "#1234",
-    );
+    expect(
+      getHuntressReportHeadline({ huntressIncidentReportId: "1234" }),
+    ).toBe("#1234");
   });
 
   test("is bylined with its organization and number", () => {

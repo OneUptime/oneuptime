@@ -37,7 +37,10 @@ function columnAccess(
   return model.getColumnAccessControlForAllColumns();
 }
 
-function relation(target: Function, propertyName: string): RelationMetadataArgs {
+function relation(
+  target: RelationMetadataArgs["target"],
+  propertyName: string,
+): RelationMetadataArgs {
   const found: RelationMetadataArgs | undefined =
     getMetadataArgsStorage().relations.find(
       (candidate: RelationMetadataArgs): boolean => {
@@ -112,9 +115,9 @@ describe("HuntressConnection", () => {
       model.getTableColumnMetadata("resolveIncidentWhenReportCloses")
         .defaultValue,
     ).toBe(true);
-    expect(model.getTableColumnMetadata("isSigningSecretSet").defaultValue).toBe(
-      false,
-    );
+    expect(
+      model.getTableColumnMetadata("isSigningSecretSet").defaultValue,
+    ).toBe(false);
   });
 
   test("is served at /huntress-connection", () => {
@@ -178,7 +181,9 @@ describe("HuntressIncidentReport", () => {
     const unique: Array<IndexMetadataArgs> =
       getMetadataArgsStorage().indices.filter(
         (index: IndexMetadataArgs): boolean => {
-          return index.target === HuntressIncidentReport && Boolean(index.unique);
+          return (
+            index.target === HuntressIncidentReport && Boolean(index.unique)
+          );
         },
       );
 
@@ -190,9 +195,9 @@ describe("HuntressIncidentReport", () => {
   });
 
   test("an account Huntress does not name is stored as empty, never null", () => {
-    expect(
-      model.getTableColumnMetadata("huntressAccountId").defaultValue,
-    ).toBe("");
+    expect(model.getTableColumnMetadata("huntressAccountId").defaultValue).toBe(
+      "",
+    );
     expect(model.getTableColumnMetadata("huntressAccountId").required).toBe(
       true,
     );
@@ -211,6 +216,8 @@ describe("HuntressIncidentReport", () => {
   });
 
   test("is served at /huntress-incident-report", () => {
-    expect(model.getCrudApiPath()?.toString()).toBe("/huntress-incident-report");
+    expect(model.getCrudApiPath()?.toString()).toBe(
+      "/huntress-incident-report",
+    );
   });
 });

@@ -16,6 +16,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Pages/Incidents/Integrations/HuntressConnectionFormFields";
 import { DocsPageShape, shapeOf } from "./DocsContentRules";
 import {
+  DocsFence,
   DocsHeading,
   DocsLink,
   DocsPageLink,
@@ -231,7 +232,10 @@ const boldTermsOf: (text: string) => Set<string> = (
   return terms;
 };
 
-const headingsAt: (scanned: ScannedPage, level: number) => Array<DocsHeading> = (
+const headingsAt: (
+  scanned: ScannedPage,
+  level: number,
+) => Array<DocsHeading> = (
   scanned: ScannedPage,
   level: number,
 ): Array<DocsHeading> => {
@@ -532,7 +536,7 @@ describe("every translation of the Huntress page keeps the English page's shape"
     "%s's Mermaid diagram keeps Huntress's event names",
     (language: string) => {
       const diagram: string =
-        scanHuntressPage(language).fences.find((fence) => {
+        scanHuntressPage(language).fences.find((fence: DocsFence): boolean => {
           return fence.lang === "mermaid";
         })?.code || "";
 
@@ -591,7 +595,12 @@ describe("the Huntress page names the Dashboard as it reads in each language", (
 
   test("the Huntress words the page names are the ones the setup card tells the user", () => {
     const card: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Components", "Huntress", "HuntressSetupCard.tsx"),
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "Huntress",
+        "HuntressSetupCard.tsx",
+      ),
       "utf8",
     );
     const dialog: string = fs.readFileSync(
@@ -636,9 +645,10 @@ describe("the Huntress page states what the product does", () => {
     const bold: Set<string> = boldTermsOf(settings);
 
     for (const field of getHuntressConnectionFormFields()) {
-      expect({ field: field.title, named: bold.has(field.title || "") }).toEqual(
-        { field: field.title, named: true },
-      );
+      expect({
+        field: field.title,
+        named: bold.has(field.title || ""),
+      }).toEqual({ field: field.title, named: true });
     }
   });
 
@@ -708,9 +718,9 @@ describe("the Huntress page states what the product does", () => {
     expect(
       code.has("https://oneuptime.com/api/huntress/webhook/<connection-id>"),
     ).toBe(true);
-    expect(
-      readSource("App", "FeatureSet", "BaseAPI", "Index.ts"),
-    ).toContain("new HuntressConnectionAPI().getRouter()");
+    expect(readSource("App", "FeatureSet", "BaseAPI", "Index.ts")).toContain(
+      "new HuntressConnectionAPI().getRouter()",
+    );
     expect(
       readSource("Common", "Server", "API", "HuntressConnectionAPI.ts"),
     ).toContain("`${HUNTRESS_WEBHOOK_ROUTE}/:connectionId`");
@@ -732,7 +742,9 @@ describe("the Huntress page states what the product does", () => {
     }
 
     const secret: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
-    const body: string = JSON.stringify({ event_type: "incident_report.created" });
+    const body: string = JSON.stringify({
+      event_type: "incident_report.created",
+    });
     const now: Date = new Date();
     const timestamp: string = String(Math.floor(now.getTime() / 1000));
 
@@ -771,7 +783,9 @@ describe("the Huntress page's troubleshooting quotes what the webhook says", () 
     signedAt: Date;
     now: Date;
   }): StandardWebhookVerification {
-    const timestamp: string = String(Math.floor(data.signedAt.getTime() / 1000));
+    const timestamp: string = String(
+      Math.floor(data.signedAt.getTime() / 1000),
+    );
 
     return StandardWebhookSignature.verify({
       secret: SECRET,
@@ -812,7 +826,11 @@ describe("the Huntress page's troubleshooting quotes what the webhook says", () 
 
     expect(
       messageOf(verifyWith({ signWith: OTHER_SECRET, signedAt: now, now })),
-    ).toMatch(new RegExp(`^${"The request's signature does not match the signing secret"}`));
+    ).toMatch(
+      new RegExp(
+        `^${"The request's signature does not match the signing secret"}`,
+      ),
+    );
   });
 
   test("a delivery signed too long ago is refused in the words the page quotes", () => {
@@ -822,7 +840,9 @@ describe("the Huntress page's troubleshooting quotes what the webhook says", () 
     expect(
       messageOf(verifyWith({ signWith: SECRET, signedAt: tenMinutesAgo, now })),
     ).toMatch(
-      new RegExp(`^${"The request was signed more than five minutes from now"}`),
+      new RegExp(
+        `^${"The request was signed more than five minutes from now"}`,
+      ),
     );
   });
 
@@ -845,7 +865,9 @@ describe("the Huntress page's troubleshooting quotes what the webhook says", () 
     expect(handler).toContain(`"${TROUBLESHOOTING_TITLES[0]}.`);
     expect(handler).toContain(`"${TROUBLESHOOTING_TITLES[3]}"`);
     expect(processor).toContain(`"${TROUBLESHOOTING_TITLES[4]}.`);
-    expect(processor).toContain("Add one under Incidents > Settings > Incident Severity.");
+    expect(processor).toContain(
+      "Add one under Incidents > Settings > Incident Severity.",
+    );
     expect(sectionOf("en", "Troubleshooting")).toContain(
       "Add one under **Incidents → Settings → Incident Severity**.",
     );

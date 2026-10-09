@@ -2,6 +2,7 @@ import Model from "../../Models/DatabaseModels/HuntressConnection";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { isHuntressSeverity } from "../../Types/Huntress/HuntressSeverity";
 import { getHuntressOrganizationFilterProblem } from "../../Types/Huntress/HuntressOrganizationFilter";
+import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -20,9 +21,18 @@ import ProjectReferencesService from "./ProjectReferencesService";
  *     base64), saved trimmed. An empty one on an update keeps the saved
  *     secret: the secret is write-only, so a form never has it to send back.
  *   - isSigningSecretSet follows the secret, whatever the request says.
+ *   - saving a new secret clears the refusal the old one (or none) left:
+ *     "no signing secret is saved", or a signature that did not match, is
+ *     about a secret that is gone, so the connection waits for Huntress
+ *     again instead of showing an error the save just fixed.
  *   - "Page On-Call For" is a Huntress severity.
  *   - the organizations it watches are a list it can match.
  */
+// What onBeforeUpdate hands onUpdateSuccess.
+interface HuntressConnectionUpdateCarryForward {
+  signingSecretSaved: boolean;
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -131,6 +141,8 @@ export class Service extends ProjectReferencesService<Model> {
     // Only the secret decides this, never the request.
     delete data["isSigningSecretSet"];
 
+    let signingSecretSaved: boolean = false;
+
     if (sentSecret) {
       const secret: string | null = Service.readSigningSecret(
         data["signingSecret"],
@@ -139,6 +151,7 @@ export class Service extends ProjectReferencesService<Model> {
       if (secret) {
         data["signingSecret"] = secret;
         data["isSigningSecretSet"] = true;
+        signingSecretSaved = true;
       } else {
         // An empty secret keeps the saved one.
         delete data["signingSecret"];
@@ -154,7 +167,43 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    return { updateBy, carryForward: null };
+    const carryForward: HuntressConnectionUpdateCarryForward = {
+      signingSecretSaved,
+    };
+
+    return { updateBy, carryForward };
+  }
+
+  /*
+   * A new signing secret: the refusal left by the old one (or by none)
+   * no longer applies. lastError is the webhook's to write, so it is
+   * cleared as the server, after the caller's own write went through.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const carryForward: HuntressConnectionUpdateCarryForward | null =
+      onUpdate.carryForward as HuntressConnectionUpdateCarryForward | null;
+
+    if (carryForward?.signingSecretSaved) {
+      for (const id of updatedItemIds) {
+        await this.updateOneById({
+          id,
+          data: {
+            lastError: null,
+            lastErrorAt: null,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
+    }
+
+    return onUpdate;
   }
 }
 

@@ -35,7 +35,12 @@ const SOURCE_FILES: Array<string> = [
     "Huntress",
     "HuntressSigningSecretModal.tsx",
   ),
-  path.join(DASHBOARD_SRC, "Components", "Huntress", "HuntressSigningSecret.ts"),
+  path.join(
+    DASHBOARD_SRC,
+    "Components",
+    "Huntress",
+    "HuntressSigningSecret.ts",
+  ),
   path.join(
     DASHBOARD_SRC,
     "Components",
@@ -48,7 +53,13 @@ const SOURCE_FILES: Array<string> = [
     "Huntress",
     "HuntressIncidentReportsTable.tsx",
   ),
-  path.join(DASHBOARD_SRC, "Pages", "Incidents", "Integrations", "Huntress.tsx"),
+  path.join(
+    DASHBOARD_SRC,
+    "Pages",
+    "Incidents",
+    "Integrations",
+    "Huntress.tsx",
+  ),
   path.join(
     DASHBOARD_SRC,
     "Pages",

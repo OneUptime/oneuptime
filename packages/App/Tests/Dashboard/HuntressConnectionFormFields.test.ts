@@ -64,9 +64,7 @@ function fieldFor(column: string): HuntressField {
   return field;
 }
 
-function values(
-  data: Record<string, unknown>,
-): FormValues<HuntressConnection> {
+function values(data: Record<string, unknown>): FormValues<HuntressConnection> {
   return data as unknown as FormValues<HuntressConnection>;
 }
 
@@ -105,9 +103,7 @@ describe("the Huntress connection form", () => {
 
   test("walks no steps: three rows or fewer", () => {
     for (const field of FIELDS) {
-      expect(Object.prototype.hasOwnProperty.call(field, "stepId")).toBe(
-        false,
-      );
+      expect(Object.prototype.hasOwnProperty.call(field, "stepId")).toBe(false);
     }
   });
 
@@ -161,15 +157,16 @@ describe("the Huntress connection form", () => {
   });
 
   test("asks Page On-Call For only once a policy is picked", () => {
-    const showIf: ((values: FormValues<HuntressConnection>) => boolean) | undefined =
-      fieldFor("pageOnCallFor").showIf;
+    const showIf:
+      | ((values: FormValues<HuntressConnection>) => boolean)
+      | undefined = fieldFor("pageOnCallFor").showIf;
 
     expect(showIf).toBeDefined();
     expect(showIf!(values({}))).toBe(false);
     expect(showIf!(values({ onCallDutyPolicies: [] }))).toBe(false);
-    expect(
-      showIf!(values({ onCallDutyPolicies: [{ _id: "policy-1" }] })),
-    ).toBe(true);
+    expect(showIf!(values({ onCallDutyPolicies: [{ _id: "policy-1" }] }))).toBe(
+      true,
+    );
     expect(hasHuntressOnCallPolicies(values({ onCallDutyPolicies: [] }))).toBe(
       false,
     );
@@ -250,17 +247,18 @@ describe("a new connection", () => {
         ...change,
       });
 
-      expect({ change, atDefaults: isHuntressMoreFieldsAtDefaults(changed) }).toEqual(
-        { change, atDefaults: false },
-      );
+      expect({
+        change,
+        atDefaults: isHuntressMoreFieldsAtDefaults(changed),
+      }).toEqual({ change, atDefaults: false });
       expect(getHuntressMoreFieldsSummary(changed)).toBeUndefined();
     }
   });
 
   test("counts the default name, blank or padded, as no choice of the user's", () => {
-    expect(isHuntressConnectionNameAtDefault(values({ name: "Huntress" }))).toBe(
-      true,
-    );
+    expect(
+      isHuntressConnectionNameAtDefault(values({ name: "Huntress" })),
+    ).toBe(true);
     expect(
       isHuntressConnectionNameAtDefault(values({ name: "  Huntress " })),
     ).toBe(true);
@@ -283,9 +281,12 @@ describe("Only These Organizations", () => {
   });
 
   test("refuses a list the server would refuse, with the server's words", () => {
-    const tooMany: string = Array.from({ length: 1001 }, (_: unknown, i: number) => {
-      return `Organization ${i}`;
-    }).join("\n");
+    const tooMany: string = Array.from(
+      { length: 1001 },
+      (_: unknown, i: number) => {
+        return `Organization ${i}`;
+      },
+    ).join("\n");
 
     expect(
       validateHuntressWatchedOrganizations(

@@ -264,12 +264,15 @@ describe("parseHuntressWebhook: what is not an incident report", () => {
       getHuntressEscalationBody("platform_action.created"),
     ],
     ["account_notice.notification", getHuntressAccountNoticeBody()],
-  ])("%s is acknowledged as another kind of event", (eventType: string, body: JSONObject) => {
-    expect(parseHuntressWebhook(body)).toEqual({
-      kind: "not-an-incident-report",
-      eventType,
-    });
-  });
+  ])(
+    "%s is acknowledged as another kind of event",
+    (eventType: string, body: JSONObject) => {
+      expect(parseHuntressWebhook(body)).toEqual({
+        kind: "not-an-incident-report",
+        eventType,
+      });
+    },
+  );
 
   test.each([
     ["a JSON array", [1, 2]],
@@ -302,20 +305,23 @@ describe("parseHuntressWebhook: what is not an incident report", () => {
     ["leading zeros", "0123"],
     ["too long", "1".repeat(20)],
     ["an object", { id: 1 }],
-  ])("an incident report whose id is %s is refused", (_name: string, id: unknown) => {
-    const body: JSONObject = getHuntressIncidentReportBody();
+  ])(
+    "an incident report whose id is %s is refused",
+    (_name: string, id: unknown) => {
+      const body: JSONObject = getHuntressIncidentReportBody();
 
-    if (id === undefined) {
-      delete body["id"];
-    } else {
-      body["id"] = id as JSONObject;
-    }
+      if (id === undefined) {
+        delete body["id"];
+      } else {
+        body["id"] = id as JSONObject;
+      }
 
-    expect(parseHuntressWebhook(body)).toEqual({
-      kind: "invalid",
-      reason: "The incident_report.created event has no incident report id.",
-    });
-  });
+      expect(parseHuntressWebhook(body)).toEqual({
+        kind: "invalid",
+        reason: "The incident_report.created event has no incident report id.",
+      });
+    },
+  );
 });
 
 describe("readHuntressId and readHuntressText", () => {

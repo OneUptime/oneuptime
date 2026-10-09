@@ -79,7 +79,9 @@ export function isHuntressSeverityAtOrAbove(
   severity: HuntressSeverity,
   threshold: HuntressSeverity,
 ): boolean {
-  return getHuntressSeverityRank(severity) >= getHuntressSeverityRank(threshold);
+  return (
+    getHuntressSeverityRank(severity) >= getHuntressSeverityRank(threshold)
+  );
 }
 
 // The word Huntress shows for each severity, for text OneUptime writes.

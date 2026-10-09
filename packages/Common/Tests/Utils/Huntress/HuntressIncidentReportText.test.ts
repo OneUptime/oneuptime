@@ -64,14 +64,20 @@ function event(body: JSONObject): HuntressIncidentReportEvent {
 
 describe("getHuntressIncidentTitle", () => {
   test("is the report's subject after Huntress:, without the severity Huntress puts first", () => {
-    expect(getHuntressIncidentTitle(event(getHuntressIncidentReportBody()))).toBe(
-      "Huntress: Incident on DESKTOP-ARL0EQ1 (Acme Corp)",
-    );
+    expect(
+      getHuntressIncidentTitle(event(getHuntressIncidentReportBody())),
+    ).toBe("Huntress: Incident on DESKTOP-ARL0EQ1 (Acme Corp)");
   });
 
   test.each([
-    ["HIGH - Incident on laptop01 (Test)", "Huntress: Incident on laptop01 (Test)"],
-    ["low - Incident on laptop01 (Test)", "Huntress: Incident on laptop01 (Test)"],
+    [
+      "HIGH - Incident on laptop01 (Test)",
+      "Huntress: Incident on laptop01 (Test)",
+    ],
+    [
+      "low - Incident on laptop01 (Test)",
+      "Huntress: Incident on laptop01 (Test)",
+    ],
     [
       "CRITICAL - ISOLATED - Incident on DESKTOP-01 (Acme)",
       "Huntress: ISOLATED - Incident on DESKTOP-01 (Acme)",
@@ -119,9 +125,9 @@ describe("getHuntressIncidentTitle", () => {
 
 describe("getHuntressAffectedName", () => {
   test("reads the host from the subject", () => {
-    expect(getHuntressAffectedName(event(getHuntressIncidentReportBody()))).toBe(
-      "DESKTOP-ARL0EQ1",
-    );
+    expect(
+      getHuntressAffectedName(event(getHuntressIncidentReportBody())),
+    ).toBe("DESKTOP-ARL0EQ1");
   });
 
   test("reads an identity from an ITDR report's subject", () => {
@@ -177,11 +183,15 @@ describe("getHuntressAffectedName", () => {
     ).toBeNull();
     expect(
       getHuntressAffectedName(
-        event(getHuntressIncidentReportBody({ subject: "Incident on (Acme Corp)" })),
+        event(
+          getHuntressIncidentReportBody({ subject: "Incident on (Acme Corp)" }),
+        ),
       ),
     ).toBeNull();
     expect(
-      getHuntressAffectedName(event(getHuntressIncidentReportBody({ subject: null }))),
+      getHuntressAffectedName(
+        event(getHuntressIncidentReportBody({ subject: null })),
+      ),
     ).toBeNull();
   });
 
@@ -199,9 +209,9 @@ describe("getHuntressAffectedName", () => {
 
 describe("getHuntressReportPortalUrl", () => {
   test("opens the report in the Huntress portal by organization and report", () => {
-    expect(getHuntressReportPortalUrl(event(getHuntressIncidentReportBody()))).toBe(
-      "https://huntress.io/org/4/incident_reports/1234",
-    );
+    expect(
+      getHuntressReportPortalUrl(event(getHuntressIncidentReportBody())),
+    ).toBe("https://huntress.io/org/4/incident_reports/1234");
     expect(HUNTRESS_PORTAL_ORIGIN).toBe("https://huntress.io");
   });
 
@@ -291,10 +301,9 @@ describe("getHuntressIncidentDescription", () => {
         severity: HuntressSeverity.High,
       }),
     ).toBe(
-      [
-        "- **Severity in Huntress:** High",
-        "- **Huntress report:** 9",
-      ].join("\n"),
+      ["- **Severity in Huntress:** High", "- **Huntress report:** 9"].join(
+        "\n",
+      ),
     );
   });
 
@@ -374,7 +383,9 @@ describe("notes and the resolution reason", () => {
   });
 
   test("the resolution reason names the report and its status", () => {
-    expect(getHuntressResolvedReason({ reportId: "1234", status: "closed" })).toBe(
+    expect(
+      getHuntressResolvedReason({ reportId: "1234", status: "closed" }),
+    ).toBe(
       "Resolved because Huntress closed incident report 1234 (status: closed).",
     );
     expect(getHuntressResolvedReason({ reportId: "1234", status: null })).toBe(

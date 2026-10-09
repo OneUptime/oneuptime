@@ -465,14 +465,12 @@ export default class HuntressIncidentReportProcessor {
 
     if (isHuntressOutcomeSkipped(outcome)) {
       action = HuntressReportAction.Skipped;
-    } else if (
-      didHuntressOutcomeOpenIncident(outcome) &&
-      existing.incidentId
-    ) {
+    } else if (didHuntressOutcomeOpenIncident(outcome) && existing.incidentId) {
       const incidentId: ObjectID = existing.incidentId;
 
       if (
-        event.eventType === HuntressWebhookEventType.IncidentReportCommentAdded &&
+        event.eventType ===
+          HuntressWebhookEventType.IncidentReportCommentAdded &&
         event.comment
       ) {
         await this.addNote({
@@ -562,9 +560,9 @@ export default class HuntressIncidentReportProcessor {
      * the incident is open, so a delivery that fails half way is applied
      * again when Huntress retries it.
      */
-    row.appliedMessageIds = (
-      outcome === HuntressIncidentReportOutcome.Opening ? [] : [data.messageId]
-    ) as unknown as JSONArray;
+    row.appliedMessageIds = (outcome === HuntressIncidentReportOutcome.Opening
+      ? []
+      : [data.messageId]) as unknown as JSONArray;
 
     const created: HuntressIncidentReport =
       await HuntressIncidentReportService.create({
@@ -777,9 +775,12 @@ export default class HuntressIncidentReportProcessor {
     ids: Array<string>,
     messageId: string,
   ): Array<string> {
-    return [...ids.filter((id: string): boolean => {
-      return id !== messageId;
-    }), messageId].slice(-HUNTRESS_APPLIED_MESSAGE_IDS_KEPT);
+    return [
+      ...ids.filter((id: string): boolean => {
+        return id !== messageId;
+      }),
+      messageId,
+    ].slice(-HUNTRESS_APPLIED_MESSAGE_IDS_KEPT);
   }
 
   private static async addNote(data: {

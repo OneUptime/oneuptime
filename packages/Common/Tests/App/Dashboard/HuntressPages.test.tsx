@@ -181,10 +181,11 @@ describe("the Huntress connections list", () => {
     const connection: HuntressConnection = new HuntressConnection();
     connection.id = new ObjectID(CONNECTION_ID);
 
-    const onCreateSuccess: (item: HuntressConnection) => Promise<HuntressConnection> =
-      lastTableProps()["onCreateSuccess"] as (
-        item: HuntressConnection,
-      ) => Promise<HuntressConnection>;
+    const onCreateSuccess: (
+      item: HuntressConnection,
+    ) => Promise<HuntressConnection> = lastTableProps()["onCreateSuccess"] as (
+      item: HuntressConnection,
+    ) => Promise<HuntressConnection>;
 
     await expect(onCreateSuccess(connection)).resolves.toBe(connection);
     expect(navigate).toHaveBeenCalledTimes(1);
@@ -292,7 +293,11 @@ describe("a connection's incident reports", () => {
     );
   }
 
-  function report(data: Partial<HuntressIncidentReport>): HuntressIncidentReport {
+  function report(data: {
+    [Key in keyof HuntressIncidentReport]?:
+      | HuntressIncidentReport[Key]
+      | undefined;
+  }): HuntressIncidentReport {
     const row: HuntressIncidentReport = new HuntressIncidentReport();
     row.huntressIncidentReportId = "1234";
     row.organizationId = "42";
@@ -308,8 +313,9 @@ describe("a connection's incident reports", () => {
 
     expect(props["modelType"]).toBe(HuntressIncidentReport);
     expect(
-      (props["query"] as { huntressConnectionId: ObjectID })
-        .huntressConnectionId.toString(),
+      (
+        props["query"] as { huntressConnectionId: ObjectID }
+      ).huntressConnectionId.toString(),
     ).toBe(CONNECTION_ID);
     expect(props["sortBy"]).toBe("createdAt");
     expect(props["sortOrder"]).toBe(SortOrder.Descending);
@@ -414,9 +420,9 @@ describe("a connection's incident reports", () => {
 
     expect(cell).toHaveTextContent("Incident opened");
     expect(cell).toHaveTextContent("Paged on-call");
-    expect(screen.getByTestId("huntress-report-incident-link")).toHaveTextContent(
-      "View incident",
-    );
+    expect(
+      screen.getByTestId("huntress-report-incident-link"),
+    ).toHaveTextContent("View incident");
     expect(cell.querySelector("a")?.getAttribute("href")).toBe(
       RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW] as Route, {
         modelId: new ObjectID(INCIDENT_ID),

@@ -229,10 +229,7 @@ function readDate(value: unknown): Date | null {
   return isNaN(date.getTime()) ? null : date;
 }
 
-function readNamedRef(
-  value: unknown,
-  deprecatedId: unknown,
-): HuntressNamedRef {
+function readNamedRef(value: unknown, deprecatedId: unknown): HuntressNamedRef {
   const object: JSONObject = isJsonObject(value) ? value : {};
 
   return {
@@ -316,10 +313,7 @@ export function parseHuntressWebhook(body: unknown): ParsedHuntressWebhook {
       eventType,
       reportId,
       account: readNamedRef(body["account"], body["account_id"]),
-      organization: readNamedRef(
-        body["organization"],
-        body["organization_id"],
-      ),
+      organization: readNamedRef(body["organization"], body["organization_id"]),
       agentId: readHuntressId(body["agent_id"]),
       severity: parseHuntressSeverity(body["severity"]),
       status: status ? status.toLowerCase() : null,

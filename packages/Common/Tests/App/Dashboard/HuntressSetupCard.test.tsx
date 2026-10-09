@@ -264,7 +264,9 @@ describe("a connection Huntress reaches", () => {
 
     expect(screen.queryByTestId("huntress-setup")).not.toBeInTheDocument();
 
-    const status: HTMLElement = screen.getByTestId("huntress-connection-status");
+    const status: HTMLElement = screen.getByTestId(
+      "huntress-connection-status",
+    );
 
     expect(screen.getByText("Connection")).toBeInTheDocument();
     expect(stateShown()).toBe(HuntressConnectionState.Receiving);
@@ -272,7 +274,9 @@ describe("a connection Huntress reaches", () => {
     expect(status).toHaveTextContent("Last event");
     expect(status).toHaveTextContent("incident_report.created");
     expect(status).toHaveTextContent("Signing secret saved");
-    expect(within(status).getByTestId("huntress-webhook-url")).toBeInTheDocument();
+    expect(
+      within(status).getByTestId("huntress-webhook-url"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("huntress-last-error")).not.toBeInTheDocument();
   });
 

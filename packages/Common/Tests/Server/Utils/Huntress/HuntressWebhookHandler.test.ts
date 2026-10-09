@@ -56,7 +56,9 @@ import {
  * connection for its page to show.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("10000000-0000-4000-8000-000000000001");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "10000000-0000-4000-8000-000000000001",
+);
 const CONNECTION_ID: string = "20000000-0000-4000-8000-000000000001";
 const INCIDENT_ID: ObjectID = new ObjectID(
   "30000000-0000-4000-8000-000000000001",
@@ -75,8 +77,13 @@ let processed: Array<{
 }> = [];
 let processResult: HuntressReportResult | Error;
 
+// Column values to set; undefined clears one (a connection with no secret).
+type ConnectionOverrides = {
+  [Key in keyof HuntressConnection]?: HuntressConnection[Key] | undefined;
+};
+
 function makeConnection(
-  overrides: Partial<HuntressConnection> = {},
+  overrides: ConnectionOverrides = {},
 ): HuntressConnection {
   const model: HuntressConnection = new HuntressConnection();
   model._id = CONNECTION_ID;
@@ -134,47 +141,53 @@ beforeEach(() => {
     incidentId: INCIDENT_ID,
   };
 
-  jest.spyOn(HuntressConnectionService, "findOneById").mockImplementation((async (findBy: {
-    id: ObjectID;
-    select: JSONObject;
-    props: JSONObject;
-  }): Promise<HuntressConnection | null> => {
-    // The webhook reads as OneUptime, with the secret and the error columns.
-    expect(findBy.props["isRoot"]).toBe(true);
-    expect(findBy.select["signingSecret"]).toBe(true);
-    expect(findBy.select["lastErrorAt"]).toBe(true);
+  jest
+    .spyOn(HuntressConnectionService, "findOneById")
+    .mockImplementation((async (findBy: {
+      id: ObjectID;
+      select: JSONObject;
+      props: JSONObject;
+    }): Promise<HuntressConnection | null> => {
+      // The webhook reads as OneUptime, with the secret and the error columns.
+      expect(findBy.props["isRoot"]).toBe(true);
+      expect(findBy.select["signingSecret"]).toBe(true);
+      expect(findBy.select["lastErrorAt"]).toBe(true);
 
-    if (!connection || findBy.id.toString() !== connection.id?.toString()) {
-      return null;
-    }
+      if (!connection || findBy.id.toString() !== connection.id?.toString()) {
+        return null;
+      }
 
-    return connection;
-  }) as never);
+      return connection;
+    }) as never);
 
-  jest.spyOn(HuntressConnectionService, "updateOneById").mockImplementation((async (updateBy: {
-    data: JSONObject;
-    props: JSONObject;
-  }): Promise<number> => {
-    // Its own bookkeeping: no hooks, no permission checks.
-    expect(updateBy.props).toEqual({ isRoot: true, ignoreHooks: true });
-    connectionUpdates.push(updateBy.data);
-    return 1;
-  }) as never);
+  jest
+    .spyOn(HuntressConnectionService, "updateOneById")
+    .mockImplementation((async (updateBy: {
+      data: JSONObject;
+      props: JSONObject;
+    }): Promise<number> => {
+      // Its own bookkeeping: no hooks, no permission checks.
+      expect(updateBy.props).toEqual({ isRoot: true, ignoreHooks: true });
+      connectionUpdates.push(updateBy.data);
+      return 1;
+    }) as never);
 
-  jest.spyOn(HuntressIncidentReportProcessor, "process").mockImplementation((async (data: {
-    settings: HuntressConnectionSettings;
-    event: HuntressIncidentReportEvent;
-    messageId: string;
-    now?: Date;
-  }): Promise<HuntressReportResult> => {
-    processed.push(data);
+  jest
+    .spyOn(HuntressIncidentReportProcessor, "process")
+    .mockImplementation((async (data: {
+      settings: HuntressConnectionSettings;
+      event: HuntressIncidentReportEvent;
+      messageId: string;
+      now?: Date;
+    }): Promise<HuntressReportResult> => {
+      processed.push(data);
 
-    if (processResult instanceof Error) {
-      throw processResult;
-    }
+      if (processResult instanceof Error) {
+        throw processResult;
+      }
 
-    return processResult;
-  }) as never);
+      return processResult;
+    }) as never);
 });
 
 afterEach(() => {
@@ -223,7 +236,11 @@ describe("a signed incident report", () => {
   });
 
   test("acts on the bytes that were signed, whitespace and all", async () => {
-    const body: string = JSON.stringify(getHuntressIncidentReportBody(), null, 4);
+    const body: string = JSON.stringify(
+      getHuntressIncidentReportBody(),
+      null,
+      4,
+    );
 
     expect((await deliver(body)).statusCode).toBe(200);
     expect(processed[0]!.event.subject).toBe(
@@ -267,29 +284,34 @@ describe("events that are not about an incident report", () => {
   test.each([
     ["escalation.created", getHuntressEscalationBody("escalation.created")],
     ["account_notice.notification", getHuntressAccountNoticeBody()],
-  ])("%s is acknowledged and changes nothing", async (eventType: string, payload: JSONObject) => {
-    const answer: HuntressWebhookAnswer = await deliver(JSON.stringify(payload));
+  ])(
+    "%s is acknowledged and changes nothing",
+    async (eventType: string, payload: JSONObject) => {
+      const answer: HuntressWebhookAnswer = await deliver(
+        JSON.stringify(payload),
+      );
 
-    expect(answer).toEqual({
-      statusCode: 200,
-      body: {
-        received: true,
-        eventType,
-        message:
-          "Received. Only incident report events open incidents, so this event changes nothing.",
-      },
-    });
-    expect(processed).toHaveLength(0);
-    // Still proof that Huntress reaches the connection.
-    expect(connectionUpdates).toEqual([
-      {
-        lastEventReceivedAt: NOW,
-        lastEventType: eventType,
-        lastError: null,
-        lastErrorAt: null,
-      },
-    ]);
-  });
+      expect(answer).toEqual({
+        statusCode: 200,
+        body: {
+          received: true,
+          eventType,
+          message:
+            "Received. Only incident report events open incidents, so this event changes nothing.",
+        },
+      });
+      expect(processed).toHaveLength(0);
+      // Still proof that Huntress reaches the connection.
+      expect(connectionUpdates).toEqual([
+        {
+          lastEventReceivedAt: NOW,
+          lastEventType: eventType,
+          lastError: null,
+          lastErrorAt: null,
+        },
+      ]);
+    },
+  );
 });
 
 describe("requests that are refused", () => {
@@ -298,22 +320,27 @@ describe("requests that are refused", () => {
     ["an empty id", "  "],
     ["an id that is not one", "not-an-id"],
     ["an unknown id", "20000000-0000-4000-8000-000000000999"],
-  ])("a connection address with %s is answered 404", async (_name: string, id: string | undefined) => {
-    const body: string = JSON.stringify(getHuntressIncidentReportBody());
-    const answer: HuntressWebhookAnswer = await HuntressWebhookHandler.handle({
-      connectionId: id,
-      headers: signedHeaders(body),
-      rawBody: body,
-      now: NOW,
-    });
+  ])(
+    "a connection address with %s is answered 404",
+    async (_name: string, id: string | undefined) => {
+      const body: string = JSON.stringify(getHuntressIncidentReportBody());
+      const answer: HuntressWebhookAnswer = await HuntressWebhookHandler.handle(
+        {
+          connectionId: id,
+          headers: signedHeaders(body),
+          rawBody: body,
+          now: NOW,
+        },
+      );
 
-    expect(answer).toEqual({
-      statusCode: 404,
-      body: { message: "No Huntress connection has this address." },
-    });
-    expect(processed).toHaveLength(0);
-    expect(connectionUpdates).toHaveLength(0);
-  });
+      expect(answer).toEqual({
+        statusCode: 404,
+        body: { message: "No Huntress connection has this address." },
+      });
+      expect(processed).toHaveLength(0);
+      expect(connectionUpdates).toHaveLength(0);
+    },
+  );
 
   test("a deleted connection is answered 404", async () => {
     connection = null;
@@ -452,7 +479,9 @@ describe("requests that are refused", () => {
     const payload: JSONObject = getHuntressIncidentReportBody();
     delete payload["id"];
 
-    const answer: HuntressWebhookAnswer = await deliver(JSON.stringify(payload));
+    const answer: HuntressWebhookAnswer = await deliver(
+      JSON.stringify(payload),
+    );
 
     expect(answer.statusCode).toBe(400);
     expect(answer.body["message"]).toBe(
@@ -466,7 +495,9 @@ describe("recording why requests are refused", () => {
     connection = makeConnection({
       signingSecret: undefined,
       lastError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
-      lastErrorAt: new Date(NOW.getTime() - HUNTRESS_ERROR_RECORD_INTERVAL_MS + 1000),
+      lastErrorAt: new Date(
+        NOW.getTime() - HUNTRESS_ERROR_RECORD_INTERVAL_MS + 1000,
+      ),
     });
 
     await deliver(JSON.stringify(getHuntressIncidentReportBody()));
@@ -479,7 +510,9 @@ describe("recording why requests are refused", () => {
     connection = makeConnection({
       signingSecret: undefined,
       lastError: HUNTRESS_NO_SIGNING_SECRET_MESSAGE,
-      lastErrorAt: new Date(later.getTime() - HUNTRESS_ERROR_RECORD_INTERVAL_MS),
+      lastErrorAt: new Date(
+        later.getTime() - HUNTRESS_ERROR_RECORD_INTERVAL_MS,
+      ),
     });
 
     await deliver(

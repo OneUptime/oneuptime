@@ -28,8 +28,10 @@ import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
  * Pure: no database, no network, no React.
  */
 
-// Where an incident report opens in the Huntress portal. The portal sends a
-// signed-out reader to sign in first and then on to the report.
+/*
+ * Where an incident report opens in the Huntress portal. The portal sends a
+ * signed-out reader to sign in first and then on to the report.
+ */
 export const HUNTRESS_PORTAL_ORIGIN: string = "https://huntress.io";
 
 const SUBJECT_HOST_MARKER: string = "incident on ";

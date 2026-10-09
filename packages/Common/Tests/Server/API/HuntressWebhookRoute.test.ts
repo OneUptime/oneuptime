@@ -78,7 +78,9 @@ if (
  * OneUptime credential: the signature is the credential.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("10000000-0000-4000-8000-000000000001");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "10000000-0000-4000-8000-000000000001",
+);
 const CONNECTION_ID: string = "20000000-0000-4000-8000-000000000001";
 const SECRET: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
 
@@ -135,7 +137,10 @@ function post(data: {
   );
 }
 
-function signed(body: string, messageId: string = "msg_1"): http.OutgoingHttpHeaders {
+function signed(
+  body: string,
+  messageId: string = "msg_1",
+): http.OutgoingHttpHeaders {
   const timestamp: string = String(Math.floor(Date.now() / 1000));
 
   return {
@@ -184,22 +189,24 @@ describe("POST /api/huntress/webhook/:connectionId", () => {
   beforeEach(() => {
     processedEvents = [];
 
-    jest.spyOn(HuntressConnectionService, "findOneById").mockImplementation((async (findBy: {
-      id: ObjectID;
-    }): Promise<HuntressConnection | null> => {
-      if (findBy.id.toString() !== CONNECTION_ID) {
-        return null;
-      }
+    jest
+      .spyOn(HuntressConnectionService, "findOneById")
+      .mockImplementation((async (findBy: {
+        id: ObjectID;
+      }): Promise<HuntressConnection | null> => {
+        if (findBy.id.toString() !== CONNECTION_ID) {
+          return null;
+        }
 
-      const connection: HuntressConnection = new HuntressConnection();
-      connection._id = CONNECTION_ID;
-      connection.projectId = PROJECT_ID;
-      connection.signingSecret = SECRET;
-      connection.pageOnCallFor = HuntressSeverity.High;
-      connection.onCallDutyPolicies = [];
-      connection.labels = [];
-      return connection;
-    }) as never);
+        const connection: HuntressConnection = new HuntressConnection();
+        connection._id = CONNECTION_ID;
+        connection.projectId = PROJECT_ID;
+        connection.signingSecret = SECRET;
+        connection.pageOnCallFor = HuntressSeverity.High;
+        connection.onCallDutyPolicies = [];
+        connection.labels = [];
+        return connection;
+      }) as never);
 
     jest
       .spyOn(HuntressConnectionService, "updateOneById")
@@ -207,17 +214,19 @@ describe("POST /api/huntress/webhook/:connectionId", () => {
         return 1;
       });
 
-    jest.spyOn(HuntressIncidentReportProcessor, "process").mockImplementation((async (data: {
-      event: HuntressIncidentReportEvent;
-    }): Promise<HuntressReportResult> => {
-      processedEvents.push(data.event);
+    jest
+      .spyOn(HuntressIncidentReportProcessor, "process")
+      .mockImplementation((async (data: {
+        event: HuntressIncidentReportEvent;
+      }): Promise<HuntressReportResult> => {
+        processedEvents.push(data.event);
 
-      return {
-        action: HuntressReportAction.IncidentOpened,
-        outcome: HuntressIncidentReportOutcome.IncidentOpened,
-        incidentId: new ObjectID("30000000-0000-4000-8000-000000000001"),
-      };
-    }) as never);
+        return {
+          action: HuntressReportAction.IncidentOpened,
+          outcome: HuntressIncidentReportOutcome.IncidentOpened,
+          incidentId: new ObjectID("30000000-0000-4000-8000-000000000001"),
+        };
+      }) as never);
   });
 
   afterEach(() => {
@@ -249,7 +258,7 @@ describe("POST /api/huntress/webhook/:connectionId", () => {
 
   test("the bytes Huntress signed reach the check unchanged: pretty-printed JSON with unicode escapes verifies", async () => {
     const body: string = JSON.stringify(
-      getHuntressIncidentReportBody({ summary: "Café — \"quoted\"" }),
+      getHuntressIncidentReportBody({ summary: 'Café — "quoted"' }),
       null,
       3,
     ).replace("Café", "Caf\\u00e9");
@@ -262,7 +271,7 @@ describe("POST /api/huntress/webhook/:connectionId", () => {
     });
 
     expect(result.status).toBe(200);
-    expect(processedEvents[0]!.summary).toBe("Café — \"quoted\"");
+    expect(processedEvents[0]!.summary).toBe('Café — "quoted"');
   });
 
   test("a report changed on the way is refused, and nothing is processed", async () => {

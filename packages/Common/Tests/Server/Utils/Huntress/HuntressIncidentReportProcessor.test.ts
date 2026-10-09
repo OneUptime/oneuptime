@@ -45,7 +45,7 @@ import {
   ParsedHuntressWebhook,
   parseHuntressWebhook,
 } from "../../../../Types/Huntress/HuntressWebhook";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   getHuntressClosedBody,
@@ -81,7 +81,9 @@ import {
  *     incident once (or notes it once, when the switch is off).
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("10000000-0000-4000-8000-000000000001");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "10000000-0000-4000-8000-000000000001",
+);
 const CONNECTION_ID: ObjectID = new ObjectID(
   "20000000-0000-4000-8000-000000000001",
 );
@@ -92,7 +94,9 @@ const SEVERITY_CRITICAL: string = "30000000-0000-4000-8000-000000000001";
 const SEVERITY_MAJOR: string = "30000000-0000-4000-8000-000000000002";
 const SEVERITY_MINOR: string = "30000000-0000-4000-8000-000000000003";
 const SEVERITY_CUSTOM: string = "30000000-0000-4000-8000-000000000009";
-const POLICY_ID: ObjectID = new ObjectID("40000000-0000-4000-8000-000000000001");
+const POLICY_ID: ObjectID = new ObjectID(
+  "40000000-0000-4000-8000-000000000001",
+);
 const SECOND_POLICY_ID: ObjectID = new ObjectID(
   "40000000-0000-4000-8000-000000000002",
 );
@@ -194,9 +198,9 @@ function matches(row: HuntressIncidentReport, query: JSONObject): boolean {
 function copyRow(row: HuntressIncidentReport): HuntressIncidentReport {
   const copy: HuntressIncidentReport = new HuntressIncidentReport();
   Object.assign(copy, row);
-  copy.appliedMessageIds = row.appliedMessageIds
-    ? [...(row.appliedMessageIds as Array<string>)]
-    : (undefined as unknown as Array<string>);
+  copy.appliedMessageIds = (row.appliedMessageIds
+    ? [...(row.appliedMessageIds as unknown as Array<string>)]
+    : undefined) as unknown as JSONArray;
   return copy;
 }
 
@@ -210,7 +214,9 @@ function onlyIncident(): FakeIncident {
   return incidents[0]!;
 }
 
-function idsOf(models: Array<{ _id?: string | undefined }> | undefined): Array<string> {
+function idsOf(
+  models: Array<{ _id?: string | undefined }> | undefined,
+): Array<string> {
   return (models || []).map((model: { _id?: string | undefined }): string => {
     return model._id || "";
   });
@@ -233,86 +239,96 @@ beforeEach(() => {
 
   jest
     .spyOn(Semaphore, "lock")
-    .mockImplementation(async (data: { key: string }): Promise<SemaphoreMutex> => {
-      locksTaken.push(data.key);
-      return {} as SemaphoreMutex;
+    .mockImplementation(
+      async (data: { key: string }): Promise<SemaphoreMutex> => {
+        locksTaken.push(data.key);
+        return {} as SemaphoreMutex;
+      },
+    );
+  jest
+    .spyOn(Semaphore, "release")
+    .mockImplementation(async (): Promise<void> => {
+      locksReleased++;
     });
-  jest.spyOn(Semaphore, "release").mockImplementation(async (): Promise<void> => {
-    locksReleased++;
-  });
 
-  jest.spyOn(HuntressIncidentReportService, "findOneBy").mockImplementation((async (findBy: {
-    query: JSONObject;
-  }): Promise<HuntressIncidentReport | null> => {
-    const row: HuntressIncidentReport | undefined = reportRows.find(
-      (candidate: HuntressIncidentReport): boolean => {
-        return matches(candidate, findBy.query);
-      },
-    );
+  jest
+    .spyOn(HuntressIncidentReportService, "findOneBy")
+    .mockImplementation((async (findBy: {
+      query: JSONObject;
+    }): Promise<HuntressIncidentReport | null> => {
+      const row: HuntressIncidentReport | undefined = reportRows.find(
+        (candidate: HuntressIncidentReport): boolean => {
+          return matches(candidate, findBy.query);
+        },
+      );
 
-    return row ? copyRow(row) : null;
-  }) as never);
+      return row ? copyRow(row) : null;
+    }) as never);
 
-  jest.spyOn(HuntressIncidentReportService, "create").mockImplementation((async (createBy: {
-    data: HuntressIncidentReport;
-  }): Promise<HuntressIncidentReport> => {
-    const data: HuntressIncidentReport = createBy.data;
+  jest
+    .spyOn(HuntressIncidentReportService, "create")
+    .mockImplementation((async (createBy: {
+      data: HuntressIncidentReport;
+    }): Promise<HuntressIncidentReport> => {
+      const data: HuntressIncidentReport = createBy.data;
 
-    // The table's unique index.
-    if (
-      reportRows.some((row: HuntressIncidentReport): boolean => {
-        return matches(row, {
-          projectId: data.projectId!.toString(),
-          huntressAccountId: data.huntressAccountId!,
-          huntressIncidentReportId: data.huntressIncidentReportId!,
+      // The table's unique index.
+      if (
+        reportRows.some((row: HuntressIncidentReport): boolean => {
+          return matches(row, {
+            projectId: data.projectId!.toString(),
+            huntressAccountId: data.huntressAccountId!,
+            huntressIncidentReportId: data.huntressIncidentReportId!,
+          });
+        })
+      ) {
+        throw new Error("duplicate key value violates unique constraint");
+      }
+
+      const row: HuntressIncidentReport = copyRow(data);
+      row._id = nextId().toString();
+      row.createdAt = NOW;
+      row.updatedAt = NOW;
+      reportRows.push(row);
+
+      return copyRow(row);
+    }) as never);
+
+  jest
+    .spyOn(HuntressIncidentReportService, "updateOneById")
+    .mockImplementation((async (updateBy: {
+      id: ObjectID;
+      data: JSONObject;
+    }): Promise<number> => {
+      const row: HuntressIncidentReport | undefined = reportRows.find(
+        (candidate: HuntressIncidentReport): boolean => {
+          return candidate._id === updateBy.id.toString();
+        },
+      );
+
+      if (!row) {
+        return 0;
+      }
+
+      Object.assign(row, updateBy.data);
+      row.updatedAt = NOW;
+      return 1;
+    }) as never);
+
+  jest
+    .spyOn(IncidentSeverityService, "findBy")
+    .mockImplementation((async (): Promise<Array<IncidentSeverity>> => {
+      return [...severities]
+        .sort((a: { order: number }, b: { order: number }): number => {
+          return a.order - b.order;
+        })
+        .map((entry: { id: string; order: number }): IncidentSeverity => {
+          const severity: IncidentSeverity = new IncidentSeverity();
+          severity._id = entry.id;
+          severity.order = entry.order;
+          return severity;
         });
-      })
-    ) {
-      throw new Error("duplicate key value violates unique constraint");
-    }
-
-    const row: HuntressIncidentReport = copyRow(data);
-    row._id = nextId().toString();
-    row.createdAt = NOW;
-    row.updatedAt = NOW;
-    reportRows.push(row);
-
-    return copyRow(row);
-  }) as never);
-
-  jest.spyOn(HuntressIncidentReportService, "updateOneById").mockImplementation((async (updateBy: {
-    id: ObjectID;
-    data: JSONObject;
-  }): Promise<number> => {
-    const row: HuntressIncidentReport | undefined = reportRows.find(
-      (candidate: HuntressIncidentReport): boolean => {
-        return candidate._id === updateBy.id.toString();
-      },
-    );
-
-    if (!row) {
-      return 0;
-    }
-
-    Object.assign(row, updateBy.data);
-    row.updatedAt = NOW;
-    return 1;
-  }) as never);
-
-  jest.spyOn(IncidentSeverityService, "findBy").mockImplementation((async (): Promise<
-    Array<IncidentSeverity>
-  > => {
-    return [...severities]
-      .sort((a: { order: number }, b: { order: number }): number => {
-        return a.order - b.order;
-      })
-      .map((entry: { id: string; order: number }): IncidentSeverity => {
-        const severity: IncidentSeverity = new IncidentSeverity();
-        severity._id = entry.id;
-        severity.order = entry.order;
-        return severity;
-      });
-  }) as never);
+    }) as never);
 
   jest.spyOn(IncidentService, "create").mockImplementation((async (createBy: {
     data: Incident;
@@ -329,24 +345,28 @@ beforeEach(() => {
     return created;
   }) as never);
 
-  jest.spyOn(IncidentService, "findOneById").mockImplementation((async (findBy: {
-    id: ObjectID;
-  }): Promise<Incident | null> => {
-    const incident: FakeIncident | undefined = incidents.find(
-      (candidate: FakeIncident): boolean => {
-        return candidate.id.toString() === findBy.id.toString();
-      },
-    );
+  jest
+    .spyOn(IncidentService, "findOneById")
+    .mockImplementation((async (findBy: {
+      id: ObjectID;
+    }): Promise<Incident | null> => {
+      const incident: FakeIncident | undefined = incidents.find(
+        (candidate: FakeIncident): boolean => {
+          return candidate.id.toString() === findBy.id.toString();
+        },
+      );
 
-    if (!incident) {
-      return null;
-    }
+      if (!incident) {
+        return null;
+      }
 
-    const found: Incident = new Incident();
-    found._id = incident.id.toString();
-    found.currentIncidentStateId = new ObjectID(incident.currentIncidentStateId);
-    return found;
-  }) as never);
+      const found: Incident = new Incident();
+      found._id = incident.id.toString();
+      found.currentIncidentStateId = new ObjectID(
+        incident.currentIncidentStateId,
+      );
+      return found;
+    }) as never);
 
   jest
     .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
@@ -360,51 +380,57 @@ beforeEach(() => {
       return new ObjectID(RESOLVED_STATE);
     });
 
-  jest.spyOn(IncidentStateTimelineService, "create").mockImplementation((async (createBy: {
-    data: IncidentStateTimeline;
-  }): Promise<IncidentStateTimeline> => {
-    const incident: FakeIncident | undefined = incidents.find(
-      (candidate: FakeIncident): boolean => {
-        return (
-          candidate.id.toString() === createBy.data.incidentId?.toString()
-        );
-      },
-    );
-
-    if (
-      incident &&
-      incident.currentIncidentStateId ===
-        createBy.data.incidentStateId?.toString()
-    ) {
-      throw new BadDataException(
-        "Incident state cannot be same as previous state.",
+  jest
+    .spyOn(IncidentStateTimelineService, "create")
+    .mockImplementation((async (createBy: {
+      data: IncidentStateTimeline;
+    }): Promise<IncidentStateTimeline> => {
+      const incident: FakeIncident | undefined = incidents.find(
+        (candidate: FakeIncident): boolean => {
+          return (
+            candidate.id.toString() === createBy.data.incidentId?.toString()
+          );
+        },
       );
-    }
 
-    if (incident) {
-      incident.currentIncidentStateId =
-        createBy.data.incidentStateId!.toString();
-    }
+      if (
+        incident &&
+        incident.currentIncidentStateId ===
+          createBy.data.incidentStateId?.toString()
+      ) {
+        throw new BadDataException(
+          "Incident state cannot be same as previous state.",
+        );
+      }
 
-    timelines.push(createBy.data);
-    return createBy.data;
-  }) as never);
+      if (incident) {
+        incident.currentIncidentStateId =
+          createBy.data.incidentStateId!.toString();
+      }
 
-  jest.spyOn(IncidentInternalNoteService, "create").mockImplementation((async (createBy: {
-    data: IncidentInternalNote;
-  }): Promise<IncidentInternalNote> => {
-    notes.push(createBy.data);
-    return createBy.data;
-  }) as never);
+      timelines.push(createBy.data);
+      return createBy.data;
+    }) as never);
 
-  jest.spyOn(LabelService, "findOrCreateLabelsByNames").mockImplementation((async (data: {
-    labelNames: Array<string>;
-  }): Promise<Array<ObjectID>> => {
-    labelNamesAsked.push(data.labelNames);
-    return data.labelNames.map((name: string): ObjectID => {
-      return labelIdFor(name);
-    });
-  }) as never);
+  jest
+    .spyOn(IncidentInternalNoteService, "create")
+    .mockImplementation((async (createBy: {
+      data: IncidentInternalNote;
+    }): Promise<IncidentInternalNote> => {
+      notes.push(createBy.data);
+      return createBy.data;
+    }) as never);
+
+  jest
+    .spyOn(LabelService, "findOrCreateLabelsByNames")
+    .mockImplementation((async (data: {
+      labelNames: Array<string>;
+    }): Promise<Array<ObjectID>> => {
+      labelNamesAsked.push(data.labelNames);
+      return data.labelNames.map((name: string): ObjectID => {
+        return labelIdFor(name);
+      });
+    }) as never);
 });
 
 afterEach(() => {
@@ -521,9 +547,11 @@ describe("a new incident report", () => {
   });
 
   test("still opens its incident when the lock cannot be had", async () => {
-    jest.spyOn(Semaphore, "lock").mockImplementation(async (): Promise<SemaphoreMutex> => {
-      throw new Error("Redis client is not connected");
-    });
+    jest
+      .spyOn(Semaphore, "lock")
+      .mockImplementation(async (): Promise<SemaphoreMutex> => {
+        throw new Error("Redis client is not connected");
+      });
 
     await receive(getHuntressIncidentReportBody(), "msg_1");
 
@@ -612,7 +640,8 @@ describe("one incident per report", () => {
       await receive(getHuntressIncidentReportBody(), `msg_${index}`);
     }
 
-    const applied: Array<string> = onlyRow().appliedMessageIds as Array<string>;
+    const applied: Array<string> = onlyRow()
+      .appliedMessageIds as unknown as Array<string>;
 
     expect(applied).toHaveLength(HUNTRESS_APPLIED_MESSAGE_IDS_KEPT);
     expect(applied[applied.length - 1]).toBe("msg_40");
@@ -631,7 +660,9 @@ describe("a delivery that failed half way", () => {
         huntressAccountId: "5",
         huntressIncidentReportId: "1234",
         outcome: HuntressIncidentReportOutcome.Opening,
-        updatedAt: new Date(NOW.getTime() - HUNTRESS_CLAIM_IN_PROGRESS_MS + 5000),
+        updatedAt: new Date(
+          NOW.getTime() - HUNTRESS_CLAIM_IN_PROGRESS_MS + 5000,
+        ),
         appliedMessageIds: [],
       }),
     );
@@ -664,7 +695,9 @@ describe("a delivery that failed half way", () => {
 
     expect(result.action).toBe(HuntressReportAction.IncidentOpened);
     expect(incidents).toHaveLength(1);
-    expect(onlyRow().outcome).toBe(HuntressIncidentReportOutcome.IncidentOpened);
+    expect(onlyRow().outcome).toBe(
+      HuntressIncidentReportOutcome.IncidentOpened,
+    );
     expect(onlyRow().appliedMessageIds).toEqual(["msg_retry"]);
   });
 
@@ -727,11 +760,14 @@ describe("the incident's severity", () => {
     [HuntressSeverity.Critical, SEVERITY_CRITICAL],
     [HuntressSeverity.High, SEVERITY_MAJOR],
     [HuntressSeverity.Low, SEVERITY_MINOR],
-  ])("a %s report opens at the project's severity of the same rank", async (severity: HuntressSeverity, expected: string) => {
-    await receive(getHuntressIncidentReportBody({ severity }), "msg_1");
+  ])(
+    "a %s report opens at the project's severity of the same rank",
+    async (severity: HuntressSeverity, expected: string) => {
+      await receive(getHuntressIncidentReportBody({ severity }), "msg_1");
 
-    expect(onlyIncident().data.incidentSeverityId?.toString()).toBe(expected);
-  });
+      expect(onlyIncident().data.incidentSeverityId?.toString()).toBe(expected);
+    },
+  );
 
   test("a severity the connection picked wins", async () => {
     severities.push({ id: SEVERITY_CUSTOM, order: 4 });
@@ -756,9 +792,21 @@ describe("the incident's severity", () => {
       lowIncidentSeverityId: new ObjectID(SEVERITY_CUSTOM),
     });
 
-    await receive(getHuntressIncidentReportBody({ id: 1, severity: "high" }), "m1", settings);
-    await receive(getHuntressIncidentReportBody({ id: 2, severity: "low" }), "m2", settings);
-    await receive(getHuntressIncidentReportBody({ id: 3, severity: "critical" }), "m3", settings);
+    await receive(
+      getHuntressIncidentReportBody({ id: 1, severity: "high" }),
+      "m1",
+      settings,
+    );
+    await receive(
+      getHuntressIncidentReportBody({ id: 2, severity: "low" }),
+      "m2",
+      settings,
+    );
+    await receive(
+      getHuntressIncidentReportBody({ id: 3, severity: "critical" }),
+      "m3",
+      settings,
+    );
 
     expect(
       incidents.map((incident: FakeIncident): string => {
@@ -801,7 +849,10 @@ describe("the incident's severity", () => {
       { id: SEVERITY_MAJOR, order: 2 },
     ];
 
-    await receive(getHuntressIncidentReportBody({ severity: "critical" }), "msg_1");
+    await receive(
+      getHuntressIncidentReportBody({ severity: "critical" }),
+      "msg_1",
+    );
 
     expect(onlyIncident().data.incidentSeverityId?.toString()).toBe(
       SEVERITY_CRITICAL,
@@ -844,21 +895,28 @@ describe("paging on-call", () => {
     ["critical", HuntressSeverity.Critical, true],
     ["high", HuntressSeverity.Critical, false],
     ["low", HuntressSeverity.Low, true],
-  ])("a %s report with Page On-Call For at %s pages: %s", async (severity: string, threshold: HuntressSeverity, pages: boolean) => {
-    await receive(
-      getHuntressIncidentReportBody({ severity }),
-      "msg_1",
-      getSettings({
-        pageOnCallFor: threshold,
-        onCallDutyPolicyIds: [POLICY_ID, SECOND_POLICY_ID],
-      }),
-    );
+  ])(
+    "a %s report with Page On-Call For at %s pages: %s",
+    async (severity: string, threshold: HuntressSeverity, pages: boolean) => {
+      await receive(
+        getHuntressIncidentReportBody({ severity }),
+        "msg_1",
+        getSettings({
+          pageOnCallFor: threshold,
+          onCallDutyPolicyIds: [POLICY_ID, SECOND_POLICY_ID],
+        }),
+      );
 
-    expect(
-      idsOf(onlyIncident().data.onCallDutyPolicies as Array<OnCallDutyPolicy>),
-    ).toEqual(pages ? [POLICY_ID.toString(), SECOND_POLICY_ID.toString()] : []);
-    expect(onlyRow().pagedOnCall).toBe(pages);
-  });
+      expect(
+        idsOf(
+          onlyIncident().data.onCallDutyPolicies as Array<OnCallDutyPolicy>,
+        ),
+      ).toEqual(
+        pages ? [POLICY_ID.toString(), SECOND_POLICY_ID.toString()] : [],
+      );
+      expect(onlyRow().pagedOnCall).toBe(pages);
+    },
+  );
 
   test("a connection without on-call policies opens incidents that page nobody", async () => {
     await receive(
@@ -1003,7 +1061,9 @@ describe("closing the report in Huntress", () => {
       "Resolved because Huntress closed incident report 1234 (status: closed).",
     );
     expect(onlyRow().status).toBe("closed");
-    expect(onlyRow().outcome).toBe(HuntressIncidentReportOutcome.IncidentResolved);
+    expect(onlyRow().outcome).toBe(
+      HuntressIncidentReportOutcome.IncidentResolved,
+    );
   });
 
   test.each(["dismissed", "partner_dismissed", "deleting"])(
@@ -1098,7 +1158,7 @@ describe("closing the report in Huntress", () => {
   test("a deleted incident is left deleted", async () => {
     await receive(getHuntressIncidentReportBody(), "msg_1");
     // The foreign key clears the row's incident when the incident is deleted.
-    onlyRow().incidentId = undefined;
+    delete onlyRow().incidentId;
     incidents = [];
 
     const closed: HuntressReportResult = await receive(
@@ -1171,7 +1231,7 @@ describe("comments added in Huntress", () => {
 describe("a report row whose connection was deleted", () => {
   test("is taken up by the connection receiving it now, and opens nothing new", async () => {
     await receive(getHuntressIncidentReportBody(), "msg_1");
-    onlyRow().huntressConnectionId = undefined;
+    delete onlyRow().huntressConnectionId;
 
     await receive(
       getHuntressCommentBody("Still there."),
@@ -1209,7 +1269,9 @@ describe("HuntressIncidentReportProcessor.getSettings", () => {
     expect(settings.id.toString()).toBe(CONNECTION_ID.toString());
     expect(settings.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(settings.pageOnCallFor).toBe(HuntressSeverity.Critical);
-    expect(settings.criticalIncidentSeverityId?.toString()).toBe(SEVERITY_CUSTOM);
+    expect(settings.criticalIncidentSeverityId?.toString()).toBe(
+      SEVERITY_CUSTOM,
+    );
     expect(settings.highIncidentSeverityId).toBeNull();
     expect(settings.lowIncidentSeverityId).toBeNull();
     expect(settings.watchedOrganizations).toEqual(["Acme Corp", "4"]);
@@ -1251,7 +1313,9 @@ describe("HuntressIncidentReportProcessor.getSettings", () => {
   });
 
   test("reads every column the processor needs from one select", () => {
-    expect(Object.keys(HuntressIncidentReportProcessor.CONNECTION_SELECT)).toEqual([
+    expect(
+      Object.keys(HuntressIncidentReportProcessor.CONNECTION_SELECT),
+    ).toEqual([
       "_id",
       "projectId",
       "pageOnCallFor",

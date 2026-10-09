@@ -22,6 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * What a Huntress connection may be saved as. The signing secret is
@@ -31,7 +32,9 @@ import {
  * on-call policy, label and severity it names must be its project's own.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
 const OWN_POLICY_ID: string = "22222222-2222-4222-8222-222222222221";
 const FOREIGN_POLICY_ID: string = "22222222-2222-4222-8222-222222222299";
 const SECRET: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
@@ -42,6 +45,10 @@ interface ConnectionHooks {
   ): Promise<OnCreate<HuntressConnection>>;
   onBeforeUpdate(
     updateBy: UpdateBy<HuntressConnection>,
+  ): Promise<OnUpdate<HuntressConnection>>;
+  onUpdateSuccess(
+    onUpdate: OnUpdate<HuntressConnection>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<HuntressConnection>>;
 }
 
@@ -69,14 +76,20 @@ async function create(
   return result.createBy.data;
 }
 
-async function update(data: JSONObject): Promise<JSONObject> {
-  const result: OnUpdate<HuntressConnection> = await hooks.onBeforeUpdate({
+async function beforeUpdate(
+  data: JSONObject,
+): Promise<OnUpdate<HuntressConnection>> {
+  return await hooks.onBeforeUpdate({
     query: { _id: "33333333-3333-4333-8333-333333333333" },
     data: data as never,
     props: { isRoot: true, tenantId: PROJECT_ID },
     limit: 1,
     skip: 0,
   });
+}
+
+async function update(data: JSONObject): Promise<JSONObject> {
+  const result: OnUpdate<HuntressConnection> = await beforeUpdate(data);
 
   return result.updateBy.data as unknown as JSONObject;
 }
@@ -133,16 +146,19 @@ describe("HuntressConnectionService", () => {
       ["the webhook URL", "https://oneuptime.com/api/huntress/webhook/abc"],
       ["a truncated secret", "whsec_abc"],
       ["an API key", "hk_live_1234567890"],
-    ])("pasting %s is refused, saying where the secret is", async (_name: string, value: string) => {
-      await expect(create({ signingSecret: value })).rejects.toThrow(
-        new BadDataException(
-          HuntressConnectionServiceType.SIGNING_SECRET_PROBLEM,
-        ),
-      );
-      expect(HuntressConnectionServiceType.SIGNING_SECRET_PROBLEM).toBe(
-        "The signing secret is not one Huntress issues. In Huntress, open the endpoint's menu (⋯), choose View Signing Secret and copy all of it. It starts with whsec_.",
-      );
-    });
+    ])(
+      "pasting %s is refused, saying where the secret is",
+      async (_name: string, value: string) => {
+        await expect(create({ signingSecret: value })).rejects.toThrow(
+          new BadDataException(
+            HuntressConnectionServiceType.SIGNING_SECRET_PROBLEM,
+          ),
+        );
+        expect(HuntressConnectionServiceType.SIGNING_SECRET_PROBLEM).toBe(
+          "The signing secret is not one Huntress issues. In Huntress, open the endpoint's menu (⋯), choose View Signing Secret and copy all of it. It starts with whsec_.",
+        );
+      },
+    );
 
     test("a secret that is not text is refused", async () => {
       await expect(
@@ -160,7 +176,9 @@ describe("HuntressConnectionService", () => {
     });
 
     test("an empty secret sent with other changes keeps the saved one", async () => {
-      expect(await update({ name: "Huntress (Acme MSP)", signingSecret: "" })).toEqual({
+      expect(
+        await update({ name: "Huntress (Acme MSP)", signingSecret: "" }),
+      ).toEqual({
         name: "Huntress (Acme MSP)",
       });
     });
@@ -196,17 +214,18 @@ describe("HuntressConnectionService", () => {
   });
 
   describe("Page On-Call For", () => {
-    test.each([HuntressSeverity.Critical, HuntressSeverity.High, HuntressSeverity.Low])(
-      "%s is saved",
-      async (severity: HuntressSeverity) => {
-        expect((await create({ pageOnCallFor: severity })).pageOnCallFor).toBe(
-          severity,
-        );
-        expect(await update({ pageOnCallFor: severity })).toEqual({
-          pageOnCallFor: severity,
-        });
-      },
-    );
+    test.each([
+      HuntressSeverity.Critical,
+      HuntressSeverity.High,
+      HuntressSeverity.Low,
+    ])("%s is saved", async (severity: HuntressSeverity) => {
+      expect((await create({ pageOnCallFor: severity })).pageOnCallFor).toBe(
+        severity,
+      );
+      expect(await update({ pageOnCallFor: severity })).toEqual({
+        pageOnCallFor: severity,
+      });
+    });
 
     test("left out, the column's default (high) applies", async () => {
       expect((await create()).pageOnCallFor).toBeUndefined();
@@ -258,11 +277,70 @@ describe("HuntressConnectionService", () => {
     });
 
     test("organizations not sent as text are refused", async () => {
-      await expect(
-        update({ watchedOrganizations: ["Acme"] }),
-      ).rejects.toThrow(
+      await expect(update({ watchedOrganizations: ["Acme"] })).rejects.toThrow(
         "Only These Organizations must be text: one organization name or id per line.",
       );
+    });
+  });
+
+  /*
+   * A refusal recorded before the secret was saved ("no signing secret is
+   * saved", a signature that did not match) is about a secret that is gone:
+   * saving one starts the connection over, waiting for Huntress.
+   */
+  describe("saving a new signing secret clears the last refusal", () => {
+    const CONNECTION_IDS: Array<ObjectID> = [
+      new ObjectID("33333333-3333-4333-8333-333333333333"),
+    ];
+
+    let updateOneById: SpyInstance<
+      typeof HuntressConnectionService.updateOneById
+    >;
+
+    beforeEach(() => {
+      updateOneById = jest
+        .spyOn(HuntressConnectionService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+    });
+
+    test("an update with a new secret says so to the next hook", async () => {
+      expect(
+        (await beforeUpdate({ signingSecret: SECRET })).carryForward,
+      ).toEqual({ signingSecretSaved: true });
+    });
+
+    test("an update that keeps the saved secret says it did not change", async () => {
+      expect(
+        (await beforeUpdate({ name: "Acme", signingSecret: "" })).carryForward,
+      ).toEqual({ signingSecretSaved: false });
+      expect((await beforeUpdate({ name: "Acme" })).carryForward).toEqual({
+        signingSecretSaved: false,
+      });
+    });
+
+    test("after a new secret is saved, the refusal it fixed is cleared, as the server", async () => {
+      const onUpdate: OnUpdate<HuntressConnection> = await beforeUpdate({
+        signingSecret: SECRET,
+      });
+
+      await hooks.onUpdateSuccess(onUpdate, CONNECTION_IDS);
+
+      expect(updateOneById).toHaveBeenCalledTimes(1);
+      expect(updateOneById.mock.calls[0]![0]).toEqual({
+        id: CONNECTION_IDS[0],
+        data: { lastError: null, lastErrorAt: null },
+        props: { isRoot: true, ignoreHooks: true },
+      });
+    });
+
+    test("any other edit leaves the last refusal for the webhook to clear", async () => {
+      const onUpdate: OnUpdate<HuntressConnection> = await beforeUpdate({
+        name: "Acme",
+      });
+
+      await hooks.onUpdateSuccess(onUpdate, CONNECTION_IDS);
+
+      expect(updateOneById).not.toHaveBeenCalled();
     });
   });
 
@@ -282,9 +360,9 @@ describe("HuntressConnectionService", () => {
       const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
       policy._id = FOREIGN_POLICY_ID;
 
-      await expect(
-        create({ onCallDutyPolicies: [policy] }),
-      ).rejects.toThrow(FOREIGN_POLICY_ID);
+      await expect(create({ onCallDutyPolicies: [policy] })).rejects.toThrow(
+        FOREIGN_POLICY_ID,
+      );
     });
   });
 });

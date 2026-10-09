@@ -181,7 +181,8 @@ export default class StandardWebhookSignature {
       return {
         verified: false,
         failure: StandardWebhookFailure.InvalidTimestamp,
-        message: "The request's signature timestamp is not a number of seconds.",
+        message:
+          "The request's signature timestamp is not a number of seconds.",
       };
     }
 

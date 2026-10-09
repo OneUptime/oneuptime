@@ -61,7 +61,9 @@ describe("getHuntressOrganizationFilterProblem", () => {
   });
 
   test("a line longer than an organization name is refused, quoting its start", () => {
-    const line: string = "x".repeat(HUNTRESS_MAX_WATCHED_ORGANIZATION_LENGTH + 1);
+    const line: string = "x".repeat(
+      HUNTRESS_MAX_WATCHED_ORGANIZATION_LENGTH + 1,
+    );
 
     expect(getHuntressOrganizationFilterProblem(`Acme\n${line}`)).toBe(
       `"${"x".repeat(40)}…" is longer than an organization name can be (${HUNTRESS_MAX_WATCHED_ORGANIZATION_LENGTH} characters). Put each organization on a line of its own.`,
