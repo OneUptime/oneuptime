@@ -110,7 +110,10 @@
   "navLinks": {
     "Getting Started": "Démarrage rapide",
     "Moving from Opsgenie": "Quitter Opsgenie",
+    "Moving from PagerDuty": "Quitter PagerDuty",
     "Moving from incident.io": "Quitter incident.io",
+    "Moving from Splunk On-Call": "Quitter Splunk On-Call",
+    "Moving from Grafana OnCall": "Quitter Grafana OnCall",
     "Local Development": "Développement local",
     "Docker Compose": "Docker Compose",
     "Upgrading": "Mise à niveau",

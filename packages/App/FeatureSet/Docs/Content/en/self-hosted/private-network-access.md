@@ -95,6 +95,7 @@ A second guard covers outbound connections whose target a project member chooses
 - OIDC discovery for single sign-on
 - status page and dashboard custom domain verification
 - Runbook HTTP steps
+- the Grafana OnCall API URL an import reads from (**Project Settings** > **Import from another tool**)
 
 This guard works the other way round from the webhook settings. On a self-hosted install it **allows** the private tier by default, because the database, mail server or model server these connect to usually lives on your own network. The forbidden tier — loopback, link-local and the cloud metadata endpoint — is refused either way, and there is no allowlist for it.
 
