@@ -1,9 +1,14 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import {
+  DeviceNameSource,
+  readDeviceNameSource,
+} from "../../Types/NetworkDevice/DeviceNameSource";
+import {
   DiscoveredHostNaming,
   MAX_DEVICE_DNS_NAME_LENGTH,
   buildDeviceName,
   buildFallbackDeviceName,
+  getDiscoveredHostNameSource,
 } from "./DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "./DiscoveredHostUtil";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
@@ -72,6 +77,17 @@ import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
  * What is left over is, precisely, a device this run imported by address
  * because the name had not been resolved yet — which is the device the
  * operator would have got had the import waited for the final result.
+ *
+ * SINCE ISSUE #4518 this is the fallback for devices that do not say how
+ * they were named. A device discovery imports now records the source of its
+ * name (NetworkDevice.discoveredNameSource), and those devices are improved
+ * by DiscoveredNameUpgrade.ts — on any later scan, not only the run that
+ * imported them, and whenever a better source names them, not only when they
+ * were named by address. A row that carries a source is therefore skipped
+ * here; what remains is a device imported by an older dashboard or engine
+ * mid-run, which this keeps renaming exactly as before. The rename records
+ * the source of the new name, so such a device is an ordinary
+ * discovery-named one from then on.
  */
 
 /*
@@ -94,6 +110,11 @@ export interface RunImportedDeviceRow {
   hostname?: string | null | undefined;
   dnsName?: string | null | undefined;
   createdAt?: Date | string | null | undefined;
+  /*
+   * Where the device's name came from, when discovery recorded it (#4518).
+   * A row with a readable source belongs to DiscoveredNameUpgrade.ts.
+   */
+  discoveredNameSource?: string | null | undefined;
 }
 
 export interface RunImportedDeviceRename {
@@ -110,6 +131,12 @@ export interface RunImportedDeviceRename {
    * both are taken — exactly the import's own collision protocol.
    */
   candidateNames: Array<string>;
+  /*
+   * Where the new name comes from — what the builder would have recorded at
+   * create. Stored with whichever candidate is taken, so the device can be
+   * improved by a later scan like any device discovery named.
+   */
+  discoveredNameSource?: DeviceNameSource | undefined;
   /*
    * The PTR name to store as the device's dnsName. Present only when the
    * device has none and the host has a usable one: the same value the builder
@@ -265,6 +292,15 @@ export function planRunImportedDeviceRenames(data: {
       continue;
     }
 
+    /*
+     * A device that records how discovery named it is improved by
+     * DiscoveredNameUpgrade.ts, under its own rules; renaming it here too
+     * would plan the same device twice.
+     */
+    if (readDeviceNameSource(row.discoveredNameSource)) {
+      continue;
+    }
+
     // (b) An address this result reports — and reports a name for, see (e).
     const hostname: string = trimmedString(row.hostname);
     const host: DiscoveredNetworkDevice | undefined = hostname
@@ -365,6 +401,13 @@ export function planRunImportedDeviceRenames(data: {
         fromName: entry.name,
         candidateNames: candidateNames,
       };
+
+      const discoveredNameSource: DeviceNameSource | undefined =
+        getDiscoveredHostNameSource(entry.host);
+
+      if (discoveredNameSource) {
+        plan.discoveredNameSource = discoveredNameSource;
+      }
 
       /*
        * Filled only, never overwritten: a device that already has a DNS name

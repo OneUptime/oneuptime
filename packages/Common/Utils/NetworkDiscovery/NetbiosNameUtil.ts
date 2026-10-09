@@ -8,7 +8,10 @@ import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
  * has nothing to be called but its address, and on a Windows-heavy estate
  * that is most of the Review dialog. A NetBIOS node status (NBSTAT) query to
  * UDP 137 is the one naming method that works across routed networks and from
- * a probe on Kubernetes pod networking, so the probe asks it.
+ * a probe on Kubernetes pod networking, so the probe asks it. Since issue
+ * #4518 it also asks the hosts DNS does name: a NetBIOS name is the host's
+ * own computer name, and it names the device ahead of its PTR record
+ * (Utils/NetworkDevice/DeviceNameRule.ts).
  *
  * The answer is SELF-REPORTED by the scanned host. Unlike a PTR record, which
  * is at least published by whoever runs DNS for the subnet, a NetBIOS name is
@@ -89,10 +92,15 @@ function stripTrailingPadding(value: string): string {
  * normalizeReverseDnsName unchanged is precisely one label that passes
  * LABEL_PATTERN and is not all digits.
  *
- * Case is DISCARDED, unlike a PTR name's. NetBIOS upper-cases names on the
- * wire, so "WORKSTATION01" says nothing about how its owner writes it;
- * lower case matches the DNS names the rest of the estate shows, and device
- * name uniqueness ignores case anyway.
+ * Case is KEPT, like a PTR name's and a sysName's (OneUptime issue #4518).
+ * Windows upper-cases its NetBIOS names, and upper case is how Windows shows
+ * a computer name, how its SNMP agent reports one and how the people who run
+ * the estate write it: the reporter's displays are WB0024KDS03, and a device
+ * list that read "WB0024KDS03" for the one host with an SNMP agent beside
+ * "wb0024kds04" for its NetBIOS-named neighbour looked like two naming
+ * schemes. (Until #4518 the name was lower-cased here, to match the DNS
+ * names it then ranked below.) Device name uniqueness ignores case, so
+ * keeping it cannot make two names collide.
  */
 export function normalizeNetbiosName(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -134,13 +142,11 @@ export function normalizeNetbiosName(value: unknown): string | undefined {
     return undefined;
   }
 
-  const lowerCased: string = candidate.toLowerCase();
-
-  if (lowerCased === BROWSER_ELECTION_PSEUDO_NAME) {
+  if (candidate.toLowerCase() === BROWSER_ELECTION_PSEUDO_NAME) {
     return undefined;
   }
 
-  return lowerCased;
+  return candidate;
 }
 
 /*

@@ -14,6 +14,10 @@ import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAs
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import { fillDeviceNameOnCreate } from "../../Utils/NetworkDevice/DeviceNameDefault";
+import {
+  DEVICE_NAME_SOURCES_BEST_FIRST,
+  readDeviceNameSource,
+} from "../../Types/NetworkDevice/DeviceNameSource";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -159,6 +163,65 @@ function normalizeMacAddressOnWrite(data: Record<string, unknown>): void {
 
   data["macAddress"] = normalized;
   data["isMacAddressLearned"] = false;
+}
+
+/*
+ * The source a write gives a device's discovered name (OneUptime issue
+ * #4518), checked on every write shape: only the four sources the naming rule
+ * knows, or nothing. A value nobody can read would make the device look named
+ * by discovery to some readers and not to others; refusing it is clearer than
+ * quietly storing it. Null and undefined pass (no source, or not written), and
+ * so does a SQL-expression function, which nothing writes here and which is
+ * left alone for the reason normalizeMacAddressOnWrite gives.
+ */
+function assertKnownDiscoveredNameSource(data: Record<string, unknown>): void {
+  if (!("discoveredNameSource" in data)) {
+    return;
+  }
+
+  const raw: unknown = data["discoveredNameSource"];
+
+  if (raw === undefined || raw === null || typeof raw === "function") {
+    return;
+  }
+
+  if (!readDeviceNameSource(raw)) {
+    throw new BadDataException(
+      `Discovered Name Source must be one of: ${DEVICE_NAME_SOURCES_BEST_FIRST.join(", ")}.`,
+    );
+  }
+}
+
+/*
+ * A device a discovery scan creates carries the source of its name; this
+ * records the name it is created UNDER as its discovered name (OneUptime issue
+ * #4518). Server-side, rather than trusted from the payload, so the pair can
+ * only ever say "the device was created with this name, from this source" —
+ * the condition a later scan's rename depends on. It also covers the import's
+ * collision retry, which renames the device after the first create fails.
+ *
+ * A payload with no source gets no discovered name either: a device made by
+ * hand, or through the API without a source, is a person's to name.
+ *
+ * Runs after fillDeviceNameOnCreate, so a nameless create's address-name is
+ * the name recorded.
+ */
+function recordDiscoveredNameOnCreate(data: Record<string, unknown>): void {
+  assertKnownDiscoveredNameSource(data);
+
+  const source: string | undefined = readDeviceNameSource(
+    data["discoveredNameSource"],
+  );
+  const name: string =
+    typeof data["name"] === "string" ? data["name"].trim() : "";
+
+  if (!source || !name) {
+    data["discoveredNameSource"] = undefined;
+    data["discoveredName"] = undefined;
+    return;
+  }
+
+  data["discoveredName"] = name;
 }
 
 function normalizeIdentityValue(value: unknown): string {
@@ -1228,6 +1291,11 @@ export class Service extends ProjectReferencesService<Model> {
      */
     fillDeviceNameOnCreate(createBy.data);
 
+    // The name a discovery import created the device under, and from where.
+    recordDiscoveredNameOnCreate(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
     const siteId: ObjectID | null = readSiteIdFromData(
       createBy.data as unknown as Record<string, unknown>,
     );
@@ -1481,6 +1549,11 @@ export class Service extends ProjectReferencesService<Model> {
      * happen to need the snapshot.
      */
     normalizeMacAddressOnWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    // Above the early return too, for the same reason.
+    assertKnownDiscoveredNameSource(
       updateBy.data as unknown as Record<string, unknown>,
     );
 

@@ -14,6 +14,7 @@ import {
   buildFallbackDeviceName,
 } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { DeviceNameSource } from "../../../Types/NetworkDevice/DeviceNameSource";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -108,9 +109,63 @@ describe("planRunImportedDeviceRenames", () => {
         hostname: ADDRESS,
         fromName: ADDRESS,
         candidateNames: [PTR_NAME, `${PTR_NAME} (${ADDRESS})`],
+        // Recorded with the new name, so a later scan can improve it (#4518).
+        discoveredNameSource: DeviceNameSource.DnsName,
         dnsName: PTR_NAME,
       },
     ]);
+  });
+
+  describe("devices that record how discovery named them (issue #4518)", () => {
+    /*
+     * Every device a discovery import creates since #4518 records the source
+     * of its name, and DiscoveredNameUpgrade.ts improves those — on any scan,
+     * from any worse source. Planning one here as well would rename it twice
+     * in one pass.
+     */
+    test.each([
+      DeviceNameSource.Address,
+      DeviceNameSource.DnsName,
+      DeviceNameSource.NetbiosName,
+      DeviceNameSource.SystemName,
+    ])(
+      "skips a device whose recorded source is %s, however else it matches",
+      (source: DeviceNameSource) => {
+        expect(
+          plan({ devices: [row({ discoveredNameSource: source })] }),
+        ).toEqual([]);
+      },
+    );
+
+    test("still plans a device whose recorded source is unreadable, as one that records none", () => {
+      for (const unreadable of [null, "", "Address", "dns", "system name"]) {
+        expect(
+          plan({ devices: [row({ discoveredNameSource: unreadable })] }),
+        ).toHaveLength(1);
+      }
+    });
+
+    test("records the source of whichever name it plans", () => {
+      expect(
+        plan({
+          hosts: [
+            host({ sysName: "kds01-snmp", netbiosName: "KDS01-WIN" }),
+          ],
+        })[0]?.discoveredNameSource,
+      ).toBe(DeviceNameSource.SystemName);
+      expect(
+        plan({ hosts: [host({ netbiosName: "KDS01-WIN" })] })[0]
+          ?.discoveredNameSource,
+      ).toBe(DeviceNameSource.NetbiosName);
+      expect(plan()[0]?.discoveredNameSource).toBe(DeviceNameSource.DnsName);
+    });
+
+    test("names the device by its NetBIOS name ahead of its PTR name, as an import would", () => {
+      expect(
+        plan({ hosts: [host({ netbiosName: "KDS01-WIN" })] })[0]
+          ?.candidateNames,
+      ).toEqual(["KDS01-WIN", `KDS01-WIN (${ADDRESS})`]);
+    });
   });
 
   describe("(a) the scan's project only", () => {
@@ -305,12 +360,26 @@ describe("planRunImportedDeviceRenames", () => {
     });
 
     test("does not plan a device whose host's only 'name' is its own address", () => {
-      expect(plan({ hosts: [host({ sysName: ADDRESS })] })).toEqual([]);
+      expect(
+        plan({ hosts: [host({ sysName: ADDRESS, dnsHostname: undefined })] }),
+      ).toEqual([]);
       expect(
         plan({
           hosts: [host({ sysName: ` ${ADDRESS} `, dnsHostname: undefined })],
         }),
       ).toEqual([]);
+    });
+
+    test("a sysName that only restates the address no longer hides the PTR name (issue #4518)", () => {
+      /*
+       * The naming rule reads a sysName that is an IP address as no name at
+       * all, so the PTR record names the host — and the device the run
+       * imported by address is renamed to it, as an import would name it.
+       */
+      expect(plan({ hosts: [host({ sysName: ADDRESS })] })[0]).toMatchObject({
+        candidateNames: [PTR_NAME, `${PTR_NAME} (${ADDRESS})`],
+        discoveredNameSource: DeviceNameSource.DnsName,
+      });
     });
 
     test("does not treat an unusable PTR answer as a name", () => {

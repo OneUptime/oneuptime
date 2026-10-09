@@ -138,6 +138,7 @@ import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import logger from "../../../Server/Utils/Logger";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { DeviceNameSource } from "../../../Types/NetworkDevice/DeviceNameSource";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import NetworkDeviceAutoImportRule from "../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
@@ -4013,7 +4014,16 @@ describe("renaming devices imported during the run (issue #3677)", () => {
       expect(renameUpdates()).toEqual([
         {
           id: device.id!.toString(),
-          data: { name: PTR_NAME, dnsName: PTR_NAME },
+          /*
+           * The new name is recorded as the name discovery gave the device,
+           * with its source, so a later scan can improve it (issue #4518).
+           */
+          data: {
+            name: PTR_NAME,
+            discoveredName: PTR_NAME,
+            discoveredNameSource: DeviceNameSource.DnsName,
+            dnsName: PTR_NAME,
+          },
           props: { isRoot: true },
         },
       ]);
@@ -4065,6 +4075,8 @@ describe("renaming devices imported during the run (issue #3677)", () => {
         hostname: true,
         dnsName: true,
         createdAt: true,
+        // A device that records its source is the upgrade planner's (#4518).
+        discoveredNameSource: true,
       });
       expect(lookups[0].props).toEqual({ isRoot: true });
     });
@@ -4168,6 +4180,8 @@ describe("renaming devices imported during the run (issue #3677)", () => {
 
       expect(renameUpdates()[0]!.data).toEqual({
         name: "kds01",
+        discoveredName: "kds01",
+        discoveredNameSource: DeviceNameSource.DnsName,
         dnsName: PTR_NAME,
       });
     });
@@ -4194,7 +4208,11 @@ describe("renaming devices imported during the run (issue #3677)", () => {
       await processScan();
 
       // No PTR record, so nothing to store as a DNS name.
-      expect(renameUpdates()[0]!.data).toEqual({ name: "core-sw-01" });
+      expect(renameUpdates()[0]!.data).toEqual({
+        name: "core-sw-01",
+        discoveredName: "core-sw-01",
+        discoveredNameSource: DeviceNameSource.SystemName,
+      });
     });
 
     it("logs how many devices it named, with the project attached", async () => {
@@ -4423,6 +4441,8 @@ describe("renaming devices imported during the run (issue #3677)", () => {
 
       expect(renameUpdates()[0]!.data).toEqual({
         name: `${PTR_NAME} (10.0.0.5)`,
+        discoveredName: `${PTR_NAME} (10.0.0.5)`,
+        discoveredNameSource: DeviceNameSource.DnsName,
         dnsName: PTR_NAME,
       });
     });
@@ -4484,12 +4504,22 @@ describe("renaming devices imported during the run (issue #3677)", () => {
       expect(renameUpdates()).toEqual([
         {
           id: first.id!.toString(),
-          data: { name: PTR_NAME, dnsName: PTR_NAME },
+          data: {
+            name: PTR_NAME,
+            discoveredName: PTR_NAME,
+            discoveredNameSource: DeviceNameSource.DnsName,
+            dnsName: PTR_NAME,
+          },
           props: { isRoot: true },
         },
         {
           id: second.id!.toString(),
-          data: { name: `${PTR_NAME} (10.0.0.6)`, dnsName: PTR_NAME },
+          data: {
+            name: `${PTR_NAME} (10.0.0.6)`,
+            discoveredName: `${PTR_NAME} (10.0.0.6)`,
+            discoveredNameSource: DeviceNameSource.DnsName,
+            dnsName: PTR_NAME,
+          },
           props: { isRoot: true },
         },
       ]);
@@ -4512,12 +4542,22 @@ describe("renaming devices imported during the run (issue #3677)", () => {
       expect(renameUpdates()).toEqual([
         {
           id: first.id!.toString(),
-          data: { name: PTR_NAME, dnsName: PTR_NAME },
+          data: {
+            name: PTR_NAME,
+            discoveredName: PTR_NAME,
+            discoveredNameSource: DeviceNameSource.DnsName,
+            dnsName: PTR_NAME,
+          },
           props: { isRoot: true },
         },
         {
           id: second.id!.toString(),
-          data: { name: `${PTR_NAME} (10.0.0.5)`, dnsName: PTR_NAME },
+          data: {
+            name: `${PTR_NAME} (10.0.0.5)`,
+            discoveredName: `${PTR_NAME} (10.0.0.5)`,
+            discoveredNameSource: DeviceNameSource.DnsName,
+            dnsName: PTR_NAME,
+          },
           props: { isRoot: true },
         },
       ]);
@@ -4542,7 +4582,11 @@ describe("renaming devices imported during the run (issue #3677)", () => {
 
       await processScan();
 
-      expect(renameUpdates()[0]!.data).toEqual({ name: PTR_NAME });
+      expect(renameUpdates()[0]!.data).toEqual({
+        name: PTR_NAME,
+        discoveredName: PTR_NAME,
+        discoveredNameSource: DeviceNameSource.DnsName,
+      });
     });
   });
 
