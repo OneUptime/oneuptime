@@ -39,10 +39,13 @@ Kontrollera DNS och HTTPS från den sändande containern eller podden till desti
 - Verifiera att enheten är registrerad i tabellen `UserPush` i din databas
 - Kontrollera OneUptime-serverloggarna efter Expo Push API-fel
 - Bekräfta att enheten har en aktiv internetanslutning och aviseringsbehörigheter aktiverade
+- Kontrollera **User Settings > Notification Methods > Push**: en enhet som är markerad **Tar inte emot aviseringar** har slutat ta emot dem och måste registreras igen (se nedan)
 
 ### "DeviceNotRegistered"-fel i loggar
 
-Expo Push-token är inte längre giltig. Det beror vanligtvis på att appen avinstallerades eller att användaren återkallade aviserings behörigheter. Token rensas upp automatiskt.
+Expo svarar på en push med `DeviceNotRegistered` när mobilappen har tagits bort från enheten eller enhetens push-token inte längre är giltig. OneUptime slutar då skicka till den enheten. Den markeras som att den inte tar emot aviseringar i stället för att raderas, så att dess aviseringsregler finns kvar, och push-loggen och jourtidslinjen anger varför. **User Settings > Notification Methods > Push** visar den som **Tar inte emot aviseringar**. Ägarens andra enheter och aviseringsmetoder larmas fortfarande.
+
+För att få tillbaka enheten öppnar du mobilappen på den medan du är inloggad. Appen registrerar sig igen, vilket förnyar dess push-token hos Expo, och enheten tar emot aviseringar igen med sina regler. Om appen har tagits bort installerar du den igen och loggar in. Via push-reläet (utan `EXPO_ACCESS_TOKEN`) fungerar det på samma sätt: reläet rapporterar `DeviceNotRegistered` till din instans.
 
 ## Support
 

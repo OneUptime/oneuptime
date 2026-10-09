@@ -39,6 +39,120 @@ import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import SlackInlineImages from "./SlackInlineImages";
 import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
+import {
+  SLOW_MARKDOWN_MAX_INLINE_WORK,
+  SLOW_MARKDOWN_MAX_NESTING_DEPTH,
+  SlowMarkdownLimits,
+  holdBackSlowMarkdown,
+} from "../../../../Utils/Markdown/SlowMarkdown";
+import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
+
+/*
+ * What slackify reads a "%" that starts no escape as (see
+ * getSlackifySafeMarkdown), and what encodeURI makes of it in an address.
+ */
+const SLACKIFY_PERCENT_STAND_IN: string = "\uE007";
+const ENCODED_PERCENT_STAND_IN: string = encodeURI(SLACKIFY_PERCENT_STAND_IN);
+
+const isHexDigit: (code: number) => boolean = (code: number): boolean => {
+  return (
+    (code >= 0x30 && code <= 0x39) ||
+    (code >= 0x41 && code <= 0x46) ||
+    (code >= 0x61 && code <= 0x66)
+  );
+};
+
+// Markdown slackify cannot fail on, and how to put back what was changed.
+export interface SlackifySafeMarkdown {
+  markdown: string;
+  restore: (slackText: string) => string;
+}
+
+/*
+ * `markdown` with nothing slackify-markdown throws on (see
+ * SlackUtil.slackify): every "%" that is not the start of an escape ("%2F")
+ * becomes a stand-in, and every half of a surrogate pair standing alone
+ * becomes U+FFFD. `restore` turns the stand-in back into "%" - "%25" where
+ * slackify encoded the address it is in, as "%" is written in an address.
+ * Markdown with none of these comes back as it is. Scanned with a loop: the
+ * text can be long.
+ */
+export const getSlackifySafeMarkdown: (
+  markdown: string,
+) => SlackifySafeMarkdown = (markdown: string): SlackifySafeMarkdown => {
+  const unchanged: SlackifySafeMarkdown = {
+    markdown: markdown,
+    restore: (slackText: string): string => {
+      return slackText;
+    },
+  };
+
+  let safe: string = "";
+  let copiedUpTo: number = 0;
+  let hasStandIn: boolean = false;
+
+  for (let index: number = 0; index < markdown.length; index++) {
+    const code: number = markdown.charCodeAt(index);
+    let replacement: string | null = null;
+
+    if (code === 0x25) {
+      if (
+        !isHexDigit(markdown.charCodeAt(index + 1)) ||
+        !isHexDigit(markdown.charCodeAt(index + 2))
+      ) {
+        replacement = SLACKIFY_PERCENT_STAND_IN;
+        hasStandIn = true;
+      }
+    } else if (code >= 0xd800 && code <= 0xdbff) {
+      const next: number = markdown.charCodeAt(index + 1);
+
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        index++;
+      } else {
+        replacement = "\uFFFD";
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      replacement = "\uFFFD";
+    }
+
+    if (replacement !== null) {
+      safe += markdown.slice(copiedUpTo, index) + replacement;
+      copiedUpTo = index + 1;
+    }
+  }
+
+  if (copiedUpTo === 0) {
+    return unchanged;
+  }
+
+  safe += markdown.slice(copiedUpTo);
+
+  /*
+   * An address that already held the stand-in's escape would be read back
+   * wrongly: leave the "%" as it was, and let slackify fail on it.
+   */
+  if (
+    hasStandIn &&
+    markdown.toUpperCase().indexOf(ENCODED_PERCENT_STAND_IN) !== -1
+  ) {
+    return unchanged;
+  }
+
+  return {
+    markdown: safe,
+    restore: (slackText: string): string => {
+      if (!hasStandIn) {
+        return slackText;
+      }
+
+      return slackText
+        .split(ENCODED_PERCENT_STAND_IN)
+        .join("%25")
+        .split(SLACKIFY_PERCENT_STAND_IN)
+        .join("%");
+    },
+  };
+};
 
 // Markdown as slackify is given it (see SlackUtil.cutMarkdown).
 export interface CutMarkdown {
@@ -55,6 +169,8 @@ export default class SlackUtil extends WorkspaceBase {
    * not just the offending block.
    */
   public static readonly SECTION_TEXT_MAX_LENGTH: number = 3000;
+  // The most a header block's text can be.
+  public static readonly HEADER_TEXT_MAX_LENGTH: number = 150;
   public static readonly MAX_BLOCKS_PER_MESSAGE: number = 50;
   public static readonly MAX_BLOCKS_PER_MODAL: number = 100;
 
@@ -85,6 +201,30 @@ export default class SlackUtil extends WorkspaceBase {
   public static readonly MARKDOWN_MAX_LENGTH: number =
     (SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK + 1) *
     SlackUtil.SECTION_TEXT_MAX_LENGTH;
+
+  /*
+   * What slackify is given at most once the Markdown is cut
+   * (Utils/Markdown/SlowMarkdown): its time grew with the square of a run of
+   * emphasis or brackets, of one paragraph's lines (a paragraph of 16,000
+   * lines took 4 s) and length (32 KB of web addresses on one line took
+   * three quarters of a second), and of the blocks of a message. So a block
+   * with a paragraph or list item of more than 256 lines or 4,096
+   * characters, more than 2,048 lines in all, and the content of fenced
+   * code are held back and written back as text. A list of short items is
+   * read in good time, however long.
+   */
+  public static readonly SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
+    maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
+    maxRunLines: Number.POSITIVE_INFINITY,
+    maxLines: 2048,
+    maxUnitLines: 256,
+    maxUnitLength: 4096,
+    maxNestingDepth: SLOW_MARKDOWN_MAX_NESTING_DEPTH,
+    maxCellsPerLine: 128,
+    holdBackCodeBlockContent: true,
+    countUrlLiterals: true,
+    countWordUnderscores: true,
+  };
 
   // Closes and reopens a ``` code block that a section boundary cuts through.
   private static readonly CODE_FENCE: string = "```";
@@ -1971,11 +2111,23 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting header block with data:", {} as LogAttributes);
     logger.debug(data, {} as LogAttributes);
 
+    /*
+     * Slack refuses a whole message whose header is over 150 characters:
+     * a longer one is cut, between whole characters, and ends with "…".
+     */
+    const headerText: string =
+      data.payloadHeaderBlock.text.length > SlackUtil.HEADER_TEXT_MAX_LENGTH
+        ? cutToLength(
+            data.payloadHeaderBlock.text,
+            SlackUtil.HEADER_TEXT_MAX_LENGTH - 1,
+          ) + "…"
+        : data.payloadHeaderBlock.text;
+
     const headerBlock: JSONObject = {
       type: "header",
       text: {
         type: "plain_text",
-        text: data.payloadHeaderBlock.text,
+        text: headerText,
       },
     };
 
@@ -2463,7 +2615,7 @@ export default class SlackUtil extends WorkspaceBase {
         SlackUtil.SECTION_TEXT_MAX_LENGTH,
     );
 
-    const text: string = markdown.text ? SlackifyMarkdown(markdown.text) : "";
+    const text: string = markdown.text ? this.slackify(markdown.text) : "";
 
     const sectionTexts: Array<string> = this.splitSectionText({
       text: text,
@@ -3000,28 +3152,162 @@ export default class SlackUtil extends WorkspaceBase {
     return apiResult;
   }
 
+  /*
+   * Markdown as Slack's mrkdwn (slackify-markdown), in time linear in its
+   * length: the blocks slackify would take too long to read, and the
+   * content of fenced code, are held back first (SLOW_MARKDOWN_LIMITS) and
+   * written back where slackify put them - escaped as Slack reads text
+   * ("&", "<" and ">"), a line on each line.
+   *
+   * And whatever the text, it converts: slackify reads every link's address
+   * with decodeURIComponent and encodeURI, which throw on a "%" that starts
+   * no escape and on half an emoji ("URI malformed") - a response body with
+   * "100%" in an address was enough, and the message was never sent. Such a
+   * "%" goes through slackify as a stand-in character and comes back as it
+   * was ("%25" where slackify encoded the address), half an emoji goes
+   * through as U+FFFD, and should slackify still fail, the message is sent
+   * as its text (getSlackifySafeMarkdown).
+   */
+  public static slackify(markdown: string): string {
+    if (!markdown) {
+      return "";
+    }
+
+    const held: Array<string> = [];
+
+    // Read with indexOf: the text can be long.
+    const putBack: (value: string, escape: boolean) => string = (
+      value: string,
+      escape: boolean,
+    ): string => {
+      let restored: string = "";
+      let restoredUpTo: number = 0;
+
+      for (
+        let open: number = value.indexOf("\uE005");
+        open !== -1;
+        open = value.indexOf("\uE005", restoredUpTo)
+      ) {
+        const close: number = value.indexOf("\uE006", open + 1);
+
+        if (close === -1) {
+          break;
+        }
+
+        const heldText: string =
+          held[Number(value.slice(open + 1, close))] ?? "";
+
+        restored +=
+          value.slice(restoredUpTo, open) +
+          (escape ? SlackUtil.escapeSlackText(heldText) : heldText);
+        restoredUpTo = close + 1;
+      }
+
+      return restored + value.slice(restoredUpTo);
+    };
+
+    const hold: (text: string) => string = (text: string): string => {
+      held.push(putBack(text, false));
+
+      return `\uE005${held.length - 1}\uE006`;
+    };
+
+    /*
+     * Token characters already in the Markdown - and the stand-in for a
+     * "%" - are held back as they are.
+     */
+    let withoutTokens: string = markdown;
+
+    if (
+      markdown.indexOf("\uE005") !== -1 ||
+      markdown.indexOf("\uE006") !== -1 ||
+      markdown.indexOf(SLACKIFY_PERCENT_STAND_IN) !== -1
+    ) {
+      withoutTokens = "";
+      let copiedUpTo: number = 0;
+
+      for (let index: number = 0; index < markdown.length; index++) {
+        const code: number = markdown.charCodeAt(index);
+
+        if (code === 0xe005 || code === 0xe006 || code === 0xe007) {
+          withoutTokens +=
+            markdown.slice(copiedUpTo, index) + hold(markdown.charAt(index));
+          copiedUpTo = index + 1;
+        }
+      }
+
+      withoutTokens += markdown.slice(copiedUpTo);
+    }
+
+    let markdownToRead: string = holdBackSlowMarkdown(
+      withoutTokens,
+      { holdLines: hold, holdCode: hold },
+      SlackUtil.SLOW_MARKDOWN_LIMITS,
+    );
+
+    if (held.length === 0) {
+      // Nothing was held back: slackify reads the Markdown as it is.
+      markdownToRead = markdown;
+    }
+
+    const safe: SlackifySafeMarkdown = getSlackifySafeMarkdown(markdownToRead);
+    let text: string;
+
+    try {
+      text = SlackifyMarkdown(safe.markdown);
+    } catch (error) {
+      logger.warn(
+        `Slack could not convert a message's Markdown (${markdown.length} characters), and it is sent as text: ${error instanceof Error ? error.message : String(error)}`,
+      );
+
+      return SlackUtil.escapeSlackText(markdown);
+    }
+
+    text = safe.restore(text);
+
+    return held.length > 0 ? putBack(text, true) : text;
+  }
+
+  // Text as Slack shows it: "&", "<" and ">" escaped, nothing else changed.
+  public static escapeSlackText(text: string): string {
+    return text
+      .split("&")
+      .join("&amp;")
+      .split("<")
+      .join("&lt;")
+      .split(">")
+      .join("&gt;");
+  }
+
   /**
    * Converts markdown tables to a Slack-friendly format.
    * Since Slack's mrkdwn doesn't support tables, we convert them to
-   * a row-by-row format with bold headers.
+   * a row-by-row format with bold headers. Tables are found in one pass over
+   * the lines (Utils/Markdown/PipeTables).
    */
   private static convertMarkdownTablesToSlackFormat(markdown: string): string {
-    // Regular expression to match markdown tables
-    const tableRegex: RegExp =
-      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
+    return replacePipeTables(markdown, (lines: Array<string>): string => {
+      // Parse header row
+      const headerLine: string = lines[0] || "";
+      const headers: Array<string> = headerLine
+        .split("|")
+        .map((cell: string) => {
+          return cell.trim();
+        })
+        .filter((cell: string) => {
+          return cell.length > 0;
+        });
 
-    return markdown.replace(
-      tableRegex,
-      (_match: string, table: string): string => {
-        const lines: Array<string> = table.trim().split("\n");
+      /*
+       * Skip separator line (line with dashes)
+       * Find data rows (skip header and separator)
+       */
+      const dataRows: Array<string> = lines.slice(2);
+      const formattedRows: Array<string> = [];
 
-        if (lines.length < 2) {
-          return table;
-        }
-
-        // Parse header row
-        const headerLine: string = lines[0] || "";
-        const headers: Array<string> = headerLine
+      for (let rowIndex: number = 0; rowIndex < dataRows.length; rowIndex++) {
+        const row: string = dataRows[rowIndex] || "";
+        const cells: Array<string> = row
           .split("|")
           .map((cell: string) => {
             return cell.trim();
@@ -3030,50 +3316,27 @@ export default class SlackUtil extends WorkspaceBase {
             return cell.length > 0;
           });
 
-        /*
-         * Skip separator line (line with dashes)
-         * Find data rows (skip header and separator)
-         */
-        const dataRows: Array<string> = lines.slice(2);
-        const formattedRows: Array<string> = [];
-
-        for (let rowIndex: number = 0; rowIndex < dataRows.length; rowIndex++) {
-          const row: string = dataRows[rowIndex] || "";
-          const cells: Array<string> = row
-            .split("|")
-            .map((cell: string) => {
-              return cell.trim();
-            })
-            .filter((cell: string) => {
-              return cell.length > 0;
-            });
-
-          if (cells.length === 0) {
-            continue;
-          }
-
-          const rowParts: Array<string> = [];
-          for (
-            let cellIndex: number = 0;
-            cellIndex < cells.length;
-            cellIndex++
-          ) {
-            const header: string =
-              headers[cellIndex] || `Column ${cellIndex + 1}`;
-            const value: string = cells[cellIndex] || "";
-            rowParts.push(`*${header}:* ${value}`);
-          }
-
-          if (dataRows.length > 1) {
-            formattedRows.push(`_Row ${rowIndex + 1}_\n${rowParts.join("\n")}`);
-          } else {
-            formattedRows.push(rowParts.join("\n"));
-          }
+        if (cells.length === 0) {
+          continue;
         }
 
-        return "\n" + formattedRows.join("\n\n") + "\n";
-      },
-    );
+        const rowParts: Array<string> = [];
+        for (let cellIndex: number = 0; cellIndex < cells.length; cellIndex++) {
+          const header: string =
+            headers[cellIndex] || `Column ${cellIndex + 1}`;
+          const value: string = cells[cellIndex] || "";
+          rowParts.push(`*${header}:* ${value}`);
+        }
+
+        if (dataRows.length > 1) {
+          formattedRows.push(`_Row ${rowIndex + 1}_\n${rowParts.join("\n")}`);
+        } else {
+          formattedRows.push(rowParts.join("\n"));
+        }
+      }
+
+      return formattedRows.join("\n\n");
+    });
   }
 
   @CaptureSpan()
@@ -3089,7 +3352,7 @@ export default class SlackUtil extends WorkspaceBase {
     // First convert tables to Slack-friendly format
     const markdownWithConvertedTables: string =
       this.convertMarkdownTablesToSlackFormat(markdownWithoutInlineImages.text);
-    const text: string = SlackifyMarkdown(markdownWithConvertedTables);
+    const text: string = this.slackify(markdownWithConvertedTables);
 
     return markdownWithoutInlineImages.isCutShort
       ? text.trimEnd() + SlackUtil.TRUNCATED_SECTION_NOTE

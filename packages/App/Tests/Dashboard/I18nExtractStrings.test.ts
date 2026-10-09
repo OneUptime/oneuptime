@@ -10,6 +10,7 @@ import {
   NestedEnglishEntry,
   scanSourceRoots,
   scanSourceText,
+  SKIPPED_SOURCE_FILES,
   SOURCE_ROOTS,
   SourceScanResult,
   toRepositoryPath,
@@ -766,6 +767,14 @@ describe("scanning a source tree", () => {
       "models/Thing.ts",
       `@TableMetadata({ singularName: "Thing", pluralName: "Things" }) class Thing {}`,
     );
+    write(
+      "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
+      `@TableMetadata({ singularName: "License Row", pluralName: "License Rows" }) class EnterpriseLicense {}`,
+    );
+    write(
+      "packages/Common/Models/DatabaseModels/Monitor.ts",
+      `@TableMetadata({ singularName: "Monitor", pluralName: "Monitors" }) class Monitor {}`,
+    );
   });
 
   afterAll(() => {
@@ -806,6 +815,22 @@ describe("scanning a source tree", () => {
     ]);
   });
 
+  test("leaves out the files no frontend shows: the license server's own table", () => {
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: "packages/Common/Models/DatabaseModels", kind: "models" }],
+      repository,
+    );
+
+    expect(
+      result.strings.map((entry: ExtractedString): string => {
+        return `${entry.file} ${entry.text}`;
+      }),
+    ).toEqual([
+      "packages/Common/Models/DatabaseModels/Monitor.ts Monitor",
+      "packages/Common/Models/DatabaseModels/Monitor.ts Monitors",
+    ]);
+  });
+
   test("gives the same result every time", () => {
     const first: string = JSON.stringify(
       scanSourceRoots([{ directory: "ui", kind: "ui" }], repository),
@@ -830,6 +855,24 @@ describe("the real source roots", () => {
       "models packages/Common/Models/DatabaseModels",
       "models packages/Common/Models/AnalyticsModels",
     ]);
+  });
+
+  /*
+   * A skipped file that is renamed or moved would be extracted again under
+   * its new name, and the license server's enterprise-only column titles
+   * would reach every locale file, which a test in ee/ refuses.
+   */
+  test("skip only the license server's own table, by a path that exists", () => {
+    expect([...SKIPPED_SOURCE_FILES]).toEqual([
+      "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
+    ]);
+
+    for (const file of SKIPPED_SOURCE_FILES) {
+      expect([
+        file,
+        fs.existsSync(path.join(__dirname, "..", "..", "..", "..", file)),
+      ]).toEqual([file, true]);
+    }
   });
 
   test("the shared components' own sentences are found where they are written", () => {

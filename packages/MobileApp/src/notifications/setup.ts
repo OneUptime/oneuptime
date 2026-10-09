@@ -72,7 +72,20 @@ export async function setupNotificationCategories(): Promise<void> {
   ]);
 }
 
-export async function requestPermissionsAndGetToken(): Promise<string | null> {
+export interface PushTokenRequestOptions {
+  /*
+   * Ask for notification permission when it has not been granted. The app
+   * asks when it starts; when it only comes back from the background it
+   * registers again without asking, so switching back to the app never
+   * brings the prompt back. A permission granted in the system settings in
+   * the meantime is still picked up.
+   */
+  askForPermission?: boolean | undefined;
+}
+
+export async function requestPermissionsAndGetToken(
+  options: PushTokenRequestOptions = {},
+): Promise<string | null> {
   if (!Device.isDevice) {
     logger.warn(
       "[PushNotifications] Not a physical device — skipping push token registration",
@@ -82,6 +95,13 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus: PermissionStatus = existingStatus;
+
+  if (existingStatus !== "granted" && options.askForPermission === false) {
+    logger.info(
+      "[PushNotifications] Push notification permission not granted - not asking again until the app starts",
+    );
+    return null;
+  }
 
   if (existingStatus !== "granted") {
     const { status } = await Notifications.requestPermissionsAsync({

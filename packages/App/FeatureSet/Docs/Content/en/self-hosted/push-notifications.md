@@ -128,6 +128,7 @@ first, and you will hear whether a real page would reach you.
 - Verify the device is registered in the `UserPush` table in your database
 - Check OneUptime server logs for Expo Push API errors
 - Confirm the device has an active internet connection and notification permissions enabled
+- Check **User Settings > Notification Methods > Push**: a device marked **Not receiving notifications** stopped receiving them and has to be registered again (see below)
 
 ### No Critical Alerts switch in iOS Settings
 
@@ -154,7 +155,9 @@ first, and you will hear whether a real page would reach you.
 
 ### "DeviceNotRegistered" errors in logs
 
-The Expo Push Token is no longer valid. This usually means the app was uninstalled or the user revoked notification permissions. The token will be cleaned up automatically.
+Expo answers a push with `DeviceNotRegistered` when the mobile app was removed from the device or the device's push token is no longer valid. OneUptime then stops sending to that device. It is marked as not receiving notifications rather than deleted, so its notification rules stay, and the push log and the on-call timeline say why. **User Settings > Notification Methods > Push** shows it as **Not receiving notifications**. Its owner's other devices and notification methods are still paged.
+
+To bring the device back, open the mobile app on it while signed in. The app registers again, which renews its push token with Expo, and the device receives notifications again with its rules. If the app was removed, install it again and sign in. Through the push relay (no `EXPO_ACCESS_TOKEN`) this works the same way: the relay reports `DeviceNotRegistered` to your instance.
 
 ## Support
 

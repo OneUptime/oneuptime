@@ -14,6 +14,8 @@ import UserPush from "../../Models/DatabaseModels/UserPush";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import Includes from "../../Types/BaseDatabase/Includes";
+import { EXPO_PUSH_DEVICE_TYPES } from "../../Types/PushNotification/ExpoPushDeviceType";
 
 export class Service extends DatabaseService<UserPush> {
   public constructor() {
@@ -253,10 +255,28 @@ export class Service extends DatabaseService<UserPush> {
     deviceToken: string;
     userId?: ObjectID | undefined;
   }): Promise<number> {
+    return await this.markPushTokenAsGone({
+      ...data,
+      deviceType: PushDeviceType.Web,
+    });
+  }
+
+  /*
+   * What marking a gone subscription or token does, for both kinds: the
+   * verified devices of these types registered with it stop being verified,
+   * as root (UserPush grants update to nobody), every one of them - not
+   * deleted, so their rules survive. markWebPushSubscriptionAsGone and
+   * markExpoPushTokenAsGone differ only in the devices a token can belong to.
+   */
+  private async markPushTokenAsGone(data: {
+    deviceToken: string;
+    deviceType: PushDeviceType | Includes;
+    userId?: ObjectID | undefined;
+  }): Promise<number> {
     return await this.updateBy({
       query: {
         deviceToken: data.deviceToken,
-        deviceType: PushDeviceType.Web,
+        deviceType: data.deviceType,
         isVerified: true,
         ...(data.userId ? { userId: data.userId } : {}),
       },
@@ -269,6 +289,78 @@ export class Service extends DatabaseService<UserPush> {
         isRoot: true,
       },
     });
+  }
+
+  /**
+   * An Expo push token that is gone: Expo answered a send to it with
+   * DeviceNotRegistered (PushNotificationService - sent directly with the
+   * deployment's Expo access token, or through the push relay, which says
+   * so in its answer). The mobile app was removed from the device, or the
+   * device's push token is no longer valid.
+   *
+   * The phones and tablets registered with it stop being verified, exactly
+   * as markWebPushSubscriptionAsGone does for a browser: nothing more is
+   * sent to them, and the on-call timeline, readiness and the device list
+   * say they no longer receive notifications. Before, the token stayed
+   * verified and every later page to it failed at Expo.
+   *
+   * Marked, not deleted, for the same reason: the rules their owner set up
+   * for them survive (UserNotificationRule.userPushId cascades on delete).
+   * The app gets its token from Expo again every time it registers, which
+   * renews it there, and registering a device that is marked here verifies
+   * it again (UserPushAPI's register route).
+   *
+   * Only iOS and Android devices: an Expo push token is never a browser's
+   * subscription. Every account that registered the token has lost it
+   * alike, so without `userId` all of them are marked.
+   *
+   * Returns how many devices were marked.
+   */
+  @CaptureSpan()
+  public async markExpoPushTokenAsGone(data: {
+    deviceToken: string;
+    userId?: ObjectID | undefined;
+  }): Promise<number> {
+    return await this.markPushTokenAsGone({
+      ...data,
+      deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
+    });
+  }
+
+  /**
+   * The mobile app registered a token again whose device is not verified -
+   * most often one Expo said was gone (markExpoPushTokenAsGone). The app
+   * asks Expo for its token on every launch before it registers, and that
+   * request renews the token with Expo, so the token it registers is one
+   * Expo can deliver to: the device is verified again, with the rules its
+   * owner set up for it. If Expo still refuses it, the next page marks it
+   * again.
+   *
+   * Only an iOS or Android device. A browser's subscription that the push
+   * service refused is gone for good, and its browser renews it with a new
+   * one instead (replaceWebPushSubscription).
+   *
+   * Returns whether the device was verified again.
+   */
+  @CaptureSpan()
+  public async verifyExpoPushDeviceRegisteredAgain(
+    deviceId: ObjectID,
+  ): Promise<boolean> {
+    const verifiedCount: number = await this.updateOneBy({
+      query: {
+        _id: deviceId.toString(),
+        deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
+        isVerified: false,
+      },
+      data: {
+        isVerified: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return verifiedCount > 0;
   }
 
   /**
