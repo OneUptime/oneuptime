@@ -771,6 +771,8 @@ describe("examples are built from this step and this workflow", () => {
       ComponentID.MicrosoftTeamsSendMessageToChannel,
       ComponentID.DiscordSendMessageToChannel,
       ComponentID.TelegramSendMessageToChat,
+      ComponentID.SMSEagleSendSms,
+      ComponentID.SMSEagleMakeCall,
       ComponentID.SendEmail,
       ComponentID.Log,
     ]) {

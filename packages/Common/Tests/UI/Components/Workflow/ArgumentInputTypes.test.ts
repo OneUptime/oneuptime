@@ -168,6 +168,12 @@ const MULTI_LINE_TEXT_ARGUMENTS: Array<[string, ComponentID, string]> = [
     ComponentID.TelegramSendMessageToChat,
     "text",
   ],
+  ["Send SMS via SMSEagle → Message Text", ComponentID.SMSEagleSendSms, "text"],
+  [
+    "Make a Call via SMSEagle → Text to Read Out",
+    ComponentID.SMSEagleMakeCall,
+    "text",
+  ],
   [
     "Generate Text with AI → System Instructions",
     ComponentID.AIGenerateText,
@@ -291,6 +297,36 @@ const SINGLE_LINE_ARGUMENTS: Array<
     ComponentID.TelegramSendMessageToChat,
     "bot-token",
     FormFieldSchemaType.Text,
+  ],
+  [
+    "Send SMS via SMSEagle → Phone Number",
+    ComponentID.SMSEagleSendSms,
+    "to",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Send SMS via SMSEagle → SMSEagle Access Token",
+    ComponentID.SMSEagleSendSms,
+    "access-token",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Make a Call via SMSEagle → Phone Number",
+    ComponentID.SMSEagleMakeCall,
+    "to",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Make a Call via SMSEagle → SMSEagle Access Token",
+    ComponentID.SMSEagleMakeCall,
+    "access-token",
+    FormFieldSchemaType.Text,
+  ],
+  [
+    "Make a Call via SMSEagle → Voice ID",
+    ComponentID.SMSEagleMakeCall,
+    "voice-id",
+    FormFieldSchemaType.Number,
   ],
   [
     "Send Message to Slack → Webhook URL",
@@ -545,6 +581,8 @@ describe("Rules that hold for every workflow argument", () => {
       ComponentID.MicrosoftTeamsSendMessageToChannel,
       ComponentID.DiscordSendMessageToChannel,
       ComponentID.TelegramSendMessageToChat,
+      ComponentID.SMSEagleSendSms,
+      ComponentID.SMSEagleMakeCall,
     ]) {
       expect(findArgument(componentId, "text").type).toBe(
         ComponentInputType.LongText,
