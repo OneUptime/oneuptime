@@ -8,6 +8,8 @@ import {
 } from "../AI/ClusterToolFormat";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
+import { AIPromptOmissions } from "Common/Types/AI/AIChatTypes";
+import { formatSize } from "Common/Utils/AI/PromptText";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
@@ -306,6 +308,61 @@ function describeFailedToolCall(
 }
 
 /*
+ * What an investigation left out of the incident's or alert's text before
+ * the model read it (Common/Utils/AI/PromptText), one line per kind: the
+ * images embedded in it - a synthetic monitor's screenshot - and the end of
+ * a text too long for its field. Responders see why OneUptime AI says
+ * nothing about a screenshot they can see.
+ */
+export function describePromptOmissions(
+  omissions: AIPromptOmissions,
+  translator: Translator = getGlobalTranslator(),
+): Array<string> {
+  const lines: Array<string> = [];
+
+  if (omissions.imageCount > 0) {
+    lines.push(
+      translator.translatePlural(
+        {
+          one: "Left out {{count}} embedded image ({{size}}): AI reads text, not images",
+          other:
+            "Left out {{count}} embedded images ({{size}}): AI reads text, not images",
+        },
+        omissions.imageCount,
+        { size: formatSize(omissions.imageBytes) },
+      ),
+    );
+  }
+
+  if (omissions.encodedDataCount > 0) {
+    lines.push(
+      translator.translateTemplate(
+        "Left out {{size}} of encoded data: AI reads text only",
+        { size: formatSize(omissions.encodedDataBytes) },
+      ),
+    );
+  }
+
+  if (omissions.shortenedTextCount > 0) {
+    lines.push(
+      translator.translatePlural(
+        {
+          one: "Shortened {{count}} long text: {{characters}} characters left out",
+          other:
+            "Shortened {{count}} long texts: {{characters}} characters left out",
+        },
+        omissions.shortenedTextCount,
+        {
+          characters: translator.formatNumber(omissions.omittedCharacterCount),
+        },
+      ),
+    );
+  }
+
+  return lines;
+}
+
+/*
  * The steps the events draw, in the reader's language. A step is completed
  * by matching its text, which is always produced by the same translator.
  */
@@ -403,6 +460,27 @@ function buildSteps(
        * agent container). The display text lives in resultSummary.message.
        */
       case AIRunEventType.ProgressLog: {
+        /*
+         * What an investigation left out of what the model read: drawn from
+         * the counts, in the reader's language, not from the English line.
+         */
+        const omissions: AIPromptOmissions | undefined =
+          event.resultSummary?.promptOmissions;
+
+        if (omissions) {
+          describePromptOmissions(omissions, translator).forEach(
+            (text: string, index: number): void => {
+              steps.push({
+                key: `${key}-${index}`,
+                text,
+                status: "done",
+                kind: "log",
+              });
+            },
+          );
+          break;
+        }
+
         const message: string | undefined = event.resultSummary?.message;
         if (message) {
           steps.push({

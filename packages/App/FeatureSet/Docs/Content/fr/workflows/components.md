@@ -36,7 +36,7 @@ Générer une réponse texte unique à partir d'un prompt et d'un contexte JSON 
 - **Temperature** — la variation, de `0` à `1`. La valeur par défaut est `0.2`, pour une automatisation prévisible.
 - **Maximum Output Tokens** — de `1` à `4096`. La valeur par défaut est `1024`.
 
-Les System Instructions, le Prompt et le Context sérialisé sont limités à 50 000 caractères au total. La requête au fournisseur a une durée maximale de 60 secondes et n'est tentée qu'une seule fois. Au maximum trois requêtes IA de workflow s'exécutent simultanément par projet.
+Les System Instructions, le Prompt et le Context sérialisé sont limités à 50 000 caractères au total. Une image intégrée en base64, comme la capture d'écran d'un moniteur synthétique dans la description d'un incident, est remplacée par une courte note comme `[image omitted: PNG, 340 KB]` avant le décompte, car le modèle lit du texte, pas des images. Le journal de l'exécution indique ce qui a été omis. La requête au fournisseur a une durée maximale de 60 secondes et n'est tentée qu'une seule fois. Au maximum trois requêtes IA de workflow s'exécutent simultanément par projet.
 
 **Sorties** :
 

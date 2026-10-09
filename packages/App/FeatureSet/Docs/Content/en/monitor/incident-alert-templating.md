@@ -159,6 +159,7 @@ The screenshot then appears on the incident's or alert's page, on the status pag
 - Uploading to Slack needs the app's `files:write` permission. If your workspace connected Slack before OneUptime asked for it, connect Slack again in **Project Settings > Slack Integration** (on a self-hosted server, add the permission to your Slack app first - see [Slack Integration](/docs/self-hosted/slack-integration#images-in-messages)).
 - A screenshot a chat cannot show - a WebP, one past those limits, one Slack or Teams refuses, or any screenshot in a message sent through an incoming webhook - is shown as its alt text, or "[image]" when it has none, so give each image alt text. The image's base64 never reaches the chat.
 - Only an image you write in the template is shown. An image in a value the monitored page or script reported - an error message, a log line - still shows as text (see [Values in descriptions and remediation notes](#values-in-descriptions-and-remediation-notes)).
+- OneUptime AI reads the text around a screenshot, not the screenshot. What an investigation, a drafted postmortem or note, a runbook's AI step or a workflow's AI step gives the model has a short note in the image's place, such as `[image omitted: PNG, 340 KB]`: a model reads text, not images, and a screenshot's base64 would be hundreds of thousands of tokens on every call. The investigation's activity says what was left out.
 
 ### Custom JavaScript Code Monitors
 

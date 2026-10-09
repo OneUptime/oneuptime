@@ -37,6 +37,7 @@ import AiCreditsUsedUpOwnerNotice from "../Utils/AI/AiCreditsUsedUpOwnerNotice";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../Utils/Project/ProjectBalance";
 import AutoRechargeState from "../../Types/Billing/AutoRechargeState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import PromptText from "../../Utils/AI/PromptText";
 import logger, { LogAttributes } from "../Utils/Logger";
 
 /*
@@ -446,6 +447,15 @@ export interface AILogRequest {
    * chat) — LlmLog is readable by all project members.
    */
   storeContentPreviews?: boolean | undefined;
+  /*
+   * Send the messages exactly as given, embedded files included. Every
+   * other call has them left out (PromptText.omitEmbeddedDataFromMessages):
+   * a model reads text, and a screenshot is hundreds of kilobytes of base64
+   * billed on every call. Only the coding agent sets this - its messages are
+   * source files it reads and rewrites, where a data: URL in a stylesheet is
+   * code that must survive the round trip.
+   */
+  keepEmbeddedData?: boolean | undefined;
 }
 
 export interface AILogResponse {
@@ -1146,6 +1156,20 @@ export class Service extends BaseService {
       );
     }
 
+    /*
+     * What the model reads (issue #4587). An image embedded in a prompt - a
+     * synthetic monitor's screenshot in an incident's description is
+     * hundreds of kilobytes of base64 - is billed as text the model cannot
+     * read, on every call that carries it. Builders put record text in
+     * through PromptText.field already; this catches whatever else reaches
+     * a model - a template, a workflow's input, a pasted message, a tool's
+     * output - so no caller, now or later, can send one. The caller's own
+     * messages are left as they are.
+     */
+    const messages: Array<LLMMessage> = request.keepEmbeddedData
+      ? request.messages
+      : PromptText.omitEmbeddedDataFromMessages(request.messages).messages;
+
     // Create log entry (will be updated after completion)
     const logEntry: LlmLog = new LlmLog();
     logEntry.projectId = request.projectId;
@@ -1156,7 +1180,7 @@ export class Service extends BaseService {
       request.storeContentPreviews !== false;
 
     logEntry.requestPrompt = storeContentPreviews
-      ? request.messages
+      ? messages
           .map((m: LLMMessage) => {
             return m.content;
           })
@@ -1361,7 +1385,7 @@ export class Service extends BaseService {
       // Execute LLM call
       const response: LLMCompletionResponse = await LLMService.getCompletion({
         llmProviderConfig: llmConfig,
-        messages: request.messages,
+        messages: messages,
         temperature: request.temperature ?? 0.7,
         maxTokens: request.maxTokens,
         tools: request.tools,

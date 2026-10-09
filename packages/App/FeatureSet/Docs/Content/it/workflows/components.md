@@ -36,7 +36,7 @@ Genera una risposta testuale a partire da un prompt e, se vuoi, da un contesto J
 - **Temperature** — la variabilità, da `0` a `1`. Il valore predefinito è `0.2`, per un'automazione prevedibile.
 - **Maximum Output Tokens** — da `1` a `4096`. Il valore predefinito è `1024`.
 
-System Instructions, Prompt e Context serializzato, messi insieme, non possono superare i 50.000 caratteri. La richiesta al provider dura al massimo 60 secondi e viene tentata una volta sola. Per ogni progetto possono essere in corso al massimo tre richieste AI di workflow alla volta.
+System Instructions, Prompt e Context serializzato, messi insieme, non possono superare i 50.000 caratteri. Un'immagine incorporata in base64, come lo screenshot di un monitor sintetico nella descrizione di un incidente, viene sostituita da una breve nota come `[image omitted: PNG, 340 KB]` prima del conteggio, perché il modello legge testo, non immagini. Il log dell'esecuzione indica cosa è stato omesso. La richiesta al provider dura al massimo 60 secondi e viene tentata una volta sola. Per ogni progetto possono essere in corso al massimo tre richieste AI di workflow alla volta.
 
 **Outputs**:
 
