@@ -544,9 +544,7 @@ describe("Slack interactive actions still work for members who hold the permissi
     expect(createSpy).toHaveBeenCalledTimes(1);
     const created: IncidentStateTimeline = createSpy.mock.calls[0]![0].data;
     expect(created.incidentId?.toString()).toBe(incidentId.toString());
-    expect(created.incidentStateId?.toString()).toBe(
-      states[1]!.id!.toString(),
-    );
+    expect(created.incidentStateId?.toString()).toBe(states[1]!.id!.toString());
     expect(created.projectId?.toString()).toBe(projectId.toString());
     expect(createSpy.mock.calls[0]![0].props.isRoot).toBeUndefined();
     expect(createSpy.mock.calls[0]![0].props.userId).toBe(userId);

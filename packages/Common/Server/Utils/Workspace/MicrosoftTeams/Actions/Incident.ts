@@ -955,13 +955,14 @@ export default class MicrosoftTeamsIncidentActions {
       return null;
     }
 
-    const choices: Array<{ title: string; value: string }> =
-      incidentStates.map((state: WorkspaceEventStateOption) => {
+    const choices: Array<{ title: string; value: string }> = incidentStates.map(
+      (state: WorkspaceEventStateOption) => {
         return {
           title: state.name,
           value: state.id.toString(),
         };
-      });
+      },
+    );
 
     return {
       type: "AdaptiveCard",

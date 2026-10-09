@@ -20,7 +20,9 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import AcknowledgedStateUtil from "../../../Utils/AcknowledgedState";
-import ResolvedStateUtil, { ResolvedStateList } from "../../../Utils/ResolvedState";
+import ResolvedStateUtil, {
+  ResolvedStateList,
+} from "../../../Utils/ResolvedState";
 import { StateListType } from "../../../Utils/StateOrder";
 import AlertEpisodeService from "../../Services/AlertEpisodeService";
 import AlertEpisodeStateTimelineService from "../../Services/AlertEpisodeStateTimelineService";
@@ -200,14 +202,12 @@ export default class WorkspaceMemberActions {
       projectId: event.projectId,
     });
 
-    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal(
-      {
-        list: definition.stateList,
-        states: states,
-        stateId: event.currentStateId,
-        subject: definition.subject,
-      },
-    );
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: definition.stateList,
+      states: states,
+      stateId: event.currentStateId,
+      subject: definition.subject,
+    });
 
     if (refusal) {
       throw new BadDataException(refusal);
@@ -483,7 +483,7 @@ export default class WorkspaceMemberActions {
 
     if (!readEvent) {
       throw new NotAuthorizedException(
-        `The ${this.getNoun(data.event.type)} was not found in this project, or you do not have access to it.`,
+        `The ${this.getNoun(data.event.type)} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
       );
     }
 

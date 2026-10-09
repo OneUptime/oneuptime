@@ -151,7 +151,7 @@ Some items carry extra detail — an owner notification lists everyone who was m
 The card header also has an **Actions** menu so you can act without leaving the timeline:
 
 - **Execute Runbook** — start a [runbook](/docs/runbooks/index) against this incident.
-- **Execute On-Call Policy** — page a policy on demand.
+- **Execute On-Call Policy** — page a policy on demand. An archived policy pages no one: its execution log on the incident says it was not executed because the policy is archived.
 - **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview** are all there. The note is posted now; to backdate it, choose **Posted now**.
 - **Add Private Note** — the **Private Notes** page's composer, in a dialog: write the note, then **Add note**.
 

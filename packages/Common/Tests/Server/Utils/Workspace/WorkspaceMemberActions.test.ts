@@ -1,10 +1,4 @@
-import {
-  afterEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../../Models/DatabaseModels/AlertEpisode";
@@ -149,7 +143,7 @@ interface RecordKind {
 }
 
 function readOf(data: {
-  service: object;
+  service: unknown;
   makeRecord: () => {
     id: ObjectID | null;
     projectId?: ObjectID | undefined;
@@ -174,7 +168,7 @@ function readOf(data: {
   };
 }
 
-function createOf(service: object): () => AnySpy {
+function createOf(service: unknown): () => AnySpy {
   return (): AnySpy => {
     return (
       jest.spyOn(
@@ -469,7 +463,10 @@ describe("WorkspaceMemberActions.changeState", (): void => {
     }: {
       props: DatabaseCommonInteractionProps;
     }): Promise<void> => {
-      const readSpy: AnySpy = jest.spyOn(IncidentService, "findOneBy") as AnySpy;
+      const readSpy: AnySpy = jest.spyOn(
+        IncidentService,
+        "findOneBy",
+      ) as AnySpy;
       const createSpy: AnySpy = createOf(IncidentStateTimelineService)();
 
       await expect(
@@ -852,7 +849,7 @@ describe("WorkspaceMemberActions.markScheduledMaintenanceAsOngoing", (): void =>
 describe("WorkspaceMemberActions.findStateOptions", (): void => {
   const STATE_LISTS: Array<{
     type: WorkspaceEventType;
-    service: object;
+    service: unknown;
   }> = [
     { type: WorkspaceEventType.Incident, service: IncidentStateService },
     {
@@ -874,7 +871,7 @@ describe("WorkspaceMemberActions.findStateOptions", (): void => {
       service,
     }: {
       type: WorkspaceEventType;
-      service: object;
+      service: unknown;
     }): Promise<void> => {
       const first: StateRow = { id: ObjectID.generate(), name: "Created" };
       const second: StateRow = { id: ObjectID.generate(), name: "Resolved" };
@@ -916,7 +913,7 @@ describe("WorkspaceMemberActions.findStateOptions", (): void => {
       service,
     }: {
       type: WorkspaceEventType;
-      service: object;
+      service: unknown;
     }): Promise<void> => {
       jest
         .spyOn(service as { findBy: () => Promise<unknown> }, "findBy")

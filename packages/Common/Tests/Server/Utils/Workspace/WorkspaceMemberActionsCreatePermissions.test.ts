@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../../Models/DatabaseModels/AlertEpisode";
@@ -39,11 +46,15 @@ import ScheduledMaintenanceInternalNoteService from "../../../../Server/Services
 import ScheduledMaintenancePublicNoteService from "../../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateTimelineService from "../../../../Server/Services/ScheduledMaintenanceStateTimelineService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
+import CallerPlan from "../../../../Server/Utils/Billing/CallerPlan";
 import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
@@ -97,14 +108,14 @@ function propsHolding(
 }
 
 // The record a button acts on, readable to the member.
-function stubReadable(service: object, record: object): void {
+function stubReadable(service: unknown, record: unknown): void {
   jest
     .spyOn(service as { findOneBy: () => Promise<unknown> }, "findOneBy")
     .mockResolvedValue(record);
 }
 
 // The create a write goes through, kept from writing anything.
-function stubCreate(service: object): AnySpy {
+function stubCreate(service: unknown): AnySpy {
   return (
     jest.spyOn(
       service as { create: () => Promise<unknown> },
@@ -119,7 +130,7 @@ interface ChatWrite {
   name: string;
   modelType: DatabaseBaseModelType;
   // The service whose create the action writes through.
-  service: object;
+  service: unknown;
   // The one permission the dashboard asks for the same row.
   dashboardPermission: Permission;
   // Makes the write as the chat action makes it, with `props`.
@@ -130,10 +141,10 @@ interface ChatWrite {
 function stateChange(data: {
   name: string;
   type: WorkspaceEventType;
-  recordService: object;
-  record: object;
+  recordService: unknown;
+  record: unknown;
   modelType: DatabaseBaseModelType;
-  service: object;
+  service: unknown;
   dashboardPermission: Permission;
 }): ChatWrite {
   return {
@@ -157,8 +168,8 @@ function stateChange(data: {
 function execution(data: {
   name: string;
   type: WorkspaceEventType;
-  recordService: object;
-  record: object;
+  recordService: unknown;
+  record: unknown;
 }): ChatWrite {
   return {
     name: data.name,
@@ -184,7 +195,7 @@ function execution(data: {
 function note(data: {
   name: string;
   modelType: DatabaseBaseModelType;
-  service: object;
+  service: unknown;
   dashboardPermission: Permission;
   recordKey: string;
 }): ChatWrite {
@@ -357,6 +368,31 @@ async function rowWritten(
   return createSpy.mock.calls[0]![0];
 }
 
+/*
+ * The props the create checks the row with: the ones it was handed, with
+ * the project's plan where a plan decides the create, as the create itself
+ * reads it (CallerPlan.withPlanFor). With billing off no plan is at stake.
+ */
+async function propsTheCreateChecks(
+  chatWrite: ChatWrite,
+  written: { data: any; props: DatabaseCommonInteractionProps },
+): Promise<DatabaseCommonInteractionProps> {
+  return await CallerPlan.withPlanFor({
+    props: written.props,
+    modelType: chatWrite.modelType,
+    type: DatabaseRequestType.Create,
+    data: written.data,
+  });
+}
+
+beforeEach((): void => {
+  // A project on the plan that includes every table these rows are in.
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
+});
+
 afterEach((): void => {
   jest.restoreAllMocks();
 });
@@ -375,11 +411,15 @@ describe("the rows Slack and Microsoft Teams buttons write", (): void => {
       expect(written.props).toBe(props);
       expect(written.data).toBeInstanceOf(chatWrite.modelType);
       expect(written.data.projectId?.toString()).toBe(projectId.toString());
+
+      const checkedWith: DatabaseCommonInteractionProps =
+        await propsTheCreateChecks(chatWrite, written);
+
       expect((): void => {
         ModelPermission.checkCreatePermissions(
           chatWrite.modelType,
           written.data,
-          written.props,
+          checkedWith,
         );
       }).not.toThrow();
     },
@@ -395,13 +435,26 @@ describe("the rows Slack and Microsoft Teams buttons write", (): void => {
       const written: { data: any; props: DatabaseCommonInteractionProps } =
         await rowWritten(chatWrite, props);
 
-      expect((): void => {
+      const checkedWith: DatabaseCommonInteractionProps =
+        await propsTheCreateChecks(chatWrite, written);
+
+      let refusal: unknown = null;
+
+      try {
         ModelPermission.checkCreatePermissions(
           chatWrite.modelType,
           written.data,
-          written.props,
+          checkedWith,
         );
-      }).toThrow(NotAuthorizedException);
+      } catch (err) {
+        refusal = err;
+      }
+
+      // Refused for the permission, not for want of the project's plan.
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect((refusal as Error).message).not.toBe(
+        CallerPlan.PLAN_UNKNOWN_MESSAGE,
+      );
     },
   );
 

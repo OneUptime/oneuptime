@@ -61,6 +61,13 @@ export default class WorkspaceActionAuthorization {
   public static readonly NOT_A_PROJECT_MEMBER_MESSAGE: string =
     "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.";
 
+  /*
+   * How a record the member may not read is answered, after its name: like
+   * one that is not there, so that nothing about it is told to them.
+   */
+  public static readonly NOT_FOUND_OR_NOT_READABLE: string =
+    "was not found in this project, or you do not have access to it.";
+
   @CaptureSpan()
   public static async isProjectMember(data: {
     userId: ObjectID;
@@ -197,7 +204,7 @@ export default class WorkspaceActionAuthorization {
         ).toLowerCase();
 
         throw new NotAuthorizedException(
-          `You do not have permission to ${action}: the ${resourceName} was not found in this project, or you do not have access to it.`,
+          `You do not have permission to ${action}: the ${resourceName} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
         );
       }
     }

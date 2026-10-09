@@ -135,7 +135,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (isPolicyArchived) {
       createBy.data.status = OnCallDutyPolicyStatus.Error;
-      createBy.data.statusMessage = ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE;
+      createBy.data.statusMessage =
+        ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE;
     }
 
     return {

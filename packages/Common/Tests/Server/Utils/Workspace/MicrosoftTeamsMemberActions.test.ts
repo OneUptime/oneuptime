@@ -184,8 +184,9 @@ interface ProjectStates {
 function incidentLikeStates<T extends IncidentState | AlertState>(
   makeState: () => T,
 ): { ids: ProjectStates; all: Array<T> } {
-  const flags: Array<"isCreatedState" | "isAcknowledgedState" | "isResolvedState"> =
-    ["isCreatedState", "isAcknowledgedState", "isResolvedState"];
+  const flags: Array<
+    "isCreatedState" | "isAcknowledgedState" | "isResolvedState"
+  > = ["isCreatedState", "isAcknowledgedState", "isResolvedState"];
   const all: Array<T> = flags.map(
     (
       flag: "isCreatedState" | "isAcknowledgedState" | "isResolvedState",
@@ -236,8 +237,8 @@ function alertStates(): ProjectStates {
 }
 
 function stubRecord(data: {
-  service: object;
-  makeRecord: () => object;
+  service: unknown;
+  makeRecord: () => unknown;
   stateColumn: string;
   currentStateId: ObjectID | null;
 }): AnySpy {
@@ -261,7 +262,7 @@ function stubRecord(data: {
   return spy.mockResolvedValue(record);
 }
 
-function stubCreate(service: object): AnySpy {
+function stubCreate(service: unknown): AnySpy {
   return (
     jest.spyOn(
       service as { create: () => Promise<unknown> },
@@ -293,8 +294,8 @@ function writtenWith(
 interface TeamsNote {
   label: string;
   value: JSONObject;
-  service: object;
-  modelType: { new (): object };
+  service: unknown;
+  modelType: { new (): unknown };
   refusal: string;
 }
 
@@ -309,19 +310,19 @@ interface TeamsKind {
     props: DatabaseCommonInteractionProps;
     turnContext: TurnContext;
   }) => Promise<void>;
-  recordService: object;
-  makeRecord: () => object;
+  recordService: unknown;
+  makeRecord: () => unknown;
   recordStateColumn: string;
   role: Permission;
   // Only what the dashboard asks to change the state: create the row, read the record.
   dashboardPermissions: Array<Permission>;
   // An edit grant on the record, without the state timeline's create.
   editOnlyPermissions: Array<Permission>;
-  timelineService: object;
+  timelineService: unknown;
   timelineRecordColumn: string;
   timelineStateColumn: string;
   stubStates: () => ProjectStates;
-  stateService: object;
+  stateService: unknown;
   ack: { actionType: string; refusal: string; confirmation: string };
   resolve: { actionType: string; refusal: string; confirmation: string };
   changeState: {
@@ -383,7 +384,7 @@ const TEAMS_KINDS: Array<TeamsKind> = [
       ),
     ),
     recordService: IncidentService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new Incident();
     },
     recordStateColumn: "currentIncidentStateId",
@@ -457,7 +458,7 @@ const TEAMS_KINDS: Array<TeamsKind> = [
       ),
     ),
     recordService: AlertService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new Alert();
     },
     recordStateColumn: "currentAlertStateId",
@@ -520,7 +521,7 @@ const TEAMS_KINDS: Array<TeamsKind> = [
       ),
     ),
     recordService: AlertEpisodeService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new AlertEpisode();
     },
     recordStateColumn: "currentAlertStateId",
@@ -588,7 +589,7 @@ const TEAMS_KINDS: Array<TeamsKind> = [
       ),
     ),
     recordService: IncidentEpisodeService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new IncidentEpisode();
     },
     recordStateColumn: "currentIncidentStateId",
@@ -845,9 +846,7 @@ describe.each(TEAMS_KINDS)(
 
     describe("Change State", (): void => {
       test("a member who holds the permission moves it into the state they picked, as themselves", async (): Promise<void> => {
-        const props: DatabaseCommonInteractionProps = memberProps([
-          kind.role,
-        ]);
+        const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
         stubRecord({
           service: kind.recordService,
           makeRecord: kind.makeRecord,
@@ -871,9 +870,7 @@ describe.each(TEAMS_KINDS)(
         expect(String(data[kind.timelineRecordColumn])).toBe(
           recordId.toString(),
         );
-        expect(String(data[kind.timelineStateColumn])).toBe(
-          picked.toString(),
-        );
+        expect(String(data[kind.timelineStateColumn])).toBe(picked.toString());
         expect(repliesText(turn)).toEqual([kind.changeState.confirmation]);
       });
 
@@ -898,9 +895,7 @@ describe.each(TEAMS_KINDS)(
       });
 
       test("the card offers only the states the member may read, read as the member", async (): Promise<void> => {
-        const props: DatabaseCommonInteractionProps = memberProps([
-          kind.role,
-        ]);
+        const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
         stubRecord({
           service: kind.recordService,
           makeRecord: kind.makeRecord,
@@ -982,58 +977,51 @@ describe.each(TEAMS_KINDS)(
       });
     });
 
-    describe.each(kind.notes)(
-      "Add Note ($label)",
-      (note: TeamsNote): void => {
-        test("the note is posted by the member, as their own", async (): Promise<void> => {
-          const props: DatabaseCommonInteractionProps = memberProps([
-            kind.role,
-          ]);
-          stubRecord({
-            service: kind.recordService,
-            makeRecord: kind.makeRecord,
-            stateColumn: kind.recordStateColumn,
-            currentStateId: ObjectID.generate(),
-          });
-          const createSpy: AnySpy = stubCreate(note.service);
-          const recordId: ObjectID = ObjectID.generate();
+    describe.each(kind.notes)("Add Note ($label)", (note: TeamsNote): void => {
+      test("the note is posted by the member, as their own", async (): Promise<void> => {
+        const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
+        stubRecord({
+          service: kind.recordService,
+          makeRecord: kind.makeRecord,
+          stateColumn: kind.recordStateColumn,
+          currentStateId: ObjectID.generate(),
+        });
+        const createSpy: AnySpy = stubCreate(note.service);
+        const recordId: ObjectID = ObjectID.generate();
 
-          await kind.handle({
+        await kind.handle({
+          actionType: noteActionType(kind),
+          actionValue: recordId.toString(),
+          value: note.value,
+          props: props,
+          turnContext: createTurn().turnContext,
+        });
+
+        const data: Record<string, unknown> = writtenWith(createSpy, props);
+        expect(createSpy.mock.calls[0]![0].data).toBeInstanceOf(note.modelType);
+        expect(data["note"]).toBe(note.value["note"]);
+        expect(String(data[kind.timelineRecordColumn])).toBe(
+          recordId.toString(),
+        );
+        expect(data["createdByUserId"]).toBeUndefined();
+      });
+
+      test("a member who may only read is refused, and nothing is posted", async (): Promise<void> => {
+        const createSpy: AnySpy = stubCreate(note.service);
+
+        await expect(
+          kind.handle({
             actionType: noteActionType(kind),
-            actionValue: recordId.toString(),
+            actionValue: ObjectID.generate().toString(),
             value: note.value,
-            props: props,
+            props: memberProps([Permission.Viewer]),
             turnContext: createTurn().turnContext,
-          });
+          }),
+        ).rejects.toThrow(`You do not have permission to ${note.refusal}.`);
 
-          const data: Record<string, unknown> = writtenWith(createSpy, props);
-          expect(createSpy.mock.calls[0]![0].data).toBeInstanceOf(
-            note.modelType,
-          );
-          expect(data["note"]).toBe(note.value["note"]);
-          expect(String(data[kind.timelineRecordColumn])).toBe(
-            recordId.toString(),
-          );
-          expect(data["createdByUserId"]).toBeUndefined();
-        });
-
-        test("a member who may only read is refused, and nothing is posted", async (): Promise<void> => {
-          const createSpy: AnySpy = stubCreate(note.service);
-
-          await expect(
-            kind.handle({
-              actionType: noteActionType(kind),
-              actionValue: ObjectID.generate().toString(),
-              value: note.value,
-              props: memberProps([Permission.Viewer]),
-              turnContext: createTurn().turnContext,
-            }),
-          ).rejects.toThrow(`You do not have permission to ${note.refusal}.`);
-
-          expect(createSpy).not.toHaveBeenCalled();
-        });
-      },
-    );
+        expect(createSpy).not.toHaveBeenCalled();
+      });
+    });
 
     describe("Execute On-Call Policy", (): void => {
       function stubPolicy(readable: boolean): AnySpy {
@@ -1228,7 +1216,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     return {
       readSpy: stubRecord({
         service: ScheduledMaintenanceService,
-        makeRecord: (): object => {
+        makeRecord: (): unknown => {
           return new ScheduledMaintenance();
         },
         stateColumn: "currentScheduledMaintenanceStateId",
@@ -1399,15 +1387,15 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
       modelType,
     }: {
       noteType: string;
-      service: object;
-      modelType: { new (): object };
+      service: unknown;
+      modelType: { new (): unknown };
     }): Promise<void> => {
       const props: DatabaseCommonInteractionProps = memberProps([
         Permission.ScheduledMaintenanceMember,
       ]);
       stubMaintenance(true);
       const createSpy: AnySpy = stubCreate(service);
-      const otherService: object =
+      const otherService: unknown =
         service === ScheduledMaintenancePublicNoteService
           ? ScheduledMaintenanceInternalNoteService
           : ScheduledMaintenancePublicNoteService;
@@ -1511,9 +1499,7 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     expect(String(data["scheduledMaintenanceId"])).toBe(
       maintenanceId.toString(),
     );
-    expect(String(data["scheduledMaintenanceStateId"])).toBe(
-      picked.toString(),
-    );
+    expect(String(data["scheduledMaintenanceStateId"])).toBe(picked.toString());
     expect(repliesText(turn)).toEqual([
       "ScheduledMaintenance state changed successfully",
     ]);
@@ -1528,7 +1514,10 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     const statesSpy: AnySpy = jest
       .spyOn(ScheduledMaintenanceStateService, "findBy")
       .mockResolvedValue([
-        { id: ongoing, name: "Ongoing" } as unknown as ScheduledMaintenanceState,
+        {
+          id: ongoing,
+          name: "Ongoing",
+        } as unknown as ScheduledMaintenanceState,
       ]) as AnySpy;
 
     const turn: FakeTurn = await press({
@@ -1547,7 +1536,9 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
 
   test("a member who may read no states is told so instead of an empty card", async (): Promise<void> => {
     stubMaintenance(true);
-    jest.spyOn(ScheduledMaintenanceStateService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(ScheduledMaintenanceStateService, "findBy")
+      .mockResolvedValue([]);
 
     const turn: FakeTurn = await press({
       actionType:
@@ -1566,8 +1557,8 @@ describe("Microsoft Teams Escalate", (): void => {
   interface EscalationCase {
     key: string;
     type: WorkspaceEventType;
-    recordService: object;
-    makeRecord: () => object;
+    recordService: unknown;
+    makeRecord: () => unknown;
     role: Permission;
     noun: string;
     triggerColumn: string;
@@ -1579,7 +1570,7 @@ describe("Microsoft Teams Escalate", (): void => {
       key: "incidentId",
       type: WorkspaceEventType.Incident,
       recordService: IncidentService,
-      makeRecord: (): object => {
+      makeRecord: (): unknown => {
         return new Incident();
       },
       role: Permission.IncidentMember,
@@ -1591,7 +1582,7 @@ describe("Microsoft Teams Escalate", (): void => {
       key: "alertId",
       type: WorkspaceEventType.Alert,
       recordService: AlertService,
-      makeRecord: (): object => {
+      makeRecord: (): unknown => {
         return new Alert();
       },
       role: Permission.AlertMember,
@@ -1603,7 +1594,7 @@ describe("Microsoft Teams Escalate", (): void => {
       key: "incidentEpisodeId",
       type: WorkspaceEventType.IncidentEpisode,
       recordService: IncidentEpisodeService,
-      makeRecord: (): object => {
+      makeRecord: (): unknown => {
         return new IncidentEpisode();
       },
       role: Permission.IncidentMember,
@@ -1616,7 +1607,7 @@ describe("Microsoft Teams Escalate", (): void => {
       key: "alertEpisodeId",
       type: WorkspaceEventType.AlertEpisode,
       recordService: AlertEpisodeService,
-      makeRecord: (): object => {
+      makeRecord: (): unknown => {
         return new AlertEpisode();
       },
       role: Permission.AlertMember,
@@ -1650,9 +1641,7 @@ describe("Microsoft Teams Escalate", (): void => {
         currentStateId: ObjectID.generate(),
       });
       const policyRead: AnySpy = stubPolicy();
-      const createSpy: AnySpy = stubCreate(
-        OnCallDutyPolicyExecutionLogService,
-      );
+      const createSpy: AnySpy = stubCreate(OnCallDutyPolicyExecutionLogService);
       const turn: FakeTurn = createTurn();
       const recordId: ObjectID = ObjectID.generate();
       const policyId: ObjectID = ObjectID.generate();
@@ -1670,9 +1659,7 @@ describe("Microsoft Teams Escalate", (): void => {
 
       const data: Record<string, unknown> = writtenWith(createSpy, props);
       expect(String(data["onCallDutyPolicyId"])).toBe(policyId.toString());
-      expect(String(data[escalation.triggerColumn])).toBe(
-        recordId.toString(),
-      );
+      expect(String(data[escalation.triggerColumn])).toBe(recordId.toString());
       expect(data["userNotificationEventType"]).toBe(
         escalation.userNotificationEventType,
       );
@@ -1696,9 +1683,7 @@ describe("Microsoft Teams Escalate", (): void => {
     "Escalate from a card naming $name is answered plainly, and pages no one",
     async ({ records }: { records: JSONObject }): Promise<void> => {
       const policyRead: AnySpy = stubPolicy();
-      const createSpy: AnySpy = stubCreate(
-        OnCallDutyPolicyExecutionLogService,
-      );
+      const createSpy: AnySpy = stubCreate(OnCallDutyPolicyExecutionLogService);
       const turn: FakeTurn = createTurn();
 
       await MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({

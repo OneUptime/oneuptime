@@ -246,8 +246,8 @@ function incidentLikeStates<T extends IncidentState | AlertState>(
 
 // The record a button acts on, as the member's read finds it - or does not.
 function stubRecord(data: {
-  service: object;
-  makeRecord: () => object;
+  service: unknown;
+  makeRecord: () => unknown;
   stateColumn: string;
   currentStateId: ObjectID | null;
 }): AnySpy {
@@ -271,7 +271,7 @@ function stubRecord(data: {
 }
 
 // A create, kept from writing: it hands back what it was given.
-function stubCreate(service: object): AnySpy {
+function stubCreate(service: unknown): AnySpy {
   return (
     jest.spyOn(
       service as { create: () => Promise<unknown> },
@@ -310,8 +310,8 @@ interface NoteAction {
   label: string;
   actionType: SlackActionType;
   viewValues: Dictionary<string>;
-  service: object;
-  modelType: { new (): object };
+  service: unknown;
+  modelType: { new (): unknown };
   refusal: string;
 }
 
@@ -319,20 +319,20 @@ interface SlackKind {
   name: string;
   noun: string;
   handle: (args: HandlerArgs) => Promise<void>;
-  recordService: object;
-  makeRecord: () => object;
+  recordService: unknown;
+  makeRecord: () => unknown;
   recordStateColumn: string;
   // The role that may do everything below; executing also needs OnCallMember.
   role: Permission;
-  timelineService: object;
+  timelineService: unknown;
   timelineRecordColumn: string;
   timelineStateColumn: string;
   // The project's states, stubbed; Acknowledge and Resolve move along them.
   stubStates: () => ProjectStates;
   // The service the change-state form reads the states from.
-  stateService: object;
+  stateService: unknown;
   // "Already acknowledged?" and the like, asked before the change.
-  preChecks: Array<[object, string]>;
+  preChecks: Array<[unknown, string]>;
   acknowledge: { actionType: SlackActionType; refusal: string } | null;
   // Resolve; for a maintenance event, Mark as Complete.
   resolve: { actionType: SlackActionType; refusal: string };
@@ -412,7 +412,7 @@ const SLACK_KINDS: Array<SlackKind> = [
       return SlackIncidentActions.handleIncidentAction(args);
     },
     recordService: IncidentService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new Incident();
     },
     recordStateColumn: "currentIncidentStateId",
@@ -473,7 +473,7 @@ const SLACK_KINDS: Array<SlackKind> = [
       return SlackAlertActions.handleAlertAction(args);
     },
     recordService: AlertService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new Alert();
     },
     recordStateColumn: "currentAlertStateId",
@@ -526,7 +526,7 @@ const SLACK_KINDS: Array<SlackKind> = [
       return SlackAlertEpisodeActions.handleAlertEpisodeAction(args);
     },
     recordService: AlertEpisodeService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new AlertEpisode();
     },
     recordStateColumn: "currentAlertStateId",
@@ -579,7 +579,7 @@ const SLACK_KINDS: Array<SlackKind> = [
       return SlackIncidentEpisodeActions.handleIncidentEpisodeAction(args);
     },
     recordService: IncidentEpisodeService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new IncidentEpisode();
     },
     recordStateColumn: "currentIncidentStateId",
@@ -643,7 +643,7 @@ const SLACK_KINDS: Array<SlackKind> = [
       );
     },
     recordService: ScheduledMaintenanceService,
-    makeRecord: (): object => {
+    makeRecord: (): unknown => {
       return new ScheduledMaintenance();
     },
     recordStateColumn: "currentScheduledMaintenanceStateId",
@@ -744,90 +744,85 @@ function stateMovesOf(kind: SlackKind): Array<StateMove> {
 }
 
 describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
-  describe.each(stateMovesOf(kind))(
-    "$label",
-    (move: StateMove): void => {
-      test("a member who holds the permission changes the state as themselves", async (): Promise<void> => {
-        mockMember([kind.role]);
-        const states: ProjectStates = kind.stubStates();
-        answerPreChecksNo(kind);
-        const readSpy: AnySpy = stubRecord({
-          service: kind.recordService,
-          makeRecord: kind.makeRecord,
-          stateColumn: kind.recordStateColumn,
-          currentStateId: states.created,
-        });
-        const createSpy: AnySpy = stubCreate(kind.timelineService);
-        const recordId: ObjectID = ObjectID.generate();
-
-        await kind.handle(handlerArgs(move.actionType, recordId.toString()));
-
-        const data: Record<string, unknown> = expectMemberWrite(createSpy);
-        expect(String(data[kind.timelineRecordColumn])).toBe(
-          recordId.toString(),
-        );
-        expect(String(data[kind.timelineStateColumn])).toBe(
-          move.target(states).toString(),
-        );
-        // The record was read as the member, in this project, every time.
-        for (const call of readSpy.mock.calls) {
-          expect(call[0].props.userId).toBe(userId);
-          expect(call[0].props.isRoot).toBeUndefined();
-          expect(call[0].query).toMatchObject({ projectId: projectId });
-        }
-        expect(directMessageSpy).not.toHaveBeenCalled();
+  describe.each(stateMovesOf(kind))("$label", (move: StateMove): void => {
+    test("a member who holds the permission changes the state as themselves", async (): Promise<void> => {
+      mockMember([kind.role]);
+      const states: ProjectStates = kind.stubStates();
+      answerPreChecksNo(kind);
+      const readSpy: AnySpy = stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: states.created,
       });
+      const createSpy: AnySpy = stubCreate(kind.timelineService);
+      const recordId: ObjectID = ObjectID.generate();
 
-      test("a member who may only read is told why, and nothing is written", async (): Promise<void> => {
-        mockMember([Permission.Viewer]);
-        const states: ProjectStates = kind.stubStates();
-        answerPreChecksNo(kind);
-        stubRecord({
-          service: kind.recordService,
-          makeRecord: kind.makeRecord,
-          stateColumn: kind.recordStateColumn,
-          currentStateId: states.created,
-        });
-        const createSpy: AnySpy = stubCreate(kind.timelineService);
+      await kind.handle(handlerArgs(move.actionType, recordId.toString()));
 
-        await kind.handle(
-          handlerArgs(move.actionType, ObjectID.generate().toString()),
-        );
+      const data: Record<string, unknown> = expectMemberWrite(createSpy);
+      expect(String(data[kind.timelineRecordColumn])).toBe(recordId.toString());
+      expect(String(data[kind.timelineStateColumn])).toBe(
+        move.target(states).toString(),
+      );
+      // The record was read as the member, in this project, every time.
+      for (const call of readSpy.mock.calls) {
+        expect(call[0].props.userId).toBe(userId);
+        expect(call[0].props.isRoot).toBeUndefined();
+        expect(call[0].query).toMatchObject({ projectId: projectId });
+      }
+      expect(directMessageSpy).not.toHaveBeenCalled();
+    });
 
-        expect(createSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()).toEqual([
-          expect.stringContaining(
-            `You do not have permission to ${move.refusal}.`,
-          ),
-        ]);
+    test("a member who may only read is told why, and nothing is written", async (): Promise<void> => {
+      mockMember([Permission.Viewer]);
+      const states: ProjectStates = kind.stubStates();
+      answerPreChecksNo(kind);
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: states.created,
       });
+      const createSpy: AnySpy = stubCreate(kind.timelineService);
 
-      test(`a ${kind.noun} outside the member's read is refused like one that is not there`, async (): Promise<void> => {
-        mockMember([kind.role]);
-        kind.stubStates();
-        answerPreChecksNo(kind);
-        // Another project's, or outside the member's labels: not found for them.
-        stubRecord({
-          service: kind.recordService,
-          makeRecord: kind.makeRecord,
-          stateColumn: kind.recordStateColumn,
-          currentStateId: null,
-        });
-        const createSpy: AnySpy = stubCreate(kind.timelineService);
+      await kind.handle(
+        handlerArgs(move.actionType, ObjectID.generate().toString()),
+      );
 
-        await kind.handle(
-          handlerArgs(move.actionType, ObjectID.generate().toString()),
-        );
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(directMessageTexts()).toEqual([
+        expect.stringContaining(
+          `You do not have permission to ${move.refusal}.`,
+        ),
+      ]);
+    });
 
-        expect(createSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()).toEqual([
-          expect.stringContaining(
-            `the ${kind.noun} was not found in this project, or you do not have access to it.`,
-          ),
-        ]);
+    test(`a ${kind.noun} outside the member's read is refused like one that is not there`, async (): Promise<void> => {
+      mockMember([kind.role]);
+      kind.stubStates();
+      answerPreChecksNo(kind);
+      // Another project's, or outside the member's labels: not found for them.
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: null,
       });
-    },
-  );
+      const createSpy: AnySpy = stubCreate(kind.timelineService);
+
+      await kind.handle(
+        handlerArgs(move.actionType, ObjectID.generate().toString()),
+      );
+
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(directMessageTexts()).toEqual([
+        expect.stringContaining(
+          `the ${kind.noun} was not found in this project, or you do not have access to it.`,
+        ),
+      ]);
+    });
+  });
 
   describe("Change State", (): void => {
     test("a member who holds the permission moves it into the state they picked, as themselves", async (): Promise<void> => {
@@ -850,9 +845,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       );
 
       const data: Record<string, unknown> = expectMemberWrite(createSpy);
-      expect(String(data[kind.timelineRecordColumn])).toBe(
-        recordId.toString(),
-      );
+      expect(String(data[kind.timelineRecordColumn])).toBe(recordId.toString());
       expect(String(data[kind.timelineStateColumn])).toBe(picked.toString());
       // Nothing but what the dashboard's state panel sends.
       expect(
