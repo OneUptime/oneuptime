@@ -110,6 +110,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
 ];
 
 /*
+ * Files under SOURCE_ROOTS whose strings no frontend shows, so none of them
+ * is extracted. EnterpriseLicense is the license server's own table: no
+ * project role may read it, and its enterprise-only column titles must stay
+ * out of every locale file (a test in ee/ holds every frontend's locales to
+ * that).
+ */
+export const SKIPPED_SOURCE_FILES: ReadonlySet<string> = new Set<string>([
+  "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
+]);
+
+/*
  * Property and attribute names whose string value is shown to the reader.
  * Names that are sometimes copy and sometimes an identifier (name, value,
  * key, id, type, category, body) are left out on purpose: a wrong key in
@@ -1240,6 +1251,10 @@ export const scanSourceRoots: (
     for (const filePath of listSourceFiles(
       path.join(rootDirectory, root.directory),
     )) {
+      if (SKIPPED_SOURCE_FILES.has(toRepositoryPath(filePath, rootDirectory))) {
+        continue;
+      }
+
       const result: SourceScanResult = scanSourceText(
         toRepositoryPath(filePath, rootDirectory),
         fs.readFileSync(filePath, "utf8"),

@@ -110,7 +110,10 @@
   "navLinks": {
     "Getting Started": "Kom godt i gang",
     "Moving from Opsgenie": "Skift fra Opsgenie",
+    "Moving from PagerDuty": "Skift fra PagerDuty",
     "Moving from incident.io": "Skift fra incident.io",
+    "Moving from Splunk On-Call": "Skift fra Splunk On-Call",
+    "Moving from Grafana OnCall": "Skift fra Grafana OnCall",
     "Local Development": "Lokal udvikling",
     "Docker Compose": "Docker Compose",
     "Upgrading": "Opgradering",

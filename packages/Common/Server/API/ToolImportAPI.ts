@@ -43,7 +43,9 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
  * tool).
  *
  *   GET  /tool-import/runs                  the project's imports, newest first
- *   POST /tool-import/read                  read a tool: { source, region, apiKey }
+ *   POST /tool-import/read                  read a tool: { source, region, apiKey },
+ *                                           plus apiKeyId (Splunk On-Call) or
+ *                                           apiUrl (Grafana OnCall)
  *   GET  /tool-import/run/:runId            one import: its status, progress,
  *                                           the preview (while it waits to be
  *                                           started) and the report
@@ -303,6 +305,8 @@ router.post(
         source: body["source"],
         region: body["region"],
         apiKey: body["apiKey"],
+        apiKeyId: body["apiKeyId"],
+        apiUrl: body["apiUrl"],
       });
 
       return Response.sendJsonObjectResponse(req, res, {

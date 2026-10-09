@@ -38,7 +38,8 @@ Mobiele push maakt gebruik van APNs (iOS) en FCM (Android) via Expo Push. Contro
 2. Batterijoptimalisatie is uitgeschakeld en achtergrondactiviteit is toegestaan (Android).
 3. Niet storen of Focus modi zijn uitgeschakeld, of de app staat op de uitzonderingslijst.
 4. U bent ingelogd — het push-token wordt pas bij de server geregistreerd nadat u bent ingelogd.
-5. **Alleen zelf-gehost:** Pushmeldingen zijn geconfigureerd op uw OneUptime instantie. Zie de handleiding [Pushmeldingen](/docs/self-hosted/push-notifications).
+5. De telefoon is in OneUptime onder **User Settings > Notification Methods > Push** niet gemarkeerd als **Ontvangt geen meldingen**. Is dat wel zo, open dan de app op de telefoon terwijl u bent ingelogd om hem opnieuw te registreren.
+6. **Alleen zelf-gehost:** Pushmeldingen zijn geconfigureerd op uw OneUptime instantie. Zie de handleiding [Pushmeldingen](/docs/self-hosted/push-notifications).
 
 ### Zijn de gegevens op mijn telefoon veilig?
 

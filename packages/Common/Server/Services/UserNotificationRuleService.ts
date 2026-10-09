@@ -2934,9 +2934,17 @@ export class Service extends ProjectReferencesService<Model> {
       notificationRuleItem.userPush?.deviceToken &&
       !notificationRuleItem.userPush?.isVerified
     ) {
-      // create a log.
+      /*
+       * A push device stops being verified when its push service or Expo
+       * says it is gone (UserPushService.markWebPushSubscriptionAsGone,
+       * markExpoPushTokenAsGone). "Device is not verified" told on-call
+       * nothing they could act on; this says what to do.
+       */
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Push notification not sent because device is not verified.`;
+      logTimelineItem.statusMessage =
+        PushNotificationService.getNotSentToUnverifiedDeviceMessage(
+          notificationRuleItem.userPush.deviceType,
+        );
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,

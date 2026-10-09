@@ -110,7 +110,10 @@
   "navLinks": {
     "Getting Started": "Начало работы",
     "Moving from Opsgenie": "Переход с Opsgenie",
+    "Moving from PagerDuty": "Переход с PagerDuty",
     "Moving from incident.io": "Переход с incident.io",
+    "Moving from Splunk On-Call": "Переход с Splunk On-Call",
+    "Moving from Grafana OnCall": "Переход с Grafana OnCall",
     "Local Development": "Локальная разработка",
     "Docker Compose": "Docker Compose",
     "Upgrading": "Обновление",

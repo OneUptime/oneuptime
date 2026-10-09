@@ -39,10 +39,13 @@ Vérifiez DNS et HTTPS depuis le conteneur ou pod émetteur vers la destination 
 - Vérifiez que le périphérique est enregistré dans la table `UserPush` de votre base de données
 - Consultez les journaux du serveur OneUptime pour les erreurs de l'API Expo Push
 - Confirmez que le périphérique dispose d'une connexion Internet active et que les permissions de notification sont activées
+- Vérifiez **User Settings > Notification Methods > Push** : un appareil marqué **Ne reçoit pas de notifications** a cessé de les recevoir et doit être enregistré de nouveau (voir ci-dessous)
 
 ### Erreurs « DeviceNotRegistered » dans les journaux
 
-Le jeton Expo Push n'est plus valide. Cela signifie généralement que l'application a été désinstallée ou que l'utilisateur a révoqué les permissions de notification. Le jeton sera nettoyé automatiquement.
+Expo répond à un push par `DeviceNotRegistered` lorsque l'application mobile a été supprimée de l'appareil ou que le jeton push de l'appareil n'est plus valide. OneUptime cesse alors d'envoyer à cet appareil. Il est marqué comme ne recevant plus de notifications plutôt que supprimé, de sorte que ses règles de notification sont conservées, et le journal push ainsi que la chronologie d'astreinte indiquent pourquoi. **User Settings > Notification Methods > Push** l'affiche comme **Ne reçoit pas de notifications**. Les autres appareils et méthodes de notification de son propriétaire continuent d'être alertés.
+
+Pour rétablir l'appareil, ouvrez l'application mobile dessus en étant connecté. L'application s'enregistre de nouveau, ce qui renouvelle son jeton push auprès d'Expo, et l'appareil reçoit de nouveau les notifications avec ses règles. Si l'application a été supprimée, réinstallez-la et connectez-vous. Via le relais push (sans `EXPO_ACCESS_TOKEN`), cela fonctionne de la même manière : le relais signale `DeviceNotRegistered` à votre instance.
 
 ## Support
 

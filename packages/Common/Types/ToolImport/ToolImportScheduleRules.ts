@@ -253,13 +253,104 @@ export function doCoveragesOverlap(
 
 /*
  * The OneUptime schedules a schedule's rotations become: each inner list is
- * one schedule's layers, in the rotations' order. A rotation joins the first
- * schedule none of whose layers it is ever on call at the same time as;
- * otherwise it starts a schedule of its own. A schedule holds at most
- * TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE layers.
+ * one schedule's layers, first layer first.
+ *
+ * Rotations of the same precedence are on call at the same time (every
+ * rotation of an Opsgenie, incident.io or Splunk On-Call schedule): a
+ * rotation joins the first schedule none of whose layers it is ever on call
+ * at the same time as; otherwise it starts a schedule of its own.
+ *
+ * Where rotations of a higher precedence override the rest (a PagerDuty
+ * schedule's layers, Grafana OnCall's layer priorities), each precedence is
+ * split that way on its own, and its rotations go above the lower ones -
+ * OneUptime's first layer wins too. A precedence that needs one schedule
+ * sits on top of every schedule, since it overrides all of them; one split
+ * across several gives each schedule its own part. So a PagerDuty schedule
+ * stays one schedule, its layers in PagerDuty's order.
+ *
+ * A schedule holds at most TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE layers; any
+ * more start a schedule of their own.
  */
 export function groupRotationsIntoSchedules(
   rotations: Array<ImportedRotation>,
+): Array<Array<ImportedRotation>> {
+  const precedences: Array<number> = [
+    ...new Set<number>(
+      rotations.map((rotation: ImportedRotation): number => {
+        return getRotationPrecedence(rotation);
+      }),
+    ),
+  ].sort((first: number, second: number): number => {
+    return second - first;
+  });
+
+  if (precedences.length <= 1) {
+    return splitConcurrentRotations(
+      rotations,
+      TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE,
+    );
+  }
+
+  const tiers: Array<Array<Array<ImportedRotation>>> = precedences.map(
+    (precedence: number): Array<Array<ImportedRotation>> => {
+      return splitConcurrentRotations(
+        rotations.filter((rotation: ImportedRotation): boolean => {
+          return getRotationPrecedence(rotation) === precedence;
+        }),
+        Number.POSITIVE_INFINITY,
+      );
+    },
+  );
+
+  const scheduleCount: number = Math.max(
+    1,
+    ...tiers.map((tier: Array<Array<ImportedRotation>>): number => {
+      return tier.length;
+    }),
+  );
+
+  const schedules: Array<Array<ImportedRotation>> = [];
+
+  for (let index: number = 0; index < scheduleCount; index++) {
+    const layers: Array<ImportedRotation> = [];
+
+    for (const tier of tiers) {
+      if (tier.length === 1) {
+        layers.push(...tier[0]!);
+      } else if (index < tier.length) {
+        layers.push(...tier[index]!);
+      }
+    }
+
+    for (
+      let start: number = 0;
+      start < layers.length;
+      start += TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE
+    ) {
+      schedules.push(
+        layers.slice(start, start + TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE),
+      );
+    }
+  }
+
+  return schedules;
+}
+
+export function getRotationPrecedence(rotation: ImportedRotation): number {
+  return typeof rotation.precedence === "number" &&
+    Number.isFinite(rotation.precedence)
+    ? rotation.precedence
+    : 0;
+}
+
+/*
+ * Rotations that are on call at the same time, split so no two in a group
+ * ever are: a rotation joins the first group it never overlaps (and that
+ * has room), or starts one of its own.
+ */
+function splitConcurrentRotations(
+  rotations: Array<ImportedRotation>,
+  maxPerGroup: number,
 ): Array<Array<ImportedRotation>> {
   const groups: Array<{
     rotations: Array<ImportedRotation>;
@@ -277,7 +368,7 @@ export function groupRotationsIntoSchedules(
         coverage: Uint8Array;
       }): boolean => {
         return (
-          candidate.rotations.length < TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE &&
+          candidate.rotations.length < maxPerGroup &&
           !doCoveragesOverlap(candidate.coverage, coverage)
         );
       },
@@ -309,21 +400,33 @@ export function groupRotationsIntoSchedules(
 /*
  * The name of the OneUptime schedule made from one group of a schedule's
  * rotations: the schedule's own name for the first, and the schedule's name
- * with the group's first rotation for each further one, so a person can tell
- * them apart ("Platform (Secondary)").
+ * with the group's own first rotation for each further one, so a person can
+ * tell them apart ("Platform (Secondary)"). A rotation every group shares
+ * (one that overrides them all) names none of them.
  */
 export function getGroupScheduleName(data: {
   scheduleName: string;
   groupIndex: number;
   group: Array<ImportedRotation>;
   maxLength: number;
+  // Every group of the schedule, to tell its own rotations from shared ones.
+  groups?: Array<Array<ImportedRotation>> | undefined;
 }): string {
   if (data.groupIndex === 0) {
     return truncate(data.scheduleName, data.maxLength);
   }
 
+  const ownRotation: ImportedRotation | undefined =
+    data.group.find((rotation: ImportedRotation): boolean => {
+      return !(data.groups || []).every(
+        (group: Array<ImportedRotation>): boolean => {
+          return group.includes(rotation);
+        },
+      );
+    }) || data.group[0];
+
   const rotationName: string =
-    data.group[0]?.name?.trim() || `${data.groupIndex + 1}`;
+    ownRotation?.name?.trim() || `${data.groupIndex + 1}`;
   const suffix: string = ` (${rotationName})`;
 
   return (
@@ -592,7 +695,7 @@ function greatestCommonDivisor(first: number, second: number): number {
 
 /*
  * The interval OneUptime rotates at for a tool's "hourly" / "daily" /
- * "weekly", or null for anything else.
+ * "weekly" / "monthly", or null for anything else.
  */
 export function toEventInterval(value: unknown): EventInterval | null {
   switch (typeof value === "string" ? value.trim().toLowerCase() : "") {
@@ -605,7 +708,270 @@ export function toEventInterval(value: unknown): EventInterval | null {
     case "weekly":
     case "week":
       return EventInterval.Week;
+    case "monthly":
+    case "month":
+      return EventInterval.Month;
     default:
       return null;
   }
+}
+
+export const SECONDS_PER_HOUR: number = 60 * 60;
+export const SECONDS_PER_DAY: number = 24 * SECONDS_PER_HOUR;
+export const SECONDS_PER_WEEK: number = 7 * SECONDS_PER_DAY;
+
+/*
+ * A turn given as a number of seconds (PagerDuty's turn length) as the
+ * interval OneUptime rotates at: whole weeks, else whole days, else whole
+ * hours. A length that is not whole hours is rounded to the nearest hour
+ * (at least one), and `isExact` says so.
+ */
+export function toTurnInterval(seconds: number): {
+  intervalType: EventInterval;
+  intervalCount: number;
+  isExact: boolean;
+} {
+  const length: number = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+
+  if (length >= SECONDS_PER_WEEK && length % SECONDS_PER_WEEK === 0) {
+    return {
+      intervalType: EventInterval.Week,
+      intervalCount: length / SECONDS_PER_WEEK,
+      isExact: true,
+    };
+  }
+
+  if (length >= SECONDS_PER_DAY && length % SECONDS_PER_DAY === 0) {
+    return {
+      intervalType: EventInterval.Day,
+      intervalCount: length / SECONDS_PER_DAY,
+      isExact: true,
+    };
+  }
+
+  const hours: number = Math.max(1, Math.round(length / SECONDS_PER_HOUR));
+
+  return {
+    intervalType: EventInterval.Hour,
+    intervalCount: hours,
+    isExact: length > 0 && length % SECONDS_PER_HOUR === 0,
+  };
+}
+
+/*
+ * Windows of time on chosen days of the week - "on Monday to Friday, from
+ * 09:00 for 8 hours" - as a restriction: none when they cover the whole
+ * week, a daily one when every day has the same single window, weekly
+ * windows otherwise. A window may run past midnight, and past the end of
+ * the week. Times are wall-clock times of the schedule's time zone.
+ */
+export function buildRestrictionFromDayWindows(
+  windows: Array<{
+    day: DayOfWeek;
+    startMinuteOfDay: number;
+    durationMinutes: number;
+  }>,
+): ImportedRestriction | null {
+  const usable: Array<{
+    day: DayOfWeek;
+    startMinuteOfDay: number;
+    durationMinutes: number;
+  }> = windows.filter(
+    (window: {
+      day: DayOfWeek;
+      startMinuteOfDay: number;
+      durationMinutes: number;
+    }): boolean => {
+      return (
+        Number.isFinite(window.startMinuteOfDay) &&
+        Number.isFinite(window.durationMinutes) &&
+        window.durationMinutes > 0 &&
+        window.startMinuteOfDay >= 0 &&
+        window.startMinuteOfDay < MINUTES_PER_DAY
+      );
+    },
+  );
+
+  if (usable.length === 0) {
+    return null;
+  }
+
+  const weekly: Array<ImportedWeeklyWindow> = usable.map(
+    (window: {
+      day: DayOfWeek;
+      startMinuteOfDay: number;
+      durationMinutes: number;
+    }): ImportedWeeklyWindow => {
+      const duration: number = Math.min(
+        MINUTES_PER_WEEK,
+        Math.round(window.durationMinutes),
+      );
+      const start: number = Math.round(window.startMinuteOfDay);
+      const endMinuteOfWeek: number =
+        DayOfWeekUtil.getNumberOfDayOfWeek(window.day) * MINUTES_PER_DAY +
+        start +
+        duration;
+      const endDayIndex: number =
+        Math.floor(endMinuteOfWeek / MINUTES_PER_DAY) % 7;
+
+      return {
+        startDay: window.day,
+        startTime: formatTimeOfDay(start),
+        endDay: DAYS_IN_ORDER[endDayIndex]!,
+        endTime: formatTimeOfDay(endMinuteOfWeek % MINUTES_PER_DAY),
+      };
+    },
+  );
+
+  const restriction: ImportedRestriction = { type: "Weekly", windows: weekly };
+  const coverage: Uint8Array = getRestrictionCoverage(restriction);
+
+  if (
+    coverage.every((minute: number): boolean => {
+      return minute === 1;
+    })
+  ) {
+    return null;
+  }
+
+  // Every day the same one window: a daily restriction says it plainly.
+  const first: { startMinuteOfDay: number; durationMinutes: number } =
+    usable[0]!;
+  const days: Set<DayOfWeek> = new Set<DayOfWeek>(
+    usable.map(
+      (window: {
+        day: DayOfWeek;
+        startMinuteOfDay: number;
+        durationMinutes: number;
+      }): DayOfWeek => {
+        return window.day;
+      },
+    ),
+  );
+
+  if (
+    usable.length === 7 &&
+    days.size === 7 &&
+    first.durationMinutes < MINUTES_PER_DAY &&
+    usable.every(
+      (window: { startMinuteOfDay: number; durationMinutes: number }) => {
+        return (
+          window.startMinuteOfDay === first.startMinuteOfDay &&
+          window.durationMinutes === first.durationMinutes
+        );
+      },
+    )
+  ) {
+    return {
+      type: "Daily",
+      startTime: formatTimeOfDay(first.startMinuteOfDay),
+      endTime: formatTimeOfDay(
+        (first.startMinuteOfDay + first.durationMinutes) % MINUTES_PER_DAY,
+      ),
+    };
+  }
+
+  return restriction;
+}
+
+// Sunday first, as the week's minutes count from Sunday 00:00.
+export const ALL_DAYS_OF_WEEK: ReadonlyArray<DayOfWeek> = DAYS_IN_ORDER;
+
+/*
+ * How many minutes `timezone` is ahead of `otherTimezone` at `at` (negative
+ * when behind), and whether that difference is the same all year - false
+ * when only one of them keeps daylight saving time, or they change on
+ * different dates.
+ */
+export function getTimezoneDifference(data: {
+  timezone: string;
+  otherTimezone: string;
+  at: Date;
+}): { minutes: number; isConstant: boolean } {
+  const difference: (at: Date) => number = (at: Date): number => {
+    return (
+      moment.tz(at, data.timezone).utcOffset() -
+      moment.tz(at, data.otherTimezone).utcOffset()
+    );
+  };
+
+  const now: number = difference(data.at);
+  const year: number = data.at.getUTCFullYear();
+  const isConstant: boolean = [0, 2, 4, 6, 8, 10].every(
+    (month: number): boolean => {
+      return difference(new Date(Date.UTC(year, month, 15))) === now;
+    },
+  );
+
+  return { minutes: now, isConstant: isConstant };
+}
+
+/*
+ * A restriction kept in one time zone, in another's wall-clock time:
+ * every window moved by `minutes` (positive: later). A daily restriction
+ * stays daily; a weekly window that moves past midnight moves its day too.
+ */
+export function shiftRestriction(
+  restriction: ImportedRestriction | null,
+  minutes: number,
+): ImportedRestriction | null {
+  if (!restriction || minutes === 0) {
+    return restriction;
+  }
+
+  const shiftMinuteOfDay: (time: string) => number | null = (
+    time: string,
+  ): number | null => {
+    const parsed: number | null = parseTimeOfDay(time);
+
+    return parsed === null
+      ? null
+      : (((parsed + minutes) % MINUTES_PER_DAY) + MINUTES_PER_DAY) %
+          MINUTES_PER_DAY;
+  };
+
+  if (restriction.type === "Daily") {
+    const start: number | null = shiftMinuteOfDay(restriction.startTime);
+    const end: number | null = shiftMinuteOfDay(restriction.endTime);
+
+    if (start === null || end === null) {
+      return restriction;
+    }
+
+    return {
+      type: "Daily",
+      startTime: formatTimeOfDay(start),
+      endTime: formatTimeOfDay(end),
+    };
+  }
+
+  const windows: Array<ImportedWeeklyWindow> = [];
+
+  for (const window of restriction.windows) {
+    const start: number | null = getMinuteOfWeek(
+      window.startDay,
+      window.startTime,
+    );
+    const end: number | null = getMinuteOfWeek(window.endDay, window.endTime);
+
+    if (start === null || end === null) {
+      continue;
+    }
+
+    const movedStart: number =
+      (((start + minutes) % MINUTES_PER_WEEK) + MINUTES_PER_WEEK) %
+      MINUTES_PER_WEEK;
+    const movedEnd: number =
+      (((end + minutes) % MINUTES_PER_WEEK) + MINUTES_PER_WEEK) %
+      MINUTES_PER_WEEK;
+
+    windows.push({
+      startDay: DAYS_IN_ORDER[Math.floor(movedStart / MINUTES_PER_DAY)]!,
+      startTime: formatTimeOfDay(movedStart % MINUTES_PER_DAY),
+      endDay: DAYS_IN_ORDER[Math.floor(movedEnd / MINUTES_PER_DAY)]!,
+      endTime: formatTimeOfDay(movedEnd % MINUTES_PER_DAY),
+    });
+  }
+
+  return windows.length > 0 ? { type: "Weekly", windows: windows } : null;
 }

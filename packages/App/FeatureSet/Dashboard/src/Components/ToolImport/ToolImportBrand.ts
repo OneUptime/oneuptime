@@ -16,7 +16,10 @@ export interface ToolImportBrand {
 
 export const TOOL_IMPORT_BRANDS: Record<ToolImportSource, ToolImportBrand> = {
   [ToolImportSource.OpsGenie]: { color: "#2563EB", initial: "O" },
+  [ToolImportSource.PagerDuty]: { color: "#047C2A", initial: "P" },
   [ToolImportSource.IncidentIo]: { color: "#E5484D", initial: "i" },
+  [ToolImportSource.SplunkOnCall]: { color: "#BE185D", initial: "S" },
+  [ToolImportSource.GrafanaOnCall]: { color: "#C2410C", initial: "G" },
 };
 
 // A tool this build has no brand for still gets a tile.

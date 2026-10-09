@@ -152,11 +152,13 @@ describe("ToolImportScheduleRules: times of day, days and zones", () => {
     expect(resolveImportedTimezone("")).toBeNull();
   });
 
-  test("hourly, daily and weekly are the intervals a rotation turns at", () => {
+  test("hourly, daily, weekly and monthly are the intervals a rotation turns at", () => {
     expect(toEventInterval("hourly")).toBe(EventInterval.Hour);
     expect(toEventInterval("Daily")).toBe(EventInterval.Day);
     expect(toEventInterval("weekly")).toBe(EventInterval.Week);
-    expect(toEventInterval("monthly")).toBeNull();
+    // Grafana OnCall rotates monthly too; the layer engine counts months.
+    expect(toEventInterval("monthly")).toBe(EventInterval.Month);
+    expect(toEventInterval("yearly")).toBeNull();
     expect(toEventInterval(undefined)).toBeNull();
   });
 });

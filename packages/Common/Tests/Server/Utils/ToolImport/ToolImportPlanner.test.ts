@@ -229,6 +229,29 @@ describe("ToolImportPlanner: teams and other named records", () => {
     });
   });
 
+  test("a service the tool has turned off is offered unticked; one turned on, or with no word, ticked", () => {
+    const result: ToolImportPlan = plan({
+      services: [
+        {
+          ...service("off", "Legacy batch"),
+          isEnabled: false,
+          notes: [makeToolImportNote(ToolImportNoteCode.TurnedOffInSource)],
+        },
+        { ...service("on", "Checkout"), isEnabled: true },
+        service("unsaid", "Search"),
+      ],
+    });
+
+    expect(item(result, "Service:off")).toMatchObject({
+      action: ToolImportAction.Create,
+      isSelectable: true,
+      isSelectedByDefault: false,
+      notes: [{ code: ToolImportNoteCode.TurnedOffInSource }],
+    });
+    expect(item(result, "Service:on").isSelectedByDefault).toBe(true);
+    expect(item(result, "Service:unsaid").isSelectedByDefault).toBe(true);
+  });
+
   test("what an earlier import brought over is left alone; if it was deleted since, it is created again with a note", () => {
     const state: ToolImportProjectState = projectState({
       previousRecords: [
@@ -422,6 +445,41 @@ describe("ToolImportPlanner: on-call schedules", () => {
     });
   });
 
+  test("layers that override one another (PagerDuty's) stay one schedule however they overlap, with no note", () => {
+    const result: ToolImportPlan = plan({
+      schedules: [
+        schedule("s", "Primary", [
+          rotation("weekend", ["c"], { precedence: 2 }),
+          rotation("daily", ["a", "b"], { precedence: 1 }),
+        ]),
+      ],
+    });
+
+    expect(item(result, "OnCallSchedule:s")).toMatchObject({
+      summary: { scheduleCount: 1, layerCount: 2 },
+      notes: [],
+    });
+  });
+
+  test("a schedule with no rotations to read (an iCal schedule) is still offered, with why it has no layers", () => {
+    const result: ToolImportPlan = plan({
+      schedules: [
+        schedule("ical", "Legacy calendar", [], {
+          notes: [
+            makeToolImportNote(ToolImportNoteCode.ScheduleFromCalendarLink),
+          ],
+        }),
+      ],
+    });
+
+    expect(item(result, "OnCallSchedule:ical")).toMatchObject({
+      action: ToolImportAction.Create,
+      isSelectedByDefault: true,
+      summary: { scheduleCount: 1, layerCount: 0 },
+      notes: [{ code: ToolImportNoteCode.ScheduleFromCalendarLink }],
+    });
+  });
+
   test("a zone OneUptime does not know becomes UTC, with a note; the rotations' notes are shown on the schedule", () => {
     const result: ToolImportPlan = plan({
       schedules: [
@@ -546,6 +604,31 @@ describe("ToolImportPlanner: escalation policies", () => {
       action: ToolImportAction.Skip,
       reason: { code: ToolImportNoteCode.NothingToPage },
     });
+  });
+
+  test("a policy whose levels name nobody - only steps OneUptime cannot page - is skipped up front, as the import would", () => {
+    const result: ToolImportPlan = plan({
+      people: [person("a")],
+      policies: [
+        policy("unpaged", "Shift-based only", [level({}), level({})], {
+          notes: [makeToolImportNote(ToolImportNoteCode.PolicyScheduleNotRead)],
+        }),
+        policy("paged", "One level names someone", [
+          level({}),
+          level({ people: ["a"] }),
+        ]),
+      ],
+    });
+
+    expect(item(result, "OnCallPolicy:unpaged")).toMatchObject({
+      action: ToolImportAction.Skip,
+      isSelectable: false,
+      reason: { code: ToolImportNoteCode.NothingToPage },
+      notes: [{ code: ToolImportNoteCode.PolicyScheduleNotRead }],
+    });
+    expect(item(result, "OnCallPolicy:paged").action).toBe(
+      ToolImportAction.Create,
+    );
   });
 
   test("on the Free plan a policy of several levels says only its first comes over", () => {

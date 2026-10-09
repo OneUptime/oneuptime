@@ -38,7 +38,8 @@ Las notificaciones push móviles utilizan APNs (iOS) y FCM (Android) mediante Ex
 2. La optimización de batería está deshabilitada y se permite la actividad en segundo plano (Android).
 3. Los modos Do Not Disturb o Concentración están desactivados, o la aplicación está en la lista de excepciones.
 4. Ha iniciado sesión — el token push solo se registra con el servidor después de iniciar sesión.
-5. **Solo autoalojado:** Las notificaciones push están configuradas en su instancia de OneUptime. Consulte la guía de [Notificaciones push](/docs/self-hosted/push-notifications).
+5. El teléfono no aparece marcado como **No recibe notificaciones** en **User Settings > Notification Methods > Push** de OneUptime. Si lo está, abra la aplicación en el teléfono con la sesión iniciada para registrarlo de nuevo.
+6. **Solo autoalojado:** Las notificaciones push están configuradas en su instancia de OneUptime. Consulte la guía de [Notificaciones push](/docs/self-hosted/push-notifications).
 
 ### ¿Están seguros los datos en mi teléfono?
 

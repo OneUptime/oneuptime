@@ -110,7 +110,10 @@
   "navLinks": {
     "Getting Started": "Aan de slag",
     "Moving from Opsgenie": "Overstappen van Opsgenie",
+    "Moving from PagerDuty": "Overstappen van PagerDuty",
     "Moving from incident.io": "Overstappen van incident.io",
+    "Moving from Splunk On-Call": "Overstappen van Splunk On-Call",
+    "Moving from Grafana OnCall": "Overstappen van Grafana OnCall",
     "Local Development": "Lokale ontwikkeling",
     "Docker Compose": "Docker Compose",
     "Upgrading": "Upgraden",

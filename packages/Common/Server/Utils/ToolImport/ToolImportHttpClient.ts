@@ -5,6 +5,10 @@ import {
   TOOL_IMPORT_MAX_RESPONSE_BYTES,
   TOOL_IMPORT_REQUEST_TIMEOUT_MS,
 } from "../../../Types/ToolImport/ToolImportLimits";
+import DataSourceEgressGuard, {
+  EgressGuardOptions,
+  PinnedAgents,
+} from "../DataSource/EgressGuard";
 import { redactLogString } from "../LogRedaction";
 import OutboundUserAgent from "../OutboundUserAgent";
 import axios, { AxiosResponse } from "axios";
@@ -16,10 +20,15 @@ import axios, { AxiosResponse } from "axios";
  * where the rules every tool shares are kept:
  *
  *  - It only calls the tool's own hosts, fixed in ToolImportCatalog: the URL
- *    is built from that host and a path, never taken from a person or from
- *    a response, and anything else is refused before a socket is opened.
- *    Redirects are refused too. So an import cannot be pointed anywhere
- *    else (no SSRF).
+ *    is built from that host and a path, never taken from a response, and
+ *    anything else is refused before a socket is opened. Redirects are
+ *    refused too. So an import cannot be pointed anywhere else (no SSRF).
+ *    The one tool whose address a person gives (Grafana OnCall, which
+ *    people also run themselves) is read through
+ *    createToolImportAddressTransport: that one host only, and every
+ *    request checked and pinned by OneUptime's egress guard.
+ *  - It keeps a tool's pace: a tool whose documented limit is a few
+ *    requests a second is sent no more than that (minRequestIntervalMs).
  *  - It backs off when the tool says to slow down. A 429 waits for the
  *    tool's Retry-After (seconds or a date), or its rate-limit reset time,
  *    or doubling waits from two seconds up to a minute - and gives up with a
@@ -96,7 +105,23 @@ export interface ToolImportHttpClientOptions {
   toolName: string;
   // https://<host>, where <host> is one of allowedHosts.
   baseUrl: string;
+  /*
+   * A path every request's path goes under ("/oncall" for Grafana Cloud's
+   * OnCall API), of the same characters as a request's path. "" for none.
+   */
+  basePath?: string | undefined;
+  /*
+   * Whether baseUrl may be plain http: only for an address a person gave on
+   * a self-hosted OneUptime, where it is the person's own network. Never for
+   * a tool's fixed hosts.
+   */
+  allowHttp?: boolean | undefined;
   allowedHosts: Array<string>;
+  /*
+   * The least time between two requests (a tool that allows a few requests
+   * a second). Undefined: as fast as the tool answers.
+   */
+  minRequestIntervalMs?: number | undefined;
   // Sent with every request: the key's header.
   headers: Dictionary<string>;
   // Values cut out of any message: the key, and the header carrying it.
@@ -139,11 +164,29 @@ export default class ToolImportHttpClient {
   private now: () => number;
   private requestCount: number = 0;
   private waitedForRateLimitMs: number = 0;
+  private lastRequestAt: number | null = null;
 
   public constructor(options: ToolImportHttpClientOptions) {
-    const host: string = ToolImportHttpClient.getHost(options.baseUrl);
+    const host: string = ToolImportHttpClient.getHost(
+      options.baseUrl,
+      Boolean(options.allowHttp),
+    );
 
-    if (!options.allowedHosts.includes(host)) {
+    if (!host || !options.allowedHosts.includes(host)) {
+      throw new BadDataException(
+        `${options.toolName} can only be read from its own address.`,
+      );
+    }
+
+    const basePath: string = options.basePath || "";
+
+    if (
+      basePath &&
+      (!API_PATH.test(basePath) ||
+        basePath.endsWith("/") ||
+        basePath.includes("//") ||
+        basePath.split("/").includes(".."))
+    ) {
       throw new BadDataException(
         `${options.toolName} can only be read from its own address.`,
       );
@@ -182,7 +225,12 @@ export default class ToolImportHttpClient {
     for (;;) {
       this.assertWithinBudget();
 
+      await this.keepPace();
+
+      this.assertWithinBudget();
+
       this.requestCount++;
+      this.lastRequestAt = this.now();
 
       let response: ToolImportHttpResponse;
 
@@ -289,6 +337,24 @@ export default class ToolImportHttpClient {
     }
   }
 
+  /*
+   * Waits until the tool's least time between requests has passed since
+   * the last one, so a tool with a per-second limit is never pushed past it.
+   */
+  private async keepPace(): Promise<void> {
+    const interval: number = this.options.minRequestIntervalMs || 0;
+
+    if (interval <= 0 || this.lastRequestAt === null) {
+      return;
+    }
+
+    const waitMs: number = this.lastRequestAt + interval - this.now();
+
+    if (waitMs > 0) {
+      await this.wait(waitMs, false);
+    }
+  }
+
   private async wait(ms: number, isRateLimit: boolean): Promise<void> {
     const remaining: number = Math.max(0, this.options.deadlineAt - this.now());
     const waitMs: number = Math.max(0, Math.min(ms, remaining));
@@ -361,11 +427,13 @@ export default class ToolImportHttpClient {
 
   /*
    * X-RateLimit-Reset: the epoch second the window resets (incident.io), or
-   * a number of seconds when it is too small to be an epoch.
+   * a number of seconds when it is too small to be an epoch. PagerDuty's
+   * RateLimit-Reset is the seconds until its window resets.
    */
   private getResetWaitMs(response: ToolImportHttpResponse): number | null {
     const value: string | undefined =
       response.headers?.["x-ratelimit-reset"] ||
+      response.headers?.["ratelimit-reset"] ||
       response.headers?.["x-ratelimit-period-in-sec"];
 
     if (!value) {
@@ -424,8 +492,9 @@ export default class ToolImportHttpClient {
 
   /*
    * The tool's own words for a failure, from the error shapes their APIs
-   * document: Opsgenie's { message }, incident.io's { errors: [{ message }] }.
-   * Cut short, and with the key cut out.
+   * document: Opsgenie's and Splunk On-Call's { message }, incident.io's
+   * { errors: [{ message }] }, PagerDuty's { error: { message } } and Grafana
+   * OnCall's { detail }. Cut short, and with the key cut out.
    */
   private getErrorDetail(response: ToolImportHttpResponse): string {
     const body: unknown = response.bodyJson;
@@ -449,8 +518,22 @@ export default class ToolImportHttpClient {
         }
       }
 
+      const error: unknown = record["error"];
+
+      if (!detail && error && typeof error === "object") {
+        const message: unknown = (error as Record<string, unknown>)["message"];
+
+        if (typeof message === "string") {
+          detail = message;
+        }
+      }
+
       if (!detail && typeof record["message"] === "string") {
         detail = record["message"] as string;
+      }
+
+      if (!detail && typeof record["detail"] === "string") {
+        detail = record["detail"] as string;
       }
     }
 
@@ -484,7 +567,7 @@ export default class ToolImportHttpClient {
     }
 
     const url: URL = new URL(this.options.baseUrl);
-    url.pathname = path;
+    url.pathname = `${this.options.basePath || ""}${path}`;
 
     for (const [key, value] of Object.entries(query || {})) {
       if (value === undefined) {
@@ -511,10 +594,17 @@ export default class ToolImportHttpClient {
     return url.toString();
   }
 
-  public static getHost(baseUrl: string): string {
+  /*
+   * The host of an https base URL ("" for anything else), or of a plain
+   * http one when `allowHttp` says the address is the person's own network.
+   */
+  public static getHost(baseUrl: string, allowHttp: boolean = false): string {
     try {
       const url: URL = new URL(baseUrl);
-      return url.protocol === "https:" ? url.hostname : "";
+      return url.protocol === "https:" ||
+        (allowHttp && url.protocol === "http:")
+        ? url.hostname
+        : "";
     } catch {
       return "";
     }
@@ -533,16 +623,7 @@ export function createToolImportTransport(
   return async (
     request: ToolImportHttpRequest,
   ): Promise<ToolImportHttpResponse> => {
-    let url: URL;
-
-    try {
-      url = new URL(request.url);
-    } catch {
-      throw new ToolImportHttpError({
-        kind: ToolImportHttpErrorKind.Rejected,
-        message: "The request address is not valid.",
-      });
-    }
+    const url: URL = parseRequestUrl(request);
 
     if (url.protocol !== "https:" || !allowedHosts.includes(url.hostname)) {
       throw new ToolImportHttpError({
@@ -551,49 +632,145 @@ export function createToolImportTransport(
       });
     }
 
-    const response: AxiosResponse<string> = await axios.request<string>({
-      method: request.method,
-      url: url.toString(),
-      headers: OutboundUserAgent.withDefault(request.headers),
-      timeout: request.timeoutInMs,
-      maxRedirects: 0,
-      maxContentLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
-      maxBodyLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
-      responseType: "text",
-      transformResponse: [
-        (body: string): string => {
-          return body;
-        },
-      ],
-      validateStatus: (): boolean => {
-        return true;
-      },
-    });
+    return await sendToolImportRequest({ url: url, request: request });
+  };
+}
 
-    const bodyText: string = response.data || "";
-    let bodyJson: unknown = undefined;
+/*
+ * The transport for a tool whose address the person gives (Grafana OnCall,
+ * on Grafana Cloud or the person's own install). The host is still only
+ * the one they gave, and on top of the rules above every request goes
+ * through OneUptime's egress guard, as every other address a project member
+ * chooses does (Server/Utils/DataSource/EgressGuard):
+ *
+ *  - never loopback, link-local (the 169.254.169.254 cloud metadata
+ *    address), reserved or multicast addresses, on any install;
+ *  - never a private network address on OneUptime Cloud; a self-hosted
+ *    OneUptime may read a tool on its own network, unless its operator set
+ *    DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES;
+ *  - the host is resolved and checked before every request, and the socket
+ *    dials exactly the addresses that were checked (no DNS rebinding);
+ *  - no redirects, so a checked host cannot send the request elsewhere;
+ *  - plain http only where private addresses are allowed (`allowHttp`):
+ *    OneUptime Cloud sends a key over https only.
+ */
+export function createToolImportAddressTransport(data: {
+  allowedHosts: Array<string>;
+  toolName: string;
+  allowHttp: boolean;
+  // Test seam, forwarded to the egress guard.
+  egressOptions?: EgressGuardOptions | undefined;
+}): ToolImportTransport {
+  return async (
+    request: ToolImportHttpRequest,
+  ): Promise<ToolImportHttpResponse> => {
+    const url: URL = parseRequestUrl(request);
+    const isAllowedProtocol: boolean =
+      url.protocol === "https:" || (data.allowHttp && url.protocol === "http:");
+
+    if (!isAllowedProtocol || !data.allowedHosts.includes(url.hostname)) {
+      throw new ToolImportHttpError({
+        kind: ToolImportHttpErrorKind.Rejected,
+        message: data.allowHttp
+          ? "An import only calls the tool's own API."
+          : `An import only calls ${data.toolName} over https.`,
+      });
+    }
+
+    let pinned: { url: URL } & PinnedAgents;
 
     try {
-      bodyJson = bodyText ? JSON.parse(bodyText) : undefined;
-    } catch {
-      bodyJson = undefined;
+      pinned = await DataSourceEgressGuard.assertUrlAllowedAndPin(
+        url.toString(),
+        {
+          targetLabel: data.toolName,
+          ...(data.egressOptions || {}),
+        },
+      );
+    } catch (error) {
+      throw new ToolImportHttpError({
+        kind: ToolImportHttpErrorKind.Rejected,
+        message:
+          error instanceof Error && error.message
+            ? error.message
+            : `${data.toolName} could not be reached.`,
+      });
     }
 
-    const headers: Dictionary<string> = {};
+    return await sendToolImportRequest({
+      url: pinned.url,
+      request: request,
+      agents: { httpAgent: pinned.httpAgent, httpsAgent: pinned.httpsAgent },
+    });
+  };
+}
 
-    for (const key of Object.keys(response.headers || {})) {
-      const value: unknown = (response.headers as Record<string, unknown>)[key];
+function parseRequestUrl(request: ToolImportHttpRequest): URL {
+  try {
+    return new URL(request.url);
+  } catch {
+    throw new ToolImportHttpError({
+      kind: ToolImportHttpErrorKind.Rejected,
+      message: "The request address is not valid.",
+    });
+  }
+}
 
-      if (value !== undefined && value !== null) {
-        headers[key.toLowerCase()] = String(value);
-      }
+// One GET with the rules every transport keeps, its answer handed back as is.
+async function sendToolImportRequest(data: {
+  url: URL;
+  request: ToolImportHttpRequest;
+  agents?: PinnedAgents | undefined;
+}): Promise<ToolImportHttpResponse> {
+  const response: AxiosResponse<string> = await axios.request<string>({
+    method: data.request.method,
+    url: data.url.toString(),
+    headers: OutboundUserAgent.withDefault(data.request.headers),
+    timeout: data.request.timeoutInMs,
+    maxRedirects: 0,
+    maxContentLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
+    maxBodyLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
+    responseType: "text",
+    transformResponse: [
+      (body: string): string => {
+        return body;
+      },
+    ],
+    validateStatus: (): boolean => {
+      return true;
+    },
+    // The socket dials only the addresses the egress guard checked.
+    ...(data.agents
+      ? {
+          httpAgent: data.agents.httpAgent,
+          httpsAgent: data.agents.httpsAgent,
+        }
+      : {}),
+  });
+
+  const bodyText: string = response.data || "";
+  let bodyJson: unknown = undefined;
+
+  try {
+    bodyJson = bodyText ? JSON.parse(bodyText) : undefined;
+  } catch {
+    bodyJson = undefined;
+  }
+
+  const headers: Dictionary<string> = {};
+
+  for (const key of Object.keys(response.headers || {})) {
+    const value: unknown = (response.headers as Record<string, unknown>)[key];
+
+    if (value !== undefined && value !== null) {
+      headers[key.toLowerCase()] = String(value);
     }
+  }
 
-    return {
-      statusCode: response.status,
-      bodyText: bodyText,
-      bodyJson: bodyJson,
-      headers: headers,
-    };
+  return {
+    statusCode: response.status,
+    bodyText: bodyText,
+    bodyJson: bodyJson,
+    headers: headers,
   };
 }

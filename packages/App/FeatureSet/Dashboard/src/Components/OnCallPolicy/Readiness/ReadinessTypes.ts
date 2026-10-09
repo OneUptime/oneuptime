@@ -12,6 +12,7 @@ import {
 import type {
   ReadinessCoverageCell,
   ReadinessMethod,
+  ReadinessMethodType,
   ReadinessStatus,
   ReadinessSummary,
   ReadinessTeam,
@@ -146,6 +147,16 @@ export type ReadinessSummaryWire = Omit<
    */
   isTruncated: boolean;
 };
+
+/*
+ * The methodType a push device is listed under. A push device is verified
+ * when it is registered, so one that is not stopped receiving notifications
+ * (its push service, or Expo, said it was gone), and the surfaces say so
+ * rather than "unverified". Typed as the server's ReadinessMethodType.Push,
+ * so renaming that value fails to compile here instead of quietly sending
+ * every push device back to "unverified".
+ */
+export const READINESS_METHOD_TYPE_PUSH: `${ReadinessMethodType.Push}` = "Push";
 
 export const READINESS_STATUS_READY: ReadinessStatusValue = "Ready";
 export const READINESS_STATUS_PARTIALLY_READY: ReadinessStatusValue =

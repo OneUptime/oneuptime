@@ -110,7 +110,10 @@
   "navLinks": {
     "Getting Started": "はじめに",
     "Moving from Opsgenie": "Opsgenie からの移行",
+    "Moving from PagerDuty": "PagerDuty からの移行",
     "Moving from incident.io": "incident.io からの移行",
+    "Moving from Splunk On-Call": "Splunk On-Call からの移行",
+    "Moving from Grafana OnCall": "Grafana OnCall からの移行",
     "Local Development": "ローカル開発",
     "Docker Compose": "Docker Compose",
     "Upgrading": "アップグレード",

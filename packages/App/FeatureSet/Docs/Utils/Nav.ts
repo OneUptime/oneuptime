@@ -83,8 +83,20 @@ const DocsNav: NavGroup[] = [
         url: "/docs/moving-to-oneuptime/opsgenie",
       },
       {
+        title: "Moving from PagerDuty",
+        url: "/docs/moving-to-oneuptime/pagerduty",
+      },
+      {
         title: "Moving from incident.io",
         url: "/docs/moving-to-oneuptime/incident-io",
+      },
+      {
+        title: "Moving from Splunk On-Call",
+        url: "/docs/moving-to-oneuptime/splunk-on-call",
+      },
+      {
+        title: "Moving from Grafana OnCall",
+        url: "/docs/moving-to-oneuptime/grafana-oncall",
       },
     ],
   },

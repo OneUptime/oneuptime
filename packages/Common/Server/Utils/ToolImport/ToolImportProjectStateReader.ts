@@ -23,6 +23,8 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import ResolvedStateUtil from "../../../Utils/ResolvedState";
+import { StateListType } from "../../../Utils/StateOrder";
 import {
   InviteTeam,
   InviteTeamPermissionRow,
@@ -156,6 +158,7 @@ export default class ToolImportProjectStateReader {
         isCreatedState: true,
         isResolvedState: true,
         order: true,
+        createdAt: true,
       },
       sort: { order: SortOrder.Ascending },
       limit: LIMIT_MAX,
@@ -193,10 +196,12 @@ export default class ToolImportProjectStateReader {
           return Boolean(state.isCreatedState);
         }),
       ),
+      // Where Resolve moves an incident: the one rule the services use.
       resolvedIncidentState: toExisting(
-        states.find((state: IncidentState): boolean => {
-          return Boolean(state.isResolvedState);
-        }),
+        ResolvedStateUtil.getResolvedState({
+          list: StateListType.IncidentState,
+          states: states,
+        }) || undefined,
       ),
       primaryIncidentRole: toExisting(roles[0]),
       previousRecords: await this.readPreviousRecords({
