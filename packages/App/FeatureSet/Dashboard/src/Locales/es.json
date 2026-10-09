@@ -27333,5 +27333,7 @@
   "Who is paged when Huntress reports an incident. Leave empty to open incidents without paging anyone; your incident on-call rules still apply.": "A quién se avisa cuando Huntress informa de un incidente. Déjalo vacío para abrir incidentes sin avisar a nadie; tus reglas de guardia de incidentes siguen aplicándose.",
   "Who is paged, and how a Huntress report becomes an incident.": "A quién se avisa y cómo un informe de Huntress se convierte en un incidente.",
   "whsec_…": "whsec_…",
-  "{{labels}}, and the report's organization": "{{labels}} y la organización del informe"
+  "{{labels}}, and the report's organization": "{{labels}} y la organización del informe",
+  "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "El nombre concreto del modelo o del despliegue que usar (p. ej., gpt-5.1 para OpenAI, claude-sonnet-5-5 para Anthropic, el nombre de tu despliegue para Azure OpenAI, llama-3.3-70b-versatile para Groq, mistral-large-latest para Mistral). Obligatorio para los proveedores compatibles con OpenAI: debe coincidir con un modelo que exponga tu servidor.",
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile"
 }

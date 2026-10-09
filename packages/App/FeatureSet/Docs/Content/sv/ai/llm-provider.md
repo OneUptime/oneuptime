@@ -62,7 +62,7 @@ OneUptime stöder för närvarande följande LLM-leverantörer:
 | --------------------- | -------------------------------------------------------------------------- | ---------------- | ----------------------- |
 | **OpenAI**            | GPT-5.1 och andra OpenAI-modeller                                          | Ja               | Nej (använder standard) |
 | **Azure OpenAI**      | OpenAI-modeller som är hostade i din Azure-driftsättning                   | Ja               | Ja                      |
-| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 och andra Claude-modeller | Ja               | Nej (använder standard) |
+| **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 och andra Claude-modeller | Ja               | Nej (använder standard) |
 | **Groq**              | Snabb inferens för Llama, Mixtral och andra öppna modeller                 | Ja               | Nej (använder standard) |
 | **Mistral**           | Mistrals hostade modeller                                                  | Ja               | Nej (använder standard) |
 | **Ollama**            | Egeninstallerade öppen källkods-modeller som Llama 3.1, Mistral, Qwen etc. | Nej              | Ja                      |
@@ -84,7 +84,7 @@ Fyll i följande fält:
 - **Beskrivning** (valfritt): En beskrivning för att hjälpa till att identifiera syftet med denna leverantör
 - **LLM-leverantör**: Välj leverantörstyp (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama eller OpenAI Compatible)
 - **API-nyckel**: Din API-nyckel (krävs för OpenAI, Azure OpenAI, Anthropic, Groq och Mistral; valfritt för Ollama och OpenAI-kompatibla servrar)
-- **Modellnamn**: Den specifika modell som ska användas (t.ex. `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
+- **Modellnamn**: Den specifika modell som ska användas (t.ex. `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **Bas-URL** (valfritt): Anpassad API-slutpunkts-URL (krävs för Azure OpenAI, Ollama och OpenAI Compatible; valfritt för andra)
 - **Fler fält**, ihopfälld under fälten ovan: **Ange som standard**, som är påslaget för en ny leverantör eftersom AI-funktioner bara använder projektets standardleverantör, och **Ytterligare parametrar**, ett valfritt JSON-objekt med extra parametrar som skickas till leverantören med varje begäran (till exempel `{"temperature": 0.2}`)
 
@@ -114,9 +114,9 @@ Model Name: gpt-5.1
 2. Välj **Anthropic** som LLM-leverantör
 3. Ange din API-nyckel
 4. Välj ett modellnamn:
-   - `claude-sonnet-5` – Rekommenderad standard, bästa balansen mellan intelligens, hastighet och kostnad
-   - `claude-opus-5` – Mest kapabel modell, för de svåraste utredningarna
-   - `claude-haiku-4-5` – Snabbast och mest kostnadseffektiv
+   - `claude-sonnet-5-5` – Rekommenderad standard, bästa balansen mellan intelligens, hastighet och kostnad
+   - `claude-opus-5-5` – Mer kapabel, för de svåraste utredningarna
+   - `claude-haiku-5-5` – Snabbast och mest kostnadseffektiv
 
 **Exempelkonfiguration:**
 
@@ -124,8 +124,12 @@ Model Name: gpt-5.1
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-sonnet-5
+Model Name: claude-sonnet-5-5
 ```
+
+Claude Opus 4.7 och alla senare Claude-modeller väljer sin egen sampling och avvisar en begäran som anger `temperature`, `top_p` eller `top_k`. OneUptime utelämnar de inställningarna för dessa modeller. Avvisar en modell ändå någon av dem skickar OneUptime begäran igen utan den och kommer ihåg det för leverantören.
+
+Claude 5-modeller tänker innan de svarar, och tänkandet räknas in i svarets tokengräns, så OneUptime lämnar utrymme för det. Vill du att de ska tänka mindre och svara snabbare och billigare anger du `{"output_config": {"effort": "low"}}` i leverantörens fält **Ytterligare parametrar**. Det du lägger till där skickar OneUptime till Anthropic med varje begäran, utom `model`, `messages`, `system`, `tools`, `tool_choice` och `stream`, som OneUptime anger själv.
 
 ### Ollama (egeninstallerad)
 

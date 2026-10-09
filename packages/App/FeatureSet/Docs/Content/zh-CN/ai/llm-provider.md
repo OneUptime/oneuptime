@@ -62,7 +62,7 @@ OneUptime 目前支持以下 LLM 提供商：
 | --------------------- | ------------------------------------------------------------------- | ----------------- | ---------------- |
 | **OpenAI**            | GPT-5.1 及其他 OpenAI 模型                                          | 是                | 否（使用默认值） |
 | **Azure OpenAI**      | 部署在您的 Azure 环境中的 OpenAI 模型                               | 是                | 是               |
-| **Anthropic**         | Claude Sonnet 5、Claude Opus 5、Claude Haiku 4.5 及其他 Claude 模型 | 是                | 否（使用默认值） |
+| **Anthropic**         | Claude Sonnet 5.5、Claude Opus 5.5、Claude Haiku 5.5 及其他 Claude 模型 | 是                | 否（使用默认值） |
 | **Groq**              | 针对 Llama、Mixtral 等开源模型的高速推理服务                        | 是                | 否（使用默认值） |
 | **Mistral**           | Mistral 托管的模型                                                  | 是                | 否（使用默认值） |
 | **Ollama**            | 自托管开源模型，如 Llama 3.1、Mistral、Qwen 等                      | 否                | 是               |
@@ -84,7 +84,7 @@ OneUptime 目前支持以下 LLM 提供商：
 - **描述**（可选）：帮助标识此提供商用途的描述
 - **LLM 提供商**：选择提供商类型（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
 - **API 密钥**：您的 API 密钥（OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必填；Ollama 和兼容 OpenAI 的服务器可选）
-- **模型名称**：要使用的具体模型（例如 `gpt-5.1`、`claude-sonnet-5`、`llama3.1`）
+- **模型名称**：要使用的具体模型（例如 `gpt-5.1`、`claude-sonnet-5-5`、`llama3.1`）
 - **基础 URL**（可选）：自定义 API 端点 URL（Azure OpenAI、Ollama 和 OpenAI Compatible 必填，其他可选）
 - **更多字段**：收起在上方字段之下，包括 **设为默认**（新提供商默认开启，因为 AI 功能只使用项目的默认提供商）和 **附加参数**（可选的 JSON 对象，其中的额外参数会随每个请求发送给提供商，例如 `{"temperature": 0.2}`）
 
@@ -114,9 +114,9 @@ Model Name: gpt-5.1
 2. 选择 **Anthropic** 作为 LLM 提供商
 3. 输入您的 API 密钥
 4. 选择模型名称：
-   - `claude-sonnet-5` - 推荐的默认模型，智能、速度与成本的最佳平衡
-   - `claude-opus-5` - 能力最强的模型，适合最棘手的调查
-   - `claude-haiku-4-5` - 最快且最具成本效益
+   - `claude-sonnet-5-5` - 推荐的默认模型，智能、速度与成本的最佳平衡
+   - `claude-opus-5-5` - 能力更强，适合最棘手的调查
+   - `claude-haiku-5-5` - 最快且最具成本效益
 
 **示例配置：**
 
@@ -124,8 +124,12 @@ Model Name: gpt-5.1
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-sonnet-5
+Model Name: claude-sonnet-5-5
 ```
+
+Claude Opus 4.7 及之后的所有 Claude 模型会自行决定采样，并拒绝设置了 `temperature`、`top_p` 或 `top_k` 的请求。对这些模型，OneUptime 不会发送这些设置。如果某个模型仍然拒绝其中之一，OneUptime 会去掉该设置后重新发送请求，并为该提供商记住这一点。
+
+Claude 5 模型会在回答前先思考，而思考会计入回复的 token 上限，因此 OneUptime 会为思考预留空间。若要让它们少思考、回答得更快更省钱，请在提供商的 **附加参数** 中设置 `{"output_config": {"effort": "low"}}`。您在那里添加的设置，OneUptime 会随每个请求发送给 Anthropic，但 `model`、`messages`、`system`、`tools`、`tool_choice` 和 `stream` 除外，这些由 OneUptime 自行设置。
 
 ### Ollama（自托管）
 

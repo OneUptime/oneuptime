@@ -27333,5 +27333,7 @@
   "Who is paged when Huntress reports an incident. Leave empty to open incidents without paging anyone; your incident on-call rules still apply.": "Hvem som varsles når Huntress rapporterer en hendelse. La stå tomt for å åpne hendelser uten å varsle noen; vaktreglene dine for hendelser gjelder fortsatt.",
   "Who is paged, and how a Huntress report becomes an incident.": "Hvem som varsles, og hvordan en Huntress-rapport blir en hendelse.",
   "whsec_…": "whsec_…",
-  "{{labels}}, and the report's organization": "{{labels}} og rapportens organisasjon"
+  "{{labels}}, and the report's organization": "{{labels}} og rapportens organisasjon",
+  "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "Det spesifikke modell- eller utrullingsnavnet som skal brukes (f.eks. gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, utrullingsnavnet ditt for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Påkrevd for OpenAI-kompatible leverandører — det må samsvare med en modell serveren din tilbyr.",
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile"
 }
