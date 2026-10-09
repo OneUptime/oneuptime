@@ -37,6 +37,8 @@ const DASHBOARD_CANVAS: string =
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx";
 const DASHBOARD_BLANK_CANVAS: string =
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/BlankCanvas.tsx";
+const DASHBOARD_WIDGET_FALLBACK: string =
+  "App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetFallback.tsx";
 
 describe("every entry point into a dashboard write is permission-gated", () => {
   test("the metric explorer gates Add to dashboard on Dashboard update", () => {
@@ -119,6 +121,37 @@ describe("every entry point into a dashboard write is permission-gated", () => {
       "const offersAddWidget: boolean = !props.isEditMode && Boolean(props.onAddWidgetClick);",
     );
     expect(blankCanvas).toContain("{offersAddWidget ? (");
+  });
+
+  /*
+   * Issue #4571: a widget that cannot be drawn offers Edit widget, which goes
+   * into edit mode with that widget's settings open (to fix or delete it).
+   * It is a way into edit mode like the toolbar's and the empty board's, so
+   * it is gated the same way: the canvas is handed no handler without the
+   * permission, the handler refuses on its own, and the widget's note shows
+   * the button only when it was handed one - never on a public dashboard,
+   * and never under the edit overlay.
+   */
+  test("a broken widget's Edit widget is handed only to someone who may edit", () => {
+    const view: string = readSquashed(DASHBOARD_VIEW);
+
+    expect(view).toContain(
+      "onEditWidgetClick={canEditDashboard ? editWidget : undefined}",
+    );
+    expect(view).toContain(
+      "const editWidget: (componentId: ObjectID) => void = ( componentId: ObjectID, ): void => { if (!canEditDashboard) { return; } startEditing(); setSelectedComponentId(componentId); };",
+    );
+
+    const canvas: string = readSquashed(DASHBOARD_CANVAS);
+    expect(canvas).toContain(
+      "onEditWidgetClick={ props.onEditWidgetClick ? () => { props.onEditWidgetClick?.(componentId); } : undefined }",
+    );
+
+    const fallback: string = readSquashed(DASHBOARD_WIDGET_FALLBACK);
+    expect(fallback).toContain(
+      "const offersEdit: boolean = !isPublic && !props.isEditMode && Boolean(props.onEditWidgetClick);",
+    );
+    expect(fallback).toContain("{offersEdit ? (");
   });
 
   /*

@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "Пропущено {{count}} встроенное изображение ({{size}}) — ИИ читает текст, а не изображения",
   "Left out {{size}} of encoded data: AI reads text only": "Пропущено закодированных данных: {{size}} — ИИ читает только текст",
   "Shortened {{count}} long texts: {{characters}} characters left out": "Сокращено длинных текстов: {{count}} — пропущено символов: {{characters}}",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "Сокращён {{count}} длинный текст — пропущено символов: {{characters}}"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "Сокращён {{count}} длинный текст — пропущено символов: {{characters}}",
+  "Click it to edit or delete it.": "Нажмите на него, чтобы изменить или удалить.",
+  "Edit widget": "Изменить виджет",
+  "It does not say which kind of widget it is.": "В нём не указано, что это за виджет.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "В OneUptime нет виджета «{{componentType}}», поэтому менять здесь нечего. Удалите его, чтобы убрать с этой панели.",
+  "OneUptime has no \"{{componentType}}\" widget.": "В OneUptime нет виджета «{{componentType}}».",
+  "Something went wrong while drawing it.": "При отображении что-то пошло не так.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "Не удалось показать эти настройки. Вы всё равно можете удалить этот виджет и добавить его снова.",
+  "This widget could not be shown": "Не удалось показать этот виджет",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "В этом виджете не указано, что это за виджет, поэтому менять здесь нечего. Удалите его, чтобы убрать с этой панели."
 }

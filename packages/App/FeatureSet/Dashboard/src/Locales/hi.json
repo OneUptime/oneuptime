@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "{{count}} एम्बेडेड छवि छोड़ी गई ({{size}}): AI टेक्स्ट पढ़ता है, छवियाँ नहीं",
   "Left out {{size}} of encoded data: AI reads text only": "{{size}} एन्कोडेड डेटा छोड़ा गया: AI केवल टेक्स्ट पढ़ता है",
   "Shortened {{count}} long texts: {{characters}} characters left out": "{{count}} लंबे टेक्स्ट छोटे किए गए: {{characters}} वर्ण छोड़े गए",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} लंबा टेक्स्ट छोटा किया गया: {{characters}} वर्ण छोड़े गए"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} लंबा टेक्स्ट छोटा किया गया: {{characters}} वर्ण छोड़े गए",
+  "Click it to edit or delete it.": "इसे संपादित करने या हटाने के लिए इस पर क्लिक करें।",
+  "Edit widget": "विजेट संपादित करें",
+  "It does not say which kind of widget it is.": "इसमें यह नहीं बताया गया है कि यह किस तरह का विजेट है।",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime में \"{{componentType}}\" विजेट नहीं है, इसलिए बदलने के लिए कोई सेटिंग नहीं है। इस डैशबोर्ड से इसे निकालने के लिए इसे हटाएं।",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime में \"{{componentType}}\" विजेट नहीं है।",
+  "Something went wrong while drawing it.": "इसे दिखाते समय कुछ गलत हो गया।",
+  "These settings could not be shown. You can still delete this widget and add it again.": "ये सेटिंग्स नहीं दिखाई जा सकीं। आप फिर भी इस विजेट को हटाकर दोबारा जोड़ सकते हैं।",
+  "This widget could not be shown": "यह विजेट नहीं दिखाया जा सका",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "इस विजेट में यह नहीं बताया गया है कि यह किस तरह का विजेट है, इसलिए बदलने के लिए कोई सेटिंग नहीं है। इस डैशबोर्ड से इसे निकालने के लिए इसे हटाएं।"
 }

@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "{{count}} imagem incorporada omitida ({{size}}): a IA lê texto, não imagens",
   "Left out {{size}} of encoded data: AI reads text only": "{{size}} de dados codificados omitidos: a IA lê apenas texto",
   "Shortened {{count}} long texts: {{characters}} characters left out": "{{count}} textos longos encurtados: {{characters}} caracteres omitidos",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} texto longo encurtado: {{characters}} caracteres omitidos"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} texto longo encurtado: {{characters}} caracteres omitidos",
+  "Click it to edit or delete it.": "Clique nele para editá-lo ou excluí-lo.",
+  "Edit widget": "Editar widget",
+  "It does not say which kind of widget it is.": "Ele não indica que tipo de widget é.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "O OneUptime não tem um widget \"{{componentType}}\", então não há configurações para alterar. Exclua-o para retirá-lo deste painel.",
+  "OneUptime has no \"{{componentType}}\" widget.": "O OneUptime não tem um widget \"{{componentType}}\".",
+  "Something went wrong while drawing it.": "Algo deu errado ao exibi-lo.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "Não foi possível mostrar estas configurações. Você ainda pode excluir este widget e adicioná-lo novamente.",
+  "This widget could not be shown": "Não foi possível mostrar este widget",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Este widget não indica que tipo de widget é, então não há configurações para alterar. Exclua-o para retirá-lo deste painel."
 }

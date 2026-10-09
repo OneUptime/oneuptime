@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "{{count}} eingebettetes Bild ausgelassen ({{size}}): KI liest Text, keine Bilder",
   "Left out {{size}} of encoded data: AI reads text only": "{{size}} codierte Daten ausgelassen: KI liest nur Text",
   "Shortened {{count}} long texts: {{characters}} characters left out": "{{count}} lange Texte gekürzt: {{characters}} Zeichen ausgelassen",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} langen Text gekürzt: {{characters}} Zeichen ausgelassen"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} langen Text gekürzt: {{characters}} Zeichen ausgelassen",
+  "Click it to edit or delete it.": "Klicken Sie darauf, um es zu bearbeiten oder zu löschen.",
+  "Edit widget": "Widget bearbeiten",
+  "It does not say which kind of widget it is.": "Es ist nicht angegeben, um welche Art von Widget es sich handelt.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime hat kein Widget „{{componentType}}“, daher gibt es keine Einstellungen zu ändern. Löschen Sie es, um es von diesem Dashboard zu entfernen.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime hat kein Widget „{{componentType}}“.",
+  "Something went wrong while drawing it.": "Beim Darstellen ist etwas schiefgelaufen.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "Diese Einstellungen konnten nicht angezeigt werden. Sie können dieses Widget trotzdem löschen und erneut hinzufügen.",
+  "This widget could not be shown": "Dieses Widget konnte nicht angezeigt werden",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Bei diesem Widget ist nicht angegeben, um welche Art von Widget es sich handelt, daher gibt es keine Einstellungen zu ändern. Löschen Sie es, um es von diesem Dashboard zu entfernen."
 }

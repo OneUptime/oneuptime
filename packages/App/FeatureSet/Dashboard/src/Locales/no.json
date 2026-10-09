@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "Utelot {{count}} innebygd bilde ({{size}}): AI leser tekst, ikke bilder",
   "Left out {{size}} of encoded data: AI reads text only": "Utelot {{size}} med kodede data: AI leser bare tekst",
   "Shortened {{count}} long texts: {{characters}} characters left out": "Forkortet {{count}} lange tekster: {{characters}} tegn utelatt",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "Forkortet {{count}} lang tekst: {{characters}} tegn utelatt"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "Forkortet {{count}} lang tekst: {{characters}} tegn utelatt",
+  "Click it to edit or delete it.": "Klikk på den for å redigere eller slette den.",
+  "Edit widget": "Rediger widget",
+  "It does not say which kind of widget it is.": "Den oppgir ikke hva slags widget den er.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime har ingen widget «{{componentType}}», så det er ingen innstillinger å endre. Slett den for å fjerne den fra dette dashbordet.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime har ingen widget «{{componentType}}».",
+  "Something went wrong while drawing it.": "Noe gikk galt da den skulle vises.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "Disse innstillingene kunne ikke vises. Du kan fortsatt slette denne widgeten og legge den til på nytt.",
+  "This widget could not be shown": "Denne widgeten kunne ikke vises",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Denne widgeten oppgir ikke hva slags widget den er, så det er ingen innstillinger å endre. Slett den for å fjerne den fra dette dashbordet."
 }

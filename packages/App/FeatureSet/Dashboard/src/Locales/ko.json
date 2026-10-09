@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "포함된 이미지 {{count}}개를 제외했습니다({{size}}): AI는 이미지가 아닌 텍스트를 읽습니다",
   "Left out {{size}} of encoded data: AI reads text only": "인코딩된 데이터 {{size}}를 제외했습니다: AI는 텍스트만 읽습니다",
   "Shortened {{count}} long texts: {{characters}} characters left out": "긴 텍스트 {{count}}개를 줄였습니다: {{characters}}자 제외",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "긴 텍스트 {{count}}개를 줄였습니다: {{characters}}자 제외"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "긴 텍스트 {{count}}개를 줄였습니다: {{characters}}자 제외",
+  "Click it to edit or delete it.": "클릭하여 편집하거나 삭제하세요.",
+  "Edit widget": "위젯 편집",
+  "It does not say which kind of widget it is.": "어떤 종류의 위젯인지 지정되어 있지 않습니다.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime에는 \"{{componentType}}\" 위젯이 없으므로 변경할 설정이 없습니다. 이 대시보드에서 빼려면 삭제하세요.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime에는 \"{{componentType}}\" 위젯이 없습니다.",
+  "Something went wrong while drawing it.": "표시하는 중에 문제가 발생했습니다.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "이 설정을 표시할 수 없습니다. 이 위젯을 삭제하고 다시 추가할 수는 있습니다.",
+  "This widget could not be shown": "이 위젯을 표시할 수 없습니다",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "이 위젯은 어떤 종류의 위젯인지 지정되어 있지 않아 변경할 설정이 없습니다. 이 대시보드에서 빼려면 삭제하세요."
 }

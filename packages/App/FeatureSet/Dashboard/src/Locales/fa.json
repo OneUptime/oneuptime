@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "{{count}} تصویر جاسازی‌شده کنار گذاشته شد ({{size}}): هوش مصنوعی متن را می‌خواند، نه تصویر را",
   "Left out {{size}} of encoded data: AI reads text only": "{{size}} داده رمزگذاری‌شده کنار گذاشته شد: هوش مصنوعی فقط متن را می‌خواند",
   "Shortened {{count}} long texts: {{characters}} characters left out": "{{count}} متن طولانی کوتاه شد: {{characters}} نویسه کنار گذاشته شد",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} متن طولانی کوتاه شد: {{characters}} نویسه کنار گذاشته شد"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "{{count}} متن طولانی کوتاه شد: {{characters}} نویسه کنار گذاشته شد",
+  "Click it to edit or delete it.": "برای ویرایش یا حذف، روی آن کلیک کنید.",
+  "Edit widget": "ویرایش ویجت",
+  "It does not say which kind of widget it is.": "مشخص نشده است که این ویجت از چه نوعی است.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime ویجتی به نام «{{componentType}}» ندارد، بنابراین تنظیماتی برای تغییر وجود ندارد. برای برداشتن آن از این داشبورد، حذفش کنید.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime ویجتی به نام «{{componentType}}» ندارد.",
+  "Something went wrong while drawing it.": "هنگام نمایش آن مشکلی پیش آمد.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "این تنظیمات نمایش داده نشد. همچنان می‌توانید این ویجت را حذف کنید و دوباره اضافه کنید.",
+  "This widget could not be shown": "این ویجت نمایش داده نشد",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "در این ویجت مشخص نشده است که از چه نوعی است، بنابراین تنظیماتی برای تغییر وجود ندارد. برای برداشتن آن از این داشبورد، حذفش کنید."
 }

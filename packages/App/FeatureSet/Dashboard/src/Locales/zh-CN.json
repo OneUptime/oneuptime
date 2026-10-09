@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "已省略 {{count}} 张嵌入图片（{{size}}）：AI 只读取文本，不读取图片",
   "Left out {{size}} of encoded data: AI reads text only": "已省略 {{size}} 的编码数据：AI 只读取文本",
   "Shortened {{count}} long texts: {{characters}} characters left out": "已缩短 {{count}} 段长文本：省略了 {{characters}} 个字符",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "已缩短 {{count}} 段长文本：省略了 {{characters}} 个字符"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "已缩短 {{count}} 段长文本：省略了 {{characters}} 个字符",
+  "Click it to edit or delete it.": "点击它即可编辑或删除。",
+  "Edit widget": "编辑小部件",
+  "It does not say which kind of widget it is.": "它没有说明是哪种小部件。",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime 没有“{{componentType}}”小部件，因此没有可更改的设置。删除它即可将其从此仪表板中移除。",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime 没有“{{componentType}}”小部件。",
+  "Something went wrong while drawing it.": "显示时出现了问题。",
+  "These settings could not be shown. You can still delete this widget and add it again.": "无法显示这些设置。您仍然可以删除此小部件并重新添加。",
+  "This widget could not be shown": "无法显示此小部件",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "此小部件没有说明是哪种小部件，因此没有可更改的设置。删除它即可将其从此仪表板中移除。"
 }

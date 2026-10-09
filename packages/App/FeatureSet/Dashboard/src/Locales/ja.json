@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "埋め込み画像 {{count}} 件を除外しました ({{size}})：AI はテキストを読み取り、画像は読み取りません",
   "Left out {{size}} of encoded data: AI reads text only": "エンコードされたデータ {{size}} を除外しました：AI はテキストのみを読み取ります",
   "Shortened {{count}} long texts: {{characters}} characters left out": "長いテキスト {{count}} 件を短縮しました：{{characters}} 文字を除外",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "長いテキスト {{count}} 件を短縮しました：{{characters}} 文字を除外"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "長いテキスト {{count}} 件を短縮しました：{{characters}} 文字を除外",
+  "Click it to edit or delete it.": "クリックして編集または削除します。",
+  "Edit widget": "ウィジェットを編集",
+  "It does not say which kind of widget it is.": "どの種類のウィジェットかが指定されていません。",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime には「{{componentType}}」ウィジェットがないため、変更できる設定はありません。このダッシュボードから外すには削除してください。",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime には「{{componentType}}」ウィジェットがありません。",
+  "Something went wrong while drawing it.": "表示中に問題が発生しました。",
+  "These settings could not be shown. You can still delete this widget and add it again.": "これらの設定を表示できませんでした。このウィジェットを削除して、もう一度追加することはできます。",
+  "This widget could not be shown": "このウィジェットを表示できませんでした",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "このウィジェットはどの種類のウィジェットかが指定されていないため、変更できる設定はありません。このダッシュボードから外すには削除してください。"
 }

@@ -27423,5 +27423,14 @@
   "Left out {{count}} embedded images ({{size}}): AI reads text, not images_one": "Left out {{count}} embedded image ({{size}}): AI reads text, not images",
   "Left out {{size}} of encoded data: AI reads text only": "Left out {{size}} of encoded data: AI reads text only",
   "Shortened {{count}} long texts: {{characters}} characters left out": "Shortened {{count}} long texts: {{characters}} characters left out",
-  "Shortened {{count}} long texts: {{characters}} characters left out_one": "Shortened {{count}} long text: {{characters}} characters left out"
+  "Shortened {{count}} long texts: {{characters}} characters left out_one": "Shortened {{count}} long text: {{characters}} characters left out",
+  "Click it to edit or delete it.": "Click it to edit or delete it.",
+  "Edit widget": "Edit widget",
+  "It does not say which kind of widget it is.": "It does not say which kind of widget it is.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime has no \"{{componentType}}\" widget.",
+  "Something went wrong while drawing it.": "Something went wrong while drawing it.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "These settings could not be shown. You can still delete this widget and add it again.",
+  "This widget could not be shown": "This widget could not be shown",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard."
 }
