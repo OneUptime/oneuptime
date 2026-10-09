@@ -571,8 +571,8 @@ class PlanBuilder {
       sourceId: subscriber.sourceId,
       name: subscriber.email,
       notes: subscriber.notes,
+      // The email is the item's name; the summary says whose page.
       summary: {
-        email: subscriber.email,
         statusPageName: pageItem?.name,
       },
       references: [

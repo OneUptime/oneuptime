@@ -6,6 +6,7 @@ import {
   GRAFANA_ONCALL_API_URL_EXAMPLE,
   INCIDENT_IO_HOST,
   isToolImportAddressGiven,
+  isToolImportFileUpload,
   OPSGENIE_EU_HOST,
   OPSGENIE_US_HOST,
   PAGERDUTY_EU_HOST,
@@ -13,6 +14,7 @@ import {
   resolveToolImportRegion,
   SPLUNK_ON_CALL_HOST,
   ToolImportCatalog,
+  ToolImportCategory,
   ToolImportCredentialField,
   ToolImportRegion,
 } from "../../../Types/ToolImport/ToolImportCatalog";
@@ -63,7 +65,29 @@ describe("ToolImportCatalog", () => {
       expect(definition.title.length).toBeGreaterThan(0);
       expect(definition.docsPath).toMatch(/^\/docs\/moving-to-oneuptime\//);
       expect(definition.apiKeyDocsUrl.startsWith("https://")).toBe(true);
-      expect(definition.kinds[0]).toBe(ToolImportResourceKind.Person);
+
+      /*
+       * People come first for a tool that pages a team; monitors first for
+       * an uptime or status page tool.
+       */
+      expect(definition.kinds[0]).toBe(
+        definition.category === ToolImportCategory.OnCall
+          ? ToolImportResourceKind.Person
+          : ToolImportResourceKind.Monitor,
+      );
+
+      /*
+       * A tool read from a file the person uploads calls nothing: no
+       * hosts, no regions, nothing asked for but the file.
+       */
+      if (isToolImportFileUpload(definition)) {
+        expect(definition.hosts).toEqual([]);
+        expect(definition.regions).toEqual([]);
+        expect(definition.credentialFields).toEqual([]);
+        expect(definition.authorizationScheme).toBe("None");
+        expect(definition.fileUpload?.accept).toContain(".json");
+        continue;
+      }
 
       /*
        * Fixed hosts, or - for a tool people also run themselves - none,
@@ -113,7 +137,40 @@ describe("ToolImportCatalog", () => {
       ToolImportSource.IncidentIo,
       ToolImportSource.SplunkOnCall,
       ToolImportSource.GrafanaOnCall,
+      ToolImportSource.UptimeRobot,
+      ToolImportSource.AtlassianStatuspage,
+      ToolImportSource.BetterStack,
+      ToolImportSource.Pingdom,
+      ToolImportSource.StatusCake,
+      ToolImportSource.UptimeKuma,
     ]);
+  });
+
+  test("the on-call tools come first and the uptime and status page tools after them, each group together", () => {
+    const categories: Array<ToolImportCategory> = AllToolImportSources.map(
+      (source: ToolImportSource): ToolImportCategory => {
+        return getToolImportSourceDefinition(source).category;
+      },
+    );
+    const firstMonitoring: number = categories.indexOf(
+      ToolImportCategory.Monitoring,
+    );
+
+    expect(firstMonitoring).toBeGreaterThan(0);
+    expect(
+      categories.slice(0, firstMonitoring).every(
+        (category: ToolImportCategory): boolean => {
+          return category === ToolImportCategory.OnCall;
+        },
+      ),
+    ).toBe(true);
+    expect(
+      categories.slice(firstMonitoring).every(
+        (category: ToolImportCategory): boolean => {
+          return category === ToolImportCategory.Monitoring;
+        },
+      ),
+    ).toBe(true);
   });
 
   test("PagerDuty is read from its US or EU host, picked by region, with its version header", () => {
@@ -273,18 +330,23 @@ describe("ToolImportSource, kinds and statuses", () => {
     expect(isToolImportSource(1)).toBe(false);
 
     expect(isToolImportResourceKind("OnCallSchedule")).toBe(true);
-    expect(isToolImportResourceKind("Monitor")).toBe(false);
+    expect(isToolImportResourceKind("Monitor")).toBe(true);
+    expect(isToolImportResourceKind("StatusPageSubscriber")).toBe(true);
+    expect(isToolImportResourceKind("Incident")).toBe(false);
 
     expect(isToolImportRunStatus("Reading")).toBe(true);
     expect(isToolImportRunStatus("Done")).toBe(false);
   });
 
-  test("every kind is created in a fixed order: people first, policies last", () => {
+  test("every kind is created in a fixed order: people first, policies after the schedules they page, then monitors, the status pages that show them and their subscribers", () => {
     expect(ToolImportResourceKindOrder[0]).toBe(ToolImportResourceKind.Person);
     expect(ToolImportResourceKindOrder[1]).toBe(ToolImportResourceKind.Team);
-    expect(
-      ToolImportResourceKindOrder[ToolImportResourceKindOrder.length - 1],
-    ).toBe(ToolImportResourceKind.OnCallPolicy);
+    expect(ToolImportResourceKindOrder.slice(-4)).toEqual([
+      ToolImportResourceKind.OnCallPolicy,
+      ToolImportResourceKind.Monitor,
+      ToolImportResourceKind.StatusPage,
+      ToolImportResourceKind.StatusPageSubscriber,
+    ]);
     expect(
       ToolImportResourceKindOrder.indexOf(
         ToolImportResourceKind.OnCallSchedule,
@@ -385,7 +447,7 @@ describe("readToolImportSelection: what a start request may send", () => {
     [{}],
     [{ selectedKeys: "Person:a" }],
     [{ selectedKeys: [1] }],
-    [{ selectedKeys: ["Monitor:a"] }],
+    [{ selectedKeys: ["Widget:a"] }],
     [{ selectedKeys: ["Person:"] }],
     [{ selectedKeys: ["Person"] }],
     [{ selectedKeys: ["x".repeat(700)] }],
@@ -477,8 +539,8 @@ describe("readToolImportReport: a stored report, read back", () => {
       readToolImportReport({
         items: [
           {
-            key: "Monitor:a",
-            kind: "Monitor",
+            key: "Widget:a",
+            kind: "Widget",
             sourceId: "a",
             name: "x",
             outcome: "Created",

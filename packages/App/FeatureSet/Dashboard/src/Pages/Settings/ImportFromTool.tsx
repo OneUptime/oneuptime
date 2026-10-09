@@ -392,7 +392,7 @@ const ImportFromTool: FunctionComponent<
     <Fragment>
       <Card
         title="Import from another tool"
-        description="Bring your team over from the tool you use today: people, teams, on-call schedules, escalation policies and more. Nothing in the other tool is changed."
+        description="Bring your setup over from the tool you use today: people, on-call schedules, escalation policies, monitors, status pages and more. Nothing in the other tool is changed."
       >
         <div data-testid="tool-import-page">
           {runs === null ? (

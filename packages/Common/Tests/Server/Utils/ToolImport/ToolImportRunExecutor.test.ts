@@ -18,6 +18,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { getToolImportSourceDefinition } from "../../../../Types/ToolImport/ToolImportCatalog";
 import { TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS } from "../../../../Types/ToolImport/ToolImportLimits";
 import {
   ToolImportOutcome,
@@ -1170,9 +1171,11 @@ describe("ToolImportRunExecutor: the person starts it", () => {
         return item.key;
       }),
     ).toEqual(["Person:alice"]);
+    // What the person may do is asked only for what Opsgenie brings over.
     expect(ToolImportProjectStateReader.readAccess).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       props: PROPS,
+      kinds: getToolImportSourceDefinition(ToolImportSource.OpsGenie).kinds,
     });
     expect(ToolImportProjectStateReader.readState).toHaveBeenCalledWith({
       projectId: PROJECT_ID,

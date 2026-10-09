@@ -27,7 +27,11 @@ import {
   Slate500,
 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
-import { getToolImportSourceDefinition } from "Common/Types/ToolImport/ToolImportCatalog";
+import {
+  getToolImportSourceDefinition,
+  ToolImportCategory,
+  ToolImportSourceDefinition,
+} from "Common/Types/ToolImport/ToolImportCatalog";
 import {
   countToolImportOutcomes,
   ToolImportOutcome,
@@ -113,6 +117,19 @@ export const TOOL_IMPORT_RECORD_PAGES: Record<
   [ToolImportResourceKind.OnCallPolicy]: {
     page: PageMap.ON_CALL_DUTY_POLICY_VIEW,
     isRecordPage: true,
+  },
+  [ToolImportResourceKind.Monitor]: {
+    page: PageMap.MONITOR_VIEW,
+    isRecordPage: true,
+  },
+  [ToolImportResourceKind.StatusPage]: {
+    page: PageMap.STATUS_PAGE_VIEW,
+    isRecordPage: true,
+  },
+  // A subscriber is listed on its status page, which the report names.
+  [ToolImportResourceKind.StatusPageSubscriber]: {
+    page: PageMap.STATUS_PAGES,
+    isRecordPage: false,
   },
 };
 
@@ -263,14 +280,99 @@ interface FinishStep {
   link?: { title: string; route: Route } | undefined;
 }
 
+/*
+ * What is left to do once an uptime or status page tool's import is done:
+ * check the monitors (a heartbeat has a new address), choose who is told,
+ * point the status page's domain at OneUptime, and stop the old checks.
+ */
+function getMonitoringFinishSteps(data: {
+  translator: Translator;
+  toolTitle: string;
+  bringsStatusPages: boolean;
+}): Array<FinishStep> {
+  const translator: Translator = data.translator;
+  const toolValues: { tool: string } = { tool: data.toolTitle };
+
+  const steps: Array<FinishStep> = [
+    {
+      title: translator.translateTemplate("Check your monitors"),
+      description: translator.translateTemplate(
+        "Open each monitor and check its first results. A heartbeat monitor has a new address: point the job that pings it there.",
+      ),
+      link: {
+        title: translator.translateTemplate("Open Monitors"),
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITORS] as Route,
+        ),
+      },
+    },
+    {
+      title: translator.translateTemplate("Choose who is told"),
+      description: translator.translateTemplate(
+        "Add owners to your monitors, or an on-call policy to the incidents they open, so the right people hear when something goes down.",
+      ),
+      link: {
+        title: translator.translateTemplate("Open On-Call Policies"),
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route,
+        ),
+      },
+    },
+  ];
+
+  if (data.bringsStatusPages) {
+    steps.push({
+      title: translator.translateTemplate(
+        "Point your status page's address at OneUptime",
+      ),
+      description: translator.translateTemplate(
+        "Add your domain under the status page's Custom Domains, then change its DNS record. Your visitors and subscribers then reach the new page.",
+      ),
+      link: {
+        title: translator.translateTemplate("Open Status Pages"),
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.STATUS_PAGES] as Route,
+        ),
+      },
+    });
+  }
+
+  steps.push({
+    title: translator.translateTemplate(
+      "Turn off the checks in {{tool}}",
+      toolValues,
+    ),
+    description: translator.translateTemplate(
+      "Once OneUptime checks the same things, pause them in {{tool}} so nobody is told twice.",
+      toolValues,
+    ),
+  });
+
+  return steps;
+}
+
 const FinishTheSwitch: FunctionComponent<{
   toolTitle: string;
   docsPath: string;
-}> = (props: { toolTitle: string; docsPath: string }): ReactElement => {
+  category: ToolImportCategory;
+  bringsStatusPages: boolean;
+}> = (props: {
+  toolTitle: string;
+  docsPath: string;
+  category: ToolImportCategory;
+  bringsStatusPages: boolean;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const toolValues: { tool: string } = { tool: props.toolTitle };
 
-  const steps: Array<FinishStep> = [
+  const steps: Array<FinishStep> =
+    props.category === ToolImportCategory.Monitoring
+      ? getMonitoringFinishSteps({
+          translator: translator,
+          toolTitle: props.toolTitle,
+          bringsStatusPages: props.bringsStatusPages,
+        })
+      : [
     {
       title: translator.translateTemplate("Check the on-call schedules"),
       description: translator.translateTemplate(
@@ -317,7 +419,7 @@ const FinishTheSwitch: FunctionComponent<{
         toolValues,
       ),
     },
-  ];
+        ];
 
   return (
     <div
@@ -386,8 +488,9 @@ const ToolImportReport: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const run: ToolImportRunView = props.run;
-  const definition: { title: string; docsPath: string } =
-    getToolImportSourceDefinition(run.source);
+  const definition: ToolImportSourceDefinition = getToolImportSourceDefinition(
+    run.source,
+  );
   const toolTitle: string = definition.title;
   const report: ToolImportReportData = props.report || { items: [] };
 
@@ -534,7 +637,14 @@ const ToolImportReport: FunctionComponent<ComponentProps> = (
       )}
 
       {isDone && (
-        <FinishTheSwitch toolTitle={toolTitle} docsPath={definition.docsPath} />
+        <FinishTheSwitch
+          toolTitle={toolTitle}
+          docsPath={definition.docsPath}
+          category={definition.category}
+          bringsStatusPages={definition.kinds.includes(
+            ToolImportResourceKind.StatusPage,
+          )}
+        />
       )}
 
       {sections.length > 0 && (

@@ -1,7 +1,11 @@
 import ToolImportLogo from "./ToolImportLogo";
 import { TOOL_IMPORT_KIND_TERMS, TOOL_IMPORT_PLURALS } from "./ToolImportText";
 import IconProp from "Common/Types/Icon/IconProp";
-import { getToolImportSourceDefinition } from "Common/Types/ToolImport/ToolImportCatalog";
+import {
+  getToolImportSourceDefinition,
+  ToolImportCategory,
+  ToolImportSourceDefinition,
+} from "Common/Types/ToolImport/ToolImportCatalog";
 import { ToolImportRunView } from "Common/Types/ToolImport/ToolImportPlan";
 import ToolImportRunStatus from "Common/Types/ToolImport/ToolImportRunStatus";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -27,7 +31,12 @@ const ToolImportProgressPanel: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const run: ToolImportRunView = props.run;
-  const tool: string = getToolImportSourceDefinition(run.source).title;
+  const definition: ToolImportSourceDefinition = getToolImportSourceDefinition(
+    run.source,
+  );
+  const tool: string = definition.title;
+  const isMonitoring: boolean =
+    definition.category === ToolImportCategory.Monitoring;
   const isReading: boolean = run.status === ToolImportRunStatus.Reading;
   const done: number = run.progress?.done || 0;
   const total: number = run.progress?.total || 0;
@@ -44,9 +53,15 @@ const ToolImportProgressPanel: FunctionComponent<ComponentProps> = (
           name: run.createdByUserName || translatableTerm("Someone"),
         })
     : run.isMine
-      ? translator.translateTemplate("Bringing your team over from {{tool}}", {
-          tool: tool,
-        })
+      ? isMonitoring
+        ? translator.translateTemplate(
+            "Bringing your monitors over from {{tool}}",
+            { tool: tool },
+          )
+        : translator.translateTemplate(
+            "Bringing your team over from {{tool}}",
+            { tool: tool },
+          )
       : translator.translateTemplate("{{name}} is importing from {{tool}}", {
           tool: tool,
           name: run.createdByUserName || translatableTerm("Someone"),

@@ -1,4 +1,8 @@
-import { startToolImportRead, toolImportDocsUrl } from "./ToolImportApi";
+import {
+  startToolImportRead,
+  toolImportDocsUrl,
+  uploadToolImportFile,
+} from "./ToolImportApi";
 import ToolImportLogo from "./ToolImportLogo";
 import { TOOL_IMPORT_BUTTON_ROW_CLASS_NAME } from "./ToolImportPlanView";
 import {
@@ -10,10 +14,12 @@ import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   getToolImportSourceDefinition,
+  isToolImportFileUpload,
   ToolImportCredentialField,
   ToolImportRegion,
   ToolImportSourceDefinition,
 } from "Common/Types/ToolImport/ToolImportCatalog";
+import { TOOL_IMPORT_MAX_UPLOAD_BYTES } from "Common/Types/ToolImport/ToolImportLimits";
 import {
   isToolImportApiKeyId,
   readToolImportApiUrl,
@@ -28,10 +34,12 @@ import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
+  ChangeEvent,
   FormEvent,
   FunctionComponent,
   ReactElement,
   useId,
+  useRef,
   useState,
 } from "react";
 
@@ -47,6 +55,11 @@ import React, {
  * The key goes to the server once, with the read, and is never shown again:
  * the field is a password field password managers leave alone, and it is
  * emptied as soon as the read is under way.
+ *
+ * A tool with no API to read (Uptime Kuma) asks for a file instead: the
+ * file it gives - a backup, or its metrics page - is read in the browser,
+ * checked for size, and sent once to be read on the server, which keeps
+ * none of it but what the preview needs.
  */
 
 /*
@@ -74,6 +87,27 @@ interface FieldErrors {
   apiKey?: string | undefined;
   apiKeyId?: string | undefined;
   apiUrl?: string | undefined;
+  file?: string | undefined;
+}
+
+// A file's text, as the browser reads it.
+async function readFileText(file: File): Promise<string> {
+  if (typeof file.text === "function") {
+    return await file.text();
+  }
+
+  return await new Promise<string>(
+    (resolve: (text: string) => void, reject: (error: unknown) => void) => {
+      const reader: FileReader = new FileReader();
+      reader.onload = () => {
+        resolve(String(reader.result || ""));
+      };
+      reader.onerror = () => {
+        reject(reader.error);
+      };
+      reader.readAsText(file);
+    },
+  );
 }
 
 const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
@@ -87,7 +121,11 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
   const keyInputId: string = useId();
   const keyIdInputId: string = useId();
   const apiUrlInputId: string = useId();
+  const fileInputId: string = useId();
   const regionGroupId: string = useId();
+  const fileInputRef: React.RefObject<HTMLInputElement> =
+    useRef<HTMLInputElement>(null);
+  const isFile: boolean = isToolImportFileUpload(definition);
 
   const asksFor: (field: ToolImportCredentialField) => boolean = (
     field: ToolImportCredentialField,
@@ -113,6 +151,7 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
   const [apiUrl, setApiUrl] = useState<string>(
     props.initialConnection?.apiUrl || "",
   );
+  const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isStarting, setIsStarting] = useState<boolean>(false);
 
@@ -121,6 +160,21 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
   // What the page can tell before asking the server, field by field.
   const check: () => FieldErrors = (): FieldErrors => {
     const found: FieldErrors = {};
+
+    if (isFile) {
+      if (!file) {
+        found.file = translator.translateTemplate(
+          "Choose your {{tool}} file.",
+          toolValues,
+        );
+      } else if (file.size > TOOL_IMPORT_MAX_UPLOAD_BYTES) {
+        found.file = translator.translateText(
+          "This file is larger than 10 MB, which is more than an import reads.",
+        );
+      }
+
+      return found;
+    }
 
     if (asksFor(ToolImportCredentialField.ApiUrl)) {
       if (!apiUrl.trim()) {
@@ -167,13 +221,31 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
 
     const found: FieldErrors = check();
 
-    if (found.apiKey || found.apiKeyId || found.apiUrl) {
+    if (found.apiKey || found.apiKeyId || found.apiUrl || found.file) {
       setErrors(found);
       return;
     }
 
     setErrors({});
     setIsStarting(true);
+
+    if (isFile && file) {
+      try {
+        const runId: string = await uploadToolImportFile({
+          source: props.source,
+          fileName: file.name,
+          content: await readFileText(file),
+        });
+
+        props.onStarted(runId, {});
+      } catch (err) {
+        setErrors({ file: API.getFriendlyMessage(err) });
+      } finally {
+        setIsStarting(false);
+      }
+
+      return;
+    }
 
     const connection: ToolImportConnection = {
       apiKeyId: asksFor(ToolImportCredentialField.ApiKeyId)
@@ -275,6 +347,67 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const renderFile: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mt-6" key="file">
+        {renderLabel({ id: fileInputId, text: copy.keyLabel })}
+        <input
+          ref={fileInputRef}
+          id={fileInputId}
+          type="file"
+          accept={definition.fileUpload?.accept}
+          className="sr-only"
+          data-testid="tool-import-file"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            setFile(event.target.files?.[0] || null);
+            if (errors.file) {
+              setErrors({ ...errors, file: undefined });
+            }
+          }}
+        />
+        <div className="mt-2 flex max-w-xl flex-wrap items-center gap-3">
+          <Button
+            title="Choose file"
+            buttonStyle={ButtonStyleType.NORMAL}
+            icon={IconProp.Upload}
+            onClick={() => {
+              fileInputRef.current?.click();
+            }}
+            dataTestId="tool-import-choose-file"
+          />
+          <span
+            className="min-w-0 break-all text-sm text-gray-700"
+            data-testid="tool-import-file-name"
+          >
+            {file ? file.name : translator.translateText("No file chosen")}
+          </span>
+        </div>
+        {errors.file && (
+          <p
+            className="mt-2 text-sm text-red-600"
+            role="alert"
+            data-testid="tool-import-file-error"
+          >
+            {translator.translateText(errors.file)}
+          </p>
+        )}
+        <div
+          className="mt-2 flex items-start gap-2 text-sm text-gray-500"
+          data-testid="tool-import-key-privacy"
+        >
+          <div className="mt-0.5 flex-shrink-0">
+            <Icon icon={IconProp.Lock} className="h-4 w-4" />
+          </div>
+          <p>
+            {translator.translateText(
+              "The file is read once, to find your monitors. It is never stored, and no password in it is copied.",
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   const renderApiKey: () => ReactElement = (): ReactElement => {
     return (
       <div className="mt-6" key="apiKey">
@@ -346,10 +479,15 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
 
       <div className="mt-6">
         <p className="text-sm font-medium text-gray-900">
-          {translator.translateTemplate(
-            "Create a read-only API key in {{tool}}",
-            toolValues,
-          )}
+          {isFile
+            ? translator.translateTemplate(
+                "Get your {{tool}} file",
+                toolValues,
+              )
+            : translator.translateTemplate(
+                "Create a read-only API key in {{tool}}",
+                toolValues,
+              )}
         </p>
         <ol className="mt-3 space-y-3" data-testid="tool-import-key-steps">
           {copy.keySteps.map((step: string, index: number): ReactElement => {
@@ -370,10 +508,15 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
           openInNewTab={true}
           className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
         >
-          {translator.translateTemplate(
-            "{{tool}}'s guide to API keys",
-            toolValues,
-          )}
+          {isFile
+            ? translator.translateTemplate(
+                "{{tool}}'s guide to its metrics page",
+                toolValues,
+              )
+            : translator.translateTemplate(
+                "{{tool}}'s guide to API keys",
+                toolValues,
+              )}
           <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
         </Link>
       </div>
@@ -435,6 +578,8 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
         </fieldset>
       )}
 
+      {isFile && renderFile()}
+
       {definition.credentialFields.map(
         (field: ToolImportCredentialField): ReactElement => {
           switch (field) {
@@ -451,10 +596,14 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
 
       <div className={`mt-6 ${TOOL_IMPORT_BUTTON_ROW_CLASS_NAME}`}>
         <Button
-          title={translator.translateTemplate(
-            "Read my {{tool}} account",
-            toolValues,
-          )}
+          title={
+            isFile
+              ? translator.translateText("Read the file")
+              : translator.translateTemplate(
+                  "Read my {{tool}} account",
+                  toolValues,
+                )
+          }
           type={ButtonType.Submit}
           buttonStyle={ButtonStyleType.PRIMARY}
           icon={IconProp.InboxArrowDown}
