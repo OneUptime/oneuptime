@@ -18,7 +18,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
-import { SpyInstance } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 
 /*
  * "Show ID" on every telemetry table in the Dashboard that offers it.
@@ -36,8 +36,7 @@ import { SpyInstance } from "jest-mock";
  * rows - see ListApiFake), the project, the viewer and translation.
  */
 
-const getCurrentProjectIdMock: jest.Mock<() => unknown> =
-  jest.fn<() => unknown>();
+const getCurrentProjectIdMock: Mock<() => unknown> = jest.fn<() => unknown>();
 
 /*
  * Replaced whole rather than spied on: the real module loads the browser
@@ -354,7 +353,7 @@ describe("Show ID on the telemetry tables (issue #4615)", () => {
     });
 
     test("copies the ID's text", async () => {
-      const writeText: jest.Mock<(text: string) => Promise<void>> = jest.fn<
+      const writeText: Mock<(text: string) => Promise<void>> = jest.fn<
         (text: string) => Promise<void>
       >(async (): Promise<void> => {});
       Object.defineProperty(navigator, "clipboard", {

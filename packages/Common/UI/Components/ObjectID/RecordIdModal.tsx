@@ -105,12 +105,17 @@ const RecordIdModal: FunctionComponent<ComponentProps> = (
              * gets a row of its own and a copy button. One click selects all
              * of it too, for copying by hand where the browser refuses the
              * button's copy. An ID reads left to right in every language.
+             * On a phone the button goes under the ID, which then fits on
+             * one line instead of losing its last characters to a second.
              */}
-            <div className="mt-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+            <div
+              data-testid="record-id-row"
+              className="mt-2 flex flex-col items-start gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 sm:flex-row sm:items-center"
+            >
               <code
                 data-testid="record-id-value"
                 dir="ltr"
-                className="min-w-0 flex-1 select-all break-all font-mono text-xs text-gray-800"
+                className="w-full min-w-0 flex-1 select-all break-all font-mono text-xs text-gray-800"
               >
                 {recordIdText}
               </code>

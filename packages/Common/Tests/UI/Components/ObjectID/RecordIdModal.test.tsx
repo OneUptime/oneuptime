@@ -160,6 +160,20 @@ describe("the ID, in every shape it arrives in", () => {
     // An ID reads left to right, in a right-to-left page too.
     expect(code).toHaveAttribute("dir", "ltr");
   });
+
+  test("puts the copy button beside the ID, and under it on a phone", () => {
+    renderModal();
+
+    const row: HTMLElement = screen.getByTestId("record-id-row");
+
+    expect(row).toContainElement(idRow());
+    expect(row).toContainElement(
+      screen.getByRole("button", { name: "Copy ID to clipboard" }),
+    );
+    // Stacked below sm, so a 36-character ID keeps to one line on a phone.
+    expect(row).toHaveClass("flex-col", "sm:flex-row", "sm:items-center");
+    expect(idRow()).toHaveClass("w-full", "min-w-0", "flex-1");
+  });
 });
 
 describe("a record with no ID", () => {
