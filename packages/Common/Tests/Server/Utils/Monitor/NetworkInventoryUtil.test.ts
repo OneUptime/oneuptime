@@ -1814,3 +1814,138 @@ describe("NetworkInventoryUtil.updateFromWalk — transceiver snapshot", () => {
     expect(snmpResponse.transceivers).toHaveLength(1);
   });
 });
+
+/*
+ * The Wi-Fi vendors (UniFi, Aruba, Extreme, TP-Link): the poll that
+ * fingerprints an access point or a wireless controller names its maker and
+ * - for a device that opted in - seeds the Wi-Fi template's OIDs and tables,
+ * exactly as it does for any other vendor.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — Wi-Fi vendors", () => {
+  const UNIFI_ON_NET_SNMP: Partial<SnmpMonitorResponse> = {
+    systemInfo: {
+      sysObjectId: "1.3.6.1.4.1.8072.3.2.10",
+      sysDescr: "UAP-AC-HD 3.9.19.8123",
+    },
+  };
+
+  function tableKeys(update: DeviceUpdatePayload): Array<string> {
+    return ((update["snmpTables"] || []) as Array<{ key: string }>).map(
+      (table: { key: string }) => {
+        return table.key;
+      },
+    );
+  }
+
+  test("an older UniFi access point answering with Net-SNMP's arc is recorded as Ubiquiti's", async () => {
+    mockServices();
+
+    await runWalk(UNIFI_ON_NET_SNMP);
+
+    expect(deviceUpdatePayload()["vendor"]).toBe("Ubiquiti");
+  });
+
+  test("any other host on Net-SNMP's arc is still Net-SNMP's", async () => {
+    mockServices();
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.8072.3.2.10",
+        sysDescr: "Linux gw01 5.15.0-91-generic",
+      },
+    });
+
+    expect(deviceUpdatePayload()["vendor"]).toBe("Net-SNMP");
+  });
+
+  test("an Extreme wireless controller on Siemens' arc is recorded as Extreme's", async () => {
+    mockServices();
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.4329.15.1.1.13",
+        sysDescr:
+          "Extreme Networks Wireless Controller - V2110 Medium,  System Version 10.21.04.0005",
+      },
+    });
+
+    expect(deviceUpdatePayload()["vendor"]).toBe("Extreme Networks");
+  });
+
+  test("an opted-in UniFi access point is seeded with the UniFi template's OIDs and its radio and SSID tables", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk(UNIFI_ON_NET_SNMP);
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["snmpOids"]).toEqual(
+      SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.oids,
+    );
+    expect(tableKeys(update)).toEqual([
+      "wifi_radios",
+      "wifi_ssids",
+      "cpu_cores",
+    ]);
+  });
+
+  test("a UniFi access point that already has health OIDs and no tables gets the Wi-Fi tables on its next poll, and keeps its OIDs", async () => {
+    // What an access point auto-applied with the EdgeOS template before this template existed holds.
+    const earlierOids: Array<SnmpOid> =
+      SnmpVendorTemplateUtil.getById("ubiquiti-edgeos")!.oids;
+
+    mockServices([], {
+      autoApplyVendorHealthTemplate: true,
+      snmpOids: earlierOids,
+    });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.41112",
+        sysDescr: "U6-Pro 6.5.28.14491",
+      },
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update).not.toHaveProperty("snmpOids");
+    expect(tableKeys(update)).toEqual([
+      "wifi_radios",
+      "wifi_ssids",
+      "cpu_cores",
+    ]);
+  });
+
+  test("an Aruba Instant cluster's virtual controller is seeded with its access points, radios and SSIDs", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.14823.1.2.59",
+        sysDescr: "ArubaOS (MODEL: 225), Version 8.4.0.0-8.4.0.0",
+      },
+    });
+
+    expect(tableKeys(deviceUpdatePayload())).toEqual([
+      "wifi_access_points",
+      "wifi_radios",
+      "wifi_ssids",
+    ]);
+  });
+
+  test("an Aerohive switch, on the same arc as IQ Engine access points, is given no access point tables", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.26928.1",
+        sysDescr: "SR2024P, HiveOS 6.5r4 Honolulu build-128121",
+      },
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update).not.toHaveProperty("snmpTables");
+    expect(update).not.toHaveProperty("snmpOids");
+  });
+});

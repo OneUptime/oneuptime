@@ -289,6 +289,7 @@ export default class SnmpTableListUtil {
         : {}),
       // Only ever true: an absent flag and a false one mean the same.
       ...(table.rowIndexIsText === true ? { rowIndexIsText: true } : {}),
+      ...(table.skipNameOnlyRows === true ? { skipNameOnlyRows: true } : {}),
       columns: columns,
       ...(maxRows === undefined ? {} : { maxRows: maxRows }),
     };
@@ -717,14 +718,17 @@ export default class SnmpTableListUtil {
         valuesByIndex.set(row.index, row.values || {});
       }
 
-      const parentIndexes: Set<string> = SnmpTableListUtil.findParentRows(
-        resultRows,
-        columnsByOid,
-      );
-
+      /*
+       * In a table whose name columns name more than it has (see
+       * SnmpTableDefinition.skipNameOnlyRows), the rows that hold nothing
+       * but a name are left out - after they have named their children.
+       */
       const rows: Array<SnmpTableSnapshotRow> = resultRows
         .filter((row: SnmpTableResultRow) => {
-          return !parentIndexes.has(row.index);
+          return (
+            !table.skipNameOnlyRows ||
+            SnmpTableListUtil.holdsOwnValue(row, columnsByOid)
+          );
         })
         .map((row: SnmpTableResultRow) => {
           return SnmpTableListUtil.buildRow(
@@ -829,63 +833,20 @@ export default class SnmpTableListUtil {
     };
   }
 
-  /*
-   * The rows of a parent table that came along to name this table's rows:
-   * rows that hold no value of this table's own columns, and whose index is
-   * the start of another row's (an access point "104.40.207.199.233.192"
-   * above its radios "104.40.207.199.233.192.0" and ".1"). They name their
-   * children and are not rows of this table. A row with no values that is
-   * no other row's parent stays: it is a row the device reported empty.
-   */
-  private static findParentRows(
-    rows: Array<SnmpTableResultRow>,
+  // Whether a walked row holds a value of one of the table's own columns.
+  private static holdsOwnValue(
+    row: SnmpTableResultRow,
     columnsByOid: Map<string, SnmpTableColumn>,
-  ): Set<string> {
-    const indexes: Set<string> = new Set(
-      rows.map((row: SnmpTableResultRow) => {
-        return row.index;
-      }),
-    );
+  ): boolean {
+    const values: Record<string, string | number | null> = row.values || {};
 
-    const parentsWithChildren: Set<string> = new Set();
-
-    for (const row of rows) {
-      const arcs: Array<string> = row.index.split(".");
-
-      for (let length: number = 1; length < arcs.length; length++) {
-        const prefix: string = arcs.slice(0, length).join(".");
-
-        if (indexes.has(prefix)) {
-          parentsWithChildren.add(prefix);
-        }
-      }
-    }
-
-    const parents: Set<string> = new Set();
-
-    for (const row of rows) {
-      if (!parentsWithChildren.has(row.index)) {
-        continue;
-      }
-
-      const values: Record<string, string | number | null> = row.values || {};
-
-      const holdsOwnValue: boolean = Object.keys(values).some(
-        (oid: string) => {
-          return (
-            columnsByOid.has(SnmpOidListUtil.normalizeOid(oid)) &&
-            values[oid] !== undefined &&
-            values[oid] !== null
-          );
-        },
+    return Object.keys(values).some((oid: string) => {
+      return (
+        columnsByOid.has(SnmpOidListUtil.normalizeOid(oid)) &&
+        values[oid] !== undefined &&
+        values[oid] !== null
       );
-
-      if (!holdsOwnValue) {
-        parents.add(row.index);
-      }
-    }
-
-    return parents;
+    });
   }
 
   // A name column's value at the nearest parent row, longest prefix first.

@@ -1165,6 +1165,8 @@ const ARUBA_INSTANT: SnmpVendorTemplate = {
         "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.2",
         "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.2",
       ],
+      // The access points' rows only name their radios.
+      skipNameOnlyRows: true,
       columns: [
         {
           oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.2",
@@ -1518,6 +1520,8 @@ const EXTREME_IQ_ENGINE_AP: SnmpVendorTemplate = {
         "ahRadioAttributeTable - one row per radio, named by its interface (ahIfName). The band follows from the channel.",
       kind: SnmpTableKind.WifiRadio,
       rowLabelColumnOids: ["1.3.6.1.4.1.26928.1.1.1.2.1.1.1.1"],
+      // ahIfName names every interface; only the radios are rows here.
+      skipNameOnlyRows: true,
       columns: [
         {
           oid: "1.3.6.1.4.1.26928.1.1.1.2.1.5.1.1",
@@ -1668,6 +1672,8 @@ const EXTREME_WIRELESS_CONTROLLER: SnmpVendorTemplate = {
         "apRadioStatusTable and dot11ExtRadioStatsTable - one row per radio of every active access point, named by its interface (ifName: the access point's name, the radio and its mode). The controller reports the channel as its frequency in MHz; the channel width as 1, 2 or 4 times 20 MHz.",
       kind: SnmpTableKind.WifiRadio,
       rowLabelColumnOids: ["1.3.6.1.2.1.31.1.1.1.1"],
+      // ifName names every interface of the controller; only radios are rows here.
+      skipNameOnlyRows: true,
       columns: [
         {
           oid: "1.3.6.1.4.1.4329.15.3.1.4.3.1.1",

@@ -41,8 +41,12 @@ const BAND_6E: RegExp = /\b6e\b/;
 const BAND_5_GHZ: RegExp = /\b5(\.\d+)?\s*g(hz)?\b/;
 const PHY_NAME: RegExp = /^(?:802\.)?11([a-z]+)$/;
 
-// What vendors put in an SSID column for an interface that broadcasts none.
-const NO_SSID_NAME: RegExp = /^(?:n\/?a|none|-+)$/i;
+/*
+ * What vendors put in an SSID column for an interface that broadcasts none:
+ * HiveOS writes "N/A". Kept this narrow so a network really called "NA" or
+ * "none" is still listed.
+ */
+const NO_SSID_NAME: RegExp = /^(?:n\/a|-+)$/i;
 
 // Below this a channel column holds a channel number, from it a frequency in MHz.
 const LOWEST_WIFI_FREQUENCY_MHZ: number = 2400;

@@ -135,10 +135,19 @@ export interface SnmpTableDefinition {
    * A name column may come from a parent table, one whose index is the
    * start of this table's: Aruba Instant indexes its radios by access point
    * and radio number, and its access point names by access point alone, so
-   * a radio is named "AP-12 / Radio 0". The parent's own rows only name
-   * their children; they are not rows of this table.
+   * a radio is named "AP-12 / Radio 0".
    */
   rowLabelColumnOids?: Array<string> | undefined;
+  /*
+   * Leaves out the rows that hold nothing but a name, for a table whose
+   * name columns name more than it has: a parent table's rows (Aruba's
+   * access points, walked to name their radios), or every interface of a
+   * device when the table is its radios (ifName, ahIfName). They still name
+   * their children. Off by default, because in most tables a row with a
+   * name and no value is a row - a tunnel whose status the device does not
+   * report.
+   */
+  skipNameOnlyRows?: boolean | undefined;
   /*
    * The row index is a text string in SNMP's encoding - its length, then
    * one arc per byte - as when a table is indexed by a name: ArubaOS indexes

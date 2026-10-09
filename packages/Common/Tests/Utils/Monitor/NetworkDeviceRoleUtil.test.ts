@@ -187,6 +187,54 @@ describe("classifyDeviceRole — wireless, load balancers, storage, servers", ()
     );
   });
 
+  test("the Wi-Fi vendors' access points and controllers, as their SNMP describes them", () => {
+    for (const signals of [
+      // UniFi: "<model> <firmware>".
+      { sysDescr: "U7-Pro 7.0.83.16045", vendor: "Ubiquiti" },
+      { sysDescr: "U6+ 6.6.55.15189", vendor: "Ubiquiti" },
+      { sysDescr: "UK-Ultra 6.6.77.15402", vendor: "Ubiquiti" },
+      { sysDescr: "E7 *14", vendor: "Ubiquiti" },
+      { sysDescr: "UAP-nanoHD 5.60.3.12934" },
+      // IQ Engine (HiveOS), by its own description.
+      { sysDescr: "AP230, HiveOS 8.1r2a build-178408" },
+      { sysDescr: "HiveAP330, HiveOS 6.5r7 build-160188" },
+      { sysDescr: "AP4000, IQ Engine 10.6r7 build-282012" },
+      // Aruba access points by their product arc, whatever the description.
+      {
+        sysObjectId: "1.3.6.1.4.1.14823.1.2.59",
+        sysDescr: "ArubaOS (MODEL: 225), Version 8.4.0.0-8.4.0.0",
+      },
+      // Extreme's wireless controllers by theirs.
+      {
+        sysObjectId: "1.3.6.1.4.1.4329.15.1.1.13",
+        sysDescr: "Extreme Networks Wireless Controller - V2110 Medium",
+      },
+    ]) {
+      expect(classifyDeviceRole(signals)).toBe("wirelessAccessPoint");
+    }
+  });
+
+  test("the names those rules read do not claim other gear", () => {
+    // Aerohive's switches say HiveOS too.
+    expect(
+      classifyDeviceRole({
+        sysDescr: "SR2024P, HiveOS 6.5r4 Honolulu build-128121",
+      }),
+    ).not.toBe("wirelessAccessPoint");
+    // Calix's E7 is an access node, not a UniFi E7.
+    expect(classifyDeviceRole({ sysDescr: "E7-2 Calix" })).not.toBe(
+      "wirelessAccessPoint",
+    );
+    // Aruba's controllers sit under another arc, and its ClearPass under a third.
+    expect(
+      classifyDeviceRole({ sysObjectId: "1.3.6.1.4.1.14823.1.6.1" }),
+    ).not.toBe("wirelessAccessPoint");
+    // Other Siemens products are not Extreme's wireless controllers.
+    expect(
+      classifyDeviceRole({ sysObjectId: "1.3.6.1.4.1.4329.20.1.1" }),
+    ).not.toBe("wirelessAccessPoint");
+  });
+
   test("load balancers", () => {
     expect(classifyDeviceRole({ sysDescr: "BIG-IP 4000s" })).toBe(
       "loadBalancer",
