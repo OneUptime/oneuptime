@@ -456,6 +456,8 @@ export default class UptimeRobotAdapter implements ToolImportAdapter {
       sourceId: data.sourceId,
       name: data.name,
       sourceType: data.type === TYPE_API ? "API" : data.type.toLowerCase(),
+      // An API monitor reads the answer as JSON for its assertions.
+      readsJson: data.type === TYPE_API,
       url: data.url,
       method: asString(raw["httpMethodType"]) || "GET",
       headers: headers,

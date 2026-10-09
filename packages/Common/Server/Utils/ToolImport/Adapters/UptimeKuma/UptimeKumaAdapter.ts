@@ -312,6 +312,7 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
           ["basic", "ntlm", "mtls", "oauth2-cc"].includes(
             asString(raw["authMethod"]).toLowerCase(),
           ),
+        readsJson: type === "json-query",
         isPaused: isPaused,
         notes: notes,
       });
@@ -594,7 +595,11 @@ export function readMetricLabels(line: string): Record<string, string> | null {
     return null;
   }
 
-  const labels: Record<string, string> = {};
+  // No prototype: a label can only ever be a label.
+  const labels: Record<string, string> = Object.create(null) as Record<
+    string,
+    string
+  >;
   let index: number = METRIC_NAME.length + 1;
 
   while (index < text.length) {

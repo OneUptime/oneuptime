@@ -27,8 +27,8 @@ import {
  * the same way for all of them:
  *
  *  - A plain GET (or HEAD) with no headers and no body is a Website
- *    monitor; anything more - another method, headers, a body - is an API
- *    monitor, which sends them.
+ *    monitor; anything more - another method, headers, a body, or an
+ *    answer read as JSON - is an API monitor, which sends them.
  *  - Headers that may hold a secret are left out and named; a body is sent
  *    only when it is a JSON object, the only body an API monitor sends.
  *  - Passwords are never copied: a check that signs in says so.
@@ -57,6 +57,12 @@ export interface HttpCheckInput {
   keyword?: ImportedKeyword | undefined;
   // The check signs in with a user name and password (never copied).
   signsIn?: boolean | undefined;
+  /*
+   * The check reads the answer as JSON (an API check with assertions, a
+   * JSON query): an API monitor, whatever its method, so the criteria that
+   * replace its assertions read the same JSON.
+   */
+  readsJson?: boolean | undefined;
   isPaused: boolean;
   // Notes the adapter adds about its tool's own settings.
   notes?: Array<ToolImportNote> | undefined;
@@ -130,7 +136,8 @@ export function toHttpMonitor(input: HttpCheckInput): ImportedMonitor {
     sourceId: input.sourceId,
     name: input.name,
     sourceType: input.sourceType,
-    monitorType: isPlainLoad ? MonitorType.Website : MonitorType.API,
+    monitorType:
+      isPlainLoad && !input.readsJson ? MonitorType.Website : MonitorType.API,
     destination: input.url,
     httpMethod: method,
     followRedirects: input.followRedirects,

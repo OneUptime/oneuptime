@@ -54,9 +54,9 @@ import {
  *
  * Auth is `Authorization: OAuth <key>` against api.statuspage.io. Each key
  * may make one request a second, so reads are paced at that. Components
- * and groups are paged by `page` (from 1) and `per_page` (at most 100),
- * subscribers by `page` (from 0) and `limit` (at most 100); a short page is
- * the last.
+ * and groups are paged by `page` and `per_page` (at most 100), subscribers
+ * by `page` and `limit` (at most 100); a short page is the last (see
+ * readPaged for how the page number is counted).
  *
  * How Statuspage's ideas map:
  *  - A page is a status page, with its name, its description and whether
@@ -91,6 +91,14 @@ export interface StatuspagePageRead {
   statusPage: ImportedStatusPage;
   components: Array<ImportedMonitor>;
   subscribers: Array<ImportedStatusPageSubscriber>;
+  // The page had more components, or subscribers, than one read collects.
+  hasMoreComponents?: boolean | undefined;
+  hasMoreSubscribers?: boolean | undefined;
+}
+
+interface PagedRead {
+  records: Array<Record<string, unknown>>;
+  hasMore: boolean;
 }
 
 export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
@@ -146,6 +154,9 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
           },
         ),
         notes: snapshot.notes,
+        hasMore: reads.some((read: StatuspagePageRead): boolean => {
+          return read.hasMoreComponents === true;
+        }),
       });
 
       snapshot.statusPages = reads.map(
@@ -162,6 +173,9 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
           },
         ),
         notes: snapshot.notes,
+        hasMore: reads.some((read: StatuspagePageRead): boolean => {
+          return read.hasMoreSubscribers === true;
+        }),
       });
     } catch (error) {
       throw toFatalReadError({
@@ -185,19 +199,17 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
   ): Promise<StatuspagePageRead> {
     const base: string = `/v1/pages/${encodeURIComponent(asString(page["id"]))}`;
 
-    const components: Array<Record<string, unknown>> = await this.readPaged({
+    const components: PagedRead = await this.readPaged({
       client: client,
       path: `${base}/components`,
-      firstPage: 1,
       sizeParam: "per_page",
     });
 
-    const groups: Array<Record<string, unknown>> = await this.readOptional(
-      async (): Promise<Array<Record<string, unknown>>> => {
+    const groups: PagedRead = await this.readOptional(
+      async (): Promise<PagedRead> => {
         return await this.readPaged({
           client: client,
           path: `${base}/component-groups`,
-          firstPage: 1,
           sizeParam: "per_page",
         });
       },
@@ -205,12 +217,11 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
 
     let subscribersReadable: boolean = true;
 
-    const subscribers: Array<Record<string, unknown>> = await this.readOptional(
-      async (): Promise<Array<Record<string, unknown>>> => {
+    const subscribers: PagedRead = await this.readOptional(
+      async (): Promise<PagedRead> => {
         return await this.readPaged({
           client: client,
           path: `${base}/subscribers`,
-          firstPage: 0,
           sizeParam: "limit",
           query: { type: "email", state: "active" },
         });
@@ -221,18 +232,12 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
     );
 
     if (!subscribersReadable) {
-      const note: ToolImportNote = makeToolImportNote(
-        ToolImportNoteCode.CouldNotRead,
-        { kind: ToolImportResourceKind.StatusPageSubscriber },
+      addNoteOnce(
+        notes,
+        makeToolImportNote(ToolImportNoteCode.CouldNotRead, {
+          kind: ToolImportResourceKind.StatusPageSubscriber,
+        }),
       );
-
-      if (
-        !notes.some((existing: ToolImportNote): boolean => {
-          return JSON.stringify(existing) === JSON.stringify(note);
-        })
-      ) {
-        notes.push(note);
-      }
     }
 
     const counts: Record<string, unknown> = subscribersReadable
@@ -243,74 +248,97 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
         )
       : {};
 
-    return this.toPage({
-      page: page,
-      components: components,
-      groups: groups,
-      subscribers: subscribers,
-      otherSubscriberCount: OTHER_SUBSCRIBER_TYPES.reduce(
-        (total: number, type: string): number => {
-          return total + (asNumber(counts[type]) || 0);
-        },
-        0,
-      ),
-    });
+    return {
+      ...this.toPage({
+        page: page,
+        components: components.records,
+        groups: groups.records,
+        subscribers: subscribers.records,
+        otherSubscriberCount: OTHER_SUBSCRIBER_TYPES.reduce(
+          (total: number, type: string): number => {
+            return total + (asNumber(counts[type]) || 0);
+          },
+          0,
+        ),
+      }),
+      hasMoreComponents: components.hasMore,
+      hasMoreSubscribers: subscribers.hasMore,
+    };
   }
 
   /*
-   * Every record of a list Statuspage pages: the page number (from 0 or 1,
-   * as the list counts) and a size in, an array out. A page shorter than
-   * the size is the last, as is one that comes back as the page before
-   * did.
+   * Every record of a list Statuspage pages, by id. Its documentation
+   * calls the page number an offset without saying whether it counts from
+   * 0 or 1, so the first page is asked for with no number at all (which
+   * Statuspage answers with the first page) and the next ones as page 1,
+   * 2 and on; a record is kept once, and a page that only repeats records
+   * already read - page 1 of a list that counts from 1 - is passed over
+   * once. A page shorter than the size is the last. At most
+   * TOOL_IMPORT_MAX_RECORDS_PER_KIND records; `hasMore` says when there
+   * were more.
    */
   private async readPaged(data: {
     client: ToolImportHttpClient;
     path: string;
-    firstPage: number;
     sizeParam: "per_page" | "limit";
     query?: Record<string, string> | undefined;
-  }): Promise<Array<Record<string, unknown>>> {
+  }): Promise<PagedRead> {
     const records: Array<Record<string, unknown>> = [];
-    let previousFirstId: string | null = null;
+    const seen: Set<string> = new Set<string>();
+    let repeats: number = 0;
 
-    for (let page: number = data.firstPage; ; page++) {
+    for (let page: number = 0; ; page++) {
       const answer: Array<Record<string, unknown>> = asArray(
         await data.client.getJson(data.path, {
           ...(data.query || {}),
-          page: page,
+          ...(page > 0 ? { page: page } : {}),
           [data.sizeParam]: PAGE_SIZE,
         }),
       ).map(asRecord);
 
-      const firstId: string = asString(answer[0]?.["id"]);
+      const fresh: Array<Record<string, unknown>> = answer.filter(
+        (record: Record<string, unknown>): boolean => {
+          const id: string = asString(record["id"]);
 
-      if (answer.length === 0 || firstId === previousFirstId) {
-        return records;
+          if (!id || seen.has(id)) {
+            return false;
+          }
+
+          seen.add(id);
+          return true;
+        },
+      );
+
+      records.push(...fresh);
+
+      if (answer.length < PAGE_SIZE) {
+        return { records: records, hasMore: false };
       }
 
-      records.push(...answer);
-      previousFirstId = firstId;
+      if (records.length >= TOOL_IMPORT_MAX_RECORDS_PER_KIND) {
+        return {
+          records: records.slice(0, TOOL_IMPORT_MAX_RECORDS_PER_KIND),
+          hasMore: true,
+        };
+      }
 
-      if (
-        answer.length < PAGE_SIZE ||
-        records.length >= TOOL_IMPORT_MAX_RECORDS_PER_KIND
-      ) {
-        return records;
+      if (fresh.length === 0 && ++repeats > 1) {
+        return { records: records, hasMore: false };
       }
     }
   }
 
   // A list the key may not read (402, 403, 404) is an empty one.
   private async readOptional(
-    read: () => Promise<Array<Record<string, unknown>>>,
+    read: () => Promise<PagedRead>,
     onNotReadable?: () => void,
-  ): Promise<Array<Record<string, unknown>>> {
+  ): Promise<PagedRead> {
     try {
       return await read();
     } catch (error) {
       if (isListNotAvailable(error)) {
         onNotReadable?.();
-        return [];
+        return { records: [], hasMore: false };
       }
 
       throw error;
@@ -481,7 +509,7 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
         sourceId: sourceId,
         email: email,
         statusPageSourceId: pageId,
-        resourceKeys: asArray(raw["components"]).map(asString).filter(Boolean),
+        resourceKeys: readComponentIds(raw["components"]),
         notes: [],
       });
     }
@@ -526,6 +554,29 @@ function byPosition(
   b: Record<string, unknown>,
 ): number {
   return (asNumber(a["position"]) || 0) - (asNumber(b["position"]) || 0);
+}
+
+// A note about the read as a whole is said once, however many pages it is true of.
+function addNoteOnce(notes: Array<ToolImportNote>, note: ToolImportNote): void {
+  if (
+    !notes.some((existing: ToolImportNote): boolean => {
+      return JSON.stringify(existing) === JSON.stringify(note);
+    })
+  ) {
+    notes.push(note);
+  }
+}
+
+/*
+ * A subscriber's components, as ids: Statuspage lists them as ids, and an
+ * object with an id is read the same.
+ */
+function readComponentIds(value: unknown): Array<string> {
+  return asArray(value)
+    .map((component: unknown): string => {
+      return asString(component) || asString(asRecord(component)["id"]);
+    })
+    .filter(Boolean);
 }
 
 // Statuspage writes a page image as an object with a url, or a url, or null.

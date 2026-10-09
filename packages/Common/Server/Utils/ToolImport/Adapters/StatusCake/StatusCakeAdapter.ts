@@ -24,7 +24,10 @@ import {
   ToolImportSnapshot,
 } from "../../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../../Types/ToolImport/ToolImportSource";
-import ToolImportHttpClient from "../../ToolImportHttpClient";
+import ToolImportHttpClient, {
+  ToolImportHttpError,
+  ToolImportHttpErrorKind,
+} from "../../ToolImportHttpClient";
 import {
   asArray,
   asBoolean,
@@ -51,7 +54,9 @@ import {
  * https://developers.statuscake.com/api/:
  *
  *   GET /v1/uptime?page=&limit=         uptime checks (an overview each)
- *   GET /v1/uptime/{id}                 one uptime check's settings
+ *   GET /v1/uptime/{id}                 one uptime check's settings (not
+ *                                       for a ping check: its overview
+ *                                       is all there is to it)
  *   GET /v1/ssl?page=&limit=            SSL certificate checks
  *   GET /v1/heartbeat?page=&limit=      heartbeat checks
  *   GET /v1/maintenance-windows?...     maintenance windows (only counted)
@@ -95,6 +100,8 @@ const CONSTANT_CHECK_SECONDS: number = 60;
 
 const URL_SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
 const PATH_AND_AFTER: RegExp = /[/?#].*$/;
+// "host:port" with one colon: an IPv6 address has more.
+const HOST_AND_PORT: RegExp = /^([^:]+):\d{1,5}$/;
 
 interface PagedRead {
   records: Array<Record<string, unknown>>;
@@ -130,18 +137,15 @@ export default class StatusCakeAdapter implements ToolImportAdapter {
         notes: snapshot.notes,
         hasMore: uptime.hasMore,
       })) {
-        const id: string = asString(overview["id"]);
+        const test: Record<string, unknown> | null = await this.readUptimeTest(
+          client,
+          overview,
+        );
 
-        if (!id) {
+        if (!test) {
           continue;
         }
 
-        const detail: Record<string, unknown> = asRecord(
-          asRecord(
-            await client.getJson(`/v1/uptime/${encodeURIComponent(id)}`),
-          )["data"],
-        );
-        const test: Record<string, unknown> = { ...overview, ...detail };
         const monitor: ImportedMonitor = this.toUptimeMonitor(test);
 
         monitors.push(monitor);
@@ -236,6 +240,46 @@ export default class StatusCakeAdapter implements ToolImportAdapter {
       if (records.length >= TOOL_IMPORT_MAX_RECORDS_PER_KIND) {
         return { records: records, hasMore: true };
       }
+    }
+  }
+
+  /*
+   * One uptime check with its settings. A ping check's overview says all
+   * there is to it; any other check's settings are read on their own,
+   * one request each. Null for a check without an id, or one deleted since
+   * the list was read.
+   */
+  private async readUptimeTest(
+    client: ToolImportHttpClient,
+    overview: Record<string, unknown>,
+  ): Promise<Record<string, unknown> | null> {
+    const id: string = asString(overview["id"]);
+
+    if (!id) {
+      return null;
+    }
+
+    if (asString(overview["test_type"]).toUpperCase() === "PING") {
+      return overview;
+    }
+
+    try {
+      const detail: Record<string, unknown> = asRecord(
+        asRecord(await client.getJson(`/v1/uptime/${encodeURIComponent(id)}`))[
+          "data"
+        ],
+      );
+
+      return { ...overview, ...detail };
+    } catch (error) {
+      if (
+        error instanceof ToolImportHttpError &&
+        error.kind === ToolImportHttpErrorKind.NotFound
+      ) {
+        return null;
+      }
+
+      throw error;
     }
   }
 
@@ -467,7 +511,10 @@ export default class StatusCakeAdapter implements ToolImportAdapter {
   // An SSL check: an SSL Certificate monitor warning as far ahead as its first alert.
   public toSslMonitor(test: Record<string, unknown>): ImportedMonitor | null {
     const id: string = asString(test["id"]);
-    const url: string = asString(test["website_url"]);
+    const address: string = asString(test["website_url"]);
+    // A certificate is read over https, whether or not the address says so.
+    const url: string =
+      !address || URL_SCHEME.test(address) ? address : `https://${address}`;
 
     if (!id) {
       return null;
@@ -539,7 +586,17 @@ export default class StatusCakeAdapter implements ToolImportAdapter {
   }
 }
 
-// The host of a check's address, whether it was written as a URL or not.
-function toHost(address: string): string {
-  return address.trim().replace(URL_SCHEME, "").replace(PATH_AND_AFTER, "");
+/*
+ * The host of a check's address, whether it was written as a URL or not:
+ * no scheme, path or port ("ssh://bastion.example.com:22/" is
+ * "bastion.example.com"). An IPv6 address keeps its colons.
+ */
+export function toHost(address: string): string {
+  const host: string = address
+    .trim()
+    .replace(URL_SCHEME, "")
+    .replace(PATH_AND_AFTER, "");
+  const withPort: RegExpMatchArray | null = host.match(HOST_AND_PORT);
+
+  return withPort ? withPort[1]! : host;
 }

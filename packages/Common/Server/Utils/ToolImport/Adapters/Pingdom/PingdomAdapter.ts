@@ -17,7 +17,10 @@ import {
   ToolImportSnapshot,
 } from "../../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../../Types/ToolImport/ToolImportSource";
-import ToolImportHttpClient from "../../ToolImportHttpClient";
+import ToolImportHttpClient, {
+  ToolImportHttpError,
+  ToolImportHttpErrorKind,
+} from "../../ToolImportHttpClient";
 import {
   asArray,
   asBoolean,
@@ -186,11 +189,27 @@ export default class PingdomAdapter implements ToolImportAdapter {
       return [this.toMonitor(listed)];
     }
 
-    const detail: Record<string, unknown> = asRecord(
-      asRecord(
-        await client.getJson(`/api/3.1/checks/${encodeURIComponent(checkId)}`),
-      )["check"],
-    );
+    let detail: Record<string, unknown> = {};
+
+    try {
+      detail = asRecord(
+        asRecord(
+          await client.getJson(
+            `/api/3.1/checks/${encodeURIComponent(checkId)}`,
+          ),
+        )["check"],
+      );
+    } catch (error) {
+      // Deleted between the list and now: nothing left to bring over.
+      if (
+        error instanceof ToolImportHttpError &&
+        error.kind === ToolImportHttpErrorKind.NotFound
+      ) {
+        return [];
+      }
+
+      throw error;
+    }
 
     return this.toMonitors({ ...listed, ...detail });
   }

@@ -276,6 +276,9 @@ describe("UptimeRobotAdapter: what an UptimeRobot account becomes", () => {
       ToolImportNoteCode.MonitorAssertionsLeftOut,
     ]);
     expect(monitorOf(snapshot, HEALTH_ID).sourceType).toBe("API");
+    // It reads the answer as JSON: an API monitor, though a plain GET.
+    expect(monitorOf(snapshot, HEALTH_ID).monitorType).toBe(MonitorType.API);
+    expect(monitorOf(snapshot, HEALTH_ID).requestHeaders).toBeUndefined();
     expect(codes(monitorOf(snapshot, ADMIN_ID).notes)).toEqual([
       ToolImportNoteCode.MonitorSignInLeftOut,
     ]);

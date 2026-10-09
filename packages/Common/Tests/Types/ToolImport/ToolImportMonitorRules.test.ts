@@ -382,6 +382,32 @@ describe("what a web check becomes", () => {
     ]);
   });
 
+  test("a check that reads its answer as JSON is an API monitor, even a plain GET", () => {
+    const plain: ImportedMonitor = toHttpMonitor({
+      sourceId: "6",
+      name: "Health",
+      sourceType: "json-query",
+      url: "https://example.com/health",
+      readsJson: true,
+      isPaused: false,
+    });
+
+    expect(plain.monitorType).toBe(MonitorType.API);
+    expect(plain.httpMethod).toBe(HTTPMethod.GET);
+    expect(plain.requestHeaders).toBeUndefined();
+    expect(plain.requestBody).toBeUndefined();
+    expect(
+      toHttpMonitor({
+        sourceId: "7",
+        name: "Health",
+        sourceType: "http",
+        url: "https://example.com/health",
+        readsJson: false,
+        isPaused: false,
+      }).monitorType,
+    ).toBe(MonitorType.Website);
+  });
+
   test("a keyword needs the page: a HEAD check with one sends GET", () => {
     const monitor: ImportedMonitor = toHttpMonitor({
       sourceId: "6",

@@ -635,11 +635,12 @@ export default class BetterStackAdapter implements ToolImportAdapter {
 
       let monitorSourceId: string | null = null;
 
-      if (type === "Monitor") {
+      if (key && resourceId && type === "Monitor") {
         monitorSourceId = `${BETTER_STACK_MONITOR_PREFIX}${resourceId}`;
-      } else if (type === "Heartbeat") {
+      } else if (key && resourceId && type === "Heartbeat") {
         monitorSourceId = `${BETTER_STACK_HEARTBEAT_PREFIX}${resourceId}`;
-      } else if (type === "ManuallyTrackedItem") {
+      } else if (key && type === "ManuallyTrackedItem") {
+        // Tracked by hand: a manual monitor of its own, set from OneUptime.
         monitorSourceId = `${BETTER_STACK_ITEM_PREFIX}${id}-${key}`;
         items.push({
           sourceId: monitorSourceId,
@@ -651,7 +652,7 @@ export default class BetterStackAdapter implements ToolImportAdapter {
         });
       }
 
-      if (!key || !resourceId || !monitorSourceId) {
+      if (!monitorSourceId) {
         notes.push(
           makeToolImportNote(ToolImportNoteCode.StatusPageResourceNotSupported, {
             name: displayName,
