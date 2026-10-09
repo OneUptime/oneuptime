@@ -575,35 +575,38 @@ describe("HPE Aruba Instant", () => {
       walk("aruba-instant", arubaInstantResults()),
     );
 
-    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 0")).toMatchObject(
-      {
-        band: WifiBand.Band5GHz,
-        channel: 161,
-        frequencyMHz: 5805,
-        txPowerDbm: 16,
-        noiseFloorDbm: -94,
-        utilizationPercent: 1,
-        clients: 7,
-        isOn: true,
-        statusText: "up",
-      },
-    );
-    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 1")).toMatchObject(
-      { band: WifiBand.Band2_4GHz, channel: 1, frequencyMHz: 2412 },
-    );
+    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 0")).toMatchObject({
+      band: WifiBand.Band5GHz,
+      channel: 161,
+      frequencyMHz: 5805,
+      txPowerDbm: 16,
+      noiseFloorDbm: -94,
+      utilizationPercent: 1,
+      clients: 7,
+      isOn: true,
+      statusText: "up",
+    });
+    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 1")).toMatchObject({
+      band: WifiBand.Band2_4GHz,
+      channel: 1,
+      frequencyMHz: 2412,
+    });
     // "53S": channel 53 at 160 MHz - a number only 6 GHz uses.
-    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 2")).toMatchObject(
-      { band: WifiBand.Band6GHz, channel: 53, frequencyMHz: 6215 },
-    );
+    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 2")).toMatchObject({
+      band: WifiBand.Band6GHz,
+      channel: 53,
+      frequencyMHz: 6215,
+    });
     // "116E": channel 116 at 80 MHz.
     expect(radioNamed(summary, "instant-ap-src-1 / Radio 0")).toMatchObject({
       band: WifiBand.Band5GHz,
       channel: 116,
       frequencyMHz: 5580,
     });
-    expect(radioNamed(summary, "ECA-Ultimo-L11-AP14 / Radio 0")).toMatchObject(
-      { isOn: false, statusText: "down" },
-    );
+    expect(radioNamed(summary, "ECA-Ultimo-L11-AP14 / Radio 0")).toMatchObject({
+      isOn: false,
+      statusText: "down",
+    });
   });
 
   it("lists the cluster's access points, the down one marked, each with its radios' clients", () => {
@@ -862,9 +865,7 @@ describe("HPE Aruba Mobility Controller", () => {
       arubaControllerResults(),
     );
 
-    expect(labels(snapshotOf(snapshots, "cpu_processors"))).toEqual([
-      "MIPS 1",
-    ]);
+    expect(labels(snapshotOf(snapshots, "cpu_processors"))).toEqual(["MIPS 1"]);
     expect(
       snapshotOf(snapshots, "memory").rows[0]!.cells[`${SYSX_MEMORY}.4`]!
         .numeric,
@@ -1003,7 +1004,10 @@ describe("Extreme Networks IQ Engine (HiveOS) access points", () => {
   it("keeps the other interfaces ahIfName names out of the radio table", () => {
     expect(
       labels(
-        snapshotOf(walk("extreme-iq-engine-ap", hiveosResults()), "wifi_radios"),
+        snapshotOf(
+          walk("extreme-iq-engine-ap", hiveosResults()),
+          "wifi_radios",
+        ),
       ),
     ).toEqual(["wifi0", "wifi1"]);
   });
@@ -1359,11 +1363,7 @@ describe("matching a Wi-Fi device to its template", () => {
     ["1.3.6.1.4.1.41112", "UK-Ultra 6.6.77.15402", "ubiquiti-unifi-ap"],
     ["1.3.6.1.4.1.41112", "U-LTE-Pro-EU 6.6.57.15206", "ubiquiti-unifi-ap"],
     ["1.3.6.1.4.1.41112", "E7 *14", "ubiquiti-unifi-ap"],
-    [
-      "1.3.6.1.4.1.8072.3.2.10",
-      "UAP-AC-HD 3.9.19.8123",
-      "ubiquiti-unifi-ap",
-    ],
+    ["1.3.6.1.4.1.8072.3.2.10", "UAP-AC-HD 3.9.19.8123", "ubiquiti-unifi-ap"],
     [
       ".1.3.6.1.4.1.8072.3.2.10",
       "UAP-nanoHD 5.43.36.12724",
@@ -1430,17 +1430,14 @@ describe("matching a Wi-Fi device to its template", () => {
       "Extreme Networks Wireless Controller - V2110 Medium,  System Version 10.21.04.0005",
       "extreme-wireless-controller",
     ],
-  ])(
-    "%s (%s) -> %s",
-    (sysObjectId: string, sysDescr: string, id: string) => {
-      expect(
-        SnmpVendorTemplateUtil.matchDevice({
-          sysObjectId: sysObjectId,
-          sysDescr: sysDescr,
-        })?.id,
-      ).toBe(id);
-    },
-  );
+  ])("%s (%s) -> %s", (sysObjectId: string, sysDescr: string, id: string) => {
+    expect(
+      SnmpVendorTemplateUtil.matchDevice({
+        sysObjectId: sysObjectId,
+        sysDescr: sysDescr,
+      })?.id,
+    ).toBe(id);
+  });
 
   it.each([
     // Any other Linux host answering with Net-SNMP's arc.
@@ -1457,21 +1454,28 @@ describe("matching a Wi-Fi device to its template", () => {
     ["1.3.6.1.4.1.4329.20.1.1", "SCALANCE X-300"],
     // TP-Link's arc carries switches and routers; Omada EAPs are applied by hand.
     ["1.3.6.1.4.1.11863.1.1.3", "TL-SG3428"],
-  ])("%s (%s) matches no Wi-Fi template", (sysObjectId: string, sysDescr: string) => {
-    expect(
-      WIFI_TEMPLATE_IDS.concat(["tplink-omada-eap"]).includes(
-        SnmpVendorTemplateUtil.matchDevice({
-          sysObjectId: sysObjectId,
-          sysDescr: sysDescr,
-        })?.id || "",
-      ),
-    ).toBe(false);
-  });
+  ])(
+    "%s (%s) matches no Wi-Fi template",
+    (sysObjectId: string, sysDescr: string) => {
+      expect(
+        WIFI_TEMPLATE_IDS.concat(["tplink-omada-eap"]).includes(
+          SnmpVendorTemplateUtil.matchDevice({
+            sysObjectId: sysObjectId,
+            sysDescr: sysDescr,
+          })?.id || "",
+        ),
+      ).toBe(false);
+    },
+  );
 
   it.each([
     ["1.3.6.1.4.1.8072.3.2.10", "UAP-AC-HD 3.9.19.8123", "Ubiquiti"],
     ["1.3.6.1.4.1.41112", "U6-Pro 6.5.28.14491", "Ubiquiti"],
-    ["1.3.6.1.4.1.26928.1", "AP230, HiveOS 8.1r2a build-178408", "Extreme Networks"],
+    [
+      "1.3.6.1.4.1.26928.1",
+      "AP230, HiveOS 8.1r2a build-178408",
+      "Extreme Networks",
+    ],
     [
       "1.3.6.1.4.1.4329.15.1.1.13",
       "Extreme Networks Wireless Controller - V2110 Medium",
@@ -1530,9 +1534,9 @@ describe("the Wi-Fi tab of a device with each template, end to end", () => {
       expect(summary.collectedAt).toBe("2026-10-09T08:00:00.000Z");
 
       for (const accessPoint of summary.accessPoints) {
-        expect((accessPoint as WifiAccessPointView).name.length).toBeGreaterThan(
-          0,
-        );
+        expect(
+          (accessPoint as WifiAccessPointView).name.length,
+        ).toBeGreaterThan(0);
       }
     },
   );

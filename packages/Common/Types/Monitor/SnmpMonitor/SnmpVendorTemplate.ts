@@ -1240,8 +1240,7 @@ const ARUBA_INSTANT: SnmpVendorTemplate = {
     {
       key: "wifi_ssids",
       name: "SSIDs",
-      description:
-        "aiWlanSSIDTable - one row per SSID the cluster broadcasts.",
+      description: "aiWlanSSIDTable - one row per SSID the cluster broadcasts.",
       kind: SnmpTableKind.WifiSsid,
       rowLabelColumnOids: ["1.3.6.1.4.1.14823.2.3.3.1.1.7.1.2"],
       columns: [

@@ -89,26 +89,26 @@ describe("a column's adjustment is kept, cleaned and refused on save", () => {
   });
 
   it.each([
-    ["a scale of 0", { scale: 0 }, "the scale of column \"Noise Floor\""],
+    ["a scale of 0", { scale: 0 }, 'the scale of column "Noise Floor"'],
     [
       "a scale that is not a number",
       { scale: "half" as unknown as number },
-      "the scale of column \"Noise Floor\"",
+      'the scale of column "Noise Floor"',
     ],
     [
       "a scale past the bound",
       { scale: MAX_COLUMN_SCALE_MAGNITUDE + 1 },
-      "the scale of column \"Noise Floor\"",
+      'the scale of column "Noise Floor"',
     ],
     [
       "an offset that is not finite",
       { offset: Infinity },
-      "the offset of column \"Noise Floor\"",
+      'the offset of column "Noise Floor"',
     ],
     [
       "an offset past the bound",
       { offset: -(MAX_COLUMN_OFFSET_MAGNITUDE + 1) },
-      "the offset of column \"Noise Floor\"",
+      'the offset of column "Noise Floor"',
     ],
   ])(
     "refuses %s, naming the column and the table",
@@ -155,9 +155,11 @@ describe("a cell reads the adjusted number", () => {
   });
 
   it("takes off the 256 Aerohive adds", () => {
-    expect(
-      SnmpTableListUtil.buildCell(column({ offset: -256 }), 161),
-    ).toEqual({ raw: 161, display: "-95", numeric: -95 });
+    expect(SnmpTableListUtil.buildCell(column({ offset: -256 }), 161)).toEqual({
+      raw: 161,
+      display: "-95",
+      numeric: -95,
+    });
   });
 
   it("halves the transmit power ArubaOS sends doubled, keeping the half dBm", () => {
@@ -199,9 +201,10 @@ describe("a cell reads the adjusted number", () => {
   });
 
   it("leaves a value that is not a number as it came", () => {
-    expect(SnmpTableListUtil.buildCell(column({ scale: -1 }), "n/a")).toEqual(
-      { raw: "n/a", display: "n/a" },
-    );
+    expect(SnmpTableListUtil.buildCell(column({ scale: -1 }), "n/a")).toEqual({
+      raw: "n/a",
+      display: "n/a",
+    });
     expect(
       SnmpTableListUtil.buildCell(column({ scale: -1 }), undefined),
     ).toEqual({ raw: null, display: "" });

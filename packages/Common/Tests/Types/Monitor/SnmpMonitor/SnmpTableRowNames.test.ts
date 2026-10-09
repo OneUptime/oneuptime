@@ -156,7 +156,10 @@ describe("a name column from a parent table", () => {
     const snapshot: SnmpTableSnapshot = materialize(radios(), {
       key: "wifi_radios",
       rows: [
-        { index: `${AP_A}.0`, values: { [RADIO_INDEX]: 0, [RADIO_CLIENTS]: 1 } },
+        {
+          index: `${AP_A}.0`,
+          values: { [RADIO_INDEX]: 0, [RADIO_CLIENTS]: 1 },
+        },
       ],
     });
 

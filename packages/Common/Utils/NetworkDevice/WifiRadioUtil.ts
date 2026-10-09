@@ -191,8 +191,8 @@ export default class WifiRadioUtil {
 
     const totalClients: number | undefined = radiosCountClients
       ? WifiRadioUtil.sumClients(radios)
-      : (WifiRadioUtil.sumClients(ssids) ??
-        WifiRadioUtil.sumClients(accessPoints));
+      : WifiRadioUtil.sumClients(ssids) ??
+        WifiRadioUtil.sumClients(accessPoints);
 
     if (totalClients !== undefined) {
       summary.totalClients = totalClients;
@@ -464,21 +464,17 @@ export default class WifiRadioUtil {
         continue;
       }
 
-      const radiosOnBand: number = radios.filter(
-        (candidate: WifiRadioView) => {
-          return candidate.band === radio.band;
-        },
-      ).length;
+      const radiosOnBand: number = radios.filter((candidate: WifiRadioView) => {
+        return candidate.band === radio.band;
+      }).length;
 
       if (radiosOnBand !== 1) {
         continue;
       }
 
-      const onBand: Array<WifiSsidView> = ssids.filter(
-        (ssid: WifiSsidView) => {
-          return ssid.band === radio.band;
-        },
-      );
+      const onBand: Array<WifiSsidView> = ssids.filter((ssid: WifiSsidView) => {
+        return ssid.band === radio.band;
+      });
 
       if (onBand.length === 0) {
         continue;

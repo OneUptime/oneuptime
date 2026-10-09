@@ -56,9 +56,7 @@ export default class SnmpTableEditorUtil {
       return undefined;
     }
 
-    const formatNumber: (value: number) => string = (
-      value: number,
-    ): string => {
+    const formatNumber: (value: number) => string = (value: number): string => {
       return value < 0 ? `−${Math.abs(value)}` : `${value}`;
     };
 

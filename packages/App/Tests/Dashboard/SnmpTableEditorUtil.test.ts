@@ -1,6 +1,12 @@
 import SnmpTableEditorUtil from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpTableEditorUtil";
-import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import {
+  SnmpTableColumn,
+  SnmpTableDefinition,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 import { describe, expect, test } from "@jest/globals";
+
+// A column's numeric adjustment, as a vendor template sets it.
+type ColumnAdjustment = Pick<SnmpTableColumn, "scale" | "offset">;
 
 /*
  * The text forms the SNMP table editor shows for structured values, and the
@@ -111,7 +117,9 @@ describe("SnmpTableEditorUtil.getTableError", () => {
     expect(
       SnmpTableEditorUtil.getTableError(
         table({
-          columns: [{ oid: "1.3.6.1.4.1.2604.5.1.6.1.1.1.1.9", name: "x", scale: 0 }],
+          columns: [
+            { oid: "1.3.6.1.4.1.2604.5.1.6.1.1.1.1.9", name: "x", scale: 0 },
+          ],
         }),
       ),
     ).toContain('the scale of column "x"');
@@ -133,7 +141,7 @@ describe("SnmpTableEditorUtil column adjustments", () => {
     [{ offset: 3 }, "value + 3"],
     [{ scale: -1, offset: 3 }, "value × −1 + 3"],
     [{ scale: 0.1, offset: -10 }, "value × 0.1 − 10"],
-  ])("%j reads as %s", (adjustment: object, formula: string) => {
+  ])("%j reads as %s", (adjustment: ColumnAdjustment, formula: string) => {
     expect(
       SnmpTableEditorUtil.formatAdjustment({
         oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.6",

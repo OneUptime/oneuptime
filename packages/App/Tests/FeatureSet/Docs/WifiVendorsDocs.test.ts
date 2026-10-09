@@ -144,13 +144,17 @@ describe("the English guide", () => {
     );
 
     expect(tab).toContain("6 GHz");
-    expect(tab).toContain("UniFi reports channel, transmit power and clients per SSID");
+    expect(tab).toContain(
+      "UniFi reports channel, transmit power and clients per SSID",
+    );
     expect(tab).toContain("Apply Template");
   });
 
   test("says how vendor numbers in units of their own are read", () => {
     expect(guide).toContain("**adjust** the number they read");
-    expect(guide).toContain("**Noise Floor Greater Than -80** means the same on every");
+    expect(guide).toContain(
+      "**Noise Floor Greater Than -80** means the same on every",
+    );
   });
 
   test("pages for an access point gone from its controller", () => {

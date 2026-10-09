@@ -86,9 +86,7 @@ const WifiEmptyState: FunctionComponent<ComponentProps> = (
         openInNewTab={true}
         className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-indigo-600"
       >
-        {translator.translateText(
-          "Which access points report Wi-Fi over SNMP",
-        )}
+        {translator.translateText("Which access points report Wi-Fi over SNMP")}
         <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
       </Link>
     </div>

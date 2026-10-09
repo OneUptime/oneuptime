@@ -122,9 +122,9 @@ describe("the Wi-Fi tab's advice", () => {
       return { ...table, key: "" };
     });
 
-    expect(
-      getWifiAdvice(device({ ...UNIFI, snmpTables: tables })).kind,
-    ).toBe(WifiAdviceKind.ApplyTemplate);
+    expect(getWifiAdvice(device({ ...UNIFI, snmpTables: tables })).kind).toBe(
+      WifiAdviceKind.ApplyTemplate,
+    );
 
     // "WiFi Radios" is saved as wifi_radios, the key the template's radio table has.
     const named: Array<SnmpTableDefinition> = [
@@ -132,9 +132,9 @@ describe("the Wi-Fi tab's advice", () => {
       { key: "wifi_ssids", name: "SSIDs", columns: [] },
     ];
 
-    expect(
-      getWifiAdvice(device({ ...UNIFI, snmpTables: named })).kind,
-    ).toBe(WifiAdviceKind.WaitForPoll);
+    expect(getWifiAdvice(device({ ...UNIFI, snmpTables: named })).kind).toBe(
+      WifiAdviceKind.WaitForPoll,
+    );
   });
 
   test("says a monitor-backed device is not walked, whatever it is", () => {

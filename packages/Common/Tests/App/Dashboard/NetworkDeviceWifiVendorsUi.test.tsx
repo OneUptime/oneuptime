@@ -335,7 +335,9 @@ describe("the Wi-Fi tab of a wireless controller", () => {
     expect(ssidHeader).toHaveTextContent("Clients");
 
     expect(
-      screen.getByText("Every SSID its access points broadcast, and who is on it."),
+      screen.getByText(
+        "Every SSID its access points broadcast, and who is on it.",
+      ),
     ).toBeInTheDocument();
   });
 });
@@ -363,13 +365,11 @@ describe("the Wi-Fi tab of a UniFi access point", () => {
     );
 
     // UniFi says nothing of whether a radio is on: a count, no claim.
-    expect(screen.getByTestId("wifi-tiles")).not.toHaveTextContent(
-      "Radios on",
-    );
+    expect(screen.getByTestId("wifi-tiles")).not.toHaveTextContent("Radios on");
     expect(screen.getByTestId("wifi-tiles")).toHaveTextContent("Radios");
-    expect(
-      within(radios).getAllByRole("row")[0]!,
-    ).not.toHaveTextContent("Status");
+    expect(within(radios).getAllByRole("row")[0]!).not.toHaveTextContent(
+      "Status",
+    );
 
     const ssids: HTMLElement = screen.getByTestId("wifi-ssids");
     expect(ssids).toHaveTextContent("Office");
@@ -532,7 +532,10 @@ describe("the empty Wi-Fi tab", () => {
 
   test.each([
     [{}, "has not been read over SNMP yet"],
-    [{ ...UNIFI_IDENTITY, monitoringMethod: "Monitor" }, "Switch it to probe polling"],
+    [
+      { ...UNIFI_IDENTITY, monitoringMethod: "Monitor" },
+      "Switch it to probe polling",
+    ],
     [
       {
         ...UNIFI_IDENTITY,
@@ -637,8 +640,7 @@ describe("the SNMP table editor and card for the Wi-Fi tables", () => {
       <MemoryRouter>
         <SnmpTableEditor
           value={
-            SnmpVendorTemplateUtil.getById("aruba-mobility-controller")!
-              .tables!
+            SnmpVendorTemplateUtil.getById("aruba-mobility-controller")!.tables!
           }
           onChange={() => {
             return undefined;

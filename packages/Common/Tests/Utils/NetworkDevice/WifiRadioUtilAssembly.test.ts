@@ -100,7 +100,8 @@ function snapshot(
           };
 
           const numeric: number | undefined =
-            spec.numeric ?? (typeof spec.raw === "number" ? spec.raw : undefined);
+            spec.numeric ??
+            (typeof spec.raw === "number" ? spec.raw : undefined);
 
           if (numeric !== undefined) {
             cell.numeric = numeric;
@@ -139,14 +140,17 @@ describe("a channel column that holds a frequency", () => {
     [5955, WifiBand.Band6GHz, 1],
     [6135, WifiBand.Band6GHz, 37],
     [7115, WifiBand.Band6GHz, 233],
-  ])("%s MHz is %s channel %s", (mhz: number, band: WifiBand, channel: number) => {
-    expect(WifiRadioUtil.frequencyToChannel(mhz)).toEqual({
-      band: band,
-      channel: channel,
-    });
-    // And back again.
-    expect(WifiRadioUtil.channelToFrequencyMHz(channel, band)).toBe(mhz);
-  });
+  ])(
+    "%s MHz is %s channel %s",
+    (mhz: number, band: WifiBand, channel: number) => {
+      expect(WifiRadioUtil.frequencyToChannel(mhz)).toEqual({
+        band: band,
+        channel: channel,
+      });
+      // And back again.
+      expect(WifiRadioUtil.channelToFrequencyMHz(channel, band)).toBe(mhz);
+    },
+  );
 
   it.each([[2400], [2413], [2490], [5000], [5162], [5950], [7120], [5220.5]])(
     "%s MHz is no channel's centre",
@@ -233,14 +237,21 @@ describe("a channel column that holds a frequency", () => {
 });
 
 describe("a channel only 6 GHz numbers that way", () => {
-  it.each([[17], [21], [33], [37], [53], [69], [101], [133], [145], [181], [233]])(
-    "channel %s is 6 GHz",
-    (channel: number) => {
-      expect(WifiRadioUtil.inferBandFromChannel(channel)).toBe(
-        WifiBand.Band6GHz,
-      );
-    },
-  );
+  it.each([
+    [17],
+    [21],
+    [33],
+    [37],
+    [53],
+    [69],
+    [101],
+    [133],
+    [145],
+    [181],
+    [233],
+  ])("channel %s is 6 GHz", (channel: number) => {
+    expect(WifiRadioUtil.inferBandFromChannel(channel)).toBe(WifiBand.Band6GHz);
+  });
 
   it.each([
     // 5 GHz channels and the centres of its 40, 80 and 160 MHz channels.
@@ -261,9 +272,7 @@ describe("a channel only 6 GHz numbers that way", () => {
     [165],
     [177],
   ])("channel %s stays 5 GHz", (channel: number) => {
-    expect(WifiRadioUtil.inferBandFromChannel(channel)).toBe(
-      WifiBand.Band5GHz,
-    );
+    expect(WifiRadioUtil.inferBandFromChannel(channel)).toBe(WifiBand.Band5GHz);
   });
 
   it.each([[0], [15], [20], [237], [-1], [6.5]])(
@@ -568,27 +577,25 @@ describe("access points", () => {
   }
 
   it("are listed with their state, radios and their radios' clients", () => {
-    expect(controller([undefined, undefined, undefined]).accessPoints).toEqual(
-      [
-        {
-          name: "ap-0",
-          index: "0.11.0",
-          isUp: true,
-          statusText: "up",
-          radioCount: 2,
-          clients: 7,
-        },
-        {
-          name: "ap-1",
-          index: "0.11.1",
-          isUp: false,
-          statusText: "down",
-          radioCount: 1,
-          clients: 0,
-        },
-        { name: "ap-2", index: "0.11.2", isUp: true, statusText: "up" },
-      ],
-    );
+    expect(controller([undefined, undefined, undefined]).accessPoints).toEqual([
+      {
+        name: "ap-0",
+        index: "0.11.0",
+        isUp: true,
+        statusText: "up",
+        radioCount: 2,
+        clients: 7,
+      },
+      {
+        name: "ap-1",
+        index: "0.11.1",
+        isUp: false,
+        statusText: "down",
+        radioCount: 1,
+        clients: 0,
+      },
+      { name: "ap-2", index: "0.11.2", isUp: true, statusText: "up" },
+    ]);
   });
 
   it("keep the clients their own row reports", () => {
