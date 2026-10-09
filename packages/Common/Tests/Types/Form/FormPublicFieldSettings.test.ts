@@ -586,9 +586,10 @@ describe("getPublicFormForTemplate - the form as one template asks it", () => {
         template: templateOf(later, templateId),
       }).fields;
 
-      expect({ templateId, required: requiredOf(asked)["added-required"] }).toEqual(
-        { templateId, required: true },
-      );
+      expect({
+        templateId,
+        required: requiredOf(asked)["added-required"],
+      }).toEqual({ templateId, required: true });
       expect({
         templateId,
         asksHidden: idsOf(asked).includes("added-hidden"),

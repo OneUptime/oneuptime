@@ -5,6 +5,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import APIException from "../../../Types/Exception/ApiException";
 import {
   PublicForm,
+  PublicFormField,
   PublicFormFieldType,
 } from "../../../Types/Form/FormPublic";
 import { FormTemplateFieldSetting } from "../../../Types/Form/FormTemplate";
@@ -876,7 +877,7 @@ describe("readPublicForm: how each template asks the questions", () => {
     ]);
 
     expect(
-      form.fields.map((field: { id: string; isHidden?: boolean }): unknown => {
+      form.fields.map((field: PublicFormField): unknown => {
         return [field.id, field.isHidden];
       }),
     ).toEqual([

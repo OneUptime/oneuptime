@@ -150,7 +150,7 @@ One incident form can so serve both cases:
 | Affected Facilities        | Required           | Optional            |
 | Scheduled Maintenance Date | Hidden             | Required            |
 
-Every question starts on **Form default**, and so does every question you add to the form later, in every template. A maintenance event's **Starts At** and **Ends At** are always asked and always required: no template can change them.
+Every question starts on **Form default**, and so does every question you add to the form later, in every template. A maintenance event's **Starts At** and **Ends At** are always asked and always required: no template can change them. A template can hide every other question and answer them itself: its link is then a form of one button, **Submit** — handy for a case such as **Service Restored**.
 
 The page follows the template the submitter chooses: picking another one draws the form again with that template's questions, and **Preview** does the same. The server holds every submission to the questions the template it names asks, whatever sent it: a question the template requires must be answered, and one it hides is not read from the request — the template's own answer is used. A submission that names no template, or a template deleted since, is held to the form's own settings. A question the form hides is shown to the public page only when a template asks it.
 
