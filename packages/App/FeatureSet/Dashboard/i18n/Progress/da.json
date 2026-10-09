@@ -6,6 +6,9 @@
   "sameAsEnglish": [
     "Alarm",
     "CloudWatch Metric Streams",
+    "Filter:",
+    "Filter: {{expression}}",
+    "Interface",
     "Offline",
     "Revision",
     "Runbook: {{name}}",
@@ -14,6 +17,9 @@
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "teams",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{count}} alarm",
     "{{count}} match",
     "{{count}} rotation"

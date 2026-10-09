@@ -1180,6 +1180,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ExpoPushReceiptsPostgres.test.ts --forceExit
 
+      # Clones the migrated PacketCapture, File and Probe tables into an
+      # isolated schema and runs packet capture's hand-written SQL: a probe
+      # claims only its own Pending captures (FOR UPDATE SKIP LOCKED), hears
+      # only its own stops, settles only its own captures, and the server
+      # counts the packets in the uploaded file; Stop from the dashboard, the
+      # stale capture sweep and the retention sweep (files included).
+      - name: Test packet capture's SQL on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PACKET_CAPTURE_SQL_TESTS: "true"
+          PACKET_CAPTURE_SQL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PACKET_CAPTURE_SQL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PACKET_CAPTURE_SQL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/PacketCaptureSqlPostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

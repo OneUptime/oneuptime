@@ -22,8 +22,9 @@ export const AUDIT_LOG_CREATE_REFUSED_MESSAGE: string =
  * RECORDING is an Enterprise Edition feature and lives in ee/
  * (ee/Server/AuditLog/AuditLogRecorder.ts): which changes are recorded, the
  * diff, redaction, relation names, the actor and the project-settings cache.
- * recordCreate / recordUpdate / recordDelete / invalidateProjectSettings stay
- * here as thin delegates to the recorder the enterprise module registered, so
+ * recordCreate / recordUpdate / recordDelete / recordDownload /
+ * invalidateProjectSettings stay here as thin delegates to the recorder the
+ * enterprise module registered, so
  * DatabaseService, ProjectService and the user-notification services call
  * exactly what they always called.
  *
@@ -137,6 +138,31 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
       await recorder.recordDelete(data);
     } catch (err) {
       logger.warn("AuditLog: failed to record delete event");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * A download of a record's file - a packet capture's pcap - by the caller
+   * in `props`. Like the others, it never throws: the download it records
+   * goes ahead whatever happens here.
+   */
+  public async recordDownload<TModel extends BaseModel>(data: {
+    model: TModel;
+    downloadedItem: TModel;
+    itemId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const recorder: AuditLogRecorder | null = this.getRecorder();
+
+    if (!recorder) {
+      return;
+    }
+
+    try {
+      await recorder.recordDownload(data);
+    } catch (err) {
+      logger.warn("AuditLog: failed to record download event");
       logger.warn(err);
     }
   }

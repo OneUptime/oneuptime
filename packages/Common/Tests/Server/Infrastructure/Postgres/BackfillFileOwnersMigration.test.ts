@@ -54,7 +54,10 @@ interface Statement {
  * migration, as `{"table","fileIdColumn","owner"}` keys / `Table.column`:
  * they need no backfill, as their files are uploaded with their project.
  */
-const FILE_REFERENCES_ADDED_LATER: Array<string> = [];
+const FILE_REFERENCES_ADDED_LATER: Array<string> = [
+  // A packet capture's pcap file is stored with the capture's project.
+  '{"table":"PacketCapture","fileIdColumn":"fileId","owner":null}',
+];
 const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [];
 
 async function statementsFor(

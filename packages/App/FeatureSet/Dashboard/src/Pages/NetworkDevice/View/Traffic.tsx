@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import FlowTopTalkers from "../../../Components/NetworkDevice/FlowTopTalkers";
+import DevicePacketCaptures from "../../../Components/PacketCapture/DevicePacketCaptures";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -10,8 +11,9 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 
 /*
  * Traffic page for one device: NetFlow top talkers (sources,
- * destinations, protocol/port pairs by bytes), plus how to turn the
- * firehose on for devices that are not exporting yet.
+ * destinations, protocol/port pairs by bytes), the packet captures run on
+ * the device's probe - the packets themselves, for Wireshark - and how to
+ * turn the flow firehose on for devices that are not exporting yet.
  */
 const NetworkDeviceTraffic: FunctionComponent<
   PageComponentProps
@@ -22,6 +24,7 @@ const NetworkDeviceTraffic: FunctionComponent<
   return (
     <Fragment>
       <FlowTopTalkers networkDeviceId={modelId} />
+      <DevicePacketCaptures networkDeviceId={modelId} />
       <Card
         title="Setting up NetFlow"
         description="How traffic data gets here, if this page is empty."

@@ -40,6 +40,7 @@ import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
+import PacketCaptureAPI from "Common/Server/API/PacketCaptureAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
 import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
@@ -5904,6 +5905,12 @@ const BaseAPIFeatureSet: FeatureSet = {
         NetworkDeviceDiagnostic,
         NetworkDeviceDiagnosticService,
       ).getRouter(),
+    );
+
+    // packet captures run on the project's probes (start, stop, download)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new PacketCaptureAPI().getRouter(),
     );
 
     // network site

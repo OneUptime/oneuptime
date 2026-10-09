@@ -6,11 +6,16 @@
   "sameAsEnglish": [
     "Alarm",
     "CloudWatch Metric Streams",
+    "Filter:",
+    "Filter: {{expression}}",
     "Runbook: {{name}}",
     "Runner",
     "Start import",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{count}} alarm"
   ]
 }

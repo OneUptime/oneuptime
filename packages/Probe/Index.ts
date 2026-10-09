@@ -11,6 +11,7 @@ import {
   PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS,
   PROBE_MONITOR_RETRY_LIMIT,
   PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
+  PROBE_PACKET_CAPTURE_SETTINGS,
 } from "./Config";
 import AliveJob from "./Jobs/Alive";
 import FetchMonitorList from "./Jobs/Monitor/FetchList";
@@ -18,6 +19,9 @@ import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
 import FetchDiscoveryScans from "./Jobs/Discovery/FetchScans";
 import FetchNetworkDeviceList from "./Jobs/NetworkDevice/FetchList";
 import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics";
+import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
+import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
+import { describePacketCaptureSettings } from "./Utils/PacketCapture/PacketCaptureSettings";
 import Register from "./Services/Register";
 import NetFlowReceiver from "./Services/NetFlowReceiver";
 import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
@@ -100,6 +104,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     );
 
     /*
+     * Whether this probe may capture packets is its operator's call, so say
+     * which it is at every start, with any setting it could not use.
+     */
+    logger.info(describePacketCaptureSettings(PROBE_PACKET_CAPTURE_SETTINGS));
+
+    for (const warning of PROBE_PACKET_CAPTURE_SETTINGS.warnings) {
+      logger.warn(warning);
+    }
+
+    /*
      * Print the whole connectivity-relevant environment once, and start
      * watching for event-loop stalls — a probe that cannot talk to the
      * server is nearly always explained by one of the two, and asking a
@@ -160,6 +174,14 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       FetchNetworkDeviceList();
       // On-demand ping / traceroute the dashboard asked this probe to run.
       FetchNetworkDeviceDiagnostics();
+
+      /*
+       * Packet captures: what this probe can capture on, reported whether
+       * or not captures are on, and - only when PROBE_PACKET_CAPTURE_ENABLED
+       * is true - the captures the dashboard asks for.
+       */
+      ReportPacketCaptureCapability();
+      FetchPacketCaptures();
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();

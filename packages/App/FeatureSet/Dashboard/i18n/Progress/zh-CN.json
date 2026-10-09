@@ -7,6 +7,9 @@
     "Runner",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{itemName}} ID"
   ]
 }
