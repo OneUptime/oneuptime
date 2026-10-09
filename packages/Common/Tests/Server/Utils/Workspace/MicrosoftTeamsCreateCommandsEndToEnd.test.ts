@@ -183,6 +183,7 @@ import MicrosoftTeamsReplies, {
   MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceMemberActions from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import { UnreadableReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
@@ -190,11 +191,8 @@ import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
-import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
 import AlertInternalNoteService from "../../../../Server/Services/AlertInternalNoteService";
-import AlertService from "../../../../Server/Services/AlertService";
 import IncidentEpisodeInternalNoteService from "../../../../Server/Services/IncidentEpisodeInternalNoteService";
-import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
 import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
@@ -4317,9 +4315,17 @@ describe("a form action that happened is never reported as failed (#4111 review)
     stubWrite: () => StubbedWrite;
   };
 
+  // The member's own execution of the policy for the record.
   function stubExecutePolicy(): StubbedWrite {
     return jest
-      .spyOn(OnCallDutyPolicyService, "executePolicy")
+      .spyOn(WorkspaceMemberActions, "executeOnCallPolicy")
+      .mockResolvedValue(undefined);
+  }
+
+  // The member's own state change of the record.
+  function stubChangeState(): StubbedWrite {
+    return jest
+      .spyOn(WorkspaceMemberActions, "changeState")
       .mockResolvedValue(undefined);
   }
 
@@ -4367,11 +4373,7 @@ describe("a form action that happened is never reported as failed (#4111 review)
       actionValue: RECORD_ID,
       fields: { incidentState: STATE_ID },
       confirmation: "✅ Incident state changed successfully.",
-      stubWrite: (): StubbedWrite => {
-        return jest
-          .spyOn(IncidentService, "updateOneById")
-          .mockResolvedValue(1);
-      },
+      stubWrite: stubChangeState,
     },
     {
       name: "alert: Add Note",
@@ -4399,9 +4401,7 @@ describe("a form action that happened is never reported as failed (#4111 review)
       actionValue: RECORD_ID,
       fields: { alertState: STATE_ID },
       confirmation: "✅ Alert state changed successfully.",
-      stubWrite: (): StubbedWrite => {
-        return jest.spyOn(AlertService, "updateOneById").mockResolvedValue(1);
-      },
+      stubWrite: stubChangeState,
     },
     {
       name: "alert episode: Add Note",
@@ -4431,11 +4431,7 @@ describe("a form action that happened is never reported as failed (#4111 review)
       actionValue: RECORD_ID,
       fields: { alertState: STATE_ID },
       confirmation: "✅ Alert episode state changed successfully.",
-      stubWrite: (): StubbedWrite => {
-        return jest
-          .spyOn(AlertEpisodeService, "changeEpisodeState")
-          .mockResolvedValue(undefined);
-      },
+      stubWrite: stubChangeState,
     },
     {
       name: "incident episode: Add Note",
@@ -4465,18 +4461,18 @@ describe("a form action that happened is never reported as failed (#4111 review)
       actionValue: RECORD_ID,
       fields: { incidentState: STATE_ID },
       confirmation: "Incident episode state changed successfully.",
-      stubWrite: (): StubbedWrite => {
-        return jest
-          .spyOn(IncidentEpisodeService, "changeEpisodeState")
-          .mockResolvedValue(undefined);
-      },
+      stubWrite: stubChangeState,
     },
     {
       name: "scheduled maintenance: Add Note",
       action:
         MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote,
       actionValue: "",
-      fields: { scheduledMaintenanceId: RECORD_ID, note: NOTE, isPublic: true },
+      fields: {
+        scheduledMaintenanceId: RECORD_ID,
+        note: NOTE,
+        noteType: "public",
+      },
       confirmation: "Note added successfully",
       stubWrite: (): StubbedWrite => {
         stubExistingMaintenance();
@@ -4494,9 +4490,7 @@ describe("a form action that happened is never reported as failed (#4111 review)
       confirmation: "ScheduledMaintenance state changed successfully",
       stubWrite: (): StubbedWrite => {
         stubExistingMaintenance();
-        return jest
-          .spyOn(ScheduledMaintenanceService, "updateOneById")
-          .mockResolvedValue(1);
+        return stubChangeState();
       },
     },
   ])("$name", async (done: DoneActionCase) => {

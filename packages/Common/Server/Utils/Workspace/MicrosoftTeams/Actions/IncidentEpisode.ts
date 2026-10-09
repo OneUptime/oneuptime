@@ -1,9 +1,6 @@
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import Response from "../../../Response";
-import MicrosoftTeamsAuthAction, {
-  MicrosoftTeamsAction,
-  MicrosoftTeamsRequest,
-} from "./Auth";
+import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
 import { MicrosoftTeamsIncidentEpisodeActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -13,22 +10,27 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventStateOption,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
 import IncidentEpisodeStateTimeline from "../../../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentEpisodeInternalNote from "../../../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import IncidentEpisodeInternalNoteService from "../../../../Services/IncidentEpisodeInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
-import IncidentStateService from "../../../../Services/IncidentStateService";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
-import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 import FeedMarkdown, {
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class MicrosoftTeamsIncidentEpisodeActions {
+  // What a change-state card says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No incident states are available to you in this project. Ask a project admin for access to them.";
+
   @CaptureSpan()
   public static isIncidentEpisodeAction(data: { actionType: string }): boolean {
     return (
@@ -65,27 +67,13 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
     req: ExpressRequest;
     res: ExpressResponse;
   }): Promise<void> {
-    const { teamsRequest, action } = data;
+    const { action } = data;
 
     logger.debug("Handling Microsoft Teams incident episode action:");
     logger.debug(action);
 
     try {
       switch (action.actionType) {
-        case MicrosoftTeamsIncidentEpisodeActionType.AckIncidentEpisode:
-          await this.acknowledgeIncidentEpisode({
-            teamsRequest,
-            action,
-          });
-          break;
-
-        case MicrosoftTeamsIncidentEpisodeActionType.ResolveIncidentEpisode:
-          await this.resolveIncidentEpisode({
-            teamsRequest,
-            action,
-          });
-          break;
-
         case MicrosoftTeamsIncidentEpisodeActionType.ViewIncidentEpisode:
           // This is handled by opening the URL directly
           break;
@@ -105,140 +93,6 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
   }
 
   @CaptureSpan()
-  private static async acknowledgeIncidentEpisode(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const episodeId: string = data.action.actionValue || "";
-
-    if (!episodeId) {
-      logger.error("No episode ID provided for acknowledge action");
-      return;
-    }
-
-    logger.debug("Acknowledging incident episode: " + episodeId);
-
-    try {
-      const episode: IncidentEpisode | null =
-        await IncidentEpisodeService.findOneBy({
-          query: {
-            _id: episodeId,
-            projectId: data.teamsRequest.projectId,
-          },
-          select: {
-            _id: true,
-            projectId: true,
-            currentIncidentState: {
-              _id: true,
-              name: true,
-            },
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!episode) {
-        logger.error("Incident episode not found: " + episodeId);
-        return;
-      }
-
-      /*
-       * Already acknowledged, or further along, by the one rule
-       * (Common/Utils/AcknowledgedState): a state placed after Acknowledged
-       * counts too, so it is not moved back up its list.
-       */
-      if (
-        await IncidentEpisodeService.isEpisodeAcknowledged({
-          episodeId: episode.id!,
-        })
-      ) {
-        logger.debug("Incident episode is already acknowledged");
-        return;
-      }
-
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await IncidentEpisodeService.acknowledgeEpisode(
-        new ObjectID(episodeId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Incident episode acknowledged successfully");
-    } catch (error) {
-      logger.error("Error acknowledging incident episode:");
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
-  private static async resolveIncidentEpisode(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-  }): Promise<void> {
-    const episodeId: string = data.action.actionValue || "";
-
-    if (!episodeId) {
-      logger.error("No episode ID provided for resolve action");
-      return;
-    }
-
-    logger.debug("Resolving incident episode: " + episodeId);
-
-    try {
-      const episode: IncidentEpisode | null =
-        await IncidentEpisodeService.findOneBy({
-          query: {
-            _id: episodeId,
-            projectId: data.teamsRequest.projectId,
-          },
-          select: {
-            _id: true,
-            projectId: true,
-            currentIncidentState: {
-              _id: true,
-              name: true,
-            },
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!episode) {
-        logger.error("Incident episode not found: " + episodeId);
-        return;
-      }
-
-      // Resolved by the one rule (Common/Utils/ResolvedState).
-      if (await IncidentEpisodeService.isEpisodeResolved(episode.id!)) {
-        logger.debug("Incident episode is already resolved");
-        return;
-      }
-
-      const oneUptimeUserId: ObjectID =
-        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-          teamsUserId: data.teamsRequest.userId || "",
-          projectId: data.teamsRequest.projectId,
-        });
-
-      await IncidentEpisodeService.resolveEpisode(
-        new ObjectID(episodeId),
-        oneUptimeUserId,
-      );
-
-      logger.debug("Incident episode resolved successfully");
-    } catch (error) {
-      logger.error("Error resolving incident episode:");
-      logger.error(error);
-    }
-  }
-
-  @CaptureSpan()
   public static async handleBotIncidentEpisodeAction(data: {
     actionType: string;
     actionValue: string;
@@ -253,7 +107,6 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       actionValue,
       value,
       projectId,
-      oneUptimeUserId,
       databaseProps,
       turnContext,
     } = data;
@@ -277,10 +130,19 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         resources: [{ service: IncidentEpisodeService, id: episodeId }],
       });
 
-      await IncidentEpisodeService.acknowledgeEpisode(
-        episodeId,
-        oneUptimeUserId,
-      );
+      /*
+       * Acknowledged by the member, as the dashboard acknowledges it for
+       * them (WorkspaceMemberActions). A refusal is theirs to read:
+       * handleBotInvokeActivity tells them.
+       */
+      await WorkspaceMemberActions.acknowledge({
+        event: {
+          type: WorkspaceEventType.IncidentEpisode,
+          id: episodeId,
+        },
+        props: databaseProps,
+      });
+
       await turnContext.sendActivity("Incident episode acknowledged.");
       return;
     }
@@ -305,7 +167,15 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         resources: [{ service: IncidentEpisodeService, id: episodeId }],
       });
 
-      await IncidentEpisodeService.resolveEpisode(episodeId, oneUptimeUserId);
+      // Resolved by the member, as the dashboard resolves it for them.
+      await WorkspaceMemberActions.resolve({
+        event: {
+          type: WorkspaceEventType.IncidentEpisode,
+          id: episodeId,
+        },
+        props: databaseProps,
+      });
+
       await turnContext.sendActivity("Incident episode resolved.");
       return;
     }
@@ -339,9 +209,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
             createdAt: true,
             incidentCount: true,
           },
-          props: {
-            isRoot: true,
-          },
+          // Read as the member: an episode they may not read is not shown.
+          props: databaseProps,
         });
 
       if (!episode) {
@@ -407,11 +276,12 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           resources: [{ service: IncidentEpisodeService, id: episodeId }],
         });
 
+        // Posted by the member, as the dashboard posts it for them.
         await IncidentEpisodeInternalNoteService.addNote({
           incidentEpisodeId: episodeId,
           note: note.toString(),
           projectId: projectId,
-          userId: oneUptimeUserId,
+          props: databaseProps,
         });
 
         await MicrosoftTeamsReplies.sendBestEffort(
@@ -511,10 +381,17 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           ],
         });
 
-        await OnCallDutyPolicyService.executePolicy(policyId, {
-          triggeredByIncidentEpisodeId: episodeId,
-          userNotificationEventType:
-            UserNotificationEventType.IncidentEpisodeCreated,
+        /*
+         * Executed by the member, as the dashboard's Execute On-Call Policy
+         * executes it for them: an execution log triggered by the episode.
+         */
+        await WorkspaceMemberActions.executeOnCallPolicy({
+          event: {
+            type: WorkspaceEventType.IncidentEpisode,
+            id: episodeId,
+          },
+          onCallDutyPolicyId: policyId,
+          props: databaseProps,
         });
 
         await MicrosoftTeamsReplies.sendBestEffort(
@@ -550,11 +427,33 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
-      // Send the input card
-      const card: JSONObject = await this.buildChangeIncidentEpisodeStateCard(
-        actionValue,
-        projectId,
-      );
+      /*
+       * Asked as the submit asks it, before the card is shown, and the card
+       * then offers the incident states the member may read.
+       */
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: IncidentEpisodeStateTimeline,
+        action: "change the state of this incident episode",
+        resources: [
+          { service: IncidentEpisodeService, id: new ObjectID(actionValue) },
+        ],
+      });
+
+      const card: JSONObject | null =
+        await this.buildChangeIncidentEpisodeStateCard(
+          actionValue,
+          projectId,
+          databaseProps,
+        );
+
+      if (!card) {
+        await turnContext.sendActivity(
+          MicrosoftTeamsIncidentEpisodeActions.NO_STATES_MESSAGE,
+        );
+        return;
+      }
+
       await turnContext.sendActivity({
         attachments: [
           {
@@ -591,15 +490,17 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           resources: [{ service: IncidentEpisodeService, id: episodeId }],
         });
 
-        await IncidentEpisodeService.changeEpisodeState({
-          projectId: projectId,
-          episodeId: episodeId,
-          incidentStateId: new ObjectID(incidentStateId.toString()),
-          notifyOwners: true,
-          rootCause: "State changed via Microsoft Teams.",
-          props: {
-            isRoot: true,
+        /*
+         * The state change the dashboard makes: a row in the episode's
+         * state timeline, created by the member (WorkspaceMemberActions).
+         */
+        await WorkspaceMemberActions.changeState({
+          event: {
+            type: WorkspaceEventType.IncidentEpisode,
+            id: episodeId,
           },
+          stateId: new ObjectID(incidentStateId.toString()),
+          props: databaseProps,
         });
 
         await MicrosoftTeamsReplies.sendBestEffort(
@@ -738,28 +639,35 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
     };
   }
 
+  /*
+   * The incident states the member may read, in the project's order; null
+   * when they may read none, for the caller to say so instead of an empty
+   * card.
+   */
   private static async buildChangeIncidentEpisodeStateCard(
     episodeId: string,
     projectId: ObjectID,
-  ): Promise<JSONObject> {
-    const incidentStates: Array<IncidentState> =
-      await IncidentStateService.getAllIncidentStates({
+    props: DatabaseCommonInteractionProps,
+  ): Promise<JSONObject | null> {
+    const incidentStates: Array<WorkspaceEventStateOption> =
+      await WorkspaceMemberActions.findStateOptions({
+        type: WorkspaceEventType.IncidentEpisode,
         projectId: projectId,
-        props: {
-          isRoot: true,
-        },
+        props: props,
       });
 
-    const choices: Array<{ title: string; value: string }> = incidentStates
-      .map((state: IncidentState) => {
+    if (incidentStates.length === 0) {
+      return null;
+    }
+
+    const choices: Array<{ title: string; value: string }> = incidentStates.map(
+      (state: WorkspaceEventStateOption) => {
         return {
-          title: state.name || "",
-          value: state._id?.toString() || "",
+          title: state.name,
+          value: state.id.toString(),
         };
-      })
-      .filter((choice: { title: string; value: string }) => {
-        return choice.title && choice.value;
-      });
+      },
+    );
 
     return {
       type: "AdaptiveCard",

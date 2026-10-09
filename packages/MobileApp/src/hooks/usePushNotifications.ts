@@ -15,7 +15,11 @@ import {
 import { registerPushDevice } from "../api/pushDevice";
 import { useAuth } from "./useAuth";
 import { useProject } from "./useProject";
-import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
+import {
+  getPreviousPushTokenToReport,
+  previousPushTokenReported,
+  PUSH_TOKEN_KEY,
+} from "./pushTokenUtils";
 import { getCriticalAlertsEnabled } from "../storage/preferences";
 import logger from "../utils/logger";
 
@@ -184,6 +188,15 @@ export function usePushNotifications(navigationRef: unknown): void {
         return;
       }
 
+      /*
+       * The token this app had before, when Expo gave it a new one on a
+       * phone where the app kept its data (set up from a backup of the old
+       * phone): each project moves the device registered with the old token,
+       * and its rules, to the new one. Read before the new token is stored.
+       */
+      const previousToken: string | null =
+        await getPreviousPushTokenToReport(token);
+
       await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
 
       /*
@@ -195,9 +208,13 @@ export function usePushNotifications(navigationRef: unknown): void {
        */
       const isCriticalAlertEnabled: boolean = await getCriticalAlertsEnabled();
 
+      // Whether every project was told; until then the old token is told again.
+      let everyProjectRegistered: boolean = true;
+
       // Register with each project
       for (const project of projectList) {
         if (cancelled) {
+          everyProjectRegistered = false;
           break;
         }
         try {
@@ -205,13 +222,19 @@ export function usePushNotifications(navigationRef: unknown): void {
             deviceToken: token,
             projectId: project._id,
             isCriticalAlertEnabled: isCriticalAlertEnabled,
+            ...(previousToken ? { previousDeviceToken: previousToken } : {}),
           });
         } catch (error: unknown) {
+          everyProjectRegistered = false;
           logger.warn(
             `[PushNotifications] Failed to register device for project ${project._id}:`,
             error,
           );
         }
+      }
+
+      if (previousToken && everyProjectRegistered) {
+        await previousPushTokenReported();
       }
     };
 

@@ -4,6 +4,7 @@ import UserPushService, {
 } from "../Services/UserPushService";
 import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import PushNotificationService from "../Services/PushNotificationService";
+import ExpoPushReceiptQueue from "../Infrastructure/ExpoPushReceiptQueue";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
@@ -89,6 +90,35 @@ export function readProjectIdFromBody(raw: unknown): ObjectID | null {
   }
 
   return new ObjectID(projectId);
+}
+
+/*
+ * The push token the mobile app had before the one it registers, when it
+ * says: it got a new one on a phone where it kept its data (a phone set up
+ * from a backup of the old one), and the device registered with the old one
+ * is this phone (UserPushService.renewExpoPushDevice). Only an Expo push
+ * token, from a phone, that is not the token being registered. Anything else
+ * is not one, and is ignored rather than refused: a registration never fails
+ * over it.
+ */
+export function readPreviousExpoPushToken(data: {
+  previousDeviceToken: unknown;
+  deviceToken: unknown;
+  deviceType: unknown;
+}): string | null {
+  const previous: unknown = data.previousDeviceToken;
+
+  if (
+    !isExpoPushDeviceType(data.deviceType) ||
+    typeof previous !== "string" ||
+    !previous ||
+    previous === data.deviceToken ||
+    !PushNotificationService.isValidExpoPushToken(previous)
+  ) {
+    return null;
+  }
+
+  return previous;
 }
 
 /*
@@ -188,6 +218,24 @@ export default class UserPushAPI extends BaseAPI<
             projectId: projectId,
           });
 
+          /*
+           * The app asked Expo for this token just before, which renews it
+           * there. A push sent before now whose receipt says the token was
+           * gone is about the token as it was, and does not mark the phone
+           * (ExpoPushReceiptService): an iPhone keeps its token through a
+           * reinstall, so a page sent while the app was removed is refused
+           * in its receipt after the app is back. Only an Expo push token
+           * from a phone is noted: nothing else is one a receipt names.
+           */
+          if (
+            isExpoPushDeviceType(req.body.deviceType) &&
+            PushNotificationService.isValidExpoPushToken(req.body.deviceToken)
+          ) {
+            await ExpoPushReceiptQueue.noteTokenRegistered(
+              req.body.deviceToken,
+            );
+          }
+
           // Check if device is already registered
           const existingDevice: UserPush | null = await this.service.findOneBy({
             query: {
@@ -272,6 +320,73 @@ export default class UserPushAPI extends BaseAPI<
               alreadyRegistered: true,
               isVerified: Boolean(existingDevice.isVerified),
             });
+          }
+
+          /*
+           * A new token from a phone that says which token it had before:
+           * its device here carries the new one from now on, with its
+           * rules, instead of a new device with default rules beside an old
+           * one that can no longer be reached.
+           */
+          const previousDeviceToken: string | null = readPreviousExpoPushToken({
+            previousDeviceToken: req.body.previousDeviceToken,
+            deviceToken: req.body.deviceToken,
+            deviceType: req.body.deviceType,
+          });
+
+          if (previousDeviceToken) {
+            const renewedDevice: UserPush | null =
+              await this.service.renewExpoPushDevice({
+                userId: userId,
+                projectId: projectId,
+                previousDeviceToken: previousDeviceToken,
+                deviceToken: req.body.deviceToken,
+                deviceType: req.body.deviceType as PushDeviceType,
+                deviceName: req.body.deviceName || "Unknown Device",
+                isCriticalAlertEnabled: parseCriticalAlertFlag(
+                  req.body.isCriticalAlertEnabled,
+                ),
+              });
+
+            if (renewedDevice) {
+              return Response.sendJsonObjectResponse(req, res, {
+                success: true,
+                deviceId: renewedDevice._id!.toString(),
+                alreadyRegistered: true,
+                isVerified: true,
+              });
+            }
+
+            /*
+             * A registration a moment earlier - the app registers again
+             * when its projects change - may have renewed it already, after
+             * the lookup above. That device is this phone's: it is named,
+             * and no second device is made for the same token.
+             */
+            const renewedMeanwhile: UserPush | null =
+              await this.service.findOneBy({
+                query: {
+                  userId: userId,
+                  projectId: projectId,
+                  deviceToken: req.body.deviceToken,
+                },
+                select: {
+                  _id: true,
+                  isVerified: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            if (renewedMeanwhile) {
+              return Response.sendJsonObjectResponse(req, res, {
+                success: true,
+                deviceId: renewedMeanwhile._id!.toString(),
+                alreadyRegistered: true,
+                isVerified: Boolean(renewedMeanwhile.isVerified),
+              });
+            }
           }
 
           // Create new device registration

@@ -16,12 +16,12 @@ Web 推送通知继续使用 VAPID 密钥和 Web Push 协议。
 
 | 方向 | 目标 | 协议 / 端口 | 适用条件 |
 | --- | --- | --- | --- |
-| OneUptime → 默认推送中继 | `https://oneuptime.com/api/notification/push-relay/send` | HTTPS / TCP 443 | 未设置 `EXPO_ACCESS_TOKEN` 时的移动推送。 |
-| OneUptime → Expo | `https://exp.host/--/api/v2/push/send` | HTTPS / TCP 443 | 设置 `EXPO_ACCESS_TOKEN` 后直接发送移动推送。 |
+| OneUptime → 默认推送中继 | `https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts` | HTTPS / TCP 443 | 未设置 `EXPO_ACCESS_TOKEN` 时的移动推送。 |
+| OneUptime → Expo | `https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts` | HTTPS / TCP 443 | 设置 `EXPO_ACCESS_TOKEN` 后直接发送移动推送。 |
 | OneUptime → 浏览器推送服务 | 浏览器推送订阅中保存的 HTTPS 端点 | HTTPS / 通常为 TCP 443 | Web 推送。 |
 | 移动应用或浏览器 → OneUptime | 您的 OneUptime 主机名 | HTTPS / TCP 443 | 登录、注册设备和打开通知链接。 |
 
-若修改 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 中继 API。默认值和投递模式切换逻辑见 [OneUptime 配置](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)和[推送服务](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts)；直接投递端点见 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/)。
+若修改 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 中继 API。默认值和投递模式切换逻辑见 [OneUptime 配置](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)和[推送服务](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts)；直接投递端点见 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/)。OneUptime 从中继的同一地址读取送达回执，只是把 `/send` 换成 `/receipts`。没有该路由的中继仍会送达推送；这时，已删除应用的设备只有在之后发往它的推送被拒绝时才会被发现。
 
 对于 Web 推送，请允许团队所用浏览器订阅端点的实际主机。OneUptime 接受 `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com` 和 `push.apple.com` 及其子域，例如 `updates.push.services.mozilla.com` 和 `web.push.apple.com`。[浏览器推送订阅](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)提供目标地址；仅允许 Expo 或 OneUptime 中继不能启用 Web 推送。
 
@@ -29,7 +29,7 @@ Web 推送通知继续使用 VAPID 密钥和 Web Push 协议。
 
 设备本身也需要网络连接。iOS 需要访问 APNs，通常使用 TCP 5223，TCP 443 用于回退；目标网段参见 [Apple 最新网络要求](https://support.apple.com/en-us/102266)。Android 需要通过 TCP 5228–5230 和 443 访问 FCM，主机和防火墙规则参见 [Google 最新指南](https://firebase.google.com/docs/cloud-messaging/network-configuration)。这些设备端口无需在 OneUptime 上开放入站连接；移动推送的服务器路径使用中继或 Expo，而非直接访问 APNs/FCM。
 
-从发送通知的容器或 Pod 检查到所选模式目标的 DNS 和 HTTPS 连接，再从 **User Settings > Notification Methods > Push** 发送测试并确认已注册设备收到通知。Web 推送应逐个浏览器测试。检查 OneUptime 日志中的中继、Expo 或 web-push 错误；API 提交成功不等于设备已收到通知。
+从发送通知的容器或 Pod 检查到所选模式目标的 DNS 和 HTTPS 连接，再从 **User Settings > Notification Methods > Push** 发送测试并确认已注册设备收到通知。Web 推送应逐个浏览器测试。检查 OneUptime 日志中的中继、Expo 或 web-push 错误；API 提交成功不等于设备已收到通知。对于移动推送，OneUptime 还会在每次推送约 15 分钟后读取 Expo 的送达回执：从未到达设备的推送会在推送日志中显示为未送达，如果是值班通知，还会显示在值班时间线上。
 
 ## 故障排查
 
@@ -41,11 +41,24 @@ Web 推送通知继续使用 VAPID 密钥和 Web Push 协议。
 - 确认设备有活跃的互联网连接并已启用通知权限
 - 检查 **User Settings > Notification Methods > Push**:标记为 **未收到通知** 的设备已停止接收通知,需要重新注册(见下文)
 
+### 标记为"未送达"的推送
+
+Expo 接受推送并不代表推送已到达设备：Apple 或 Google 仍可能拒绝它。OneUptime 会在发送约 15 分钟后读取每条移动推送的送达回执；未设置 `EXPO_ACCESS_TOKEN` 时通过推送中继读取。当回执报告错误时，该通知的推送日志和值班时间线会从已发送变为 **Push notification not delivered**，并附上 Expo 的错误代码：
+
+- `DeviceNotRegistered`：移动应用已从设备上删除，或其推送令牌已失效。请参阅下一节。
+- `MessageRateExceeded`：短时间内向该设备发送的通知过多。之后发往它的推送会照常发送。
+- `MessageTooBig`：通知超出了推送服务接受的大小。OneUptime 会缩短通知以使其符合要求，因此不应发生这种情况；如果发生，请报告给我们。
+- `InvalidCredentials` 或 `MismatchSenderId`：发送该推送的 Expo 项目的推送凭据无效。使用 `EXPO_ACCESS_TOKEN` 时，请检查您的 Expo 项目的推送凭据；使用默认中继时，请联系 OneUptime 支持。
+
+当 Expo 当场拒绝推送时，推送日志会立即给出原因。通过推送中继也是如此：中继会转达 Expo 的错误代码，而不是返回服务器错误。
+
 ### 日志中出现"DeviceNotRegistered"错误
 
-当移动应用已从设备上删除,或设备的推送令牌已失效时,Expo 会以 `DeviceNotRegistered` 响应推送。随后 OneUptime 停止向该设备发送。该设备会被标记为不再接收通知,而不是被删除,因此其通知规则会保留,推送日志和值班时间线会说明原因。**User Settings > Notification Methods > Push** 会将其显示为 **未收到通知**。其所有者的其他设备和通知方式仍会收到通知。
+当移动应用已从设备上删除，或设备的推送令牌已失效时，Expo 会报告 `DeviceNotRegistered`。它通常在推送的送达回执中报告，OneUptime 会在发送约 15 分钟后读取该回执；有时 Expo 也会当场拒绝推送。无论哪种情况，OneUptime 都会停止向该设备发送。该设备会被标记为不再接收通知，而不是被删除，因此其通知规则会保留，未送达通知的推送日志和值班时间线会说明原因。**User Settings > Notification Methods > Push** 会将其显示为 **未收到通知**。其所有者的其他设备和通知方式仍会收到通知。
 
-要恢复该设备,请在登录状态下在该设备上打开移动应用。应用会重新注册,从而在 Expo 处更新其推送令牌,设备将带着原有规则重新接收通知。如果应用已被删除,请重新安装并登录。通过推送中继(未设置 `EXPO_ACCESS_TOKEN`)时同样如此:中继会将 `DeviceNotRegistered` 告知您的实例。
+要恢复该设备，请在登录状态下在该设备上打开移动应用。应用会重新注册，从而在 Expo 处更新其推送令牌，设备将带着原有规则重新接收通知。如果应用已被删除，请重新安装并登录。应用重新注册之前发送的推送的回执不会标记该设备。当在新手机上通过旧手机的备份设置最新版移动应用时，应用会把之前的推送令牌告知 OneUptime；如果旧手机的设备已不再接收通知，新手机会连同其规则接管该设备。
+
+通过推送中继（未设置 `EXPO_ACCESS_TOKEN`）时同样如此：中继在发送推送时报告 `DeviceNotRegistered`，并读取您的实例所询问的送达回执。
 
 ## 支持
 

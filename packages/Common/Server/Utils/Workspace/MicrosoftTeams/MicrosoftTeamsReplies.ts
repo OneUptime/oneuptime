@@ -2,6 +2,7 @@ import { Activity, TurnContext } from "botbuilder";
 import URL from "../../../../Types/API/URL";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import DatabaseConfig from "../../../DatabaseConfig";
@@ -192,8 +193,9 @@ export default class MicrosoftTeamsReplies {
 
   /*
    * The message of an error OneUptime writes for the person who caused it: a
-   * validation or a permission refusal. Null for anything else, whose text is
-   * meant for operators.
+   * validation, a permission refusal, or a plan the project is not on - what
+   * a change made with their own props is refused with. Null for anything
+   * else, whose text is meant for operators.
    */
   public static getUserFacingErrorMessage(error: unknown): string | null {
     if (error instanceof ProjectScopedReferenceException) {
@@ -202,7 +204,8 @@ export default class MicrosoftTeamsReplies {
 
     if (
       (error instanceof BadDataException ||
-        error instanceof NotAuthorizedException) &&
+        error instanceof NotAuthorizedException ||
+        error instanceof PaymentRequiredException) &&
       error.message
     ) {
       return error.message;

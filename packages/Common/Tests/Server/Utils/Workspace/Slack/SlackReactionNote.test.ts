@@ -37,7 +37,11 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../../../../../Server/Utils/Workspace/WorkspaceReactionNote";
 import URL from "../../../../../Types/API/URL";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
@@ -50,6 +54,12 @@ import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 const projectId: ObjectID = ObjectID.generate();
 const secondProjectId: ObjectID = ObjectID.generate();
 const oneUptimeUserId: ObjectID = ObjectID.generate();
+
+// The member's own props, as SlackActionAuthorization.authorize builds them.
+const memberProps: DatabaseCommonInteractionProps = {
+  userId: oneUptimeUserId,
+  tenantId: projectId,
+};
 const incidentId: ObjectID = ObjectID.generate();
 
 const TEAM_ID: string = "T0WORKSPACE";
@@ -121,7 +131,7 @@ beforeEach((): void => {
 
   authorizeSpy = jest
     .spyOn(SlackActionAuthorization, "authorize")
-    .mockResolvedValue({ userId: oneUptimeUserId });
+    .mockResolvedValue(memberProps);
 
   fetchSpy = jest
     .spyOn(SlackUtil, "getMessageDetailsByTimestamp")
@@ -149,13 +159,15 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
   test("a pin saves the message as a private note and confirms in the thread", async () => {
     await SlackReactionNoteActions.handleEmojiReaction(reaction());
 
+    // Saved with the member's own props: the note is theirs.
     expect(saveSpy).toHaveBeenCalledWith({
       resource: incidentResource(),
       noteType: WorkspaceNoteType.Private,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       sourceMessageKey: `${CHANNEL_ID}:${MESSAGE_TS}`,
     });
+    expect(saveSpy.mock.calls[0]![0].props).toBe(memberProps);
 
     expect(threadReplySpy).toHaveBeenCalledWith({
       authToken: "xoxb-" + projectId.toString(),
@@ -357,6 +369,9 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
   });
 
   test("a failed save sends no confirmation", async () => {
+    const directMessageSpy: AnySpy = jest
+      .spyOn(SlackUtil, "sendDirectMessageToUser")
+      .mockResolvedValue(undefined as never) as AnySpy;
     saveSpy.mockRejectedValue(new Error("database is down"));
 
     await expect(
@@ -364,7 +379,60 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
     ).resolves.toBeUndefined();
 
     expect(threadReplySpy).not.toHaveBeenCalled();
+    // Not a refusal: its text is for operators, not the member.
+    expect(directMessageSpy).not.toHaveBeenCalled();
   });
+
+  /*
+   * The note is saved with the member's props, so its own create can still
+   * refuse it after the check above let them through: a label, a column,
+   * the plan. The member is told why, as for a button.
+   */
+  test.each([
+    [
+      "a permission",
+      new NotAuthorizedException(
+        "You do not have permission to create Incident Internal Note.",
+      ),
+    ],
+    [
+      "a value",
+      new BadDataException(
+        'This incident internal note references records that are not in this project: Incident "42".',
+      ),
+    ],
+    [
+      "the plan",
+      new PaymentRequiredException(
+        "Please upgrade your plan to Growth to access this feature",
+      ),
+    ],
+  ])(
+    "a save its own create refuses (%s) is told to the member, and nothing is confirmed",
+    async (_what: string, refusal: Error) => {
+      const directMessageSpy: AnySpy = jest
+        .spyOn(SlackUtil, "sendDirectMessageToUser")
+        .mockResolvedValue(undefined as never) as AnySpy;
+      saveSpy.mockRejectedValue(refusal);
+
+      await expect(
+        SlackReactionNoteActions.handleEmojiReaction(reaction()),
+      ).resolves.toBeUndefined();
+
+      expect(directMessageSpy).toHaveBeenCalledTimes(1);
+      expect(directMessageSpy).toHaveBeenCalledWith({
+        authToken: "xoxb-" + projectId.toString(),
+        workspaceUserId: SLACK_USER_ID,
+        messageBlocks: [
+          {
+            _type: "WorkspacePayloadMarkdown",
+            text: `Could not save the message as a note: ${refusal.message}`,
+          },
+        ],
+      });
+      expect(threadReplySpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("a failed confirmation does not undo or fail the save", async () => {
     threadReplySpy.mockRejectedValue(new Error("not_in_channel"));
@@ -412,7 +480,7 @@ describe("REGRESSION: Slack episode channels (never worked before)", () => {
     expect(addSpy).toHaveBeenCalledWith({
       incidentEpisodeId: episode.id,
       projectId: projectId,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       postedFromSlackMessageId: `${CHANNEL_ID}:${MESSAGE_TS}`,
     });
@@ -565,7 +633,7 @@ describe("SlackReactionNoteActions.getReactionDataFromPinEvent", () => {
     expect(saveSpy.mock.calls[0]![0]).toEqual({
       resource: incidentResource(),
       noteType: WorkspaceNoteType.Private,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       // Same key as a 📌 on the same message, so both together save once.
       sourceMessageKey: `${CHANNEL_ID}:${MESSAGE_TS}`,
