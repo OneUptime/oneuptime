@@ -16,14 +16,11 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import VideoCallAuthMethod from "../../../../../Types/VideoCall/VideoCallAuthMethod";
 import VideoCallProvider from "../../../../../Types/VideoCall/VideoCallProvider";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types spyOn and fn as mocks
+ * the global jest.SpiedFunction and jest.Mock annotations here do not accept.
+ */
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A connection made by signing in starts every call with a current access
@@ -67,16 +64,18 @@ const STALE: VideoCallOAuthSecrets = {
   externalUserId: ACCOUNT_ID,
 };
 
-let refresh: jest.Mock<
-  (data: {
+type RefreshArgs = [
+  data: {
     secrets: VideoCallOAuthSecrets;
     accountLabel: string;
-  }) => Promise<VideoCallOAuthTokens>
->;
+  },
+];
+
+let refresh: jest.Mock<Promise<VideoCallOAuthTokens>, RefreshArgs>;
 let mutex: SemaphoreMutex;
 
 beforeEach(() => {
-  refresh = jest.fn(async () => {
+  refresh = jest.fn<Promise<VideoCallOAuthTokens>, RefreshArgs>(async () => {
     return {
       accessToken: "access-new",
       refreshToken: "refresh-2",

@@ -24,14 +24,11 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import VideoCallAuthMethod from "../../../Types/VideoCall/VideoCallAuthMethod";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types spyOn and fn as mocks
+ * the global jest.SpiedFunction and jest.Mock annotations here do not accept.
+ */
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A connection made by signing in is made only by the sign-in, never
