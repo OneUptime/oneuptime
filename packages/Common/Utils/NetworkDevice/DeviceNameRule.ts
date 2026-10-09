@@ -370,7 +370,10 @@ export function isDeviceStillNamedByDiscovery(device: {
     return false;
   }
 
-  if (typeof device.name !== "string" || typeof device.discoveredName !== "string") {
+  if (
+    typeof device.name !== "string" ||
+    typeof device.discoveredName !== "string"
+  ) {
     return false;
   }
 

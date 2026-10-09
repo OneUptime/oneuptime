@@ -52,7 +52,10 @@ export const DEVICE_NAME_SOURCE_FIELD_DESCRIPTION: string = translationKey(
  * is unreadable, or a person has renamed it since.
  */
 export function getDeviceNameSourceLabel(
-  device: Pick<NetworkDevice, "name" | "discoveredName" | "discoveredNameSource">,
+  device: Pick<
+    NetworkDevice,
+    "name" | "discoveredName" | "discoveredNameSource"
+  >,
 ): string | undefined {
   if (!isDeviceStillNamedByDiscovery(device)) {
     return undefined;

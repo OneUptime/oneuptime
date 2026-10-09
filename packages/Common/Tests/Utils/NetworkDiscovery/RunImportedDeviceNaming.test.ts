@@ -148,9 +148,7 @@ describe("planRunImportedDeviceRenames", () => {
     test("records the source of whichever name it plans", () => {
       expect(
         plan({
-          hosts: [
-            host({ sysName: "kds01-snmp", netbiosName: "KDS01-WIN" }),
-          ],
+          hosts: [host({ sysName: "kds01-snmp", netbiosName: "KDS01-WIN" })],
         })[0]?.discoveredNameSource,
       ).toBe(DeviceNameSource.SystemName);
       expect(

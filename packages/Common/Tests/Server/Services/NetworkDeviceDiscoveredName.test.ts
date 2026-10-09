@@ -119,9 +119,7 @@ describe("a discovery import records the name the device is created under", () =
       }),
     );
 
-    expect(created(result)["discoveredName"]).toBe(
-      "WB0024KDS04 (10.16.42.54)",
-    );
+    expect(created(result)["discoveredName"]).toBe("WB0024KDS04 (10.16.42.54)");
   });
 
   test("a nameless create from discovery records the address it is named after", async () => {

@@ -254,8 +254,7 @@ function describeSnmp(data: {
    * reported no name" is false of a device that reported "localhost".
    */
   if (data.scan || data.host.snmpReachable === true) {
-    return hasText(data.host.sysName) &&
-      !normalizeSystemName(data.host.sysName)
+    return hasText(data.host.sysName) && !normalizeSystemName(data.host.sysName)
       ? SNMP_UNUSABLE_SYSNAME_SENTENCE
       : SNMP_NO_SYSNAME_SENTENCE;
   }

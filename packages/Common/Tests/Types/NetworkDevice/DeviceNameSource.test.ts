@@ -83,9 +83,9 @@ describe("isBetterDeviceNameSource", () => {
 
   test("the device's own SNMP name beats everything else, and nothing beats it", () => {
     for (const current of sources.slice(1)) {
-      expect(isBetterDeviceNameSource(DeviceNameSource.SystemName, current)).toBe(
-        true,
-      );
+      expect(
+        isBetterDeviceNameSource(DeviceNameSource.SystemName, current),
+      ).toBe(true);
     }
 
     for (const candidate of sources) {

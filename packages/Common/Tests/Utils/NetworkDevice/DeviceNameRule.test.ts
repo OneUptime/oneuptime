@@ -1,4 +1,4 @@
-import {
+import DefaultChooseDeviceName, {
   DeviceNameChoice,
   DeviceNameFacts,
   chooseDeviceName,
@@ -6,7 +6,6 @@ import {
   isNetbiosNameCutFromDnsName,
   normalizeSystemName,
 } from "../../../Utils/NetworkDevice/DeviceNameRule";
-import DefaultChooseDeviceName from "../../../Utils/NetworkDevice/DeviceNameRule";
 import {
   DEVICE_NAME_SOURCES_BEST_FIRST,
   DeviceNameSource,
@@ -383,9 +382,12 @@ describe("normalizeSystemName: odd sysNames", () => {
     ["undefined", undefined],
     ["an object", { name: "core" }],
     ["an array", ["core"]],
-  ])("reads %s as no name, never throwing", (_label: string, value: unknown) => {
-    expect(normalizeSystemName(value)).toBeUndefined();
-  });
+  ])(
+    "reads %s as no name, never throwing",
+    (_label: string, value: unknown) => {
+      expect(normalizeSystemName(value)).toBeUndefined();
+    },
+  );
 
   test("stays fast on a very long hostile value", () => {
     const startedAt: number = Date.now();
@@ -396,9 +398,7 @@ describe("normalizeSystemName: odd sysNames", () => {
     expect(normalizeSystemName("a" + " ".repeat(200000) + "b")).toBe(
       "a" + " ".repeat(200000) + "b",
     );
-    expect(
-      normalizeSystemName("a" + "\u0000 ".repeat(100000)),
-    ).toBe("a");
+    expect(normalizeSystemName("a" + "\u0000 ".repeat(100000))).toBe("a");
     expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 });
@@ -433,13 +433,13 @@ describe("short names (issue #3678) change how a name reads, never which source 
   });
 
   test("an FQDN sysName is cut too, and stays an SNMP name", () => {
-    expect(
-      choose({ systemName: "core-sw-01.corp.example.com" }, true),
-    ).toEqual({
-      name: "core-sw-01",
-      fullName: "core-sw-01.corp.example.com",
-      source: DeviceNameSource.SystemName,
-    });
+    expect(choose({ systemName: "core-sw-01.corp.example.com" }, true)).toEqual(
+      {
+        name: "core-sw-01",
+        fullName: "core-sw-01.corp.example.com",
+        source: DeviceNameSource.SystemName,
+      },
+    );
   });
 
   test("a NetBIOS name has nothing to cut", () => {
@@ -459,9 +459,9 @@ describe("short names (issue #3678) change how a name reads, never which source 
   });
 
   test("an IDN first label stays in its ASCII form", () => {
-    expect(
-      choose({ dnsName: "xn--kche-0ra.wbhq.com" }, true)?.name,
-    ).toBe("xn--kche-0ra");
+    expect(choose({ dnsName: "xn--kche-0ra.wbhq.com" }, true)?.name).toBe(
+      "xn--kche-0ra",
+    );
   });
 
   test("a name that is not a fully qualified hostname is left as it is", () => {
@@ -476,14 +476,17 @@ describe("short names (issue #3678) change how a name reads, never which source 
     ["undefined", undefined],
     ["the string true", "true"],
     ["the number 1", 1],
-  ])("only an exact true shortens, not %s", (_label: string, value: unknown) => {
-    expect(
-      chooseDeviceName(
-        { dnsName: DNS_NAME },
-        { useShortNames: value as boolean },
-      )?.name,
-    ).toBe(DNS_NAME);
-  });
+  ])(
+    "only an exact true shortens, not %s",
+    (_label: string, value: unknown) => {
+      expect(
+        chooseDeviceName(
+          { dnsName: DNS_NAME },
+          { useShortNames: value as boolean },
+        )?.name,
+      ).toBe(DNS_NAME);
+    },
+  );
 });
 
 describe("hostile and odd values from jsonb never throw and never name a device", () => {
@@ -492,15 +495,18 @@ describe("hostile and odd values from jsonb never throw and never name a device"
     ["objects", { systemName: {}, netbiosName: {}, dnsName: {} }],
     ["arrays", { systemName: ["a"], netbiosName: ["B"], dnsName: ["c.d"] }],
     ["booleans", { systemName: true, netbiosName: false, dnsName: true }],
-  ])("%s fall through to the address", (_label: string, facts: object) => {
-    expect(
-      choose({ ...(facts as DeviceNameFacts), address: ADDRESS }),
-    ).toEqual({
-      name: ADDRESS,
-      fullName: ADDRESS,
-      source: DeviceNameSource.Address,
-    });
-  });
+  ])(
+    "%s fall through to the address",
+    (_label: string, facts: Record<string, unknown>) => {
+      expect(
+        choose({ ...(facts as DeviceNameFacts), address: ADDRESS }),
+      ).toEqual({
+        name: ADDRESS,
+        fullName: ADDRESS,
+        source: DeviceNameSource.Address,
+      });
+    },
+  );
 
   test("markup is never a name", () => {
     expect(
@@ -643,18 +649,24 @@ describe("isDeviceStillNamedByDiscovery: never rename a name a person typed", ()
     ["a null source", null],
     ["an unknown source", "typed"],
     ["a mis-cased source", "Dns-Name"],
-  ])("a device with %s was not named by discovery", (_label: string, source: unknown) => {
-    expect(
-      isDeviceStillNamedByDiscovery({
-        ...DISCOVERED,
-        discoveredNameSource: source,
-      }),
-    ).toBe(false);
-  });
+  ])(
+    "a device with %s was not named by discovery",
+    (_label: string, source: unknown) => {
+      expect(
+        isDeviceStillNamedByDiscovery({
+          ...DISCOVERED,
+          discoveredNameSource: source,
+        }),
+      ).toBe(false);
+    },
+  );
 
   test("a device with no discovered name, or no name, is not discovery-named", () => {
     expect(
-      isDeviceStillNamedByDiscovery({ ...DISCOVERED, discoveredName: undefined }),
+      isDeviceStillNamedByDiscovery({
+        ...DISCOVERED,
+        discoveredName: undefined,
+      }),
     ).toBe(false);
     expect(
       isDeviceStillNamedByDiscovery({ ...DISCOVERED, discoveredName: null }),

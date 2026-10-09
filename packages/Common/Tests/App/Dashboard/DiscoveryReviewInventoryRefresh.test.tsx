@@ -761,19 +761,17 @@ describe("Discovery review names the reported displays by their hostnames (issue
 
   test("a hostname another device holds is retried with the address, and the retried name is what is created", async () => {
     getItemSpy.mockResolvedValue(reportedScan());
-    createSpy.mockImplementation(
-      (args: unknown): Promise<undefined> => {
-        const model: NetworkDevice = (args as { model: NetworkDevice }).model;
+    createSpy.mockImplementation((args: unknown): Promise<undefined> => {
+      const model: NetworkDevice = (args as { model: NetworkDevice }).model;
 
-        if (model.name === "WB0024KDS04") {
-          return Promise.reject(
-            new Error("Network Device with the same name already exists"),
-          );
-        }
+      if (model.name === "WB0024KDS04") {
+        return Promise.reject(
+          new Error("Network Device with the same name already exists"),
+        );
+      }
 
-        return Promise.resolve(undefined);
-      },
-    );
+      return Promise.resolve(undefined);
+    });
     await renderPage();
     await openReview(reportedScan());
     await importSelected();

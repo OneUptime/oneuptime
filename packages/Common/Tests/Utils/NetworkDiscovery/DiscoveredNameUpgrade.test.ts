@@ -178,9 +178,9 @@ describe("planDiscoveredNameUpgrades", () => {
     });
 
     test("matches the address trimmed, and never a blank one", () => {
-      expect(plan({ devices: [row({ hostname: ` ${ADDRESS} ` })] })).toHaveLength(
-        1,
-      );
+      expect(
+        plan({ devices: [row({ hostname: ` ${ADDRESS} ` })] }),
+      ).toHaveLength(1);
       expect(plan({ devices: [row({ hostname: "" })] })).toEqual([]);
       expect(plan({ devices: [row({ hostname: null })] })).toEqual([]);
     });
@@ -194,7 +194,9 @@ describe("planDiscoveredNameUpgrades", () => {
 
   describe("(c) still called exactly what discovery named it", () => {
     test("never renames a device a person renamed", () => {
-      expect(plan({ devices: [row({ name: "Kitchen display 4" })] })).toEqual([]);
+      expect(plan({ devices: [row({ name: "Kitchen display 4" })] })).toEqual(
+        [],
+      );
     });
 
     test("never renames a device whose name only differs in case from the discovered one", () => {
@@ -206,7 +208,9 @@ describe("planDiscoveredNameUpgrades", () => {
     test("never renames a device that does not say how it was named", () => {
       for (const discoveredNameSource of [undefined, null, "", "typed"]) {
         expect(
-          plan({ devices: [row({ discoveredNameSource: discoveredNameSource })] }),
+          plan({
+            devices: [row({ discoveredNameSource: discoveredNameSource })],
+          }),
         ).toEqual([]);
       }
     });
@@ -218,7 +222,9 @@ describe("planDiscoveredNameUpgrades", () => {
     });
 
     test("a re-saved name with spaces around it is still discovery's", () => {
-      expect(plan({ devices: [row({ name: ` ${PTR_NAME} ` })] })).toHaveLength(1);
+      expect(plan({ devices: [row({ name: ` ${PTR_NAME} ` })] })).toHaveLength(
+        1,
+      );
     });
   });
 
@@ -230,7 +236,9 @@ describe("planDiscoveredNameUpgrades", () => {
        */
       expect(
         plan({
-          hosts: [host({ netbiosName: undefined, dnsHostname: "kds04-new.wbhq.com" })],
+          hosts: [
+            host({ netbiosName: undefined, dnsHostname: "kds04-new.wbhq.com" }),
+          ],
         }),
       ).toEqual([]);
     });

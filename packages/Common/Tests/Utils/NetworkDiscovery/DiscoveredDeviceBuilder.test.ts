@@ -3059,9 +3059,7 @@ describe("buildNetworkDeviceFromDiscoveredHost - the name's source (issue #4518)
       fullName: "core-sw-08.corp.example.com",
       source: DeviceNameSource.SystemName,
     });
-    expect(getDiscoveredHostFullName(host)).toBe(
-      "core-sw-08.corp.example.com",
-    );
+    expect(getDiscoveredHostFullName(host)).toBe("core-sw-08.corp.example.com");
     expect(getDiscoveredHostDisplayName(host, SHORT_NAMES)).toBe("core-sw-08");
   });
 });

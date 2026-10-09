@@ -317,9 +317,7 @@ describe("who gets asked — every host SNMP did not name, unnamed ones first", 
     expect(hostAt(result, "10.0.0.2")?.netbiosName).toBe("reg01");
     // The PTR-named host gets its own name too, and keeps its PTR name.
     expect(hostAt(result, "10.0.0.1")?.netbiosName).toBe("GW-WIN");
-    expect(hostAt(result, "10.0.0.1")?.dnsHostname).toBe(
-      "gw.corp.example.com",
-    );
+    expect(hostAt(result, "10.0.0.1")?.dnsHostname).toBe("gw.corp.example.com");
     expect(result.netbiosResolvedCount).toBe(2);
   });
 
@@ -2561,15 +2559,20 @@ describe("SubnetScanner.hasSystemName — the shared rule's notion of an SNMP na
     ["NUL padding only", "\u0000\u0000", false],
   ])("%s", (_label: string, sysName: string, expected: boolean) => {
     expect(
-      SubnetScanner.hasSystemName({ ipAddress: "10.0.0.1", sysName: sysName }),
+      SubnetScanner.hasSystemName({
+        ipAddress: "10.0.0.1",
+        snmpReachable: true,
+        sysName: sysName,
+      }),
     ).toBe(expected);
   });
 
   it("a host with no sysName key, or a number in it, has none", () => {
-    expect(SubnetScanner.hasSystemName({ ipAddress: "10.0.0.1" })).toBe(false);
+    expect(SubnetScanner.hasSystemName(pingOnly("10.0.0.1"))).toBe(false);
     expect(
       SubnetScanner.hasSystemName({
         ipAddress: "10.0.0.1",
+        snmpReachable: true,
         sysName: 42 as unknown as string,
       }),
     ).toBe(false);

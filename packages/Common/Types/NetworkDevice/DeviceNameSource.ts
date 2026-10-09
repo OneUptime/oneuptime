@@ -44,13 +44,12 @@ export enum DeviceNameSource {
  * someone published for the address, not one the device answers to; the
  * address is what is left.
  */
-export const DEVICE_NAME_SOURCES_BEST_FIRST: ReadonlyArray<DeviceNameSource> =
-  [
-    DeviceNameSource.SystemName,
-    DeviceNameSource.NetbiosName,
-    DeviceNameSource.DnsName,
-    DeviceNameSource.Address,
-  ];
+export const DEVICE_NAME_SOURCES_BEST_FIRST: ReadonlyArray<DeviceNameSource> = [
+  DeviceNameSource.SystemName,
+  DeviceNameSource.NetbiosName,
+  DeviceNameSource.DnsName,
+  DeviceNameSource.Address,
+];
 
 const KNOWN_SOURCES: ReadonlySet<string> = new Set<string>(
   DEVICE_NAME_SOURCES_BEST_FIRST,

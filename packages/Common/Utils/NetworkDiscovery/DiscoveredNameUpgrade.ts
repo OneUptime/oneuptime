@@ -324,8 +324,7 @@ export function planDiscoveredNameUpgrades(data: {
     eligible.push({
       plan: plan,
       // A row without a readable date sorts after every dated one.
-      createdAt:
-        toEpochMilliseconds(row.createdAt) ?? Number.MAX_SAFE_INTEGER,
+      createdAt: toEpochMilliseconds(row.createdAt) ?? Number.MAX_SAFE_INTEGER,
     });
   }
 

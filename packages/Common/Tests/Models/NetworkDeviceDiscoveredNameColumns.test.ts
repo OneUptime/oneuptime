@@ -34,7 +34,11 @@ import {
 import SchemaMigrations from "../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddNetworkDeviceDiscoveredName1800900000000 } from "../../Server/Infrastructure/Postgres/SchemaMigrations/1800900000000-AddNetworkDeviceDiscoveredName";
 import { describe, expect, test } from "@jest/globals";
-import { MigrationInterface, QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 const NAME_COLUMN: string = "discoveredName";

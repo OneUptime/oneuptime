@@ -57,49 +57,89 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusHero",
   () => {
-    return { __esModule: true, default: () => null };
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
   },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInterfacesPreview",
   () => {
-    return { __esModule: true, default: () => null };
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
   },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard",
   () => {
-    return { __esModule: true, default: () => null };
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
   },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorsCard",
   () => {
-    return { __esModule: true, default: () => null };
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
   },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceVendorTemplateBanner",
   () => {
-    return { __esModule: true, default: () => null };
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
   },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceAttachmentCard",
   () => {
-    return { __esModule: true, default: () => null };
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
   },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsCard",
   () => {
-    return { __esModule: true, default: () => null };
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
   },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/EditInSettingsLink",
   () => {
-    return { __esModule: true, default: () => null };
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
   },
 );
 jest.mock(

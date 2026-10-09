@@ -99,9 +99,7 @@ test("Review Results names each display by its hostname, with the DNS name besid
   );
 
   // The DNS name never stands in for the hostname on the name line.
-  await expect(
-    page.getByText("wb-0024-kds04", { exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByText("wb-0024-kds04", { exact: true })).toHaveCount(0);
 
   // The display nothing named still says so.
   await expect(
