@@ -62,7 +62,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 | --------------------- | -------------------------------------------------------------------- | ------------------ | -------------------- |
 | **OpenAI**            | GPT-5.1 및 기타 OpenAI 모델                                          | 예                 | 아니요 (기본값 사용) |
 | **Azure OpenAI**      | Azure 배포에서 호스팅되는 OpenAI 모델                                | 예                 | 예                   |
-| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 및 기타 Claude 모델 | 예                 | 아니요 (기본값 사용) |
+| **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 및 기타 Claude 모델 | 예                 | 아니요 (기본값 사용) |
 | **Groq**              | Llama, Mixtral 및 기타 오픈 모델을 위한 빠른 추론                    | 예                 | 아니요 (기본값 사용) |
 | **Mistral**           | Mistral의 호스팅 모델                                                | 예                 | 아니요 (기본값 사용) |
 | **Ollama**            | Llama 3.1, Mistral, Qwen 등과 같은 자체 호스팅 오픈 소스 모델        | 아니요             | 예                   |
@@ -84,7 +84,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 - **설명** (선택 사항): 이 공급자의 목적을 식별하는 데 도움이 되는 설명
 - **LLM 제공자**: 공급자 유형 선택 (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama 또는 OpenAI Compatible)
 - **API 키**: API 키 (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral의 경우 필수; Ollama 및 OpenAI 호환 서버의 경우 선택 사항)
-- **모델 이름**: 사용할 특정 모델 (예: `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
+- **모델 이름**: 사용할 특정 모델 (예: `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **기본 URL** (선택 사항): 커스텀 API 엔드포인트 URL (Azure OpenAI, Ollama, OpenAI Compatible의 경우 필수, 기타의 경우 선택 사항)
 - **추가 필드**(위 항목 아래에 접혀 있음): **기본값으로 설정**은 AI 기능이 프로젝트의 기본 공급자만 사용하므로 새 공급자에서는 켜져 있고, **추가 매개변수**는 요청할 때마다 공급자에게 보내는 추가 매개변수를 담은 선택 사항 JSON 객체입니다(예: `{"temperature": 0.2}`)
 
@@ -114,9 +114,9 @@ API 키: sk-xxxxxxxxxxxxxxxxxxxx
 2. LLM 제공자로 **Anthropic**을 선택합니다
 3. API 키를 입력합니다
 4. 모델 이름을 선택합니다:
-   - `claude-sonnet-5` - 권장 기본값, 지능·속도·비용의 균형이 가장 좋음
-   - `claude-opus-5` - 가장 유능한 모델, 가장 어려운 조사용
-   - `claude-haiku-4-5` - 가장 빠르고 비용 효율적
+   - `claude-sonnet-5-5` - 권장 기본값, 지능·속도·비용의 균형이 가장 좋음
+   - `claude-opus-5-5` - 더 유능한 모델, 가장 어려운 조사용
+   - `claude-haiku-5-5` - 가장 빠르고 비용 효율적
 
 **구성 예시:**
 
@@ -124,8 +124,12 @@ API 키: sk-xxxxxxxxxxxxxxxxxxxx
 이름: 프로덕션 Anthropic
 LLM 제공자: Anthropic
 API 키: sk-ant-xxxxxxxxxxxxxxxxxxxx
-모델 이름: claude-sonnet-5
+모델 이름: claude-sonnet-5-5
 ```
+
+Claude Opus 4.7 이후의 모든 Claude 모델은 샘플링을 스스로 정하며, `temperature`, `top_p` 또는 `top_k`를 지정한 요청을 거부합니다. OneUptime은 이러한 모델에는 이 설정들을 보내지 않습니다. 그래도 모델이 그중 하나를 거부하면, OneUptime은 해당 설정을 빼고 요청을 다시 보내며 그 공급자에 대해 이를 기억합니다.
+
+Claude 5 모델은 답하기 전에 사고하며, 이 사고는 응답의 토큰 한도에 포함되므로 OneUptime은 사고를 위한 여유를 남겨 둡니다. 사고를 줄여 더 빠르고 저렴하게 답하게 하려면 공급자의 **추가 매개변수**에 `{"output_config": {"effort": "low"}}`를 설정합니다. 여기에 추가한 설정은 OneUptime이 요청마다 Anthropic에 보내며, `model`, `messages`, `system`, `tools`, `tool_choice`, `stream`은 OneUptime이 직접 설정하므로 제외됩니다.
 
 ### Ollama (자체 호스팅)
 

@@ -112,6 +112,7 @@
   "^GET /api/",
   "etcd",
   "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
   "kube-proxy",
   "macOS",
   "name@example.com",
