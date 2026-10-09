@@ -5,12 +5,13 @@ import {
   readDiscoveredHostNetbiosStatus,
   readDiscoveredHostReverseDnsStatus,
 } from "../../Types/NetworkDevice/DiscoveredHostNamingStatus";
-import { DiscoveryScanStatus } from "./DiscoveryScanStatus";
+import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
 import {
-  isNetbiosQueryableIPv4Address,
-  normalizeNetbiosName,
-} from "./NetbiosNameUtil";
-import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
+  chooseDeviceName,
+  normalizeSystemName,
+} from "../NetworkDevice/DeviceNameRule";
+import { DiscoveryScanStatus } from "./DiscoveryScanStatus";
+import { isNetbiosQueryableIPv4Address } from "./NetbiosNameUtil";
 import { ScanModeUtil } from "./ScanModeUtil";
 
 /*
@@ -18,9 +19,9 @@ import { ScanModeUtil } from "./ScanModeUtil";
  * sentence the Review dialog shows beside it (OneUptime issue #3916).
  *
  * A host is named by the first of three sources that has something to say:
- * its SNMP sysName, its reverse-DNS (PTR) name, its NetBIOS name. When none
- * does, the row used to read as a bare IP with no hint of which source was
- * even asked. That is what the issue reported: eight of twelve kitchen
+ * its SNMP sysName, its NetBIOS name, its reverse-DNS (PTR) name — the one
+ * naming rule, Utils/NetworkDevice/DeviceNameRule.ts. When none does, the row
+ * used to read as a bare IP with no hint of which source was even asked. That is what the issue reported: eight of twelve kitchen
  * displays listed by address, an operator certain they had names, and no way
  * for anyone to tell "no PTR record" from "the probe's DNS server timed out"
  * from "SNMP and NetBIOS were never asked".
@@ -149,6 +150,14 @@ export const SNMP_NO_ANSWER_SENTENCE: string =
   "SNMP: no answer with this scan's credentials.";
 export const SNMP_NO_SYSNAME_SENTENCE: string =
   "SNMP: the device answered, but reported no name (sysName).";
+/*
+ * The device answered with a sysName the naming rule does not take as a name
+ * (OneUptime issue #4518): a placeholder such as "localhost", an IP address,
+ * or bytes with control characters in them. The value itself is never quoted,
+ * for the reason the header gives.
+ */
+export const SNMP_UNUSABLE_SYSNAME_SENTENCE: string =
+  "SNMP: the device answered, but the name it reported (sysName) is not usable as a name, such as localhost or an IP address.";
 
 /*
  * The one piece of advice that fits the reverse-DNS code best, when any
@@ -210,16 +219,19 @@ function hasText(value: unknown): boolean {
 
 /**
  * True when the row would be named by something other than its address: a
- * sysName, a usable PTR name or a usable NetBIOS name. Mirrors
- * getDiscoveredHostFullName's order and its re-normalisation, so the hint is
- * shown on exactly the rows whose name line is the address.
+ * usable sysName, NetBIOS name or PTR name. Asks the naming rule itself
+ * (DeviceNameRule), with the row's raw values, so the hint is shown on exactly
+ * the rows whose name line is the address — a placeholder sysName such as
+ * "localhost" names nothing here exactly as it names nothing there.
  */
 export function isDiscoveredHostNamed(host: DiscoveredNetworkDevice): boolean {
-  return (
-    hasText(host.sysName) ||
-    Boolean(normalizeReverseDnsName(host.dnsHostname)) ||
-    Boolean(normalizeNetbiosName(host.netbiosName))
-  );
+  const source: DeviceNameSource | undefined = chooseDeviceName({
+    systemName: host.sysName,
+    netbiosName: host.netbiosName,
+    dnsName: host.dnsHostname,
+  })?.source;
+
+  return Boolean(source) && source !== DeviceNameSource.Address;
 }
 
 function describeSnmp(data: {
@@ -237,10 +249,14 @@ function describeSnmp(data: {
   /*
    * Answered SNMP — or a row from before `snmpReachable` existed, when every
    * host listed had answered it. Either way the host is unnamed, so whatever
-   * it said had no sysName in it.
+   * it said had no usable sysName in it: none at all, or one the naming rule
+   * refuses (a placeholder, an address). The two are told apart because "it
+   * reported no name" is false of a device that reported "localhost".
    */
   if (data.scan || data.host.snmpReachable === true) {
-    return SNMP_NO_SYSNAME_SENTENCE;
+    return hasText(data.host.sysName) && !normalizeSystemName(data.host.sysName)
+      ? SNMP_UNUSABLE_SYSNAME_SENTENCE
+      : SNMP_NO_SYSNAME_SENTENCE;
   }
 
   return undefined;
@@ -366,7 +382,11 @@ export function explainUnnamedDiscoveredHost(data: {
 
   const sentences: Array<string> = [];
 
-  // The naming order, so the sentences read in the order the sources win.
+  /*
+   * The naming order, so the sentences read in the order the sources win:
+   * the device's own names first (SNMP, then NetBIOS), then reverse DNS
+   * (OneUptime issue #4518).
+   */
   const snmpSentence: string | undefined = describeSnmp({
     host: host,
     scan: data.scan,
@@ -376,15 +396,15 @@ export function explainUnnamedDiscoveredHost(data: {
     sentences.push(snmpSentence);
   }
 
+  if (netbiosSentence) {
+    sentences.push(netbiosSentence);
+  }
+
   sentences.push(
     dnsHostnameStatus
       ? REVERSE_DNS_SENTENCES[dnsHostnameStatus]
       : REVERSE_DNS_NOT_RECORDED_SENTENCE,
   );
-
-  if (netbiosSentence) {
-    sentences.push(netbiosSentence);
-  }
 
   if (dnsHostnameStatus === DiscoveredHostReverseDnsStatus.NoRecord) {
     sentences.push(NO_RECORD_TIP);

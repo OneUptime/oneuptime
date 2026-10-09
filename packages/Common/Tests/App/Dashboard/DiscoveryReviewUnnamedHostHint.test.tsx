@@ -534,8 +534,8 @@ describe("the reporter's ICMP-only scan says why each unnamed host has no name (
     expect(text).toBe(
       [
         SNMP_NOT_CHECKED_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_OFF_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_TIP,
       ].join(" "),
     );
@@ -1050,8 +1050,8 @@ describe("nothing the scanned network chose reaches the tooltip", () => {
     expect(text).toBe(
       [
         SNMP_NOT_CHECKED_SENTENCE,
-        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         NETBIOS_OFF_SENTENCE,
+        REVERSE_DNS_NOT_RECORDED_SENTENCE,
         ASK_THE_DEVICE_TIP,
       ].join(" "),
     );

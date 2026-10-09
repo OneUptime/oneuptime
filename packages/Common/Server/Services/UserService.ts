@@ -452,16 +452,13 @@ export class Service extends DatabaseService<Model> {
     let carryForward: Array<Model> = [];
 
     if (updateBy.data.password || updateBy.data.email) {
-      const users: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const users: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           email: true,
         },
-        props: updateBy.props,
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
+      );
 
       carryForward = users;
     }
@@ -534,8 +531,7 @@ export class Service extends DatabaseService<Model> {
    * unrelated SCIM run invalidate a reset link the user is part-way through
    * using.
    *
-   * A row that came back with no `email` at all is treated as changed. That
-   * happens when the caller could not read the column, and on a credential the
+   * A row with no `email` stored is treated as changed: on a credential the
    * safe assumption is the one that expires the token.
    *
    * NOTE: this runs from `onBeforeUpdate`, so an email write made with

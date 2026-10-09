@@ -923,17 +923,8 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
     updateBy: UpdateBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<Array<ObjectID>> {
     const timelines: Array<ScheduledMaintenanceStateTimeline> =
-      await this.findBy({
-        query: updateBy.query,
-        select: {
-          scheduledMaintenanceId: true,
-        },
-        skip: updateBy.skip,
-        limit: updateBy.limit,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
+        scheduledMaintenanceId: true,
       });
 
     return this.getScheduledMaintenanceIdsFromTimelines(timelines);

@@ -16,6 +16,7 @@ import {
   jest,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { meetsCondition } from "../TestingUtils/QueryConditions";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -144,13 +145,27 @@ function getDirectId(value: unknown): string | null {
 }
 
 /*
- * Stands in for the resources table. findOneBy answers the two reads the hooks
- * make - "is this monitor already on the page" and "which resource is being
- * updated" - and the order bookkeeping is stubbed so these cases only exercise
- * the duplicate rules.
+ * Stands in for the resources table. findOneBy answers "is this monitor
+ * already on the page", findBy "which resources is the update writing" (the
+ * rows its query names by id), and the order bookkeeping is stubbed so these
+ * cases only exercise the duplicate rules.
  */
+// The reads of the resources an update writes: the ones asking for their page.
+function resourceReads(findBy: {
+  mock: { calls: Array<Array<unknown>> };
+}): Array<any> {
+  return findBy.mock.calls
+    .map((call: Array<unknown>): any => {
+      return call[0];
+    })
+    .filter((read: any): boolean => {
+      return Boolean(read?.select?.statusPageId);
+    });
+}
+
 function mockService(rows: Array<StatusPageResource>): {
   findOneBy: jest.SpiedFunction<typeof StatusPageResourceService.findOneBy>;
+  findBy: jest.SpiedFunction<typeof StatusPageResourceService.findBy>;
   countBy: jest.SpiedFunction<typeof StatusPageResourceService.countBy>;
   updateOneBy: jest.SpiedFunction<typeof StatusPageResourceService.updateOneBy>;
 } {
@@ -210,15 +225,26 @@ function mockService(rows: Array<StatusPageResource>): {
     .spyOn(StatusPageResourceService, "countBy")
     .mockResolvedValue(new PositiveNumber(rows.length) as never);
 
-  jest
+  // The resources an update writes: the rows its query names by id.
+  const findBy: any = jest
     .spyOn(StatusPageResourceService, "findBy")
-    .mockResolvedValue([] as never);
+    .mockImplementation(async (findBy: any) => {
+      const query: any = findBy.query || {};
+
+      if (query._id === undefined) {
+        return [];
+      }
+
+      return rows.filter((row: StatusPageResource): boolean => {
+        return meetsCondition(query._id, row._id);
+      });
+    });
 
   const updateOneBy: any = jest
     .spyOn(StatusPageResourceService, "updateOneBy")
     .mockResolvedValue(1 as never);
 
-  return { findOneBy, countBy, updateOneBy };
+  return { findOneBy, findBy, countBy, updateOneBy };
 }
 
 function createBy(data: {
@@ -554,10 +580,9 @@ describe("StatusPageResourceService duplicate rules", () => {
       );
 
       // One read: the resource being updated. No duplicate lookup after it.
-      expect(mocks.findOneBy).toHaveBeenCalledTimes(1);
-      expect(
-        (mocks.findOneBy.mock.calls[0] as any)[0].query.monitorId,
-      ).toBeUndefined();
+      expect(resourceReads(mocks.findBy)).toHaveLength(1);
+      expect(resourceReads(mocks.findBy)[0].query.monitorId).toBeUndefined();
+      expect(mocks.findOneBy).not.toHaveBeenCalled();
     });
 
     it("still lets both rows of a pre-existing duplicate be renamed", async () => {
@@ -609,7 +634,8 @@ describe("StatusPageResourceService duplicate rules", () => {
       ).resolves.toBeDefined();
 
       // One read: the resource being updated. No duplicate lookup after it.
-      expect(mocks.findOneBy).toHaveBeenCalledTimes(1);
+      expect(resourceReads(mocks.findBy)).toHaveLength(1);
+      expect(mocks.findOneBy).not.toHaveBeenCalled();
     });
 
     it("looks for the duplicate by status page and the new monitor", async () => {
@@ -621,7 +647,7 @@ describe("StatusPageResourceService duplicate rules", () => {
         updateBy({ id: resourceId(1), monitor: MONITOR_ID }),
       );
 
-      const duplicateLookup: any = (mocks.findOneBy.mock.calls[1] as any)[0];
+      const duplicateLookup: any = (mocks.findOneBy.mock.calls[0] as any)[0];
       expect(duplicateLookup.query.statusPageId).toEqual(STATUS_PAGE_ID);
       expect(duplicateLookup.query.monitorId?.toString()).toBe(
         MONITOR_ID.toString(),

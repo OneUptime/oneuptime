@@ -47,6 +47,10 @@ export type DatabaseServiceLike = {
   findBy: (data: any) => Promise<Array<any>>;
   findOneById: (data: any) => Promise<any>;
   updateColumnsByIdWithoutHooks: (data: any) => Promise<void>;
+  findOneRowAndHoldUpdateToIt: (
+    updateBy: any,
+    select: any,
+  ) => Promise<{ row: any; writesMore: boolean }>;
 };
 
 export interface CustomFieldMappingSourceEntry {

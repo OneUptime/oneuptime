@@ -1,7 +1,13 @@
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
 import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../Types/ObjectID";
+import {
+  DeviceNameChoice,
+  DeviceNameFacts,
+  chooseDeviceName,
+} from "../NetworkDevice/DeviceNameRule";
 import SnmpScanConfigUtil, {
   DiscoveryScanSnmpConfig,
 } from "./SnmpScanConfigUtil";
@@ -9,9 +15,7 @@ import {
   isPingOnlyDiscoveredHost,
   monitoringMethodForDiscoveredHost,
 } from "./DiscoveryImportEligibility";
-import { normalizeNetbiosName } from "./NetbiosNameUtil";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
-import { getShortHostname } from "./ShortHostnameUtil";
 
 /*
  * One discovered host -> one NetworkDevice, the same way everywhere.
@@ -75,79 +79,92 @@ export interface DiscoveredHostNaming {
   useShortDeviceNames?: boolean | null | undefined;
 }
 
+/*
+ * What a discovered host's row says about its names, in the terms of the one
+ * naming rule (Utils/NetworkDevice/DeviceNameRule.ts).
+ *
+ * Every value is handed over RAW and re-normalised by the rule, rather than
+ * trusted from the column. `discoveredDevices` is jsonb stored verbatim from
+ * the probe's payload, so "the probe already checked it" holds only for the
+ * probe version that wrote the row — not for a result from an older or a
+ * modified probe, and not for a row written straight through the API. The
+ * rule is the last point before a value becomes a rendered line and a
+ * slugified device name, so it is the right place to be sure: a PTR name goes
+ * through ReverseDnsNameUtil, a NetBIOS name — whatever the host at that
+ * address chose to answer — through NetbiosNameUtil, and a sysName through
+ * the rule's own normaliser, which reads a number as no name rather than
+ * throwing on `(42).trim()` during the Review dialog's render.
+ */
+export function getDiscoveredHostNameFacts(
+  host: DiscoveredNetworkDevice,
+): DeviceNameFacts {
+  return {
+    systemName: host.sysName,
+    netbiosName: host.netbiosName,
+    dnsName: host.dnsHostname,
+    address: host.ipAddress,
+  };
+}
+
 /**
- * The name a discovered host has before any shortening: its sysName, its
- * reverse-DNS name, its NetBIOS name, or its address. This is what
- * `getDiscoveredHostDisplayName` shortens, and what the Review dialog shows
- * beside a shortened name so the operator can see what was cut.
+ * The name a discovered host is called under the scan's naming choice, the
+ * name before shortening, and where it came from — or undefined for a row
+ * with no name and no address.
+ */
+export function chooseDiscoveredHostName(
+  host: DiscoveredNetworkDevice,
+  naming: DiscoveredHostNaming,
+): DeviceNameChoice | undefined {
+  return chooseDeviceName(getDiscoveredHostNameFacts(host), {
+    useShortNames: naming.useShortDeviceNames,
+  });
+}
+
+/**
+ * The name a discovered host has before any shortening: its own name (SNMP
+ * sysName, then NetBIOS name), its reverse-DNS name, or its address. This is
+ * what `getDiscoveredHostDisplayName` shortens, and what the Review dialog
+ * shows beside a shortened name so the operator can see what was cut.
  */
 export function getDiscoveredHostFullName(
   host: DiscoveredNetworkDevice,
 ): string {
-  /*
-   * The PTR name is re-normalised here rather than trusted from the column.
-   * `discoveredDevices` is jsonb stored verbatim from the probe's payload, so
-   * "the probe already checked it" holds only for the probe version that
-   * wrote the row — not for a result from an older or a modified probe, and
-   * not for a row written straight through the API. This function is the last
-   * point before the value becomes a rendered line and a slugified device
-   * name, so it is the right place to be sure. See ReverseDnsNameUtil.
-   *
-   * The NetBIOS name is re-normalised here for the same reason, and with more
-   * cause: it is not even a published record but whatever the host at that
-   * address chose to answer (issue #3677). A stored "WORKSTATION01   " — the
-   * raw, space-padded, upper-cased wire form an older or modified probe might
-   * write — is read as "workstation01", and anything that fails the rules
-   * falls through to the address. See NetbiosNameUtil.
-   */
-  /*
-   * `sysName` is read through a typeof guard rather than trusted, for the
-   * same reason `dnsHostname` is normalised: both come out of the same
-   * verbatim jsonb blob, where the declared TypeScript type is a description
-   * of what the probe SHOULD send rather than a guarantee about what is
-   * stored. `(42).trim()` is a TypeError, and since this function became the
-   * dashboard's name line that TypeError would be thrown during render —
-   * taking out the whole Review dialog rather than one row, which is
-   * precisely the failure normalizeDiscoveredHosts was written to end.
-   */
-  const sysName: string =
-    typeof host.sysName === "string" ? host.sysName.trim() : "";
+  return chooseDeviceName(getDiscoveredHostNameFacts(host))?.fullName || "";
+}
 
-  return (
-    sysName ||
-    normalizeReverseDnsName(host.dnsHostname) ||
-    normalizeNetbiosName(host.netbiosName) ||
-    String(host.ipAddress ?? "")
-  );
+/**
+ * Where the name a discovered host is called by comes from, or undefined for
+ * a row with no name and no address. Shortening never changes the source, so
+ * this takes no naming choice.
+ */
+export function getDiscoveredHostNameSource(
+  host: DiscoveredNetworkDevice,
+): DeviceNameSource | undefined {
+  return chooseDeviceName(getDiscoveredHostNameFacts(host))?.source;
 }
 
 /**
  * What a discovered host is CALLED — in the Review dialog, and (clamped by
  * `buildDeviceName`) on the device it imports as.
  *
- * Four sources, in this order, first non-empty wins:
+ * The one naming rule decides (Utils/NetworkDevice/DeviceNameRule.ts), best
+ * first:
  *
- *   1. `sysName`, the name the device gives for itself over SNMP. It stays
- *      first because it always has been, and because it is the one name the
- *      device itself asserts: demoting it would silently rename devices that
- *      import correctly today, which nobody asked for.
- *   2. `dnsHostname`, its reverse-DNS (PTR) name (OneUptime issue #3529).
- *      This is the whole point of the addition, and it lands exactly where
- *      the complaint was: a host with no readable SNMP has no sysName, so
- *      before this it fell straight through to its address. On an estate that
- *      keeps DNS records — the reporter's does — that turns a review list of
- *      "10.18.166.51, 10.18.166.53, ..." into names an operator recognises.
- *   3. `netbiosName`, the name the host answered a NetBIOS node status query
- *      with (OneUptime issue #3677), for the hosts neither of the above names:
- *      no SNMP, no PTR record — on a Windows estate, most of them. It ranks
- *      BELOW the PTR name because it is self-reported by whatever sits at the
- *      address rather than published by whoever runs DNS, and because a PTR
- *      name carries the domain the short-name option and `dnsName` depend on.
- *      In practice the two rarely meet: the probe only asks hosts that have
- *      neither a sysName nor a PTR name. The order is for the rows where they
- *      do anyway — a result written through the API, or by a probe of another
- *      version — so that every reader settles them the same way.
- *   4. The address, unchanged, when no name exists.
+ *   1. The device's own name (OneUptime issue #4518):
+ *        a. `sysName`, the name it reports over SNMP;
+ *        b. `netbiosName`, the computer name a Windows or Samba host answered
+ *           a NetBIOS node status query with (issue #3677) — unless it is a
+ *           fifteen-character stump of the PTR name's first label, which is
+ *           the same name cut short.
+ *   2. `dnsHostname`, its reverse-DNS (PTR) name (issue #3529).
+ *   3. The address, unchanged, when nothing names it.
+ *
+ * Until #4518 the PTR name ranked above the NetBIOS name, and the probe only
+ * asked hosts DNS had not named — so on the reporter's Windows estate a
+ * kitchen display everyone calls WB0024KDS04 imported as
+ * wb-0024-kds04.wbhq.com. The device's own name is the one the people who run
+ * it use; DNS names its address. The rule's header has the rest of the
+ * reasoning.
  *
  * Split out of `buildDeviceName` so the dashboard row and the device it
  * creates cannot disagree: the operator ticks a box next to a name, and that
@@ -155,19 +172,21 @@ export function getDiscoveredHostFullName(
  * the full name can have it; the Review dialog and the import both go through
  * `buildDeviceName`, which clamps, so that what is shown is what is created.
  *
- * TWO CONSEQUENCES OF NAMING A DEVICE BY DNS, both accepted deliberately:
+ * TWO CONSEQUENCES OF NAMING A DEVICE BY A NAME THE SCANNED NETWORK CHOSE,
+ * both accepted deliberately:
  *
- *   - Anything that matches on `NetworkDevice.name` now sees a name the
- *     SCANNED NETWORK chose. NetworkSiteAssignmentRule and the label/owner
- *     rule engines are the live examples: a rule written against a naming
- *     convention will match differently for a host that used to be called
- *     "10.18.166.51" and is now called "core-gw.corp.example.com". That is
- *     inherent to the feature — the alternative is not naming devices by DNS —
- *     and it is why the name is put through ReverseDnsNameUtil rather than
- *     trusted. Rules keyed on `hostname` are unaffected: that stays the IP.
- *   - Names stop being unique per host. Addresses were; PTR names are not, and
- *     a wildcard reverse zone over a DHCP range gives every host in it the
- *     same answer. `buildFallbackDeviceName` is the answer to that, and BOTH
+ *   - Anything that matches on `NetworkDevice.name` sees that name.
+ *     NetworkSiteAssignmentRule and the label/owner rule engines are the live
+ *     examples: a rule written against a naming convention will match
+ *     differently for a host that used to be called "10.18.166.51" and is now
+ *     called "core-gw.corp.example.com" — or, since #4518, "CORE-GW". That is
+ *     inherent to naming devices at all, and it is why every name is put
+ *     through a normaliser rather than trusted. Rules keyed on `hostname` are
+ *     unaffected: that stays the IP. Site rules also try `dnsName`, so a
+ *     "*.corp.example.com" pattern keeps placing a device its own name named.
+ *   - Names stop being unique per host. Addresses were; names are not, and a
+ *     wildcard reverse zone over a DHCP range gives every host in it the same
+ *     answer. `buildFallbackDeviceName` is the answer to that, and BOTH
  *     import paths must use it — the rule engine does, and the dashboard's
  *     Review-dialog import does since the same wildcard case made collisions
  *     ordinary rather than rare.
@@ -187,13 +206,7 @@ export function getDiscoveredHostDisplayName(
   host: DiscoveredNetworkDevice,
   naming: DiscoveredHostNaming,
 ): string {
-  const fullName: string = getDiscoveredHostFullName(host);
-
-  if (naming.useShortDeviceNames !== true) {
-    return fullName;
-  }
-
-  return getShortHostname(fullName) || fullName;
+  return chooseDiscoveredHostName(host, naming)?.name || "";
 }
 
 /** The name a discovered host imports under, clamped to the slug's ceiling. */
@@ -340,6 +353,31 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
   const device: NetworkDevice = new NetworkDevice();
   device.projectId = data.projectId;
   device.name = data.name || buildDeviceName(host, data.scan);
+
+  /*
+   * Which source named the device, and the name it was given (OneUptime
+   * issue #4518). Together they are what lets a later scan IMPROVE a name
+   * discovery chose — a device imported by its address or its DNS name takes
+   * its own name when a scan finds one — while a name a person types is
+   * never touched: the moment the name differs from `discoveredName`, it is
+   * theirs (see NetworkDevice.discoveredName).
+   *
+   * The caller's `name` is the collision fallback — this same name plus the
+   * address — so it has the same source. The server records the name the
+   * device is finally CREATED under as `discoveredName` (NetworkDeviceService
+   * onBeforeCreate), which is what makes the Review dialog's retry, which
+   * renames this object after a failed create, come out right too; it is set
+   * here as well so the in-memory device a dry run builds is already
+   * complete.
+   */
+  const nameSource: DeviceNameSource | undefined =
+    getDiscoveredHostNameSource(host);
+
+  if (nameSource && device.name) {
+    device.discoveredNameSource = nameSource;
+    device.discoveredName = device.name;
+  }
+
   /*
    * The address is the device's hostname AND the registered-host dedup key.
    *

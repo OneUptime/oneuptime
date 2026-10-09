@@ -30,6 +30,22 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ServiceLevelObjectiveMonitorRuleService,
+    jest.spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy"),
+  );
+});
 /*
  * Contract under test - the write hooks of SLO monitor rules.
  *
@@ -761,7 +777,7 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeUpdate", () => {
     expect(spies.ruleFindBy).not.toHaveBeenCalled();
   });
 
-  it("reads the touched rules with the caller's tenant pinned onto the raw query", async () => {
+  it("reads the touched rules among those the caller may write, in their project", async () => {
     spies.ruleFindBy.mockResolvedValue([
       makeRule({ monitorNamePattern: ".*" }),
     ]);
@@ -778,13 +794,19 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeUpdate", () => {
       props: unknown;
     };
 
-    expect(call.query).toEqual({
+    // The rules the caller may write, found in their project.
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveMonitorRuleService)[0]!
+        .query,
+    ).toEqual({
       _id: RULE_ID.toString(),
       projectId: PROJECT_ID,
     });
+    // Then those, by id.
+    expect(call.query).toEqual({ _id: RULE_ID.toString() });
     expect(call.select["criteria"]).toBe(true);
     expect(call.select["serviceLevelObjectiveId"]).toBe(true);
-    expect(call.props).toEqual({ isRoot: true });
+    expect(call.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   it("trusts a genuinely root caller's query as it is", async () => {

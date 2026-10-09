@@ -10,7 +10,6 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import AlertCustomField from "../../Models/DatabaseModels/AlertCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -60,9 +59,7 @@ import CreatedByUser from "../Utils/Database/CreatedByUser";
 import EpisodeMembershipReference, {
   ALERT_EPISODE_REFERENCE,
 } from "../Utils/Episode/EpisodeMembershipReference";
-import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import User from "../../Models/DatabaseModels/User";
@@ -661,43 +658,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The alerts an update will write to, as they are stored, for the check
-   * above.
+   * The alerts an update writes, as they are stored, for the checks above -
+   * the ones its caller may write, with the update held to them
+   * (findRowsAndHoldUpdateToThem), so no alert is written that a check did
+   * not see.
    *
    * Read as root: the answer only decides whether the update may go ahead,
    * and the update itself is still checked against the caller's permissions
    * afterwards. Reading with the caller's props would fail the whole edit for
-   * a role that may edit alerts but not read these columns. The query already
-   * carries the caller's privacy filter (applyAlertSelfPrivacyFilter), but
-   * not their tenant: the update's permission check adds it only after this
-   * hook runs. So a non-root caller's read is limited to their own project
-   * here, or a request for another project's alert id would be answered with
-   * that alert's state (a refusal that depends on it) instead of the usual
-   * "nothing updated".
+   * a role that may edit alerts but not read these columns. The query
+   * carries the caller's privacy filter (applyAlertSelfPrivacyFilter), and a
+   * request for another project's alert id reads nothing, so it is answered
+   * with the usual "nothing updated" rather than that alert's state.
    */
   private async findAlertsForUpdateHook(data: {
     updateBy: UpdateBy<Model>;
     select: Select<Model>;
   }): Promise<Array<Model>> {
-    const updateBy: UpdateBy<Model> = data.updateBy;
-
-    const query: Query<Model> =
-      !updateBy.props.isRoot && updateBy.props.tenantId
-        ? {
-            ...updateBy.query,
-            projectId: updateBy.props.tenantId,
-          }
-        : updateBy.query;
-
-    return await this.findBy({
-      query: query,
-      select: data.select,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    return await this.findRowsAndHoldUpdateToThem(data.updateBy, data.select);
   }
 
   /*
@@ -759,13 +737,13 @@ export class Service extends ProjectReferencesService<Model> {
      */
     const projectIds: Array<ObjectID> = updateBy.props.tenantId
       ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -871,32 +849,6 @@ export class Service extends ProjectReferencesService<Model> {
       },
       ...getAffectedResourceRelations(this.getModel()),
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const alerts: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const alert of alerts) {
-      if (alert.projectId) {
-        projectIds[alert.projectId.toString()] = alert.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()

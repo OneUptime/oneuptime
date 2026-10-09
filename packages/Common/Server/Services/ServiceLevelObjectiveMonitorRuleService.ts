@@ -272,9 +272,9 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * The snapshot was read with the caller's raw (tenant-pinned) query,
-     * before the permission check narrowed it. updatedItemIds is the set that
-     * was actually written, so only those rows are described.
+     * The snapshot is the rows the update was held to before the write.
+     * updatedItemIds is the set that was actually written, so only those rows
+     * are described.
      */
     const rulesBeforeUpdate: Array<Model> = (
       (onUpdate.carryForward as RuleUpdateCarryForward | null)
@@ -507,8 +507,8 @@ export class Service extends ProjectReferencesService<Model> {
   /**
    * Which of these SLOs have at least one enabled monitor rule, as lower-case
    * id strings. The SLO service asks this to refuse hand-edits to a monitor
-   * list the rules own. Read as root: the caller has already pinned the SLOs
-   * to the caller's tenant.
+   * list the rules own. Read as root: the caller hands in the SLOs its update
+   * writes, read as the rows the update was held to.
    */
   @CaptureSpan()
   public async findServiceLevelObjectiveIdsWithEnabledRules(
@@ -749,33 +749,18 @@ export class Service extends ProjectReferencesService<Model> {
    * The rules an update actually touches, read for validation and for the
    * feed's before-snapshot.
    *
-   * onBeforeUpdate runs before DatabaseService applies the update query's
-   * permission check, so the query here is still the caller's raw one. The
-   * tenant is pinned onto it when the caller has one, so a validation read can
-   * never reach across projects and answer questions about another tenant's
-   * rules. Genuinely root callers (the engines, migrations) have no tenantId
-   * and are trusted.
+   * They are the rows the update writes - for a teammate, the rules they may
+   * write - and the update is held to them (findRowsAndHoldUpdateToThem), so
+   * a validation read never answers questions about another project's rules,
+   * and no rule is written that was not validated.
    */
   private async findRulesForQuery(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<Model>> {
-    const query: Record<string, unknown> = {
-      ...(updateBy.query as Record<string, unknown>),
-    };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
-    return await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: RULE_SNAPSHOT_SELECT,
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    return await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      RULE_SNAPSHOT_SELECT,
+    );
   }
 
   /**

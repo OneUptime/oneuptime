@@ -1,8 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferencesService from "./ProjectReferencesService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -203,26 +201,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The hierarchy hooks run BEFORE DatabaseService applies tenant scoping to
-   * the caller's query, so reading the raw client query with props.isRoot
-   * would hand the hook rows from other projects. Re-apply the caller's tenant
-   * so validation can never look at a row outside the caller's project.
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
-  }
-
-  /*
    * A parent has to be a real group on the same status page, and the move must
    * not build a loop (A under B under A) or nest deeper than the tree utils
    * are willing to walk. A loop would make every rolled up number on the page
@@ -360,18 +338,11 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (newParentId) {
-      const groupsBeingUpdated: Array<Model> = await this.findBy({
-        query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-        select: {
+      const groupsBeingUpdated: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           statusPageId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+        });
 
       for (const group of groupsBeingUpdated) {
         if (!group.id || !group.statusPageId) {
@@ -394,10 +365,13 @@ export class Service extends ProjectReferencesService<Model> {
      */
     let move: GroupMove | null = null;
 
-    if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
+    // The one row an update names by its id is the one it moves.
+    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
+
+    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
       const group: Model | null = await this.findOneBy({
         query: {
-          _id: updateBy.query._id!,
+          _id: movedId,
         },
         props: {
           isRoot: true,

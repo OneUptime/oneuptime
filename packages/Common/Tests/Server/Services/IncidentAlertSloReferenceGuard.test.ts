@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import fs from "fs";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Incident.serviceLevelObjectives and Alert.serviceLevelObjectives are
@@ -106,6 +107,11 @@ const CASES: Array<RecordCase> = [
     },
     mockFindBy: (rows: Array<Incident | Alert>): void => {
       jest.spyOn(IncidentService, "findBy").mockResolvedValue(rows as never);
+      // The rows a teammate's update may write: the same ones.
+      stubRowsCallerMayWriteLikeFindBy(
+        IncidentService,
+        jest.spyOn(IncidentService, "findBy"),
+      );
     },
   },
   {
@@ -134,6 +140,11 @@ const CASES: Array<RecordCase> = [
     },
     mockFindBy: (rows: Array<Incident | Alert>): void => {
       jest.spyOn(AlertService, "findBy").mockResolvedValue(rows as never);
+      // The rows a teammate's update may write: the same ones.
+      stubRowsCallerMayWriteLikeFindBy(
+        AlertService,
+        jest.spyOn(AlertService, "findBy"),
+      );
     },
   },
 ];

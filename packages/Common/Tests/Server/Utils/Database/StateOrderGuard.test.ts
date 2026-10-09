@@ -49,6 +49,11 @@ interface FakeService {
   findAllByQueries: Array<Record<string, unknown>>;
   findAllBySelects: Array<Record<string, unknown>>;
   findByQueries: Array<Record<string, unknown>>;
+  // The reads of the rows an update writes, each holding the update to them.
+  holds: Array<{
+    updateBy: UpdateBy<BaseModel>;
+    select: Record<string, unknown>;
+  }>;
   service: never;
 }
 
@@ -64,6 +69,7 @@ const fakeService: (
     findAllByQueries: [],
     findAllBySelects: [],
     findByQueries: [],
+    holds: [],
     service: undefined as never,
   };
 
@@ -98,6 +104,28 @@ const fakeService: (
       return fake.rows
         .filter((row: FakeRow) => {
           return inProject(row, args.query["projectId"]);
+        })
+        .map(toModel);
+    },
+    /*
+     * The rows the update writes: those it names that the caller may write,
+     * which for a teammate are in their own project.
+     */
+    findRowsAndHoldUpdateToThem: async (
+      updateBy: UpdateBy<BaseModel>,
+      select: Record<string, unknown>,
+    ): Promise<Array<BaseModel>> => {
+      fake.holds.push({ updateBy, select });
+      const query: Record<string, unknown> = updateBy.query as Record<
+        string,
+        unknown
+      >;
+      return fake.rows
+        .filter((row: FakeRow) => {
+          return (
+            inProject(row, updateBy.props.tenantId) &&
+            (query["_id"] === undefined || row._id === query["_id"]?.toString())
+          );
         })
         .map(toModel);
     },
@@ -546,6 +574,7 @@ describe("StateOrderGuard.beforeUpdate", () => {
       update(fake, id(4), { name: "Closed", color: "#000000" }),
     ).resolves.toBeUndefined();
 
+    expect(fake.holds).toHaveLength(0);
     expect(fake.findByQueries).toHaveLength(0);
     expect(fake.findAllByQueries).toHaveLength(0);
   });
@@ -555,16 +584,19 @@ describe("StateOrderGuard.beforeUpdate", () => {
       update(fake, id(4), { order: 1 }, { isRoot: true }),
     ).resolves.toBeUndefined();
 
+    expect(fake.holds).toHaveLength(0);
     expect(fake.findByQueries).toHaveLength(0);
   });
 
-  test("the moved row is read in the caller's project, never another", async () => {
+  test("the moved row is read by the update's own query, and the update is held to what was read", async () => {
     await update(fake, id(2), { order: 1 });
 
-    expect(fake.findByQueries[0]!["projectId"]?.toString()).toBe(
-      PROJECT_ID.toString(),
-    );
-    expect(fake.findByQueries[0]!["_id"]).toBe(id(2));
+    expect(fake.holds).toHaveLength(1);
+    expect(
+      (fake.holds[0]!.updateBy.query as Record<string, unknown>)["_id"],
+    ).toBe(id(2));
+    expect(fake.holds[0]!.select).toEqual({ _id: true, projectId: true });
+    expect(fake.findByQueries).toHaveLength(0);
   });
 
   test("another project's state is not found, so nothing about it is told", async () => {
@@ -608,6 +640,7 @@ describe("StateOrderGuard.beforeUpdate", () => {
       }),
     ).resolves.toBeUndefined();
 
+    expect(statuses.holds).toHaveLength(0);
     expect(statuses.findByQueries).toHaveLength(0);
   });
 });

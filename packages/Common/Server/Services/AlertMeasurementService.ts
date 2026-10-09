@@ -157,9 +157,9 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const existingItems: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const existingItems: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         projectId: true,
         startAnchorType: true,
         endAnchorType: true,
@@ -172,10 +172,7 @@ export class Service extends ProjectReferencesService<Model> {
         isEnabled: true,
         unit: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
 
     let changesDefinition: boolean = false;
 

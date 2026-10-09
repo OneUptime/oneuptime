@@ -1086,27 +1086,13 @@ export class Service extends ProjectReferencesService<Model> {
       ? this.readParentId(data)
       : null;
 
-    const updateLimit: number =
-      updateBy.limit instanceof PositiveNumber
-        ? updateBy.limit.toNumber()
-        : updateBy.limit || LIMIT_MAX;
-    const updateSkip: number =
-      updateBy.skip instanceof PositiveNumber
-        ? updateBy.skip.toNumber()
-        : updateBy.skip || 0;
-
-    const networkSiteTypesBeingUpdated: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-      select: {
+    const networkSiteTypesBeingUpdated: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         projectId: true,
         parentNetworkSiteTypeId: true,
         isUnitLevel: true,
-      },
-      limit: updateLimit,
-      skip: updateSkip,
-      props: { isRoot: true },
-    });
+      });
 
     if (isProjectWritten) {
       for (const networkSiteType of networkSiteTypesBeingUpdated) {

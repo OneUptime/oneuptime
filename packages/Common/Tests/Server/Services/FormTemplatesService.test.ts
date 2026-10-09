@@ -31,6 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * What FormService lets into a form's templates (Form.templates), whoever
@@ -211,6 +212,11 @@ beforeEach(() => {
   > => {
     return storedForms;
   }) as never);
+  // The forms a teammate's update may write: the stored ones.
+  stubRowsCallerMayWriteLikeFindBy(
+    FormService,
+    jest.spyOn(FormService, "findBy"),
+  );
 
   buildPublicFormFor = jest.spyOn(
     FormService,

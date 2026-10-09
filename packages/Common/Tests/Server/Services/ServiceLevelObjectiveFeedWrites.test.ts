@@ -53,6 +53,10 @@ import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -542,6 +546,8 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - the before-snapshot", ()
     findBySpy = jest
       .spyOn(ServiceLevelObjectiveService, "findBy")
       .mockResolvedValue([sloRow({ targetPercentage: 99.9 })]);
+    // The SLOs a teammate's update may write: what the read above answers.
+    stubRowsCallerMayWriteLikeFindBy(ServiceLevelObjectiveService, findBySpy);
     stubProjectDirectory({});
   });
 
@@ -611,7 +617,7 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - the before-snapshot", ()
     expect(findBySpy).not.toHaveBeenCalled();
   });
 
-  test("a watched edit reads the matched SLOs once, as root, through the caller's own query pinned to the caller's project", async () => {
+  test("a watched edit reads the matched SLOs once, as root, among those the caller may write in their project", async () => {
     const onUpdate: { carryForward: { feedSnapshot: SnapshotShape } } =
       (await callHook(
         "onBeforeUpdate",
@@ -638,17 +644,21 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - the before-snapshot", ()
     };
 
     /*
-     * Pinned to the caller's project: this hook runs before DatabaseService
-     * applies permissions, so the raw query could otherwise match an SLO in a
-     * project the caller cannot see.
+     * Among the SLOs the caller may write, found in the caller's project:
+     * this hook runs before DatabaseService applies permissions, so the raw
+     * query could otherwise match an SLO in a project the caller cannot see.
      */
-    expect(findByArgs.query).toEqual({
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveService)[0]!.query,
+    ).toEqual({
       _id: SLO_ID.toString(),
       projectId: PROJECT_ID,
     });
+    // Then those, by id.
+    expect(findByArgs.query).toEqual({ _id: SLO_ID.toString() });
     expect(findByArgs.limit).toBe(1);
     expect(findByArgs.skip).toBe(0);
-    expect(findByArgs.props).toEqual({ isRoot: true });
+    expect(findByArgs.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(findByArgs.select).toEqual({
       _id: true,
       projectId: true,
@@ -738,6 +748,11 @@ describe("ServiceLevelObjectiveService - the items an update posts", () => {
     jest
       .spyOn(ServiceLevelObjectiveService, "findBy")
       .mockResolvedValue(data.before);
+    // The SLOs a teammate's update may write: the ones before the write.
+    stubRowsCallerMayWriteLikeFindBy(
+      ServiceLevelObjectiveService,
+      jest.spyOn(ServiceLevelObjectiveService, "findBy"),
+    );
     jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(data.after);
@@ -1112,6 +1127,11 @@ describe("ServiceLevelObjectiveService - the items an update posts", () => {
         sloRow({ name: "First" }),
         sloRow({ name: "Second" }, OTHER_SLO_ID),
       ]);
+    // The SLOs a teammate's update may write: both.
+    stubRowsCallerMayWriteLikeFindBy(
+      ServiceLevelObjectiveService,
+      jest.spyOn(ServiceLevelObjectiveService, "findBy"),
+    );
     jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockRejectedValueOnce(new Error("row locked"))

@@ -1,11 +1,9 @@
 import DatabaseService from "../../Services/DatabaseService";
 import CreateBy from "../../Types/Database/CreateBy";
-import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
@@ -273,11 +271,11 @@ export default class ProjectReferenceCheck {
    *
    * With a tenant - the caller's own project, the common case - the ids are
    * checked first, and only those that are not the project's are looked for
-   * among what the matched records of that project hold: an update that
-   * names only the project's records reads nothing else. Hooks run before
-   * the tenant narrows the query, so that read is pinned to the tenant here.
-   * A root or master admin update with no tenant is checked against each
-   * matched record's own project.
+   * among what the records of that project hold: an update that names only
+   * the project's records reads nothing else. A root or master admin update
+   * with no tenant is checked against each record's own project. Either
+   * way the records are the rows the update writes, read once and the
+   * update held to them (readHeldIds).
    */
   public static async validateUpdate<TModel extends DatabaseBaseModel>(data: {
     service: DatabaseService<TModel>;
@@ -340,10 +338,7 @@ export default class ProjectReferenceCheck {
 
       const heldIds: HeldRelationIds = await ProjectReferenceCheck.readHeldIds({
         service: data.service,
-        query: {
-          ...(data.updateBy.query as Dictionary<unknown>),
-          [tenantColumn]: tenantId,
-        } as unknown as Query<DatabaseBaseModel>,
+        updateBy: data.updateBy,
         references: unavailable,
         jsonReferenceColumns: data.jsonReferenceColumns,
       });
@@ -372,7 +367,7 @@ export default class ProjectReferenceCheck {
 
     const heldIds: HeldRelationIds = await ProjectReferenceCheck.readHeldIds({
       service: data.service,
-      query: data.updateBy.query as unknown as Query<DatabaseBaseModel>,
+      updateBy: data.updateBy,
       references: references,
       jsonReferenceColumns: data.jsonReferenceColumns,
     });
@@ -473,18 +468,19 @@ export default class ProjectReferenceCheck {
   }
 
   /*
-   * Per project, per column, the ids every record the query matches already
+   * Per project, per column, the ids every record the update writes already
    * holds: lists and relations through getHeldRelationIds, a JSON column by
-   * reading it and the references it names. All read as root.
+   * reading it and the references it names. The records are the rows the
+   * update writes, and the update is held to them
+   * (DatabaseService.findRowsAndHoldUpdateToThem). All read as root.
    */
   private static async readHeldIds<TModel extends DatabaseBaseModel>(data: {
     service: DatabaseService<TModel>;
-    query: Query<DatabaseBaseModel>;
+    updateBy: UpdateBy<TModel>;
     references: Array<ColumnReference>;
     jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
   }): Promise<HeldRelationIds> {
-    const service: DatabaseService<DatabaseBaseModel> =
-      data.service as unknown as DatabaseService<DatabaseBaseModel>;
+    const service: DatabaseService<TModel> = data.service;
 
     const columns: Set<string> = new Set<string>(
       data.references.map((reference: ColumnReference): string => {
@@ -509,7 +505,7 @@ export default class ProjectReferenceCheck {
     const heldIds: HeldRelationIds =
       await ProjectScopedReferenceValidator.getHeldRelationIds({
         service: service,
-        query: data.query,
+        updateBy: data.updateBy,
         columns: Array.from(columns).filter((column: string): boolean => {
           return !isJsonColumn(column);
         }),
@@ -530,15 +526,11 @@ export default class ProjectReferenceCheck {
       select[jsonColumn.column] = true;
     }
 
-    const records: Array<DatabaseBaseModel> = await service.findBy({
-      query: data.query,
-      select: select as Select<DatabaseBaseModel>,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    // The rows the update writes, read within those it is held to.
+    const records: Array<TModel> = await service.findRowsAndHoldUpdateToThem(
+      data.updateBy,
+      select as Select<TModel>,
+    );
 
     for (const jsonColumn of jsonColumns) {
       // Per project, the ids every record read so far holds in this column.

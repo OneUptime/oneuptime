@@ -43,6 +43,17 @@ const hosts = [
   { ipAddress: "10.240.0.221", sysName: "WBHQ-Core-02", sysDescr: "Core switch", snmpReachable: true },
   { ipAddress: "10.240.0.222", snmpReachable: false },
 ];
+/*
+ * Issue #4518: Windows kitchen displays whose reverse zone spells them
+ * differently from the names their owners use. One answers SNMP, two answer
+ * NetBIOS, one answers nothing.
+ */
+const kitchenDisplays = [
+  { ipAddress: "10.16.42.52", snmpReachable: false, dnsHostnameStatus: "no-record", netbiosNameStatus: "no-reply" },
+  { ipAddress: "10.16.42.53", snmpReachable: true, sysName: "WB0024KDS03", dnsHostname: "wb-0024-kds03.wbhq.com", sysDescr: "Kitchen display, store 24" },
+  { ipAddress: "10.16.42.54", snmpReachable: false, dnsHostname: "wb-0024-kds04.wbhq.com", netbiosName: "WB0024KDS04" },
+  { ipAddress: "10.16.42.55", snmpReachable: false, dnsHostname: "wb-0024-kds05.wbhq.com", netbiosName: "WB0024KDS05" },
+];
 function scan(index, fields) {
   const item = new NetworkDeviceDiscoveryScan();
   Object.assign(item, {
@@ -75,6 +86,8 @@ const scans = [
   scan(6, { name: "Router Discovery — WBHQ Unit/Core Routers", cidr: "10.240-249.0-255.1", status: "Completed", scannedHostCount: 2560, completedAt: new Date(), statusMessage: "Swept 2560 hosts: 917 answered ICMP ping, 460 answered SNMP." }),
   // A summary with diagnostics, which the two-line preview has to cut short.
   scan(7, { name: "Access Discovery — WBHQ Unit/Access Switches", cidr: "10.250.0.0/24", status: "Completed", scannedHostCount: 254, completedAt: new Date(), statusMessage: "Swept 254 hosts: 41 answered ICMP ping, 3 answered SNMP. 12 host(s) replied with an SNMP error rather than silence; most common: Authentication failure (incorrect password, community or key). Answered by credentials: Core v3 on 3. No host answered: Legacy v2c community." }),
+  // Issue #4518: each display named by its own hostname.
+  scan(8, { name: "Kitchen displays — Store 24", cidr: "10.16.42.51-65", status: "Completed", scannedHostCount: 15, respondedHostCount: kitchenDisplays.length, completedAt: new Date(), isNetbiosLookupEnabled: true, useShortDeviceNames: true, discoveredDevices: kitchenDisplays, statusMessage: "Swept 15 hosts: 4 answered ICMP ping, 1 answered SNMP." }),
 ];
 /*
  * The Devices list, for what happens after an import: setting a site, a role
@@ -213,6 +226,10 @@ ModelAPI.create = async ({ model }) => {
     hostname: model.hostname,
     name: model.name,
     autoApplyVendorHealthTemplate: model.autoApplyVendorHealthTemplate === true,
+    // Issue #4518: what the device is named after, as the import posts it.
+    dnsName: model.dnsName || null,
+    discoveredName: model.discoveredName || null,
+    discoveredNameSource: model.discoveredNameSource || null,
   });
   return { data: model };
 };

@@ -184,7 +184,11 @@ export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
   ],
   StatusPage: ["sendNextReportBy"],
   InventoryItem: ["firstSeenAt"],
-  NetworkDevice: ["isMacAddressLearned"],
+  NetworkDevice: [
+    "isMacAddressLearned",
+    "discoveredName",
+    "discoveredNameSource",
+  ],
 };
 
 /*

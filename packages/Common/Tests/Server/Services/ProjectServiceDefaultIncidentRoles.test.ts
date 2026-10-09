@@ -20,6 +20,19 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { SpyInstance } from "jest-mock";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentRoleService,
+    jest.spyOn(IncidentRoleService, "findBy"),
+  );
+});
 
 /*
  * The incident roles a new project starts with.
@@ -336,9 +349,10 @@ describe("the server rules Incident Commander lives by", () => {
     const commander: IncidentRole = await seededCommander();
     commander._id = ObjectID.generate().toString();
 
+    // The roles the update writes: this one.
     jest
-      .spyOn(IncidentRoleService, "findOneById")
-      .mockResolvedValue(commander as never);
+      .spyOn(IncidentRoleService, "findBy")
+      .mockResolvedValue([commander] as never);
 
     const updateBy: UpdateBy<IncidentRole> = {
       query: { _id: commander._id },

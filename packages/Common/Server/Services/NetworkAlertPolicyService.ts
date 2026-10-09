@@ -354,36 +354,25 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The policies an update's query matches, read as root — onBeforeUpdate
-   * runs before DatabaseService has permission-checked the query — and
-   * therefore re-scoped to the caller's own tenant first, so a guessed id
-   * from another project cannot become a state oracle through the checks
-   * that follow.
+   * The policies the update writes - the ones its caller may write - with
+   * the update held to them (findRowsAndHoldUpdateToThem): a guessed id from
+   * another project reads nothing, so it cannot become a state oracle
+   * through the checks that follow, and a policy those checks did not see
+   * is not written.
    */
   private async getMatchedPoliciesForUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<Model>> {
-    return await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
-        _id: true,
-        projectId: true,
-        /*
-         * The two columns onUpdateSuccess compares the payload against. Both
-         * are read here rather than in the success hook because by then the
-         * new values are already on the row.
-         */
-        isEnabled: true,
-        monitorTemplateId: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
+    return await this.findRowsAndHoldUpdateToThem(updateBy, {
+      _id: true,
+      projectId: true,
+      /*
+       * The two columns onUpdateSuccess compares the payload against. Both
+       * are read here rather than in the success hook because by then the
+       * new values are already on the row.
+       */
+      isEnabled: true,
+      monitorTemplateId: true,
     });
   }
 

@@ -43,6 +43,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * A grouping rule's Episode Owners (episodeOwnerUsers, episodeOwnerTeams)
@@ -773,6 +774,10 @@ describe.each(RULE_SERVICES)("$label", (ruleService: RuleServiceCase) => {
       .mockImplementation((async (): Promise<Array<BaseModel>> => {
         return storedRules;
       }) as never);
+    // The rules a teammate's update may write: the stored ones.
+    stubRowsCallerMayWrite(ruleService.service as never, () => {
+      return storedRules;
+    });
   });
 
   function titleOf(column: string): string {
@@ -1191,6 +1196,10 @@ describe("IncidentGroupingRuleService member role assignments", () => {
       .mockImplementation((async (): Promise<Array<BaseModel>> => {
         return storedRules;
       }) as never);
+    // The rules a teammate's update may write: the stored ones.
+    stubRowsCallerMayWrite(IncidentGroupingRuleService, () => {
+      return storedRules;
+    });
   });
 
   function createWith(assignments: Array<Record<string, string>>): unknown {

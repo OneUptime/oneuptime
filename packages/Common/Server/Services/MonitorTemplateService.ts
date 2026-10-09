@@ -214,20 +214,14 @@ export class Service extends ProjectReferencesService<Model> {
      * own currently-stored ids — see MonitorService.onBeforeUpdate for why the
      * stored ids matter.
      */
-    const templates: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const templates: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         projectId: true,
         monitorSteps: true,
         monitorType: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     if (updateBy.data.monitorSteps) {
       const projectIds: Set<string> = new Set<string>(
