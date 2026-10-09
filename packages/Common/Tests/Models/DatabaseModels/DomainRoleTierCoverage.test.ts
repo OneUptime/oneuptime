@@ -83,6 +83,15 @@ const DOMAIN_BY_MODEL: Record<string, string> = {
    */
   SecurityEventConnection: "Security",
   SecurityEventConnectionRun: "Security",
+
+  /*
+   * Huntress connections and the incident reports they received. They are
+   * sources of incidents, not SIEM data: a security incident a Huntress
+   * analyst reports becomes an ordinary incident that pages on-call, so
+   * whoever reads incidents reads why one was (or was not) opened.
+   */
+  HuntressConnection: "Incident",
+  HuntressIncidentReport: "Incident",
 };
 
 /*

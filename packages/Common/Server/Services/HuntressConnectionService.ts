@@ -89,9 +89,9 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+    await super.onBeforeCreate(createBy);
 
-    const data: Model = onCreate.createBy.data;
+    const data: Model = createBy.data;
 
     Service.checkPageOnCallFor(data.pageOnCallFor);
     Service.checkWatchedOrganizations(data.watchedOrganizations);
@@ -106,16 +106,16 @@ export class Service extends ProjectReferencesService<Model> {
       data.isSigningSecretSet = false;
     }
 
-    return onCreate;
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
+    await super.onBeforeUpdate(updateBy);
 
-    const data: Record<string, unknown> = onUpdate.updateBy.data as Record<
+    const data: Record<string, unknown> = updateBy.data as Record<
       string,
       unknown
     >;
@@ -123,10 +123,15 @@ export class Service extends ProjectReferencesService<Model> {
     Service.checkPageOnCallFor(data["pageOnCallFor"]);
     Service.checkWatchedOrganizations(data["watchedOrganizations"]);
 
+    const sentSecret: boolean = Object.prototype.hasOwnProperty.call(
+      data,
+      "signingSecret",
+    );
+
     // Only the secret decides this, never the request.
     delete data["isSigningSecretSet"];
 
-    if (Object.prototype.hasOwnProperty.call(data, "signingSecret")) {
+    if (sentSecret) {
       const secret: string | null = Service.readSigningSecret(
         data["signingSecret"],
       );
@@ -137,16 +142,19 @@ export class Service extends ProjectReferencesService<Model> {
       } else {
         // An empty secret keeps the saved one.
         delete data["signingSecret"];
-
-        if (Object.keys(data).length === 0) {
-          throw new BadDataException(
-            "Paste the endpoint's signing secret from Huntress to save it.",
-          );
-        }
       }
     }
 
-    return onUpdate;
+    // Left with nothing to write: say what was meant, not "no values".
+    if (Object.keys(data).length === 0) {
+      throw new BadDataException(
+        sentSecret
+          ? "Paste the endpoint's signing secret from Huntress to save it."
+          : "Signing Secret Saved follows the signing secret. Save a signing secret instead.",
+      );
+    }
+
+    return { updateBy, carryForward: null };
   }
 }
 
