@@ -21,7 +21,7 @@ There are five ways an incident gets into OneUptime, and they all end up in the 
 | Open one from your own code, a script, or another tool       | `POST /api/incident`                                                        |
 | Let people outside your team report a problem through a link | A [form](/docs/forms/index)                                                 |
 
-All five write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones.
+All five write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones. Integrations write it too: [Huntress](/docs/integrations/huntress) opens one incident for each incident report its SOC sends.
 
 > [!TIP]
 > You can also declare an incident from alerts: **Declare Incident** on an alerts list, in an alert's header or on an alert's **Linked Incidents** page opens the same wizard, prefilled from the alerts, and links them to the new incident. A box on the form, ticked by default, also acknowledges the alerts, so they stop escalating. See [Linked Alerts](/docs/incidents/linked-alerts).
@@ -192,7 +192,7 @@ An incident a monitor declares is linked to what the monitor watches: whatever i
 
 ## Declaring through the API
 
-The incident model exposes a standard CRUD endpoint, so `POST /api/incident` creates one. Authenticate with an API key generated at **Project Settings → API Keys**, sent in the `apikey` header — the key identifies the project, so you do not need to pass a project id separately.
+The incident model exposes a standard CRUD endpoint, so `POST /api/incident` creates one. Authenticate with an API key generated at **Project Settings → Advanced → API Keys**, sent in the `apikey` header — the key identifies the project, so you do not need to pass a project id separately.
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -290,7 +290,7 @@ flowchart TB
     over --> quiet["No grouping, runbooks, AI, channel or SLA"]
 ```
 
-- **At or past your acknowledged state** — **Acknowledged**, or any state placed below it at **Incidents → Settings → Incident States** — no on-call policy runs, so no one is paged. The incident still lists its policies, the ones you picked and the ones on-call rules add, and its feed says why in one line: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Its SLA, if a rule gives it one, starts already responded to. Everything else below runs as for any new incident.
+- **At or past your acknowledged state** — **Acknowledged**, or any state placed below it at **Incidents → Settings → Incident State** — no on-call policy runs, so no one is paged. The incident still lists its policies, the ones you picked and the ones on-call rules add, and its feed says why in one line: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Its SLA, if a rule gives it one, starts already responded to. Everything else below runs as for any new incident.
 - **At or past your resolved state** — **Resolved**, or any state placed below it — the incident is over, so on top of that nothing that answers a live incident runs:
   - it is not grouped into an episode, which could page again;
   - no runbook rule and no auto-remediation rule acts on it;

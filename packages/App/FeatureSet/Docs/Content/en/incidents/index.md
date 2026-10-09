@@ -16,7 +16,7 @@ An incident is the record your team works from when something breaks: what is af
 - **Three seeded states** — **Identified**, **Acknowledged** and **Resolved** are created for every new project. You can add your own; the three seeded ones can be renamed and recolored but never deleted.
 - **Three seeded severities** — **Critical Incident**, **Major Incident** and **Minor Incident**. Severity is a label with a color and an order — it carries no behavior of its own.
 - **Five ways in** — the **Declare Incident** wizard, **Create from Template**, a monitor criteria rule, `POST /api/incident`, or a [form](/docs/forms/index) that anyone with its link can fill in.
-- **Numbered per project** — every incident gets an incident number, rendered as `#42` by default or with your own prefix, like `INC-42`.
+- **Numbered per project** — every incident gets an incident number from a per-project counter, shown with your project's prefix: `INC-42` in a new project, or `#42` with no prefix.
 - **Two kinds of notes** — private notes (internal notes) for your team, public notes for status page subscribers.
 - **Alerts link to incidents** — link the alerts that are part of an incident, or declare an incident straight from alerts — from an alerts list or from an alert's own page — and acknowledge them as you do. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Settings live under Incidents, not Project Settings** — states, severities, templates, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
@@ -56,7 +56,7 @@ Five routes lead to the same object:
 - **Over the API** — `POST /api/incident` with an API key. The server fills in `declaredAt`, the created state, and the incident number for you.
 - **Through a form** — somebody outside your team fills in a form you shared as a link, without a OneUptime account. The incident is declared hidden from status pages, from the form's incident template if it has one. See [Forms](/docs/forms/index).
 
-See [Declaring an Incident](/docs/incidents/declaring-incidents) for the field-by-field walkthrough.
+Integrations open incidents too: [Huntress](/docs/integrations/huntress) turns each incident report its SOC sends into one incident, which pages the on-call policies you pick. See [Declaring an Incident](/docs/incidents/declaring-incidents) for the field-by-field walkthrough.
 
 ### 2. The right people find out
 
@@ -156,10 +156,11 @@ Open **Incidents** from the **Products** menu in the top bar. Its side menu is o
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
 | **AI**        | **Insights**, **Logs**, **Settings**: what OneUptime AI learned from your incidents and everything it did for them, and what it may do on its own — with the rules for which incidents it investigates and fixes. See [AI SRE](/docs/ai/ai-sre). |
 | **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** or both, each with its notification rules for incidents. With neither connected, it holds **Connect Slack or Teams**, a page showing both and how to connect them. |
+| **Integrations** | Tools that open incidents on their own: **Huntress**, whose incident reports become incidents that page on-call. See [Huntress](/docs/integrations/huntress). |
 | **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
 | **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Number Prefix**. |
 
-**Overview** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
+**Overview** and **Episodes** are open; **AI**, **Workspace**, **Integrations**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
 
 The incidents list itself shows **Incident Number**, **Title**, **State**, **Severity**, **Resources Affected**, **Declared**, **Duration**, **Labels** and **Owners**, with a **Change State** bulk action for closing several at once.
 
@@ -179,7 +180,7 @@ Open an incident and its own side menu groups its pages like this:
 
 What each one holds:
 
-- **Overview** — the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies, and the incident's ID on a small **ID** line at its foot, one click from your clipboard), an **Affected Resources** card, and the **Incident Feed**. Above them, stat tiles for time to acknowledge, time to resolve, and total **Duration**. When your project has [measurements](/docs/incidents/settings#measurements), a **Measurements** card under **Incident Details** says what each one reads for this incident: **12 minutes**, **Running for 5 minutes**, **Not reached**.
+- **Overview** — the response at a glance. Under the header, stat tiles show time to acknowledge, time to resolve and total **Duration**. The **AI Investigation** card leads the page — what OneUptime AI found, or why it did not start — with the **Incident Feed** below it. Beside them sit the **Video Call** card, the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies, and the incident's ID on a small **ID** line at its foot, one click from your clipboard), **Incident Roles**, an **Affected Resources** card and the incident's custom fields. When your project has [measurements](/docs/incidents/settings#measurements), a **Measurements** card under **Incident Details** says what each one reads for this incident: **12 minutes**, **Running for 5 minutes**, **Not reached**.
 - **State Timeline** — every state the incident has been in, with **Starts At**, **Ends At**, **Duration** and the subscriber notification status for each transition. **View Cause** and **View Logs** explain why each change happened.
 - **SLA** — SLA tracking for this incident.
 - **Description**, **Root Cause**, **Remediation** — three markdown pages. The description is the one that shows on your status page.

@@ -136,6 +136,8 @@ The composer has a **Draft with AI** button, on both note pages and in the feed'
 
 Behind the button, the dashboard posts to `/incident/generate-note-from-ai/{incidentId}` with the chosen template and a note type of `public` or `internal`.
 
+What is sent is the incident's text. An image or a file embedded in it — a screenshot pasted into the description, say — is replaced by a short note such as `[image omitted: PNG, 340 KB]`, and each text field is cut to 16,000 characters, so one large paste never crowds out the rest. The incident itself keeps its images.
+
 ## Note templates
 
 If your team writes the same three updates every outage, save them once. The composer's **Templates** menu lists them, on both note pages and in the feed's note dialogs, and picking one puts it into the note.
