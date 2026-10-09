@@ -13,14 +13,22 @@ enum ToolImportSource {
   PagerDuty = "PagerDuty",
   SplunkOnCall = "SplunkOnCall",
   GrafanaOnCall = "GrafanaOnCall",
+  UptimeRobot = "UptimeRobot",
+  Pingdom = "Pingdom",
+  BetterStack = "BetterStack",
+  StatusCake = "StatusCake",
+  UptimeKuma = "UptimeKuma",
+  AtlassianStatuspage = "AtlassianStatuspage",
 }
 
 export default ToolImportSource;
 
 /*
- * Every tool, in the order the page offers them and the docs list them:
- * Opsgenie first, because Atlassian is retiring it, then the on-call tools
- * teams most often leave.
+ * Every tool, in the order the page offers them and the docs list them. The
+ * on-call and incident tools come first - Opsgenie first, because Atlassian
+ * is retiring it, then the on-call tools teams most often leave - and the
+ * uptime monitoring and status page tools after them, the most used first.
+ * The page shows the two groups apart (ToolImportCatalog's category).
  */
 export const AllToolImportSources: Array<ToolImportSource> = [
   ToolImportSource.OpsGenie,
@@ -28,6 +36,12 @@ export const AllToolImportSources: Array<ToolImportSource> = [
   ToolImportSource.IncidentIo,
   ToolImportSource.SplunkOnCall,
   ToolImportSource.GrafanaOnCall,
+  ToolImportSource.UptimeRobot,
+  ToolImportSource.AtlassianStatuspage,
+  ToolImportSource.BetterStack,
+  ToolImportSource.Pingdom,
+  ToolImportSource.StatusCake,
+  ToolImportSource.UptimeKuma,
 ];
 
 export function isToolImportSource(value: unknown): value is ToolImportSource {

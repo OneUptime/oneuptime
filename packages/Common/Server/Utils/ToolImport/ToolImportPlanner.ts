@@ -1,7 +1,16 @@
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import {
+  TOOL_IMPORT_KINDS_OUTSIDE_TOTAL,
   TOOL_IMPORT_MAX_ITEMS,
   TOOL_IMPORT_MAX_ITEMS_PER_KIND,
 } from "../../../Types/ToolImport/ToolImportLimits";
+import {
+  getToolImportMonitorMatchKey,
+  getToolImportMonitorProblem,
+} from "../../../Types/ToolImport/ToolImportMonitorBuilder";
+import { toMonitoringInterval } from "../../../Types/ToolImport/ToolImportMonitorRules";
 import {
   makeToolImportNote,
   ToolImportNote,
@@ -24,18 +33,25 @@ import {
   resolveImportedTimezone,
 } from "../../../Types/ToolImport/ToolImportScheduleRules";
 import {
+  getToolImportSnapshotMonitors,
+  getToolImportSnapshotStatusPages,
+  getToolImportSnapshotSubscribers,
   ImportedIncidentCustomField,
   ImportedIncidentRole,
   ImportedIncidentRoleKind,
   ImportedIncidentSeverity,
   ImportedIncidentState,
   ImportedIncidentStateKind,
+  ImportedMonitor,
   ImportedPerson,
   ImportedPolicy,
   ImportedPolicyLevel,
   ImportedRotation,
   ImportedSchedule,
   ImportedService,
+  ImportedStatusPage,
+  ImportedStatusPageResource,
+  ImportedStatusPageSubscriber,
   ImportedTeam,
   ToolImportSnapshot,
 } from "../../../Types/ToolImport/ToolImportSnapshot";
@@ -71,6 +87,20 @@ import {
  *  - At most TOOL_IMPORT_MAX_ITEMS_PER_KIND of each kind, and
  *    TOOL_IMPORT_MAX_ITEMS in all, are created by one import; the rest are
  *    skipped with the limit, for the next import to bring over.
+ *
+ * And for what uptime and status page tools bring:
+ *
+ *  - A monitor is matched to one the project has only when its type, its
+ *    name and what it checks all match: two monitors called "Homepage"
+ *    that check different sites are two monitors. A check OneUptime has no
+ *    monitor for, or whose address it cannot read, is named as not brought
+ *    over, never dropped.
+ *  - The project's plan counts monitors that are checked, status pages and
+ *    subscribers as it counts hand-made ones (planRoomByKind): what does
+ *    not fit is skipped with the plan's limit. Manual monitors are free.
+ *  - A monitor paused in the tool is offered unticked, and status page
+ *    subscribers are always offered unticked: they come over only when the
+ *    person ticks them and confirms they may move them.
  */
 
 // A record already in the project, by id and name.
@@ -89,6 +119,19 @@ export interface ToolImportPreviousRecord {
   stillExists: boolean;
 }
 
+/*
+ * A monitor already in the project, with what it checks: an imported check
+ * is the same monitor only when its type, its name and its address all
+ * match (getToolImportMonitorMatchKey).
+ */
+export interface ToolImportExistingMonitor {
+  id: string;
+  name: string;
+  monitorType: string;
+  // getToolImportMonitorMatchKey of what it checks; null when it checks no address.
+  addressKey: string | null;
+}
+
 export interface ToolImportProjectState {
   // Members of the project (any team, invitations included) by lowercase email.
   memberUserIdsByEmail: Map<string, string>;
@@ -101,6 +144,16 @@ export interface ToolImportProjectState {
   primaryIncidentRole: ToolImportExistingRecord | null;
   // Every record an earlier import of this tool brought over.
   previousRecords: Array<ToolImportPreviousRecord>;
+  // The project's monitors, with what they check. None read: none matched.
+  existingMonitors?: Array<ToolImportExistingMonitor> | undefined;
+  // Each status page's email subscribers (lowercase), by the page's id.
+  subscriberEmailsByStatusPageId?: Map<string, Set<string>> | undefined;
+}
+
+// How many more of a kind the project's plan has room for, and its limit.
+export interface ToolImportPlanRoom {
+  room: number;
+  limit: number;
 }
 
 export interface ToolImportAccess {
@@ -112,7 +165,29 @@ export interface ToolImportAccess {
   defaultInviteTeamId: string | null;
   // The project is on the Free plan of a billed install: one level per policy.
   isLimitedToOneLevelPerPolicy: boolean;
+  /*
+   * Kinds the project's plan counts (monitors, status pages and
+   * subscribers on the Free plan of a billed install): how many more fit.
+   * A kind not here has no such limit.
+   */
+  planRoomByKind?: Map<ToolImportResourceKind, ToolImportPlanRoom> | undefined;
+  /*
+   * Why no monitor that is checked - every type but Manual - can be
+   * created (a billed install's Free plan with no payment method), or
+   * null.
+   */
+  checkedMonitorRefusal?: ToolImportNote | null | undefined;
 }
+
+// The plan-limit note of each kind the plan counts.
+const PLAN_LIMIT_NOTE_CODES: Partial<
+  Record<ToolImportResourceKind, ToolImportNoteCode>
+> = {
+  [ToolImportResourceKind.Monitor]: ToolImportNoteCode.MonitorPlanLimit,
+  [ToolImportResourceKind.StatusPage]: ToolImportNoteCode.StatusPagePlanLimit,
+  [ToolImportResourceKind.StatusPageSubscriber]:
+    ToolImportNoteCode.SubscriberPlanLimit,
+};
 
 const SPACES: RegExp = /\s+/g;
 
@@ -164,7 +239,17 @@ class PlanBuilder {
     ToolImportResourceKind,
     number
   >();
+  // How many of each kind the plan counts this import has taken room for.
+  private planRoomUsedByKind: Map<ToolImportResourceKind, number> = new Map<
+    ToolImportResourceKind,
+    number
+  >();
   private referencedPeople: Set<string> = new Set<string>();
+  // The plan item of each status page read, by its source id.
+  private statusPageItems: Map<string, ToolImportPlanItem> = new Map<
+    string,
+    ToolImportPlanItem
+  >();
 
   public constructor(
     snapshot: ToolImportSnapshot,
@@ -299,7 +384,326 @@ class PlanBuilder {
           this.planPolicy(policy);
         });
         return;
+      case ToolImportResourceKind.Monitor:
+        getToolImportSnapshotMonitors(this.snapshot).forEach(
+          (monitor: ImportedMonitor) => {
+            this.planMonitor(monitor);
+          },
+        );
+        return;
+      case ToolImportResourceKind.StatusPage:
+        getToolImportSnapshotStatusPages(this.snapshot).forEach(
+          (statusPage: ImportedStatusPage) => {
+            this.planStatusPage(statusPage);
+          },
+        );
+        return;
+      case ToolImportResourceKind.StatusPageSubscriber:
+        getToolImportSnapshotSubscribers(this.snapshot).forEach(
+          (subscriber: ImportedStatusPageSubscriber) => {
+            this.planSubscriber(subscriber);
+          },
+        );
+        return;
     }
+  }
+
+  /*
+   * A monitor. It comes over when OneUptime has a monitor that checks the
+   * same thing at an address it can read; it is the monitor the project
+   * already has when one of the same type and name checks the same
+   * address; and a monitor that is checked counts towards the plan's
+   * monitors, as one made by hand does. A monitor paused in the tool is
+   * offered unticked, and comes over paused.
+   */
+  private planMonitor(monitor: ImportedMonitor): void {
+    const isChecked: boolean = Boolean(
+      monitor.monitorType && monitor.monitorType !== MonitorType.Manual,
+    );
+    const summary: ToolImportItemSummary = {
+      monitorType: monitor.monitorType || undefined,
+      destination: monitor.destination || undefined,
+      intervalSeconds:
+        monitor.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+          ? toMonitoringInterval(monitor.intervalSeconds).seconds
+          : undefined,
+    };
+
+    const item: ToolImportPlanItem = this.newItem({
+      kind: ToolImportResourceKind.Monitor,
+      sourceId: monitor.sourceId,
+      name: monitor.name,
+      notes: monitor.notes,
+      summary: summary,
+      references: [],
+    });
+
+    if (monitor.skipReason) {
+      this.skip(item, monitor.skipReason);
+      return;
+    }
+
+    const problem: "type" | "address" | null =
+      getToolImportMonitorProblem(monitor);
+
+    if (problem === "type") {
+      this.skip(
+        item,
+        makeToolImportNote(ToolImportNoteCode.MonitorTypeNotSupported, {
+          type: monitor.sourceType,
+        }),
+      );
+      return;
+    }
+
+    if (problem === "address") {
+      this.skip(
+        item,
+        makeToolImportNote(ToolImportNoteCode.MonitorAddressUnreadable, {
+          address: monitor.destination || "",
+        }),
+      );
+      return;
+    }
+
+    if (this.takePrevious(item)) {
+      return;
+    }
+
+    const addressKey: string | null = getToolImportMonitorMatchKey(monitor);
+    const existing: ToolImportExistingMonitor | undefined = (
+      this.state.existingMonitors || []
+    ).find((candidate: ToolImportExistingMonitor): boolean => {
+      return (
+        candidate.monitorType === monitor.monitorType &&
+        candidate.addressKey === addressKey &&
+        normalizeImportName(candidate.name) === normalizeImportName(monitor.name)
+      );
+    });
+
+    if (existing) {
+      this.match(
+        item,
+        existing.id,
+        makeToolImportNote(ToolImportNoteCode.MonitorAlreadyChecked, {
+          name: existing.name,
+        }),
+      );
+      return;
+    }
+
+    const refusal: ToolImportNote | null | undefined =
+      this.access.createRefusals.get(ToolImportResourceKind.Monitor) ||
+      (isChecked ? this.access.checkedMonitorRefusal : null);
+
+    if (refusal) {
+      this.skip(item, refusal);
+      return;
+    }
+
+    // Manual monitors are free: the plan counts the ones that are checked.
+    const planLimit: ToolImportNote | null = isChecked
+      ? this.takePlanRoom(ToolImportResourceKind.Monitor)
+      : null;
+
+    if (planLimit) {
+      this.skip(item, planLimit);
+      return;
+    }
+
+    if (!this.takeCapacity(ToolImportResourceKind.Monitor)) {
+      this.skip(item, this.overLimit(ToolImportResourceKind.Monitor));
+      return;
+    }
+
+    item.action = ToolImportAction.Create;
+    item.isSelectable = true;
+    item.isSelectedByDefault = !monitor.isPaused;
+    this.items.push(item);
+  }
+
+  /*
+   * A status page, with the monitors it shows. It is the page the project
+   * already has when one has its name, and counts towards the plan's
+   * status pages.
+   */
+  private planStatusPage(statusPage: ImportedStatusPage): void {
+    const item: ToolImportPlanItem | null = this.planNamed({
+      kind: ToolImportResourceKind.StatusPage,
+      sourceId: statusPage.sourceId,
+      name: statusPage.name,
+      notes: statusPage.notes,
+      summary: {
+        resourceCount: statusPage.resources.length,
+        groupCount: statusPage.groups.length || undefined,
+      },
+      references: uniqueKeys(
+        statusPage.resources.map(
+          (resource: ImportedStatusPageResource): string => {
+            return getToolImportItemKey(
+              ToolImportResourceKind.Monitor,
+              resource.monitorSourceId,
+            );
+          },
+        ),
+      ),
+    });
+
+    if (item) {
+      this.statusPageItems.set(statusPage.sourceId, item);
+    }
+  }
+
+  /*
+   * Someone who gets a status page's updates by email. They follow the page
+   * the import brings over (or the one the project has of that name), and
+   * are offered unticked: subscribers come over only when the person ticks
+   * them and confirms they may move them (assertToolImportSubscribersConsent).
+   */
+  private planSubscriber(subscriber: ImportedStatusPageSubscriber): void {
+    const pageItem: ToolImportPlanItem | undefined = this.statusPageItems.get(
+      subscriber.statusPageSourceId,
+    );
+
+    const item: ToolImportPlanItem = this.newItem({
+      kind: ToolImportResourceKind.StatusPageSubscriber,
+      sourceId: subscriber.sourceId,
+      name: subscriber.email,
+      notes: subscriber.notes,
+      summary: {
+        email: subscriber.email,
+        statusPageName: pageItem?.name,
+      },
+      references: [
+        getToolImportItemKey(
+          ToolImportResourceKind.StatusPage,
+          subscriber.statusPageSourceId,
+        ),
+      ],
+    });
+
+    if (subscriber.skipReason) {
+      this.skip(item, subscriber.skipReason);
+      return;
+    }
+
+    if (!pageItem || pageItem.action === ToolImportAction.Skip) {
+      this.skip(
+        item,
+        makeToolImportNote(ToolImportNoteCode.SubscriberPageLeftOut),
+      );
+      return;
+    }
+
+    if (this.takePrevious(item)) {
+      return;
+    }
+
+    // Already following the page the project has: used as they are.
+    const pageId: string | undefined = pageItem.existingRecordId;
+
+    if (
+      pageId &&
+      this.state.subscriberEmailsByStatusPageId
+        ?.get(pageId.toLowerCase())
+        ?.has(subscriber.email)
+    ) {
+      this.match(
+        item,
+        pageId,
+        makeToolImportNote(ToolImportNoteCode.SubscriberAlreadySubscribed),
+      );
+      return;
+    }
+
+    const refusal: ToolImportNote | null | undefined =
+      this.access.createRefusals.get(
+        ToolImportResourceKind.StatusPageSubscriber,
+      );
+
+    if (refusal) {
+      this.skip(item, refusal);
+      return;
+    }
+
+    const planLimit: ToolImportNote | null = this.takePlanRoom(
+      ToolImportResourceKind.StatusPageSubscriber,
+    );
+
+    if (planLimit) {
+      this.skip(item, planLimit);
+      return;
+    }
+
+    if (!this.takeCapacity(ToolImportResourceKind.StatusPageSubscriber)) {
+      this.skip(
+        item,
+        this.overLimit(ToolImportResourceKind.StatusPageSubscriber),
+      );
+      return;
+    }
+
+    item.action = ToolImportAction.Create;
+    item.isSelectable = true;
+    item.isSelectedByDefault = false;
+    this.items.push(item);
+  }
+
+  /*
+   * An item an earlier import brought over: shown as such when its record
+   * is still there (true: it is dealt with), with a note when it was
+   * deleted since and will be made again.
+   */
+  private takePrevious(item: ToolImportPlanItem): boolean {
+    const previous: ToolImportPreviousRecord | undefined =
+      this.state.previousRecords.find(
+        (record: ToolImportPreviousRecord): boolean => {
+          return record.kind === item.kind && record.sourceId === item.sourceId;
+        },
+      );
+
+    if (previous && previous.stillExists) {
+      item.action = ToolImportAction.AlreadyImported;
+      item.existingRecordId = previous.recordId;
+      item.reason = makeToolImportNote(ToolImportNoteCode.AlreadyImported);
+      this.items.push(item);
+      return true;
+    }
+
+    if (previous && !previous.stillExists) {
+      item.notes = [
+        ...item.notes,
+        makeToolImportNote(ToolImportNoteCode.ImportedBeforeDeletedSince),
+      ];
+    }
+
+    return false;
+  }
+
+  /*
+   * Room in the project's plan for one more of a kind it counts: null when
+   * there is (and it is taken), else the note saying the plan is full.
+   */
+  private takePlanRoom(kind: ToolImportResourceKind): ToolImportNote | null {
+    const room: ToolImportPlanRoom | undefined =
+      this.access.planRoomByKind?.get(kind);
+
+    if (!room) {
+      return null;
+    }
+
+    const used: number = this.planRoomUsedByKind.get(kind) || 0;
+
+    if (used >= room.room) {
+      return makeToolImportNote(
+        PLAN_LIMIT_NOTE_CODES[kind] || ToolImportNoteCode.OverLimit,
+        { limit: room.limit },
+      );
+    }
+
+    this.planRoomUsedByKind.set(kind, used + 1);
+    return null;
   }
 
   private planPerson(person: ImportedPerson): void {
@@ -768,6 +1172,13 @@ class PlanBuilder {
       return item;
     }
 
+    const planLimit: ToolImportNote | null = this.takePlanRoom(data.kind);
+
+    if (planLimit) {
+      this.skip(item, planLimit);
+      return item;
+    }
+
     if (!this.takeCapacity(data.kind)) {
       this.skip(item, this.overLimit(data.kind));
       return item;
@@ -828,16 +1239,22 @@ class PlanBuilder {
 
   private takeCapacity(kind: ToolImportResourceKind): boolean {
     const usedByKind: number = this.createdCountByKind.get(kind) || 0;
+    const countsTowardsTotal: boolean =
+      !TOOL_IMPORT_KINDS_OUTSIDE_TOTAL.includes(kind);
 
     if (
       usedByKind >= TOOL_IMPORT_MAX_ITEMS_PER_KIND[kind] ||
-      this.createdCount >= TOOL_IMPORT_MAX_ITEMS
+      (countsTowardsTotal && this.createdCount >= TOOL_IMPORT_MAX_ITEMS)
     ) {
       return false;
     }
 
     this.createdCountByKind.set(kind, usedByKind + 1);
-    this.createdCount++;
+
+    if (countsTowardsTotal) {
+      this.createdCount++;
+    }
+
     return true;
   }
 
@@ -846,7 +1263,8 @@ class PlanBuilder {
 
     return makeToolImportNote(ToolImportNoteCode.OverLimit, {
       limit:
-        usedByKind >= TOOL_IMPORT_MAX_ITEMS_PER_KIND[kind]
+        usedByKind >= TOOL_IMPORT_MAX_ITEMS_PER_KIND[kind] ||
+        TOOL_IMPORT_KINDS_OUTSIDE_TOTAL.includes(kind)
           ? TOOL_IMPORT_MAX_ITEMS_PER_KIND[kind]
           : TOOL_IMPORT_MAX_ITEMS,
     });

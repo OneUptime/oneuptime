@@ -88,6 +88,64 @@ export enum ToolImportNoteCode {
   ReadIncomplete = "ReadIncomplete",
   ReadLimitReached = "ReadLimitReached",
   ShiftBasedSchedulesNotRead = "ShiftBasedSchedulesNotRead",
+
+  /*
+   * ---- Monitors, status pages and their subscribers (uptime and status
+   * page tools).
+   *
+   * Why an item is skipped.
+   */
+  // {type}: the tool's own word for its kind of check.
+  MonitorTypeNotSupported = "MonitorTypeNotSupported",
+  // {address}: the address as the tool has it.
+  MonitorAddressUnreadable = "MonitorAddressUnreadable",
+  MonitorUpsideDown = "MonitorUpsideDown",
+  MonitorNeedsPaymentMethod = "MonitorNeedsPaymentMethod",
+  // {limit}: what the Free plan allows.
+  MonitorPlanLimit = "MonitorPlanLimit",
+  StatusPagePlanLimit = "StatusPagePlanLimit",
+  SubscriberPlanLimit = "SubscriberPlanLimit",
+  SubscriberNotConfirmed = "SubscriberNotConfirmed",
+  SubscriberPageLeftOut = "SubscriberPageLeftOut",
+  SubscriberNotConsented = "SubscriberNotConsented",
+
+  // Why an item is matched to a record that is already in OneUptime.
+  // {name}: the monitor in OneUptime that checks the same address.
+  MonitorAlreadyChecked = "MonitorAlreadyChecked",
+  SubscriberAlreadySubscribed = "SubscriberAlreadySubscribed",
+
+  // What does not come over exactly as it was.
+  // {every} and {oneUptimeEvery}: seconds between checks.
+  MonitorIntervalChanged = "MonitorIntervalChanged",
+  // {timeout}: seconds the tool waits for an answer.
+  MonitorTimeoutShortened = "MonitorTimeoutShortened",
+  // {header}: the header's name.
+  MonitorHeaderLeftOut = "MonitorHeaderLeftOut",
+  MonitorSignInLeftOut = "MonitorSignInLeftOut",
+  MonitorBodyLeftOut = "MonitorBodyLeftOut",
+  MonitorPaused = "MonitorPaused",
+  MonitorNewHeartbeatAddress = "MonitorNewHeartbeatAddress",
+  MonitorKeywordCaseSensitive = "MonitorKeywordCaseSensitive",
+  // {protocol}: SMTP, POP3, IMAP, SSH.
+  MonitorChecksPortOnly = "MonitorChecksPortOnly",
+  MonitorAssertionsLeftOut = "MonitorAssertionsLeftOut",
+  MonitorDnsAnswersLeftOut = "MonitorDnsAnswersLeftOut",
+  MonitorStatusNotCopied = "MonitorStatusNotCopied",
+  StatusPagePrivate = "StatusPagePrivate",
+  // {domain}: the page's own address.
+  StatusPageCustomDomain = "StatusPageCustomDomain",
+  StatusPageBrandingLeftOut = "StatusPageBrandingLeftOut",
+  // {name}: what the page showed.
+  StatusPageResourceNotSupported = "StatusPageResourceNotSupported",
+  StatusPageMonitorLeftOut = "StatusPageMonitorLeftOut",
+  // {count}: subscribers by text message, webhook, Slack or Teams.
+  SubscribersLeftOut = "SubscribersLeftOut",
+  SubscriberFollowsWholePage = "SubscriberFollowsWholePage",
+
+  // About the whole read.
+  // {count}: maintenance windows in the tool.
+  MaintenanceWindowsNotRead = "MaintenanceWindowsNotRead",
+  MonitorsFromMetricsFile = "MonitorsFromMetricsFile",
 }
 
 export type ToolImportNoteValue = string | number;

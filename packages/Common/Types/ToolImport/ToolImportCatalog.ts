@@ -17,7 +17,9 @@ import ToolImportSource from "./ToolImportSource";
  * person gives, and every request to it goes through OneUptime's egress
  * guard (Server/Utils/ToolImport/ToolImportHttpClient
  * createToolImportAddressTransport), the policy OneUptime holds every
- * other address a project member chooses to.
+ * other address a project member chooses to. A tool with no API to read
+ * (Uptime Kuma) is read from a file the person uploads, and OneUptime
+ * calls nothing at all.
  */
 
 export interface ToolImportRegion {
@@ -31,18 +33,44 @@ export interface ToolImportRegion {
 /*
  * How the key travels, in the tool's own header:
  *  - GenieKey: Authorization: GenieKey <key> (Opsgenie)
- *  - Bearer: Authorization: Bearer <key> (incident.io)
+ *  - Bearer: Authorization: Bearer <key> (incident.io, UptimeRobot,
+ *    Pingdom, Better Stack, StatusCake)
  *  - TokenToken: Authorization: Token token=<key> (PagerDuty)
  *  - Plain: Authorization: <key> (Grafana OnCall's API tokens)
  *  - ApiIdAndKey: X-VO-Api-Id: <API ID> and X-VO-Api-Key: <key>
  *    (Splunk On-Call)
+ *  - OAuth: Authorization: OAuth <key> (Atlassian Statuspage)
+ *  - None: the tool is read from a file the person uploads, not over an
+ *    API (Uptime Kuma), so there is no key.
  */
 export type ToolImportAuthorizationScheme =
   | "GenieKey"
   | "Bearer"
   | "TokenToken"
   | "Plain"
-  | "ApiIdAndKey";
+  | "ApiIdAndKey"
+  | "OAuth"
+  | "None";
+
+/*
+ * Which group the page lists a tool in: the on-call and incident tools a
+ * team is paged from, or the uptime monitoring and status page tools.
+ */
+export enum ToolImportCategory {
+  OnCall = "OnCall",
+  Monitoring = "Monitoring",
+}
+
+/*
+ * A tool that is read from a file the person uploads rather than over an
+ * API - Uptime Kuma, which people run themselves and which has no API to
+ * read monitors from. The file goes to the server once, is read there, and
+ * is never stored (Server/Utils/ToolImport/Adapters/UptimeKuma).
+ */
+export interface ToolImportFileUpload {
+  // What the browser's file picker offers ("Accept" attribute).
+  accept: string;
+}
 
 /*
  * What a person gives the page to connect a tool, besides the region:
@@ -59,6 +87,7 @@ export enum ToolImportCredentialField {
 export interface ToolImportSourceDefinition {
   source: ToolImportSource;
   title: string;
+  category: ToolImportCategory;
   /*
    * Hosts a read of this tool may call (each region's host included).
    * Empty for a tool whose address the person gives (apiUrlExample).
@@ -89,6 +118,8 @@ export interface ToolImportSourceDefinition {
    * like, shown as the field's example and in the docs.
    */
   apiUrlExample?: string | undefined;
+  // For a tool read from a file the person uploads: what the file may be.
+  fileUpload?: ToolImportFileUpload | undefined;
 }
 
 export const OPSGENIE_US_HOST: string = "api.opsgenie.com";
@@ -97,6 +128,11 @@ export const INCIDENT_IO_HOST: string = "api.incident.io";
 export const PAGERDUTY_US_HOST: string = "api.pagerduty.com";
 export const PAGERDUTY_EU_HOST: string = "api.eu.pagerduty.com";
 export const SPLUNK_ON_CALL_HOST: string = "api.victorops.com";
+export const UPTIMEROBOT_HOST: string = "api.uptimerobot.com";
+export const PINGDOM_HOST: string = "api.pingdom.com";
+export const BETTER_STACK_HOST: string = "incidents.betterstack.com";
+export const STATUSCAKE_HOST: string = "api.statuscake.com";
+export const ATLASSIAN_STATUSPAGE_HOST: string = "api.statuspage.io";
 
 export const OPSGENIE_REGION_US: string = "US";
 export const OPSGENIE_REGION_EU: string = "EU";
@@ -114,6 +150,7 @@ export const ToolImportCatalog: Record<
   [ToolImportSource.OpsGenie]: {
     source: ToolImportSource.OpsGenie,
     title: "Opsgenie",
+    category: ToolImportCategory.OnCall,
     hosts: [OPSGENIE_US_HOST, OPSGENIE_EU_HOST],
     regions: [
       {
@@ -143,6 +180,7 @@ export const ToolImportCatalog: Record<
   [ToolImportSource.PagerDuty]: {
     source: ToolImportSource.PagerDuty,
     title: "PagerDuty",
+    category: ToolImportCategory.OnCall,
     hosts: [PAGERDUTY_US_HOST, PAGERDUTY_EU_HOST],
     regions: [
       {
@@ -174,6 +212,7 @@ export const ToolImportCatalog: Record<
   [ToolImportSource.IncidentIo]: {
     source: ToolImportSource.IncidentIo,
     title: "incident.io",
+    category: ToolImportCategory.OnCall,
     hosts: [INCIDENT_IO_HOST],
     regions: [],
     apiKeyDocsUrl: "https://docs.incident.io/admin/api-keys",
@@ -195,6 +234,7 @@ export const ToolImportCatalog: Record<
   [ToolImportSource.SplunkOnCall]: {
     source: ToolImportSource.SplunkOnCall,
     title: "Splunk On-Call",
+    category: ToolImportCategory.OnCall,
     hosts: [SPLUNK_ON_CALL_HOST],
     regions: [],
     apiKeyDocsUrl:
@@ -217,6 +257,7 @@ export const ToolImportCatalog: Record<
   [ToolImportSource.GrafanaOnCall]: {
     source: ToolImportSource.GrafanaOnCall,
     title: "Grafana OnCall",
+    category: ToolImportCategory.OnCall,
     hosts: [],
     regions: [],
     apiKeyDocsUrl:
@@ -241,6 +282,107 @@ export const ToolImportCatalog: Record<
     minRequestIntervalMs: 1000,
     apiUrlExample: GRAFANA_ONCALL_API_URL_EXAMPLE,
   },
+  [ToolImportSource.UptimeRobot]: {
+    source: ToolImportSource.UptimeRobot,
+    title: "UptimeRobot",
+    category: ToolImportCategory.Monitoring,
+    hosts: [UPTIMEROBOT_HOST],
+    regions: [],
+    apiKeyDocsUrl: "https://uptimerobot.com/api/v3/",
+    docsPath: "/docs/moving-to-oneuptime/uptimerobot",
+    kinds: [ToolImportResourceKind.Monitor, ToolImportResourceKind.StatusPage],
+    authorizationScheme: "Bearer",
+    credentialFields: [ToolImportCredentialField.ApiKey],
+    /*
+     * UptimeRobot answers a Free account ten times a minute: one request
+     * every six seconds keeps under it on every plan.
+     */
+    minRequestIntervalMs: 6000,
+  },
+  [ToolImportSource.AtlassianStatuspage]: {
+    source: ToolImportSource.AtlassianStatuspage,
+    title: "Atlassian Statuspage",
+    category: ToolImportCategory.Monitoring,
+    hosts: [ATLASSIAN_STATUSPAGE_HOST],
+    regions: [],
+    apiKeyDocsUrl:
+      "https://support.atlassian.com/statuspage/docs/create-and-manage-api-keys/",
+    docsPath: "/docs/moving-to-oneuptime/atlassian-statuspage",
+    // Components become manual monitors, which the pages show.
+    kinds: [
+      ToolImportResourceKind.Monitor,
+      ToolImportResourceKind.StatusPage,
+      ToolImportResourceKind.StatusPageSubscriber,
+    ],
+    authorizationScheme: "OAuth",
+    credentialFields: [ToolImportCredentialField.ApiKey],
+    // Statuspage answers each key once a second.
+    minRequestIntervalMs: 1000,
+  },
+  [ToolImportSource.BetterStack]: {
+    source: ToolImportSource.BetterStack,
+    title: "Better Stack",
+    category: ToolImportCategory.Monitoring,
+    hosts: [BETTER_STACK_HOST],
+    regions: [],
+    apiKeyDocsUrl:
+      "https://betterstack.com/docs/uptime/api/getting-started-with-uptime-api/",
+    docsPath: "/docs/moving-to-oneuptime/better-stack",
+    kinds: [
+      ToolImportResourceKind.Monitor,
+      ToolImportResourceKind.StatusPage,
+      ToolImportResourceKind.StatusPageSubscriber,
+    ],
+    authorizationScheme: "Bearer",
+    credentialFields: [ToolImportCredentialField.ApiKey],
+    minRequestIntervalMs: 300,
+  },
+  [ToolImportSource.Pingdom]: {
+    source: ToolImportSource.Pingdom,
+    title: "Pingdom",
+    category: ToolImportCategory.Monitoring,
+    hosts: [PINGDOM_HOST],
+    regions: [],
+    apiKeyDocsUrl: "https://docs.pingdom.com/api/",
+    docsPath: "/docs/moving-to-oneuptime/pingdom",
+    kinds: [ToolImportResourceKind.Monitor],
+    authorizationScheme: "Bearer",
+    credentialFields: [ToolImportCredentialField.ApiKey],
+    // Pingdom counts requests per token; a check's details are one each.
+    minRequestIntervalMs: 500,
+  },
+  [ToolImportSource.StatusCake]: {
+    source: ToolImportSource.StatusCake,
+    title: "StatusCake",
+    category: ToolImportCategory.Monitoring,
+    hosts: [STATUSCAKE_HOST],
+    regions: [],
+    apiKeyDocsUrl:
+      "https://developers.statuscake.com/guides/api/authentication/",
+    docsPath: "/docs/moving-to-oneuptime/statuscake",
+    kinds: [ToolImportResourceKind.Monitor],
+    authorizationScheme: "Bearer",
+    credentialFields: [ToolImportCredentialField.ApiKey],
+    // StatusCake answers a Free account 60 times a minute.
+    minRequestIntervalMs: 1000,
+  },
+  [ToolImportSource.UptimeKuma]: {
+    source: ToolImportSource.UptimeKuma,
+    title: "Uptime Kuma",
+    category: ToolImportCategory.Monitoring,
+    // Read from a file the person uploads: OneUptime calls nothing.
+    hosts: [],
+    regions: [],
+    apiKeyDocsUrl:
+      "https://github.com/louislam/uptime-kuma/wiki/Prometheus-Integration",
+    docsPath: "/docs/moving-to-oneuptime/uptime-kuma",
+    kinds: [ToolImportResourceKind.Monitor],
+    authorizationScheme: "None",
+    credentialFields: [],
+    fileUpload: {
+      accept: ".json,.txt,application/json,text/plain",
+    },
+  },
 };
 
 export function getToolImportSourceDefinition(
@@ -254,6 +396,16 @@ export function isToolImportAddressGiven(
   definition: ToolImportSourceDefinition,
 ): boolean {
   return definition.credentialFields.includes(ToolImportCredentialField.ApiUrl);
+}
+
+/*
+ * Whether the tool is read from a file the person uploads (Uptime Kuma)
+ * rather than over its API: it has no key, no host and no read worker.
+ */
+export function isToolImportFileUpload(
+  definition: ToolImportSourceDefinition,
+): boolean {
+  return Boolean(definition.fileUpload);
 }
 
 /*

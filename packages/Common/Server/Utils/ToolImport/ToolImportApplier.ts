@@ -1,7 +1,10 @@
+import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyOwnerTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
@@ -11,13 +14,20 @@ import OnCallDutyPolicyScheduleLayerUser from "../../../Models/DatabaseModels/On
 import OnCallDutyPolicyScheduleOwnerTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerTeam";
 import ServiceModel from "../../../Models/DatabaseModels/Service";
 import ServiceOwnerTeam from "../../../Models/DatabaseModels/ServiceOwnerTeam";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
+import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import ToolImportRecord from "../../../Models/DatabaseModels/ToolImportRecord";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
 import { serializeCustomFieldDropdownOptions } from "../../../Types/CustomField/CustomFieldDropdownOption";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import Email from "../../../Types/Email";
+import MonitorRecommendationSeverityMapper from "../../../Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
 import ObjectID from "../../../Types/ObjectID";
 import Timezone from "../../../Types/Timezone";
 import {
@@ -51,25 +61,40 @@ import {
   resolveImportedTimezone,
 } from "../../../Types/ToolImport/ToolImportScheduleRules";
 import {
+  buildToolImportMonitor,
+  ToolImportBuiltMonitor,
+  ToolImportMonitorDefaults,
+} from "../../../Types/ToolImport/ToolImportMonitorBuilder";
+import {
+  getToolImportSnapshotMonitors,
+  getToolImportSnapshotStatusPages,
+  getToolImportSnapshotSubscribers,
   ImportedIncidentCustomField,
   ImportedIncidentRole,
   ImportedIncidentSeverity,
   ImportedIncidentState,
+  ImportedMonitor,
   ImportedPerson,
   ImportedPolicy,
   ImportedPolicyLevel,
   ImportedRotation,
   ImportedSchedule,
   ImportedService,
+  ImportedStatusPage,
+  ImportedStatusPageSubscriber,
   ImportedTeam,
   ToolImportSnapshot,
 } from "../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../Types/ToolImport/ToolImportSource";
 import { pickColorForName } from "../../../Utils/DistinctColor";
+import AlertSeverityService from "../../Services/AlertSeverityService";
 import IncidentCustomFieldService from "../../Services/IncidentCustomFieldService";
 import IncidentRoleService from "../../Services/IncidentRoleService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateService from "../../Services/IncidentStateService";
+import MonitorOwnerUserService from "../../Services/MonitorOwnerUserService";
+import MonitorService from "../../Services/MonitorService";
+import MonitorStatusService from "../../Services/MonitorStatusService";
 import OnCallDutyPolicyEscalationRuleService from "../../Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyOwnerTeamService from "../../Services/OnCallDutyPolicyOwnerTeamService";
 import OnCallDutyPolicyScheduleLayerService from "../../Services/OnCallDutyPolicyScheduleLayerService";
@@ -79,6 +104,11 @@ import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicySche
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import ServiceOwnerTeamService from "../../Services/ServiceOwnerTeamService";
 import ServiceService from "../../Services/ServiceService";
+import StatusPageGroupService from "../../Services/StatusPageGroupService";
+import StatusPageOwnerUserService from "../../Services/StatusPageOwnerUserService";
+import StatusPageResourceService from "../../Services/StatusPageResourceService";
+import StatusPageService from "../../Services/StatusPageService";
+import StatusPageSubscriberService from "../../Services/StatusPageSubscriberService";
 import TeamMemberService from "../../Services/TeamMemberService";
 import TeamService from "../../Services/TeamService";
 import ToolImportRecordService from "../../Services/ToolImportRecordService";
@@ -159,6 +189,9 @@ const SEVERITY_COLORS: Array<string> = [
 
 const MAX_ERROR_LENGTH: number = 500;
 
+// The most days of uptime a status page shows (StatusPage.showUptimeHistoryInDays).
+const MAX_STATUS_PAGE_UPTIME_HISTORY_DAYS: number = 90;
+
 export default class ToolImportApplier {
   public static async apply(
     input: ToolImportApplyInput,
@@ -181,6 +214,16 @@ class ApplyRun {
   private records: Array<ToolImportRecord> = [];
   private done: number = 0;
   private total: number = 0;
+  // The project's statuses and severities, read when the first monitor is made.
+  private monitorDefaults: ToolImportMonitorDefaults | null = null;
+  /*
+   * The resources each status page this import made shows, by the page's
+   * source id and the resource's key: what its subscribers follow.
+   */
+  private statusPageResourceIds: Map<string, Map<string, ObjectID>> = new Map<
+    string,
+    Map<string, ObjectID>
+  >();
 
   public constructor(input: ToolImportApplyInput) {
     this.input = input;
@@ -449,7 +492,448 @@ class ApplyRun {
       case ToolImportResourceKind.OnCallPolicy:
         await this.createPolicy(item);
         return;
+      case ToolImportResourceKind.Monitor:
+        await this.createMonitor(item);
+        return;
+      case ToolImportResourceKind.StatusPage:
+        await this.createStatusPage(item);
+        return;
+      case ToolImportResourceKind.StatusPageSubscriber:
+        await this.createSubscriber(item);
+        return;
     }
+  }
+
+  // ---- Monitors.
+
+  /*
+   * The project's statuses and severities a new monitor's criteria use,
+   * picked as the Create Monitor form picks them: the first operational and
+   * the first offline status by priority, the most severe incident and
+   * alert severity, and the "warning" alert severity for expiry warnings.
+   * Read once, as OneUptime, when the first monitor is made.
+   */
+  private async getMonitorDefaults(): Promise<ToolImportMonitorDefaults> {
+    if (this.monitorDefaults) {
+      return this.monitorDefaults;
+    }
+
+    const statuses: Array<MonitorStatus> = await MonitorStatusService.findBy({
+      query: { projectId: this.input.projectId },
+      select: {
+        _id: true,
+        isOperationalState: true,
+        isOfflineState: true,
+        priority: true,
+      },
+      sort: { priority: SortOrder.Ascending },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const incidentSeverities: Array<IncidentSeverity> =
+      await IncidentSeverityService.findBy({
+        query: { projectId: this.input.projectId },
+        select: { _id: true, order: true },
+        sort: { order: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const alertSeverities: Array<AlertSeverity> =
+      await AlertSeverityService.findBy({
+        query: { projectId: this.input.projectId },
+        select: { _id: true, order: true },
+        sort: { order: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const online: MonitorStatus | undefined = statuses.find(
+      (status: MonitorStatus): boolean => {
+        return Boolean(status.isOperationalState);
+      },
+    );
+    const offline: MonitorStatus | undefined = statuses.find(
+      (status: MonitorStatus): boolean => {
+        return Boolean(status.isOfflineState);
+      },
+    );
+    const alertSeverityIds: Array<ObjectID> = alertSeverities
+      .map((severity: AlertSeverity): ObjectID | null => {
+        return severity.id;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (
+      !online?.id ||
+      !offline?.id ||
+      !incidentSeverities[0]?.id ||
+      !alertSeverityIds[0]
+    ) {
+      throw new Error(
+        "The project needs an operational and an offline monitor status, an incident severity and an alert severity before monitors can be made.",
+      );
+    }
+
+    this.monitorDefaults = {
+      onlineMonitorStatusId: online.id,
+      offlineMonitorStatusId: offline.id,
+      defaultIncidentSeverityId: incidentSeverities[0].id,
+      defaultAlertSeverityId: alertSeverityIds[0],
+      warningAlertSeverityId:
+        MonitorRecommendationSeverityMapper.getMappingFromRankedIds(
+          alertSeverityIds,
+        ).Warning || alertSeverityIds[0],
+    };
+
+    return this.monitorDefaults;
+  }
+
+  private async createMonitor(item: ToolImportPlanItem): Promise<void> {
+    const source: ImportedMonitor = this.find(
+      getToolImportSnapshotMonitors(this.input.snapshot),
+      item,
+    );
+
+    const built: ToolImportBuiltMonitor = buildToolImportMonitor({
+      monitor: source,
+      defaults: await this.getMonitorDefaults(),
+    });
+
+    const monitor: Monitor = new Monitor();
+    monitor.projectId = this.input.projectId;
+    monitor.name = source.name;
+    monitor.monitorType = built.monitorType;
+
+    if (source.description) {
+      monitor.description = source.description;
+    }
+
+    if (built.monitorSteps) {
+      monitor.monitorSteps = built.monitorSteps;
+    }
+
+    if (built.monitoringInterval) {
+      monitor.monitoringInterval = built.monitoringInterval;
+    }
+
+    // Paused in the tool: it comes over paused, to be turned on by hand.
+    if (source.isPaused) {
+      monitor.disableActiveMonitoring = true;
+    }
+
+    // No probes are named: it gets the project's default ones, as the form does.
+    const created: Monitor = await MonitorService.create({
+      data: monitor,
+      props: this.input.props,
+    });
+
+    await this.markMonitorAnnounced(created.id!);
+    await this.finishSimple(item, created.id!);
+  }
+
+  /*
+   * One import, one report: the monitors and status pages it makes do not
+   * also each send their owners a "created" message and an "added as
+   * owner" one, which for a few hundred monitors is a few hundred emails
+   * to the person who just watched them being made.
+   */
+  private async markMonitorAnnounced(monitorId: ObjectID): Promise<void> {
+    await MonitorService.updateOneById({
+      id: monitorId,
+      data: { isOwnerNotifiedOfResourceCreation: true },
+      props: { isRoot: true },
+    });
+
+    await MonitorOwnerUserService.updateBy({
+      query: { monitorId: monitorId },
+      data: { isOwnerNotified: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
+  private async markStatusPageAnnounced(statusPageId: ObjectID): Promise<void> {
+    await StatusPageService.updateOneById({
+      id: statusPageId,
+      data: { isOwnerNotifiedOfResourceCreation: true },
+      props: { isRoot: true },
+    });
+
+    await StatusPageOwnerUserService.updateBy({
+      query: { statusPageId: statusPageId },
+      data: { isOwnerNotified: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
+  // ---- Status pages.
+
+  private async createStatusPage(item: ToolImportPlanItem): Promise<void> {
+    const source: ImportedStatusPage = this.find(
+      getToolImportSnapshotStatusPages(this.input.snapshot),
+      item,
+    );
+    const notes: Array<ToolImportNote> = [];
+
+    const page: StatusPage = new StatusPage();
+    page.projectId = this.input.projectId;
+    page.name = source.name;
+    page.isPublicStatusPage = source.isPublic;
+
+    if (source.description) {
+      page.description = source.description;
+    }
+
+    if (source.pageTitle) {
+      page.pageTitle = source.pageTitle.slice(0, TOOL_IMPORT_MAX_NAME_LENGTH);
+    }
+
+    if (source.pageDescription) {
+      page.pageDescription = source.pageDescription;
+    }
+
+    // The days of uptime the page shows, up to the 90 a status page can.
+    if (source.historyDays && source.historyDays > 0) {
+      page.showUptimeHistoryInDays = Math.min(
+        MAX_STATUS_PAGE_UPTIME_HISTORY_DAYS,
+        Math.max(1, Math.round(source.historyDays)),
+      );
+    }
+
+    if (source.allowsEmailSubscribers !== undefined) {
+      page.enableEmailSubscribers = source.allowsEmailSubscribers;
+    }
+
+    if (source.allowsSubscribersToChooseResources) {
+      page.allowSubscribersToChooseResources = true;
+    }
+
+    if (source.isHiddenFromSearchEngines !== undefined) {
+      page.enableSearchEngineIndexing = !source.isHiddenFromSearchEngines;
+    }
+
+    const created: StatusPage = await StatusPageService.create({
+      data: page,
+      props: this.input.props,
+    });
+
+    const statusPageId: string = created.id!.toString();
+    const record: ToolImportRecord = await this.remember(
+      item,
+      statusPageId,
+      false,
+    );
+
+    await this.markStatusPageAnnounced(created.id!);
+
+    // The page's groups, in its order.
+    const groupIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+    let groupOrder: number = 1;
+
+    for (const group of source.groups) {
+      const statusPageGroup: StatusPageGroup = new StatusPageGroup();
+      statusPageGroup.projectId = this.input.projectId;
+      statusPageGroup.statusPageId = created.id!;
+      statusPageGroup.name = group.name.slice(0, TOOL_IMPORT_MAX_NAME_LENGTH);
+      statusPageGroup.order = groupOrder++;
+
+      if (group.description) {
+        statusPageGroup.description = group.description;
+      }
+
+      await this.addPart(notes, group.name, async () => {
+        const createdGroup: StatusPageGroup =
+          await StatusPageGroupService.create({
+            data: statusPageGroup,
+            props: this.input.props,
+          });
+
+        groupIds.set(group.key, createdGroup.id!);
+      });
+    }
+
+    // The monitors it shows, in its order, each in its group.
+    const resourceIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+    let resourceOrder: number = 1;
+
+    for (const resource of source.resources) {
+      const monitorIds: Array<string> = this.getResolved(
+        ToolImportResourceKind.Monitor,
+        resource.monitorSourceId,
+      );
+
+      if (monitorIds.length === 0) {
+        notes.push(
+          makeToolImportNote(ToolImportNoteCode.StatusPageMonitorLeftOut, {
+            name: this.monitorName(resource.monitorSourceId) || resource.displayName,
+          }),
+        );
+        continue;
+      }
+
+      const statusPageResource: StatusPageResource = new StatusPageResource();
+      statusPageResource.projectId = this.input.projectId;
+      statusPageResource.statusPageId = created.id!;
+      statusPageResource.monitorId = new ObjectID(monitorIds[0]!);
+      statusPageResource.displayName = resource.displayName.slice(
+        0,
+        TOOL_IMPORT_MAX_NAME_LENGTH,
+      );
+      statusPageResource.order = resourceOrder++;
+      statusPageResource.showCurrentStatus = true;
+      statusPageResource.showUptimePercent = resource.showUptimePercent;
+      statusPageResource.showStatusHistoryChart =
+        resource.showStatusHistoryChart;
+
+      if (resource.displayDescription) {
+        statusPageResource.displayDescription = resource.displayDescription;
+      }
+
+      const groupId: ObjectID | undefined = resource.groupKey
+        ? groupIds.get(resource.groupKey)
+        : undefined;
+
+      if (groupId) {
+        statusPageResource.statusPageGroupId = groupId;
+      }
+
+      await this.addPart(notes, resource.displayName, async () => {
+        const createdResource: StatusPageResource =
+          await StatusPageResourceService.create({
+            data: statusPageResource,
+            props: this.input.props,
+          });
+
+        resourceIds.set(resource.key, createdResource.id!);
+      });
+    }
+
+    this.statusPageResourceIds.set(source.sourceId, resourceIds);
+
+    await this.complete(record);
+    this.resolve(item.kind, item.sourceId, [statusPageId]);
+    this.report(
+      item,
+      ToolImportOutcome.Created,
+      [statusPageId],
+      undefined,
+      null,
+      notes,
+    );
+  }
+
+  // ---- Status page subscribers.
+
+  /*
+   * Someone who gets a status page's updates by email: subscribed to the
+   * page the import made (or matched), confirmed - they confirmed in the
+   * other tool - and sent nothing now. Only with the person's word that
+   * they may move them (ToolImportSelection.subscribersConsent).
+   */
+  private async createSubscriber(item: ToolImportPlanItem): Promise<void> {
+    if (this.input.selection.subscribersConsent !== true) {
+      this.report(
+        item,
+        ToolImportOutcome.Skipped,
+        [],
+        makeToolImportNote(ToolImportNoteCode.SubscriberNotConsented),
+      );
+      return;
+    }
+
+    const source: ImportedStatusPageSubscriber = this.find(
+      getToolImportSnapshotSubscribers(this.input.snapshot),
+      item,
+    );
+    const statusPageIds: Array<string> = this.getResolved(
+      ToolImportResourceKind.StatusPage,
+      source.statusPageSourceId,
+    );
+
+    if (statusPageIds.length === 0) {
+      this.report(
+        item,
+        ToolImportOutcome.Skipped,
+        [],
+        makeToolImportNote(ToolImportNoteCode.SubscriberPageLeftOut),
+      );
+      return;
+    }
+
+    const notes: Array<ToolImportNote> = [];
+
+    const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+    subscriber.projectId = this.input.projectId;
+    subscriber.statusPageId = new ObjectID(statusPageIds[0]!);
+    subscriber.subscriberEmail = new Email(source.email);
+    subscriber.isSubscriptionConfirmed = true;
+    subscriber.sendYouHaveSubscribedMessage = false;
+    subscriber.isSubscribedToAllEventTypes = true;
+
+    /*
+     * The parts of the page they follow, when every one of them came over
+     * on the page this import made; otherwise the whole page, and a note.
+     */
+    const pageResourceIds: Map<string, ObjectID> | undefined =
+      this.statusPageResourceIds.get(source.statusPageSourceId);
+    const followed: Array<ObjectID> = source.resourceKeys
+      .map((key: string): ObjectID | undefined => {
+        return pageResourceIds?.get(key);
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (
+      source.resourceKeys.length > 0 &&
+      followed.length === source.resourceKeys.length
+    ) {
+      subscriber.isSubscribedToAllResources = false;
+      subscriber.statusPageResources = followed.map(
+        (id: ObjectID): StatusPageResource => {
+          const resource: StatusPageResource = new StatusPageResource();
+          resource._id = id.toString();
+          return resource;
+        },
+      );
+    } else {
+      subscriber.isSubscribedToAllResources = true;
+
+      if (source.resourceKeys.length > 0) {
+        notes.push(
+          makeToolImportNote(ToolImportNoteCode.SubscriberFollowsWholePage),
+        );
+      }
+    }
+
+    const created: StatusPageSubscriber =
+      await StatusPageSubscriberService.create({
+        data: subscriber,
+        props: this.input.props,
+      });
+
+    const subscriberId: string = created.id!.toString();
+
+    await this.remember(item, subscriberId, true);
+    this.resolve(item.kind, item.sourceId, [subscriberId]);
+    this.report(
+      item,
+      ToolImportOutcome.Created,
+      [subscriberId],
+      undefined,
+      null,
+      notes,
+    );
   }
 
   // ---- People.
@@ -1273,6 +1757,16 @@ class ApplyRun {
           return schedule.sourceId === scheduleId;
         },
       )?.name || scheduleId
+    );
+  }
+
+  private monitorName(monitorId: string): string {
+    return (
+      getToolImportSnapshotMonitors(this.input.snapshot).find(
+        (monitor: ImportedMonitor): boolean => {
+          return monitor.sourceId === monitorId;
+        },
+      )?.name || ""
     );
   }
 
