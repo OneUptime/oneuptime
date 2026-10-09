@@ -1,9 +1,10 @@
 {
   "baseline": {
-    "keys": 25975,
-    "untranslated": 16646
+    "keys": 27297,
+    "untranslated": 17046
   },
   "sameAsEnglish": [
+    "In Huntress",
     "Offline",
     "Pattern {{number}}: {{problem}}",
     "Report",

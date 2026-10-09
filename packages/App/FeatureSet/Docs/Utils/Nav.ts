@@ -950,6 +950,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/datadog",
       },
       {
+        title: "Huntress",
+        url: "/docs/integrations/huntress",
+      },
+      {
         title: "Google SecOps",
         url: "/docs/integrations/google-secops",
       },

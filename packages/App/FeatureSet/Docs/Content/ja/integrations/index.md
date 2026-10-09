@@ -47,6 +47,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | インバウンド                    | Alertmanager の通知をインシデントに変換する。                                     |
 | [Grafana](/docs/integrations/grafana)                                 | インバウンド                    | Grafana のアラートをインシデントに変換する。                                      |
 | [Datadog](/docs/integrations/datadog)                                 | インバウンド                    | Datadog のモニターアラートをインシデントに変換する。                              |
+| [Huntress](/docs/integrations/huntress)                               | インバウンド               | Huntress のインシデントレポートでオンコールを呼び出し、レポートがクローズされたらインシデントを解決する。 |
 | [GitHub](/docs/integrations/github)                                   | アウトバウンド                  | インシデントに対して GitHub の Issue を開く。                                     |
 | [GitLab](/docs/integrations/gitlab)                                   | アウトバウンド                  | インシデントに対して GitLab の Issue を開く。                                     |
 | [Discord](/docs/integrations/discord)                                 | アウトバウンド                  | インシデントの更新を Discord チャンネルに投稿する。                               |

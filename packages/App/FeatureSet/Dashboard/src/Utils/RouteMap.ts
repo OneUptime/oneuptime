@@ -966,6 +966,10 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
   [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
 
+  // Integrations that open incidents: Huntress connections.
+  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]: "integrations/huntress",
+  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]: `integrations/huntress/${RouteParams.ModelID}`,
+
   /*
    * The AI section. Settings and Auto Remediation Rules were at settings/ai
    * and settings/auto-remediation-rules, which forward here
@@ -2364,6 +2368,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]
     }`,
   ),
 

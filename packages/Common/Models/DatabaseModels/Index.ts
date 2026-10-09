@@ -150,6 +150,8 @@ import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
 import ToolImportRecord from "./ToolImportRecord";
+import HuntressConnection from "./HuntressConnection";
+import HuntressIncidentReport from "./HuntressIncidentReport";
 import ThreatIntelFeed from "./ThreatIntelFeed";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
@@ -546,6 +548,8 @@ const AllModelTypes: Array<{
   SecurityEventConnectionRun,
   ToolImportRun,
   ToolImportRecord,
+  HuntressConnection,
+  HuntressIncidentReport,
   ThreatIntelFeed,
   LogScrubRule,
   MetricPipelineRule,

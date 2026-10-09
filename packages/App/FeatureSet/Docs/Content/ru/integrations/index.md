@@ -47,6 +47,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Входящий               | Преобразует уведомления Alertmanager в инциденты.                                     |
 | [Grafana](/docs/integrations/grafana)                                 | Входящий               | Преобразует оповещения Grafana в инциденты.                                           |
 | [Datadog](/docs/integrations/datadog)                                 | Входящий               | Преобразует оповещения мониторов Datadog в инциденты.                                 |
+| [Huntress](/docs/integrations/huntress)                               | Входящий             | Вызывает дежурных по отчётам об инцидентах Huntress и устраняет инцидент, когда отчёт закрыт. |
 | [GitHub](/docs/integrations/github)                                   | Исходящий              | Открывает задачу GitHub для инцидента.                                                |
 | [GitLab](/docs/integrations/gitlab)                                   | Исходящий              | Открывает задачу GitLab для инцидента.                                                |
 | [Discord](/docs/integrations/discord)                                 | Исходящий              | Публикует обновления инцидентов в канал Discord.                                      |
