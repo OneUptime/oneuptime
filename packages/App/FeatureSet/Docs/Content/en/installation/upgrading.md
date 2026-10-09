@@ -868,6 +868,15 @@ API, SSO, or the Slack and Microsoft Teams apps.
   See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types),
   [Run Rules on Existing Resources](/docs/configuration/run-rules-now#before-you-begin)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **On the Enterprise Edition, a team's compliance status is read only by
+  someone who may read its compliance rules.** The team's Compliance page
+  (`GET /api/team/compliance-status/:teamId`) now takes what reading the
+  rules takes: `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `Viewer` or
+  `ReadProjectTeam`, and no team block on them. A member whose teams grant
+  only other roles, such as `MonitorViewer`, was refused the rules but shown
+  them on that page, with every member's reachability under them; it is now
+  refused with a `422`. Anyone in the project still lists a team's members.
+  See [Users, Teams & Permissions](/docs/permissions/index).
 - **Who owns a resource, and a setting that holds credentials, are named
   only by someone who may read them.** The owners of every resource - on-call
   policies and schedules, monitor groups, dashboards, incoming call
