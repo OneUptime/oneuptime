@@ -27579,5 +27579,7 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "Voer een poort van 1 tot en met 65535 in, of laat leeg voor 123.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "Hoe lang bij elke poging op het antwoord van de server wordt gewacht, inclusief de DNS-lookup. Elke nieuwe poging krijgt een nieuwe time-out. Standaard is 5 seconden. Maximaal 60 seconden.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "Hoe vaak opnieuw proberen na een mislukte poging: 0 betekent één poging, 2 betekent maximaal 3. Laat leeg om de standaardwaarde van de sonde te gebruiken (meestal 3). Maximaal 3. Geen antwoord, een geweigerde poort en een mislukte DNS-lookup worden opnieuw geprobeerd, telkens met een nieuw verzoek. Een server die antwoordt, wordt nooit opnieuw gevraagd, ook niet als hij antwoordt dat hij niet gesynchroniseerd is.",
-  "The time server this monitor checks.": "De tijdserver die deze monitor controleert."
+  "The time server this monitor checks.": "De tijdserver die deze monitor controleert.",
+  "Has Additional Parameters": "Heeft extra parameters",
+  "Only project owners and admins can read them, like the API key.": "Net als de API-sleutel kunnen alleen projecteigenaren en -beheerders ze lezen."
 }

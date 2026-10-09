@@ -161,7 +161,10 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
 
     expectSentences(paragraph, [
       "A project's LLM providers are read only by its members who may read the project's settings: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** and **Read LLM**.",
-      "A provider's **API Key** is read by the project's owners and admins alone.",
+      "A provider's **API Key** and **Additional Parameters** are read by the project's owners and admins alone, because the parameters are sent to the provider with every request and can carry a token or a header just like the key.",
+      "The other members see whether any parameters are saved, not what they are.",
+      "in the edit form those fields start empty, and leaving one blank keeps what is stored. To remove the parameters, save `{}`.",
+      "Everyone who can read a provider can read its **Base URL**, so never put a key, a token or a password in it: use the **API Key**.",
       "shows their name, description and price to anyone signed in, and nothing else about them.",
     ]);
 

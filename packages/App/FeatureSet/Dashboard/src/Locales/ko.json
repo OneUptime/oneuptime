@@ -27579,5 +27579,7 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "1~65535 사이의 포트를 입력하거나, 123을 사용하려면 비워 두세요.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "각 시도에서 서버의 응답을 기다리는 시간으로, DNS 조회를 포함합니다. 재시도할 때마다 타임아웃이 새로 시작됩니다. 기본값은 5초입니다. 최대값은 60초입니다.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "시도가 실패한 후 재시도할 횟수입니다. 0은 한 번만 시도, 2는 최대 3번을 뜻합니다. 비워 두면 프로브의 기본값(보통 3)을 사용합니다. 최대값은 3입니다. 응답 없음, 거부된 포트, 실패한 DNS 조회는 매번 새 요청으로 재시도됩니다. 응답한 서버에는 동기화되지 않았다고 응답하더라도 다시 묻지 않습니다.",
-  "The time server this monitor checks.": "이 모니터가 확인하는 시간 서버입니다."
+  "The time server this monitor checks.": "이 모니터가 확인하는 시간 서버입니다.",
+  "Has Additional Parameters": "추가 매개변수 있음",
+  "Only project owners and admins can read them, like the API key.": "API 키와 마찬가지로 프로젝트 소유자와 관리자만 읽을 수 있습니다."
 }

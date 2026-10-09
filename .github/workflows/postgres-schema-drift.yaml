@@ -950,6 +950,22 @@ jobs:
           Tests/Server/Services/LlmLogDailyUsageIndexPostgres.test.ts
           --forceExit
 
+      # Clones the migrated LlmProvider table into an isolated schema, stores
+      # Additional Parameters of every shape and reads hasAdditionalParams
+      # through TypeORM: Postgres works it out from the parameters on every
+      # read (a virtual column), and the migrated table stores no copy of it.
+      - name: Test the LLM provider parameters flag on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LLM_PROVIDER_PARAMS_FLAG_TESTS: "true"
+          LLM_PROVIDER_PARAMS_FLAG_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LLM_PROVIDER_PARAMS_FLAG_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LLM_PROVIDER_PARAMS_FLAG_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Types/Database/LlmProviderHasAdditionalParamsPostgres.test.ts
+          --forceExit
+
       # Runs schema migrations through SchemaMigrationRunner while another
       # session holds their table open and an app connection reads it in a
       # loop: unbounded, the ALTER queues ahead of the reads and they fail;

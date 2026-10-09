@@ -161,9 +161,15 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
       },
     );
 
+    /*
+     * The shared global AI agents: their name, description and status, read
+     * as OneUptime, for anyone signed in. The AI agent table itself is read
+     * by a project's own members only.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/global-ai-agents`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const aiAgents: Array<AIAgent> = await AIAgentService.findBy({
