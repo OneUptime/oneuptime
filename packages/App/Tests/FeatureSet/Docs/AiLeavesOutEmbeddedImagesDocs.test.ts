@@ -73,9 +73,7 @@ describe("AI SRE: images are left out of what the model reads", () => {
   const trust: string = page.slice(page.indexOf("## Trust and safety"));
 
   test("is part of Trust and safety", () => {
-    expect(trust).toContain(
-      "**Images are left out of what the model reads.**",
-    );
+    expect(trust).toContain("**Images are left out of what the model reads.**");
   });
 
   test("quotes the note the product writes", () => {

@@ -48,7 +48,9 @@ import {
  * LINEAR, AND NO REGULAR EXPRESSION READS THE TEXT. A screenshot is
  * megabytes on one line, and V8 matches a regular expression with a stack
  * that can grow with every character a quantifier takes (see
- * InlineImageDataUri.isBase64): the text is read once, with charCodeAt.
+ * InlineImageDataUri.isBase64): the text is read once, with charCodeAt. The
+ * few patterns below read a media type, a count or a note - never more than
+ * MAX_NOTE_LENGTH characters.
  *
  * Pure, with no Node or browser APIs.
  */
@@ -109,7 +111,8 @@ const IMAGE_TYPE_NAMES: Record<InlineImageMimeType, string> = {
 };
 
 // type/subtype, as a data: URL names it: "image/png", "application/pdf".
-const MEDIA_TYPE_PATTERN: RegExp = /^[a-z0-9][a-z0-9.+_-]*\/[a-z0-9][a-z0-9.+_-]*$/;
+const MEDIA_TYPE_PATTERN: RegExp =
+  /^[a-z0-9][a-z0-9.+_-]*\/[a-z0-9][a-z0-9.+_-]*$/;
 
 // Digits a thousands separator goes before: 1234567 -> 1,234,567.
 const THOUSANDS_PATTERN: RegExp = /\B(?=(\d{3})+(?!\d))/g;

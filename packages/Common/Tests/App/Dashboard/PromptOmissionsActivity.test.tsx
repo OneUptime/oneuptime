@@ -145,23 +145,26 @@ describe("describePromptOmissions", () => {
     "zh-TW",
     "hi",
     "fa",
-  ])("%s has its own words for every line, with every value in it", (language: string) => {
-    const lines: Array<string> = describePromptOmissions(
-      EVERYTHING,
-      translatorFor(language),
-    );
-    const english: Array<string> = describePromptOmissions(EVERYTHING);
+  ])(
+    "%s has its own words for every line, with every value in it",
+    (language: string) => {
+      const lines: Array<string> = describePromptOmissions(
+        EVERYTHING,
+        translatorFor(language),
+      );
+      const english: Array<string> = describePromptOmissions(EVERYTHING);
 
-    expect(lines).toHaveLength(3);
+      expect(lines).toHaveLength(3);
 
-    lines.forEach((line: string, index: number): void => {
-      expect(line).not.toBe(english[index]);
-      expect(line).not.toContain("{{");
-    });
+      lines.forEach((line: string, index: number): void => {
+        expect(line).not.toBe(english[index]);
+        expect(line).not.toContain("{{");
+      });
 
-    expect(lines[0]).toContain("1.2 MB");
-    expect(lines[1]).toContain("4 KB");
-  });
+      expect(lines[0]).toContain("1.2 MB");
+      expect(lines[1]).toContain("4 KB");
+    },
+  );
 });
 
 describe("the activity feed draws what an investigation left out", () => {
@@ -206,8 +209,12 @@ describe("the activity feed draws what an investigation left out", () => {
       <ChatActivityFeed
         events={[
           progressLog({
-            message: "Left out 1 embedded image (340 KB): AI reads text, not images.",
-            promptOmissions: omissions({ imageCount: 1, imageBytes: 340 * 1024 }),
+            message:
+              "Left out 1 embedded image (340 KB): AI reads text, not images.",
+            promptOmissions: omissions({
+              imageCount: 1,
+              imageBytes: 340 * 1024,
+            }),
           }),
         ]}
         hideChrome={true}

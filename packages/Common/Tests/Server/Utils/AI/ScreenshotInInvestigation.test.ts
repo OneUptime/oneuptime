@@ -239,7 +239,9 @@ describe("an investigation of an incident whose description carries a screenshot
       .mockResolvedValue(PROVIDER);
     jest.spyOn(LlmLogService, "create").mockResolvedValue(new LlmLog());
 
-    jest.spyOn(AIMemory, "getPriorSimilarIncidentsContext").mockResolvedValue("");
+    jest
+      .spyOn(AIMemory, "getPriorSimilarIncidentsContext")
+      .mockResolvedValue("");
     jest
       .spyOn(KubernetesClusterAiAccessService, "getStatusesForSubject")
       .mockResolvedValue([]);
@@ -277,7 +279,9 @@ describe("an investigation of an incident whose description carries a screenshot
 
     const text: string = sentText();
 
-    expect(text).toContain("Synthetic monitor **Checkout flow** failed on 3 probes.");
+    expect(text).toContain(
+      "Synthetic monitor **Checkout flow** failed on 3 probes.",
+    );
     expect(text).toContain("Timeout 30000ms exceeded waiting for selector");
     expect(text).toContain("![]([image omitted: JPEG, 256 KB])");
     expect(text).toContain("Last successful run: 4 minutes ago.");
@@ -338,9 +342,8 @@ describe("an investigation of an incident whose description carries a screenshot
   });
 
   test("a description too long for its field is cut, and the activity says so", async () => {
-    const longDescription: string = "Payment request failed: upstream timed out. ".repeat(
-      200,
-    );
+    const longDescription: string =
+      "Payment request failed: upstream timed out. ".repeat(200);
 
     await investigateIncident(
       incidentContext({ description: longDescription }),

@@ -192,9 +192,9 @@ describe("PromptText.omitEmbeddedData - a screenshot in a description", () => {
     expect(omit(`data:image/png;name=shot.png;base64,${PNG}`)).toBe(
       "[image omitted: PNG, 70 bytes]",
     );
-    expect(omit(`data:image/png;base64,${PNG}data:image/gif;base64,${GIF}`)).toBe(
-      "[image omitted: PNG, 70 bytes][image omitted: GIF, 42 bytes]",
-    );
+    expect(
+      omit(`data:image/png;base64,${PNG}data:image/gif;base64,${GIF}`),
+    ).toBe("[image omitted: PNG, 70 bytes][image omitted: GIF, 42 bytes]");
     // The padding goes with the data, nothing after it does.
     expect(omit(`data:image/png;base64,${PNG}==tail`)).toBe(
       "[image omitted: PNG, 70 bytes]==tail",
@@ -288,7 +288,7 @@ describe("PromptText.omitEmbeddedData - what stays", () => {
 
     for (let sample: number = 0; sample < 200; sample++) {
       let text: string = "";
-      const length: number = 1 + (sample * 37) % 3000;
+      const length: number = 1 + ((sample * 37) % 3000);
 
       for (let index: number = 0; index < length; index++) {
         seed = (seed * 1103515245 + 12345) & 0x7fffffff;
@@ -389,7 +389,9 @@ describe("PromptText.fitToLength", () => {
     const text: string = "x".repeat(500);
     const fitted: FittedText = PromptText.fitToLength(text, 200);
 
-    expect(fitted.text).toBe(`${"x".repeat(200)}… [300 more characters omitted]`);
+    expect(fitted.text).toBe(
+      `${"x".repeat(200)}… [300 more characters omitted]`,
+    );
   });
 
   test("it never keeps half of a character", () => {
@@ -434,7 +436,8 @@ describe("PromptText.field", () => {
 
   test("the limit applies after the screenshot is left out", () => {
     // 3 MB of base64 and 200 characters of words: the words all fit.
-    const words: string = "The checkout page returned 502 for 4 minutes. ".repeat(4);
+    const words: string =
+      "The checkout page returned 502 for 4 minutes. ".repeat(4);
     const description: string = `${words}\n\n![Checkout](data:image/png;base64,${pngScreenshot(2300)})`;
 
     expect(description.length).toBeGreaterThan(3_000_000);
@@ -617,7 +620,9 @@ describe("PromptText on megabytes", () => {
     const startedAt: number = Date.now();
     const result: PromptTextResult = PromptText.omitEmbeddedData(description);
 
-    expect(result.text).toBe("Before.\n![x]([image omitted: PNG, 12 MB])\nAfter.");
+    expect(result.text).toBe(
+      "Before.\n![x]([image omitted: PNG, 12 MB])\nAfter.",
+    );
     expect(Date.now() - startedAt).toBeLessThan(5000);
   });
 
@@ -710,9 +715,7 @@ describe("PromptText.findNote", () => {
     expect(written).toBe(
       "[image omitted: PNG, 70 bytes] [file omitted: application/pdf, 3 bytes] [encoded data omitted: 3 KB]",
     );
-    expect(PromptText.findNote(written)).toBe(
-      "[image omitted: PNG, 70 bytes]",
-    );
+    expect(PromptText.findNote(written)).toBe("[image omitted: PNG, 70 bytes]");
     expect(PromptText.findNote(written.slice(30))).toBe(
       "[file omitted: application/pdf, 3 bytes]",
     );

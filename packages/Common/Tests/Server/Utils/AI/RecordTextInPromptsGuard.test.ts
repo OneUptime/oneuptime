@@ -239,8 +239,7 @@ function rawFreeTextField(expression: ts.Expression): ts.Expression | null {
   if (
     ts.isBinaryExpression(expression) &&
     (expression.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
-      expression.operatorToken.kind ===
-        ts.SyntaxKind.QuestionQuestionToken)
+      expression.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
   ) {
     return (
       rawFreeTextField(expression.left) || rawFreeTextField(expression.right)

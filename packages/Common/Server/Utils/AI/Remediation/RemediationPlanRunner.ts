@@ -596,7 +596,9 @@ export default class RemediationPlanRunner {
     for (const runbook of data.candidates) {
       lines.push(
         `- id: ${runbook.id?.toString()} — "${runbook.name || "Unnamed"}"${
-          runbook.description ? `: ${PromptText.field(runbook.description)}` : ""
+          runbook.description
+            ? `: ${PromptText.field(runbook.description)}`
+            : ""
         }`,
       );
     }

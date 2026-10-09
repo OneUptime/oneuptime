@@ -150,7 +150,9 @@ describe("the investigation seed", () => {
 
     expectScreenshotLeftOut(summary, 3);
     expect(summary).toContain("Description: Synthetic check failed.");
-    expect(summary).toContain("Root cause (as recorded so far): Bad deploy, see:");
+    expect(summary).toContain(
+      "Root cause (as recorded so far): Bad deploy, see:",
+    );
     expect(summary).toContain("- first\n- second");
     expect(omissions.imageCount).toBe(3);
     expect(omissions.imageBytes).toBe(3 * 128 * 1024);
@@ -517,8 +519,9 @@ describe("remediation", () => {
     runbook.name = "Restart checkout";
     runbook.description = withScreenshot("Restarts the checkout pods.");
 
-    const suggestion: AutoRemediationSuggestion =
-      new AutoRemediationSuggestion(ObjectID.generate());
+    const suggestion: AutoRemediationSuggestion = new AutoRemediationSuggestion(
+      ObjectID.generate(),
+    );
 
     jest.spyOn(PostedRootCause, "getForSubject").mockResolvedValue(null);
 
@@ -541,7 +544,10 @@ describe("remediation", () => {
 describe("tool results", () => {
   test("a description with a screenshot keeps its words after it, within the field's length", () => {
     const serialized: SerializedResult = ToolResultSerializer.serializeRows([
-      { title: "Checkout fails", description: withScreenshot("Synthetic check failed.") },
+      {
+        title: "Checkout fails",
+        description: withScreenshot("Synthetic check failed."),
+      },
     ]);
 
     expectScreenshotLeftOut(serialized.text);
@@ -590,9 +596,7 @@ describe("tool results", () => {
       1,
     ).text;
 
-    expect(text).toBe(
-      "![x]([image omitted: PNG, 2 MB]) mail [redacted-email]",
-    );
+    expect(text).toBe("![x]([image omitted: PNG, 2 MB]) mail [redacted-email]");
     expect(Date.now() - startedAt).toBeLessThan(2000);
     expect(redactAndCap(`data:image/png;base64,${flat}`, 4000)).toBe(
       "[image omitted: PNG, 2 MB]",
@@ -601,7 +605,12 @@ describe("tool results", () => {
 
   test("an object field is read without the screenshot inside it", () => {
     const serialized: SerializedResult = ToolResultSerializer.serializeRows([
-      { payload: { screenshot: `data:image/png;base64,${SCREENSHOT}`, ok: false } },
+      {
+        payload: {
+          screenshot: `data:image/png;base64,${SCREENSHOT}`,
+          ok: false,
+        },
+      },
     ]);
 
     expect(serialized.text).toContain(

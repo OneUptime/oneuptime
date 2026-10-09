@@ -1210,7 +1210,9 @@ describe("a runbook AI step and embedded images", () => {
       prompt: "Summarize what happened.",
     });
 
-    expect(messages[1]!.content).toContain(`Step description: Summarize:\n${note}`);
+    expect(messages[1]!.content).toContain(
+      `Step description: Summarize:\n${note}`,
+    );
     expect(messages[1]!.content).not.toContain(screenshot.slice(1000, 1064));
   });
 
@@ -1218,17 +1220,19 @@ describe("a runbook AI step and embedded images", () => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
-    jest.spyOn(IncidentAIContextBuilder, "buildIncidentContext").mockResolvedValue({
-      incident: {
-        projectId: PROJECT_ID,
-        title: "Checkout fails",
-        description: `Synthetic check failed.\n\n${image}`,
-      },
-      stateTimeline: [],
-      internalNotes: [],
-      publicNotes: [{ note: "We are looking into it." }],
-      workspaceMessages: [],
-    } as unknown as IncidentContextData);
+    jest
+      .spyOn(IncidentAIContextBuilder, "buildIncidentContext")
+      .mockResolvedValue({
+        incident: {
+          projectId: PROJECT_ID,
+          title: "Checkout fails",
+          description: `Synthetic check failed.\n\n${image}`,
+        },
+        stateTimeline: [],
+        internalNotes: [],
+        publicNotes: [{ note: "We are looking into it." }],
+        workspaceMessages: [],
+      } as unknown as IncidentContextData);
 
     const context: string = await buildTriggerContext(
       makeCtx({ incidentId: new ObjectID("inc1") }),
