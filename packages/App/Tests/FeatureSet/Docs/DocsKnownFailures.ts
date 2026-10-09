@@ -182,24 +182,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     uniqueHeadings: except(EVERY_TRANSLATION, "de"),
     sameShape: EVERY_TRANSLATION,
   },
-  "incidents/declaring-incidents": {
-    sameShape: ["hi"],
-  },
-  "incidents/index": {
-    sameShape: ["hi"],
-  },
-  "incidents/linked-alerts": {
-    translated: ["hi"],
-  },
-  "incidents/notes-owners-and-feed": {
-    sameShape: ["hi"],
-  },
-  "incidents/settings": {
-    sameShape: ["hi"],
-  },
-  "incidents/states-and-severities": {
-    sameShape: ["hi"],
-  },
   "installation/docker-compose": {
     sameShape: EVERY_TRANSLATION,
   },
