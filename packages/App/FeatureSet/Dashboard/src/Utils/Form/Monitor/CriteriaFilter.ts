@@ -66,7 +66,10 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
       criteriaFilter?.checkOn === CheckOn.Jitter ||
       criteriaFilter?.checkOn === CheckOn.PortDnsLookupTime ||
-      criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime;
+      criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime ||
+      criteriaFilter?.checkOn === CheckOn.NtpClockOffset ||
+      criteriaFilter?.checkOn === CheckOn.NtpResponseTime ||
+      criteriaFilter?.checkOn === CheckOn.NtpRootDispersion;
 
     /*
      * A Database Health filter names its series in databaseMonitorOptions,
@@ -508,6 +511,25 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.DnsRecordValue ||
           i.value === CheckOn.DnssecIsValid ||
           i.value === CheckOn.DnsRecordExists
+        );
+      });
+    }
+
+    /*
+     * In CheckOn order, which puts online and synchronized - the two an NTP
+     * monitor starts with - first, and a new filter on "NTP Is Online". The
+     * stratum, offset and root dispersion are there for the thresholds
+     * people add: "stratum at most 2", "offset over 100 ms".
+     */
+    if (monitorType === MonitorType.NTP) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.NtpIsOnline ||
+          i.value === CheckOn.NtpIsSynchronized ||
+          i.value === CheckOn.NtpClockOffset ||
+          i.value === CheckOn.NtpStratum ||
+          i.value === CheckOn.NtpRootDispersion ||
+          i.value === CheckOn.NtpResponseTime
         );
       });
     }
@@ -1196,6 +1218,55 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    /*
+     * Measurements in milliseconds, so the four comparisons; Greater Than
+     * leads because "offset over 100 ms" is the rule people mean.
+     */
+    if (
+      checkOn === CheckOn.NtpClockOffset ||
+      checkOn === CheckOn.NtpResponseTime ||
+      checkOn === CheckOn.NtpRootDispersion
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    /*
+     * A whole number from 1 to 16, so equality is a real rule too
+     * ("stratum equal to 1" for a GPS server). Greater Than leads: "stratum
+     * greater than 2" is the alert most people write.
+     */
+    if (checkOn === CheckOn.NtpStratum) {
+      options = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ].map((filterType: FilterType): DropdownOption => {
+        return {
+          label: filterType.toString(),
+          value: filterType,
+        };
+      });
+    }
+
     if (checkOn === CheckOn.ExternalStatusPageResponseTime) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -1734,6 +1805,22 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.ExternalStatusPageResponseTime) {
       return "5000";
+    }
+
+    if (checkOn === CheckOn.NtpClockOffset) {
+      return "100";
+    }
+
+    if (checkOn === CheckOn.NtpStratum) {
+      return "2";
+    }
+
+    if (checkOn === CheckOn.NtpRootDispersion) {
+      return "500";
+    }
+
+    if (checkOn === CheckOn.NtpResponseTime) {
+      return "1000";
     }
 
     if (checkOn === CheckOn.ExternalStatusPageOverallStatus) {

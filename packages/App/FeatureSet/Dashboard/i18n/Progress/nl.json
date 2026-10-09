@@ -4,6 +4,7 @@
     "untranslated": 17104
   },
   "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
     "1 week",
     "Alarm",
     "Capture",
@@ -19,6 +20,7 @@
     "Protocol",
     "Runbook: {{name}}",
     "Runner",
+    "Stratum",
     "Transceivers",
     "VMware vCenter",
     "Website",

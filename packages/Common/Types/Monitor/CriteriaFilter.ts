@@ -168,6 +168,25 @@ export enum CheckOn {
   DnssecResolverConsensus = "DNSSEC Resolver Consensus (AD Flag)",
   DnssecNameserverConsistent = "DNSSEC Nameservers Are Consistent",
 
+  /*
+   * NTP monitors. Online is "answered this probe's request with an NTP
+   * reply"; synchronized is "and the time it serves is usable" (stratum 1 to
+   * 15, no leap alarm). The offset is compared whichever way the clock is
+   * off, and the stratum is the effective one - a kiss-o'-death's 0 counts
+   * as 16 (NtpMonitorUtil.getEffectiveStratum).
+   */
+  NtpIsOnline = "NTP Is Online",
+  NtpIsSynchronized = "NTP Is Synchronized",
+  NtpStratum = "NTP Stratum",
+  NtpClockOffset = "NTP Clock Offset (in ms)",
+  NtpResponseTime = "NTP Response Time (in ms)",
+  /*
+   * The server's own estimate of how far its time could be from the true
+   * time. ntpd stops trusting a server once half its root delay plus this
+   * passes 1.5 seconds, however good its stratum looks.
+   */
+  NtpRootDispersion = "NTP Root Dispersion (in ms)",
+
   // SQL Query monitors.
   SqlIsOnline = "SQL Is Online",
   SqlQueryRowCount = "SQL Query Row Count",
@@ -452,6 +471,8 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnssecDsExists ||
       checkOn === CheckOn.DnssecResolverConsensus ||
       checkOn === CheckOn.DnssecNameserverConsistent ||
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized ||
       checkOn === CheckOn.SqlIsOnline ||
       checkOn === CheckOn.DatabaseIsOnline ||
       checkOn === CheckOn.ExternalStatusPageIsOnline
@@ -514,7 +535,9 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
       checkOn === CheckOn.ExternalStatusPageIsOnline ||
-      checkOn === CheckOn.DatabaseIsOnline
+      checkOn === CheckOn.DatabaseIsOnline ||
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized
     );
   }
 
@@ -636,6 +659,17 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.ExternalStatusPageResponseTime ||
       checkOn === CheckOn.ExternalStatusPageIsOnline ||
+      /*
+       * Each NTP check is one sample, and a clock that is off for one check
+       * is often a slow path rather than a bad server: an offset averaged
+       * over five minutes is the steadier alert.
+       */
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized ||
+      checkOn === CheckOn.NtpStratum ||
+      checkOn === CheckOn.NtpClockOffset ||
+      checkOn === CheckOn.NtpResponseTime ||
+      checkOn === CheckOn.NtpRootDispersion ||
       /*
        * Over time is the most useful shape for database thresholds: a single
        * sample of "connections above 90%" is a spike, five minutes of it is

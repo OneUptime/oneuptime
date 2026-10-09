@@ -26,7 +26,7 @@ Ingenting på dette trinnet merkes som manglende før du klikker på **Neste**.
 
 ## Sonder og intervall
 
-Monitorer som sonder sjekker, slutter med dette trinnet: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code og External Status Page. **Sonder** er maskinene som kjører sjekkene, og prosjektets standardsonder er allerede valgt. **Overvåkingsintervall** starter på **Hvert 5. minutt**. Klikk på **Opprett monitor**.
+Monitorer som sonder sjekker, slutter med dette trinnet: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code og External Status Page. **Sonder** er maskinene som kjører sjekkene, og prosjektets standardsonder er allerede valgt. **Overvåkingsintervall** starter på **Hvert 5. minutt**. Klikk på **Opprett monitor**.
 
 Alle andre typer opprettes fra trinnet **Kriterier**.
 

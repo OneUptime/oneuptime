@@ -168,7 +168,7 @@ The target is an IP address, so there is nothing to look up. Use **Total Connect
 :::
 
 :::details I need to check a UDP service
-Port monitors open TCP connections only. For a DNS server, use a [DNS monitor](/docs/monitor/dns-monitor), which sends real queries.
+Port monitors open TCP connections only. For a DNS server, use a [DNS monitor](/docs/monitor/dns-monitor), and for a time server on UDP port 123, an [NTP monitor](/docs/monitor/ntp-monitor). Both send real queries.
 :::
 
 ## Next steps

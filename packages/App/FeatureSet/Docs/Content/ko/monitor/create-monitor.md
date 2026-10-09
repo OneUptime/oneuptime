@@ -26,7 +26,7 @@
 
 ## 프로브 및 간격
 
-프로브가 확인하는 모니터는 이 단계로 끝납니다: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code, External Status Page. **프로브** 는 확인을 실행하는 머신이며, 프로젝트의 기본 프로브가 미리 선택되어 있습니다. **모니터링 간격** 은 **5분마다** 로 시작합니다. **모니터 생성** 을 클릭합니다.
+프로브가 확인하는 모니터는 이 단계로 끝납니다: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code, External Status Page. **프로브** 는 확인을 실행하는 머신이며, 프로젝트의 기본 프로브가 미리 선택되어 있습니다. **모니터링 간격** 은 **5분마다** 로 시작합니다. **모니터 생성** 을 클릭합니다.
 
 나머지 유형은 모두 **기준** 단계에서 만듭니다.
 

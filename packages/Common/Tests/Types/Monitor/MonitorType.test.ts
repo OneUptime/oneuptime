@@ -127,6 +127,7 @@ describe("MonitorTypeHelper", () => {
       MonitorType.Domain,
       MonitorType.ExternalStatusPage,
       MonitorType.Database,
+      MonitorType.NTP,
     ])("returns true for %s", (monitorType: MonitorType) => {
       expect(MonitorTypeHelper.isProbableMonitor(monitorType)).toBe(true);
     });
@@ -253,6 +254,76 @@ describe("MonitorTypeHelper", () => {
       expect(networkCategory?.monitorTypes).toContain(
         MonitorType.NetworkDevice,
       );
+    });
+  });
+
+  /*
+   * NTP is a probe check like Ping or Port: a probe sends the request on the
+   * monitor's interval, so it is probeable, has an interval and graphs, and
+   * sits next to Network Device in the Network group of the picker.
+   */
+  describe("NTP", () => {
+    test("is a probe check with an interval", () => {
+      expect(MonitorTypeHelper.isProbableMonitor(MonitorType.NTP)).toBe(true);
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveInterval(MonitorType.NTP),
+      ).toBe(true);
+      expect(MonitorTypeHelper.isTelemetryMonitor(MonitorType.NTP)).toBe(false);
+      expect(MonitorTypeHelper.isManualMonitor(MonitorType.NTP)).toBe(false);
+    });
+
+    test("has criteria and graphs, and is a creatable, billed type", () => {
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveCriteria(MonitorType.NTP),
+      ).toBe(true);
+      expect(MonitorTypeHelper.doesMonitorTypeHaveGraphs(MonitorType.NTP)).toBe(
+        true,
+      );
+      expect(MonitorTypeHelper.getActiveMonitorTypes()).toContain(
+        MonitorType.NTP,
+      );
+      expect(MonitorTypeHelper.isBilledAsActiveMonitor(MonitorType.NTP)).toBe(
+        true,
+      );
+    });
+
+    test("needs no documentation tab: there is nothing to send to it", () => {
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveDocumentation(MonitorType.NTP),
+      ).toBe(false);
+    });
+
+    test("is named and described for the picker", () => {
+      expect(MonitorTypeHelper.getTitle(MonitorType.NTP)).toBe("NTP");
+      expect(MonitorTypeHelper.getDescription(MonitorType.NTP)).toBe(
+        "Whether a time server answers, its stratum, and how far its clock is off.",
+      );
+    });
+
+    test("is listed in the Network group, after Network Device", () => {
+      const networkCategory: MonitorTypeCategory | undefined =
+        MonitorTypeHelper.getMonitorTypeCategories().find(
+          (category: MonitorTypeCategory) => {
+            return category.label === "Network";
+          },
+        );
+
+      expect(networkCategory?.monitorTypes).toEqual([
+        MonitorType.NetworkDevice,
+        MonitorType.NTP,
+      ]);
+    });
+
+    test("is in exactly one group", () => {
+      const groups: Array<string> = MonitorTypeHelper.getMonitorTypeCategories()
+        .filter((category: MonitorTypeCategory) => {
+          return category.monitorTypes.includes(MonitorType.NTP);
+        })
+        .map((category: MonitorTypeCategory) => {
+          return category.label;
+        });
+
+      expect(groups).toEqual(["Network"]);
     });
   });
 

@@ -161,6 +161,7 @@
     "Port Monitor": "Monitor de porta",
     "DNS Monitor": "Monitor de DNS",
     "DNSSEC Monitor": "Monitor de DNSSEC",
+    "NTP Monitor": "Monitor de NTP",
     "SSL Certificate Monitor": "Monitor de certificado SSL",
     "Domain Monitor": "Monitor de domínio",
     "Custom Code Monitor": "Monitor de código personalizado",

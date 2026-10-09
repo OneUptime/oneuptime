@@ -164,9 +164,9 @@ import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import {
+  getRequestTimeoutField,
   getRetriesOnFailureDescription,
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
-  REQUEST_TIMEOUT_DESCRIPTION,
 } from "../../../Utils/MonitorRetryHelpText";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -175,7 +175,10 @@ import {
   getMonitorDestinationFieldCopy,
   MONITOR_PORT_FIELD_DESCRIPTION,
   MonitorDestinationFieldCopy,
+  NTP_PORT_FIELD_DESCRIPTION,
+  NTP_PORT_FIELD_ERROR,
 } from "../../../Utils/Form/Monitor/MonitorDestinationFieldCopy";
+import { DEFAULT_NTP_PORT } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import {
   SnmpTableDefinition,
   SnmpTableSnapshot,
@@ -709,7 +712,8 @@ return {
     props.monitorType === MonitorType.Port ||
     props.monitorType === MonitorType.Website ||
     props.monitorType === MonitorType.API ||
-    props.monitorType === MonitorType.SSLCertificate;
+    props.monitorType === MonitorType.SSLCertificate ||
+    props.monitorType === MonitorType.NTP;
 
   const isCodeMonitor: boolean =
     props.monitorType === MonitorType.CustomJavaScriptCode ||
@@ -738,13 +742,20 @@ return {
       usesClientCertificate: useTlsClientCertificate,
     });
 
+  /*
+   * The timeout field says, and starts on, the default the probe really uses
+   * for this type: 5 seconds for NTP, 60 for the TCP and HTTP checks.
+   */
+  const requestTimeoutField: { description: string; defaultSeconds: number } =
+    getRequestTimeoutField(props.monitorType);
+
   const renderTimeoutAndRetryFields: () => ReactElement = (): ReactElement => {
     return (
       <>
         <div>
           <FieldLabelElement
             title={"Request Timeout (seconds)"}
-            description={REQUEST_TIMEOUT_DESCRIPTION}
+            description={requestTimeoutField.description}
             required={false}
           />
           <Input
@@ -753,7 +764,7 @@ return {
                 ? Math.round(
                     monitorStep.data.requestTimeoutInMs / 1000,
                   ).toString()
-                : "60"
+                : requestTimeoutField.defaultSeconds.toString()
             }
             onChange={(value: string) => {
               const seconds: number = parseInt(value);
@@ -767,7 +778,7 @@ return {
                 props.onChange(MonitorStep.clone(monitorStep));
               }
             }}
-            placeholder="60"
+            placeholder={requestTimeoutField.defaultSeconds.toString()}
             type={InputType.NUMBER}
           />
         </div>
@@ -1449,6 +1460,62 @@ return {
               </>
             )}
 
+            {renderTimeoutAndRetryFields()}
+          </div>
+        </FoldedSection>
+      )}
+
+      {/*
+       * More fields for NTP monitors: the port, which nearly everyone leaves
+       * at 123, then the timeout and the retries.
+       */}
+      {props.monitorType === MonitorType.NTP && (
+        <FoldedSection
+          title={MORE_FIELDS_SECTION_TITLE}
+          icon={MORE_SECTION_ICON}
+          description="Port, timeout and retry settings"
+          items={moreFieldsItems}
+          dataTestId="monitor-step-more-fields"
+        >
+          <div className="space-y-4">
+            <div>
+              <FieldLabelElement
+                title={"Port"}
+                description={NTP_PORT_FIELD_DESCRIPTION}
+                required={false}
+              />
+              <Input
+                initialValue={
+                  monitorStep.data?.monitorDestinationPort?.toString() || ""
+                }
+                placeholder={DEFAULT_NTP_PORT.toString()}
+                type={InputType.NUMBER}
+                ariaLabel="Port"
+                error={errors["ntpPort"] ? errors["ntpPort"] : undefined}
+                onChange={(value: string) => {
+                  const trimmed: string = value.trim();
+                  const portNumber: number = Number(trimmed);
+                  const isValidPort: boolean =
+                    Number.isInteger(portNumber) &&
+                    portNumber >= 1 &&
+                    portNumber <= 65535;
+
+                  setErrors({
+                    ...errors,
+                    ntpPort:
+                      trimmed && !isValidPort ? NTP_PORT_FIELD_ERROR : "",
+                  });
+
+                  monitorStep.setPort(
+                    trimmed && isValidPort ? new Port(portNumber) : undefined,
+                  );
+
+                  if (props.onChange) {
+                    props.onChange(MonitorStep.clone(monitorStep));
+                  }
+                }}
+              />
+            </div>
             {renderTimeoutAndRetryFields()}
           </div>
         </FoldedSection>

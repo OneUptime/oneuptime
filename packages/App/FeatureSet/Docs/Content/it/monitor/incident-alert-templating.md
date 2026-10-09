@@ -71,6 +71,28 @@ Quando il criterio ha **Group incidents and alerts by a payload field** attivo, 
 | `failureCause`     | La causa del fallimento se il controllo IP è fallito. | `string`  |
 | `isTimeout`        | Se la richiesta ping IP è andata in timeout.          | `boolean` |
 
+### Monitor NTP
+
+| Variabile            | Descrizione                                                                                                                           | Tipo      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `isOnline`           | Se il server dell'ora ha risposto alla richiesta della sonda.                                                                         | `boolean` |
+| `isSynchronized`     | Se ha risposto con stratum da 1 a 15, senza l'allarme di secondo intercalare e con timestamp reali.                                   | `boolean` |
+| `stratum`            | Lo stratum riportato dal server: 1 per un server primario, 16 se non sincronizzato, 0 per un kiss-o'-death.                           | `number`  |
+| `clockOffsetInMs`    | Quanto l'orologio del server si discosta da quello della sonda, in millisecondi. Un valore positivo significa che il server è avanti. | `number`  |
+| `referenceId`        | Con cosa si sincronizza il server: una sorgente come `GPS` allo stratum 1, o l'indirizzo del suo server a monte.                      | `string`  |
+| `leapIndicator`      | Da 0 a 2 quando va tutto bene, 3 quando il server segnala che il suo orologio non è sincronizzato.                                    | `number`  |
+| `kissCode`           | Con stratum 0, il codice di quattro lettere che il server ha inviato al posto dell'ora, come `RATE`.                                  | `string`  |
+| `responseTimeInMs`   | Il tempo dalla richiesta alla risposta, in millisecondi.                                                                              | `number`  |
+| `roundTripDelayInMs` | L'andata e ritorno di rete dello scambio, senza il tempo di elaborazione del server.                                                  | `number`  |
+| `rootDelayInMs`      | L'andata e ritorno dal server al suo orologio di riferimento, in millisecondi.                                                        | `number`  |
+| `rootDispersionInMs` | La stima del server stesso del suo errore massimo, in millisecondi.                                                                   | `number`  |
+| `serverTime`         | L'orologio del server quando ha inviato la risposta, come timestamp ISO 8601.                                                         | `string`  |
+| `referenceTime`      | Quando l'orologio del server è stato impostato o corretto l'ultima volta, come timestamp ISO 8601.                                    | `string`  |
+| `serverAddress`      | L'indirizzo a cui è andata la richiesta.                                                                                              | `string`  |
+| `port`               | La porta UDP a cui è andata la richiesta.                                                                                             | `number`  |
+| `failureCause`       | Perché il server non ha risposto, o perché non è sincronizzato.                                                                       | `string`  |
+| `isTimeout`          | Se il server non ha risposto in tempo.                                                                                                | `boolean` |
+
 ### Monitor Certificato SSL
 
 | Variabile            | Descrizione                                            | Tipo      |

@@ -26,7 +26,7 @@
 
 ## 探測器與間隔
 
-由探測器檢查的監測器以這一步結束：Website、API、Ping、IP、Port、SSL Certificate、DNS、DNSSEC、Domain、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code 和 External Status Page。**探測器** 是執行檢查的機器，您專案的預設探測器已預先選取。**監測間隔** 從 **每 5 分鐘** 開始。點選 **建立監測器**。
+由探測器檢查的監測器以這一步結束：Website、API、Ping、IP、Port、SSL Certificate、DNS、DNSSEC、NTP、Domain、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code 和 External Status Page。**探測器** 是執行檢查的機器，您專案的預設探測器已預先選取。**監測間隔** 從 **每 5 分鐘** 開始。點選 **建立監測器**。
 
 其他所有類型都在 **條件** 這一步建立。
 
