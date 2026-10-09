@@ -187,7 +187,7 @@ Ein Vorfall wird behoben, wenn er von einem Status über Ihrem behobenen Status 
 - **Gibt die Monitore frei, die der Vorfall hält.** Ein offen gemeldeter Vorfall hält seine Monitore: Er hat sie in seinen Status **Monitor-Status ändern in** gesetzt, wenn er einen nennt, und – von Hand gemeldet – ihre Überwachung pausiert. Auch eine Bearbeitung, während er offen ist – Monitore hinzufügen oder diesen Status ändern –, lässt ihn sie halten. Das Beheben setzt ihre Überwachung fort und setzt sie auf betriebsbereit zurück, sofern nicht ein anderer offener Vorfall noch auf ihnen liegt, und ab dann hält der Vorfall nichts mehr. Ein bereits behoben gemeldeter Vorfall gibt also nichts frei, ebenso wenig ein zweites Beheben nach einer Wiedereröffnung: Ein Status, den seine Monitore dazwischen bekamen – von ihren Proben, durch Wartung oder von Hand gesetzt –, bleibt.
 - **Markiert das SLA als behoben** und entwirft, wenn KI-Postmortem-Entwürfe von OneUptime eingeschaltet sind, ein Postmortem.
 
-Von **Behoben** in einen Status danach zu wechseln – etwa **Geschlossen** – ist kein zweites Beheben: Nichts davon läuft erneut, und kein neues SLA beginnt. Ein Vorfall, der gemeldet wurde, bevor OneUptime dies aufzeichnete, gibt seine Monitore wie bisher beim nächsten Beheben frei.
+Von **Behoben** in einen Status danach zu wechseln – etwa **Closed** – ist kein zweites Beheben: Nichts davon läuft erneut, und kein neues SLA beginnt. Ein Vorfall, der gemeldet wurde, bevor OneUptime dies aufzeichnete, gibt seine Monitore wie bisher beim nächsten Beheben frei.
 
 ## Die Statuszeitachse
 
