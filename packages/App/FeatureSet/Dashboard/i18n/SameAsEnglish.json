@@ -112,6 +112,7 @@
   "^GET /api/",
   "etcd",
   "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
   "host 10.0.0.5 and (tcp port 443 or udp port 53)",
   "kube-proxy",
   "macOS",

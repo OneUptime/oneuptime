@@ -27416,5 +27416,7 @@
   "Who is paged when Huntress reports an incident. Leave empty to open incidents without paging anyone; your incident on-call rules still apply.": "Huntress가 인시던트를 보고할 때 호출할 대상입니다. 비워 두면 아무도 호출하지 않고 인시던트를 엽니다. 인시던트 온콜 규칙은 계속 적용됩니다.",
   "Who is paged, and how a Huntress report becomes an incident.": "호출 대상과 Huntress 보고서가 인시던트가 되는 방식입니다.",
   "whsec_…": "whsec_…",
-  "{{labels}}, and the report's organization": "{{labels}} 및 보고서의 조직"
+  "{{labels}}, and the report's organization": "{{labels}} 및 보고서의 조직",
+  "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.": "사용할 구체적인 모델 또는 배포 이름입니다(예: OpenAI는 gpt-5.1, Anthropic은 claude-sonnet-5-5, Azure OpenAI는 배포 이름, Groq는 llama-3.3-70b-versatile, Mistral은 mistral-large-latest). OpenAI 호환 공급자에서는 필수이며, 서버가 제공하는 모델과 일치해야 합니다.",
+  "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile": "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile"
 }
