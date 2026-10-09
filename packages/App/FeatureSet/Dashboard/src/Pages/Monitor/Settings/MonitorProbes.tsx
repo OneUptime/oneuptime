@@ -11,11 +11,13 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
+import { getApiReferencePagePath } from "Common/Utils/ApiReferencePage";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
@@ -232,7 +234,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           actionButtons={[
             {
               title: canReadProbeKey ? "Show ID and Key" : "Show ID",
-              icon: IconProp.Key,
+              icon: canReadProbeKey ? IconProp.Key : IconProp.Identification,
               buttonStyleType: ButtonStyleType.NORMAL,
               // Reveals the probe's ID (and its key, to who may read it) for copying - a utility, not the row's button.
               placement: ActionButtonPlacement.MoreMenu,
@@ -350,19 +352,15 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         {labelBulkActionModals}
 
-        {showKeyModal && currentProbe ? (
+        {showKeyModal && currentProbe && canReadProbeKey ? (
           <ConfirmModal
-            title={canReadProbeKey ? "Probe Key" : "Probe ID"}
+            title="Probe Key"
             description={
               <div>
                 <span>
-                  {canReadProbeKey
-                    ? translator.translateText(
-                        "Your probe connects to OneUptime with this ID and key. Keep the key secret.",
-                      )
-                    : translator.translateText(
-                        "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.",
-                      )}
+                  {translator.translateText(
+                    "Your probe connects to OneUptime with this ID and key. Keep the key secret.",
+                  )}
                 </span>
                 <br />
                 <br />
@@ -370,23 +368,36 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <b>{translator.translateText("Probe ID:")} </b>{" "}
                   {currentProbe["_id"]?.toString()}
                 </span>
-                {canReadProbeKey ? (
-                  <>
-                    <br />
-                    <br />
-                    <span>
-                      <b>{translator.translateText("Probe Key:")} </b>{" "}
-                      {currentProbe["key"]?.toString()}
-                    </span>
-                  </>
-                ) : (
-                  <></>
-                )}
+                <br />
+                <br />
+                <span>
+                  <b>{translator.translateText("Probe Key:")} </b>{" "}
+                  {currentProbe["key"]?.toString()}
+                </span>
               </div>
             }
             submitButtonText={"Close"}
             submitButtonType={ButtonStyleType.NORMAL}
             onSubmit={async () => {
+              setShowKeyModal(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * Everyone else who sees the table gets the probe's ID - installing a
+         * probe needs it as well as the key - in the shared Show ID dialog.
+         */}
+        {showKeyModal && currentProbe && !canReadProbeKey ? (
+          <RecordIdModal
+            recordId={currentProbe["_id"]}
+            itemName="Probe"
+            apiReferencePagePath={getApiReferencePagePath(new Probe(), {
+              isBillingEnabled: BILLING_ENABLED,
+            })}
+            onClose={() => {
               setShowKeyModal(false);
             }}
           />

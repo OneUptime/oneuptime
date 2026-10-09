@@ -27527,6 +27527,5 @@
   "No longer an option": "不再是选项",
   "This {{itemName}} has no ID.": "此{{itemName}}没有 ID。",
   "Has Additional Parameters": "有附加参数",
-  "Only project owners and admins can read them, like the API key.": "与 API 密钥一样，只有项目所有者和管理员可以读取。",
-  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "您的探针使用此 ID 及其密钥连接到 OneUptime。只有项目所有者和管理员可以查看密钥。"
+  "Only project owners and admins can read them, like the API key.": "与 API 密钥一样，只有项目所有者和管理员可以读取。"
 }

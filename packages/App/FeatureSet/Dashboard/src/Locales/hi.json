@@ -27527,6 +27527,5 @@
   "No longer an option": "अब विकल्प नहीं",
   "This {{itemName}} has no ID.": "इस {{itemName}} की कोई आईडी नहीं है।",
   "Has Additional Parameters": "अतिरिक्त पैरामीटर हैं",
-  "Only project owners and admins can read them, like the API key.": "API कुंजी की तरह, इन्हें केवल प्रोजेक्ट के स्वामी और एडमिन पढ़ सकते हैं।",
-  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "आपका प्रोब इस ID और अपनी कुंजी के साथ OneUptime से जुड़ता है। कुंजी केवल प्रोजेक्ट के स्वामी और एडमिन देख सकते हैं।"
+  "Only project owners and admins can read them, like the API key.": "API कुंजी की तरह, इन्हें केवल प्रोजेक्ट के स्वामी और एडमिन पढ़ सकते हैं।"
 }

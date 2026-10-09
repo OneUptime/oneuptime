@@ -27527,6 +27527,5 @@
   "No longer an option": "더 이상 옵션이 아님",
   "This {{itemName}} has no ID.": "이 {{itemName}}에는 ID가 없습니다.",
   "Has Additional Parameters": "추가 매개변수 있음",
-  "Only project owners and admins can read them, like the API key.": "API 키와 마찬가지로 프로젝트 소유자와 관리자만 읽을 수 있습니다.",
-  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "프로브는 이 ID와 해당 키로 OneUptime에 연결합니다. 키는 프로젝트 소유자와 관리자만 볼 수 있습니다."
+  "Only project owners and admins can read them, like the API key.": "API 키와 마찬가지로 프로젝트 소유자와 관리자만 읽을 수 있습니다."
 }

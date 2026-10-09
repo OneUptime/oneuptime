@@ -27527,6 +27527,5 @@
   "No longer an option": "Больше не вариант",
   "This {{itemName}} has no ID.": "У этого элемента ({{itemName}}) нет ID.",
   "Has Additional Parameters": "Есть дополнительные параметры",
-  "Only project owners and admins can read them, like the API key.": "Как и API-ключ, их могут читать только владельцы и администраторы проекта.",
-  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "Ваш зонд подключается к OneUptime с этим ID и своим ключом. Ключ могут видеть только владельцы и администраторы проекта."
+  "Only project owners and admins can read them, like the API key.": "Как и API-ключ, их могут читать только владельцы и администраторы проекта."
 }

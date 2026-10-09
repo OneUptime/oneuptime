@@ -128,25 +128,38 @@ describe("Monitors → Settings → Probes", () => {
     expect(source).not.toContain(squash("actionButtons={ canReadProbeKey ?"));
   });
 
-  test("shows every reader the probe's ID", () => {
+  test("shows those who may read the key the probe's ID and its key", () => {
+    expect(source).toContain(
+      squash(
+        "{showKeyModal && currentProbe && canReadProbeKey ? ( <ConfirmModal",
+      ),
+    );
     expect(source).toContain(
       squash(
         '<b>{translator.translateText("Probe ID:")} </b>{" "} {currentProbe["_id"]?.toString()}',
       ),
     );
-  });
-
-  test("shows the key only to those who may read it, and says who may to the others", () => {
     expect(source).toContain(
       squash(
-        '{canReadProbeKey ? ( <> <br /> <br /> <span> <b>{translator.translateText("Probe Key:")} </b>{" "} {currentProbe["key"]?.toString()}',
+        '<b>{translator.translateText("Probe Key:")} </b>{" "} {currentProbe["key"]?.toString()}',
       ),
     );
+  });
+
+  /*
+   * Everyone else gets the probe's ID alone, in the shared Show ID dialog
+   * every table's Show ID opens (RecordIdModal, held to by
+   * ShowIdDialogGuard): never a hand-drawn dialog titled "Probe ID".
+   */
+  test("shows everyone else the ID alone, in the shared Show ID dialog", () => {
     expect(source).toContain(
-      '"Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key."',
+      squash(
+        '{showKeyModal && currentProbe && !canReadProbeKey ? ( <RecordIdModal recordId={currentProbe["_id"]} itemName="Probe"',
+      ),
     );
+    expect(source).not.toContain('"Probe ID"');
     expect(source).toContain(
-      squash('title={canReadProbeKey ? "Probe Key" : "Probe ID"}'),
+      squash("icon: canReadProbeKey ? IconProp.Key : IconProp.Identification,"),
     );
   });
 

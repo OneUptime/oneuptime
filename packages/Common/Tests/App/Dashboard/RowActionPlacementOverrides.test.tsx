@@ -597,8 +597,8 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
 
   /*
    * A member who may read the probes but not their keys needs the probe's
-   * ID to install it all the same: they get Show ID, and the ID alone, with
-   * who can see the key.
+   * ID to install it all the same: they get Show ID, and the ID alone, in
+   * the shared Show ID dialog (RecordIdModal) every table's Show ID opens.
    */
   test("a member who may not read keys gets Show ID, and the ID alone", async () => {
     startSession({
@@ -620,16 +620,10 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
       expect(screen.getByTestId("modal-title")).toHaveTextContent("Probe ID");
     });
 
-    const description: HTMLElement = screen.getByTestId(
-      "confirm-modal-description",
-    );
-
-    expect(description).toHaveTextContent(`Probe ID: ${PROBE_ID}`);
-    expect(description).toHaveTextContent(
-      "Only project owners and admins can see the key.",
-    );
-    expect(description).not.toHaveTextContent("Probe Key:");
-    expect(description).not.toHaveTextContent(PROBE_KEY);
+    expect(screen.getByTestId("record-id-value")).toHaveTextContent(PROBE_ID);
+    expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
+    expect(screen.getByTestId("modal")).not.toHaveTextContent("Probe Key");
+    expect(document.body).not.toHaveTextContent(PROBE_KEY);
   });
 
   test("the key is asked for only of those who may read it", async () => {

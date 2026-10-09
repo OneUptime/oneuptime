@@ -27527,6 +27527,5 @@
   "No longer an option": "Keine Option mehr",
   "This {{itemName}} has no ID.": "Dieser Eintrag ({{itemName}}) hat keine ID.",
   "Has Additional Parameters": "Hat zusätzliche Parameter",
-  "Only project owners and admins can read them, like the API key.": "Wie den API-Schlüssel können nur Projekteigentümer und Administratoren sie lesen.",
-  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "Ihre Sonde verbindet sich mit dieser ID und ihrem Schlüssel mit OneUptime. Nur Projekteigentümer und Administratoren können den Schlüssel sehen."
+  "Only project owners and admins can read them, like the API key.": "Wie den API-Schlüssel können nur Projekteigentümer und Administratoren sie lesen."
 }
