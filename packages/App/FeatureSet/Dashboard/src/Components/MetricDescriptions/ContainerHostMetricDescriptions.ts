@@ -77,7 +77,7 @@ export const CONTAINER_HOST_METRIC_DESCRIPTIONS: Record<
     "Processes and threads running inside all containers on this host, added together and averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). Each thread counts as one.",
   ),
   availabilityChart: translationKey(
-    "Up for each interval of the selected range in which this host's agent sent metrics, Down if it sent none; a lone missed minute between Up minutes counts as Up. The uptime badge is the share of Up intervals, leaving out recent ones still waiting for data.",
+    "Up for each interval in which this host's agent sent metrics, Down if it sent none; a lone missed minute between Up minutes counts as Up. The uptime badge is the Up share, leaving out ones still waiting for data and time OneUptime was not receiving.",
   ),
   avgCpuChart: translationKey(
     "Average CPU use across the containers on this host in each interval of the selected range. 100% is one full CPU core, so the line can rise above 100%.",

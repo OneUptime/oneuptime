@@ -13894,7 +13894,7 @@
   "Not linked": "Not linked",
   "Not linked to anything": "Not linked to anything",
   "Not linked to other sessions": "Not linked to other sessions",
-  "Not monitored": "Not monitored",
+  "Not monitored": "پایش نشده",
   "Not part of an episode": "Not part of an episode",
   "Not pinned": "Not pinned",
   "Not pinned on the map": "Not pinned on the map",
@@ -27579,5 +27579,15 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "پورتی از ۱ تا ۶۵۵۳۵ وارد کنید، یا برای ۱۲۳ آن را خالی بگذارید.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "مدت انتظار برای پاسخ سرور در هر تلاش، از جمله جست‌وجوی DNS. در هر تلاش مجدد، مهلت از نو آغاز می‌شود. مقدار پیش‌فرض ۵ ثانیه است. حداکثر ۶۰ ثانیه است.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "پس از یک تلاش ناموفق چند بار دوباره تلاش شود: ۰ یعنی یک تلاش، ۲ یعنی حداکثر ۳ تلاش. برای استفاده از پیش‌فرض پراب (معمولاً ۳) این فیلد را خالی بگذارید. بیشینه ۳ است. نبود پاسخ، پورت ردشده و جست‌وجوی ناموفق DNS دوباره تلاش می‌شوند، هر بار با درخواستی تازه. از سروری که پاسخ می‌دهد هرگز دوباره پرسیده نمی‌شود، حتی اگر پاسخ دهد که همگام نیست.",
-  "The time server this monitor checks.": "سرور زمانی که این مانیتور بررسی می‌کند."
+  "The time server this monitor checks.": "سرور زمانی که این مانیتور بررسی می‌کند.",
+  "Instance Receiving Period": "دوره دریافت نمونه",
+  "Instance Receiving Periods": "دوره‌های دریافت نمونه",
+  "Internal record of the stretches of time this instance was up and receiving data.": "سابقه داخلی دوره‌هایی که این نمونه در حال اجرا بود و داده دریافت می‌کرد.",
+  "Last Receiving At": "آخرین دریافت",
+  "OneUptime had just come back and agents were reconnecting. This time is left out of uptime.": "OneUptime تازه دوباره در دسترس قرار گرفته بود و عامل‌ها در حال اتصال مجدد بودند. این زمان در زمان کارکرد حساب نمی‌شود.",
+  "OneUptime has received this data and is still processing it. This time is left out of uptime until it catches up.": "OneUptime این داده‌ها را دریافت کرده و هنوز در حال پردازش آن‌هاست. تا زمانی که پردازش به‌روز شود، این زمان در زمان کارکرد حساب نمی‌شود.",
+  "OneUptime was not receiving data (a restart, an upgrade or an outage). This time is left out of uptime.": "OneUptime داده دریافت نمی‌کرد (یک راه‌اندازی مجدد، یک ارتقا یا یک قطعی). این زمان در زمان کارکرد حساب نمی‌شود.",
+  "Up for each interval in which this host's agent sent metrics, Down if it sent none; a lone missed minute between Up minutes counts as Up. The uptime badge is the Up share, leaving out ones still waiting for data and time OneUptime was not receiving.": "برای هر بازه‌ای که عامل این میزبان در آن معیار ارسال کرده Up و اگر هیچ معیاری نفرستاده Down است؛ یک دقیقه از دست‌رفته‌ی تنها میان دقیقه‌های Up، Up حساب می‌شود. نشان زمان کارکرد سهم Up است، بدون بازه‌هایی که هنوز منتظر داده‌اند و بدون زمانی که OneUptime داده دریافت نمی‌کرد.",
+  "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "اگر OneUptime در آن بازه از این میزبان معیار دریافت کرده باشد Up و اگر چیزی نرسیده باشد Down است؛ یک دقیقه از دست‌رفته میان بازه‌های Up، Up حساب می‌شود. نشان زمان کارکرد زمانی را که OneUptime داده دریافت نمی‌کرد کنار می‌گذارد و جدیدترین بازه تا رسیدن داده ارزیابی نمی‌شود.",
+  "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "برای هر بازه‌ای که عامل کلاستر در آن معیار ارسال کرده Up و اگر هیچ معیاری نفرستاده Down است؛ یک دقیقه از دست‌رفته‌ی تنها میان بازه‌های Up، Up حساب می‌شود. نشان سهم Up است، بدون جدیدترین بازه‌هایی که هنوز منتظر داده‌اند و بدون زمانی که OneUptime داده دریافت نمی‌کرد."
 }

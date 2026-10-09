@@ -13894,7 +13894,7 @@
   "Not linked": "Not linked",
   "Not linked to anything": "Not linked to anything",
   "Not linked to other sessions": "Not linked to other sessions",
-  "Not monitored": "Not monitored",
+  "Not monitored": "Ikke overvåket",
   "Not part of an episode": "Not part of an episode",
   "Not pinned": "Not pinned",
   "Not pinned on the map": "Not pinned on the map",
@@ -27579,5 +27579,15 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "Skriv inn en port fra 1 til 65535, eller la feltet stå tomt for 123.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "Hvor lenge det ventes på serverens svar ved hvert forsøk, inkludert DNS-oppslaget. Hvert nytt forsøk får et nytt tidsavbrudd. Standard er 5 sekunder. Maksimum er 60 sekunder.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "Hvor mange ganger det skal prøves på nytt etter et mislykket forsøk: 0 betyr ett forsøk, 2 betyr opptil 3. La feltet stå tomt for å bruke probens standard (vanligvis 3). Maksimum er 3. Manglende svar, en avvist port og et mislykket DNS-oppslag prøves på nytt, hver gang med en ny forespørsel. En server som svarer blir aldri spurt igjen, selv når den svarer at den ikke er synkronisert.",
-  "The time server this monitor checks.": "Tidsserveren denne monitoren sjekker."
+  "The time server this monitor checks.": "Tidsserveren denne monitoren sjekker.",
+  "Instance Receiving Period": "Mottaksperiode for instansen",
+  "Instance Receiving Periods": "Mottaksperioder for instansen",
+  "Internal record of the stretches of time this instance was up and receiving data.": "Intern registrering av periodene da denne instansen kjørte og mottok data.",
+  "Last Receiving At": "Sist mottatt",
+  "OneUptime had just come back and agents were reconnecting. This time is left out of uptime.": "OneUptime hadde nettopp kommet tilbake, og agentene koblet til på nytt. Denne tiden telles ikke med i oppetiden.",
+  "OneUptime has received this data and is still processing it. This time is left out of uptime until it catches up.": "OneUptime har mottatt disse dataene og behandler dem fortsatt. Denne tiden telles ikke med i oppetiden før behandlingen har tatt seg inn.",
+  "OneUptime was not receiving data (a restart, an upgrade or an outage). This time is left out of uptime.": "OneUptime mottok ikke data (en omstart, en oppgradering eller et avbrudd). Denne tiden telles ikke med i oppetiden.",
+  "Up for each interval in which this host's agent sent metrics, Down if it sent none; a lone missed minute between Up minutes counts as Up. The uptime badge is the Up share, leaving out ones still waiting for data and time OneUptime was not receiving.": "Up for hvert intervall der denne vertens agent sendte metrikker, Down hvis den ikke sendte noen; ett enkelt manglende minutt mellom Up-minutter teller som Up. Oppetidsmerket er Up-andelen uten intervaller som fortsatt venter på data, og uten tid da OneUptime ikke mottok noe.",
+  "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "Up hvis OneUptime mottok metrikker fra denne verten i det intervallet, Down hvis ingenting kom fram; ett manglende minutt mellom Up-intervaller teller som Up. Oppetidsmerket utelater tid da OneUptime ikke mottok noe, og det nyeste intervallet vurderes først når dataene har kommet.",
+  "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "Up for hvert intervall der klyngens agent sendte metrikker, Down hvis den ikke sendte noen; ett enkelt manglende minutt mellom Up-intervaller teller som Up. Merket er Up-andelen uten de nyeste intervallene som fortsatt venter på data, og uten tid da OneUptime ikke mottok noe."
 }

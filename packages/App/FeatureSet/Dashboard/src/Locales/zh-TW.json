@@ -13894,7 +13894,7 @@
   "Not linked": "Not linked",
   "Not linked to anything": "Not linked to anything",
   "Not linked to other sessions": "Not linked to other sessions",
-  "Not monitored": "Not monitored",
+  "Not monitored": "未監控",
   "Not part of an episode": "Not part of an episode",
   "Not pinned": "Not pinned",
   "Not pinned on the map": "Not pinned on the map",
@@ -27579,5 +27579,15 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "請輸入 1 到 65535 之間的連接埠，或留空以使用 123。",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "每次嘗試等待伺服器回應的時間，包括 DNS 查詢。每次重試都會重新開始逾時計時。預設為 5 秒。最大為 60 秒。",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "失敗後重試的次數：0 表示只嘗試一次，2 表示最多 3 次。留空則使用探測器的預設值（通常為 3）。最大為 3。沒有回應、連接埠被拒絕和 DNS 查詢失敗都會重試，每次都送出新的請求。已回應的伺服器不會再被詢問，即使它回應自己未同步。",
-  "The time server this monitor checks.": "此監測器檢查的時間伺服器。"
+  "The time server this monitor checks.": "此監測器檢查的時間伺服器。",
+  "Instance Receiving Period": "執行個體接收時段",
+  "Instance Receiving Periods": "執行個體接收時段清單",
+  "Internal record of the stretches of time this instance was up and receiving data.": "此執行個體運作並接收資料的時段的內部紀錄。",
+  "Last Receiving At": "最後接收時間",
+  "OneUptime had just come back and agents were reconnecting. This time is left out of uptime.": "OneUptime 剛剛恢復，代理程式正在重新連線。這段時間不計入正常運作時間。",
+  "OneUptime has received this data and is still processing it. This time is left out of uptime until it catches up.": "OneUptime 已收到這些資料，仍在處理中。在處理趕上之前，這段時間不計入正常運作時間。",
+  "OneUptime was not receiving data (a restart, an upgrade or an outage). This time is left out of uptime.": "OneUptime 當時未在接收資料（重新啟動、升級或故障）。這段時間不計入正常運作時間。",
+  "Up for each interval in which this host's agent sent metrics, Down if it sent none; a lone missed minute between Up minutes counts as Up. The uptime badge is the Up share, leaving out ones still waiting for data and time OneUptime was not receiving.": "此主機的代理程式傳送了指標的每個區間為 Up，未傳送任何指標則為 Down；Up 分鐘之間單獨缺漏的一分鐘計為 Up。正常運作時間徽章是 Up 所占的比例，不包括仍在等待資料的區間以及 OneUptime 未在接收資料的時間。",
+  "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "如果 OneUptime 在該區間收到了此主機的指標則為 Up，若沒有任何資料抵達則為 Down；Up 區間之間缺漏的一分鐘計為 Up。正常運作時間徽章不包括 OneUptime 未在接收資料的時間，最新的區間在資料抵達之前不作判斷。",
+  "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "叢集的代理程式傳送了指標的每個區間為 Up，未傳送任何指標則為 Down；Up 區間之間單獨缺漏的一分鐘計為 Up。徽章是 Up 所占的比例，不包括仍在等待資料的最新區間以及 OneUptime 未在接收資料的時間。"
 }

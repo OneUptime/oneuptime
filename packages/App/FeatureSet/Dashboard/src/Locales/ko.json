@@ -13894,7 +13894,7 @@
   "Not linked": "Not linked",
   "Not linked to anything": "Not linked to anything",
   "Not linked to other sessions": "Not linked to other sessions",
-  "Not monitored": "Not monitored",
+  "Not monitored": "모니터링되지 않음",
   "Not part of an episode": "Not part of an episode",
   "Not pinned": "Not pinned",
   "Not pinned on the map": "Not pinned on the map",
@@ -27579,5 +27579,15 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "1~65535 사이의 포트를 입력하거나, 123을 사용하려면 비워 두세요.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "각 시도에서 서버의 응답을 기다리는 시간으로, DNS 조회를 포함합니다. 재시도할 때마다 타임아웃이 새로 시작됩니다. 기본값은 5초입니다. 최대값은 60초입니다.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "시도가 실패한 후 재시도할 횟수입니다. 0은 한 번만 시도, 2는 최대 3번을 뜻합니다. 비워 두면 프로브의 기본값(보통 3)을 사용합니다. 최대값은 3입니다. 응답 없음, 거부된 포트, 실패한 DNS 조회는 매번 새 요청으로 재시도됩니다. 응답한 서버에는 동기화되지 않았다고 응답하더라도 다시 묻지 않습니다.",
-  "The time server this monitor checks.": "이 모니터가 확인하는 시간 서버입니다."
+  "The time server this monitor checks.": "이 모니터가 확인하는 시간 서버입니다.",
+  "Instance Receiving Period": "인스턴스 수신 기간",
+  "Instance Receiving Periods": "인스턴스 수신 기간 목록",
+  "Internal record of the stretches of time this instance was up and receiving data.": "이 인스턴스가 실행 중이며 데이터를 수신하던 기간의 내부 기록입니다.",
+  "Last Receiving At": "마지막 수신 시각",
+  "OneUptime had just come back and agents were reconnecting. This time is left out of uptime.": "OneUptime이 막 다시 시작되었고 에이전트가 다시 연결하는 중이었습니다. 이 시간은 가동률에서 제외됩니다.",
+  "OneUptime has received this data and is still processing it. This time is left out of uptime until it catches up.": "OneUptime이 이 데이터를 받았으며 아직 처리 중입니다. 처리가 따라잡을 때까지 이 시간은 가동률에서 제외됩니다.",
+  "OneUptime was not receiving data (a restart, an upgrade or an outage). This time is left out of uptime.": "OneUptime이 데이터를 받지 못하고 있었습니다(재시작, 업그레이드 또는 장애). 이 시간은 가동률에서 제외됩니다.",
+  "Up for each interval in which this host's agent sent metrics, Down if it sent none; a lone missed minute between Up minutes counts as Up. The uptime badge is the Up share, leaving out ones still waiting for data and time OneUptime was not receiving.": "이 호스트의 에이전트가 메트릭을 보낸 구간은 Up, 하나도 보내지 않은 구간은 Down이며, Up 분 사이에 한 번 빠진 1분은 Up으로 계산합니다. 가동률 배지는 Up 비율이며, 아직 데이터를 기다리는 구간과 OneUptime이 데이터를 받지 못한 시간은 제외합니다.",
+  "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "해당 구간에 OneUptime이 이 호스트에서 메트릭을 받았으면 Up, 아무것도 도착하지 않았으면 Down이며, Up 구간 사이에 빠진 1분은 Up으로 계산합니다. 가동률 배지는 OneUptime이 데이터를 받지 못한 시간을 제외하며, 가장 최근 구간은 데이터가 도착할 때까지 판단하지 않습니다.",
+  "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "클러스터의 에이전트가 메트릭을 보낸 구간은 Up, 하나도 보내지 않은 구간은 Down이며, Up 구간 사이에 한 번 빠진 1분은 Up으로 계산합니다. 배지는 Up 비율이며, 아직 데이터를 기다리는 최신 구간과 OneUptime이 데이터를 받지 못한 시간은 제외합니다."
 }

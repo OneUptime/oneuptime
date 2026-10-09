@@ -74,6 +74,12 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import HeartbeatAvailabilityUtil, {
   HeartbeatAvailabilityResult,
 } from "Common/Utils/Telemetry/HeartbeatAvailability";
+import { ReceivingGap } from "Common/Utils/Telemetry/ReceivingGaps";
+import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
+import {
+  fetchReceivingGaps,
+  getNotMonitoredRegions,
+} from "../../../Utils/ReceivingGaps";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import React, {
   Fragment,
@@ -171,6 +177,10 @@ const PodmanHostOverview: FunctionComponent<
     Array<SeriesPoint>
   >([]);
   const [availabilityPct, setAvailabilityPct] = useState<number | null>(null);
+  // When OneUptime itself was not receiving, inside the chart window.
+  const [receivingGaps, setReceivingGaps] = useState<Array<ReceivingGap>>(
+    [],
+  );
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [chartWindow, setChartWindow] = useState<{
@@ -260,6 +270,13 @@ const PodmanHostOverview: FunctionComponent<
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
       const startDate: Date = dateRange.startValue;
       const endDate: Date = dateRange.endValue;
+      /*
+       * When OneUptime itself was not receiving data in this window, asked
+       * for alongside the metrics: those stretches are "Not monitored",
+       * never "Down" (issue #2825). Never rejects.
+       */
+      const receivingGapsPromise: Promise<Array<ReceivingGap>> =
+        fetchReceivingGaps({ startsAt: startDate, endsAt: endDate });
       const tileWindowStart: Date = OneUptimeDate.addRemoveMinutes(
         endDate,
         -TILE_WINDOW_MINUTES,
@@ -432,6 +449,9 @@ const PodmanHostOverview: FunctionComponent<
           aggregateBy: heartbeatAgg,
         }),
       ]);
+
+      const receivingGapsInWindow: Array<ReceivingGap> =
+        await receivingGapsPromise;
 
       if (isStale()) {
         return;
@@ -800,7 +820,9 @@ const PodmanHostOverview: FunctionComponent<
           windowStart: startDate,
           windowEnd: endDate,
           now: OneUptimeDate.getCurrentDate(),
+          receivingGaps: receivingGapsInWindow,
         });
+      setReceivingGaps(receivingGapsInWindow);
       setAvailabilitySeries(
         availability.points.length > 0
           ? [{ seriesName: "Up", data: availability.points }]
@@ -1152,6 +1174,10 @@ const PodmanHostOverview: FunctionComponent<
     headerExtra?: ReactElement;
     // What the chart shows, in an (i) beside its title.
     description?: string | undefined;
+    // Shaded stretches, such as when OneUptime was not monitoring.
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    // false breaks the line where it has no points.
+    connectNulls?: boolean;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
@@ -1162,6 +1188,8 @@ const PodmanHostOverview: FunctionComponent<
     curve?: ChartCurve;
     headerExtra?: ReactElement;
     description?: string | undefined;
+    referenceRegions?: Array<ChartReferenceRegionProps>;
+    connectNulls?: boolean;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
       tileColorClasses[params.iconColor];
@@ -1249,6 +1277,8 @@ const PodmanHostOverview: FunctionComponent<
           syncid={`podman-overview-${modelId.toString()}`}
           heightInPx={180}
           showLegend={params.showLegend ?? false}
+          referenceRegions={params.referenceRegions}
+          connectNulls={params.connectNulls}
         />
       </div>
     );
@@ -1342,6 +1372,11 @@ const PodmanHostOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
+            referenceRegions: getNotMonitoredRegions({
+              gaps: receivingGaps,
+              translator,
+            }),
+            connectNulls: false,
             description: CONTAINER_HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>

@@ -1,6 +1,7 @@
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
+import ReceivingGapsUtil, { ReceivingGap } from "./ReceivingGaps";
 
 /*
  * Shared availability-series builder for the synthetic
@@ -38,6 +39,15 @@ import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationInterva
  *    resolution always spans >= 2 consecutive buckets. At Hour and
  *    coarser widths an empty bucket means dozens of consecutive
  *    missed beats — genuine downtime — so no bridging applies there.
+ *
+ * 4. OneUptime's own downtime is not the host's (issue #2825). A silent
+ *    bucket that overlaps time OneUptime itself was not receiving data
+ *    (receivingGaps: a restart, an upgrade, the reconnect grace after
+ *    one, an ingest queue that is behind) is "not monitored" - excluded
+ *    like rule 2, neither up nor down - unless OneUptime was receiving
+ *    for at least MIN_SILENCE_EVIDENCE_MS of it, which is silence the
+ *    host owns. A bucket with a heartbeat is up whatever OneUptime was
+ *    doing: the heartbeat proves it.
  */
 
 export interface HeartbeatAvailabilityPoint {
@@ -81,12 +91,27 @@ export const HEARTBEAT_INGEST_LAG_MS: number = 60_000;
  */
 export const HEARTBEAT_MAX_BACKDATE_MS: number = 2 * 60_000;
 
+/*
+ * How much of a silent bucket OneUptime must have been receiving for the
+ * silence to count against the host when the rest of the bucket was a
+ * receiving gap (rule 4). Two minutes: the same "two consecutive missed
+ * minutes" a Minute-grid outage needs to show at all (rule 3), so a
+ * partly covered Minute bucket is never down, and a coarser bucket is only
+ * down when the host stayed silent through minutes OneUptime was listening.
+ */
+export const MIN_SILENCE_EVIDENCE_MS: number = 2 * 60_000;
+
 export class HeartbeatAvailabilityUtil {
   public static buildAvailabilitySeries(data: {
     heartbeatData: Array<AggregatedModel>;
     windowStart: Date;
     windowEnd: Date;
     now: Date;
+    /*
+     * When OneUptime was not receiving data inside the window (rule 4).
+     * Omitted or empty, every silent bucket is judged as before.
+     */
+    receivingGaps?: Array<ReceivingGap> | undefined;
   }): HeartbeatAvailabilityResult {
     const windowStartMs: number = data.windowStart.getTime();
     const windowEndMs: number = data.windowEnd.getTime();
@@ -170,6 +195,11 @@ export class HeartbeatAvailabilityUtil {
      * unknown; it contributes nothing to the series or the uptime %.
      */
     type SlotState = "up" | "down" | "excluded";
+    const receivingGaps: Array<ReceivingGap> = ReceivingGapsUtil.clip(
+      data.receivingGaps || [],
+      new Date(gridStartMs),
+      new Date(gridStartMs + (lastIndex + 1) * bucketMs),
+    );
     const states: Array<SlotState> = [];
     for (let index: number = 0; index <= lastIndex; index++) {
       const startMs: number = gridStartMs + index * bucketMs;
@@ -179,6 +209,14 @@ export class HeartbeatAvailabilityUtil {
       if (up) {
         states.push("up");
       } else if (isPartial) {
+        states.push("excluded");
+      } else if (
+        this.isNotMonitored({
+          receivingGaps,
+          startMs,
+          endMs: startMs + bucketMs,
+        })
+      ) {
         states.push("excluded");
       } else {
         states.push("down");
@@ -240,6 +278,32 @@ export class HeartbeatAvailabilityUtil {
       uptimePercent:
         evaluatedCount > 0 ? (upCount / evaluatedCount) * 100 : null,
     };
+  }
+
+  /*
+   * Rule 4: a silent bucket OneUptime was not receiving for, except for
+   * less than MIN_SILENCE_EVIDENCE_MS of it, says nothing about the host.
+   */
+  private static isNotMonitored(data: {
+    receivingGaps: Array<ReceivingGap>;
+    startMs: number;
+    endMs: number;
+  }): boolean {
+    if (data.receivingGaps.length === 0) {
+      return false;
+    }
+
+    const from: Date = new Date(data.startMs);
+    const to: Date = new Date(data.endMs);
+
+    if (!ReceivingGapsUtil.overlaps(data.receivingGaps, from, to)) {
+      return false;
+    }
+
+    return (
+      ReceivingGapsUtil.getReceivingMs(data.receivingGaps, from, to) <
+      MIN_SILENCE_EVIDENCE_MS
+    );
   }
 
   /*

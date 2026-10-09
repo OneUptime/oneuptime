@@ -13894,7 +13894,7 @@
   "Not linked": "Not linked",
   "Not linked to anything": "Not linked to anything",
   "Not linked to other sessions": "Not linked to other sessions",
-  "Not monitored": "Not monitored",
+  "Not monitored": "Не отслеживается",
   "Not part of an episode": "Not part of an episode",
   "Not pinned": "Not pinned",
   "Not pinned on the map": "Not pinned on the map",
@@ -27579,5 +27579,15 @@
   "Enter a port from 1 to 65535, or leave it empty for 123.": "Введите порт от 1 до 65535 или оставьте поле пустым, чтобы использовать 123.",
   "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.": "Как долго ждать ответа сервера при каждой попытке, включая DNS-запрос. Для каждой повторной попытки отсчёт тайм-аута начинается заново. По умолчанию — 5 секунд. Максимум — 60 секунд.",
   "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.": "Сколько раз повторять после неудачной попытки: 0 — одна попытка, 2 — до 3 попыток. Оставьте поле пустым, чтобы использовать значение по умолчанию зонда (обычно 3). Максимум — 3. Отсутствие ответа, отклонённый порт и неудачный DNS-запрос повторяются, каждый раз с новым запросом. Ответивший сервер никогда не опрашивается повторно, даже если он отвечает, что не синхронизирован.",
-  "The time server this monitor checks.": "Сервер времени, который проверяет этот монитор."
+  "The time server this monitor checks.": "Сервер времени, который проверяет этот монитор.",
+  "Instance Receiving Period": "Период приёма данных экземпляром",
+  "Instance Receiving Periods": "Периоды приёма данных экземпляром",
+  "Internal record of the stretches of time this instance was up and receiving data.": "Внутренняя запись периодов, когда этот экземпляр работал и принимал данные.",
+  "Last Receiving At": "Последний приём",
+  "OneUptime had just come back and agents were reconnecting. This time is left out of uptime.": "OneUptime только что снова заработал, и агенты переподключались. Это время не учитывается в доступности.",
+  "OneUptime has received this data and is still processing it. This time is left out of uptime until it catches up.": "OneUptime получил эти данные и ещё обрабатывает их. Это время не учитывается в доступности, пока обработка не наверстает отставание.",
+  "OneUptime was not receiving data (a restart, an upgrade or an outage). This time is left out of uptime.": "OneUptime не принимал данные (перезапуск, обновление или сбой). Это время не учитывается в доступности.",
+  "Up for each interval in which this host's agent sent metrics, Down if it sent none; a lone missed minute between Up minutes counts as Up. The uptime badge is the Up share, leaving out ones still waiting for data and time OneUptime was not receiving.": "Up для каждого интервала, в котором агент этого хоста отправлял метрики, Down, если не отправлял ни одной; одна пропущенная минута между минутами Up считается как Up. Значок доступности — доля Up без интервалов, которые ещё ждут данных, и без времени, когда OneUptime ничего не принимал.",
+  "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.": "Up, если OneUptime получил метрики с этого хоста в этом интервале, Down, если ничего не пришло; одна пропущенная минута между интервалами Up считается как Up. Значок доступности не учитывает время, когда OneUptime ничего не принимал, а самый новый интервал оценивается только после прихода данных.",
+  "Up for each interval in which the cluster's agent sent metrics, Down if it sent none; a lone missed minute between Up ones counts as Up. The badge is the Up share, leaving out the newest ones still waiting for data and time OneUptime was not receiving.": "Up для каждого интервала, в котором агент кластера отправлял метрики, Down, если не отправлял ни одной; одна пропущенная минута между интервалами Up считается как Up. Значок — доля Up без самых новых интервалов, которые ещё ждут данных, и без времени, когда OneUptime ничего не принимал."
 }
