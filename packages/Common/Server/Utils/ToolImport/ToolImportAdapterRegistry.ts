@@ -1,7 +1,10 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ToolImportSource from "../../../Types/ToolImport/ToolImportSource";
+import GrafanaOnCallAdapter from "./Adapters/GrafanaOnCall/GrafanaOnCallAdapter";
 import IncidentIoAdapter from "./Adapters/IncidentIo/IncidentIoAdapter";
 import OpsGenieAdapter from "./Adapters/OpsGenie/OpsGenieAdapter";
+import PagerDutyAdapter from "./Adapters/PagerDuty/PagerDutyAdapter";
+import SplunkOnCallAdapter from "./Adapters/SplunkOnCall/SplunkOnCallAdapter";
 import { ToolImportAdapter } from "./Types";
 
 /*
@@ -13,7 +16,10 @@ import { ToolImportAdapter } from "./Types";
 export default class ToolImportAdapterRegistry {
   private static adapters: Array<ToolImportAdapter> = [
     new OpsGenieAdapter(),
+    new PagerDutyAdapter(),
     new IncidentIoAdapter(),
+    new SplunkOnCallAdapter(),
+    new GrafanaOnCallAdapter(),
   ];
 
   public static getAdapter(source: ToolImportSource): ToolImportAdapter {

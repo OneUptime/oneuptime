@@ -6,7 +6,9 @@ import {
   startToolImport,
   ToolImportRunDetails,
 } from "../../Components/ToolImport/ToolImportApi";
-import ToolImportConnectForm from "../../Components/ToolImport/ToolImportConnectForm";
+import ToolImportConnectForm, {
+  ToolImportConnection,
+} from "../../Components/ToolImport/ToolImportConnectForm";
 import ToolImportHistory from "../../Components/ToolImport/ToolImportHistory";
 import {
   getOtherRunningImport,
@@ -86,6 +88,15 @@ const ImportFromTool: FunctionComponent<
   const [pickedRegion, setPickedRegion] = useState<string | undefined>(
     undefined,
   );
+  /*
+   * What the person gave besides the key for the last read they started -
+   * an API ID, an API address - so trying that tool again does not ask for
+   * it twice. Only on this page, while it is open; never the key.
+   */
+  const [lastConnection, setLastConnection] = useState<{
+    source: ToolImportSource;
+    connection: ToolImportConnection;
+  } | null>(null);
   const lastStatusRef: React.MutableRefObject<ToolImportRunStatus | null> =
     useRef<ToolImportRunStatus | null>(null);
 
@@ -215,7 +226,14 @@ const ImportFromTool: FunctionComponent<
     showRun(null);
   };
 
-  const onReadStarted: (runId: string) => void = (runId: string): void => {
+  const onReadStarted: (
+    runId: string,
+    connection: ToolImportConnection,
+  ) => void = (runId: string, connection: ToolImportConnection): void => {
+    if (pickedSource) {
+      setLastConnection({ source: pickedSource, connection: connection });
+    }
+
     setPickedSource(null);
     showRun(runId);
     void loadRuns({ isFirstLoad: false });
@@ -269,6 +287,11 @@ const ImportFromTool: FunctionComponent<
           key={pickedSource}
           source={pickedSource}
           initialRegion={pickedRegion}
+          initialConnection={
+            lastConnection && lastConnection.source === pickedSource
+              ? lastConnection.connection
+              : undefined
+          }
           blockedReason={blockedReason}
           onBack={() => {
             setPickedSource(null);

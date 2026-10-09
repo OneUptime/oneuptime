@@ -43,6 +43,13 @@ export interface ToolImportReadSettings {
   apiKey: string;
   // The region's value from the catalog ("" for a tool with one API).
   region: string;
+  // The key's ID, for a tool that pairs one with the key (Splunk On-Call).
+  apiKeyId?: string | undefined;
+  /*
+   * The tool's API address, for a tool whose address the person gives
+   * (Grafana OnCall), as readToolImportApiUrl wrote it.
+   */
+  apiUrl?: string | undefined;
 }
 
 export interface ToolImportReadContext {

@@ -873,6 +873,22 @@ describe("Nginx", () => {
       expect.arrayContaining(["nginx-module-njs", "libstdc++"]),
     );
   });
+
+  /*
+   * node is copied from the official node image, not installed with apk, so
+   * nothing pulls in the libraries it links against. Node 26.11's x86-64
+   * build links libatomic: when the node:26-alpine tag moved to it, every
+   * build of this image stopped at "libatomic.so.1: No such file or
+   * directory (needed by /usr/local/bin/node)".
+   */
+  test("installs the libraries the copied node binary links against", () => {
+    const install = final.instructions.find((line) => {
+      return /\bapk add\b/.test(line);
+    });
+    expect(installedPackagesIn(install)).toEqual(
+      expect.arrayContaining(["libstdc++", "libatomic"]),
+    );
+  });
 });
 
 describe("the OpenTelemetry collector pin", () => {

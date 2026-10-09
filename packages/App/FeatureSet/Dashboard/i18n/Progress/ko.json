@@ -4,7 +4,9 @@
     "untranslated": 16120
   },
   "sameAsEnglish": [
+    "Grafana OnCall API URL",
     "Runner",
+    "Splunk On-Call API ID",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
     "{{itemName}} ID"

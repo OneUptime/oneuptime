@@ -60,6 +60,7 @@ import {
   getCurrentEmailBrandingVariables,
   withBrandedSubject,
 } from "../Utils/EmailBranding";
+import HandlebarsText from "../Utils/HandlebarsText";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 
 // One attachment of a SendGrid message.
@@ -858,13 +859,16 @@ export default class MailService {
     return compiledTemplate(vars).toString();
   }
 
+  /*
+   * A body or a subject of the sender's own, as a template: its long runs of
+   * plain text are never read by Handlebars, which runs out of stack on
+   * megabytes of them (HandlebarsText).
+   */
   private static compileText(
-    subject: string,
+    text: string,
     vars: Dictionary<string | JSONObject>,
   ): string {
-    const subjectHandlebars: Handlebars.TemplateDelegate =
-      Handlebars.compile(subject);
-    return subjectHandlebars(vars).toString();
+    return HandlebarsText.render(text, vars);
   }
 
   /**

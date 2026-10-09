@@ -1,7 +1,12 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
+  TOOL_IMPORT_TOOL_COPY,
+  ToolImportToolCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportText";
+import {
   getToolImportSourceDefinition,
+  isToolImportAddressGiven,
   ToolImportSourceDefinition,
 } from "Common/Types/ToolImport/ToolImportCatalog";
 import {
@@ -26,7 +31,9 @@ import path from "path";
  * tells a reader to select under a name the page does not show in their
  * language. Each fact is read from where it lives: the hosts and the kinds
  * from ToolImportCatalog, the limits from ToolImportLimits, the names of
- * the page's controls from the Dashboard's own locale files.
+ * the page's controls from the Dashboard's own locale files, and what the
+ * page asks for - the key, its ID, the API's address - from the page's own
+ * copy (ToolImportText).
  */
 
 const DOCS_DIR: string = path.resolve(__dirname, "../../../FeatureSet/Docs");
@@ -188,6 +195,11 @@ describe.each(AllToolImportSources)(
     });
 
     test("names every host the import calls, and no other tool's, in every language", () => {
+      // A tool whose address the person gives calls no fixed host.
+      expect(definition.hosts.length === 0).toBe(
+        isToolImportAddressGiven(definition),
+      );
+
       for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
         const page: string = readPage(lang, source);
 
@@ -247,7 +259,34 @@ describe.each(AllToolImportSources)(
       }
     });
 
+    test("shows what the address the person gives looks like, and that it is checked, in every language", () => {
+      if (!isToolImportAddressGiven(definition)) {
+        return;
+      }
+
+      expect(definition.apiUrlExample).toBeTruthy();
+
+      for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        const page: string = readPage(lang, source);
+
+        expect({
+          lang,
+          example: page.includes(`\`${definition.apiUrlExample}\``),
+          https: page.includes("`https://`"),
+          privateNetworkAccess: page.includes(
+            "](/docs/self-hosted/private-network-access)",
+          ),
+        }).toEqual({
+          lang,
+          example: true,
+          https: true,
+          privateNetworkAccess: true,
+        });
+      }
+    });
+
     test("tells a reader to select the page's controls by the names the page shows in their language", () => {
+      const copy: ToolImportToolCopy = TOOL_IMPORT_TOOL_COPY[source];
       const names: Array<string> = [
         "Project Settings",
         "Import from another tool",
@@ -260,11 +299,21 @@ describe.each(AllToolImportSources)(
         "On-Call Duty",
         "On-Call Schedules",
         "Readiness",
-        `${definition.title} API key`,
+        copy.keyLabel,
       ];
 
+      // The key's ID and the API's address, for a tool that asks for them.
+      if (copy.keyIdLabel) {
+        names.push(copy.keyIdLabel);
+      }
+
+      if (copy.apiUrlLabel) {
+        names.push(copy.apiUrlLabel);
+      }
+
       if (definition.regions.length > 0) {
-        names.push(`Where is your ${definition.title} account?`);
+        expect(copy.regionQuestion).toBeTruthy();
+        names.push(copy.regionQuestion!);
       }
 
       for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
@@ -308,6 +357,45 @@ describe("what the pages promise in English", () => {
         years: [years.has(2025), years.has(2027)],
       }).toEqual({ lang, atlassian: true, years: [true, true] });
     }
+  });
+
+  test("Grafana OnCall's page says plainly that Grafana Labs archived the open-source OnCall, in every language", () => {
+    expect(introOf(readPage("en", ToolImportSource.GrafanaOnCall))).toContain(
+      "Grafana Labs archived the open-source Grafana OnCall in March 2026, and on Grafana Cloud it lives on as part of Grafana Cloud IRM.",
+    );
+
+    for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const intro: string = introOf(
+        readPage(lang, ToolImportSource.GrafanaOnCall),
+      );
+
+      expect({
+        lang,
+        grafanaLabs: intro.includes("Grafana Labs"),
+        irm: intro.includes("Grafana Cloud IRM"),
+        year: numbersIn(intro).has(2026),
+      }).toEqual({ lang, grafanaLabs: true, irm: true, year: true });
+    }
+  });
+
+  test("the pages name what the page asks for besides the key", () => {
+    // Splunk On-Call pairs an API ID with the key; Grafana OnCall needs its address.
+    expect(
+      AllToolImportSources.filter((source: ToolImportSource): boolean => {
+        return Boolean(TOOL_IMPORT_TOOL_COPY[source].keyIdLabel);
+      }),
+    ).toEqual([ToolImportSource.SplunkOnCall]);
+    expect(
+      AllToolImportSources.filter((source: ToolImportSource): boolean => {
+        return Boolean(TOOL_IMPORT_TOOL_COPY[source].apiUrlLabel);
+      }),
+    ).toEqual([ToolImportSource.GrafanaOnCall]);
+    expect(readPage("en", ToolImportSource.SplunkOnCall)).toContain(
+      "Paste the API ID into **Splunk On-Call API ID** and the key into **Splunk On-Call API key**",
+    );
+    expect(readPage("en", ToolImportSource.GrafanaOnCall)).toContain(
+      "Paste the address into **Grafana OnCall API URL** and the token into **Grafana OnCall API key**",
+    );
   });
 
   test("a preview is kept for a day, as long as the import keeps one", () => {

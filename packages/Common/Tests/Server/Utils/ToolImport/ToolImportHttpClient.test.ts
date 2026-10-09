@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  EgressResolveFunction,
+  ResolvedAddress,
+} from "../../../../Server/Utils/DataSource/EgressGuard";
 import ToolImportHttpClient, {
+  createToolImportAddressTransport,
   createToolImportTransport,
   TOOL_IMPORT_MAX_RATE_LIMIT_RETRIES,
   ToolImportHttpClientOptions,
@@ -554,5 +559,364 @@ describe("createToolImportTransport: the production transport", () => {
 
     expect(response.bodyJson).toBeUndefined();
     expect(response.bodyText).toBe("<html>maintenance</html>");
+  });
+});
+
+describe("ToolImportHttpClient: a tool served under a path, or on the person's own network", () => {
+  test("every request goes under the base path", async () => {
+    const { client, api } = harness(
+      [{ path: "/oncall/api/v1/users/", answers: [json({ results: [] })] }],
+      { basePath: "/oncall" },
+    );
+
+    await client.getJson("/api/v1/users/", { page: 1 });
+
+    expect(api.urls[0]!.toString()).toBe(
+      "https://api.tool.example/oncall/api/v1/users/?page=1",
+    );
+  });
+
+  test("a base path that could mean anything but itself is refused before anything is sent", () => {
+    for (const basePath of [
+      "/oncall/../admin",
+      "//evil.example",
+      "/oncall/",
+      "oncall",
+      "/on call",
+      "/a?b",
+    ]) {
+      expect(() => {
+        return harness([], { basePath: basePath });
+      }).toThrow("can only be read from its own address");
+    }
+  });
+
+  test("plain http only where the address is the person's own network", async () => {
+    expect(() => {
+      return harness([], {
+        baseUrl: "http://oncall.acme.internal:8080",
+        allowedHosts: ["oncall.acme.internal"],
+      });
+    }).toThrow("can only be read from its own address");
+
+    const { client, api } = harness(
+      [{ path: "/api/v1/users/", answers: [json({ results: [] })] }],
+      {
+        baseUrl: "http://oncall.acme.internal:8080",
+        allowedHosts: ["oncall.acme.internal"],
+        allowHttp: true,
+      },
+    );
+
+    await client.getJson("/api/v1/users/");
+
+    expect(api.urls[0]!.toString()).toBe(
+      "http://oncall.acme.internal:8080/api/v1/users/",
+    );
+    expect(ToolImportHttpClient.getHost("http://a.example", true)).toBe(
+      "a.example",
+    );
+    expect(ToolImportHttpClient.getHost("http://a.example")).toBe("");
+    expect(ToolImportHttpClient.getHost("ftp://a.example", true)).toBe("");
+  });
+});
+
+describe("ToolImportHttpClient: keeping a tool's pace", () => {
+  test("requests are spaced by the least time between them", async () => {
+    const { client, api, sleep } = harness(
+      [{ path: "/x", answers: [json({})] }],
+      { minRequestIntervalMs: 600 },
+    );
+
+    await client.getJson("/x");
+    await client.getJson("/x");
+    await client.getJson("/x");
+
+    expect(api.requests).toHaveLength(3);
+    expect(sleep.waits).toEqual([600, 600]);
+  });
+
+  test("time already passed counts, and a tool with no pace is never waited for", async () => {
+    const paced: Harness = harness([{ path: "/x", answers: [json({})] }], {
+      minRequestIntervalMs: 1000,
+    });
+
+    await paced.client.getJson("/x");
+    paced.clock.now += 400;
+    await paced.client.getJson("/x");
+    paced.clock.now += 5000;
+    await paced.client.getJson("/x");
+
+    expect(paced.sleep.waits).toEqual([600]);
+
+    const unpaced: Harness = harness([{ path: "/x", answers: [json({})] }]);
+
+    await unpaced.client.getJson("/x");
+    await unpaced.client.getJson("/x");
+
+    expect(unpaced.sleep.waits).toEqual([]);
+  });
+
+  test("the pace never waits past the read's deadline", async () => {
+    const { client, sleep } = harness([{ path: "/x", answers: [json({})] }], {
+      minRequestIntervalMs: 60_000,
+      deadlineAt: NOW + 10_000,
+    });
+
+    await client.getJson("/x");
+
+    await expect(client.getJson("/x")).rejects.toThrow("took too long");
+    expect(sleep.waits).toEqual([10_000]);
+  });
+});
+
+describe("ToolImportHttpClient: the new tools' answers", () => {
+  test("PagerDuty's ratelimit-reset is the seconds to wait", async () => {
+    const { client, sleep } = harness([
+      {
+        path: "/x",
+        answers: [
+          json({ error: { message: "Rate Limit Exceeded" } }, 429, {
+            "ratelimit-reset": "7",
+          }),
+          json({ ok: true }),
+        ],
+      },
+    ]);
+
+    expect(await client.getJson("/x")).toEqual({ ok: true });
+    expect(sleep.waits).toEqual([7000]);
+  });
+
+  test("PagerDuty's and Grafana OnCall's error shapes give the tool's own words, with the key cut out", async () => {
+    const pagerDuty: Harness = harness([
+      {
+        path: "/x",
+        answers: [
+          json(
+            {
+              error: {
+                message: `Token ${KEY} is not valid`,
+                code: 2006,
+                errors: [],
+              },
+            },
+            401,
+          ),
+        ],
+      },
+    ]);
+    const grafana: Harness = harness([
+      {
+        path: "/x",
+        answers: [json({ detail: `Invalid token ${KEY}.` }, 403)],
+      },
+    ]);
+
+    const first: ToolImportHttpError = await failure(
+      pagerDuty.client.getJson("/x"),
+    );
+    const second: ToolImportHttpError = await failure(
+      grafana.client.getJson("/x"),
+    );
+
+    expect(first.kind).toBe(ToolImportHttpErrorKind.Unauthorized);
+    expect(first.message).toBe(
+      "Tool did not accept the API key (Token [REDACTED] is not valid).",
+    );
+    expect(second.kind).toBe(ToolImportHttpErrorKind.Forbidden);
+    expect(second.message).toBe(
+      "The API key may not read this from Tool (Invalid token [REDACTED].).",
+    );
+  });
+});
+
+describe("createToolImportAddressTransport: an address the person gave", () => {
+  const RESOLVE_PUBLIC: EgressResolveFunction = async (): Promise<
+    Array<ResolvedAddress>
+  > => {
+    return [{ address: "93.184.216.34", family: 4 }];
+  };
+
+  function transport(
+    data: {
+      allowHttp?: boolean;
+      blockPrivateAddresses?: boolean;
+      resolve?: EgressResolveFunction;
+      hosts?: Array<string>;
+    } = {},
+  ): ToolImportTransport {
+    return createToolImportAddressTransport({
+      allowedHosts: data.hosts || ["oncall.acme.example"],
+      toolName: "Grafana OnCall",
+      allowHttp: Boolean(data.allowHttp),
+      egressOptions: {
+        blockPrivateAddresses: data.blockPrivateAddresses ?? true,
+        resolveFunction: data.resolve || RESOLVE_PUBLIC,
+        includeResolvedAddressInError: false,
+      },
+    });
+  }
+
+  function request(url: string): ToolImportHttpRequest {
+    return {
+      method: "GET",
+      url: url,
+      headers: { Authorization: KEY },
+      timeoutInMs: 1000,
+    };
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("an address that resolves to the internet is read through agents pinned to what was checked, never redirected", async () => {
+    const send: SpyInstance<AxiosRequest> = jest
+      .spyOn(axios, "request")
+      .mockResolvedValue({
+        status: 200,
+        data: JSON.stringify({ results: [] }),
+        headers: {},
+      } as never) as unknown as SpyInstance<AxiosRequest>;
+
+    const response: ToolImportHttpResponse = await transport()(
+      request("https://oncall.acme.example/api/v1/users/?page=1"),
+    );
+
+    expect(response.bodyJson).toEqual({ results: [] });
+
+    const config: Record<string, unknown> = send.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(config["url"]).toBe(
+      "https://oncall.acme.example/api/v1/users/?page=1",
+    );
+    expect(config["maxRedirects"]).toBe(0);
+    expect(config["maxContentLength"]).toBe(TOOL_IMPORT_MAX_RESPONSE_BYTES);
+    expect(config["httpsAgent"]).toBeDefined();
+    expect(config["httpAgent"]).toBeDefined();
+  });
+
+  test.each([
+    ["loopback", "127.0.0.1"],
+    ["the cloud metadata address", "169.254.169.254"],
+    ["another link-local address", "169.254.10.20"],
+    ["the unspecified address", "0.0.0.0"],
+    ["IPv6 loopback", "::1"],
+  ])(
+    "an address that resolves to %s is refused on every install, before anything is sent",
+    async (_label: string, address: string) => {
+      const send: SpyInstance<AxiosRequest> = jest.spyOn(
+        axios,
+        "request",
+      ) as unknown as SpyInstance<AxiosRequest>;
+
+      for (const blockPrivateAddresses of [true, false]) {
+        await expect(
+          transport({
+            blockPrivateAddresses: blockPrivateAddresses,
+            resolve: async (): Promise<Array<ResolvedAddress>> => {
+              return [
+                { address: address, family: address.includes(":") ? 6 : 4 },
+              ];
+            },
+          })(request("https://oncall.acme.example/api/v1/users/")),
+        ).rejects.toThrow(ToolImportHttpError);
+      }
+
+      expect(send).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a private network address is refused on OneUptime Cloud, and read on a self-hosted install", async () => {
+    const send: SpyInstance<AxiosRequest> = jest
+      .spyOn(axios, "request")
+      .mockResolvedValue({
+        status: 200,
+        data: "{}",
+        headers: {},
+      } as never) as unknown as SpyInstance<AxiosRequest>;
+    const privateAddress: EgressResolveFunction = async (): Promise<
+      Array<ResolvedAddress>
+    > => {
+      return [{ address: "10.0.3.7", family: 4 }];
+    };
+
+    const refused: unknown = await transport({
+      blockPrivateAddresses: true,
+      resolve: privateAddress,
+    })(request("https://oncall.acme.example/api/v1/users/")).catch(
+      (error: unknown) => {
+        return error;
+      },
+    );
+
+    expect(refused).toBeInstanceOf(ToolImportHttpError);
+    // On OneUptime Cloud the refusal says nothing about the network behind it.
+    expect((refused as Error).message).toBe(
+      "Grafana OnCall host oncall.acme.example could not be reached.",
+    );
+    expect(send).not.toHaveBeenCalled();
+
+    await transport({ blockPrivateAddresses: false, resolve: privateAddress })(
+      request("https://oncall.acme.example/api/v1/users/"),
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  test("a name that resolves to an internet address and a private one is refused: every address must pass", async () => {
+    const send: SpyInstance<AxiosRequest> = jest.spyOn(
+      axios,
+      "request",
+    ) as unknown as SpyInstance<AxiosRequest>;
+
+    await expect(
+      transport({
+        resolve: async (): Promise<Array<ResolvedAddress>> => {
+          return [
+            { address: "93.184.216.34", family: 4 },
+            { address: "192.168.1.10", family: 4 },
+          ];
+        },
+      })(request("https://oncall.acme.example/api/v1/users/")),
+    ).rejects.toThrow(ToolImportHttpError);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  test("plain http is refused unless the install may reach the person's own network; other hosts and schemes always are", async () => {
+    const send: SpyInstance<AxiosRequest> = jest
+      .spyOn(axios, "request")
+      .mockResolvedValue({
+        status: 200,
+        data: "{}",
+        headers: {},
+      } as never) as unknown as SpyInstance<AxiosRequest>;
+
+    await expect(
+      transport()(request("http://oncall.acme.example/api/v1/users/")),
+    ).rejects.toThrow("An import only calls Grafana OnCall over https.");
+
+    for (const url of [
+      "https://elsewhere.example/api/v1/users/",
+      "https://oncall.acme.example.evil.example/api/v1/users/",
+      "ftp://oncall.acme.example/api/v1/users/",
+      "not a url",
+    ]) {
+      await expect(
+        transport({ allowHttp: true })(request(url)),
+      ).rejects.toThrow(ToolImportHttpError);
+    }
+
+    expect(send).not.toHaveBeenCalled();
+
+    await transport({ allowHttp: true, blockPrivateAddresses: false })(
+      request("http://oncall.acme.example/api/v1/users/"),
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
   });
 });
