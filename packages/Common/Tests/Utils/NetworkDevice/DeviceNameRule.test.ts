@@ -71,11 +71,13 @@ describe("the order: own names, then DNS, then the address", () => {
     );
   }
 
-  test.each(
-    combinations.map((present: Array<DeviceNameSource>) => {
+  const cases: Array<[string, Array<DeviceNameSource>]> = combinations.map(
+    (present: Array<DeviceNameSource>): [string, Array<DeviceNameSource>] => {
       return [present.join(" + ") || "nothing", present];
-    }),
-  )("%s", (_label: string, present: Array<DeviceNameSource>) => {
+    },
+  );
+
+  test.each(cases)("%s", (_label: string, present: Array<DeviceNameSource>) => {
     const facts: DeviceNameFacts = {};
 
     for (const source of present) {
