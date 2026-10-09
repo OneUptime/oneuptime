@@ -8,6 +8,9 @@
     "Runbook: {{name}}",
     "Runner",
     "VMware vCenter",
-    "kubectl set image deployment/web * -n web"
+    "kubectl set image deployment/web * -n web",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB"
   ]
 }

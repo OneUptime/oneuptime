@@ -217,7 +217,12 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
 - **The probe API** (`packages/App/FeatureSet/Telemetry/API/ProbeIngest`,
   `packages/Common/Server/API/ProbeAPI.ts`): probes register, fetch the
   monitors they run and report results. A probe key is a credential; a
-  custom probe is run by a customer.
+  custom probe is run by a customer. A project's own probe whose operator
+  turned packet capture on also claims the captures started from the
+  dashboard, runs tcpdump with the capture's filter as one argument and
+  uploads the pcap file (`packages/Probe/Utils/PacketCapture`,
+  `packages/App/FeatureSet/Telemetry/API/ProbeIngest/PacketCapture.ts`);
+  global probes never capture.
 - **The runner API**: Runners register, claim runbook steps and code-fix runs,
   and report output.
 - **Code users write that OneUptime runs**: custom JavaScript monitors,

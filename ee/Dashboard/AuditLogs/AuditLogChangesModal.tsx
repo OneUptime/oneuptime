@@ -127,12 +127,15 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
   const isCreate: boolean = props.action === "Create";
   const isDelete: boolean = props.action === "Delete";
   const isUpdate: boolean = props.action === "Update";
+  const isDownload: boolean = props.action === "Download";
 
   let header: string = "Change details";
   if (isCreate) {
     header = "Created snapshot";
   } else if (isDelete) {
     header = "Deleted snapshot";
+  } else if (isDownload) {
+    header = "What was downloaded";
   } else if (isUpdate) {
     header = `${rows.length} field${rows.length === 1 ? "" : "s"} changed`;
   }

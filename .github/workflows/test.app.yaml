@@ -165,6 +165,7 @@ jobs:
               test-slo-burn-rate-ui
               test-incoming-call-policies-ui
               test-push-registration-ui
+              test-packet-capture-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
           # chip editor's caret handling differs in each).
@@ -306,4 +307,5 @@ jobs:
             output/playwright/topology/test-results
             output/playwright/workflow-builder-ui/test-results
             output/playwright/diagrams-ui/test-results
+            output/playwright/packet-capture-ui/test-results
           retention-days: 7

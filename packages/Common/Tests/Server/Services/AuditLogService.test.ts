@@ -125,9 +125,26 @@ const deleteData: () => DeleteData = (): DeleteData => {
   };
 };
 
-// The four entry points, each driven the way its caller drives it.
+type DownloadData = {
+  model: Monitor;
+  downloadedItem: Monitor;
+  itemId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+};
+
+// A download of a record's file, as the packet capture download route makes it.
+const downloadData: () => DownloadData = (): DownloadData => {
+  return {
+    model: new Monitor(),
+    downloadedItem: makeMonitor(),
+    itemId: MONITOR_ID,
+    props: PROPS,
+  };
+};
+
+// The record entry points, each driven the way its caller drives it.
 type EntryPoint = {
-  name: "recordCreate" | "recordUpdate" | "recordDelete";
+  name: "recordCreate" | "recordUpdate" | "recordDelete" | "recordDownload";
   call: (service: AuditLogService) => Promise<void>;
 };
 
@@ -148,6 +165,12 @@ const RECORD_ENTRY_POINTS: Array<EntryPoint> = [
     name: "recordDelete",
     call: (service: AuditLogService): Promise<void> => {
       return service.recordDelete(deleteData());
+    },
+  },
+  {
+    name: "recordDownload",
+    call: (service: AuditLogService): Promise<void> => {
+      return service.recordDownload(downloadData());
     },
   },
 ];
@@ -259,6 +282,18 @@ describe("with the Enterprise Edition loaded", () => {
     expect(recorder.recordDelete).toHaveBeenCalledTimes(1);
     expect(recorder.recordDelete.mock.calls[0]![0]).toBe(data);
     expect(recorder.recordCreate).not.toHaveBeenCalled();
+  });
+
+  test("recordDownload hands the recorder the very arguments it was given", async () => {
+    const data: DownloadData = downloadData();
+
+    await AuditLogServiceInstance.recordDownload(data);
+
+    expect(recorder.recordDownload).toHaveBeenCalledTimes(1);
+    expect(recorder.recordDownload.mock.calls[0]![0]).toBe(data);
+    expect(recorder.recordCreate).not.toHaveBeenCalled();
+    expect(recorder.recordUpdate).not.toHaveBeenCalled();
+    expect(recorder.recordDelete).not.toHaveBeenCalled();
   });
 
   test("invalidateProjectSettings reaches the recorder's cache", () => {
@@ -396,6 +431,7 @@ describe("what core's AuditLogService still is", () => {
       "recordCreate",
       "recordUpdate",
       "recordDelete",
+      "recordDownload",
       "invalidateProjectSettings",
     ]) {
       expect(methods).toContain(entryPoint);
