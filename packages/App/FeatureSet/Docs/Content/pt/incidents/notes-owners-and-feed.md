@@ -262,7 +262,7 @@ Os itens do feed são gravados pelo próprio serviço de incidentes, pelos dois 
 - **Pessoas** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Alertas vinculados** — `AlertLinked` e `AlertUnlinked`, mostrados como **Alerta vinculado** e **Alerta desvinculado**.
 - **Notificações** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
-- **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Automação** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 - **Videochamadas** — `VideoCallStarted` e `VideoCallFailed`: uma chamada iniciada para o incidente, com seu link de acesso, ou o motivo pelo qual um provedor não conseguiu iniciar uma. Veja [Videochamadas](/docs/workspace-connections/video-calls).
 
 Cada tipo tem seu próprio ícone, então você pode percorrer um feed longo e distinguir as mudanças de estado da conversa. A análise de causa raiz gerada por IA é marcada de forma distinta e renderizada em um modo Markdown restrito. O item **Incidente criado**, o item que registra um título novo e os itens de entrada ou saída de um episódio mostram um título exatamente como foi digitado: eles escapam `\`, `[`, `]`, `*`, `_`, `~`, crases e \< nele, então um título não pode virar uma imagem, HTML bruto, uma menção do Slack como \<!here\>, um link cujo texto esconde para onde ele vai, nem negrito, itálico ou código. Um endereço em um título continua aparecendo como um link para esse mesmo endereço.

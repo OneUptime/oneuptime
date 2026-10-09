@@ -262,7 +262,7 @@ Feeditems worden geschreven door de incidentservice zelf, door beide notitieserv
 - **Personen** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Gekoppelde waarschuwingen** — `AlertLinked` en `AlertUnlinked`, getoond als **Waarschuwing gekoppeld** en **Waarschuwing ontkoppeld**.
 - **Meldingen** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
-- **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 - **Videogesprekken** — `VideoCallStarted` en `VideoCallFailed`: een gesprek dat voor het incident is gestart, met de deelnamelink, of de reden waarom een provider er geen kon starten. Zie [Videogesprekken](/docs/workspace-connections/video-calls).
 
 Elk type krijgt zijn eigen pictogram, zodat je een lange feed kunt doorlopen en de statuswijzigingen uit het geklets kunt pikken. Door AI gegenereerde analyses van de hoofdoorzaak worden apart gemarkeerd en in een beperkte Markdown-modus weergegeven. Het item **Incident aangemaakt**, het item dat een nieuwe titel vastlegt en de items voor het toetreden tot of verlaten van een episode tonen een titel precies zoals hij is getypt: ze escapen `\`, `[`, `]`, `*`, `_`, `~`, backticks en \< erin, zodat een titel geen afbeelding, ruwe HTML, Slack-vermelding zoals \<!here\>, link waarvan de tekst verbergt waar hij heen gaat, of vette, cursieve of codetekst kan worden. Een adres in een titel verschijnt nog steeds als link naar datzelfde adres.

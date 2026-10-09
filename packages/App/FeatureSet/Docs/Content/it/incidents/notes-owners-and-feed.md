@@ -262,7 +262,7 @@ Le voci del feed vengono scritte dal servizio degli incidenti stesso, da entramb
 - **Persone** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Avvisi collegati** — `AlertLinked` e `AlertUnlinked`, mostrati come **Avviso collegato** e **Avviso scollegato**.
 - **Notifiche** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
-- **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Automazione** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 - **Videochiamate** — `VideoCallStarted` e `VideoCallFailed`: una chiamata avviata per l'incidente, con il suo link di accesso, o il motivo per cui un fornitore non è riuscito ad avviarne una. Vedete [Videochiamate](/docs/workspace-connections/video-calls).
 
 Ogni tipo ha la propria icona, così potete scorrere un feed lungo e individuare i cambi di stato in mezzo alle chiacchiere. L'analisi della causa principale generata dall'IA è contrassegnata in modo distinto e visualizzata in una modalità Markdown ristretta. La voce **Incidente creato**, la voce che registra un nuovo titolo e le voci di ingresso o uscita da un episodio mostrano un titolo esattamente come è stato digitato: vi fanno l'escape di `\`, `[`, `]`, `*`, `_`, `~`, dei backtick e di \<, così un titolo non può diventare un'immagine, HTML grezzo, una menzione Slack come \<!here\>, un link il cui testo nasconde dove porta, né grassetto, corsivo o codice. Un indirizzo in un titolo viene comunque mostrato come link a quello stesso indirizzo.

@@ -262,7 +262,7 @@ Feedoppføringer skrives av selve hendelsestjenesten, av begge notattjenestene, 
 - **Personer** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Tilknyttede varsler** — `AlertLinked` og `AlertUnlinked`, vist som **Varsel tilknyttet** og **Varsel frakoblet**.
 - **Varsler** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
-- **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 - **Videosamtaler** — `VideoCallStarted` og `VideoCallFailed`: en samtale som ble startet for hendelsen, med lenken for å bli med, eller årsaken til at en leverandør ikke kunne starte en. Se [Videosamtaler](/docs/workspace-connections/video-calls).
 
 Hver type får sitt eget ikon, så du kan skumme en lang feed og plukke ut tilstandsendringene fra pratet. KI-generert analyse av rotårsaken merkes særskilt og gjengis i en begrenset Markdown-modus. Oppføringen **Hendelse opprettet**, oppføringen som registrerer en ny tittel, og oppføringene for å gå inn i eller ut av en episode viser en tittel nøyaktig slik den er skrevet: de escaper `\`, `[`, `]`, `*`, `_`, `~`, backticks og \< i den, så en tittel ikke kan bli et bilde, rå HTML, en Slack-omtale som \<!here\>, en lenke der teksten skjuler hvor den går, eller fet, kursiv eller kode. En adresse i en tittel vises fortsatt som en lenke til den samme adressen.

@@ -262,7 +262,7 @@ Flödesposter skrivs av själva incidenttjänsten, av båda anteckningstjänster
 - **Personer** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Länkade larm** — `AlertLinked` och `AlertUnlinked`, som visas som **Larm länkat** och **Larm avlänkat**.
 - **Aviseringar** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
-- **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 - **Videosamtal** — `VideoCallStarted` och `VideoCallFailed`: ett samtal som startades för incidenten, med dess anslutningslänk, eller orsaken till att en leverantör inte kunde starta ett. Se [Videosamtal](/docs/workspace-connections/video-calls).
 
 Varje typ får sin egen ikon, så att du kan skumma ett långt flöde och plocka ut tillståndsändringarna ur pratet. AI-genererad analys av rotorsaken markeras särskilt och återges i ett begränsat Markdown-läge. Posten **Incident skapad**, posten som registrerar en ny titel och posterna för att gå in i eller lämna en episod visar en titel exakt som den skrevs: de escapar `\`, `[`, `]`, `*`, `_`, `~`, backticks och \< i den, så att en titel inte kan bli en bild, rå HTML, ett Slack-omnämnande som \<!here\>, en länk vars text döljer vart den går, eller fetstil, kursiv eller kod. En adress i en titel visas fortfarande som en länk till samma adress.

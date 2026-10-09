@@ -262,7 +262,7 @@ flowchart TB
 - **Люди** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Связанные оповещения** — `AlertLinked` и `AlertUnlinked`, показываемые как **Оповещение связано** и **Оповещение отвязано**.
 - **Уведомления** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
-- **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Автоматизация** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 - **Видеозвонки** — `VideoCallStarted` и `VideoCallFailed`: звонок, начатый для инцидента, со ссылкой для подключения, или причина, по которой провайдер не смог его начать. См. [Видеозвонки](/docs/workspace-connections/video-calls).
 
 У каждого типа свой значок, поэтому в длинной ленте можно быстро найти смены состояния среди разговоров. Сгенерированный ИИ анализ корневой причины помечается отдельно и отображается в ограниченном режиме Markdown. Запись **Инцидент создан**, запись о новом заголовке и записи о входе в эпизод или выходе из него показывают заголовок ровно так, как его набрали: они экранируют в нём `\`, `[`, `]`, `*`, `_`, `~`, обратные кавычки и \<, поэтому заголовок не может превратиться в изображение, сырой HTML, упоминание Slack вроде \<!here\>, ссылку, текст которой скрывает, куда она ведёт, или в жирный, курсивный текст или код. Адрес в заголовке по-прежнему показывается как ссылка на этот же адрес.

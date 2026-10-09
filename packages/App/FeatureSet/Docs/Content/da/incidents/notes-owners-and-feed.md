@@ -262,7 +262,7 @@ Feedposter skrives af selve hændelsestjenesten, af begge notetjenester, af tils
 - **Personer** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Tilknyttede advarsler** — `AlertLinked` og `AlertUnlinked`, vist som **Advarsel tilknyttet** og **Advarsel frakoblet**.
 - **Notifikationer** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
-- **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 - **Videoopkald** — `VideoCallStarted` og `VideoCallFailed`: et opkald, der blev startet for hændelsen, med dets deltagerlink, eller årsagen til, at en udbyder ikke kunne starte et. Se [Videoopkald](/docs/workspace-connections/video-calls).
 
 Hver type får sit eget ikon, så du kan skimme et langt feed og finde tilstandsændringerne blandt snakken. AI-genererede analyser af grundårsagen markeres særskilt og vises i en begrænset Markdown-tilstand. Posten **Hændelse oprettet**, posten, der registrerer en ny titel, og posterne for at gå ind i eller ud af en episode viser en titel præcis, som den er skrevet: de escaper `\`, `[`, `]`, `*`, `_`, `~`, backticks og \< i den, så en titel ikke kan blive til et billede, rå HTML, en Slack-omtale som \<!here\>, et link, hvis tekst skjuler, hvor det fører hen, eller fed, kursiv eller kode. En adresse i en titel vises stadig som et link til den samme adresse.
