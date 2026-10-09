@@ -118,12 +118,19 @@ function handlerFor(method: string, uri: string): Handler {
 }
 
 function request(id: string): OneUptimeRequest {
-  return { params: { id: id }, body: {}, headers: {} } as unknown as OneUptimeRequest;
+  return {
+    params: { id: id },
+    body: {},
+    headers: {},
+  } as unknown as OneUptimeRequest;
 }
 
 describe("the option usage route of a custom field definition table", () => {
   test("is the definition's CRUD route plus /:id/option-usage, for POST and GET, behind the user middleware", () => {
-    new CustomFieldDefinitionAPI(IncidentCustomField, IncidentCustomFieldService);
+    new CustomFieldDefinitionAPI(
+      IncidentCustomField,
+      IncidentCustomFieldService,
+    );
 
     expect(CUSTOM_FIELD_OPTION_USAGE_ROUTE).toBe("/option-usage");
 
@@ -146,7 +153,10 @@ describe("the option usage route of a custom field definition table", () => {
   });
 
   test("answers with the counts and the copying fields, never cached", async () => {
-    new CustomFieldDefinitionAPI(IncidentCustomField, IncidentCustomFieldService);
+    new CustomFieldDefinitionAPI(
+      IncidentCustomField,
+      IncidentCustomFieldService,
+    );
 
     const next: MockFunction = getJestMockFunction();
     const res: OneUptimeResponse = {} as OneUptimeResponse;
@@ -191,7 +201,10 @@ describe("the option usage route of a custom field definition table", () => {
   });
 
   test("an id that is not one is refused before anything is read", async () => {
-    new CustomFieldDefinitionAPI(IncidentCustomField, IncidentCustomFieldService);
+    new CustomFieldDefinitionAPI(
+      IncidentCustomField,
+      IncidentCustomFieldService,
+    );
 
     const next: MockFunction = getJestMockFunction();
 
@@ -208,7 +221,10 @@ describe("the option usage route of a custom field definition table", () => {
   });
 
   test("a request with no project is refused: the counts are of a project's records", async () => {
-    new CustomFieldDefinitionAPI(IncidentCustomField, IncidentCustomFieldService);
+    new CustomFieldDefinitionAPI(
+      IncidentCustomField,
+      IncidentCustomFieldService,
+    );
 
     props.mockResolvedValue({ userId: PROPS.userId } as never);
 
@@ -226,7 +242,10 @@ describe("the option usage route of a custom field definition table", () => {
   });
 
   test("a refusal from the usage is handed on, not answered", async () => {
-    new CustomFieldDefinitionAPI(IncidentCustomField, IncidentCustomFieldService);
+    new CustomFieldDefinitionAPI(
+      IncidentCustomField,
+      IncidentCustomFieldService,
+    );
 
     const refusal: Error = new BadDataException("You may not edit this.");
     usage.mockRejectedValue(refusal as never);

@@ -53,7 +53,10 @@ function listSourceFiles(dir: string): Array<string> {
 const FILES: Array<{ file: string; source: string }> = listSourceFiles(
   DASHBOARD_SRC,
 ).map((file: string) => {
-  return { file: path.relative(DASHBOARD_SRC, file), source: fs.readFileSync(file, "utf8") };
+  return {
+    file: path.relative(DASHBOARD_SRC, file),
+    source: fs.readFileSync(file, "utf8"),
+  };
 });
 
 function readSource(...parts: Array<string>): string {
@@ -75,7 +78,8 @@ function constantValue(name: string): string {
   throw new Error(`No exported string constant ${name}`);
 }
 
-const TABLE_ID: RegExp = /saveFilterProps=\{\{\s*tableId:\s*(?:"([^"]+)"|([A-Z_][A-Z0-9_]*))/;
+const TABLE_ID: RegExp =
+  /saveFilterProps=\{\{\s*tableId:\s*(?:"([^"]+)"|([A-Z_][A-Z0-9_]*))/;
 
 function tableIdOf(match: RegExpMatchArray): string {
   return match[1] !== undefined ? match[1] : constantValue(match[2]!);
@@ -130,8 +134,11 @@ describe("the saved views a renamed option is rewritten in", () => {
   );
 
   test("every page drawing a resource's chips on its own table is listed for that resource", () => {
-    const pages: Array<{ file: string; definition: string; ids: Array<string> }> =
-      [];
+    const pages: Array<{
+      file: string;
+      definition: string;
+      ids: Array<string>;
+    }> = [];
 
     for (const { file, source } of FILES) {
       const facets: RegExpMatchArray | null = source.match(
@@ -200,9 +207,8 @@ describe("the saved views a renamed option is rewritten in", () => {
           from,
           end === -1 ? undefined : end,
         );
-        const match: RegExpMatchArray | null = element.match(
-          /tableKey="([^"]+)"/,
-        );
+        const match: RegExpMatchArray | null =
+          element.match(/tableKey="([^"]+)"/);
 
         if (match) {
           ids.push(match[1]!);
@@ -213,9 +219,9 @@ describe("the saved views a renamed option is rewritten in", () => {
     }
 
     for (const id of ids) {
-      expect(getCustomFieldSavedViewTableIds("InventoryItemCustomField")).toContain(
-        id,
-      );
+      expect(
+        getCustomFieldSavedViewTableIds("InventoryItemCustomField"),
+      ).toContain(id);
     }
   });
 

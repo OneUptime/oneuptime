@@ -142,8 +142,7 @@ export class Service extends DatabaseService<Model> {
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     const carryForward: IncidentCustomFieldCarryForward | null =
-      (onUpdate.carryForward as IncidentCustomFieldCarryForward | null) ||
-      null;
+      (onUpdate.carryForward as IncidentCustomFieldCarryForward | null) || null;
 
     /*
      * Before the mapping backfill below, which writes mapped values under the

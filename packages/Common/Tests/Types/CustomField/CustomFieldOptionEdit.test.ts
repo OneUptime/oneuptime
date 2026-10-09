@@ -176,9 +176,8 @@ describe("readCustomFieldOptionRenames", () => {
 
   test("a value such as __proto__ is a value like any other", () => {
     expect(
-      readCustomFieldOptionRenames([
-        { from: "__proto__", to: "constructor" },
-      ]).renames,
+      readCustomFieldOptionRenames([{ from: "__proto__", to: "constructor" }])
+        .renames,
     ).toEqual([{ from: "__proto__", to: "constructor" }]);
   });
 
@@ -490,8 +489,10 @@ describe("renameCustomFieldOptionValue", () => {
   test("a list none of whose entries is renamed is left as it is, repeats and all", () => {
     const value: Array<string> = ["Facility B", "Facility B"];
 
-    const renamed: RenamedCustomFieldOptionValue =
-      renameCustomFieldOptionValue(value, RENAMES);
+    const renamed: RenamedCustomFieldOptionValue = renameCustomFieldOptionValue(
+      value,
+      RENAMES,
+    );
 
     expect(renamed.changed).toBe(false);
     expect(renamed.value).toBe(value);
@@ -553,11 +554,12 @@ describe("renameCustomFieldOptionsInList", () => {
   ];
 
   test("a renamed option keeps its place and its color", () => {
-    const result: RenamedCustomFieldOptionList =
-      renameCustomFieldOptionsInList({
+    const result: RenamedCustomFieldOptionList = renameCustomFieldOptionsInList(
+      {
         options: OPTIONS,
         renames: map([["Facility A", "Facility Alpha"]]),
-      });
+      },
+    );
 
     expect(result).toEqual({
       options: [
@@ -576,7 +578,10 @@ describe("renameCustomFieldOptionsInList", () => {
         renames: map([["Facility C", "Facility B"]]),
       }),
     ).toEqual({
-      options: [{ value: "Facility A", color: "#ef4444" }, { value: "Facility B" }],
+      options: [
+        { value: "Facility A", color: "#ef4444" },
+        { value: "Facility B" },
+      ],
       changed: true,
     });
 

@@ -180,7 +180,9 @@ function renderTable(hooks: {
         },
       ]}
       {...(hooks.onBeforeEdit ? { onBeforeEdit: hooks.onBeforeEdit } : {})}
-      {...(hooks.onBeforeUpdate ? { onBeforeUpdate: hooks.onBeforeUpdate } : {})}
+      {...(hooks.onBeforeUpdate
+        ? { onBeforeUpdate: hooks.onBeforeUpdate }
+        : {})}
     />,
   );
 }

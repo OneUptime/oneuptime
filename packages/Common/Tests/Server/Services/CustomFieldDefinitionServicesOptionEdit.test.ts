@@ -63,11 +63,13 @@ interface HookedService {
   ) => Promise<OnUpdate<any>>;
 }
 
-const SERVICES: Array<{
+interface ServiceCase {
   name: string;
   modelType: { new (): BaseModel };
   service: DatabaseService<any>;
-}> = [
+}
+
+const SERVICES: Array<ServiceCase> = [
   {
     name: "IncidentCustomFieldService",
     modelType: IncidentCustomField,
@@ -172,7 +174,7 @@ function update(): UpdateBy<any> {
   };
 }
 
-describe.each(SERVICES)("$name", ({ modelType, service }) => {
+describe.each(SERVICES)("$name", ({ modelType, service }: ServiceCase) => {
   const hooked: HookedService = service as unknown as HookedService;
 
   test("prepares the option edit before the write, as itself", async () => {

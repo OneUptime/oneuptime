@@ -130,8 +130,7 @@ function renderEditor(
 
 function lastRenames(): Array<CustomFieldOptionRename> {
   const calls: Array<Array<unknown>> = onRenamesChange.mock.calls;
-  return (calls[calls.length - 1]?.[0] ||
-    []) as Array<CustomFieldOptionRename>;
+  return (calls[calls.length - 1]?.[0] || []) as Array<CustomFieldOptionRename>;
 }
 
 function lastValue(): string {
@@ -140,7 +139,9 @@ function lastValue(): string {
 }
 
 function optionInput(index: number): HTMLInputElement {
-  return screen.getByTestId(`dropdown-option-value-${index}`) as HTMLInputElement;
+  return screen.getByTestId(
+    `dropdown-option-value-${index}`,
+  ) as HTMLInputElement;
 }
 
 function rowTexts(): Array<string> {
@@ -397,7 +398,7 @@ describe("taking options out", () => {
   });
 
   test("Undo after taking out the last option leaves no blank row behind", () => {
-    renderEditor({ initialValue: "Only" , usage: null });
+    renderEditor({ initialValue: "Only", usage: null });
 
     removeRow(0);
     expect(rowTexts()).toEqual([""]);
@@ -412,9 +413,9 @@ describe("taking options out", () => {
 
     removeRow(2);
 
-    expect(screen.getByTestId("dropdown-options-retired")).not.toHaveTextContent(
-      "Facility C",
-    );
+    expect(
+      screen.getByTestId("dropdown-options-retired"),
+    ).not.toHaveTextContent("Facility C");
   });
 
   test("without counts, an option taken out is listed anyway, as it may be held", () => {
@@ -443,9 +444,7 @@ describe("taking options out", () => {
     await user.click((await screen.findAllByText("Facility C")).pop()!);
 
     await waitFor(() => {
-      expect(lastRenames()).toEqual([
-        { from: "Facility B", to: "Facility C" },
-      ]);
+      expect(lastRenames()).toEqual([{ from: "Facility B", to: "Facility C" }]);
     });
   });
 
@@ -540,7 +539,10 @@ describe("fields that copy this one", () => {
 describe("a plain list - a new field, a form's own question", () => {
   test("reports no renames and lists nothing as no longer an option", () => {
     render(
-      <DropdownOptionsInput initialValue={SAVED} onChange={onChange as never} />,
+      <DropdownOptionsInput
+        initialValue={SAVED}
+        onChange={onChange as never}
+      />,
     );
 
     fireEvent.change(optionInput(0), { target: { value: "Facility Alpha" } });
@@ -556,7 +558,10 @@ describe("a plain list - a new field, a form's own question", () => {
 
   test("still drags into order and points out two options of one name", async () => {
     render(
-      <DropdownOptionsInput initialValue={"Low\nHigh"} onChange={onChange as never} />,
+      <DropdownOptionsInput
+        initialValue={"Low\nHigh"}
+        onChange={onChange as never}
+      />,
     );
 
     await dragFromKeyboard(1, -1);

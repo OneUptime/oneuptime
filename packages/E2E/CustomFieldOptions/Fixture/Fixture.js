@@ -94,9 +94,9 @@ function EditDialog() {
               Dropdown Options
             </p>
             <p className="text-sm text-gray-500">
-              Add the options that should appear in the dropdown and
-              optionally choose a color for each value. Drag an option by its
-              handle to change where it is listed.
+              Add the options that should appear in the dropdown and optionally
+              choose a color for each value. Drag an option by its handle to
+              change where it is listed.
             </p>
             <DropdownOptionsInput
               initialValue={SAVED_OPTIONS}

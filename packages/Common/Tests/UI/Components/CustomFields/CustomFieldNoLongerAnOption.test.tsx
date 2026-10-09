@@ -110,14 +110,24 @@ describe("getCustomFieldValuesNotOffered", () => {
   });
 
   test("an option the field offers, an empty value, and a field with no options report nothing", () => {
-    for (const value of ["Facility A", ["Facility C"], "", null, undefined, []]) {
+    for (const value of [
+      "Facility A",
+      ["Facility C"],
+      "",
+      null,
+      undefined,
+      [],
+    ]) {
       expect(
         getCustomFieldValuesNotOffered({ dropdownOptions: OPTIONS, value }),
       ).toEqual([]);
     }
 
     expect(
-      getCustomFieldValuesNotOffered({ dropdownOptions: "", value: "Anything" }),
+      getCustomFieldValuesNotOffered({
+        dropdownOptions: "",
+        value: "Anything",
+      }),
     ).toEqual([]);
   });
 });
@@ -182,14 +192,12 @@ describe("buildCustomFieldFormFields with the record's values", () => {
     });
 
     expect(
-      (fields[0]!.dropdownOptions || []).map((option: DropdownOption) => {
-        return option.label;
-      }),
-    ).toEqual([
-      "Facility A",
-      "Facility C",
-      "Facility B (no longer an option)",
-    ]);
+      ((fields[0]!.dropdownOptions || []) as Array<DropdownOption>).map(
+        (option: DropdownOption) => {
+          return option.label;
+        },
+      ),
+    ).toEqual(["Facility A", "Facility C", "Facility B (no longer an option)"]);
     expect(fields[1]!.dropdownOptions).toHaveLength(2);
     expect(fields[2]!.dropdownOptions).toBeUndefined();
   });
@@ -298,9 +306,9 @@ describe("the Custom Fields card", () => {
     });
 
     expect(
-      (
-        (updateByIdMock.mock.calls[0]![0] as JSONObject)["data"] as JSONObject
-      )["customFields"],
+      ((updateByIdMock.mock.calls[0]![0] as JSONObject)["data"] as JSONObject)[
+        "customFields"
+      ],
     ).toEqual({
       Facility: "Facility B",
       Systems: ["Facility A", "Old Site"],

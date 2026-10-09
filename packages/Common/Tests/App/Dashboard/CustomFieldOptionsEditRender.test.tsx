@@ -92,11 +92,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           mockState.row,
         );
 
-        void (props.onBeforeEdit ? props.onBeforeEdit(row) : Promise.resolve(row)).then(
-          () => {
-            setIsEditOpen(true);
-          },
-        );
+        void (
+          props.onBeforeEdit ? props.onBeforeEdit(row) : Promise.resolve(row)
+        ).then(() => {
+          setIsEditOpen(true);
+        });
       }, []);
 
       if (mockState.mode === "create") {
@@ -110,11 +110,9 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
               id: "create-custom-field",
               name: "create-custom-field",
               modelType: props.modelType,
-              fields: fields.filter(
-                (field: ModelField<BaseModel>): boolean => {
-                  return !field.doNotShowWhenCreating;
-                },
-              ),
+              fields: fields.filter((field: ModelField<BaseModel>): boolean => {
+                return !field.doNotShowWhenCreating;
+              }),
               steps: props.formSteps || [],
               formType: FormType.Create,
             }}
@@ -371,210 +369,232 @@ afterEach(() => {
   cleanup();
 });
 
-describe.each(PAGES)("editing a saved dropdown field: $name", (page: PageCase) => {
-  test("the Edit form shows the field's options to a project admin", async () => {
-    answerField({
-      modelType: page.modelType,
-      customFieldType: CustomFieldType.Dropdown,
-      dropdownOptions: SAVED_OPTIONS,
-    });
+describe.each(PAGES)(
+  "editing a saved dropdown field: $name",
+  (page: PageCase) => {
+    test("the Edit form shows the field's options to a project admin", async () => {
+      answerField({
+        modelType: page.modelType,
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: SAVED_OPTIONS,
+      });
 
-    const form: HTMLElement = await openEdit(page);
+      const form: HTMLElement = await openEdit(page);
 
-    expect(await within(form).findByText("Dropdown Options")).toBeVisible();
-    await waitFor(() => {
+      expect(await within(form).findByText("Dropdown Options")).toBeVisible();
+      await waitFor(() => {
+        expect(
+          (
+            within(form).getByTestId(
+              "dropdown-option-value-0",
+            ) as HTMLInputElement
+          ).value,
+        ).toBe("Facility A");
+      });
       expect(
-        (within(form).getByTestId("dropdown-option-value-0") as HTMLInputElement)
-          .value,
-      ).toBe("Facility A");
-    });
-    expect(
-      (within(form).getByTestId("dropdown-option-value-2") as HTMLInputElement)
-        .value,
-    ).toBe("Facility C");
+        (
+          within(form).getByTestId(
+            "dropdown-option-value-2",
+          ) as HTMLInputElement
+        ).value,
+      ).toBe("Facility C");
 
-    // The type is not offered: nobody may change it once the field exists.
-    expect(within(form).queryByRole("combobox", { name: "Field Type" })).toBeNull();
-  });
-
-  test("so does a multi-select field's", async () => {
-    answerField({
-      modelType: page.modelType,
-      customFieldType: CustomFieldType.MultiSelectDropdown,
-      dropdownOptions: "One\nTwo",
+      // The type is not offered: nobody may change it once the field exists.
+      expect(
+        within(form).queryByRole("combobox", { name: "Field Type" }),
+      ).toBeNull();
     });
 
-    const form: HTMLElement = await openEdit(page);
+    test("so does a multi-select field's", async () => {
+      answerField({
+        modelType: page.modelType,
+        customFieldType: CustomFieldType.MultiSelectDropdown,
+        dropdownOptions: "One\nTwo",
+      });
 
-    expect(await within(form).findByText("Dropdown Options")).toBeVisible();
-  });
+      const form: HTMLElement = await openEdit(page);
 
-  test("a field that is not a dropdown has no options to edit", async () => {
-    answerField({
-      modelType: page.modelType,
-      customFieldType: CustomFieldType.Text,
+      expect(await within(form).findByText("Dropdown Options")).toBeVisible();
     });
 
-    const form: HTMLElement = await openEdit(page);
+    test("a field that is not a dropdown has no options to edit", async () => {
+      answerField({
+        modelType: page.modelType,
+        customFieldType: CustomFieldType.Text,
+      });
 
-    await within(form).findByRole("textbox", { name: "Field Name" });
+      const form: HTMLElement = await openEdit(page);
 
-    expect(within(form).queryByText("Dropdown Options")).toBeNull();
-  });
+      await within(form).findByRole("textbox", { name: "Field Name" });
 
-  test("asks how many records hold each value, and says it", async () => {
-    answerField({
-      modelType: page.modelType,
-      customFieldType: CustomFieldType.Dropdown,
-      dropdownOptions: SAVED_OPTIONS,
+      expect(within(form).queryByText("Dropdown Options")).toBeNull();
     });
 
-    const form: HTMLElement = await openEdit(page);
+    test("asks how many records hold each value, and says it", async () => {
+      answerField({
+        modelType: page.modelType,
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: SAVED_OPTIONS,
+      });
 
-    expect(
-      await within(form).findByTestId("dropdown-option-retired-count-0"),
-    ).toHaveTextContent(`3 ${page.recordPlural} have it.`);
+      const form: HTMLElement = await openEdit(page);
 
-    const request: {
-      url: { toString: () => string };
-      headers: JSONObject;
-    } = apiPostMock.mock.calls[0]![0] as {
-      url: { toString: () => string };
-      headers: JSONObject;
-    };
+      expect(
+        await within(form).findByTestId("dropdown-option-retired-count-0"),
+      ).toHaveTextContent(`3 ${page.recordPlural} have it.`);
 
-    expect(request.url.toString()).toContain(
-      `${page.route}/${FIELD_ID}/option-usage`,
-    );
-    // The project the counts are of.
-    expect(request.headers).toEqual({ tenantid: PROJECT_ID.toString() });
-  });
+      const request: {
+        url: { toString: () => string };
+        headers: JSONObject;
+      } = apiPostMock.mock.calls[0]![0] as {
+        url: { toString: () => string };
+        headers: JSONObject;
+      };
 
-  test("saves a renamed option with its rename, so the records holding it follow", async () => {
-    answerField({
-      modelType: page.modelType,
-      customFieldType: CustomFieldType.Dropdown,
-      dropdownOptions: SAVED_OPTIONS,
+      expect(request.url.toString()).toContain(
+        `${page.route}/${FIELD_ID}/option-usage`,
+      );
+      // The project the counts are of.
+      expect(request.headers).toEqual({ tenantid: PROJECT_ID.toString() });
     });
 
-    const user: UserEvent = userEvent.setup({ delay: null });
-    const form: HTMLElement = await openEdit(page);
+    test("saves a renamed option with its rename, so the records holding it follow", async () => {
+      answerField({
+        modelType: page.modelType,
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: SAVED_OPTIONS,
+      });
 
-    const first: HTMLInputElement = (await within(form).findByTestId(
-      "dropdown-option-value-0",
-    )) as HTMLInputElement;
+      const user: UserEvent = userEvent.setup({ delay: null });
+      const form: HTMLElement = await openEdit(page);
 
-    await waitFor(() => {
-      expect(first.value).toBe("Facility A");
+      const first: HTMLInputElement = (await within(form).findByTestId(
+        "dropdown-option-value-0",
+      )) as HTMLInputElement;
+
+      await waitFor(() => {
+        expect(first.value).toBe("Facility A");
+      });
+
+      fireEvent.change(first, { target: { value: "Facility Alpha" } });
+
+      expect(
+        await within(form).findByTestId("dropdown-option-renamed-0"),
+      ).toHaveTextContent(
+        `Renamed from "Facility A": 12 ${page.recordPlural} will show the new name.`,
+      );
+
+      await user.click(
+        within(form).getByRole("button", { name: "Save Changes" }),
+      );
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      const saved: { model: BaseModel; miscDataProps: JSONObject } =
+        savedCall();
+
+      expect(
+        JSON.parse(String(saved.model.getColumnValue("dropdownOptions"))),
+      ).toEqual([
+        { value: "Facility Alpha", color: "#ef4444" },
+        { value: "Facility B" },
+        { value: "Facility C" },
+      ]);
+      expect(saved.miscDataProps["renamedDropdownOptions"]).toEqual([
+        { from: "Facility A", to: "Facility Alpha" },
+      ]);
+      // The type is never sent: nobody may write it.
+      expect(
+        (saved.model as unknown as Record<string, unknown>)["customFieldType"],
+      ).toBeUndefined();
     });
 
-    fireEvent.change(first, { target: { value: "Facility Alpha" } });
+    test("an edit that renames nothing sends no renames", async () => {
+      answerField({
+        modelType: page.modelType,
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: SAVED_OPTIONS,
+      });
 
-    expect(
-      await within(form).findByTestId("dropdown-option-renamed-0"),
-    ).toHaveTextContent(
-      `Renamed from "Facility A": 12 ${page.recordPlural} will show the new name.`,
-    );
+      const user: UserEvent = userEvent.setup({ delay: null });
+      const form: HTMLElement = await openEdit(page);
 
-    await user.click(within(form).getByRole("button", { name: "Save Changes" }));
+      await within(form).findByTestId("dropdown-option-value-0");
 
-    await waitFor(() => {
-      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      await user.click(
+        within(form).getByRole("button", { name: "Save Changes" }),
+      );
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      expect(
+        savedCall().miscDataProps["renamedDropdownOptions"],
+      ).toBeUndefined();
     });
 
-    const saved: { model: BaseModel; miscDataProps: JSONObject } = savedCall();
+    test("two options of the same name stop the save, and say which", async () => {
+      answerField({
+        modelType: page.modelType,
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: SAVED_OPTIONS,
+      });
 
-    expect(JSON.parse(String(saved.model.getColumnValue("dropdownOptions")))).toEqual([
-      { value: "Facility Alpha", color: "#ef4444" },
-      { value: "Facility B" },
-      { value: "Facility C" },
-    ]);
-    expect(saved.miscDataProps["renamedDropdownOptions"]).toEqual([
-      { from: "Facility A", to: "Facility Alpha" },
-    ]);
-    // The type is never sent: nobody may write it.
-    expect(
-      (saved.model as unknown as Record<string, unknown>)["customFieldType"],
-    ).toBeUndefined();
-  });
+      const user: UserEvent = userEvent.setup({ delay: null });
+      const form: HTMLElement = await openEdit(page);
 
-  test("an edit that renames nothing sends no renames", async () => {
-    answerField({
-      modelType: page.modelType,
-      customFieldType: CustomFieldType.Dropdown,
-      dropdownOptions: SAVED_OPTIONS,
+      const first: HTMLInputElement = (await within(form).findByTestId(
+        "dropdown-option-value-0",
+      )) as HTMLInputElement;
+
+      await waitFor(() => {
+        expect(first.value).toBe("Facility A");
+      });
+
+      fireEvent.change(first, { target: { value: "Facility B" } });
+
+      await user.click(
+        within(form).getByRole("button", { name: "Save Changes" }),
+      );
+
+      expect(
+        await within(form).findByText(
+          'Each option needs its own name: "Facility B" is listed more than once.',
+        ),
+      ).toBeVisible();
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
     });
 
-    const user: UserEvent = userEvent.setup({ delay: null });
-    const form: HTMLElement = await openEdit(page);
+    test("counts that cannot be read leave the options editable", async () => {
+      apiPostMock.mockReset().mockRejectedValue(new Error("down") as never);
 
-    await within(form).findByTestId("dropdown-option-value-0");
+      answerField({
+        modelType: page.modelType,
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: SAVED_OPTIONS,
+      });
 
-    await user.click(within(form).getByRole("button", { name: "Save Changes" }));
+      const form: HTMLElement = await openEdit(page);
 
-    await waitFor(() => {
-      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      const first: HTMLInputElement = (await within(form).findByTestId(
+        "dropdown-option-value-0",
+      )) as HTMLInputElement;
+
+      await waitFor(() => {
+        expect(first.value).toBe("Facility A");
+      });
+
+      fireEvent.change(first, { target: { value: "Facility Alpha" } });
+
+      expect(
+        await within(form).findByTestId("dropdown-option-renamed-0"),
+      ).toHaveTextContent('Renamed from "Facility A".');
     });
-
-    expect(savedCall().miscDataProps["renamedDropdownOptions"]).toBeUndefined();
-  });
-
-  test("two options of the same name stop the save, and say which", async () => {
-    answerField({
-      modelType: page.modelType,
-      customFieldType: CustomFieldType.Dropdown,
-      dropdownOptions: SAVED_OPTIONS,
-    });
-
-    const user: UserEvent = userEvent.setup({ delay: null });
-    const form: HTMLElement = await openEdit(page);
-
-    const first: HTMLInputElement = (await within(form).findByTestId(
-      "dropdown-option-value-0",
-    )) as HTMLInputElement;
-
-    await waitFor(() => {
-      expect(first.value).toBe("Facility A");
-    });
-
-    fireEvent.change(first, { target: { value: "Facility B" } });
-
-    await user.click(within(form).getByRole("button", { name: "Save Changes" }));
-
-    expect(
-      await within(form).findByText(
-        'Each option needs its own name: "Facility B" is listed more than once.',
-      ),
-    ).toBeVisible();
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
-  });
-
-  test("counts that cannot be read leave the options editable", async () => {
-    apiPostMock.mockReset().mockRejectedValue(new Error("down") as never);
-
-    answerField({
-      modelType: page.modelType,
-      customFieldType: CustomFieldType.Dropdown,
-      dropdownOptions: SAVED_OPTIONS,
-    });
-
-    const form: HTMLElement = await openEdit(page);
-
-    const first: HTMLInputElement = (await within(form).findByTestId(
-      "dropdown-option-value-0",
-    )) as HTMLInputElement;
-
-    await waitFor(() => {
-      expect(first.value).toBe("Facility A");
-    });
-
-    fireEvent.change(first, { target: { value: "Facility Alpha" } });
-
-    expect(
-      await within(form).findByTestId("dropdown-option-renamed-0"),
-    ).toHaveTextContent('Renamed from "Facility A".');
-  });
-});
+  },
+);
 
 describe("creating a field", () => {
   test("its options are a plain list: no counts are asked for and nothing is renamed", async () => {

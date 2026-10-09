@@ -114,7 +114,10 @@ const getTableName: GetTableNameFunction = (modelType: {
  */
 type ColumnOfFunction = (model: BaseModel, column: string) => unknown;
 
-const columnOf: ColumnOfFunction = (model: BaseModel, column: string): unknown => {
+const columnOf: ColumnOfFunction = (
+  model: BaseModel,
+  column: string,
+): unknown => {
   return (model as unknown as Record<string, unknown>)[column];
 };
 
@@ -251,7 +254,9 @@ export const prepareCustomFieldOptionEdit: (
   const editedFields: Array<CustomFieldOptionEditField> = [];
 
   for (const field of fields) {
-    const projectId: ObjectID | undefined = columnOf(field, "projectId") as ObjectID | undefined;
+    const projectId: ObjectID | undefined = columnOf(field, "projectId") as
+      | ObjectID
+      | undefined;
 
     if (!field.id || !projectId) {
       continue;
@@ -321,7 +326,9 @@ const findCopyingFields: FindCopyingFieldsFunction = async (data: {
 
   for (const target of getCustomFieldMappingTargets()) {
     for (const source of target.sources) {
-      if (source.info.sourceDefinitionTableName !== data.sourceDefinitionTableName) {
+      if (
+        source.info.sourceDefinitionTableName !== data.sourceDefinitionTableName
+      ) {
         continue;
       }
 
@@ -450,7 +457,11 @@ export const applyCustomFieldOptionEdit: (
       ? readString(columnOf(field, "name"))
       : null;
 
-    if (!field || !fieldName || !isDropdown(columnOf(field, "customFieldType"))) {
+    if (
+      !field ||
+      !fieldName ||
+      !isDropdown(columnOf(field, "customFieldType"))
+    ) {
       continue;
     }
 
@@ -464,9 +475,11 @@ export const applyCustomFieldOptionEdit: (
     );
 
     const renames: CustomFieldOptionRenameMap = toCustomFieldOptionRenameMap(
-      carryForward.renames.filter((rename: CustomFieldOptionRename): boolean => {
-        return offered.has(rename.to);
-      }),
+      carryForward.renames.filter(
+        (rename: CustomFieldOptionRename): boolean => {
+          return offered.has(rename.to);
+        },
+      ),
     );
 
     /*

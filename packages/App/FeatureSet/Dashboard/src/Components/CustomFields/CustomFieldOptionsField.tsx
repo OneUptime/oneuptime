@@ -203,9 +203,7 @@ export const useCustomFieldOptionsFormField: <TModel extends BaseModel>(data: {
   const getFieldType: GetFieldTypeFunction = (
     values: FormValues<TModel>,
   ): unknown => {
-    const own: unknown = (values as Record<string, unknown>)[
-      "customFieldType"
-    ];
+    const own: unknown = (values as Record<string, unknown>)["customFieldType"];
 
     if (own) {
       return own;

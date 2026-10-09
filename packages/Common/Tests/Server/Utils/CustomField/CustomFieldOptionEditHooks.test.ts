@@ -655,16 +655,15 @@ describe("applyCustomFieldOptionEdit: the field's own values", () => {
     expect(tableViewFindBy).toHaveBeenCalledTimes(1);
     expect(
       (
-        (tableViewFindBy.mock.calls[0]![0] as JSONObject)[
-          "query"
-        ] as JSONObject
+        (tableViewFindBy.mock.calls[0]![0] as JSONObject)["query"] as JSONObject
       )["projectId"],
     ).toBe(projectId);
 
     expect(formFindBy).toHaveBeenCalledTimes(1);
-    expect(
-      (formFindBy.mock.calls[0]![0] as JSONObject)["query"],
-    ).toEqual({ projectId: projectId, targetType: FormTargetType.Incident });
+    expect((formFindBy.mock.calls[0]![0] as JSONObject)["query"]).toEqual({
+      projectId: projectId,
+      targetType: FormTargetType.Incident,
+    });
   });
 
   test("moves the values under the name the field is saved with", async () => {
@@ -696,9 +695,9 @@ describe("applyCustomFieldOptionEdit: the field's own values", () => {
 
     await apply();
 
-    expect(JSON.parse((statements[0]!.parameters as Array<string>)[2]!)).toEqual(
-      { "Facility A": "Facility Alpha" },
-    );
+    expect(
+      JSON.parse((statements[0]!.parameters as Array<string>)[2]!),
+    ).toEqual({ "Facility A": "Facility Alpha" });
   });
 
   test("nothing happens for a write that changed no row, carried nothing or was not a dropdown", async () => {
@@ -807,9 +806,11 @@ describe("applyCustomFieldOptionEdit: the field's own values", () => {
       updatedItemIds: [fieldId],
     });
 
-    expect(statements.map((s: { table: string }) => s.table)).toEqual([
-      "Team",
-    ]);
+    expect(
+      statements.map((s: { table: string }) => {
+        return s.table;
+      }),
+    ).toEqual(["Team"]);
     expect(
       (
         (tableViewFindBy.mock.calls[0]![0] as JSONObject)["query"] as JSONObject
@@ -848,7 +849,9 @@ describe("applyCustomFieldOptionEdit: fields that copy a monitor field", () => {
       .mockReturnValue(fakeRepository("Monitor", [{ moved: 7 }]) as never);
     jest
       .spyOn(MonitorTemplateService, "getRepository")
-      .mockReturnValue(fakeRepository("MonitorTemplate", [{ moved: 1 }]) as never);
+      .mockReturnValue(
+        fakeRepository("MonitorTemplate", [{ moved: 1 }]) as never,
+      );
     jest
       .spyOn(IncidentService, "getRepository")
       .mockReturnValue(fakeRepository("Incident", [{ moved: 4 }]) as never);
@@ -956,9 +959,7 @@ describe("applyCustomFieldOptionEdit: fields that copy a monitor field", () => {
       expect(JSON.stringify(query["mapFromCustomFieldName"])).toContain(
         "Facility",
       );
-      expect(JSON.stringify(query["mapFromCustomFieldName"])).toContain(
-        "Site",
-      );
+      expect(JSON.stringify(query["mapFromCustomFieldName"])).toContain("Site");
       expect((read["props"] as JSONObject)["isRoot"]).toBe(true);
     }
   });
@@ -972,7 +973,7 @@ describe("applyCustomFieldOptionEdit: fields that copy a monitor field", () => {
       statements.map((statement: { table: string }): string => {
         return statement.table;
       }),
-    // In the catalog's order: alerts, incidents, scheduled maintenance.
+      // In the catalog's order: alerts, incidents, scheduled maintenance.
     ).toEqual([
       "Monitor",
       "MonitorTemplate",
@@ -1046,9 +1047,10 @@ describe("applyCustomFieldOptionEdit: fields that copy a monitor field", () => {
 
     // Monitors and alerts have no forms; incidents do.
     expect(formFindBy).toHaveBeenCalledTimes(1);
-    expect(
-      (formFindBy.mock.calls[0]![0] as JSONObject)["query"],
-    ).toEqual({ projectId: projectId, targetType: FormTargetType.Incident });
+    expect((formFindBy.mock.calls[0]![0] as JSONObject)["query"]).toEqual({
+      projectId: projectId,
+      targetType: FormTargetType.Incident,
+    });
   });
 
   test("an option only added to the monitor field is added to the copying fields, and nothing is moved", async () => {
@@ -1070,9 +1072,9 @@ describe("applyCustomFieldOptionEdit: fields that copy a monitor field", () => {
       }),
     ).toEqual(["AlertCustomField", "IncidentCustomField"]);
 
-    expect(
-      (statements[0]!.parameters as Array<string>)[0],
-    ).toBe("Facility A\nFacility B\nFacility Alpha\nFacility D");
+    expect((statements[0]!.parameters as Array<string>)[0]).toBe(
+      "Facility A\nFacility B\nFacility Alpha\nFacility D",
+    );
 
     expect(tableViewFindBy).not.toHaveBeenCalled();
     expect(formFindBy).not.toHaveBeenCalled();
@@ -1306,9 +1308,9 @@ describe("getCustomFieldOptionUsage", () => {
       }) as never,
     );
     const incidents: unknown = fakeRepository("Incident", []);
-    jest.spyOn(IncidentService, "getRepository").mockReturnValue(
-      incidents as never,
-    );
+    jest
+      .spyOn(IncidentService, "getRepository")
+      .mockReturnValue(incidents as never);
 
     expect(
       await getCustomFieldOptionUsage({

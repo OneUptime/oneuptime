@@ -22,16 +22,16 @@ import { describe, expect, test } from "@jest/globals";
 type ModelType = { new (): BaseModel };
 
 // Every definition table: a model with a dropdownOptions column.
-const definitionModels: Array<ModelType> = (
-  Models as Array<ModelType>
-).filter((modelType: ModelType): boolean => {
-  const model: BaseModel = new modelType();
-  return (
-    model.hasColumn("dropdownOptions") &&
-    model.hasColumn("customFieldType") &&
-    Boolean(model.tableName?.endsWith("CustomField"))
-  );
-});
+const definitionModels: Array<ModelType> = (Models as Array<ModelType>).filter(
+  (modelType: ModelType): boolean => {
+    const model: BaseModel = new modelType();
+    return (
+      model.hasColumn("dropdownOptions") &&
+      model.hasColumn("customFieldType") &&
+      Boolean(model.tableName?.endsWith("CustomField"))
+    );
+  },
+);
 
 // Every value table: a model with a customFields JSON column.
 const valueModels: Array<ModelType> = (Models as Array<ModelType>).filter(
@@ -39,17 +39,19 @@ const valueModels: Array<ModelType> = (Models as Array<ModelType>).filter(
     const model: BaseModel = new modelType();
     return (
       model.hasColumn("customFields") &&
-      model.getTableColumnMetadata("customFields")?.type === TableColumnType.JSON
+      model.getTableColumnMetadata("customFields")?.type ===
+        TableColumnType.JSON
     );
   },
 );
 
-const tableNamesOf: (services: Array<DatabaseService<any>>) => Array<string> =
-  (services: Array<DatabaseService<any>>): Array<string> => {
-    return services.map((service: DatabaseService<any>): string => {
-      return service.getModel().tableName || "";
-    });
-  };
+const tableNamesOf: (services: Array<DatabaseService<any>>) => Array<string> = (
+  services: Array<DatabaseService<any>>,
+): Array<string> => {
+  return services.map((service: DatabaseService<any>): string => {
+    return service.getModel().tableName || "";
+  });
+};
 
 describe("the stores of each resource's custom field values", () => {
   test("there are nine definition tables, and a store for each", () => {
@@ -130,9 +132,7 @@ describe("the stores of each resource's custom field values", () => {
           return store.formTargetType !== null;
         })
         .map(
-          (
-            store: CustomFieldValueStore,
-          ): [string, FormTargetType | null] => {
+          (store: CustomFieldValueStore): [string, FormTargetType | null] => {
             return [store.definitionTableName, store.formTargetType];
           },
         );
@@ -140,7 +140,10 @@ describe("the stores of each resource's custom field values", () => {
     expect(withForms.sort()).toEqual(
       [
         ["IncidentCustomField", FormTargetType.Incident],
-        ["ScheduledMaintenanceCustomField", FormTargetType.ScheduledMaintenance],
+        [
+          "ScheduledMaintenanceCustomField",
+          FormTargetType.ScheduledMaintenance,
+        ],
       ].sort(),
     );
   });

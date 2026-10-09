@@ -51,26 +51,28 @@ export const INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS: Array<string> = [
  * fails if a table of one of these resources gains saved views without
  * being listed.
  */
-export const CUSTOM_FIELD_SAVED_VIEW_TABLE_IDS: Record<string, Array<string>> =
-  {
-    IncidentCustomField: INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS,
-    AlertCustomField: ["all-alerts-table"],
-    MonitorCustomField: [
-      "all-monitors-table",
-      "archived-monitors-table",
-      "security-events-monitors-table",
-    ],
-    ScheduledMaintenanceCustomField: ["all-scheduled-maintenance-events-table"],
-    StatusPageCustomField: ["all-status-pages-table"],
-    OnCallDutyPolicyCustomField: ["on-call-policies-table"],
-    TeamCustomField: ["settings-teams-table"],
-    InventoryItemCustomField: [
-      "inventory-items-table",
-      "inventory-archived-table",
-    ],
-    // The team members list draws no custom field chips.
-    TeamMemberCustomField: [],
-  };
+export const CUSTOM_FIELD_SAVED_VIEW_TABLE_IDS: Record<
+  string,
+  Array<string>
+> = {
+  IncidentCustomField: INCIDENT_CUSTOM_FIELD_TABLE_VIEW_IDS,
+  AlertCustomField: ["all-alerts-table"],
+  MonitorCustomField: [
+    "all-monitors-table",
+    "archived-monitors-table",
+    "security-events-monitors-table",
+  ],
+  ScheduledMaintenanceCustomField: ["all-scheduled-maintenance-events-table"],
+  StatusPageCustomField: ["all-status-pages-table"],
+  OnCallDutyPolicyCustomField: ["on-call-policies-table"],
+  TeamCustomField: ["settings-teams-table"],
+  InventoryItemCustomField: [
+    "inventory-items-table",
+    "inventory-archived-table",
+  ],
+  // The team members list draws no custom field chips.
+  TeamMemberCustomField: [],
+};
 
 export type GetCustomFieldSavedViewTableIdsFunction = (
   definitionTableName: string | undefined,

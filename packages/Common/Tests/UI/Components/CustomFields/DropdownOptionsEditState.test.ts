@@ -29,7 +29,10 @@ const ORIGINAL: Array<CustomFieldDropdownOption> = [
 // The rows as the editor opens them: each saved option, with its text as it was.
 function opened(): Array<EditableDropdownOption> {
   return ORIGINAL.map(
-    (option: CustomFieldDropdownOption, index: number): EditableDropdownOption => {
+    (
+      option: CustomFieldDropdownOption,
+      index: number,
+    ): EditableDropdownOption => {
       const row: EditableDropdownOption = {
         id: index,
         value: option.value,
@@ -95,7 +98,11 @@ describe("getDropdownOptionText and isRenamedDropdownOption", () => {
 
     // Cleared: taken out, not renamed to nothing.
     expect(
-      isRenamedDropdownOption({ id: 0, value: " ", originalValue: "Facility A" }),
+      isRenamedDropdownOption({
+        id: 0,
+        value: " ",
+        originalValue: "Facility A",
+      }),
     ).toBe(false);
 
     expect(isRenamedDropdownOption({ id: 9, value: "Facility D" })).toBe(false);
@@ -284,7 +291,11 @@ describe("getDropdownOptionRenames", () => {
     rows[2] = { ...rows[2]!, value: "Facility Gamma" };
 
     expect(
-      getDropdownOptionRenames({ options: rows, retired: [], replacements: {} }),
+      getDropdownOptionRenames({
+        options: rows,
+        retired: [],
+        replacements: {},
+      }),
     ).toEqual([
       { from: "Facility A", to: "Facility Alpha" },
       { from: "Facility C", to: "Facility Gamma" },
@@ -297,7 +308,11 @@ describe("getDropdownOptionRenames", () => {
     rows[1] = { ...rows[1]!, value: "Facility A" };
 
     expect(
-      getDropdownOptionRenames({ options: rows, retired: [], replacements: {} }),
+      getDropdownOptionRenames({
+        options: rows,
+        retired: [],
+        replacements: {},
+      }),
     ).toEqual([
       { from: "Facility A", to: "Facility B" },
       { from: "Facility B", to: "Facility A" },

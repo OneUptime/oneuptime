@@ -5687,10 +5687,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new CustomFieldDefinitionAPI<
+      new CustomFieldDefinitionAPI<TeamCustomField, TeamCustomFieldServiceType>(
         TeamCustomField,
-        TeamCustomFieldServiceType
-      >(TeamCustomField, TeamCustomFieldService).getRouter(),
+        TeamCustomFieldService,
+      ).getRouter(),
     );
 
     app.use(

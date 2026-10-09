@@ -395,9 +395,9 @@ test.describe("taking options out", () => {
       page.getByTestId("dropdown-option-retired-count-0"),
     ).toHaveText("3 incidents have it.");
     // It was not taken out here: there is nothing to undo.
-    await expect(page.getByTestId("dropdown-option-retired-undo-0")).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByTestId("dropdown-option-retired-undo-0"),
+    ).toHaveCount(0);
 
     await page
       .getByRole("combobox", { name: "What happens to Old Site" })
@@ -440,9 +440,9 @@ test.describe("taking options out", () => {
         return await savedOptions(page);
       })
       .toEqual(["Facility A", "Facility B"]);
-    await expect(page.getByTestId("dropdown-options-retired")).not.toContainText(
-      "Facility C",
-    );
+    await expect(
+      page.getByTestId("dropdown-options-retired"),
+    ).not.toContainText("Facility C");
   });
 
   test("without counts, an option taken out is still listed, as it may be held", async ({

@@ -212,7 +212,12 @@ describePostgres(
           "A site is down",
           `template-${id.toString()}`,
         ],
-        Monitor: ["Uplink", `monitor-${id.toString()}`, "Manual", ObjectID.generate().toString()],
+        Monitor: [
+          "Uplink",
+          `monitor-${id.toString()}`,
+          "Manual",
+          ObjectID.generate().toString(),
+        ],
         MonitorTemplate: [
           "Uplink",
           "Uplink monitor",
@@ -314,7 +319,7 @@ describePostgres(
     }): Promise<void> {
       await data.service.updateOneById({
         id: data.id,
-        data: { dropdownOptions: data.dropdownOptions },
+        data: { dropdownOptions: data.dropdownOptions } as never,
         miscDataProps: { renamedDropdownOptions: data.renames },
         props: adminProps(),
       });
@@ -921,7 +926,9 @@ describePostgres(
       });
 
       await seed("Incident", { Facility: "Facility A" });
-      await seed("Incident", { Facility: ["Facility A", "Facility B", "Facility A"] });
+      await seed("Incident", {
+        Facility: ["Facility A", "Facility B", "Facility A"],
+      });
       await seed("Incident", { Facility: ["Facility B"] });
       await seed("Incident", { Facility: "Old Site" });
       await seed("Incident", { Facility: 5 });

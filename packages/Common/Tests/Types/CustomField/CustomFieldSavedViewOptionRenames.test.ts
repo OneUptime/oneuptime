@@ -64,9 +64,9 @@ describe("renameCustomFieldOptionsInSavedView", () => {
         renames: RENAMES,
       });
 
-    expect(
-      (renamed.changes.facets as JSONObject)["facetOperators"],
-    ).toEqual({ "customField:Facility": "isNot" });
+    expect((renamed.changes.facets as JSONObject)["facetOperators"]).toEqual({
+      "customField:Facility": "isNot",
+    });
   });
 
   test("a selection merged into one already selected is listed once", () => {

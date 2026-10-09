@@ -160,7 +160,9 @@ describe("moveCustomFieldOptionValues", () => {
     expect(sql).toContain("WITH ORDINALITY");
     expect(sql).toContain('SELECT DISTINCT ON ("mapping"."mapped")');
     expect(sql).toContain('ORDER BY "mapping"."mapped", "mapping"."position"');
-    expect(sql).toContain('jsonb_agg("deduped"."mapped" ORDER BY "deduped"."position")');
+    expect(sql).toContain(
+      'jsonb_agg("deduped"."mapped" ORDER BY "deduped"."position")',
+    );
     expect(sql).toContain("jsonb_exists($3::jsonb,");
     expect(sql).toContain(
       `jsonb_typeof("element"."entry") IN ('string', 'number', 'boolean')`,
@@ -444,10 +446,7 @@ describe("renameCustomFieldOptionsInTableViews", () => {
       .mockImplementation(write as never);
   });
 
-  function view(data: {
-    facets?: JSONObject;
-    query?: JSONObject;
-  }): TableView {
+  function view(data: { facets?: JSONObject; query?: JSONObject }): TableView {
     const item: TableView = new TableView();
     item._id = ObjectID.generate().toString();
     item.facets = data.facets as JSONObject;
@@ -588,7 +587,11 @@ describe("renameCustomFieldOptionsInFormTemplates", () => {
         name: "Several",
         answers: { facility: ["Facility B", "Facility Alpha", "Facility C"] },
       },
-      { id: "untouched", name: "Untouched", answers: { facility: "Facility C" } },
+      {
+        id: "untouched",
+        name: "Untouched",
+        answers: { facility: "Facility C" },
+      },
       { id: "empty", name: "Empty", answers: {} },
     ];
 
@@ -651,8 +654,14 @@ describe("renameCustomFieldOptionsInFormTemplates", () => {
 
   test("a form that does not ask the field, or holds no renamed answer, is not written", async () => {
     findBy.mockResolvedValue([
-      form([OTHER_QUESTION], [{ id: "t", name: "T", answers: { region: "Facility A" } }]),
-      form([FACILITY_QUESTION], [{ id: "t", name: "T", answers: { facility: "Facility C" } }]),
+      form(
+        [OTHER_QUESTION],
+        [{ id: "t", name: "T", answers: { region: "Facility A" } }],
+      ),
+      form(
+        [FACILITY_QUESTION],
+        [{ id: "t", name: "T", answers: { facility: "Facility C" } }],
+      ),
       form([FACILITY_QUESTION], []),
       form([FACILITY_QUESTION], "broken" as unknown as JSONArray),
     ] as never);

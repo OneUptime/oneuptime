@@ -15,7 +15,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import { ReactElement } from "react";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -140,10 +140,7 @@ describe("isDropdownCustomFieldType and getDuplicateOptionProblem", () => {
     );
     expect(
       getDuplicateOptionProblem(
-        JSON.stringify([
-          { value: "Red", color: "#ef4444" },
-          { value: "Red " },
-        ]),
+        JSON.stringify([{ value: "Red", color: "#ef4444" }, { value: "Red " }]),
       ),
     ).toBe('Each option needs its own name: "Red" is listed more than once.');
     expect(CUSTOM_FIELD_DUPLICATE_OPTION_MESSAGE).toContain("{{option}}");
