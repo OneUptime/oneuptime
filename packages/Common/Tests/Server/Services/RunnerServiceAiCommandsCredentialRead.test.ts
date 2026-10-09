@@ -82,9 +82,7 @@ const LOCK_KEY: string = "cd000000-0000-4000-8000-000000000001";
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "cd000000-0000-4000-8000-000000000031",
 );
-const SAVER_ID: ObjectID = new ObjectID(
-  "cd000000-0000-4000-8000-000000000041",
-);
+const SAVER_ID: ObjectID = new ObjectID("cd000000-0000-4000-8000-000000000041");
 
 const hooks: RunnerHookAccess = RunnerService as unknown as RunnerHookAccess;
 
@@ -546,9 +544,7 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
 
     it("is given back when the switch is refused", async () => {
       await refusal(
-        hooks.onBeforeUpdate(
-          update({ canRunAiCommands: true }, RUNNER_EDITOR),
-        ),
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, RUNNER_EDITOR)),
       );
 
       expect(locks.eventsOf("lock")).toHaveLength(1);
@@ -579,9 +575,7 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       locks.busy.add(LOCK_KEY);
 
       await expect(
-        hooks.onBeforeUpdate(
-          update({ canRunAiCommands: true }, RUNNER_EDITOR),
-        ),
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, RUNNER_EDITOR)),
       ).rejects.toThrow(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE);
 
       expect(credentialFindBy).not.toHaveBeenCalled();
@@ -609,9 +603,9 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
 
       locks.lose(LOCK_KEY, LOCK_NAMESPACE);
 
-      await expect(
-        hooks.onUpdatePermitted(onUpdate.updateBy),
-      ).rejects.toThrow(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE);
+      await expect(hooks.onUpdatePermitted(onUpdate.updateBy)).rejects.toThrow(
+        CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
+      );
     });
 
     it("lets an update that holds no lock through its last check", async () => {
@@ -681,11 +675,11 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
 
       // The step's own permissions would let it read credentials.
       expect(
-        props.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions.map(
-          (permission: UserPermission): Permission => {
-            return permission.permission;
-          },
-        ),
+        props.userTenantAccessPermission![
+          PROJECT_ID.toString()
+        ]!.permissions.map((permission: UserPermission): Permission => {
+          return permission.permission;
+        }),
       ).toContain(Permission.ProjectAdmin);
 
       const message: string = await refusal(
@@ -720,7 +714,9 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
 
     it("is refused when the workflow names nobody as its last saver, without a look-up", async () => {
       await refusal(
-        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, stepProps(null))),
+        hooks.onBeforeUpdate(
+          update({ canRunAiCommands: true }, stepProps(null)),
+        ),
       );
 
       expect(saverLookUp).not.toHaveBeenCalled();

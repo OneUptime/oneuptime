@@ -132,7 +132,8 @@ export class Service extends ProjectReferencesService<Model> {
         (column: keyof RuleCommandSettings): boolean => {
           return data[column] !== undefined;
         },
-      ) && !(await AiRemediationCredentialUse.mayUseCredentials(updateBy.props));
+      ) &&
+      !(await AiRemediationCredentialUse.mayUseCredentials(updateBy.props));
 
     const agentRunners: Array<Runner> =
       await RunnerService.findKubernetesAgentRunners(data["commandRunners"]);

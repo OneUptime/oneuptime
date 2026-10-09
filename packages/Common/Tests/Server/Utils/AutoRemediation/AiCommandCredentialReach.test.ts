@@ -8,7 +8,9 @@ import AiCommandCredentialReach, {
   LOCK_WAIT_IN_MS,
   getLockTimeoutInMs,
 } from "../../../../Server/Utils/AutoRemediation/AiCommandCredentialReach";
+import UpdateBy from "../../../../Server/Types/Database/UpdateBy";
 import logger from "../../../../Server/Utils/Logger";
+import Runner from "../../../../Models/DatabaseModels/Runner";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -143,12 +145,13 @@ describe("AiCommandCredentialReach", () => {
       ]);
 
       let secondHasIt: boolean = false;
-      const second: Promise<CredentialReachHold> = AiCommandCredentialReach.take(
-        [PROJECT_A],
-      ).then((hold: CredentialReachHold): CredentialReachHold => {
-        secondHasIt = true;
-        return hold;
-      });
+      const second: Promise<CredentialReachHold> =
+        AiCommandCredentialReach.take([PROJECT_A]).then(
+          (hold: CredentialReachHold): CredentialReachHold => {
+            secondHasIt = true;
+            return hold;
+          },
+        );
 
       await Promise.resolve();
       expect(secondHasIt).toBe(false);
@@ -282,18 +285,27 @@ describe("AiCommandCredentialReach", () => {
       expect(AiCommandCredentialReach.carriedForward("hold")).toBeNull();
     });
 
-    it("finds the hold of the write object the permitted hook is handed", () => {
-      const write: object = {};
+    it("finds the hold of the update the permitted hook is handed", () => {
+      const update: UpdateBy<Runner> = {
+        query: {},
+        data: {},
+        props: {},
+      } as unknown as UpdateBy<Runner>;
       const hold: CredentialReachHold = {
         locks: [] as Array<SemaphoreMutex>,
       };
 
-      expect(AiCommandCredentialReach.heldFor(write)).toBeNull();
+      expect(AiCommandCredentialReach.heldFor(update)).toBeNull();
 
-      AiCommandCredentialReach.holdFor(write, hold);
+      AiCommandCredentialReach.holdFor(update, hold);
 
-      expect(AiCommandCredentialReach.heldFor(write)).toBe(hold);
-      expect(AiCommandCredentialReach.heldFor({})).toBeNull();
+      expect(AiCommandCredentialReach.heldFor(update)).toBe(hold);
+      // Another update, even one that looks the same, holds nothing.
+      expect(
+        AiCommandCredentialReach.heldFor({
+          ...update,
+        } as UpdateBy<Runner>),
+      ).toBeNull();
     });
   });
 

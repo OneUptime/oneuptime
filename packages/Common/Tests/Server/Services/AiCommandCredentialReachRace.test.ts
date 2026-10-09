@@ -81,7 +81,9 @@ const runnerHooks: RunnerHookAccess =
 const credentialHooks: CredentialHookAccess =
   RunbookCredentialService as unknown as CredentialHookAccess;
 
-function caller(permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function caller(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
   return {
     tenantId: PROJECT_ID,
     userId: ObjectID.generate(),
@@ -431,9 +433,7 @@ describe("an SSH credential assigned while the Runner's switch is turned on", ()
     await switchReading;
 
     // The credential reads the switch still off and is saved.
-    await expect(
-      assignCredential(CREDENTIAL_WRITER),
-    ).resolves.toBeUndefined();
+    await expect(assignCredential(CREDENTIAL_WRITER)).resolves.toBeUndefined();
 
     // The switch had read no credential, and is written too.
     switchGate.open();

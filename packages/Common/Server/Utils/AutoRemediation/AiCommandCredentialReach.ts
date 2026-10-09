@@ -1,4 +1,6 @@
 import { PostgresQueryTimeoutMs } from "../../EnvironmentConfig";
+import UpdateBy from "../../Types/Database/UpdateBy";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import logger from "../Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -78,14 +80,12 @@ export interface CredentialReachHold {
 
 export default class AiCommandCredentialReach {
   /*
-   * The hold of each write being checked, by the write object a service's
+   * The hold of each update being checked, by the UpdateBy a service's
    * onBeforeUpdate hands back - the one DatabaseService passes on to
    * onUpdatePermitted - so that hook can keep it right before the write.
    */
-  private static holds: WeakMap<object, CredentialReachHold> = new WeakMap<
-    object,
-    CredentialReachHold
-  >();
+  private static holds: WeakMap<UpdateBy<BaseModel>, CredentialReachHold> =
+    new WeakMap<UpdateBy<BaseModel>, CredentialReachHold>();
 
   /*
    * The keys of the projects' locks: each project once, lowercased, in one
@@ -116,7 +116,8 @@ export default class AiCommandCredentialReach {
   public static async take(
     projectIds: Array<ObjectID | string | null | undefined>,
   ): Promise<CredentialReachHold> {
-    const keys: Array<string> = AiCommandCredentialReach.getLockKeys(projectIds);
+    const keys: Array<string> =
+      AiCommandCredentialReach.getLockKeys(projectIds);
 
     if (keys.length === 0) {
       throw new BadDataException(
@@ -202,14 +203,26 @@ export default class AiCommandCredentialReach {
     }
   }
 
-  // Remembers the hold of the write `write` is, for heldFor.
-  public static holdFor(write: object, hold: CredentialReachHold): void {
-    AiCommandCredentialReach.holds.set(write, hold);
+  // Remembers the hold of the update `updateBy` is, for heldFor.
+  public static holdFor<TModel extends BaseModel>(
+    updateBy: UpdateBy<TModel>,
+    hold: CredentialReachHold,
+  ): void {
+    AiCommandCredentialReach.holds.set(
+      updateBy as unknown as UpdateBy<BaseModel>,
+      hold,
+    );
   }
 
-  // The hold of the write `write` is, if it holds one.
-  public static heldFor(write: object): CredentialReachHold | null {
-    return AiCommandCredentialReach.holds.get(write) || null;
+  // The hold of the update `updateBy` is, if it holds one.
+  public static heldFor<TModel extends BaseModel>(
+    updateBy: UpdateBy<TModel>,
+  ): CredentialReachHold | null {
+    return (
+      AiCommandCredentialReach.holds.get(
+        updateBy as unknown as UpdateBy<BaseModel>,
+      ) || null
+    );
   }
 
   /*

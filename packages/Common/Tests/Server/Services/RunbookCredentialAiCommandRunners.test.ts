@@ -419,10 +419,7 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
     it.each([
       [
         "Read Runbook Credential",
-        [
-          Permission.CreateRunbookCredential,
-          Permission.ReadRunbookCredential,
-        ],
+        [Permission.CreateRunbookCredential, Permission.ReadRunbookCredential],
       ],
       ["Project Owner", [Permission.ProjectOwner]],
       ["Project Admin", [Permission.ProjectAdmin]],

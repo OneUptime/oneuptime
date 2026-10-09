@@ -34,9 +34,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "c1000000-0000-4000-8000-000000000002",
 );
-const SAVER_ID: ObjectID = new ObjectID(
-  "c1000000-0000-4000-8000-000000000003",
-);
+const SAVER_ID: ObjectID = new ObjectID("c1000000-0000-4000-8000-000000000003");
 
 function person(data: {
   permissions: Array<Permission>;
@@ -110,10 +108,7 @@ describe("RunbookCredentialReaders", () => {
       ["Edit Runner", [Permission.EditRunner]],
       [
         "Create and Edit Runbook Credential",
-        [
-          Permission.CreateRunbookCredential,
-          Permission.EditRunbookCredential,
-        ],
+        [Permission.CreateRunbookCredential, Permission.EditRunbookCredential],
       ],
       ["Workflow Admin", [Permission.WorkflowAdmin]],
     ])(

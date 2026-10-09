@@ -176,7 +176,9 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       read("workflows/configuration.md"),
       "## What workflow steps can do",
     );
-    const admin: number = text.indexOf("- **Only what a Project Admin may do.**");
+    const admin: number = text.indexOf(
+      "- **Only what a Project Admin may do.**",
+    );
     const credentials: number = text.indexOf(
       "- **Not the read of runbook credentials.**",
     );

@@ -66,16 +66,15 @@ function workflowAdmin(
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",
         projectId: PROJECT_ID,
-        permissions: [
-          Permission.ProjectUser,
-          Permission.WorkflowAdmin,
-        ].map((permission: Permission): UserPermission => {
-          return {
-            _type: "UserPermission",
-            permission: permission,
-            labelIds: [],
-          };
-        }),
+        permissions: [Permission.ProjectUser, Permission.WorkflowAdmin].map(
+          (permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+            };
+          },
+        ),
       },
     },
   } as unknown as DatabaseCommonInteractionProps;
