@@ -1,6 +1,7 @@
 import PushNotificationRequest from "../../Types/PushNotification/PushNotificationRequest";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
+import { isExpoPushDeviceType } from "../../Types/PushNotification/ExpoPushDeviceType";
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import UserPushService from "./UserPushService";
@@ -14,13 +15,19 @@ import {
   PushNotificationRelayUrl,
 } from "../EnvironmentConfig";
 import webpush from "web-push";
-import { Expo, ExpoPushMessage, ExpoPushTicket } from "expo-server-sdk";
+import {
+  Expo,
+  ExpoPushErrorTicket,
+  ExpoPushMessage,
+  ExpoPushTicket,
+} from "expo-server-sdk";
 import API from "../../Utils/API";
 import URL from "../../Types/API/URL";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog";
@@ -28,6 +35,26 @@ import PushNotificationLogService from "./PushNotificationLogService";
 import PushStatus from "../../Types/PushNotification/PushStatus";
 import AndroidNotificationChannel from "../../Types/PushNotification/AndroidNotificationChannel";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  fitTextsToBudget,
+  MAX_PUSH_TEXT_BYTES,
+  TextSizeFunction,
+  TRUNCATED_NAME_NOTE,
+  TRUNCATED_TEXT_NOTE,
+} from "../../Utils/MessageFit";
+
+// A text's size in a push notification: as JSON writes it, in UTF-8.
+const getPushTextSize: TextSizeFunction = (text: string): number => {
+  return Buffer.byteLength(JSON.stringify(text), "utf8");
+};
+
+// A web address, with or without its scheme ("https://", "//").
+const WEB_ADDRESS_PATTERN: RegExp = /^(?:https?:)?\/\//i;
+
+// An address a notification opens: never cut.
+const isAddress: (value: string) => boolean = (value: string): boolean => {
+  return WEB_ADDRESS_PATTERN.test(value) || value.startsWith("/");
+};
 
 /*
  * The push services the browsers actually use. A Web Push subscription is a
@@ -106,11 +133,150 @@ export interface ExpoDeliveryOptions {
   interruptionLevel?: ExpoInterruptionLevel;
 }
 
+/*
+ * Expo's error code for a push token it can no longer deliver to: the app
+ * was removed from the device, or the device's push token is no longer
+ * valid. Expo's own advice is to stop sending to it
+ * (https://docs.expo.dev/push-notifications/sending-notifications/#individual-errors).
+ */
+export const EXPO_DEVICE_NOT_REGISTERED: string = "DeviceNotRegistered";
+
+/*
+ * What Expo said, and nothing about what the sender did with it: the push
+ * relay answers with this (see getRelayDeviceNotRegisteredAnswer), and the
+ * server it answers may be older than the relay and mark nothing.
+ */
+const EXPO_DEVICE_NOT_REGISTERED_EXPLANATION: string =
+  "Expo says this device is no longer registered for push notifications (DeviceNotRegistered): the mobile app was removed from it, or its push token is no longer valid.";
+
+/*
+ * Thrown by sendRelayPushNotification when Expo says the token it was asked
+ * to send to is gone, so the relay route can answer that distinctly
+ * (RELAY_DEVICE_NOT_REGISTERED_STATUS_CODE) instead of as a server error.
+ */
+export class ExpoDeviceNotRegisteredError extends Error {
+  public constructor() {
+    super(EXPO_DEVICE_NOT_REGISTERED_EXPLANATION);
+    this.name = "ExpoDeviceNotRegisteredError";
+  }
+}
+
 export default class PushNotificationService {
   public static isWebPushInitialized = false;
   private static expoClient: Expo = new Expo(
     ExpoAccessToken ? { accessToken: ExpoAccessToken } : undefined,
   );
+
+  /*
+   * The send's own failure when Expo says the token is gone, directly or
+   * through the relay: what happened, what was done about it, and what the
+   * person does next. It reaches the push log, the on-call timeline and a
+   * failed test notification. The mobile app registers its token again when
+   * it is opened, and that brings the device back
+   * (UserPushService.verifyExpoPushDeviceRegisteredAgain).
+   */
+  public static readonly EXPO_PUSH_TOKEN_GONE_MESSAGE: string = `${EXPO_DEVICE_NOT_REGISTERED_EXPLANATION} The device is marked as not receiving notifications; open the mobile app on it to register it again.`;
+
+  // A phone or tablet marked so, when something is sent to it later.
+  public static readonly EXPO_DEVICE_NOT_RECEIVING_MESSAGE: string =
+    "This device no longer receives push notifications. Open the mobile app on it to register it again.";
+
+  /*
+   * The on-call timeline's row for a page that was not pushed to a device
+   * because it is not verified: its push service, or Expo, said it is gone
+   * (UserPushService.markWebPushSubscriptionAsGone, markExpoPushTokenAsGone).
+   * It says how to bring the device back, on the device it is about.
+   */
+  public static getNotSentToUnverifiedDeviceMessage(
+    deviceType: PushDeviceType | string | undefined,
+  ): string {
+    if (isExpoPushDeviceType(deviceType)) {
+      return "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.";
+    }
+
+    return "Push notification not sent: this browser no longer receives push notifications. Register it again from User Settings > Notification Methods > Push in that browser.";
+  }
+
+  /*
+   * How the push relay answers a send Expo refused because the token is
+   * gone: 410 Gone, with Expo's error code in `details.error` - the shape
+   * of Expo's own error ticket - and a sentence in `message`.
+   *
+   * Every server that relays through it, of any version, counts an answer
+   * that is not a success as a failed send, and logs its body. So a server
+   * older than this still fails the send, as it always did, and now logs
+   * why; a server that knows this answer also stops sending to the token
+   * (sendViaRelay). Before, the relay answered this like any other failure,
+   * 500 "Server Error", and nobody could tell a gone token from an outage.
+   */
+  public static readonly RELAY_DEVICE_NOT_REGISTERED_STATUS_CODE: number = 410;
+
+  public static getRelayDeviceNotRegisteredAnswer(): JSONObject {
+    return {
+      message: EXPO_DEVICE_NOT_REGISTERED_EXPLANATION,
+      details: {
+        error: EXPO_DEVICE_NOT_REGISTERED,
+      },
+    };
+  }
+
+  /*
+   * Whether the relay answered that the token is gone. Both the status and
+   * Expo's code: a 410 from anything else in the way - a proxy, a relay URL
+   * pointed somewhere else - says nothing about the token, and neither does
+   * the 500 an older relay answers a gone token with.
+   */
+  public static isRelayDeviceNotRegisteredAnswer(
+    response: HTTPErrorResponse,
+  ): boolean {
+    if (
+      response.statusCode !==
+      PushNotificationService.RELAY_DEVICE_NOT_REGISTERED_STATUS_CODE
+    ) {
+      return false;
+    }
+
+    const body: unknown = response.jsonData;
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return false;
+    }
+
+    const details: unknown = (body as JSONObject)["details"];
+
+    if (!details || typeof details !== "object" || Array.isArray(details)) {
+      return false;
+    }
+
+    return (details as JSONObject)["error"] === EXPO_DEVICE_NOT_REGISTERED;
+  }
+
+  // An Expo push ticket saying the token is gone.
+  public static isExpoDeviceNotRegisteredTicket(
+    ticket: ExpoPushTicket | undefined,
+  ): boolean {
+    return (
+      ticket?.status === "error" &&
+      (ticket as ExpoPushErrorTicket).details?.error ===
+        EXPO_DEVICE_NOT_REGISTERED
+    );
+  }
+
+  /*
+   * The push token taken out of a message about a send to it. Expo writes
+   * the token into its error messages ('"ExponentPushToken[...]" is not a
+   * registered push notification recipient'), and a send's failure is
+   * stored where every member of the project reads it (the push log) and
+   * shown on the on-call timeline. The token is the address that pushes to
+   * the person's phone, and stays out of both.
+   */
+  public static withoutPushToken(message: string, pushToken: string): string {
+    if (!pushToken) {
+      return message;
+    }
+
+    return message.split(pushToken).join("[push token]");
+  }
 
   public static initializeWebPush(): void {
     if (this.isWebPushInitialized) {
@@ -133,10 +299,91 @@ export default class PushNotificationService {
     logger.info("Web push notifications initialized successfully");
   }
 
+  /*
+   * A notification's text held to what every push service takes: Expo (and
+   * APNs and FCM behind it) and web push refuse a notification of more than
+   * 4,096 bytes, and it is lost. Its title, body and the texts of its data
+   * are held to MAX_PUSH_TEXT_BYTES together, as JSON writes them in UTF-8:
+   * the longest cut first, all to about the same size, the body ending with
+   * a note that the rest is in OneUptime and a title or a name with "…".
+   * An address in its data - where it opens - is never cut. A notification
+   * that fits is sent as it always was.
+   */
+  public static fitMessage(
+    message: PushNotificationMessage,
+  ): PushNotificationMessage {
+    const data: { [key: string]: any } = message.data || {};
+    const textKeys: Array<string> = Object.keys(data).filter(
+      (key: string): boolean => {
+        return typeof data[key] === "string" && !isAddress(data[key]);
+      },
+    );
+    const texts: Array<string> = [
+      message.title || "",
+      message.body || "",
+      ...textKeys.map((key: string): string => {
+        return data[key] as string;
+      }),
+    ];
+
+    // The rest of the data, its texts left out, takes what it takes.
+    const otherData: { [key: string]: any } = { ...data };
+
+    for (const key of textKeys) {
+      otherData[key] = "";
+    }
+
+    const budget: number =
+      MAX_PUSH_TEXT_BYTES -
+      Buffer.byteLength(JSON.stringify(otherData), "utf8");
+
+    const totalSize: number = texts.reduce(
+      (total: number, text: string): number => {
+        return total + getPushTextSize(text);
+      },
+      0,
+    );
+
+    if (totalSize <= budget) {
+      return message;
+    }
+
+    const fitted: Array<string> = fitTextsToBudget(texts, budget, {
+      measure: getPushTextSize,
+      getNote: (index: number): string => {
+        return index === 1 ? TRUNCATED_TEXT_NOTE : TRUNCATED_NAME_NOTE;
+      },
+    });
+
+    const fittedData: { [key: string]: any } = { ...data };
+
+    textKeys.forEach((key: string, index: number): void => {
+      fittedData[key] = fitted[index + 2];
+    });
+
+    return {
+      ...message,
+      title: fitted[0]!,
+      body: fitted[1]!,
+      ...(message.data ? { data: fittedData } : {}),
+    };
+  }
+
   public static async sendPushNotification(
-    request: PushNotificationRequest,
+    pushRequest: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
+    // The installation's own name and icon, when it goes by one.
+    const request: PushNotificationRequest = {
+      ...pushRequest,
+      message: ProductBrandingText.brandPushMessage(pushRequest.message, [
+        PushNotificationUtil.DEFAULT_ICON,
+      ]),
+    };
+
+    // Held to what the push services take (fitMessage), as branded, for every device.
+    request.message = this.fitMessage(request.message);
+
     logger.info(
       `Sending push notification to ${request.devices?.length} devices`,
     );
@@ -167,10 +414,8 @@ export default class PushNotificationService {
         promises.push(
           this.sendWebPushNotification(device.token, request.message, options),
         );
-      } else if (
-        request.deviceType === PushDeviceType.iOS ||
-        request.deviceType === PushDeviceType.Android
-      ) {
+      } else if (isExpoPushDeviceType(request.deviceType)) {
+        // The same devices UserPushService marks when Expo says a token is gone.
         promises.push(
           this.sendExpoPushNotification(
             device.token,
@@ -188,6 +433,9 @@ export default class PushNotificationService {
 
     let successCount: number = 0;
     let errorCount: number = 0;
+
+    // Why the devices that failed did, each reason once, in device order.
+    const failureReasons: Array<string> = [];
 
     results.forEach((result: any, index: number) => {
       const device:
@@ -208,6 +456,14 @@ export default class PushNotificationService {
         logger.error(
           `Failed to send notification to ${deviceInfo}: ${result.reason}`,
         );
+
+        const reason: string = PushNotificationService.getFailureReason(
+          result.reason,
+        );
+
+        if (!failureReasons.includes(reason)) {
+          failureReasons.push(reason);
+        }
       }
     });
 
@@ -281,11 +537,9 @@ export default class PushNotificationService {
           log.statusMessage = "Push notification sent";
         } else {
           log.status = PushStatus.Error;
-          const reason: string =
-            (result &&
-              (result.reason?.message || result.reason?.toString?.())) ||
-            `Failed to send push notification`;
-          log.statusMessage = reason;
+          log.statusMessage = PushNotificationService.getFailureReason(
+            result?.reason,
+          );
         }
 
         await PushNotificationLogService.create({
@@ -294,6 +548,18 @@ export default class PushNotificationService {
         });
       }
     }
+
+    /*
+     * Why nothing was delivered, in the words of the device's own failure:
+     * that is what tells on-call what happened and what to do - "Expo says
+     * this device is no longer registered ... open the mobile app on it to
+     * register it again" - where "Failed to send push notification to all
+     * 1 devices" told them nothing.
+     */
+    const failureMessage: string = PushNotificationService.describeFailedSend({
+      errorCount: errorCount,
+      failureReasons: failureReasons,
+    });
 
     // Update user on call log timeline status if provided
     if (options.userOnCallLogTimelineId) {
@@ -304,7 +570,7 @@ export default class PushNotificationService {
       const statusMessage: string =
         successCount > 0
           ? "Push notification sent successfully"
-          : `Failed to send push notification: ${errorCount} errors`;
+          : failureMessage;
 
       await UserOnCallLogTimelineService.updateOneById({
         id: options.userOnCallLogTimelineId,
@@ -319,10 +585,39 @@ export default class PushNotificationService {
     }
 
     if (errorCount > 0 && successCount === 0) {
-      throw new Error(
-        `Failed to send push notification to all ${errorCount} devices`,
-      );
+      throw new Error(failureMessage);
     }
+  }
+
+  // A device's failed send, as its push log and the on-call timeline say it.
+  public static getFailureReason(reason: unknown): string {
+    const message: unknown =
+      (reason as { message?: unknown } | null | undefined)?.message ||
+      (reason as { toString?: () => string } | null | undefined)?.toString?.();
+
+    return typeof message === "string" && message
+      ? message
+      : "Failed to send push notification";
+  }
+
+  /*
+   * A send that reached none of its devices. One device - every on-call
+   * page and every test notification is sent to one - fails with that
+   * device's own reason; more say how many, and each reason once.
+   */
+  public static describeFailedSend(data: {
+    errorCount: number;
+    failureReasons: Array<string>;
+  }): string {
+    if (data.failureReasons.length === 0) {
+      return "Failed to send push notification.";
+    }
+
+    if (data.errorCount <= 1) {
+      return data.failureReasons[0]!;
+    }
+
+    return `Failed to send push notification to all ${data.errorCount} devices: ${data.failureReasons.join("; ")}`;
   }
 
   /*
@@ -469,24 +764,38 @@ export default class PushNotificationService {
    * Stop sending to the devices registered with a gone subscription (see
    * UserPushService.markWebPushSubscriptionAsGone). They used to stay as they
    * were, so every later page went to the dead subscription and failed there.
-   * The send has failed either way: a failure to mark the devices is logged,
-   * and does not take the place of the send's own error.
    */
   private static async stopSendingToGoneWebPushSubscription(
     deviceToken: string,
   ): Promise<void> {
-    try {
-      const markedCount: number =
-        await UserPushService.markWebPushSubscriptionAsGone({
+    await PushNotificationService.stopSendingToGoneDevices({
+      whatIsGone: "web push subscription",
+      markAsGone: (): Promise<number> => {
+        return UserPushService.markWebPushSubscriptionAsGone({
           deviceToken: deviceToken,
         });
+      },
+    });
+  }
+
+  /*
+   * The one way both push paths stop sending to a subscription or token that
+   * is gone. The send has failed either way: a failure to mark the devices
+   * is logged, and does not take the place of the send's own error.
+   */
+  private static async stopSendingToGoneDevices(data: {
+    whatIsGone: string;
+    markAsGone: () => Promise<number>;
+  }): Promise<void> {
+    try {
+      const markedCount: number = await data.markAsGone();
 
       logger.info(
-        `Web push subscription is gone: ${markedCount} device(s) marked as not receiving notifications.`,
+        `A gone ${data.whatIsGone}: ${markedCount} device(s) marked as not receiving notifications.`,
       );
     } catch (markError) {
       logger.error(
-        `Could not mark the devices of a gone web push subscription: ${markError}`,
+        `Could not mark the devices of a gone ${data.whatIsGone}: ${markError}`,
       );
     }
   }
@@ -602,10 +911,9 @@ export default class PushNotificationService {
     deviceType: PushDeviceType,
     _options: PushNotificationOptions,
   ): Promise<void> {
+    // Without the token: what fails here is shown to every project member.
     if (!Expo.isExpoPushToken(expoPushToken)) {
-      throw new Error(
-        `Invalid Expo push token for ${deviceType} device: ${expoPushToken}`,
-      );
+      throw new Error(`Invalid Expo push token for ${deviceType} device.`);
     }
 
     const dataPayload: { [key: string]: string } = {};
@@ -624,7 +932,7 @@ export default class PushNotificationService {
     );
 
     // If EXPO_ACCESS_TOKEN is not set, relay through the push notification gateway
-    if (!ExpoAccessToken) {
+    if (!PushNotificationService.hasExpoAccessToken()) {
       await this.sendViaRelay(
         expoPushToken,
         message,
@@ -656,26 +964,31 @@ export default class PushNotificationService {
       const ticket: ExpoPushTicket | undefined = tickets[0];
 
       if (ticket && ticket.status === "error") {
-        const errorTicket: ExpoPushTicket & {
-          message?: string;
-          details?: { error?: string };
-        } = ticket as ExpoPushTicket & {
-          message?: string;
-          details?: { error?: string };
-        };
-        logger.error(
-          `Expo push notification error for ${deviceType} device: ${errorTicket.message}`,
+        const errorTicket: ExpoPushErrorTicket = ticket;
+        const expoMessage: string = PushNotificationService.withoutPushToken(
+          errorTicket.message || "",
+          expoPushToken,
         );
 
-        if (errorTicket.details?.error === "DeviceNotRegistered") {
-          logger.info(
-            "Expo push token is no longer valid (DeviceNotRegistered)",
+        logger.error(
+          `Expo push notification error for ${deviceType} device: ${expoMessage}`,
+        );
+
+        /*
+         * The token is gone. It used to be logged and nothing more: the
+         * device stayed verified, every later page went to the dead token
+         * and failed at Expo, and the device list, readiness and the on-call
+         * timeline all kept treating the phone as reachable.
+         */
+        if (PushNotificationService.isExpoDeviceNotRegisteredTicket(ticket)) {
+          await PushNotificationService.stopSendingToGoneExpoPushToken(
+            expoPushToken,
           );
+
+          throw new Error(PushNotificationService.EXPO_PUSH_TOKEN_GONE_MESSAGE);
         }
 
-        throw new Error(
-          `Expo push notification failed: ${errorTicket.message}`,
-        );
+        throw new Error(`Expo push notification failed: ${expoMessage}`);
       }
 
       logger.info(
@@ -687,6 +1000,24 @@ export default class PushNotificationService {
       );
       throw error;
     }
+  }
+
+  /*
+   * Stop sending to the devices registered with a token Expo says is gone
+   * (UserPushService.markExpoPushTokenAsGone), as
+   * stopSendingToGoneWebPushSubscription does for a browser.
+   */
+  private static async stopSendingToGoneExpoPushToken(
+    expoPushToken: string,
+  ): Promise<void> {
+    await PushNotificationService.stopSendingToGoneDevices({
+      whatIsGone: "Expo push token (DeviceNotRegistered)",
+      markAsGone: (): Promise<number> => {
+        return UserPushService.markExpoPushTokenAsGone({
+          deviceToken: expoPushToken,
+        });
+      },
+    });
   }
 
   private static async sendViaRelay(
@@ -726,6 +1057,21 @@ export default class PushNotificationService {
         });
 
       if (response instanceof HTTPErrorResponse) {
+        /*
+         * The relay says Expo refused the token as gone. Without this the
+         * relay path could not tell a gone token from an outage, and the
+         * device stayed verified as on the direct path.
+         */
+        if (
+          PushNotificationService.isRelayDeviceNotRegisteredAnswer(response)
+        ) {
+          await PushNotificationService.stopSendingToGoneExpoPushToken(
+            expoPushToken,
+          );
+
+          throw new Error(PushNotificationService.EXPO_PUSH_TOKEN_GONE_MESSAGE);
+        }
+
         throw new Error(
           `Push relay error: ${JSON.stringify(response.jsonData)}`,
         );
@@ -760,7 +1106,7 @@ export default class PushNotificationService {
     channelId?: string;
     interruptionLevel?: ExpoInterruptionLevel;
   }): Promise<void> {
-    if (!ExpoAccessToken) {
+    if (!PushNotificationService.hasExpoAccessToken()) {
       throw new Error(
         "Push relay is not configured. EXPO_ACCESS_TOKEN is not set on this server.",
       );
@@ -773,11 +1119,21 @@ export default class PushNotificationService {
     const sound: ExpoPushSound =
       data.sound === undefined ? "default" : data.sound;
 
-    const expoPushMessage: ExpoPushMessage = {
-      to: data.to,
+    /*
+     * What another server relays is held to what Expo takes as well
+     * (fitMessage): a server of an older version relays its text as it is.
+     */
+    const fitted: PushNotificationMessage = this.fitMessage({
       title: data.title || "",
       body: data.body || "",
-      data: data.data || {},
+      ...(data.data ? { data: data.data } : {}),
+    });
+
+    const expoPushMessage: ExpoPushMessage = {
+      to: data.to,
+      title: fitted.title,
+      body: fitted.body,
+      data: (fitted.data as { [key: string]: string } | undefined) || {},
       sound: sound,
       priority: (data.priority as "default" | "normal" | "high") || "high",
       channelId: data.channelId || "default",
@@ -792,17 +1148,20 @@ export default class PushNotificationService {
     const ticket: ExpoPushTicket | undefined = tickets[0];
 
     if (ticket && ticket.status === "error") {
-      const errorTicket: ExpoPushTicket & {
-        message?: string;
-        details?: { error?: string };
-      } = ticket as ExpoPushTicket & {
-        message?: string;
-        details?: { error?: string };
-      };
+      const errorTicket: ExpoPushErrorTicket = ticket;
 
       logger.error(
         `Push relay: Expo push notification error: ${errorTicket.message}`,
       );
+
+      /*
+       * Said apart from every other failure, so the server that relayed
+       * the page learns that the token is gone and stops sending to it: the
+       * relay route answers this with getRelayDeviceNotRegisteredAnswer.
+       */
+      if (PushNotificationService.isExpoDeviceNotRegisteredTicket(ticket)) {
+        throw new ExpoDeviceNotRegisteredError();
+      }
 
       throw new Error(
         `Failed to send push notification: ${errorTicket.message}`,

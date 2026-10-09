@@ -23,6 +23,7 @@ import {
   stubGenericReferenceCheck,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -270,6 +271,10 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
       .mockImplementation(async (): Promise<Array<Runner>> => {
         return rows;
       });
+    // The editor may write the Runners stored.
+    stubRowsCallerMayWrite(RunnerService, () => {
+      return rows;
+    });
     stubProjectDirectory({});
     stubGenericReferenceCheck();
   });

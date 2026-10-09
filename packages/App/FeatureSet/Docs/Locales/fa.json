@@ -73,6 +73,7 @@
   },
   "navGroups": {
     "Introduction": "معرفی",
+    "Moving to OneUptime": "انتقال به OneUptime",
     "Installation": "نصب",
     "Mobile & Desktop Apps": "اپلیکیشن‌های موبایل و دسکتاپ",
     "Configuration": "پیکربندی",
@@ -108,6 +109,8 @@
   },
   "navLinks": {
     "Getting Started": "شروع به کار",
+    "Moving from Opsgenie": "انتقال از Opsgenie",
+    "Moving from incident.io": "انتقال از incident.io",
     "Local Development": "توسعه محلی",
     "Docker Compose": "Docker Compose",
     "Upgrading": "ارتقا",
@@ -218,6 +221,7 @@
     "GitLab": "GitLab",
     "Discord": "Discord",
     "Telegram": "Telegram",
+    "IRC": "IRC",
     "Custom Probes": "پراب‌های سفارشی",
     "Incoming Request Ingress": "ورودی درخواست‌های دریافتی",
     "OpenTelemetry": "OpenTelemetry",

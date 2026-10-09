@@ -37,6 +37,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import {
+  fitTelegramMessage,
+  TelegramMessageText,
+} from "Common/Utils/TelegramMessageFit";
 
 const SENSITIVE_MESSAGE_PLACEHOLDER: string =
   "This message is sensitive and is not logged";
@@ -311,13 +315,23 @@ export default class TelegramService {
         telegramLog.fromBotUsername = config.botUsername;
       }
 
+      /*
+       * Telegram refuses a message of more than 4,096 characters, and the
+       * notification is lost: a longer one is cut to fit, with a note that
+       * the rest is in OneUptime (fitTelegramMessage).
+       */
+      const fitted: TelegramMessageText = fitTelegramMessage(
+        message.body,
+        message.parseMode,
+      );
+
       const payload: JSONObject = {
         chat_id: message.to,
-        text: message.body,
+        text: fitted.text,
       };
 
-      if (message.parseMode) {
-        payload["parse_mode"] = message.parseMode;
+      if (fitted.parseMode) {
+        payload["parse_mode"] = fitted.parseMode;
       }
 
       if (message.disableWebPagePreview !== undefined) {

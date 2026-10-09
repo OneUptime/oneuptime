@@ -123,6 +123,7 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
@@ -2618,7 +2619,8 @@ export class Service extends ProjectReferencesService<Model> {
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createAlertCreatedNotification({
             alertTitle: alert.title!,
-            projectName: alert.project?.name || "OneUptime",
+            projectName:
+              alert.project?.name || ProductBrandingText.getProductName(),
             alertViewLink: (
               await AlertService.getAlertLinkInDashboard(
                 alert.projectId!,
@@ -2701,7 +2703,8 @@ export class Service extends ProjectReferencesService<Model> {
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createIncidentCreatedNotification({
             incidentTitle: incident.title!,
-            projectName: incident.project?.name || "OneUptime",
+            projectName:
+              incident.project?.name || ProductBrandingText.getProductName(),
             incidentViewLink: (
               await IncidentService.getIncidentLinkInDashboard(
                 incident.projectId!,
@@ -2783,7 +2786,9 @@ export class Service extends ProjectReferencesService<Model> {
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createAlertEpisodeCreatedNotification({
             alertEpisodeTitle: alertEpisode.title!,
-            projectName: alertEpisode.project?.name || "OneUptime",
+            projectName:
+              alertEpisode.project?.name ||
+              ProductBrandingText.getProductName(),
             alertEpisodeViewLink: (
               await AlertEpisodeService.getEpisodeLinkInDashboard(
                 alertEpisode.projectId!,
@@ -2864,7 +2869,9 @@ export class Service extends ProjectReferencesService<Model> {
         const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createIncidentEpisodeCreatedNotification({
             incidentEpisodeTitle: incidentEpisode.title!,
-            projectName: incidentEpisode.project?.name || "OneUptime",
+            projectName:
+              incidentEpisode.project?.name ||
+              ProductBrandingText.getProductName(),
             incidentEpisodeViewLink: (
               await IncidentEpisodeService.getEpisodeLinkInDashboard(
                 incidentEpisode.projectId!,
@@ -2927,9 +2934,17 @@ export class Service extends ProjectReferencesService<Model> {
       notificationRuleItem.userPush?.deviceToken &&
       !notificationRuleItem.userPush?.isVerified
     ) {
-      // create a log.
+      /*
+       * A push device stops being verified when its push service or Expo
+       * says it is gone (UserPushService.markWebPushSubscriptionAsGone,
+       * markExpoPushTokenAsGone). "Device is not verified" told on-call
+       * nothing they could act on; this says what to do.
+       */
       logTimelineItem.status = UserNotificationStatus.Error;
-      logTimelineItem.statusMessage = `Push notification not sent because device is not verified.`;
+      logTimelineItem.statusMessage =
+        PushNotificationService.getNotSentToUnverifiedDeviceMessage(
+          notificationRuleItem.userPush.deviceType,
+        );
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,

@@ -39,10 +39,13 @@ Kontrollér DNS og HTTPS fra den afsendende container eller pod til destinatione
 - Bekræft, at enheden er registreret i `UserPush`-tabellen i din database
 - Kontroller OneUptime-serverlogge for Expo Push API-fejl
 - Bekræft, at enheden har en aktiv internetforbindels og notifikationstilladelser aktiveret
+- Tjek **User Settings > Notification Methods > Push**: en enhed markeret **Modtager ikke notifikationer** er holdt op med at modtage dem og skal registreres igen (se nedenfor)
 
 ### "DeviceNotRegistered"-fejl i logge
 
-Expo Push Token er ikke længere gyldigt. Dette betyder normalt, at appen er afinstalleret, eller at brugeren har tilbagekaldt notifikationstilladelser. Token'et ryddes automatisk.
+Expo besvarer en push med `DeviceNotRegistered`, når mobilappen er fjernet fra enheden, eller enhedens push-token ikke længere er gyldigt. OneUptime holder så op med at sende til den enhed. Den markeres som ikke modtagende i stedet for at blive slettet, så dens notifikationsregler bevares, og push-loggen og vagttidslinjen fortæller hvorfor. **User Settings > Notification Methods > Push** viser den som **Modtager ikke notifikationer**. Ejerens andre enheder og notifikationsmetoder får stadig besked.
+
+For at få enheden tilbage åbner du mobilappen på den, mens du er logget ind. Appen registrerer sig igen, hvilket fornyer dens push-token hos Expo, og enheden modtager igen notifikationer med sine regler. Hvis appen er fjernet, så installer den igen og log ind. Via push-relayet (uden `EXPO_ACCESS_TOKEN`) virker det på samme måde: relayet melder `DeviceNotRegistered` til din instans.
 
 ## Support
 

@@ -39,10 +39,13 @@ Web 推送通知继续使用 VAPID 密钥和 Web Push 协议。
 - 验证设备是否在数据库的 `UserPush` 表中注册
 - 检查 OneUptime 服务器日志中的 Expo Push API 错误
 - 确认设备有活跃的互联网连接并已启用通知权限
+- 检查 **User Settings > Notification Methods > Push**:标记为 **未收到通知** 的设备已停止接收通知,需要重新注册(见下文)
 
 ### 日志中出现"DeviceNotRegistered"错误
 
-Expo Push Token 不再有效。这通常意味着应用已卸载或用户撤销了通知权限。该令牌将自动清理。
+当移动应用已从设备上删除,或设备的推送令牌已失效时,Expo 会以 `DeviceNotRegistered` 响应推送。随后 OneUptime 停止向该设备发送。该设备会被标记为不再接收通知,而不是被删除,因此其通知规则会保留,推送日志和值班时间线会说明原因。**User Settings > Notification Methods > Push** 会将其显示为 **未收到通知**。其所有者的其他设备和通知方式仍会收到通知。
+
+要恢复该设备,请在登录状态下在该设备上打开移动应用。应用会重新注册,从而在 Expo 处更新其推送令牌,设备将带着原有规则重新接收通知。如果应用已被删除,请重新安装并登录。通过推送中继(未设置 `EXPO_ACCESS_TOKEN`)时同样如此:中继会将 `DeviceNotRegistered` 告知您的实例。
 
 ## 支持
 

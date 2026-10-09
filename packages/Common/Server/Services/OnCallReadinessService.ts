@@ -2783,15 +2783,47 @@ export default class OnCallReadinessService {
        * click from the user, not a conversation about how on-call works.
        */
       if (data.methods.length > 0) {
-        const unverified: Array<string> = this.distinctStrings(
-          data.methods.map((method: ReadinessMethod): string => {
-            return method.methodType;
-          }),
+        /*
+         * Push is the exception. A push device is verified the moment it is
+         * registered, so one that is not verified was registered, and then
+         * its push service or Expo said it was gone
+         * (UserPushService.markWebPushSubscriptionAsGone,
+         * markExpoPushTokenAsGone). "Never verified" would send an admin
+         * after a verification code that does not exist; the fix is to
+         * register the device again.
+         */
+        const neverVerified: Array<string> = this.distinctStrings(
+          data.methods
+            .filter((method: ReadinessMethod): boolean => {
+              return method.methodType !== ReadinessMethodType.Push;
+            })
+            .map((method: ReadinessMethod): string => {
+              return method.methodType;
+            }),
         );
 
-        reasons.push(
-          `Added ${unverified.join(", ")} but never verified - unverified methods are never used`,
-        );
+        const pushDevicesNotReceiving: number = data.methods.filter(
+          (method: ReadinessMethod): boolean => {
+            return (
+              method.methodType === ReadinessMethodType.Push &&
+              !method.isVerified
+            );
+          },
+        ).length;
+
+        if (neverVerified.length > 0) {
+          reasons.push(
+            `Added ${neverVerified.join(", ")} but never verified - unverified methods are never used`,
+          );
+        }
+
+        if (pushDevicesNotReceiving > 0) {
+          reasons.push(
+            pushDevicesNotReceiving === 1
+              ? "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to"
+              : `${pushDevicesNotReceiving} push devices no longer receive notifications - register them again from the mobile app or browser they belong to`,
+          );
+        }
       } else {
         reasons.push(
           "Ask this user to add and verify a notification method in User Settings > Notification Methods",

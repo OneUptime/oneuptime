@@ -1733,6 +1733,60 @@ describe("a row the server sends malformed", () => {
     );
   });
 
+  /*
+   * A push device is verified the moment it is registered. One that is not
+   * was registered and then stopped receiving notifications: its push service
+   * or Expo said it was gone. There is no code to wait for - its owner has to
+   * register it again from the app or browser it belongs to - so "waiting
+   * for them to verify" sent the admin after something that does not exist.
+   */
+  test("a push device that stopped receiving notifications waits for its owner to register it again, not to verify it", async () => {
+    respondWithMethods([
+      methodJson({
+        methodId: WEBHOOK_METHOD_ID,
+        methodType: "Push",
+        maskedIdentifier: "iPh•••",
+        isVerified: false,
+        isAdminAddable: false,
+        leakedRawValue: RAW_PHONE,
+      }),
+    ]);
+
+    await renderPage();
+
+    const row: HTMLElement = rowFor("iPh•••");
+
+    expect(row.textContent).toContain(
+      `Waiting for ${TARGET_USER_FIRST_NAME} to register it again`,
+    );
+    expect(row.textContent).not.toContain(
+      `Waiting for ${TARGET_USER_FIRST_NAME} to verify`,
+    );
+    // No code exists to send: removing it is the only action an admin has.
+    expect(within(row).queryByText("Resend code")).toBeNull();
+    expect(rowButtonLabels(row)).toEqual(["Remove"]);
+  });
+
+  test("a push device that still receives notifications is Verified like any method", async () => {
+    respondWithMethods([
+      methodJson({
+        methodId: WEBHOOK_METHOD_ID,
+        methodType: "Push",
+        maskedIdentifier: "iPh•••",
+        isVerified: true,
+        isAdminAddable: false,
+        leakedRawValue: RAW_PHONE,
+      }),
+    ]);
+
+    await renderPage();
+
+    const row: HTMLElement = rowFor("iPh•••");
+
+    expect(row.textContent).toContain("Verified");
+    expect(row.textContent).not.toContain("register it again");
+  });
+
   test("an unverified channel an admin could not have added offers no resend", async () => {
     const UNVERIFIED_TELEGRAM: JSONObject = methodJson({
       methodId: WEBHOOK_METHOD_ID,

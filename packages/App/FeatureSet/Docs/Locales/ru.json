@@ -73,6 +73,7 @@
   },
   "navGroups": {
     "Introduction": "Введение",
+    "Moving to OneUptime": "Переход на OneUptime",
     "Installation": "Установка",
     "Mobile & Desktop Apps": "Мобильные и настольные приложения",
     "Configuration": "Конфигурация",
@@ -108,6 +109,8 @@
   },
   "navLinks": {
     "Getting Started": "Начало работы",
+    "Moving from Opsgenie": "Переход с Opsgenie",
+    "Moving from incident.io": "Переход с incident.io",
     "Local Development": "Локальная разработка",
     "Docker Compose": "Docker Compose",
     "Upgrading": "Обновление",
@@ -219,6 +222,7 @@
     "GitLab": "GitLab",
     "Discord": "Discord",
     "Telegram": "Telegram",
+    "IRC": "IRC",
     "Custom Probes": "Пользовательские probes",
     "Incoming Request Ingress": "Ingress для входящих запросов",
     "OpenTelemetry": "OpenTelemetry",

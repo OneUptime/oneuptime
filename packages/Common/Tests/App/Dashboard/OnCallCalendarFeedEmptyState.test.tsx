@@ -199,6 +199,7 @@ const EMPTY_STATUS_JSON: JSONObject = {
   urls: null,
   hostWarning: null,
   protocolWarning: null,
+  privateHost: null,
 };
 
 const ACTIVE_STATUS_JSON: JSONObject = {
@@ -650,6 +651,48 @@ describe("PersonalCalendarFeedCard empty state (settings page)", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * A private HOST does not break the link for apps on the same network, but
+   * Google Calendar never fills from it. Said before the link is minted, so
+   * nobody pastes it into Google and waits a day for nothing.
+   */
+  test("a private HOST is named above the panel before any link exists", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        ...EMPTY_STATUS_JSON,
+        privateHost: "oneuptime.internal",
+      }),
+    );
+
+    render(
+      <PersonalCalendarFeedCard
+        variant={PersonalCalendarFeedVariant.Full}
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("personal-calendar-feed-empty-state"),
+      ).toBeInTheDocument();
+    });
+
+    const panel: HTMLElement = screen.getByTestId(
+      "personal-calendar-feed-empty-state",
+    );
+    const privateHost: HTMLElement = screen.getByTestId(
+      "personal-calendar-feed-private-host-warning",
+    );
+
+    expect(privateHost).toHaveTextContent(
+      "Google Calendar and Outlook on the web can't reach this link: oneuptime.internal is a private address",
+    );
+    expect(isBefore(privateHost, panel)).toBe(true);
+    expect(
+      screen.getByTestId("personal-calendar-feed-generate"),
+    ).toBeInTheDocument();
+  });
+
   test("a failed Generate leaves the panel standing and shows the reason", async () => {
     getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
     postMock.mockRejectedValue(new Error("Feeds are disabled on this server."));
@@ -971,5 +1014,32 @@ describe("SharedCalendarFeedCard empty state", () => {
 
     expect(isBefore(host, panel)).toBe(true);
     expect(panel).not.toContainElement(host);
+  });
+
+  test("the shared panel names a private HOST too", async () => {
+    permissionsForTest = [Permission.ProjectAdmin];
+    getMock.mockResolvedValue(
+      ok({
+        ...EMPTY_STATUS_JSON,
+        privateHost: "10.20.0.15",
+      }),
+    );
+
+    render(
+      <SharedCalendarFeedCard
+        kind={SharedCalendarFeedKind.Project}
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("project-shared-calendar-feed-private-host-warning"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("project-shared-calendar-feed-private-host-warning"),
+    ).toHaveTextContent("10.20.0.15 is a private address");
   });
 });

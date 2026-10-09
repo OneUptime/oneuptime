@@ -73,6 +73,7 @@
   },
   "navGroups": {
     "Introduction": "简介",
+    "Moving to OneUptime": "迁移到 OneUptime",
     "Installation": "安装",
     "Mobile & Desktop Apps": "移动和桌面应用",
     "Configuration": "配置",
@@ -108,6 +109,8 @@
   },
   "navLinks": {
     "Getting Started": "快速开始",
+    "Moving from Opsgenie": "从 Opsgenie 迁移",
+    "Moving from incident.io": "从 incident.io 迁移",
     "Local Development": "本地开发",
     "Docker Compose": "Docker Compose",
     "Upgrading": "升级",
@@ -219,6 +222,7 @@
     "GitLab": "GitLab",
     "Discord": "Discord",
     "Telegram": "Telegram",
+    "IRC": "IRC",
     "Custom Probes": "自定义探针",
     "Incoming Request Ingress": "入站请求 Ingress",
     "OpenTelemetry": "OpenTelemetry",

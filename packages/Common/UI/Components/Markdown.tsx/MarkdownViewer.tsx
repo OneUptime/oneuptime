@@ -1051,7 +1051,12 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         }
         rehypePlugins={
           heldBack.held.length > 0
-            ? [[rehypePutBackHeldText, { held: heldBack.held }]]
+            ? [
+                [
+                  rehypePutBackHeldText,
+                  { held: heldBack.held, heldLines: heldBack.heldLines },
+                ],
+              ]
             : undefined
         }
       >

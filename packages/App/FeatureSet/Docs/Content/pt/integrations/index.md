@@ -51,6 +51,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [GitLab](/docs/integrations/gitlab)                                   | Saída             | Abre um issue no GitLab para um incidente.                                                |
 | [Discord](/docs/integrations/discord)                                 | Saída             | Publica atualizações de incidentes em um canal do Discord.                                |
 | [Telegram](/docs/integrations/telegram)                               | Saída             | Envia atualizações de incidentes para um chat do Telegram.                                |
+| [IRC](/docs/integrations/irc)                                         | Saída             | Publica atualizações de incidentes em um canal de IRC.                                    |
 | [Slack](/docs/workspace-connections/slack)                            | Ambas             | Conexão de workspace nativa — canais, alertas e plantão.                                  |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Ambas             | Conexão de workspace nativa.                                                              |
 

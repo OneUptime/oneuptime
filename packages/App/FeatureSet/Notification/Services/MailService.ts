@@ -35,10 +35,11 @@ import DataSourceEgressGuard, {
 import PinnedSmtpSocket, {
   SmtpSocketCallback,
 } from "Common/Server/Utils/Mail/PinnedSmtpSocket";
-import EmailInlineImages, {
-  EmailHtmlWithInlineImages,
-  EmailInlineImage,
-} from "Common/Server/Utils/Mail/EmailInlineImages";
+import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
+import EmailSize, {
+  EmailWithinLimit,
+  MAX_EMAIL_BYTES,
+} from "Common/Server/Utils/Mail/EmailSize";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
@@ -54,6 +55,13 @@ import type Mailer from "nodemailer/lib/mailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
+import {
+  BRAND_VARIABLE_NAMES,
+  getCurrentEmailBrandingVariables,
+  withBrandedSubject,
+} from "../Utils/EmailBranding";
+import HandlebarsText from "../Utils/HandlebarsText";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 
 // One attachment of a SendGrid message.
 type SendgridAttachment = NonNullable<MailDataRequired["attachments"]>[number];
@@ -851,13 +859,16 @@ export default class MailService {
     return compiledTemplate(vars).toString();
   }
 
+  /*
+   * A body or a subject of the sender's own, as a template: its long runs of
+   * plain text are never read by Handlebars, which runs out of stack on
+   * megabytes of them (HandlebarsText).
+   */
   private static compileText(
-    subject: string,
+    text: string,
     vars: Dictionary<string | JSONObject>,
   ): string {
-    const subjectHandlebars: Handlebars.TemplateDelegate =
-      Handlebars.compile(subject);
-    return subjectHandlebars(vars).toString();
+    return HandlebarsText.render(text, vars);
   }
 
   /**
@@ -884,18 +895,45 @@ export default class MailService {
       vars["year"] = OneUptimeDate.getCurrentYear().toString();
     }
 
-    const body: string = mail.templateType
+    /*
+     * How the installation names and shows itself (EmailBranding.ts). These
+     * names are reserved for it: whatever a sender put there is replaced.
+     */
+    for (const name of BRAND_VARIABLE_NAMES) {
+      delete vars[name];
+    }
+
+    const brandVariables: Dictionary<string> =
+      getCurrentEmailBrandingVariables();
+
+    Object.assign(vars, brandVariables);
+
+    const compiledBody: string = mail.templateType
       ? await this.compileEmailBody(mail.templateType, vars)
       : this.compileText(mail.body || "", vars);
 
     /*
+     * A text too long for an email was cut, and ends with a note that the
+     * full text is in OneUptime: the note links to what the email is about
+     * (EmailSize.getRecordLink), where the email has a link to it.
+     */
+    const body: string = EmailSize.linkTruncatedTextNotes(
+      compiledBody,
+      EmailSize.getRecordLink(vars),
+    );
+
+    /*
      * A literal subject was rendered by the sender, often from user-authored
      * text; compiling it again would read any "{{" in that text as template
-     * syntax.
+     * syntax. A subject template's own words name the installation's product
+     * (withBrandedSubject); a literal subject is left exactly as it is.
      */
     const subject: string = mail.isSubjectLiteral
       ? mail.subject
-      : this.compileText(mail.subject, vars);
+      : this.compileText(
+          withBrandedSubject(mail.subject, brandVariables),
+          vars,
+        );
 
     return {
       subject: subject,
@@ -1207,14 +1245,27 @@ export default class MailService {
       /*
        * Inline images (a screenshot in a description) go out as attachments
        * the HTML points at by Content-ID; an email with none is sent exactly
-       * as rendered.
+       * as rendered. The whole of it is held to what every mail server
+       * takes (EmailSize): images that do not fit are left out, each with a
+       * note, and HTML too big on its own is cut, with a note.
        */
-      const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(
+      const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
         rendered.body,
       );
       const inlineImages: Array<EmailInlineImage> = attached.inlineImages;
 
-      mail.body = attached.html;
+      if (attached.wasFitted) {
+        logger.warn(
+          `An email was more than ${MAX_EMAIL_BYTES} bytes with its images (${rendered.body.length} characters of HTML), and was cut to fit.`,
+        );
+      }
+
+      mail.body = attached.wasFitted
+        ? EmailSize.linkTruncatedTextNotes(
+            attached.html,
+            EmailSize.getRecordLink(mail.vars),
+          )
+        : attached.html;
       mail.subject = rendered.subject;
 
       if (
@@ -1302,7 +1353,7 @@ export default class MailService {
         const msg: MailDataRequired = {
           to: mail.toEmail.toString(),
           from: `${
-            sendgridConfig.fromName || "OneUptime"
+            sendgridConfig.fromName || ProductBrandingText.getProductName()
           } <${sendgridConfig.fromEmail.toString()}>`,
           subject: mail.subject,
           html: mail.body,

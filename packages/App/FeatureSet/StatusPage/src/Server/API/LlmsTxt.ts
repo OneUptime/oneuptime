@@ -1,4 +1,5 @@
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import logger, {
   getLogAttributesFromRequest,
 } from "Common/Server/Utils/Logger";
@@ -61,7 +62,7 @@ export const handleLlmsTxt: (
 
     const llmsTxt: string = `# ${title} Status
 
-> This is a service status page powered by OneUptime. It shows real-time status, incidents, announcements, and scheduled maintenance events.
+> This is a service status page powered by ${ProductBrandingText.getProductName()}. It shows real-time status, incidents, announcements, and scheduled maintenance events.
 
 - [RSS Feed](${rssFeedUrl}): RSS feed of incidents, announcements, and scheduled maintenance events.
 - [Status Overview JSON](${overviewApiUrl}): Machine-readable JSON overview of the current status, resources, active incidents, announcements, and scheduled maintenance events (HTTP GET).

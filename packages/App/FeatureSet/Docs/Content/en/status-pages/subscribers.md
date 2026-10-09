@@ -54,6 +54,8 @@ The event types are `Incident`, `Announcement` and `Scheduled Event`.
 
 The choices land on the subscriber record as **Is Subscribed to All Resources** (`isSubscribedToAllResources`, default true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, default true), **Subscribed to Resources** and **Subscribed to Event Types**.
 
+**A subscriber chooses among its own page's resources.** **Subscribed to Resources** names resources of the subscriber's own status page, whoever writes it: a visitor on the page, a teammate on the dashboard, an API key or a workflow. A visitor picks from what the page shows them, so a resource whose monitor is archived, which the page hides, is not one they can pick. A resource of another status page, or one the page hides from a visitor, is refused with the `400` that names the field and the ID, as an ID that matches nothing is. A change asks only about the resources it adds, so a subscription keeps a resource it names already, such as one whose monitor was archived after it was picked. A subscriber is told about an event only through resources of its own page.
+
 Good for: a page that covers several products. A customer who only uses your API does not want a page every time the marketing site wobbles — let them narrow the list themselves rather than watching them unsubscribe entirely.
 
 The same card also carries **Subscriber Timezones**.

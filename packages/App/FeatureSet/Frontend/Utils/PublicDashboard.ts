@@ -1,5 +1,6 @@
 import { DashboardApiInternalUrl } from "Common/Server/EnvironmentConfig";
 import { PublicDashboardApiRoute } from "Common/ServiceRoute";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -154,7 +155,7 @@ export const handlePublicDashboardLlmsTxt: (
 
     const llmsTxt: string = `# ${title}
 
-> This is a public dashboard powered by OneUptime. It shows real-time charts, metrics, and monitoring data.
+> This is a public dashboard powered by ${ProductBrandingText.getProductName()}. It shows real-time charts, metrics, and monitoring data.
 
 - [Dashboard Overview JSON](${overviewApiUrl}): Machine-readable JSON overview of this dashboard — its title, description, widgets, and the metric names it displays (HTTP GET).
 `;

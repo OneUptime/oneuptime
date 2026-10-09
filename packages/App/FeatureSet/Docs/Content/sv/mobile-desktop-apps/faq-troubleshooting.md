@@ -38,7 +38,8 @@ Mobila push-aviseringar använder APNs (iOS) och FCM (Android) via Expo Push. Ko
 2. Batterioptimering är inaktiverad och bakgrundsaktivitet är tillåten (Android).
 3. Stör ej eller Fokus-lägen är avstängda, eller appen finns på undantagslistan.
 4. Du är inloggad — push-token registreras hos servern först efter att du loggat in.
-5. **Endast egen drift:** Push-aviseringar är konfigurerade på din OneUptime-instans. Se guiden [Push-aviseringar](/docs/self-hosted/push-notifications).
+5. Telefonen är inte markerad **Tar inte emot aviseringar** under **User Settings > Notification Methods > Push** i OneUptime. Om den är det öppnar du appen på telefonen medan du är inloggad för att registrera den igen.
+6. **Endast egen drift:** Push-aviseringar är konfigurerade på din OneUptime-instans. Se guiden [Push-aviseringar](/docs/self-hosted/push-notifications).
 
 ### Är data på min telefon säker?
 

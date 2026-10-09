@@ -1120,6 +1120,9 @@ enum PageMap {
   // Labels.
   SETTINGS_LABELS = "SETTINGS_LABELS",
 
+  // Import from another tool (Opsgenie, incident.io, ...).
+  SETTINGS_IMPORT_FROM_TOOL = "SETTINGS_IMPORT_FROM_TOOL",
+
   // SSO.
   SETTINGS_SSO = "SETTINGS_SSO",
 

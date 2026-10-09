@@ -1659,6 +1659,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
@@ -5124,6 +5125,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * Import from another tool (Project Settings > Import from another
+     * tool). A bare router for the same reason as OnCallReadinessAPI: its
+     * runs are internal rows with no CRUD API, so the router's own checks
+     * are the whole gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ToolImportAPI);
 
     /*
      * On-call calendar feeds. The custom router carries the public

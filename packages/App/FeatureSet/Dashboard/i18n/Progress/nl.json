@@ -16,6 +16,8 @@
     "cluster",
     "host",
     "kubectl set image deployment/web * -n web",
+    "services",
+    "teams",
     "{{count}} product",
     "{{field}} is {{value}}"
   ]

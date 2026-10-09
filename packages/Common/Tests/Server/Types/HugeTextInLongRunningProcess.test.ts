@@ -28,6 +28,14 @@ import path from "path";
  * does: esbuild refuses to load under the jsdom environment Common's jest
  * uses. The checks are made in the process, so only booleans come back - a
  * failure never prints sixteen million characters.
+ *
+ * And every converter reads text in time that grows with its length, never
+ * with its square: 64 KB of each shape that a parser read in quadratic time
+ * - emphasis, brackets or code spans that never close, a word of
+ * punctuation, a long table or list, quotes nested thousands deep - took
+ * marked, remark or slackify from seconds to over a minute here (see
+ * Utils/Markdown/SlowMarkdown), and is held to a time budget now, so a
+ * converter that slows down again fails here instead of stalling a worker.
  */
 
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..");
@@ -112,8 +120,8 @@ const INPUTS_SCRIPT: string = String.raw`
 
   /*
    * Runs of lines that are not plain - each could be a table row, HTML or
-   * code - so none of them is held back: what is left is too long to read
-   * as Markdown, and is shown as text.
+   * code - so no line of them is held back as over-long: the run as a whole
+   * is far more lines than a parser reads in good time.
    */
   const notPlainLines = (line) => {
     return "HEAD\n" + line.repeat(Math.ceil(SIZE / line.length)) + "TAIL";
@@ -132,6 +140,65 @@ const INPUTS_SCRIPT: string = String.raw`
       "Before\n\n| Host | State |\n| --- | --- |\n| HEAD | up |\n" +
       "| web-01 | down |\n".repeat(Math.ceil(SIZE / 18)) +
       "| TAIL | up |\n\nAfter",
+  };
+
+  /*
+   * 64 KB of each shape a parser read in time growing with its square, and
+   * how long the slowest of marked, remark and slackify took on it here
+   * before the converters held such text back.
+   */
+  const QUADRATIC_SIZE = 64 * 1024;
+
+  const lines64 = (line) => {
+    return line.repeat(Math.max(1, Math.floor(QUADRATIC_SIZE / line.length)));
+  };
+
+  const quadraticInputs = {
+    // marked: 53 s. Emphasis that never closes.
+    "star a space": () => repeatTo("*a ", QUADRATIC_SIZE),
+    // remark: 9 s.
+    "a star space": () => repeatTo("a* ", QUADRATIC_SIZE),
+    // remark: 26 s.
+    "a star": () => repeatTo("a*", QUADRATIC_SIZE),
+    // marked: 14 s - an email address looked for from every "_".
+    "underscore a": () => repeatTo("_a", QUADRATIC_SIZE),
+    // marked: 6 s.
+    "a bang": () => repeatTo("a!", QUADRATIC_SIZE),
+    // remark: 14 s.
+    "a tilde": () => repeatTo("a~", QUADRATIC_SIZE),
+    // marked: 13 s, 20 s.
+    "link openers": () => repeatTo("[a](", QUADRATIC_SIZE),
+    "image openers": () => repeatTo("![a](", QUADRATIC_SIZE),
+    // remark: 13 s; slackify: 26 s.
+    "closing brackets": () => repeatTo("](", QUADRATIC_SIZE),
+    "a closing bracket": () => repeatTo("a]", QUADRATIC_SIZE),
+    // remark: over 40 s.
+    "nested brackets": () =>
+      "[".repeat(QUADRATIC_SIZE / 2) + "]".repeat(QUADRATIC_SIZE / 2),
+    // marked: 3 s.
+    "code span openers": () => repeatTo("\`a", QUADRATIC_SIZE),
+    // remark: 8 s - an email address tried from every dot.
+    "a dot": () => repeatTo("a.", QUADRATIC_SIZE),
+    // remark with GFM: 0.9 s, quadratic.
+    "snake_case words": () => repeatTo("foo_bar_baz ", QUADRATIC_SIZE),
+    // slackify: 11 s each.
+    "ampersand a": () => repeatTo("&a", QUADRATIC_SIZE),
+    "a less than": () => repeatTo("a<", QUADRATIC_SIZE),
+    "a backslash": () => repeatTo("a\\", QUADRATIC_SIZE),
+    // remark: 6 s, 8 s; slackify: 10 s.
+    "a long table": () => "| a | b |\n| --- | --- |\n" + lines64("| x | y |\n"),
+    "many small tables": () => lines64("| a | b |\n| - | - |\n| c | d |\n\n"),
+    "a long list": () => lines64("- a\n"),
+    "a paragraph of lines": () => lines64("lorem ipsum dolor sit amet\n"),
+    // Every parser ran out of stack.
+    "quotes nested deep": () => repeatTo("> ", QUADRATIC_SIZE) + "a",
+    "lists nested deep": () => {
+      let text = "";
+      for (let depth = 0; text.length < QUADRATIC_SIZE; depth++) {
+        text += "  ".repeat(depth % 2000) + "- a\n";
+      }
+      return text;
+    },
   };
 
   // A description template that places a monitor's response body.
@@ -312,11 +379,12 @@ function expectEveryCheckPassed(report: ProcessReport): void {
 }
 
 describe("Sixteen megabytes of text, where V8 compiles regular expressions unoptimized", () => {
-  test("an email renders it, and still renders what is around it", () => {
+  test("an email renders it, cut to what an email carries, with what is before it", () => {
     const report: ProcessReport = runUnoptimized(
       [
         'export { default as Markdown, MarkdownContentType } from "./Server/Types/Markdown";',
         'export { default as MonitorTemplateUtil } from "./Server/Utils/Monitor/MonitorTemplateUtil";',
+        'export { default as EmailSize, EMAIL_TRUNCATED_TEXT_NOTE_HTML, MAX_EMAIL_FIELD_HTML_BYTES } from "./Server/Utils/Mail/EmailSize";',
       ],
       String.raw`
         const inputs = { ...markdownInputs, ...templatedInputs(lib.MonitorTemplateUtil) };
@@ -329,14 +397,18 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
               markdown,
               lib.MarkdownContentType.Email,
             );
+            const size = lib.EmailSize.getFieldSizeInBytes(html);
+            // Spaces show as nothing, so there is nothing of them to keep.
+            const isBlank = name === "a long run of spaces";
 
             return {
               "starts with the paragraph before": html.startsWith("<p>Before</p>"),
-              "ends with the paragraph after": html.endsWith("<p>After</p>\n"),
               "keeps the text's start": html.includes("HEAD"),
-              "keeps the text's end": html.includes("TAIL"),
-              // Quote markers are not text; everything else is, escaped.
-              "keeps all of the text": html.length > 0.9 * markdown.length,
+              "is cut, ending with the note": html.endsWith(lib.EMAIL_TRUNCATED_TEXT_NOTE_HTML),
+              "is within what an email field carries": size <= lib.MAX_EMAIL_FIELD_HTML_BYTES,
+              ...(isBlank
+                ? {}
+                : { "keeps most of what fits": size > lib.MAX_EMAIL_FIELD_HTML_BYTES / 4 }),
             };
           });
         }
@@ -579,18 +651,21 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     expectEveryCheckPassed(report);
   }, 600000);
 
-  test("an email, plain text and the dashboard show a long run of lines that are not plain as text", () => {
+  test("an email, plain text and the dashboard show a long run of lines that are not plain", () => {
     /*
-     * Nothing of these is held back - each line could be a table row, HTML
-     * or code - so marked, and remark, would read all of it: marked ran out
-     * of stack, and remark did not finish. The email sends the Markdown as
-     * text, plain text keeps every line, and the dashboard shows the text as
+     * Nothing of these is held back as over-long - each line could be a
+     * table row, HTML or code - so marked, and remark, would read all of
+     * it: marked ran out of stack, and remark did not finish. The email
+     * carries what an email field carries of it, cut with the note; plain
+     * text keeps every line; and the dashboard holds the run back whole
+     * (it is far more lines than remark reads in good time) and shows it as
      * it was written.
      */
     const report: ProcessReport = runUnoptimized(
       [
         'export { default as Markdown, MarkdownContentType } from "./Server/Types/Markdown";',
         'export { holdBackForViewer } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
+        'export { default as EmailSize, EMAIL_TRUNCATED_TEXT_NOTE_HTML, MAX_EMAIL_FIELD_HTML_BYTES } from "./Server/Utils/Mail/EmailSize";',
       ],
       String.raw`
         for (const [name, markdownOf] of Object.entries(notPlainInputs)) {
@@ -603,11 +678,11 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
             );
 
             return {
-              "is the text, line by line": html.startsWith("<p>Before<br>\n<br>\n"),
-              "ends with the text after": html.endsWith("<br>\nAfter</p>\n"),
+              "starts with the text before": html.startsWith("<p>Before</p>"),
               "keeps the text's start": html.includes("HEAD"),
-              "keeps the text's end": html.includes("TAIL"),
-              "keeps all of the text": html.length > markdown.length,
+              "is cut, ending with the note": html.endsWith(lib.EMAIL_TRUNCATED_TEXT_NOTE_HTML),
+              "is within what an email field carries":
+                lib.EmailSize.getFieldSizeInBytes(html) <= lib.MAX_EMAIL_FIELD_HTML_BYTES,
             };
           });
 
@@ -626,7 +701,8 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
             const heldBack = lib.holdBackForViewer(markdown);
 
             return {
-              "is shown as text, not read as Markdown": heldBack.showAsText === true,
+              "is held back whole, to be shown as written": heldBack.heldLines.length === 1,
+              "leaves the parser next to nothing": heldBack.markdown.length < 1024,
             };
           });
         }
@@ -635,6 +711,153 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
     expectUnoptimizedProcess(report);
     expect(Object.keys(report.results)).toHaveLength(9);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
+  /*
+   * The most a converter may take on 64 KB of any one shape: the slowest
+   * takes about a tenth of that on a developer's machine, and each took
+   * from seconds to over a minute before.
+   */
+  const QUADRATIC_BUDGET_IN_MS: number = 2000;
+
+  // Runs each shape through `convert`, timed; the time is in the check's name.
+  const TIMED_SCRIPT: (convert: string) => string = (
+    convert: string,
+  ): string => {
+    return (
+      String.raw`
+        const convert = ` +
+      convert +
+      String.raw`;
+
+        // Loaded and compiled once, as in a server.
+        await convert("warm *up* [a](https://a.b) | a |");
+
+        for (const [name, markdownOf] of Object.entries(quadraticInputs)) {
+          const markdown = markdownOf();
+          const started = process.hrtime.bigint();
+
+          results[name] = await attempt(async () => {
+            await convert(markdown);
+            const ms = Math.round(Number(process.hrtime.bigint() - started) / 1e6);
+
+            return { ["in under " + ` +
+      String(QUADRATIC_BUDGET_IN_MS) +
+      String.raw` + " ms (took " + ms + " ms)"]: ms < ` +
+      String(QUADRATIC_BUDGET_IN_MS) +
+      String.raw` };
+          });
+        }
+      `
+    );
+  };
+
+  test("an email and plain text read 64 KB of every shape that was slow in good time", () => {
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { default as Markdown, MarkdownContentType } from "./Server/Types/Markdown";',
+      ],
+      TIMED_SCRIPT(
+        String.raw`async (markdown) => {
+          await lib.Markdown.convertToHTML(markdown, lib.MarkdownContentType.Email);
+          lib.Markdown.convertToPlainText(markdown);
+        }`,
+      ),
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results).length).toBeGreaterThan(20);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
+  test("the dashboard reads 64 KB of every shape that was slow in good time", () => {
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { holdBackForViewer, rehypePutBackHeldText } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
+        'export { markdownUrlTransform } from "./UI/Components/Markdown.tsx/MarkdownUrlTransform";',
+      ],
+      String.raw`
+        const React = require("react");
+        const { renderToStaticMarkup } = require("react-dom/server");
+        const ReactMarkdown = require("react-markdown").default;
+        const remarkGfm = require("remark-gfm").default;
+      ` +
+        TIMED_SCRIPT(
+          String.raw`async (markdown) => {
+            const heldBack = lib.holdBackForViewer(markdown);
+
+            if (heldBack.showAsText) {
+              return;
+            }
+
+            renderToStaticMarkup(
+              React.createElement(
+                ReactMarkdown,
+                {
+                  remarkPlugins: [remarkGfm],
+                  rehypePlugins:
+                    heldBack.held.length > 0
+                      ? [[lib.rehypePutBackHeldText, { held: heldBack.held, heldLines: heldBack.heldLines }]]
+                      : undefined,
+                  urlTransform: lib.markdownUrlTransform,
+                },
+                heldBack.markdown,
+              ),
+            );
+          }`,
+        ),
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results).length).toBeGreaterThan(20);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
+  test("Slack and Microsoft Teams read 64 KB of every shape that was slow in good time", () => {
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { default as SlackUtil } from "./Server/Utils/Workspace/Slack/Slack";',
+        'export { default as MicrosoftTeamsUtil } from "./Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";',
+      ],
+      TIMED_SCRIPT(
+        String.raw`async (markdown) => {
+          const payloadMarkdownBlock = { _type: "WorkspacePayloadMarkdown", text: markdown };
+
+          lib.SlackUtil.getMarkdownBlocks({ payloadMarkdownBlock });
+          lib.SlackUtil.convertMarkdownToSlackRichText(markdown);
+          lib.MicrosoftTeamsUtil["buildMessageCardFromMarkdown"](markdown);
+          lib.MicrosoftTeamsUtil.getMarkdownBlock({ payloadMarkdownBlock });
+        }`,
+      ),
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results).length).toBeGreaterThan(20);
+    expectEveryCheckPassed(report);
+  }, 600000);
+
+  test("Slack converts an address with a % that starts no escape, as remark-gfm reads it", () => {
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { default as SlackUtil } from "./Server/Utils/Workspace/Slack/Slack";',
+      ],
+      String.raw`
+        for (const [name, markdown, expected] of [
+          ["a bare address", "see www.example.com/%zz now", "<http://www.example.com/%25zz|www.example.com/%zz>"],
+          ["a link", "[log](https://example.com/a%zz)", "<https://example.com/a%25zz|log>"],
+          ["half an emoji", "cut \uD83D www.example.com/\uD83D", "\uFFFD"],
+        ]) {
+          results[name] = await attempt(() => {
+            const text = lib.SlackUtil.slackify(markdown);
+
+            return { "converts, the address whole": text.includes(expected) };
+          });
+        }
+      `,
+    );
+
+    expect(Object.keys(report.results)).toHaveLength(3);
     expectEveryCheckPassed(report);
   }, 600000);
 

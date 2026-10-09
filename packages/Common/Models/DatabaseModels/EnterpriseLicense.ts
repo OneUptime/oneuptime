@@ -149,6 +149,34 @@ export default class EnterpriseLicense extends BaseModel {
   })
   public isEvaluationLicense?: boolean = undefined;
 
+  /*
+   * Lets the customer white-label their self-hosted installation. The license
+   * server signs it into the license token (ee/Server/LicenseServer), only
+   * when on, and the installation reads it from nowhere else
+   * (ee/Server/WhiteLabel). Off for every license unless OneUptime turns it
+   * on.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Can Be White-Labelled",
+    description:
+      "When enabled, the customer can replace the OneUptime name and logo on their own installation with theirs. Signed into the license token, so their installation picks it up at its next license refresh.",
+    defaultValue: false,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public canBeWhiteLabelled?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

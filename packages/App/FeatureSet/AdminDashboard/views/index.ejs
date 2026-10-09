@@ -1,12 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+<%
+  /*
+   * The installation's branding (Common/Server/Utils/ProductBrandingViewVariables.ts):
+   * the name it goes by, and its own browser tab icon when it has one.
+   * Rendered without them (a standalone frontend server), it is OneUptime.
+   */
+  var brandName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
+  var brandFaviconUrl = (typeof productFaviconUrl !== 'undefined' && productFaviconUrl) ? productFaviconUrl : '';
+  var isBranded = brandName !== 'OneUptime' || Boolean(brandFaviconUrl);
+%>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="theme-color" content="#f9fafb" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="slack-app-id" content="ACVBMTPJQ">
+    <% if (brandName !== 'OneUptime') { %>
+    <meta name="description" content="<%= brandName %>">
+    <% } else { %>
     <meta name="description" content="OneUptime - the complete open-source observability platform.">
+    <% } %>
 
     <!-- Apply the opt-in preference before CSS/React to avoid a theme flash. -->
     <script>
@@ -47,6 +61,11 @@
     <!-- End Google Tag Manager -->
     <% } %>
 
+    <% if (brandFaviconUrl) { %>
+    <link rel="icon" href="<%= brandFaviconUrl %>">
+    <link rel="shortcut icon" href="<%= brandFaviconUrl %>">
+    <link rel="apple-touch-icon" href="<%= brandFaviconUrl %>">
+    <% } else { %>
     <link rel="apple-touch-icon" sizes="180x180" href="/admin/assets/img/favicons/apple-touch-icon.png">
     <link rel="shortcut icon" href="/admin/assets/img/favicons/favicon.ico?v=up-v1">
     <link rel="icon" type="image/png" sizes="32x32" href="/admin/assets/img/favicons/favicon-32x32.png?v=up-v1">
@@ -55,6 +74,7 @@
     <link rel="mask-icon" href="/admin/assets/img/favicons/safari-pinned-tab.svg" color="#5bbad5">
     <meta name="msapplication-TileColor" content="#121212">
     <meta name="msapplication-TileImage" content="/admin/assets/img/favicons/mstile-144x144.png">
+    <% } %>
     <link rel="preload" href="/admin/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
     <style>
       @font-face {
@@ -112,7 +132,7 @@
     <script src="/admin/env.js"></script>
 
 
-    <title>OneUptime Admin Dashboard</title>
+    <title><%= brandName %> Admin Dashboard</title>
 
   </head>
   <body class="h-full bg-gray-50">

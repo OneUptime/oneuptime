@@ -942,7 +942,12 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
     expect(property(outcome.body, "X-WR-TIMEZONE")).toBe("America/New_York");
     expect(property(outcome.body, "X-WR-CALNAME")).toBe("OneUptime On-Call");
     expect(outcome.etag).toBe(Response.getCalendarETag(outcome.body));
-    expect(outcome.lastModified.toISOString()).toBe("2026-08-01T10:00:00.000Z");
+    /*
+     * Last-Modified is when this body was rendered; the body itself still
+     * carries the schedules' last edit as its LAST-MODIFIED.
+     */
+    expect(outcome.lastModified.toISOString()).toBe(NOW.toISOString());
+    expect(property(outcome.body, "LAST-MODIFIED")).toBe("20260801T100000Z");
 
     const materializeArgs: {
       scheduleIds: Array<ObjectID>;
@@ -998,6 +1003,67 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
     expect(second.eventCount).toBe(2);
     expect(materializeForSchedules).toHaveBeenCalledTimes(1);
     expect(recordDuration).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Regression: Last-Modified used to be the schedules' last edit. A feed's
+   * body changes every day without any edit - the window rolls at UTC
+   * midnight and brings in the next day's shifts - so a client revalidating
+   * with If-Modified-Since alone was answered 304 on every poll for as long
+   * as nobody touched the schedule, and its calendar ran out of shifts.
+   */
+  test("Last-Modified is the render time: the next day's body is newer although nobody edited the schedule", async () => {
+    const today: FeedRenderOutcome = await OnCallCalendarFeedRenderer.render(
+      personalRequest({ projectId, userId: me }),
+    );
+
+    const tomorrowNow: Date = at("2026-09-02T12:00:00Z");
+
+    const tomorrow: FeedRenderOutcome = await OnCallCalendarFeedRenderer.render(
+      {
+        ...personalRequest({ projectId, userId: me }),
+        now: tomorrowNow,
+      },
+    );
+
+    expect(today.status).toBe(FeedRenderStatus.Rendered);
+    expect(tomorrow.status).toBe(FeedRenderStatus.Rendered);
+    expect(tomorrow.cacheHit).toBe(false);
+    expect(today.lastModified.toISOString()).toBe(NOW.toISOString());
+    expect(tomorrow.lastModified.toISOString()).toBe(tomorrowNow.toISOString());
+
+    /*
+     * What Express's conditional-GET check does with these: a client holding
+     * today's copy sends If-Modified-Since: <today's Last-Modified> and gets
+     * a 304 only while Last-Modified is not later than that.
+     */
+    const ifModifiedSince: number = Date.parse(
+      today.lastModified.toUTCString(),
+    );
+
+    expect(
+      Date.parse(tomorrow.lastModified.toUTCString()) <= ifModifiedSince,
+    ).toBe(false);
+
+    // Both bodies still date the schedules' content by its last edit.
+    expect(property(today.body, "LAST-MODIFIED")).toBe("20260801T100000Z");
+    expect(property(tomorrow.body, "LAST-MODIFIED")).toBe("20260801T100000Z");
+  });
+
+  test("a body served from the cache keeps the time it was rendered, so a revalidating client still gets its 304", async () => {
+    const first: FeedRenderOutcome = await OnCallCalendarFeedRenderer.render(
+      personalRequest({ projectId, userId: me }),
+    );
+
+    const later: FeedRenderOutcome = await OnCallCalendarFeedRenderer.render({
+      ...personalRequest({ projectId, userId: me }),
+      now: at("2026-09-01T12:04:00Z"),
+    });
+
+    expect(later.cacheHit).toBe(true);
+    expect(later.lastModified.toISOString()).toBe(
+      first.lastModified.toISOString(),
+    );
   });
 
   test("a configuration edit (shiftConfigVersion bump) is a new body key AND a new schedule-level render", async () => {
