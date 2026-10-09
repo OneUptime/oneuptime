@@ -128,6 +128,7 @@ export interface HuntressReportFacts {
 
 // What the processor writes to a report row after creating it.
 interface HuntressReportRowUpdate extends HuntressReportFacts {
+  huntressConnectionId?: ObjectID;
   outcome?: HuntressIncidentReportOutcome;
   incidentId?: ObjectID;
   pagedOnCall?: boolean;
@@ -402,6 +403,7 @@ export default class HuntressIncidentReportProcessor {
         },
         select: {
           _id: true,
+          huntressConnectionId: true,
           outcome: true,
           status: true,
           incidentId: true,
@@ -507,6 +509,10 @@ export default class HuntressIncidentReportProcessor {
 
     await this.updateReportRow(existing.id!, {
       ...this.getLatestFacts(data),
+      // A report whose connection was deleted belongs to the one receiving it now.
+      ...(existing.huntressConnectionId
+        ? {}
+        : { huntressConnectionId: settings.id }),
       outcome: newOutcome,
       appliedMessageIds: appliedAfter,
     });

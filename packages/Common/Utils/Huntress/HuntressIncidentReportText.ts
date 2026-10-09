@@ -151,7 +151,8 @@ export function getHuntressAffectedName(
     }
   }
 
-  if (!rest) {
+  // Nothing before the organization's brackets: the subject names no host.
+  if (!rest || rest.startsWith("(")) {
     return null;
   }
 
@@ -194,9 +195,13 @@ export function getHuntressIncidentTitle(
     const lowerSubject: string = subject.toLowerCase();
 
     for (const severity of AllHuntressSeverities) {
-      const prefix: string = `${severity} - `;
+      // "CRITICAL - ...", or just "CRITICAL -" once the payload was trimmed.
+      const prefix: string = `${severity} -`;
 
-      if (lowerSubject.startsWith(prefix)) {
+      if (
+        lowerSubject.startsWith(`${prefix} `) ||
+        lowerSubject === prefix
+      ) {
         subject = subject.slice(prefix.length).trim();
         break;
       }

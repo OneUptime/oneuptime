@@ -42,7 +42,10 @@ const readPermissions: Array<Permission> = [
  * is opened. A report sent to two connections of one project opens one
  * incident too.
  *
- * Only the webhook writes these rows; deleting a connection deletes them.
+ * Only the webhook writes these rows. Deleting a connection keeps them (its
+ * id is cleared), so the same reports, received again by a connection made
+ * afresh, still find the incidents they opened; deleting the project
+ * deletes them.
  */
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -113,7 +116,8 @@ export default class HuntressIncidentReport extends BaseModel {
     type: TableColumnType.Entity,
     modelType: HuntressConnection,
     title: "Huntress Connection",
-    description: "The connection that first received this report.",
+    description:
+      "The connection that received this report. Empty once that connection is deleted: the row stays, so a connection made again for the same Huntress account does not open the report's incident a second time.",
   })
   @ManyToOne(
     () => {
@@ -121,8 +125,8 @@ export default class HuntressIncidentReport extends BaseModel {
     },
     {
       eager: false,
-      nullable: false,
-      onDelete: "CASCADE",
+      nullable: true,
+      onDelete: "SET NULL",
       orphanedRowAction: "nullify",
     },
   )
@@ -133,14 +137,15 @@ export default class HuntressIncidentReport extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Huntress Connection ID",
-    description: "ID of the connection that first received this report.",
+    description:
+      "ID of the connection that received this report, or empty once it is deleted.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public huntressConnectionId?: ObjectID = undefined;
