@@ -159,8 +159,7 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
     serializeCustomFieldDropdownOptions(originalOptions),
   );
 
-  const lastEmittedRenamesRef: MutableRefObject<string> =
-    useRef<string>("[]");
+  const lastEmittedRenamesRef: MutableRefObject<string> = useRef<string>("[]");
 
   useEffect(() => {
     const serialized: string = serializeCustomFieldDropdownOptions(options);
@@ -192,7 +191,10 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
   const renamesKey: string = JSON.stringify(renames);
 
   useEffect(() => {
-    if (!props.onRenamesChange || renamesKey === lastEmittedRenamesRef.current) {
+    if (
+      !props.onRenamesChange ||
+      renamesKey === lastEmittedRenamesRef.current
+    ) {
       return;
     }
 
@@ -336,7 +338,10 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
   };
 
   type ReplaceFn = (value: string, rowId: number | undefined) => void;
-  const replace: ReplaceFn = (value: string, rowId: number | undefined): void => {
+  const replace: ReplaceFn = (
+    value: string,
+    rowId: number | undefined,
+  ): void => {
     setReplacements((previous: Record<string, number | undefined>) => {
       const next: Record<string, number | undefined> = { ...previous };
 
@@ -579,15 +584,20 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
       <li
         key={entry.value}
         data-testid={`dropdown-option-retired-${index}`}
-        className={`flex flex-wrap items-center gap-x-3 gap-y-2 py-2 ${
-          index > 0 ? "border-t border-amber-200/70" : ""
-        }`}
+        className={`py-2 ${index > 0 ? "border-t border-amber-200/70" : ""}`}
       >
-        <div className="min-w-0 flex-1">
-          <p className="break-words text-sm font-medium text-amber-900">
+        {/*
+         * What the value is and how many records hold it, on one line; what
+         * happens to it on the next, the same at every width.
+         */}
+        <p className="flex flex-wrap items-baseline gap-x-2">
+          <span className="break-words text-sm font-medium text-amber-900">
             {entry.value}
-          </p>
-          <p className="text-xs text-amber-800">
+          </span>
+          <span
+            className="text-xs text-amber-800"
+            data-testid={`dropdown-option-retired-count-${index}`}
+          >
             {entry.count === undefined
               ? translator.translateTemplate(
                   "{{items}} that have it keep it unless you pick an option for them.",
@@ -601,49 +611,55 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
                   entry.count,
                   recordTerms,
                 )}
-          </p>
-        </div>
-        <div className="w-full sm:w-56">
-          <Dropdown
-            options={[keepOption, ...replacementOptions]}
-            value={picked || keepOption}
-            isClearable={false}
-            dataTestId={`dropdown-option-retired-choice-${index}`}
-            ariaLabel={translator.translateTemplate(
-              "What happens to {{option}}",
-              { option: entry.value },
-            )}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              const chosen: string = Array.isArray(value)
-                ? String(value[0] ?? KEEP_VALUE)
-                : String(value ?? KEEP_VALUE);
+          </span>
+        </p>
+        <div className="mt-1.5 flex items-center gap-2">
+          <div className="min-w-0 flex-1 sm:max-w-xs">
+            <Dropdown
+              options={[keepOption, ...replacementOptions]}
+              value={picked || keepOption}
+              isClearable={false}
+              // Under its value, without the gap a form field's dropdown keeps.
+              className="relative w-full overflow-visible rounded-md"
+              dataTestId={`dropdown-option-retired-choice-${index}`}
+              ariaLabel={translator.translateTemplate(
+                "What happens to {{option}}",
+                { option: entry.value },
+              )}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                const chosen: string = Array.isArray(value)
+                  ? String(value[0] ?? KEEP_VALUE)
+                  : String(value ?? KEEP_VALUE);
 
-              replace(
-                entry.value,
-                chosen === KEEP_VALUE ? undefined : Number(chosen),
-              );
-            }}
-          />
+                replace(
+                  entry.value,
+                  chosen === KEEP_VALUE ? undefined : Number(chosen),
+                );
+              }}
+            />
+          </div>
+          {entry.removed ? (
+            <Button
+              title="Undo"
+              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.OUTLINE}
+              icon={IconProp.ArrowUturnLeft}
+              dataTestId={`dropdown-option-retired-undo-${index}`}
+              ariaLabel={translator.translateTemplate("Put {{option}} back", {
+                option: entry.value,
+              })}
+              onClick={() => {
+                if (entry.removed) {
+                  undoRemove(entry.removed);
+                }
+              }}
+            />
+          ) : (
+            <></>
+          )}
         </div>
-        {entry.removed ? (
-          <Button
-            title="Undo"
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            icon={IconProp.ArrowUturnLeft}
-            dataTestId={`dropdown-option-retired-undo-${index}`}
-            ariaLabel={translator.translateTemplate("Put {{option}} back", {
-              option: entry.value,
-            })}
-            onClick={() => {
-              if (entry.removed) {
-                undoRemove(entry.removed);
-              }
-            }}
-          />
-        ) : (
-          <></>
-        )}
       </li>
     );
   };
@@ -659,22 +675,24 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
                 {...droppableProvided.droppableProps}
                 className="space-y-3"
               >
-                {options.map((option: EditableDropdownOption, index: number) => {
-                  return (
-                    <Draggable
-                      key={option.id}
-                      draggableId={`${droppableId}-${option.id}`}
-                      index={index}
-                    >
-                      {(
-                        provided: DraggableProvided,
-                        snapshot: DraggableStateSnapshot,
-                      ) => {
-                        return renderRow(option, index, provided, snapshot);
-                      }}
-                    </Draggable>
-                  );
-                })}
+                {options.map(
+                  (option: EditableDropdownOption, index: number) => {
+                    return (
+                      <Draggable
+                        key={option.id}
+                        draggableId={`${droppableId}-${option.id}`}
+                        index={index}
+                      >
+                        {(
+                          provided: DraggableProvided,
+                          snapshot: DraggableStateSnapshot,
+                        ) => {
+                          return renderRow(option, index, provided, snapshot);
+                        }}
+                      </Draggable>
+                    );
+                  },
+                )}
                 {droppableProvided.placeholder}
               </div>
             );
@@ -705,11 +723,9 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
             )}
           </p>
           <ul className="mt-1">
-            {retired.map(
-              (entry: RetiredDropdownOptionValue, index: number) => {
-                return renderRetired(entry, index);
-              },
-            )}
+            {retired.map((entry: RetiredDropdownOptionValue, index: number) => {
+              return renderRetired(entry, index);
+            })}
           </ul>
         </div>
       ) : (
