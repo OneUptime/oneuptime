@@ -11,23 +11,20 @@ import {
 } from "@jest/globals";
 
 /*
- * The premise the whole workflow-variable editing change rests on, asserted
- * against the real ModelForm rather than described in a comment.
- *
  * A write-only column - ColumnAccessControl.read is [] while update is not
- * empty - is a shape the edit form gets exactly backwards on its own.
- * getFieldPermissions consults the UPDATE list for FormType.Update and never
- * the read list, so getSelectFields happily puts such a column into the GET
- * that prefills the form, and SelectPermission refuses the whole request:
- * the modal opens on an error instead of a form, and the record cannot be
- * edited at all. That is why WorkflowVariable.content is marked
- * doNotShowWhenEditing, and why the value gets its own write-only door.
+ * empty - against the real ModelForm.
  *
- * Both directions are pinned here: the field list ModelTable actually produces
- * for the edit modal must not ask for `content`, and the same form WITH the
- * content field must - so the reason the flag exists stays visible, and a
- * change to getFieldPermissions that made the flag unnecessary (or a change
- * that made it insufficient) shows up here rather than in a customer report.
+ * The edit form shows the fields the user may UPDATE, but the GET that
+ * prefills it is refused outright by SelectPermission for one column the
+ * caller may not READ: the modal used to open on an error instead of a form.
+ * ModelForm now leaves every field the user may not read out of that GET (a
+ * field they may write but not read starts empty, and is sent only when
+ * filled in). WorkflowVariable.content is still marked doNotShowWhenEditing:
+ * the value gets its own write-only door, so the edit modal never shows it.
+ *
+ * Both directions are pinned here: the field list ModelTable actually
+ * produces for the edit modal does not ask for `content`, and neither does
+ * the same form WITH the content field.
  */
 
 jest.mock("../../../../UI/Utils/Permission", () => {
@@ -200,22 +197,24 @@ describe("the edit form's prefetch select for a write-only column", () => {
   });
 
   /*
-   * The reason doNotShowWhenEditing is load-bearing rather than cosmetic. With
-   * `content` still in the field list, the very same form asks the API for a
-   * column whose read list is empty - and SelectPermission rejects the request
-   * outright, which is what left both variable tables isEditable={false}.
+   * With `content` still in the field list, the form still asks only for what
+   * the user may read: a column whose read list is empty would have the
+   * request refused outright.
    */
-  test("would ask for content if the field were left on the form", async () => {
+  test("does not ask for content even when the field is left on the form", async () => {
     await renderEditForm(ALL_FIELDS);
 
-    expect(Object.keys(capturedSelect || {})).toContain("content");
+    expect(Object.keys(capturedSelect || {}).sort()).toEqual([
+      "description",
+      "isSecret",
+      "name",
+    ]);
   });
 
   /*
-   * ...and it asks for it because the UPDATE list is consulted, not the read
-   * list. Reading it back from the model keeps the two ends of that argument
-   * together: content is updatable and unreadable at the same time, which is
-   * precisely the combination getSelectFields handles wrongly.
+   * The UPDATE list decides what the form shows, the read list what it loads.
+   * Reading both back from the model keeps the two ends of that argument
+   * together: content is updatable and unreadable at the same time.
    */
   test("content is updatable and unreadable at once, which is what causes it", () => {
     const variable: WorkflowVariable = new WorkflowVariable();

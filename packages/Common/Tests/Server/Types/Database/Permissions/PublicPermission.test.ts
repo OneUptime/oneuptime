@@ -116,9 +116,7 @@ describe("PublicPermission", () => {
      * anyone is signed in.
      */
     it("is true for a model whose read list contains Permission.Public", () => {
-      expect(new Reseller().readRecordPermissions).toContain(
-        Permission.Public,
-      );
+      expect(new Reseller().readRecordPermissions).toContain(Permission.Public);
 
       expect(
         PublicPermission.isPublicPermissionAllowed(

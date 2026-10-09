@@ -27462,5 +27462,7 @@
   "Reverse-DNS name": "Обратное DNS-имя",
   "SNMP system name": "Системное имя SNMP",
   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "Имя компьютера Windows, которое этот хост сам сообщил по NetBIOS. Собственное имя хоста используется раньше его обратного DNS-имени.",
-  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "Как называется каждое устройство, импортированное из этого сканирования. Сначала хост получает собственное имя: имя, которое он сообщает по SNMP, затем имя NetBIOS, которое сообщает хост Windows, если сканирование его запрашивает. Затем — обратное DNS-имя, и наконец — адрес."
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "Как называется каждое устройство, импортированное из этого сканирования. Сначала хост получает собственное имя: имя, которое он сообщает по SNMP, затем имя NetBIOS, которое сообщает хост Windows, если сканирование его запрашивает. Затем — обратное DNS-имя, и наконец — адрес.",
+  "Has Additional Parameters": "Есть дополнительные параметры",
+  "Only project owners and admins can read them, like the API key.": "Как и API-ключ, их могут читать только владельцы и администраторы проекта."
 }

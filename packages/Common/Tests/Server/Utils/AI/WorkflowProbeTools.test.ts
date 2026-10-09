@@ -80,7 +80,8 @@ function buildProbe(data: {
   id?: ObjectID;
   name: string;
   lastAlive?: Date;
-  version?: string;
+  // null: the read did not ask for the version (global probes).
+  version?: string | null;
 }): Probe {
   const probe: Probe = new Probe();
   probe._id = (data.id ?? ObjectID.generate()).toString();
@@ -89,7 +90,9 @@ function buildProbe(data: {
   if (data.lastAlive) {
     probe.lastAlive = data.lastAlive;
   }
-  probe.probeVersion = new Version(data.version ?? "1.0.2");
+  if (data.version !== null) {
+    probe.probeVersion = new Version(data.version ?? "1.0.2");
+  }
   return probe;
 }
 
@@ -314,11 +317,25 @@ describe("query_probes", () => {
           id: GLOBAL_PROBE_ID,
           name: "Global US",
           lastAlive: OneUptimeDate.getSomeMinutesAgo(10),
+          version: null,
         }),
       ] as never);
     const countBySpy: jest.SpyInstance = mockMonitorCounts();
 
     const result: ToolExecutionResult = await QueryProbesTool.execute({}, ctx);
+
+    // The table shows a project probe's version, and none for a global one.
+    const widgetRows: Array<JSONObject> = (
+      result.widget?.data as unknown as { rows: Array<JSONObject> }
+    ).rows;
+    expect(
+      widgetRows.map((row: JSONObject) => {
+        return [row["name"], row["probeVersion"]];
+      }),
+    ).toEqual([
+      ["EU probe", "3.0.1"],
+      ["Global US", undefined],
+    ]);
 
     expect(result.rowCount).toBe(2);
     expect(result.dataForLlm).toContain("EU probe");
@@ -341,6 +358,23 @@ describe("query_probes", () => {
     const secondCall: JSONObject = probesSpy.mock.calls[1]?.[0] as JSONObject;
     expect(secondCall["query"]).toEqual({ isGlobalProbe: true });
     expect((secondCall["props"] as JSONObject)["isRoot"]).toBe(true);
+
+    /*
+     * A project's own probes, read as the caller, carry their version. The
+     * global ones, read as OneUptime, carry what the global-probes route
+     * serves every signed-in user: never a key or a version.
+     */
+    expect(firstCall["select"]).toEqual(
+      expect.objectContaining({ probeVersion: true }),
+    );
+    expect(secondCall["select"]).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      lastAlive: true,
+      connectionStatus: true,
+    });
+    expect(Object.keys(firstCall["select"] as JSONObject)).not.toContain("key");
 
     /*
      * Monitor counts are tenant-scoped: the user's props AND an explicit

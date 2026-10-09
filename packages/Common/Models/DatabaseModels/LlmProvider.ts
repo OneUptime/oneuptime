@@ -430,11 +430,12 @@ export default class LlmProvider extends BaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: true,
+    computed: true,
     required: true,
     type: TableColumnType.Boolean,
     title: "Has Additional Parameters",
     description:
-      "Whether Additional Parameters are saved. Set from the parameters themselves; a value sent for it is refused.",
+      "Whether Additional Parameters are saved. OneUptime sets it from the parameters themselves.",
     defaultValue: false,
   })
   @Column({

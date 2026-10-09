@@ -27462,5 +27462,7 @@
   "Reverse-DNS name": "نام DNS معکوس",
   "SNMP system name": "نام سیستمی SNMP",
   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "نام رایانهٔ Windows که این میزبان از طریق NetBIOS دربارهٔ خودش اعلام کرده است. نام خود میزبان بر نام DNS معکوس آن مقدم است.",
-  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "نام هر دستگاهی که از این اسکن وارد می‌شود. میزبان ابتدا با نام خودش نام‌گذاری می‌شود: نامی که از طریق SNMP اعلام می‌کند، سپس نام NetBIOS که یک میزبان Windows اعلام می‌کند، اگر اسکن آن را جست‌وجو کند. پس از آن با نام DNS معکوس و در پایان با نشانی آن."
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "نام هر دستگاهی که از این اسکن وارد می‌شود. میزبان ابتدا با نام خودش نام‌گذاری می‌شود: نامی که از طریق SNMP اعلام می‌کند، سپس نام NetBIOS که یک میزبان Windows اعلام می‌کند، اگر اسکن آن را جست‌وجو کند. پس از آن با نام DNS معکوس و در پایان با نشانی آن.",
+  "Has Additional Parameters": "پارامترهای اضافی دارد",
+  "Only project owners and admins can read them, like the API key.": "مانند کلید API، فقط مالکان و مدیران پروژه می‌توانند آن‌ها را بخوانند."
 }

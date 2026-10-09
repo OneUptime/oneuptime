@@ -27462,5 +27462,7 @@
   "Reverse-DNS name": "Reverse-DNS-Name",
   "SNMP system name": "SNMP-Systemname",
   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "Der Windows-Computername, den dieser Host über NetBIOS für sich selbst gemeldet hat. Der eigene Name eines Hosts hat Vorrang vor seinem Reverse-DNS-Namen.",
-  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "Wie jedes aus diesem Scan importierte Gerät benannt wird. Ein Host wird zuerst nach seinem eigenen Namen benannt: nach dem Namen, den er über SNMP meldet, dann nach dem NetBIOS-Namen, den ein Windows-Host meldet, falls der Scan einen abfragt. Danach nach seinem Reverse-DNS-Namen und schließlich nach seiner Adresse."
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "Wie jedes aus diesem Scan importierte Gerät benannt wird. Ein Host wird zuerst nach seinem eigenen Namen benannt: nach dem Namen, den er über SNMP meldet, dann nach dem NetBIOS-Namen, den ein Windows-Host meldet, falls der Scan einen abfragt. Danach nach seinem Reverse-DNS-Namen und schließlich nach seiner Adresse.",
+  "Has Additional Parameters": "Hat zusätzliche Parameter",
+  "Only project owners and admins can read them, like the API key.": "Wie den API-Schlüssel können nur Projekteigentümer und Administratoren sie lesen."
 }

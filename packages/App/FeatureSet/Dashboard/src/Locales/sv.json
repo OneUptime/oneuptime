@@ -27462,5 +27462,7 @@
   "Reverse-DNS name": "Omvänt DNS-namn",
   "SNMP system name": "SNMP-systemnamn",
   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "Windows-datornamnet som den här värden själv uppgav via NetBIOS. En värds eget namn används före dess omvända DNS-namn.",
-  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "Vad varje enhet som importeras från den här skanningen heter. En värd namnges först efter sitt eget namn: namnet den uppger via SNMP, sedan NetBIOS-namnet som en Windows-värd uppger om skanningen slår upp ett. Därefter efter dess omvända DNS-namn och sist efter dess adress."
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "Vad varje enhet som importeras från den här skanningen heter. En värd namnges först efter sitt eget namn: namnet den uppger via SNMP, sedan NetBIOS-namnet som en Windows-värd uppger om skanningen slår upp ett. Därefter efter dess omvända DNS-namn och sist efter dess adress.",
+  "Has Additional Parameters": "Har ytterligare parametrar",
+  "Only project owners and admins can read them, like the API key.": "Precis som API-nyckeln kan bara projektägare och projektadministratörer läsa dem."
 }

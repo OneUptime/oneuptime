@@ -721,15 +721,9 @@ describe("DatabaseService's login check honours Permission.Public per request ty
       const reseller: Reseller = new Reseller();
 
       expect(reseller.readRecordPermissions).toContain(Permission.Public);
-      expect(reseller.createRecordPermissions).not.toContain(
-        Permission.Public,
-      );
-      expect(reseller.updateRecordPermissions).not.toContain(
-        Permission.Public,
-      );
-      expect(reseller.deleteRecordPermissions).not.toContain(
-        Permission.Public,
-      );
+      expect(reseller.createRecordPermissions).not.toContain(Permission.Public);
+      expect(reseller.updateRecordPermissions).not.toContain(Permission.Public);
+      expect(reseller.deleteRecordPermissions).not.toContain(Permission.Public);
     });
 
     ["findBy", "findOneBy", "findOneById"].forEach(

@@ -27462,5 +27462,7 @@
   "Reverse-DNS name": "逆引き DNS 名",
   "SNMP system name": "SNMP システム名",
   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "このホストが NetBIOS で自身について報告した Windows のコンピューター名です。ホスト自身の名前は逆引き DNS 名より優先されます。",
-  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "このスキャンからインポートした各デバイスの呼び名。ホストはまず自身の名前で命名されます。SNMP で報告する名前、次にスキャンで照会した場合は Windows ホストが報告する NetBIOS 名です。その次は逆引き DNS 名、最後にアドレスです。"
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "このスキャンからインポートした各デバイスの呼び名。ホストはまず自身の名前で命名されます。SNMP で報告する名前、次にスキャンで照会した場合は Windows ホストが報告する NetBIOS 名です。その次は逆引き DNS 名、最後にアドレスです。",
+  "Has Additional Parameters": "追加パラメーターあり",
+  "Only project owners and admins can read them, like the API key.": "API キーと同じく、読み取れるのはプロジェクトのオーナーと管理者だけです。"
 }

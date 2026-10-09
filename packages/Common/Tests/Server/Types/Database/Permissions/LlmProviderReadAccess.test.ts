@@ -437,9 +437,11 @@ describe("LlmProvider - changing it through the permission layer", () => {
     },
   );
 
-  test.each(OTHER_READERS.filter((permission: Permission): boolean => {
-    return !WRITERS.includes(permission);
-  }))(
+  test.each(
+    OTHER_READERS.filter((permission: Permission): boolean => {
+      return !WRITERS.includes(permission);
+    }),
+  )(
     "a member holding only %s may not change the provider at all",
     async (permission: Permission) => {
       expect(
@@ -452,27 +454,25 @@ describe("LlmProvider - changing it through the permission layer", () => {
     },
   );
 
-  test("a create that names whether parameters are saved is refused, even for an owner", () => {
+  /*
+   * OneUptime computes it, so a create carrying it (an export taken by an
+   * owner, say) is not refused for it: LlmProviderService replaces the value
+   * with what the parameters say once the create has passed its checks
+   * (LlmProviderServiceAdditionalParams.test.ts runs that through the write
+   * pipeline).
+   */
+  test("a create that names whether parameters are saved is not refused for it", () => {
     const provider: LlmProvider = new LlmProvider();
     provider.name = "Provider";
     provider.hasAdditionalParams = true;
 
-    let thrown: unknown = undefined;
-
-    try {
+    expect(() => {
       ModelPermission.checkCreatePermissions(
         LlmProvider,
         provider,
-        member({ permissions: [Permission.ProjectOwner] }),
+        member({ permissions: [Permission.SettingsMember] }),
       );
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(ColumnWriteRefusedException);
-    expect((thrown as ColumnWriteRefusedException).columnName).toBe(
-      "hasAdditionalParams",
-    );
+    }).not.toThrow();
   });
 
   test("a create with Additional Parameters is allowed for a member who may create providers", () => {

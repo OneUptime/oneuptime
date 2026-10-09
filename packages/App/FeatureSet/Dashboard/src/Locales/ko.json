@@ -27462,5 +27462,7 @@
   "Reverse-DNS name": "역방향 DNS 이름",
   "SNMP system name": "SNMP 시스템 이름",
   "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "이 호스트가 NetBIOS로 스스로 보고한 Windows 컴퓨터 이름입니다. 호스트 자체 이름은 역방향 DNS 이름보다 우선합니다.",
-  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "이 스캔에서 가져온 각 디바이스의 이름입니다. 호스트는 먼저 자체 이름으로 지정됩니다. SNMP로 보고하는 이름, 그다음 스캔이 조회하는 경우 Windows 호스트가 보고하는 NetBIOS 이름입니다. 그다음은 역방향 DNS 이름, 마지막은 주소입니다."
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "이 스캔에서 가져온 각 디바이스의 이름입니다. 호스트는 먼저 자체 이름으로 지정됩니다. SNMP로 보고하는 이름, 그다음 스캔이 조회하는 경우 Windows 호스트가 보고하는 NetBIOS 이름입니다. 그다음은 역방향 DNS 이름, 마지막은 주소입니다.",
+  "Has Additional Parameters": "추가 매개변수 있음",
+  "Only project owners and admins can read them, like the API key.": "API 키와 마찬가지로 프로젝트 소유자와 관리자만 읽을 수 있습니다."
 }
