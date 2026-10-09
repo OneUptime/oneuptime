@@ -126,7 +126,11 @@ export default class NtpMonitorUtil {
   }
 
   public static isKnownKissCode(code: string | undefined): boolean {
-    return Boolean(code && KISS_CODE_DESCRIPTIONS[code]);
+    // Own keys only: "constructor" is on every object, not a kiss code.
+    return Boolean(
+      code &&
+        Object.prototype.hasOwnProperty.call(KISS_CODE_DESCRIPTIONS, code),
+    );
   }
 
   // "the server is rate-limiting this probe ..." for RATE, and so on.
@@ -135,10 +139,11 @@ export default class NtpMonitorUtil {
       return "the server answered without the time";
     }
 
-    return (
-      KISS_CODE_DESCRIPTIONS[code] ||
-      `the server answered with the kiss code ${code} instead of the time`
-    );
+    if (NtpMonitorUtil.isKnownKissCode(code)) {
+      return KISS_CODE_DESCRIPTIONS[code]!;
+    }
+
+    return `the server answered with the kiss code ${code} instead of the time`;
   }
 
   public static describeLeapIndicator(

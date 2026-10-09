@@ -171,7 +171,11 @@ describe("NtpMonitor.query against a healthy server", () => {
     const request: Buffer = server!.requests[0]!;
     expect(request.length).toBe(48);
     expect(request[0]).toBe(0x23);
-    expect(request.subarray(40, 48).every((b: number) => b === 0)).toBe(false);
+    expect(
+      request.subarray(40, 48).every((b: number) => {
+        return b === 0;
+      }),
+    ).toBe(false);
   });
 
   test("measures a server 250 ms ahead as about +250 ms", async () => {
@@ -310,6 +314,14 @@ describe("NtpMonitor.query when nothing answers", () => {
     expect(response!.failureCause).toBe(
       `No NTP reply from 127.0.0.1:${server!.port} within 0.3 seconds. Tried 3 times.`,
     );
+    // The root cause's "Request Failed Details" read these.
+    expect(response!.requestFailedDetails).toMatchObject({
+      failedPhase: RequestFailedPhase.RequestTimeout,
+      errorCode: "TIMEOUT",
+    });
+    expect(response!.requestFailedDetails!.errorDescription).toContain(
+      "UDP port 123",
+    );
     expect(attemptNumbers(response)).toEqual([1, 2, 3]);
     expect(server!.requests).toHaveLength(3);
     // A fresh request, with a fresh nonce, every attempt.
@@ -377,6 +389,10 @@ describe("NtpMonitor.query when nothing answers", () => {
     expect(response!.failureCause).toBe(
       `127.0.0.1:${port} refused the request: nothing is listening for NTP on UDP port ${port} there (ICMP port unreachable).`,
     );
+    expect(response!.requestFailedDetails).toMatchObject({
+      failedPhase: RequestFailedPhase.NetworkError,
+      errorCode: "ECONNREFUSED",
+    });
   });
 
   test("a probe that has lost its own network reports nothing rather than blame the server", async () => {
@@ -515,6 +531,10 @@ describe("NtpMonitor.query with a host name", () => {
     expect(response!.failureCause).toBe(
       "Could not resolve no-such-host.invalid (ENOTFOUND). Tried 2 times.",
     );
+    expect(response!.requestFailedDetails).toMatchObject({
+      failedPhase: RequestFailedPhase.DNSResolution,
+      errorCode: "ENOTFOUND",
+    });
     expect(lookupSpy).toHaveBeenCalledTimes(2);
   });
 
@@ -536,6 +556,10 @@ describe("NtpMonitor.query with a host name", () => {
     expect(response!.failureCause).toBe(
       "Looking up slow.example.com did not finish within 0.2 seconds.",
     );
+    expect(response!.requestFailedDetails).toMatchObject({
+      failedPhase: RequestFailedPhase.DNSResolution,
+      errorCode: "TIMEOUT",
+    });
   });
 
   test("an IPv6 address this probe cannot send to falls back to the name's IPv4 address", async () => {
@@ -668,9 +692,9 @@ describe("NtpMonitor.getTarget", () => {
   });
 
   test("drops the brackets of an IPv6 literal", () => {
-    expect(
-      NtpMonitor.getTarget({ host: new IPv6("2001:db8::1") }).host,
-    ).toBe("2001:db8::1");
+    expect(NtpMonitor.getTarget({ host: new IPv6("2001:db8::1") }).host).toBe(
+      "2001:db8::1",
+    );
     expect(
       NtpMonitor.getTarget({
         host: Hostname.fromAuthority("[2001:db8::1]:123"),

@@ -1291,7 +1291,8 @@ export default class MonitorMetricUtil {
         {
           metricName: MonitorMetricType.NtpIsSynchronized,
           value: ntpResponse.isSynchronized ? 1 : 0,
-          description: CheckOn.NtpIsSynchronized + " status of this time server",
+          description:
+            CheckOn.NtpIsSynchronized + " status of this time server",
           unit: "",
         },
         {

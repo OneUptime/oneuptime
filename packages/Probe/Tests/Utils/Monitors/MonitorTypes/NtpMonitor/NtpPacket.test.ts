@@ -120,7 +120,11 @@ describe("NtpPacket", () => {
       expect(request[0]).toBe(0x23);
       expect(request.subarray(40, 48).equals(NONCE)).toBe(true);
       // Everything else is zero: stratum, poll, delays, the other timestamps.
-      expect(request.subarray(1, 40).every((b: number) => b === 0)).toBe(true);
+      expect(
+        request.subarray(1, 40).every((b: number) => {
+          return b === 0;
+        }),
+      ).toBe(true);
     });
 
     test("parses as a client packet in version 4", () => {
@@ -385,7 +389,10 @@ describe("NtpPacket", () => {
       );
 
       expect(CAPTURED_NTP_REPLIES[3]!.server).toBe("tick.jrc.us");
-      expect(reply.rootDispersionInMs).toBeCloseTo((0x00082d02 / 65536) * 1000, 6);
+      expect(reply.rootDispersionInMs).toBeCloseTo(
+        (0x00082d02 / 65536) * 1000,
+        6,
+      );
       expect(reply.rootDelayInMs).toBeCloseTo((0x0000022a / 65536) * 1000, 6);
     });
   });
@@ -737,18 +744,18 @@ describe("NtpPacket", () => {
     );
 
     test("from stratum 2 it is the upstream address, even if its bytes are printable", () => {
-      expect(
-        NtpPacket.decodeReferenceId(Buffer.from([192, 0, 2, 1]), 2),
-      ).toBe("192.0.2.1");
+      expect(NtpPacket.decodeReferenceId(Buffer.from([192, 0, 2, 1]), 2)).toBe(
+        "192.0.2.1",
+      );
       expect(NtpPacket.decodeReferenceId(Buffer.from("ABCD"), 3)).toBe(
         "65.66.67.68",
       );
     });
 
     test("a stratum 1 id that is not text is shown as an address", () => {
-      expect(
-        NtpPacket.decodeReferenceId(Buffer.from([10, 0, 0, 1]), 1),
-      ).toBe("10.0.0.1");
+      expect(NtpPacket.decodeReferenceId(Buffer.from([10, 0, 0, 1]), 1)).toBe(
+        "10.0.0.1",
+      );
       expect(
         NtpPacket.decodeReferenceId(Buffer.from([0x47, 0x00, 0x50, 0x53]), 1),
       ).toBe("71.0.80.83");
@@ -760,9 +767,7 @@ describe("NtpPacket", () => {
     });
 
     test("ASCII ids are trimmed of their NUL padding and spaces", () => {
-      expect(NtpPacket.decodeAscii(Buffer.from("GPS\0", "binary"))).toBe(
-        "GPS",
-      );
+      expect(NtpPacket.decodeAscii(Buffer.from("GPS\0", "binary"))).toBe("GPS");
       expect(NtpPacket.decodeAscii(Buffer.from(" PP\0", "binary"))).toBe("PP");
       expect(NtpPacket.decodeAscii(Buffer.from("\0\0\0\0", "binary"))).toBe(
         undefined,

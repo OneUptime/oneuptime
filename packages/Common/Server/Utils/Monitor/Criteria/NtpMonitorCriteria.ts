@@ -201,7 +201,7 @@ export default class NtpMonitorCriteria {
         const responseTime: number | Array<number> | undefined =
           (overTimeValue as Array<number> | number | undefined) ??
           (isAnswered
-            ? (ntpResponse?.responseTimeInMs ?? probeResponse.responseTimeInMs)
+            ? ntpResponse?.responseTimeInMs ?? probeResponse.responseTimeInMs
             : undefined);
 
         return NtpMonitorCriteria.compareNumber({

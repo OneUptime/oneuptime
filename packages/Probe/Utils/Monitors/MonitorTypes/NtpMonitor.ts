@@ -276,7 +276,9 @@ export default class NtpMonitor {
 
     if (!port) {
       port =
-        data.port instanceof Port ? data.port.toNumber() : data.port || undefined;
+        data.port instanceof Port
+          ? data.port.toNumber()
+          : data.port || undefined;
     }
 
     return {

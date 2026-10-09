@@ -1502,7 +1502,8 @@ return {
 
                   setErrors({
                     ...errors,
-                    ntpPort: trimmed && !isValidPort ? NTP_PORT_FIELD_ERROR : "",
+                    ntpPort:
+                      trimmed && !isValidPort ? NTP_PORT_FIELD_ERROR : "",
                   });
 
                   monitorStep.setPort(

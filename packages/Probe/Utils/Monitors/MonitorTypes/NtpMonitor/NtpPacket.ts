@@ -384,8 +384,7 @@ export default class NtpPacket {
     const fractionOfSecond: number = (unixMs - wholeSeconds * 1000) / 1000;
 
     const seconds: number =
-      (((wholeSeconds + NTP_TO_UNIX_EPOCH_SECONDS) % TWO_POW_32) +
-        TWO_POW_32) %
+      (((wholeSeconds + NTP_TO_UNIX_EPOCH_SECONDS) % TWO_POW_32) + TWO_POW_32) %
       TWO_POW_32;
 
     const fraction: number = Math.min(
