@@ -60,8 +60,11 @@ export default class IncidentAIContextBuilder {
           color: true,
         },
         monitors: {
+          _id: true,
           name: true,
         },
+        // For the affected network device's transceivers (NetworkTransceiverContext).
+        seriesLabels: true,
         serviceLevelObjectives: {
           name: true,
         },
