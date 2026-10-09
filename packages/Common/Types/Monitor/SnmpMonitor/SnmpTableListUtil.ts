@@ -55,6 +55,17 @@ export const MAX_HEALTHY_VALUES_PER_COLUMN: number = 20;
 export const MAX_UNIT_LENGTH: number = 20;
 
 /*
+ * Bounds on a column's numeric adjustment (scale, offset). Vendors need a
+ * half (dBm stored doubled), a tenth, a sign flip or an offset of 256; the
+ * bounds only stop a number that would make every value meaningless.
+ */
+export const MAX_COLUMN_SCALE_MAGNITUDE: number = 1000000;
+export const MAX_COLUMN_OFFSET_MAGNITUDE: number = 1000000;
+
+// Adjusted numbers keep this many decimals: 0.1 x 155 is 15.5, not 15.500000000000002.
+const ADJUSTED_NUMBER_PRECISION: number = 1000000;
+
+/*
  * What one device's stored snapshot may hold in total. The snapshot is a
  * jsonb column on the device row and rewritten on every successful walk, so
  * it is bounded by cells rather than by rows: ten rows of twenty columns and
@@ -206,7 +217,12 @@ export default class SnmpTableListUtil {
       }
 
       seenColumnOids.add(oid);
-      columns.push(SnmpTableListUtil.sanitizeColumn(column, oid));
+      columns.push(
+        SnmpTableListUtil.sanitizeColumn(column, oid, {
+          label: label,
+          tableName: name,
+        }),
+      );
     }
 
     if (columns.length === 0) {
@@ -271,6 +287,9 @@ export default class SnmpTableListUtil {
       ...(rowLabelColumnOids.length > 0
         ? { rowLabelColumnOids: rowLabelColumnOids }
         : {}),
+      // Only ever true: an absent flag and a false one mean the same.
+      ...(table.rowIndexIsText === true ? { rowIndexIsText: true } : {}),
+      ...(table.skipNameOnlyRows === true ? { skipNameOnlyRows: true } : {}),
       columns: columns,
       ...(maxRows === undefined ? {} : { maxRows: maxRows }),
     };
@@ -279,6 +298,7 @@ export default class SnmpTableListUtil {
   private static sanitizeColumn(
     column: SnmpTableColumn,
     oid: string,
+    context: { label: string; tableName: string },
   ): SnmpTableColumn {
     const sanitized: SnmpTableColumn = {
       oid: oid,
@@ -352,7 +372,94 @@ export default class SnmpTableListUtil {
       }
     }
 
+    /*
+     * A no-op adjustment (scale 1, offset 0) is dropped, so a definition
+     * that says nothing extra stores nothing extra.
+     */
+    const scale: number | undefined = SnmpTableListUtil.parseAdjustment({
+      value: column.scale,
+      maxMagnitude: MAX_COLUMN_SCALE_MAGNITUDE,
+      allowZero: false,
+      what: `${context.label}: the scale of column "${sanitized.name}" in table "${context.tableName}"`,
+    });
+
+    if (scale !== undefined && scale !== 1) {
+      sanitized.scale = scale;
+    }
+
+    const offset: number | undefined = SnmpTableListUtil.parseAdjustment({
+      value: column.offset,
+      maxMagnitude: MAX_COLUMN_OFFSET_MAGNITUDE,
+      allowZero: true,
+      what: `${context.label}: the offset of column "${sanitized.name}" in table "${context.tableName}"`,
+    });
+
+    if (offset !== undefined && offset !== 0) {
+      sanitized.offset = offset;
+    }
+
     return sanitized;
+  }
+
+  /*
+   * A scale or offset as a finite number within bounds, or undefined when
+   * none is set. Anything else is refused: a scale that cannot be read
+   * would quietly turn every value of the column into nonsense.
+   */
+  private static parseAdjustment(data: {
+    value: number | string | undefined | null;
+    maxMagnitude: number;
+    allowZero: boolean;
+    what: string;
+  }): number | undefined {
+    if (data.value === undefined || data.value === null || data.value === "") {
+      return undefined;
+    }
+
+    const parsed: number = Number(data.value);
+
+    if (
+      !Number.isFinite(parsed) ||
+      Math.abs(parsed) > data.maxMagnitude ||
+      (!data.allowZero && parsed === 0)
+    ) {
+      throw new BadDataException(
+        `${data.what} must be a number${data.allowZero ? "" : " other than 0"} between -${data.maxMagnitude} and ${data.maxMagnitude}.`,
+      );
+    }
+
+    return parsed;
+  }
+
+  // Whether a column adjusts the numbers it reads.
+  public static hasAdjustment(column: SnmpTableColumn): boolean {
+    return (
+      (typeof column.scale === "number" &&
+        Number.isFinite(column.scale) &&
+        column.scale !== 1) ||
+      (typeof column.offset === "number" &&
+        Number.isFinite(column.offset) &&
+        column.offset !== 0)
+    );
+  }
+
+  // A number read by a column, put into the column's unit (see SnmpTableColumn.scale).
+  public static adjustNumber(value: number, column: SnmpTableColumn): number {
+    const scale: number =
+      typeof column.scale === "number" && Number.isFinite(column.scale)
+        ? column.scale
+        : 1;
+    const offset: number =
+      typeof column.offset === "number" && Number.isFinite(column.offset)
+        ? column.offset
+        : 0;
+
+    const adjusted: number =
+      Math.round((value * scale + offset) * ADJUSTED_NUMBER_PRECISION) /
+      ADJUSTED_NUMBER_PRECISION;
+
+    // -0 reads as "0" everywhere, but compares oddly; say 0.
+    return adjusted === 0 ? 0 : adjusted;
   }
 
   private static parseMaxRows(
@@ -521,18 +628,32 @@ export default class SnmpTableListUtil {
       raw === undefined || raw === null ? null : raw;
     const rawText: string = value === null ? "" : String(value);
 
+    const parsed: number | undefined = SnmpTableListUtil.parseNumericValue(
+      value,
+      column.valueType,
+    );
+
+    const isAdjusted: boolean =
+      parsed !== undefined && SnmpTableListUtil.hasAdjustment(column);
+
+    const numeric: number | undefined =
+      parsed !== undefined && isAdjusted
+        ? SnmpTableListUtil.adjustNumber(parsed, column)
+        : parsed;
+
+    /*
+     * A value label wins; otherwise an adjusted number is shown as the
+     * number it stands for (-94, not the 94 the agent sent), and anything
+     * else as it came.
+     */
     const display: string =
-      (rawText && column.valueLabels?.[rawText.trim()]) || rawText;
+      (rawText && column.valueLabels?.[rawText.trim()]) ||
+      (isAdjusted && numeric !== undefined ? String(numeric) : rawText);
 
     const cell: SnmpTableSnapshotCell = {
       raw: value,
       display: display,
     };
-
-    const numeric: number | undefined = SnmpTableListUtil.parseNumericValue(
-      value,
-      column.valueType,
-    );
 
     if (numeric !== undefined) {
       cell.numeric = numeric;
@@ -582,12 +703,40 @@ export default class SnmpTableListUtil {
         columnsByOid.set(SnmpOidListUtil.normalizeOid(column.oid), column);
       }
 
-      const rows: Array<SnmpTableSnapshotRow> = (result.rows || [])
-        .filter((row: SnmpTableResultRow) => {
+      const resultRows: Array<SnmpTableResultRow> = (result.rows || []).filter(
+        (row: SnmpTableResultRow) => {
           return Boolean(row && typeof row.index === "string" && row.index);
+        },
+      );
+
+      const valuesByIndex: Map<
+        string,
+        Record<string, string | number | null>
+      > = new Map();
+
+      for (const row of resultRows) {
+        valuesByIndex.set(row.index, row.values || {});
+      }
+
+      /*
+       * In a table whose name columns name more than it has (see
+       * SnmpTableDefinition.skipNameOnlyRows), the rows that hold nothing
+       * but a name are left out - after they have named their children.
+       */
+      const rows: Array<SnmpTableSnapshotRow> = resultRows
+        .filter((row: SnmpTableResultRow) => {
+          return (
+            !table.skipNameOnlyRows ||
+            SnmpTableListUtil.holdsOwnValue(row, columnsByOid)
+          );
         })
         .map((row: SnmpTableResultRow) => {
-          return SnmpTableListUtil.buildRow(table, columnsByOid, row);
+          return SnmpTableListUtil.buildRow(
+            table,
+            columnsByOid,
+            row,
+            valuesByIndex,
+          );
         })
         .sort((a: SnmpTableSnapshotRow, b: SnmpTableSnapshotRow) => {
           return SnmpTableListUtil.compareRowIndexes(a.index, b.index);
@@ -636,6 +785,7 @@ export default class SnmpTableListUtil {
     table: SnmpTableDefinition,
     columnsByOid: Map<string, SnmpTableColumn>,
     row: SnmpTableResultRow,
+    valuesByIndex: Map<string, Record<string, string | number | null>>,
   ): SnmpTableSnapshotRow {
     const values: Record<string, string | number | null> = row.values || {};
 
@@ -651,7 +801,14 @@ export default class SnmpTableListUtil {
       const normalized: string = SnmpOidListUtil.normalizeOid(labelOid);
       const labelColumn: SnmpTableColumn | undefined =
         columnsByOid.get(normalized);
-      const raw: string | number | null | undefined = values[normalized];
+      const raw: string | number | null | undefined =
+        values[normalized] !== undefined
+          ? values[normalized]
+          : SnmpTableListUtil.findParentValue(
+              row.index,
+              normalized,
+              valuesByIndex,
+            );
 
       const text: string = labelColumn
         ? SnmpTableListUtil.buildCell(labelColumn, raw).display
@@ -664,11 +821,106 @@ export default class SnmpTableListUtil {
       }
     }
 
+    const indexText: string | undefined =
+      labelParts.length === 0 && table.rowIndexIsText
+        ? SnmpTableListUtil.decodeTextIndex(row.index)
+        : undefined;
+
     return {
       index: row.index,
-      label: labelParts.join(ROW_LABEL_SEPARATOR) || row.index,
+      label: labelParts.join(ROW_LABEL_SEPARATOR) || indexText || row.index,
       cells: cells,
     };
+  }
+
+  // Whether a walked row holds a value of one of the table's own columns.
+  private static holdsOwnValue(
+    row: SnmpTableResultRow,
+    columnsByOid: Map<string, SnmpTableColumn>,
+  ): boolean {
+    const values: Record<string, string | number | null> = row.values || {};
+
+    return Object.keys(values).some((oid: string) => {
+      return (
+        columnsByOid.has(SnmpOidListUtil.normalizeOid(oid)) &&
+        values[oid] !== undefined &&
+        values[oid] !== null
+      );
+    });
+  }
+
+  // A name column's value at the nearest parent row, longest prefix first.
+  private static findParentValue(
+    index: string,
+    oid: string,
+    valuesByIndex: Map<string, Record<string, string | number | null>>,
+  ): string | number | null | undefined {
+    const arcs: Array<string> = index.split(".");
+
+    for (let length: number = arcs.length - 1; length >= 1; length--) {
+      const parent: Record<string, string | number | null> | undefined =
+        valuesByIndex.get(arcs.slice(0, length).join("."));
+
+      if (parent && parent[oid] !== undefined) {
+        return parent[oid];
+      }
+    }
+
+    return undefined;
+  }
+
+  /*
+   * An index that is a string in SNMP's encoding - its length, then one arc
+   * per byte, read as UTF-8 - as its text: "4.67.111.114.112" is "Corp".
+   * Undefined for anything else (a length that does not match, a control
+   * character, bytes that are not UTF-8), so the row keeps its index.
+   */
+  public static decodeTextIndex(index: string): string | undefined {
+    const arcs: Array<number> = index.split(".").map((arc: string) => {
+      return Number(arc);
+    });
+
+    const length: number | undefined = arcs[0];
+
+    if (
+      arcs.length < 2 ||
+      length === undefined ||
+      length !== arcs.length - 1 ||
+      arcs.some((arc: number) => {
+        return !Number.isInteger(arc) || arc < 0;
+      })
+    ) {
+      return undefined;
+    }
+
+    const bytes: Array<number> = arcs.slice(1);
+
+    if (
+      bytes.some((byte: number) => {
+        return byte > 255 || byte < 32 || byte === 127;
+      })
+    ) {
+      return undefined;
+    }
+
+    /*
+     * decodeURIComponent reads percent-encoded bytes as UTF-8 and refuses
+     * invalid sequences, in Node and in browsers alike - no TextDecoder,
+     * which some test environments lack.
+     */
+    try {
+      const text: string = decodeURIComponent(
+        bytes
+          .map((byte: number) => {
+            return `%${byte.toString(16).padStart(2, "0")}`;
+          })
+          .join(""),
+      );
+
+      return text.trim() ? text : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   // Row indexes compare arc by arc, numerically: "2" before "10", "1.9" before "1.10".

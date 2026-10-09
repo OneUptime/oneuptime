@@ -78,6 +78,7 @@ import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
+import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -323,10 +324,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const config: DashboardViewConfig = JSONFunctions.deserializeValue(
-        dashboard.dashboardViewConfig ||
-          DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
-      ) as DashboardViewConfig;
+      /*
+       * Whatever shape the config was stored in - the API reference's
+       * envelope, JSON text, no widget list, widgets without arguments - is
+       * read into the one the board draws (issue #4571: the stored config
+       * had no `components` and the board never opened).
+       */
+      const config: DashboardViewConfig = StoredDashboardViewConfig.read(
+        dashboard.dashboardViewConfig,
+      );
 
       setDashboardViewConfig(config);
       setDashboardName(
@@ -544,6 +550,21 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     }
     startEditing();
     setIsAddWidgetModalOpen(true);
+  };
+
+  /*
+   * A widget that cannot be drawn offers Edit widget (DashboardWidgetFallback):
+   * edit mode with that widget's settings open, where it can be fixed or
+   * deleted. Handed to the canvas only for someone who may edit the board.
+   */
+  const editWidget: (componentId: ObjectID) => void = (
+    componentId: ObjectID,
+  ): void => {
+    if (!canEditDashboard) {
+      return;
+    }
+    startEditing();
+    setSelectedComponentId(componentId);
   };
 
   if (error) {
@@ -1054,6 +1075,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
           isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
           onAddWidgetClick={canEditDashboard ? startWithFirstWidget : undefined}
+          onEditWidgetClick={canEditDashboard ? editWidget : undefined}
         />
       </div>
     </div>

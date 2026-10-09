@@ -64,10 +64,38 @@ export interface ComponentProps {
    * someone who may edit the dashboard.
    */
   onAddWidgetClick?: (() => void) | undefined;
+  /*
+   * Opens one widget's settings in edit mode: the Edit widget a widget that
+   * cannot be drawn offers in view mode (DashboardWidgetFallback). Handed in
+   * only to someone who may edit the dashboard.
+   */
+  onEditWidgetClick?: ((componentId: ObjectID) => void) | undefined;
 }
 
 /** Extra empty rows kept below the lowest widget while editing. */
 const EDIT_MODE_BUFFER_ROWS: number = 4;
+
+/*
+ * The board's widgets when its config holds no list of them. One constant,
+ * so the memos keyed on the list do not recompute on every render.
+ */
+const NO_COMPONENTS: Array<DashboardBaseComponent> = [];
+
+/*
+ * The widget list the board draws. Loaders read the stored config through
+ * StoredDashboardViewConfig, which always gives a list; this keeps the canvas
+ * itself from ever reading a list off a config that has none - the line that
+ * threw "Cannot read properties of undefined (reading 'length')" in #4571.
+ */
+export function getCanvasComponents(
+  dashboardViewConfig: DashboardViewConfig | null | undefined,
+): Array<DashboardBaseComponent> {
+  const components: unknown = dashboardViewConfig?.components;
+
+  return Array.isArray(components)
+    ? (components as Array<DashboardBaseComponent>)
+    : NO_COMPONENTS;
+}
 
 /** Minimum rows the edit canvas shows, so an empty-ish board has room. */
 const EDIT_MODE_MIN_ROWS: number = 12;
@@ -77,6 +105,10 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const gap: number = SpaceBetweenUnitsInPx;
   const columns: number = DefaultDashboardSize.widthInDashboardUnits;
+
+  const components: Array<DashboardBaseComponent> = getCanvasComponents(
+    props.dashboardViewConfig,
+  );
 
   /*
    * The positioner is the absolutely-positioned coordinate space widgets
@@ -108,7 +140,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     return () => {
       observer.disconnect();
     };
-  }, [props.dashboardViewConfig.components.length === 0]);
+  }, [components.length === 0]);
 
   const unitSizeInPx: number = Math.max(
     (measuredWidthInPx - (columns - 1) * gap) / columns,
@@ -121,9 +153,6 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     return units * unitSizeInPx + (units - 1) * gap;
   };
 
-  const components: Array<DashboardBaseComponent> =
-    props.dashboardViewConfig.components;
-
   const committedRects: Array<GridRect> = useMemo(() => {
     return GridLayoutUtil.fromDashboardComponents(components);
   }, [components]);
@@ -131,10 +160,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   const handleCommit: (rects: Array<GridRect>) => void = useCallback(
     (rects: Array<GridRect>): void => {
       const updatedComponents: Array<DashboardBaseComponent> =
-        GridLayoutUtil.applyRectsToComponents(
-          props.dashboardViewConfig.components,
-          rects,
-        );
+        GridLayoutUtil.applyRectsToComponents(components, rects);
 
       props.onDashboardViewConfigChange({
         ...props.dashboardViewConfig,
@@ -142,7 +168,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         heightInDashboardUnits: Math.max(GridLayoutUtil.requiredRows(rects), 1),
       });
     },
-    [props.dashboardViewConfig, props.onDashboardViewConfigChange],
+    [props.dashboardViewConfig, components, props.onDashboardViewConfigChange],
   );
 
   const handleItemClick: (id: string) => void = useCallback(
@@ -193,19 +219,18 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
   const updateComponent: UpdateComponentFunction = (
     updatedComponent: DashboardBaseComponent,
   ): void => {
-    const updatedComponents: Array<DashboardBaseComponent> =
-      props.dashboardViewConfig.components.map(
-        (component: DashboardBaseComponent) => {
-          if (
-            component.componentId.toString() ===
-            updatedComponent.componentId.toString()
-          ) {
-            return { ...updatedComponent };
-          }
+    const updatedComponents: Array<DashboardBaseComponent> = components.map(
+      (component: DashboardBaseComponent) => {
+        if (
+          component.componentId.toString() ===
+          updatedComponent.componentId.toString()
+        ) {
+          return { ...updatedComponent };
+        }
 
-          return component;
-        },
-      );
+        return component;
+      },
+    );
 
     const updatedDashboardViewConfig: DashboardViewConfig =
       DashboardViewConfigUtil.normalizeLayout({
@@ -304,6 +329,13 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           ) => {
             dnd.startResize(id, direction, event);
           }}
+          onEditWidgetClick={
+            props.onEditWidgetClick
+              ? () => {
+                  props.onEditWidgetClick?.(componentId);
+                }
+              : undefined
+          }
         />
       </div>
     );
@@ -364,10 +396,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       );
     };
 
-  if (
-    !props.dashboardViewConfig ||
-    props.dashboardViewConfig.components.length === 0
-  ) {
+  if (components.length === 0) {
     return (
       <BlankCanvasElement
         isEditMode={props.isEditMode}
@@ -435,14 +464,12 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           }}
           onComponentDelete={() => {
             const updatedComponents: Array<DashboardBaseComponent> =
-              props.dashboardViewConfig.components.filter(
-                (c: DashboardBaseComponent) => {
-                  return (
-                    c.componentId.toString() !==
-                    props.selectedComponentId?.toString()
-                  );
-                },
-              );
+              components.filter((c: DashboardBaseComponent) => {
+                return (
+                  c.componentId.toString() !==
+                  props.selectedComponentId?.toString()
+                );
+              });
 
             const updatedDashboardViewConfig: DashboardViewConfig = {
               ...props.dashboardViewConfig,

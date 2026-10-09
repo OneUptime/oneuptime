@@ -222,6 +222,35 @@ export interface AIRunEventResultSummary {
    */
   citationLabel?: string | undefined;
   citationTarget?: AIChatCitationTarget | undefined;
+  /*
+   * What was left out of the incident's or alert's text before the model
+   * read it (ProgressLog events of autonomous investigations; see
+   * Common/Utils/AI/PromptText). The run's activity says so in the reader's
+   * language; `message` says the same in English.
+   */
+  promptOmissions?: AIPromptOmissions | undefined;
+}
+
+/*
+ * What a prompt left out of the text it was built from (see
+ * Common/Utils/AI/PromptText): the images and other data embedded in it -
+ * a synthetic monitor's screenshot in a description is hundreds of
+ * kilobytes of base64, which a model reads as noise and is billed for as
+ * text - and the end of a text longer than its field may take.
+ */
+export interface AIPromptOmissions {
+  // Images left out: data: URLs of images, and base64 whose bytes are one.
+  imageCount: number;
+  // Their size, in bytes.
+  imageBytes: number;
+  // Other encoded data left out: other data: URLs, long runs of base64.
+  encodedDataCount: number;
+  // Its size, in bytes (characters, for a run that may not be base64).
+  encodedDataBytes: number;
+  // Texts cut to the length their field may take.
+  shortenedTextCount: number;
+  // The characters those cuts left out.
+  omittedCharacterCount: number;
 }
 
 /*

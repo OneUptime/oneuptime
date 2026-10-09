@@ -22,6 +22,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { resolveTargetRepository } from "./CodeTools";
+import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
  * Tools that let the chat agent WRITE code: commit to a branch, and open a
@@ -135,6 +136,20 @@ function parseFileChanges(args: JSONObject): Array<GitHubFileChange> {
     if (Buffer.byteLength(content, "utf8") > MAX_FILE_BYTES) {
       throw new BadDataException(
         `"${filePath}" is larger than the ${MAX_FILE_BYTES / 1024}KB per-file limit for chat-authored commits.`,
+      );
+    }
+
+    /*
+     * The model reads files with their embedded data left out - a data: URL
+     * in a stylesheet reads as "[image omitted: PNG, 2 KB]" (PromptText). A
+     * file written back whole with that note in it would lose the image in
+     * the pull request, so it is refused, with why.
+     */
+    const omittedNote: string | null = PromptText.findNote(content);
+
+    if (omittedNote) {
+      throw new BadDataException(
+        `The new contents of "${filePath}" contain "${omittedNote}". You were shown that note in place of an image or other data embedded in the file, which you cannot read, and writing it would replace the data. Leave this file to a person, or change only files without embedded data.`,
       );
     }
 

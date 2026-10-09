@@ -22,6 +22,7 @@ import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthToken
 import UserService from "../../Services/UserService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
+import PromptText from "../../../Utils/AI/PromptText";
 
 export interface WorkspaceChannelMessage {
   messageId: string;
@@ -463,6 +464,12 @@ export default class WorkspaceUtil {
     }
   }
 
+  /*
+   * A channel's messages as an AI draft reads them (the postmortem and the
+   * notes). Each message goes in through PromptText: embedded data left
+   * out, and held to a draft field's length, so one pasted log cannot push
+   * every message after it out of the context.
+   */
   @CaptureSpan()
   public static formatMessagesAsContext(
     messages: Array<WorkspaceChannelMessage>,
@@ -494,7 +501,7 @@ export default class WorkspaceUtil {
         line += `User ${msg.userId}: `;
       }
 
-      line += msg.text;
+      line += PromptText.draftField(msg.text);
       line += "\n";
 
       // Check if adding this line would exceed max length

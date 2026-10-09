@@ -14,6 +14,10 @@ import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import AIComponents from "../../../../../Types/Workflow/Components/AI";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import PromptText, {
+  PromptTextResult,
+} from "../../../../../Utils/AI/PromptText";
+import { AIPromptOmissions } from "../../../../../Types/AI/AIChatTypes";
 
 export const DEFAULT_WORKFLOW_AI_TEMPERATURE: number = 0.2;
 export const MIN_WORKFLOW_AI_TEMPERATURE: number = 0;
@@ -182,18 +186,38 @@ export default class GenerateText extends ComponentCode {
     let permit: SemaphorePermit | null = null;
 
     try {
-      const prompt: string = this.getOptionalString(args, "prompt");
+      /*
+       * A model reads text: an image embedded in the input - an incident's
+       * description with a synthetic monitor's screenshot in it, placed by a
+       * variable - is hundreds of kilobytes of base64 that would only be
+       * billed, and would push the input past its limit below. Each embedded
+       * file is replaced by a short note saying what it was (PromptText),
+       * before the input is measured; the run's log says what was left out.
+       */
+      const omissions: AIPromptOmissions = PromptText.noOmissions();
+      const withoutEmbeddedData: (text: string) => string = (
+        text: string,
+      ): string => {
+        const result: PromptTextResult = PromptText.omitEmbeddedData(text);
+        PromptText.addOmissions(omissions, result.omissions);
+        return result.text;
+      };
+
+      const prompt: string = withoutEmbeddedData(
+        this.getOptionalString(args, "prompt"),
+      );
 
       if (!prompt) {
         throw new BadDataException("Prompt is required.");
       }
 
-      const systemPrompt: string = this.getOptionalString(
-        args,
-        "system-prompt",
+      const systemPrompt: string = withoutEmbeddedData(
+        this.getOptionalString(args, "system-prompt"),
       );
       const context: JSONObject | null = this.getContext(args);
-      const serializedContext: string = context ? JSON.stringify(context) : "";
+      const serializedContext: string = context
+        ? withoutEmbeddedData(JSON.stringify(context))
+        : "";
 
       const inputCharacterCount: number =
         prompt.length + systemPrompt.length + serializedContext.length;
@@ -249,6 +273,13 @@ export default class GenerateText extends ComponentCode {
       const userPrompt: string = context
         ? `${prompt}\n\n<workflow_context>\n${serializedContext}`
         : prompt;
+
+      const omittedSentence: string | null =
+        PromptText.describeOmissions(omissions);
+
+      if (omittedSentence) {
+        options.log(omittedSentence);
+      }
 
       options.log(
         `Starting AI generation (${inputCharacterCount} input characters, up to ${maxOutputTokens} output tokens).`,

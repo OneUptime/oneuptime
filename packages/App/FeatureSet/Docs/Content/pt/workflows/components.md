@@ -36,7 +36,7 @@ Gera uma resposta de texto a partir de um prompt e de um contexto JSON opcional.
 - **Temperature** — variação de `0` a `1`. O padrão é `0.2`, para automação previsível.
 - **Maximum Output Tokens** — de `1` a `4096`. O padrão é `1024`.
 
-Somados, System Instructions, Prompt e o Context serializado têm limite de 50.000 caracteres. A requisição ao provedor tem duração máxima de 60 segundos e é tentada uma única vez. No máximo três requisições de AI de workflow rodam ao mesmo tempo por projeto.
+Somados, System Instructions, Prompt e o Context serializado têm limite de 50.000 caracteres. Uma imagem incorporada em base64, como a captura de tela de um monitor sintético na descrição de um incidente, é substituída por uma nota curta como `[image omitted: PNG, 340 KB]` antes da contagem, porque o modelo lê texto, não imagens. O log da execução informa o que foi omitido. A requisição ao provedor tem duração máxima de 60 segundos e é tentada uma única vez. No máximo três requisições de AI de workflow rodam ao mesmo tempo por projeto.
 
 **Outputs**:
 

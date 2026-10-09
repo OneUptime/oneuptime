@@ -248,13 +248,16 @@ export default class NetworkInventoryUtil {
 
       /*
        * Vendor: ENTITY-MIB manufacturer when the device implements it,
-       * otherwise fingerprinted from the sysObjectID enterprise arc.
+       * otherwise fingerprinted from the sysObjectID enterprise arc - and
+       * the sysDescr, for devices that answer with someone else's arc (a
+       * UniFi access point on older firmware reports Net-SNMP's).
        */
       const vendor: string | undefined =
         entityInfo?.manufacturer ||
-        SnmpVendorTemplateUtil.getVendorNameBySysObjectId(
-          systemInfo?.sysObjectId,
-        );
+        SnmpVendorTemplateUtil.getVendorName({
+          sysObjectId: systemInfo?.sysObjectId,
+          sysDescr: systemInfo?.sysDescr,
+        });
       if (vendor) {
         deviceUpdate["vendor"] = vendor.substring(0, 100);
       }

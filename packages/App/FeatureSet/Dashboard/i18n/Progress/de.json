@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 27297,
-    "untranslated": 4692
+    "keys": 27406,
+    "untranslated": 4687
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -45,6 +45,8 @@
     "AND",
     "AWS ECS · us-east-1 · 123456789012",
     "AWS Lambda",
+    "Access Point",
+    "Access Points",
     "Active + Clean",
     "Afghanistan",
     "Agent",

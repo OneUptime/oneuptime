@@ -36,7 +36,7 @@ Erzeugt aus einem Prompt und optionalem JSON-Kontext eine Textantwort. Die Kompo
 - **Temperature** – Streuung von `0` bis `1`. Der Standard ist `0.2`, damit die Automatisierung vorhersehbar bleibt.
 - **Maximum Output Tokens** – von `1` bis `4096`. Der Standard ist `1024`.
 
-System Instructions, Prompt und serialisierter Context sind zusammen auf 50.000 Zeichen begrenzt. Die Anfrage an den Anbieter dauert höchstens 60 Sekunden und wird genau einmal versucht. Pro Projekt laufen höchstens drei KI-Anfragen aus Workflows gleichzeitig.
+System Instructions, Prompt und serialisierter Context sind zusammen auf 50.000 Zeichen begrenzt. Ein darin als Base64 eingebettetes Bild, etwa der Screenshot eines synthetischen Monitors in der Beschreibung eines Vorfalls, wird vor dem Zählen durch einen kurzen Hinweis wie `[image omitted: PNG, 340 KB]` ersetzt, denn das Modell liest Text, keine Bilder. Das Protokoll des Laufs nennt, was ausgelassen wurde. Die Anfrage an den Anbieter dauert höchstens 60 Sekunden und wird genau einmal versucht. Pro Projekt laufen höchstens drei KI-Anfragen aus Workflows gleichzeitig.
 
 **Outputs**:
 

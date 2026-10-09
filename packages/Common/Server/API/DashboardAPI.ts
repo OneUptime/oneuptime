@@ -37,6 +37,7 @@ import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import JSONFunctions from "../../Types/JSONFunctions";
 import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
 import PublicDashboardViewConfig from "../Utils/Dashboard/PublicDashboardViewConfig";
+import StoredDashboardViewConfig from "../../Utils/Dashboard/StoredDashboardViewConfig";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import { JSONObject } from "../../Types/JSON";
@@ -1012,7 +1013,7 @@ export default class DashboardAPI extends BaseAPI<
 
           const allowedAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardVariableAttributeKeys(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
 
           if (!allowedAttributeKeys.has(requestedAttributeKey)) {
@@ -1099,7 +1100,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedMetricNames: Set<string> =
             DashboardAPI.collectDashboardMetricNames(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
 
           if (allowedMetricNames.size === 0) {
@@ -1228,7 +1229,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedMetricNames: Set<string> =
             DashboardAPI.collectDashboardMetricNames(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
 
           /*
@@ -1271,7 +1272,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedGroupByAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardGroupByAttributeKeys(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
           const requestedGroupByAttributeKeys: unknown =
             aggregateBy.groupByAttributeKeys;
@@ -1305,7 +1306,7 @@ export default class DashboardAPI extends BaseAPI<
 
           const allowedGroupByColumns: Set<string> =
             DashboardAPI.collectDashboardGroupByColumns(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
           const requestedGroupBy: unknown = aggregateBy.groupBy;
 
@@ -1374,7 +1375,7 @@ export default class DashboardAPI extends BaseAPI<
            */
           const allowedFilterAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardFilterAttributeKeys(
-              dashboard.dashboardViewConfig,
+              DashboardAPI.getStoredViewConfig(dashboard),
             );
 
           const sanitizedAttributes: Record<string, unknown> = {};
@@ -1524,7 +1525,7 @@ export default class DashboardAPI extends BaseAPI<
           }
 
           const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
-            dashboardViewConfig: dashboard.dashboardViewConfig,
+            dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
             config: PUBLIC_DASHBOARD_SLO_RESOURCE,
             requestedComponentId: req.body["componentId"],
           });
@@ -1538,7 +1539,8 @@ export default class DashboardAPI extends BaseAPI<
           const variables: Array<DashboardVariable> =
             PublicDashboardResourceListPolicy.resolveDashboardVariableSelections(
               {
-                dashboardViewConfig: dashboard.dashboardViewConfig,
+                dashboardViewConfig:
+                  DashboardAPI.getStoredViewConfig(dashboard),
                 requestedVariables: req.body["variables"],
               },
             );
@@ -2050,33 +2052,44 @@ export default class DashboardAPI extends BaseAPI<
   }
 
   /*
+   * A dashboard's stored config as every public route reads it: the object
+   * its widgets are on, wherever it was stored. A config written as the API
+   * reference's `{_type: "DashboardViewConfig", value: {...}}` envelope or
+   * as JSON text has them one level down; the dashboard draws them, so the
+   * routes that serve their data must find them too (issue #4571).
+   */
+  private static getStoredViewConfig(dashboard: Dashboard): JSONObject {
+    return StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig);
+  }
+
+  /*
    * Read only the real, top-level dashboard components. Recursively scanning
    * arbitrary widget arguments would let a nested object carrying a
    * `componentType` masquerade as a widget and become an authorization input.
+   *
+   * The list is the one the public page draws - what /view-config serves
+   * (PublicDashboardViewConfig.sanitize) - with each widget under the id the
+   * page draws it under (StoredDashboardViewConfig.withComponentIds). A
+   * widget stored without an id, or with one an earlier widget already has,
+   * is then found by the id the page asks with, and two widgets that share
+   * a stored id are no longer both answered from the first one's settings.
    */
   private static collectDashboardWidgets(
     dashboardViewConfig: unknown,
   ): Array<JSONObject> {
-    if (
-      !dashboardViewConfig ||
-      typeof dashboardViewConfig !== "object" ||
-      Array.isArray(dashboardViewConfig)
-    ) {
-      return [];
-    }
-
-    const components: unknown = (
-      dashboardViewConfig as Record<string, unknown>
-    )["components"];
-
-    if (!Array.isArray(components)) {
-      return [];
-    }
-
-    return components.filter((component: unknown): component is JSONObject => {
-      return Boolean(
-        component && typeof component === "object" && !Array.isArray(component),
+    const servedConfig: DashboardViewConfig | null =
+      PublicDashboardViewConfig.sanitize(
+        dashboardViewConfig as DashboardViewConfig | null | undefined,
       );
+
+    if (!servedConfig) {
+      return [];
+    }
+
+    return StoredDashboardViewConfig.withComponentIds(
+      servedConfig.components,
+    ).filter((component: unknown): component is JSONObject => {
+      return StoredDashboardViewConfig.isWidgetEntry(component);
     });
   }
 
@@ -2275,7 +2288,7 @@ export default class DashboardAPI extends BaseAPI<
     }
 
     const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
-      dashboardViewConfig: dashboard.dashboardViewConfig,
+      dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
       config,
       requestedComponentId: req.body ? req.body["componentId"] : undefined,
     });
@@ -2290,7 +2303,7 @@ export default class DashboardAPI extends BaseAPI<
     const policy: PublicDashboardResourceListPolicyResult =
       PublicDashboardResourceListPolicy.build({
         widget,
-        dashboardViewConfig: dashboard.dashboardViewConfig,
+        dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
         requestedVariables: req.body ? req.body["variables"] : undefined,
         requestedQuery,
       });

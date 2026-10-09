@@ -1,15 +1,12 @@
 import PageComponentProps from "../../PageComponentProps";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import AppLink from "../../../Components/AppLink/AppLink";
-import Route from "Common/Types/API/Route";
+import WifiEmptyState from "../../../Components/NetworkDevice/WifiEmptyState";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
 import { SnmpTableSnapshot } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 import ObjectID from "Common/Types/ObjectID";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import WifiRadioUtil, {
+  WifiAccessPointView,
   WifiRadioView,
   WifiSsidView,
   WifiSummary,
@@ -17,9 +14,7 @@ import WifiRadioUtil, {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -29,6 +24,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useState,
 } from "react";
@@ -49,12 +45,142 @@ const formatNumber: FormatNumberFunction = (
   return unit ? `${value} ${unit}` : `${value}`;
 };
 
+interface StatusDotProps {
+  isGood: boolean | undefined;
+  text: string | undefined;
+  goodText: string;
+  badText: string;
+}
+
+// A green or grey dot with the status the table reported, or a dash.
+const StatusDot: FunctionComponent<StatusDotProps> = (
+  props: StatusDotProps,
+): ReactElement => {
+  if (props.isGood === undefined) {
+    return <span className="text-gray-400">{props.text || "—"}</span>;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={`inline-block h-2 w-2 rounded-full ${
+          props.isGood ? "bg-emerald-500" : "bg-gray-400"
+        }`}
+      ></span>
+      {props.text || (props.isGood ? props.goodText : props.badText)}
+    </span>
+  );
+};
+
+// One column of a Wi-Fi table: its title (a translation key), and how a row fills it.
+interface WifiColumn<T> {
+  title: string;
+  hasValue: (row: T) => boolean;
+  render: (row: T) => ReactNode;
+}
+
+// The columns at least one row fills, in their order.
+function visibleColumns<T>(
+  rows: Array<T>,
+  columns: Array<WifiColumn<T>>,
+): Array<WifiColumn<T>> {
+  return columns.filter((column: WifiColumn<T>): boolean => {
+    return rows.some((row: T): boolean => {
+      return column.hasValue(row);
+    });
+  });
+}
+
+// A column of numbers, with a unit after each, and a dash where a row has none.
+function numberColumn<T>(
+  title: string,
+  read: (row: T) => number | undefined,
+  unit?: string | undefined,
+): WifiColumn<T> {
+  return {
+    title: title,
+    hasValue: (row: T): boolean => {
+      return read(row) !== undefined;
+    },
+    render: (row: T): ReactNode => {
+      return formatNumber(read(row), unit);
+    },
+  };
+}
+
+interface WifiTableProps<T> {
+  testId: string;
+  // The name column's title, a translation key.
+  nameTitle: string;
+  rows: Array<T>;
+  columns: Array<WifiColumn<T>>;
+  getKey: (row: T) => string;
+  getName: (row: T) => string;
+}
+
+/*
+ * A Wi-Fi table: the name first, then the columns. Cells do not wrap, so a
+ * narrow screen scrolls the table sideways rather than stacking "5 GHz"
+ * over two lines.
+ */
+function WifiTable<T>(props: WifiTableProps<T>): ReactElement {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div className="overflow-x-auto" data-testid={props.testId}>
+      <table className="min-w-full divide-y divide-gray-200 text-sm">
+        <thead>
+          <tr>
+            {[
+              props.nameTitle,
+              ...props.columns.map((column: WifiColumn<T>) => {
+                return column.title;
+              }),
+            ].map((title: string): ReactElement => {
+              return (
+                <th
+                  key={title}
+                  className="whitespace-nowrap py-2 pr-4 text-left font-medium text-gray-500"
+                >
+                  {translator.translateText(title)}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {props.rows.map((row: T, position: number): ReactElement => {
+            return (
+              <tr key={`${position}-${props.getKey(row)}`}>
+                <td className="whitespace-nowrap py-2 pr-4 font-medium text-gray-900">
+                  {props.getName(row)}
+                </td>
+                {props.columns.map((column: WifiColumn<T>): ReactElement => {
+                  return (
+                    <td
+                      key={column.title}
+                      className="whitespace-nowrap py-2 pr-4"
+                    >
+                      {column.render(row)}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /*
  * An access point's radios and SSIDs - band, channel, frequency, channel
- * width, transmit power, clients, noise floor, airtime - read from its
- * walked SNMP tables (any table of kind Wi-Fi Radio or SSID, such as the
- * Cambium Enterprise Wi-Fi vendor template's). Frequency is worked out from
- * the band and channel; no vendor reports it.
+ * width, transmit power, clients, noise floor, airtime - and, on a wireless
+ * controller, the access points it manages, read from the device's walked
+ * SNMP tables (any table of a Wi-Fi kind, which the Wi-Fi vendor templates
+ * bring: Cambium, Ubiquiti UniFi, HPE Aruba, Extreme Networks). Frequency is
+ * worked out from the band and channel; no vendor reports it.
  */
 const NetworkDeviceWiFi: FunctionComponent<
   PageComponentProps
@@ -62,22 +188,27 @@ const NetworkDeviceWiFi: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [snapshots, setSnapshots] = useState<Array<SnmpTableSnapshot>>([]);
+  const [device, setDevice] = useState<NetworkDevice | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
   const fetchDevice: PromiseVoidFunction = async (): Promise<void> => {
     try {
-      const device: NetworkDevice | null =
-        await ModelAPI.getItem<NetworkDevice>({
-          modelType: NetworkDevice,
-          id: modelId,
-          select: {
-            snmpTableSnapshot: true,
-          },
-        });
+      const item: NetworkDevice | null = await ModelAPI.getItem<NetworkDevice>({
+        modelType: NetworkDevice,
+        id: modelId,
+        select: {
+          snmpTableSnapshot: true,
+          // What the empty state needs to name the device's template.
+          snmpTables: true,
+          sysObjectId: true,
+          sysDescr: true,
+          monitoringMethod: true,
+          oidTemplateId: true,
+        },
+      });
 
-      setSnapshots(device?.snmpTableSnapshot || []);
+      setDevice(item);
       setError("");
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -101,34 +232,41 @@ const NetworkDeviceWiFi: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (!WifiRadioUtil.hasWifiTables(snapshots)) {
-    const settingsRoute: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.NETWORK_DEVICE_VIEW_SETTINGS] as Route,
-      { modelId: modelId },
-    );
+  const snapshots: Array<SnmpTableSnapshot> = device?.snmpTableSnapshot || [];
 
+  if (!WifiRadioUtil.hasWifiTables(snapshots)) {
     return (
-      <EmptyState
-        id="network-device-wifi-empty"
-        icon={IconProp.Wifi}
-        title="No Wi-Fi radios reported"
-        description={
-          <TranslatedSentence
-            template="Radios and SSIDs appear here once the device walks a Wi-Fi radio table. For Cambium access points, apply the Cambium Enterprise Wi-Fi vendor template (or link an OID Collection Template that includes its tables) in {{settings}}, and make sure SNMP is enabled in the AP Group in cnMaestro."
-            slots={{
-              settings: (
-                <AppLink to={settingsRoute}>
-                  {translator.translateTemplate("Settings")}
-                </AppLink>
-              ),
-            }}
-          />
-        }
+      <WifiEmptyState
+        modelId={modelId}
+        device={{
+          monitoringMethod: device?.monitoringMethod,
+          oidTemplateId: device?.oidTemplateId,
+          sysObjectId: device?.sysObjectId,
+          sysDescr: device?.sysDescr,
+          snmpTables: device?.snmpTables,
+        }}
       />
     );
   }
 
   const summary: WifiSummary = WifiRadioUtil.getSummary(snapshots);
+
+  const accessPointsUp: number = summary.accessPoints.filter(
+    (accessPoint: WifiAccessPointView): boolean => {
+      return accessPoint.isUp !== false;
+    },
+  ).length;
+
+  /*
+   * "Radios on" only when the radios say whether they are on: a vendor
+   * that reports no radio status (UniFi, IQ Engine) gets a plain count,
+   * not a claim that every radio is on.
+   */
+  const radiosReportStatus: boolean = summary.radios.some(
+    (radio: WifiRadioView): boolean => {
+      return radio.isOn !== undefined;
+    },
+  );
 
   const radiosOn: number = summary.radios.filter(
     (radio: WifiRadioView): boolean => {
@@ -137,10 +275,25 @@ const NetworkDeviceWiFi: FunctionComponent<
   ).length;
 
   const tiles: Array<{ title: string; value: string }> = [
-    {
-      title: translator.translateText("Radios on") || "Radios on",
-      value: `${radiosOn} / ${summary.radios.length}`,
-    },
+    ...(summary.accessPoints.length > 0
+      ? [
+          {
+            title:
+              translator.translateText("Access points up") ||
+              "Access points up",
+            value: `${accessPointsUp} / ${summary.accessPoints.length}`,
+          },
+        ]
+      : []),
+    radiosReportStatus
+      ? {
+          title: translator.translateText("Radios on") || "Radios on",
+          value: `${radiosOn} / ${summary.radios.length}`,
+        }
+      : {
+          title: translator.translateText("Radios") || "Radios",
+          value: `${summary.radios.length}`,
+        },
     {
       title: translator.translateText("Clients") || "Clients",
       value: formatNumber(summary.totalClients),
@@ -150,6 +303,142 @@ const NetworkDeviceWiFi: FunctionComponent<
       value: `${summary.ssids.length}`,
     },
   ];
+
+  /*
+   * Each table's columns, every one but the name left out when no row
+   * fills it: vendors report different things, and a column of dashes
+   * says nothing. The names are translationKey()s, looked up as rendered.
+   */
+  const accessPointColumns: Array<WifiColumn<WifiAccessPointView>> =
+    visibleColumns(summary.accessPoints, [
+      {
+        title: translationKey("Status"),
+        hasValue: (accessPoint: WifiAccessPointView): boolean => {
+          return (
+            accessPoint.isUp !== undefined ||
+            accessPoint.statusText !== undefined
+          );
+        },
+        render: (accessPoint: WifiAccessPointView): ReactNode => {
+          return (
+            <StatusDot
+              isGood={accessPoint.isUp}
+              text={accessPoint.statusText}
+              goodText={translator.translateText("Up") || "Up"}
+              badText={translator.translateText("Down") || "Down"}
+            />
+          );
+        },
+      },
+      {
+        title: translationKey("Radios"),
+        hasValue: (accessPoint: WifiAccessPointView): boolean => {
+          return accessPoint.radioCount !== undefined;
+        },
+        render: (accessPoint: WifiAccessPointView): ReactNode => {
+          return formatNumber(accessPoint.radioCount);
+        },
+      },
+      {
+        title: translationKey("Clients"),
+        hasValue: (accessPoint: WifiAccessPointView): boolean => {
+          return accessPoint.clients !== undefined;
+        },
+        render: (accessPoint: WifiAccessPointView): ReactNode => {
+          return formatNumber(accessPoint.clients);
+        },
+      },
+    ]);
+
+  const radioColumns: Array<WifiColumn<WifiRadioView>> = visibleColumns(
+    summary.radios,
+    [
+      {
+        title: translationKey("Status"),
+        hasValue: (radio: WifiRadioView): boolean => {
+          return radio.isOn !== undefined || radio.statusText !== undefined;
+        },
+        render: (radio: WifiRadioView): ReactNode => {
+          return (
+            <StatusDot
+              isGood={radio.isOn}
+              text={radio.statusText}
+              goodText={translator.translateText("On") || "On"}
+              badText={translator.translateText("Off") || "Off"}
+            />
+          );
+        },
+      },
+      {
+        title: translationKey("Band"),
+        hasValue: (radio: WifiRadioView): boolean => {
+          return Boolean(radio.band || radio.bandText);
+        },
+        render: (radio: WifiRadioView): ReactNode => {
+          return radio.band || radio.bandText || "—";
+        },
+      },
+      numberColumn(translationKey("Channel"), (radio: WifiRadioView) => {
+        return radio.channel;
+      }),
+      numberColumn(
+        translationKey("Frequency"),
+        (radio: WifiRadioView) => {
+          return radio.frequencyMHz;
+        },
+        "MHz",
+      ),
+      numberColumn(
+        translationKey("Width"),
+        (radio: WifiRadioView) => {
+          return radio.channelWidthMHz;
+        },
+        "MHz",
+      ),
+      numberColumn(
+        translationKey("TX Power"),
+        (radio: WifiRadioView) => {
+          return radio.txPowerDbm;
+        },
+        "dBm",
+      ),
+      numberColumn(translationKey("Clients"), (radio: WifiRadioView) => {
+        return radio.clients;
+      }),
+      numberColumn(
+        translationKey("Noise Floor"),
+        (radio: WifiRadioView) => {
+          return radio.noiseFloorDbm;
+        },
+        "dBm",
+      ),
+      numberColumn(
+        translationKey("Airtime"),
+        (radio: WifiRadioView) => {
+          return radio.utilizationPercent;
+        },
+        "%",
+      ),
+    ],
+  );
+
+  const ssidColumns: Array<WifiColumn<WifiSsidView>> = visibleColumns(
+    summary.ssids,
+    [
+      {
+        title: translationKey("Band"),
+        hasValue: (ssid: WifiSsidView): boolean => {
+          return Boolean(ssid.band || ssid.bandText);
+        },
+        render: (ssid: WifiSsidView): ReactNode => {
+          return ssid.band || ssid.bandText || "—";
+        },
+      },
+      numberColumn(translationKey("Clients"), (ssid: WifiSsidView) => {
+        return ssid.clients;
+      }),
+    ],
+  );
 
   return (
     <Fragment>
@@ -166,7 +455,14 @@ const NetworkDeviceWiFi: FunctionComponent<
         <></>
       )}
 
-      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div
+        className={`mb-5 grid gap-4 ${
+          tiles.length > 3
+            ? "grid-cols-2 lg:grid-cols-4"
+            : "grid-cols-1 sm:grid-cols-3"
+        }`}
+        data-testid="wifi-tiles"
+      >
         {tiles.map((tile: { title: string; value: string }): ReactElement => {
           return (
             <div
@@ -184,6 +480,28 @@ const NetworkDeviceWiFi: FunctionComponent<
         })}
       </div>
 
+      {summary.accessPoints.length > 0 ? (
+        <Card
+          title="Access Points"
+          description="Every access point this controller manages, and whether it is connected."
+        >
+          <WifiTable
+            testId="wifi-access-points"
+            nameTitle={translationKey("Access Point")}
+            rows={summary.accessPoints}
+            columns={accessPointColumns}
+            getKey={(accessPoint: WifiAccessPointView): string => {
+              return `${accessPoint.index}-${accessPoint.name}`;
+            }}
+            getName={(accessPoint: WifiAccessPointView): string => {
+              return accessPoint.name;
+            }}
+          />
+        </Card>
+      ) : (
+        <></>
+      )}
+
       <Card
         title="Radios"
         description={
@@ -197,129 +515,41 @@ const NetworkDeviceWiFi: FunctionComponent<
               )
         }
       >
-        <div className="overflow-x-auto" data-testid="wifi-radios">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead>
-              <tr>
-                {[
-                  translationKey("Radio"),
-                  translationKey("Status"),
-                  translationKey("Band"),
-                  translationKey("Channel"),
-                  translationKey("Frequency"),
-                  translationKey("Width"),
-                  translationKey("TX Power"),
-                  translationKey("Clients"),
-                  translationKey("Noise Floor"),
-                  translationKey("Airtime"),
-                ].map((title: string): ReactElement => {
-                  return (
-                    <th
-                      key={title}
-                      className="py-2 pr-4 text-left font-medium text-gray-500"
-                    >
-                      {translator.translateText(title)}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {summary.radios.map((radio: WifiRadioView): ReactElement => {
-                return (
-                  <tr key={`${radio.index}-${radio.name}`}>
-                    <td className="py-2 pr-4 font-medium text-gray-900">
-                      {radio.name}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {radio.isOn === undefined ? (
-                        <span className="text-gray-400">
-                          {radio.statusText || "—"}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span
-                            className={`inline-block h-2 w-2 rounded-full ${
-                              radio.isOn ? "bg-emerald-500" : "bg-gray-400"
-                            }`}
-                          ></span>
-                          {radio.statusText ||
-                            (radio.isOn
-                              ? translator.translateText("On")
-                              : translator.translateText("Off"))}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {radio.band || radio.bandText || "—"}
-                    </td>
-                    <td className="py-2 pr-4">{formatNumber(radio.channel)}</td>
-                    <td className="py-2 pr-4">
-                      {formatNumber(radio.frequencyMHz, "MHz")}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {formatNumber(radio.channelWidthMHz, "MHz")}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {formatNumber(radio.txPowerDbm, "dBm")}
-                    </td>
-                    <td className="py-2 pr-4">{formatNumber(radio.clients)}</td>
-                    <td className="py-2 pr-4">
-                      {formatNumber(radio.noiseFloorDbm, "dBm")}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {formatNumber(radio.utilizationPercent, "%")}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <WifiTable
+          testId="wifi-radios"
+          nameTitle={translationKey("Radio")}
+          rows={summary.radios}
+          columns={radioColumns}
+          getKey={(radio: WifiRadioView): string => {
+            return `${radio.index}-${radio.name}`;
+          }}
+          getName={(radio: WifiRadioView): string => {
+            return radio.name;
+          }}
+        />
       </Card>
 
       {summary.ssids.length > 0 ? (
         <Card
           title="SSIDs"
-          description="Every SSID the access point broadcasts, and who is on it."
+          description={
+            summary.accessPoints.length > 0
+              ? "Every SSID its access points broadcast, and who is on it."
+              : "Every SSID the access point broadcasts, and who is on it."
+          }
         >
-          <div className="overflow-x-auto" data-testid="wifi-ssids">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead>
-                <tr>
-                  {[
-                    translationKey("SSID"),
-                    translationKey("Band"),
-                    translationKey("Clients"),
-                  ].map((title: string): ReactElement => {
-                    return (
-                      <th
-                        key={title}
-                        className="py-2 pr-4 text-left font-medium text-gray-500"
-                      >
-                        {translator.translateText(title)}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {summary.ssids.map((ssid: WifiSsidView): ReactElement => {
-                  return (
-                    <tr key={ssid.name}>
-                      <td className="py-2 pr-4 font-medium text-gray-900">
-                        {ssid.ssid}
-                      </td>
-                      <td className="py-2 pr-4">{ssid.bandText || "—"}</td>
-                      <td className="py-2 pr-4">
-                        {formatNumber(ssid.clients)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <WifiTable
+            testId="wifi-ssids"
+            nameTitle={translationKey("SSID")}
+            rows={summary.ssids}
+            columns={ssidColumns}
+            getKey={(ssid: WifiSsidView): string => {
+              return ssid.name;
+            }}
+            getName={(ssid: WifiSsidView): string => {
+              return ssid.ssid;
+            }}
+          />
         </Card>
       ) : (
         <></>
@@ -327,7 +557,7 @@ const NetworkDeviceWiFi: FunctionComponent<
 
       <p className="text-xs text-gray-500">
         {translator.translateText(
-          "Alert on any of these with a Network Device monitor: SNMP Table Value on the Wi-Fi Radios table (for example TX Power or Clients, with Row set to * for one alert per radio), or SNMP Table Row Is Unhealthy for a radio that switches off.",
+          "Alert on any of these with a Network Device monitor: SNMP Table Value on the Wi-Fi Radios table (for example TX Power or Clients, with Row set to * for one alert per radio), or SNMP Table Row Is Unhealthy for a radio that switches off or an access point that drops off its controller.",
         )}
       </p>
     </Fragment>

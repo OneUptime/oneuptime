@@ -44,6 +44,7 @@ const KIND_LABELS: Record<SnmpTableKind, string> = {
   [SnmpTableKind.VpnTunnel]: translationKey("VPN tunnels"),
   [SnmpTableKind.WifiRadio]: translationKey("Wi-Fi radios"),
   [SnmpTableKind.WifiSsid]: translationKey("Wi-Fi SSIDs"),
+  [SnmpTableKind.WifiAccessPoint]: translationKey("Wi-Fi access points"),
   [SnmpTableKind.RoutingAdjacency]: translationKey("Routing neighbours"),
   [SnmpTableKind.Hardware]: translationKey("Hardware"),
 };
@@ -333,6 +334,19 @@ const SnmpTableEditor: FunctionComponent<ComponentProps> = (
                 }}
               />
 
+              {table.rowIndexIsText ? (
+                <p
+                  className="text-xs text-gray-500"
+                  data-testid={`snmp-table-${tableIndex}-index-is-text`}
+                >
+                  {translator.translateText(
+                    "The vendor indexes this table by name: rows without a name column are named by their index, read as text.",
+                  )}
+                </p>
+              ) : (
+                <></>
+              )}
+
               <div className="space-y-2">
                 {table.columns.map(
                   (
@@ -506,6 +520,24 @@ const SnmpTableEditor: FunctionComponent<ComponentProps> = (
                             }}
                           />
                         </div>
+                        {SnmpTableEditorUtil.formatAdjustment(column) ? (
+                          <p
+                            className="text-xs text-gray-500"
+                            data-testid={`snmp-table-${tableIndex}-column-${columnIndex}-adjustment`}
+                          >
+                            {translator.translateTemplate(
+                              "Numbers in this column are read as {{formula}}: the vendor reports them in a unit of its own.",
+                              {
+                                formula:
+                                  SnmpTableEditorUtil.formatAdjustment(
+                                    column,
+                                  ) || "",
+                              },
+                            )}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
                       </div>
                     );
                   },
