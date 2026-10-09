@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Añade las opciones que deben aparecer en el desplegable y, si quieres, elige un color para cada valor. Arrastra una opción por su asa para cambiar su posición en la lista.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "Cada opción necesita su propio nombre: \"{{option}}\" aparece más de una vez.",
   "{{option}} (no longer an option)": "{{option}} (ya no es una opción)",
-  "No longer an option": "Ya no es una opción"
+  "No longer an option": "Ya no es una opción",
+  "This {{itemName}} has no ID.": "Este elemento ({{itemName}}) no tiene ID."
 }

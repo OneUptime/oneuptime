@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Tilføj de muligheder, der skal vises i rullemenuen, og vælg eventuelt en farve til hver værdi. Træk en mulighed i dens håndtag for at ændre dens placering på listen.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "Hver mulighed skal have sit eget navn: \"{{option}}\" står der mere end én gang.",
   "{{option}} (no longer an option)": "{{option}} (ikke længere en mulighed)",
-  "No longer an option": "Ikke længere en mulighed"
+  "No longer an option": "Ikke længere en mulighed",
+  "This {{itemName}} has no ID.": "Dette element ({{itemName}}) har intet id."
 }

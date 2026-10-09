@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Voeg de opties toe die in de vervolgkeuzelijst moeten verschijnen en kies eventueel een kleur voor elke waarde. Sleep een optie aan de greep om de plek in de lijst te wijzigen.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "Elke optie heeft een eigen naam nodig: \"{{option}}\" staat er meer dan eens in.",
   "{{option}} (no longer an option)": "{{option}} (geen optie meer)",
-  "No longer an option": "Geen optie meer"
+  "No longer an option": "Geen optie meer",
+  "This {{itemName}} has no ID.": "Dit item ({{itemName}}) heeft geen ID."
 }

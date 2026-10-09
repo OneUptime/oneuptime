@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Добавьте варианты, которые должны отображаться в раскрывающемся списке, и при желании выберите цвет для каждого значения. Перетащите вариант за маркер, чтобы изменить его место в списке.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "У каждого варианта должно быть своё название: «{{option}}» встречается несколько раз.",
   "{{option}} (no longer an option)": "{{option}} (больше не вариант)",
-  "No longer an option": "Больше не вариант"
+  "No longer an option": "Больше не вариант",
+  "This {{itemName}} has no ID.": "У этого элемента ({{itemName}}) нет ID."
 }

@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Legg til alternativene som skal vises i nedtrekkslisten, og velg eventuelt en farge for hver verdi. Dra et alternativ i håndtaket for å endre plasseringen i listen.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "Hvert alternativ trenger sitt eget navn: \"{{option}}\" står der mer enn én gang.",
   "{{option}} (no longer an option)": "{{option}} (ikke lenger et alternativ)",
-  "No longer an option": "Ikke lenger et alternativ"
+  "No longer an option": "Ikke lenger et alternativ",
+  "This {{itemName}} has no ID.": "Dette elementet ({{itemName}}) har ingen ID."
 }

@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "Each option needs its own name: \"{{option}}\" is listed more than once.",
   "{{option}} (no longer an option)": "{{option}} (no longer an option)",
-  "No longer an option": "No longer an option"
+  "No longer an option": "No longer an option",
+  "This {{itemName}} has no ID.": "This {{itemName}} has no ID."
 }

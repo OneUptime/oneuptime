@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "드롭다운에 표시할 옵션을 추가하고, 원하면 값마다 색을 고르세요. 옵션의 핸들을 끌어 목록에서의 위치를 바꿀 수 있습니다.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "옵션마다 고유한 이름이 필요합니다. \"{{option}}\"이(가) 두 번 이상 있습니다.",
   "{{option}} (no longer an option)": "{{option}} (더 이상 옵션이 아님)",
-  "No longer an option": "더 이상 옵션이 아님"
+  "No longer an option": "더 이상 옵션이 아님",
+  "This {{itemName}} has no ID.": "이 {{itemName}}에는 ID가 없습니다."
 }
