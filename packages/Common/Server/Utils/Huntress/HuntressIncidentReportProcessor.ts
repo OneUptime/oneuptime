@@ -41,6 +41,7 @@ import {
   getHuntressResolvedReason,
 } from "../../../Utils/Huntress/HuntressIncidentReportText";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
+import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
 import HuntressIncidentReportService from "../../Services/HuntressIncidentReportService";
 import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
 import IncidentService from "../../Services/IncidentService";
@@ -61,10 +62,11 @@ import logger from "../Logger";
  * report is claimed before its incident is opened: a HuntressIncidentReport
  * row, unique by project, Huntress account and report id. Deliveries of one
  * report take turns (a Valkey lock per report); without the lock, the
- * unique row still lets one delivery through, and a claim younger than a
- * minute that has no incident yet is answered "try again later" rather
- * than opened twice. A claim older than that belongs to an attempt that
- * failed, and the next delivery finishes it.
+ * unique row still lets one delivery through - the one that loses the race
+ * to claim it is answered "try again later" - and a claim younger than a
+ * minute that has no incident yet is answered the same rather than opened
+ * twice. A claim older than that belongs to an attempt that failed, and
+ * the next delivery finishes it.
  *
  * WHAT A REPORT OPENS. An incident titled after the report's subject, at
  * the severity the connection gives the report's Huntress severity (or the
@@ -564,13 +566,28 @@ export default class HuntressIncidentReportProcessor {
       ? []
       : [data.messageId]) as unknown as JSONArray;
 
-    const created: HuntressIncidentReport =
-      await HuntressIncidentReportService.create({
+    let created: HuntressIncidentReport;
+
+    try {
+      created = await HuntressIncidentReportService.create({
         data: row,
         props: {
           isRoot: true,
         },
       });
+    } catch (err) {
+      /*
+       * Another delivery of this report claimed it first: the unique index
+       * on project, account and report id says so (it raced past the lock,
+       * or the lock was down). That delivery opens the incident. Answer
+       * "busy", and Huntress sends this one again, when it finds the claim.
+       */
+      if (PostgresErrorTranslator.isUniqueViolation(err)) {
+        throw new HuntressReportBusyException();
+      }
+
+      throw err;
+    }
 
     if (outcome !== HuntressIncidentReportOutcome.Opening) {
       return {

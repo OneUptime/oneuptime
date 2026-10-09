@@ -29,6 +29,7 @@ import IncidentSeverityService from "../../../../Server/Services/IncidentSeverit
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
 import LabelService from "../../../../Server/Services/LabelService";
+import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
 import HuntressIncidentReportProcessor, {
   HUNTRESS_APPLIED_MESSAGE_IDS_KEPT,
   HUNTRESS_CLAIM_IN_PROGRESS_MS,
@@ -282,7 +283,10 @@ beforeEach(() => {
           });
         })
       ) {
-        throw new Error("duplicate key value violates unique constraint");
+        // What the real service throws: the driver's error, translated.
+        throw PostgresErrorTranslator.createUniqueViolationException(
+          "A Huntress Incident Report with the same Project Id, Huntress Account Id, Huntress Incident Report Id already exists. Please use different values and try again.",
+        );
       }
 
       const row: HuntressIncidentReport = copyRow(data);
@@ -671,6 +675,43 @@ describe("a delivery that failed half way", () => {
       receive(getHuntressIncidentReportBody(), "msg_1"),
     ).rejects.toBeInstanceOf(HuntressReportBusyException);
 
+    expect(incidents).toHaveLength(0);
+  });
+
+  test("a delivery that loses the race to claim the report is told to come back, and opens nothing", async () => {
+    // Another delivery's claim, committed after this one looked for it.
+    reportRows.push(
+      Object.assign(new HuntressIncidentReport(), {
+        _id: nextId().toString(),
+        projectId: PROJECT_ID,
+        huntressConnectionId: CONNECTION_ID,
+        huntressAccountId: "5",
+        huntressIncidentReportId: "1234",
+        outcome: HuntressIncidentReportOutcome.Opening,
+        updatedAt: NOW,
+        appliedMessageIds: [],
+      }),
+    );
+    jest
+      .spyOn(HuntressIncidentReportService, "findOneBy")
+      .mockResolvedValueOnce(null as never);
+
+    await expect(
+      receive(getHuntressIncidentReportBody(), "msg_late"),
+    ).rejects.toBeInstanceOf(HuntressReportBusyException);
+
+    expect(incidents).toHaveLength(0);
+    expect(reportRows).toHaveLength(1);
+  });
+
+  test("a claim that fails for another reason is not taken for a race", async () => {
+    jest
+      .spyOn(HuntressIncidentReportService, "create")
+      .mockRejectedValueOnce(new Error("connection reset") as never);
+
+    await expect(
+      receive(getHuntressIncidentReportBody(), "msg_1"),
+    ).rejects.toThrow("connection reset");
     expect(incidents).toHaveLength(0);
   });
 
