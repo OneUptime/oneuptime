@@ -2547,3 +2547,119 @@ describe("explainUnnamedDiscoveredHost — the reporter's twelve kitchen display
     }
   });
 });
+
+/*
+ * OneUptime issue #4518 — the naming rule reads a placeholder sysName
+ * ("localhost") or an address as no name at all, so such a host is listed by
+ * its address and gets the explanation, which says the device answered with
+ * a name that is not usable rather than with no name. The sysName itself is
+ * never quoted: nothing the scanned network chose reaches the text.
+ */
+describe("explainUnnamedDiscoveredHost — an unusable sysName (issue #4518)", () => {
+  test.each([
+    ["a placeholder", "localhost"],
+    ["a placeholder in another case", "LOCALHOST.localdomain"],
+    ["the kernel's unset hostname", "(none)"],
+    ["the host's own address", ADDRESS],
+    ["an IPv6 address", "fe80::1"],
+    ["a name with a control character", "core\u001bsw"],
+  ])(
+    "%s leaves the host unnamed, and says the name was not usable",
+    (_label: string, sysName: string) => {
+      const host: DiscoveredNetworkDevice = {
+        ipAddress: ADDRESS,
+        snmpReachable: true,
+        sysName: sysName,
+      };
+
+      expect(isDiscoveredHostNamed(host)).toBe(false);
+
+      const text: string = textOf({ host: host, scan: SNMP_SCAN });
+
+      expect(text.startsWith(SNMP_UNUSABLE_SYSNAME_SENTENCE)).toBe(true);
+      expect(text).not.toContain(SNMP_NO_SYSNAME_SENTENCE);
+      /*
+       * The value itself is never put in the text: whatever is left once the
+       * fixed sentence (which names "localhost" as an example) is taken out
+       * does not carry it.
+       */
+      expect(
+        text.replace(SNMP_UNUSABLE_SYSNAME_SENTENCE, "").toLowerCase(),
+      ).not.toContain(sysName.toLowerCase());
+    },
+  );
+
+  test("a blank sysName still says the device reported no name", () => {
+    const text: string = textOf({
+      host: { ipAddress: ADDRESS, snmpReachable: true, sysName: "   " },
+      scan: SNMP_SCAN,
+    });
+
+    expect(text.startsWith(SNMP_NO_SYSNAME_SENTENCE)).toBe(true);
+  });
+
+  test("a usable sysName names the host, so there is nothing to explain", () => {
+    const host: DiscoveredNetworkDevice = {
+      ipAddress: ADDRESS,
+      snmpReachable: true,
+      sysName: "core-sw-01",
+    };
+
+    expect(isDiscoveredHostNamed(host)).toBe(true);
+    expect(
+      explainUnnamedDiscoveredHost({ host: host, scan: SNMP_SCAN }),
+    ).toBeUndefined();
+  });
+
+  test("a placeholder sysName beside a NetBIOS or PTR name is named by those, with nothing to explain", () => {
+    for (const host of [
+      {
+        ipAddress: ADDRESS,
+        snmpReachable: true,
+        sysName: "localhost",
+        netbiosName: "WB0024KDS01",
+      },
+      {
+        ipAddress: ADDRESS,
+        snmpReachable: true,
+        sysName: "localhost",
+        dnsHostname: "kds01.wbhq.com",
+      },
+    ]) {
+      expect(isDiscoveredHostNamed(host)).toBe(true);
+      expect(
+        explainUnnamedDiscoveredHost({ host: host, scan: SNMP_SCAN }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("the sentence is fixed copy that names no value", () => {
+    expect(SNMP_UNUSABLE_SYSNAME_SENTENCE).toBe(
+      "SNMP: the device answered, but the name it reported (sysName) is not usable as a name, such as localhost or an IP address.",
+    );
+  });
+});
+
+/*
+ * Since #4518 the sentences follow the order the sources win in: the device's
+ * own names (SNMP, NetBIOS) before reverse DNS.
+ */
+describe("explainUnnamedDiscoveredHost — the device's own names are explained first (issue #4518)", () => {
+  test("SNMP, then NetBIOS, then reverse DNS", () => {
+    const text: string = textOf({
+      host: pingOnlyHost({
+        dnsHostnameStatus: DiscoveredHostReverseDnsStatus.NoRecord,
+        netbiosNameStatus: DiscoveredHostNetbiosStatus.NoReply,
+      }),
+      scan: SNMP_AND_NETBIOS_SCAN,
+    });
+
+    const snmp: number = text.indexOf("SNMP:");
+    const netbios: number = text.indexOf("NetBIOS:");
+    const reverseDns: number = text.indexOf("Reverse DNS:");
+
+    expect(snmp).toBe(0);
+    expect(netbios).toBeGreaterThan(snmp);
+    expect(reverseDns).toBeGreaterThan(netbios);
+  });
+});

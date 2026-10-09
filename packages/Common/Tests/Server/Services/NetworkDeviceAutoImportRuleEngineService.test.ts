@@ -4804,4 +4804,296 @@ describe("renaming devices imported during the run (issue #3677)", () => {
       expect(loggerWarnMock).not.toHaveBeenCalled();
     });
   });
+
+  /*
+   * OneUptime issue #4518: a device a discovery import named records where
+   * its name came from, and a later Completed result that finds a better
+   * name for it — its own name instead of its DNS name, any name instead of
+   * its address — renames it, on any scan, not only the run that imported it.
+   * A device a person renamed never matches. The per-device rules are pinned
+   * in Tests/Utils/NetworkDiscovery/DiscoveredNameUpgrade.test.ts; these pin
+   * the wiring: the read, the write, and the collision check.
+   */
+  describe("improving a name discovery gave a device (issue #4518)", () => {
+    const NETBIOS_NAME: string = "KDS01-WIN";
+
+    // A device an earlier scan imported under its DNS name, long before this run.
+    function makeDnsNamedDevice(
+      overrides: Record<string, unknown> = {},
+    ): NetworkDevice {
+      return makeRunImportedDevice({
+        name: PTR_NAME,
+        dnsName: PTR_NAME,
+        discoveredName: PTR_NAME,
+        discoveredNameSource: DeviceNameSource.DnsName,
+        createdAt: BEFORE_RUN,
+        ...overrides,
+      });
+    }
+
+    // The engine's upgrade lookups, told apart by the source filter.
+    function upgradeLookupCalls(): Array<any> {
+      return deviceFindByMock.mock.calls
+        .map((call: Array<any>): any => {
+          return call[0];
+        })
+        .filter((args: any): boolean => {
+          return Boolean(args?.query?.discoveredNameSource);
+        });
+    }
+
+    it("renames a device named by DNS to the NetBIOS name a later scan found, and records the new source", async () => {
+      const device: NetworkDevice = makeDnsNamedDevice();
+      useInventory([device]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [makeNamedHost({ netbiosName: NETBIOS_NAME })],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()).toEqual([
+        {
+          id: device.id!.toString(),
+          // The device already has its DNS name, so it is not rewritten.
+          data: {
+            name: NETBIOS_NAME,
+            discoveredName: NETBIOS_NAME,
+            discoveredNameSource: DeviceNameSource.NetbiosName,
+          },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+
+    it("renames a long-standing device named by its address once a scan names it, unlike one that records no source", async () => {
+      const recorded: NetworkDevice = makeRunImportedDevice({
+        discoveredName: "10.0.0.5",
+        discoveredNameSource: DeviceNameSource.Address,
+        createdAt: BEFORE_RUN,
+      });
+      const legacy: NetworkDevice = makeRunImportedDevice({
+        hostname: "10.0.0.6",
+        createdAt: BEFORE_RUN,
+      });
+      useInventory([recorded, legacy]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost(),
+            makeNamedHost({
+              ipAddress: "10.0.0.6",
+              dnsHostname: "kds02.wbhq.com",
+            }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()).toEqual([
+        {
+          id: recorded.id!.toString(),
+          data: {
+            name: PTR_NAME,
+            discoveredName: PTR_NAME,
+            discoveredNameSource: DeviceNameSource.DnsName,
+            dnsName: PTR_NAME,
+          },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+
+    it("never renames a device a person renamed", async () => {
+      useInventory([makeDnsNamedDevice({ name: "Kitchen display 1" })]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [makeNamedHost({ netbiosName: NETBIOS_NAME })],
+        }),
+      );
+
+      await processScan();
+
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("never trades a name for one from the same or a worse source", async () => {
+      useInventory([
+        makeDnsNamedDevice({
+          name: NETBIOS_NAME,
+          discoveredName: NETBIOS_NAME,
+          discoveredNameSource: DeviceNameSource.NetbiosName,
+        }),
+        makeDnsNamedDevice({ hostname: "10.0.0.6" }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            // This run got no NetBIOS reply: DNS only.
+            makeNamedHost(),
+            // A changed PTR record is the same source: no rename either.
+            makeNamedHost({
+              ipAddress: "10.0.0.6",
+              dnsHostname: "kds01-new.wbhq.com",
+            }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+
+    it("asks only for this project's devices at the addresses the result names, recorded as named from a source it can beat", async () => {
+      useInventory([makeDnsNamedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [
+            makeNamedHost({ netbiosName: NETBIOS_NAME }),
+            // Named by nothing but its address: nothing to improve it to.
+            makeNamedHost({ ipAddress: "10.0.0.9", dnsHostname: undefined }),
+          ],
+        }),
+      );
+
+      await processScan();
+
+      const lookups: Array<any> = upgradeLookupCalls();
+
+      expect(lookups).toHaveLength(1);
+      expect(lookups[0].query.projectId).toBe(PROJECT_ID);
+      expect(statusesMatchedBy(lookups[0].query.hostname)).toEqual([
+        "10.0.0.5",
+      ]);
+      // Never an SNMP-named device: nothing beats its name.
+      expect(statusesMatchedBy(lookups[0].query.discoveredNameSource)).toEqual([
+        DeviceNameSource.NetbiosName,
+        DeviceNameSource.DnsName,
+        DeviceNameSource.Address,
+      ]);
+      expect(lookups[0].select).toEqual({
+        _id: true,
+        projectId: true,
+        name: true,
+        hostname: true,
+        dnsName: true,
+        discoveredName: true,
+        discoveredNameSource: true,
+        createdAt: true,
+      });
+      expect(lookups[0].props).toEqual({ isRoot: true });
+    });
+
+    it("leaves the device itself out of the name check, so a rename that only changes the case goes through", async () => {
+      const device: NetworkDevice = makeDnsNamedDevice({
+        name: "kds01",
+        discoveredName: "kds01",
+      });
+      useInventory([device]);
+      deviceCountByMock.mockImplementation(
+        (args: {
+          query: { name: unknown; _id?: unknown };
+        }): Promise<PositiveNumber> => {
+          const wanted: string = sameTextValue(args.query.name);
+          const excluded: string | undefined = args.query._id
+            ? sameTextValue(args.query._id)
+            : undefined;
+
+          const holders: number = [device]
+            .filter((holder: NetworkDevice): boolean => {
+              return holder.id!.toString() !== excluded;
+            })
+            .filter((holder: NetworkDevice): boolean => {
+              return (holder.name || "").toLowerCase() === wanted;
+            }).length;
+
+          return Promise.resolve(new PositiveNumber(holders));
+        },
+      );
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          useShortDeviceNames: true,
+          discoveredDevices: [makeNamedHost({ netbiosName: "KDS01" })],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()[0]!.data).toEqual({
+        name: "KDS01",
+        discoveredName: "KDS01",
+        discoveredNameSource: DeviceNameSource.NetbiosName,
+      });
+
+      const countArgs: any = deviceCountByMock.mock.calls[0]![0];
+      expect(sameTextValue(countArgs.query._id)).toBe(device.id!.toString());
+    });
+
+    it("falls back to the address-qualified name when another device holds the better name", async () => {
+      useInventory([makeDnsNamedDevice()], [NETBIOS_NAME.toLowerCase()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          discoveredDevices: [makeNamedHost({ netbiosName: NETBIOS_NAME })],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()[0]!.data).toEqual({
+        name: `${NETBIOS_NAME} (10.0.0.5)`,
+        discoveredName: `${NETBIOS_NAME} (10.0.0.5)`,
+        discoveredNameSource: DeviceNameSource.NetbiosName,
+      });
+    });
+
+    it("plans a device that records a source once, even when it was created during this run", async () => {
+      const device: NetworkDevice = makeRunImportedDevice({
+        discoveredName: "10.0.0.5",
+        discoveredNameSource: DeviceNameSource.Address,
+        createdAt: DURING_RUN,
+      });
+      useInventory([device]);
+      scanFindOneByMock.mockResolvedValue(makeCompletedRunScan());
+
+      await processScan();
+
+      expect(renameUpdates()).toHaveLength(1);
+      expect(renameUpdates()[0]!.data["discoveredNameSource"]).toBe(
+        DeviceNameSource.DnsName,
+      );
+    });
+
+    it("improves names on a result whose scan has no startedAt, which the run-imported renames need", async () => {
+      useInventory([makeDnsNamedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          startedAt: undefined,
+          discoveredDevices: [makeNamedHost({ netbiosName: NETBIOS_NAME })],
+        }),
+      );
+
+      await processScan();
+
+      expect(renameUpdates()).toHaveLength(1);
+      expect(renameUpdates()[0]!.data["name"]).toBe(NETBIOS_NAME);
+    });
+
+    it("does nothing for a scan that is still sweeping", async () => {
+      useInventory([makeDnsNamedDevice()]);
+      scanFindOneByMock.mockResolvedValue(
+        makeCompletedRunScan({
+          status: "In Progress",
+          discoveredDevices: [makeNamedHost({ netbiosName: NETBIOS_NAME })],
+        }),
+      );
+
+      await processScan();
+
+      expect(upgradeLookupCalls()).toHaveLength(0);
+      expect(deviceUpdateMock).not.toHaveBeenCalled();
+    });
+  });
 });

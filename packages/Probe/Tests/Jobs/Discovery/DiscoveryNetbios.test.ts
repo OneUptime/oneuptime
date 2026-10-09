@@ -2468,3 +2468,148 @@ describe("SubnetScanner.attachNetbiosNames — the recount when it throws after 
     );
   });
 });
+
+/*
+ * OneUptime issue #4518: a host's NetBIOS name is its own Windows computer
+ * name and names the device ahead of its PTR record, so the lookup asks every
+ * host SNMP did not name — the ones reverse DNS named too, after the ones
+ * nothing named, so the host cap can only ever cut a host that has a name.
+ */
+describe("SubnetScanner.attachNetbiosNames — hosts DNS named are asked too, last (issue #4518)", () => {
+  it("asks the unnamed hosts first and the DNS-named ones after, whatever order the sweep found them in", async () => {
+    const netbios: { asked: Array<Array<string>> } = mockNetbios({});
+
+    await SubnetScanner.attachNetbiosNames([
+      { ...pingOnly("10.0.0.1"), dnsHostname: "a.corp.example.com" },
+      pingOnly("10.0.0.2"),
+      { ...pingOnly("10.0.0.3"), dnsHostname: "c.corp.example.com" },
+      pingOnly("10.0.0.4"),
+      { ipAddress: "10.0.0.5", snmpReachable: true, sysName: "core-sw" },
+    ]);
+
+    expect(netbios.asked).toEqual([
+      ["10.0.0.2", "10.0.0.4", "10.0.0.1", "10.0.0.3"],
+    ]);
+  });
+
+  it("a DNS-named host's NetBIOS name is stored beside its PTR name", async () => {
+    mockNetbios({ "10.0.0.1": "WB0024KDS04" });
+    const hosts: Array<DiscoveredHost> = [
+      { ...pingOnly("10.0.0.1"), dnsHostname: "wb-0024-kds04.wbhq.com" },
+    ];
+
+    const outcome: NetbiosNamingOutcome =
+      await SubnetScanner.attachNetbiosNames(hosts);
+
+    expect(hosts[0]).toStrictEqual({
+      ipAddress: "10.0.0.1",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds04.wbhq.com",
+      netbiosName: "WB0024KDS04",
+    });
+    expect(outcome.resolvedCount).toBe(1);
+    expect(outcome.candidateAddressCount).toBe(1);
+  });
+
+  it("a DNS-named host that does not answer gets no NetBIOS status: it is listed by its DNS name", async () => {
+    mockNetbios(
+      {},
+      {
+        resolution: {
+          statusByIpAddress: new Map<string, string>([
+            ["10.0.0.1", "no-reply"],
+            ["10.0.0.2", "no-reply"],
+          ]),
+        } as NetbiosResolutionOverrides,
+      },
+    );
+    const hosts: Array<DiscoveredHost> = [
+      { ...pingOnly("10.0.0.1"), dnsHostname: "a.corp.example.com" },
+      pingOnly("10.0.0.2"),
+    ];
+
+    await SubnetScanner.attachNetbiosNames(hosts);
+
+    expect(hosts[0]).not.toHaveProperty("netbiosNameStatus");
+    expect(hosts[1]!.netbiosNameStatus).toBe("no-reply");
+  });
+
+  it("a host whose sysName is a placeholder or an address is asked, like one with none", async () => {
+    const netbios: { asked: Array<Array<string>> } = mockNetbios({});
+
+    await SubnetScanner.attachNetbiosNames([
+      { ipAddress: "10.0.0.1", snmpReachable: true, sysName: "localhost" },
+      { ipAddress: "10.0.0.2", snmpReachable: true, sysName: "10.0.0.2" },
+      { ipAddress: "10.0.0.3", snmpReachable: true, sysName: "(none)" },
+      { ipAddress: "10.0.0.4", snmpReachable: true, sysName: "core-sw-04" },
+    ]);
+
+    expect(netbios.asked).toEqual([["10.0.0.1", "10.0.0.2", "10.0.0.3"]]);
+  });
+});
+
+describe("SubnetScanner.hasSystemName — the shared rule's notion of an SNMP name", () => {
+  it.each([
+    ["an ordinary name", "core-sw-01", true],
+    ["a display name with spaces", "Core Switch 1", true],
+    ["an FQDN", "core.corp.example.com", true],
+    ["blank", "   ", false],
+    ["empty", "", false],
+    ["a placeholder", "localhost", false],
+    ["the kernel's unset name", "(none)", false],
+    ["an address", "10.0.0.1", false],
+    ["NUL padding only", "\u0000\u0000", false],
+  ])("%s", (_label: string, sysName: string, expected: boolean) => {
+    expect(
+      SubnetScanner.hasSystemName({ ipAddress: "10.0.0.1", sysName: sysName }),
+    ).toBe(expected);
+  });
+
+  it("a host with no sysName key, or a number in it, has none", () => {
+    expect(SubnetScanner.hasSystemName({ ipAddress: "10.0.0.1" })).toBe(false);
+    expect(
+      SubnetScanner.hasSystemName({
+        ipAddress: "10.0.0.1",
+        sysName: 42 as unknown as string,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("SubnetScanner.countNetbiosCandidateAddresses", () => {
+  it("counts the distinct addresses with no usable SNMP name, named by DNS or not", () => {
+    expect(
+      SubnetScanner.countNetbiosCandidateAddresses([
+        pingOnly("10.0.0.1"),
+        pingOnly("10.0.0.1"),
+        { ...pingOnly("10.0.0.2"), dnsHostname: "b.corp.example.com" },
+        { ipAddress: "10.0.0.3", snmpReachable: true, sysName: "core" },
+        { ipAddress: "10.0.0.4", snmpReachable: true, sysName: "localhost" },
+      ]),
+    ).toBe(3);
+  });
+
+  it("is zero for nothing, and for hosts SNMP named", () => {
+    expect(SubnetScanner.countNetbiosCandidateAddresses([])).toBe(0);
+    expect(
+      SubnetScanner.countNetbiosCandidateAddresses([
+        { ipAddress: "10.0.0.3", snmpReachable: true, sysName: "core" },
+      ]),
+    ).toBe(0);
+    expect(
+      SubnetScanner.countNetbiosCandidateAddresses(
+        undefined as unknown as Array<DiscoveredHost>,
+      ),
+    ).toBe(0);
+  });
+
+  it("skips entries that are not hosts, never throwing", () => {
+    expect(
+      SubnetScanner.countNetbiosCandidateAddresses([
+        null as unknown as DiscoveredHost,
+        42 as unknown as DiscoveredHost,
+        pingOnly("10.0.0.9"),
+      ]),
+    ).toBe(1);
+  });
+});

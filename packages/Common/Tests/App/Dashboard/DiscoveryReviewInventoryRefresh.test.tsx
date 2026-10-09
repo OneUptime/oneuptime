@@ -630,6 +630,168 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
   });
 });
 
+/*
+ * OneUptime issue #4518, rendered: the reporter's kitchen displays in the real
+ * Review dialog. Each is named by its own hostname — WB0024KDS03 by SNMP,
+ * WB0024KDS04 and WB0024KDS05 by the Windows name they report over NetBIOS —
+ * with its DNS name beside the address, and the unnamed one says why. The
+ * import creates exactly those names, keeps the address and the DNS name, and
+ * records where each name came from.
+ */
+describe("Discovery review names the reported displays by their hostnames (issue #4518)", () => {
+  const REPORTED: Array<DiscoveredNetworkDevice> = [
+    { ipAddress: "10.16.42.52", snmpReachable: false },
+    {
+      ipAddress: "10.16.42.53",
+      snmpReachable: true,
+      sysName: "WB0024KDS03",
+      dnsHostname: "wb-0024-kds03.wbhq.com",
+    },
+    {
+      ipAddress: "10.16.42.54",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds04.wbhq.com",
+      netbiosName: "WB0024KDS04",
+    },
+    {
+      ipAddress: "10.16.42.55",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds05.wbhq.com",
+      netbiosName: "WB0024KDS05",
+    },
+  ];
+
+  function reportedScan(): NetworkDeviceDiscoveryScan {
+    const value: NetworkDeviceDiscoveryScan = scan(REPORTED);
+    value.useShortDeviceNames = true;
+    value.isNetbiosLookupEnabled = true;
+    return value;
+  }
+
+  test("each row reads as its hostname, with the DNS name beside the address", async () => {
+    getItemSpy.mockResolvedValue(reportedScan());
+    await renderPage();
+    await openReview(reportedScan());
+
+    for (const [address, name] of [
+      ["10.16.42.53", "WB0024KDS03"],
+      ["10.16.42.54", "WB0024KDS04"],
+      ["10.16.42.55", "WB0024KDS05"],
+    ] as Array<[string, string]>) {
+      expect(screen.getByText(name)).toHaveAttribute("title", name);
+      expect(checkbox(address)).toHaveAttribute(
+        "aria-label",
+        `Import ${name} (${address})`,
+      );
+    }
+
+    expect(screen.getByText(/^10\.16\.42\.53/)).toHaveTextContent(
+      "10.16.42.53 · wb-0024-kds03.wbhq.com",
+    );
+    expect(screen.getByText(/^10\.16\.42\.54/)).toHaveTextContent(
+      "10.16.42.54 · NetBIOS name · wb-0024-kds04.wbhq.com",
+    );
+    expect(screen.getByText(/^10\.16\.42\.55/)).toHaveTextContent(
+      "10.16.42.55 · NetBIOS name · wb-0024-kds05.wbhq.com",
+    );
+    // The SNMP-named display carries no NetBIOS hint.
+    expect(screen.getAllByText(/NetBIOS name/)).toHaveLength(2);
+    // The unnamed one is still listed by its address, and says so.
+    expect(checkbox("10.16.42.52")).toHaveAttribute(
+      "aria-label",
+      "Import 10.16.42.52 (10.16.42.52)",
+    );
+    expect(screen.getByText("No name found")).toBeInTheDocument();
+  });
+
+  test("the import creates the names the rows show, and records where each came from", async () => {
+    getItemSpy.mockResolvedValue(reportedScan());
+    await renderPage();
+    await openReview(reportedScan());
+    await importSelected();
+
+    expect(createSpy).toHaveBeenCalledTimes(4);
+
+    const devices: Array<Record<string, unknown>> = createSpy.mock.calls.map(
+      (call: Array<unknown>): Record<string, unknown> => {
+        const model: NetworkDevice = (call[0] as { model: NetworkDevice })
+          .model;
+
+        return {
+          name: model.name,
+          hostname: model.hostname,
+          dnsName: model.dnsName,
+          discoveredName: model.discoveredName,
+          discoveredNameSource: model.discoveredNameSource,
+        };
+      },
+    );
+
+    expect(devices).toEqual([
+      {
+        name: "10.16.42.52",
+        hostname: "10.16.42.52",
+        dnsName: undefined,
+        discoveredName: "10.16.42.52",
+        discoveredNameSource: "address",
+      },
+      {
+        name: "WB0024KDS03",
+        hostname: "10.16.42.53",
+        dnsName: "wb-0024-kds03.wbhq.com",
+        discoveredName: "WB0024KDS03",
+        discoveredNameSource: "system-name",
+      },
+      {
+        name: "WB0024KDS04",
+        hostname: "10.16.42.54",
+        dnsName: "wb-0024-kds04.wbhq.com",
+        discoveredName: "WB0024KDS04",
+        discoveredNameSource: "netbios-name",
+      },
+      {
+        name: "WB0024KDS05",
+        hostname: "10.16.42.55",
+        dnsName: "wb-0024-kds05.wbhq.com",
+        discoveredName: "WB0024KDS05",
+        discoveredNameSource: "netbios-name",
+      },
+    ]);
+  });
+
+  test("a hostname another device holds is retried with the address, and the retried name is what is created", async () => {
+    getItemSpy.mockResolvedValue(reportedScan());
+    createSpy.mockImplementation(
+      (args: unknown): Promise<undefined> => {
+        const model: NetworkDevice = (args as { model: NetworkDevice }).model;
+
+        if (model.name === "WB0024KDS04") {
+          return Promise.reject(
+            new Error("Network Device with the same name already exists"),
+          );
+        }
+
+        return Promise.resolve(undefined);
+      },
+    );
+    await renderPage();
+    await openReview(reportedScan());
+    await importSelected();
+
+    const retried: NetworkDevice | undefined = createSpy.mock.calls
+      .map((call: Array<unknown>): NetworkDevice => {
+        return (call[0] as { model: NetworkDevice }).model;
+      })
+      .find((model: NetworkDevice): boolean => {
+        return model.hostname === "10.16.42.54";
+      });
+
+    expect(retried?.name).toBe("WB0024KDS04 (10.16.42.54)");
+    // The source travels with the retry; the server records the final name.
+    expect(retried?.discoveredNameSource).toBe("netbios-name");
+  });
+});
+
 describe("Discovery review waits for a successful current response", () => {
   test("does not expose stale selection or import while the inventory read is pending", async () => {
     const pending: Deferred<NetworkDeviceDiscoveryScan | null> = deferred();
