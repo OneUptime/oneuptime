@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Lägg till alternativen som ska visas i rullgardinsmenyn och välj eventuellt en färg för varje värde. Dra ett alternativ i dess handtag för att ändra var det står i listan.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "Varje alternativ behöver ett eget namn: \"{{option}}\" står med mer än en gång.",
   "{{option}} (no longer an option)": "{{option}} (inte längre ett alternativ)",
-  "No longer an option": "Inte längre ett alternativ"
+  "No longer an option": "Inte längre ett alternativ",
+  "This {{itemName}} has no ID.": "Det här objektet ({{itemName}}) har inget ID."
 }

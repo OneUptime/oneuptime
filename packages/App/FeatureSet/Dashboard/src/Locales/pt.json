@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Adicione as opções que devem aparecer no menu suspenso e, se quiser, escolha uma cor para cada valor. Arraste uma opção pela alça para mudar sua posição na lista.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "Cada opção precisa de um nome próprio: \"{{option}}\" aparece mais de uma vez.",
   "{{option}} (no longer an option)": "{{option}} (já não é uma opção)",
-  "No longer an option": "Já não é uma opção"
+  "No longer an option": "Já não é uma opção",
+  "This {{itemName}} has no ID.": "Este item ({{itemName}}) não tem ID."
 }

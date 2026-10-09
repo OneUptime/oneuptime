@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "添加应在下拉列表中显示的选项，并可为每个值选择颜色。拖动选项的手柄可更改其在列表中的位置。",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "每个选项都需要自己的名称：“{{option}}”出现了不止一次。",
   "{{option}} (no longer an option)": "{{option}}（不再是选项）",
-  "No longer an option": "不再是选项"
+  "No longer an option": "不再是选项",
+  "This {{itemName}} has no ID.": "此{{itemName}}没有 ID。"
 }

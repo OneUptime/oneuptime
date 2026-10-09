@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "Aggiungi le opzioni che devono comparire nel menu a discesa e, se vuoi, scegli un colore per ogni valore. Trascina un'opzione dalla sua maniglia per cambiarne la posizione nell'elenco.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "Ogni opzione deve avere un nome proprio: \"{{option}}\" compare più di una volta.",
   "{{option}} (no longer an option)": "{{option}} (non è più un'opzione)",
-  "No longer an option": "Non è più un'opzione"
+  "No longer an option": "Non è più un'opzione",
+  "This {{itemName}} has no ID.": "Questo elemento ({{itemName}}) non ha un ID."
 }

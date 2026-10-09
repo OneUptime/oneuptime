@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "گزینه‌هایی را که باید در فهرست کشویی نشان داده شوند بیفزایید و در صورت تمایل برای هر مقدار رنگی برگزینید. برای تغییر جای یک گزینه در فهرست، آن را از دستگیره‌اش بکشید.",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "هر گزینه باید نام خودش را داشته باشد: «{{option}}» بیش از یک بار آمده است.",
   "{{option}} (no longer an option)": "{{option}} (دیگر گزینه نیست)",
-  "No longer an option": "دیگر گزینه نیست"
+  "No longer an option": "دیگر گزینه نیست",
+  "This {{itemName}} has no ID.": "این مورد ({{itemName}}) شناسه ندارد."
 }

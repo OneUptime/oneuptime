@@ -857,8 +857,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     if (data && field.fieldType === FieldType.ObjectID) {
-      const objectIdValue: string = data.toString();
-      data = <ObjectIDView objectId={objectIdValue} />;
+      /*
+       * Read like the record's own ID on the ID line: an analytics row holds
+       * an ObjectID and JSON holds { _type, value }, whose toString() is
+       * "[object Object]" - in the pill, and in what it copied. No ID at all
+       * leaves the field empty, for its placeholder.
+       */
+      const objectIdValue: string = getRecordIdText(data);
+      data = objectIdValue ? <ObjectIDView objectId={objectIdValue} /> : "";
     }
 
     if (data && field.fieldType === FieldType.Heading) {

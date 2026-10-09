@@ -27492,5 +27492,6 @@
   "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.": "ड्रॉपडाउन में दिखने वाले विकल्प जोड़ें और चाहें तो हर मान के लिए एक रंग चुनें। सूची में किसी विकल्प की जगह बदलने के लिए उसे हैंडल से खींचें।",
   "Each option needs its own name: \"{{option}}\" is listed more than once.": "हर विकल्प का अपना नाम होना चाहिए: \"{{option}}\" एक से ज़्यादा बार है।",
   "{{option}} (no longer an option)": "{{option}} (अब विकल्प नहीं)",
-  "No longer an option": "अब विकल्प नहीं"
+  "No longer an option": "अब विकल्प नहीं",
+  "This {{itemName}} has no ID.": "इस {{itemName}} की कोई आईडी नहीं है।"
 }

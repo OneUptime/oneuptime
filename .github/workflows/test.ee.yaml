@@ -59,13 +59,14 @@ jobs:
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/EnterpriseImportGuard.test.ts Tests/EnterprisePluginResolution.test.ts --forceExit
       # App's UI source guards that walk ee/Dashboard and ee/AdminDashboard as
-      # well as the core frontends: every More (⋯) menu item has an icon, and
-      # a details card shows the record's own ID on its ID line. The App Test
-      # job deletes ee/ first, so only this run holds the Enterprise screens
-      # to them. They only read files.
+      # well as the core frontends: every More (⋯) menu item has an icon, a
+      # details card shows the record's own ID on its ID line, and every Show
+      # ID dialog is the shared one that never hands React an object. The App
+      # Test job deletes ee/ first, so only this run holds the Enterprise
+      # screens to them. They only read files.
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts --forceExit
       # Common's UI source guards that walk ee/Dashboard and ee/AdminDashboard
       # too - the foreign `.hidden` guard, the create-form defaults guard,
       # which lists the ee compliance rule form's Enabled switch, and the
