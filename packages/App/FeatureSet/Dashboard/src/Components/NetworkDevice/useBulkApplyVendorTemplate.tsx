@@ -411,7 +411,7 @@ function useBulkApplyVendorTemplate(): BulkApplyVendorTemplateResult {
       {bulkActionProps && (
         <BasicFormModal<ApplyVendorTemplateFormData>
           title={APPLY_VENDOR_TEMPLATE_ACTION_TITLE}
-          description="Adds the template's health OIDs and SNMP tables to each selected device, as choosing it on a device's Settings does. Nothing a device already collects is removed. Devices that discovery imports get their vendor's template on their first poll."
+          description="Adds the template's health OIDs and SNMP tables to every selected device, as choosing it on a device's Settings does, and removes nothing a device already collects. Devices imported from a discovery scan get theirs on their first poll."
           onClose={closeModal}
           submitButtonText="Apply Template"
           onSubmit={async (formData: ApplyVendorTemplateFormData) => {
@@ -442,7 +442,7 @@ function useBulkApplyVendorTemplate(): BulkApplyVendorTemplateResult {
                 },
                 title: "Vendor Template",
                 description:
-                  "Matching reads each device's vendor from its SNMP identity, so a mixed selection gets the right template on every device.",
+                  "Matching picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 defaultValue: MATCH_EACH_DEVICE_VALUE,

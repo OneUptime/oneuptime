@@ -10,6 +10,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   BULK_ITEM_CHANGED,
   BulkItemOutcome,
+  bulkItemUnchanged,
   runBulkAction,
 } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import {
@@ -82,10 +83,28 @@ export interface BulkDeviceRelationConfig {
     confirmMessage: PluralTemplate;
   };
   /*
-   * Whether a device holds the relation now, from its row: "Clear" is only
-   * offered to a selection where it would clear something.
+   * The id of the relation a device holds, from its row, or null. "Clear" is
+   * only offered to a selection where it would clear something, and a device
+   * already in the state asked for is not written again.
    */
-  hasRelation: (device: NetworkDevice) => boolean;
+  readRelationId: (device: NetworkDevice) => string | null;
+  // Why a device "Set" leaves alone: it already holds what was picked.
+  alreadySetReason: string;
+  // Why a device "Clear" leaves alone: it holds nothing to clear.
+  notSetReason: string;
+}
+
+/*
+ * The selected devices that hold the relation - what "Clear" counts and
+ * changes.
+ */
+function countHolding(
+  items: Array<NetworkDevice>,
+  config: BulkDeviceRelationConfig,
+): number {
+  return items.filter((item: NetworkDevice): boolean => {
+    return Boolean(config.readRelationId(item));
+  }).length;
 }
 
 /*
@@ -126,9 +145,31 @@ function useBulkDeviceRelationActions(
         }
 
         /*
-         * Nothing is read first: the relation is one column the operator is
-         * replacing outright, and the server decides everything that follows
-         * from it.
+         * A device already in the state asked for is not written again: a
+         * move into the site it is in would still re-roll that site's health
+         * and re-reconcile its alert-policy monitors, for nothing. Judged from
+         * the row, which the table re-reads after every bulk action.
+         */
+        const current: string | null = config.readRelationId(item);
+
+        if (relationId === null && !current) {
+          return bulkItemUnchanged(
+            translator.translateText(config.notSetReason) ||
+              config.notSetReason,
+          );
+        }
+
+        if (relationId !== null && current === relationId.toString()) {
+          return bulkItemUnchanged(
+            translator.translateText(config.alreadySetReason) ||
+              config.alreadySetReason,
+          );
+        }
+
+        /*
+         * Nothing else is read first: the relation is one column the operator
+         * is replacing outright, and the server decides everything that
+         * follows from it.
          */
         const data: JSONObject = {
           [config.column]: relationId,
@@ -168,20 +209,23 @@ function useBulkDeviceRelationActions(
         return true;
       }
 
-      return items.some((item: NetworkDevice): boolean => {
-        return config.hasRelation(item);
-      });
+      return countHolding(items, config) > 0;
     },
+    /*
+     * Counted by the devices it changes: of nine selected devices, the one
+     * in a site is the one "Remove 1 device from its site?" is about. The
+     * others are listed as not changed when it is done.
+     */
     confirmTitle: (items: Array<NetworkDevice>): string => {
       return translator.translatePlural(
         config.clear.confirmTitle,
-        items.length,
+        countHolding(items, config),
       );
     },
     confirmMessage: (items: Array<NetworkDevice>): string => {
       return translator.translatePlural(
         config.clear.confirmMessage,
-        items.length,
+        countHolding(items, config),
       );
     },
     onClick: async (

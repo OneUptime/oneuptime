@@ -797,6 +797,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
    */
   const [createPingMonitors, setCreatePingMonitors] = useState<boolean>(false);
   /*
+   * Whether each SNMP host this import creates gets its vendor's health
+   * template on its first poll - the health OIDs and SNMP tables the device's
+   * Settings offers as "Vendor Health Template", picked from what the walk
+   * reports, exactly as an auto import rule's devices get them.
+   *
+   * ON by default: it is what the vendor banner on every such device would
+   * recommend, one device at a time, and an MSP importing thirty Cambium
+   * switches should not have to open thirty Settings pages - or remember a
+   * bulk action - to get their health. It only ever fills an EMPTY list, and
+   * the toggle is in the dialog, so leaving a batch without is one click.
+   */
+  const [applyVendorTemplates, setApplyVendorTemplates] =
+    useState<boolean>(true);
+  /*
    * Imports made since this review's inventory lookup. Each successful fresh
    * read replaces that scan's record, so a deleted device becomes selectable
    * again. Between reads the record still prevents repeated batch imports.
@@ -892,6 +906,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
      * nothing about the next scan, which may be a rack of switches.
      */
     setCreatePingMonitors(false);
+    setApplyVendorTemplates(true);
     setShowReviewModal(true);
 
     try {
@@ -997,6 +1012,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
     setHostFilter(DiscoveredHostFilter.All);
     setImportError("");
     setCreatePingMonitors(false);
+    setApplyVendorTemplates(true);
     /*
      * Keep the import record until a successful fresh inventory read replaces
      * it. A failed request must never make remembered imports selectable.
@@ -1106,6 +1122,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
             projectId: ProjectUtil.getCurrentProjectId()!,
             host: entry,
             scan: scanToReview,
+            /*
+             * The dialog's "Apply each SNMP host's vendor template" toggle.
+             * The builder sets it on SNMP hosts only: a ping-only host has
+             * no sysObjectID to match a template by.
+             */
+            autoApplyVendorHealthTemplate: applyVendorTemplates,
           });
 
           /*
@@ -1394,6 +1416,19 @@ const NetworkDeviceDiscovery: FunctionComponent<
   const noSnmpHostCount: number = reviewEntries.filter(
     (entry: DiscoveredDeviceEntry) => {
       return isPingOnlyDiscoveredHost(entry);
+    },
+  ).length;
+
+  /*
+   * The hosts the vendor-template toggle is about: the importable ones that
+   * answered SNMP. Across the whole scan, like noSnmpHostCount, so the toggle
+   * does not come and go as the operator switches filters.
+   */
+  const importableSnmpHostCount: number = reviewEntries.filter(
+    (entry: DiscoveredDeviceEntry) => {
+      return (
+        isSelectableDiscoveredHost(entry) && !isPingOnlyDiscoveredHost(entry)
+      );
     },
   ).length;
 
@@ -2342,6 +2377,34 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * decision, not a side effect of recording inventory. Shown only
              * when this scan actually found hosts it applies to.
              */}
+            {/*
+             * Before the Ping monitor option: it is about the devices most
+             * scans are run for, and it is on by default.
+             */}
+            {importableSnmpHostCount > 0 && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <Toggle
+                  title={translator.translatePlural(
+                    {
+                      one: "Apply each SNMP host's vendor template on its first poll (recommended) — {{count}} host",
+                      other:
+                        "Apply each SNMP host's vendor template on its first poll (recommended) — {{count}} hosts",
+                    },
+                    importableSnmpHostCount,
+                    {
+                      count: importableSnmpHostCount.toLocaleString("en-US"),
+                    },
+                  )}
+                  description="Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template starts without, and anything applied can be changed on the device's Settings."
+                  initialValue={applyVendorTemplates}
+                  value={applyVendorTemplates}
+                  dataTestId="discovered-device-apply-vendor-templates"
+                  onChange={(value: boolean) => {
+                    setApplyVendorTemplates(value);
+                  }}
+                />
+              </div>
+            )}
             {noSnmpHostCount > 0 && (
               <div className="mt-4 border-t border-gray-100 pt-4">
                 <Toggle

@@ -37,7 +37,7 @@ export const SET_SITE_ACTION_TITLE: string = translationKey("Set Site");
 export const CLEAR_SITE_ACTION_TITLE: string = translationKey("Clear Site");
 
 export const SET_SITE_DESCRIPTION: string = translationKey(
-  "Moves every selected device into this site, where it counts toward the site's health. A device without a probe of its own picks up the site's default probe.",
+  "Every selected device moves into the site you pick and counts toward its health. A device without a probe of its own picks up the site's default probe.",
 );
 
 export const SITE_ASSIGNMENT_RULES_HINT: string = translationKey(
@@ -47,6 +47,12 @@ export const SITE_ASSIGNMENT_RULES_HINT: string = translationKey(
 export const SITE_ASSIGNMENT_RULE_LINK_TEXT: string = translationKey(
   "site assignment rule",
 );
+
+export const ALREADY_IN_SITE_REASON: string = translationKey(
+  "Already in this site.",
+);
+
+export const NOT_IN_A_SITE_REASON: string = translationKey("Not in a site.");
 
 export const CLEAR_SITE_CONFIRM_TITLE: PluralTemplate = {
   one: "Remove {{count}} device from its site?",
@@ -58,9 +64,9 @@ export const CLEAR_SITE_CONFIRM_TITLE: PluralTemplate = {
  * re-evaluated on every poll, so one a rule matches goes straight back.
  */
 export const CLEAR_SITE_CONFIRM_MESSAGE: PluralTemplate = {
-  one: "It stops counting toward its site's health and keeps its probe. If a site assignment rule matches it, the rule puts it back in that rule's site on its next poll.",
+  one: "It stops counting toward its site's health and keeps its probe. If a site assignment rule matches it, it goes back to that rule's site on its next poll.",
   other:
-    "They stop counting toward their sites' health and keep their probes. A device a site assignment rule matches goes back to that rule's site on its next poll.",
+    "They stop counting toward their sites' health and keep their probes. Any that a site assignment rule matches go back to that rule's site on their next poll.",
 };
 
 function useBulkSiteActions(): BulkDeviceRelationActionsResult {
@@ -122,9 +128,11 @@ function useBulkSiteActions(): BulkDeviceRelationActionsResult {
       confirmTitle: CLEAR_SITE_CONFIRM_TITLE,
       confirmMessage: CLEAR_SITE_CONFIRM_MESSAGE,
     },
-    hasRelation: (device: NetworkDevice): boolean => {
-      return Boolean(device.siteId || device.site?._id);
+    readRelationId: (device: NetworkDevice): string | null => {
+      return (device.siteId || device.site?._id)?.toString() || null;
     },
+    alreadySetReason: ALREADY_IN_SITE_REASON,
+    notSetReason: NOT_IN_A_SITE_REASON,
   });
 }
 

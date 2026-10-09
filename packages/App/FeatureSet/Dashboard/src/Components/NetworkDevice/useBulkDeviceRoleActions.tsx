@@ -37,15 +37,23 @@ export const SET_DEVICE_ROLE_DESCRIPTION: string = translationKey(
   "What the selected devices do on the network. It decides how the map draws them, where they sit in its hierarchy, and which alert policies scoped to a role cover them.",
 );
 
+export const ALREADY_HAS_ROLE_REASON: string = translationKey(
+  "Already has this role.",
+);
+
+export const HAS_NO_ROLE_REASON: string = translationKey(
+  "Has no role to clear.",
+);
+
 export const CLEAR_DEVICE_ROLE_CONFIRM_TITLE: PluralTemplate = {
   one: "Clear the role of {{count}} device?",
   other: "Clear the role of {{count}} devices?",
 };
 
 export const CLEAR_DEVICE_ROLE_CONFIRM_MESSAGE: PluralTemplate = {
-  one: "Its role is worked out from its SNMP identity again. A device with nothing to read - pinged only, or monitor-backed - is drawn as an unknown node on the map.",
+  one: "Its role is worked out from its SNMP identity again. A device with nothing to read — pinged only, or monitor-backed — is drawn as an unknown node on the map.",
   other:
-    "Their roles are worked out from their SNMP identity again. A device with nothing to read - pinged only, or monitor-backed - is drawn as an unknown node on the map.",
+    "Their roles are worked out from their SNMP identity again. A device with nothing to read — pinged only, or monitor-backed — is drawn as an unknown node on the map.",
 };
 
 function useBulkDeviceRoleActions(): BulkDeviceRelationActionsResult {
@@ -69,9 +77,15 @@ function useBulkDeviceRoleActions(): BulkDeviceRelationActionsResult {
       confirmTitle: CLEAR_DEVICE_ROLE_CONFIRM_TITLE,
       confirmMessage: CLEAR_DEVICE_ROLE_CONFIRM_MESSAGE,
     },
-    hasRelation: (device: NetworkDevice): boolean => {
-      return Boolean(device.networkDeviceRoleId || device.networkDeviceRole?._id);
+    readRelationId: (device: NetworkDevice): string | null => {
+      return (
+        (
+          device.networkDeviceRoleId || device.networkDeviceRole?._id
+        )?.toString() || null
+      );
     },
+    alreadySetReason: ALREADY_HAS_ROLE_REASON,
+    notSetReason: HAS_NO_ROLE_REASON,
   });
 }
 
