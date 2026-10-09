@@ -11,6 +11,10 @@ import { TurnContext } from "botbuilder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventStateOption,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
@@ -18,10 +22,8 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenanceService";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
-import ScheduledMaintenanceState from "../../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceInternalNoteService from "../../../../Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenancePublicNoteService from "../../../../Services/ScheduledMaintenancePublicNoteService";
-import ScheduledMaintenanceStateService from "../../../../Services/ScheduledMaintenanceStateService";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -60,6 +62,10 @@ export interface MicrosoftTeamsNewScheduledMaintenanceFormChoices {
 }
 
 export default class MicrosoftTeamsScheduledMaintenanceActions {
+  // What a change-state card says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No scheduled maintenance states are available to you in this project. Ask a project admin for access to them.";
+
   @CaptureSpan()
   public static isScheduledMaintenanceAction(data: {
     actionType: string;
@@ -346,11 +352,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       }
 
       // For all other actions, we need an existing scheduled maintenance ID
-      const scheduledMaintenanceId: ObjectID = actionPayload[
-        "scheduledMaintenanceId"
-      ] as ObjectID;
+      const scheduledMaintenanceIdValue: unknown =
+        actionPayload["scheduledMaintenanceId"];
 
-      if (!scheduledMaintenanceId) {
+      if (!scheduledMaintenanceIdValue) {
         logger.error("ScheduledMaintenance ID is required", {
           actionType: actionType,
         });
@@ -358,10 +363,18 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         return;
       }
 
+      const scheduledMaintenanceId: ObjectID = new ObjectID(
+        String(scheduledMaintenanceIdValue),
+      );
+
+      /*
+       * Read as the member: an event they may not read is answered like
+       * one that is not there, before anything about it is shown.
+       */
       const scheduledMaintenance: ScheduledMaintenance | null =
         await ScheduledMaintenanceService.findOneBy({
           query: {
-            _id: scheduledMaintenanceId,
+            _id: scheduledMaintenanceId.toString(),
             projectId: request.projectId,
           },
           select: {
@@ -375,9 +388,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             },
             projectId: true,
           },
-          props: {
-            isRoot: true,
-          },
+          props: databaseProps,
         });
 
       if (!scheduledMaintenance) {
@@ -409,23 +420,13 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             ],
           });
 
-          const ongoingState: ScheduledMaintenanceState =
-            await ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState(
-              {
-                projectId: scheduledMaintenance.projectId!,
-                props: {
-                  isRoot: true,
-                },
-              },
-            );
-          await ScheduledMaintenanceService.updateOneById({
-            id: scheduledMaintenanceId,
-            data: {
-              currentScheduledMaintenanceStateId: ongoingState.id!,
-            },
-            props: {
-              isRoot: true,
-            },
+          /*
+           * Marked by the member, as the dashboard marks it for them
+           * (WorkspaceMemberActions).
+           */
+          await WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            props: databaseProps,
           });
           await turnContext.sendActivity(
             "ScheduledMaintenance marked as ongoing",
@@ -446,23 +447,13 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             ],
           });
 
-          const completedState: ScheduledMaintenanceState =
-            await ScheduledMaintenanceStateService.getCompletedScheduledMaintenanceState(
-              {
-                projectId: scheduledMaintenance.projectId!,
-                props: {
-                  isRoot: true,
-                },
-              },
-            );
-          await ScheduledMaintenanceService.updateOneById({
-            id: scheduledMaintenanceId,
-            data: {
-              currentScheduledMaintenanceStateId: completedState.id!,
+          // Marked by the member, as the dashboard marks it for them.
+          await WorkspaceMemberActions.resolve({
+            event: {
+              type: WorkspaceEventType.ScheduledMaintenance,
+              id: scheduledMaintenanceId,
             },
-            props: {
-              isRoot: true,
-            },
+            props: databaseProps,
           });
           await turnContext.sendActivity(
             "ScheduledMaintenance marked as complete",
@@ -484,13 +475,25 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           break;
 
         case MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote: {
-          const note: string = actionPayload["note"] as string;
-          const isPublic: boolean = actionPayload["isPublic"] as boolean;
+          const note: string = String(actionPayload["note"] || "").trim();
+          // The card's Note Type choice: "public" or "private".
+          const noteType: string = String(actionPayload["noteType"] || "");
 
-          if (!request.userId) {
-            await turnContext.sendActivity("User ID is required to add notes");
+          if (!note) {
+            await turnContext.sendActivity(
+              "Unable to add note: missing note data.",
+            );
             return;
           }
+
+          if (noteType !== "public" && noteType !== "private") {
+            await turnContext.sendActivity(
+              "Unable to add note: invalid note type.",
+            );
+            return;
+          }
+
+          const isPublic: boolean = noteType === "public";
 
           await WorkspaceActionAuthorization.assertCanCreate({
             props: databaseProps,
@@ -508,19 +511,20 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             ],
           });
 
+          // Posted by the member, as the dashboard posts it for them.
           if (isPublic) {
             await ScheduledMaintenancePublicNoteService.addNote({
               scheduledMaintenanceId: scheduledMaintenanceId,
               note: note,
-              projectId: scheduledMaintenance.projectId!,
-              userId: new ObjectID(request.userId),
+              projectId: request.projectId,
+              props: databaseProps,
             });
           } else {
             await ScheduledMaintenanceInternalNoteService.addNote({
               scheduledMaintenanceId: scheduledMaintenanceId,
               note: note,
-              projectId: scheduledMaintenance.projectId!,
-              userId: new ObjectID(request.userId),
+              projectId: request.projectId,
+              props: databaseProps,
             });
           }
 
@@ -541,22 +545,57 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           break;
         }
 
-        case MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState:
+        case MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState: {
+          /*
+           * Asked as the submit asks it, before the card is shown, and the
+           * card then offers the states the member may read.
+           */
+          await WorkspaceActionAuthorization.assertCanCreate({
+            props: databaseProps,
+            modelType: ScheduledMaintenanceStateTimeline,
+            action: "change the state of this scheduled maintenance event",
+            resources: [
+              {
+                service: ScheduledMaintenanceService,
+                id: scheduledMaintenanceId,
+              },
+            ],
+          });
+
+          const card: JSONObject | null =
+            await this.buildChangeScheduledMaintenanceStateCard(
+              scheduledMaintenanceId,
+              request.projectId,
+              databaseProps,
+            );
+
+          if (!card) {
+            await turnContext.sendActivity(
+              MicrosoftTeamsScheduledMaintenanceActions.NO_STATES_MESSAGE,
+            );
+            break;
+          }
+
           await turnContext.sendActivity({
             attachments: [
               {
                 contentType: "application/vnd.microsoft.card.adaptive",
-                content: await this.buildChangeScheduledMaintenanceStateCard(
-                  scheduledMaintenanceId,
-                  scheduledMaintenance.projectId!,
-                ),
+                content: card,
               },
             ],
           });
           break;
+        }
 
         case MicrosoftTeamsScheduledMaintenanceActionType.SubmitChangeScheduledMaintenanceState: {
-          const stateId: ObjectID = actionPayload["stateId"] as ObjectID;
+          const stateIdValue: unknown = actionPayload["stateId"];
+
+          if (!stateIdValue) {
+            await turnContext.sendActivity(
+              "Unable to change the state: missing state id.",
+            );
+            return;
+          }
 
           await WorkspaceActionAuthorization.assertCanCreate({
             props: databaseProps,
@@ -570,14 +609,17 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             ],
           });
 
-          await ScheduledMaintenanceService.updateOneById({
-            id: scheduledMaintenanceId,
-            data: {
-              currentScheduledMaintenanceStateId: stateId,
+          /*
+           * The state change the dashboard makes: a row in the event's state
+           * timeline, created by the member (WorkspaceMemberActions).
+           */
+          await WorkspaceMemberActions.changeState({
+            event: {
+              type: WorkspaceEventType.ScheduledMaintenance,
+              id: scheduledMaintenanceId,
             },
-            props: {
-              isRoot: true,
-            },
+            stateId: new ObjectID(String(stateIdValue)),
+            props: databaseProps,
           });
 
           await MicrosoftTeamsReplies.sendBestEffort(
@@ -609,6 +651,15 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       // Tell the user why they were refused; the message is written for them.
       if (error instanceof NotAuthorizedException) {
         await turnContext.sendActivity(error.message);
+        return;
+      }
+
+      // A refusal the write gave them (a plan, a value, a record), likewise.
+      const reason: string | null =
+        MicrosoftTeamsReplies.getUserFacingErrorMessage(error);
+
+      if (reason) {
+        await turnContext.sendActivity(`Sorry, that action failed: ${reason}`);
         return;
       }
 
@@ -674,29 +725,33 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     };
   }
 
+  /*
+   * The states the member may read, in the project's order; null when they
+   * may read none, for the caller to say so instead of an empty card.
+   */
   private static async buildChangeScheduledMaintenanceStateCard(
     scheduledMaintenanceId: ObjectID,
     projectId: ObjectID,
-  ): Promise<JSONObject> {
-    const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
-      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+    props: DatabaseCommonInteractionProps,
+  ): Promise<JSONObject | null> {
+    const scheduledMaintenanceStates: Array<WorkspaceEventStateOption> =
+      await WorkspaceMemberActions.findStateOptions({
+        type: WorkspaceEventType.ScheduledMaintenance,
         projectId: projectId,
-        props: {
-          isRoot: true,
-        },
+        props: props,
       });
 
+    if (scheduledMaintenanceStates.length === 0) {
+      return null;
+    }
+
     const choices: Array<{ title: string; value: string }> =
-      scheduledMaintenanceStates
-        .map((state: ScheduledMaintenanceState) => {
-          return {
-            title: state.name || "",
-            value: state._id?.toString() || "",
-          };
-        })
-        .filter((choice: { title: string; value: string }) => {
-          return choice.title && choice.value;
-        });
+      scheduledMaintenanceStates.map((state: WorkspaceEventStateOption) => {
+        return {
+          title: state.name,
+          value: state.id.toString(),
+        };
+      });
 
     return {
       type: "AdaptiveCard",

@@ -21,8 +21,6 @@ import ScheduledMaintenancePublicNoteService from "../../../../Services/Schedule
 import ScheduledMaintenanceInternalNoteService from "../../../../Services/ScheduledMaintenanceInternalNoteService";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
-import ScheduledMaintenanceState from "../../../../../Models/DatabaseModels/ScheduledMaintenanceState";
-import ScheduledMaintenanceStateService from "../../../../Services/ScheduledMaintenanceStateService";
 import logger, { LogAttributes } from "../../../Logger";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
@@ -37,14 +35,29 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventStateOption,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SlackActionAuthorization from "./Authorization";
-import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import {
+  MarkdownText,
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackScheduledMaintenanceActions {
+  // Changing an event's state, as a refusal names it.
+  public static readonly CHANGE_STATE_ACTION: string =
+    "change the state of this scheduled maintenance event";
+
+  // What a change-state form says instead of opening with nothing to pick.
+  public static readonly NO_STATES_MESSAGE: string =
+    "No scheduled maintenance states are available to you in this project. Ask a project admin for access to them.";
+
   @CaptureSpan()
   public static isScheduledMaintenanceAction(data: {
     actionType: SlackActionType;
@@ -603,8 +616,8 @@ export default class SlackScheduledMaintenanceActions {
         response_action: "clear",
       });
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      const props: DatabaseCommonInteractionProps | null =
+        await SlackActionAuthorization.authorize({
           requester: slackRequest,
           modelType: ScheduledMaintenanceStateTimeline,
           action: "mark this scheduled maintenance event as ongoing",
@@ -614,8 +627,9 @@ export default class SlackScheduledMaintenanceActions {
               id: scheduledMaintenanceId,
             },
           ],
-        }))
-      ) {
+        });
+
+      if (!props) {
         return;
       }
 
@@ -632,10 +646,20 @@ export default class SlackScheduledMaintenanceActions {
           scheduledMaintenanceId: scheduledMaintenanceId,
         });
 
-        // send a message to the channel visible to user, that the scheduledMaintenance has already been acknowledged.
+        // Started already: ongoing, or over.
+        const isCompleted: boolean =
+          await ScheduledMaintenanceService.isScheduledMaintenanceCompleted({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+          });
+
+        const eventLink: MarkdownText = mdText`**[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**`;
+
+        // send a message to the channel visible to user, that the scheduledMaintenance has already started.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`.toString(),
+          text: isCompleted
+            ? mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the ${eventLink} is already complete.`.toString()
+            : mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the ${eventLink} is already in ongoing state.`.toString(),
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -647,10 +671,26 @@ export default class SlackScheduledMaintenanceActions {
         return;
       }
 
-      await ScheduledMaintenanceService.markScheduledMaintenanceAsOngoing(
-        scheduledMaintenanceId,
-        userId,
-      );
+      /*
+       * Marked by the member, as the dashboard marks it for them
+       * (WorkspaceMemberActions); a refusal is told to them.
+       */
+      const isMarked: boolean | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "mark the scheduled maintenance event as ongoing",
+          run: async (): Promise<boolean> => {
+            await WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              props: props,
+            });
+            return true;
+          },
+        });
+
+      if (!isMarked) {
+        return;
+      }
 
       // Log the button interaction
       if (slackRequest.projectId) {
@@ -757,8 +797,8 @@ export default class SlackScheduledMaintenanceActions {
         response_action: "clear",
       });
 
-      if (
-        !(await SlackActionAuthorization.authorize({
+      const props: DatabaseCommonInteractionProps | null =
+        await SlackActionAuthorization.authorize({
           requester: slackRequest,
           modelType: ScheduledMaintenanceStateTimeline,
           action: "mark this scheduled maintenance event as complete",
@@ -768,8 +808,9 @@ export default class SlackScheduledMaintenanceActions {
               id: scheduledMaintenanceId,
             },
           ],
-        }))
-      ) {
+        });
+
+      if (!props) {
         return;
       }
 
@@ -800,10 +841,26 @@ export default class SlackScheduledMaintenanceActions {
         return;
       }
 
-      await ScheduledMaintenanceService.markScheduledMaintenanceAsComplete(
-        scheduledMaintenanceId,
-        userId,
-      );
+      // Marked by the member, as the dashboard marks it for them.
+      const isMarked: boolean | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "mark the scheduled maintenance event as complete",
+          run: async (): Promise<boolean> => {
+            await WorkspaceMemberActions.resolve({
+              event: {
+                type: WorkspaceEventType.ScheduledMaintenance,
+                id: scheduledMaintenanceId,
+              },
+              props: props,
+            });
+            return true;
+          },
+        });
+
+      if (!isMarked) {
+        return;
+      }
 
       // Log the button interaction
       if (slackRequest.projectId) {
@@ -877,42 +934,51 @@ export default class SlackScheduledMaintenanceActions {
       response_action: "clear",
     });
 
-    // const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+    /*
+     * Asked as the submit asks it, before the form is shown: someone who may
+     * not change the state of this event is told so now. The form then
+     * offers the states they may read, read with their own permissions, as
+     * the dashboard's state panel lists them for them.
+     */
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: ScheduledMaintenanceStateTimeline,
+        action: SlackScheduledMaintenanceActions.CHANGE_STATE_ACTION,
+        resources: [
+          {
+            service: ScheduledMaintenanceService,
+            id: new ObjectID(actionValue),
+          },
+        ],
+      });
 
-    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+    if (!props) {
+      return;
+    }
 
-    const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
-      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+    const scheduledMaintenanceStates: Array<WorkspaceEventStateOption> =
+      await WorkspaceMemberActions.findStateOptions({
+        type: WorkspaceEventType.ScheduledMaintenance,
         projectId: data.slackRequest.projectId!,
-        props: {
-          isRoot: true,
-        },
+        props: props,
       });
 
-    logger.debug("Scheduled Maintenance States: ", {
-      projectId: data.slackRequest.projectId?.toString(),
-    } as LogAttributes);
-    logger.debug(scheduledMaintenanceStates, {
-      projectId: data.slackRequest.projectId?.toString(),
-    } as LogAttributes);
+    if (scheduledMaintenanceStates.length === 0) {
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: SlackScheduledMaintenanceActions.NO_STATES_MESSAGE,
+      });
+      return;
+    }
 
-    const dropdownOptions: Array<DropdownOption> = scheduledMaintenanceStates
-      .map((state: ScheduledMaintenanceState) => {
+    const dropdownOptions: Array<DropdownOption> =
+      scheduledMaintenanceStates.map((state: WorkspaceEventStateOption) => {
         return {
-          label: state.name || "",
-          value: state._id?.toString() || "",
+          label: state.name,
+          value: state.id.toString(),
         };
-      })
-      .filter((option: DropdownOption) => {
-        return option.label !== "" || option.value !== "";
       });
-
-    logger.debug("Dropdown Options: ", {
-      projectId: data.slackRequest.projectId?.toString(),
-    } as LogAttributes);
-    logger.debug(dropdownOptions, {
-      projectId: data.slackRequest.projectId?.toString(),
-    } as LogAttributes);
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
@@ -987,7 +1053,7 @@ export default class SlackScheduledMaintenanceActions {
       await SlackActionAuthorization.authorize({
         requester: data.slackRequest,
         modelType: ScheduledMaintenanceStateTimeline,
-        action: "change the state of this scheduled maintenance event",
+        action: SlackScheduledMaintenanceActions.CHANGE_STATE_ACTION,
         resources: [
           { service: ScheduledMaintenanceService, id: scheduledMaintenanceId },
         ],
@@ -997,12 +1063,23 @@ export default class SlackScheduledMaintenanceActions {
       return;
     }
 
-    await ScheduledMaintenanceService.updateOneById({
-      id: scheduledMaintenanceId,
-      data: {
-        currentScheduledMaintenanceStateId: stateId,
+    /*
+     * The state change the dashboard makes: a row in the event's state
+     * timeline, created by the member (WorkspaceMemberActions).
+     */
+    await SlackActionAuthorization.runForRequester({
+      requester: data.slackRequest,
+      action: "change the state of the scheduled maintenance event",
+      run: async (): Promise<void> => {
+        await WorkspaceMemberActions.changeState({
+          event: {
+            type: WorkspaceEventType.ScheduledMaintenance,
+            id: scheduledMaintenanceId,
+          },
+          stateId: stateId,
+          props: props,
+        });
       },
-      props: props,
     });
   }
 
@@ -1073,8 +1150,8 @@ export default class SlackScheduledMaintenanceActions {
       response_action: "clear",
     });
 
-    if (
-      !(await SlackActionAuthorization.authorize({
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
         requester: data.slackRequest,
         modelType:
           noteType === "public"
@@ -1087,30 +1164,35 @@ export default class SlackScheduledMaintenanceActions {
         resources: [
           { service: ScheduledMaintenanceService, id: scheduledMaintenanceId },
         ],
-      }))
-    ) {
+      });
+
+    if (!props) {
       return;
     }
 
-    // if public note then, add a note.
-    if (noteType === "public") {
-      await ScheduledMaintenancePublicNoteService.addNote({
-        scheduledMaintenanceId: scheduledMaintenanceId!,
-        note: note || "",
-        projectId: data.slackRequest.projectId!,
-        userId: data.slackRequest.userId!,
-      });
-    }
+    // Posted by the member, as the dashboard posts it for them.
+    await SlackActionAuthorization.runForRequester({
+      requester: data.slackRequest,
+      action: "add the note",
+      run: async (): Promise<void> => {
+        if (noteType === "public") {
+          await ScheduledMaintenancePublicNoteService.addNote({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            note: note,
+            projectId: data.slackRequest.projectId!,
+            props: props,
+          });
+          return;
+        }
 
-    // if private note then, add a note.
-    if (noteType === "private") {
-      await ScheduledMaintenanceInternalNoteService.addNote({
-        scheduledMaintenanceId: scheduledMaintenanceId!,
-        note: note || "",
-        projectId: data.slackRequest.projectId!,
-        userId: data.slackRequest.userId!,
-      });
-    }
+        await ScheduledMaintenanceInternalNoteService.addNote({
+          scheduledMaintenanceId: scheduledMaintenanceId,
+          note: note,
+          projectId: data.slackRequest.projectId!,
+          props: props,
+        });
+      },
+    });
   }
 
   @CaptureSpan()

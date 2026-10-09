@@ -100,10 +100,11 @@ You manage them at **Incidents → Settings → Note Templates** — the card is
 
 If you've connected a workspace, responders never have to leave the channel. Both Slack and Microsoft Teams expose an add-note action that opens a modal with a dropdown offering **Public Note** or **Private Note** plus a text box, and writes the result straight onto the incident.
 
-Two details worth knowing:
+Three details worth knowing:
 
 - **Duplicate protection** — each note records the Slack message it came from (`postedFromSlackMessageId`, formatted `channel_id:message_ts`), so several people reacting to the same message produce one note, not five.
 - **Notes echo back** — posting either kind of note also pushes a message into the connected incident channel, because the note's feed item is created with workspace notification enabled.
+- **Posted as the person who asked** — a note from the modal or from a reaction is posted with that person's OneUptime permissions, so it needs their permission to post that kind of note on the incident. When it is refused, they are told why — in a direct message in Slack, and in the conversation in Microsoft Teams (in the message's thread, for a reaction) — and nothing is posted.
 
 ## When a public note actually reaches subscribers
 
@@ -151,7 +152,7 @@ Some items carry extra detail — an owner notification lists everyone who was m
 The card header also has an **Actions** menu so you can act without leaving the timeline:
 
 - **Execute Runbook** — start a [runbook](/docs/runbooks/index) against this incident.
-- **Execute On-Call Policy** — page a policy on demand.
+- **Execute On-Call Policy** — page a policy on demand. An archived policy pages no one: its execution log on the incident says it was not executed because the policy is archived.
 - **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview** are all there. The note is posted now; to backdate it, choose **Posted now**.
 - **Add Private Note** — the **Private Notes** page's composer, in a dialog: write the note, then **Add note**.
 

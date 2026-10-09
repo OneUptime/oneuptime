@@ -1089,6 +1089,27 @@ jobs:
           Tests/Server/Utils/Workspace/WorkspaceCreateFormsScopePostgres.test.ts
           --forceExit
 
+      # Clones the migrated team, label, incident, incident state, timeline,
+      # note, on-call policy, execution log and workspace connection tables
+      # into an isolated schema and presses Slack's and Teams' Acknowledge,
+      # Resolve, Change State, Add Note and Escalate buttons as the members
+      # connected to them: each writes the dashboard's row with the member as
+      # its creator, a member whose incident read is limited to a label acts
+      # only on what carries it, and anything outside their read, another
+      # project's record or a read-only member is refused with nothing
+      # written.
+      - name: Test what Slack and Teams buttons write, and for whom, on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKSPACE_MEMBER_ACTION_TESTS: "true"
+          WORKSPACE_MEMBER_ACTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKSPACE_MEMBER_ACTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKSPACE_MEMBER_ACTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Workspace/WorkspaceMemberActionsPostgres.test.ts
+          --forceExit
+
       - name: Test workflow OAuth variables on migrated Postgres
         working-directory: packages/Common
         env:

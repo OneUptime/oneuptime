@@ -3,7 +3,6 @@ import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogS
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -896,7 +895,6 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       select: {
         _id: true,
         projectId: true,
-        isArchived: true,
       },
       props: {
         isRoot: true,
@@ -910,26 +908,20 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     }
 
     /*
-     * An archived policy pages no one. Its execution log is still written -
-     * with the reason, and without the hooks that would start escalating or
-     * post "started executing" to the incident - so the incident's on-call
+     * The policy's execution log. An archived policy pages no one: the log
+     * service's create writes its log as not executed, with the reason, and
+     * starts nothing after it - for this execution as for every other way
+     * one is asked for (OnCallDutyPolicyArchive) - so the incident's on-call
      * tab says why nobody was paged instead of showing nothing.
      */
-    const isPolicyArchived: boolean = policy.isArchived === true;
-
-    // add policy log.
     const log: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
 
     log.projectId = policy.projectId!;
     log.onCallDutyPolicyId = policyId;
     log.userNotificationEventType = options.userNotificationEventType;
-    log.statusMessage = isPolicyArchived
-      ? ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE
-      : "Scheduled.";
-    log.status = isPolicyArchived
-      ? OnCallDutyPolicyStatus.Error
-      : OnCallDutyPolicyStatus.Scheduled;
+    log.statusMessage = "Scheduled.";
+    log.status = OnCallDutyPolicyStatus.Scheduled;
 
     if (options.triggeredByIncidentId) {
       log.triggeredByIncidentId = options.triggeredByIncidentId;
@@ -945,26 +937,6 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
 
     if (options.triggeredByIncidentEpisodeId) {
       log.triggeredByIncidentEpisodeId = options.triggeredByIncidentEpisodeId;
-    }
-
-    if (isPolicyArchived) {
-      logger.debug(
-        `On-call policy ${policyId.toString()} is archived. Recording a skipped execution instead of paging.`,
-        { projectId: policy.projectId?.toString() } as LogAttributes,
-      );
-
-      // The repeat counter onBeforeCreate would otherwise have seeded.
-      log.onCallPolicyExecutionRepeatCount = 1;
-
-      await OnCallDutyPolicyExecutionLogService.create({
-        data: log,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-
-      return;
     }
 
     await OnCallDutyPolicyExecutionLogService.create({

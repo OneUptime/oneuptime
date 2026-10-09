@@ -122,15 +122,11 @@ import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
 import AlertEpisodeInternalNoteService from "../../../../../Server/Services/AlertEpisodeInternalNoteService";
-import AlertEpisodeService from "../../../../../Server/Services/AlertEpisodeService";
 import AlertInternalNoteService from "../../../../../Server/Services/AlertInternalNoteService";
-import AlertService from "../../../../../Server/Services/AlertService";
 import IncidentEpisodeInternalNoteService from "../../../../../Server/Services/IncidentEpisodeInternalNoteService";
-import IncidentEpisodeService from "../../../../../Server/Services/IncidentEpisodeService";
 import IncidentInternalNoteService from "../../../../../Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
-import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
 import ScheduledMaintenanceInternalNoteService from "../../../../../Server/Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenancePublicNoteService from "../../../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
@@ -154,11 +150,13 @@ import MicrosoftTeamsScheduledMaintenanceActions from "../../../../../Server/Uti
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MicrosoftTeamsReplies from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceMemberActions, {
+  WorkspaceEventType,
+} from "../../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "6f1d2c3b-4a59-4e68-8d7c-1b2a3c4d5e6f",
@@ -447,28 +445,55 @@ function stubExistingMaintenance(): void {
     .mockResolvedValue(maintenance);
 }
 
-function stubExecutePolicy(expected: {
-  trigger: JSONObject;
-  userNotificationEventType: UserNotificationEventType;
+/*
+ * Executing an on-call policy from a form is the member's own execution of
+ * it for the record (WorkspaceMemberActions), with the props
+ * handleBotInvokeActivity built for them.
+ */
+function stubExecuteOnCallPolicy(expected: {
+  type: WorkspaceEventType;
+  id: string;
   failure: Error | undefined;
 }): WriteCheck {
-  const executePolicy: SpyInstance<
-    typeof OnCallDutyPolicyService.executePolicy
+  const executeOnCallPolicy: SpyInstance<
+    typeof WorkspaceMemberActions.executeOnCallPolicy
   > = jest
-    .spyOn(OnCallDutyPolicyService, "executePolicy")
+    .spyOn(WorkspaceMemberActions, "executeOnCallPolicy")
     .mockImplementation((): Promise<void> => {
       return writeOutcome(undefined, expected.failure);
     });
 
   return (): void => {
-    expect(executePolicy).toHaveBeenCalledTimes(1);
-    expect(executePolicy).toHaveBeenCalledWith(
-      new ObjectID(ON_CALL_POLICY_ID),
-      {
-        ...expected.trigger,
-        userNotificationEventType: expected.userNotificationEventType,
-      },
-    );
+    expect(executeOnCallPolicy).toHaveBeenCalledTimes(1);
+    expect(executeOnCallPolicy).toHaveBeenCalledWith({
+      event: { type: expected.type, id: new ObjectID(expected.id) },
+      onCallDutyPolicyId: new ObjectID(ON_CALL_POLICY_ID),
+      props: MEMBER_PROPS,
+    });
+  };
+}
+
+// A state change from a form is the member's own (WorkspaceMemberActions).
+function stubChangeState(expected: {
+  type: WorkspaceEventType;
+  id: string;
+  stateId: string;
+  failure: Error | undefined;
+}): WriteCheck {
+  const changeState: SpyInstance<typeof WorkspaceMemberActions.changeState> =
+    jest
+      .spyOn(WorkspaceMemberActions, "changeState")
+      .mockImplementation((): Promise<void> => {
+        return writeOutcome(undefined, expected.failure);
+      });
+
+  return (): void => {
+    expect(changeState).toHaveBeenCalledTimes(1);
+    expect(changeState).toHaveBeenCalledWith({
+      event: { type: expected.type, id: new ObjectID(expected.id) },
+      stateId: new ObjectID(expected.stateId),
+      props: MEMBER_PROPS,
+    });
   };
 }
 
@@ -503,7 +528,8 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
           incidentId: new ObjectID(INCIDENT_ID),
           note: NOTE,
           projectId: PROJECT_ID,
-          userId: USER_ID,
+          // Posted with the member's own props: the note is theirs.
+          props: MEMBER_PROPS,
         });
       };
     },
@@ -530,7 +556,8 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
           incidentId: new ObjectID(INCIDENT_ID),
           note: NOTE,
           projectId: PROJECT_ID,
-          userId: USER_ID,
+          // Posted with the member's own props: the note is theirs.
+          props: MEMBER_PROPS,
         });
       };
     },
@@ -545,9 +572,9 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     confirmation: "✅ On-call policy executed successfully.",
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
-      return stubExecutePolicy({
-        trigger: { triggeredByIncidentId: new ObjectID(INCIDENT_ID) },
-        userNotificationEventType: UserNotificationEventType.IncidentCreated,
+      return stubExecuteOnCallPolicy({
+        type: WorkspaceEventType.Incident,
+        id: INCIDENT_ID,
         failure: failure,
       });
     },
@@ -561,21 +588,12 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     confirmation: "✅ Incident state changed successfully.",
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
-      const updateOneById: SpyInstance<typeof IncidentService.updateOneById> =
-        jest
-          .spyOn(IncidentService, "updateOneById")
-          .mockImplementation((): Promise<number> => {
-            return writeOutcome(1, failure);
-          });
-
-      return (): void => {
-        expect(updateOneById).toHaveBeenCalledTimes(1);
-        expect(updateOneById).toHaveBeenCalledWith({
-          id: new ObjectID(INCIDENT_ID),
-          data: { currentIncidentStateId: new ObjectID(INCIDENT_STATE_ID) },
-          props: MEMBER_PROPS,
-        });
-      };
+      return stubChangeState({
+        type: WorkspaceEventType.Incident,
+        id: INCIDENT_ID,
+        stateId: INCIDENT_STATE_ID,
+        failure: failure,
+      });
     },
   },
   {
@@ -636,7 +654,8 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
           alertId: new ObjectID(ALERT_ID),
           note: NOTE,
           projectId: PROJECT_ID,
-          userId: USER_ID,
+          // Posted with the member's own props: the note is theirs.
+          props: MEMBER_PROPS,
         });
       };
     },
@@ -650,9 +669,9 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     confirmation: "✅ On-call policy executed successfully.",
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
-      return stubExecutePolicy({
-        trigger: { triggeredByAlertId: new ObjectID(ALERT_ID) },
-        userNotificationEventType: UserNotificationEventType.AlertCreated,
+      return stubExecuteOnCallPolicy({
+        type: WorkspaceEventType.Alert,
+        id: ALERT_ID,
         failure: failure,
       });
     },
@@ -666,20 +685,12 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     confirmation: "✅ Alert state changed successfully.",
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
-      const updateOneById: SpyInstance<typeof AlertService.updateOneById> = jest
-        .spyOn(AlertService, "updateOneById")
-        .mockImplementation((): Promise<number> => {
-          return writeOutcome(1, failure);
-        });
-
-      return (): void => {
-        expect(updateOneById).toHaveBeenCalledTimes(1);
-        expect(updateOneById).toHaveBeenCalledWith({
-          id: new ObjectID(ALERT_ID),
-          data: { currentAlertStateId: new ObjectID(ALERT_STATE_ID) },
-          props: MEMBER_PROPS,
-        });
-      };
+      return stubChangeState({
+        type: WorkspaceEventType.Alert,
+        id: ALERT_ID,
+        stateId: ALERT_STATE_ID,
+        failure: failure,
+      });
     },
   },
   {
@@ -705,7 +716,8 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
           alertEpisodeId: new ObjectID(ALERT_EPISODE_ID),
           note: NOTE,
           projectId: PROJECT_ID,
-          userId: USER_ID,
+          // Posted with the member's own props: the note is theirs.
+          props: MEMBER_PROPS,
         });
       };
     },
@@ -720,10 +732,9 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     confirmation: "✅ On-call policy executed successfully.",
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
-      return stubExecutePolicy({
-        trigger: { triggeredByAlertEpisodeId: new ObjectID(ALERT_EPISODE_ID) },
-        userNotificationEventType:
-          UserNotificationEventType.AlertEpisodeCreated,
+      return stubExecuteOnCallPolicy({
+        type: WorkspaceEventType.AlertEpisode,
+        id: ALERT_EPISODE_ID,
         failure: failure,
       });
     },
@@ -738,25 +749,12 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     confirmation: "✅ Alert episode state changed successfully.",
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
-      const changeEpisodeState: SpyInstance<
-        typeof AlertEpisodeService.changeEpisodeState
-      > = jest
-        .spyOn(AlertEpisodeService, "changeEpisodeState")
-        .mockImplementation((): Promise<void> => {
-          return writeOutcome(undefined, failure);
-        });
-
-      return (): void => {
-        expect(changeEpisodeState).toHaveBeenCalledTimes(1);
-        expect(changeEpisodeState).toHaveBeenCalledWith({
-          projectId: PROJECT_ID,
-          episodeId: new ObjectID(ALERT_EPISODE_ID),
-          alertStateId: new ObjectID(ALERT_STATE_ID),
-          notifyOwners: true,
-          rootCause: "State changed via Microsoft Teams.",
-          props: { isRoot: true },
-        });
-      };
+      return stubChangeState({
+        type: WorkspaceEventType.AlertEpisode,
+        id: ALERT_EPISODE_ID,
+        stateId: ALERT_STATE_ID,
+        failure: failure,
+      });
     },
   },
   {
@@ -783,7 +781,8 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
           incidentEpisodeId: new ObjectID(INCIDENT_EPISODE_ID),
           note: NOTE,
           projectId: PROJECT_ID,
-          userId: USER_ID,
+          // Posted with the member's own props: the note is theirs.
+          props: MEMBER_PROPS,
         });
       };
     },
@@ -798,12 +797,9 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     confirmation: "On-call policy executed successfully.",
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
-      return stubExecutePolicy({
-        trigger: {
-          triggeredByIncidentEpisodeId: new ObjectID(INCIDENT_EPISODE_ID),
-        },
-        userNotificationEventType:
-          UserNotificationEventType.IncidentEpisodeCreated,
+      return stubExecuteOnCallPolicy({
+        type: WorkspaceEventType.IncidentEpisode,
+        id: INCIDENT_EPISODE_ID,
         failure: failure,
       });
     },
@@ -818,25 +814,12 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     confirmation: "Incident episode state changed successfully.",
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
-      const changeEpisodeState: SpyInstance<
-        typeof IncidentEpisodeService.changeEpisodeState
-      > = jest
-        .spyOn(IncidentEpisodeService, "changeEpisodeState")
-        .mockImplementation((): Promise<void> => {
-          return writeOutcome(undefined, failure);
-        });
-
-      return (): void => {
-        expect(changeEpisodeState).toHaveBeenCalledTimes(1);
-        expect(changeEpisodeState).toHaveBeenCalledWith({
-          projectId: PROJECT_ID,
-          episodeId: new ObjectID(INCIDENT_EPISODE_ID),
-          incidentStateId: new ObjectID(INCIDENT_STATE_ID),
-          notifyOwners: true,
-          rootCause: "State changed via Microsoft Teams.",
-          props: { isRoot: true },
-        });
-      };
+      return stubChangeState({
+        type: WorkspaceEventType.IncidentEpisode,
+        id: INCIDENT_EPISODE_ID,
+        stateId: INCIDENT_STATE_ID,
+        failure: failure,
+      });
     },
   },
   {
@@ -848,7 +831,7 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     fields: {
       scheduledMaintenanceId: MAINTENANCE_ID,
       note: NOTE,
-      isPublic: true,
+      noteType: "public",
     },
     confirmation: "Note added successfully",
     failureReply: MAINTENANCE_ACTION_FAILED,
@@ -868,7 +851,8 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
         expect(String(added["scheduledMaintenanceId"])).toBe(MAINTENANCE_ID);
         expect(added["note"]).toBe(NOTE);
         expect(added["projectId"]).toEqual(PROJECT_ID);
-        expect(added["userId"]).toEqual(USER_ID);
+        // Posted with the member's own props: the note is theirs.
+        expect(added["props"]).toBe(MEMBER_PROPS);
       };
     },
   },
@@ -881,7 +865,7 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     fields: {
       scheduledMaintenanceId: MAINTENANCE_ID,
       note: NOTE,
-      isPublic: false,
+      noteType: "private",
     },
     confirmation: "Note added successfully",
     failureReply: MAINTENANCE_ACTION_FAILED,
@@ -900,7 +884,7 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
         expect(String(added["scheduledMaintenanceId"])).toBe(MAINTENANCE_ID);
         expect(added["note"]).toBe(NOTE);
         expect(added["projectId"]).toEqual(PROJECT_ID);
-        expect(added["userId"]).toEqual(USER_ID);
+        expect(added["props"]).toBe(MEMBER_PROPS);
       };
     },
   },
@@ -918,25 +902,13 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     failureReply: MAINTENANCE_ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
       stubExistingMaintenance();
-      const updateOneById: SpyInstance<
-        typeof ScheduledMaintenanceService.updateOneById
-      > = jest
-        .spyOn(ScheduledMaintenanceService, "updateOneById")
-        .mockImplementation((): Promise<number> => {
-          return writeOutcome(1, failure);
-        });
 
-      return (): void => {
-        const update: JSONObject = firstArgument(updateOneById);
-        expect(String(update["id"])).toBe(MAINTENANCE_ID);
-        expect(
-          String(
-            (update["data"] as JSONObject)[
-              "currentScheduledMaintenanceStateId"
-            ],
-          ),
-        ).toBe(MAINTENANCE_STATE_ID);
-      };
+      return stubChangeState({
+        type: WorkspaceEventType.ScheduledMaintenance,
+        id: MAINTENANCE_ID,
+        stateId: MAINTENANCE_STATE_ID,
+        failure: failure,
+      });
     },
   },
   {
