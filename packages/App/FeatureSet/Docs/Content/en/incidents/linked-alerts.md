@@ -4,7 +4,15 @@ An outage rarely raises one alert. When the primary database falls over, the rep
 
 A link is only a link. The alert keeps its own state, owners, on-call policies, notes and feed; the incident keeps its own. Linking merges and copies nothing, and on its own it never acknowledges, resolves or silences an alert. (Declaring a new incident from alerts is different: the new incident is prefilled from them, as [described below](#declaring-an-incident-from-alerts), and unless you untick the box on the form, the alerts are acknowledged as you declare it, which stops their escalation — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare).) Two project switches, on for new projects, move the linked alerts along with the incident as it is acknowledged and resolved — see [further down](#keeping-alert-states-in-step-with-the-incident).
 
-If you are coming from Opsgenie, this is OneUptime's version of associating alerts with an incident.
+:::cards
+- [Link alerts to an incident](#linking-alerts-from-an-incident): From the incident, from an alert, or many at once.
+- [Declare an incident from alerts](#declaring-an-incident-from-alerts): A new incident, prefilled and linked in one go.
+- [Keep alert states in step](#keeping-alert-states-in-step-with-the-incident): Acknowledge and resolve the alerts along with the incident.
+- [Permissions](#permissions): Who can link, and what linking lets them do.
+:::
+
+> [!TIP]
+> If you are coming from Opsgenie, this is OneUptime's version of associating alerts with an incident.
 
 ## At a glance
 
@@ -15,9 +23,22 @@ If you are coming from Opsgenie, this is OneUptime's version of associating aler
 - **Alert states follow the incident** — two project switches, both on for new projects, acknowledge and resolve linked alerts when the incident is acknowledged and resolved. Turn either off at **Incidents → Settings → Linked Alerts**.
 - **Automatable** — links are an ordinary API resource, `/api/incident-alert`.
 
-## Why link alerts to an incident
+## How it works
 
-Alerts are signals: a monitor's criteria matched, an SLO started burning its budget, a security rule fired. An incident is the coordinated response to a problem. Most problems produce several signals, and without links, the only thing tying them to the response is somebody's memory.
+Alerts are signals: a monitor's criteria matched, an SLO started burning its budget, a security rule fired. An incident is the coordinated response to a problem (see [Incidents Overview](/docs/incidents/index)). Most problems produce several signals, and without links, the only thing tying them to the response is somebody's memory.
+
+```mermaid title="Three alerts, one incident, and the switches that move them"
+flowchart TB
+    subgraph signals["Alerts"]
+        direction LR
+        lag["Replication lag"]
+        errors["API error rate"]
+        latency["Checkout latency"]
+    end
+    signals -->|linked to| incident["Incident"]
+    incident -->|acknowledged| ack["Linked alerts acknowledged"]
+    incident -->|resolved| res["Linked alerts resolved"]
+```
 
 With the alerts linked:
 
@@ -37,7 +58,19 @@ A link connects one alert to one incident. Links go both ways — the same link 
 
 ## Linking alerts from an incident
 
-Open the incident and choose **Linked Alerts** in the **Investigation** section of its side menu. The table lists every alert linked to the incident:
+:::steps
+### Open the incident's Linked Alerts page
+
+Open the incident and choose **Linked Alerts** in the **Investigation** section of its side menu. The table lists every alert already linked to it.
+
+### Pick the alert
+
+Click **Link Alert** and pick it from the **Alert** dropdown. The dropdown lists the most recent alerts first, each with its number — such as `ALT-63: Checkout API is offline` — so alerts that share a title, as a monitor's repeated alerts do, can be told apart. To find an older alert, type: the dropdown searches every alert by title.
+
+### Save the link
+
+Click **Link Alert** in the dialog. The alert appears in the table, and both feeds record the link. If the link is refused, for example because the alert is already linked, the dialog stays open and says why.
+:::
 
 | Column            | What it shows                                    |
 | ----------------- | ------------------------------------------------ |
@@ -46,8 +79,6 @@ Open the incident and choose **Linked Alerts** in the **Investigation** section 
 | **Current State** | The alert's own state, such as **Acknowledged**. |
 | **Linked At**     | When the alert was linked.                       |
 | **Linked By**     | Who linked it.                                   |
-
-To link another alert, click **Link Alert** and pick it from the **Alert** dropdown. The dropdown lists the most recent alerts first, each with its number — such as `ALT-63: Checkout API is offline` — so alerts that share a title, as a monitor's repeated alerts do, can be told apart. To find an older alert, type: the dropdown searches every alert by title. Click **Link Alert** in the dialog to save. If the link is refused, for example because the alert is already linked, the dialog stays open and says why.
 
 Each row has **View Alert** to open the alert and **Unlink** to remove the link.
 
@@ -107,6 +138,19 @@ The incident links open in a new tab, so you can check the existing incident wit
 **The alerts' monitors are prefilled as affected monitors.** As with any incident declared by hand, active monitoring on the incident's monitors pauses until the incident is resolved. Remove a monitor from **Monitors** on the **Resources Affected** step before you submit if it should keep being checked.
 
 **A private alert makes a private incident.** If any of the alerts is private, **Private Incident** starts switched on, and the banner listing the alerts says so. A private incident is visible only to its owners, Project Owners and Project Admins, so OneUptime makes sure the people who could see the alerts can see the incident: once it is declared, the owners of every declared alert — users and teams alike — are added as owners of the incident, without being notified. They are added just after the incident's Slack and Microsoft Teams channels are created, so they are invited to those channels like any other owner. You are an owner as well, as with any incident you declare. The same happens when an incident privacy rule makes the new incident private. If you switch **Private Incident** off before submitting and no privacy rule applies, the incident is not private and no owners are copied.
+
+```mermaid title="What happens when you declare from alerts"
+sequenceDiagram
+    participant You
+    participant OneUptime
+    participant Alerts
+    You->>OneUptime: Declare Incident, with up to 50 alerts
+    OneUptime->>OneUptime: Check every alert and your permissions
+    OneUptime->>OneUptime: Create the incident and run its privacy rules
+    OneUptime->>Alerts: Link each alert
+    OneUptime-->>You: The new incident, alerts already linked
+    OneUptime->>Alerts: Acknowledge them in the background, if the box is ticked
+```
 
 When you submit, the server checks the alerts before it creates anything: at most 50 of them, each an alert in this project that you are allowed to see, and you must be allowed to link alerts to incidents. If any check fails, the request is rejected and no incident is created — so a bad alert id never uses up an incident number. Once the incident exists — and once its privacy rules have run, so the links know whether it is private — every alert is linked before the request returns, so the incident's **Linked Alerts** page already lists them. If a single link fails — say, because the alert was deleted a moment earlier — the incident is still declared and the other alerts are still linked.
 
@@ -292,7 +336,8 @@ Neither needs permission to edit the alerts. OneUptime moves them itself, and li
 
 Acknowledging is always safe for a monitor's alert: an acknowledged alert still counts as open, so the monitor keeps using it rather than opening another.
 
-Resolving is different. If the monitor is still failing when its alert is resolved, the monitor's next check opens a fresh alert — and the fresh alert is not linked to the incident. If your incidents are often resolved before their monitors recover, turn the resolve switch off and keep just the acknowledge switch on, or resolve incidents only once their monitors are healthy.
+> [!WARNING]
+> Resolving is different. If the monitor is still failing when its alert is resolved, the monitor's next check opens a fresh alert — and the fresh alert is not linked to the incident. If your incidents are often resolved before their monitors recover, turn the resolve switch off and keep just the acknowledge switch on, or resolve incidents only once their monitors are healthy.
 
 ## Deleting alerts and incidents
 
@@ -302,11 +347,11 @@ Resolving is different. If the monitor is still failing when its alert is resolv
 
 None of these write **Alert Unlinked** or **Unlinked from Incident** feed entries — only an explicit unlink does.
 
-## Where to read next
+## Next steps
 
-- [Incidents Overview](/docs/incidents/index) — how the incident feature fits together.
-- [Declaring an Incident](/docs/incidents/declaring-incidents) — the declare form, templates, monitor criteria and the API.
-- [Incident States & Severities](/docs/incidents/states-and-severities) — the state order the switches compare against.
-- [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — the incident feed where links are recorded.
-- [Incident Settings & Automation](/docs/incidents/settings) — the incident settings pages, Linked Alerts among them.
-- [Users, Teams & Permissions](/docs/permissions/index) — roles, granular permissions and scope.
+:::cards
+- [Declaring an Incident](/docs/incidents/declaring-incidents): The declare form, templates, monitor criteria and the API.
+- [Incident States & Severities](/docs/incidents/states-and-severities): The state order the switches compare against.
+- [Incident Settings & Automation](/docs/incidents/settings): The incident settings pages, Linked Alerts among them.
+- [Users, Teams & Permissions](/docs/permissions/index): Roles, granular permissions and scope.
+:::
