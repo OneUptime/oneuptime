@@ -450,10 +450,7 @@ const BulkUpdateForm: <T extends GenericObject>(
       >
         <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
           {entries.map(
-            (
-              entry: { item: T; message: string | ReactElement },
-              i: number,
-            ) => {
+            (entry: { item: T; message: string | ReactElement }, i: number) => {
               const itemName: string = props.itemToString
                 ? props.itemToString(entry.item)
                 : "";

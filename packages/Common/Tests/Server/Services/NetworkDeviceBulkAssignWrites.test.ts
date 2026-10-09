@@ -64,7 +64,14 @@ import SnmpVendorTemplateUtil, {
   SnmpVendorTemplate,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
@@ -400,7 +407,9 @@ describe("bulk writes: Set / Clear Device Role send { networkDeviceRoleId }", ()
     jest.spyOn(service, "findBy").mockResolvedValue([device({})] as never);
 
     await expect(
-      internals.onBeforeUpdate(bulkWrite({ networkDeviceRoleId: FOREIGN_ROLE })),
+      internals.onBeforeUpdate(
+        bulkWrite({ networkDeviceRoleId: FOREIGN_ROLE }),
+      ),
     ).rejects.toThrow("references records that are not in this project");
   });
 

@@ -176,7 +176,9 @@ const PAGE_PROPS: PageComponentProps = {
 
 async function renderDevicesPage(): Promise<CapturedTableProps> {
   const Page: (props: PageComponentProps) => ReactElement =
-    NetworkDevicesPage as unknown as (props: PageComponentProps) => ReactElement;
+    NetworkDevicesPage as unknown as (
+      props: PageComponentProps,
+    ) => ReactElement;
 
   render(
     <MemoryRouter>

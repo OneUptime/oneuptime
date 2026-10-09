@@ -190,9 +190,7 @@ describe("Apply Vendor Template: reading the dropdown", () => {
   });
 
   test("surrounding whitespace does not matter", () => {
-    expect(readVendorTemplateChoice("  cisco-ios ")).toEqual(
-      pick("cisco-ios"),
-    );
+    expect(readVendorTemplateChoice("  cisco-ios ")).toEqual(pick("cisco-ios"));
   });
 
   test.each([undefined, null, "", "   ", "no-such-template", 42])(
@@ -479,8 +477,8 @@ describe("Apply Vendor Template: merging into what the device has", () => {
   });
 
   test("a template without tables leaves the device's tables alone", () => {
-    const ownTable: SnmpTableDefinition = template("cambium-cnmatrix")
-      .tables![0]!;
+    const ownTable: SnmpTableDefinition =
+      template("cambium-cnmatrix").tables![0]!;
 
     const merge: VendorTemplateMerge = mergeVendorTemplate({
       snmpOids: [],

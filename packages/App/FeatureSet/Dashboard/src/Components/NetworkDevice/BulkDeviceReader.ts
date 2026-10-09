@@ -6,7 +6,10 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translateText, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Fresh reads of a bulk selection, a page at a time.

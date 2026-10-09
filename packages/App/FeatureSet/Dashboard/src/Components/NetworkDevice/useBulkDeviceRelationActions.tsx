@@ -258,9 +258,7 @@ function useBulkDeviceRelationActions(
              * came back without one. Writing "" would fail every device over
              * one unusable option, so nothing starts.
              */
-            const relationId: string = String(
-              formData.relationId || "",
-            ).trim();
+            const relationId: string = String(formData.relationId || "").trim();
 
             if (!actionProps || !relationId) {
               return;

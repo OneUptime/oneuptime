@@ -60,7 +60,9 @@ async function pickBulkAction(page: Page, name: string): Promise<void> {
 async function writes(page: Page): Promise<Array<DeviceWrite>> {
   return page.evaluate((): Array<DeviceWrite> => {
     return (
-      window as unknown as { __discoveryFixture: { updates: Array<DeviceWrite> } }
+      window as unknown as {
+        __discoveryFixture: { updates: Array<DeviceWrite> };
+      }
     ).__discoveryFixture.updates;
   });
 }
@@ -346,9 +348,8 @@ test("the vendor template dialog and its result fit a narrow screen", async ({
 
   await expect(page.getByTestId("vendor-template-plan")).toBeVisible();
 
-  const box: Awaited<ReturnType<Locator["boundingBox"]>> = await dialog(
-    page,
-  ).boundingBox();
+  const box: Awaited<ReturnType<Locator["boundingBox"]>> =
+    await dialog(page).boundingBox();
   expect(box).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
@@ -395,7 +396,11 @@ test("an import from Review Results applies each SNMP host's vendor template, an
   });
 
   await page.getByRole("button", { name: /Import Selected/ }).click();
-  await expect.poll(async () => (await created(page)).length).toBe(3);
+  await expect
+    .poll(async () => {
+      return (await created(page)).length;
+    })
+    .toBe(3);
 
   const byHost: Map<string, boolean> = new Map(
     (await created(page)).map((device: CreatedDevice) => {
@@ -421,7 +426,11 @@ test("an import from Review Results applies each SNMP host's vendor template, an
   await switchAgain.click();
   await expect(switchAgain).toHaveAttribute("aria-checked", "false");
   await page.getByRole("button", { name: /Import Selected/ }).click();
-  await expect.poll(async () => (await created(page)).length).toBe(3);
+  await expect
+    .poll(async () => {
+      return (await created(page)).length;
+    })
+    .toBe(3);
 
   for (const device of await created(page)) {
     expect(device.autoApplyVendorHealthTemplate).toBe(false);

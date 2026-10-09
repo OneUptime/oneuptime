@@ -120,7 +120,9 @@ function pingHost(ipAddress: string): DiscoveredNetworkDevice {
   return { ipAddress, isAlreadyRegistered: false, snmpReachable: false };
 }
 
-function scan(hosts: Array<DiscoveredNetworkDevice>): NetworkDeviceDiscoveryScan {
+function scan(
+  hosts: Array<DiscoveredNetworkDevice>,
+): NetworkDeviceDiscoveryScan {
   const value: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
   value.id = SCAN_ID;
   value.projectId = PROJECT_ID;

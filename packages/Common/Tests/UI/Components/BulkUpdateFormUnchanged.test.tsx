@@ -91,9 +91,7 @@ function renderAndRun(action: BulkActionButtonSchema<Row>): void {
   fireEvent.click(screen.getByRole("menuitem", { name: action.title }));
 }
 
-const MIXED_STEP: StepFunction = async (
-  row: Row,
-): Promise<BulkItemOutcome> => {
+const MIXED_STEP: StepFunction = async (row: Row): Promise<BulkItemOutcome> => {
   if (row._id === "a") {
     return BULK_ITEM_CHANGED;
   }
@@ -119,9 +117,9 @@ describe("BulkUpdateForm: items left alone on purpose", () => {
 
     expect(screen.getByText("1 Device succeeded")).toBeInTheDocument();
     expect(screen.getByText("1 Device failed")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("bulk-action-unchanged-count"),
-    ).toHaveTextContent("2 Devices not changed");
+    expect(screen.getByTestId("bulk-action-unchanged-count")).toHaveTextContent(
+      "2 Devices not changed",
+    );
   });
 
   test("list each item with the reason it was left, and none of them as a failure", async () => {
@@ -145,9 +143,7 @@ describe("BulkUpdateForm: items left alone on purpose", () => {
       within(unchanged).getByText("Already collects everything in Generic."),
     ).toBeInTheDocument();
 
-    const failed: HTMLElement = screen.getByTestId(
-      "bulk-action-failed-items",
-    );
+    const failed: HTMLElement = screen.getByTestId("bulk-action-failed-items");
     expect(within(failed).getByText("Device: edge-router")).toBeInTheDocument();
     expect(
       within(failed).getByText(
@@ -163,9 +159,7 @@ describe("BulkUpdateForm: items left alone on purpose", () => {
 
     await screen.findByText("Completed");
 
-    const failed: HTMLElement = screen.getByTestId(
-      "bulk-action-failed-items",
-    );
+    const failed: HTMLElement = screen.getByTestId("bulk-action-failed-items");
     const unchangedCount: HTMLElement = screen.getByTestId(
       "bulk-action-unchanged-count",
     );
@@ -202,9 +196,9 @@ describe("BulkUpdateForm: items left alone on purpose", () => {
 
     expect(screen.queryByText(/succeeded/)).toBeNull();
     expect(screen.queryByText(/failed/)).toBeNull();
-    expect(
-      screen.getByTestId("bulk-action-unchanged-count"),
-    ).toHaveTextContent("4 Devices not changed");
+    expect(screen.getByTestId("bulk-action-unchanged-count")).toHaveTextContent(
+      "4 Devices not changed",
+    );
   });
 
   test("the progress bar counts items left alone as done", async () => {

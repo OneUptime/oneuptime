@@ -165,8 +165,7 @@ function makeDevice(shape: DeviceShape): NetworkDevice {
   const device: NetworkDevice = new NetworkDevice();
   device._id = deviceId(shape.index);
   device.name = shape.name || `cnmatrix-sw-${shape.index}`;
-  device.monitoringMethod =
-    shape.method || NetworkDeviceMonitoringMethod.Probe;
+  device.monitoringMethod = shape.method || NetworkDeviceMonitoringMethod.Probe;
 
   if (shape.sysObjectId) {
     device.sysObjectId = shape.sysObjectId;
@@ -424,8 +423,7 @@ describe("useBulkApplyVendorTemplate", () => {
     test("on the menu with its icon, for any selection a probe polls", () => {
       renderHarness([]);
 
-      const action: BulkActionButtonSchema<NetworkDevice> =
-        capturedActions[0]!;
+      const action: BulkActionButtonSchema<NetworkDevice> = capturedActions[0]!;
 
       expect(capturedActions).toHaveLength(1);
       expect(action.title).toBe(APPLY_VENDOR_TEMPLATE_ACTION_TITLE);
@@ -468,9 +466,9 @@ describe("useBulkApplyVendorTemplate", () => {
       expect(
         screen.getByTestId("modal-description").textContent || "",
       ).toContain("removes nothing a device already collects");
-      expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
-        "Apply Template",
-      );
+      expect(
+        screen.getByTestId("modal-footer-submit-button"),
+      ).toHaveTextContent("Apply Template");
     });
 
     test("lists every vendor template after the match option", async () => {

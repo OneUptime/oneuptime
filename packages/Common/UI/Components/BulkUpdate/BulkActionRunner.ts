@@ -83,10 +83,7 @@ export async function runBulkAction<T extends GenericObject>(
     return undefined;
   });
 
-  const concurrency: number = Math.max(
-    1,
-    Math.floor(options.concurrency || 1),
-  );
+  const concurrency: number = Math.max(1, Math.floor(options.concurrency || 1));
 
   type CollectFunction = () => BulkActionRunResult<T> & {
     inProgress: Array<T>;

@@ -125,19 +125,18 @@ function deferred(): Deferred {
   let reject: (error: unknown) => void = () => {
     // replaced below
   };
-  const promise: Promise<BulkItemOutcome | void> = new Promise<
-    BulkItemOutcome | void
-  >(
-    (
-      res: (value: BulkItemOutcome | void) => void,
-      rej: (error: unknown) => void,
-    ) => {
-      resolve = (value?: BulkItemOutcome): void => {
-        res(value);
-      };
-      reject = rej;
-    },
-  );
+  const promise: Promise<BulkItemOutcome | void> =
+    new Promise<BulkItemOutcome | void>(
+      (
+        res: (value: BulkItemOutcome | void) => void,
+        rej: (error: unknown) => void,
+      ) => {
+        resolve = (value?: BulkItemOutcome): void => {
+          res(value);
+        };
+        reject = rej;
+      },
+    );
   return { promise, resolve, reject };
 }
 

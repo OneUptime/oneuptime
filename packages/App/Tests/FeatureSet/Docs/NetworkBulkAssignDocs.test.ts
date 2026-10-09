@@ -31,7 +31,10 @@ const LANGUAGES: Array<string> = ["en", "fa"];
 const MENU_ARROW: Record<string, string> = { en: "->", fa: "→" };
 
 function readGuide(language: string): string {
-  return fs.readFileSync(path.join(CONTENT_DIR, language, DEVICE_GUIDE), "utf8");
+  return fs.readFileSync(
+    path.join(CONTENT_DIR, language, DEVICE_GUIDE),
+    "utf8",
+  );
 }
 
 function bold(label: string): string {

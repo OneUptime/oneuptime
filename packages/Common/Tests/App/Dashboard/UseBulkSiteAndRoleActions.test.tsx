@@ -307,11 +307,9 @@ function renderHook(relation: RelationCase): void {
 
 function findAction(title: string): BulkActionButtonSchema<NetworkDevice> {
   const action: BulkActionButtonSchema<NetworkDevice> | undefined =
-    capturedActions.find(
-      (candidate: BulkActionButtonSchema<NetworkDevice>) => {
-        return candidate.title === title;
-      },
-    );
+    capturedActions.find((candidate: BulkActionButtonSchema<NetworkDevice>) => {
+      return candidate.title === title;
+    });
 
   if (!action) {
     throw new Error(`No "${title}" action was returned.`);
