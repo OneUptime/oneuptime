@@ -2438,10 +2438,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
        * one column the caller may not read, so a field asked for here that
        * this viewer cannot read - a secret only owners and admins read
        * back - is left out rather than blanking the table.
-       * serializeToTableColumns makes the same check for the cells.
+       * serializeToTableColumns makes the same check for the cells. Until
+       * the permission snapshot has landed, nothing tells a field the viewer
+       * may not read from one they may (the check fails closed then), so
+       * every field is asked for, as it always was, and the server decides.
        */
       if (
         model.hasColumn(moreField as string) &&
+        PermissionGate.hasPermissionSnapshot({ held: heldPermissions }) &&
         !hasPermissionToReadField(moreField)
       ) {
         continue;

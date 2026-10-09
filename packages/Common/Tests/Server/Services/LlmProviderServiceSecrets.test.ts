@@ -2,6 +2,8 @@ import LlmProviderService, {
   Service as LlmProviderServiceClass,
 } from "../../../Server/Services/LlmProviderService";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
+import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import logger from "../../../Server/Utils/Logger";
 import LlmProvider, {
   getHasAdditionalParamsSql,
@@ -199,6 +201,52 @@ describe("LlmProviderService.mayChangeBaseUrl - who may change where the secrets
 
   test("the refusal names who may change it, from the column's own list", () => {
     expect(LlmProviderServiceClass.getBaseUrlRefusal()).toBe(REFUSAL);
+  });
+
+  /*
+   * One rule, asked twice: the hook asks it first only to refuse in plain
+   * words, so for every permission a member may hold - alone, or blocked
+   * beside a grant - it answers what the update's own column check
+   * (ColumnPermissions.checkDataColumnPermissions) answers.
+   */
+  test("for every permission it answers what the update's column check answers", () => {
+    const columnCheckAllows: (
+      props: DatabaseCommonInteractionProps,
+    ) => boolean = (props: DatabaseCommonInteractionProps): boolean => {
+      try {
+        ColumnPermissions.checkDataColumnPermissions(
+          LlmProvider,
+          { baseUrl: NEW_BASE_URL } as unknown as LlmProvider,
+          props,
+          DatabaseRequestType.Update,
+        );
+        return true;
+      } catch (err) {
+        if (err instanceof ColumnWriteRefusedException) {
+          return false;
+        }
+
+        throw err;
+      }
+    };
+
+    const disagreements: Array<string> = [];
+
+    for (const permission of Object.values(Permission) as Array<Permission>) {
+      for (const props of [
+        member([permission]),
+        member([Permission.ProjectAdmin], { blocked: [permission] }),
+      ]) {
+        if (
+          LlmProviderServiceClass.mayChangeBaseUrl(props) !==
+          columnCheckAllows(props)
+        ) {
+          disagreements.push(permission);
+        }
+      }
+    }
+
+    expect(disagreements).toEqual([]);
   });
 });
 

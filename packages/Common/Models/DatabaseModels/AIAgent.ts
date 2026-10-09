@@ -32,6 +32,22 @@ import Label from "./Label";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
+/*
+ * Who reads a project's AI agents: the project's members who see its
+ * settings, and Read AI Agent. They read all of an agent but its key (its
+ * owners' and admins') and who created it (its owners').
+ */
+const AI_AGENT_READERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.SettingsViewer,
+  Permission.ReadProjectAIAgent,
+];
+
 export enum AIAgentConnectionStatus {
   Connected = "connected",
   Disconnected = "disconnected",
@@ -71,16 +87,7 @@ export enum AIAgentConnectionStatus {
     Permission.SettingsMember,
     Permission.CreateProjectAIAgent,
   ],
-  read: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.Viewer,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.SettingsViewer,
-    Permission.ReadProjectAIAgent,
-  ],
+  read: AI_AGENT_READERS,
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -139,16 +146,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -180,16 +178,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -213,16 +202,7 @@ export default class AIAgent extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [],
   })
   @TableColumn({
@@ -250,16 +230,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -287,16 +258,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [],
   })
   @TableColumn({
@@ -320,16 +282,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -369,16 +322,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -411,16 +355,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [],
   })
   @TableColumn({
@@ -452,16 +387,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [],
   })
   @TableColumn({
@@ -592,16 +518,7 @@ export default class AIAgent extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [],
   })
   @TableColumn({
@@ -628,16 +545,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -673,16 +581,7 @@ export default class AIAgent extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectAIAgent,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectAIAgent,
-    ],
+    read: AI_AGENT_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

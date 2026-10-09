@@ -295,6 +295,31 @@ describe("BaseModelTable extra fields and read permissions", () => {
     expect(selects[0]?.["hasAdditionalParams"]).toBe(true);
   });
 
+  /*
+   * Until the permission snapshot has landed - the first paint after a login
+   * or a project switch - nothing tells a field the viewer may not read from
+   * one they may, so every extra field is asked for, as it always was, and
+   * the server decides: a drag-ordered table's order field is never left out
+   * on a guess.
+   */
+  test("before the permission snapshot lands, every extra field is asked for", async () => {
+    permissionsForTest = [];
+
+    renderTable({
+      modelType: Probe,
+      columns: PROBE_COLUMNS,
+      rows: [PROBE_ROW],
+      selectMoreFields: { key: true, iconFileId: true },
+    });
+
+    await waitFor(() => {
+      expect(selects.length).toBeGreaterThan(0);
+    });
+
+    expect(selects[0]?.["key"]).toBe(true);
+    expect(selects[0]?.["iconFileId"]).toBe(true);
+  });
+
   test("a server admin is asked for every extra field", async () => {
     isMasterAdminForTest = true;
 

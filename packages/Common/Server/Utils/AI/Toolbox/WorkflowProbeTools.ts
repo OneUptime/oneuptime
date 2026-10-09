@@ -18,6 +18,11 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import Select from "../../../Types/Database/Select";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
+import ColumnPermissions from "../../../Types/Database/Permissions/ColumnPermission";
+import TablePermission from "../../../Types/Database/Permissions/TablePermission";
+import MonitorProbe from "../../../../Models/DatabaseModels/MonitorProbe";
+import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
@@ -74,62 +79,126 @@ export const PROBE_READER_SELECT: Select<Probe> = {
 };
 
 /*
+ * Whether `props` may read `modelType`'s records at all, by the table checks
+ * every read runs first (TablePermission: the table's read list, or its
+ * operational-resource wildcard, and no block on the whole table). Asked
+ * once, before any query, instead of catching a refusal per query.
+ */
+function mayReadTable(
+  modelType: DatabaseBaseModelType,
+  props: DatabaseCommonInteractionProps,
+): boolean {
+  if (props.isRoot || props.isMasterAdmin) {
+    return true;
+  }
+
+  try {
+    TablePermission.checkTableLevelPermissions(
+      modelType,
+      props,
+      DatabaseRequestType.Read,
+    );
+    TablePermission.checkTableLevelBlockPermissions(
+      modelType,
+      props,
+      DatabaseRequestType.Read,
+    );
+
+    return true;
+  } catch (err) {
+    if (err instanceof NotAuthorizedException) {
+      return false;
+    }
+
+    throw err;
+  }
+}
+
+/*
+ * What `props` may select of a probe: the probe readers' select (with the
+ * version) or the picker readers' (without it), by the column read lists
+ * every select is held to (ColumnPermissions, as SelectPermission asks them),
+ * or null when neither is readable.
+ */
+function getProbeSelectFor(
+  props: DatabaseCommonInteractionProps,
+): Select<Probe> | null {
+  if (props.isRoot || props.isMasterAdmin) {
+    return PROBE_READER_SELECT;
+  }
+
+  const readableColumns: Array<string> =
+    ColumnPermissions.getModelColumnsByPermissions(
+      Probe,
+      ColumnPermissions.getColumnCheckRows(props),
+      DatabaseRequestType.Read,
+    ).columns;
+
+  const alwaysReadable: Array<string> =
+    ColumnPermissions.getExcludedColumnNames();
+
+  for (const select of [PROBE_READER_SELECT, PROBE_PICKER_SELECT]) {
+    const isReadable: boolean = Object.keys(select).every(
+      (column: string): boolean => {
+        return (
+          alwaysReadable.includes(column) || readableColumns.includes(column)
+        );
+      },
+    );
+
+    if (isReadable) {
+      return select;
+    }
+  }
+
+  return null;
+}
+
+/*
  * This project's custom probes, read as the caller: with their version for
  * the probe's readers, without it for whoever may only pick a probe, and none
- * at all for a caller refused both - who still gets the global probes, which
- * run most monitors.
+ * at all - without a query - for a caller who may read neither, who still
+ * gets the global probes, which run most monitors.
  */
 async function readProjectProbes(data: {
   limit: number;
   props: DatabaseCommonInteractionProps;
 }): Promise<Array<Probe>> {
-  for (const select of [PROBE_READER_SELECT, PROBE_PICKER_SELECT]) {
-    try {
-      return await ProbeService.findBy({
-        query: {},
-        select: select,
-        sort: {
-          name: SortOrder.Ascending,
-        },
-        limit: data.limit,
-        skip: 0,
-        props: data.props,
-      });
-    } catch (err) {
-      if (!(err instanceof NotAuthorizedException)) {
-        throw err;
-      }
-    }
+  const select: Select<Probe> | null = getProbeSelectFor(data.props);
+
+  if (!select || !mayReadTable(Probe, data.props)) {
+    return [];
   }
 
-  return [];
+  return await ProbeService.findBy({
+    query: {},
+    select: select,
+    sort: {
+      name: SortOrder.Ascending,
+    },
+    limit: data.limit,
+    skip: 0,
+    props: data.props,
+  });
 }
 
 /*
- * How many of this project's monitors a probe serves, counted as the caller -
- * or null for a caller who may not read a monitor's probes, whose answer then
- * leaves the count out rather than failing.
+ * How many of this project's monitors a probe serves, counted as the caller.
+ * Asked only of a caller who may read a monitor's probes (mayReadTable, once
+ * per run); anyone else's answer leaves the counts out rather than failing.
  */
 async function countMonitorsServed(data: {
   probeId: ObjectID;
   projectId: ObjectID;
   props: DatabaseCommonInteractionProps;
-}): Promise<PositiveNumber | null> {
-  try {
-    return await MonitorProbeService.countBy({
-      query: {
-        probeId: data.probeId,
-        projectId: data.projectId,
-      },
-      props: data.props,
-    });
-  } catch (err) {
-    if (err instanceof NotAuthorizedException) {
-      return null;
-    }
-
-    throw err;
-  }
+}): Promise<PositiveNumber> {
+  return await MonitorProbeService.countBy({
+    query: {
+      probeId: data.probeId,
+      projectId: data.projectId,
+    },
+    props: data.props,
+  });
 }
 
 // Run outcomes that count as a failure when summarizing recent workflow runs.
@@ -649,6 +718,9 @@ export const QueryProbesTool: ObservabilityTool = {
       PROBE_STALE_CUTOFF_IN_MINUTES,
     );
 
+    // Whether the counts are asked for at all: once, for every probe.
+    const mayCountMonitors: boolean = mayReadTable(MonitorProbe, ctx.props);
+
     const rows: Array<JSONObject> = await Promise.all(
       probesWithScope.map(
         async (entry: { probe: Probe; isGlobal: boolean }) => {
@@ -657,13 +729,13 @@ export const QueryProbesTool: ObservabilityTool = {
            * projectId is pinned explicitly because global probes serve every
            * project on the platform.
            */
-          const monitorCount: PositiveNumber | null = await countMonitorsServed(
-            {
-              probeId: entry.probe.id!,
-              projectId: ctx.projectId,
-              props: ctx.props,
-            },
-          );
+          const monitorCount: PositiveNumber | null = mayCountMonitors
+            ? await countMonitorsServed({
+                probeId: entry.probe.id!,
+                projectId: ctx.projectId,
+                props: ctx.props,
+              })
+            : null;
 
           const lastAlive: Date | undefined = entry.probe.lastAlive
             ? OneUptimeDate.fromString(entry.probe.lastAlive)

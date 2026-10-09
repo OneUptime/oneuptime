@@ -418,7 +418,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
    * in (isBlankWriteOnlyValue): leaving it blank keeps what is stored. Asked
    * the way every select asks (PermissionGate.canReadColumn). A form that
    * loads through a route of its own (fetchItemApiUrl) leaves that route to
-   * decide what it returns.
+   * decide what it returns. Until the permission snapshot has landed there
+   * is nothing to tell a field the user may not read from one they may
+   * (canReadColumn fails closed then), so every field loads as it always has
+   * and the server decides.
    */
   const isWriteOnlyField: (fieldName: string) => boolean = (
     fieldName: string,
@@ -428,6 +431,10 @@ const ModelForm: <TBaseModel extends BaseModel>(
     }
 
     if (!model.hasColumn(fieldName)) {
+      return false;
+    }
+
+    if (!PermissionGate.hasPermissionSnapshot({ held: heldPermissions })) {
       return false;
     }
 

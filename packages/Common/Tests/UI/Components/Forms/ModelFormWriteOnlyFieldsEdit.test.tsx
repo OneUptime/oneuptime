@@ -409,6 +409,40 @@ describe("a switch a member may set but not read", () => {
   });
 });
 
+/*
+ * Until the permission snapshot has landed - the first paint after a login or
+ * a project switch - nothing tells a field the user may not read from one
+ * they may. An edit then loads every field it shows, as it always did, and
+ * the server decides; no field is drawn empty as write-only on a guess.
+ */
+describe("an edit form before the permission snapshot has landed", () => {
+  beforeEach(() => {
+    capturedSelect = null;
+    savedModels = [];
+    permissionsForTest = [];
+    PermissionGate.clearPermissionPropsCache();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("loads every field it shows, and draws none as write-only", async () => {
+    await renderEditForm(
+      FIELDS.map((field: ModelField<LlmProvider>): ModelField<LlmProvider> => {
+        return { ...field, showEvenIfPermissionDoesNotExist: true };
+      }),
+    );
+
+    expect(capturedSelect?.["name"]).toBe(true);
+    expect(capturedSelect?.["apiKey"]).toBe(true);
+    expect(
+      screen.queryByText(KEEP_HINT, { exact: false }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("an edit form for a project owner, who may read the key", () => {
   beforeEach(() => {
     capturedSelect = null;

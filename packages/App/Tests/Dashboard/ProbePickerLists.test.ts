@@ -16,10 +16,12 @@ import Probe from "Common/Models/DatabaseModels/Probe";
  *
  * The project's probes are read by whoever may pick one (the probe
  * readers, and whoever may read, create or edit monitors, a monitor's
- * probes, network devices, their discovery scans or network sites). Anyone
- * else is refused that list with a 422; they still get the global probes,
- * where before the refusal failed the whole list and the page with it. Any
- * other failure still fails the list, and so does a failed global list.
+ * probes, network devices, their discovery scans or network sites). The
+ * permission snapshot decides: whoever it says may not list them is not
+ * asked about them, and still gets the global probes; a refusal of a list it
+ * says they may read is an error. Until the snapshot lands, a refusal (422)
+ * is taken as its answer. Any other failure still fails the list, and so
+ * does a failed global list.
  */
 
 jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
@@ -27,6 +29,43 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
     __esModule: true,
     default: {
       getList: jest.fn(),
+    },
+  };
+});
+
+/*
+ * The permission snapshot, as the test sets it: whether it has landed, and
+ * whether it lets the user list the project's probes (PermissionGate.check
+ * with ModelAction.Read on Probe).
+ */
+const mockSnapshot: { hasLanded: boolean; mayListProbes: boolean } = {
+  hasLanded: false,
+  mayListProbes: true,
+};
+
+jest.mock("Common/UI/Utils/PermissionGate", () => {
+  return {
+    __esModule: true,
+    ModelAction: {
+      Create: "create",
+      Read: "read",
+      Update: "update",
+      Delete: "delete",
+    },
+    default: {
+      hasPermissionSnapshot: jest.fn((): boolean => {
+        return mockSnapshot.hasLanded;
+      }),
+      check: jest.fn(
+        (model: { constructor: { name: string } }, action: string) => {
+          return {
+            isAllowed:
+              model.constructor.name === "Probe" &&
+              action === "read" &&
+              mockSnapshot.mayListProbes,
+          };
+        },
+      ),
     },
   };
 });
@@ -105,13 +144,21 @@ function answerLists(data: {
   });
 }
 
-describe("ProbeUtil.getAllProbes - the global probes are always offered", () => {
-  beforeEach(() => {
-    getListMock.mockReset();
-    getCurrentProjectIdMock.mockReset();
-    getCurrentProjectIdMock.mockReturnValue(PROJECT_ID);
-  });
+function projectListRequests(): number {
+  return getListMock.mock.calls.filter((call: Array<unknown>) => {
+    return !isGlobalListRequest(call[0]);
+  }).length;
+}
 
+beforeEach(() => {
+  getListMock.mockReset();
+  getCurrentProjectIdMock.mockReset();
+  getCurrentProjectIdMock.mockReturnValue(PROJECT_ID);
+  mockSnapshot.hasLanded = false;
+  mockSnapshot.mayListProbes = true;
+});
+
+describe("ProbeUtil.getAllProbes - before the permission snapshot lands, the server decides", () => {
   test("with both lists answered, the project's probes come first, then the global ones", async () => {
     answerLists({
       project: () => {
@@ -264,5 +311,74 @@ describe("ProbeUtil.getAllProbes - the global probes are always offered", () => 
       _id: true,
       shouldAutoEnableProbeOnNewMonitors: true,
     });
+  });
+});
+
+describe("ProbeUtil.getAllProbes - once the permission snapshot has landed, it decides", () => {
+  beforeEach(() => {
+    mockSnapshot.hasLanded = true;
+  });
+
+  test("a user it says may not list the project's probes is not asked about them, and gets the global probes", async () => {
+    mockSnapshot.mayListProbes = false;
+
+    answerLists({
+      project: () => {
+        return Promise.resolve(asListResult([makeProbe("Office probe")]));
+      },
+      global: () => {
+        return Promise.resolve(asListResult([makeProbe("US East")]));
+      },
+    });
+
+    const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+
+    expect(projectListRequests()).toBe(0);
+    expect(
+      probes.map((probe: Probe) => {
+        return [probe.name, probe.isGlobalProbe];
+      }),
+    ).toEqual([["US East", true]]);
+  });
+
+  test("a user it says may list them gets the project's probes first, then the global ones", async () => {
+    answerLists({
+      project: () => {
+        return Promise.resolve(asListResult([makeProbe("Office probe")]));
+      },
+      global: () => {
+        return Promise.resolve(asListResult([makeProbe("US East")]));
+      },
+    });
+
+    const probes: Array<Probe> = await ProbeUtil.getAllProbes();
+
+    expect(projectListRequests()).toBe(1);
+    expect(
+      probes.map((probe: Probe) => {
+        return [probe.name, probe.isGlobalProbe];
+      }),
+    ).toEqual([
+      ["Office probe", false],
+      ["US East", true],
+    ]);
+  });
+
+  test("a refusal (422) of a list it says the user may read is an error, never an empty list", async () => {
+    const failure: HTTPErrorResponse = refusal(
+      422,
+      "You do not have permissions to select on - shouldAutoEnableProbeOnNewMonitors.",
+    );
+
+    answerLists({
+      project: () => {
+        return Promise.reject(failure);
+      },
+      global: () => {
+        return Promise.resolve(asListResult([makeProbe("US East")]));
+      },
+    });
+
+    await expect(ProbeUtil.getAllProbes()).rejects.toBe(failure);
   });
 });
