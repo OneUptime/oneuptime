@@ -191,6 +191,25 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
+            title: "Test",
+            icon: IconProp.Play,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            disabled: !props.updateGate.isAllowed,
+            tooltip: props.updateGate.isAllowed
+              ? "Start a test meeting with this connection and get its join link."
+              : props.updateGate.disabledReason,
+            onClick: (
+              item: VideoCallConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              setTestRun((value: number): number => {
+                return value + 1;
+              });
+              setTestItem(item);
+              onCompleteAction();
+            },
+          },
+          {
             title: "Reconnect",
             icon: IconProp.Refresh,
             buttonStyleType: ButtonStyleType.OUTLINE,
@@ -209,25 +228,6 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
               onCompleteAction: VoidFunction,
             ): void => {
               props.onReconnect(item);
-              onCompleteAction();
-            },
-          },
-          {
-            title: "Test",
-            icon: IconProp.Play,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            disabled: !props.updateGate.isAllowed,
-            tooltip: props.updateGate.isAllowed
-              ? "Start a test meeting with this connection and get its join link."
-              : props.updateGate.disabledReason,
-            onClick: (
-              item: VideoCallConnection,
-              onCompleteAction: VoidFunction,
-            ): void => {
-              setTestRun((value: number): number => {
-                return value + 1;
-              });
-              setTestItem(item);
               onCompleteAction();
             },
           },

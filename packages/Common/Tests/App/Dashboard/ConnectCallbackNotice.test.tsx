@@ -543,6 +543,24 @@ describe("the connect-return page", () => {
     ]);
   });
 
+  test("a video call sign-in it cannot place goes to Video Calls, which is told which provider it was", async () => {
+    query["provider"] = "zoom";
+    query["error"] = "link-invalid";
+
+    await renderConnectReturn({
+      currentProject: project(),
+      projects: [project()],
+      isLoading: false,
+    });
+
+    expect(navigatedTo()).toEqual([
+      {
+        path: `/dashboard/${PROJECT_ID}/settings/video-calls?provider=zoom&error=link-invalid`,
+        options: { replace: true },
+      },
+    ]);
+  });
+
   test("GitHub's own redirect goes to Code Repositories with nothing to say", async () => {
     query["provider"] = "github";
 
