@@ -592,13 +592,15 @@ export default class Workflow extends BaseModel {
   public archivedByUserId?: ObjectID = undefined;
 
   /*
-   * The person who last saved the workflow - created it or changed anything
-   * on it - recorded by OneUptime on every save a person, an API key or the
-   * admin dashboard makes (WorkflowService), and nobody when the save had no
-   * person (an API key). A workflow's steps act as a Project Admin of its
-   * project, but the read of runbook credentials - what lets OneUptime AI's
-   * commands use them - is asked of this person instead
-   * (RunbookCredentialReaders): a workflow lends nobody that read.
+   * The person who last saved the workflow's steps - created the workflow,
+   * or saved its graph - recorded by OneUptime on every such save a person,
+   * an API key or the admin dashboard makes (WorkflowService), and nobody
+   * when the save had no person (an API key). A change that leaves the
+   * graph as it is (its name, its labels, turning it on or off) keeps it. A
+   * workflow's steps act as a Project Admin of its project, but the read of
+   * runbook credentials - what lets OneUptime AI's commands use them - is
+   * asked of this person instead (RunbookCredentialReaders): a workflow
+   * lends nobody that read.
    */
   @ColumnAccessControl({
     create: [],
@@ -620,7 +622,7 @@ export default class Workflow extends BaseModel {
     modelType: User,
     title: "Last Saved by User",
     description:
-      "Relation to the User who last saved this workflow (empty when it was last saved without a user, such as with an API key)",
+      "Relation to the User who last saved this workflow's steps, or created it (empty when they were last saved without a user, such as with an API key)",
   })
   @ManyToOne(
     () => {
@@ -654,7 +656,7 @@ export default class Workflow extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Last Saved by User ID",
     description:
-      "ID of the User who last saved this workflow (empty when it was last saved without a user, such as with an API key)",
+      "ID of the User who last saved this workflow's steps, or created it (empty when they were last saved without a user, such as with an API key)",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -1,6 +1,7 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import CreateBy from "../Types/Database/CreateBy";
+import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -134,22 +135,20 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
       throw error;
     }
 
-    return { createBy, carryForward: { credentialReachHold: hold } };
+    return {
+      createBy,
+      carryForward: AiCommandCredentialReach.carryForwardOf(hold),
+    };
   }
 
-  /*
-   * Right before the INSERT: the lock its check was made under is still the
-   * create's (AiCommandCredentialReach.keepForWrite), or it is refused.
-   */
+  // Right before the INSERT: the lock its check was made under is still the create's.
   @CaptureSpan()
   protected override async onCreatePermitted(
     onCreate: OnCreate<RunbookCredential>,
   ): Promise<void> {
     await super.onCreatePermitted(onCreate);
 
-    await AiCommandCredentialReach.keepForWrite(
-      AiCommandCredentialReach.carriedForward(onCreate.carryForward),
-    );
+    await AiCommandCredentialReach.keepForCreate(onCreate);
   }
 
   // The credential is saved: the lock is given back.
@@ -158,22 +157,21 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
     onCreate: OnCreate<RunbookCredential>,
     createdItem: RunbookCredential,
   ): Promise<RunbookCredential> {
-    await AiCommandCredentialReach.giveBack(
-      AiCommandCredentialReach.carriedForward(onCreate.carryForward),
-    );
+    await AiCommandCredentialReach.giveBackAfterCreate(onCreate);
 
     return await super.onCreateSuccess(onCreate, createdItem);
   }
 
-  // The create was refused or failed after its check: the lock is given back.
+  /*
+   * The create was refused or failed after its check: the lock is given
+   * back, unless the database may still write it.
+   */
   @CaptureSpan()
   protected override async onCreateError(
     error: Exception,
     onCreate?: OnCreate<RunbookCredential> | undefined,
   ): Promise<Exception> {
-    await AiCommandCredentialReach.giveBack(
-      AiCommandCredentialReach.carriedForward(onCreate?.carryForward),
-    );
+    await AiCommandCredentialReach.giveBackAfterFailedCreate(error, onCreate);
 
     return await super.onCreateError(error, onCreate);
   }
@@ -187,10 +185,11 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
    * And an update that gives an SSH credential Runners holds the project's
    * lock, and adding a Runner that runs OneUptime AI's commands needs the
    * read of runbook credentials (see the top of this file). The credentials
-   * are the ones the update writes - the ones its caller may write - read
-   * once, and the update is held to them (findRowsAndHoldUpdateToThem). A
-   * Runner a credential already has is not asked about again: the form posts
-   * the whole list back.
+   * are the ones the update writes - the ones its caller may write - and the
+   * update is held to them (findRowsAndHoldUpdateToThem); the Runners each
+   * one holds are read under the lock. A Runner a credential has when the
+   * lock is taken is not asked about again: the form posts the whole list
+   * back.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -214,26 +213,33 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
       return { updateBy, carryForward: null };
     }
 
-    const credentials: Array<RunbookCredential> =
-      await this.findRowsAndHoldUpdateToThem(updateBy, {
+    const select: Select<RunbookCredential> = {
+      _id: true,
+      projectId: true,
+      credentialType: true,
+      runners: {
         _id: true,
-        projectId: true,
-        credentialType: true,
-        runners: {
-          _id: true,
-        },
-      });
-
-    const sshCredentials: Array<RunbookCredential> = credentials.filter(
-      (credential: RunbookCredential): boolean => {
-        return credential.credentialType === RunbookCredentialType.SSH;
       },
-    );
+    };
+
+    // A credential's type and project never change: these tell which locks.
+    const credentials: Array<RunbookCredential> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, select);
+
+    const sshCredentials: Array<RunbookCredential> =
+      Service.getSshCredentials(credentials);
 
     if (sshCredentials.length === 0) {
       return { updateBy, carryForward: null };
     }
 
+    /*
+     * Held until the update is written, whichever Runners it adds - the
+     * Runners a credential holds are the lock's to read: they are read
+     * again under it, as they are now, not as they were before it was
+     * taken. Another update may have taken a Runner off the credential
+     * since, and this one, which writes it back, then adds it.
+     */
     const hold: CredentialReachHold = await AiCommandCredentialReach.take(
       sshCredentials.map(
         (credential: RunbookCredential): ObjectID | undefined => {
@@ -243,9 +249,13 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
     );
 
     try {
+      const current: Array<RunbookCredential> = Service.getSshCredentials(
+        await this.findRowsAndHoldUpdateToThem(updateBy, select),
+      );
+
       await Service.assertMayAssignToRunners({
         props: updateBy.props,
-        assigned: sshCredentials.map(
+        assigned: current.map(
           (
             credential: RunbookCredential,
           ): { projectId: ObjectID; runnerIds: Array<ObjectID> } => {
@@ -266,22 +276,20 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
 
     AiCommandCredentialReach.holdFor(updateBy, hold);
 
-    return { updateBy, carryForward: { credentialReachHold: hold } };
+    return {
+      updateBy,
+      carryForward: AiCommandCredentialReach.carryForwardOf(hold),
+    };
   }
 
-  /*
-   * Right before the write: the lock its check was made under is still the
-   * update's (AiCommandCredentialReach.keepForWrite), or it is refused.
-   */
+  // Right before the write: the lock its check was made under is still the update's.
   @CaptureSpan()
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<RunbookCredential>,
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
-    await AiCommandCredentialReach.keepForWrite(
-      AiCommandCredentialReach.heldFor(updateBy),
-    );
+    await AiCommandCredentialReach.keepForUpdate(updateBy);
   }
 
   // The update is written: its lock is given back.
@@ -290,24 +298,32 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
     onUpdate: OnUpdate<RunbookCredential>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<RunbookCredential>> {
-    await AiCommandCredentialReach.giveBack(
-      AiCommandCredentialReach.carriedForward(onUpdate.carryForward),
-    );
+    await AiCommandCredentialReach.giveBackAfterUpdate(onUpdate);
 
     return await super.onUpdateSuccess(onUpdate, updatedItemIds);
   }
 
-  // The update was refused or failed after its check: its lock is given back.
+  /*
+   * The update was refused or failed after its check: its lock is given
+   * back, unless the database may still write it.
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<RunbookCredential> | undefined,
   ): Promise<Exception> {
-    await AiCommandCredentialReach.giveBack(
-      AiCommandCredentialReach.carriedForward(onUpdate?.carryForward),
-    );
+    await AiCommandCredentialReach.giveBackAfterFailedUpdate(error, onUpdate);
 
     return await super.onUpdateError(error, onUpdate);
+  }
+
+  // The SSH credentials of `credentials`.
+  private static getSshCredentials(
+    credentials: Array<RunbookCredential>,
+  ): Array<RunbookCredential> {
+    return credentials.filter((credential: RunbookCredential): boolean => {
+      return credential.credentialType === RunbookCredentialType.SSH;
+    });
   }
 
   /*

@@ -287,9 +287,11 @@ describe("RunbookCredentialReaders", () => {
       const note: string = RunbookCredentialReaders.getWorkflowNote(step());
 
       expect(note).toContain(
-        "the person who last saved the workflow has it, and they do not",
+        "the person who last saved the workflow's steps has it, and they do not",
       );
-      expect(note).toContain("Ask someone who has it to save the workflow.");
+      expect(note).toContain(
+        "Ask someone who has it to save the workflow's steps.",
+      );
     });
   });
 

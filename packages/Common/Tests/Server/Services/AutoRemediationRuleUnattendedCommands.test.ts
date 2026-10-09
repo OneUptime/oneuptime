@@ -1042,7 +1042,7 @@ describe("AutoRemediationRuleService - a workflow's step saving a rule that runs
       "needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential.",
     );
     expect((thrown as Error).message).toContain(
-      "A workflow's step has this permission only when the person who last saved the workflow has it, and they do not.",
+      "A workflow's step has this permission only when the person who last saved the workflow's steps has it, and they do not.",
     );
 
     const asked: { userId: ObjectID } = lookUp.mock.calls[0]![0] as {

@@ -2,12 +2,23 @@ import Semaphore, {
   SemaphoreMutex,
 } from "../../../../Server/Infrastructure/Semaphore";
 import AiCommandCredentialReach, {
+  ABANDONED_WRITE_MARGIN_IN_MS,
   CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
   CredentialReachHold,
   LOCK_TIMEOUT_IN_MS,
   LOCK_WAIT_IN_MS,
   getLockTimeoutInMs,
 } from "../../../../Server/Utils/AutoRemediation/AiCommandCredentialReach";
+import { PostgresStatementTimeoutMs } from "../../../../Server/EnvironmentConfig";
+import {
+  COMMIT_STATEMENT,
+  INSERT_STATEMENT,
+  SELECT_STATEMENT,
+  cancelledByDatabase,
+  clientTimeout,
+  connectionLost,
+  databaseAnswer,
+} from "../../TestingUtils/StatementFailures";
 import UpdateBy from "../../../../Server/Types/Database/UpdateBy";
 import logger from "../../../../Server/Utils/Logger";
 import Runner from "../../../../Models/DatabaseModels/Runner";
@@ -48,6 +59,9 @@ describe("AiCommandCredentialReach", () => {
     locks = new InMemoryLocks();
     locks.install();
     jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
       return undefined;
     });
   });
@@ -317,8 +331,167 @@ describe("AiCommandCredentialReach", () => {
       expect(LOCK_TIMEOUT_IN_MS).toBeGreaterThanOrEqual(60_000);
     });
 
+    it("outlasts a statement the database may still be running, by its statement timeout and a margin", () => {
+      // The defaults: a 30s statement timeout, a 35s client wait.
+      expect(getLockTimeoutInMs(35_000, 30_000)).toBe(60_000);
+      // A statement timeout longer than the client waits.
+      expect(getLockTimeoutInMs(35_000, 120_000)).toBe(
+        120_000 + ABANDONED_WRITE_MARGIN_IN_MS,
+      );
+      // One that is not set bounds nothing, and adds nothing.
+      expect(getLockTimeoutInMs(35_000, 0)).toBe(60_000);
+      expect(getLockTimeoutInMs(35_000, Number.NaN)).toBe(60_000);
+
+      expect(LOCK_TIMEOUT_IN_MS).toBeGreaterThanOrEqual(
+        PostgresStatementTimeoutMs + ABANDONED_WRITE_MARGIN_IN_MS,
+      );
+    });
+
     it("waits for another write for less than a lock lasts", () => {
       expect(LOCK_WAIT_IN_MS).toBeLessThan(LOCK_TIMEOUT_IN_MS);
+    });
+  });
+
+  describe("giving the locks back once the write failed", () => {
+    it.each([
+      ["the client stopped waiting for the UPDATE", clientTimeout()],
+      ["the connection ended while the UPDATE ran", connectionLost()],
+    ])(
+      "leaves them to run out when %s: the write may still land",
+      async (_label: string, error: Error) => {
+        const hold: CredentialReachHold = await AiCommandCredentialReach.take([
+          PROJECT_A,
+        ]);
+
+        await AiCommandCredentialReach.giveBackAfterFailedWrite(hold, error);
+
+        expect(locks.isHeld(KEY_A, NAMESPACE)).toBe(true);
+        expect(locks.eventsOf("release")).toEqual([]);
+
+        // No longer the write's to give back: a give-back later does nothing.
+        expect(hold.locks).toEqual([]);
+        await AiCommandCredentialReach.giveBack(hold);
+        expect(locks.isHeld(KEY_A, NAMESPACE)).toBe(true);
+      },
+    );
+
+    it.each([
+      [
+        "the database answered the UPDATE",
+        databaseAnswer({ code: "23505", message: "duplicate key value" }),
+      ],
+      ["the database cancelled the UPDATE itself", cancelledByDatabase()],
+      ["only a read went unanswered", clientTimeout(SELECT_STATEMENT)],
+      ["the write failed before a statement was sent", new Error("No pool")],
+    ])(
+      "gives them back at once when %s",
+      async (_label: string, error: Error) => {
+        const hold: CredentialReachHold = await AiCommandCredentialReach.take([
+          PROJECT_A,
+        ]);
+
+        await AiCommandCredentialReach.giveBackAfterFailedWrite(hold, error);
+
+        expect(locks.isHeld(KEY_A, NAMESPACE)).toBe(false);
+      },
+    );
+
+    it("for a create, written in a transaction of its own, keeps them only while its COMMIT may land", async () => {
+      const insert: CredentialReachHold = await AiCommandCredentialReach.take([
+        PROJECT_A,
+      ]);
+      await AiCommandCredentialReach.giveBackAfterFailedCreate(
+        clientTimeout(INSERT_STATEMENT),
+        {
+          createBy: {} as never,
+          carryForward: { credentialReachHold: insert },
+        },
+      );
+      expect(locks.isHeld(KEY_A, NAMESPACE)).toBe(false);
+
+      const commit: CredentialReachHold = await AiCommandCredentialReach.take([
+        PROJECT_A,
+      ]);
+      await AiCommandCredentialReach.giveBackAfterFailedCreate(
+        clientTimeout(COMMIT_STATEMENT),
+        {
+          createBy: {} as never,
+          carryForward: { credentialReachHold: commit },
+        },
+      );
+      expect(locks.isHeld(KEY_A, NAMESPACE)).toBe(true);
+    });
+
+    it("has nothing to give back for a write that holds none", async () => {
+      await expect(
+        AiCommandCredentialReach.giveBackAfterFailedWrite(
+          null,
+          clientTimeout(),
+        ),
+      ).resolves.toBeUndefined();
+      expect(locks.eventsOf("release")).toEqual([]);
+    });
+  });
+
+  describe("an update's hold, wherever its hook finds it", () => {
+    it("is the one it carried forward, or else the one remembered for its update", async () => {
+      const update: UpdateBy<Runner> = {
+        query: {},
+        data: {},
+        props: {},
+      } as unknown as UpdateBy<Runner>;
+
+      const remembered: CredentialReachHold =
+        await AiCommandCredentialReach.take([PROJECT_A]);
+      AiCommandCredentialReach.holdFor(update, remembered);
+
+      // Handed only the update: the one remembered for it.
+      expect(
+        AiCommandCredentialReach.holdOfUpdate({
+          updateBy: update,
+          carryForward: null,
+        }),
+      ).toBe(remembered);
+
+      // Handed what its before hook carried forward too: that.
+      expect(
+        AiCommandCredentialReach.holdOfUpdate({
+          updateBy: update,
+          carryForward: AiCommandCredentialReach.carryForwardOf(remembered),
+        }),
+      ).toBe(remembered);
+
+      expect(AiCommandCredentialReach.holdOfUpdate(undefined)).toBeNull();
+
+      // Given back through either, once.
+      await AiCommandCredentialReach.giveBackAfterUpdate({
+        updateBy: update,
+        carryForward: null,
+      });
+      await AiCommandCredentialReach.giveBackAfterUpdate({
+        updateBy: update,
+        carryForward: AiCommandCredentialReach.carryForwardOf(remembered),
+      });
+
+      expect(locks.eventsOf("release")).toHaveLength(1);
+      expect(locks.isHeld(KEY_A, NAMESPACE)).toBe(false);
+    });
+
+    it("is kept right before the update's write", async () => {
+      const update: UpdateBy<Runner> = {
+        query: {},
+        data: {},
+        props: {},
+      } as unknown as UpdateBy<Runner>;
+
+      AiCommandCredentialReach.holdFor(
+        update,
+        await AiCommandCredentialReach.take([PROJECT_A]),
+      );
+
+      await AiCommandCredentialReach.keepForUpdate(update);
+
+      expect(locks.eventsOf("keep")).toEqual([`keep:${NAMESPACE}/${KEY_A}`]);
     });
   });
 });

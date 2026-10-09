@@ -64,8 +64,8 @@ export interface RuleCommandSettingsChange {
 export default class AiRemediationCredentialUse {
   /*
    * Whether `props` may read runbook credentials, so let commands use them -
-   * for a workflow's step, whether the person who last saved the workflow
-   * may (RunbookCredentialReaders).
+   * for a workflow's step, whether the person who last saved the workflow's
+   * steps may (RunbookCredentialReaders).
    */
   public static async mayUseCredentials(
     props: DatabaseCommonInteractionProps,

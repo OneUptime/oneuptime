@@ -47,8 +47,8 @@ export default interface DatabaseCommonInteractionProps {
   workflowId?: ObjectID | undefined;
   workflowName?: string | undefined;
   /*
-   * The person who last saved that workflow (Workflow.lastSavedByUserId),
-   * read with the steps the run is running. The one permission a workflow
+   * The person who last saved that workflow's steps
+   * (Workflow.lastSavedByUserId), read with the steps the run is running. The one permission a workflow
    * never lends its steps - the read of runbook credentials, which lets
    * OneUptime AI's commands use them - is asked of them
    * (RunbookCredentialReaders); nothing else reads it.

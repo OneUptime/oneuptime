@@ -1100,11 +1100,12 @@ API, SSO, or the Slack and Microsoft Teams apps.
   asking to try again in a moment. A workflow's steps act as a Project Admin
   but are not lent a Project Admin's read of runbook credentials: where a
   change takes that read, a step is asked about the person who last saved
-  the workflow, and is refused unless they may read runbook credentials. A
-  workflow last saved with an API key, or not saved since the upgrade, names
-  nobody until a person saves it. OneUptime records that person on every
-  save, in a new read-only `lastSavedByUserId` column on workflows added on
-  start. See
+  the workflow's steps, and is refused unless they may read runbook
+  credentials. A workflow whose steps were last saved with an API key, or
+  not since the upgrade, names nobody until a person saves its steps.
+  OneUptime records that person when a workflow is created and each time its
+  steps are saved - not when it is renamed or turned on or off - in a new
+  read-only `lastSavedByUserId` column on workflows added on start. See
   [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands)
   and [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the

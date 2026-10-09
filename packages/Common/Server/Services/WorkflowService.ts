@@ -30,16 +30,20 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * WHO LAST SAVED THE WORKFLOW (Workflow.lastSavedByUserId).
+   * WHO LAST SAVED THE WORKFLOW'S STEPS (Workflow.lastSavedByUserId).
    *
-   * Every save made in a project - creating the workflow, or changing
-   * anything on it, through the dashboard, the API, Terraform or the admin
-   * dashboard - records the person who made it, and nobody when there is no
-   * person (an API key). OneUptime's own writes - the trigger it reads off
-   * the graph, the webhook key, the labels and owners its rules add - keep
-   * who saved it. Stamped after the save's permission check, as the creator
-   * is, so the person is never asked for access to a column they did not
-   * send (the column takes no caller's value: UserAttribution).
+   * The steps are the graph: what each step does, and with what. Creating
+   * the workflow, and every save of its graph made in a project - through
+   * the builder, the API, Terraform or the admin dashboard - records the
+   * person who made it, and nobody when there is no person (an API key).
+   * A change that leaves the graph as it is - renaming the workflow, its
+   * labels, turning it on or off - keeps who saved its steps: they decided
+   * what the steps do, and whoever only turns the workflow on did not.
+   * OneUptime's own writes - the trigger it reads off the graph, the
+   * webhook key, the labels and owners its rules add - keep it too.
+   * Stamped after the save's permission check, as the creator is, so the
+   * person is never asked for access to a column they did not send (the
+   * column takes no caller's value: UserAttribution).
    *
    * A workflow's steps are held to this person's read of runbook credentials
    * (RunbookCredentialReaders): the read a workflow never lends whoever may
@@ -48,8 +52,9 @@ export class Service extends ProjectReferencesService<Model> {
   public static stampLastSavedBy(
     data: Model | Record<string, unknown>,
     props: DatabaseCommonInteractionProps,
+    savesSteps: boolean,
   ): void {
-    if (props.isRoot) {
+    if (props.isRoot || !savesSteps) {
       return;
     }
 
@@ -62,13 +67,22 @@ export class Service extends ProjectReferencesService<Model> {
     delete record["lastSavedByUser"];
   }
 
+  // Whether an update's `data` saves the workflow's steps: writes its graph.
+  public static savesSteps(data: Model | Record<string, unknown>): boolean {
+    return (data as unknown as Record<string, unknown>)["graph"] !== undefined;
+  }
+
   @CaptureSpan()
   protected override async onCreatePermitted(
     onCreate: OnCreate<Model>,
   ): Promise<void> {
     await super.onCreatePermitted(onCreate);
 
-    Service.stampLastSavedBy(onCreate.createBy.data, onCreate.createBy.props);
+    Service.stampLastSavedBy(
+      onCreate.createBy.data,
+      onCreate.createBy.props,
+      true,
+    );
   }
 
   @CaptureSpan()
@@ -80,6 +94,7 @@ export class Service extends ProjectReferencesService<Model> {
     Service.stampLastSavedBy(
       updateBy.data as unknown as Record<string, unknown>,
       updateBy.props,
+      Service.savesSteps(updateBy.data as unknown as Record<string, unknown>),
     );
   }
 

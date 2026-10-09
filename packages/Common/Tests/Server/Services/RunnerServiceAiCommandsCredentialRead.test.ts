@@ -521,11 +521,26 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
     });
 
-    it("is not taken when nothing is turned on", async () => {
+    it("is taken by an update that writes the switch on for a Runner already taking them: whether it is on is the lock's to read", async () => {
       runners = [runner(OFFICE_RUNNER, "office-runner", true)];
 
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update({ canRunAiCommands: true }, RUNNER_EDITOR),
+      );
+
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(true);
+      // The Runner takes them already: nothing is asked of its credentials.
+      expect(credentialFindBy).not.toHaveBeenCalled();
+
+      await hooks.onUpdatePermitted(onUpdate.updateBy);
+      expect(locks.eventsOf("keep")).toHaveLength(1);
+
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(OFFICE_RUNNER)]);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
+
+    it("is not taken when the switch is not written on, or by OneUptime", async () => {
       for (const data of [
-        { canRunAiCommands: true },
         { canRunAiCommands: false },
         { description: "In the office rack" },
         { name: "office-runner" },
@@ -540,6 +555,24 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       );
 
       expect(locks.eventsOf("lock")).toEqual([]);
+    });
+
+    it("reads whether the switch is on again under it: a Runner turned off since the update first read it is asked about", async () => {
+      // As the update first reads it: still taking them.
+      runnerFindBy.mockImplementationOnce(async (): Promise<Array<Runner>> => {
+        return [runner(OFFICE_RUNNER, "office-runner", true)];
+      });
+
+      // As it is once the lock is held: turned off in the meantime, and it holds an SSH credential.
+      runners = [runner(OFFICE_RUNNER, "office-runner", false)];
+
+      const message: string = await refusal(
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, RUNNER_EDITOR)),
+      );
+
+      expect(message).toContain('Runner "office-runner"');
+      expect(credentialFindBy).toHaveBeenCalledTimes(1);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
     });
 
     it("is given back when the switch is refused", async () => {
@@ -609,10 +642,8 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
     });
 
     it("lets an update that holds no lock through its last check", async () => {
-      runners = [runner(OFFICE_RUNNER, "office-runner", true)];
-
       const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
-        update({ canRunAiCommands: true }, RUNNER_EDITOR),
+        update({ description: "In the office rack" }, RUNNER_EDITOR),
       );
 
       await expect(
@@ -688,7 +719,7 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
 
       expect(message).toContain('Runner "office-runner" holds SSH credentials');
       expect(message).toContain(
-        "the person who last saved the workflow has it",
+        "the person who last saved the workflow's steps has it",
       );
       expect(saverLookUp).toHaveBeenCalledTimes(1);
       expect(String(saverLookUp.mock.calls[0]![0].userId)).toBe(

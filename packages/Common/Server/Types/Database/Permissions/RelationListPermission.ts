@@ -29,6 +29,7 @@ import {
 import RelationIdUtil from "../../../Utils/Database/RelationIdUtil";
 import RelationNames from "../../../Utils/Database/RelationNames";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import RunbookCredentialReaders from "../../../Utils/AutoRemediation/RunbookCredentialReaders";
 
 /*
  * A list of records a create or an update may name, or one record it names
@@ -680,7 +681,20 @@ export default class RelationListPermission {
     const listedModelType: DatabaseBaseModelType = data.list.listedModelType;
 
     const tableRead: { isBlocked: boolean; isReader: boolean } =
-      RelationListPermission.getTableRead(listedModelType, data.props);
+      RunbookCredentialReaders.isAskedOfWorkflowSaver(
+        listedModelType,
+        data.props,
+      )
+        ? /*
+           * A workflow's step names a runbook credential only when the
+           * person who last saved the workflow's steps may read them: the
+           * step's own Project Admin read is not lent to it.
+           */
+          {
+            isBlocked: false,
+            isReader: await RunbookCredentialReaders.mayRead(data.props),
+          }
+        : RelationListPermission.getTableRead(listedModelType, data.props);
 
     // A block with no labels on reading them takes every one of them away.
     if (tableRead.isBlocked) {

@@ -13,7 +13,8 @@ import path from "path";
  * Commands" on (RunnerService), saved one at a time in a project
  * (AiCommandCredentialReach). A workflow's step is not lent a Project
  * Admin's read of runbook credentials: it is asked about the person who last
- * saved the workflow (RunbookCredentialReaders, Workflow.lastSavedByUserId).
+ * saved the workflow's steps (RunbookCredentialReaders,
+ * Workflow.lastSavedByUserId).
  *
  * The credentials page says so where credentials are assigned, the Runners
  * page where the switch is, the AI SRE page and Users, Teams & Permissions
@@ -104,7 +105,7 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       "Removing Runners from a credential, saving a credential with the Runners it has, and Kubernetes credentials ask nothing more",
       "Assigning credentials and turning the switch on are saved one at a time in a project, so the two can't pass their checks together;",
       "it is refused with *Try again in a moment*. Save it again.",
-      "A workflow's steps act as a Project Admin, but are not lent a Project Admin's read of runbook credentials: a step has it only when the person who last saved the workflow has it.",
+      "A workflow's steps act as a Project Admin, but are not lent a Project Admin's read of runbook credentials: a step has it only when the person who last saved the workflow's steps has it.",
       STEPS_LINK,
     ]);
 
@@ -146,7 +147,7 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       "Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission, since a rule that names no Runners reaches every Runner that runs OneUptime AI's commands.",
       "Assigning an SSH credential to a Runner that runs OneUptime AI's commands - creating the credential with that Runner, or adding the Runner to it - takes it too, so an SSH credential reaches such a Runner only through someone who may read it, whichever is saved first, the credential or the switch",
       CREDENTIALS_LINK,
-      "A workflow's step is not lent this permission by acting as a Project Admin: it has it only when the person who last saved the workflow has it.",
+      "A workflow's step is not lent this permission by acting as a Project Admin: it has it only when the person who last saved the workflow's steps has it.",
     ]);
   });
 
@@ -166,7 +167,7 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
 
     expect(
       credentials.endsWith(
-        "turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials, or assigning an SSH credential to a Runner that runs OneUptime AI's commands. A workflow's step acts as a Project Admin but is not lent that read: it has it only when the person who last saved the workflow has it.",
+        "turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials, or assigning an SSH credential to a Runner that runs OneUptime AI's commands. A workflow's step acts as a Project Admin but is not lent that read: it has it only when the person who last saved the workflow's steps has it.",
       ),
     ).toBe(true);
   });
@@ -190,9 +191,10 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
 
     expectSentences(text.slice(credentials, plan), [
       "A Project Admin may read runbook credentials, but a step is not lent that.",
-      "letting OneUptime AI run its commands without asking, turning on **Runs AI Remediation Commands** for a Runner, assigning an SSH credential to a Runner that runs OneUptime AI's commands, or naming a credential in a runbook's steps",
-      "a step is asked about the person who last saved the workflow instead, and is refused unless they may read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin).",
-      "OneUptime records that person each time someone saves the workflow, turning it on or off included; a save with an API key records nobody",
+      "letting OneUptime AI run its commands without asking, turning on **Runs AI Remediation Commands** for a Runner, assigning an SSH credential to a Runner that runs OneUptime AI's commands, or naming a runbook credential, such as in a runbook's steps",
+      "a step is asked about the person who last saved the workflow's steps instead, and is refused unless they may read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin).",
+      "OneUptime records that person when someone creates the workflow and each time someone saves its steps; renaming the workflow, changing its labels or turning it on or off keeps who last saved its steps.",
+      "A save of its steps with an API key records nobody, so the workflow's steps can't make these changes until a person saves them.",
     ]);
   });
 
@@ -217,8 +219,9 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       "without it the save is refused with a `422` that names the Runner.",
       "Credentials keep the Runners they were assigned before the upgrade,",
       "a save that waits too long for another, or that cannot reach Valkey, is refused with a `400` asking to try again in a moment.",
-      "where a change takes that read, a step is asked about the person who last saved the workflow, and is refused unless they may read runbook credentials.",
-      "A workflow last saved with an API key, or not saved since the upgrade, names nobody until a person saves it.",
+      "where a change takes that read, a step is asked about the person who last saved the workflow's steps, and is refused unless they may read runbook credentials.",
+      "A workflow whose steps were last saved with an API key, or not since the upgrade, names nobody until a person saves its steps.",
+      "OneUptime records that person when a workflow is created and each time its steps are saved - not when it is renamed or turned on or off -",
       "in a new read-only `lastSavedByUserId` column on workflows added on start.",
       CREDENTIALS_LINK,
       STEPS_LINK,

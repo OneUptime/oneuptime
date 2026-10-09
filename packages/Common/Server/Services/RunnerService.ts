@@ -241,12 +241,13 @@ export class Service extends ProjectReferencesService<Model> {
    *
    * And turning on "Runs AI Remediation Commands" for a Runner that holds SSH
    * credentials takes the read of runbook credentials (see
-   * assertNoCredentialsForAiCommands). Turning it on - for anyone - holds the
-   * project's lock that every write putting an SSH credential within reach of
-   * OneUptime AI's commands holds (AiCommandCredentialReach), from before the
-   * Runners' credentials are read until the update is written: an SSH
-   * credential assigned to one of them at the same moment is either seen by
-   * this check, or sees the switch on in its own.
+   * assertNoCredentialsForAiCommands). Writing it on - for anyone, whether or
+   * not it is on already - holds the project's lock that every write putting
+   * an SSH credential within reach of OneUptime AI's commands holds
+   * (AiCommandCredentialReach), from before whether each Runner's switch is
+   * on and which SSH credentials it holds are read until the update is
+   * written: an SSH credential assigned to one of them at the same moment is
+   * either seen by this check, or sees the switch on in its own.
    *
    * Root writes (registration, heartbeats, sign-off) are the server's own.
    * CardModelDetail posts every field of the Runner form, so a re-posted
@@ -339,29 +340,55 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    /*
-     * The Runners the update turns "Runs AI Remediation Commands" on for. A
-     * Runner already taking OneUptime AI's commands keeps what it has: the
-     * Runner form posts every field back.
-     */
-    const turnedOn: Array<Model> = writesAiCommandsOn
-      ? runners.filter((runner: Model): boolean => {
-          return Boolean(runner._id) && runner.canRunAiCommands !== true;
-        })
-      : [];
+    const written: Array<Model> = runners.filter((runner: Model): boolean => {
+      return Boolean(runner._id);
+    });
 
-    if (turnedOn.length === 0) {
+    if (!writesAiCommandsOn || written.length === 0) {
       return { updateBy, carryForward: null };
     }
 
+    /*
+     * An update that writes the switch on holds the projects' lock until it
+     * is written, whether or not the switch is on now: it is the lock's to
+     * decide which Runners the update turns it on for. Whether each one's
+     * switch is on is read again under the lock - as it is now, not as it
+     * was before the lock was taken: another update may have turned it off
+     * since, and an SSH credential been assigned to the Runner while it was
+     * off.
+     */
     const hold: CredentialReachHold = await AiCommandCredentialReach.take(
-      turnedOn.map((runner: Model): ObjectID | undefined => {
+      written.map((runner: Model): ObjectID | undefined => {
         return runner.projectId || updateBy.props.tenantId;
       }),
     );
 
     try {
-      if (!(await RunbookCredentialReaders.mayRead(updateBy.props))) {
+      const current: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
+          _id: true,
+          projectId: true,
+          name: true,
+          canRunAiCommands: true,
+        },
+      );
+
+      /*
+       * The Runners the update turns "Runs AI Remediation Commands" on for.
+       * A Runner already taking OneUptime AI's commands keeps what it has:
+       * the Runner form posts every field back.
+       */
+      const turnedOn: Array<Model> = current.filter(
+        (runner: Model): boolean => {
+          return Boolean(runner._id) && runner.canRunAiCommands !== true;
+        },
+      );
+
+      if (
+        turnedOn.length > 0 &&
+        !(await RunbookCredentialReaders.mayRead(updateBy.props))
+      ) {
         await this.assertNoCredentialsForAiCommands(turnedOn, updateBy.props);
       }
     } catch (error) {
@@ -371,22 +398,20 @@ export class Service extends ProjectReferencesService<Model> {
 
     AiCommandCredentialReach.holdFor(updateBy, hold);
 
-    return { updateBy, carryForward: { credentialReachHold: hold } };
+    return {
+      updateBy,
+      carryForward: AiCommandCredentialReach.carryForwardOf(hold),
+    };
   }
 
-  /*
-   * Right before the write: the lock its check was made under is still the
-   * update's (AiCommandCredentialReach.keepForWrite), or it is refused.
-   */
+  // Right before the write: the lock its check was made under is still the update's.
   @CaptureSpan()
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
-    await AiCommandCredentialReach.keepForWrite(
-      AiCommandCredentialReach.heldFor(updateBy),
-    );
+    await AiCommandCredentialReach.keepForUpdate(updateBy);
   }
 
   // The update is written: its lock is given back.
@@ -395,22 +420,21 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    await AiCommandCredentialReach.giveBack(
-      AiCommandCredentialReach.carriedForward(onUpdate.carryForward),
-    );
+    await AiCommandCredentialReach.giveBackAfterUpdate(onUpdate);
 
     return await super.onUpdateSuccess(onUpdate, updatedItemIds);
   }
 
-  // The update was refused or failed after its check: its lock is given back.
+  /*
+   * The update was refused or failed after its check: its lock is given
+   * back, unless the database may still write it.
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
   ): Promise<Exception> {
-    await AiCommandCredentialReach.giveBack(
-      AiCommandCredentialReach.carriedForward(onUpdate?.carryForward),
-    );
+    await AiCommandCredentialReach.giveBackAfterFailedUpdate(error, onUpdate);
 
     return await super.onUpdateError(error, onUpdate);
   }

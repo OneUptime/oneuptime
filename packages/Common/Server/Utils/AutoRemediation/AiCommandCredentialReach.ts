@@ -1,7 +1,14 @@
-import { PostgresQueryTimeoutMs } from "../../EnvironmentConfig";
+import {
+  PostgresQueryTimeoutMs,
+  PostgresStatementTimeoutMs,
+} from "../../EnvironmentConfig";
+import { OnCreate, OnUpdate } from "../../Types/Database/Hooks";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
+import StatementOutcome, {
+  StatementContext,
+} from "../Database/StatementOutcome";
 import logger from "../Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -28,41 +35,80 @@ import ObjectID from "../../../Types/ObjectID";
  * written, and both would pass. So every write that may bring the two
  * together holds its project's lock from before its check reads until it is
  * written or has failed - whoever makes it, since the other write's check
- * must see it too - and the write that waits for the lock reads what the
- * other one wrote.
+ * must see it too - and reads what its check decides by (the Runners a
+ * credential holds, whether a Runner's switch is on) under that lock, so the
+ * write that waits for the lock reads what the other one wrote.
  *
  * A write that cannot have the lock - Valkey cannot be reached, or another
  * write held it for longer than a write waits - is refused, to be saved again
  * in a moment: a check that cannot be sure of what it read never lets a write
  * through. The lock is kept once more right before the write (keepForWrite),
  * which is refused when the lock was lost in between, and given back once the
- * write is done or has failed (giveBack). It is never kept on a timer, so a
- * lock its write never gave back - the server stopped half way - runs out
- * LOCK_TIMEOUT_IN_MS after it was last kept rather than holding up the
- * project's next change.
+ * write is done or has failed (giveBack) - unless the database may still
+ * apply the failed write (giveBackAfterFailedWrite): it is then left to run
+ * out, which it does after the statement could have landed
+ * (getLockTimeoutInMs). It is never kept on a timer, so a lock its write
+ * never gave back - the server stopped half way - runs out LOCK_TIMEOUT_IN_MS
+ * after it was last kept rather than holding up the project's next change.
+ *
+ * The services' write hooks call it through the hook helpers at the bottom,
+ * so each holds and gives back a write's locks the same way.
  */
 
 export const CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE: string =
   "Another change to this project's Runners or runbook credentials is being saved. Try again in a moment.";
 
 /*
- * How long a lock lasts from when it was taken, or last kept: as long as the
- * client waits for any one statement (DATABASE_QUERY_TIMEOUT_MS), with time to
- * spare for the steps around it, and a minute at the least - so a write that
- * is still being written holds it to the end.
+ * The time, on top of the database's statement timeout, a statement still
+ * running when its client stopped waiting for it may take to be cancelled.
  */
-export const getLockTimeoutInMs: (queryTimeoutMs: number) => number = (
+export const ABANDONED_WRITE_MARGIN_IN_MS: number = 10_000;
+
+/*
+ * How long a lock lasts from when it was taken, or last kept - right before
+ * the write. As long as:
+ *
+ *   - the client waits for any one statement (DATABASE_QUERY_TIMEOUT_MS),
+ *     with time to spare for the steps around it, so a write that is still
+ *     being written holds it to the end;
+ *   - the database may still run a statement whose client stopped waiting
+ *     for it (DATABASE_STATEMENT_TIMEOUT_MS, and a margin), so a write left
+ *     to land after it was reported as failed (giveBackAfterFailedWrite)
+ *     lands while its lock is still held; a statement timeout that is not
+ *     set, or not a number, bounds nothing and adds nothing;
+ *
+ * and a minute at the least.
+ */
+export const getLockTimeoutInMs: (
   queryTimeoutMs: number,
+  statementTimeoutMs?: number | undefined,
+) => number = (
+  queryTimeoutMs: number,
+  statementTimeoutMs?: number | undefined,
 ): number => {
-  if (!Number.isFinite(queryTimeoutMs)) {
-    return 60_000;
+  let timeout: number = 60_000;
+
+  if (Number.isFinite(queryTimeoutMs)) {
+    timeout = Math.max(timeout, queryTimeoutMs + 25_000);
   }
 
-  return Math.max(60_000, queryTimeoutMs + 25_000);
+  if (
+    statementTimeoutMs !== undefined &&
+    Number.isFinite(statementTimeoutMs) &&
+    statementTimeoutMs > 0
+  ) {
+    timeout = Math.max(
+      timeout,
+      statementTimeoutMs + ABANDONED_WRITE_MARGIN_IN_MS,
+    );
+  }
+
+  return timeout;
 };
 
 export const LOCK_TIMEOUT_IN_MS: number = getLockTimeoutInMs(
   PostgresQueryTimeoutMs,
+  PostgresStatementTimeoutMs,
 );
 
 /*
@@ -82,7 +128,8 @@ export default class AiCommandCredentialReach {
   /*
    * The hold of each update being checked, by the UpdateBy a service's
    * onBeforeUpdate hands back - the one DatabaseService passes on to
-   * onUpdatePermitted - so that hook can keep it right before the write.
+   * onUpdatePermitted, which is handed nothing else - so that hook can keep
+   * it right before the write.
    */
   private static holds: WeakMap<UpdateBy<BaseModel>, CredentialReachHold> =
     new WeakMap<UpdateBy<BaseModel>, CredentialReachHold>();
@@ -203,6 +250,47 @@ export default class AiCommandCredentialReach {
     }
   }
 
+  /*
+   * Once the write of a checked change failed, with what failed: its locks
+   * are given back at once - unless the database may still apply the write
+   * (StatementOutcome.mayStillApply: a statement that writes, or in a write
+   * of its own transaction its COMMIT, whose answer never came). They are
+   * then left to run out, which they do LOCK_TIMEOUT_IN_MS after they were
+   * last kept - right before the write - once the statement could no longer
+   * land (getLockTimeoutInMs): no other change's check reads around a write
+   * that may still be written. Never throws.
+   */
+  public static async giveBackAfterFailedWrite(
+    hold: CredentialReachHold | null | undefined,
+    error: unknown,
+    context?: StatementContext | undefined,
+  ): Promise<void> {
+    if (!hold) {
+      return;
+    }
+
+    let mayStillApply: boolean = false;
+
+    try {
+      mayStillApply = StatementOutcome.mayStillApply(error, context);
+    } catch (err) {
+      logger.error(err);
+    }
+
+    if (mayStillApply && hold.locks.length > 0) {
+      // No longer this write's to give back: they run out on their own.
+      hold.locks.splice(0, hold.locks.length);
+
+      logger.warn(
+        "A change to a project's Runners or runbook credentials failed without the database answering; its lock is left to run out, as the write may still land.",
+      );
+
+      return;
+    }
+
+    await AiCommandCredentialReach.giveBack(hold);
+  }
+
   // Remembers the hold of the update `updateBy` is, for heldFor.
   public static holdFor<TModel extends BaseModel>(
     updateBy: UpdateBy<TModel>,
@@ -239,6 +327,98 @@ export default class AiCommandCredentialReach {
     return (
       (carryForward as { credentialReachHold?: CredentialReachHold | null })
         .credentialReachHold || null
+    );
+  }
+
+  /*
+   * The carryForward a before hook hands on with the hold it took - and, for
+   * an update, the hold remembered for its onUpdatePermitted (holdFor). An
+   * update's hold is found from either, whichever its hook is handed
+   * (holdOfUpdate): giving back a hold twice gives it back once.
+   */
+  public static carryForwardOf(hold: CredentialReachHold): {
+    credentialReachHold: CredentialReachHold;
+  } {
+    return { credentialReachHold: hold };
+  }
+
+  // The hold of the update an update hook is handed, if it holds one.
+  public static holdOfUpdate<TModel extends BaseModel>(
+    onUpdate: OnUpdate<TModel> | null | undefined,
+  ): CredentialReachHold | null {
+    if (!onUpdate) {
+      return null;
+    }
+
+    return (
+      AiCommandCredentialReach.carriedForward(onUpdate.carryForward) ||
+      (onUpdate.updateBy
+        ? AiCommandCredentialReach.heldFor(onUpdate.updateBy)
+        : null)
+    );
+  }
+
+  /*
+   * THE WRITE HOOKS (RunnerService, RunbookCredentialService).
+   *
+   * onUpdatePermitted / onCreatePermitted: the lock its check was made under
+   * is still the write's, right before it (keepForWrite), or it is refused.
+   * onUpdateSuccess / onCreateSuccess: the write is done, its lock is given
+   * back. onUpdateError / onCreateError: the write failed after its check,
+   * its lock is given back unless the write may still land
+   * (giveBackAfterFailedWrite). A create is written in a transaction of its
+   * own (TypeORM's save()).
+   */
+  public static async keepForUpdate<TModel extends BaseModel>(
+    updateBy: UpdateBy<TModel>,
+  ): Promise<void> {
+    await AiCommandCredentialReach.keepForWrite(
+      AiCommandCredentialReach.heldFor(updateBy),
+    );
+  }
+
+  public static async giveBackAfterUpdate<TModel extends BaseModel>(
+    onUpdate: OnUpdate<TModel> | null | undefined,
+  ): Promise<void> {
+    await AiCommandCredentialReach.giveBack(
+      AiCommandCredentialReach.holdOfUpdate(onUpdate),
+    );
+  }
+
+  public static async giveBackAfterFailedUpdate<TModel extends BaseModel>(
+    error: unknown,
+    onUpdate: OnUpdate<TModel> | null | undefined,
+  ): Promise<void> {
+    await AiCommandCredentialReach.giveBackAfterFailedWrite(
+      AiCommandCredentialReach.holdOfUpdate(onUpdate),
+      error,
+    );
+  }
+
+  public static async keepForCreate<TModel extends BaseModel>(
+    onCreate: OnCreate<TModel>,
+  ): Promise<void> {
+    await AiCommandCredentialReach.keepForWrite(
+      AiCommandCredentialReach.carriedForward(onCreate.carryForward),
+    );
+  }
+
+  public static async giveBackAfterCreate<TModel extends BaseModel>(
+    onCreate: OnCreate<TModel> | null | undefined,
+  ): Promise<void> {
+    await AiCommandCredentialReach.giveBack(
+      AiCommandCredentialReach.carriedForward(onCreate?.carryForward),
+    );
+  }
+
+  public static async giveBackAfterFailedCreate<TModel extends BaseModel>(
+    error: unknown,
+    onCreate: OnCreate<TModel> | null | undefined,
+  ): Promise<void> {
+    await AiCommandCredentialReach.giveBackAfterFailedWrite(
+      AiCommandCredentialReach.carriedForward(onCreate?.carryForward),
+      error,
+      { inOwnTransaction: true },
     );
   }
 }

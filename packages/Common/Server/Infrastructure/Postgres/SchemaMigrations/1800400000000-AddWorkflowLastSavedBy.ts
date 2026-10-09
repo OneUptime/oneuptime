@@ -5,11 +5,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Generated with npm run generate-postgres-migration, then renumbered after
  * the last registered migration.
  *
- * Workflow.lastSavedByUserId: the person who last saved a workflow, which
- * OneUptime records on every save (WorkflowService). A workflow's steps are
- * held to that person's read of runbook credentials
- * (RunbookCredentialReaders). Workflows saved before this name nobody until
- * they are saved again.
+ * Workflow.lastSavedByUserId: the person who last saved a workflow's steps,
+ * which OneUptime records when a workflow is created and each time its steps
+ * are saved (WorkflowService). A workflow's steps are held to that person's
+ * read of runbook credentials (RunbookCredentialReaders). Workflows saved
+ * before this name nobody until their steps are saved again.
  *
  * The column is nullable with no default, so adding it changes no row. The
  * foreign key checks every workflow, so it goes through

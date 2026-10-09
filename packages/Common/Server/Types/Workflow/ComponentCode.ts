@@ -32,7 +32,7 @@ export interface RunOptions {
    */
   workflowName?: string | undefined;
   /*
-   * Who last saved the workflow, read with the steps the run is running
+   * Who last saved the workflow's steps, read with the steps the run is running
    * (Workflow.lastSavedByUserId): the person whose read of runbook
    * credentials a step is held to (WorkflowPrincipal).
    */

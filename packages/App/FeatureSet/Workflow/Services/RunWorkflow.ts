@@ -383,7 +383,7 @@ export default class RunWorkflow {
   // For the audit trail of what the run's steps change (WorkflowPrincipal).
   private workflowName: string | null = null;
   /*
-   * Who last saved the workflow, read with the steps this run runs: the
+   * Who last saved the workflow's steps, read with the steps this run runs: the
    * person whose read of runbook credentials its steps are held to
    * (WorkflowPrincipal).
    */

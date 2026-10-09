@@ -644,6 +644,37 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
       expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
     });
 
+    it("reads the Runners the credential holds again under the lock: one taken off it since the update first read it counts as added", async () => {
+      // As the update first reads the credential: it holds both Runners.
+      credentialFindBy.mockImplementationOnce(
+        async (): Promise<Array<RunbookCredential>> => {
+          return [
+            {
+              _id: CREDENTIAL_ID,
+              id: new ObjectID(CREDENTIAL_ID),
+              projectId: PROJECT_ID,
+              credentialType: RunbookCredentialType.SSH,
+              runners: [AI_RUNNER, PLAIN_RUNNER].map((id: string): Runner => {
+                return { _id: id } as unknown as Runner;
+              }),
+            } as unknown as RunbookCredential,
+          ];
+        },
+      );
+
+      // As it is once the lock is held: the Runner that runs AI commands was taken off it.
+      credentials[0]!.runners = [PLAIN_RUNNER];
+
+      // A form posting the Runners it held when it was opened.
+      const message: string = await refusal(
+        hooks.onBeforeUpdate(update([AI_RUNNER, PLAIN_RUNNER])),
+      );
+
+      expect(message).toContain('Runner "office-runner"');
+      expect(credentialFindBy).toHaveBeenCalledTimes(2);
+      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
+    });
+
     it("clearing a credential's Runners assigns nothing: no lock, no read", async () => {
       await expect(hooks.onBeforeUpdate(update([]))).resolves.toBeDefined();
 

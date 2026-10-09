@@ -85,7 +85,7 @@ On a Runner with **Runs AI Remediation Commands** on, OneUptime AI picks from th
 
 Removing Runners from a credential, saving a credential with the Runners it has, and Kubernetes credentials ask nothing more: OneUptime AI's kubectl commands run with the credential bound to their cluster. Assigning credentials and turning the switch on are saved one at a time in a project, so the two can't pass their checks together; a save that comes while another is being saved waits for it, and if that takes too long it is refused with *Try again in a moment*. Save it again.
 
-A workflow's steps act as a Project Admin, but are not lent a Project Admin's read of runbook credentials: a step has it only when the person who last saved the workflow has it. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+A workflow's steps act as a Project Admin, but are not lent a Project Admin's read of runbook credentials: a step has it only when the person who last saved the workflow's steps has it. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 
 ## Least privilege on the far side
 
