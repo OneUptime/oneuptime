@@ -805,6 +805,7 @@ class ApplyRun {
         scheduleName: source.name,
         groupIndex: groupIndex,
         group: group,
+        groups: groups,
         maxLength: TOOL_IMPORT_MAX_NAME_LENGTH,
       });
       schedule.timezone = scheduleTimezone as Timezone;

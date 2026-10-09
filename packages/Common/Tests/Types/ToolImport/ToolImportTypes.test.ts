@@ -3,11 +3,17 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import {
   getToolImportSourceDefinition,
+  GRAFANA_ONCALL_API_URL_EXAMPLE,
   INCIDENT_IO_HOST,
+  isToolImportAddressGiven,
   OPSGENIE_EU_HOST,
   OPSGENIE_US_HOST,
+  PAGERDUTY_EU_HOST,
+  PAGERDUTY_US_HOST,
   resolveToolImportRegion,
+  SPLUNK_ON_CALL_HOST,
   ToolImportCatalog,
+  ToolImportCredentialField,
   ToolImportRegion,
 } from "../../../Types/ToolImport/ToolImportCatalog";
 import {
@@ -55,14 +61,146 @@ describe("ToolImportCatalog", () => {
 
       expect(definition.source).toBe(source);
       expect(definition.title.length).toBeGreaterThan(0);
-      expect(definition.hosts.length).toBeGreaterThan(0);
       expect(definition.docsPath).toMatch(/^\/docs\/moving-to-oneuptime\//);
       expect(definition.apiKeyDocsUrl.startsWith("https://")).toBe(true);
       expect(definition.kinds[0]).toBe(ToolImportResourceKind.Person);
 
+      /*
+       * Fixed hosts, or - for a tool people also run themselves - none,
+       * and the address the person gives, with an example of it.
+       */
+      if (isToolImportAddressGiven(definition)) {
+        expect(definition.hosts).toEqual([]);
+        expect(definition.regions).toEqual([]);
+        expect(definition.apiUrlExample?.startsWith("https://")).toBe(true);
+      } else {
+        expect(definition.hosts.length).toBeGreaterThan(0);
+        expect(definition.apiUrlExample).toBeUndefined();
+      }
+
       for (const region of definition.regions) {
         expect(definition.hosts).toContain(region.host);
       }
+
+      // The key is always asked for, once, and last.
+      expect(
+        definition.credentialFields.filter(
+          (field: ToolImportCredentialField): boolean => {
+            return field === ToolImportCredentialField.ApiKey;
+          },
+        ),
+      ).toHaveLength(1);
+      expect(
+        definition.credentialFields[definition.credentialFields.length - 1],
+      ).toBe(ToolImportCredentialField.ApiKey);
+    }
+  });
+
+  test("no two tools share a host, so a read of one can never call another", () => {
+    const hosts: Array<string> = AllToolImportSources.flatMap(
+      (source: ToolImportSource): Array<string> => {
+        return getToolImportSourceDefinition(source).hosts;
+      },
+    );
+
+    expect(new Set(hosts).size).toBe(hosts.length);
+  });
+
+  test("the picker offers Opsgenie first, as it is being retired, then the tools teams most often leave", () => {
+    expect(AllToolImportSources).toEqual([
+      ToolImportSource.OpsGenie,
+      ToolImportSource.PagerDuty,
+      ToolImportSource.IncidentIo,
+      ToolImportSource.SplunkOnCall,
+      ToolImportSource.GrafanaOnCall,
+    ]);
+  });
+
+  test("PagerDuty is read from its US or EU host, picked by region, with its version header", () => {
+    const definition: (typeof ToolImportCatalog)[ToolImportSource] =
+      getToolImportSourceDefinition(ToolImportSource.PagerDuty);
+
+    expect(definition.hosts).toEqual([PAGERDUTY_US_HOST, PAGERDUTY_EU_HOST]);
+    expect(PAGERDUTY_US_HOST).toBe("api.pagerduty.com");
+    expect(PAGERDUTY_EU_HOST).toBe("api.eu.pagerduty.com");
+    expect(
+      resolveToolImportRegion(ToolImportSource.PagerDuty, undefined)?.host,
+    ).toBe(PAGERDUTY_US_HOST);
+    expect(
+      resolveToolImportRegion(ToolImportSource.PagerDuty, "EU")?.host,
+    ).toBe(PAGERDUTY_EU_HOST);
+    expect(
+      resolveToolImportRegion(ToolImportSource.PagerDuty, "api.evil.example"),
+    ).toBeNull();
+    expect(definition.authorizationScheme).toBe("TokenToken");
+    expect(definition.headers).toEqual({
+      Accept: "application/vnd.pagerduty+json;version=2",
+    });
+    expect(definition.credentialFields).toEqual([
+      ToolImportCredentialField.ApiKey,
+    ]);
+    expect(definition.kinds).toEqual([
+      ToolImportResourceKind.Person,
+      ToolImportResourceKind.Team,
+      ToolImportResourceKind.OnCallSchedule,
+      ToolImportResourceKind.OnCallPolicy,
+      ToolImportResourceKind.Service,
+    ]);
+  });
+
+  test("Splunk On-Call has one API, and asks for the API ID with the key, at its documented pace", () => {
+    const definition: (typeof ToolImportCatalog)[ToolImportSource] =
+      getToolImportSourceDefinition(ToolImportSource.SplunkOnCall);
+
+    expect(definition.hosts).toEqual([SPLUNK_ON_CALL_HOST]);
+    expect(SPLUNK_ON_CALL_HOST).toBe("api.victorops.com");
+    expect(
+      resolveToolImportRegion(ToolImportSource.SplunkOnCall, "")?.host,
+    ).toBe(SPLUNK_ON_CALL_HOST);
+    expect(
+      resolveToolImportRegion(ToolImportSource.SplunkOnCall, "EU"),
+    ).toBeNull();
+    expect(definition.authorizationScheme).toBe("ApiIdAndKey");
+    expect(definition.credentialFields).toEqual([
+      ToolImportCredentialField.ApiKeyId,
+      ToolImportCredentialField.ApiKey,
+    ]);
+    // Each endpoint answers at most twice a second.
+    expect(definition.minRequestIntervalMs).toBeGreaterThanOrEqual(500);
+    expect(definition.kinds).not.toContain(ToolImportResourceKind.Service);
+  });
+
+  test("Grafana OnCall is read at the address the person gives, never a fixed host, one request a second", () => {
+    const definition: (typeof ToolImportCatalog)[ToolImportSource] =
+      getToolImportSourceDefinition(ToolImportSource.GrafanaOnCall);
+
+    expect(isToolImportAddressGiven(definition)).toBe(true);
+    expect(definition.hosts).toEqual([]);
+    expect(definition.apiUrlExample).toBe(GRAFANA_ONCALL_API_URL_EXAMPLE);
+    expect(definition.credentialFields).toEqual([
+      ToolImportCredentialField.ApiUrl,
+      ToolImportCredentialField.ApiKey,
+    ]);
+    expect(definition.authorizationScheme).toBe("Plain");
+    // 300 requests a token in five minutes on a self-hosted install.
+    expect(definition.minRequestIntervalMs).toBeGreaterThanOrEqual(1000);
+    expect(
+      resolveToolImportRegion(
+        ToolImportSource.GrafanaOnCall,
+        "https://oncall.example.com",
+      ),
+    ).toBeNull();
+
+    for (const source of AllToolImportSources) {
+      expect({
+        source,
+        isAddressGiven: isToolImportAddressGiven(
+          getToolImportSourceDefinition(source),
+        ),
+      }).toEqual({
+        source,
+        isAddressGiven: source === ToolImportSource.GrafanaOnCall,
+      });
     }
   });
 
@@ -108,6 +246,18 @@ describe("ToolImportCatalog", () => {
       getToolImportSourceDefinition(ToolImportSource.IncidentIo)
         .authorizationScheme,
     ).toBe("Bearer");
+    expect(
+      getToolImportSourceDefinition(ToolImportSource.PagerDuty)
+        .authorizationScheme,
+    ).toBe("TokenToken");
+    expect(
+      getToolImportSourceDefinition(ToolImportSource.SplunkOnCall)
+        .authorizationScheme,
+    ).toBe("ApiIdAndKey");
+    expect(
+      getToolImportSourceDefinition(ToolImportSource.GrafanaOnCall)
+        .authorizationScheme,
+    ).toBe("Plain");
   });
 });
 
@@ -115,7 +265,11 @@ describe("ToolImportSource, kinds and statuses", () => {
   test("only known values pass the guards", () => {
     expect(isToolImportSource("OpsGenie")).toBe(true);
     expect(isToolImportSource("IncidentIo")).toBe(true);
+    expect(isToolImportSource("PagerDuty")).toBe(true);
+    expect(isToolImportSource("SplunkOnCall")).toBe(true);
+    expect(isToolImportSource("GrafanaOnCall")).toBe(true);
     expect(isToolImportSource("PagerDuty ")).toBe(false);
+    expect(isToolImportSource("VictorOps")).toBe(false);
     expect(isToolImportSource(1)).toBe(false);
 
     expect(isToolImportResourceKind("OnCallSchedule")).toBe(true);

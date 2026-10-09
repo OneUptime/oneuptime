@@ -10,9 +10,14 @@ import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   getToolImportSourceDefinition,
+  ToolImportCredentialField,
   ToolImportRegion,
   ToolImportSourceDefinition,
 } from "Common/Types/ToolImport/ToolImportCatalog";
+import {
+  isToolImportApiKeyId,
+  readToolImportApiUrl,
+} from "Common/Types/ToolImport/ToolImportCredentials";
 import ToolImportSource from "Common/Types/ToolImport/ToolImportSource";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
@@ -34,21 +39,41 @@ import React, {
  * Step two: connect the tool. How to make an API key in it (in its own
  * words for its screens, with a link to its page on keys), the region for a
  * tool that has them - picked, never typed, so the import can only call the
- * tool's own hosts - and the key itself.
+ * tool's own hosts - and the key itself. A tool that pairs an ID with its
+ * key (Splunk On-Call) asks for the ID too, and a tool people also run
+ * themselves (Grafana OnCall) for its API's address: the server reads that
+ * address through OneUptime's egress guard.
  *
  * The key goes to the server once, with the read, and is never shown again:
  * the field is a password field password managers leave alone, and it is
  * emptied as soon as the read is under way.
  */
 
+/*
+ * What the person gave besides the key, kept by the page so trying the tool
+ * again does not ask for it twice. Never the key.
+ */
+export interface ToolImportConnection {
+  apiKeyId?: string | undefined;
+  apiUrl?: string | undefined;
+}
+
 export interface ComponentProps {
   source: ToolImportSource;
   // The region picked last time, when trying the tool again.
   initialRegion?: string | undefined;
+  // What was given last time besides the key, when trying the tool again.
+  initialConnection?: ToolImportConnection | undefined;
   // Shown instead of the start button's action when a read cannot start.
   blockedReason?: string | undefined;
   onBack: () => void;
-  onStarted: (runId: string) => void;
+  onStarted: (runId: string, connection: ToolImportConnection) => void;
+}
+
+interface FieldErrors {
+  apiKey?: string | undefined;
+  apiKeyId?: string | undefined;
+  apiUrl?: string | undefined;
 }
 
 const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
@@ -60,7 +85,15 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
   );
   const copy: ToolImportToolCopy = TOOL_IMPORT_TOOL_COPY[props.source];
   const keyInputId: string = useId();
+  const keyIdInputId: string = useId();
+  const apiUrlInputId: string = useId();
   const regionGroupId: string = useId();
+
+  const asksFor: (field: ToolImportCredentialField) => boolean = (
+    field: ToolImportCredentialField,
+  ): boolean => {
+    return definition.credentialFields.includes(field);
+  };
 
   const [region, setRegion] = useState<string>((): string => {
     const isOneOfTheTools: boolean = definition.regions.some(
@@ -74,43 +107,211 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
       : definition.regions[0]?.value || "";
   });
   const [apiKey, setApiKey] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  const [apiKeyId, setApiKeyId] = useState<string>(
+    props.initialConnection?.apiKeyId || "",
+  );
+  const [apiUrl, setApiUrl] = useState<string>(
+    props.initialConnection?.apiUrl || "",
+  );
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [isStarting, setIsStarting] = useState<boolean>(false);
 
   const toolValues: { tool: string } = { tool: definition.title };
+
+  // What the page can tell before asking the server, field by field.
+  const check: () => FieldErrors = (): FieldErrors => {
+    const found: FieldErrors = {};
+
+    if (asksFor(ToolImportCredentialField.ApiUrl)) {
+      if (!apiUrl.trim()) {
+        found.apiUrl = translator.translateTemplate(
+          "Paste your {{tool}} API URL.",
+          toolValues,
+        );
+      } else if (!readToolImportApiUrl(apiUrl)) {
+        found.apiUrl = translator.translateTemplate(
+          "That does not look like your {{tool}} API URL. Copy it from {{tool}}'s settings.",
+          toolValues,
+        );
+      }
+    }
+
+    if (asksFor(ToolImportCredentialField.ApiKeyId)) {
+      if (!apiKeyId.trim()) {
+        found.apiKeyId = translator.translateTemplate(
+          "Paste your {{tool}} API ID.",
+          toolValues,
+        );
+      } else if (!isToolImportApiKeyId(apiKeyId.trim())) {
+        found.apiKeyId = translator.translateTemplate(
+          "That does not look like your {{tool}} API ID. Paste the ID on its own.",
+          toolValues,
+        );
+      }
+    }
+
+    if (!apiKey.trim()) {
+      found.apiKey = translator.translateTemplate(
+        "Paste your {{tool}} API key.",
+        toolValues,
+      );
+    }
+
+    return found;
+  };
 
   const start: () => Promise<void> = async (): Promise<void> => {
     if (isStarting || props.blockedReason) {
       return;
     }
 
-    if (!apiKey.trim()) {
-      setError(
-        translator.translateTemplate(
-          "Paste your {{tool}} API key.",
-          toolValues,
-        ),
-      );
+    const found: FieldErrors = check();
+
+    if (found.apiKey || found.apiKeyId || found.apiUrl) {
+      setErrors(found);
       return;
     }
 
-    setError("");
+    setErrors({});
     setIsStarting(true);
+
+    const connection: ToolImportConnection = {
+      apiKeyId: asksFor(ToolImportCredentialField.ApiKeyId)
+        ? apiKeyId.trim()
+        : undefined,
+      apiUrl: asksFor(ToolImportCredentialField.ApiUrl)
+        ? apiUrl.trim()
+        : undefined,
+    };
 
     try {
       const runId: string = await startToolImportRead({
         source: props.source,
         region: region,
         apiKey: apiKey.trim(),
+        ...connection,
       });
 
       setApiKey("");
-      props.onStarted(runId);
+      props.onStarted(runId, connection);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setErrors({ apiKey: API.getFriendlyMessage(err) });
     } finally {
       setIsStarting(false);
     }
+  };
+
+  const renderLabel: (data: {
+    id: string;
+    text: string;
+  }) => ReactElement = (data: { id: string; text: string }): ReactElement => {
+    return (
+      <label
+        htmlFor={data.id}
+        className="block text-sm font-medium text-gray-900"
+      >
+        {translator.translateText(data.text)}
+      </label>
+    );
+  };
+
+  const renderApiUrl: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mt-6" key="apiUrl">
+        {renderLabel({
+          id: apiUrlInputId,
+          // Every tool that asks for an address has a label for it.
+          text: copy.apiUrlLabel || copy.keyLabel,
+        })}
+        <div className="mt-2 max-w-xl">
+          <Input
+            id={apiUrlInputId}
+            type={InputType.URL}
+            value={apiUrl}
+            placeholder={definition.apiUrlExample}
+            disableSpellCheck={true}
+            autoComplete="off"
+            dataTestId="tool-import-api-url"
+            onChange={(value: string) => {
+              setApiUrl(value);
+              if (errors.apiUrl) {
+                setErrors({ ...errors, apiUrl: undefined });
+              }
+            }}
+            {...(errors.apiUrl ? { error: errors.apiUrl } : {})}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const renderApiKeyId: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mt-6" key="apiKeyId">
+        {renderLabel({
+          id: keyIdInputId,
+          // Every tool that asks for an ID has a label for it.
+          text: copy.keyIdLabel || copy.keyLabel,
+        })}
+        <div className="mt-2 max-w-xl">
+          <Input
+            id={keyIdInputId}
+            type={InputType.TEXT}
+            value={apiKeyId}
+            placeholder="Paste the API ID here"
+            disableSpellCheck={true}
+            autoComplete="off"
+            dataTestId="tool-import-api-key-id"
+            onChange={(value: string) => {
+              setApiKeyId(value);
+              if (errors.apiKeyId) {
+                setErrors({ ...errors, apiKeyId: undefined });
+              }
+            }}
+            {...(errors.apiKeyId ? { error: errors.apiKeyId } : {})}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const renderApiKey: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mt-6" key="apiKey">
+        {renderLabel({ id: keyInputId, text: copy.keyLabel })}
+        <div className="mt-2 max-w-xl">
+          <Input
+            id={keyInputId}
+            type={InputType.PASSWORD}
+            value={apiKey}
+            placeholder="Paste the key here"
+            disableSpellCheck={true}
+            dataTestId="tool-import-api-key"
+            onChange={(value: string) => {
+              setApiKey(value);
+              if (errors.apiKey) {
+                setErrors({ ...errors, apiKey: undefined });
+              }
+            }}
+            {...(errors.apiKey ? { error: errors.apiKey } : {})}
+          />
+        </div>
+        <div
+          className="mt-2 flex items-start gap-2 text-sm text-gray-500"
+          data-testid="tool-import-key-privacy"
+        >
+          <div className="mt-0.5 flex-shrink-0">
+            <Icon icon={IconProp.Lock} className="h-4 w-4" />
+          </div>
+          <p>
+            {translator.translateTemplate(
+              "The key is used once, to read your {{tool}} account. It is kept encrypted while the read runs, deleted as soon as it ends, and never shown again.",
+              toolValues,
+            )}
+          </p>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -234,45 +435,19 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
         </fieldset>
       )}
 
-      <div className="mt-6">
-        <label
-          htmlFor={keyInputId}
-          className="block text-sm font-medium text-gray-900"
-        >
-          {translator.translateText(copy.keyLabel)}
-        </label>
-        <div className="mt-2 max-w-xl">
-          <Input
-            id={keyInputId}
-            type={InputType.PASSWORD}
-            value={apiKey}
-            placeholder="Paste the key here"
-            disableSpellCheck={true}
-            dataTestId="tool-import-api-key"
-            onChange={(value: string) => {
-              setApiKey(value);
-              if (error) {
-                setError("");
-              }
-            }}
-            {...(error ? { error: error } : {})}
-          />
-        </div>
-        <div
-          className="mt-2 flex items-start gap-2 text-sm text-gray-500"
-          data-testid="tool-import-key-privacy"
-        >
-          <div className="mt-0.5 flex-shrink-0">
-            <Icon icon={IconProp.Lock} className="h-4 w-4" />
-          </div>
-          <p>
-            {translator.translateTemplate(
-              "The key is used once, to read your {{tool}} account. It is kept encrypted while the read runs, deleted as soon as it ends, and never shown again.",
-              toolValues,
-            )}
-          </p>
-        </div>
-      </div>
+      {definition.credentialFields.map(
+        (field: ToolImportCredentialField): ReactElement => {
+          switch (field) {
+            case ToolImportCredentialField.ApiUrl:
+              return renderApiUrl();
+            case ToolImportCredentialField.ApiKeyId:
+              return renderApiKeyId();
+            case ToolImportCredentialField.ApiKey:
+            default:
+              return renderApiKey();
+          }
+        },
+      )}
 
       <div className={`mt-6 ${TOOL_IMPORT_BUTTON_ROW_CLASS_NAME}`}>
         <Button

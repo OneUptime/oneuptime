@@ -308,6 +308,64 @@ describe("ToolImportAPI: reading a tool", () => {
     expect(JSON.stringify(payload)).not.toContain(KEY);
   });
 
+  test("a tool's API ID and API address go to the read with the key, and none comes back", async () => {
+    const runId: ObjectID = ObjectID.generate();
+    (ToolImportRunExecutor.startRead as jest.Mock).mockResolvedValue(runId);
+
+    const splunk: { thrown: unknown; payload: unknown } = await call(
+      "POST",
+      "/tool-import/read",
+      {
+        body: {
+          source: "SplunkOnCall",
+          region: "",
+          apiKeyId: "8f2a6c1e",
+          apiKey: KEY,
+        },
+      },
+    );
+
+    expect(splunk.thrown).toBeUndefined();
+    expect(ToolImportRunExecutor.startRead).toHaveBeenLastCalledWith({
+      projectId: PROJECT_ID,
+      userId: ME,
+      source: ToolImportSource.SplunkOnCall,
+      region: "",
+      apiKeyId: "8f2a6c1e",
+      apiKey: KEY,
+      apiUrl: undefined,
+    });
+
+    const grafana: { thrown: unknown; payload: unknown } = await call(
+      "POST",
+      "/tool-import/read",
+      {
+        body: {
+          source: "GrafanaOnCall",
+          apiUrl: "https://oncall-prod-us-central-0.grafana.net/oncall",
+          apiKey: KEY,
+        },
+      },
+    );
+
+    expect(grafana.thrown).toBeUndefined();
+    expect(ToolImportRunExecutor.startRead).toHaveBeenLastCalledWith({
+      projectId: PROJECT_ID,
+      userId: ME,
+      source: ToolImportSource.GrafanaOnCall,
+      region: undefined,
+      apiKeyId: undefined,
+      apiUrl: "https://oncall-prod-us-central-0.grafana.net/oncall",
+      apiKey: KEY,
+    });
+
+    for (const payload of [splunk.payload, grafana.payload]) {
+      expect(payload).toEqual({ runId: runId.toString() });
+      expect(JSON.stringify(payload)).not.toContain("8f2a6c1e");
+      expect(JSON.stringify(payload)).not.toContain(KEY);
+    }
+  });
+
   test("an unknown tool is refused before anything else", async () => {
     const { thrown } = await call("POST", "/tool-import/read", {
       body: { source: "Rocket", apiKey: KEY },

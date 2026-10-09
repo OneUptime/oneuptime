@@ -110,7 +110,10 @@
   "navLinks": {
     "Getting Started": "快速开始",
     "Moving from Opsgenie": "从 Opsgenie 迁移",
+    "Moving from PagerDuty": "从 PagerDuty 迁移",
     "Moving from incident.io": "从 incident.io 迁移",
+    "Moving from Splunk On-Call": "从 Splunk On-Call 迁移",
+    "Moving from Grafana OnCall": "从 Grafana OnCall 迁移",
     "Local Development": "本地开发",
     "Docker Compose": "Docker Compose",
     "Upgrading": "升级",

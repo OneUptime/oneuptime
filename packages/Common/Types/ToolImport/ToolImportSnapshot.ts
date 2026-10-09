@@ -72,8 +72,10 @@ export type ImportedRestriction =
     };
 
 /*
- * One line of people taking turns: an Opsgenie rotation, or one layer of an
- * incident.io rotation. A OneUptime schedule layer is made from each.
+ * One line of people taking turns: an Opsgenie rotation, one layer of an
+ * incident.io rotation, a PagerDuty schedule layer, a Splunk On-Call shift
+ * or a Grafana OnCall rotation. A OneUptime schedule layer is made from
+ * each.
  */
 export interface ImportedRotation {
   // Unique within its schedule.
@@ -87,6 +89,15 @@ export interface ImportedRotation {
   restriction: ImportedRestriction | null;
   // People (ImportedPerson.sourceId) in the order they take turns.
   participantSourceIds: Array<string>;
+  /*
+   * For a tool whose layers override one another - a PagerDuty schedule's
+   * layers, Grafana OnCall's layer priorities - how this rotation ranks: where
+   * a rotation of a higher precedence has someone on call, nobody of a lower
+   * one is. Rotations of the same precedence are on call at the same time,
+   * as every rotation of a schedule is in Opsgenie, incident.io and Splunk
+   * On-Call, which leave it out (0).
+   */
+  precedence?: number | undefined;
   notes: Array<ToolImportNote>;
 }
 
@@ -136,6 +147,8 @@ export interface ImportedService {
   name: string;
   description?: string | undefined;
   ownerTeamSourceIds: Array<string>;
+  // False for a service the tool has turned off: it starts unticked.
+  isEnabled?: boolean | undefined;
   notes: Array<ToolImportNote>;
 }
 

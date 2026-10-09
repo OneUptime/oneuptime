@@ -3,6 +3,8 @@ import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import {
   OPSGENIE_REGION_EU,
   OPSGENIE_REGION_US,
+  PAGERDUTY_REGION_EU,
+  PAGERDUTY_REGION_US,
 } from "Common/Types/ToolImport/ToolImportCatalog";
 import {
   ToolImportNote,
@@ -264,6 +266,18 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
   [ToolImportNoteCode.RotationNobody]: translationKey(
     "Nobody in {{rotation}} is being brought over, so it is left out.",
   ),
+  [ToolImportNoteCode.RotationOneOff]: translationKey(
+    "{{rotation}} is a one-off shift, not a rotation, so it is left out.",
+  ),
+  [ToolImportNoteCode.RotationApproximated]: translationKey(
+    "{{rotation}} hands over in a way a OneUptime layer cannot, so it comes over as close as OneUptime gets. Check its turns after the import.",
+  ),
+  [ToolImportNoteCode.RotationTimezoneConverted]: translationKey(
+    "{{rotation}} keeps {{timezone}} time. Its hours come over in the schedule's time zone as they are today, so they can move by an hour when daylight saving time changes.",
+  ),
+  [ToolImportNoteCode.ScheduleFromCalendarLink]: translationKey(
+    "Its shifts come from a calendar link, which OneUptime cannot read. It comes over without layers, so add them in OneUptime.",
+  ),
   [ToolImportNoteCode.PolicyFirstStepWaits]: translationKey(
     "Its first step waits {{minutes}} minutes in {{tool}}. OneUptime pages it right away.",
   ),
@@ -306,6 +320,30 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
   [ToolImportNoteCode.PolicyUnknownTarget]: translationKey(
     "A step pages something OneUptime cannot page. It is left out.",
   ),
+  [ToolImportNoteCode.PolicyWebhookStep]: translationKey(
+    "A step calls a webhook. Workflows do that in OneUptime, so it is left out.",
+  ),
+  [ToolImportNoteCode.PolicyRunsAnotherPolicy]: translationKey(
+    "A step runs another escalation policy, which OneUptime cannot do. It is left out.",
+  ),
+  [ToolImportNoteCode.PolicyResolvesAlert]: translationKey(
+    "A step resolves the alert on its own. OneUptime leaves that to the people paged, so it is left out.",
+  ),
+  [ToolImportNoteCode.PolicyEmailAddress]: translationKey(
+    "A step emails an address that is none of the people being brought over. It is left out.",
+  ),
+  [ToolImportNoteCode.PolicyUserGroup]: translationKey(
+    "A step pages a Slack user group, which OneUptime cannot page. It is left out.",
+  ),
+  [ToolImportNoteCode.PolicyDeclaresIncident]: translationKey(
+    "A step declares an incident. OneUptime declares incidents from monitors and alerts, so it is left out.",
+  ),
+  [ToolImportNoteCode.PolicyConditionalStep]: translationKey(
+    "A step goes on only at certain times or alert counts. OneUptime always goes on to the next step.",
+  ),
+  [ToolImportNoteCode.PolicyScheduleNotRead]: translationKey(
+    "A step pages a schedule the import could not read, so that part is left out.",
+  ),
   [ToolImportNoteCode.PersonLeftOut]: translationKey(
     "{{name}} is not being brought over, so they are left out.",
   ),
@@ -330,6 +368,9 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
   [ToolImportNoteCode.ReadLimitReached]: translationKey(
     "There are more {{kind}} than one import reads. The first {{limit}} are shown.",
   ),
+  [ToolImportNoteCode.ShiftBasedSchedulesNotRead]: translationKey(
+    "{{tool}}'s shift-based schedules cannot be read yet, so they are not shown. Create them in OneUptime.",
+  ),
 };
 
 /*
@@ -347,6 +388,10 @@ export interface ToolImportToolCopy {
   description: string;
   keySteps: Array<string>;
   keyLabel: string;
+  // The label of the key's ID, for a tool that pairs one with the key.
+  keyIdLabel?: string | undefined;
+  // The label of the API's address, for a tool whose address the person gives.
+  apiUrlLabel?: string | undefined;
   regionQuestion?: string | undefined;
   // Keyed by the region's value in the catalog.
   regions?: Record<string, ToolImportRegionCopy> | undefined;
@@ -382,6 +427,36 @@ export const TOOL_IMPORT_TOOL_COPY: Record<
       },
     },
   },
+  [ToolImportSource.PagerDuty]: {
+    description: translationKey(
+      "People, teams, schedules with their layers, escalation policies and services.",
+    ),
+    keySteps: [
+      translationKey(
+        "In PagerDuty, go to Integrations, then Developer Tools, then API Access Keys, and select Create New API Key.",
+      ),
+      translationKey(
+        "Describe it as OneUptime import, tick Read-only API Key, and select Create Key. The import never changes anything in PagerDuty.",
+      ),
+      translationKey("Copy the key and paste it here."),
+    ],
+    keyLabel: translationKey("PagerDuty API key"),
+    regionQuestion: translationKey("Where is your PagerDuty account?"),
+    regions: {
+      [PAGERDUTY_REGION_US]: {
+        title: translationKey("United States"),
+        description: translationKey(
+          "You sign in at yourcompany.pagerduty.com.",
+        ),
+      },
+      [PAGERDUTY_REGION_EU]: {
+        title: translationKey("Europe"),
+        description: translationKey(
+          "You sign in at yourcompany.eu.pagerduty.com.",
+        ),
+      },
+    },
+  },
   [ToolImportSource.IncidentIo]: {
     description: translationKey(
       "People, teams, schedules, escalation paths, services and incident settings.",
@@ -396,6 +471,38 @@ export const TOOL_IMPORT_TOOL_COPY: Record<
       translationKey("Copy the key and paste it here."),
     ],
     keyLabel: translationKey("incident.io API key"),
+  },
+  [ToolImportSource.SplunkOnCall]: {
+    description: translationKey(
+      "People, teams, rotations and escalation policies.",
+    ),
+    keySteps: [
+      translationKey(
+        "In Splunk On-Call, go to Integrations, then API. Your API ID is shown above your API keys.",
+      ),
+      translationKey(
+        "Create a new API key named OneUptime import, with Read-only ticked. The import never changes anything in Splunk On-Call.",
+      ),
+      translationKey("Copy the API ID and the key and paste them here."),
+    ],
+    keyIdLabel: translationKey("Splunk On-Call API ID"),
+    keyLabel: translationKey("Splunk On-Call API key"),
+  },
+  [ToolImportSource.GrafanaOnCall]: {
+    description: translationKey(
+      "People, teams, schedules and their rotations, and escalation chains. Grafana Cloud or your own install.",
+    ),
+    keySteps: [
+      translationKey(
+        "In Grafana, open OnCall, then Settings. On Grafana Cloud, open IRM, then Settings, then Admin & API.",
+      ),
+      translationKey("Copy the OnCall API URL shown there and paste it here."),
+      translationKey(
+        "Under API tokens, create a token named OneUptime import, and paste it here as the API key. The import never changes anything in Grafana OnCall.",
+      ),
+    ],
+    apiUrlLabel: translationKey("Grafana OnCall API URL"),
+    keyLabel: translationKey("Grafana OnCall API key"),
   },
 };
 

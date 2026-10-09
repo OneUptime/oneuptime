@@ -28,7 +28,19 @@ import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResou
 import ToolImportRunStatus from "../../../../Types/ToolImport/ToolImportRunStatus";
 import { ToolImportSnapshot } from "../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
+import {
+  GRAFANA_API_URL,
+  GRAFANA_HOST,
+  GRAFANA_TOKEN,
+  grafanaOnCallApi,
+} from "./GrafanaOnCallFixtures";
 import { OPSGENIE_KEY, opsGenieApi, opsGenieError } from "./OpsGenieFixtures";
+import { PAGERDUTY_KEY, pagerDutyApi } from "./PagerDutyFixtures";
+import {
+  SPLUNK_API_ID,
+  SPLUNK_KEY,
+  splunkOnCallApi,
+} from "./SplunkOnCallFixtures";
 import { FixtureApi, json } from "./ToolImportFixtureTransport";
 import {
   fullAccess,
@@ -123,6 +135,10 @@ jest.mock("../../../../Server/Utils/ToolImport/ToolImportApplier", () => {
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const USER_ID: ObjectID = ObjectID.generate();
 const OTHER_USER_ID: ObjectID = ObjectID.generate();
+
+// The real transport factory, before each test replaces it with a fixture.
+const PRODUCTION_TRANSPORT_FACTORY: typeof ToolImportRunExecutor.transportFactory =
+  ToolImportRunExecutor.transportFactory;
 
 const PROPS: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
@@ -260,7 +276,14 @@ beforeEach(() => {
   ToolImportRunExecutor.transportFactory = (): never => {
     throw new Error("A test must give the read a fixture transport.");
   };
+  // Reads keep a tool's pace by waiting: here they wait no real time.
+  waits = [];
+  ToolImportRunExecutor.readSleep = async (ms: number): Promise<void> => {
+    waits.push(ms);
+  };
 });
+
+let waits: Array<number> = [];
 
 describe("ToolImportRunExecutor.validateReadRequest", () => {
   test("a known tool, one of its regions and a key on its own", () => {
@@ -284,7 +307,7 @@ describe("ToolImportRunExecutor.validateReadRequest", () => {
   test.each([
     [
       "an unknown tool",
-      { source: "PagerDuty", region: "", apiKey: "k" },
+      { source: "Elsewhere", region: "", apiKey: "k" },
       "Choose a tool to import from.",
     ],
     [
@@ -587,6 +610,394 @@ describe("ToolImportRunExecutor: the worker reads", () => {
 
     expect(runs.updates).toEqual([]);
     expect(Semaphore.release).toHaveBeenCalled();
+  });
+});
+
+describe("ToolImportRunExecutor: what PagerDuty, Splunk On-Call and Grafana OnCall need besides a key", () => {
+  const ENV: NodeJS.ProcessEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...ENV };
+  });
+
+  test("PagerDuty takes a key and one of its two regions", () => {
+    expect(
+      ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.PagerDuty,
+        region: "EU",
+        apiKey: ` ${PAGERDUTY_KEY} `,
+      }),
+    ).toEqual({
+      source: ToolImportSource.PagerDuty,
+      region: {
+        value: "EU",
+        title: "EU (api.eu.pagerduty.com)",
+        host: "api.eu.pagerduty.com",
+      },
+      apiKey: PAGERDUTY_KEY,
+    });
+    expect(() => {
+      return ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.PagerDuty,
+        region: "APAC",
+        apiKey: PAGERDUTY_KEY,
+      });
+    }).toThrow("Choose one of PagerDuty's regions.");
+  });
+
+  test("Splunk On-Call takes its API ID with the key, each on its own", () => {
+    expect(
+      ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.SplunkOnCall,
+        region: "",
+        apiKeyId: ` ${SPLUNK_API_ID} `,
+        apiKey: SPLUNK_KEY,
+      }),
+    ).toEqual({
+      source: ToolImportSource.SplunkOnCall,
+      region: { value: "", title: "Splunk On-Call", host: "api.victorops.com" },
+      apiKeyId: SPLUNK_API_ID,
+      apiKey: SPLUNK_KEY,
+    });
+
+    for (const [apiKeyId, message] of [
+      [undefined, "Paste your Splunk On-Call API ID."],
+      ["   ", "Paste your Splunk On-Call API ID."],
+      [
+        "two words",
+        "That does not look like your Splunk On-Call API ID. Paste the ID on its own.",
+      ],
+    ] as Array<[unknown, string]>) {
+      expect(() => {
+        return ToolImportRunExecutor.validateReadRequest({
+          source: ToolImportSource.SplunkOnCall,
+          region: "",
+          apiKeyId: apiKeyId,
+          apiKey: SPLUNK_KEY,
+        });
+      }).toThrow(message);
+    }
+  });
+
+  test("Grafana OnCall takes the address of its API, cleaned, and over https on OneUptime Cloud", () => {
+    process.env["BILLING_ENABLED"] = "true";
+
+    expect(
+      ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.GrafanaOnCall,
+        region: "",
+        apiUrl: `${GRAFANA_API_URL}/api/v1/`,
+        apiKey: GRAFANA_TOKEN,
+      }),
+    ).toEqual({
+      source: ToolImportSource.GrafanaOnCall,
+      region: { value: "", title: "Grafana OnCall", host: "" },
+      apiUrl: GRAFANA_API_URL,
+      apiKey: GRAFANA_TOKEN,
+    });
+
+    for (const [apiUrl, message] of [
+      [undefined, "Paste your Grafana OnCall API URL."],
+      ["", "Paste your Grafana OnCall API URL."],
+      [
+        "oncall.example.com",
+        "That does not look like your Grafana OnCall API URL. Copy it from Grafana OnCall's settings.",
+      ],
+      [
+        "https://user:pass@oncall.example.com",
+        "That does not look like your Grafana OnCall API URL. Copy it from Grafana OnCall's settings.",
+      ],
+      [
+        "http://oncall.example.com",
+        "The Grafana OnCall API URL must start with https://.",
+      ],
+    ] as Array<[unknown, string]>) {
+      expect(() => {
+        return ToolImportRunExecutor.validateReadRequest({
+          source: ToolImportSource.GrafanaOnCall,
+          region: "",
+          apiUrl: apiUrl,
+          apiKey: GRAFANA_TOKEN,
+        });
+      }).toThrow(message);
+    }
+  });
+
+  test("a self-hosted OneUptime may read a Grafana OnCall on its own network over plain http, unless its operator said not to", () => {
+    delete process.env["BILLING_ENABLED"];
+    delete process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"];
+
+    expect(ToolImportRunExecutor.allowsPlainHttpAddress()).toBe(true);
+    expect(
+      ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.GrafanaOnCall,
+        region: "",
+        apiUrl: "http://oncall-engine:8080",
+        apiKey: GRAFANA_TOKEN,
+      }).apiUrl,
+    ).toBe("http://oncall-engine:8080");
+
+    process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"] = "true";
+
+    expect(ToolImportRunExecutor.allowsPlainHttpAddress()).toBe(false);
+    expect(() => {
+      return ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.GrafanaOnCall,
+        region: "",
+        apiUrl: "http://oncall-engine:8080",
+        apiKey: GRAFANA_TOKEN,
+      });
+    }).toThrow("must start with https://");
+  });
+
+  test("a tool that needs no ID or address ignores one sent anyway", () => {
+    expect(
+      ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.OpsGenie,
+        region: "US",
+        apiKey: OPSGENIE_KEY,
+        apiKeyId: "ignored",
+        apiUrl: "https://elsewhere.example",
+      }),
+    ).toEqual({
+      source: ToolImportSource.OpsGenie,
+      region: {
+        value: "US",
+        title: "US (api.opsgenie.com)",
+        host: "api.opsgenie.com",
+      },
+      apiKey: OPSGENIE_KEY,
+    });
+  });
+
+  test("the run keeps the API ID and address with the key, in the encrypted key column only, and the job carries none of them", async () => {
+    const splunkRunId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      source: ToolImportSource.SplunkOnCall,
+      region: "",
+      apiKeyId: SPLUNK_API_ID,
+      apiKey: SPLUNK_KEY,
+    });
+
+    expect(JSON.parse(runs.get(splunkRunId)["apiKey"] as string)).toEqual({
+      apiKey: SPLUNK_KEY,
+      apiKeyId: SPLUNK_API_ID,
+    });
+    expect(runs.get(splunkRunId)["region"]).toBeUndefined();
+
+    // The next read waits for the first to end.
+    runs.get(splunkRunId)["status"] = ToolImportRunStatus.Failed;
+
+    const grafanaRunId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      source: ToolImportSource.GrafanaOnCall,
+      region: "",
+      apiUrl: GRAFANA_API_URL,
+      apiKey: GRAFANA_TOKEN,
+    });
+
+    expect(JSON.parse(runs.get(grafanaRunId)["apiKey"] as string)).toEqual({
+      apiKey: GRAFANA_TOKEN,
+      apiUrl: GRAFANA_API_URL,
+    });
+
+    const jobs: string = JSON.stringify((Queue.addJob as jest.Mock).mock.calls);
+
+    for (const secret of [SPLUNK_KEY, SPLUNK_API_ID, GRAFANA_TOKEN]) {
+      expect(jobs).not.toContain(secret);
+    }
+  });
+
+  test("a PagerDuty run reads through its fixed hosts, and the key is cleared", async () => {
+    const api: FixtureApi = pagerDutyApi();
+    let options: unknown = null;
+
+    ToolImportRunExecutor.transportFactory = (
+      hosts: Array<string>,
+      given?: unknown,
+    ) => {
+      expect(hosts).toEqual(["api.pagerduty.com", "api.eu.pagerduty.com"]);
+      options = given;
+      return api.transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.PagerDuty,
+      region: "US",
+      status: ToolImportRunStatus.Reading,
+      apiKey: PAGERDUTY_KEY,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(options).toMatchObject({ isAddressGiven: false });
+    expect(row["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(row["apiKey"]).toBeNull();
+    expect(row["accountName"]).toBe("acme");
+    expect((row["snapshot"] as ToolImportSnapshot).schedules).toHaveLength(3);
+    expect(JSON.stringify(row["snapshot"])).not.toContain(PAGERDUTY_KEY);
+  });
+
+  test("a Splunk On-Call run reads with its API ID and key, and both are cleared", async () => {
+    const api: FixtureApi = splunkOnCallApi();
+
+    ToolImportRunExecutor.transportFactory = (hosts: Array<string>) => {
+      expect(hosts).toEqual(["api.victorops.com"]);
+      return api.transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.SplunkOnCall,
+      status: ToolImportRunStatus.Reading,
+      apiKey: JSON.stringify({ apiKey: SPLUNK_KEY, apiKeyId: SPLUNK_API_ID }),
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(row["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(row["apiKey"]).toBeNull();
+    expect((row["snapshot"] as ToolImportSnapshot).policies).toHaveLength(2);
+    expect(api.requests[0]!.headers["X-VO-Api-Id"]).toBe(SPLUNK_API_ID);
+    // The worker's read keeps Splunk On-Call's pace between requests.
+    expect(waits.length).toBe(api.requests.length - 1);
+    expect(
+      waits.every((ms: number): boolean => {
+        return ms > 0 && ms <= 600;
+      }),
+    ).toBe(true);
+  });
+
+  test("a refused Splunk On-Call key fails the run without the key or its ID in the error", async () => {
+    const api: FixtureApi = splunkOnCallApi().add({
+      path: "/api-public/v2/user",
+      answers: [json({ message: `bad ${SPLUNK_API_ID} / ${SPLUNK_KEY}` }, 403)],
+    });
+
+    ToolImportRunExecutor.transportFactory = () => {
+      return api.transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.SplunkOnCall,
+      status: ToolImportRunStatus.Reading,
+      apiKey: JSON.stringify({ apiKey: SPLUNK_KEY, apiKeyId: SPLUNK_API_ID }),
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(row["status"]).toBe(ToolImportRunStatus.Failed);
+    expect(row["apiKey"]).toBeNull();
+    expect(row["error"]).toContain(
+      "Splunk On-Call did not accept the API ID and API key.",
+    );
+    expect(String(row["error"])).not.toContain(SPLUNK_KEY);
+    expect(String(row["error"])).not.toContain(SPLUNK_API_ID);
+  });
+
+  test("a Grafana OnCall run reads only the host of the address given, through the egress guard", async () => {
+    const api: FixtureApi = grafanaOnCallApi();
+    let options: unknown = null;
+
+    ToolImportRunExecutor.transportFactory = (
+      hosts: Array<string>,
+      given?: unknown,
+    ) => {
+      expect(hosts).toEqual([GRAFANA_HOST]);
+      options = given;
+      return api.transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.GrafanaOnCall,
+      status: ToolImportRunStatus.Reading,
+      apiKey: JSON.stringify({
+        apiKey: GRAFANA_TOKEN,
+        apiUrl: GRAFANA_API_URL,
+      }),
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+
+    expect(options).toMatchObject({
+      isAddressGiven: true,
+      toolName: "Grafana OnCall",
+    });
+    expect(row["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(row["apiKey"]).toBeNull();
+    expect((row["snapshot"] as ToolImportSnapshot).schedules).toHaveLength(3);
+  });
+
+  test("a Grafana OnCall run whose address is gone asks for the tool to be read again", async () => {
+    ToolImportRunExecutor.transportFactory = () => {
+      return grafanaOnCallApi().transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.GrafanaOnCall,
+      status: ToolImportRunStatus.Reading,
+      apiKey: JSON.stringify({ apiKey: GRAFANA_TOKEN }),
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(runs.get(runId)).toMatchObject({
+      status: ToolImportRunStatus.Failed,
+      apiKey: null,
+      error:
+        "The Grafana OnCall API URL is no longer here. Read the tool again.",
+    });
+  });
+
+  test("the transport for an address the person gave is the guarded one; for fixed hosts, the fixed one", async () => {
+    const factory: typeof ToolImportRunExecutor.transportFactory =
+      PRODUCTION_TRANSPORT_FACTORY;
+
+    // An address the person gave: plain http is refused where it is not allowed.
+    await expect(
+      factory(["oncall.acme.example"], {
+        isAddressGiven: true,
+        toolName: "Grafana OnCall",
+        allowHttp: false,
+      })({
+        method: "GET",
+        url: "http://oncall.acme.example/api/v1/users/",
+        headers: {},
+        timeoutInMs: 1000,
+      }),
+    ).rejects.toThrow("An import only calls Grafana OnCall over https.");
+
+    // A tool's fixed hosts: anything else is refused before anything is sent.
+    await expect(
+      factory(["api.pagerduty.com"], {
+        isAddressGiven: false,
+        toolName: "PagerDuty",
+        allowHttp: false,
+      })({
+        method: "GET",
+        url: "https://elsewhere.example/users",
+        headers: {},
+        timeoutInMs: 1000,
+      }),
+    ).rejects.toThrow("An import only calls the tool's own API.");
+  });
+
+  test("a failure's message never carries the key or its ID", () => {
+    expect(
+      ToolImportRunExecutor.describeFailure(
+        new Error("refused key-123456 for id-987654"),
+        ["key-123456", "id-987654"],
+      ),
+    ).toBe("refused [REDACTED] for [REDACTED]");
   });
 });
 
