@@ -27489,5 +27489,6 @@
   "{{option}} (no longer an option)": "{{option}} (n'est plus une option)",
   "No longer an option": "N'est plus une option",
   "Has Additional Parameters": "Possède des paramètres supplémentaires",
-  "Only project owners and admins can read them, like the API key.": "Comme la clé API, seuls les propriétaires et les administrateurs du projet peuvent les lire."
+  "Only project owners and admins can read them, like the API key.": "Comme la clé API, seuls les propriétaires et les administrateurs du projet peuvent les lire.",
+  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "Votre sonde se connecte à OneUptime avec cet ID et sa clé. Seuls les propriétaires et les administrateurs du projet peuvent voir la clé."
 }

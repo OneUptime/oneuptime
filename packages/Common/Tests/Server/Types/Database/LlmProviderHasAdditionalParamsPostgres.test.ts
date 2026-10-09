@@ -145,7 +145,7 @@ describePostgres("LlmProvider.hasAdditionalParams against Postgres", () => {
   });
 
   test.each(SHAPES)(
-    "%s: saved is %s",
+    "%s (stored as %s) counts as saved: %s",
     async (name: string, _literal: string | null, expected: boolean) => {
       expect(await answerFor(name)).toBe(expected);
     },

@@ -116,10 +116,42 @@ describe("Monitors → Settings → Probes", () => {
     );
   });
 
-  test("offers the action that shows a probe's key only to those who may read it", () => {
+  /*
+   * Installing a probe needs its ID as well as its key, and everyone who
+   * sees the table may read the ID: the action is everyone's, named for
+   * what it shows them.
+   */
+  test("offers everyone the action, named for what it shows them", () => {
     expect(source).toContain(
-      squash('actionButtons={ canReadProbeKey ? [ { title: "Show ID and Key",'),
+      squash('title: canReadProbeKey ? "Show ID and Key" : "Show ID",'),
     );
-    expect(source).toContain(squash("] : [] }"));
+    expect(source).not.toContain(squash("actionButtons={ canReadProbeKey ?"));
+  });
+
+  test("shows every reader the probe's ID", () => {
+    expect(source).toContain(
+      squash(
+        '<b>{translator.translateText("Probe ID:")} </b>{" "} {currentProbe["_id"]?.toString()}',
+      ),
+    );
+  });
+
+  test("shows the key only to those who may read it, and says who may to the others", () => {
+    expect(source).toContain(
+      squash(
+        '{canReadProbeKey ? ( <> <br /> <br /> <span> <b>{translator.translateText("Probe Key:")} </b>{" "} {currentProbe["key"]?.toString()}',
+      ),
+    );
+    expect(source).toContain(
+      '"Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key."',
+    );
+    expect(source).toContain(
+      squash('title={canReadProbeKey ? "Probe Key" : "Probe ID"}'),
+    );
+  });
+
+  test("the key is asked for only of those who may read it", () => {
+    // BaseModelTable leaves out the extra fields the viewer may not read.
+    expect(source).toContain(squash("selectMoreFields={{ key: true,"));
   });
 });

@@ -27489,5 +27489,6 @@
   "{{option}} (no longer an option)": "{{option}} (ikke længere en mulighed)",
   "No longer an option": "Ikke længere en mulighed",
   "Has Additional Parameters": "Har yderligere parametre",
-  "Only project owners and admins can read them, like the API key.": "Ligesom API-nøglen kan kun projektejere og -administratorer læse dem."
+  "Only project owners and admins can read them, like the API key.": "Ligesom API-nøglen kan kun projektejere og -administratorer læse dem.",
+  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "Din probe forbinder til OneUptime med dette ID og sin nøgle. Kun projektejere og -administratorer kan se nøglen."
 }

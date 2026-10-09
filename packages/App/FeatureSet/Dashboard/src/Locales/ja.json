@@ -27489,5 +27489,6 @@
   "{{option}} (no longer an option)": "{{option}}（選択肢ではなくなりました）",
   "No longer an option": "選択肢ではなくなりました",
   "Has Additional Parameters": "追加パラメーターあり",
-  "Only project owners and admins can read them, like the API key.": "API キーと同じく、読み取れるのはプロジェクトのオーナーと管理者だけです。"
+  "Only project owners and admins can read them, like the API key.": "API キーと同じく、読み取れるのはプロジェクトのオーナーと管理者だけです。",
+  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "プローブはこの ID とそのキーで OneUptime に接続します。キーを見られるのはプロジェクトのオーナーと管理者だけです。"
 }

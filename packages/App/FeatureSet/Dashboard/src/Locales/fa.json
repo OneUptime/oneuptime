@@ -27489,5 +27489,6 @@
   "{{option}} (no longer an option)": "{{option}} (دیگر گزینه نیست)",
   "No longer an option": "دیگر گزینه نیست",
   "Has Additional Parameters": "پارامترهای اضافی دارد",
-  "Only project owners and admins can read them, like the API key.": "مانند کلید API، فقط مالکان و مدیران پروژه می‌توانند آن‌ها را بخوانند."
+  "Only project owners and admins can read them, like the API key.": "مانند کلید API، فقط مالکان و مدیران پروژه می‌توانند آن‌ها را بخوانند.",
+  "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.": "پروب شما با این شناسه و کلید خود به OneUptime وصل می‌شود. فقط مالکان و مدیران پروژه می‌توانند کلید را ببینند."
 }
