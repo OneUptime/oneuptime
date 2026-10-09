@@ -16,7 +16,10 @@ import ToolImportRecordService from "../../../../Server/Services/ToolImportRecor
 import ToolImportRunService from "../../../../Server/Services/ToolImportRunService";
 import logger from "../../../../Server/Utils/Logger";
 import ProductAnalytics from "../../../../Server/Utils/ProductAnalytics";
-import { ToolImportTransport } from "../../../../Server/Utils/ToolImport/ToolImportHttpClient";
+import {
+  ToolImportHttpRequest,
+  ToolImportTransport,
+} from "../../../../Server/Utils/ToolImport/ToolImportHttpClient";
 import ToolImportRunExecutor from "../../../../Server/Utils/ToolImport/ToolImportRunExecutor";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
@@ -42,6 +45,12 @@ import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResou
 import ToolImportRunStatus from "../../../../Types/ToolImport/ToolImportRunStatus";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
 import { OPSGENIE_KEY, opsGenieApi } from "./OpsGenieFixtures";
+import { PAGERDUTY_KEY, pagerDutyApi } from "./PagerDutyFixtures";
+import {
+  SPLUNK_API_ID,
+  SPLUNK_KEY,
+  splunkOnCallApi,
+} from "./SplunkOnCallFixtures";
 import { FixtureApi } from "./ToolImportFixtureTransport";
 import { DataSource } from "typeorm";
 
@@ -60,7 +69,9 @@ import { DataSource } from "typeorm";
  * nothing; and the database itself never holds two records of one item of
  * the other tool.
  *
- * The other tool is the Opsgenie fixture account (OpsGenieFixtures): no
+ * The other tool is the Opsgenie fixture account (OpsGenieFixtures), and
+ * for what only other tools have - a key that comes with an ID, layers that
+ * take over from one another - the Splunk On-Call and PagerDuty ones: no
  * test reaches a real tool. What lives in Redis (locks, the job queue, the
  * permission cache), the project's plan and outgoing mail are stood in for;
  * everything else is real.
@@ -194,6 +205,8 @@ describePostgres("an import from another tool, against Postgres", () => {
   const originalTransportFactory: (
     hosts: Array<string>,
   ) => ToolImportTransport = ToolImportRunExecutor.transportFactory;
+  const originalReadSleep: typeof ToolImportRunExecutor.readSleep =
+    ToolImportRunExecutor.readSleep;
 
   function globalPermission(userId: ObjectID): UserGlobalAccessPermission {
     return {
@@ -767,6 +780,7 @@ describePostgres("an import from another tool, against Postgres", () => {
 
   afterEach(() => {
     ToolImportRunExecutor.transportFactory = originalTransportFactory;
+    ToolImportRunExecutor.readSleep = originalReadSleep;
     jest.restoreAllMocks();
   });
 
@@ -1147,6 +1161,172 @@ describePostgres("an import from another tool, against Postgres", () => {
       }),
     ).toEqual([["Platform_escalation", [`user ${BOB_EMAIL}`]]]);
     expect(mailCount).toBe(0);
+  }, 180000);
+
+  test("a key that comes with an ID: both are stored encrypted, only while the read runs, and never queued", async () => {
+    api = splunkOnCallApi();
+    // Splunk On-Call's pace (two requests a second) is not what this is about.
+    const waits: Array<number> = [];
+    ToolImportRunExecutor.readSleep = async (ms: number): Promise<void> => {
+      waits.push(ms);
+    };
+
+    const runId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: SAM_ID,
+      source: ToolImportSource.SplunkOnCall,
+      region: undefined,
+      apiKeyId: SPLUNK_API_ID,
+      apiKey: SPLUNK_KEY,
+    });
+
+    // At rest neither is there in the clear; read back, both are.
+    const stored: { apiKey: string | null } = await rawRun(runId);
+    expect(stored.apiKey).toBeTruthy();
+    expect(stored.apiKey).not.toContain(SPLUNK_KEY);
+    expect(stored.apiKey).not.toContain(SPLUNK_API_ID);
+    expect((await readRun(runId)).apiKey).toContain(SPLUNK_KEY);
+    expect(JSON.stringify(queuedJobs)).not.toContain(SPLUNK_KEY);
+    expect(JSON.stringify(queuedJobs)).not.toContain(SPLUNK_API_ID);
+
+    await ToolImportRunExecutor.executeRun(runId);
+
+    const run: ToolImportRun = await readRun(runId);
+    const afterRead: { apiKey: string | null; snapshot: string | null } =
+      await rawRun(runId);
+
+    expect({ status: run.status, error: run.error }).toEqual({
+      status: ToolImportRunStatus.ReadyToReview,
+      error: null,
+    });
+    expect(afterRead.apiKey).toBeNull();
+    expect(afterRead.snapshot).toBeTruthy();
+    expect(afterRead.snapshot).not.toContain(SPLUNK_KEY);
+    expect(afterRead.snapshot).not.toContain(SPLUNK_API_ID);
+
+    // Every request went to Splunk On-Call, with both, at its pace.
+    expect(api.requests.length).toBeGreaterThan(1);
+    expect(
+      api.requests.map((request: ToolImportHttpRequest) => {
+        return {
+          host: new URL(request.url).host,
+          apiId: request.headers["X-VO-Api-Id"],
+          apiKey: request.headers["X-VO-Api-Key"],
+        };
+      }),
+    ).toEqual(
+      api.requests.map(() => {
+        return {
+          host: "api.victorops.com",
+          apiId: SPLUNK_API_ID,
+          apiKey: SPLUNK_KEY,
+        };
+      }),
+    );
+    expect(waits.length).toBeGreaterThan(0);
+  });
+
+  test("a PagerDuty schedule stays one schedule, its layers in PagerDuty's order, through the real services", async () => {
+    api = pagerDutyApi();
+
+    const runId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: SAM_ID,
+      source: ToolImportSource.PagerDuty,
+      region: "EU",
+      apiKey: PAGERDUTY_KEY,
+    });
+    await ToolImportRunExecutor.executeRun(runId);
+
+    expect((await readRun(runId)).status).toBe(
+      ToolImportRunStatus.ReadyToReview,
+    );
+    // The EU account is read at the EU host, and nowhere else.
+    expect(
+      api.requests.every((request: { url: string }): boolean => {
+        return request.url.startsWith("https://api.eu.pagerduty.com/");
+      }),
+    ).toBe(true);
+
+    const plan: ToolImportPlan = await previewOf(runId, SAM_ID);
+
+    // Bob is a member already; Alice and Carol are invited.
+    expect(itemNamed(plan, "Bob Marley").action).toBe(ToolImportAction.Match);
+    expect(itemNamed(plan, "Carol Jones").action).toBe(ToolImportAction.Invite);
+    // A turned-off service starts unticked; a policy that pages nobody is not brought over.
+    expect(itemNamed(plan, "Legacy batch").isSelectedByDefault).toBe(false);
+    expect(reasonOf(itemNamed(plan, "Follow the sun EP"))).toBe(
+      ToolImportNoteCode.NothingToPage,
+    );
+
+    const run: ToolImportRun = await runImport({
+      runId: runId,
+      userId: SAM_ID,
+      selectedKeys: tickedByDefault(plan),
+      inviteTeamId: plan.defaultInviteTeamId,
+    });
+
+    expect({ status: run.status, error: run.error }).toEqual({
+      status: ToolImportRunStatus.Completed,
+      error: null,
+    });
+    expect(failuresIn(run.report as unknown as ToolImportReport)).toEqual([]);
+
+    expect(await namesIn("OnCallDutyPolicySchedule")).toEqual([
+      "Backup",
+      "Business hours",
+      "Primary",
+    ]);
+    /*
+     * The weekend layer outranks the daily one in PagerDuty (the API lists
+     * it first), so it is the first layer here; the layer that ended is
+     * left out. (Business hours has a layer that takes over in November,
+     * so what it holds depends on the day the suite runs.)
+     */
+    expect(
+      (await layers()).filter((layer: Layer): boolean => {
+        return layer.schedule !== "Business hours";
+      }),
+    ).toEqual([
+      {
+        schedule: "Backup",
+        layer: "Half days",
+        people: [BOB_EMAIL, ALICE_EMAIL],
+      },
+      {
+        schedule: "Primary",
+        layer: "Weekend cover",
+        people: ["carol@example.com"],
+      },
+      {
+        schedule: "Primary",
+        layer: "Layer 1",
+        people: [ALICE_EMAIL, BOB_EMAIL],
+      },
+    ]);
+    expect(await namesIn("OnCallDutyPolicy")).toEqual(["Platform EP"]);
+    expect(
+      (await levels()).map((level: Level) => {
+        return [level.order, level.escalateAfterInMinutes, level.pages];
+      }),
+    ).toEqual([
+      [1, 15, ["schedule Primary"]],
+      [2, 30, [`user ${BOB_EMAIL}`]],
+    ]);
+    expect(await namesIn("Service")).toEqual(["Checkout API"]);
+    expect(await owners()).toEqual([
+      { of: "policy Platform EP", team: "Platform" },
+      { of: "schedule Business hours", team: "Payments" },
+      { of: "schedule Primary", team: "Platform" },
+      { of: "service Checkout API", team: "Payments" },
+    ]);
+
+    const repeats: Array<{ repeat: boolean; times: number }> =
+      await database.query(
+        `SELECT "repeatPolicyIfNoOneAcknowledges" AS repeat, "repeatPolicyIfNoOneAcknowledgesNoOfTimes" AS times FROM "${schema}"."OnCallDutyPolicy" WHERE "projectId" = $1`,
+        [PROJECT_ID.toString()],
+      );
+    expect(repeats).toEqual([{ repeat: true, times: 2 }]);
   }, 180000);
 
   test("the database holds one record of each item of the other tool", async () => {
