@@ -356,8 +356,8 @@ export default class Form extends BaseModel {
           "5b1d7e2a-3c9f-4e6b-8a0d-1f2e3d4c5b6a": "London",
         },
         fieldSettings: {
+          "0f6c2b8e-6a8d-4f1c-9d3e-2b7a1c5e9f40": "Hidden",
           "5b1d7e2a-3c9f-4e6b-8a0d-1f2e3d4c5b6a": "Required",
-          "9c4e1f6a-2b7d-4e8a-b3c5-d6e7f8091a2b": "Hidden",
         },
       },
     ],

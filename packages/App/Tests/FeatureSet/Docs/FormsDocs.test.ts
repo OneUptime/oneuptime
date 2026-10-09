@@ -1918,8 +1918,46 @@ describe("Forms docs: how a template asks each question", () => {
     expect(validateFormTemplates(example)).toBeNull();
     expect(example[0]!.fieldSettings).toEqual({
       office: "Required",
-      window: "Hidden",
+      email: "Optional",
     });
+
+    /*
+     * And for the form the page documents just above: every answer and
+     * setting is for one of its questions, as the server's write check
+     * holds them - not only the templates' shape.
+     */
+    const questions: Array<FormField> = (
+      JSON.parse(
+        splitMarkdown(
+          sectionOf(readPage(OVERVIEW_PAGE), 3, "Questions and settings"),
+        ).codeBlocks[0] as string,
+      ) as { data: { fields: Array<FormField> } }
+    ).data.fields;
+
+    const built: BuiltPublicForm = buildPublicForm({
+      form: {
+        name: "Report a Problem",
+        fields: questions,
+        targetType: FormTargetType.Incident,
+      },
+      customFields: [],
+      recordOptions: {},
+      isCaptchaRequired: false,
+    });
+
+    expect(
+      built.allFields.map((field: { id: string }): string => {
+        return field.id;
+      }),
+    ).toEqual(["what", "office", "email"]);
+    expect(
+      validateFormTemplateAnswers({
+        templates: example,
+        fields: built.allFields,
+        lockedFieldIds: built.lockedFieldIds,
+        targetType: FormTargetType.Incident,
+      }),
+    ).toBeNull();
   });
 
   it("link the new section from the pages that send readers to it", () => {

@@ -217,7 +217,7 @@ A form's templates are its `templates` column, a JSON list in the order the form
         },
         "fieldSettings": {
           "office": "Required",
-          "window": "Hidden"
+          "email": "Optional"
         }
       }
     ]
