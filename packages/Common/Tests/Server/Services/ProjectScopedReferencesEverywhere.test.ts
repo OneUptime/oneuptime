@@ -171,6 +171,8 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "NetworkDeviceProbeTenancy suites (ProbeService.isProbeAttachableToProject)",
   "NetworkSiteService.ts":
     "NetworkSiteService.test.ts (ProbeService.isProbeAttachableToProject)",
+  "PacketCaptureService.ts":
+    "PacketCaptureService.test.ts (the probe must be the project's own and never a global one, the network device the project's; another project's answered as a missing one)",
   "ServiceLevelObjectiveBurnRateRuleService.ts":
     "ServiceLevelObjectiveBurnRateRuleService.test.ts",
   "TeamComplianceSettingService.ts":

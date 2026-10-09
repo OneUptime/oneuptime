@@ -201,6 +201,16 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The probe and the network device a capture names are checked by
+   * onBeforeCreate itself, pinned to the project: the probe must be the
+   * project's own (never a global one) and the device the project's, and
+   * another project's answers exactly as a missing one.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["probe", "networkDevice"];
+  }
+
+  /*
    * A global probe is refused before anything else looks at the probe, in
    * words that say why: global probes are shown to every project, so naming
    * one is no secret, and "not found" would send someone looking for a
@@ -294,8 +304,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(PROBE_NOT_FOUND_MESSAGE);
     }
 
-    const capability: PacketCaptureCapability =
-      Service.assertCanCapture(probe);
+    const capability: PacketCaptureCapability = Service.assertCanCapture(probe);
 
     const interfaceName: string =
       typeof createBy.data.interfaceName === "string"
@@ -306,9 +315,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Pick the network interface to capture on.");
     }
 
-    if (
-      !PacketCaptureCapabilityUtil.findInterface(capability, interfaceName)
-    ) {
+    if (!PacketCaptureCapabilityUtil.findInterface(capability, interfaceName)) {
       throw new BadDataException(getUnknownInterfaceMessage(interfaceName));
     }
 
@@ -399,8 +406,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     createBy.data.interfaceName = interfaceName;
     createBy.data.bpfFilter = bpfFilter;
-    createBy.data.maxDurationInSeconds =
-      limitCheck.limits.maxDurationInSeconds;
+    createBy.data.maxDurationInSeconds = limitCheck.limits.maxDurationInSeconds;
     createBy.data.maxPackets = limitCheck.limits.maxPackets;
     createBy.data.maxFileSizeInMB = limitCheck.limits.maxFileSizeInMB;
     createBy.data.name = getPacketCaptureName({

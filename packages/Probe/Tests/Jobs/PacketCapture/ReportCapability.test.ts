@@ -63,8 +63,10 @@ const INTERFACES: Array<PacketCaptureInterface> = [
   { name: "eth0", addresses: ["10.0.0.2/24"], isUp: true, isLoopback: false },
 ];
 
-let detectTool: jest.Mock;
-let listInterfaces: jest.Mock;
+type MockedFn = ReturnType<typeof jest.fn>;
+
+let detectTool: MockedFn;
+let listInterfaces: MockedFn;
 
 function dependencies(
   env: Record<string, string> = {},
@@ -200,9 +202,8 @@ describe("the report", () => {
   });
 
   test("what the server says the operator should hear is logged once, not every five minutes", async () => {
-    const warn: jest.SpiedFunction<typeof logger.warn> = jest
-      .spyOn(logger, "warn")
-      .mockImplementation((): void => {});
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    const warn: MockedFn = logger.warn as unknown as MockedFn;
 
     fetchSpy.mockResolvedValue(
       new HTTPResponse(
@@ -226,9 +227,8 @@ describe("the report", () => {
   });
 
   test("a server older than packet capture is logged, and nothing throws", async () => {
-    const warn: jest.SpiedFunction<typeof logger.warn> = jest
-      .spyOn(logger, "warn")
-      .mockImplementation((): void => {});
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    const warn: MockedFn = logger.warn as unknown as MockedFn;
 
     fetchSpy.mockResolvedValue(
       new HTTPErrorResponse(404, { message: "Not Found" }, {}) as never,
@@ -241,9 +241,8 @@ describe("the report", () => {
   });
 
   test("a network failure is logged, and nothing throws", async () => {
-    const error: jest.SpiedFunction<typeof logger.error> = jest
-      .spyOn(logger, "error")
-      .mockImplementation((): void => {});
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+    const error: MockedFn = logger.error as unknown as MockedFn;
 
     fetchSpy.mockRejectedValue(new Error("ECONNREFUSED") as never);
 

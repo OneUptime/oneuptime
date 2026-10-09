@@ -661,6 +661,11 @@ export default class Probe extends BaseModel {
     title: "Packet Capture",
     description:
       "What the probe last reported about packet capture: whether it is turned on (PROBE_PACKET_CAPTURE_ENABLED on the probe), whether tcpdump is installed, the network interfaces it can capture on, and the limits its operator set. Managed by the probe.",
+    /*
+     * A network device's Traffic page reads its probe's report through the
+     * device (NetworkDevice.probe), held to the read list above.
+     */
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.JSON,

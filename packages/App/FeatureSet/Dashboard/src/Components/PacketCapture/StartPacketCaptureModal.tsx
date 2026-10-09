@@ -300,7 +300,8 @@ const StartPacketCaptureModal: FunctionComponent<ComponentProps> = (
       error={error || undefined}
       onClose={props.onClose}
       onSubmit={() => {
-        formRef.current?.submitAllSteps();
+        // One page, no steps: validate it and submit.
+        formRef.current?.submitForm();
       }}
     >
       <div className="space-y-4" data-testid="start-packet-capture">

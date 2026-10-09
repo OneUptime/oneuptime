@@ -104,6 +104,9 @@ import { customDomainCaller } from "./CustomDomainCallers";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
+// A row's columns to set, a column left unset included.
+type Overrides<T> = { [Key in keyof T]?: T[Key] | undefined };
+
 const STOP_ROUTE: string = "/packet-capture/:packetCaptureId/stop";
 const DOWNLOAD_ROUTE: string = "/packet-capture/:packetCaptureId/download";
 
@@ -348,7 +351,7 @@ describe("POST /packet-capture/:id/stop", () => {
 
 describe("POST /packet-capture/:id/download", () => {
   function completedCapture(
-    overrides: Partial<PacketCapture> = {},
+    overrides: Overrides<PacketCapture> = {},
   ): PacketCapture {
     const capture: PacketCapture = new PacketCapture(CAPTURE_ID);
     capture.projectId = PROJECT_ID;
@@ -365,7 +368,7 @@ describe("POST /packet-capture/:id/download", () => {
     return capture;
   }
 
-  function storedFile(overrides: Partial<File> = {}): File {
+  function storedFile(overrides: Overrides<File> = {}): File {
     const file: File = new File(FILE_ID);
     file.file = PCAP_BYTES;
     file.name = "packet-capture-site-a-eth0-2026-10-09T08-30-00Z.pcap";
@@ -510,13 +513,13 @@ describe("POST /packet-capture/:id/download", () => {
     expect(audit).not.toHaveBeenCalled();
   });
 
-  test.each([
+  test.each<[string, Overrides<PacketCapture>]>([
     ["is still running", { status: PacketCaptureStatus.Running }],
     ["failed", { status: PacketCaptureStatus.Failed }],
     ["captured no packets", { fileId: undefined }],
   ])(
     "a capture that %s has no file to download",
-    async (_name: string, overrides: Partial<PacketCapture>) => {
+    async (_name: string, overrides: Overrides<PacketCapture>) => {
       stubCapture(completedCapture(overrides));
       const read: MockedFn = stubFile(storedFile());
       const audit: MockedFn = stubAudit();

@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, render, screen } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 
 /*
@@ -19,11 +20,13 @@ import * as React from "react";
  * something runs, and what Download and Stop do.
  */
 
+type MockedFn = ReturnType<typeof jest.fn>;
+
 const mockCapturedTableProps: Array<Record<string, unknown>> = [];
 const mockCapturedModalProps: Array<Record<string, unknown>> = [];
-const mockDownloadFile: jest.Mock = jest.fn();
-const mockStopPacketCapture: jest.Mock = jest.fn();
-const mockDownloadPacketCapture: jest.Mock = jest.fn();
+const mockDownloadFile: MockedFn = jest.fn();
+const mockStopPacketCapture: MockedFn = jest.fn();
+const mockDownloadPacketCapture: MockedFn = jest.fn();
 const mockGates: Record<
   string,
   { isAllowed: boolean; disabledReason?: string | undefined }
@@ -103,6 +106,7 @@ import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import { PacketCaptureCapability } from "../../../Types/PacketCapture/PacketCaptureCapability";
 import PacketCaptureEndReason from "../../../Types/PacketCapture/PacketCaptureEndReason";
 import {
   PACKET_CAPTURE_DOWNLOAD_PERMISSIONS,
@@ -150,11 +154,26 @@ function probe(report: JSONObject | null = capability()): Probe {
   const item: Probe = new Probe(new ObjectID(PROBE_ID));
   item.name = "Site A";
   item.isGlobalProbe = false;
-  item.packetCaptureCapability = report || undefined;
+
+  if (report) {
+    // As stored: whatever the probe posted, read back by the page.
+    item.packetCaptureCapability = report as unknown as PacketCaptureCapability;
+  }
+
   return item;
 }
 
-function row(overrides: Partial<PacketCapture> = {}): PacketCapture {
+type CountSpy = SpyInstance<
+  (
+    ...args: Parameters<typeof ModelAPI.count>
+  ) => ReturnType<typeof ModelAPI.count>
+>;
+
+type RowOverrides = {
+  [Key in keyof PacketCapture]?: PacketCapture[Key] | undefined;
+};
+
+function row(overrides: RowOverrides = {}): PacketCapture {
   const item: PacketCapture = new PacketCapture(new ObjectID(CAPTURE_ID));
   item.interfaceName = "eth0";
   item.bpfFilter = "host 10.0.0.5";
@@ -208,7 +227,7 @@ async function flush(): Promise<void> {
   await act(async () => {});
 }
 
-let countSpy: jest.SpiedFunction<typeof ModelAPI.count>;
+let countSpy: CountSpy;
 
 beforeEach(() => {
   mockCapturedTableProps.length = 0;
@@ -221,7 +240,7 @@ beforeEach(() => {
     delete mockGates[key];
   }
 
-  countSpy = jest.spyOn(ModelAPI, "count").mockResolvedValue(0);
+  countSpy = jest.spyOn(ModelAPI, "count").mockResolvedValue(0 as never);
   jest.spyOn(API, "getFriendlyMessage").mockImplementation((err: unknown) => {
     return (err as Error).message;
   });
@@ -334,7 +353,7 @@ describe("a probe that cannot capture", () => {
   });
 
   test("shows a loader while it finds out whether anything was captured before", () => {
-    countSpy.mockReturnValue(new Promise<number>(() => {}));
+    countSpy.mockReturnValue(new Promise<number>(() => {}) as never);
 
     render(<PacketCapturesTable probe={probe(null)} />);
 
@@ -342,7 +361,7 @@ describe("a probe that cannot capture", () => {
   });
 
   test("with past captures, lists them under the notice, with no Start", async () => {
-    countSpy.mockResolvedValue(2);
+    countSpy.mockResolvedValue(2 as never);
 
     render(
       <PacketCapturesTable
@@ -365,7 +384,7 @@ describe("a probe that cannot capture", () => {
   });
 
   test("a count that fails shows the table, which explains itself", async () => {
-    countSpy.mockRejectedValue(new Error("network"));
+    countSpy.mockRejectedValue(new Error("network") as never);
 
     render(<PacketCapturesTable probe={probe(null)} />);
 
@@ -377,7 +396,7 @@ describe("a probe that cannot capture", () => {
   test("a global probe never offers Start", async () => {
     const globalProbe: Probe = probe();
     globalProbe.isGlobalProbe = true;
-    countSpy.mockResolvedValue(1);
+    countSpy.mockResolvedValue(1 as never);
 
     render(<PacketCapturesTable probe={globalProbe} />);
 
@@ -582,7 +601,7 @@ describe("Download and Stop", () => {
 
     render(<PacketCapturesTable probe={probe()} />);
 
-    const done: jest.Mock = jest.fn();
+    const done: MockedFn = jest.fn();
 
     await act(async () => {
       await button("Download").onClick(row(), done);
@@ -608,7 +627,7 @@ describe("Download and Stop", () => {
 
     render(<PacketCapturesTable probe={probe()} />);
 
-    const done: jest.Mock = jest.fn();
+    const done: MockedFn = jest.fn();
 
     await act(async () => {
       await button("Download").onClick(row(), done);
@@ -630,7 +649,7 @@ describe("Download and Stop", () => {
     render(<PacketCapturesTable probe={probe()} />);
 
     const before: unknown = latestTable()["refreshToggle"];
-    const done: jest.Mock = jest.fn();
+    const done: MockedFn = jest.fn();
 
     await act(async () => {
       await button("Stop").onClick(

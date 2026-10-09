@@ -35,6 +35,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import MimeType from "../../../Types/File/MimeType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { PacketCaptureCapability } from "../../../Types/PacketCapture/PacketCaptureCapability";
 import PacketCaptureEndReason from "../../../Types/PacketCapture/PacketCaptureEndReason";
 import { PacketCaptureJob } from "../../../Types/PacketCapture/PacketCaptureJob";
 import {
@@ -122,7 +123,11 @@ function buildService(): {
   return { service, internals: service as unknown as ServiceInternals };
 }
 
-function capability(overrides: JSONObject = {}): JSONObject {
+/*
+ * A probe's report as it is stored: whatever the probe posted, so a test
+ * can store a broken one too.
+ */
+function capability(overrides: JSONObject = {}): PacketCaptureCapability {
   return {
     isEnabled: true,
     isToolAvailable: true,
@@ -136,10 +141,12 @@ function capability(overrides: JSONObject = {}): JSONObject {
       maxFileSizeInMB: 25,
     },
     ...overrides,
-  };
+  } as unknown as PacketCaptureCapability;
 }
 
-function probeRow(overrides: Partial<Probe> = {}): Probe {
+type Overrides<T> = { [Key in keyof T]?: T[Key] | undefined };
+
+function probeRow(overrides: Overrides<Probe> = {}): Probe {
   const probe: Probe = new Probe(PROBE_ID);
   probe.projectId = PROJECT_ID;
   probe.isGlobalProbe = false;
@@ -490,7 +497,9 @@ describe("onBeforeCreate: what a capture is started with", () => {
       jest.restoreAllMocks();
       stubProjectDirectory({});
       stubProbe(
-        probeRow({ packetCaptureCapability: item.report as JSONObject }),
+        probeRow({
+          packetCaptureCapability: item.report as PacketCaptureCapability,
+        }),
       );
 
       expect(await refusal(internals.onBeforeCreate(startCapture()))).toBe(
@@ -1171,7 +1180,7 @@ describe("recordFailure", () => {
 
 describe("recordCompletion", () => {
   function runningCapture(
-    overrides: Partial<PacketCapture> = {},
+    overrides: Overrides<PacketCapture> = {},
   ): PacketCapture {
     const capture: PacketCapture = new PacketCapture(CAPTURE_ID);
     capture.projectId = PROJECT_ID;
@@ -1833,5 +1842,22 @@ describe("the service is wired to its model", () => {
     const { service } = buildService();
 
     expect(service.getModel().tableName).toBe("PacketCapture");
+  });
+
+  /*
+   * onBeforeCreate checks these two against the project in its own words
+   * (above), so the generic project check leaves them to it and checks the
+   * rest (ProjectScopedReferencesEverywhere lists the service).
+   */
+  test("checks the probe and the network device itself", () => {
+    const { service } = buildService();
+
+    expect(
+      (
+        service as unknown as {
+          getRelationsCheckedByService: () => Array<string>;
+        }
+      ).getRelationsCheckedByService(),
+    ).toEqual(["probe", "networkDevice"]);
   });
 });

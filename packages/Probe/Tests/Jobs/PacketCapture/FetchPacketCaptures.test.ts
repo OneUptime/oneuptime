@@ -495,11 +495,11 @@ describe("the cron registration", () => {
         process.env["PROBE_PACKET_CAPTURE_ENABLED"] = enabled;
       }
 
-      jest
-        .requireActual<JobModule>(
-          "../../../Jobs/PacketCapture/FetchPacketCaptures",
-        )
-        .default();
+      const job: JobModule = jest.requireActual(
+        "../../../Jobs/PacketCapture/FetchPacketCaptures",
+      ) as JobModule;
+
+      job.default();
 
       delete process.env["PROBE_PACKET_CAPTURE_ENABLED"];
     });
