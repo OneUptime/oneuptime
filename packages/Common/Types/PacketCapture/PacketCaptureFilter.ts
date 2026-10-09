@@ -63,11 +63,7 @@ const HOST_NAME: RegExp =
 const JOINING_WORDS: ReadonlyArray<string> = ["and", "or", "&&", "||"];
 
 // Words that need something after them, so a filter cannot end with them.
-const OPEN_ENDED_WORDS: ReadonlyArray<string> = [
-  ...JOINING_WORDS,
-  "not",
-  "!",
-];
+const OPEN_ENDED_WORDS: ReadonlyArray<string> = [...JOINING_WORDS, "not", "!"];
 
 /*
  * The words of the BPF language (pcap-filter(7)). A host typed into the host
@@ -125,6 +121,164 @@ const BPF_KEYWORDS: ReadonlyArray<string> = [
 ];
 
 const BRACKET_PAIRS: Record<string, string> = { ")": "(", "]": "[" };
+
+const IPV6_GROUP: RegExp = /^[0-9a-fA-F]{1,4}$/;
+
+/*
+ * The network an IPv4 address with a prefix length is in, its host bits
+ * cleared: 10.0.0.5 with 24 is 10.0.0.0. The address is a valid IPv4 one.
+ */
+export function getIPv4Network(address: string, prefixLength: number): string {
+  const octets: Array<number> = address.split(".").map(Number);
+  const value: number =
+    (((octets[0] || 0) << 24) >>> 0) +
+    ((octets[1] || 0) << 16) +
+    ((octets[2] || 0) << 8) +
+    (octets[3] || 0);
+
+  // A shift by 32 is a no-op in JavaScript, so /0 is the all-zero mask.
+  const mask: number =
+    prefixLength <= 0 ? 0 : (0xffffffff << (32 - prefixLength)) >>> 0;
+  const network: number = (value & mask) >>> 0;
+
+  return [
+    (network >>> 24) & 255,
+    (network >>> 16) & 255,
+    (network >>> 8) & 255,
+    network & 255,
+  ].join(".");
+}
+
+// An IPv6 address's eight 16-bit groups, or null when it cannot be read.
+function readIPv6Groups(address: string): Array<number> | null {
+  const halves: Array<string> = address.split("::");
+
+  if (halves.length > 2) {
+    return null;
+  }
+
+  const readHalf: (text: string) => Array<number> | null = (
+    text: string,
+  ): Array<number> | null => {
+    if (!text) {
+      return [];
+    }
+
+    const groups: Array<number> = [];
+    const pieces: Array<string> = text.split(":");
+
+    for (let index: number = 0; index < pieces.length; index++) {
+      const piece: string = pieces[index] || "";
+
+      // An IPv4 address may end one: ::ffff:10.0.0.5.
+      if (piece.includes(".") && index === pieces.length - 1) {
+        const octets: Array<number> = piece.split(".").map(Number);
+
+        if (
+          octets.length !== 4 ||
+          octets.some((octet: number): boolean => {
+            return !Number.isInteger(octet) || octet < 0 || octet > 255;
+          })
+        ) {
+          return null;
+        }
+
+        groups.push(
+          (octets[0]! << 8) | octets[1]!,
+          (octets[2]! << 8) | octets[3]!,
+        );
+        continue;
+      }
+
+      if (!IPV6_GROUP.test(piece)) {
+        return null;
+      }
+
+      groups.push(Number.parseInt(piece, 16));
+    }
+
+    return groups;
+  };
+
+  const head: Array<number> | null = readHalf(halves[0] || "");
+  const tail: Array<number> | null =
+    halves.length === 2 ? readHalf(halves[1] || "") : [];
+
+  if (!head || !tail) {
+    return null;
+  }
+
+  if (halves.length === 1) {
+    return head.length === 8 ? head : null;
+  }
+
+  // "::" stands for at least one group of zeros.
+  const missing: number = 8 - head.length - tail.length;
+
+  if (missing < 1) {
+    return null;
+  }
+
+  return [...head, ...new Array<number>(missing).fill(0), ...tail];
+}
+
+/*
+ * The network an IPv6 address with a prefix length is in, its host bits
+ * cleared and written short: 2001:db8::5 with 64 is 2001:db8::. Null when
+ * the address cannot be read.
+ */
+export function getIPv6Network(
+  address: string,
+  prefixLength: number,
+): string | null {
+  const groups: Array<number> | null = readIPv6Groups(address);
+
+  if (!groups) {
+    return null;
+  }
+
+  const masked: Array<number> = groups.map(
+    (group: number, index: number): number => {
+      const bits: number = Math.max(0, Math.min(16, prefixLength - index * 16));
+
+      return bits === 0 ? 0 : group & ((0xffff << (16 - bits)) & 0xffff);
+    },
+  );
+
+  // The longest run of two or more zero groups is written "::" (RFC 5952).
+  let bestStart: number = -1;
+  let bestLength: number = 0;
+
+  for (let index: number = 0; index < masked.length; ) {
+    if (masked[index] !== 0) {
+      index++;
+      continue;
+    }
+
+    let end: number = index;
+
+    while (end < masked.length && masked[end] === 0) {
+      end++;
+    }
+
+    if (end - index > bestLength) {
+      bestStart = index;
+      bestLength = end - index;
+    }
+
+    index = end;
+  }
+
+  const hex: Array<string> = masked.map((group: number): string => {
+    return group.toString(16);
+  });
+
+  if (bestLength < 2) {
+    return hex.join(":");
+  }
+
+  return `${hex.slice(0, bestStart).join(":")}::${hex.slice(bestStart + bestLength).join(":")}`;
+}
 
 export default class PacketCaptureFilterUtil {
   public static getProtocols(): Array<PacketCaptureProtocol> {
@@ -237,8 +391,7 @@ export default class PacketCaptureFilterUtil {
     }
 
     if (!FILTER_CHARACTERS.test(filter)) {
-      const character: string =
-        NOT_A_FILTER_CHARACTER.exec(filter)?.[0] || "";
+      const character: string = NOT_A_FILTER_CHARACTER.exec(filter)?.[0] || "";
 
       return `The filter can't contain "${character}". A BPF filter is written with letters, numbers, spaces and . : / ( ) [ ] ! & | < > = + - * % ^ _`;
     }
@@ -322,14 +475,26 @@ export default class PacketCaptureFilterUtil {
     if (network) {
       const address: string = network[1] || "";
       const prefixLength: number = Number(network[2]);
+
+      // new IP() throws on anything that is not an address.
+      if (!IP.isIP(address)) {
+        return notAHost;
+      }
+
       const ip: IP = new IP(address);
 
+      /*
+       * tcpdump refuses a network with host bits set ("non-network bits set
+       * in 10.0.0.5/24"), and an address with its subnet's prefix length is
+       * the commonest way to write one: so the network it is in is what is
+       * built, and the form shows it.
+       */
       if (ip.isIPv4() && prefixLength >= 0 && prefixLength <= 32) {
-        return `net ${address}/${prefixLength}`;
+        return `net ${getIPv4Network(address, prefixLength)}/${prefixLength}`;
       }
 
       if (ip.isIPv6() && prefixLength >= 0 && prefixLength <= 128) {
-        return `net ${address}/${prefixLength}`;
+        return `net ${getIPv6Network(address, prefixLength) || address}/${prefixLength}`;
       }
 
       return notAHost;

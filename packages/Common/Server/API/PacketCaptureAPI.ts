@@ -16,6 +16,7 @@ import CommonAPI from "./CommonAPI";
 import File from "../../Models/DatabaseModels/File";
 import PacketCapture from "../../Models/DatabaseModels/PacketCapture";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MimeType from "../../Types/File/MimeType";
 import ObjectID from "../../Types/ObjectID";
@@ -73,6 +74,13 @@ export default class PacketCaptureAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const { props, projectId } = await PacketCaptureAPI.getCaller(req);
+
+          /*
+           * Stopping is a change, and its write goes round DatabaseService:
+           * a credential issued for reading only is refused here, as a
+           * create or a delete of a capture refuses it.
+           */
+          DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
           CommonAPI.assertPermittedInProject({
             databaseProps: props,
@@ -137,28 +145,26 @@ export default class PacketCaptureAPI extends BaseAPI<
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<PacketCaptureDownload> {
-    const capture: PacketCapture | null = await PacketCaptureService.findOneBy(
-      {
-        query: {
-          _id: data.packetCaptureId.toString(),
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          name: true,
-          interfaceName: true,
-          bpfFilter: true,
-          probeId: true,
-          networkDeviceId: true,
-          status: true,
-          packetCount: true,
-          fileSizeInBytes: true,
-          fileId: true,
-        },
-        props: { isRoot: true },
+    const capture: PacketCapture | null = await PacketCaptureService.findOneBy({
+      query: {
+        _id: data.packetCaptureId.toString(),
+        projectId: data.projectId,
       },
-    );
+      select: {
+        _id: true,
+        projectId: true,
+        name: true,
+        interfaceName: true,
+        bpfFilter: true,
+        probeId: true,
+        networkDeviceId: true,
+        status: true,
+        packetCount: true,
+        fileSizeInBytes: true,
+        fileId: true,
+      },
+      props: { isRoot: true },
+    });
 
     if (!capture || !capture.id) {
       throw new BadDataException(PACKET_CAPTURE_NOT_FOUND_MESSAGE);

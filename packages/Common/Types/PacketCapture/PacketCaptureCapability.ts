@@ -202,7 +202,9 @@ export default class PacketCaptureCapabilityUtil {
     const usable: PacketCaptureInterface | undefined =
       capability.interfaces.find(
         (networkInterface: PacketCaptureInterface): boolean => {
-          return networkInterface.isUp !== false && !networkInterface.isLoopback;
+          return (
+            networkInterface.isUp !== false && !networkInterface.isLoopback
+          );
         },
       );
 
@@ -265,6 +267,11 @@ export default class PacketCaptureCapabilityUtil {
 
     if (!withPrefix) {
       return IP.isIP(value);
+    }
+
+    // new IP() throws on anything that is not an address.
+    if (!IP.isIP(withPrefix[1] || "")) {
+      return false;
     }
 
     const address: IP = new IP(withPrefix[1] || "");
