@@ -1085,6 +1085,28 @@ API, SSO, or the Slack and Microsoft Teams apps.
   incident with one already did. See
   [Slack](/docs/workspace-connections/slack#acting-on-incidents-alerts-and-events-from-slack)
   and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#acting-on-incidents-alerts-and-events-from-microsoft-teams).
+- **An SSH credential reaches a Runner that runs OneUptime AI's commands only
+  through someone who may read runbook credentials.** Creating an SSH runbook
+  credential with a Runner that has **Runs AI Remediation Commands** on, or
+  adding such a Runner to one, now needs permission to read runbook
+  credentials (`ReadRunbookCredential`, or `ProjectOwner` or `ProjectAdmin`),
+  as turning that switch on for a Runner that holds SSH credentials already
+  does; without it the save is refused with a `422` that names the Runner.
+  Credentials keep the Runners they were assigned before the upgrade, and
+  removing Runners, saving a credential with the Runners it has and
+  Kubernetes credentials need nothing more. Assigning credentials and turning
+  the switch on are saved one at a time in a project: a save that waits too
+  long for another, or that cannot reach Valkey, is refused with a `400`
+  asking to try again in a moment. A workflow's steps act as a Project Admin
+  but are not lent a Project Admin's read of runbook credentials: where a
+  change takes that read, a step is asked about the person who last saved
+  the workflow, and is refused unless they may read runbook credentials. A
+  workflow last saved with an API key, or not saved since the upgrade, names
+  nobody until a person saves it. OneUptime records that person on every
+  save, in a new read-only `lastSavedByUserId` column on workflows added on
+  start. See
+  [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands)
+  and [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
