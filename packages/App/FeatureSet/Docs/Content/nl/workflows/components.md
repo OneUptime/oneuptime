@@ -36,7 +36,7 @@ Genereer één tekstantwoord uit een prompt en optionele JSON-context. Het compo
 - **Temperature** — variatie van `0` tot `1`. De standaard is `0.2`, voor voorspelbare automatisering.
 - **Maximum Output Tokens** — van `1` tot `4096`. De standaard is `1024`.
 
-De System Instructions, Prompt en geserialiseerde Context zijn samen beperkt tot 50.000 tekens. Het providerverzoek duurt maximaal 60 seconden en wordt één keer geprobeerd. Per project kunnen hoogstens drie AI-verzoeken uit workflows tegelijk lopen.
+De System Instructions, Prompt en geserialiseerde Context zijn samen beperkt tot 50.000 tekens. Een als base64 ingesloten afbeelding, zoals de screenshot van een synthetische monitor in de beschrijving van een incident, wordt vóór het tellen vervangen door een korte notitie zoals `[image omitted: PNG, 340 KB]`, want het model leest tekst, geen afbeeldingen. Het logboek van de run vermeldt wat is weggelaten. Het providerverzoek duurt maximaal 60 seconden en wordt één keer geprobeerd. Per project kunnen hoogstens drie AI-verzoeken uit workflows tegelijk lopen.
 
 **Outputs**:
 

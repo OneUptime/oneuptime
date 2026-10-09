@@ -39,7 +39,7 @@ Generate one text response from a prompt and optional JSON context. The componen
 - **Temperature** — variation from `0` to `1`. The default is `0.2` for predictable automation.
 - **Maximum Output Tokens** — from `1` to `4096`. The default is `1024`.
 
-The combined System Instructions, Prompt, and serialized Context are limited to 50,000 characters. The provider request has a 60-second maximum duration and is attempted once. At most three workflow AI requests can run concurrently per project.
+The combined System Instructions, Prompt, and serialized Context are limited to 50,000 characters. An image embedded in them as base64, such as a synthetic monitor's screenshot in an incident's description, is replaced by a short note like `[image omitted: PNG, 340 KB]` before they are measured, because the model reads text, not images. The run's log says what was left out. The provider request has a 60-second maximum duration and is attempted once. At most three workflow AI requests can run concurrently per project.
 
 **Outputs**:
 
