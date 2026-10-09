@@ -750,6 +750,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       }),
       {
+        title: "Integrations",
+        pages: [
+          {
+            page: PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS,
+            title: "Huntress",
+            icon: IconProp.ShieldCheck,
+            keywords: [
+              "edr",
+              "itdr",
+              "mdr",
+              "security incidents",
+              "incident reports",
+            ],
+          },
+        ],
+      },
+      {
         title: "Rules",
         pages: [
           {

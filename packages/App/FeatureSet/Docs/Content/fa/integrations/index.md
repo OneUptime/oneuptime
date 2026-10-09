@@ -47,6 +47,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | ورودی | اعلان‌های Alertmanager را به حادثه تبدیل می‌کند. |
 | [Grafana](/docs/integrations/grafana) | ورودی | هشدارهای Grafana را به حادثه تبدیل می‌کند. |
 | [Datadog](/docs/integrations/datadog) | ورودی | هشدارهای مانیتور Datadog را به حادثه تبدیل می‌کند. |
+| [Huntress](/docs/integrations/huntress) | ورودی | برای گزارش‌های حادثه Huntress آنکال را فرا می‌خواند و وقتی گزارش بسته شود، حادثه را برطرف می‌کند. |
 | [GitHub](/docs/integrations/github) | خروجی | برای یک حادثه، issue در GitHub باز می‌کند. |
 | [GitLab](/docs/integrations/gitlab) | خروجی | برای یک حادثه، issue در GitLab باز می‌کند. |
 | [Discord](/docs/integrations/discord) | خروجی | به‌روزرسانی‌های حادثه را به کانالی در Discord می‌فرستد. |

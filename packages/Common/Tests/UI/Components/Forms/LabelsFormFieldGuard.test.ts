@@ -1004,9 +1004,11 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
 
 /*
  * The forms that hand getLabelsFormField a description of their own, in
- * file order: the templates, whose labels are handed on.
+ * file order: the templates, and the Huntress connection, whose labels are
+ * handed on to the incidents they open.
  */
 const TEMPLATES_WORDING_THEIR_OWN_LABELS_HELP: Array<string> = [
+  `${DASHBOARD}/Pages/Incidents/Integrations/HuntressConnectionFormFields.ts: Every incident this connection opens gets these labels, besides one named after the report's Huntress organization.`,
   `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplates.tsx: Incidents declared from this template start with these labels.`,
   `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplatesView.tsx: Incidents declared from this template start with these labels.`,
   `${DASHBOARD}/Pages/Monitor/Settings/MonitorTemplates.tsx: Default labels applied to monitors created from this template.`,
@@ -1244,9 +1246,9 @@ describe("labels on the project's forms", () => {
   });
 
   /*
-   * One sentence says what labels do, on every form. Only a template words
-   * its own: its labels are not the template's access, they are handed on
-   * to what it creates, so it says that instead.
+   * One sentence says what labels do, on every form. Only a template (or
+   * the Huntress connection) words its own: its labels are not its access,
+   * they are handed on to what it creates, so it says that instead.
    */
   test("keep the shared help, except on a template, which says what it hands on", () => {
     expect(

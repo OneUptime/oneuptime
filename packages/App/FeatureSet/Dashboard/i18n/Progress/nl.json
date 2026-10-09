@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 25975,
-    "untranslated": 16710
+    "keys": 27297,
+    "untranslated": 17111
   },
   "sameAsEnglish": [
     "1 week",
     "Alarm",
     "CloudWatch Metric Streams",
+    "In Huntress",
     "Incident {{number}}: {{title}}",
     "Interface {{index}}",
     "Label: {{name}}",

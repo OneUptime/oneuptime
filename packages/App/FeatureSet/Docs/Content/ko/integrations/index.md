@@ -47,6 +47,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 인바운드                | Alertmanager 알림을 인시던트로 변환합니다.                                    |
 | [Grafana](/docs/integrations/grafana)                                 | 인바운드                | Grafana 알림을 인시던트로 변환합니다.                                         |
 | [Datadog](/docs/integrations/datadog)                                 | 인바운드                | Datadog 모니터 알림을 인시던트로 변환합니다.                                  |
+| [Huntress](/docs/integrations/huntress)                               | 인바운드                 | Huntress 인시던트 보고서로 온콜을 호출하고, 보고서가 닫히면 인시던트를 해결합니다. |
 | [GitHub](/docs/integrations/github)                                   | 아웃바운드              | 인시던트에 대한 GitHub 이슈를 엽니다.                                         |
 | [GitLab](/docs/integrations/gitlab)                                   | 아웃바운드              | 인시던트에 대한 GitLab 이슈를 엽니다.                                         |
 | [Discord](/docs/integrations/discord)                                 | 아웃바운드              | 인시던트 업데이트를 Discord 채널에 게시합니다.                                |
