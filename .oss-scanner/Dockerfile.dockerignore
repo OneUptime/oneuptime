@@ -1,0 +1,16 @@
+# The build context of .oss-scanner/Dockerfile. BuildKit reads this file
+# instead of the repository's .dockerignore for that Dockerfile.
+#
+# The root .dockerignore is written for the product images: it leaves out
+# Scripts/, HelmChart/, ee/Tests, Terraform and more, all of which the scanner
+# should see. This one keeps the whole repository and leaves out only what a
+# developer's checkout can hold that a fresh clone never does (installed
+# dependencies, build output, local settings), and .git, which the scanner
+# adds to the finished image itself.
+.git
+**/node_modules
+**/build
+**/public/dist
+config.env
+config.env.*
+**/.env
