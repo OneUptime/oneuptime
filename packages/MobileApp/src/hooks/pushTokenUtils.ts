@@ -17,8 +17,14 @@ export async function unregisterPushToken(): Promise<void> {
       await unregisterPushDevice(token);
       await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
     }
-    // Signed out: nothing is left to move to a new token.
-    await AsyncStorage.removeItem(PREVIOUS_PUSH_TOKEN_KEY);
+
+    /*
+     * Signed out: a token change not yet told to every project is not this
+     * account's to tell any more. Storage is touched only when there is one.
+     */
+    if (await AsyncStorage.getItem(PREVIOUS_PUSH_TOKEN_KEY)) {
+      await AsyncStorage.removeItem(PREVIOUS_PUSH_TOKEN_KEY);
+    }
   } catch {
     // Best-effort: don't block logout
   }

@@ -1,6 +1,8 @@
 import UserPushAPI, {
+  readPreviousExpoPushToken,
   readProjectIdFromBody,
 } from "../../../Server/API/UserPushAPI";
+import ExpoPushReceiptQueue from "../../../Server/Infrastructure/ExpoPushReceiptQueue";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import {
@@ -670,6 +672,318 @@ describe("POST /user-push/register", () => {
       expect(membershipReads).toEqual([]);
       expect(lookup).not.toHaveBeenCalled();
       expect(create).not.toHaveBeenCalled();
+    },
+  );
+
+  /*
+   * A phone's registration is noted for its push receipts: the app asked
+   * Expo for its token just before registering, which renews the token
+   * there. A receipt for a push sent before then saying the token was gone
+   * is about the token as it was, and does not mark the phone
+   * (ExpoPushReceiptService) - an iPhone keeps its Expo push token through a
+   * reinstall, so a page sent while the app was removed is refused in its
+   * receipt after the app is back.
+   */
+  describe("a phone's registration is noted for its push receipts", () => {
+    const PHONE_TOKEN: string = "ExponentPushToken[noted-phone-00000001]";
+
+    let noted: SpyInstance<typeof ExpoPushReceiptQueue.noteTokenRegistered>;
+
+    beforeEach(() => {
+      noted = jest
+        .spyOn(ExpoPushReceiptQueue, "noteTokenRegistered")
+        .mockResolvedValue(undefined);
+      jest
+        .spyOn(UserPushService, "verifyExpoPushDeviceRegisteredAgain")
+        .mockResolvedValue(true);
+    });
+
+    function phone(deviceType: PushDeviceType): JSONObject {
+      return overTheWire({
+        deviceToken: PHONE_TOKEN,
+        deviceType: deviceType,
+        deviceName: "iPhone 15",
+        projectId: PROJECT_ID.toString(),
+      });
+    }
+
+    test.each([[PushDeviceType.iOS], [PushDeviceType.Android]])(
+      "%s, registering for the first time",
+      async (deviceType: PushDeviceType) => {
+        await register(phone(deviceType));
+
+        expect(noted).toHaveBeenCalledTimes(1);
+        expect(noted.mock.calls[0]![0]).toBe(PHONE_TOKEN);
+      },
+    );
+
+    test.each([
+      ["still receiving notifications", true],
+      ["marked as not receiving them", false],
+    ])(
+      "a phone already registered, %s",
+      async (_name: string, isVerified: boolean) => {
+        lookup.mockResolvedValue({
+          _id: EXISTING_DEVICE_ID.toString(),
+          id: EXISTING_DEVICE_ID,
+          isVerified: isVerified,
+          deviceType: PushDeviceType.iOS,
+        } as never);
+
+        await register(phone(PushDeviceType.iOS));
+
+        expect(noted).toHaveBeenCalledTimes(1);
+        expect(noted.mock.calls[0]![0]).toBe(PHONE_TOKEN);
+      },
+    );
+
+    test("a browser has no Expo receipts: nothing is noted", async () => {
+      await register(
+        overTheWire({
+          ...browserRegistration,
+          projectId: PROJECT_ID.toString(),
+        }),
+      );
+
+      expect(noted).not.toHaveBeenCalled();
+    });
+
+    test("somebody who is not a member notes nothing", async () => {
+      members.clear();
+
+      await register(phone(PushDeviceType.Android));
+
+      expect(noted).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Expo gave the app a new push token on a phone where the app kept its
+   * data - a phone set up from a backup of the old one - and the app says
+   * which token it had before. The person's device here registered with the
+   * old token is this phone: it carries the new token from now on, with its
+   * rules. Before, the new token got a new device with default rules, and
+   * the old one stayed - paged until Expo said its token was gone, then "Not
+   * receiving notifications" until somebody deleted it.
+   */
+  describe("a phone that says which token it had before", () => {
+    const NEW_TOKEN: string = "ExponentPushToken[new-phone-token-00001]";
+    const OLD_TOKEN: string = "ExponentPushToken[old-phone-token-00002]";
+
+    let renew: SpyInstance<typeof UserPushService.renewExpoPushDevice>;
+
+    beforeEach(() => {
+      jest
+        .spyOn(ExpoPushReceiptQueue, "noteTokenRegistered")
+        .mockResolvedValue(undefined);
+
+      renew = jest
+        .spyOn(UserPushService, "renewExpoPushDevice")
+        .mockResolvedValue({
+          _id: EXISTING_DEVICE_ID.toString(),
+          id: EXISTING_DEVICE_ID,
+        } as never);
+    });
+
+    function phone(
+      deviceType: PushDeviceType,
+      extra: Record<string, unknown> = {},
+    ): JSONObject {
+      return overTheWire({
+        deviceToken: NEW_TOKEN,
+        deviceType: deviceType,
+        deviceName: "iPhone 16",
+        projectId: PROJECT_ID.toString(),
+        isCriticalAlertEnabled: true,
+        previousDeviceToken: OLD_TOKEN,
+        ...extra,
+      });
+    }
+
+    test.each([[PushDeviceType.iOS], [PushDeviceType.Android]])(
+      "%s: the device registered with the old token carries the new one, with its rules; nothing is created",
+      async (deviceType: PushDeviceType) => {
+        const answer: Answer = await register(phone(deviceType));
+
+        expect(answer).toEqual({
+          json: {
+            success: true,
+            deviceId: EXISTING_DEVICE_ID.toString(),
+            alreadyRegistered: true,
+            isVerified: true,
+          },
+        });
+
+        expect(renew).toHaveBeenCalledTimes(1);
+
+        const renewal: {
+          userId: ObjectID;
+          projectId: ObjectID;
+          previousDeviceToken: string;
+          deviceToken: string;
+          deviceType: PushDeviceType;
+          deviceName: string;
+          isCriticalAlertEnabled: boolean;
+        } = renew.mock.calls[0]![0];
+
+        expect(renewal.userId.toString()).toBe(USER_ID.toString());
+        expect(renewal.projectId.toString()).toBe(PROJECT_ID.toString());
+        expect(renewal.previousDeviceToken).toBe(OLD_TOKEN);
+        expect(renewal.deviceToken).toBe(NEW_TOKEN);
+        expect(renewal.deviceType).toBe(deviceType);
+        expect(renewal.deviceName).toBe("iPhone 16");
+        expect(renewal.isCriticalAlertEnabled).toBe(true);
+
+        expect(create).not.toHaveBeenCalled();
+        // Its own rules came with it; none are added.
+        expect(defaultRules).not.toHaveBeenCalled();
+      },
+    );
+
+    test("the new token is looked up first: a phone already registered with it here keeps that device, and nothing is renewed", async () => {
+      lookup.mockResolvedValue({
+        _id: NEW_DEVICE_ID.toString(),
+        id: NEW_DEVICE_ID,
+        isVerified: true,
+        deviceType: PushDeviceType.iOS,
+      } as never);
+
+      const answer: Answer = await register(phone(PushDeviceType.iOS));
+
+      expect(renew).not.toHaveBeenCalled();
+      expect((answer as { json: JSONObject }).json["deviceId"]).toBe(
+        NEW_DEVICE_ID.toString(),
+      );
+      expect(
+        (lookup.mock.calls[0]![0].query as { deviceToken: string }).deviceToken,
+      ).toBe(NEW_TOKEN);
+    });
+
+    test("no device here with the old token: a new device, with default rules, as before", async () => {
+      renew.mockResolvedValue(null);
+
+      const answer: Answer = await register(phone(PushDeviceType.Android));
+
+      expect(renew).toHaveBeenCalledTimes(1);
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(defaultRules).toHaveBeenCalledTimes(1);
+      expect(answer).toEqual({
+        json: {
+          success: true,
+          deviceId: NEW_DEVICE_ID.toString(),
+          alreadyRegistered: false,
+          isVerified: true,
+        },
+      });
+    });
+
+    test("a phone that does not name its device keeps the name a registration gives it", async () => {
+      await register(phone(PushDeviceType.iOS, { deviceName: undefined }));
+
+      expect(renew.mock.calls[0]![0].deviceName).toBe("Unknown Device");
+    });
+
+    test("critical alerts the phone has off are off on the device it carries on with", async () => {
+      await register(
+        phone(PushDeviceType.iOS, { isCriticalAlertEnabled: undefined }),
+      );
+
+      expect(renew.mock.calls[0]![0].isCriticalAlertEnabled).toBe(false);
+    });
+
+    test.each([
+      ["the token being registered", NEW_TOKEN],
+      ["something that is not an Expo push token", "not-a-token"],
+      ["a browser subscription", BROWSER_SUBSCRIPTION],
+      ["empty", ""],
+      ["a number", 42],
+      ["an object", { token: OLD_TOKEN }],
+    ])(
+      "an old token that is %s is ignored: a new device, as before",
+      async (_name: string, previousDeviceToken: unknown) => {
+        const answer: Answer = await register(
+          phone(PushDeviceType.iOS, { previousDeviceToken: previousDeviceToken }),
+        );
+
+        expect(renew).not.toHaveBeenCalled();
+        expect(create).toHaveBeenCalledTimes(1);
+        expect((answer as { json: JSONObject }).json["alreadyRegistered"]).toBe(
+          false,
+        );
+      },
+    );
+
+    test("a browser naming an old token renews nothing: browsers report a new subscription (subscription-change)", async () => {
+      await register(
+        overTheWire({
+          ...browserRegistration,
+          projectId: PROJECT_ID.toString(),
+          previousDeviceToken: OLD_TOKEN,
+        }),
+      );
+
+      expect(renew).not.toHaveBeenCalled();
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    test("somebody who is not a member renews nothing", async () => {
+      members.clear();
+
+      const answer: Answer = await register(phone(PushDeviceType.iOS));
+
+      expect(answer).toBeInstanceOf(NotAuthorizedException);
+      expect(renew).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe("readPreviousExpoPushToken", () => {
+  const TOKEN: string = "ExponentPushToken[current-token-000001]";
+  const PREVIOUS: string = "ExponentPushToken[previous-token-00001]";
+
+  test.each([[PushDeviceType.iOS], [PushDeviceType.Android]])(
+    "a %s phone's previous Expo push token",
+    (deviceType: PushDeviceType) => {
+      expect(
+        readPreviousExpoPushToken({
+          previousDeviceToken: PREVIOUS,
+          deviceToken: TOKEN,
+          deviceType: deviceType,
+        }),
+      ).toBe(PREVIOUS);
+    },
+  );
+
+  test("the newer token format Expo also issues", () => {
+    expect(
+      readPreviousExpoPushToken({
+        previousDeviceToken: "ExpoPushToken[previous-token-00001]",
+        deviceToken: TOKEN,
+        deviceType: PushDeviceType.iOS,
+      }),
+    ).toBe("ExpoPushToken[previous-token-00001]");
+  });
+
+  test.each([
+    ["from a browser", PREVIOUS, PushDeviceType.Web],
+    ["from a device of no known type", PREVIOUS, "watch"],
+    ["the token itself", TOKEN, PushDeviceType.iOS],
+    ["not an Expo push token", "abc", PushDeviceType.iOS],
+    ["empty", "", PushDeviceType.iOS],
+    ["missing", undefined, PushDeviceType.iOS],
+    ["null", null, PushDeviceType.Android],
+    ["a number", 7, PushDeviceType.Android],
+    ["a list", [PREVIOUS], PushDeviceType.Android],
+  ])(
+    "none %s",
+    (_name: string, previousDeviceToken: unknown, deviceType: unknown) => {
+      expect(
+        readPreviousExpoPushToken({
+          previousDeviceToken: previousDeviceToken,
+          deviceToken: TOKEN,
+          deviceType: deviceType,
+        }),
+      ).toBeNull();
     },
   );
 });

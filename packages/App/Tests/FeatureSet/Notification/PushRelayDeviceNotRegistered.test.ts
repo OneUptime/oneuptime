@@ -308,7 +308,11 @@ describe("the relay (POST /api/notification/push-relay/send)", () => {
     expect(JSON.stringify(answer.jsonData)).not.toContain(GONE_TOKEN);
   });
 
-  test("any other refusal from Expo is the server error it always was", async () => {
+  /*
+   * It was 500 "Server Error", which told the server that relayed the page
+   * nothing (PushRelayReceipts.test.ts covers every refusal).
+   */
+  test("any other refusal from Expo is answered 502, with Expo's code and words", async () => {
     expoAnswers.set(GONE_TOKEN, {
       status: "error",
       message: "Message too big",
@@ -318,11 +322,14 @@ describe("the relay (POST /api/notification/push-relay/send)", () => {
     const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await postToRelay(relayUrl, relayRequest(GONE_TOKEN));
 
-    expect(answer.statusCode).toBe(500);
-    expect(answer.jsonData).toEqual({ error: "Server Error" });
+    expect(answer.statusCode).toBe(502);
+    expect(answer.jsonData).toEqual({
+      message: "Message too big",
+      details: { error: "MessageTooBig" },
+    });
   });
 
-  test("a page Expo accepts is answered as it always was", async () => {
+  test("a page Expo accepts is answered as it always was, and names its receipt", async () => {
     const answer: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await postToRelay(
         relayUrl,
@@ -335,7 +342,8 @@ describe("the relay (POST /api/notification/push-relay/send)", () => {
 
     expect(answer).not.toBeInstanceOf(HTTPErrorResponse);
     expect(answer.statusCode).toBe(200);
-    expect(answer.jsonData).toEqual({ success: true });
+    // A server older than this reads `success` and nothing else.
+    expect(answer.jsonData).toEqual({ success: true, receiptId: "receipt-1" });
     // The page's whole delivery shape still reaches Expo.
     expect(expoSends[0]).toEqual({
       to: WORKING_TOKEN,
@@ -450,7 +458,7 @@ describe("a self-hosted server relaying through it", () => {
     ]);
   });
 
-  test("any other refusal fails the send, and nothing is marked", async () => {
+  test("any other refusal fails the send in Expo's words, and nothing is marked", async () => {
     expoAnswers.set(GONE_TOKEN, {
       status: "error",
       message: "Message too big",
@@ -461,7 +469,7 @@ describe("a self-hosted server relaying through it", () => {
 
     expect(markAsGone).not.toHaveBeenCalled();
     expect((failure as Error).message).toBe(
-      'Push relay error: {"error":"Server Error"}',
+      "Expo push notification failed: Message too big",
     );
   });
 });

@@ -1,6 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { unregisterPushDevice } from "../api/pushDevice";
-import { PUSH_TOKEN_KEY, unregisterPushToken } from "./pushTokenUtils";
+import {
+  getPreviousPushTokenToReport,
+  PREVIOUS_PUSH_TOKEN_KEY,
+  previousPushTokenReported,
+  PUSH_TOKEN_KEY,
+  unregisterPushToken,
+} from "./pushTokenUtils";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 
 /*
@@ -198,5 +204,100 @@ describe("PUSH_TOKEN_KEY", () => {
      * account that had signed out.
      */
     expect(PUSH_TOKEN_KEY).toBe("oneuptime_expo_push_token");
+  });
+});
+
+/*
+ * Expo gives the app a new push token on a phone set up from a backup of the
+ * old one, while the app's data - this stored token among it - comes along.
+ * The app then tells every project the token it had before, and the server
+ * moves the device registered with it, rules and all, to the new token,
+ * instead of adding a new device beside one that can no longer be reached.
+ */
+describe("getPreviousPushTokenToReport", () => {
+  const OLD_TOKEN: string = "ExponentPushToken[old-handset]";
+  const NEW_TOKEN: string = "ExponentPushToken[new-handset]";
+
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  test("the first registration on this install has nothing to report, and writes nothing", async () => {
+    expect(await getPreviousPushTokenToReport(NEW_TOKEN)).toBeNull();
+    expect(await AsyncStorage.getItem(PREVIOUS_PUSH_TOKEN_KEY)).toBeNull();
+  });
+
+  test("an unchanged token has nothing to report", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, NEW_TOKEN);
+
+    expect(await getPreviousPushTokenToReport(NEW_TOKEN)).toBeNull();
+    expect(await AsyncStorage.getItem(PREVIOUS_PUSH_TOKEN_KEY)).toBeNull();
+  });
+
+  test("a new token on a phone that kept the old one: the old one, kept until every project is told", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, OLD_TOKEN);
+
+    expect(await getPreviousPushTokenToReport(NEW_TOKEN)).toBe(OLD_TOKEN);
+    expect(await AsyncStorage.getItem(PREVIOUS_PUSH_TOKEN_KEY)).toBe(OLD_TOKEN);
+  });
+
+  test("not every project was told last time: the old one is reported again, though the new one is stored by now", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, NEW_TOKEN);
+    await AsyncStorage.setItem(PREVIOUS_PUSH_TOKEN_KEY, OLD_TOKEN);
+
+    expect(await getPreviousPushTokenToReport(NEW_TOKEN)).toBe(OLD_TOKEN);
+  });
+
+  test("a kept old token that is the token now is nothing to report, and is cleared", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, NEW_TOKEN);
+    await AsyncStorage.setItem(PREVIOUS_PUSH_TOKEN_KEY, NEW_TOKEN);
+
+    expect(await getPreviousPushTokenToReport(NEW_TOKEN)).toBeNull();
+    expect(await AsyncStorage.getItem(PREVIOUS_PUSH_TOKEN_KEY)).toBeNull();
+  });
+
+  test("once every project was told, there is nothing left to report", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, OLD_TOKEN);
+    await getPreviousPushTokenToReport(NEW_TOKEN);
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, NEW_TOKEN);
+
+    await previousPushTokenReported();
+
+    expect(await AsyncStorage.getItem(PREVIOUS_PUSH_TOKEN_KEY)).toBeNull();
+    expect(await getPreviousPushTokenToReport(NEW_TOKEN)).toBeNull();
+  });
+
+  test("keeps its storage key fixed: it outlives an app update", () => {
+    expect(PREVIOUS_PUSH_TOKEN_KEY).toBe("oneuptime_expo_previous_push_token");
+    expect(PREVIOUS_PUSH_TOKEN_KEY).not.toBe(PUSH_TOKEN_KEY);
+  });
+});
+
+describe("unregisterPushToken and an old token not yet reported", () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+    unregisterSpy().mockResolvedValue(undefined as never);
+  });
+
+  test("signing out forgets it: it is not the next account's to report", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    await AsyncStorage.setItem(
+      PREVIOUS_PUSH_TOKEN_KEY,
+      "ExponentPushToken[old-handset]",
+    );
+
+    await unregisterPushToken();
+
+    expect(await AsyncStorage.getItem(PREVIOUS_PUSH_TOKEN_KEY)).toBeNull();
+    expect(unregisterSpy()).toHaveBeenCalledWith(DEVICE_TOKEN);
+  });
+
+  test("with none kept, storage is not touched for it", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    removeItemSpy().mockClear();
+
+    await unregisterPushToken();
+
+    expect(removeItemSpy().mock.calls).toEqual([[PUSH_TOKEN_KEY]]);
   });
 });
