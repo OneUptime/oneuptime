@@ -31,7 +31,9 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # was built), then install runtime tools (bash, curl, openssl) and the NJS
 # module in a single --no-cache layer so the apk index data doesn't persist in
 # the image. libstdc++ (pulls in libgcc) is required by the node binary and the
-# isolated-vm prebuilt C++ addon copied/installed below.
+# isolated-vm prebuilt C++ addon copied/installed below, and libatomic by the
+# node binary itself on x86-64 (from Node 26.11): node is copied from the
+# donor stage, so apk does not pull in what it links against.
 #
 # The nginx base image also ships the image-filter, xslt and geoip dynamic
 # modules. nginx.conf loads only the njs module, and the other three bring in
@@ -39,7 +41,7 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # fontconfig, the X11 client libraries, libxslt, GeoIP), including tiff's
 # unfixed CVEs. Removing them takes those libraries with them.
 RUN apk upgrade --no-cache \
-    && apk add --no-cache bash curl openssl nginx-module-njs libstdc++ \
+    && apk add --no-cache bash curl openssl nginx-module-njs libstdc++ libatomic \
     && apk del --no-cache nginx-module-image-filter nginx-module-xslt nginx-module-geoip
 
 # Install Node 26 + npm from the donor stage above (apk has no Node 26
