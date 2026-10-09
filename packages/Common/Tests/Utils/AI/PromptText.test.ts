@@ -641,3 +641,100 @@ describe("PromptText on megabytes", () => {
     expect(omit(run)).toBe("[encoded data omitted: 16 MB]");
   });
 });
+
+describe("PromptText.omitDataUrls and PromptText.omitEncodedRuns", () => {
+  const blob: string = noiseBase64(3000);
+  const text: string = `![x](data:image/png;base64,${PNG}) and ${blob} end`;
+
+  test("omitDataUrls leaves out data: URLs only", () => {
+    const result: PromptTextResult = PromptText.omitDataUrls(text);
+
+    expect(result.text).toBe(
+      `![x]([image omitted: PNG, 70 bytes]) and ${blob} end`,
+    );
+    expect(result.omissions).toEqual(
+      noOmissionsBut({ imageCount: 1, imageBytes: 70 }),
+    );
+  });
+
+  test("omitEncodedRuns leaves out long runs of base64 only", () => {
+    const result: PromptTextResult = PromptText.omitEncodedRuns(text);
+
+    expect(result.text).toBe(
+      `![x](data:image/png;base64,${PNG}) and [encoded data omitted: 4 KB] end`,
+    );
+    expect(result.omissions).toEqual(
+      noOmissionsBut({ encodedDataCount: 1, encodedDataBytes: blob.length }),
+    );
+  });
+
+  test("one after the other, they leave out what omitEmbeddedData does", () => {
+    expect(
+      PromptText.omitEncodedRuns(PromptText.omitDataUrls(text).text).text,
+    ).toBe(omit(text));
+  });
+});
+
+describe("PromptText.draftField", () => {
+  test(`holds a field to ${MAX_DRAFT_PROMPT_FIELD_LENGTH} characters and adds up what it left out`, () => {
+    const omissions: AIPromptOmissions = PromptText.noOmissions();
+    const field: string = PromptText.draftField(
+      "detail ".repeat(3000),
+      omissions,
+    );
+
+    expect(field.length).toBeLessThan(MAX_DRAFT_PROMPT_FIELD_LENGTH + 64);
+    expect(omissions.shortenedTextCount).toBe(1);
+    expect(PromptText.draftField(null)).toBe("");
+  });
+});
+
+describe("PromptText.findNote", () => {
+  test.each([
+    "[image omitted: PNG, 340 KB]",
+    "[image omitted: image/svg+xml, 3 KB]",
+    "[image omitted: 12 bytes]",
+    "[file omitted: application/pdf, 1.2 MB]",
+    "[file omitted: 1 byte]",
+    "[encoded data omitted: 16 MB]",
+    "[encoded data omitted: 1,023 bytes]",
+  ])("finds %s", (note: string) => {
+    expect(PromptText.findNote(`before ${note} after`)).toBe(note);
+  });
+
+  test("finds every note omitEmbeddedData writes", () => {
+    const written: string = omit(
+      `data:image/png;base64,${PNG} data:application/pdf;base64,QUJD ${noiseBase64(2000)}`,
+    );
+
+    expect(written).toBe(
+      "[image omitted: PNG, 70 bytes] [file omitted: application/pdf, 3 bytes] [encoded data omitted: 3 KB]",
+    );
+    expect(PromptText.findNote(written)).toBe(
+      "[image omitted: PNG, 70 bytes]",
+    );
+    expect(PromptText.findNote(written.slice(30))).toBe(
+      "[file omitted: application/pdf, 3 bytes]",
+    );
+    expect(PromptText.findNote(written.slice(72))).toBe(
+      "[encoded data omitted: 3 KB]",
+    );
+  });
+
+  test.each([
+    [
+      "text that only talks about notes",
+      "Images are [image omitted: …] in prompts.",
+    ],
+    ["no size", "[image omitted: PNG]"],
+    ["an unclosed note", "[image omitted: PNG, 340 KB"],
+    ["nothing", ""],
+  ])("finds nothing in %s", (_label: string, text: string) => {
+    expect(PromptText.findNote(text)).toBeNull();
+  });
+
+  test("reads nothing that is not text", () => {
+    expect(PromptText.findNote(null)).toBeNull();
+    expect(PromptText.findNote(undefined)).toBeNull();
+  });
+});

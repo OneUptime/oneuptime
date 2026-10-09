@@ -64,18 +64,19 @@ function capText(text: string, maxChars: number): string {
 }
 
 /*
- * Leave embedded data out, redact secrets, THEN cap. Order matters: capping
- * first could slice a secret across the boundary so the redaction regex no
- * longer matches it, leaving a near-complete key in the prompt. Redacting
- * first replaces the whole secret with a short marker before any truncation,
- * and truncating a marker can only ever drop marker characters — never
- * resurrect the secret. An HTTP step that fetched an image would otherwise
- * fill the step's share of the prompt with base64 (PromptText puts a short
- * note in its place).
+ * Redact secrets (with embedded data left out around it), THEN cap. Order
+ * matters: capping first could slice a secret across the boundary so the
+ * redaction regex no longer matches it, leaving a near-complete key in the
+ * prompt. Redacting first replaces the whole secret with a short marker
+ * before any truncation, and truncating a marker can only ever drop marker
+ * characters — never resurrect the secret. An HTTP step that fetched an
+ * image would otherwise fill the step's share of the prompt with base64
+ * (ToolResultSerializer.redactAndOmitEmbeddedData puts a short note in its
+ * place).
  */
 function redactAndCap(text: string, maxChars: number): string {
   return capText(
-    ToolResultSerializer.redact(PromptText.omitEmbeddedData(text).text).text,
+    ToolResultSerializer.redactAndOmitEmbeddedData(text).text,
     maxChars,
   );
 }

@@ -487,6 +487,93 @@ describe("change validation (all of this is untrusted LLM output)", () => {
     expect(commitSpy).toHaveBeenCalled();
   });
 
+  /*
+   * The model reads a file with its embedded data left out: a data: URL in
+   * a stylesheet reads as "[image omitted: PNG, 2 KB]" (PromptText). Written
+   * back whole, that note would replace the image in the pull request.
+   */
+  test.each([
+    [
+      "an image",
+      ".logo { background: url([image omitted: PNG, 2 KB]); }",
+      "[image omitted: PNG, 2 KB]",
+    ],
+    [
+      "a file",
+      "const pdf = '[file omitted: application/pdf, 12 KB]';",
+      "[file omitted: application/pdf, 12 KB]",
+    ],
+    [
+      "encoded data",
+      'export const fixture = "[encoded data omitted: 4 KB]";',
+      "[encoded data omitted: 4 KB]",
+    ],
+  ])(
+    "refuses a file that would write the note it was shown in place of %s",
+    async (_kind: string, content: string, note: string) => {
+      const commitSpy: jest.SpiedFunction<
+        typeof GitHubUtil.commitFilesToBranch
+      > = jest.spyOn(GitHubUtil, "commitFilesToBranch");
+
+      await expect(
+        CommitCodeToBranchTool.execute(
+          {
+            branchName: "feature",
+            commitMessage: "m",
+            changes: [{ filePath: "src/style.css", content }],
+          },
+          ctx,
+        ),
+      ).rejects.toThrow(
+        `The new contents of "src/style.css" contain "${note}". You were shown that note in place of an image or other data embedded in the file`,
+      );
+
+      await expect(
+        OpenCodePullRequestTool.execute(
+          {
+            title: "t",
+            description: "d",
+            changes: [{ filePath: "src/style.css", content }],
+          },
+          ctx,
+        ),
+      ).rejects.toThrow(/Leave this file to a person/);
+
+      expect(commitSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("writes a file that only talks about images", async () => {
+    jest.spyOn(GitHubUtil, "getBranch").mockResolvedValue({
+      name: "feature",
+      headSha: "abc",
+      isProtected: false,
+    });
+    const commitSpy: jest.SpiedFunction<typeof GitHubUtil.commitFilesToBranch> =
+      jest.spyOn(GitHubUtil, "commitFilesToBranch").mockResolvedValue({
+        commitSha: "c1",
+        branchName: "feature",
+        htmlUrl: "u",
+      });
+
+    await CommitCodeToBranchTool.execute(
+      {
+        branchName: "feature",
+        commitMessage: "m",
+        changes: [
+          {
+            filePath: "README.md",
+            content:
+              "Images are [image omitted: …] in prompts.\n![logo](data:image/png;base64,iVBORw0KGgo=)\n",
+          },
+        ],
+      },
+      ctx,
+    );
+
+    expect(commitSpy).toHaveBeenCalled();
+  });
+
   test("strips a leading slash rather than failing", async () => {
     jest.spyOn(GitHubUtil, "getBranch").mockResolvedValue({
       name: "feature",

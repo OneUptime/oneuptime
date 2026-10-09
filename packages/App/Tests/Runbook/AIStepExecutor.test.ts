@@ -1155,3 +1155,90 @@ describe("runAiStep — LLM provider pinning", () => {
     expect(result.errorMessage).toContain("budget exhausted");
   });
 });
+
+/*
+ * A runbook AI step reads what came before it: an incident's description,
+ * an earlier HTTP step's response, a responder's notes. Any of them can hold
+ * an image as base64 - a synthetic monitor's screenshot in the description,
+ * a fetched image in a response body - which the model cannot read and
+ * would be billed for, and which used to fill the step's share of the
+ * prompt before the words after it (issue #4587). Each becomes a short note.
+ */
+describe("a runbook AI step and embedded images", () => {
+  const screenshot: string = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    Buffer.alloc(100 * 1024 - 8, 0x5a),
+  ]).toString("base64");
+  const image: string = `![shot](data:image/png;base64,${screenshot})`;
+  const note: string = "![shot]([image omitted: PNG, 100 KB])";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("an earlier step's output keeps the words after an image", () => {
+    const context: string = buildPreviousStepsContext([
+      makePreviousStep({
+        output: `{"thumbnail":"data:image/png;base64,${screenshot}","status":"ok"}`,
+      }),
+    ]);
+
+    expect(context).toContain(
+      '{"thumbnail":"[image omitted: PNG, 100 KB]","status":"ok"}',
+    );
+    expect(context).not.toContain(screenshot.slice(1000, 1064));
+  });
+
+  test("a step's description and a responder's notes leave their images out", () => {
+    const previous: RunbookStepExecutionState = makePreviousStep({
+      notes: `Looked like this:\n${image}`,
+    });
+    previous.step = { ...previous.step, description: `Checks:\n${image}` };
+
+    const context: string = buildPreviousStepsContext([previous]);
+
+    expect(context).toContain(`Description: Checks:\n${note}`);
+    expect(context).toContain(`Responder notes: Looked like this:\n${note}`);
+  });
+
+  test("the AI step's own description leaves its image out", () => {
+    const step: RunbookStep = makeAiStep();
+    step.description = `Summarize:\n${image}`;
+
+    const messages: Array<LLMMessage> = buildAiStepMessages({
+      step,
+      prompt: "Summarize what happened.",
+    });
+
+    expect(messages[1]!.content).toContain(`Step description: Summarize:\n${note}`);
+    expect(messages[1]!.content).not.toContain(screenshot.slice(1000, 1064));
+  });
+
+  test("the linked incident's description is read without its screenshot", async () => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(IncidentAIContextBuilder, "buildIncidentContext").mockResolvedValue({
+      incident: {
+        projectId: PROJECT_ID,
+        title: "Checkout fails",
+        description: `Synthetic check failed.\n\n${image}`,
+      },
+      stateTimeline: [],
+      internalNotes: [],
+      publicNotes: [{ note: "We are looking into it." }],
+      workspaceMessages: [],
+    } as unknown as IncidentContextData);
+
+    const context: string = await buildTriggerContext(
+      makeCtx({ incidentId: new ObjectID("inc1") }),
+    );
+
+    expect(context).toContain(
+      `**Description:** Synthetic check failed.\n\n${note}`,
+    );
+    // Before, the screenshot filled the context's 30,000 characters first.
+    expect(context).toContain("We are looking into it.");
+    expect(context).not.toContain(screenshot.slice(1000, 1064));
+  });
+});

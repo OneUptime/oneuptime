@@ -154,6 +154,12 @@ export interface PromptTextResult {
   omissions: AIPromptOmissions;
 }
 
+// What a scan leaves out: data: URLs, long runs of base64, or both.
+interface ScanOptions {
+  dataUrls: boolean;
+  encodedRuns: boolean;
+}
+
 export interface FittedText {
   text: string;
   // How many characters the cut left out; 0 when the text fit.
@@ -465,6 +471,30 @@ export default class PromptText {
    * with neither comes back as the same string.
    */
   public static omitEmbeddedData(text: string): PromptTextResult {
+    return PromptText.scan(text, { dataUrls: true, encodedRuns: true });
+  }
+
+  /**
+   * omitEmbeddedData for data: URLs only. A data: URL ends where its data
+   * does, so what a secret-redacting rule reads around it is the same with
+   * or without it: a caller that redacts leaves these out first, so the
+   * rules never read a screenshot's megabytes.
+   */
+  public static omitDataUrls(text: string): PromptTextResult {
+    return PromptText.scan(text, { dataUrls: true, encodedRuns: false });
+  }
+
+  /**
+   * omitEmbeddedData for long runs of base64 only. A run has no edge of its
+   * own: a secret glued to one - a token's first part - would go with it,
+   * and the rest would no longer look like the secret. A caller that redacts
+   * leaves these out after redacting.
+   */
+  public static omitEncodedRuns(text: string): PromptTextResult {
+    return PromptText.scan(text, { dataUrls: false, encodedRuns: true });
+  }
+
+  private static scan(text: string, options: ScanOptions): PromptTextResult {
     const omissions: AIPromptOmissions = PromptText.noOmissions();
 
     if (typeof text !== "string" || text.length === 0) {
@@ -500,7 +530,7 @@ export default class PromptText {
       end: number,
       kinds: number,
     ): number => {
-      if (end - start < MIN_ENCODED_RUN_LENGTH) {
+      if (!options.encodedRuns || end - start < MIN_ENCODED_RUN_LENGTH) {
         return end;
       }
 
@@ -565,7 +595,11 @@ export default class PromptText {
        * "data:" ends at a colon, after four characters that were part of a
        * run - the run is the text before the URL.
        */
-      if (code === CHAR_COLON && matchesAt(text, index - 4, "data")) {
+      if (
+        options.dataUrls &&
+        code === CHAR_COLON &&
+        matchesAt(text, index - 4, "data")
+      ) {
         const url: EmbeddedDataUrl | null = readDataUrl(text, index - 4);
 
         if (url) {

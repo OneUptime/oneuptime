@@ -109,17 +109,18 @@ function capText(text: string, maxChars: number): string {
 }
 
 /*
- * Leave embedded data out, redact secrets, THEN cap. Order matters: capping
- * first could slice a secret across the boundary so the redaction regex no
- * longer matches it - and a description that starts with a screenshot would
- * reach the model as its first few thousand characters of base64, with the
- * words after it cut off (PromptText: the image becomes a short note).
- * Exported for the remediation-execution runner, which embeds the same
- * attacker-influenceable signal text under the same rules.
+ * Redact secrets (with embedded data left out around it), THEN cap. Order
+ * matters: capping first could slice a secret across the boundary so the
+ * redaction regex no longer matches it. A description that starts with a
+ * screenshot would otherwise reach the model as its first few thousand
+ * characters of base64, with the words after it cut off (see
+ * ToolResultSerializer.redactAndOmitEmbeddedData: the image becomes a short
+ * note). Exported for the remediation-execution runner, which embeds the
+ * same attacker-influenceable signal text under the same rules.
  */
 export function redactAndCap(text: string, maxChars: number): string {
   return capText(
-    ToolResultSerializer.redact(PromptText.omitEmbeddedData(text).text).text,
+    ToolResultSerializer.redactAndOmitEmbeddedData(text).text,
     maxChars,
   );
 }
