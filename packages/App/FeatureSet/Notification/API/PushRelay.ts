@@ -11,41 +11,61 @@ import { JSONObject } from "Common/Types/JSON";
 import PushNotificationService, {
   ExpoDeviceNotRegisteredError,
   ExpoInterruptionLevel,
+  ExpoPushRefusedError,
   ExpoPushSound,
+  MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST,
 } from "Common/Server/Services/PushNotificationService";
 
 const router: ExpressRouter = Express.getRouter();
 
-// Simple in-memory rate limiter by IP
-const rateLimitMap: Map<string, { count: number; resetTime: number }> =
-  new Map();
 const RATE_LIMIT_WINDOW_MS: number = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS: number = 60; // 60 requests per minute per IP
 
-function isRateLimited(ip: string): boolean {
-  const now: number = Date.now();
-  const entry: { count: number; resetTime: number } | undefined =
-    rateLimitMap.get(ip);
+/*
+ * A simple in-memory rate limiter by client IP: RATE_LIMIT_MAX_REQUESTS a
+ * minute. Each route has its own, so the receipts a server asks for never
+ * use up the requests its pages are sent with - a page refused for the
+ * relay's rate limit is not delivered.
+ */
+export class RelayRateLimiter {
+  private readonly entries: Map<string, { count: number; resetTime: number }> =
+    new Map();
 
-  if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return false;
+  public isRateLimited(ip: string, now: number = Date.now()): boolean {
+    const entry: { count: number; resetTime: number } | undefined =
+      this.entries.get(ip);
+
+    if (!entry || now > entry.resetTime) {
+      this.entries.set(ip, {
+        count: 1,
+        resetTime: now + RATE_LIMIT_WINDOW_MS,
+      });
+      return false;
+    }
+
+    entry.count++;
+
+    return entry.count > RATE_LIMIT_MAX_REQUESTS;
   }
 
-  entry.count++;
-
-  return entry.count > RATE_LIMIT_MAX_REQUESTS;
+  // Forget the addresses whose window has passed.
+  public prune(now: number = Date.now()): void {
+    for (const [ip, entry] of this.entries.entries()) {
+      if (now > entry.resetTime) {
+        this.entries.delete(ip);
+      }
+    }
+  }
 }
+
+const sendRateLimiter: RelayRateLimiter = new RelayRateLimiter();
+const receiptsRateLimiter: RelayRateLimiter = new RelayRateLimiter();
 
 // Clean up stale rate limit entries every 5 minutes
 setInterval(
   () => {
-    const now: number = Date.now();
-    for (const [ip, entry] of rateLimitMap.entries()) {
-      if (now > entry.resetTime) {
-        rateLimitMap.delete(ip);
-      }
-    }
+    sendRateLimiter.prune();
+    receiptsRateLimiter.prune();
   },
   5 * 60 * 1000,
 );
@@ -158,6 +178,41 @@ export function parseRelayInterruptionLevel(
   return raw as ExpoInterruptionLevel;
 }
 
+/*
+ * The receipt ids a server asks the relay about: the ids the relay answered
+ * its sends with. A list of 1 to MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST
+ * receipt ids (Expo's own chunk size, one request to Expo), each asked for
+ * once. Anything else is refused: this route is unauthenticated, and what it
+ * passes on goes to Expo under this deployment's access token.
+ */
+export function parseRelayReceiptIds(raw: unknown): Array<string> {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new BadDataException(
+      "'ids' must be a list of the receipt ids the relay answered its sends with.",
+    );
+  }
+
+  if (raw.length > MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST) {
+    throw new BadDataException(
+      `At most ${MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST} receipt ids can be asked for at once.`,
+    );
+  }
+
+  const ids: Array<string> = [];
+
+  for (const id of raw) {
+    if (!PushNotificationService.isExpoPushReceiptId(id)) {
+      throw new BadDataException("Each receipt id must be a receipt id.");
+    }
+
+    if (!ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+
+  return ids;
+}
+
 router.post(
   "/send",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -171,7 +226,7 @@ router.post(
        */
       const clientIp: string = resolveClientIp(req) || "unknown";
 
-      if (isRateLimited(clientIp)) {
+      if (sendRateLimiter.isRateLimited(clientIp)) {
         res.status(429).json({
           message: "Rate limit exceeded. Please try again later.",
         });
@@ -209,18 +264,27 @@ router.post(
       const interruptionLevel: ExpoInterruptionLevel | undefined =
         parseRelayInterruptionLevel(body["interruptionLevel"]);
 
-      await PushNotificationService.sendRelayPushNotification({
-        to: to,
-        ...(title !== undefined ? { title } : {}),
-        ...(messageBody !== undefined ? { body: messageBody } : {}),
-        data: (body["data"] as { [key: string]: string }) || {},
-        sound: sound === undefined ? "default" : sound,
-        priority: (body["priority"] as string) || "high",
-        channelId: (body["channelId"] as string) || "default",
-        ...(interruptionLevel ? { interruptionLevel } : {}),
-      });
+      const receiptId: string | undefined =
+        await PushNotificationService.sendRelayPushNotification({
+          to: to,
+          ...(title !== undefined ? { title } : {}),
+          ...(messageBody !== undefined ? { body: messageBody } : {}),
+          data: (body["data"] as { [key: string]: string }) || {},
+          sound: sound === undefined ? "default" : sound,
+          priority: (body["priority"] as string) || "high",
+          channelId: (body["channelId"] as string) || "default",
+          ...(interruptionLevel ? { interruptionLevel } : {}),
+        });
 
-      return Response.sendJsonObjectResponse(req, res, { success: true });
+      /*
+       * The receipt id of the push Expo accepted, for the server to ask
+       * whether it was delivered (POST /receipts, about 15 minutes on). A
+       * server older than this reads `success` and nothing else.
+       */
+      return Response.sendJsonObjectResponse(req, res, {
+        success: true,
+        ...(receiptId ? { receiptId: receiptId } : {}),
+      });
     } catch (err) {
       /*
        * Expo says the token is gone. Answered apart from every other
@@ -239,6 +303,69 @@ router.post(
         return;
       }
 
+      /*
+       * Expo refused the push for another reason - the message is too big,
+       * the phone got too many too fast, the push credentials are not
+       * valid. Answered with Expo's code and words, where it used to be 500
+       * "Server Error", which told the server that relayed the page nothing.
+       * Still a failure to every server, of any version.
+       */
+      if (err instanceof ExpoPushRefusedError) {
+        res
+          .status(PushNotificationService.RELAY_EXPO_REFUSAL_STATUS_CODE)
+          .json(PushNotificationService.getRelayExpoRefusalAnswer(err));
+        return;
+      }
+
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Whether the pushes a server relayed were delivered: their receipts, which
+ * the relay reads from Expo with its access token, since the server that
+ * relayed them has none. The server asks with the receipt ids the relay
+ * answered its sends with, about 15 minutes after each (its workers'
+ * ExpoPushReceiptService). Answered as { receipts: { <id>: receipt } }, a
+ * receipt that is not ready yet left out, as Expo does.
+ *
+ * The relay keeps nothing about the pushes it sends: each server keeps its
+ * own receipt ids and asks for them. Like /send, the route is
+ * unauthenticated and rate limited by client IP, in a bucket of its own; a
+ * receipt id is a random UUID only its sender was given, and an answer
+ * carries no push token.
+ */
+router.post(
+  "/receipts",
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const clientIp: string = resolveClientIp(req) || "unknown";
+
+      if (receiptsRateLimiter.isRateLimited(clientIp)) {
+        res.status(429).json({
+          message: "Rate limit exceeded. Please try again later.",
+        });
+        return;
+      }
+
+      if (!PushNotificationService.hasExpoAccessToken()) {
+        throw new BadDataException(
+          "Push relay is not configured. EXPO_ACCESS_TOKEN is not set on this server.",
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+
+      const receiptIds: Array<string> = parseRelayReceiptIds(body["ids"]);
+
+      const receipts: JSONObject =
+        await PushNotificationService.getRelayPushReceipts(receiptIds);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        receipts: receipts,
+      });
+    } catch (err) {
       return next(err);
     }
   },
