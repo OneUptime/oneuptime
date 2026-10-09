@@ -539,7 +539,7 @@ describe("IncidentPublicNoteService addNote (Slack and Microsoft Teams)", () => 
       );
 
     await IncidentPublicNoteService.addNote({
-      userId: USER_ID,
+      props: noteCreatorProps(),
       incidentId: INCIDENT_ID,
       projectId: PROJECT_ID,
       note: "Posted from the incident channel.",
@@ -562,7 +562,9 @@ describe("IncidentPublicNoteService addNote (Slack and Microsoft Teams)", () => 
     ).toBeUndefined();
     expect(createBy.data.incidentId?.toString()).toBe(INCIDENT_ID.toString());
     expect(createBy.data.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(createBy.props).toEqual({ isRoot: true });
+    // Created with the member's own props: the note is theirs.
+    expect(createBy.props.userId).toEqual(USER_ID);
+    expect(createBy.props.isRoot).toBeUndefined();
   });
 
   test("a note posted on a quiet incident stays quiet", async () => {
@@ -649,6 +651,8 @@ describe("IncidentPublicNoteService create() with the notify default", () => {
     });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(save.mock.calls[0]![0]).toBe(saved);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
@@ -706,13 +710,15 @@ describe("IncidentPublicNoteService create() with the notify default", () => {
     mockIncidentLookup(incidentWithFlag(false));
 
     const saved: IncidentPublicNote = await IncidentPublicNoteService.addNote({
-      userId: USER_ID,
+      props: noteCreatorProps(),
       incidentId: INCIDENT_ID,
       projectId: PROJECT_ID,
       note: "Posted from the incident channel.",
     });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
     );

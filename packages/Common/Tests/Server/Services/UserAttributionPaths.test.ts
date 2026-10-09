@@ -13,7 +13,6 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
-import IncidentPublicNoteService from "../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import UserService from "../../../Server/Services/UserService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -177,24 +176,12 @@ describe("a workflow cannot name who did something to a record", () => {
   });
 });
 
+/*
+ * (A note posted from Slack or Microsoft Teams is the member's own write, made
+ * with their props: the *PublicNoteNotifyDefault suites save one through the
+ * whole create and find it by them.)
+ */
 describe("OneUptime's own server code records the person it acts for", () => {
-  test("a note posted from Slack or Microsoft Teams is by the person who posted it", async () => {
-    const reached: () => Record<string, unknown> = stopAtTheHooks(
-      IncidentPublicNoteService,
-    );
-
-    await expect(
-      IncidentPublicNoteService.addNote({
-        userId: PERSON_ID,
-        incidentId: new ObjectID(RECORD_ID),
-        projectId: PROJECT_ID,
-        note: "Customers are seeing timeouts.",
-      }),
-    ).rejects.toBeInstanceOf(AtTheHooks);
-
-    expect(String(reached()["createdByUserId"])).toBe(PERSON_ID.toString());
-  });
-
   test("an account made by an invitation is by the person who invited", async () => {
     const reached: () => Record<string, unknown> = stopAtTheHooks(UserService);
 

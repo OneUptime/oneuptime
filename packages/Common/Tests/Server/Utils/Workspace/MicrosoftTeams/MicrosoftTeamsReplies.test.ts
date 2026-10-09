@@ -70,6 +70,7 @@ import MicrosoftTeamsReplies, {
 import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import ServerException from "../../../../../Types/Exception/ServerException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -1495,6 +1496,22 @@ const USER_FACING_CASES: Array<UserFacingCase> = [
     ),
     expected:
       "You do not have permission to create scheduled maintenance events.",
+  },
+  {
+    /*
+     * What a card action made with the member's own props is refused with
+     * when the project's plan does not include it - theirs to read.
+     */
+    description: "a plan the project is not on (PaymentRequiredException)",
+    error: new PaymentRequiredException(
+      "Please upgrade your plan to use this feature.",
+    ),
+    expected: "Please upgrade your plan to use this feature.",
+  },
+  {
+    description: "a PaymentRequiredException with an empty message",
+    error: new PaymentRequiredException(""),
+    expected: null,
   },
   {
     description:

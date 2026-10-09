@@ -35,6 +35,7 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../../../../Server/Utils/Workspace/WorkspaceReactionNote";
 import URL from "../../../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
@@ -44,6 +45,12 @@ const projectId: ObjectID = ObjectID.generate();
 const otherProjectId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
 const CHANNEL_ID: string = "C0INCIDENT";
+
+// The member's own props, as the chat's authorization builds them.
+const memberProps: DatabaseCommonInteractionProps = {
+  userId: userId,
+  tenantId: projectId,
+};
 
 type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
@@ -564,7 +571,7 @@ describe("WorkspaceReactionNote.saveNote", () => {
         await WorkspaceReactionNote.saveNote({
           resource: resource,
           noteType: noteType,
-          userId: userId,
+          props: memberProps,
           note: "Restarted the database",
           sourceMessageKey: "C1:1.2",
         });
@@ -574,10 +581,11 @@ describe("WorkspaceReactionNote.saveNote", () => {
         [idKey]: resource.resourceId,
         postedFromSlackMessageId: "C1:1.2",
       });
+      // Saved with the member's own props: the note is theirs.
       expect(addSpy).toHaveBeenCalledWith({
         [idKey]: resource.resourceId,
         projectId: projectId,
-        userId: userId,
+        props: memberProps,
         note: "Restarted the database",
         postedFromSlackMessageId: "C1:1.2",
       });
@@ -598,7 +606,7 @@ describe("WorkspaceReactionNote.saveNote", () => {
             projectId: projectId,
           },
           noteType: noteType,
-          userId: userId,
+          props: memberProps,
           note: "Restarted the database",
           sourceMessageKey: "C1:1.2",
         });
@@ -622,7 +630,7 @@ describe("WorkspaceReactionNote.saveNote", () => {
           projectId: projectId,
         },
         noteType: WorkspaceNoteType.Public,
-        userId: userId,
+        props: memberProps,
         note: "x",
         sourceMessageKey: "C1:1.2",
       }),

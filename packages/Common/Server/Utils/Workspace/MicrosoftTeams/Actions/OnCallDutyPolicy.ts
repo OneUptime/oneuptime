@@ -13,10 +13,49 @@ import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/O
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
+import WorkspaceMemberActions, {
+  WorkspaceEvent,
+  WorkspaceEventType,
+} from "../../WorkspaceMemberActions";
+import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import DatabaseService from "../../../../Services/DatabaseService";
+import DatabaseBaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentService from "../../../../Services/IncidentService";
+import AlertService from "../../../../Services/AlertService";
+import IncidentEpisodeService from "../../../../Services/IncidentEpisodeService";
+import AlertEpisodeService from "../../../../Services/AlertEpisodeService";
+import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenanceService";
 import FeedMarkdown, {
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
+
+// The payload key an Escalate card names its record under, and its kind.
+const ESCALATION_RECORD_KEYS: ReadonlyArray<[string, WorkspaceEventType]> = [
+  ["incidentId", WorkspaceEventType.Incident],
+  ["alertId", WorkspaceEventType.Alert],
+  ["incidentEpisodeId", WorkspaceEventType.IncidentEpisode],
+  ["alertEpisodeId", WorkspaceEventType.AlertEpisode],
+];
+
+// The service that reads an Escalate card's record, as its member.
+const getEscalationRecordService: (
+  type: WorkspaceEventType,
+) => DatabaseService<DatabaseBaseModel> = (
+  type: WorkspaceEventType,
+): DatabaseService<DatabaseBaseModel> => {
+  switch (type) {
+    case WorkspaceEventType.Incident:
+      return IncidentService as unknown as DatabaseService<DatabaseBaseModel>;
+    case WorkspaceEventType.Alert:
+      return AlertService as unknown as DatabaseService<DatabaseBaseModel>;
+    case WorkspaceEventType.IncidentEpisode:
+      return IncidentEpisodeService as unknown as DatabaseService<DatabaseBaseModel>;
+    case WorkspaceEventType.AlertEpisode:
+      return AlertEpisodeService as unknown as DatabaseService<DatabaseBaseModel>;
+    case WorkspaceEventType.ScheduledMaintenance:
+      return ScheduledMaintenanceService as unknown as DatabaseService<DatabaseBaseModel>;
+  }
+};
 
 export default class MicrosoftTeamsOnCallDutyActions {
   @CaptureSpan()
@@ -67,13 +106,48 @@ export default class MicrosoftTeamsOnCallDutyActions {
   }
 
   /*
+   * Escalating needs the record the page is for: an execution of a policy
+   * is always triggered by an incident, an alert or an episode, as one run
+   * from the record's own Execute On-Call Policy is. A card with none is
+   * answered with this, and nothing is paged.
+   */
+  public static readonly ESCALATE_NEEDS_RECORD_MESSAGE: string =
+    "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there.";
+
+  /*
+   * The record a card's Escalate is for, from its payload: `incidentId`,
+   * `alertId`, `incidentEpisodeId` or `alertEpisodeId`. Null for a card
+   * that names none - or more than one, which is no card OneUptime sends.
+   */
+  public static getEscalationRecord(
+    actionPayload: JSONObject,
+  ): WorkspaceEvent | null {
+    const records: Array<WorkspaceEvent> = [];
+
+    for (const [key, type] of ESCALATION_RECORD_KEYS) {
+      const value: JSONValue | undefined = actionPayload[key];
+
+      if (value) {
+        records.push({
+          type: type,
+          id: new ObjectID(value.toString()),
+        });
+      }
+    }
+
+    return records.length === 1 ? records[0]! : null;
+  }
+
+  /*
    * A card's on-call policy actions, run as the member who pressed the button
    * (`databaseProps`, a current member of `projectId`, as
    * handleBotInvokeActivity builds them): the policy is read in their project
    * with their own permissions - one of another project, or outside their
-   * read, is answered like one that does not exist - and escalating it needs
-   * the permission to execute an on-call policy, as executing one does
-   * everywhere else. Both used to read any policy by id as OneUptime.
+   * read, is answered like one that does not exist. Escalating executes it
+   * for the card's incident, alert or episode as the member, as that
+   * record's Execute On-Call Policy does (WorkspaceMemberActions): it needs
+   * their permission to execute an on-call policy and their read of the
+   * record and the policy.
    */
   @CaptureSpan()
   public static async handleBotOnCallDutyAction(data: {
@@ -101,12 +175,27 @@ export default class MicrosoftTeamsOnCallDutyActions {
         policyIdValue.toString(),
       );
 
+      let escalationRecord: WorkspaceEvent | null = null;
+
       if (actionType === MicrosoftTeamsOnCallDutyActionType.EscalateOnCall) {
+        escalationRecord = this.getEscalationRecord(actionPayload);
+
+        if (!escalationRecord) {
+          await turnContext.sendActivity(
+            MicrosoftTeamsOnCallDutyActions.ESCALATE_NEEDS_RECORD_MESSAGE,
+          );
+          return;
+        }
+
         await WorkspaceActionAuthorization.assertCanCreate({
           props: databaseProps,
           modelType: OnCallDutyPolicyExecutionLog,
-          action: "execute this on-call policy",
+          action: `execute this on-call policy for this ${WorkspaceMemberActions.getNoun(escalationRecord.type)}`,
           resources: [
+            {
+              service: getEscalationRecordService(escalationRecord.type),
+              id: escalationRecord.id,
+            },
             { service: OnCallDutyPolicyService, id: onCallDutyPolicyId },
           ],
         });
@@ -142,10 +231,14 @@ export default class MicrosoftTeamsOnCallDutyActions {
           break;
 
         case MicrosoftTeamsOnCallDutyActionType.EscalateOnCall:
-          // TODO: Implement escalation logic
-          await OnCallDutyPolicyService.executePolicy(onCallDutyPolicyId, {
-            userNotificationEventType:
-              UserNotificationEventType.IncidentCreated, // TODO: Get the correct event type
+          /*
+           * Executed by the member for the card's record, as the record's
+           * own Execute On-Call Policy executes it for them.
+           */
+          await WorkspaceMemberActions.executeOnCallPolicy({
+            event: escalationRecord!,
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            props: databaseProps,
           });
           await turnContext.sendActivity(
             "On-call policy escalated successfully",
@@ -161,8 +254,15 @@ export default class MicrosoftTeamsOnCallDutyActions {
           break;
       }
     } catch (error) {
-      // A refusal is written for the member: handleBotInvokeActivity tells them.
-      if (error instanceof NotAuthorizedException) {
+      /*
+       * A refusal is written for the member - their permissions, the plan, a
+       * record that is not theirs to page for: handleBotInvokeActivity tells
+       * them.
+       */
+      if (
+        error instanceof NotAuthorizedException ||
+        MicrosoftTeamsReplies.getUserFacingErrorMessage(error)
+      ) {
         throw error;
       }
 

@@ -18,16 +18,15 @@ import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Service
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import UserService from "../../../Server/Services/UserService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import AIIncidentPostmortemRunner from "../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
 import InvestigationGrader from "../../../Server/Utils/AI/SRE/InvestigationGrader";
-import Response from "../../../Server/Utils/Response";
 import MicrosoftTeamsAlertActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Alert";
 import MicrosoftTeamsIncidentActions from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
 import {
   MicrosoftTeamsAlertActionType,
   MicrosoftTeamsIncidentActionType,
 } from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
-import MicrosoftTeamsAuthAction from "../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Auth";
 import {
   ACKNOWLEDGED_FEED_EMOJI,
   CREATED_FEED_EMOJI,
@@ -48,6 +47,9 @@ import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import Permission, { UserPermission } from "../../../Types/Permission";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import {
   afterEach,
@@ -696,30 +698,83 @@ describe("a responder acknowledging their page: on-call stops as for Acknowledge
 
 describe("Microsoft Teams leaves a record that is acknowledged already as it is", () => {
   let moves: StateMoves;
-  let acknowledgeIncident: ReturnType<typeof jest.spyOn>;
-  let acknowledgeAlert: ReturnType<typeof jest.spyOn>;
+
+  /*
+   * A member who may acknowledge, as handleBotInvokeActivity hands every
+   * card action its props: the acknowledgement is theirs, made the way the
+   * dashboard makes it (WorkspaceMemberActions).
+   */
+  function responderProps(): DatabaseCommonInteractionProps {
+    return {
+      userId: USER_ID,
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: [Permission.IncidentMember, Permission.AlertMember].map(
+            (permission: Permission): UserPermission => {
+              return {
+                _type: "UserPermission",
+                permission: permission,
+                labelIds: [],
+                isBlockPermission: false,
+              };
+            },
+          ),
+        },
+      },
+    };
+  }
+
+  // A card's Acknowledge, delivered as handleBotInvokeActivity delivers it.
+  async function acknowledgeFromTeams(data: {
+    kind: "incident" | "alert";
+  }): Promise<unknown> {
+    const turnContext: never = {
+      sendActivity: async (): Promise<void> => {},
+    } as never;
+
+    try {
+      if (data.kind === "incident") {
+        await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
+          actionType: MicrosoftTeamsIncidentActionType.AckIncident,
+          actionValue: INCIDENT_ID.toString(),
+          value: {},
+          projectId: PROJECT_ID,
+          oneUptimeUserId: USER_ID,
+          databaseProps: responderProps(),
+          turnContext: turnContext,
+        });
+      } else {
+        await MicrosoftTeamsAlertActions.handleBotAlertAction({
+          actionType: MicrosoftTeamsAlertActionType.AckAlert,
+          actionValue: ALERT_ID.toString(),
+          value: {},
+          projectId: PROJECT_ID,
+          oneUptimeUserId: USER_ID,
+          databaseProps: responderProps(),
+          turnContext: turnContext,
+        });
+      }
+    } catch (error) {
+      return error;
+    }
+
+    return null;
+  }
 
   beforeEach(() => {
     serveStates(IncidentStateService, IncidentState);
     serveStates(AlertStateService, AlertState);
     moves = watchStateMoves();
 
-    jest
-      .spyOn(Response, "sendTextResponse")
-      .mockImplementation((() => {}) as never);
-    jest
-      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
-      .mockResolvedValue(USER_ID as never);
-    acknowledgeIncident = jest.spyOn(IncidentService, "acknowledgeIncident");
-    acknowledgeAlert = jest.spyOn(AlertService, "acknowledgeAlert");
+    // The project's plan, as the card's checks read it where a plan decides.
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Enterprise,
+      isSubscriptionUnpaid: false,
+    } as never);
   });
-
-  function teamsRequest(): never {
-    return {
-      projectId: PROJECT_ID,
-      userId: "teams-user-1",
-    } as never;
-  }
 
   test.each([
     ["a state between Acknowledged and Resolved", INVESTIGATING],
@@ -730,17 +785,13 @@ describe("Microsoft Teams leaves a record that is acknowledged already as it is"
     async (_label: string, stateId: string) => {
       serveIncidentIn(stateId);
 
-      await MicrosoftTeamsIncidentActions.handleIncidentAction({
-        teamsRequest: teamsRequest(),
-        action: {
-          actionType: MicrosoftTeamsIncidentActionType.AckIncident,
-          actionValue: INCIDENT_ID.toString(),
-        } as never,
-        req: {} as never,
-        res: {} as never,
-      });
+      const refusal: unknown = await acknowledgeFromTeams({ kind: "incident" });
 
-      expect(acknowledgeIncident).not.toHaveBeenCalled();
+      // handleBotInvokeActivity tells the member why, in these words.
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toMatch(
+        /^Incident is already (acknowledged|resolved)\.$/,
+      );
       expect(moves.incident).toEqual([]);
     },
   );
@@ -748,35 +799,27 @@ describe("Microsoft Teams leaves a record that is acknowledged already as it is"
   test("an incident still open is acknowledged", async () => {
     serveIncidentIn(IDENTIFIED);
 
-    await MicrosoftTeamsIncidentActions.handleIncidentAction({
-      teamsRequest: teamsRequest(),
-      action: {
-        actionType: MicrosoftTeamsIncidentActionType.AckIncident,
-        actionValue: INCIDENT_ID.toString(),
-      } as never,
-      req: {} as never,
-      res: {} as never,
-    });
+    expect(await acknowledgeFromTeams({ kind: "incident" })).toBeNull();
 
-    expect(acknowledgeIncident).toHaveBeenCalledTimes(1);
     expect(moves.incident).toEqual([ACKNOWLEDGED]);
   });
 
   test("an alert in a state between Acknowledged and Resolved is not moved back to Acknowledged", async () => {
     serveAlertIn(INVESTIGATING);
 
-    await MicrosoftTeamsAlertActions.handleAlertAction({
-      teamsRequest: teamsRequest(),
-      action: {
-        actionType: MicrosoftTeamsAlertActionType.AckAlert,
-        actionValue: ALERT_ID.toString(),
-      } as never,
-      req: {} as never,
-      res: {} as never,
-    });
+    const refusal: unknown = await acknowledgeFromTeams({ kind: "alert" });
 
-    expect(acknowledgeAlert).not.toHaveBeenCalled();
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as Error).message).toBe("Alert is already acknowledged.");
     expect(moves.alert).toEqual([]);
+  });
+
+  test("an alert still open is acknowledged", async () => {
+    serveAlertIn(IDENTIFIED);
+
+    expect(await acknowledgeFromTeams({ kind: "alert" })).toBeNull();
+
+    expect(moves.alert).toEqual([ACKNOWLEDGED]);
   });
 });
 

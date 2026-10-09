@@ -1,0 +1,1073 @@
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+import Alert from "../../../../Models/DatabaseModels/Alert";
+import AlertEpisode from "../../../../Models/DatabaseModels/AlertEpisode";
+import AlertState from "../../../../Models/DatabaseModels/AlertState";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import IncidentEpisode from "../../../../Models/DatabaseModels/IncidentEpisode";
+import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
+import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
+import AlertEpisodeStateTimelineService from "../../../../Server/Services/AlertEpisodeStateTimelineService";
+import AlertService from "../../../../Server/Services/AlertService";
+import AlertStateService from "../../../../Server/Services/AlertStateService";
+import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
+import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
+import IncidentEpisodeStateTimelineService from "../../../../Server/Services/IncidentEpisodeStateTimelineService";
+import IncidentService from "../../../../Server/Services/IncidentService";
+import IncidentStateService from "../../../../Server/Services/IncidentStateService";
+import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
+import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
+import ScheduledMaintenanceStateTimelineService from "../../../../Server/Services/ScheduledMaintenanceStateTimelineService";
+import WorkspaceMemberActions, {
+  WorkspaceEventStateOption,
+  WorkspaceEventType,
+} from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
+import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
+import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
+
+/*
+ * WorkspaceMemberActions makes the change a Slack or Microsoft Teams button
+ * asks for as the member who pressed it, as the same write the dashboard
+ * makes: a state timeline row, an on-call policy execution log. These tests
+ * pin, for every kind of record, what is read first (the record, as the
+ * member, in their project), what is written (the row, its columns, the
+ * member's own props) and what is refused before anything is written. The
+ * services' reads and creates are stubbed; what a create then checks is the
+ * create's own (WorkspaceMemberActionsPostgres.test.ts runs it for real).
+ */
+
+type AnySpy = SpyInstance<(...args: Array<any>) => any>;
+
+const projectId: ObjectID = ObjectID.generate();
+const userId: ObjectID = ObjectID.generate();
+
+// The member's own props, as WorkspaceActionAuthorization builds them.
+const memberProps: DatabaseCommonInteractionProps = {
+  userId: userId,
+  tenantId: projectId,
+};
+
+interface StateRow {
+  id: ObjectID;
+  name: string;
+}
+
+// A project's incident or alert states, top of the list first.
+interface IncidentLikeStates<T> {
+  all: Array<T>;
+  created: T;
+  acknowledged: T;
+  investigating: T;
+  resolved: T;
+}
+
+function incidentLikeStates<T extends IncidentState | AlertState>(
+  makeState: () => T,
+): IncidentLikeStates<T> {
+  const build: (data: {
+    name: string;
+    order: number;
+    isCreatedState?: boolean;
+    isAcknowledgedState?: boolean;
+    isResolvedState?: boolean;
+  }) => T = (data: {
+    name: string;
+    order: number;
+    isCreatedState?: boolean;
+    isAcknowledgedState?: boolean;
+    isResolvedState?: boolean;
+  }): T => {
+    const state: T = makeState();
+    state.id = ObjectID.generate();
+    state.projectId = projectId;
+    state.name = data.name;
+    state.order = data.order;
+    state.isCreatedState = Boolean(data.isCreatedState);
+    state.isAcknowledgedState = Boolean(data.isAcknowledgedState);
+    state.isResolvedState = Boolean(data.isResolvedState);
+    return state;
+  };
+
+  const created: T = build({ name: "Created", order: 1, isCreatedState: true });
+  const acknowledged: T = build({
+    name: "Acknowledged",
+    order: 2,
+    isAcknowledgedState: true,
+  });
+  // A state of the project's own between Acknowledged and Resolved.
+  const investigating: T = build({ name: "Investigating", order: 3 });
+  const resolved: T = build({
+    name: "Resolved",
+    order: 4,
+    isResolvedState: true,
+  });
+
+  return {
+    all: [created, acknowledged, investigating, resolved],
+    created: created,
+    acknowledged: acknowledged,
+    investigating: investigating,
+    resolved: resolved,
+  };
+}
+
+/*
+ * Everything a kind of record differs in: how it is read, what its state
+ * timeline row is called and how its columns are named, and the sentence its
+ * refusals use.
+ */
+interface RecordKind {
+  name: string;
+  type: WorkspaceEventType;
+  noun: string;
+  subject: string;
+  // Stubs the member's read of the record; null is a record they may not read.
+  stubRead: (currentStateId: ObjectID | null) => AnySpy;
+  // Stubs the state timeline create.
+  stubCreate: () => AnySpy;
+  recordColumn: string;
+  stateColumn: string;
+  triggerColumn: string | null;
+  userNotificationEventType: UserNotificationEventType | null;
+}
+
+function readOf(data: {
+  service: unknown;
+  makeRecord: () => {
+    id: ObjectID | null;
+    projectId?: ObjectID | undefined;
+  } & Record<string, unknown>;
+  stateColumn: string;
+}): (currentStateId: ObjectID | null) => AnySpy {
+  return (currentStateId: ObjectID | null): AnySpy => {
+    const spy: AnySpy = jest.spyOn(
+      data.service as { findOneBy: () => Promise<unknown> },
+      "findOneBy",
+    ) as AnySpy;
+
+    if (currentStateId === null) {
+      return spy.mockResolvedValue(null);
+    }
+
+    const record: Record<string, unknown> = data.makeRecord();
+    record["id"] = ObjectID.generate();
+    record["projectId"] = projectId;
+    record[data.stateColumn] = currentStateId;
+    return spy.mockResolvedValue(record);
+  };
+}
+
+function createOf(service: unknown): () => AnySpy {
+  return (): AnySpy => {
+    return (
+      jest.spyOn(
+        service as { create: () => Promise<unknown> },
+        "create",
+      ) as AnySpy
+    ).mockImplementation(async (createBy: unknown): Promise<unknown> => {
+      return (createBy as { data: unknown }).data;
+    });
+  };
+}
+
+const RECORD_KINDS: Array<RecordKind> = [
+  {
+    name: "an incident",
+    type: WorkspaceEventType.Incident,
+    noun: "incident",
+    subject: "Incident",
+    stubRead: readOf({
+      service: IncidentService,
+      makeRecord: (): Incident & Record<string, unknown> => {
+        return new Incident() as Incident & Record<string, unknown>;
+      },
+      stateColumn: "currentIncidentStateId",
+    }),
+    stubCreate: createOf(IncidentStateTimelineService),
+    recordColumn: "incidentId",
+    stateColumn: "incidentStateId",
+    triggerColumn: "triggeredByIncidentId",
+    userNotificationEventType: UserNotificationEventType.IncidentCreated,
+  },
+  {
+    name: "an alert",
+    type: WorkspaceEventType.Alert,
+    noun: "alert",
+    subject: "Alert",
+    stubRead: readOf({
+      service: AlertService,
+      makeRecord: (): Alert & Record<string, unknown> => {
+        return new Alert() as Alert & Record<string, unknown>;
+      },
+      stateColumn: "currentAlertStateId",
+    }),
+    stubCreate: createOf(AlertStateTimelineService),
+    recordColumn: "alertId",
+    stateColumn: "alertStateId",
+    triggerColumn: "triggeredByAlertId",
+    userNotificationEventType: UserNotificationEventType.AlertCreated,
+  },
+  {
+    name: "an incident episode",
+    type: WorkspaceEventType.IncidentEpisode,
+    noun: "incident episode",
+    subject: "Episode",
+    stubRead: readOf({
+      service: IncidentEpisodeService,
+      makeRecord: (): IncidentEpisode & Record<string, unknown> => {
+        return new IncidentEpisode() as IncidentEpisode &
+          Record<string, unknown>;
+      },
+      stateColumn: "currentIncidentStateId",
+    }),
+    stubCreate: createOf(IncidentEpisodeStateTimelineService),
+    recordColumn: "incidentEpisodeId",
+    stateColumn: "incidentStateId",
+    triggerColumn: "triggeredByIncidentEpisodeId",
+    userNotificationEventType: UserNotificationEventType.IncidentEpisodeCreated,
+  },
+  {
+    name: "an alert episode",
+    type: WorkspaceEventType.AlertEpisode,
+    noun: "alert episode",
+    subject: "Episode",
+    stubRead: readOf({
+      service: AlertEpisodeService,
+      makeRecord: (): AlertEpisode & Record<string, unknown> => {
+        return new AlertEpisode() as AlertEpisode & Record<string, unknown>;
+      },
+      stateColumn: "currentAlertStateId",
+    }),
+    stubCreate: createOf(AlertEpisodeStateTimelineService),
+    recordColumn: "alertEpisodeId",
+    stateColumn: "alertStateId",
+    triggerColumn: "triggeredByAlertEpisodeId",
+    userNotificationEventType: UserNotificationEventType.AlertEpisodeCreated,
+  },
+  {
+    name: "a scheduled maintenance event",
+    type: WorkspaceEventType.ScheduledMaintenance,
+    noun: "scheduled maintenance event",
+    subject: "Scheduled maintenance event",
+    stubRead: readOf({
+      service: ScheduledMaintenanceService,
+      makeRecord: (): ScheduledMaintenance & Record<string, unknown> => {
+        return new ScheduledMaintenance() as ScheduledMaintenance &
+          Record<string, unknown>;
+      },
+      stateColumn: "currentScheduledMaintenanceStateId",
+    }),
+    stubCreate: createOf(ScheduledMaintenanceStateTimelineService),
+    recordColumn: "scheduledMaintenanceId",
+    stateColumn: "scheduledMaintenanceStateId",
+    triggerColumn: null,
+    userNotificationEventType: null,
+  },
+];
+
+// The kinds Acknowledge and Resolve move along a list of incident or alert states.
+interface ListKind {
+  kind: RecordKind;
+  stubStates: () => IncidentLikeStates<IncidentState | AlertState>;
+}
+
+const LIST_KINDS: Array<ListKind> = RECORD_KINDS.filter(
+  (kind: RecordKind): boolean => {
+    return kind.type !== WorkspaceEventType.ScheduledMaintenance;
+  },
+).map((kind: RecordKind): ListKind => {
+  const isIncidentList: boolean =
+    kind.type === WorkspaceEventType.Incident ||
+    kind.type === WorkspaceEventType.IncidentEpisode;
+
+  return {
+    kind: kind,
+    stubStates: (): IncidentLikeStates<IncidentState | AlertState> => {
+      if (isIncidentList) {
+        const states: IncidentLikeStates<IncidentState> = incidentLikeStates(
+          (): IncidentState => {
+            return new IncidentState();
+          },
+        );
+        jest
+          .spyOn(IncidentStateService, "getAllIncidentStates")
+          .mockResolvedValue(states.all);
+        return states;
+      }
+
+      const states: IncidentLikeStates<AlertState> = incidentLikeStates(
+        (): AlertState => {
+          return new AlertState();
+        },
+      );
+      jest
+        .spyOn(AlertStateService, "getAllAlertStates")
+        .mockResolvedValue(states.all);
+      return states;
+    },
+  };
+});
+
+// The one create call a spy saw: its data, as JSON, and its props.
+function createdRow(createSpy: AnySpy): {
+  data: JSONObject;
+  props: DatabaseCommonInteractionProps;
+} {
+  expect(createSpy).toHaveBeenCalledTimes(1);
+  const createBy: {
+    data: Record<string, unknown>;
+    props: DatabaseCommonInteractionProps;
+  } = createSpy.mock.calls[0]![0];
+  const data: JSONObject = {};
+
+  // The columns the row was given; the model's own bookkeeping is not one.
+  for (const [key, value] of Object.entries(createBy.data)) {
+    if (value === undefined || value === null || key === "isPermissionIf") {
+      continue;
+    }
+
+    data[key] = value instanceof ObjectID ? value.toString() : (value as any);
+  }
+
+  return { data: data, props: createBy.props };
+}
+
+afterEach((): void => {
+  jest.restoreAllMocks();
+});
+
+describe("WorkspaceMemberActions.changeState", (): void => {
+  test.each(RECORD_KINDS)(
+    "moves $name into the picked state with a state timeline row the member creates",
+    async (kind: RecordKind): Promise<void> => {
+      const recordId: ObjectID = ObjectID.generate();
+      const stateId: ObjectID = ObjectID.generate();
+      const readSpy: AnySpy = kind.stubRead(ObjectID.generate());
+      const createSpy: AnySpy = kind.stubCreate();
+
+      await WorkspaceMemberActions.changeState({
+        event: { type: kind.type, id: recordId },
+        stateId: stateId,
+        props: memberProps,
+      });
+
+      // The record is read as the member, in their project.
+      expect(readSpy).toHaveBeenCalledTimes(1);
+      expect(readSpy.mock.calls[0]![0].props).toBe(memberProps);
+      expect(readSpy.mock.calls[0]![0].query).toEqual({
+        _id: recordId.toString(),
+        projectId: projectId,
+      });
+
+      // The row the dashboard's state panel creates: nothing more.
+      const created: {
+        data: JSONObject;
+        props: DatabaseCommonInteractionProps;
+      } = createdRow(createSpy);
+      expect(created.data).toEqual({
+        projectId: projectId.toString(),
+        [kind.recordColumn]: recordId.toString(),
+        [kind.stateColumn]: stateId.toString(),
+      });
+      // With the member's own props: they are its creator.
+      expect(created.props).toBe(memberProps);
+      expect(created.props.isRoot).toBeUndefined();
+    },
+  );
+
+  test.each(RECORD_KINDS)(
+    "refuses $name the member may not read, like one that is not there, and writes nothing",
+    async (kind: RecordKind): Promise<void> => {
+      kind.stubRead(null);
+      const createSpy: AnySpy = kind.stubCreate();
+
+      await expect(
+        WorkspaceMemberActions.changeState({
+          event: { type: kind.type, id: ObjectID.generate() },
+          stateId: ObjectID.generate(),
+          props: memberProps,
+        }),
+      ).rejects.toThrow(
+        new NotAuthorizedException(
+          `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+        ),
+      );
+
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(RECORD_KINDS)(
+    "answers a read of $name the member's permissions or plan refuse with the same sentence",
+    async (kind: RecordKind): Promise<void> => {
+      const readSpy: AnySpy = kind.stubRead(null);
+      const createSpy: AnySpy = kind.stubCreate();
+
+      for (const refusal of [
+        new NotAuthorizedException("You do not have permissions to read."),
+        new PaymentRequiredException("Upgrade your plan."),
+      ]) {
+        readSpy.mockRejectedValueOnce(refusal);
+
+        await expect(
+          WorkspaceMemberActions.changeState({
+            event: { type: kind.type, id: ObjectID.generate() },
+            stateId: ObjectID.generate(),
+            props: memberProps,
+          }),
+        ).rejects.toThrow(
+          `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+        );
+      }
+
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a read that fails for another reason is not answered as a refusal", async (): Promise<void> => {
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockRejectedValue(new Error("connect ECONNREFUSED"));
+    const createSpy: AnySpy = createOf(IncidentStateTimelineService)();
+
+    await expect(
+      WorkspaceMemberActions.changeState({
+        event: { type: WorkspaceEventType.Incident, id: ObjectID.generate() },
+        stateId: ObjectID.generate(),
+        props: memberProps,
+      }),
+    ).rejects.toThrow("connect ECONNREFUSED");
+
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { name: "no user", props: { tenantId: projectId } },
+    { name: "no project", props: { userId: userId } },
+    { name: "OneUptime itself", props: { isRoot: true } },
+  ])(
+    "props with $name are refused before anything is read",
+    async ({
+      props,
+    }: {
+      props: DatabaseCommonInteractionProps;
+    }): Promise<void> => {
+      const readSpy: AnySpy = jest.spyOn(
+        IncidentService,
+        "findOneBy",
+      ) as AnySpy;
+      const createSpy: AnySpy = createOf(IncidentStateTimelineService)();
+
+      await expect(
+        WorkspaceMemberActions.changeState({
+          event: { type: WorkspaceEventType.Incident, id: ObjectID.generate() },
+          stateId: ObjectID.generate(),
+          props: props,
+        }),
+      ).rejects.toThrow(
+        new NotAuthorizedException(
+          "You do not have permission to change this incident.",
+        ),
+      );
+
+      expect(readSpy).not.toHaveBeenCalled();
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a refusal from the create itself reaches the caller as it is", async (): Promise<void> => {
+    RECORD_KINDS[0]!.stubRead(ObjectID.generate());
+    jest
+      .spyOn(IncidentStateTimelineService, "create")
+      .mockRejectedValue(
+        new BadDataException(
+          "Incident cannot transition to Created state from Resolved state because Created is before Resolved in the order of incident states.",
+        ),
+      );
+
+    await expect(
+      WorkspaceMemberActions.changeState({
+        event: { type: WorkspaceEventType.Incident, id: ObjectID.generate() },
+        stateId: ObjectID.generate(),
+        props: memberProps,
+      }),
+    ).rejects.toThrow(
+      "Incident cannot transition to Created state from Resolved state",
+    );
+  });
+});
+
+describe("WorkspaceMemberActions.acknowledge", (): void => {
+  test.each(LIST_KINDS)(
+    "moves $kind.name into the project's acknowledged state as the member",
+    async ({ kind, stubStates }: ListKind): Promise<void> => {
+      const states: IncidentLikeStates<IncidentState | AlertState> =
+        stubStates();
+      const recordId: ObjectID = ObjectID.generate();
+      kind.stubRead(states.created.id!);
+      const createSpy: AnySpy = kind.stubCreate();
+
+      await WorkspaceMemberActions.acknowledge({
+        event: { type: kind.type, id: recordId },
+        props: memberProps,
+      });
+
+      const created: {
+        data: JSONObject;
+        props: DatabaseCommonInteractionProps;
+      } = createdRow(createSpy);
+      expect(created.data).toEqual({
+        projectId: projectId.toString(),
+        [kind.recordColumn]: recordId.toString(),
+        [kind.stateColumn]: states.acknowledged.id!.toString(),
+      });
+      expect(created.props).toBe(memberProps);
+    },
+  );
+
+  test.each(LIST_KINDS)(
+    "refuses $kind.name acknowledged already - or further along - in the services' own words",
+    async ({ kind, stubStates }: ListKind): Promise<void> => {
+      const states: IncidentLikeStates<IncidentState | AlertState> =
+        stubStates();
+      const createSpy: AnySpy = kind.stubCreate();
+
+      for (const [state, refusal] of [
+        [states.acknowledged, `${kind.subject} is already acknowledged.`],
+        // A state of the project's own after Acknowledged counts as acknowledged.
+        [states.investigating, `${kind.subject} is already acknowledged.`],
+        [states.resolved, `${kind.subject} is already resolved.`],
+      ] as Array<[IncidentState | AlertState, string]>) {
+        kind.stubRead(state.id!);
+
+        await expect(
+          WorkspaceMemberActions.acknowledge({
+            event: { type: kind.type, id: ObjectID.generate() },
+            props: memberProps,
+          }),
+        ).rejects.toThrow(new BadDataException(refusal));
+      }
+
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(LIST_KINDS)(
+    "refuses $kind.name the member may not read before its state is told",
+    async ({ kind, stubStates }: ListKind): Promise<void> => {
+      stubStates();
+      kind.stubRead(null);
+      const createSpy: AnySpy = kind.stubCreate();
+
+      await expect(
+        WorkspaceMemberActions.acknowledge({
+          event: { type: kind.type, id: ObjectID.generate() },
+          props: memberProps,
+        }),
+      ).rejects.toThrow(
+        `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+      );
+
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("says so when the project has no acknowledged state", async (): Promise<void> => {
+    const states: IncidentLikeStates<IncidentState> = incidentLikeStates(
+      (): IncidentState => {
+        return new IncidentState();
+      },
+    );
+    jest
+      .spyOn(IncidentStateService, "getAllIncidentStates")
+      .mockResolvedValue([states.created, states.resolved]);
+    RECORD_KINDS[0]!.stubRead(states.created.id!);
+    const createSpy: AnySpy = RECORD_KINDS[0]!.stubCreate();
+
+    await expect(
+      WorkspaceMemberActions.acknowledge({
+        event: { type: WorkspaceEventType.Incident, id: ObjectID.generate() },
+        props: memberProps,
+      }),
+    ).rejects.toThrow("Acknowledged state not found for this project.");
+
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("a scheduled maintenance event cannot be acknowledged, and nothing is read or written", async (): Promise<void> => {
+    const readSpy: AnySpy = jest.spyOn(
+      ScheduledMaintenanceService,
+      "findOneBy",
+    ) as AnySpy;
+    const createSpy: AnySpy = createOf(
+      ScheduledMaintenanceStateTimelineService,
+    )();
+
+    await expect(
+      WorkspaceMemberActions.acknowledge({
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: ObjectID.generate(),
+        },
+        props: memberProps,
+      }),
+    ).rejects.toThrow(
+      new BadDataException(
+        "A scheduled maintenance event cannot be acknowledged.",
+      ),
+    );
+
+    expect(readSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("WorkspaceMemberActions.resolve", (): void => {
+  test.each(LIST_KINDS)(
+    "moves $kind.name into the project's resolved state as the member, from any state before it",
+    async ({ kind, stubStates }: ListKind): Promise<void> => {
+      const states: IncidentLikeStates<IncidentState | AlertState> =
+        stubStates();
+
+      for (const from of [
+        states.created,
+        states.acknowledged,
+        states.investigating,
+      ]) {
+        const recordId: ObjectID = ObjectID.generate();
+        kind.stubRead(from.id!);
+        const createSpy: AnySpy = kind.stubCreate();
+
+        await WorkspaceMemberActions.resolve({
+          event: { type: kind.type, id: recordId },
+          props: memberProps,
+        });
+
+        const created: {
+          data: JSONObject;
+          props: DatabaseCommonInteractionProps;
+        } = createdRow(createSpy);
+        expect(created.data).toEqual({
+          projectId: projectId.toString(),
+          [kind.recordColumn]: recordId.toString(),
+          [kind.stateColumn]: states.resolved.id!.toString(),
+        });
+        expect(created.props).toBe(memberProps);
+
+        createSpy.mockRestore();
+      }
+    },
+  );
+
+  test.each(LIST_KINDS)(
+    "refuses $kind.name resolved already",
+    async ({ kind, stubStates }: ListKind): Promise<void> => {
+      const states: IncidentLikeStates<IncidentState | AlertState> =
+        stubStates();
+      kind.stubRead(states.resolved.id!);
+      const createSpy: AnySpy = kind.stubCreate();
+
+      await expect(
+        WorkspaceMemberActions.resolve({
+          event: { type: kind.type, id: ObjectID.generate() },
+          props: memberProps,
+        }),
+      ).rejects.toThrow(
+        new BadDataException(`${kind.subject} is already resolved.`),
+      );
+
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("Mark as Complete moves a scheduled maintenance event into its completed state as the member", async (): Promise<void> => {
+    const completed: ScheduledMaintenanceState =
+      new ScheduledMaintenanceState();
+    completed.id = ObjectID.generate();
+    const recordId: ObjectID = ObjectID.generate();
+    RECORD_KINDS[4]!.stubRead(ObjectID.generate());
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+      .mockResolvedValue(false);
+    const completedStateSpy: AnySpy = jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getCompletedScheduledMaintenanceState",
+      )
+      .mockResolvedValue(completed) as AnySpy;
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+
+    await WorkspaceMemberActions.resolve({
+      event: { type: WorkspaceEventType.ScheduledMaintenance, id: recordId },
+      props: memberProps,
+    });
+
+    expect(completedStateSpy.mock.calls[0]![0].projectId).toBe(projectId);
+    const created: {
+      data: JSONObject;
+      props: DatabaseCommonInteractionProps;
+    } = createdRow(createSpy);
+    expect(created.data).toEqual({
+      projectId: projectId.toString(),
+      scheduledMaintenanceId: recordId.toString(),
+      scheduledMaintenanceStateId: completed.id.toString(),
+    });
+    expect(created.props).toBe(memberProps);
+  });
+
+  test("a completed scheduled maintenance event is not completed again", async (): Promise<void> => {
+    RECORD_KINDS[4]!.stubRead(ObjectID.generate());
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+      .mockResolvedValue(true);
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+
+    await expect(
+      WorkspaceMemberActions.resolve({
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: ObjectID.generate(),
+        },
+        props: memberProps,
+      }),
+    ).rejects.toThrow(
+      new BadDataException("Scheduled maintenance event is already complete."),
+    );
+
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("a scheduled maintenance event the member may not read is refused before its state is read", async (): Promise<void> => {
+    RECORD_KINDS[4]!.stubRead(null);
+    const completedSpy: AnySpy = jest.spyOn(
+      ScheduledMaintenanceService,
+      "isScheduledMaintenanceCompleted",
+    ) as AnySpy;
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+
+    await expect(
+      WorkspaceMemberActions.resolve({
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: ObjectID.generate(),
+        },
+        props: memberProps,
+      }),
+    ).rejects.toThrow(
+      "The scheduled maintenance event was not found in this project, or you do not have access to it.",
+    );
+
+    expect(completedSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("WorkspaceMemberActions.markScheduledMaintenanceAsOngoing", (): void => {
+  test("moves the event into the project's ongoing state as the member", async (): Promise<void> => {
+    const ongoing: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+    ongoing.id = ObjectID.generate();
+    const recordId: ObjectID = ObjectID.generate();
+    RECORD_KINDS[4]!.stubRead(ObjectID.generate());
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
+      .mockResolvedValue(false);
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getOngoingScheduledMaintenanceState",
+      )
+      .mockResolvedValue(ongoing);
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+
+    await WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
+      scheduledMaintenanceId: recordId,
+      props: memberProps,
+    });
+
+    const created: {
+      data: JSONObject;
+      props: DatabaseCommonInteractionProps;
+    } = createdRow(createSpy);
+    expect(created.data).toEqual({
+      projectId: projectId.toString(),
+      scheduledMaintenanceId: recordId.toString(),
+      scheduledMaintenanceStateId: ongoing.id.toString(),
+    });
+    expect(created.props).toBe(memberProps);
+  });
+
+  test("an event that has started already is refused", async (): Promise<void> => {
+    RECORD_KINDS[4]!.stubRead(ObjectID.generate());
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
+      .mockResolvedValue(true);
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+      .mockResolvedValue(false);
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+
+    await expect(
+      WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
+        scheduledMaintenanceId: ObjectID.generate(),
+        props: memberProps,
+      }),
+    ).rejects.toThrow(
+      new BadDataException("Scheduled maintenance event is already ongoing."),
+    );
+
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("an event that is over already is refused as complete, not as ongoing", async (): Promise<void> => {
+    const recordId: ObjectID = ObjectID.generate();
+    RECORD_KINDS[4]!.stubRead(ObjectID.generate());
+    jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceOngoing")
+      .mockResolvedValue(true);
+    const completedSpy: AnySpy = jest
+      .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
+      .mockResolvedValue(true) as AnySpy;
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+
+    await expect(
+      WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
+        scheduledMaintenanceId: recordId,
+        props: memberProps,
+      }),
+    ).rejects.toThrow(
+      new BadDataException("Scheduled maintenance event is already complete."),
+    );
+
+    expect(completedSpy).toHaveBeenCalledWith({
+      scheduledMaintenanceId: recordId,
+    });
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("an event the member may not read is refused before anything about it is read", async (): Promise<void> => {
+    RECORD_KINDS[4]!.stubRead(null);
+    const ongoingSpy: AnySpy = jest.spyOn(
+      ScheduledMaintenanceService,
+      "isScheduledMaintenanceOngoing",
+    ) as AnySpy;
+    const createSpy: AnySpy = RECORD_KINDS[4]!.stubCreate();
+
+    await expect(
+      WorkspaceMemberActions.markScheduledMaintenanceAsOngoing({
+        scheduledMaintenanceId: ObjectID.generate(),
+        props: memberProps,
+      }),
+    ).rejects.toBeInstanceOf(NotAuthorizedException);
+
+    expect(ongoingSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("WorkspaceMemberActions.findStateOptions", (): void => {
+  const STATE_LISTS: Array<{
+    type: WorkspaceEventType;
+    service: unknown;
+  }> = [
+    { type: WorkspaceEventType.Incident, service: IncidentStateService },
+    {
+      type: WorkspaceEventType.IncidentEpisode,
+      service: IncidentStateService,
+    },
+    { type: WorkspaceEventType.Alert, service: AlertStateService },
+    { type: WorkspaceEventType.AlertEpisode, service: AlertStateService },
+    {
+      type: WorkspaceEventType.ScheduledMaintenance,
+      service: ScheduledMaintenanceStateService,
+    },
+  ];
+
+  test.each(STATE_LISTS)(
+    "lists the $type states the member may read, as the member, in the project's order",
+    async ({
+      type,
+      service,
+    }: {
+      type: WorkspaceEventType;
+      service: unknown;
+    }): Promise<void> => {
+      const first: StateRow = { id: ObjectID.generate(), name: "Created" };
+      const second: StateRow = { id: ObjectID.generate(), name: "Resolved" };
+      const findSpy: AnySpy = (
+        jest.spyOn(
+          service as { findBy: () => Promise<unknown> },
+          "findBy",
+        ) as AnySpy
+      ).mockResolvedValue([
+        { id: first.id, name: first.name },
+        // A row without a name is no choice.
+        { id: ObjectID.generate(), name: undefined },
+        { id: second.id, name: second.name },
+      ]);
+
+      const options: Array<WorkspaceEventStateOption> =
+        await WorkspaceMemberActions.findStateOptions({
+          type: type,
+          projectId: projectId,
+          props: memberProps,
+        });
+
+      expect(options).toEqual([first, second]);
+      expect(findSpy).toHaveBeenCalledTimes(1);
+      expect(findSpy.mock.calls[0]![0].props).toBe(memberProps);
+      expect(findSpy.mock.calls[0]![0].query).toEqual({
+        projectId: projectId,
+      });
+      expect(findSpy.mock.calls[0]![0].sort).toEqual({
+        order: SortOrder.Ascending,
+      });
+    },
+  );
+
+  test.each(STATE_LISTS)(
+    "lists no $type states to a member whose read of them is refused",
+    async ({
+      type,
+      service,
+    }: {
+      type: WorkspaceEventType;
+      service: unknown;
+    }): Promise<void> => {
+      jest
+        .spyOn(service as { findBy: () => Promise<unknown> }, "findBy")
+        .mockRejectedValue(
+          new NotAuthorizedException("You do not have permissions to read."),
+        );
+
+      await expect(
+        WorkspaceMemberActions.findStateOptions({
+          type: type,
+          projectId: projectId,
+          props: memberProps,
+        }),
+      ).resolves.toEqual([]);
+    },
+  );
+});
+
+describe("WorkspaceMemberActions.executeOnCallPolicy", (): void => {
+  const EXECUTABLE_KINDS: Array<RecordKind> = RECORD_KINDS.filter(
+    (kind: RecordKind): boolean => {
+      return kind.triggerColumn !== null;
+    },
+  );
+
+  test.each(EXECUTABLE_KINDS)(
+    "creates the execution log for $name as the member, triggered by it",
+    async (kind: RecordKind): Promise<void> => {
+      const recordId: ObjectID = ObjectID.generate();
+      const policyId: ObjectID = ObjectID.generate();
+      kind.stubRead(ObjectID.generate());
+      const createSpy: AnySpy = createOf(OnCallDutyPolicyExecutionLogService)();
+
+      await WorkspaceMemberActions.executeOnCallPolicy({
+        event: { type: kind.type, id: recordId },
+        onCallDutyPolicyId: policyId,
+        props: memberProps,
+      });
+
+      const created: {
+        data: JSONObject;
+        props: DatabaseCommonInteractionProps;
+      } = createdRow(createSpy);
+      // What the dashboard's Execute On-Call Policy creates: nothing more.
+      expect(created.data).toEqual({
+        projectId: projectId.toString(),
+        onCallDutyPolicyId: policyId.toString(),
+        [kind.triggerColumn!]: recordId.toString(),
+        userNotificationEventType: kind.userNotificationEventType,
+      });
+      expect(createSpy.mock.calls[0]![0].data).toBeInstanceOf(
+        OnCallDutyPolicyExecutionLog,
+      );
+      expect(created.props).toBe(memberProps);
+    },
+  );
+
+  test.each(EXECUTABLE_KINDS)(
+    "refuses $name the member may not read, and pages no one",
+    async (kind: RecordKind): Promise<void> => {
+      kind.stubRead(null);
+      const createSpy: AnySpy = createOf(OnCallDutyPolicyExecutionLogService)();
+
+      await expect(
+        WorkspaceMemberActions.executeOnCallPolicy({
+          event: { type: kind.type, id: ObjectID.generate() },
+          onCallDutyPolicyId: ObjectID.generate(),
+          props: memberProps,
+        }),
+      ).rejects.toThrow(
+        `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+      );
+
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("an on-call policy is not executed for a scheduled maintenance event", async (): Promise<void> => {
+    RECORD_KINDS[4]!.stubRead(ObjectID.generate());
+    const createSpy: AnySpy = createOf(OnCallDutyPolicyExecutionLogService)();
+
+    await expect(
+      WorkspaceMemberActions.executeOnCallPolicy({
+        event: {
+          type: WorkspaceEventType.ScheduledMaintenance,
+          id: ObjectID.generate(),
+        },
+        onCallDutyPolicyId: ObjectID.generate(),
+        props: memberProps,
+      }),
+    ).rejects.toBeInstanceOf(BadDataException);
+
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("a refusal from the execution log's create - the policy, the plan - reaches the caller", async (): Promise<void> => {
+    RECORD_KINDS[0]!.stubRead(ObjectID.generate());
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "create")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "The On-Call Policy you are trying to reference does not exist.",
+        ),
+      );
+
+    await expect(
+      WorkspaceMemberActions.executeOnCallPolicy({
+        event: { type: WorkspaceEventType.Incident, id: ObjectID.generate() },
+        onCallDutyPolicyId: ObjectID.generate(),
+        props: memberProps,
+      }),
+    ).rejects.toThrow("does not exist");
+  });
+});
+
+describe("WorkspaceMemberActions.getNoun", (): void => {
+  test("names every kind of record for a sentence", (): void => {
+    expect(
+      RECORD_KINDS.map((kind: RecordKind): string => {
+        return WorkspaceMemberActions.getNoun(kind.type);
+      }),
+    ).toEqual(
+      RECORD_KINDS.map((kind: RecordKind): string => {
+        return kind.noun;
+      }),
+    );
+  });
+});

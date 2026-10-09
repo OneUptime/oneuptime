@@ -14,6 +14,7 @@ import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/Sched
 import WorkspaceNotificationLog from "../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import { WorkspaceNoteType } from "../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -389,15 +390,17 @@ export default class WorkspaceReactionNote {
   }
 
   /*
-   * Saves the note unless one was already saved from the same message. The
-   * caller must have authorized the user (see getNoteModelType) and checked
-   * supportsNoteType.
+   * Saves the note unless one was already saved from the same message, as
+   * the member who reacted: `props` are theirs, as the authorization the
+   * caller ran for the note's row (see getNoteModelType) returned them. The
+   * note is created with those props, so it is held to what they may do -
+   * and is theirs - as a note they post in the dashboard is.
    */
   @CaptureSpan()
   public static async saveNote(data: {
     resource: WorkspaceNoteResource;
     noteType: WorkspaceNoteType;
-    userId: ObjectID;
+    props: DatabaseCommonInteractionProps;
     note: string;
     sourceMessageKey: string;
   }): Promise<WorkspaceNoteSaveResult> {
@@ -473,7 +476,7 @@ export default class WorkspaceReactionNote {
   private static async addNote(data: {
     resource: WorkspaceNoteResource;
     noteType: WorkspaceNoteType;
-    userId: ObjectID;
+    props: DatabaseCommonInteractionProps;
     note: string;
     sourceMessageKey: string;
   }): Promise<void> {
@@ -481,12 +484,12 @@ export default class WorkspaceReactionNote {
     const isPublic: boolean = data.noteType === WorkspaceNoteType.Public;
     const common: {
       projectId: ObjectID;
-      userId: ObjectID;
+      props: DatabaseCommonInteractionProps;
       note: string;
       postedFromSlackMessageId: string;
     } = {
       projectId: data.resource.projectId,
-      userId: data.userId,
+      props: data.props,
       note: data.note,
       postedFromSlackMessageId: data.sourceMessageKey,
     };
