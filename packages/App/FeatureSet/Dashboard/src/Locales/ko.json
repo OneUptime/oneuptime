@@ -27204,8 +27204,6 @@
   "Has no role to clear.": "지울 역할이 없습니다.",
   "Linked to an OID Collection Template, which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "OID 수집 템플릿에 연결되어 있으며, 수집 항목은 그 템플릿이 결정합니다. 벤더의 OID를 그 템플릿에 추가하거나, 먼저 이 디바이스에서 템플릿을 지우세요.",
   "Linked to the OID Collection Template \"{{template}}\", which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "OID 수집 템플릿 \"{{template}}\"에 연결되어 있으며, 수집 항목은 그 템플릿이 결정합니다. 벤더의 OID를 그 템플릿에 추가하거나, 먼저 이 디바이스에서 템플릿을 지우세요.",
-  "Match each device's vendor (recommended)": "각 디바이스의 벤더에 맞춤 (권장)",
-  "Matching picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "일치 기능은 각 디바이스의 SNMP 워크 결과를 보고 템플릿을 고르므로, 섞인 선택에서도 모든 디바이스에 맞는 템플릿이 적용됩니다.",
   "No vendor template matches this device's sysObjectID ({{sysObjectId}}). Choose one yourself — {{generic}} suits most Linux-based devices.": "이 디바이스의 sysObjectID({{sysObjectId}})와 일치하는 벤더 템플릿이 없습니다. 직접 선택하세요. 대부분의 Linux 기반 디바이스에는 {{generic}}이 적합합니다.",
   "No vendor template matches this {{vendor}} device. Choose one yourself — {{generic}} suits most Linux-based devices.": "이 {{vendor}} 디바이스와 일치하는 벤더 템플릿이 없습니다. 직접 선택하세요. 대부분의 Linux 기반 디바이스에는 {{generic}}이 적합합니다.",
   "Not identified yet: a device's vendor is read on its first SNMP walk. Give it SNMP credentials, or choose its template yourself.": "아직 식별되지 않았습니다. 디바이스의 벤더는 첫 SNMP 워크에서 읽힙니다. SNMP 자격 증명을 지정하거나 템플릿을 직접 선택하세요.",
@@ -27237,5 +27235,7 @@
   "{{count}} devices have no matching template and are left as they are._one": "디바이스 {{count}}개는 일치하는 템플릿이 없어 그대로 둡니다.",
   "{{count}} {{itemsName}} not changed": "{{itemsName}} {{count}}개 변경 안 됨",
   "{{count}} {{itemsName}} not changed_one": "{{itemName}} {{count}}개 변경 안 됨",
-  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "각 디바이스는 자동 가져오기 규칙과 마찬가지로 해당 벤더의 상태 OID와 SNMP 테이블(CPU, 메모리, 온도, 팬)을 받습니다. 템플릿이 없는 벤더의 디바이스는 그대로 두며, 적용된 내용은 디바이스 설정에서 변경할 수 있습니다."
+  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "각 디바이스는 자동 가져오기 규칙과 마찬가지로 해당 벤더의 상태 OID와 SNMP 테이블(CPU, 메모리, 온도, 팬)을 받습니다. 템플릿이 없는 벤더의 디바이스는 그대로 두며, 적용된 내용은 디바이스 설정에서 변경할 수 있습니다.",
+  "Match each device's vendor": "각 디바이스의 벤더에 맞춤",
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "일치가 안전한 선택입니다. 각 디바이스의 SNMP 워크 결과를 보고 템플릿을 고르므로, 섞인 선택에서도 모든 디바이스에 맞는 템플릿이 적용됩니다."
 }

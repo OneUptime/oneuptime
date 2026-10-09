@@ -442,7 +442,7 @@ function useBulkApplyVendorTemplate(): BulkApplyVendorTemplateResult {
                 },
                 title: "Vendor Template",
                 description:
-                  "Matching picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.",
+                  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 defaultValue: MATCH_EACH_DEVICE_VALUE,

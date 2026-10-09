@@ -2382,8 +2382,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * Before the Ping monitor option: it is about the devices most
              * scans are run for, and it is on by default.
              */}
+            {/*
+             * No rule of its own above it: the filter row over it already
+             * ends in one. The Ping monitor option below keeps its rule, which
+             * then sits between the two switches.
+             */}
             {importableSnmpHostCount > 0 && (
-              <div className="mt-4 border-t border-gray-100 pt-4">
+              <div className="pt-1">
                 <Toggle
                   title={translator.translatePlural(
                     IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE,

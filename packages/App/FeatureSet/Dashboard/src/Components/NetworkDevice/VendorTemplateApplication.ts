@@ -28,7 +28,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const MATCH_EACH_DEVICE_VALUE: string = "match-each-device";
 
 export const MATCH_EACH_DEVICE_LABEL: string = translationKey(
-  "Match each device's vendor (recommended)",
+  "Match each device's vendor",
 );
 
 export enum VendorTemplateChoiceKind {

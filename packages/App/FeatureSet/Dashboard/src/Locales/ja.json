@@ -27204,8 +27204,6 @@
   "Has no role to clear.": "クリアするロールがありません。",
   "Linked to an OID Collection Template, which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "OID 収集テンプレートにリンクされており、収集内容はそのテンプレートで決まります。ベンダーの OID をそのテンプレートに追加するか、先にこのデバイスからテンプレートをクリアしてください。",
   "Linked to the OID Collection Template \"{{template}}\", which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "OID 収集テンプレート「{{template}}」にリンクされており、収集内容はそのテンプレートで決まります。ベンダーの OID をそのテンプレートに追加するか、先にこのデバイスからテンプレートをクリアしてください。",
-  "Match each device's vendor (recommended)": "各デバイスのベンダーに合わせる (推奨)",
-  "Matching picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "照合では、各デバイスの SNMP ウォークが報告する内容からテンプレートを選ぶため、混在した選択でもすべてに正しいものが適用されます。",
   "No vendor template matches this device's sysObjectID ({{sysObjectId}}). Choose one yourself — {{generic}} suits most Linux-based devices.": "このデバイスの sysObjectID ({{sysObjectId}}) に一致するベンダーテンプレートはありません。自分で選んでください。Linux ベースのデバイスの多くには {{generic}} が適しています。",
   "No vendor template matches this {{vendor}} device. Choose one yourself — {{generic}} suits most Linux-based devices.": "この {{vendor}} デバイスに一致するベンダーテンプレートはありません。自分で選んでください。Linux ベースのデバイスの多くには {{generic}} が適しています。",
   "Not identified yet: a device's vendor is read on its first SNMP walk. Give it SNMP credentials, or choose its template yourself.": "まだ識別されていません。デバイスのベンダーは最初の SNMP ウォークで読み取られます。SNMP 認証情報を設定するか、テンプレートを自分で選んでください。",
@@ -27237,5 +27235,7 @@
   "{{count}} devices have no matching template and are left as they are._one": "{{count}} 台のデバイスは一致するテンプレートがないため、そのままにします。",
   "{{count}} {{itemsName}} not changed": "{{itemsName}}: {{count}} 件変更なし",
   "{{count}} {{itemsName}} not changed_one": "{{itemName}}: {{count}} 件変更なし",
-  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "各デバイスには、自動インポートルールと同じように、そのベンダーのヘルス OID と SNMP テーブル (CPU、メモリ、温度、ファン) が適用されます。テンプレートのないベンダーのデバイスはそのままで、適用した内容はデバイスの設定でいつでも変更できます。"
+  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "各デバイスには、自動インポートルールと同じように、そのベンダーのヘルス OID と SNMP テーブル (CPU、メモリ、温度、ファン) が適用されます。テンプレートのないベンダーのデバイスはそのままで、適用した内容はデバイスの設定でいつでも変更できます。",
+  "Match each device's vendor": "各デバイスのベンダーに合わせる",
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "照合が安全な選択です。各デバイスの SNMP ウォークが報告する内容からテンプレートを選ぶため、混在した選択でもすべてに正しいものが適用されます。"
 }

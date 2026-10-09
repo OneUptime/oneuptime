@@ -102,7 +102,7 @@ jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
       return (
         <div data-testid="basic-form-modal">
           <h2>{props.title}</h2>
-          {field?.footerElement || null}
+          {field?.["footerElement"] || null}
         </div>
       );
     },

@@ -463,7 +463,7 @@ describe("useBulkApplyVendorTemplate", () => {
       await openDialog([makeDevice({ index: 1, sysObjectId: CNMATRIX_OID })]);
 
       expect(
-        screen.getByText("Match each device's vendor (recommended)"),
+        screen.getByText("Match each device's vendor", { exact: true }),
       ).toBeInTheDocument();
       expect(
         screen.getByTestId("modal-description").textContent || "",

@@ -27204,8 +27204,6 @@
   "Has no role to clear.": "Has no role to clear.",
   "Linked to an OID Collection Template, which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "Linked to an OID Collection Template, which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.",
   "Linked to the OID Collection Template \"{{template}}\", which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "Linked to the OID Collection Template \"{{template}}\", which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.",
-  "Match each device's vendor (recommended)": "Match each device's vendor (recommended)",
-  "Matching picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "Matching picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.",
   "No vendor template matches this device's sysObjectID ({{sysObjectId}}). Choose one yourself — {{generic}} suits most Linux-based devices.": "No vendor template matches this device's sysObjectID ({{sysObjectId}}). Choose one yourself — {{generic}} suits most Linux-based devices.",
   "No vendor template matches this {{vendor}} device. Choose one yourself — {{generic}} suits most Linux-based devices.": "No vendor template matches this {{vendor}} device. Choose one yourself — {{generic}} suits most Linux-based devices.",
   "Not identified yet: a device's vendor is read on its first SNMP walk. Give it SNMP credentials, or choose its template yourself.": "Not identified yet: a device's vendor is read on its first SNMP walk. Give it SNMP credentials, or choose its template yourself.",
@@ -27237,5 +27235,7 @@
   "{{count}} devices have no matching template and are left as they are._one": "{{count}} device has no matching template and is left as it is.",
   "{{count}} {{itemsName}} not changed": "{{count}} {{itemsName}} not changed",
   "{{count}} {{itemsName}} not changed_one": "{{count}} {{itemName}} not changed",
-  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings."
+  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.",
+  "Match each device's vendor": "Match each device's vendor",
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere."
 }

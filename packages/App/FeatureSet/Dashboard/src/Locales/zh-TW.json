@@ -27204,8 +27204,6 @@
   "Has no role to clear.": "沒有可清除的角色。",
   "Linked to an OID Collection Template, which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "已連結 OID 收集範本，由該範本決定收集內容。請將廠商的 OID 新增到該範本，或先在此裝置上清除它。",
   "Linked to the OID Collection Template \"{{template}}\", which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "已連結 OID 收集範本「{{template}}」，由該範本決定收集內容。請將廠商的 OID 新增到該範本，或先在此裝置上清除它。",
-  "Match each device's vendor (recommended)": "依每台裝置的廠商比對（建議）",
-  "Matching picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "比對會依每台裝置 SNMP 遍歷回報的內容為其選擇範本，因此混合選取中的每台裝置都能取得正確的範本。",
   "No vendor template matches this device's sysObjectID ({{sysObjectId}}). Choose one yourself — {{generic}} suits most Linux-based devices.": "沒有廠商範本與此裝置的 sysObjectID（{{sysObjectId}}）相符。請自行選擇——{{generic}} 適用於大多數以 Linux 為基礎的裝置。",
   "No vendor template matches this {{vendor}} device. Choose one yourself — {{generic}} suits most Linux-based devices.": "沒有與此 {{vendor}} 裝置相符的廠商範本。請自行選擇——{{generic}} 適用於大多數以 Linux 為基礎的裝置。",
   "Not identified yet: a device's vendor is read on its first SNMP walk. Give it SNMP credentials, or choose its template yourself.": "尚未識別：裝置的廠商會在其首次 SNMP 遍歷時讀取。請為其設定 SNMP 認證資訊，或自行選擇範本。",
@@ -27237,5 +27235,7 @@
   "{{count}} devices have no matching template and are left as they are._one": "{{count}} 台裝置沒有相符的範本，維持不變。",
   "{{count}} {{itemsName}} not changed": "{{count}} 個{{itemsName}}未變更",
   "{{count}} {{itemsName}} not changed_one": "{{count}} 個{{itemName}}未變更",
-  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "每台裝置都會取得其廠商的健康 OID 與 SNMP 表（CPU、記憶體、溫度、風扇），與自動匯入規則的做法相同。廠商沒有範本的裝置維持不變，已套用的內容都可以在裝置設定中變更。"
+  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "每台裝置都會取得其廠商的健康 OID 與 SNMP 表（CPU、記憶體、溫度、風扇），與自動匯入規則的做法相同。廠商沒有範本的裝置維持不變，已套用的內容都可以在裝置設定中變更。",
+  "Match each device's vendor": "依每台裝置的廠商比對",
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "比對是穩妥的選擇：它會依每台裝置 SNMP 遍歷回報的內容為其選擇範本，因此混合選取中的每台裝置都能取得正確的範本。"
 }

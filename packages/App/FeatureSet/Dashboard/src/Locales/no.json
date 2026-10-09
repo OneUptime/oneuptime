@@ -27204,8 +27204,6 @@
   "Has no role to clear.": "Har ingen rolle å fjerne.",
   "Linked to an OID Collection Template, which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "Koblet til en OID-innsamlingsmal, som bestemmer hva den samler inn. Legg produsentens OID-er til den malen, eller fjern den fra denne enheten først.",
   "Linked to the OID Collection Template \"{{template}}\", which decides what it collects. Add the vendor's OIDs to that template, or clear it on this device first.": "Koblet til OID-innsamlingsmalen «{{template}}», som bestemmer hva den samler inn. Legg produsentens OID-er til den malen, eller fjern den fra denne enheten først.",
-  "Match each device's vendor (recommended)": "Match hver enhets produsent (anbefalt)",
-  "Matching picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "Matchingen velger hver enhets mal ut fra det SNMP-walken rapporterer, slik at et blandet utvalg får riktig mal overalt.",
   "No vendor template matches this device's sysObjectID ({{sysObjectId}}). Choose one yourself — {{generic}} suits most Linux-based devices.": "Ingen produsentmal passer til denne enhetens sysObjectID ({{sysObjectId}}). Velg en selv — {{generic}} passer for de fleste Linux-baserte enheter.",
   "No vendor template matches this {{vendor}} device. Choose one yourself — {{generic}} suits most Linux-based devices.": "Ingen produsentmal passer til denne {{vendor}}-enheten. Velg en selv — {{generic}} passer for de fleste Linux-baserte enheter.",
   "Not identified yet: a device's vendor is read on its first SNMP walk. Give it SNMP credentials, or choose its template yourself.": "Ikke identifisert ennå: en enhets produsent leses ved første SNMP-walk. Gi den SNMP-legitimasjon, eller velg malen selv.",
@@ -27237,5 +27235,7 @@
   "{{count}} devices have no matching template and are left as they are._one": "{{count}} enhet har ingen passende mal og forblir som den er.",
   "{{count}} {{itemsName}} not changed": "{{count}} {{itemsName}} ikke endret",
   "{{count}} {{itemsName}} not changed_one": "{{count}} {{itemName}} ikke endret",
-  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "Hver enhet får helse-OID-ene og SNMP-tabellene for sin produsent — CPU, minne, temperatur, vifter — slik regler for automatisk import gjør. En enhet hvis produsent ikke har noen mal, forblir som den er, og alt som er brukt kan endres i enhetens innstillinger."
+  "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.": "Hver enhet får helse-OID-ene og SNMP-tabellene for sin produsent — CPU, minne, temperatur, vifter — slik regler for automatisk import gjør. En enhet hvis produsent ikke har noen mal, forblir som den er, og alt som er brukt kan endres i enhetens innstillinger.",
+  "Match each device's vendor": "Match hver enhets produsent",
+  "Matching is the safe choice: it picks each device's template from what its SNMP walk reports, so a mixed selection gets the right one everywhere.": "Matching er det trygge valget: den velger hver enhets mal ut fra det SNMP-walken rapporterer, slik at et blandet utvalg får riktig mal overalt."
 }

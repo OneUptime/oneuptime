@@ -13,6 +13,14 @@ values, desktop layout, and a narrow mobile viewport. It also checks that a scan
 status message offers "Show details" only when the two-line preview cuts it short,
 at several widths and across live updates (issue #3842).
 
+`DeviceBulkActions.spec.ts` covers what comes after an import, on the real Devices
+page (`/network-devices`) against synthetic devices: the Bulk Actions menu's Set Site,
+Set Device Role and Apply Vendor Template (with its per-device preview), Clear Site
+counting only the devices in a site, the result's "not changed" list, a write the
+server refuses, writes going one device at a time, a 390px screen, and the Review
+dialog's "Apply each SNMP host's vendor template" switch. The fixture records every
+device write and every device an import creates on `window.__discoveryFixture`.
+
 Screenshots are written to `output/playwright/discovery/`. The screenshots in
 `packages/E2E/Discovery/screenshots/` document the reviewed UI for issue #3672 and use the
 same visibly labelled synthetic data.
