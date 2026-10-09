@@ -35,6 +35,14 @@ import UserType from "../../../Types/UserType";
  * not do either, and its error port says so in plain words, naming the step
  * (LogComponentError).
  *
+ * One permission a Project Admin holds is not lent to a step: the read of
+ * runbook credentials, which is what lets OneUptime AI's commands use them
+ * (a rule that runs its commands without asking, a Runner that runs them, an
+ * SSH credential given to such a Runner). Whoever may edit a workflow decides
+ * what its steps do, so that read is asked of the person who last saved the
+ * workflow (Workflow.lastSavedByUserId, carried as workflowSavedByUserId) and
+ * answered by RunbookCredentialReaders.
+ *
  * The run itself - finding the workflow, its variables, writing its run log
  * - is OneUptime's own bookkeeping and stays as it was.
  */
@@ -45,6 +53,12 @@ export interface WorkflowPrincipalOptions {
   workflowId: ObjectID;
   // For the audit trail only.
   workflowName?: string | undefined;
+  /*
+   * The person who last saved the workflow, read with the steps the run is
+   * running: the one whose read of runbook credentials a step is held to
+   * (RunbookCredentialReaders). Nobody when the workflow names nobody.
+   */
+  savedByUserId?: ObjectID | null | undefined;
 }
 
 export default class WorkflowPrincipal {
@@ -118,6 +132,10 @@ export default class WorkflowPrincipal {
 
     if (options.workflowName) {
       props.workflowName = options.workflowName;
+    }
+
+    if (options.savedByUserId) {
+      props.workflowSavedByUserId = options.savedByUserId;
     }
 
     return props;

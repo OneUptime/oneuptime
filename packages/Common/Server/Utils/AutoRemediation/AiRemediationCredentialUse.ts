@@ -62,11 +62,15 @@ export interface RuleCommandSettingsChange {
  * resource's command never carries a credential. Neither picks one.
  */
 export default class AiRemediationCredentialUse {
-  // Whether `props` may read runbook credentials, so let commands use them.
-  public static mayUseCredentials(
+  /*
+   * Whether `props` may read runbook credentials, so let commands use them -
+   * for a workflow's step, whether the person who last saved the workflow
+   * may (RunbookCredentialReaders).
+   */
+  public static async mayUseCredentials(
     props: DatabaseCommonInteractionProps,
-  ): boolean {
-    return RunbookCredentialReaders.mayRead(props);
+  ): Promise<boolean> {
+    return await RunbookCredentialReaders.mayRead(props);
   }
 
   /*
@@ -104,14 +108,17 @@ export default class AiRemediationCredentialUse {
    * credentials when one of its commands runs with a credential OneUptime AI
    * picked. Nothing to refuse otherwise.
    */
-  public static assertApproverMayUseCredentials(data: {
+  public static async assertApproverMayUseCredentials(data: {
     plan: AiRemediationCommandPlan;
     props: DatabaseCommonInteractionProps;
-  }): void {
+  }): Promise<void> {
     const command: AiRemediationCommand | undefined =
       AiRemediationCredentialUse.getCommandWithPickedCredential(data.plan);
 
-    if (!command || AiRemediationCredentialUse.mayUseCredentials(data.props)) {
+    if (
+      !command ||
+      (await AiRemediationCredentialUse.mayUseCredentials(data.props))
+    ) {
       return;
     }
 
@@ -203,9 +210,16 @@ export default class AiRemediationCredentialUse {
     });
   }
 
-  // Why a rule cannot be left running OneUptime AI's commands without asking.
-  public static getUnattendedRuleRefusal(): string {
-    return `This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runners. Turning that on (or turning on a rule that does it), adding allowlist patterns or Runners to it needs permission to read runbook credentials: ${AiRemediationCredentialUse.getCredentialReaderTitles()}. Set the rule to ask before fixing, or ask someone who has it to save the rule.`;
+  /*
+   * Why a rule cannot be left running OneUptime AI's commands without
+   * asking - and, for a workflow's step, whose permission was asked about.
+   */
+  public static getUnattendedRuleRefusal(
+    props?: DatabaseCommonInteractionProps | undefined,
+  ): string {
+    return `This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runners. Turning that on (or turning on a rule that does it), adding allowlist patterns or Runners to it needs permission to read runbook credentials: ${AiRemediationCredentialUse.getCredentialReaderTitles()}.${
+      props ? RunbookCredentialReaders.getWorkflowNote(props) : ""
+    } Set the rule to ask before fixing, or ask someone who has it to save the rule.`;
   }
 
   /*
@@ -213,22 +227,25 @@ export default class AiRemediationCredentialUse {
    * leaves any of `changes` running OneUptime AI's commands without asking
    * more widely than before (widensCommandsWithoutAsking).
    */
-  public static assertMaySaveRules(data: {
+  public static async assertMaySaveRules(data: {
     props: DatabaseCommonInteractionProps;
     changes: Array<RuleCommandSettingsChange>;
-  }): void {
+  }): Promise<void> {
     const widens: boolean = data.changes.some(
       (change: RuleCommandSettingsChange): boolean => {
         return AiRemediationCredentialUse.widensCommandsWithoutAsking(change);
       },
     );
 
-    if (!widens || AiRemediationCredentialUse.mayUseCredentials(data.props)) {
+    if (
+      !widens ||
+      (await AiRemediationCredentialUse.mayUseCredentials(data.props))
+    ) {
       return;
     }
 
     throw new NotAuthorizedException(
-      AiRemediationCredentialUse.getUnattendedRuleRefusal(),
+      AiRemediationCredentialUse.getUnattendedRuleRefusal(data.props),
     );
   }
 }

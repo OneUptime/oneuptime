@@ -1,6 +1,8 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ProjectReferencesService from "./ProjectReferencesService";
 import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
@@ -25,6 +27,60 @@ import UUID from "../../Utils/UUID";
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * WHO LAST SAVED THE WORKFLOW (Workflow.lastSavedByUserId).
+   *
+   * Every save made in a project - creating the workflow, or changing
+   * anything on it, through the dashboard, the API, Terraform or the admin
+   * dashboard - records the person who made it, and nobody when there is no
+   * person (an API key). OneUptime's own writes - the trigger it reads off
+   * the graph, the webhook key, the labels and owners its rules add - keep
+   * who saved it. Stamped after the save's permission check, as the creator
+   * is, so the person is never asked for access to a column they did not
+   * send (the column takes no caller's value: UserAttribution).
+   *
+   * A workflow's steps are held to this person's read of runbook credentials
+   * (RunbookCredentialReaders): the read a workflow never lends whoever may
+   * edit it.
+   */
+  public static stampLastSavedBy(
+    data: Model | Record<string, unknown>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    record["lastSavedByUserId"] = props.userId || null;
+    delete record["lastSavedByUser"];
+  }
+
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    Service.stampLastSavedBy(onCreate.createBy.data, onCreate.createBy.props);
+  }
+
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    Service.stampLastSavedBy(
+      updateBy.data as unknown as Record<string, unknown>,
+      updateBy.props,
+    );
   }
 
   @CaptureSpan()

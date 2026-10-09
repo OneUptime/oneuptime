@@ -859,7 +859,7 @@ router.post(
          * alone.
          */
         if (plan) {
-          AiRemediationCredentialUse.assertApproverMayUseCredentials({
+          await AiRemediationCredentialUse.assertApproverMayUseCredentials({
             plan: plan,
             props: props,
           });

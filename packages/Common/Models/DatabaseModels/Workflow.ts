@@ -591,6 +591,78 @@ export default class Workflow extends BaseModel {
   })
   public archivedByUserId?: ObjectID = undefined;
 
+  /*
+   * The person who last saved the workflow - created it or changed anything
+   * on it - recorded by OneUptime on every save a person, an API key or the
+   * admin dashboard makes (WorkflowService), and nobody when the save had no
+   * person (an API key). A workflow's steps act as a Project Admin of its
+   * project, but the read of runbook credentials - what lets OneUptime AI's
+   * commands use them - is asked of this person instead
+   * (RunbookCredentialReaders): a workflow lends nobody that read.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "lastSavedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Last Saved by User",
+    description:
+      "Relation to the User who last saved this workflow (empty when it was last saved without a user, such as with an API key)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "lastSavedByUserId" })
+  public lastSavedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflow,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Last Saved by User ID",
+    description:
+      "ID of the User who last saved this workflow (empty when it was last saved without a user, such as with an API key)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public lastSavedByUserId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
