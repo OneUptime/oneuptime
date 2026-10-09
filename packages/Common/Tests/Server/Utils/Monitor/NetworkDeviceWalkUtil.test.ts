@@ -1318,6 +1318,31 @@ describe("NetworkDeviceWalkUtil.processWalkResult — transceivers", () => {
     expect(synthesized().snmpResponse!.transceivers).toEqual(stored);
   });
 
+  test("the raw readings are charted, then not carried into every monitor's log", async () => {
+    mockPipeline({
+      monitors: [buildMonitor({ steps: [buildStep(DEVICE_ID)] })],
+    });
+    let chartedReadings: unknown = undefined;
+    metricsSpy.mockImplementation(async (args: JSONObject): Promise<void> => {
+      chartedReadings = (args["snmpResponse"] as unknown as SnmpMonitorResponse)
+        .transceiverResults;
+    });
+
+    await runWalk(
+      buildSnmpResponse({
+        transceiverResults: [opticReading(1, -4)],
+        transceiverSource: TransceiverMibSource.CiscoEntitySensor,
+      }),
+    );
+
+    expect(chartedReadings).toEqual([opticReading(1, -4)]);
+    expect(synthesized().snmpResponse!.transceiverResults).toBeUndefined();
+    expect(synthesized().snmpResponse!.transceivers).toHaveLength(1);
+    expect(synthesized().snmpResponse!.transceiverSource).toBe(
+      TransceiverMibSource.CiscoEntitySensor,
+    );
+  });
+
   test("a poll that did not read optics leaves the stored snapshot alone", async () => {
     mockPipeline({ device: deviceStoring([storedOptic()]) });
 

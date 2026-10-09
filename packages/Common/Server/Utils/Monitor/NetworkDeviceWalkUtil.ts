@@ -334,6 +334,16 @@ export default class NetworkDeviceWalkUtil {
     }
 
     /*
+     * The probe's raw transceiver readings have done their job - folded
+     * into the snapshot and charted. The monitors judge the merged
+     * `transceivers`, so the raw copy is not carried into the log of every
+     * monitor watching the device.
+     */
+    if (data.snmpResponse) {
+      delete data.snmpResponse.transceiverResults;
+    }
+
+    /*
      * Why the poll failed, for the incident/alert narrative. The walk's own
      * cause is passed through whenever a walk ran (it is the more specific
      * of the two, and the "SNMP walk failing" alert reads it); the ping's
