@@ -111,7 +111,6 @@ import {
   DataSource,
   Driver,
   EntityManager,
-  Equal,
   FindOperator,
   Repository,
   SelectQueryBuilder,
@@ -7223,15 +7222,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       } as Query<TBaseModel>) as Dictionary<unknown>
     )["_id"];
 
-    if (idFilter instanceof FindOperator) {
-      return idFilter as FindOperator<unknown>;
-    }
-
-    if (typeof idFilter === "string" && idFilter) {
-      return Equal(idFilter);
-    }
-
-    return null;
+    // A plain id is read as it is (getOneRowIdNamedBy); anything else holds no row.
+    return idFilter instanceof FindOperator
+      ? (idFilter as FindOperator<unknown>)
+      : null;
   }
 
   /*

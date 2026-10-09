@@ -130,11 +130,51 @@ const ALLOWED: Record<string, Allowed> = {
     reason:
       "Which projects' hierarchy lock to take before the update runs; the update's hook reads, checks and holds its rows inside that lock.",
   },
+  "packages/Common/Server/Services/NetworkSiteService.ts::updateOneBy": {
+    mentions: 1,
+    reason:
+      "Which projects' hierarchy lock to take before the update runs; the update's hook reads, checks and holds its row inside that lock.",
+  },
   "packages/Common/Server/Services/NetworkSiteTypeService.ts::updateBy": {
     mentions: 1,
     reason:
       "Which projects' hierarchy lock to take before the update runs; the update's hook reads, checks and holds its rows inside that lock.",
   },
+  "packages/Common/Server/Services/NetworkSiteTypeService.ts::updateOneBy": {
+    mentions: 1,
+    reason:
+      "Which projects' hierarchy lock to take before the update runs; the update's hook reads, checks and holds its row inside that lock.",
+  },
+  "packages/Common/Server/Types/Workflow/Components/BaseModel/CustomFieldsArgument.ts::queryForRecord":
+    {
+      mentions: 1,
+      reason:
+        "A workflow step's own update, composed here: each record it read is written by its own id, with the step's conditions and the version read, so every record written is one it read.",
+    },
+  "packages/Common/Server/Types/Workflow/Components/BaseModel/CustomFieldsArgument.ts::updateOneMergingCustomFields":
+    {
+      mentions: 1,
+      reason:
+        "Reads, with the step's own permissions, the record the step's Update One reaches, to merge its custom fields; that record is then written by its id (queryForRecord).",
+    },
+  "packages/Common/Server/Types/Workflow/Components/BaseModel/CustomFieldsArgument.ts::updateManyMergingCustomFields":
+    {
+      mentions: 1,
+      reason:
+        "Reads, with the step's own permissions, the records the step's Update Many reaches in its window, to merge each one's custom fields; each is then written by its own id (queryForRecord).",
+    },
+  "packages/Common/Server/Utils/ProjectSsoProviderChanges.ts::lockReadAndCheckRows":
+    {
+      mentions: 1,
+      reason:
+        "Reads the rows to learn which projects' sign-in locks to take, reads them again under the locks and checks them, and holds the write to the rows read (writeOnlyTheRowsRead).",
+    },
+  "packages/Common/Server/Utils/ProjectSsoProviderChanges.ts::writeOnlyTheRowsRead":
+    {
+      mentions: 1,
+      reason:
+        "Holds the write to the rows read under the sign-in lock: reads the query only to name those rows in it, branch by branch.",
+    },
   "packages/Common/Server/Services/UserService.ts::onBeforeUpdate": {
     mentions: 1,
     reason:
@@ -193,14 +233,28 @@ function sourceFiles(directory: string): Array<string> {
   return files;
 }
 
-// `updateBy`, `data.updateBy`, `onUpdate.updateBy`...
+/*
+ * The names an update goes by - `updateBy`, `updateOneBy`, `update`,
+ * `write` - alone or as a property: `data.updateBy`, `onUpdate.updateBy`,
+ * `data.write`...
+ */
+const UPDATE_NAMES: Set<string> = new Set<string>([
+  "updateBy",
+  "updateOneBy",
+  "update",
+  "write",
+]);
+
 function isUpdateBy(expression: ts.Expression): boolean {
   return (
-    (ts.isIdentifier(expression) && expression.text === "updateBy") ||
+    (ts.isIdentifier(expression) && UPDATE_NAMES.has(expression.text)) ||
     (ts.isPropertyAccessExpression(expression) &&
-      expression.name.text === "updateBy")
+      UPDATE_NAMES.has(expression.name.text))
   );
 }
+
+// Whether a file can name an update at all (UPDATE_NAMES).
+const NAMES_AN_UPDATE: RegExp = /\b(updateBy|updateOneBy|update|write)\b/;
 
 // `<update>.query`.
 function isUpdateQuery(node: ts.Node): node is ts.PropertyAccessExpression {
@@ -299,7 +353,7 @@ function findQueryReads(): Array<QueryRead> {
         "utf8",
       );
 
-      if (!text.includes("updateBy")) {
+      if (!NAMES_AN_UPDATE.test(text)) {
         continue;
       }
 
@@ -429,6 +483,22 @@ describe("The update query readers the scan recognizes", () => {
         }
       }`),
     ).toEqual(["onBeforeUpdate", "check", "single"]);
+  });
+
+  it("counts it under the other names an update goes by", () => {
+    expect(
+      readsIn(`class S {
+        async updateOneBy(updateOneBy) {
+          await this.findBy({ query: updateOneBy.query, select: {} });
+        }
+        async step(update) {
+          return this.findBy({ query: update.query, select: {} });
+        }
+        async lockRows(data) {
+          return this.findBy({ query: data.write.query, select: {} });
+        }
+      }`),
+    ).toEqual(["updateOneBy", "step", "lockRows"]);
   });
 
   it("does not count a narrowing in place, a one-row id read, or a read after the write", () => {
