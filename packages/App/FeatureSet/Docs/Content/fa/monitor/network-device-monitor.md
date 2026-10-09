@@ -267,14 +267,53 @@
 
 - Cisco IOS / IOS-XE
 - MikroTik RouterOS
-- Ubiquiti EdgeOS / UniFi
+- Ubiquiti EdgeOS / EdgeSwitch / UniFi Switches
 - Generic (Host Resources MIB)
+
+و برای Wi-Fi، قالب‌هایی که رادیوها، SSIDها و — روی یک کنترلر — نقطه‌های دسترسی را می‌خوانند (نگاه کنید به فروشندگان Wi-Fi پشتیبانی‌شده، پایین‌تر):
+
+- Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH)
+- Ubiquiti UniFi Access Points
+- HPE Aruba Instant (AOS 8)
+- HPE Aruba Mobility Controller (AOS 8)
+- Extreme Networks IQ Engine (HiveOS) Access Points
+- Extreme Networks Wireless Controller (XIQ-C, ExtremeWireless)
+- TP-Link Omada Access Points (EAP)
 
 ‏OIDهای قالب به فهرست OID زیر فهرست کشویی **کپی** می‌شوند، جایی که می‌توانید هرسشان کنید یا گسترششان دهید. پس از اینکه نخستین سرکشی سازنده دستگاه را شناسایی کرد، صفحه دستگاه قالب متناظر را پیشنهاد می‌دهد. دستگاه‌هایی که **Auto-Apply Vendor Health Template** برایشان روشن است، OIDها **و** جدول‌های قالب را در نخستین سرکشی می‌گیرند: دستگاه‌هایی که یک قانون واردسازی خودکار می‌آورد، و دستگاه‌هایی که از **Review Results** با کلید قالب سازنده روشن وارد می‌شوند — که روشن است مگر خاموشش کنید.
 
 برای دادن قالب به چند دستگاه با هم — مثلاً ناوگان کشف‌شده‌ای که پیش از این کلید وارد شده — آن‌ها را روی فهرست **Devices** برگزینید و **Apply Vendor Template** را به کار برید (نگاه کنید به [تغییر دادن چند دستگاه با هم](#تغییر-دادن-چند-دستگاه-با-هم)).
 
 این کپی‌ای یک‌باره است و فراموش می‌کند از کجا آمده — پس از آن هیچ ویرایشی منتشر نمی‌شود. برای هر چیزی فراتر از یک دستگاه، به‌جایش از **OID Collection Template** پایین‌تر استفاده کنید؛ هنگام ساخت یکی، نمایه‌های سازنده به‌عنوان نقطه شروع پیشنهاد می‌شوند.
+
+### فروشندگان Wi-Fi پشتیبانی‌شده
+
+اینکه هر سازنده Wi-Fi چه چیزی را از راه SNMP گزارش می‌کند، و چه چیزی فقط در ابر خودش هست:
+
+| سازنده | نقطه‌های دسترسی و کنترلرها | قالب سازنده | خوانده‌شده از راه SNMP | نیازمند API ابری سازنده (ساخته نشده) |
+| --- | --- | --- | --- | --- |
+| Cambium Networks | نقطه‌های دسترسی Enterprise Wi-Fi ‏(cnPilot، XV، XE، XH) | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | باند، کانال، پهنا، توان ارسال، کلاینت‌ها، کف نویز، زمان هوایی و وضعیت هر رادیو؛ SSIDها؛ CPU و حافظه | نماهای ناوگان در cnMaestro |
+| Ubiquiti UniFi | نقطه‌های دسترسی UniFi ‏(UAP، U6، U7، UK) | Ubiquiti UniFi Access Points | باند و زمان هوایی هر رادیو؛ کانال، کلاینت‌ها و توان ارسال هر SSID؛ CPU هر هسته و حافظه | داده‌های هر کلاینت و نماهای سایت در برنامه UniFi Network |
+| HPE Aruba | خوشه‌های Instant ‏(AOS 8)، از راه کنترلر مجازی‌شان | HPE Aruba Instant (AOS 8) | وضعیت، CPU و حافظه هر نقطه دسترسی؛ کانال، توان ارسال، کف نویز، بهره‌برداری، کلاینت‌ها و وضعیت هر رادیو؛ SSIDها با کلاینت‌هایشان | — |
+| HPE Aruba | Mobility Controllerها ‏(AOS 8) | HPE Aruba Mobility Controller (AOS 8) | وضعیت هر نقطه دسترسی مدیریت‌شده؛ باند، کانال، توان ارسال، بهره‌برداری و کلاینت‌های هر رادیو؛ SSIDها با کلاینت‌هایشان؛ CPU و حافظه کنترلر | — |
+| HPE Aruba | نقطه‌های دسترسی روی AOS 10 که Aruba Central مدیریتشان می‌کند | — | دسترس‌پذیری (پینگ) | رادیوها، SSIDها و کلاینت‌ها: API ‏Aruba Central |
+| Extreme Networks | نقطه‌های دسترسی IQ Engine ‏(HiveOS) | Extreme Networks IQ Engine (HiveOS) Access Points | کانال، توان ارسال و کف نویز هر رادیو؛ SSIDها؛ CPU، حافظه، کلاینت‌ها و دما | نماهای کلاینت و ناوگان در ExtremeCloud IQ |
+| Extreme Networks | ExtremeCloud IQ Controller (پیش‌تر Extreme Campus Controller) و کنترلرهای ExtremeWireless | Extreme Networks Wireless Controller (XIQ-C, ExtremeWireless) | وضعیت و کلاینت‌های هر نقطه دسترسی؛ باند، کانال، پهنا، کف نویز و زمان اشغال کانال هر رادیو؛ WLANها با کلاینت‌هایشان | — |
+| TP-Link | نقطه‌های دسترسی Omada ‏(EAP) | TP-Link Omada Access Points (EAP) | شمار کلاینت‌ها، روی سفت‌افزاری که MIB کلاینت EAP شرکت TP-Link را دارد | رادیوها، کانال‌ها و SSIDها: API ‏Omada Controller |
+| Juniper | نقطه‌های دسترسی Mist | — | دسترس‌پذیری (پینگ)؛ بالا و پایین رفتن نقطه دسترسی از راه وب‌هوک‌های Mist | همه چیز دیگر: API ابری Mist |
+
+قالب‌ها از روی `sysObjectID` و `sysDescr` هر دستگاه تطبیق داده می‌شوند، پس اعمال خودکار، گزینه _Match each device's vendor_ در کار انبوه **Apply Vendor Template** و زبانه Wi-Fi بی‌آنکه گفته شود آن‌ها را برمی‌گزینند — جز قالب TP-Link که دستی اعمالش می‌کنید. زبانه Wi-Fi دستگاهی که هنوز Wi-Fi گزارش نمی‌کند، قالب سازنده‌اش را نام می‌برد و با **Apply Template** اعمالش می‌کند. روشن کردن SNMP، برای هر سازنده:
+
+- **Cambium**: در cnMaestro، ‏SNMP برای هر AP Group تنظیم می‌شود (Configuration → Wi-Fi Profiles → AP Groups → Management → SNMP)، با یک community نسخه v2c یا یک کاربر v3. هر نقطه دسترسی را بیفزایید.
+- **Ubiquiti UniFi**: ‏SNMP را در برنامه UniFi Network روشن کنید؛ آن را روی دستگاه‌هایی که مدیریت می‌کند تنظیم می‌کند. هر نقطه دسترسی را بیفزایید.
+- **HPE Aruba Instant**: ‏SNMP را برای خوشه روشن کنید و نشانی کنترلر مجازی‌اش را به‌عنوان یک دستگاه بیفزایید — برای همه نقطه‌های دسترسی پاسخ می‌دهد.
+- **HPE Aruba Mobility Controller**: کنترلر را بیفزایید؛ نقطه‌های دسترسی کمپوس خودشان به SNMP پاسخ نمی‌دهند.
+- **Extreme IQ Engine**: ‏SNMP را در خط‌مشی شبکه‌ای که ExtremeCloud IQ روی نقطه‌های دسترسی می‌فرستد روشن کنید و هر نقطه دسترسی را بیفزایید.
+- **کنترلرهای بی‌سیم Extreme**: ‏SNMP را در تنظیمات مدیریتی کنترلر روشن کنید و کنترلر را بیفزایید.
+- **TP-Link Omada**: ‏SNMP را برای سایت در Omada Controller روشن کنید (Network Config → SNMP)، نقطه‌های دسترسی را بیفزایید و قالب را از Settings آن‌ها یا با **Apply Vendor Template** اعمال کنید.
+- **Juniper Mist**: نقطه‌های دسترسی Mist به SNMP پاسخ نمی‌دهند. آن‌ها را برای دسترس‌پذیری به‌صورت دستگاه فقط-پینگ بیفزایید و وب‌هوک _device-updowns_ ‏Mist را به یک [مانیتور Incoming Request](/docs/monitor/incoming-request-monitor) بفرستید تا آفلاین شدن یک نقطه دسترسی به حادثه تبدیل شود.
+
+جدول یک کنترلر تا ۲۵۰ ردیف نگه می‌دارد: روی کنترلری با بیش از ۲۵۰ نقطه دسترسی یا رادیو، بقیه فهرست نمی‌شوند و جدول این را می‌گوید. شمار نقطه‌های دسترسی و کلاینت‌های کنترلر OIDهای سلامت‌اند و همه را می‌شمارند.
 
 ### قالب‌های جمع‌آوری OID
 

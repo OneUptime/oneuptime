@@ -166,13 +166,16 @@ const PACK: Array<NetworkDeviceAlertPackItem> = [
 ];
 
 /*
- * Tables whose rows are links or sessions: a row going unhealthy there is an
- * outage someone should be paged for. Everything else (fans, power supplies,
- * radios) raises an alert.
+ * Tables whose rows are links, sessions or whole access points: a row going
+ * unhealthy there is an outage someone should be paged for - a tunnel down,
+ * a fabric neighbour lost, an access point gone from its controller and its
+ * area without Wi-Fi. Everything else (fans, power supplies, radios) raises
+ * an alert.
  */
 const INCIDENT_TABLE_KINDS: Array<SnmpTableKind> = [
   SnmpTableKind.VpnTunnel,
   SnmpTableKind.RoutingAdjacency,
+  SnmpTableKind.WifiAccessPoint,
 ];
 
 export default class NetworkDeviceAlertPackUtil {

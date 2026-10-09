@@ -240,6 +240,14 @@ Ein paar Faustregeln:
 
 Die meisten Dashboards mischen ein paar – ein Diagramm oben, daneben ein oder zwei Werte, ein Text-Trenner und ein oder zwei Listen darunter.
 
+## Wenn ein Widget nicht angezeigt werden kann
+
+Ein Widget, das nicht dargestellt werden kann, zeigt an seiner Stelle **Dieses Widget konnte nicht angezeigt werden**, und der Rest des Dashboards funktioniert weiter. Das passiert, wenn OneUptime kein Widget dieses Typs hat (eines, das entfernt wurde, beim Schreiben des Dashboards über die API falsch geschrieben wurde oder aus einer neueren Version stammt), oder wenn das Widget beim Darstellen fehlschlägt, zum Beispiel weil seine gespeicherten Einstellungen unvollständig sind.
+
+Wenn Sie das Dashboard bearbeiten dürfen, klicken Sie darauf auf **Widget bearbeiten**. Das Dashboard wechselt in den Bearbeitungsmodus, und die Einstellungen dieses Widgets sind geöffnet: Korrigieren Sie sie, oder klicken Sie auf **Widget löschen** und danach auf **Änderungen speichern**. Ein Widget, das beim Darstellen fehlgeschlagen ist, bietet außerdem **Erneut versuchen** an und wird bei der nächsten automatischen Aktualisierung oder wenn Sie den Zeitraum ändern, neu dargestellt.
+
+Besucher eines öffentlichen Dashboards erfahren nur, dass das Widget nicht angezeigt werden konnte.
+
 ## Weiterführende Themen
 
 - [Variablen & Filter](/docs/dashboards/variables) – Widgets für viele Services oder Kunden wiederverwendbar machen.

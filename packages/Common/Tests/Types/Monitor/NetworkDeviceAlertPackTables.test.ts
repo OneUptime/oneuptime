@@ -58,6 +58,45 @@ describe("NetworkDeviceAlertPackUtil table health items", () => {
     expect(byName["CPU and Memory: row unhealthy"]).toBeUndefined();
   });
 
+  it("pages when an access point drops off its controller, and only alerts for a radio that switches off", () => {
+    for (const packId of [
+      "aruba-instant",
+      "aruba-mobility-controller",
+      "extreme-wireless-controller",
+    ]) {
+      const byName: Record<string, NetworkDeviceAlertPackItem> = {};
+
+      for (const item of itemsFor(packId)) {
+        byName[item.name] = item;
+      }
+
+      const accessPoints: NetworkDeviceAlertPackItem =
+        byName["Access Points: row unhealthy"]!;
+
+      expect(accessPoints.createIncidents).toBe(true);
+      expect(accessPoints.createAlerts).toBe(false);
+      expect(accessPoints.filters[0]!.snmpMonitorOptions).toEqual({
+        tableKey: "wifi_access_points",
+        tableRow: "*",
+      });
+    }
+
+    // Aruba Instant radios declare up as healthy: an alert, not a page.
+    const instantRadios: NetworkDeviceAlertPackItem | undefined = itemsFor(
+      "aruba-instant",
+    ).find((item: NetworkDeviceAlertPackItem) => {
+      return item.name === "Wi-Fi Radios: row unhealthy";
+    });
+
+    expect(instantRadios?.createIncidents).toBe(false);
+    expect(instantRadios?.createAlerts).toBe(true);
+  });
+
+  it("adds no table alerts for an access point that reports no healthy values (UniFi, IQ Engine)", () => {
+    expect(itemsFor("ubiquiti-unifi-ap")).toEqual([]);
+    expect(itemsFor("extreme-iq-engine-ap")).toEqual([]);
+  });
+
   it("adds nothing without tables", () => {
     expect(NetworkDeviceAlertPackUtil.getTableHealthItems(undefined)).toEqual(
       [],

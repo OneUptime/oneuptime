@@ -14,6 +14,7 @@ import Model from "../../Models/DatabaseModels/Dashboard";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import DashboardViewConfigUtil from "../../Utils/Dashboard/DashboardViewConfig";
+import StoredDashboardViewConfig from "../../Utils/Dashboard/StoredDashboardViewConfig";
 import {
   DASHBOARD_TEMPLATE_MISC_DATA_KEY,
   DashboardTemplateType,
@@ -89,11 +90,22 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    // use default empty config only if no template config was provided.
+    /*
+     * Use the default empty config only when the config sent has no widget
+     * on it - read the way the dashboard reads it. A config sent as the API
+     * reference's `{_type: "DashboardViewConfig", value: {...}}` envelope, or
+     * as JSON text, has its widgets one level down: the old top-level
+     * `components` check replaced it, widgets and all, with an empty one.
+     *
+     * One with widgets is stored as it was sent. Terraform reads a write back
+     * and compares it with what it sent, so rewriting it here would fail
+     * `terraform apply`; every reader reads it through
+     * StoredDashboardViewConfig instead (issue #4571).
+     */
     if (
       !createBy.data.dashboardViewConfig ||
-      !createBy.data.dashboardViewConfig.components ||
-      createBy.data.dashboardViewConfig.components.length === 0
+      StoredDashboardViewConfig.read(createBy.data.dashboardViewConfig)
+        .components.length === 0
     ) {
       createBy.data.dashboardViewConfig =
         DashboardViewConfigUtil.createDefaultDashboardViewConfig();
