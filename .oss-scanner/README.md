@@ -53,9 +53,10 @@ docker run --rm -it --network none oneuptime-oss-scanner
 Inside, `threat_model.md` ("How to exercise it") lists the commands: single
 test files in each package, `bash .oss-scanner/start-services.sh` for the
 suites that need Postgres, Valkey or ClickHouse, and
-`bash .oss-scanner/start-app.sh` for the running App. The build takes about
-seven minutes on 32 cores and the image is about 9.5 GB; the scanner allows 45
-minutes on 16.
+`bash .oss-scanner/start-app.sh` for the running App. On 32 cores the build
+takes about seven minutes (`tools/check`, with the clone and the scanner's
+layer, about ten), and the image is about 9.5 GB (13 GB with the scanner's
+layer and the git history); the scanner allows 45 minutes on 16 cores.
 
 ## Keeping it working
 

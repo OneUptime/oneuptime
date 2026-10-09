@@ -18,8 +18,8 @@
 # .oss-scanner/threat_model.md says what matters and how to exercise it, and
 # .oss-scanner/README.md how to check this build the way the scanner runs it.
 # Tests/Ops/OssScannerImage.test.js keeps this file in step with the
-# repository: the base images, every project with a lockfile, and the paths
-# and settings below.
+# repository: the base images, every project (each package.json and go.mod),
+# and the paths and settings below.
 
 # Pinned by digest, so the image is reproducible. The tags are the ones the
 # repository itself runs: node:26-bookworm-slim is the Probe image's base (the
@@ -112,10 +112,10 @@ RUN mkdir -p /usr/src \
 # image does: they would run the linked Common's and App's a second time.
 #
 # Not installed, on purpose (Tests/Ops/OssScannerImage.test.js reads these
-# lines, and fails on a project with a lockfile that is in neither list):
+# lines, and fails on a package.json or go.mod that is in neither list):
 # not built: packages/E2E - browser end-to-end tests that drive a running stack; test code, not shipped
 # not built: packages/TestServer - the fixture server the end-to-end tests monitor; never deployed
-# not built: packages/MobileApp - the on-call app, built for the app stores by Expo's cloud toolchain, which cannot run offline; a client of the same API, whose server enforces every permission
+# not built: packages/MobileApp - the on-call app for iOS and Android, built by Expo's cloud service; a client of the same API, whose server enforces every permission, so its large React Native toolchain is left out
 # not built: Scripts - developer and release tooling (OpenAPI, Terraform and docs generators); never deployed
 # not built: Scripts/TerraformProvider - generates the Terraform provider, which is published from its own repository and runs with its user's own API key
 # not built: Tests/Ops - tests of this repository's operations config, including the one that checks this file
