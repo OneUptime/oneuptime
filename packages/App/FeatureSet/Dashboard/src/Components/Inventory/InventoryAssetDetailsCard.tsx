@@ -4,6 +4,7 @@ import PlaceholderText from "Common/UI/Components/Detail/PlaceholderText";
 import {
   InventoryAssetDetail,
   InventoryAssetDetails,
+  InventoryAssetField,
   InventoryAssetSource,
   getInventoryAssetDetails,
 } from "Common/Utils/Inventory/InventoryAssetDetails";
@@ -66,10 +67,18 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
             const label: string =
               translator.translateText(englishLabel) || englishLabel;
 
+            /*
+             * A sysDescr runs to a paragraph ("Cisco IOS Software [Gibraltar],
+             * Catalyst L3 Switch Software (...), Version 16.12.4, ..."), so it
+             * gets the whole row rather than a third of one.
+             */
+            const isLong: boolean =
+              detail.field === InventoryAssetField.SystemDescription;
+
             return (
               <div
                 key={detail.field}
-                className="min-w-0"
+                className={`min-w-0${isLong ? " sm:col-span-2 lg:col-span-3" : ""}`}
                 data-testid={`inventory-asset-${detail.field}`}
               >
                 <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
