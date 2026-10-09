@@ -1121,14 +1121,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
            */
           const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
             projectId: ProjectUtil.getCurrentProjectId()!,
-            host: entry,
-            scan: scanToReview,
             /*
              * The dialog's "Apply each SNMP host's vendor template" toggle.
              * The builder sets it on SNMP hosts only: a ping-only host has
-             * no sysObjectID to match a template by.
+             * no sysObjectID to match a template by. (Ahead of host and scan,
+             * which DiscoveryReviewHostname reads as the call's last two.)
              */
             autoApplyVendorHealthTemplate: applyVendorTemplates,
+            host: entry,
+            scan: scanToReview,
           });
 
           /*
