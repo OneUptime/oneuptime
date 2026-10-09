@@ -1069,9 +1069,11 @@ describe("canonical configs read back exactly as they are", () => {
   });
 
   test.each(
-    TEMPLATES_WITH_WIDGETS.map((template: DashboardTemplate) => {
-      return [template.name, template.type];
-    }),
+    TEMPLATES_WITH_WIDGETS.map(
+      (template: DashboardTemplate): [string, DashboardTemplateType] => {
+        return [template.name, template.type];
+      },
+    ),
   )("the %s template", (_name: string, templateType: DashboardTemplateType) => {
     const template: DashboardViewConfig | null =
       getTemplateConfig(templateType);
@@ -1183,6 +1185,51 @@ describe("the ids every reader agrees on", () => {
     expect((MESSY[1] as JSONObject)["componentId"]).toBeUndefined();
     expect(entries[4]).not.toBe(MESSY[4]);
   });
+
+  test.each([
+    ["spaces around it", `  ${TEXT_WIDGET_ID}  `, TEXT_WIDGET_ID],
+    ["a number", 7, "7"],
+    [
+      "ObjectID JSON with spaces",
+      { _type: "ObjectID", value: ` ${TEXT_WIDGET_ID}` },
+      TEXT_WIDGET_ID,
+    ],
+  ])(
+    "a widget stored with an id as %s comes back as a copy holding the id it is drawn under",
+    (_name: string, componentId: unknown, drawnUnder: string) => {
+      const stored: JSONObject = {
+        ...apiTextWidget(),
+        componentId,
+      } as JSONObject;
+
+      const [entry] = StoredDashboardViewConfig.withComponentIds([stored]);
+
+      expect(entry).not.toBe(stored);
+      expect((entry as JSONObject)["componentId"]).toBeInstanceOf(ObjectID);
+      expect(String((entry as JSONObject)["componentId"])).toBe(drawnUnder);
+      expect(
+        idsOf(StoredDashboardViewConfig.read({ components: [stored] })),
+      ).toEqual([drawnUnder]);
+    },
+  );
+
+  test.each([
+    ["an ObjectID", new ObjectID(TEXT_WIDGET_ID)],
+    ["a string", TEXT_WIDGET_ID],
+    ["ObjectID JSON", { _type: "ObjectID", value: TEXT_WIDGET_ID }],
+  ])(
+    "a widget stored with its id as %s, exactly, comes back as the same object",
+    (_name: string, componentId: unknown) => {
+      const stored: JSONObject = {
+        ...apiTextWidget(),
+        componentId,
+      } as JSONObject;
+
+      expect(StoredDashboardViewConfig.withComponentIds([stored])[0]).toBe(
+        stored,
+      );
+    },
+  );
 
   test("getComponentIds names junk entries null and every widget uniquely", () => {
     const ids: Array<string | null> =

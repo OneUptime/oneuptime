@@ -181,6 +181,31 @@ function assignIds(data: {
   });
 }
 
+/*
+ * A stored componentId's text exactly as it is stored - untrimmed - or null
+ * when it is not text at all (a number, nothing, another type's JSON).
+ */
+function getStoredIdText(componentId: unknown): string | null {
+  if (componentId instanceof ObjectID) {
+    return componentId.toString();
+  }
+
+  if (typeof componentId === "string") {
+    return componentId;
+  }
+
+  if (
+    isPlainObject(componentId) &&
+    (componentId["_type"] === undefined ||
+      componentId["_type"] === ObjectType.ObjectID) &&
+    typeof componentId["value"] === "string"
+  ) {
+    return componentId["value"];
+  }
+
+  return null;
+}
+
 function isAutoRefreshInterval(value: unknown): value is AutoRefreshInterval {
   return (
     typeof value === "string" &&
@@ -317,9 +342,11 @@ export default class StoredDashboardViewConfig {
 
   /*
    * The stored entries with every widget holding the id it is drawn under.
-   * A widget that already has its own unique id comes back as the same
-   * object; one without (or with a taken one) as a copy carrying its new id.
-   * Entries no widget is read from come back as they are.
+   * A widget whose stored id is exactly that id comes back as the same
+   * object; any other (no id, a taken one, a number, one with spaces around
+   * it) as a copy carrying the id as an ObjectID - so a reader that compares
+   * the stored id as it is finds the id the page draws it under. Entries no
+   * widget is read from come back as they are.
    */
   public static withComponentIds(entries: Array<unknown>): Array<unknown> {
     const ids: Array<string | null> =
@@ -332,10 +359,7 @@ export default class StoredDashboardViewConfig {
         return entry;
       }
 
-      if (
-        StoredDashboardViewConfig.getComponentIdString(entry["componentId"]) ===
-        id
-      ) {
+      if (getStoredIdText(entry["componentId"]) === id) {
         return entry;
       }
 

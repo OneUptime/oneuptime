@@ -1509,6 +1509,26 @@ describe("DashboardAPI public resource-list", () => {
       expect(listedLimit()).toBe(5);
     });
 
+    it("serves a widget stored with spaces around its id by the trimmed id the page asks with", async () => {
+      const incident: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { maxRows: 6 },
+      });
+      incident.widget["componentId"] = `  ${incident.componentId.toString()}  `;
+      setDashboardWidgets([incident.widget]);
+
+      const [pageId] = pageIdsFor(dashboard.dashboardViewConfig);
+      expect(pageId).toBe(incident.componentId.toString());
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: pageId },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(listedLimit()).toBe(6);
+    });
+
     it("still refuses an id no widget is drawn under", async () => {
       const incident: BuiltWidget = buildWidget({
         componentType: DashboardComponentType.IncidentList,

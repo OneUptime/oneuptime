@@ -19,7 +19,7 @@ import ContainedErrorBoundary, {
   ContainedErrorFallbackProps,
 } from "../../../UI/Components/ContainedErrorBoundary/ContainedErrorBoundary";
 import { CHUNK_LOAD_RELOAD_STORAGE_KEY } from "../../../UI/Components/ErrorBoundary";
-import { SpyInstance } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 
 /*
  * ContainedErrorBoundary is the boundary for one part of a page - one
@@ -62,7 +62,7 @@ function fallback(data: ContainedErrorFallbackProps): ReactElement {
 }
 
 const ORIGINAL_LOCATION: Location = window.location;
-let reloadMock: jest.Mock<() => void>;
+let reloadMock: Mock<() => void>;
 let consoleErrorSpy: SpyInstance<typeof console.error>;
 
 beforeEach(() => {
@@ -205,7 +205,7 @@ describe("ContainedErrorBoundary", () => {
   });
 
   test("reports the error to onError and to the console", () => {
-    const onError: jest.Mock<(error: Error, errorInfo: ErrorInfo) => void> =
+    const onError: Mock<(error: Error, errorInfo: ErrorInfo) => void> =
       jest.fn<(error: Error, errorInfo: ErrorInfo) => void>();
 
     render(

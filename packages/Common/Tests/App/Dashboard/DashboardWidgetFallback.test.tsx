@@ -27,6 +27,7 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import URL from "../../../Types/API/URL";
 import { findNestedControls } from "../../Helpers/NestedControls";
+import { Mock } from "jest-mock";
 
 /*
  * What a dashboard widget shows in its own place when it cannot be drawn
@@ -119,7 +120,7 @@ describe("a widget of a type this version does not draw", () => {
   });
 
   test("offers Edit widget to someone who may edit, and calls it", () => {
-    const onEditWidgetClick: jest.Mock<() => void> = jest.fn<() => void>();
+    const onEditWidgetClick: Mock<() => void> = jest.fn<() => void>();
     const card: HTMLElement = renderFallback({ onEditWidgetClick });
 
     expect(buttonNames(card)).toEqual(["Edit widget"]);
@@ -165,7 +166,7 @@ describe("a widget that threw while it was drawn", () => {
   });
 
   test("offers Try again, which draws it again", () => {
-    const onRetry: jest.Mock<() => void> = jest.fn<() => void>();
+    const onRetry: Mock<() => void> = jest.fn<() => void>();
     const card: HTMLElement = renderFallback({
       problem: DashboardWidgetProblem.Crashed,
       componentType: "Chart",

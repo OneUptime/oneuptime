@@ -17,7 +17,7 @@ import {
   test,
 } from "@jest/globals";
 import React, { ReactElement } from "react";
-import { SpyInstance } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 
 /*
  * The dashboard canvas, rendered for real, holding widgets that cannot be
@@ -394,7 +394,7 @@ describe("Edit widget, from the canvas", () => {
   });
 
   test("is offered when the canvas was handed the way to it, and names the widget", () => {
-    const onEditWidgetClick: jest.Mock<(componentId: ObjectID) => void> =
+    const onEditWidgetClick: Mock<(componentId: ObjectID) => void> =
       jest.fn<(componentId: ObjectID) => void>();
 
     render(canvas({ config: CONFIG, onEditWidgetClick }));
