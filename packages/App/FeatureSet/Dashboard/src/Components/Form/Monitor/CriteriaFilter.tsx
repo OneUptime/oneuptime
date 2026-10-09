@@ -833,7 +833,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <p className="text-sm text-gray-500">
                       {translator.translateText(
                         isDeviceSelected
-                          ? "This device walks no SNMP tables yet. Add tables on the device's Settings page, or link an OID Collection Template that has them - the vendor templates for Sophos, Extreme and Cambium include IPsec tunnels, fabric neighbours, Wi-Fi radios and hardware tables."
+                          ? "This device walks no SNMP tables yet. Add tables on the device's Settings page, or link an OID Collection Template that has them - the vendor templates for Sophos, Extreme, Cambium, HPE Aruba and Ubiquiti UniFi include IPsec tunnels, fabric neighbours, Wi-Fi access points, radios and SSIDs, and hardware tables."
                           : "Choose the network device for this monitor in the configuration above, and the SNMP tables it walks are listed here.",
                       )}
                     </p>

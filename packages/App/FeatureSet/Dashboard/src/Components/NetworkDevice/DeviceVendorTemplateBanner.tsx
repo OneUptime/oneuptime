@@ -68,8 +68,10 @@ const DeviceVendorTemplateBanner: FunctionComponent<ComponentProps> = (
   }
 
   const vendorName: string =
-    SnmpVendorTemplateUtil.getVendorNameBySysObjectId(sysObjectId) ||
-    template.label;
+    SnmpVendorTemplateUtil.getVendorName({
+      sysObjectId: sysObjectId,
+      sysDescr: sysDescr,
+    }) || template.label;
 
   return (
     <Alert
