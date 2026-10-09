@@ -121,7 +121,7 @@ Dieser Schritt erscheint nur, wenn bei mindestens einem benutzerdefinierten Vorf
 
 Dies ist die einzige Stelle, an der eine Bereitschaftsrichtlinie direkt an einen Vorfall gehängt wird. Schweregrade tragen keine Bereitschaftsrichtlinie – der Schweregrad ist eine Beschriftung und beeinflusst die Alarmierung nur als *Kriterium* in einer Bereitschaftsregel. Regeln unter **Vorfälle → Regeln → Bereitschaftsregeln** fügen ihre Richtlinien zu dem hinzu, was Sie hier wählen; ausgeführt wird die Vereinigung beider, ohne Duplikate. Ein in einem späteren Status gemeldeter Vorfall führt keine davon aus – siehe [Bereits bestätigt oder behoben gemeldet](#bereits-bestätigt-oder-behoben-gemeldet).
 
-Die Rollen selbst konfigurieren Sie unter **Vorfälle → Einstellungen → Vorfallsrollen**. Ein neues Projekt hat eine, Incident Commander; ergänzen Sie dort Responder, Communications Lead oder was Ihr Prozess sonst braucht. Wählen Sie niemanden als Incident Commander, werden Sie es beim Melden des Vorfalls selbst.
+Die Rollen selbst konfigurieren Sie unter **Vorfälle → Einstellungen → Vorfallsrollen**. Ein neues Projekt hat eine, Vorfall-Kommandant; ergänzen Sie dort Responder, Kommunikationsverantwortlicher oder was Ihr Prozess sonst braucht. Wählen Sie niemanden als Vorfall-Kommandant, werden Sie es beim Melden des Vorfalls selbst.
 
 ## Aus einer Vorlage melden
 

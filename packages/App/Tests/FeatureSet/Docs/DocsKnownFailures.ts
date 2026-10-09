@@ -183,22 +183,22 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "incidents/declaring-incidents": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fa"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "fa"),
   },
   "incidents/index": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fa"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "fa"),
   },
   "incidents/linked-alerts": {
-    translated: except(EVERY_TRANSLATION, "de", "fa"),
+    translated: except(EVERY_TRANSLATION, "de", "fr", "fa"),
   },
   "incidents/notes-owners-and-feed": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fa"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "fa"),
   },
   "incidents/settings": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fa"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "fa"),
   },
   "incidents/states-and-severities": {
-    sameShape: except(EVERY_TRANSLATION, "de", "fa"),
+    sameShape: except(EVERY_TRANSLATION, "de", "fr", "fa"),
   },
   "installation/docker-compose": {
     sameShape: EVERY_TRANSLATION,

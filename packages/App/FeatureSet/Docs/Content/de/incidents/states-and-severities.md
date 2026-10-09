@@ -166,7 +166,7 @@ Es gibt vier Wege, auf denen ein Vorfall seinen Status ändert:
 
 Liegt der aktuelle Status vor dem bestätigten Status, bietet die Kopfzeile **Bestätigen** und **Beheben** an; liegt er zwischen beiden, nur **Beheben**. Das Bestätigen stoppt außerdem jede Bereitschaftseskalation des Vorfalls.
 
-Jeder dieser Wege schreibt eine Zeitachsenzeile. Ein Statuswechsel tut außerdem einiges, worum Sie nicht bitten müssen: Er postet einen Eintrag in den Vorfall-Feed, ernennt einen Incident Commander, falls der Vorfall noch keinen hat, und aktualisiert die SLA-Uhr. Das Wiedereröffnen eines behobenen Vorfalls startet ab dem Zeitpunkt der Wiedereröffnung einen neuen SLA-Datensatz.
+Jeder dieser Wege schreibt eine Zeitachsenzeile. Ein Statuswechsel tut außerdem einiges, worum Sie nicht bitten müssen: Er postet einen Eintrag in den Vorfall-Feed, ernennt einen Vorfall-Kommandanten, falls der Vorfall noch keinen hat, und aktualisiert die SLA-Uhr. Das Wiedereröffnen eines behobenen Vorfalls startet ab dem Zeitpunkt der Wiedereröffnung einen neuen SLA-Datensatz.
 
 ## Was Bestätigen bewirkt
 
