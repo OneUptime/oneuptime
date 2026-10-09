@@ -622,6 +622,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentCustomFieldRenamePostgres.test.ts --forceExit
 
+      # Clones the migrated custom field definition and value tables (incident,
+      # monitor, alert, scheduled maintenance, team), TableView and Form into
+      # an isolated schema (#4564). Renaming a dropdown field's options as a
+      # project admin must move the values on that project's records and
+      # templates - single values and list entries, a swap swapping - with raw
+      # SQL that starts no "On Update" workflow and leaves version and
+      # updatedAt alone, exactly as renameCustomFieldOptionValue maps them;
+      # rewrite the saved views and form templates that remember them; follow
+      # a monitor field's renames on the fields that copy it; move all stores
+      # or none; and count the option editor's values over live records only.
+      - name: Test custom field option renames on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CUSTOM_FIELD_OPTION_TESTS: "true"
+          CUSTOM_FIELD_OPTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CUSTOM_FIELD_OPTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CUSTOM_FIELD_OPTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CustomFieldOptionEditPostgres.test.ts --forceExit
+
       # Clones the migrated Project, Incident, Monitor, IncidentMonitor and
       # IncidentCustomField tables into an isolated schema and runs the
       # workflow Update steps through the production IncidentService (#4469).

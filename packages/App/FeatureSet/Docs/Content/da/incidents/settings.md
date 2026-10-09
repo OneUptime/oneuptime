@@ -90,11 +90,43 @@ Gå til **Hændelser → Indstillinger → Brugerdefinerede felter** (`/dashboar
 - **Feltnavn** — påkrævet, mindst to tegn. Pladsholderen foreslår et slug-agtigt navn som `internal-service`.
 - **Feltbeskrivelse** — valgfri.
 - **Felttype** — påkrævet. Den afgør, hvordan data indtastes. Rullelistetyper skal desuden have deres muligheder listet.
-- **Rullemenuindstillinger** — de værdier, der vises i rullelisten, hver med en valgfri farve.
+- **Rullemenuindstillinger** — de værdier, der vises i rullelisten, hver med en valgfri farve. Træk en mulighed i dens håndtag for at ændre dens placering på listen. Muligheder kan også tilføjes, omdøbes og fjernes, når hændelser allerede har værdier; se nedenfor.
 
 Definitionerne bor i deres egen model; værdierne bor på selve hændelsen i kolonnen `customFields`. På en enkelt hændelse udfylder du dem fra **Brugerdefinerede felter** i hændelsens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **Ét hul, du bør kende.** Definitioner af brugerdefinerede hændelsesfelter er den eneste del af hændelsesfamilien uden workflow-triggere — se workflow-afsnittet nedenfor.
+
+### Ændre en rullemenus muligheder
+
+Mulighederne for et felt af typen **Rullemenu (enkeltvalg)** eller **Rullemenu (flervalg)** kan ændres når som helst: åbn **Rediger** på feltets række. En hændelse gemmer teksten på den mulighed, den har fået, så det, en ændring gør ved de hændelser, der har en mulighed, afhænger af ændringen:
+
+| Det du gør med en mulighed                    | Det der sker med de hændelser, der har den                                                                                             |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tilføjer** den                              | Intet. Den tilbydes fra nu af.                                                                                                         |
+| **Omdøber** den (ændrer teksten)              | De viser det nye navn. Under muligheden står, hvor mange hændelser det gælder.                                                         |
+| **Fjerner** den (skraldespanden ved siden af) | De beholder den, vist som _ikke længere en mulighed_, medmindre du vælger en anden mulighed til dem under **Ikke længere muligheder**. |
+| **Trækker** den i håndtaget                   | Intet. Kun rækkefølgen, mulighederne står i, ændres.                                                                                   |
+
+Når formularen åbnes, tæller den, hvor mange hændelser der har hver værdi. **Ikke længere muligheder** viser hver fjernet mulighed, som en hændelse stadig har, og hver værdi, hændelser har, som aldrig var en mulighed (for eksempel en skrevet via API'et), hver med antallet af hændelser. Behold hver, som den er, eller vælg den mulighed, hændelserne skal have i stedet. **Fortryd** henter en mulighed tilbage, som du fjernede ved en fejl.
+
+En omdøbt mulighed, og en værdi, du vælger en mulighed til, flyttes, når du gemmer: på hver hændelse og hver hændelsesskabelon i projektet, i de gemte visninger af hændelseslisten, der filtrerer efter den, og i de svar, formularskabeloner giver for feltet. Det starter ikke noget **On Update Incident**-workflow og ændrer ikke nogen hændelses tidspunkt for seneste opdatering; mislykkes det, flyttes intet, og feltet beholder sine gamle muligheder. Workflows, API-klienter og Terraform-konfigurationer, der skriver en mulighed med dens gamle tekst, skal have den nye.
+
+En hændelse, hvis felt ikke længere tilbyder dens værdi, viser værdien, markeret _ikke længere en mulighed_, på sin side **Brugerdefinerede felter** og i hændelseslisten. Redigering af dens andre felter beholder den; vælg en anden mulighed for at ændre den.
+
+Brugerdefinerede felter på alle andre ressourcer virker på samme måde: monitorer, advarsler, planlagt vedligeholdelse, statussider, vagtpolitikker, teams, teammedlemmer og inventarelementer. At omdøbe eller tilføje en mulighed i et monitorfelt gør det samme i de hændelses-, advarsels- og vedligeholdelsesfelter, der kopierer det, så de fortsat tilbyder hver værdi, de kopierer.
+
+Via API'et sender du den nye liste som `dropdownOptions` og omdøbningerne i `miscDataProps`:
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Hver `to` skal være en af feltets muligheder, når det er gemt, og hver `from` kan kun omdøbes én gang. Uden `renamedDropdownOptions` ændres kun listen, og hver gemt værdi forbliver, som den er, hvilket også er, hvad en ændring af `dropdown_options` i Terraform gør.
 
 ## Hændelsesroller
 

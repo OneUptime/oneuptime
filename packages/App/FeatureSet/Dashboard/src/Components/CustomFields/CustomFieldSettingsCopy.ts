@@ -1,4 +1,5 @@
 import CustomFieldMappingSourceResource from "Common/Types/CustomField/CustomFieldMappingSourceResource";
+import { CustomFieldRecordName } from "Common/Types/CustomField/CustomFieldOptionEdit";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import { CUSTOM_FIELD_MUST_BE_CHECKED_MESSAGE } from "Common/UI/Components/CustomFields/CustomFieldFormFields";
 
@@ -118,7 +119,7 @@ export const CustomFieldFormCopy: {
   fieldTypeDescription:
     "Choose how data is entered for this field. Dropdown types also need a list of options below.",
   dropdownOptionsDescription:
-    "Add the options that should appear in the dropdown and optionally choose a color for each value.",
+    "Add the options that should appear in the dropdown and optionally choose a color for each value. Drag an option by its handle to change where it is listed.",
   mapValueFromTitle: "Map Value From",
   mapValueFromDescription:
     "Copy this field's value from a related resource instead of typing it in on every record. The value is filled in when a record is created and refreshed whenever the source changes.",
@@ -171,6 +172,53 @@ export const MAPPED_CUSTOM_FIELD_SOURCE_COPY: Record<
     noSourceFields:
       "There are no monitor custom fields to copy yet. Add one under Monitors > Settings > Custom Fields first.",
   },
+};
+
+/*
+ * What the records of each resource's custom fields are called, by the
+ * definition table, for the option editor's counts ("12 incidents have
+ * it"). The model names ModelTable uses, so they are already translated;
+ * App/Tests/Dashboard/CustomFieldSettingsI18n checks every definition table
+ * has one.
+ */
+export const CUSTOM_FIELD_RECORD_NAMES: Record<string, CustomFieldRecordName> =
+  {
+    IncidentCustomField: { singular: "Incident", plural: "Incidents" },
+    AlertCustomField: { singular: "Alert", plural: "Alerts" },
+    MonitorCustomField: { singular: "Monitor", plural: "Monitors" },
+    ScheduledMaintenanceCustomField: {
+      singular: "Scheduled Maintenance Event",
+      plural: "Scheduled Maintenance Events",
+    },
+    StatusPageCustomField: { singular: "Status Page", plural: "Status Pages" },
+    OnCallDutyPolicyCustomField: {
+      singular: "On-Call Policy",
+      plural: "On-Call Policies",
+    },
+    TeamCustomField: { singular: "Team", plural: "Teams" },
+    TeamMemberCustomField: { singular: "Team Member", plural: "Team Members" },
+    InventoryItemCustomField: {
+      singular: "Inventory Item",
+      plural: "Inventory Items",
+    },
+  };
+
+export const getCustomFieldRecordName: (
+  definitionTableName: string | undefined,
+) => CustomFieldRecordName | undefined = (
+  definitionTableName: string | undefined,
+): CustomFieldRecordName | undefined => {
+  if (
+    !definitionTableName ||
+    !Object.prototype.hasOwnProperty.call(
+      CUSTOM_FIELD_RECORD_NAMES,
+      definitionTableName,
+    )
+  ) {
+    return undefined;
+  }
+
+  return CUSTOM_FIELD_RECORD_NAMES[definitionTableName];
 };
 
 export const CUSTOM_FIELDS_DESCRIPTION: string =

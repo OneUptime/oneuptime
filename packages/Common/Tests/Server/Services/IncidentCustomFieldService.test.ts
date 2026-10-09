@@ -325,8 +325,15 @@ describe("IncidentCustomFieldService.onBeforeUpdate", () => {
     const onUpdate: OnUpdate<IncidentCustomField> =
       await service.onBeforeUpdate(update({ name: "Business Impact" }));
 
+    /*
+     * The renamed fields, beside the option edit the write makes - none:
+     * it sends no options and renames none.
+     */
     expect(onUpdate.carryForward).toEqual({
-      [fieldId.toString()]: { oldName: "Impact", projectId: projectId },
+      renamedFields: {
+        [fieldId.toString()]: { oldName: "Impact", projectId: projectId },
+      },
+      optionEdit: null,
     });
 
     // Read among the fields the caller may write: those of their project.
@@ -383,7 +390,10 @@ describe("IncidentCustomFieldService.onBeforeUpdate", () => {
       await service.onBeforeUpdate(update({ name: "Impact" }));
 
     expect(onUpdate.carryForward).toEqual({
-      [fieldId.toString()]: { oldName: "impact", projectId: projectId },
+      renamedFields: {
+        [fieldId.toString()]: { oldName: "impact", projectId: projectId },
+      },
+      optionEdit: null,
     });
   });
 
@@ -499,8 +509,9 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
     }
   });
 
+  // What onBeforeUpdate hands over for a write that renames, and nothing else.
   function onUpdate(
-    carryForward: unknown,
+    renamedFields: unknown,
     props: DatabaseCommonInteractionProps = ADMIN_PROPS,
   ): OnUpdate<IncidentCustomField> {
     return {
@@ -511,7 +522,10 @@ describe("IncidentCustomFieldService.onUpdateSuccess: moving a renamed field's v
         limit: 1,
         skip: 0,
       },
-      carryForward: carryForward,
+      carryForward:
+        renamedFields === null
+          ? null
+          : { renamedFields: renamedFields, optionEdit: null },
     };
   }
 

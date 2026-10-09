@@ -90,11 +90,43 @@ Gå till **Incidenter → Inställningar → Anpassade fält** (`/dashboard/{pro
 - **Fältnamn** — obligatoriskt, minst två tecken. Platshållaren föreslår ett sluglikt namn i stil med `internal-service`.
 - **Fältbeskrivning** — valfri.
 - **Fälttyp** — obligatorisk. Den avgör hur data matas in. Rullgardinstyper behöver dessutom sina alternativ listade.
-- **Alternativ för rullgardinsmeny** — de värden som visas i menyn, vart och ett med en valfri färg.
+- **Alternativ för rullgardinsmeny** — de värden som visas i menyn, vart och ett med en valfri färg. Dra ett alternativ i dess handtag för att ändra var det står i listan. Alternativ kan också läggas till, byta namn och tas bort när incidenter redan har värden; se nedan.
 
 Definitionerna bor i en egen modell; värdena bor på själva incidenten i kolumnen `customFields`. På en enskild incident fyller du i dem från **Anpassade fält** i incidentens sidomeny (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **En lucka värd att känna till.** Definitioner av anpassade incidentfält är den enda delen av incidentfamiljen utan arbetsflödesutlösare — se avsnittet om arbetsflöden nedan.
+
+### Ändra alternativen i en rullgardinsmeny
+
+Alternativen i ett fält av typen **Rullgardinsmeny (enkelval)** eller **Rullgardinsmeny (flerval)** kan ändras när som helst: öppna **Redigera** på fältets rad. En incident sparar texten på alternativet den fick, så vad en ändring gör med incidenterna som har ett alternativ beror på ändringen:
+
+| Det du gör med ett alternativ            | Det som händer med incidenterna som har det                                                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Lägger till** det                      | Inget. Det erbjuds från och med nu.                                                                                                      |
+| **Byter namn** på det (ändrar texten)    | De visar det nya namnet. Under alternativet står hur många incidenter det gäller.                                                        |
+| **Tar bort** det (papperskorgen bredvid) | De behåller det, visat som _inte längre ett alternativ_, om du inte väljer ett annat alternativ åt dem under **Inte längre alternativ**. |
+| **Drar** det i handtaget                 | Inget. Bara ordningen som alternativen står i ändras.                                                                                    |
+
+När formuläret öppnas räknar det hur många incidenter som har varje värde. **Inte längre alternativ** listar varje borttaget alternativ som en incident fortfarande har, och varje värde som incidenter har som aldrig var ett alternativ (till exempel ett som skrivits via API:t), vart och ett med antalet incidenter. Behåll vart och ett som det är eller välj det alternativ som de incidenterna ska ha i stället. **Ångra** tar tillbaka ett alternativ som du tog bort av misstag.
+
+Ett alternativ som bytt namn, och ett värde som du väljer ett alternativ för, flyttas när du sparar: på varje incident och varje incidentmall i projektet, i de sparade vyerna av incidentlistan som filtrerar på det, och i svaren som formulärmallar ger för fältet. Det startar inget **On Update Incident**-arbetsflöde och ändrar inte tiden för senaste uppdatering på någon incident; misslyckas det flyttas inget, och fältet behåller sina gamla alternativ. Arbetsflöden, API-klienter och Terraform-konfigurationer som skriver ett alternativ med dess gamla text behöver den nya.
+
+En incident vars fält inte längre erbjuder dess värde visar värdet, markerat _inte längre ett alternativ_, på sidan **Anpassade fält** och i incidentlistan. Att redigera dess andra fält behåller det; välj ett annat alternativ för att ändra det.
+
+Anpassade fält för alla andra resurser fungerar likadant: övervakare, larm, planerat underhåll, statussidor, jourpolicyer, team, teammedlemmar och inventarieobjekt. Att byta namn på eller lägga till ett alternativ i ett övervakarfält gör samma sak i de incident-, larm- och underhållsfält som kopierar det, så att de fortsätter erbjuda varje värde de kopierar.
+
+Via API:t skickar du den nya listan som `dropdownOptions` och namnbytena i `miscDataProps`:
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Varje `to` måste vara ett av fältets alternativ när det har sparats, och varje `from` kan bara byta namn en gång. Utan `renamedDropdownOptions` ändras bara listan och varje sparat värde förblir som det är, vilket också är vad en ändring av `dropdown_options` i Terraform gör.
 
 ## Incidentroller
 

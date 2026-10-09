@@ -90,11 +90,43 @@ Vá a **Incidentes → Configurações → Campos personalizados** (`/dashboard/
 - **Nome do campo** — obrigatório, com pelo menos dois caracteres. O placeholder sugere um nome em formato de slug, como `internal-service`.
 - **Descrição do campo** — opcional.
 - **Tipo do campo** — obrigatório. É o que define como o dado é informado. Tipos de menu suspenso também precisam ter suas opções listadas.
-- **Opções do menu suspenso** — os valores que aparecem no menu, cada um com uma cor opcional.
+- **Opções do menu suspenso** — os valores que aparecem no menu, cada um com uma cor opcional. Arraste uma opção pela alça para mudar sua posição na lista. As opções também podem ser adicionadas, renomeadas e removidas quando os incidentes já têm valores; veja abaixo.
 
 As definições ficam em um modelo próprio; os valores ficam no próprio incidente, na coluna `customFields`. Em um incidente específico você os preenche em **Campos personalizados**, no menu lateral do incidente (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **Uma lacuna que vale conhecer.** As definições de campo personalizado de incidente são a única parte da família de incidentes sem gatilhos de workflow — veja a seção sobre workflows mais abaixo.
+
+### Alterar as opções de um menu suspenso
+
+As opções de um campo **Lista suspensa (seleção única)** ou **Lista suspensa (seleção múltipla)** podem ser alteradas a qualquer momento: abra **Editar** na linha do campo. Um incidente guarda o texto da opção que recebeu, então o que uma alteração faz com os incidentes que têm uma opção depende da alteração:
+
+| O que você faz com uma opção      | O que acontece com os incidentes que a têm                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Adicioná-la**                   | Nada. Ela passa a ser oferecida.                                                                                            |
+| **Renomeá-la** (mudar o texto)    | Eles mostram o novo nome. Abaixo da opção, o formulário diz quantos incidentes farão isso.                                  |
+| **Removê-la** (a lixeira ao lado) | Eles a mantêm, mostrada como _já não é uma opção_, a menos que você escolha outra opção para eles em **Já não são opções**. |
+| **Arrastá-la** pela alça          | Nada. Só muda a ordem em que as opções são listadas.                                                                        |
+
+Ao abrir, o formulário conta quantos incidentes têm cada valor. **Já não são opções** lista cada opção removida que algum incidente ainda tem, e cada valor que os incidentes têm que nunca foi uma opção (um escrito pela API, por exemplo), cada um com o número de incidentes. Para cada um, mantenha-o como está ou escolha a opção que esses incidentes devem ter no lugar. **Desfazer** traz de volta uma opção removida por engano.
+
+Uma opção renomeada, e um valor para o qual você escolhe uma opção, são movidos ao salvar: em cada incidente e cada modelo de incidente do projeto, nas visualizações salvas da lista de incidentes que filtram por eles, e nas respostas que os modelos de formulário dão para o campo. Isso não inicia nenhum workflow **On Update Incident** nem muda a data da última atualização de nenhum incidente; se falhar, nada é movido e o campo mantém as opções anteriores. Workflows, clientes da API e configurações do Terraform que escrevem uma opção com o texto antigo precisam do novo.
+
+Um incidente cujo campo já não oferece o seu valor o mostra, marcado _já não é uma opção_, na página **Campos personalizados** e na lista de incidentes. Editar os outros campos o mantém; escolha outra opção para alterá-lo.
+
+Os campos personalizados de todos os outros recursos funcionam da mesma forma: monitores, alertas, manutenções programadas, páginas de status, políticas de plantão, equipes, membros da equipe e itens do inventário. Renomear ou adicionar uma opção de um campo de monitor faz o mesmo nos campos de incidente, alerta e manutenção programada que o copiam, para que continuem oferecendo cada valor que copiam.
+
+Pela API, envie a nova lista em `dropdownOptions` e as renomeações em `miscDataProps`:
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Cada `to` deve ser uma das opções do campo depois de salvo, e cada `from` só pode ser renomeado uma vez. Sem `renamedDropdownOptions`, só a lista muda e cada valor guardado fica como está, que é também o que faz uma alteração de `dropdown_options` no Terraform.
 
 ## Funções de incidente
 

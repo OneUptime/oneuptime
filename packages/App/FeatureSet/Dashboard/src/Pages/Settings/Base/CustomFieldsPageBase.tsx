@@ -13,6 +13,11 @@ import {
   IncidentCustomFieldSettingsCopy,
 } from "../../../Components/CustomFields/CustomFieldSettingsCopy";
 import CustomFieldTemplateVariable from "../../../Components/CustomFields/CustomFieldTemplateVariable";
+import {
+  CustomFieldOptionsFormField,
+  getCustomFieldOptionsFormField,
+  useCustomFieldOptionsFormField,
+} from "../../../Components/CustomFields/CustomFieldOptionsField";
 import CreateMappedCustomFieldModal from "../../../Components/CustomFields/CreateMappedCustomFieldModal";
 import {
   getMappedCustomFieldMenuTitle,
@@ -32,7 +37,6 @@ import {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
 import MapFromCustomFieldInput from "Common/UI/Components/CustomFields/MapFromCustomFieldInput";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import {
@@ -49,15 +53,6 @@ import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBase
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { Fragment, ReactElement, useState } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
-
-const isDropdownType: (value: unknown) => boolean = (
-  value: unknown,
-): boolean => {
-  return (
-    value === CustomFieldType.Dropdown ||
-    value === CustomFieldType.MultiSelectDropdown
-  );
-};
 
 // The nine custom field definition models, one per resource.
 export type CustomFieldsBaseModels = CustomFieldDefinitionModel;
@@ -167,6 +162,17 @@ const CustomFieldsPageBase: (
     useState<CustomFieldMappingSourceInfo | null>(null);
 
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  /*
+   * A dropdown's options, on Create and on Edit - where they can be renamed,
+   * reordered, added and taken out, and the records holding a renamed one
+   * follow it (#4564). Edit needs the table to tell it the field's type and
+   * to send the renames with the save.
+   */
+  const optionsField: CustomFieldOptionsFormField<CustomFieldsBaseModels> =
+    useCustomFieldOptionsFormField<CustomFieldsBaseModels>({
+      modelType: props.modelType,
+    });
 
   /*
    * What a field is - its name, its description and its type - is all the
@@ -489,45 +495,7 @@ const CustomFieldsPageBase: (
         },
       ),
     },
-    {
-      field: {
-        dropdownOptions: true,
-      },
-      title: "Dropdown Options",
-      description: CustomFieldFormCopy.dropdownOptionsDescription,
-      fieldType: FormFieldSchemaType.CustomComponent,
-      required: (item: FormValues<CustomFieldsBaseModels>) => {
-        return isDropdownType((item as any).customFieldType);
-      },
-      showIf: (item: FormValues<CustomFieldsBaseModels>) => {
-        return isDropdownType((item as any).customFieldType);
-      },
-      getCustomElement: (
-        _values: FormValues<CustomFieldsBaseModels>,
-        customElementProps: CustomElementProps,
-      ) => {
-        return (
-          <DropdownOptionsInput
-            initialValue={
-              typeof customElementProps.initialValue === "string"
-                ? customElementProps.initialValue
-                : ""
-            }
-            error={customElementProps.error}
-            onChange={(value: string) => {
-              if (customElementProps.onChange) {
-                customElementProps.onChange(value);
-              }
-            }}
-            onBlur={() => {
-              if (customElementProps.onBlur) {
-                customElementProps.onBlur();
-              }
-            }}
-          />
-        );
-      },
-    },
+    getCustomFieldOptionsFormField(optionsField.formFieldInput),
     // Advanced, in this order: where the value comes from, then the rest.
     ...mappingFormFields,
     ...incidentSettingsFormFields,
@@ -560,6 +528,8 @@ const CustomFieldsPageBase: (
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        onBeforeEdit={optionsField.onBeforeEdit}
+        onBeforeUpdate={optionsField.onBeforeUpdate}
         refreshToggle={refreshToggle.toString()}
         cardProps={{
           title: props.title,
