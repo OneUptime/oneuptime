@@ -744,6 +744,36 @@ describe("temperature and top_p are never sent together to a Claude 4 model", ()
     expect(bodyOf(spy, 0)["top_p"]).toBeUndefined();
   });
 
+  test("a model that refuses the operator's top_p keeps the caller's temperature", async () => {
+    /*
+     * The operator's top_p displaced the caller's temperature; once the model
+     * says it will not take top_p, the temperature is what is left to steer
+     * with, not nothing.
+     */
+    const spy: PostSpy = mockPost()
+      .mockResolvedValueOnce(
+        anthropicError(400, "`top_p` is deprecated for this model."),
+      )
+      .mockResolvedValueOnce(textReply());
+
+    await complete(anthropic(GATEWAY_MODEL), {
+      temperature: 0.2,
+      additionalParams: { top_p: 0.9 },
+    });
+
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(sampling(bodyOf(spy, 0))).toEqual({
+      temperature: undefined,
+      top_p: 0.9,
+      top_k: undefined,
+    });
+    expect(sampling(bodyOf(spy, 1))).toEqual({
+      temperature: 0.2,
+      top_p: undefined,
+      top_k: undefined,
+    });
+  });
+
   test("an operator who set both gets both, and the provider's own explanation", async () => {
     const spy: PostSpy = mockPost().mockResolvedValue(textReply());
 

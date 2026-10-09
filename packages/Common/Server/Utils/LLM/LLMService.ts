@@ -2045,6 +2045,16 @@ export default class LLMService {
     Object.assign(data, appliedParams);
 
     /*
+     * Applied after every other source so it overrides them all: this is
+     * what the model has told us (or its name says) it will not accept, and
+     * a request it rejects is worth nothing. Nothing below adds a parameter
+     * back.
+     */
+    for (const unsupportedParam of adaptation.unsupportedParams) {
+      delete data[unsupportedParam];
+    }
+
+    /*
      * Claude 4 models take temperature or top_p, never both ("`temperature`
      * and `top_p` cannot both be specified for this model"). Every request
      * carries the caller's temperature, so without this a top_p in Additional
@@ -2052,7 +2062,9 @@ export default class LLMService {
      * every request. The parameter someone chose wins: the operator's top_p
      * over the caller's temperature, unless the caller protects its request,
      * whose temperature is then the one that stands. An operator who set both
-     * themselves gets the provider's own explanation.
+     * themselves gets the provider's own explanation. Decided after the
+     * model's refusals are applied, so a model that refuses the top_p keeps
+     * the caller's temperature rather than losing both.
      */
     if (data["temperature"] !== undefined && data["top_p"] !== undefined) {
       if (request.protectRequestParameters) {
@@ -2076,15 +2088,6 @@ export default class LLMService {
       data["max_tokens"] =
         (request.maxTokens || LLMService.ANTHROPIC_DEFAULT_MAX_TOKENS) +
         this.getAnthropicThinkingRoom(data, adaptation);
-    }
-
-    /*
-     * Applied last so it overrides every other source: this is what the model
-     * has told us (or its name says) it will not accept, and a request it
-     * rejects is worth nothing.
-     */
-    for (const unsupportedParam of adaptation.unsupportedParams) {
-      delete data[unsupportedParam];
     }
 
     return data;
