@@ -219,7 +219,9 @@ describe("a push Expo accepts, sent with this deployment's Expo access token", (
       });
       expect(entry.sentAt).toBeGreaterThanOrEqual(before);
       expect(entry.sentAt).toBeLessThanOrEqual(after);
-      expect(checkAt).toBe(entry.sentAt + EXPO_PUSH_RECEIPT_FIRST_CHECK_AFTER_MS);
+      expect(checkAt).toBe(
+        entry.sentAt + EXPO_PUSH_RECEIPT_FIRST_CHECK_AFTER_MS,
+      );
       expect(EXPO_PUSH_RECEIPT_FIRST_CHECK_AFTER_MS).toBe(15 * MINUTE);
 
       // The page itself is reported as it always was.
@@ -246,7 +248,11 @@ describe("a push Expo accepts, sent with this deployment's Expo access token", (
     expect(entries).toHaveLength(2);
     expect(
       entries.map((entry: PendingExpoPushReceipt) => {
-        return [entry.receiptId, entry.deviceToken, entry.pushNotificationLogId];
+        return [
+          entry.receiptId,
+          entry.deviceToken,
+          entry.pushNotificationLogId,
+        ];
       }),
     ).toEqual(
       expect.arrayContaining([
@@ -434,9 +440,11 @@ describe("a push sent through the push relay (no Expo access token on this serve
     await send([PHONE_TOKEN], { userOnCallLogTimelineId: TIMELINE_ID });
 
     expect(expoSend).not.toHaveBeenCalled();
-    expect(kept().map((entry: [PendingExpoPushReceipt, number]) => {
-      return entry[0];
-    })).toEqual([
+    expect(
+      kept().map((entry: [PendingExpoPushReceipt, number]) => {
+        return entry[0];
+      }),
+    ).toEqual([
       expect.objectContaining({
         receiptId: receiptIdOf(7),
         deviceToken: PHONE_TOKEN,

@@ -253,15 +253,19 @@ beforeAll(async () => {
   olderRelayRequests = [];
   const olderRelayApp: ExpressApplication = createExpressApp();
   olderRelayApp.use(ExpressJson());
-  olderRelayApp.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
-    olderRelayRequests.push(`${req.method} ${req.path}`);
-    next();
-  });
+  olderRelayApp.use(
+    (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+      olderRelayRequests.push(`${req.method} ${req.path}`);
+      next();
+    },
+  );
   olderRelayApp.post(
     `${RELAY_PATH}/send`,
     (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
       if ((req.body as JSONObject)["title"] === "Too big") {
-        return next(new Error("Failed to send push notification: Message too big"));
+        return next(
+          new Error("Failed to send push notification: Message too big"),
+        );
       }
 
       res.json({ success: true });
@@ -499,15 +503,18 @@ describe("the relay answers receipts (POST /receipts)", () => {
         }),
       },
     ],
-  ])("%s: refused, and Expo is not asked", async (_name: string, body: JSONObject) => {
-    const answer: HTTPResponse<JSONObject> | HTTPErrorResponse = await post(
-      receiptsUrlOf(relayUrl),
-      body,
-    );
+  ])(
+    "%s: refused, and Expo is not asked",
+    async (_name: string, body: JSONObject) => {
+      const answer: HTTPResponse<JSONObject> | HTTPErrorResponse = await post(
+        receiptsUrlOf(relayUrl),
+        body,
+      );
 
-    expect(answer.statusCode).toBe(400);
-    expect(expoReceiptRequests).toEqual([]);
-  });
+      expect(answer.statusCode).toBe(400);
+      expect(expoReceiptRequests).toEqual([]);
+    },
+  );
 
   test("a relay without Expo credentials has no receipts to give", async () => {
     jest
@@ -582,7 +589,9 @@ describe("a self-hosted server relaying through it", () => {
       }) as never);
   });
 
-  async function page(deviceType: PushDeviceType = PushDeviceType.iOS): Promise<unknown> {
+  async function page(
+    deviceType: PushDeviceType = PushDeviceType.iOS,
+  ): Promise<unknown> {
     try {
       await selfHosted.PushNotificationService.sendPushNotification(
         {
@@ -610,7 +619,9 @@ describe("a self-hosted server relaying through it", () => {
       });
   }
 
-  async function readReceipts(afterMs: number): Promise<ExpoPushReceiptCheckSummary> {
+  async function readReceipts(
+    afterMs: number,
+  ): Promise<ExpoPushReceiptCheckSummary> {
     const sentAt: number = kept()[0]?.sentAt || Date.now();
 
     return await selfHosted.ExpoPushReceiptService.checkDueReceipts({
@@ -622,7 +633,9 @@ describe("a self-hosted server relaying through it", () => {
 
   test("is a server with no Expo credentials of its own", () => {
     expect(selfHosted.PushNotificationService.hasExpoAccessToken()).toBe(false);
-    expect(selfHosted.PushNotificationService).not.toBe(PushNotificationService);
+    expect(selfHosted.PushNotificationService).not.toBe(
+      PushNotificationService,
+    );
     expect(selfHosted.PushNotificationService.getRelayReceiptsUrl()).toBe(
       receiptsUrlOf(relayUrl),
     );
@@ -663,7 +676,9 @@ describe("a self-hosted server relaying through it", () => {
       expect(expoReceiptRequests).toEqual([[RECEIPT_ID]]);
       expect(summary.notDelivered).toBe(1);
       expect(markAsGone).toHaveBeenCalledTimes(1);
-      expect(markAsGone.mock.calls[0]![0]).toEqual({ deviceToken: PHONE_TOKEN });
+      expect(markAsGone.mock.calls[0]![0]).toEqual({
+        deviceToken: PHONE_TOKEN,
+      });
       expect(logUpdates).toEqual([
         {
           query: { _id: LOG_ID.toString(), status: "Success" },
@@ -684,7 +699,9 @@ describe("a self-hosted server relaying through it", () => {
     await page();
     expoReceipts.set(RECEIPT_ID, { status: "ok" });
 
-    const summary: ExpoPushReceiptCheckSummary = await readReceipts(16 * MINUTE);
+    const summary: ExpoPushReceiptCheckSummary = await readReceipts(
+      16 * MINUTE,
+    );
 
     expect(summary.delivered).toBe(1);
     expect(markAsGone).not.toHaveBeenCalled();
@@ -713,7 +730,9 @@ describe("a self-hosted server relaying through it", () => {
   test("a receipt not ready yet is asked about again later", async () => {
     await page();
 
-    const summary: ExpoPushReceiptCheckSummary = await readReceipts(16 * MINUTE);
+    const summary: ExpoPushReceiptCheckSummary = await readReceipts(
+      16 * MINUTE,
+    );
 
     expect(summary.notReadyYet).toBe(1);
     expect(kept()).toEqual([

@@ -155,7 +155,9 @@ let now: number;
 let expoReceipts: Map<string, ExpoPushReceipt>;
 let expoRequests: Array<Array<string>>;
 let expoFailure: Error | null;
-let expoAsk: SpyInstance<typeof Expo.prototype.getPushNotificationReceiptsAsync>;
+let expoAsk: SpyInstance<
+  typeof Expo.prototype.getPushNotificationReceiptsAsync
+>;
 let afterEachExpoRequest: () => void;
 
 let relayPosts: Array<APIRequestOptions>;
@@ -389,11 +391,13 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
   });
 
   test("a phone paged three times before its receipts were read is marked once, and each page says it was not delivered", async () => {
-    await keep([1, 2, 3].map((index: number) => {
-      return pendingReceipt(index, {
-        pushNotificationLogId: `7f000000-0000-4000-8000-00000000030${index}`,
-      });
-    }));
+    await keep(
+      [1, 2, 3].map((index: number) => {
+        return pendingReceipt(index, {
+          pushNotificationLogId: `7f000000-0000-4000-8000-00000000030${index}`,
+        });
+      }),
+    );
 
     for (const index of [1, 2, 3]) {
       expoReceipts.set(receiptIdOf(index), deviceNotRegistered(GONE_TOKEN));
@@ -428,9 +432,7 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
     expect(markAsGone).not.toHaveBeenCalled();
     expect(summary.tokensMarkedGone).toBe(0);
     expect(summary.notDelivered).toBe(1);
-    expect(logUpdates[0]!.data["statusMessage"]).toBe(
-      REGISTERED_AGAIN_MESSAGE,
-    );
+    expect(logUpdates[0]!.data["statusMessage"]).toBe(REGISTERED_AGAIN_MESSAGE);
     expect(timelineUpdates[0]!.data["statusMessage"]).toBe(
       REGISTERED_AGAIN_MESSAGE,
     );

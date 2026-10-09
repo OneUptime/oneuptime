@@ -94,7 +94,10 @@ function receipt(
   };
 }
 
-function receiptNumber(index: number, sentAt: number = SENT_AT): PendingExpoPushReceipt {
+function receiptNumber(
+  index: number,
+  sentAt: number = SENT_AT,
+): PendingExpoPushReceipt {
   return receipt({
     receiptId: `8e3c2a52-4d8e-4b4f-9a39-${String(index).padStart(12, "0")}`,
     sentAt: sentAt,
@@ -130,7 +133,7 @@ describe("when a receipt is looked for (getNextCheckAt)", () => {
 
   test.each([
     [1, 30 * MINUTE],
-    [2, 1 * HOUR],
+    [2, HOUR],
     [3, 2 * HOUR],
     [4, 4 * HOUR],
     [5, 8 * HOUR],
@@ -210,7 +213,7 @@ describe("a pending receipt as stored (serialize, parse)", () => {
   test("holds exactly its fields, in one order: the same receipt is the same member", () => {
     const withExtra: PendingExpoPushReceipt = {
       ...receipt(),
-      ...({ somethingElse: "x" } as object),
+      ...({ somethingElse: "x" } as Record<string, unknown>),
     } as PendingExpoPushReceipt;
 
     expect(JSON.parse(ExpoPushReceiptQueue.serialize(withExtra))).toEqual({
@@ -237,9 +240,18 @@ describe("a pending receipt as stored (serialize, parse)", () => {
     ["another way of sending", JSON.stringify({ ...receipt(), via: "web" })],
     ["a sent time as text", JSON.stringify({ ...receipt(), sentAt: "today" })],
     ["no sent time", JSON.stringify({ ...receipt(), sentAt: null })],
-    ["a negative count of looks", JSON.stringify({ ...receipt(), attempts: -1 })],
-    ["a fractional count of looks", JSON.stringify({ ...receipt(), attempts: 1.5 })],
-    ["a count of looks as text", JSON.stringify({ ...receipt(), attempts: "1" })],
+    [
+      "a negative count of looks",
+      JSON.stringify({ ...receipt(), attempts: -1 }),
+    ],
+    [
+      "a fractional count of looks",
+      JSON.stringify({ ...receipt(), attempts: 1.5 }),
+    ],
+    [
+      "a count of looks as text",
+      JSON.stringify({ ...receipt(), attempts: "1" }),
+    ],
   ])("%s is not a pending receipt", (_name: string, member: string) => {
     expect(ExpoPushReceiptQueue.parse(member)).toBeNull();
   });
@@ -312,20 +324,31 @@ describe("keeping a send's receipts to read (add)", () => {
       redis.ordered(key).map((entry: [string, number]) => {
         return entry[0];
       }),
-    ).toEqual(["a day", "recent", ExpoPushReceiptQueue.serialize(receiptNumber(9, now))]);
+    ).toEqual([
+      "a day",
+      "recent",
+      ExpoPushReceiptQueue.serialize(receiptNumber(9, now)),
+    ]);
   });
 
   test("a backlog nobody reads is capped, and the receipts due first make way", async () => {
     const key: string = queue.getPendingKey();
     const set: Map<string, number> = new Map<string, number>();
 
-    for (let index: number = 0; index < MAX_PENDING_EXPO_PUSH_RECEIPTS; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_PENDING_EXPO_PUSH_RECEIPTS;
+      index++
+    ) {
       set.set(`backlog-${String(index).padStart(6, "0")}`, SENT_AT + index);
     }
 
     redis.sortedSets.set(key, set);
 
-    const newest: PendingExpoPushReceipt = receiptNumber(1, SENT_AT + 10 * HOUR);
+    const newest: PendingExpoPushReceipt = receiptNumber(
+      1,
+      SENT_AT + 10 * HOUR,
+    );
     const next: PendingExpoPushReceipt = receiptNumber(2, SENT_AT + 10 * HOUR);
 
     await queue.add([newest, next], SENT_AT + 10 * HOUR);
@@ -424,9 +447,10 @@ describe("taking the receipts that are due (claimDue)", () => {
       redis.sortedSets.get(queue.getPendingKey())!.delete(members[3]!);
     };
 
-    expect(
-      await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 }),
-    ).toEqual([receipts[0], receipts[2]]);
+    expect(await queue.claimDue({ now: SENT_AT + HOUR, limit: 10 })).toEqual([
+      receipts[0],
+      receipts[2],
+    ]);
   });
 
   test("an entry that cannot be read is dropped and said, the others still taken", async () => {
@@ -477,7 +501,10 @@ describe("looking for a receipt again later (checkAgainLater)", () => {
 
     expect(outcome).toEqual({ rescheduled: 2, expired: 0 });
     expect(pending()).toEqual([
-      [{ ...receiptNumber(2, SENT_AT - 15 * MINUTE), attempts: 1 }, SENT_AT + 15 * MINUTE + 5 * MINUTE],
+      [
+        { ...receiptNumber(2, SENT_AT - 15 * MINUTE), attempts: 1 },
+        SENT_AT + 15 * MINUTE + 5 * MINUTE,
+      ],
       [{ ...receipt(), attempts: 1 }, SENT_AT + 30 * MINUTE],
     ]);
   });
@@ -491,7 +518,10 @@ describe("looking for a receipt again later (checkAgainLater)", () => {
 
     expect(outcome).toEqual({ rescheduled: 1, expired: 1 });
     expect(pending()).toEqual([
-      [receipt({ receiptId: "a-b", attempts: 2 }), SENT_AT + 16 * HOUR + 5 * MINUTE],
+      [
+        receipt({ receiptId: "a-b", attempts: 2 }),
+        SENT_AT + 16 * HOUR + 5 * MINUTE,
+      ],
     ]);
   });
 

@@ -267,6 +267,35 @@ describe("getPreviousPushTokenToReport", () => {
     expect(await getPreviousPushTokenToReport(NEW_TOKEN)).toBeNull();
   });
 
+  /*
+   * Registering must never depend on it: a phone whose storage cannot be
+   * read registers as it always did, with nothing to report.
+   */
+  test("storage that cannot be read reports nothing, and does not reject", async () => {
+    (AsyncStorage.getItem as unknown as jest.Mock).mockRejectedValueOnce(
+      new Error("storage unavailable") as never,
+    );
+
+    await expect(getPreviousPushTokenToReport(NEW_TOKEN)).resolves.toBeNull();
+  });
+
+  test("storage that cannot be written reports nothing, and does not reject", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, OLD_TOKEN);
+    (AsyncStorage.setItem as unknown as jest.Mock).mockRejectedValueOnce(
+      new Error("storage unavailable") as never,
+    );
+
+    await expect(getPreviousPushTokenToReport(NEW_TOKEN)).resolves.toBeNull();
+  });
+
+  test("a note that cannot be cleared does not reject", async () => {
+    removeItemSpy().mockRejectedValueOnce(
+      new Error("storage unavailable") as never,
+    );
+
+    await expect(previousPushTokenReported()).resolves.toBeUndefined();
+  });
+
   test("keeps its storage key fixed: it outlives an app update", () => {
     expect(PREVIOUS_PUSH_TOKEN_KEY).toBe("oneuptime_expo_previous_push_token");
     expect(PREVIOUS_PUSH_TOKEN_KEY).not.toBe(PUSH_TOKEN_KEY);

@@ -125,9 +125,9 @@ describe("CheckExpoPushReceipts - registration", () => {
     );
 
     expect(typeof jobFunction).toBe("function");
-    expect(
-      JobDictionary.getTimeoutInMs(EXPO_PUSH_RECEIPT_CHECK_JOB_NAME),
-    ).toBe(EXPO_PUSH_RECEIPT_CHECK_TIMEOUT_MS);
+    expect(JobDictionary.getTimeoutInMs(EXPO_PUSH_RECEIPT_CHECK_JOB_NAME)).toBe(
+      EXPO_PUSH_RECEIPT_CHECK_TIMEOUT_MS,
+    );
   });
 
   test("one job, every five minutes, never on startup", () => {

@@ -41,33 +41,48 @@ export async function unregisterPushToken(): Promise<void> {
  * Read before the new token is stored, and kept until
  * previousPushTokenReported(): a registration that failed for a project tells
  * that project again on the next attempt.
+ *
+ * Never throws: storage that cannot be read reports nothing, and the phone
+ * registers as it always did - registering must never depend on this.
  */
 export async function getPreviousPushTokenToReport(
   token: string,
 ): Promise<string | null> {
-  const storedToken: string | null = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+  try {
+    const storedToken: string | null =
+      await AsyncStorage.getItem(PUSH_TOKEN_KEY);
 
-  if (storedToken && storedToken !== token) {
-    await AsyncStorage.setItem(PREVIOUS_PUSH_TOKEN_KEY, storedToken);
-    return storedToken;
-  }
+    if (storedToken && storedToken !== token) {
+      await AsyncStorage.setItem(PREVIOUS_PUSH_TOKEN_KEY, storedToken);
+      return storedToken;
+    }
 
-  const pendingToken: string | null = await AsyncStorage.getItem(
-    PREVIOUS_PUSH_TOKEN_KEY,
-  );
+    const pendingToken: string | null = await AsyncStorage.getItem(
+      PREVIOUS_PUSH_TOKEN_KEY,
+    );
 
-  if (pendingToken && pendingToken !== token) {
-    return pendingToken;
-  }
+    if (pendingToken && pendingToken !== token) {
+      return pendingToken;
+    }
 
-  if (pendingToken) {
-    await AsyncStorage.removeItem(PREVIOUS_PUSH_TOKEN_KEY);
+    if (pendingToken) {
+      await AsyncStorage.removeItem(PREVIOUS_PUSH_TOKEN_KEY);
+    }
+  } catch {
+    // Unreadable storage: nothing to report.
   }
 
   return null;
 }
 
-// Every project was told about the token change: nothing is left to tell.
+/*
+ * Every project was told about the token change: nothing is left to tell.
+ * Never throws; a note that could not be cleared is told again, harmlessly.
+ */
 export async function previousPushTokenReported(): Promise<void> {
-  await AsyncStorage.removeItem(PREVIOUS_PUSH_TOKEN_KEY);
+  try {
+    await AsyncStorage.removeItem(PREVIOUS_PUSH_TOKEN_KEY);
+  } catch {
+    // Told again next time; the server renews nothing twice.
+  }
 }

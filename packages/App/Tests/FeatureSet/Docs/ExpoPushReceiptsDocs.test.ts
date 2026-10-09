@@ -133,61 +133,64 @@ describe("what the docs say is what the server does", () => {
   });
 });
 
-describe.each(LANGUAGES)("Self-hosted > Push Notifications (%s)", (lang: string) => {
-  const page: string = readPage(lang);
+describe.each(LANGUAGES)(
+  "Self-hosted > Push Notifications (%s)",
+  (lang: string) => {
+    const page: string = readPage(lang);
 
-  it("lists the receipt addresses in the network table", () => {
-    expect(page).toContain(
-      "`https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts`",
-    );
-    expect(page).toContain(
-      "`https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts`",
-    );
-  });
-
-  it("says where the relay answers receipts", () => {
-    expect(page).toContain("`/receipts`");
-    expect(page).toContain("`/send`");
-  });
-
-  it("names the label a push that never arrived shows, as the server writes it", () => {
-    expect(page).toContain("**Push notification not delivered**");
-  });
-
-  it("names each of Expo's receipt errors", () => {
-    for (const code of [
-      "`DeviceNotRegistered`",
-      "`MessageRateExceeded`",
-      "`MessageTooBig`",
-      "`InvalidCredentials`",
-      "`MismatchSenderId`",
-    ]) {
-      expect(page).toContain(code);
-    }
-  });
-
-  it("gives the 15 minutes after which a receipt is read", () => {
-    expect(page.includes("15") || page.includes("۱۵")).toBe(true);
-  });
-
-  it("has the receipts section just before the DeviceNotRegistered one", () => {
-    const headings: Array<string> = page
-      .split("\n")
-      .filter((line: string) => {
-        return line.startsWith("### ");
-      });
-    const deviceNotRegistered: number = headings.findIndex((line: string) => {
-      return line.includes("DeviceNotRegistered");
+    it("lists the receipt addresses in the network table", () => {
+      expect(page).toContain(
+        "`https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts`",
+      );
+      expect(page).toContain(
+        "`https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts`",
+      );
     });
 
-    expect(deviceNotRegistered).toBeGreaterThan(0);
+    it("says where the relay answers receipts", () => {
+      expect(page).toContain("`/receipts`");
+      expect(page).toContain("`/send`");
+    });
 
-    const before: string = headings[deviceNotRegistered - 1]!;
+    it("names the label a push that never arrived shows, as the server writes it", () => {
+      expect(page).toContain("**Push notification not delivered**");
+    });
 
-    // Translated, but every language quotes the "not delivered" state.
-    expect(before).not.toContain("DeviceNotRegistered");
-    expect(
-      page.indexOf(before) < page.indexOf("- `MessageRateExceeded`"),
-    ).toBe(true);
-  });
-});
+    it("names each of Expo's receipt errors", () => {
+      for (const code of [
+        "`DeviceNotRegistered`",
+        "`MessageRateExceeded`",
+        "`MessageTooBig`",
+        "`InvalidCredentials`",
+        "`MismatchSenderId`",
+      ]) {
+        expect(page).toContain(code);
+      }
+    });
+
+    it("gives the 15 minutes after which a receipt is read", () => {
+      expect(page.includes("15") || page.includes("۱۵")).toBe(true);
+    });
+
+    it("has the receipts section just before the DeviceNotRegistered one", () => {
+      const headings: Array<string> = page
+        .split("\n")
+        .filter((line: string) => {
+          return line.startsWith("### ");
+        });
+      const deviceNotRegistered: number = headings.findIndex((line: string) => {
+        return line.includes("DeviceNotRegistered");
+      });
+
+      expect(deviceNotRegistered).toBeGreaterThan(0);
+
+      const before: string = headings[deviceNotRegistered - 1]!;
+
+      // Translated, but every language quotes the "not delivered" state.
+      expect(before).not.toContain("DeviceNotRegistered");
+      expect(
+        page.indexOf(before) < page.indexOf("- `MessageRateExceeded`"),
+      ).toBe(true);
+    });
+  },
+);

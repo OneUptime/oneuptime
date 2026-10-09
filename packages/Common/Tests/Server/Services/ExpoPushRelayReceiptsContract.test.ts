@@ -116,24 +116,53 @@ describe("the relay's answer to Expo's other refusals", () => {
       { message: "Internal server error" },
     ],
     ["a 502 with no body worth reading", 502, {}],
-    ["a 502 whose code is not text", 502, { message: "x", details: { error: 42 } }],
-    ["a 502 whose code is empty", 502, { message: "x", details: { error: "" } }],
-    ["a 502 whose details are a list", 502, { message: "x", details: [{ error: "MessageTooBig" }] }],
-    ["a 502 whose details are text", 502, { message: "x", details: "MessageTooBig" }],
-    ["a 502 with a code but no message", 502, { details: { error: "MessageTooBig" } }],
-    ["Expo's code in an older relay's 500", 500, { message: "x", details: { error: "MessageTooBig" } }],
-    ["Expo's code in a 400", 400, { message: "x", details: { error: "MessageTooBig" } }],
-    ["the gone-token answer", 410, PushNotificationService.getRelayDeviceNotRegisteredAnswer()],
-  ])(
-    "%s is not one",
-    (_name: string, statusCode: number, body: JSONObject) => {
-      expect(
-        PushNotificationService.getRelayExpoRefusal(
-          new HTTPErrorResponse(statusCode, body, {}),
-        ),
-      ).toBeNull();
-    },
-  );
+    [
+      "a 502 whose code is not text",
+      502,
+      { message: "x", details: { error: 42 } },
+    ],
+    [
+      "a 502 whose code is empty",
+      502,
+      { message: "x", details: { error: "" } },
+    ],
+    [
+      "a 502 whose details are a list",
+      502,
+      { message: "x", details: [{ error: "MessageTooBig" }] },
+    ],
+    [
+      "a 502 whose details are text",
+      502,
+      { message: "x", details: "MessageTooBig" },
+    ],
+    [
+      "a 502 with a code but no message",
+      502,
+      { details: { error: "MessageTooBig" } },
+    ],
+    [
+      "Expo's code in an older relay's 500",
+      500,
+      { message: "x", details: { error: "MessageTooBig" } },
+    ],
+    [
+      "Expo's code in a 400",
+      400,
+      { message: "x", details: { error: "MessageTooBig" } },
+    ],
+    [
+      "the gone-token answer",
+      410,
+      PushNotificationService.getRelayDeviceNotRegisteredAnswer(),
+    ],
+  ])("%s is not one", (_name: string, statusCode: number, body: JSONObject) => {
+    expect(
+      PushNotificationService.getRelayExpoRefusal(
+        new HTTPErrorResponse(statusCode, body, {}),
+      ),
+    ).toBeNull();
+  });
 
   /*
    * A server older than this treats every answer that is not a success as
@@ -303,7 +332,10 @@ describe("the relay's answer to a server asking for receipts (getRelayPushReceip
 
   test("each receipt's status, Expo's code and its message, the token taken out, and nothing else", async () => {
     expoAnswer = {
-      [RECEIPT_ID]: { status: "ok", details: { something: 1 } } as ExpoPushReceipt,
+      [RECEIPT_ID]: {
+        status: "ok",
+        details: { something: 1 },
+      } as ExpoPushReceipt,
       [OTHER_RECEIPT_ID]: {
         status: "error",
         message: `"${TOKEN}" is not a registered push notification recipient`,
@@ -312,16 +344,19 @@ describe("the relay's answer to a server asking for receipts (getRelayPushReceip
       },
     };
 
-    const answer: JSONObject = await PushNotificationService.getRelayPushReceipts(
-      [RECEIPT_ID, OTHER_RECEIPT_ID],
-    );
+    const answer: JSONObject =
+      await PushNotificationService.getRelayPushReceipts([
+        RECEIPT_ID,
+        OTHER_RECEIPT_ID,
+      ]);
 
     expect(asked).toEqual([[RECEIPT_ID, OTHER_RECEIPT_ID]]);
     expect(answer).toEqual({
       [RECEIPT_ID]: { status: "ok" },
       [OTHER_RECEIPT_ID]: {
         status: "error",
-        message: '"[push token]" is not a registered push notification recipient',
+        message:
+          '"[push token]" is not a registered push notification recipient',
         details: { error: "DeviceNotRegistered" },
       },
     });
@@ -519,10 +554,19 @@ describe("reading receipts through the relay (getExpoPushReceiptsThroughRelay)",
 
   test.each([
     ["an error", new HTTPErrorResponse(500, { error: "Server Error" }, {})],
-    ["its rate limit", new HTTPErrorResponse(429, { message: "slow down" }, {})],
+    [
+      "its rate limit",
+      new HTTPErrorResponse(429, { message: "slow down" }, {}),
+    ],
     ["a refusal", new HTTPErrorResponse(400, { message: "bad ids" }, {})],
-    ["a success with no receipts", new HTTPResponse<JSONObject>(200, { success: true }, {})],
-    ["receipts that are a list", new HTTPResponse<JSONObject>(200, { receipts: [] as never }, {})],
+    [
+      "a success with no receipts",
+      new HTTPResponse<JSONObject>(200, { success: true }, {}),
+    ],
+    [
+      "receipts that are a list",
+      new HTTPResponse<JSONObject>(200, { receipts: [] as never }, {}),
+    ],
     ["nothing (it cannot be reached)", new APIException("Connection refused")],
   ])(
     "a relay that answers %s fails, to be asked again later",
@@ -615,7 +659,10 @@ describe("the relay's receipts address (getRelayReceiptsUrl)", () => {
     ["no relay", ""],
     ["an address that is not one", "not a url"],
     ["an address that does not end in /send", "https://relay.example.com/push"],
-    ["an address that only starts like one", "https://relay.example.com/sender"],
+    [
+      "an address that only starts like one",
+      "https://relay.example.com/sender",
+    ],
     ["/send in the middle", "https://relay.example.com/send/push"],
   ])("%s: no receipts to ask for", (_name: string, sendUrl: string) => {
     environment["PushNotificationRelayUrl"] = sendUrl;
@@ -777,9 +824,12 @@ describe("what is said, and read, along the way", () => {
     ["with spaces", "a b", false],
     ["a number", 42, false],
     ["nothing", undefined, false],
-  ])("a receipt id that is %s: %s", (_name: string, value: unknown, isOne: boolean) => {
-    expect(PushNotificationService.isExpoPushReceiptId(value)).toBe(isOne);
-  });
+  ])(
+    "a receipt id that is %s: %s",
+    (_name: string, value: unknown, isOne: boolean) => {
+      expect(PushNotificationService.isExpoPushReceiptId(value)).toBe(isOne);
+    },
+  );
 
   test("the most ids one request asks about is Expo's own chunk size", () => {
     expect(MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST).toBe(300);
@@ -795,19 +845,31 @@ describe("what is said, and read, along the way", () => {
 
   test.each([
     ["ok", { status: "ok" }, { status: "ok" }],
-    ["ok, with details it does not need", { status: "ok", details: { x: 1 } }, { status: "ok" }],
+    [
+      "ok, with details it does not need",
+      { status: "ok", details: { x: 1 } },
+      { status: "ok" },
+    ],
     [
       "an error with Expo's code",
       { status: "error", message: "m", details: { error: "MessageTooBig" } },
       { status: "error", message: "m", details: { error: "MessageTooBig" } },
     ],
-    ["an error with no details", { status: "error", message: "m" }, { status: "error", message: "m" }],
+    [
+      "an error with no details",
+      { status: "error", message: "m" },
+      { status: "error", message: "m" },
+    ],
     [
       "an error whose details are a list",
       { status: "error", message: "m", details: [{ error: "MessageTooBig" }] },
       { status: "error", message: "m" },
     ],
-    ["an error whose message is not text", { status: "error", message: 42 }, { status: "error", message: "" }],
+    [
+      "an error whose message is not text",
+      { status: "error", message: 42 },
+      { status: "error", message: "" },
+    ],
   ])("a receipt read: %s", (_name: string, raw: unknown, read: unknown) => {
     expect(PushNotificationService.readExpoPushReceipt(raw)).toEqual(read);
   });
@@ -859,7 +921,11 @@ describe("what is said, and read, along the way", () => {
       { expoMessage: "Something went wrong" },
       "Push notification not delivered. Expo could not deliver it to the device: Something went wrong",
     ],
-    ["neither", {}, "Push notification not delivered. Expo could not deliver it to the device."],
+    [
+      "neither",
+      {},
+      "Push notification not delivered. Expo could not deliver it to the device.",
+    ],
   ])(
     "any other page that never arrived: %s",
     (
@@ -882,7 +948,11 @@ describe("what is said, and read, along the way", () => {
     ).toBe(RECEIPT_ID);
     expect(
       PushNotificationService.readAnswerField(
-        new HTTPResponse<JSONObject>(200, [{ receiptId: RECEIPT_ID }] as never, {}),
+        new HTTPResponse<JSONObject>(
+          200,
+          [{ receiptId: RECEIPT_ID }] as never,
+          {},
+        ),
         "receiptId",
       ),
     ).toBeUndefined();

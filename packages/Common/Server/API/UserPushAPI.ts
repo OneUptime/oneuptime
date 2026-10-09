@@ -324,13 +324,11 @@ export default class UserPushAPI extends BaseAPI<
            * rules, instead of a new device with default rules beside an old
            * one that can no longer be reached.
            */
-          const previousDeviceToken: string | null = readPreviousExpoPushToken(
-            {
-              previousDeviceToken: req.body.previousDeviceToken,
-              deviceToken: req.body.deviceToken,
-              deviceType: req.body.deviceType,
-            },
-          );
+          const previousDeviceToken: string | null = readPreviousExpoPushToken({
+            previousDeviceToken: req.body.previousDeviceToken,
+            deviceToken: req.body.deviceToken,
+            deviceType: req.body.deviceType,
+          });
 
           if (previousDeviceToken) {
             const renewedDevice: UserPush | null =

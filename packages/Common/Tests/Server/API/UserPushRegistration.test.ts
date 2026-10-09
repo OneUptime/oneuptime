@@ -902,7 +902,9 @@ describe("POST /user-push/register", () => {
       "an old token that is %s is ignored: a new device, as before",
       async (_name: string, previousDeviceToken: unknown) => {
         const answer: Answer = await register(
-          phone(PushDeviceType.iOS, { previousDeviceToken: previousDeviceToken }),
+          phone(PushDeviceType.iOS, {
+            previousDeviceToken: previousDeviceToken,
+          }),
         );
 
         expect(renew).not.toHaveBeenCalled();

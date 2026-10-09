@@ -181,10 +181,7 @@ export class ExpoPushRefusedError extends Error {
   // Expo's own message, the push token taken out.
   public readonly expoMessage: string;
 
-  public constructor(data: {
-    code?: string | undefined;
-    expoMessage: string;
-  }) {
+  public constructor(data: { code?: string | undefined; expoMessage: string }) {
     super(`Failed to send push notification: ${data.expoMessage}`);
     this.name = "ExpoPushRefusedError";
     this.code = data.code;

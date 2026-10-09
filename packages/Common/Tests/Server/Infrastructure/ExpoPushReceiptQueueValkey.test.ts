@@ -229,7 +229,9 @@ describe("the receipts queue on a real Valkey", () => {
       SENT_AT + 3 * MINUTE,
     );
 
-    const keys: Array<string> = await clientA.keys(`${KEY_PREFIX}:registered:*`);
+    const keys: Array<string> = await clientA.keys(
+      `${KEY_PREFIX}:registered:*`,
+    );
 
     expect(keys).toHaveLength(1);
     expect(keys[0]).not.toContain(token);
