@@ -78,6 +78,9 @@ import useBulkCreatePingMonitors from "../../Components/NetworkDevice/useBulkCre
 import useBulkSwitchToProbePolling from "../../Components/NetworkDevice/useBulkSwitchToProbePolling";
 import useBulkSnmpCredentialProfileActions from "../../Components/NetworkDevice/useBulkSnmpCredentialProfileActions";
 import useBulkShortenDeviceNames from "../../Components/NetworkDevice/useBulkShortenDeviceNames";
+import useBulkSiteActions from "../../Components/NetworkDevice/useBulkSiteActions";
+import useBulkDeviceRoleActions from "../../Components/NetworkDevice/useBulkDeviceRoleActions";
+import useBulkApplyVendorTemplate from "../../Components/NetworkDevice/useBulkApplyVendorTemplate";
 import UnboundDevicesBanner from "../../Components/NetworkDevice/UnboundDevicesBanner";
 import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -698,6 +701,27 @@ const NetworkDevices: FunctionComponent<
     useBulkShortenDeviceNames();
 
   /*
+   * Where a device is, what it is and what it collects, for a whole
+   * selection: thirty discovered switches filed into a customer's site,
+   * given the "Access Switch" role and their vendor's health template, each
+   * in one dialog instead of thirty Settings pages. They lead the menu,
+   * ahead of labels, because they are what onboarding a discovered estate
+   * is made of.
+   */
+  const { bulkActions: siteBulkActions, modals: siteBulkActionModals } =
+    useBulkSiteActions();
+
+  const {
+    bulkActions: deviceRoleBulkActions,
+    modals: deviceRoleBulkActionModals,
+  } = useBulkDeviceRoleActions();
+
+  const {
+    bulkActions: vendorTemplateBulkActions,
+    modals: vendorTemplateBulkActionModals,
+  } = useBulkApplyVendorTemplate();
+
+  /*
    * The probe the create form starts on before a site is picked.
    *
    * A probe is REQUIRED to register a device — nothing polls one without it —
@@ -939,7 +963,10 @@ const NetworkDevices: FunctionComponent<
          */
         bulkActions={{
           buttons: [
+            ...siteBulkActions,
+            ...deviceRoleBulkActions,
             ...labelBulkActions,
+            ...vendorTemplateBulkActions,
             ...oidTemplateBulkActions,
             ...snmpCredentialProfileBulkActions,
             ...switchToProbePollingBulkActions,
@@ -1865,6 +1892,20 @@ const NetworkDevices: FunctionComponent<
           name: true,
           hostname: true,
           dnsName: true,
+          /*
+           * What the site, role and vendor template actions read off a row:
+           * whether "Clear Site" / "Clear Device Role" would clear anything,
+           * and the vendor template dialog's preview of which template each
+           * device gets (its SNMP identity, and whether an OID Collection
+           * Template already decides what it collects). Selected here rather
+           * than left to the Site, Role and Template columns, which a viewer
+           * can hide - and two of which are hidden by default.
+           */
+          siteId: true,
+          networkDeviceRoleId: true,
+          oidTemplateId: true,
+          sysObjectId: true,
+          sysDescr: true,
         }}
         onViewPage={(item: NetworkDevice): Promise<Route> => {
           return Promise.resolve(
@@ -1879,7 +1920,10 @@ const NetworkDevices: FunctionComponent<
           );
         }}
       />
+      {siteBulkActionModals}
+      {deviceRoleBulkActionModals}
       {labelBulkActionModals}
+      {vendorTemplateBulkActionModals}
       {oidTemplateBulkActionModals}
       {snmpCredentialProfileBulkActionModals}
       {switchToProbePollingBulkActionModals}
