@@ -141,7 +141,9 @@ jest.mock(
       __esModule: true,
       default: () => {
         if (clockThrows) {
-          throw new Error("Cannot read properties of undefined (reading 'zone')");
+          throw new Error(
+            "Cannot read properties of undefined (reading 'zone')",
+          );
         }
 
         return reactModule.createElement(
@@ -495,11 +497,15 @@ describe("a widget of a type this version does not draw", () => {
     const confirm: HTMLElement = screen.getByRole("dialog", {
       name: "Delete Widget?",
     });
-    fireEvent.click(within(confirm).getByRole("button", { name: "Delete Widget" }));
+    fireEvent.click(
+      within(confirm).getByRole("button", { name: "Delete Widget" }),
+    );
     await settle();
 
     expectTheDashboardOpened();
-    expect(screen.queryByRole("dialog", { name: "Component Settings" })).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Component Settings" }),
+    ).toBeNull();
     expect(boardFallbacks()).toHaveLength(0);
     expect(screen.getByText("Checkout service")).toBeInTheDocument();
 
@@ -583,7 +589,9 @@ describe("a widget that throws while it draws", () => {
 
     const [fallback] = boardFallbacks();
     expect(fallback).toHaveAttribute("data-problem", "Crashed");
-    expect(fallback).toHaveTextContent("Something went wrong while drawing it.");
+    expect(fallback).toHaveTextContent(
+      "Something went wrong while drawing it.",
+    );
     expect(
       within(fallback!).getByTestId("dashboard-widget-fallback-details"),
     ).toHaveTextContent("Cannot read properties of undefined (reading 'zone')");
@@ -701,8 +709,8 @@ describe("saving a dashboard that was stored in another shape", () => {
     expect(components[0]!["arguments"]).toEqual({
       text: "Hello from the envelope",
     });
-    expect(
-      JSON.stringify(components[0]!["componentId"]),
-    ).toContain(TEXT_WIDGET_ID);
+    expect(JSON.stringify(components[0]!["componentId"])).toContain(
+      TEXT_WIDGET_ID,
+    );
   });
 });

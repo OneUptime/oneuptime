@@ -540,8 +540,7 @@ export default class StoredDashboardViewConfig {
       componentType: (typeof componentType === "string"
         ? componentType
         : "") as DashboardComponentType,
-      topInDashboardUnits:
-        readFiniteNumber(source["topInDashboardUnits"]) ?? 0,
+      topInDashboardUnits: readFiniteNumber(source["topInDashboardUnits"]) ?? 0,
       leftInDashboardUnits:
         readFiniteNumber(source["leftInDashboardUnits"]) ?? 0,
       widthInDashboardUnits:
@@ -589,7 +588,10 @@ export default class StoredDashboardViewConfig {
    * A variable with the fields the toolbar dereferences in the types it
    * reads them as: text where it splits or prints, lists where it maps.
    */
-  private static readVariable(entry: JSONObject, id: string): DashboardVariable {
+  private static readVariable(
+    entry: JSONObject,
+    id: string,
+  ): DashboardVariable {
     const variable: DashboardVariable = {
       ...(entry as unknown as DashboardVariable),
       id: id,
@@ -649,7 +651,9 @@ export default class StoredDashboardViewConfig {
     if (Array.isArray(labelOptions)) {
       variable.labelOptions = labelOptions
         .filter((option: unknown): option is JSONObject => {
-          return isPlainObject(option) && readText(option["value"]) !== undefined;
+          return (
+            isPlainObject(option) && readText(option["value"]) !== undefined
+          );
         })
         .map((option: JSONObject): DashboardVariableOption => {
           const optionValue: string = readText(option["value"])!;

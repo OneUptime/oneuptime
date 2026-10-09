@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import DashboardWidgetFallback, {
   ComponentProps,
@@ -169,7 +175,9 @@ describe("a widget that threw while it was drawn", () => {
 
     expect(buttonNames(card)).toEqual(["Try again"]);
 
-    fireEvent.click(within(card).getByTestId("dashboard-widget-fallback-retry"));
+    fireEvent.click(
+      within(card).getByTestId("dashboard-widget-fallback-retry"),
+    );
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
@@ -285,15 +293,62 @@ describe("on a public dashboard", () => {
 });
 
 describe("the card itself", () => {
-  test("fills the widget's place and centres its contents", () => {
+  test("fills the widget's place, scrolls, and centres its contents with auto margins", () => {
     const card: HTMLElement = renderFallback({});
 
     expect(card.className).toContain("w-full");
     expect(card.className).toContain("h-full");
-    expect(card.className).toContain("items-center");
-    expect(card.className).toContain("justify-center");
     // A small widget scrolls its note rather than spilling over its neighbours.
     expect(card.className).toContain("overflow-auto");
+
+    /*
+     * Centred by m-auto, not justify-center: a note taller than its widget
+     * then starts at the top and scrolls, where justify-center would cut
+     * it off above the top edge, out of the scroll's reach.
+     */
+    const content: HTMLElement = card.firstElementChild as HTMLElement;
+    expect(content.className).toContain("m-auto");
+    expect(card.className).not.toContain("justify-center");
+  });
+
+  test("shows its icon, unless the widget is too short for it", () => {
+    renderFallback({});
+    expect(
+      screen.getByTestId("dashboard-widget-fallback-icon"),
+    ).toBeInTheDocument();
+    cleanup();
+
+    const compact: HTMLElement = renderFallback({ isCompact: true });
+    expect(
+      within(compact).queryByTestId("dashboard-widget-fallback-icon"),
+    ).toBeNull();
+    // Everything that says something stays.
+    expect(compact).toHaveTextContent("This widget could not be shown");
+    expect(compact).toHaveTextContent(
+      'OneUptime has no "HostMetricChart" widget.',
+    );
+  });
+
+  test("spaces its buttons with the row's gap, not the shared Button's form margins", () => {
+    const card: HTMLElement = renderFallback({
+      problem: DashboardWidgetProblem.Crashed,
+      error: new Error("x"),
+      onRetry: () => {
+        return undefined;
+      },
+      onEditWidgetClick: () => {
+        return undefined;
+      },
+    });
+
+    const row: HTMLElement = within(card).getByTestId(
+      "dashboard-widget-fallback-retry",
+    ).parentElement as HTMLElement;
+
+    expect(row.className).toContain("gap-2");
+    expect(row.className).toContain("[&_button]:ml-0");
+    expect(row.className).toContain("[&_button]:w-auto");
+    expect(row.className).toContain("flex-wrap");
   });
 
   test("draws no control inside another", () => {

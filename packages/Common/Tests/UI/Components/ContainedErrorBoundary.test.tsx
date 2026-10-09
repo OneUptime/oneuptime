@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React, { ErrorInfo, FunctionComponent, ReactElement } from "react";
 import ContainedErrorBoundary, {
   ContainedErrorFallbackProps,

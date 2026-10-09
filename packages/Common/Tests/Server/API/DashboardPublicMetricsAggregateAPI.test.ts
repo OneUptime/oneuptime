@@ -1303,27 +1303,31 @@ describe("DashboardAPI public metrics-aggregate", () => {
    * still nothing else.
    */
   describe("a dashboard stored in another shape (issue #4571)", () => {
-    const STORED_SHAPES: Array<[string, (config: DashboardViewConfig) => unknown]> =
+    const STORED_SHAPES: Array<
+      [string, (config: DashboardViewConfig) => unknown]
+    > = [
       [
-        [
-          "JSON text",
-          (config: DashboardViewConfig): unknown => {
-            return JSON.stringify(config);
-          },
-        ],
-        [
-          "the DashboardViewConfig envelope",
-          (config: DashboardViewConfig): unknown => {
-            return { _type: "DashboardViewConfig", value: config };
-          },
-        ],
-        [
-          "the envelope as JSON text",
-          (config: DashboardViewConfig): unknown => {
-            return JSON.stringify({ _type: "DashboardViewConfig", value: config });
-          },
-        ],
-      ];
+        "JSON text",
+        (config: DashboardViewConfig): unknown => {
+          return JSON.stringify(config);
+        },
+      ],
+      [
+        "the DashboardViewConfig envelope",
+        (config: DashboardViewConfig): unknown => {
+          return { _type: "DashboardViewConfig", value: config };
+        },
+      ],
+      [
+        "the envelope as JSON text",
+        (config: DashboardViewConfig): unknown => {
+          return JSON.stringify({
+            _type: "DashboardViewConfig",
+            value: config,
+          });
+        },
+      ],
+    ];
 
     describe.each(STORED_SHAPES)(
       "stored as %s",

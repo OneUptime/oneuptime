@@ -47,7 +47,9 @@ function savedForm(value: unknown): unknown {
     JSON.stringify(JSONFunctions.serializeValue(value as JSONObject)),
   );
 
-  const withIdsAsText: (node: unknown) => unknown = (node: unknown): unknown => {
+  const withIdsAsText: (node: unknown) => unknown = (
+    node: unknown,
+  ): unknown => {
     if (Array.isArray(node)) {
       return node.map(withIdsAsText);
     }
@@ -78,16 +80,15 @@ describe("the API reference's dashboard examples are the shape the dashboard sav
       true,
     );
     expect(
-      (DASHBOARD_VIEW_CONFIG_EXAMPLE["components"] as Array<JSONObject>)
-        .length,
+      (DASHBOARD_VIEW_CONFIG_EXAMPLE["components"] as Array<JSONObject>).length,
     ).toBeGreaterThan(0);
   });
 
   test("the widget example is the widget, not a `value` envelope around it", () => {
     expect(DASHBOARD_COMPONENT_EXAMPLE["value"]).toBeUndefined();
-    expect(isDashboardComponentType(DASHBOARD_COMPONENT_EXAMPLE["componentType"])).toBe(
-      true,
-    );
+    expect(
+      isDashboardComponentType(DASHBOARD_COMPONENT_EXAMPLE["componentType"]),
+    ).toBe(true);
   });
 
   test("the config example reads back through the dashboard's reader unchanged", () => {

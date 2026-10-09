@@ -216,7 +216,10 @@ describe("issue #4571: a public dashboard whose stored config is not the editor'
       _type: "DashboardViewConfig",
       value: {
         components: [
-          textWidget("550e8400-e29b-41d4-a716-446655440000", "Checkout service"),
+          textWidget(
+            "550e8400-e29b-41d4-a716-446655440000",
+            "Checkout service",
+          ),
           {
             ...widgetOfType(
               "550e8400-e29b-41d4-a716-446655440001",

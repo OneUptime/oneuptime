@@ -598,9 +598,7 @@ describe("PublicDashboardViewConfig", () => {
         value: config([metricChart], { name: "Inner" }),
       });
 
-      expect(
-        Object.prototype.hasOwnProperty.call(result, "value"),
-      ).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(result, "value")).toBe(false);
       expect((result as unknown as Record<string, unknown>)["name"]).toBe(
         "Inner",
       );
@@ -618,9 +616,7 @@ describe("PublicDashboardViewConfig", () => {
     });
 
     it("a widget in the DashboardComponent envelope is served as the widget inside", () => {
-      const inner: DashboardBaseComponent = widget(
-        DashboardComponentType.Text,
-      );
+      const inner: DashboardBaseComponent = widget(DashboardComponentType.Text);
 
       const result: DashboardViewConfig | null = sanitize(
         config([{ _type: "DashboardComponent", value: inner }]),
@@ -645,8 +641,11 @@ describe("PublicDashboardViewConfig", () => {
       ["a number", 42],
       ["text that is not JSON", "not json"],
       ["a boolean", true],
-    ])("a stored value that is %s serves an empty widget list", (_name: string, value: unknown) => {
-      expect(sanitize(value)!.components).toEqual([]);
-    });
+    ])(
+      "a stored value that is %s serves an empty widget list",
+      (_name: string, value: unknown) => {
+        expect(sanitize(value)!.components).toEqual([]);
+      },
+    );
   });
 });

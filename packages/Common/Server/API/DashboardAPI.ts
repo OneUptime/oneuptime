@@ -1539,7 +1539,8 @@ export default class DashboardAPI extends BaseAPI<
           const variables: Array<DashboardVariable> =
             PublicDashboardResourceListPolicy.resolveDashboardVariableSelections(
               {
-                dashboardViewConfig: DashboardAPI.getStoredViewConfig(dashboard),
+                dashboardViewConfig:
+                  DashboardAPI.getStoredViewConfig(dashboard),
                 requestedVariables: req.body["variables"],
               },
             );

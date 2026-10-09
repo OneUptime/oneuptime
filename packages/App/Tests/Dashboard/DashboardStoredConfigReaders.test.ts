@@ -279,7 +279,9 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
       ],
     };
 
-    expect(Object.keys(expected).sort()).toEqual(filesWithRole("reader").sort());
+    expect(Object.keys(expected).sort()).toEqual(
+      filesWithRole("reader").sort(),
+    );
 
     for (const [key, calls] of Object.entries(expected)) {
       const code: string = codeOf(key);
@@ -321,7 +323,9 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
 
   test("the public routes read the stored config only through getStoredViewConfig or the sanitizer", () => {
     const code: string = codeOf(DASHBOARD_API)
-      .split("PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig)")
+      .split(
+        "PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig)",
+      )
       .join("")
       .split("StoredDashboardViewConfig.unwrap(dashboard.dashboardViewConfig)")
       .join("");

@@ -98,7 +98,9 @@ function typesOf(config: DashboardViewConfig): Array<string> {
 
 // The serialized JSON of a config, for comparing what would be saved.
 function savedForm(config: unknown): unknown {
-  return JSON.parse(JSON.stringify(JSONFunctions.serializeValue(config as any)));
+  return JSON.parse(
+    JSON.stringify(JSONFunctions.serializeValue(config as any)),
+  );
 }
 
 const UUID: RegExp =
@@ -543,7 +545,10 @@ describe("widgets", () => {
       ["an ObjectID", new ObjectID(TEXT_WIDGET_ID)],
       ["a string", TEXT_WIDGET_ID],
       ["a padded string", `  ${TEXT_WIDGET_ID}  `],
-      ["the stored ObjectID JSON", { _type: "ObjectID", value: TEXT_WIDGET_ID }],
+      [
+        "the stored ObjectID JSON",
+        { _type: "ObjectID", value: TEXT_WIDGET_ID },
+      ],
       ["a value object without _type", { value: TEXT_WIDGET_ID }],
     ])("an id stored as %s is kept", (_name: string, componentId: unknown) => {
       const config: DashboardViewConfig = StoredDashboardViewConfig.read({
@@ -749,13 +754,16 @@ describe("widgets", () => {
       ["text that is not JSON", "isBold"],
       ["a number", 5],
       ["true", true],
-    ])("arguments that are %s read as none", (_name: string, value: unknown) => {
-      const config: DashboardViewConfig = StoredDashboardViewConfig.read({
-        components: [{ ...apiTextWidget(), arguments: value }],
-      });
+    ])(
+      "arguments that are %s read as none",
+      (_name: string, value: unknown) => {
+        const config: DashboardViewConfig = StoredDashboardViewConfig.read({
+          components: [{ ...apiTextWidget(), arguments: value }],
+        });
 
-      expect(config.components[0]!.arguments).toEqual({});
-    });
+        expect(config.components[0]!.arguments).toEqual({});
+      },
+    );
 
     test("arguments stored as JSON text are read", () => {
       const config: DashboardViewConfig = StoredDashboardViewConfig.read({
@@ -815,9 +823,10 @@ describe("widgets", () => {
 
       expectDrawable(config);
       expect(idsOf(config)).toEqual([TEXT_WIDGET_ID, SECOND_WIDGET_ID]);
-      expect(
-        (config.components[0]!.arguments as JSONObject)["owner"],
-      ).toEqual({ _type: "Email", value: "not an email" });
+      expect((config.components[0]!.arguments as JSONObject)["owner"]).toEqual({
+        _type: "Email",
+        value: "not an email",
+      });
       expect(
         (config.components[1]!.arguments as JSONObject)["monitorId"],
       ).toBeInstanceOf(ObjectID);
@@ -833,7 +842,11 @@ describe("the board", () => {
     ["zero", 0, DefaultDashboardSize.heightInDashboardUnits],
     ["negative", -5, DefaultDashboardSize.heightInDashboardUnits],
     ["NaN", NaN, DefaultDashboardSize.heightInDashboardUnits],
-    ["text that is no number", "tall", DefaultDashboardSize.heightInDashboardUnits],
+    [
+      "text that is no number",
+      "tall",
+      DefaultDashboardSize.heightInDashboardUnits,
+    ],
   ])(
     "a board height that is %s reads as %p",
     (_name: string, value: unknown, expected: number) => {
@@ -867,9 +880,9 @@ describe("the board", () => {
       });
 
       expect(config.refreshInterval).toBeUndefined();
-      expect(Object.prototype.hasOwnProperty.call(config, "refreshInterval")).toBe(
-        false,
-      );
+      expect(
+        Object.prototype.hasOwnProperty.call(config, "refreshInterval"),
+      ).toBe(false);
     },
   );
 
@@ -1022,8 +1035,10 @@ describe("variables", () => {
   ])(
     "isMultiSelect stored as %p reads as %p",
     (stored: unknown, expected: boolean | undefined) => {
-      expect(readVariables([{ id: "a", name: "x", isMultiSelect: stored }])[0]!
-        .isMultiSelect).toBe(expected);
+      expect(
+        readVariables([{ id: "a", name: "x", isMultiSelect: stored }])[0]!
+          .isMultiSelect,
+      ).toBe(expected);
     },
   );
 
@@ -1057,27 +1072,22 @@ describe("canonical configs read back exactly as they are", () => {
     TEMPLATES_WITH_WIDGETS.map((template: DashboardTemplate) => {
       return [template.name, template.type];
     }),
-  )(
-    "the %s template",
-    (_name: string, templateType: DashboardTemplateType) => {
-      const template: DashboardViewConfig | null =
-        getTemplateConfig(templateType);
+  )("the %s template", (_name: string, templateType: DashboardTemplateType) => {
+    const template: DashboardViewConfig | null =
+      getTemplateConfig(templateType);
 
-      expect(template).not.toBeNull();
+    expect(template).not.toBeNull();
 
-      const read: DashboardViewConfig = StoredDashboardViewConfig.read(
-        template,
-      );
+    const read: DashboardViewConfig = StoredDashboardViewConfig.read(template);
 
-      expectDrawable(read);
-      expect(savedForm(read)).toEqual(savedForm(template));
+    expectDrawable(read);
+    expect(savedForm(read)).toEqual(savedForm(template));
 
-      // And as it comes back from the database: the saved JSON.
-      expect(
-        savedForm(StoredDashboardViewConfig.read(savedForm(template))),
-      ).toEqual(savedForm(template));
-    },
-  );
+    // And as it comes back from the database: the saved JSON.
+    expect(
+      savedForm(StoredDashboardViewConfig.read(savedForm(template))),
+    ).toEqual(savedForm(template));
+  });
 
   test("a board the editor built: widgets added one by one", () => {
     let config: DashboardViewConfig =
@@ -1143,17 +1153,16 @@ describe("the ids every reader agrees on", () => {
   ];
 
   test("withComponentIds gives each widget the id read draws it under", () => {
-    const fromEntries: Array<string> = StoredDashboardViewConfig.withComponentIds(
-      MESSY,
-    )
-      .filter((entry: unknown) => {
-        return StoredDashboardViewConfig.isWidgetEntry(entry);
-      })
-      .map((entry: unknown) => {
-        return StoredDashboardViewConfig.getComponentIdString(
-          (entry as JSONObject)["componentId"],
-        )!;
-      });
+    const fromEntries: Array<string> =
+      StoredDashboardViewConfig.withComponentIds(MESSY)
+        .filter((entry: unknown) => {
+          return StoredDashboardViewConfig.isWidgetEntry(entry);
+        })
+        .map((entry: unknown) => {
+          return StoredDashboardViewConfig.getComponentIdString(
+            (entry as JSONObject)["componentId"],
+          )!;
+        });
 
     expect(fromEntries).toEqual(
       idsOf(StoredDashboardViewConfig.read({ components: MESSY })),

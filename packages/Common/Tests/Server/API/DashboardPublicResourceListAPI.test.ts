@@ -1485,9 +1485,7 @@ describe("DashboardAPI public resource-list", () => {
         expect(nextFunction).not.toHaveBeenCalled();
         expect(listedLimit()).toBe(7);
         expect(
-          (getFindByArgs(IncidentService)["query"] as JSONObject)[
-            "projectId"
-          ],
+          (getFindByArgs(IncidentService)["query"] as JSONObject)["projectId"],
         ).toBe(projectId);
       },
     );

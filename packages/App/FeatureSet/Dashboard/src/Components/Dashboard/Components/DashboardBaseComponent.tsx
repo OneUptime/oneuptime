@@ -59,6 +59,7 @@ import DashboardStorageArrayHardwareListComponent from "./DashboardStorageArrayH
 import DashboardNetworkMapComponent from "./DashboardNetworkMapComponent";
 import DashboardHtmlComponent from "./DashboardHtmlComponent";
 import DashboardWidgetFallback, {
+  COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX,
   DashboardWidgetProblem,
 } from "./DashboardWidgetFallback";
 import ContainedErrorBoundary, {
@@ -496,9 +497,10 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     : undefined;
 
   const storedComponentType: string =
-    typeof component.componentType === "string"
-      ? component.componentType
-      : "";
+    typeof component.componentType === "string" ? component.componentType : "";
+
+  const isCompactFallback: boolean =
+    props.dashboardComponentHeightInPx < COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX;
 
   /*
    * Each widget is drawn inside its own boundary, so one that throws shows
@@ -514,6 +516,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           problem={DashboardWidgetProblem.UnknownType}
           componentType={storedComponentType}
           isEditMode={props.isEditMode}
+          isCompact={isCompactFallback}
           onEditWidgetClick={props.onEditWidgetClick}
         />
       );
@@ -532,6 +535,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
               problem={DashboardWidgetProblem.Crashed}
               componentType={storedComponentType}
               isEditMode={props.isEditMode}
+              isCompact={isCompactFallback}
               error={fallback.error}
               onRetry={fallback.retry}
               onEditWidgetClick={props.onEditWidgetClick}

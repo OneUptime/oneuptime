@@ -87,7 +87,11 @@ jest.mock(
 import DashboardCanvas, {
   getCanvasComponents,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index";
-import { DASHBOARD_WIDGET_FALLBACK_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetFallback";
+import {
+  COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX,
+  DASHBOARD_WIDGET_FALLBACK_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetFallback";
+import DashboardBaseComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
@@ -120,9 +124,7 @@ function widget(
   };
 }
 
-function board(
-  components: Array<DashboardBaseComponent>,
-): DashboardViewConfig {
+function board(components: Array<DashboardBaseComponent>): DashboardViewConfig {
   return {
     _type: ObjectType.DashboardViewConfig,
     heightInDashboardUnits: 12,
@@ -237,14 +239,14 @@ describe("the canvas never reads a widget list off a config that has none", () =
 
     expect(getCanvasComponents(board(list))).toBe(list);
 
-    const empty: Array<DashboardBaseComponent> = getCanvasComponents(
-      undefined,
-    );
+    const empty: Array<DashboardBaseComponent> = getCanvasComponents(undefined);
     expect(empty).toEqual([]);
     // The same list every time, so memos keyed on it do not recompute.
     expect(getCanvasComponents(null)).toBe(empty);
     expect(
-      getCanvasComponents({ components: "x" } as unknown as DashboardViewConfig),
+      getCanvasComponents({
+        components: "x",
+      } as unknown as DashboardViewConfig),
     ).toBe(empty);
   });
 });
@@ -261,7 +263,9 @@ describe("a widget that throws", () => {
 
     const [fallback] = fallbacks();
     expect(fallback).toHaveAttribute("data-problem", "Crashed");
-    expect(fallback!.closest(`#dashboard-component-${CLOCK_ID}`)).not.toBeNull();
+    expect(
+      fallback!.closest(`#dashboard-component-${CLOCK_ID}`),
+    ).not.toBeNull();
   });
 
   test("starts over on the next refresh", () => {
@@ -303,7 +307,9 @@ describe("a widget that throws", () => {
     rerender(
       canvas({
         config: board([
-          widget(CLOCK_ID, DashboardComponentType.Clock, 0, { timezone: "UTC" }),
+          widget(CLOCK_ID, DashboardComponentType.Clock, 0, {
+            timezone: "UTC",
+          }),
         ]),
       }),
     );
@@ -322,6 +328,57 @@ describe("a widget that throws", () => {
     expect(clockRenders).toBe(rendersAfterFirstFailure);
     expect(fallbacks()).toHaveLength(1);
   });
+});
+
+describe("the note on a short widget", () => {
+  const CONFIG: DashboardViewConfig = StoredDashboardViewConfig.read({
+    components: [{ componentId: UNKNOWN_ID, componentType: "HostMetricChart" }],
+  });
+
+  function card(heightInPx: number): ReactElement {
+    return (
+      <DashboardBaseComponentElement
+        componentId={new ObjectID(UNKNOWN_ID)}
+        isEditMode={false}
+        isSelected={false}
+        key="card"
+        onComponentUpdate={() => {}}
+        totalCurrentDashboardWidthInPx={1200}
+        dashboardCanvasTopInPx={0}
+        dashboardCanvasLeftInPx={0}
+        dashboardCanvasWidthInPx={1200}
+        dashboardCanvasHeightInPx={800}
+        dashboardComponentWidthInPx={300}
+        dashboardComponentHeightInPx={heightInPx}
+        dashboardViewConfig={CONFIG}
+        dashboardStartAndEndDate={PAST_HOUR}
+        metricTypes={[]}
+        onClick={() => {}}
+        dndActiveMode={null}
+        isAnyGestureActive={false}
+        onMovePointerDown={() => {}}
+        onResizePointerDown={() => {}}
+      />
+    );
+  }
+
+  test.each([
+    [120, false],
+    [190, false],
+    [COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX - 1, false],
+    [COMPACT_WIDGET_FALLBACK_HEIGHT_IN_PX, true],
+    [400, true],
+  ])(
+    "a widget %ipx tall shows the icon: %p",
+    (heightInPx: number, showsIcon: boolean) => {
+      render(card(heightInPx));
+
+      expect(fallbacks()).toHaveLength(1);
+      expect(
+        Boolean(screen.queryByTestId("dashboard-widget-fallback-icon")),
+      ).toBe(showsIcon);
+    },
+  );
 });
 
 describe("Edit widget, from the canvas", () => {
@@ -396,7 +453,9 @@ describe("Edit widget, from the canvas", () => {
       name: "Component Settings",
     });
 
-    expect(within(dialog).getByTestId("arguments-form-stub")).toBeInTheDocument();
+    expect(
+      within(dialog).getByTestId("arguments-form-stub"),
+    ).toBeInTheDocument();
     expect(within(dialog).getByText("Duplicate Widget")).toBeInTheDocument();
   });
 
@@ -405,7 +464,9 @@ describe("Edit widget, from the canvas", () => {
       canvas({
         config: board([widget(CLOCK_ID, DashboardComponentType.Clock, 0)]),
         isEditMode: true,
-        selectedComponentId: new ObjectID("00000000-0000-4000-8000-00000000dead"),
+        selectedComponentId: new ObjectID(
+          "00000000-0000-4000-8000-00000000dead",
+        ),
       }),
     );
 
