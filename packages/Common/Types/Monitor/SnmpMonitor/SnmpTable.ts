@@ -27,14 +27,22 @@
 
 /*
  * What a table represents. Purely descriptive for the generic Tables view;
- * the Wi-Fi view reads the two Wi-Fi kinds to know which tables hold radios
- * and SSIDs. Stored as a string, so adding a kind never breaks a stored
- * definition.
+ * the Wi-Fi view reads the Wi-Fi kinds to know which tables hold access
+ * points, radios and SSIDs. Stored as a string, so adding a kind never
+ * breaks a stored definition.
  */
 export enum SnmpTableKind {
   Generic = "Generic",
   WifiRadio = "WifiRadio",
   WifiSsid = "WifiSsid",
+  /*
+   * The access points a wireless controller manages - an Aruba Instant
+   * cluster's virtual controller, an ArubaOS Mobility Controller, an
+   * Extreme wireless controller - one row per access point. An access point
+   * that drops off its controller leaves its area without Wi-Fi, so the
+   * recommended alerts raise an incident for it, as for a tunnel.
+   */
+  WifiAccessPoint = "WifiAccessPoint",
   VpnTunnel = "VpnTunnel",
   RoutingAdjacency = "RoutingAdjacency",
   Hardware = "Hardware",
@@ -96,6 +104,17 @@ export interface SnmpTableColumn {
    * templates say what healthy looks like once.
    */
   healthyValues?: Array<string> | undefined;
+  /*
+   * How the number a cell holds is put into the column's unit: multiplied
+   * by `scale`, then `offset` added. For MIBs that keep a value in a unit of
+   * their own - ArubaOS reports transmit power in half dBm (scale 0.5),
+   * Aruba Instant the noise floor's magnitude (scale -1: 94 is -94 dBm),
+   * Aerohive the noise floor plus 256 (offset -256). The adjusted number is
+   * what is shown, charted and compared, so "noise floor above -80 dBm"
+   * means the same on every vendor; the raw value is kept as it came.
+   */
+  scale?: number | undefined;
+  offset?: number | undefined;
 }
 
 export interface SnmpTableDefinition {
@@ -112,8 +131,21 @@ export interface SnmpTableDefinition {
    * Columns whose values name each row - a tunnel's connection name, a
    * radio's band. Joined with " / " when there are several. A table without
    * them names its rows by index. They do not need to be value columns too.
+   *
+   * A name column may come from a parent table, one whose index is the
+   * start of this table's: Aruba Instant indexes its radios by access point
+   * and radio number, and its access point names by access point alone, so
+   * a radio is named "AP-12 / Radio 0". The parent's own rows only name
+   * their children; they are not rows of this table.
    */
   rowLabelColumnOids?: Array<string> | undefined;
+  /*
+   * The row index is a text string in SNMP's encoding - its length, then
+   * one arc per byte - as when a table is indexed by a name: ArubaOS indexes
+   * its ESSID table by the SSID itself. The decoded text names each row
+   * that no name column names.
+   */
+  rowIndexIsText?: boolean | undefined;
   columns: Array<SnmpTableColumn>;
   // Rows kept per walk. Defaults to DEFAULT_SNMP_TABLE_MAX_ROWS.
   maxRows?: number | undefined;

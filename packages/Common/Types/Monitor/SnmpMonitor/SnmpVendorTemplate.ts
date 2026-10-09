@@ -6,6 +6,7 @@ import {
   SnmpTableKind,
   SnmpTableValueType,
 } from "./SnmpTable";
+import { MAX_SNMP_TABLE_MAX_ROWS } from "./SnmpTableListUtil";
 
 /*
  * Prebuilt SNMP health-OID profiles for common network vendors. Applying a
@@ -305,9 +306,9 @@ const MIKROTIK: SnmpVendorTemplate = {
 
 const UBIQUITI: SnmpVendorTemplate = {
   id: "ubiquiti-edgeos",
-  label: "Ubiquiti EdgeOS / EdgeSwitch / UniFi",
+  label: "Ubiquiti EdgeOS / EdgeSwitch / UniFi Switches",
   description:
-    "CPU load and memory usage via the standard Host Resources and UCD MIBs — Ubiquiti publishes no vendor health MIB, but EdgeOS, EdgeSwitch, and UniFi devices answer these.",
+    "CPU load and memory usage via the standard Host Resources and UCD MIBs — Ubiquiti publishes no vendor health MIB for its routers and switches, but EdgeOS, EdgeSwitch and UniFi switches answer these. UniFi access points have a template of their own, with their radios and SSIDs.",
   oids: [
     {
       oid: "1.3.6.1.2.1.25.3.3.1.2.1",
@@ -898,6 +899,866 @@ const SOPHOS_SFOS: SnmpVendorTemplate = {
   ],
 };
 
+/*
+ * --- Wi-Fi vendors ---
+ *
+ * Each reads what the vendor's own MIB says about its radios and SSIDs -
+ * and, for a controller, the access points it manages - into tables of the
+ * Wi-Fi kinds, so the device's Wi-Fi tab, its criteria and its charts work
+ * the same whichever vendor it is. Every OID below is taken from the MIB
+ * definition named next to it. What a vendor does not report over SNMP
+ * (Juniper Mist reports nothing; TP-Link Omada access points only their
+ * client count) is written up in the docs' Wi-Fi vendor table.
+ */
+
+/*
+ * How UniFi names a radio's band in unifiRadioRadio and unifiVapRadio:
+ * the 802.11 mode its radio runs - "ng" on 2.4 GHz, "na" on 5 GHz - and
+ * "6e" on 6 GHz.
+ */
+const UNIFI_BAND_LABELS: Record<string, string> = {
+  ng: "2.4 GHz",
+  na: "5 GHz",
+  "6e": "6 GHz",
+};
+
+const UBIQUITI_UNIFI_AP: SnmpVendorTemplate = {
+  id: "ubiquiti-unifi-ap",
+  label: "Ubiquiti UniFi Access Points",
+  description:
+    "Every radio's band and airtime, and every SSID's band, channel, clients and transmit power, from the UBNT-UniFi-MIB, plus CPU per core, memory and load. A radio's channel, power and clients are read from the SSIDs it broadcasts, which is where UniFi reports them. Turn on SNMP in the UniFi Network application.",
+  oids: [
+    {
+      oid: "1.3.6.1.4.1.41112.1.6.3.2.0",
+      name: "Isolated",
+      description:
+        "unifiApSystemIsolated - TruthValue: 1 = isolated, 2 = not isolated.",
+    },
+    {
+      oid: "1.3.6.1.4.1.2021.10.1.3.1",
+      name: "Load Average (1 min)",
+      description: "laLoad.1 - UCD-SNMP-MIB.",
+    },
+    {
+      oid: "1.3.6.1.4.1.2021.4.5.0",
+      name: "Total RAM (KB)",
+      description: "memTotalReal - UCD-SNMP-MIB.",
+    },
+    {
+      oid: "1.3.6.1.4.1.2021.4.6.0",
+      name: "Available RAM (KB)",
+      description: "memAvailReal - UCD-SNMP-MIB.",
+    },
+  ],
+  tables: [
+    {
+      key: "wifi_radios",
+      name: "Wi-Fi Radios",
+      description:
+        "unifiRadioTable - one row per radio: its band and how busy its channel is. Channel, transmit power and clients are on the SSIDs table.",
+      kind: SnmpTableKind.WifiRadio,
+      rowLabelColumnOids: ["1.3.6.1.4.1.41112.1.6.1.1.1.3"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.1.1.3",
+          name: "Band",
+          description: "unifiRadioRadio - ng, na or 6e.",
+          role: SnmpTableColumnRole.Band,
+          valueType: SnmpTableValueType.Text,
+          valueLabels: UNIFI_BAND_LABELS,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.1.1.2",
+          name: "Interface",
+          description: "unifiRadioName.",
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.1.1.6",
+          name: "Airtime",
+          unit: "%",
+          role: SnmpTableColumnRole.Utilization,
+          description:
+            "unifiRadioCuTotal - how much of the time the channel is busy, with any traffic.",
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.1.1.7",
+          name: "Receive Airtime",
+          unit: "%",
+          description:
+            "unifiRadioCuSelfRx - the share of airtime this radio spends receiving.",
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.1.1.8",
+          name: "Transmit Airtime",
+          unit: "%",
+          description:
+            "unifiRadioCuSelfTx - the share of airtime this radio spends transmitting.",
+        },
+      ],
+      maxRows: 8,
+    },
+    {
+      key: "wifi_ssids",
+      name: "SSIDs",
+      description:
+        "unifiVapTable - one row per SSID on each radio, with that radio's channel and transmit power.",
+      kind: SnmpTableKind.WifiSsid,
+      rowLabelColumnOids: [
+        "1.3.6.1.4.1.41112.1.6.1.2.1.6",
+        "1.3.6.1.4.1.41112.1.6.1.2.1.9",
+      ],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.6",
+          name: "SSID",
+          description: "unifiVapEssId.",
+          role: SnmpTableColumnRole.Ssid,
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.9",
+          name: "Band",
+          description: "unifiVapRadio - ng, na or 6e.",
+          role: SnmpTableColumnRole.Band,
+          valueType: SnmpTableValueType.Text,
+          valueLabels: UNIFI_BAND_LABELS,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.4",
+          name: "Channel",
+          description: "unifiVapChannel.",
+          role: SnmpTableColumnRole.Channel,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.8",
+          name: "Clients",
+          description: "unifiVapNumStations.",
+          role: SnmpTableColumnRole.Clients,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.21",
+          name: "TX Power",
+          unit: "dBm",
+          description: "unifiVapTxPower.",
+          role: SnmpTableColumnRole.TxPower,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.3",
+          name: "Connection Quality",
+          unit: "%",
+          description:
+            "unifiVapCcq - client connection quality, reported in tenths of a percent.",
+          scale: 0.1,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.22",
+          name: "Up",
+          description: "unifiVapUp - TruthValue: 1 = up, 2 = down.",
+          valueLabels: { "1": "up", "2": "down" },
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.23",
+          name: "Usage",
+          description: "unifiVapUsage - guest or regular user.",
+          valueType: SnmpTableValueType.Text,
+        },
+      ],
+      maxRows: 64,
+    },
+    HOST_RESOURCES_CPU_TABLE,
+  ],
+};
+
+const ARUBA_UP_DOWN_LABELS: Record<string, string> = {
+  "1": "up",
+  "2": "down",
+};
+
+const ARUBA_INSTANT: SnmpVendorTemplate = {
+  id: "aruba-instant",
+  label: "HPE Aruba Instant (AOS 8)",
+  description:
+    "Every access point of the Instant cluster (status, CPU, memory), every radio (channel, transmit power, noise floor, utilization, clients, status) named by its access point, and every SSID with its clients, from AI-AP-MIB. Add the cluster's virtual controller address; it answers for every access point.",
+  oids: [
+    {
+      oid: "1.3.6.1.4.1.14823.2.3.3.1.1.2.0",
+      name: "Cluster Name",
+      description: "aiVirtualControllerName.",
+    },
+    {
+      oid: "1.3.6.1.4.1.14823.2.3.3.1.1.4.0",
+      name: "Firmware Version",
+      description:
+        "aiVirtualControllerVersion - alert on a change to see upgrades.",
+    },
+    {
+      oid: "1.3.6.1.4.1.14823.2.3.3.1.1.6.0",
+      name: "Conductor IP",
+      description:
+        "aiMasterIPAddress - the access point running the virtual controller; it changes when another takes over.",
+    },
+  ],
+  tables: [
+    {
+      key: "wifi_access_points",
+      name: "Access Points",
+      description:
+        "aiAccessPointTable - one row per access point in the cluster.",
+      kind: SnmpTableKind.WifiAccessPoint,
+      rowLabelColumnOids: ["1.3.6.1.4.1.14823.2.3.3.1.2.1.1.2"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.11",
+          name: "Status",
+          description: "aiAPStatus.",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: ARUBA_UP_DOWN_LABELS,
+          healthyValues: ["1"],
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.6",
+          name: "Model",
+          description: "aiAPModelName.",
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.3",
+          name: "IP Address",
+          description: "aiAPIPAddress.",
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.4",
+          name: "Serial Number",
+          description: "aiAPSerialNum.",
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.7",
+          name: "CPU",
+          unit: "%",
+          description: "aiAPCPUUtilization.",
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.8",
+          name: "Memory Free",
+          unit: "bytes",
+          description: "aiAPMemoryFree.",
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.10",
+          name: "Memory Total",
+          unit: "bytes",
+          description: "aiAPTotalMemory.",
+        },
+      ],
+      maxRows: MAX_SNMP_TABLE_MAX_ROWS,
+    },
+    {
+      key: "wifi_radios",
+      name: "Wi-Fi Radios",
+      description:
+        "aiRadioTable - one row per radio of every access point, named by its access point (aiAPName). Aruba writes the channel with its width (36E is channel 36 at 80 MHz) and the noise floor without its sign.",
+      kind: SnmpTableKind.WifiRadio,
+      rowLabelColumnOids: [
+        "1.3.6.1.4.1.14823.2.3.3.1.2.1.1.2",
+        "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.2",
+      ],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.2",
+          name: "Radio",
+          description: "aiRadioIndex - the radio number.",
+          valueType: SnmpTableValueType.Text,
+          valueLabels: {
+            "0": "Radio 0",
+            "1": "Radio 1",
+            "2": "Radio 2",
+            "3": "Radio 3",
+          },
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.4",
+          name: "Channel",
+          description: "aiRadioChannel.",
+          role: SnmpTableColumnRole.Channel,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.5",
+          name: "TX Power",
+          unit: "dBm",
+          description: "aiRadioTransmitPower.",
+          role: SnmpTableColumnRole.TxPower,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.6",
+          name: "Noise Floor",
+          unit: "dBm",
+          description:
+            "aiRadioNoiseFloor - reported without its sign (94 for -94 dBm) and read as negative.",
+          role: SnmpTableColumnRole.NoiseFloor,
+          scale: -1,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.8",
+          name: "Utilization",
+          unit: "%",
+          description:
+            "aiRadioUtilization64 - channel utilization, averaged over 64 seconds.",
+          role: SnmpTableColumnRole.Utilization,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.21",
+          name: "Clients",
+          description: "aiRadioClientNum.",
+          role: SnmpTableColumnRole.Clients,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.20",
+          name: "Status",
+          description: "aiRadioStatus.",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: ARUBA_UP_DOWN_LABELS,
+          healthyValues: ["1"],
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.22",
+          name: "Mode",
+          description: "aiRadioMode - access or monitor.",
+          valueType: SnmpTableValueType.Text,
+        },
+      ],
+      maxRows: MAX_SNMP_TABLE_MAX_ROWS,
+    },
+    {
+      key: "wifi_ssids",
+      name: "SSIDs",
+      description:
+        "aiWlanSSIDTable - one row per SSID the cluster broadcasts.",
+      kind: SnmpTableKind.WifiSsid,
+      rowLabelColumnOids: ["1.3.6.1.4.1.14823.2.3.3.1.1.7.1.2"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.1.7.1.2",
+          name: "SSID",
+          description: "aiSSID.",
+          role: SnmpTableColumnRole.Ssid,
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.1.7.1.4",
+          name: "Clients",
+          description: "aiSSIDClientNum.",
+          role: SnmpTableColumnRole.Clients,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.1.7.1.3",
+          name: "Status",
+          description: "aiSSIDStatus.",
+          valueLabels: { "0": "enabled", "1": "disabled" },
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.1.7.1.5",
+          name: "Hidden",
+          description: "aiSSIDHide.",
+          valueLabels: { "0": "no", "1": "yes" },
+        },
+      ],
+      maxRows: 32,
+    },
+  ],
+};
+
+/*
+ * ArubaPhyType, the radio type wlanAPRadioType reports: dot11a(1) runs on
+ * 5 GHz, dot11b(2) and dot11g(3) on 2.4 GHz; dot11ag(4) names no one band.
+ */
+const ARUBA_RADIO_TYPE_LABELS: Record<string, string> = {
+  "1": "5 GHz",
+  "2": "2.4 GHz",
+  "3": "2.4 GHz",
+  "4": "802.11a/g",
+};
+
+const ARUBA_MOBILITY_CONTROLLER: SnmpVendorTemplate = {
+  id: "aruba-mobility-controller",
+  label: "HPE Aruba Mobility Controller (AOS 8)",
+  description:
+    "The controller's role, CPU and memory, its access point and client counts, every access point it manages (status), every radio (band, channel, transmit power, utilization, clients) named by its access point, and every SSID with its clients, from the WLSX-SWITCH and WLSX-WLAN MIBs.",
+  oids: [
+    {
+      oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.1.0",
+      name: "Access Points",
+      description:
+        "wlsxWlanTotalNumAccessPoints - access points connected to the controller.",
+    },
+    {
+      oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.2.0",
+      name: "Wi-Fi Clients",
+      description:
+        "wlsxWlanTotalNumStationsAssociated - clients associated to the controller.",
+    },
+    {
+      oid: "1.3.6.1.4.1.14823.2.2.1.1.1.4.0",
+      name: "Controller Role",
+      description:
+        "wlsxSwitchRole - 1 master, 2 local, 3 standby master, 4 branch, 5 managed device.",
+    },
+  ],
+  tables: [
+    {
+      key: "wifi_access_points",
+      name: "Access Points",
+      description:
+        "wlsxWlanAPTable - one row per access point the controller manages.",
+      kind: SnmpTableKind.WifiAccessPoint,
+      rowLabelColumnOids: ["1.3.6.1.4.1.14823.2.2.1.5.2.1.4.1.3"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.4.1.19",
+          name: "Status",
+          description: "wlanAPStatus.",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: ARUBA_UP_DOWN_LABELS,
+          healthyValues: ["1"],
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.4.1.13",
+          name: "Model",
+          description: "wlanAPModelName.",
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.4.1.2",
+          name: "IP Address",
+          description: "wlanAPIpAddress.",
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.4.1.4",
+          name: "AP Group",
+          description: "wlanAPGroupName.",
+          valueType: SnmpTableValueType.Text,
+        },
+      ],
+      maxRows: MAX_SNMP_TABLE_MAX_ROWS,
+    },
+    {
+      key: "wifi_radios",
+      name: "Wi-Fi Radios",
+      description:
+        "wlsxWlanRadioTable - one row per radio of every access point, named by its access point (wlanAPRadioAPName) and band.",
+      kind: SnmpTableKind.WifiRadio,
+      rowLabelColumnOids: [
+        "1.3.6.1.4.1.14823.2.2.1.5.2.1.5.1.16",
+        "1.3.6.1.4.1.14823.2.2.1.5.2.1.5.1.2",
+      ],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.5.1.2",
+          name: "Band",
+          description: "wlanAPRadioType - the radio's PHY type.",
+          role: SnmpTableColumnRole.Band,
+          valueType: SnmpTableValueType.Text,
+          valueLabels: ARUBA_RADIO_TYPE_LABELS,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.5.1.3",
+          name: "Channel",
+          description: "wlanAPRadioChannel.",
+          role: SnmpTableColumnRole.Channel,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.5.1.4",
+          name: "TX Power",
+          unit: "dBm",
+          description:
+            "wlanAPRadioTransmitPower - reported doubled (38 for 19 dBm) and read as dBm.",
+          role: SnmpTableColumnRole.TxPower,
+          scale: 0.5,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.5.1.6",
+          name: "Utilization",
+          unit: "%",
+          description:
+            "wlanAPRadioUtilization - utilization as a percentage of the radio's capacity.",
+          role: SnmpTableColumnRole.Utilization,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.5.1.7",
+          name: "Clients",
+          description: "wlanAPRadioNumAssociatedClients.",
+          role: SnmpTableColumnRole.Clients,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.5.1.5",
+          name: "Mode",
+          description: "wlanAPRadioMode.",
+          valueLabels: {
+            "1": "air monitor",
+            "2": "access point",
+            "3": "access point and monitor",
+            "4": "mesh portal",
+            "5": "mesh point",
+            "6": "RFprotect sensor",
+            "7": "spectrum sensor",
+          },
+        },
+      ],
+      maxRows: MAX_SNMP_TABLE_MAX_ROWS,
+    },
+    {
+      key: "wifi_ssids",
+      name: "SSIDs",
+      description:
+        "wlsxWlanESSIDTable - one row per SSID, indexed by the SSID itself, with its clients and how many of its access points are up and down.",
+      kind: SnmpTableKind.WifiSsid,
+      rowIndexIsText: true,
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.8.1.2",
+          name: "Clients",
+          description: "wlanESSIDNumStations.",
+          role: SnmpTableColumnRole.Clients,
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.8.1.3",
+          name: "Access Points Up",
+          description: "wlanESSIDNumAccessPointsUp.",
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.5.2.1.8.1.4",
+          name: "Access Points Down",
+          description: "wlanESSIDNumAccessPointsDown.",
+        },
+      ],
+      maxRows: 64,
+    },
+    {
+      key: "cpu_processors",
+      name: "Processors",
+      description: "wlsxSysXProcessorTable - one row per processor.",
+      kind: SnmpTableKind.Hardware,
+      rowLabelColumnOids: ["1.3.6.1.4.1.14823.2.2.1.1.1.9.1.2"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.1.1.9.1.3",
+          name: "Load",
+          unit: "%",
+          description:
+            "sysXProcessorLoad - average over the last minute of the time the processor was not idle.",
+        },
+      ],
+      maxRows: 32,
+    },
+    {
+      key: "memory",
+      name: "Memory",
+      description: "wlsxSysXMemoryTable - the control plane's memory.",
+      kind: SnmpTableKind.Hardware,
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.1.1.11.1.2",
+          name: "Total",
+          unit: "KB",
+          description: "sysXMemorySize.",
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.1.1.11.1.3",
+          name: "Used",
+          unit: "KB",
+          description: "sysXMemoryUsed.",
+        },
+        {
+          oid: "1.3.6.1.4.1.14823.2.2.1.1.1.11.1.4",
+          name: "Free",
+          unit: "KB",
+          description: "sysXMemoryFree.",
+        },
+      ],
+      maxRows: 8,
+    },
+  ],
+};
+
+const EXTREME_IQ_ENGINE_AP: SnmpVendorTemplate = {
+  id: "extreme-iq-engine-ap",
+  label: "Extreme Networks IQ Engine (HiveOS) Access Points",
+  description:
+    "CPU, memory, Wi-Fi clients and temperature, every radio's channel, transmit power and noise floor, and every SSID, from the Aerohive AH-SYSTEM and AH-INTERFACE MIBs that IQ Engine (HiveOS) access points implement. Turn on SNMP in the network policy ExtremeCloud IQ pushes to the access points.",
+  oids: [
+    {
+      oid: "1.3.6.1.4.1.26928.1.2.3.0",
+      name: "CPU %",
+      description: "ahCpuUtilization.",
+    },
+    {
+      oid: "1.3.6.1.4.1.26928.1.2.4.0",
+      name: "Memory %",
+      description: "ahMemUtilization.",
+    },
+    {
+      oid: "1.3.6.1.4.1.26928.1.2.9.0",
+      name: "Wi-Fi Clients",
+      description: "ahClientCount - devices connected to the access point.",
+    },
+    {
+      oid: "1.3.6.1.4.1.26928.1.2.10.0",
+      name: "Temperature (C)",
+      description: "ahEnvirmentTemp.",
+    },
+  ],
+  tables: [
+    {
+      key: "wifi_radios",
+      name: "Wi-Fi Radios",
+      description:
+        "ahRadioAttributeTable - one row per radio, named by its interface (ahIfName). The band follows from the channel.",
+      kind: SnmpTableKind.WifiRadio,
+      rowLabelColumnOids: ["1.3.6.1.4.1.26928.1.1.1.2.1.1.1.1"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.26928.1.1.1.2.1.5.1.1",
+          name: "Channel",
+          description: "ahRadioChannel.",
+          role: SnmpTableColumnRole.Channel,
+        },
+        {
+          oid: "1.3.6.1.4.1.26928.1.1.1.2.1.5.1.2",
+          name: "TX Power",
+          unit: "dBm",
+          description: "ahRadioTxPower.",
+          role: SnmpTableColumnRole.TxPower,
+        },
+        {
+          oid: "1.3.6.1.4.1.26928.1.1.1.2.1.5.1.3",
+          name: "Noise Floor",
+          unit: "dBm",
+          description:
+            "ahRadioNoiseFloor - reported plus 256 (161 for -95 dBm) and read as dBm.",
+          role: SnmpTableColumnRole.NoiseFloor,
+          offset: -256,
+        },
+      ],
+      maxRows: 8,
+    },
+    {
+      key: "wifi_ssids",
+      name: "SSIDs",
+      description:
+        "ahXIfTable - every interface with the SSID it broadcasts; interfaces that broadcast none (N/A) are left out of the Wi-Fi tab.",
+      kind: SnmpTableKind.WifiSsid,
+      rowLabelColumnOids: [
+        "1.3.6.1.4.1.26928.1.1.1.2.1.1.1.2",
+        "1.3.6.1.4.1.26928.1.1.1.2.1.1.1.1",
+      ],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.26928.1.1.1.2.1.1.1.2",
+          name: "SSID",
+          description: "ahSSIDName.",
+          role: SnmpTableColumnRole.Ssid,
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.26928.1.1.1.2.1.1.1.1",
+          name: "Interface",
+          description: "ahIfName - the radio's wifi0 broadcasts on wifi0.1 ...",
+          valueType: SnmpTableValueType.Text,
+        },
+      ],
+      maxRows: 64,
+    },
+  ],
+};
+
+/*
+ * dot11ExtRadioType, the radio's configured 802.11 mode: a, a/n, a/n strict,
+ * j and a/c run on 5 GHz; b, g, b/g, g/n, b/g/n and g/n strict on 2.4 GHz.
+ */
+const EXTREME_RADIO_TYPE_LABELS: Record<string, string> = {
+  "0": "off",
+  "1": "5 GHz",
+  "2": "5 GHz",
+  "3": "5 GHz",
+  "4": "2.4 GHz",
+  "5": "2.4 GHz",
+  "6": "2.4 GHz",
+  "7": "2.4 GHz",
+  "8": "2.4 GHz",
+  "9": "2.4 GHz",
+  "10": "5 GHz",
+  "11": "5 GHz",
+  "12": "5 GHz",
+};
+
+const EXTREME_WIRELESS_CONTROLLER: SnmpVendorTemplate = {
+  id: "extreme-wireless-controller",
+  label: "Extreme Networks Wireless Controller (XIQ-C, ExtremeWireless)",
+  description:
+    "Access point and client counts, every access point it manages (active or not, clients), every radio (band, channel, width, noise floor, busy airtime) named by its access point, and every WLAN with its clients, from the HIPATH-WIRELESS MIBs that ExtremeCloud IQ Controller (formerly Extreme Campus Controller) and ExtremeWireless controllers implement.",
+  oids: [
+    {
+      oid: "1.3.6.1.4.1.4329.15.3.5.1.1.0",
+      name: "Access Points",
+      description: "apCount - access points configured on the controller.",
+    },
+    {
+      oid: "1.3.6.1.4.1.4329.15.3.5.2.1.0",
+      name: "Active Access Points",
+      description: "apActiveCount - access points connected to it now.",
+    },
+    {
+      oid: "1.3.6.1.4.1.4329.15.3.6.1.0",
+      name: "Wi-Fi Clients",
+      description: "mobileUnitCount - clients associated through it.",
+    },
+  ],
+  tables: [
+    {
+      key: "wifi_access_points",
+      name: "Access Points",
+      description:
+        "apTable - one row per configured access point, with its clients from apStatsTable.",
+      kind: SnmpTableKind.WifiAccessPoint,
+      rowLabelColumnOids: ["1.3.6.1.4.1.4329.15.3.5.1.2.1.2"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.5.1.2.1.22",
+          name: "State",
+          description:
+            "apState - active while the access point is connected to this controller.",
+          role: SnmpTableColumnRole.Status,
+          valueLabels: { "1": "active", "2": "inactive" },
+          healthyValues: ["1"],
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.5.2.2.1.14",
+          name: "Clients",
+          description: "apStatsMuCounts.",
+          role: SnmpTableColumnRole.Clients,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.5.1.2.1.14",
+          name: "IP Address",
+          description: "apIPAddress.",
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.5.1.2.1.4",
+          name: "Serial Number",
+          description: "apSerialNumber.",
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.5.1.2.1.7",
+          name: "Software Version",
+          description: "apSoftwareVersion.",
+          valueType: SnmpTableValueType.Text,
+        },
+      ],
+      maxRows: MAX_SNMP_TABLE_MAX_ROWS,
+    },
+    {
+      key: "wifi_radios",
+      name: "Wi-Fi Radios",
+      description:
+        "apRadioStatusTable and dot11ExtRadioStatsTable - one row per radio of every active access point, named by its interface (ifName: the access point's name, the radio and its mode). The controller reports the channel as its frequency in MHz; the channel width as 1, 2 or 4 times 20 MHz.",
+      kind: SnmpTableKind.WifiRadio,
+      rowLabelColumnOids: ["1.3.6.1.2.1.31.1.1.1.1"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.1.4.3.1.1",
+          name: "Band",
+          description: "dot11ExtRadioType - the radio's 802.11 mode.",
+          role: SnmpTableColumnRole.Band,
+          valueType: SnmpTableValueType.Text,
+          valueLabels: EXTREME_RADIO_TYPE_LABELS,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.5.2.4.1.1",
+          name: "Channel",
+          description:
+            "apRadioStatusChannel - the lowest 20 MHz channel in use; 0 when the radio is off.",
+          role: SnmpTableColumnRole.Channel,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.5.2.4.1.2",
+          name: "Channel Width",
+          unit: "MHz",
+          description:
+            "apRadioStatusChannelWidth - 1, 2 or 4 channels of 20 MHz, read as MHz.",
+          role: SnmpTableColumnRole.ChannelWidth,
+          scale: 20,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.1.4.3.1.31",
+          name: "Noise Floor",
+          unit: "dBm",
+          description:
+            "dot11ExtRadioAvgNfCount - average over the last 30 seconds.",
+          role: SnmpTableColumnRole.NoiseFloor,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.1.4.3.1.39",
+          name: "Busy Airtime",
+          unit: "%",
+          description:
+            "dot11ExtRadioAvgBusyChPercentage - the time the channel was busy, averaged over the last 100 seconds.",
+          role: SnmpTableColumnRole.Utilization,
+        },
+      ],
+      maxRows: MAX_SNMP_TABLE_MAX_ROWS,
+    },
+    {
+      key: "wifi_ssids",
+      name: "WLANs",
+      description:
+        "wlanTable and wlanStatsTable - one row per WLAN service, with its SSID and clients.",
+      kind: SnmpTableKind.WifiSsid,
+      rowLabelColumnOids: ["1.3.6.1.4.1.4329.15.3.3.4.4.1.4"],
+      columns: [
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.3.4.4.1.5",
+          name: "SSID",
+          description: "wlanSSID.",
+          role: SnmpTableColumnRole.Ssid,
+          valueType: SnmpTableValueType.Text,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.3.4.5.1.2",
+          name: "Clients",
+          description: "wlanStatsAssociatedClients.",
+          role: SnmpTableColumnRole.Clients,
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.3.4.4.1.7",
+          name: "Enabled",
+          description: "wlanEnabled - TruthValue: 1 = yes, 2 = no.",
+          valueLabels: { "1": "yes", "2": "no" },
+        },
+      ],
+      maxRows: 64,
+    },
+  ],
+};
+
+const TPLINK_OMADA_EAP: SnmpVendorTemplate = {
+  id: "tplink-omada-eap",
+  label: "TP-Link Omada Access Points (EAP)",
+  description:
+    "The number of connected Wi-Fi clients, from TP-Link's EAP-CLIENT-MIB - the one Wi-Fi value Omada access points report over SNMP, and only on firmware that implements that MIB. Their radios, channels and SSIDs are only in the Omada Controller.",
+  oids: [
+    {
+      oid: "1.3.6.1.4.1.11863.10.1.1.1.0",
+      name: "Wi-Fi Clients",
+      description: "clientCount - clients connected to the access point.",
+    },
+  ],
+};
+
 // Generic first (the safe default), then vendors alphabetically.
 export const SnmpVendorTemplates: Array<SnmpVendorTemplate> = [
   HOST_RESOURCES,
@@ -908,14 +1769,20 @@ export const SnmpVendorTemplates: Array<SnmpVendorTemplate> = [
   DELL_FORCE10,
   EXTREME_EXOS,
   EXTREME_FABRIC_ENGINE,
+  EXTREME_IQ_ENGINE_AP,
+  EXTREME_WIRELESS_CONTROLLER,
   FORTINET,
   HPE_PROCURVE,
+  ARUBA_INSTANT,
+  ARUBA_MOBILITY_CONTROLLER,
   HUAWEI,
   JUNIPER,
   MIKROTIK,
   PALO_ALTO,
   SOPHOS_SFOS,
+  TPLINK_OMADA_EAP,
   UBIQUITI,
+  UBIQUITI_UNIFI_AP,
 ];
 
 /*
@@ -965,6 +1832,8 @@ const ENTERPRISE_VENDOR_NAMES: Record<number, string> = {
   25461: "Palo Alto Networks",
   25506: "H3C",
   26543: "Yamaha",
+  // Aerohive's arc, which Extreme's IQ Engine (HiveOS) access points report.
+  26928: "Extreme Networks",
   30065: "Arista",
   35098: "PICA8",
   41112: "Ubiquiti",
@@ -977,7 +1846,31 @@ interface DeviceTemplateRule {
   // A sysObjectID arc the device's sysObjectID must equal or sit under.
   sysObjectIdPrefix?: string | undefined;
   sysDescrPattern?: RegExp | undefined;
+  /*
+   * Who makes a device this rule matches, when its enterprise number says
+   * something else (or nothing): older UniFi firmware answers with
+   * Net-SNMP's arc, Extreme's wireless controllers with Siemens'.
+   */
+  vendorName?: string | undefined;
 }
+
+/*
+ * A UniFi access point's sysDescr: its model, then its firmware version -
+ * "UAP-nanoHD 5.60.3.12934", "U6-Pro 6.5.28.14491", "UK-Ultra 6.6.77.15402",
+ * "U-LTE-Pro-EU 6.6.57.15206", "E7 *14". The version is required, so a host
+ * whose description merely starts with "UK" is not taken for one.
+ */
+const UNIFI_ACCESS_POINT_SYS_DESCR: RegExp =
+  /^(?:UAP|U6|U7|UK|U-LTE|E7)[A-Za-z0-9+-]* +[\d*]/;
+
+/*
+ * An IQ Engine (HiveOS) access point's sysDescr: "AP230, HiveOS 8.1r2a
+ * build-178408", "HiveAP330, HiveOS 6.5r7 ...", "AP4000, IQ Engine 10.6r7".
+ * Aerohive's switches share the arc and the OS name ("SR2024P, HiveOS ..."),
+ * and have no radios.
+ */
+const HIVEOS_ACCESS_POINT_SYS_DESCR: RegExp =
+  /^(?:Hive)?AP[\w-]*, (?:HiveOS|IQ Engine)\b/;
 
 /*
  * Platforms an enterprise number alone cannot tell apart. Checked before the
@@ -996,6 +1889,49 @@ const DEVICE_TEMPLATE_RULES: Array<DeviceTemplateRule> = [
   {
     templateId: "cambium-cnmatrix",
     sysObjectIdPrefix: "1.3.6.1.4.1.17713.24",
+  },
+  /*
+   * UniFi access points report Ubiquiti's bare arc (1.3.6.1.4.1.41112) on
+   * current firmware and Net-SNMP's Linux arc (1.3.6.1.4.1.8072.3.2.10) on
+   * older; only the sysDescr says it is an access point rather than an
+   * EdgeRouter, or any other Linux host.
+   */
+  {
+    templateId: "ubiquiti-unifi-ap",
+    enterprise: 41112,
+    sysDescrPattern: UNIFI_ACCESS_POINT_SYS_DESCR,
+  },
+  {
+    templateId: "ubiquiti-unifi-ap",
+    enterprise: 8072,
+    sysDescrPattern: UNIFI_ACCESS_POINT_SYS_DESCR,
+    vendorName: "Ubiquiti",
+  },
+  // Aruba's apProducts arc: Instant access points (their virtual controller answers).
+  {
+    templateId: "aruba-instant",
+    sysObjectIdPrefix: "1.3.6.1.4.1.14823.1.2",
+  },
+  // Aruba's switchProducts arc: Mobility Controllers, Conductors and gateways.
+  {
+    templateId: "aruba-mobility-controller",
+    sysObjectIdPrefix: "1.3.6.1.4.1.14823.1.1",
+  },
+  {
+    templateId: "extreme-iq-engine-ap",
+    enterprise: 26928,
+    sysDescrPattern: HIVEOS_ACCESS_POINT_SYS_DESCR,
+  },
+  /*
+   * HIPATH-WIRELESS-PRODUCTS: the wireless controllers Extreme took over
+   * from Enterasys, still under Siemens' enterprise number - ExtremeCloud
+   * IQ Controller ("Extreme Networks Wireless Controller - V2110 ...") and
+   * ExtremeWireless.
+   */
+  {
+    templateId: "extreme-wireless-controller",
+    sysObjectIdPrefix: "1.3.6.1.4.1.4329.15",
+    vendorName: "Extreme Networks",
   },
 ];
 
@@ -1026,6 +1962,7 @@ const ENTERPRISE_TEMPLATE_IDS: Record<number, string> = {
   14988: "mikrotik-routeros",
   25461: "paloalto-panos",
   30065: "arista-eos",
+  // Routers and switches; UniFi access points are told apart by sysDescr.
   41112: "ubiquiti-edgeos",
 };
 
@@ -1082,6 +2019,24 @@ export default class SnmpVendorTemplateUtil {
   }
 
   /*
+   * Who makes a device, from its sysObjectID and sysDescr: the vendor a
+   * device rule names when one matches (a UniFi access point answering
+   * with Net-SNMP's arc is Ubiquiti's), otherwise the enterprise number's.
+   */
+  public static getVendorName(data: {
+    sysObjectId?: string | undefined;
+    sysDescr?: string | undefined;
+  }): string | undefined {
+    const rule: DeviceTemplateRule | undefined =
+      SnmpVendorTemplateUtil.findDeviceRule(data);
+
+    return (
+      rule?.vendorName ||
+      SnmpVendorTemplateUtil.getVendorNameBySysObjectId(data.sysObjectId)
+    );
+  }
+
+  /*
    * Suggests the vendor OID template matching a device's sysObjectID.
    * Returns undefined when no vendor-specific template exists — callers can
    * fall back to the generic Host Resources template, which most
@@ -1112,6 +2067,33 @@ export default class SnmpVendorTemplateUtil {
     sysObjectId?: string | undefined;
     sysDescr?: string | undefined;
   }): SnmpVendorTemplate | undefined {
+    const enterpriseNumber: number | undefined =
+      SnmpVendorTemplateUtil.getEnterpriseNumber(
+        SnmpOidListUtil.normalizeOid(data.sysObjectId),
+      );
+
+    if (enterpriseNumber === undefined) {
+      return undefined;
+    }
+
+    const rule: DeviceTemplateRule | undefined =
+      SnmpVendorTemplateUtil.findDeviceRule(data);
+
+    if (rule) {
+      return SnmpVendorTemplateUtil.getById(rule.templateId);
+    }
+
+    const templateId: string | undefined =
+      ENTERPRISE_TEMPLATE_IDS[enterpriseNumber];
+
+    return templateId ? SnmpVendorTemplateUtil.getById(templateId) : undefined;
+  }
+
+  // The first device rule a device matches; the rules are ordered most specific first.
+  private static findDeviceRule(data: {
+    sysObjectId?: string | undefined;
+    sysDescr?: string | undefined;
+  }): DeviceTemplateRule | undefined {
     const sysObjectId: string = SnmpOidListUtil.normalizeOid(data.sysObjectId);
     const sysDescr: string = data.sysDescr || "";
 
@@ -1122,12 +2104,12 @@ export default class SnmpVendorTemplateUtil {
       return undefined;
     }
 
-    for (const rule of DEVICE_TEMPLATE_RULES) {
+    return DEVICE_TEMPLATE_RULES.find((rule: DeviceTemplateRule): boolean => {
       if (
         rule.enterprise !== undefined &&
         rule.enterprise !== enterpriseNumber
       ) {
-        continue;
+        return false;
       }
 
       if (
@@ -1135,20 +2117,11 @@ export default class SnmpVendorTemplateUtil {
         sysObjectId !== rule.sysObjectIdPrefix &&
         !sysObjectId.startsWith(`${rule.sysObjectIdPrefix}.`)
       ) {
-        continue;
+        return false;
       }
 
-      if (rule.sysDescrPattern && !rule.sysDescrPattern.test(sysDescr)) {
-        continue;
-      }
-
-      return SnmpVendorTemplateUtil.getById(rule.templateId);
-    }
-
-    const templateId: string | undefined =
-      ENTERPRISE_TEMPLATE_IDS[enterpriseNumber];
-
-    return templateId ? SnmpVendorTemplateUtil.getById(templateId) : undefined;
+      return !rule.sysDescrPattern || rule.sysDescrPattern.test(sysDescr);
+    });
   }
 
   /*

@@ -178,6 +178,17 @@ const PRODUCT_RULES: ReadonlyArray<RoleRule> = [
     pattern:
       /\b(?:unifi ap|uap[- ]|u6-|nanostation|instant ap|iap\b|aruba ap|ap-\d{3}|fortiap|omada|eap\d{3}|cw9\d{3})/,
   },
+  /*
+   * UniFi access points by model ("U6+ 6.6.55", "U7-Pro 7.0.83",
+   * "UK-Ultra 6.6.77"), and IQ Engine (HiveOS) access points by the way
+   * they describe themselves ("AP230, HiveOS 8.1r2a", "AP4000, IQ Engine
+   * 10.6r7") - Aerohive's switches say "SR2024P, HiveOS" and stay switches.
+   */
+  {
+    role: "wirelessAccessPoint",
+    pattern: /\b(?:u6\+|u7-|uk-ultra|(?:hive)?ap[\w-]*, (?:hiveos|iq engine))/,
+  },
+  { role: "wirelessAccessPoint", pattern: /\be7\b/, vendor: /ubiquiti/ },
   {
     role: "wirelessAccessPoint",
     pattern: /\bmr\d{2,3}/,
@@ -317,8 +328,14 @@ const SYS_OBJECT_ID_RULES: ReadonlyArray<{
   { prefix: "1.3.6.1.4.1.22610", role: "loadBalancer" }, // A10
   // Storage.
   { prefix: "1.3.6.1.4.1.789", role: "storage" }, // NetApp
-  // Wireless. Cambium's arc is product-specific, so only the AP arc is named.
+  /*
+   * Wireless. Cambium's and Aruba's arcs are product-specific, so only their
+   * access point arcs are named; Extreme's HiPath arc holds only its wireless
+   * controllers, which count as wireless here as Cisco's WLCs do.
+   */
   { prefix: "1.3.6.1.4.1.17713.22", role: "wirelessAccessPoint" }, // Cambium Enterprise Wi-Fi
+  { prefix: "1.3.6.1.4.1.14823.1.2", role: "wirelessAccessPoint" }, // Aruba access points (apProducts)
+  { prefix: "1.3.6.1.4.1.4329.15", role: "wirelessAccessPoint" }, // Extreme wireless controllers (HiPath)
   // Switching / routing houses.
   { prefix: "1.3.6.1.4.1.30065", role: "switch" }, // Arista
   { prefix: "1.3.6.1.4.1.6027", role: "switch" }, // Force10 / Dell
