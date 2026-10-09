@@ -476,7 +476,7 @@ describe("grading an investigation against the recorded root cause", () => {
     jest
       .spyOn(PostedRootCause, "getForInvestigation")
       .mockResolvedValue("**Summary** The CDN purge failed.");
-    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue();
+    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1);
 
     const execute: jest.SpyInstance = jest
       .spyOn(AIService, "executeWithLogging")
