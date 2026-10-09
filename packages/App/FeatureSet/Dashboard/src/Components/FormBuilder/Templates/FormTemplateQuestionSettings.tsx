@@ -104,6 +104,7 @@ const FormTemplateQuestionSettings: FunctionComponent<ComponentProps> = (
               </div>
               <div className="w-full shrink-0 sm:w-64">
                 <Dropdown
+                  className="relative w-full overflow-visible rounded-md"
                   options={options}
                   value={options.find((option: DropdownOption): boolean => {
                     return option.value === chosen;
