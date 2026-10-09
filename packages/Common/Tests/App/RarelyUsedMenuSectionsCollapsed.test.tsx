@@ -552,7 +552,8 @@ describe("every side menu folds its rarely used sections away", () => {
  * The menu in the maintainer's screenshot: Overview and Episodes open, and
  * AI, Workspace, Rules and Settings folded down to their titles (the AI
  * section, gone for a while, is back with the AI settings and the
- * auto-remediation rules in it). Developer, added since, folds too.
+ * auto-remediation rules in it). Developer, added since, folds too, and so
+ * does Integrations (Huntress), set up once and rarely revisited.
  */
 describe("the Incidents menu, as the maintainer drew it", () => {
   const INCIDENTS_MENU: string = "Dashboard/src/Pages/Incidents/SideMenu.tsx";
@@ -586,6 +587,7 @@ describe("the Incidents menu, as the maintainer drew it", () => {
       { title: "Episodes", expanded: true },
       { title: "AI", expanded: false },
       { title: "Workspace", expanded: false },
+      { title: "Integrations", expanded: false },
       { title: "Rules", expanded: false },
       { title: "Settings", expanded: false },
       { title: "Developer", expanded: false },

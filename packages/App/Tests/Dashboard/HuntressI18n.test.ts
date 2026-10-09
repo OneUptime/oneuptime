@@ -122,6 +122,7 @@ const STRINGS: Array<string> = [
   "Also potentially unwanted programs and older findings.",
   "Opening the incident",
   "Incident opened",
+  "Incident resolved",
   "Skipped: organization not watched",
   "Skipped: already closed in Huntress",
   "Most severe (by rank)",
