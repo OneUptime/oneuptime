@@ -234,6 +234,7 @@
     "IRC": "IRC",
     "Custom Probes": "Aangepaste probes",
     "Incoming Request Ingress": "Ingress voor inkomende verzoeken",
+    "Packet Capture": "Pakketcapture",
     "OpenTelemetry": "OpenTelemetry",
     "Serilog (.NET)": "Serilog (.NET)",
     "FluentBit": "FluentBit",

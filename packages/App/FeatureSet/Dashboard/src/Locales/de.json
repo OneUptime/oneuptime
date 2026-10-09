@@ -23065,7 +23065,7 @@
   "Standard measures of how fast and stable your pages feel to real visitors. Each value is an average over the selected range; Google's own report uses the 75th percentile, so its rating can differ.": "Standard measures of how fast and stable your pages feel to real visitors. Each value is an average over the selected range; Google's own report uses the 75th percentile, so its rating can differ.",
   "Start time not set": "Start time not set",
   "Started {{started}} → Responded {{responded}}": "Started {{started}} → Responded {{responded}}",
-  "Started {{time}}": "Started {{time}}",
+  "Started {{time}}": "Gestartet {{time}}",
   "Starts {{date}}": "Starts {{date}}",
   "Starts {{time}}": "Starts {{time}}",
   "Stopped after {{duration}}": "Stopped after {{duration}}",

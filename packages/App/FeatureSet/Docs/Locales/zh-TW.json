@@ -234,6 +234,7 @@
     "IRC": "IRC",
     "Custom Probes": "自訂探針",
     "Incoming Request Ingress": "傳入請求 Ingress",
+    "Packet Capture": "封包擷取",
     "OpenTelemetry": "OpenTelemetry",
     "Serilog (.NET)": "Serilog (.NET)",
     "FluentBit": "FluentBit",

@@ -362,6 +362,10 @@ const DocsNav: NavGroup[] = [
         title: "Incoming Request Ingress",
         url: "/docs/probe/incoming-request-ingress",
       },
+      {
+        title: "Packet Capture",
+        url: "/docs/probe/packet-capture",
+      },
     ],
   },
   {

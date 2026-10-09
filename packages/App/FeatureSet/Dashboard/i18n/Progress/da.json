@@ -8,6 +8,7 @@
     "CloudWatch Metric Streams",
     "Filter:",
     "Filter: {{expression}}",
+    "Interface",
     "Offline",
     "Revision",
     "Runbook: {{name}}",
