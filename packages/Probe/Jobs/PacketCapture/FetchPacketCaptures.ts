@@ -187,7 +187,10 @@ export async function reportPacketCapture(
         headers: {},
         options: {
           ...ProbeAPIRequest.getDefaultRequestOptions(url, {
-            timeout: Math.max(PROBE_API_REQUEST_TIMEOUT_IN_MS, UPLOAD_TIMEOUT_IN_MS),
+            timeout: Math.max(
+              PROBE_API_REQUEST_TIMEOUT_IN_MS,
+              UPLOAD_TIMEOUT_IN_MS,
+            ),
           }),
           // A capture file is far larger than any other probe request.
           maxBodyLength: Infinity,
@@ -334,7 +337,9 @@ export async function fetchAndRunPacketCaptures(
     const capture: RunningCapture | undefined = runningCaptures.get(id);
 
     if (capture && !capture.controller.signal.aborted) {
-      logger.info(`Stopping packet capture ${id}, as OneUptime asked.`);
+      logger.info(
+        `Stopping packet capture ${id}: it was stopped, deleted or failed on the server.`,
+      );
       capture.controller.abort();
     }
   }

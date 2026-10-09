@@ -10,6 +10,7 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PcapFile, { PcapInspection } from "../Utils/PacketCapture/PcapFile";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import File from "../../Models/DatabaseModels/File";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
@@ -91,6 +92,10 @@ export const NO_INTERFACES_MESSAGE: string =
 
 export const PICKUP_TIMEOUT_MESSAGE: string = `The probe did not pick up this capture within ${PACKET_CAPTURE_PICKUP_TIMEOUT_IN_MINUTES} minutes. Check that the probe is connected and that packet capture is still turned on.`;
 
+/*
+ * Names the product, so the sweep writes it through ProductBrandingText:
+ * an installation with its own name reads that name in the capture's reason.
+ */
 export const HEARTBEAT_TIMEOUT_MESSAGE: string =
   "The probe stopped reporting on this capture. It may have restarted or lost its connection to OneUptime.";
 
@@ -1075,7 +1080,7 @@ export class Service extends ProjectReferencesService<Model> {
           `,
           [
             PacketCaptureStatus.Failed,
-            HEARTBEAT_TIMEOUT_MESSAGE,
+            ProductBrandingText.brandText(HEARTBEAT_TIMEOUT_MESSAGE),
             PacketCaptureStatus.Running,
             heartbeatDeadline,
           ],

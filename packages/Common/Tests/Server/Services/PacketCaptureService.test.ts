@@ -50,6 +50,10 @@ import PacketCaptureStatus from "../../../Types/PacketCapture/PacketCaptureStatu
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
+import {
   makePcap,
   makePcapHeader,
   makePcapRecord,
@@ -1624,6 +1628,30 @@ describe("failStaleCaptures", () => {
       "The probe did not pick up this capture within 5 minutes. Check that the probe is connected and that packet capture is still turned on.",
     );
     expect(HEARTBEAT_TIMEOUT_MESSAGE).toContain("restarted");
+  });
+
+  test("an installation with its own name reads that name in the reason that names the product", async () => {
+    installFakeEnterpriseModule({ productBranding: { productName: "Acme" } });
+
+    try {
+      const { service } = buildService();
+      const statements: Array<RecordedStatement> = stubTransaction(service, [
+        [[], 0],
+        [[], 0],
+        [[{ _id: CAPTURE_ID.toString() }], 1],
+      ]);
+
+      await service.failStaleCaptures();
+
+      expect(statements[2]!.params[1]).toBe(
+        "The probe stopped reporting on this capture. It may have restarted or lost its connection to Acme.",
+      );
+      // The other two never name the product.
+      expect(statements[0]!.params[1]).toBe(PICKUP_TIMEOUT_MESSAGE);
+      expect(statements[1]!.params[1]).toBe(UPLOAD_TIMEOUT_MESSAGE);
+    } finally {
+      uninstallEnterpriseModule();
+    }
   });
 });
 
