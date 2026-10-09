@@ -158,11 +158,13 @@ function makeRequest(data: {
   return req as unknown as ExpressRequest;
 }
 
+type NextSpy = ReturnType<typeof jest.fn>;
+
 async function call(
   uri: string,
   req: ExpressRequest,
-): Promise<{ next: jest.Mock }> {
-  const next: jest.Mock = jest.fn();
+): Promise<{ next: NextSpy }> {
+  const next: NextSpy = jest.fn();
 
   await mockRouter
     .match("post", uri)
