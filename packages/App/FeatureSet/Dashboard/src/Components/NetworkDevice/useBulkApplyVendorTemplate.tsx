@@ -28,6 +28,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import BulkDeviceReader from "./BulkDeviceReader";
+import { APPLY_VENDOR_TEMPLATE_ACTION_TITLE } from "./BulkDeviceActionTitles";
 import { gateDeviceBulkAction } from "./BulkDeviceActionGate";
 import {
   MATCH_EACH_DEVICE_VALUE,
@@ -73,9 +74,8 @@ export interface BulkApplyVendorTemplateResult {
   modals: ReactElement;
 }
 
-export const APPLY_VENDOR_TEMPLATE_ACTION_TITLE: string = translationKey(
-  "Apply Vendor Template",
-);
+// Re-exported: the name lives in a React-free module the docs test reads.
+export { APPLY_VENDOR_TEMPLATE_ACTION_TITLE };
 
 // Health-OID writes are independent of each other; see the note above.
 export const APPLY_VENDOR_TEMPLATE_CONCURRENCY: number = 4;

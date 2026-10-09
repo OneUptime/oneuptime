@@ -99,6 +99,7 @@ import ObjectID from "Common/Types/ObjectID";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
+import { IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE } from "../../Components/NetworkDevice/BulkDeviceActionTitles";
 import {
   DiscoveryScanOutcome,
   getDiscoveredHosts,
@@ -2385,17 +2386,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
               <div className="mt-4 border-t border-gray-100 pt-4">
                 <Toggle
                   title={translator.translatePlural(
-                    {
-                      one: "Apply each SNMP host's vendor template on its first poll (recommended) — {{count}} host",
-                      other:
-                        "Apply each SNMP host's vendor template on its first poll (recommended) — {{count}} hosts",
-                    },
+                    IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE,
                     importableSnmpHostCount,
                     {
                       count: importableSnmpHostCount.toLocaleString("en-US"),
                     },
                   )}
-                  description="Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template starts without, and anything applied can be changed on the device's Settings."
+                  description="Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings."
                   initialValue={applyVendorTemplates}
                   value={applyVendorTemplates}
                   dataTestId="discovered-device-apply-vendor-templates"

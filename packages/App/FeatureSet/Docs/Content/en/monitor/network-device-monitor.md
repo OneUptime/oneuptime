@@ -104,6 +104,24 @@ For SNMPv3, the security level decides which of the remaining fields are asked f
 
 Credentials on a **credential profile** are encrypted at rest and readable only by the roles that may read a device's credentials. Credentials typed onto a device itself are guarded by the same read permissions, but are stored as ordinary columns rather than encrypted — one more reason to keep shared credentials on a profile.
 
+## Changing Many Devices at Once
+
+A discovery scan of a customer's network brings in dozens of devices that all belong in one site, share one role and come from one vendor. You do not open each of them: select them on the **Devices** list — tick the rows, or **Select All** to take every device the filters match — and open **Bulk Actions**.
+
+| Action | What it does |
+| ------ | ------------ |
+| **Set Site** / **Clear Site** | Moves every selected device into the site you pick, where it counts toward the site's health; a device without a probe of its own picks up the [site's default probe](#site-monitoring-defaults). **Clear Site** takes them out of their sites. A device a site assignment rule matches goes back to that rule's site on its next poll, so for devices discovery keeps finding, add a rule under **Network** -> **Rules** -> **Site Assignment Rules** instead — the **Set Site** dialog links to it. |
+| **Set Device Role** / **Clear Device Role** | Gives every selected device one role — the twenty switches that are all "Access Switch". Roles are the project's own, under **Network** -> **Settings** -> **Device Roles**, which the dialog links to. **Clear Device Role** has each device's role worked out from its SNMP identity again. |
+| **Apply Vendor Template** | Adds a [vendor template](#vendor-health-templates)'s health OIDs and SNMP tables to every selected device. **Match each device's vendor (recommended)** picks each device's own template from what its SNMP walk reports, so a mixed selection gets the right one everywhere; or pick one template for all of them. |
+
+Each action is one dialog and one save for the whole selection, and every device goes through the same checks as an edit on its own Settings page: permissions, the label and owner scope of your role, and the limits on what a device may collect.
+
+**Apply Vendor Template** shows what it will do before it does anything: how many devices get which template, and how many it leaves alone and why. It adds to what each device already collects and removes nothing; a device that already has everything in the template is not written again. It leaves alone a device that is monitor-backed (nothing polls it, so it would collect nothing), one linked to an [OID Collection Template](#oid-collection-templates) (the template decides what it collects — add the vendor's OIDs there instead), and, when matching, one that has not been walked over SNMP yet or whose vendor has no template.
+
+When an action finishes, it lists how many devices changed, which failed and why — a device your role may not edit, a list over its limit — and which it **did not change** and why: a device already in that site or role, or one the vendor template leaves alone.
+
+The other bulk actions are described where they belong: **Set OID Collection Template** under [OID Collection Templates](#oid-collection-templates), **Set SNMP Credential Profile** and **Switch to Probe Polling** under [In bulk](#in-bulk), and **Shorten Names to Hostname** under [How discovered devices are named](#how-discovered-devices-are-named).
+
 ## What a Poll Actually Does
 
 Every poll of a probe-polled device is a **ping**. When the device has usable SNMP credentials, the probe also runs a **full SNMP walk** — the two run in parallel, and the walk is never gated on the ping answering, so SNMP gear behind an ICMP-filtering ACL still reports Up.
@@ -259,7 +277,9 @@ In the **Health OIDs** editor, the **Vendor Health Template** dropdown applies a
 | Extreme Networks Fabric Engine / VOSS                                                                                                                                           | vIST session, I-SID count                                                          | Fabric (IS-IS) adjacencies named by neighbour, CPU and memory per slot, temperature sensors, fans, power supplies |
 | Sophos Firewall (SFOS / XGS)                                                                                                                                                    | Memory, disk, swap, HA state and peer state, IPsec service, CPU temperature (v22+) | IPsec tunnels (status needs SFOS v20+), CPU cores                                                                 |
 
-The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template. Matching uses the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. Devices with **Auto-Apply Vendor Health Template** on get the template's OIDs **and** tables on their first poll.
+The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template. Matching uses the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. Devices with **Auto-Apply Vendor Health Template** on get the template's OIDs **and** tables on their first poll: devices an auto import rule brings in, and devices imported from **Review Results** with its vendor template switch on, which it is unless you turn it off.
+
+To give many devices their template at once — a whole discovered fleet that predates the switch, say — select them on the **Devices** list and use **Apply Vendor Template** (see [Changing Many Devices at Once](#changing-many-devices-at-once)).
 
 This is a one-shot copy and it forgets where it came from — editing nothing propagates afterwards. For anything beyond a single device, use an **OID Collection Template** below instead; the vendor profiles are offered as a starting point when you create one.
 
@@ -541,6 +561,8 @@ Octet ranges exist for networks that are not shaped like CIDR blocks. `10.16-22.
 - **Hosts that answered ping but no SNMP** — every host a [ping-only scan](#ping-only-scans) finds, and the ICMP-alive hosts an SNMP scan could not identify — import with no credentials. The probe pings them on their schedule; add SNMP credentials (or a credential profile on the device or its site) later and the same probe starts walking them as well.
 
 Devices that are already registered are flagged and skipped. Bind a [Ping](/docs/monitor/ping-monitor) or [IP](/docs/monitor/ip-monitor) monitor to an imported device only if you want that monitor's incidents — an [alert policy](#alert-policies) is usually the better answer at fleet scale.
+
+**Vendor templates on import.** When a scan found SNMP hosts, **Review Results** offers **Apply each SNMP host's vendor template on its first poll (recommended)**, on by default: each imported SNMP device gets the [vendor template](#vendor-health-templates) for what its first walk reports — its health OIDs and SNMP tables — as devices an auto import rule brings in do. A device whose vendor has no template is left as it is. Turn the switch off for a batch that should start without.
 
 ### How discovered devices are named
 

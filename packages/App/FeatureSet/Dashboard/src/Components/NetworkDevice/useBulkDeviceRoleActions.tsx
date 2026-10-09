@@ -12,6 +12,10 @@ import {
 import useBulkDeviceRelationActions, {
   BulkDeviceRelationActionsResult,
 } from "./useBulkDeviceRelationActions";
+import {
+  CLEAR_DEVICE_ROLE_ACTION_TITLE,
+  SET_DEVICE_ROLE_ACTION_TITLE,
+} from "./BulkDeviceActionTitles";
 
 /*
  * "Set Device Role" / "Clear Device Role" on Network -> Devices.
@@ -27,11 +31,8 @@ import useBulkDeviceRelationActions, {
  * there is an identity to read.
  */
 
-export const SET_DEVICE_ROLE_ACTION_TITLE: string =
-  translationKey("Set Device Role");
-
-export const CLEAR_DEVICE_ROLE_ACTION_TITLE: string =
-  translationKey("Clear Device Role");
+// Re-exported: the names live in a React-free module the docs test reads.
+export { CLEAR_DEVICE_ROLE_ACTION_TITLE, SET_DEVICE_ROLE_ACTION_TITLE };
 
 export const SET_DEVICE_ROLE_DESCRIPTION: string = translationKey(
   "What the selected devices do on the network. It decides how the map draws them, where they sit in its hierarchy, and which alert policies scoped to a role cover them.",

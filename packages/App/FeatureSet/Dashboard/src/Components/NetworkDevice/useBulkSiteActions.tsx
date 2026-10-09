@@ -17,6 +17,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useBulkDeviceRelationActions, {
   BulkDeviceRelationActionsResult,
 } from "./useBulkDeviceRelationActions";
+import {
+  CLEAR_SITE_ACTION_TITLE,
+  SET_SITE_ACTION_TITLE,
+} from "./BulkDeviceActionTitles";
 
 /*
  * "Set Site" / "Clear Site" on Network -> Devices.
@@ -32,9 +36,8 @@ import useBulkDeviceRelationActions, {
  * so the next scan of that customer needs no bulk edit at all.
  */
 
-export const SET_SITE_ACTION_TITLE: string = translationKey("Set Site");
-
-export const CLEAR_SITE_ACTION_TITLE: string = translationKey("Clear Site");
+// Re-exported: the names live in a React-free module the docs test reads.
+export { CLEAR_SITE_ACTION_TITLE, SET_SITE_ACTION_TITLE };
 
 export const SET_SITE_DESCRIPTION: string = translationKey(
   "Every selected device moves into the site you pick and counts toward its health. A device without a probe of its own picks up the site's default probe.",
