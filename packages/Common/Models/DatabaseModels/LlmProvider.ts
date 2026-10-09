@@ -17,21 +17,40 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  VirtualColumn,
+} from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import LlmType from "../../Types/LLM/LlmType";
 import { JSONObject } from "../../Types/JSON";
 
 /*
  * Who reads what a provider sends to the provider besides its address and
- * model: the API key and the Additional Parameters. Project owners and
- * admins alone; everyone else who reads the provider sees whether
- * parameters are saved (hasAdditionalParams), never what they are.
+ * model - the API key and the Additional Parameters - and who changes where
+ * they are sent, its Base URL. Project owners and admins alone; everyone
+ * else who reads the provider sees whether parameters are saved
+ * (hasAdditionalParams), never what they are.
  */
 const SECRET_READERS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
 ];
+
+/*
+ * Whether a provider has Additional Parameters, as a Postgres expression over
+ * the row aliased `tableAlias` (already quoted): anything saved but nothing,
+ * JSON null or an empty object, list or text. The hasAdditionalParams
+ * virtual column reads it; the one definition of the rule.
+ */
+export const getHasAdditionalParamsSql: (tableAlias: string) => string = (
+  tableAlias: string,
+): string => {
+  return `COALESCE(${tableAlias}."additionalParams" NOT IN ('null'::jsonb, '{}'::jsonb, '[]'::jsonb, '""'::jsonb), false)`;
+};
 
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -348,21 +367,19 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadProjectLlm,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditProjectLlm,
-    ],
+    /*
+     * The API key and the Additional Parameters go to this address with
+     * every request, so it is changed by who may read them (SECRET_READERS).
+     * A provider's creator gives it with the provider's own key.
+     */
+    update: SECRET_READERS,
   })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortURL,
     title: "Base URL",
     description:
-      "The base URL for the LLM API. Required for Azure OpenAI and Ollama, optional for others. Everyone who may read the project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
+      "The base URL for the LLM API. Required for Azure OpenAI and Ollama, optional for others. The API key and the Additional Parameters are sent to it, so only project owners and admins can change it. Everyone who may read the project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
   })
   @Column({
     nullable: true,
@@ -410,9 +427,10 @@ export default class LlmProvider extends BaseModel {
 
   /*
    * Whether Additional Parameters are saved, for the members who read the
-   * provider but not its parameters. OneUptime writes it from the
-   * parameters themselves on every create and every update that writes
-   * them (LlmProviderService); no caller does.
+   * provider but not its parameters: anything but nothing, JSON null or an
+   * empty object, list or text. Postgres works it out from the parameters on
+   * every read that selects it. It is never stored, so nothing can write it
+   * and it cannot disagree with them.
    */
   @ColumnAccessControl({
     create: [],
@@ -429,20 +447,18 @@ export default class LlmProvider extends BaseModel {
     update: [],
   })
   @TableColumn({
-    isDefaultValueColumn: true,
     computed: true,
-    required: true,
+    required: false,
     type: TableColumnType.Boolean,
     title: "Has Additional Parameters",
     description:
-      "Whether Additional Parameters are saved. OneUptime sets it from the parameters themselves.",
-    defaultValue: false,
+      "Whether Additional Parameters are saved. Worked out from the parameters on every read.",
   })
-  @Column({
+  @VirtualColumn({
     type: ColumnType.Boolean,
-    nullable: false,
-    unique: false,
-    default: false,
+    query: (alias: string): string => {
+      return getHasAdditionalParamsSql(alias);
+    },
   })
   public hasAdditionalParams?: boolean = undefined;
 

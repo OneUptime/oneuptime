@@ -15,6 +15,9 @@ import ProbeService from "../../../Services/ProbeService";
 import WorkflowLogService from "../../../Services/WorkflowLogService";
 import WorkflowService from "../../../Services/WorkflowService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import Select from "../../../Types/Database/Select";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
@@ -49,6 +52,85 @@ const resolveProbeReadPermissions: () => Array<Permission> =
     }
     return cachedProbeReadPermissions;
   };
+
+/*
+ * Of a probe, what a probe picker shows - and what whoever may pick one reads
+ * (Probe's picker readers, who may read, create or edit monitors among them).
+ * The global probes are read with exactly this, as OneUptime, the way the
+ * /probe/global-probes route serves them: never a probe's key or version.
+ */
+export const PROBE_PICKER_SELECT: Select<Probe> = {
+  _id: true,
+  name: true,
+  description: true,
+  lastAlive: true,
+  connectionStatus: true,
+};
+
+// And with the version, for the probe's own readers.
+export const PROBE_READER_SELECT: Select<Probe> = {
+  ...PROBE_PICKER_SELECT,
+  probeVersion: true,
+};
+
+/*
+ * This project's custom probes, read as the caller: with their version for
+ * the probe's readers, without it for whoever may only pick a probe, and none
+ * at all for a caller refused both - who still gets the global probes, which
+ * run most monitors.
+ */
+async function readProjectProbes(data: {
+  limit: number;
+  props: DatabaseCommonInteractionProps;
+}): Promise<Array<Probe>> {
+  for (const select of [PROBE_READER_SELECT, PROBE_PICKER_SELECT]) {
+    try {
+      return await ProbeService.findBy({
+        query: {},
+        select: select,
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        limit: data.limit,
+        skip: 0,
+        props: data.props,
+      });
+    } catch (err) {
+      if (!(err instanceof NotAuthorizedException)) {
+        throw err;
+      }
+    }
+  }
+
+  return [];
+}
+
+/*
+ * How many of this project's monitors a probe serves, counted as the caller -
+ * or null for a caller who may not read a monitor's probes, whose answer then
+ * leaves the count out rather than failing.
+ */
+async function countMonitorsServed(data: {
+  probeId: ObjectID;
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}): Promise<PositiveNumber | null> {
+  try {
+    return await MonitorProbeService.countBy({
+      query: {
+        probeId: data.probeId,
+        projectId: data.projectId,
+      },
+      props: data.props,
+    });
+  } catch (err) {
+    if (err instanceof NotAuthorizedException) {
+      return null;
+    }
+
+    throw err;
+  }
+}
 
 // Run outcomes that count as a failure when summarizing recent workflow runs.
 const RUN_FAILURE_STATUSES: Set<WorkflowStatus> = new Set<WorkflowStatus>([
@@ -509,39 +591,9 @@ export const QueryProbesTool: ObservabilityTool = {
     const includeGlobalProbes: boolean =
       ToolArgs.getBoolean(args, "includeGlobalProbes") ?? true;
 
-    /*
-     * Never select `key` here: it is the probe's auth secret (read-restricted
-     * to project owners/admins), and the global fetch below runs as root.
-     */
-    const globalProbeSelect: {
-      _id: boolean;
-      name: boolean;
-      description: boolean;
-      lastAlive: boolean;
-      connectionStatus: boolean;
-    } = {
-      _id: true,
-      name: true,
-      description: true,
-      lastAlive: true,
-      connectionStatus: true,
-    };
-
-    // A project's own probes, read as the caller, add their version.
-    const probeSelect: typeof globalProbeSelect & { probeVersion: boolean } = {
-      ...globalProbeSelect,
-      probeVersion: true,
-    };
-
     // This project's custom probes — tenant-scoped through ctx.props.
-    const projectProbes: Array<Probe> = await ProbeService.findBy({
-      query: {},
-      select: probeSelect,
-      sort: {
-        name: SortOrder.Ascending,
-      },
+    const projectProbes: Array<Probe> = await readProjectProbes({
       limit: limit,
-      skip: 0,
       props: ctx.props,
     });
 
@@ -559,7 +611,7 @@ export const QueryProbesTool: ObservabilityTool = {
         query: {
           isGlobalProbe: true,
         },
-        select: globalProbeSelect,
+        select: PROBE_PICKER_SELECT,
         sort: {
           name: SortOrder.Ascending,
         },
@@ -605,12 +657,10 @@ export const QueryProbesTool: ObservabilityTool = {
            * projectId is pinned explicitly because global probes serve every
            * project on the platform.
            */
-          const monitorCount: PositiveNumber =
-            await MonitorProbeService.countBy({
-              query: {
-                probeId: entry.probe.id!,
-                projectId: ctx.projectId,
-              },
+          const monitorCount: PositiveNumber | null =
+            await countMonitorsServed({
+              probeId: entry.probe.id!,
+              projectId: ctx.projectId,
               props: ctx.props,
             });
 
@@ -639,7 +689,7 @@ export const QueryProbesTool: ObservabilityTool = {
               ? OneUptimeDate.getDifferenceInMinutes(now, lastAlive)
               : undefined,
             probeVersion: entry.probe.probeVersion?.toString(),
-            monitorsServed: monitorCount.toNumber(),
+            monitorsServed: monitorCount?.toNumber(),
             isGlobalProbe: entry.isGlobal,
           };
         },

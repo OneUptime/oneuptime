@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { APP_API_URL } from "Common/UI/Config";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -11,11 +12,16 @@ export default class ProbeUtil {
    * Every probe this project can monitor with: its own custom probes plus the
    * global ones (which are not project rows, so they come from their own
    * endpoint).
+   *
+   * A project's probes are read by whoever may pick one - who may read,
+   * create or edit monitors, a monitor's probes or network devices among
+   * them. Anyone else is refused that list (422), and still gets the global
+   * probes, which most monitors run on.
    */
   public static async getAllProbes(): Promise<Array<Probe>> {
     // The two lists are independent, so fetch them in parallel.
     const [projectProbeList, globalProbeList]: [
-      ListResult<Probe>,
+      ListResult<Probe> | null,
       ListResult<Probe>,
     ] = await Promise.all([
       ModelAPI.getList<Probe>({
@@ -31,6 +37,13 @@ export default class ProbeUtil {
           shouldAutoEnableProbeOnNewMonitors: true,
         },
         sort: {},
+      }).catch((err: unknown): null => {
+        // Refused for lack of permission: no project probes to offer.
+        if (err instanceof HTTPErrorResponse && err.statusCode === 422) {
+          return null;
+        }
+
+        throw err;
       }),
       ModelAPI.getList<Probe>({
         modelType: Probe,
@@ -51,7 +64,9 @@ export default class ProbeUtil {
       }),
     ]);
 
-    for (const probe of projectProbeList.data) {
+    const projectProbes: Array<Probe> = projectProbeList?.data || [];
+
+    for (const probe of projectProbes) {
       probe.isGlobalProbe = false;
     }
 
@@ -64,6 +79,6 @@ export default class ProbeUtil {
       probe.isGlobalProbe = true;
     }
 
-    return [...projectProbeList.data, ...globalProbeList.data];
+    return [...projectProbes, ...globalProbeList.data];
   }
 }

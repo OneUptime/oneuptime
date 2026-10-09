@@ -950,12 +950,11 @@ jobs:
           Tests/Server/Services/LlmLogDailyUsageIndexPostgres.test.ts
           --forceExit
 
-      # Clones the migrated LlmProvider table into an isolated schema without
-      # hasAdditionalParams, stores Additional Parameters of every shape and
-      # runs the migration that adds the column: each provider's answer must
-      # be what LlmProviderService.hasAdditionalParams says of its parameters,
-      # the rule every later write applies.
-      - name: Test the LLM provider parameters flag migration on migrated Postgres
+      # Clones the migrated LlmProvider table into an isolated schema, stores
+      # Additional Parameters of every shape and reads hasAdditionalParams
+      # through TypeORM: Postgres works it out from the parameters on every
+      # read (a virtual column), and the migrated table stores no copy of it.
+      - name: Test the LLM provider parameters flag on migrated Postgres
         working-directory: packages/Common
         env:
           RUN_POSTGRES_LLM_PROVIDER_PARAMS_FLAG_TESTS: "true"
@@ -964,7 +963,7 @@ jobs:
           LLM_PROVIDER_PARAMS_FLAG_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Infrastructure/Postgres/AddLlmProviderHasAdditionalParamsPostgres.test.ts
+          Tests/Server/Types/Database/LlmProviderHasAdditionalParamsPostgres.test.ts
           --forceExit
 
       # Runs schema migrations through SchemaMigrationRunner while another

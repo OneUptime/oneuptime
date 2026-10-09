@@ -27,10 +27,11 @@ import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
  *
  * The API key and the Additional Parameters are sent to the provider with
  * every request, and the parameters can carry a token or a header just like
- * the key, so both are read by the project's owners and admins alone. The
- * members who read the provider but not its parameters read whether any are
- * saved (hasAdditionalParams), which OneUptime writes from the parameters and
- * no caller may.
+ * the key, so both are read by the project's owners and admins alone - and
+ * the Base URL they are sent to is changed by them alone. The members who
+ * read the provider but not its parameters read whether any are saved
+ * (hasAdditionalParams), which Postgres works out from the parameters on
+ * every read and no caller may write.
  *
  * Driven through the real permission layer, no stubs.
  */
@@ -218,7 +219,20 @@ describe("LlmProvider - who may read it", () => {
     ).toEqual([...WRITERS].sort());
   });
 
-  test("whether parameters are saved is written by OneUptime alone", () => {
+  /*
+   * The API key and the parameters go to the Base URL with every request, so
+   * it is changed only by who may read them.
+   */
+  test("the Base URL is changed by the project's owners and admins alone", () => {
+    expect(
+      [
+        ...(new LlmProvider().getColumnAccessControlFor("baseUrl")?.update ||
+          []),
+      ].sort(),
+    ).toEqual([...SECRET_READERS].sort());
+  });
+
+  test("whether parameters are saved is written by no caller: Postgres works it out", () => {
     const access: ColumnAccessControl | undefined =
       new LlmProvider().getColumnAccessControlFor("hasAdditionalParams") ||
       undefined;
@@ -454,12 +468,74 @@ describe("LlmProvider - changing it through the permission layer", () => {
     },
   );
 
+  test.each(
+    WRITERS.filter((permission: Permission): boolean => {
+      return !SECRET_READERS.includes(permission);
+    }),
+  )(
+    "a member holding %s may not change the Base URL the secrets are sent to",
+    async (permission: Permission) => {
+      const error: unknown = await rejectionOf(
+        update(member({ permissions: writerPermissions(permission) }), {
+          baseUrl: "https://other.example.com/v1",
+        }),
+      );
+
+      expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((error as ColumnWriteRefusedException).columnName).toBe(
+        "baseUrl",
+      );
+    },
+  );
+
+  test.each(SECRET_READERS)(
+    "a member holding %s changes the Base URL",
+    async (permission: Permission) => {
+      await expect(
+        update(member({ permissions: [permission] }), {
+          baseUrl: "https://other.example.com/v1",
+        }),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  test.each(
+    WRITERS.filter((permission: Permission): boolean => {
+      return !SECRET_READERS.includes(permission);
+    }),
+  )(
+    "a member holding %s still changes the rest of the provider",
+    async (permission: Permission) => {
+      await expect(
+        update(member({ permissions: writerPermissions(permission) }), {
+          name: "Renamed",
+          modelName: "gpt-4o",
+          apiKey: "sk-replaced",
+        }),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  test("a member who may create providers gives a new one its Base URL", () => {
+    const provider: LlmProvider = new LlmProvider();
+    provider.name = "Provider";
+    provider.baseUrl = "https://llm.example.com/v1";
+    provider.apiKey = "sk-their-own";
+
+    expect(() => {
+      ModelPermission.checkCreatePermissions(
+        LlmProvider,
+        provider,
+        member({ permissions: [Permission.SettingsMember] }),
+      );
+    }).not.toThrow();
+  });
+
   /*
-   * OneUptime computes it, so a create carrying it (an export taken by an
-   * owner, say) is not refused for it: LlmProviderService replaces the value
-   * with what the parameters say once the create has passed its checks
-   * (LlmProviderServiceAdditionalParams.test.ts runs that through the write
-   * pipeline).
+   * Postgres computes it on every read (a virtual column), so a create
+   * carrying it (an export taken by an owner, say) is not refused for it,
+   * and nothing a create or an update carries is ever written to it
+   * (LlmProviderServiceSecrets.test.ts).
    */
   test("a create that names whether parameters are saved is not refused for it", () => {
     const provider: LlmProvider = new LlmProvider();

@@ -1109,17 +1109,21 @@ API, SSO, or the Slack and Microsoft Teams apps.
   read-only `lastSavedByUserId` column on workflows added on start. See
   [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands)
   and [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
-- **An LLM provider's Additional Parameters are read like its API key.** A
+- **An LLM provider's Additional Parameters are read like its API key,
+  and its Base URL is changed only by those who may read them.** A
   provider's **Additional Parameters** are sent to the provider with every
   request and can carry a token or a header, so they are now read only by
   project owners and admins (`ProjectOwner`, `ProjectAdmin`), as the **API
   Key** already was. Other members, and API keys holding their roles, get a
   `422` when they ask for `additionalParams`; they can read the new
   read-only `hasAdditionalParams` field instead, which says whether any
-  parameters are saved and is filled in for existing providers on start.
-  Members who may edit a provider can still replace its parameters. The
-  Terraform provider and the MCP server leave out what an API key may not
-  read, so a Terraform API key that manages `additional_params` needs
+  parameters are saved and is worked out from them on every read. Members
+  who may edit a provider can still replace its API key and its parameters.
+  The API key and the parameters are sent to the provider's **Base URL**,
+  so changing `baseUrl` now needs `ProjectOwner` or `ProjectAdmin` as well;
+  anyone else gets a `422` that names who may change it. The Terraform
+  provider and the MCP server leave out what an API key may not read, so a
+  Terraform API key that manages `additional_params` or `base_url` needs
   `ProjectOwner` or `ProjectAdmin`. Everyone who reads a provider reads its
   **Base URL**, so keep keys and tokens out of it. See
   [Who can see a provider](/docs/ai/llm-provider#setting-up-an-llm-provider).
@@ -1127,8 +1131,13 @@ API, SSO, or the Slack and Microsoft Teams apps.
   Reading a project's probes or AI agents takes a role that may read them,
   such as **Viewer**, **Settings Viewer**, **Read Probe** or **Read AI
   Agent** (and the monitor roles, for probes), and a request without a
-  signed-in user or an API key is answered with a `401`. The lists of global
-  probes and global AI agents answer signed-in users only.
+  signed-in user or an API key is answered with a `401`. Whoever may read,
+  create or edit monitors, a monitor's probes, network devices, their
+  discovery scans or network sites reads what a probe picker shows of the
+  project's probes - name, description, icon, status and whether new
+  monitors start with it - but not a probe's key, version, labels or packet
+  capture report. A probe's key stays with project owners and admins. The
+  lists of global probes and global AI agents answer signed-in users only.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

@@ -1,7 +1,10 @@
 import {
+  PROBE_PICKER_SELECT,
+  PROBE_READER_SELECT,
   QueryProbesTool,
   QueryWorkflowsTool,
 } from "../../../../Server/Utils/AI/Toolbox/WorkflowProbeTools";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -440,6 +443,162 @@ describe("query_probes", () => {
     expect(firstCall["limit"]).toBe(25);
     const secondCall: JSONObject = probesSpy.mock.calls[1]?.[0] as JSONObject;
     expect(secondCall["limit"]).toBe(25);
+  });
+
+  /*
+   * Whoever may pick a probe - who may read, create or edit monitors, among
+   * others - reads a project probe's name, description and status but not
+   * its version (Probe's picker readers). Their read with the version is
+   * refused, and the tool reads the project's probes again without it.
+   */
+  test("a caller who may pick probes but not read their versions gets the project's probes without one", async () => {
+    const probesSpy: jest.SpyInstance = jest
+      .spyOn(ProbeService, "findBy")
+      .mockRejectedValueOnce(
+        new NotAuthorizedException(
+          "You do not have permissions to select on - probeVersion.",
+        ),
+      )
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: null,
+        }),
+      ] as never)
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: GLOBAL_PROBE_ID,
+          name: "Global US",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: null,
+        }),
+      ] as never);
+    mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute({}, ctx);
+
+    expect(result.rowCount).toBe(2);
+    expect(result.dataForLlm).toContain("EU probe");
+    expect(result.dataForLlm).toContain("Global US");
+    expect(result.dataForLlm).not.toContain("probeVersion=");
+
+    // With the version first, then what a picker shows, both as the caller.
+    const calls: Array<JSONObject> = probesSpy.mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      },
+    );
+    expect(calls).toHaveLength(3);
+    expect(calls[0]!["select"]).toEqual(PROBE_READER_SELECT);
+    expect(calls[0]!["props"]).toBe(ctx.props);
+    expect(calls[1]!["select"]).toEqual(PROBE_PICKER_SELECT);
+    expect(calls[1]!["props"]).toBe(ctx.props);
+    expect(calls[2]!["query"]).toEqual({ isGlobalProbe: true });
+  });
+
+  test("a caller refused the project's probes still gets the global probes", async () => {
+    const probesSpy: jest.SpyInstance = jest
+      .spyOn(ProbeService, "findBy")
+      .mockRejectedValueOnce(
+        new NotAuthorizedException("You do not have permissions to read Probe"),
+      )
+      .mockRejectedValueOnce(
+        new NotAuthorizedException("You do not have permissions to read Probe"),
+      )
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: GLOBAL_PROBE_ID,
+          name: "Global US",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: null,
+        }),
+      ] as never);
+    mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute({}, ctx);
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain("Global US");
+    expect(result.dataForLlm).toContain("isGlobalProbe=true");
+    expect(result.citationLabel).toBe("Probes (1 found, 0 disconnected)");
+    expect(probesSpy).toHaveBeenCalledTimes(3);
+  });
+
+  test("a refused caller who leaves the global probes out gets an honest empty answer", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockRejectedValue(
+        new NotAuthorizedException("You do not have permissions to read Probe"),
+      );
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      { includeGlobalProbes: false },
+      ctx,
+    );
+
+    expect(result.rowCount).toBe(0);
+    expect(result.widget).toBeUndefined();
+    expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  test("a project read that fails for any other reason still fails the tool", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockRejectedValueOnce(new Error("The database did not answer."));
+    mockMonitorCounts();
+
+    await expect(QueryProbesTool.execute({}, ctx)).rejects.toThrow(
+      "The database did not answer.",
+    );
+  });
+
+  test("a caller who may not read a monitor's probes gets the probes without monitor counts", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permissions to read Monitor Probe",
+        ),
+      );
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute({}, ctx);
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain("EU probe");
+    expect(result.dataForLlm).not.toContain("monitorsServed=");
+  });
+
+  test("a monitor count that fails for any other reason still fails the tool", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockRejectedValue(new Error("The database did not answer."));
+
+    await expect(QueryProbesTool.execute({}, ctx)).rejects.toThrow(
+      "The database did not answer.",
+    );
   });
 
   test("no probes at all is honest: zero rows, no widget, no monitor counts", async () => {

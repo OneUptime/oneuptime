@@ -2,6 +2,11 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/LlmProvider";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import ColumnPermissions from "../Types/Database/Permissions/ColumnPermission";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import { PermissionHelper } from "../../Types/Permission";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -27,63 +32,47 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Whether Additional Parameters, as a write gives them, hold anything to
-   * send: an object or a list with at least one entry, text that is not
-   * blank, or any other JSON value. Nothing, null and an empty object, list
-   * or text send nothing. The migration that added hasAdditionalParams
-   * (1801000000000-AddLlmProviderHasAdditionalParams) asks the same of the
-   * stored parameters.
+   * A provider's API key and Additional Parameters are sent to its Base URL
+   * with every request, so the Base URL is changed only by who may read them
+   * (LlmProvider.baseUrl's update list). The update's column check refuses
+   * anyone else; this asks first, by the same rule, so the refusal says in
+   * plain words who may change it.
    */
-  public static hasAdditionalParams(value: unknown): boolean {
-    if (value === undefined || value === null) {
-      return false;
-    }
-
-    if (typeof value === "string") {
-      return value.trim().length > 0;
-    }
-
-    if (typeof value === "object") {
-      return Object.keys(value as Record<string, unknown>).length > 0;
-    }
-
-    return true;
-  }
-
-  /*
-   * Whether a provider has Additional Parameters follows the parameters a
-   * create writes (LlmProvider.hasAdditionalParams), whatever the request
-   * says: written once every permission check has passed, as no caller may
-   * write it.
-   */
-  protected override async onCreatePermitted(
-    onCreate: OnCreate<Model>,
-  ): Promise<void> {
-    await super.onCreatePermitted(onCreate);
-
-    onCreate.createBy.data.hasAdditionalParams = Service.hasAdditionalParams(
-      onCreate.createBy.data.additionalParams,
-    );
-  }
-
-  // And the parameters an update writes. An update that leaves them leaves it.
-  protected override async onUpdatePermitted(
+  protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
-  ): Promise<void> {
-    await super.onUpdatePermitted(updateBy);
-
-    const data: Record<string, unknown> = updateBy.data as Record<
-      string,
-      unknown
-    >;
-
-    if (data["additionalParams"] === undefined) {
-      return;
+  ): Promise<OnUpdate<Model>> {
+    if (
+      (updateBy.data as Record<string, unknown>)["baseUrl"] !== undefined &&
+      !Service.mayChangeBaseUrl(updateBy.props)
+    ) {
+      throw new NotAuthorizedException(Service.getBaseUrlRefusal());
     }
 
-    data["hasAdditionalParams"] = Service.hasAdditionalParams(
-      data["additionalParams"],
+    return { updateBy, carryForward: null };
+  }
+
+  // Whether the caller may write LlmProvider.baseUrl on an update.
+  public static mayChangeBaseUrl(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return true;
+    }
+
+    return ColumnPermissions.getModelColumnsByPermissions(
+      Model,
+      ColumnPermissions.getColumnCheckRows(props),
+      DatabaseRequestType.Update,
+    ).columns.includes("baseUrl");
+  }
+
+  // Who may change a provider's Base URL, named from the column's update list.
+  public static getBaseUrlRefusal(): string {
+    const titles: Array<string> = PermissionHelper.getPermissionTitles(
+      new Model().getColumnAccessControlFor("baseUrl")?.update || [],
     );
+
+    return `Only ${titles.join(" or ")} can change the Base URL of an LLM provider: its API key and Additional Parameters are sent to that address.`;
   }
 
   /*

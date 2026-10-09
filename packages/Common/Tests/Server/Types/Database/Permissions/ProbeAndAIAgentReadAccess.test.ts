@@ -11,6 +11,10 @@ import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { describe, expect, test } from "@jest/globals";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
+import {
+  PROBE_PICKER_SELECT,
+  PROBE_READER_SELECT,
+} from "../../../../../Server/Utils/AI/Toolbox/WorkflowProbeTools";
 
 /*
  * A PROBE AND AN AI AGENT ARE READ BY THEIR PROJECT'S OWN MEMBERS ONLY.
@@ -32,6 +36,13 @@ import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
  * device's probe) still shows its name there, through the relation, to
  * whoever may read that record.
  *
+ * A project's probes are picked by more people than read them in full:
+ * whoever may read, create or edit monitors (the operational resource
+ * wildcards included), a monitor's probes, network devices, their discovery
+ * scans or network sites reads what a probe picker shows - name,
+ * description, icon, status, whether new monitors start with it - and never
+ * a probe's key, version, labels or packet capture report.
+ *
  * Driven through the real permission layer, no stubs.
  */
 
@@ -43,57 +54,115 @@ interface ModelCase {
   modelType: { new (): BaseModel };
   // The model's own read list.
   readers: Array<Permission>;
-  // The columns Public read before, each now read with the table's readers.
-  formerlyPublicColumns: Array<string>;
+  // The columns Public read before, and who reads each now.
+  formerlyPublicColumns: Array<[string, Array<Permission>]>;
 }
+
+// Who reads all of a project's probe but its key and its creator.
+const PROBE_READERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  Permission.MonitorAdmin,
+  Permission.MonitorMember,
+  Permission.MonitorViewer,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.SettingsViewer,
+  Permission.ReadProjectProbe,
+];
+
+// Who picks a probe besides them, and reads what a picker shows of it.
+const PROBE_PICKERS_ONLY: Array<Permission> = [
+  Permission.CreateProjectMonitor,
+  Permission.EditProjectMonitor,
+  Permission.ReadProjectMonitor,
+  Permission.CreateAllOperationalResources,
+  Permission.EditAllOperationalResources,
+  Permission.ReadAllOperationalResources,
+  Permission.CreateMonitorProbe,
+  Permission.EditMonitorProbe,
+  Permission.ReadMonitorProbe,
+  Permission.CreateNetworkDevice,
+  Permission.EditNetworkDevice,
+  Permission.ReadNetworkDevice,
+  Permission.CreateNetworkDeviceDiscoveryScan,
+  Permission.EditNetworkDeviceDiscoveryScan,
+  Permission.ReadNetworkDeviceDiscoveryScan,
+  Permission.CreateNetworkSite,
+  Permission.EditNetworkSite,
+  Permission.ReadNetworkSite,
+];
+
+const PROBE_PICKERS: Array<Permission> = [
+  ...PROBE_READERS,
+  ...PROBE_PICKERS_ONLY,
+];
+
+/*
+ * Every column of a probe whoever may pick one reads: what tells probes
+ * apart in a picker. Pinned: a column added to the list is a decision.
+ */
+const PROBE_PICKER_COLUMNS: Array<string> = [
+  "connectionStatus",
+  "description",
+  "iconFile",
+  "iconFileId",
+  "lastAlive",
+  "name",
+  "project",
+  "projectId",
+  "shouldAutoEnableProbeOnNewMonitors",
+  "slug",
+];
+
+// And what only the probe's own readers (or its owners and admins) read.
+const PROBE_COLUMNS_PICKERS_NEVER_READ: Array<string> = [
+  "key",
+  "probeVersion",
+  "packetCaptureCapability",
+  "labels",
+  "createdByUserId",
+];
 
 const PROBE: ModelCase = {
   name: "Probe",
   modelType: Probe,
-  readers: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.Viewer,
-    Permission.MonitorAdmin,
-    Permission.MonitorMember,
-    Permission.MonitorViewer,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.SettingsViewer,
-    Permission.ReadProjectProbe,
-  ],
+  readers: PROBE_PICKERS,
   formerlyPublicColumns: [
-    "name",
-    "description",
-    "slug",
-    "probeVersion",
-    "project",
-    "projectId",
+    ["name", PROBE_PICKERS],
+    ["description", PROBE_PICKERS],
+    ["slug", PROBE_PICKERS],
+    ["probeVersion", PROBE_READERS],
+    ["project", PROBE_PICKERS],
+    ["projectId", PROBE_PICKERS],
   ],
 };
+
+const AI_AGENT_READERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.SettingsViewer,
+  Permission.ReadProjectAIAgent,
+];
 
 const AI_AGENT: ModelCase = {
   name: "AIAgent",
   modelType: AIAgent,
-  readers: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.Viewer,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.SettingsViewer,
-    Permission.ReadProjectAIAgent,
-  ],
+  readers: AI_AGENT_READERS,
   formerlyPublicColumns: [
-    "name",
-    "description",
-    "slug",
-    "aiAgentVersion",
-    "project",
-    "projectId",
-    "isDefault",
+    ["name", AI_AGENT_READERS],
+    ["description", AI_AGENT_READERS],
+    ["slug", AI_AGENT_READERS],
+    ["aiAgentVersion", AI_AGENT_READERS],
+    ["project", AI_AGENT_READERS],
+    ["projectId", AI_AGENT_READERS],
+    ["isDefault", AI_AGENT_READERS],
   ],
 };
 
@@ -212,11 +281,10 @@ describe.each(MODELS)(
     });
 
     test.each(modelCase.formerlyPublicColumns)(
-      "%s is read with the table's readers",
-      (column: string) => {
-        expect(readListOf(modelCase, column)).toEqual(
-          [...modelCase.readers].sort(),
-        );
+      "%s is read by its project's members who may read it",
+      (column: string, readers: Array<Permission>) => {
+        expect(readListOf(modelCase, column)).toEqual([...readers].sort());
+        expect(readListOf(modelCase, column)).not.toContain(Permission.Public);
       },
     );
 
@@ -351,3 +419,250 @@ describe.each(MODELS)(
     );
   },
 );
+
+/*
+ * WHOEVER MAY PICK A PROBE READS WHAT A PICKER SHOWS OF THE PROJECT'S PROBES.
+ *
+ * The monitor form, a monitor's probes, its logs and metrics, the monitor
+ * list's bulk actions, network devices, their discovery scans and network
+ * sites list the project's probes for people who may not read the probe
+ * settings page. They read a probe's name, description, icon, status and
+ * whether new monitors start with it, and nothing else of it.
+ */
+describe("Probe - whoever may pick a probe", () => {
+  // What the Dashboard's probe pickers ask for (ProbeUtil.getAllProbes).
+  const PICKER_LIST_SELECT: Record<string, boolean> = {
+    name: true,
+    _id: true,
+    shouldAutoEnableProbeOnNewMonitors: true,
+  };
+
+  // Every column whoever may pick a probe reads.
+  const PICKER_COLUMNS_SELECT: Record<string, boolean> = {
+    name: true,
+    description: true,
+    slug: true,
+    iconFileId: true,
+    lastAlive: true,
+    connectionStatus: true,
+    shouldAutoEnableProbeOnNewMonitors: true,
+    projectId: true,
+  };
+
+  test("its table is read by the probe readers and whoever may pick a probe", () => {
+    expect([...new Probe().getReadPermissions()].sort()).toEqual(
+      [...PROBE_PICKERS].sort(),
+    );
+  });
+
+  test("the columns they read are pinned: what tells probes apart in a picker", () => {
+    const model: Probe = new Probe();
+
+    const readByPickers: Array<string> = Object.keys(
+      model.getColumnAccessControlForAllColumns(),
+    )
+      .filter((column: string): boolean => {
+        // Every record's own id and dates are read with its table.
+        if (
+          ["_id", "createdAt", "updatedAt", "deletedAt", "version"].includes(
+            column,
+          )
+        ) {
+          return false;
+        }
+
+        return Boolean(
+          model
+            .getColumnAccessControlFor(column)
+            ?.read.includes(Permission.CreateProjectMonitor),
+        );
+      })
+      .sort();
+
+    expect(readByPickers).toEqual([...PROBE_PICKER_COLUMNS].sort());
+  });
+
+  test.each(PROBE_PICKER_COLUMNS)(
+    "%s is read by every picker, and only by the probe's readers and pickers",
+    (column: string) => {
+      expect(
+        [...(new Probe().getColumnAccessControlFor(column)?.read || [])].sort(),
+      ).toEqual([...PROBE_PICKERS].sort());
+    },
+  );
+
+  test("a probe's version, labels and packet capture report are its readers' alone", () => {
+    for (const column of [
+      "probeVersion",
+      "labels",
+      "packetCaptureCapability",
+    ]) {
+      expect({
+        column: column,
+        read: [
+          ...(new Probe().getColumnAccessControlFor(column)?.read || []),
+        ].sort(),
+      }).toEqual({ column: column, read: [...PROBE_READERS].sort() });
+    }
+  });
+
+  test("a probe's key is its project's owners' and admins' alone", () => {
+    expect(
+      [...(new Probe().getColumnAccessControlFor("key")?.read || [])].sort(),
+    ).toEqual([Permission.ProjectAdmin, Permission.ProjectOwner].sort());
+  });
+
+  /*
+   * The two teams the probe pickers broke for when the probe table stopped
+   * naming Public: one that may only create monitors, and one that may only
+   * read them.
+   */
+  test("a team holding only Create Project Monitor reads the probes the monitor form offers", async () => {
+    const result: { query: Record<string, unknown> } = (await read(
+      PROBE,
+      member({ permissions: [Permission.CreateProjectMonitor] }),
+      PICKER_LIST_SELECT,
+    )) as { query: Record<string, unknown> };
+
+    expect(JSON.stringify(result.query["projectId"])).toContain(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  test("a team holding only Read Project Monitor reads the probes a monitor's pages name", async () => {
+    const result: { query: Record<string, unknown> } = (await read(
+      PROBE,
+      member({ permissions: [Permission.ReadProjectMonitor] }),
+      PICKER_COLUMNS_SELECT,
+    )) as { query: Record<string, unknown> };
+
+    expect(JSON.stringify(result.query["projectId"])).toContain(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  test.each(PROBE_PICKERS_ONLY)(
+    "a member holding only %s reads every column a picker shows, in their project",
+    async (permission: Permission) => {
+      const result: { query: Record<string, unknown> } = (await read(
+        PROBE,
+        member({ permissions: [permission] }),
+        PICKER_COLUMNS_SELECT,
+      )) as { query: Record<string, unknown> };
+
+      expect(JSON.stringify(result.query["projectId"])).toContain(
+        PROJECT_ID.toString(),
+      );
+    },
+  );
+
+  const PICKER_NEVER_READS: Array<[Permission, string]> = [];
+
+  for (const permission of PROBE_PICKERS_ONLY) {
+    for (const column of PROBE_COLUMNS_PICKERS_NEVER_READ) {
+      PICKER_NEVER_READS.push([permission, column]);
+    }
+  }
+
+  test.each(PICKER_NEVER_READS)(
+    "a member holding only %s may not read %s",
+    async (permission: Permission, column: string) => {
+      const select: Record<string, unknown> =
+        column === "labels" ? { labels: { name: true } } : { [column]: true };
+
+      const error: unknown = await rejectionOf(
+        read(
+          PROBE,
+          member({ permissions: [permission] }),
+          select as Record<string, boolean>,
+        ),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+    },
+  );
+
+  test("a member of another project holding Create Project Monitor reads none of this one's probes", async () => {
+    expect(
+      await rejectionOf(
+        read(
+          PROBE,
+          member({
+            permissions: [Permission.CreateProjectMonitor],
+            memberOf: OTHER_PROJECT_ID,
+          }),
+          PICKER_LIST_SELECT,
+        ),
+      ),
+    ).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  test("a team that blocks Read Project Probe reads no probe, whatever monitor permission it holds", async () => {
+    const props: DatabaseCommonInteractionProps = member({
+      permissions: [Permission.CreateProjectMonitor],
+    });
+
+    (
+      props.userTenantAccessPermission![PROJECT_ID.toString()]!
+        .permissions as Array<UserPermission>
+    ).push({
+      permission: Permission.ReadProjectProbe,
+      labelIds: [],
+      isBlockPermission: true,
+      _type: "UserPermission",
+    } as UserPermission);
+
+    expect(
+      await rejectionOf(read(PROBE, props, PICKER_LIST_SELECT)),
+    ).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  /*
+   * The AI assistant's query_probes reads a project's probes with their
+   * version first, and with what a picker shows when that is refused
+   * (WorkflowProbeTools): the first is the probe readers', the second every
+   * picker's.
+   */
+  test("the assistant's probe read with versions is the probe readers', its fallback every picker's", async () => {
+    for (const permission of PROBE_READERS) {
+      await expect(
+        read(
+          PROBE,
+          member({ permissions: [permission] }),
+          PROBE_READER_SELECT as Record<string, boolean>,
+        ),
+      ).resolves.toBeDefined();
+    }
+
+    for (const permission of PROBE_PICKERS_ONLY) {
+      expect(
+        await rejectionOf(
+          read(
+            PROBE,
+            member({ permissions: [permission] }),
+            PROBE_READER_SELECT as Record<string, boolean>,
+          ),
+        ),
+      ).toBeInstanceOf(NotAuthorizedException);
+
+      await expect(
+        read(
+          PROBE,
+          member({ permissions: [permission] }),
+          PROBE_PICKER_SELECT as Record<string, boolean>,
+        ),
+      ).resolves.toBeDefined();
+    }
+  });
+
+  test("whoever may pick a probe reads no AI agent", async () => {
+    expect(
+      await rejectionOf(
+        read(
+          AI_AGENT,
+          member({ permissions: [Permission.CreateProjectMonitor] }),
+        ),
+      ),
+    ).toBeInstanceOf(NotAuthorizedException);
+  });
+});

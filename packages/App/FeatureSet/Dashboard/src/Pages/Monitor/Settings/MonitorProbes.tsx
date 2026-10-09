@@ -53,7 +53,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   /*
    * A probe's key is read by project owners and admins alone (Probe.key).
    * The table asks for it only for them (BaseModelTable leaves out what the
-   * viewer may not read), so only they get the action that shows it.
+   * viewer may not read); everyone who sees the table gets the probe's ID,
+   * which installing a probe needs too, and the key only those who may read
+   * it.
    */
   const canReadProbeKey: boolean = PermissionGate.canReadColumn(
     new Probe(),
@@ -227,34 +229,30 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ]}
           showRefreshButton={true}
           searchableFields={["name", "description"]}
-          actionButtons={
-            canReadProbeKey
-              ? [
-                  {
-                    title: "Show ID and Key",
-                    icon: IconProp.Key,
-                    buttonStyleType: ButtonStyleType.NORMAL,
-                    // Reveals the probe's ID and secret key for copying - a utility, not the row's button.
-                    placement: ActionButtonPlacement.MoreMenu,
-                    onClick: async (
-                      item: Probe,
-                      onCompleteAction: VoidFunction,
-                      onError: ErrorFunction,
-                    ) => {
-                      try {
-                        setCurrentProbe(item);
-                        setShowKeyModal(true);
+          actionButtons={[
+            {
+              title: canReadProbeKey ? "Show ID and Key" : "Show ID",
+              icon: IconProp.Key,
+              buttonStyleType: ButtonStyleType.NORMAL,
+              // Reveals the probe's ID (and its key, to who may read it) for copying - a utility, not the row's button.
+              placement: ActionButtonPlacement.MoreMenu,
+              onClick: async (
+                item: Probe,
+                onCompleteAction: VoidFunction,
+                onError: ErrorFunction,
+              ) => {
+                try {
+                  setCurrentProbe(item);
+                  setShowKeyModal(true);
 
-                        onCompleteAction();
-                      } catch (err) {
-                        onCompleteAction();
-                        onError(err as Error);
-                      }
-                    },
-                  },
-                ]
-              : []
-          }
+                  onCompleteAction();
+                } catch (err) {
+                  onCompleteAction();
+                  onError(err as Error);
+                }
+              },
+            },
+          ]}
           filters={[
             {
               field: {
@@ -354,13 +352,17 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         {showKeyModal && currentProbe ? (
           <ConfirmModal
-            title={`Probe Key`}
+            title={canReadProbeKey ? "Probe Key" : "Probe ID"}
             description={
               <div>
                 <span>
-                  {translator.translateText(
-                    "Your probe connects to OneUptime with this ID and key. Keep the key secret.",
-                  )}
+                  {canReadProbeKey
+                    ? translator.translateText(
+                        "Your probe connects to OneUptime with this ID and key. Keep the key secret.",
+                      )
+                    : translator.translateText(
+                        "Your probe connects to OneUptime with this ID and its key. Only project owners and admins can see the key.",
+                      )}
                 </span>
                 <br />
                 <br />
@@ -368,12 +370,18 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <b>{translator.translateText("Probe ID:")} </b>{" "}
                   {currentProbe["_id"]?.toString()}
                 </span>
-                <br />
-                <br />
-                <span>
-                  <b>{translator.translateText("Probe Key:")} </b>{" "}
-                  {currentProbe["key"]?.toString()}
-                </span>
+                {canReadProbeKey ? (
+                  <>
+                    <br />
+                    <br />
+                    <span>
+                      <b>{translator.translateText("Probe Key:")} </b>{" "}
+                      {currentProbe["key"]?.toString()}
+                    </span>
+                  </>
+                ) : (
+                  <></>
+                )}
               </div>
             }
             submitButtonText={"Close"}
