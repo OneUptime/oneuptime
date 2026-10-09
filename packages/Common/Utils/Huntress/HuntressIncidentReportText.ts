@@ -138,10 +138,7 @@ export function getHuntressAffectedName(
     ? ` (${organizationName.toLowerCase()})`
     : null;
 
-  if (
-    organizationSuffix &&
-    rest.toLowerCase().endsWith(organizationSuffix)
-  ) {
+  if (organizationSuffix && rest.toLowerCase().endsWith(organizationSuffix)) {
     rest = rest.slice(0, rest.length - organizationSuffix.length).trim();
   } else {
     const bracketAt: number = rest.indexOf(" (");
@@ -178,6 +175,30 @@ export function getHuntressAffectedLabel(platform: string | null): string {
 }
 
 /*
+ * A report's subject without the severity Huntress writes in front of it
+ * ("CRITICAL - Incident on ..." reads "Incident on ..."): the severity is
+ * shown on its own wherever the subject is. Empty for no subject.
+ */
+export function getHuntressSubjectWithoutSeverity(
+  subject: string | null | undefined,
+): string {
+  let text: string = (subject || "").trim();
+  const lowerText: string = text.toLowerCase();
+
+  for (const severity of AllHuntressSeverities) {
+    // "CRITICAL - ...", or just "CRITICAL -" once the payload was trimmed.
+    const prefix: string = `${severity} -`;
+
+    if (lowerText.startsWith(`${prefix} `) || lowerText === prefix) {
+      text = text.slice(prefix.length).trim();
+      break;
+    }
+  }
+
+  return text;
+}
+
+/*
  * The incident's title: the report's subject, which MSPs already know from
  * Huntress's emails and PSA tickets, after "Huntress:" so a page or a call
  * says where it came from. The severity Huntress puts in front of the
@@ -190,26 +211,10 @@ export function getHuntressIncidentTitle(
     "subject" | "reportId" | "organization"
   >,
 ): string {
-  if (event.subject) {
-    let subject: string = event.subject;
-    const lowerSubject: string = subject.toLowerCase();
+  const subject: string = getHuntressSubjectWithoutSeverity(event.subject);
 
-    for (const severity of AllHuntressSeverities) {
-      // "CRITICAL - ...", or just "CRITICAL -" once the payload was trimmed.
-      const prefix: string = `${severity} -`;
-
-      if (
-        lowerSubject.startsWith(`${prefix} `) ||
-        lowerSubject === prefix
-      ) {
-        subject = subject.slice(prefix.length).trim();
-        break;
-      }
-    }
-
-    if (subject) {
-      return `Huntress: ${subject}`;
-    }
+  if (subject) {
+    return `Huntress: ${subject}`;
   }
 
   if (event.organization.name) {
@@ -298,7 +303,10 @@ export function getHuntressIncidentDescription(data: {
 // A comment someone added to the report in Huntress, as an incident note.
 export function getHuntressCommentNote(comment: string): string {
   return FeedMarkdown.join(
-    [mdText`**Comment added in Huntress**`, FeedMarkdown.writtenOutside(comment)],
+    [
+      mdText`**Comment added in Huntress**`,
+      FeedMarkdown.writtenOutside(comment),
+    ],
     "\n\n",
   ).toString();
 }
