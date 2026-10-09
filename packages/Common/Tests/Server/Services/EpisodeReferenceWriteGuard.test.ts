@@ -26,6 +26,7 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * An incident's or alert's episode mirrors the episode's members, and only
@@ -263,6 +264,10 @@ describe("the incident and alert hooks", () => {
           "findBy",
         )
         .mockResolvedValue([] as never);
+      // Nor among the records a caller's update may write.
+      stubRowsCallerMayWrite(service as never, () => {
+        return [];
+      });
     }
 
     // A create the hooks let through stops where it takes its number.

@@ -445,13 +445,10 @@ export class Service extends DatabaseService<Model> {
         });
       } else {
         // projectId is immutable here; resolve it from the row(s) being updated.
-        const rows: Array<Model> = await this.findBy({
-          query: updateBy.query,
-          select: { _id: true, projectId: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        });
+        const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+          updateBy,
+          { _id: true, projectId: true },
+        );
 
         for (const row of rows) {
           await validateGlobalProviderProjectTeams({

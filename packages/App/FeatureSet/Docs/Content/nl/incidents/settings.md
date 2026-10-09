@@ -88,11 +88,43 @@ Ga naar **Incidenten → Instellingen → Aangepaste velden** (`/dashboard/{proj
 - **Veldnaam** — verplicht, minstens twee tekens. De placeholder stelt een slug-achtige naam voor, zoals `internal-service`.
 - **Veldbeschrijving** — optioneel.
 - **Veldtype** — verplicht. Dit bepaalt hoe data wordt ingevoerd. Bij vervolgkeuzetypen moet je ook de opties opgeven.
-- **Vervolgkeuzeopties** — de waarden die in de lijst verschijnen, elk met een optionele kleur.
+- **Vervolgkeuzeopties** — de waarden die in de lijst verschijnen, elk met een optionele kleur. Sleep een optie aan de greep om de plek in de lijst te wijzigen. Opties kunnen ook worden toegevoegd, hernoemd en verwijderd als incidenten al waarden hebben; zie hieronder.
 
 De definities leven in hun eigen model; de waarden staan op het incident zelf, in de kolom `customFields`. Op een afzonderlijk incident vul je ze in via **Aangepaste velden** in het zijmenu van het incident (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **Eén hiaat om te kennen.** Definities van aangepaste incidentvelden zijn het enige onderdeel van de incidentfamilie zonder workflowtriggers — zie de workflowsectie hieronder.
+
+### De opties van een vervolgkeuzelijst wijzigen
+
+De opties van een veld van het type **Vervolgkeuzelijst (enkele keuze)** of **Vervolgkeuzelijst (meerdere keuzes)** kunt u altijd wijzigen: open **Bewerken** in de rij van het veld. Een incident bewaart de tekst van de optie die het kreeg, dus wat een wijziging doet met de incidenten die een optie hebben, hangt af van de wijziging:
+
+| Wat u met een optie doet                | Wat er gebeurt met de incidenten die haar hebben                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Toevoegen**                           | Niets. Ze wordt vanaf nu aangeboden.                                                                               |
+| **Hernoemen** (de tekst wijzigen)       | Ze tonen de nieuwe naam. Onder de optie staat hoeveel incidenten dat doen.                                         |
+| **Verwijderen** (de prullenbak ernaast) | Ze houden haar, getoond als _geen optie meer_, tenzij u onder **Geen opties meer** een andere optie voor ze kiest. |
+| **Slepen** aan de greep                 | Niets. Alleen de volgorde waarin de opties staan, verandert.                                                       |
+
+Bij het openen telt het formulier hoeveel incidenten elke waarde hebben. **Geen opties meer** toont elke verwijderde optie die een incident nog heeft, en elke waarde die incidenten hebben die nooit een optie was (bijvoorbeeld een die via de API is geschreven), elk met het aantal incidenten. Laat elke waarde zoals ze is of kies de optie die die incidenten in plaats daarvan moeten hebben. **Ongedaan maken** zet een per ongeluk verwijderde optie terug.
+
+Een hernoemde optie, en een waarde waarvoor u een optie kiest, worden bij het opslaan verplaatst: op elk incident en elk incidentsjabloon in het project, in de opgeslagen weergaven van de incidentenlijst die erop filteren, en in de antwoorden die formuliersjablonen voor het veld geven. Dat start geen **On Update Incident**-workflow en verandert bij geen enkel incident het tijdstip van de laatste wijziging; mislukt het, dan wordt niets verplaatst en houdt het veld zijn oude opties. Workflows, API-clients en Terraform-configuraties die een optie met de oude tekst schrijven, hebben de nieuwe tekst nodig.
+
+Een incident waarvan het veld de waarde niet meer aanbiedt, toont de waarde, gemarkeerd als _geen optie meer_, op zijn pagina **Aangepaste velden** en in de incidentenlijst. Andere velden bewerken behoudt haar; kies een andere optie om haar te wijzigen.
+
+De aangepaste velden van alle andere resources werken hetzelfde: monitors, waarschuwingen, gepland onderhoud, statuspagina's, on-callbeleid, teams, teamleden en inventarisitems. Een optie van een monitorveld hernoemen of toevoegen doet hetzelfde in de incident-, waarschuwings- en onderhoudsvelden die het overnemen, zodat die elke waarde blijven aanbieden die ze overnemen.
+
+Via de API stuurt u de nieuwe lijst als `dropdownOptions` en de hernoemingen in `miscDataProps`:
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Elke `to` moet na het opslaan een optie van het veld zijn, en elke `from` kan maar één keer worden hernoemd. Zonder `renamedDropdownOptions` verandert alleen de lijst en blijft elke opgeslagen waarde zoals ze is; dat doet ook een wijziging van `dropdown_options` in Terraform.
 
 ## Incidentrollen
 

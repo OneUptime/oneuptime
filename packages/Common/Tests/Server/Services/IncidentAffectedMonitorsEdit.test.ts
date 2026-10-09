@@ -23,6 +23,7 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -404,6 +405,16 @@ beforeEach(() => {
       }),
     );
   }) as never);
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(IncidentService, () => {
+    return storedIncidents.map((stored: StoredIncident) => {
+      return { _id: stored.id };
+    });
+  });
 
   jest.spyOn(IncidentService, "findOneById").mockImplementation(((findBy: {
     id: ObjectID;

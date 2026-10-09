@@ -152,20 +152,17 @@ export default class DiscoveredResourceUpdate {
 
     values[column] = value;
 
-    // The rows this write reaches - already narrowed to what the caller may write.
-    const targets: Array<TModel> = await data.service.findBy({
-      query: data.updateBy.query,
-      select: {
+    /*
+     * Every row this write reaches - the ones the caller may write - with
+     * the write held to them: whether it is refused turns on whether any of
+     * them changes, so each one is read.
+     */
+    const targets: Array<TModel> =
+      await data.service.findRowsAndHoldUpdateToThem(data.updateBy, {
         _id: true,
         projectId: true,
         [column]: true,
-      } as unknown as Select<TModel>,
-      skip: 0,
-      limit: 2,
-      props: {
-        isRoot: true,
-      },
-    });
+      } as unknown as Select<TModel>);
 
     const changing: Array<TModel> = targets.filter((row: TModel): boolean => {
       return !isSameText(readColumn(row, column), value);

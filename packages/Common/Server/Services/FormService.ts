@@ -9,7 +9,6 @@ import ProjectService, { CurrentPlan } from "./ProjectService";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -356,28 +355,25 @@ export class Service extends DatabaseService<Model> {
         },
       )
     ) {
-      const forms: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const forms: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           projectId: true,
           logoFileId: true,
           faviconFileId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       /*
-       * Hooks run before the permission layer narrows the update to the
-       * request's project, so the forms read here may be another project's.
-       * The files must then come from the request's project, as every other
-       * reference a form names does, and what such a form shows now is not
-       * used: an update aimed at another project's form is refused alike
-       * whichever file it names, and so tells nothing about that project.
+       * The forms read are the ones the update writes. A teammate's are the
+       * forms they may write; OneUptime's, or a master admin's, are whatever
+       * the update's query names, which may be another project's than the
+       * request's. The files must then come from the request's project, as
+       * every other reference a form names does, and what such a form shows
+       * now is not used: an update aimed at another project's form is
+       * refused alike whichever file it names, and so tells nothing about
+       * that project.
        */
       const tenantId: ObjectID | undefined = updateBy.props.tenantId;
 
@@ -427,21 +423,16 @@ export class Service extends DatabaseService<Model> {
      * drops it the next time the template is saved - refusing would keep an
      * admin from editing the questions until every template was redone.
      */
-    const forms: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const forms: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         targetType: true,
         fields: true,
         targetSettings: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const form of forms) {
       const targetType: FormTargetType = changesTarget

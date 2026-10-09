@@ -6,7 +6,6 @@ import ScheduledMaintenanceMeasurementService from "./ScheduledMaintenanceMeasur
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -49,8 +48,6 @@ import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
@@ -796,17 +793,22 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
+    // The one event an update names by its id: what it holds decides this.
+    const scheduledMaintenanceId: ObjectID | null = Service.getOneRowIdNamedBy(
+      updateBy.query,
+    );
+
     if (
-      updateBy.query._id &&
+      scheduledMaintenanceId &&
       (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent ||
         updateBy.data.startsAt)
     ) {
       logger.debug(
-        `Calculating nextSubscriberNotificationBeforeTheEventAt for Scheduled Maintenance: ${updateBy.query.id}`,
+        `Calculating nextSubscriberNotificationBeforeTheEventAt for Scheduled Maintenance: ${scheduledMaintenanceId.toString()}`,
       );
 
       const scheduledMaintenance: Model | null = await this.findOneById({
-        id: updateBy.query._id! as ObjectID,
+        id: scheduledMaintenanceId,
         select: {
           startsAt: true,
           sendSubscriberNotificationsOnBeforeTheEvent: true,
@@ -1057,11 +1059,8 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         )
       : null;
 
-    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-      query: updateBy.props.tenantId
-        ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-        : updateBy.query,
-      select: {
+    const scheduledMaintenanceEvents: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         projectId: true,
         ...(isMonitorStatusWritten
@@ -1073,13 +1072,7 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         ...(ScheduledMaintenanceFieldChange.getSelect(
           fieldsWritten,
         ) as Select<Model>),
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     const monitorStatus: Dictionary<MonitorStatusBeforeUpdate> | null =
       isMonitorStatusWritten ? {} : null;
@@ -1330,17 +1323,8 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         },
       } as Select<Model>;
 
-      const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-        query: updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-        select: select,
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      const scheduledMaintenanceEvents: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, select);
 
       for (const scheduledMaintenanceEvent of scheduledMaintenanceEvents) {
         if (!scheduledMaintenanceEvent.id) {
@@ -1541,14 +1525,14 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
      */
     const projectIds: Array<ObjectID> = updateBy.props.tenantId
       ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -1603,33 +1587,6 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
       },
       ...getAffectedResourceRelations(this.getModel()),
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const scheduledMaintenance of scheduledMaintenanceEvents) {
-      if (scheduledMaintenance.projectId) {
-        projectIds[scheduledMaintenance.projectId.toString()] =
-          scheduledMaintenance.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()

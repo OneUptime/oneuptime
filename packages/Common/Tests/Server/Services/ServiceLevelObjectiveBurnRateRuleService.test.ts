@@ -1005,7 +1005,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate", () => {
       longWindowInMinutes: true,
       shortWindowInMinutes: true,
     });
-    expect(findByArg.props).toEqual({ isRoot: true });
+    expect(findByArg.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   it("rejects a long-window-only update that would sink below the persisted short window", async () => {
@@ -1260,7 +1260,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - what the rul
       shouldCreateAlert: true,
       shouldCreateIncident: true,
     });
-    expect(findByArguments.props).toEqual({ isRoot: true });
+    expect(findByArguments.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   const acceptedAgainstSibling: Array<{
@@ -1631,9 +1631,13 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
 
     expect(findBySpy).toHaveBeenCalledTimes(1);
     expect(findByArgumentsAt(findBySpy, 0).select).toEqual({
+      _id: true,
       projectId: true,
     });
-    expect(findByArgumentsAt(findBySpy, 0).props).toEqual({ isRoot: true });
+    expect(findByArgumentsAt(findBySpy, 0).props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
 
     // Two rules, one project: the lookup must not run per rule.
     expect(validatorSpy).toHaveBeenCalledTimes(1);

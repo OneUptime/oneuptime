@@ -6,7 +6,6 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
-import Query from "../../../Server/Types/Database/Query";
 import ProjectReferenceCheck, {
   JsonReferenceColumn,
 } from "../../../Server/Utils/Database/ProjectReferenceCheck";
@@ -30,6 +29,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");
@@ -207,13 +210,14 @@ beforeEach(() => {
     return [runbook];
   }) as never);
 
-  // The rows the caller may update: the update's query, in its project.
-  getJestSpyOn(ModelPermission, "getUpdatableQuery").mockImplementation((async (
-    _modelType: unknown,
-    query: Query<Runbook>,
-  ) => {
-    return { ...query, projectId: PROJECT_ID };
-  }) as never);
+  /*
+   * The rows the caller may update: the update's query, in its project, as
+   * the read above answers it.
+   */
+  stubRowsCallerMayWriteLikeFindBy(
+    RunbookService,
+    jest.spyOn(RunbookService, "findBy"),
+  );
 });
 
 afterEach(() => {
@@ -464,10 +468,14 @@ describe("changing a runbook's steps", () => {
       RUNBOOK_ADMIN,
       { steps: [expect.objectContaining({ type: RunbookStepType.SSH })] },
     );
+    expect(readsOfRowsCallerMayWrite(RunbookService)[0]!.query).toEqual({
+      _id: RUNBOOK_ID,
+      projectId: PROJECT_ID,
+    });
     expect(RunbookService.findBy).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: { _id: RUNBOOK_ID, projectId: PROJECT_ID },
-        props: { isRoot: true },
+        query: { _id: RUNBOOK_ID },
+        props: { isRoot: true, ignoreHooks: true },
       }),
     );
   });

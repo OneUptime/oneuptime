@@ -21,6 +21,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  stubRowsCallerMayWrite,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * An incident template can limit the incidents declared from it to status
@@ -119,6 +123,14 @@ beforeEach(() => {
   jest
     .spyOn(IncidentTemplateService, "findBy")
     .mockImplementation(templateFindBy as never);
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(IncidentTemplateService, () => {
+    return storedTemplates;
+  });
 
   statusPageFindBy = getJestMockFunction();
   statusPageFindBy.mockImplementation(
@@ -292,9 +304,12 @@ describe("IncidentTemplateService: the status pages a caller adds must be pages 
       props: DatabaseCommonInteractionProps;
     } = templateFindBy.mock.calls[0]![0];
 
-    expect(findBy.props).toEqual({ isRoot: true });
-    expect(findBy.query["projectId"]).toBe(projectId);
+    expect(findBy.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(findBy.query["_id"]).toBe(templateId);
+    // Within the caller's project: the rows they may write are found there.
+    expect(
+      readsOfRowsCallerMayWrite(IncidentTemplateService)[0]!.query["projectId"],
+    ).toBe(projectId);
   });
 
   test("a root caller adds any page", async () => {

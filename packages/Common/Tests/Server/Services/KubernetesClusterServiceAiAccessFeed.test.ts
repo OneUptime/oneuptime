@@ -24,6 +24,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -151,6 +152,15 @@ describe("KubernetesClusterService AI access feed", () => {
           aiAccessCredentialId: null,
         } as unknown as KubernetesCluster,
       ]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
     jest.spyOn(KubernetesClusterService, "findOneById").mockResolvedValue({
       projectId: PROJECT_ID,
     } as unknown as KubernetesCluster);

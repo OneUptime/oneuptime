@@ -25,6 +25,19 @@ import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ServiceLevelObjectiveMonitorRuleService,
+    jest.spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy"),
+  );
+});
 /*
  * Contract under test - creating an SLO's first monitor rule while the SLO
  * still runs on the deprecated "Auto-Add Monitors With Labels" list.

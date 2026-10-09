@@ -1263,25 +1263,6 @@ export class Service extends ProjectReferencesService<Model> {
     return inheritedProbeId;
   }
 
-  /*
-   * onBeforeUpdate runs before DatabaseService permission-checks the query,
-   * so reading the raw client query as root would hand the hook rows from
-   * other projects. Re-apply the caller's tenant here.
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
-  }
-
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -1749,9 +1730,8 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const previousDevices: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-      select: {
+    const previousDevices: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         projectId: true,
         siteId: true,
@@ -1772,13 +1752,7 @@ export class Service extends ProjectReferencesService<Model> {
         snmpOids: true,
         // The polling guard and the method transition both need the OLD method.
         monitoringMethod: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     if (isPollingTurnOn) {
       const isTargetMonitorBacked: boolean = previousDevices.some(

@@ -1090,7 +1090,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         Array<StoredProjectAuditLogSettings>
       > => {
         return this.findAuditLogSettingsInCallerScope({
-          query: updateBy.query,
+          updateBy: updateBy,
           props: updateBy.props,
         });
       },
@@ -1169,23 +1169,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     // The same rows, and the same window of them, the update writes.
-    const projects: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
       },
-      limit:
-        updateBy.limit instanceof PositiveNumber
-          ? updateBy.limit.toNumber()
-          : updateBy.limit,
-      skip:
-        updateBy.skip instanceof PositiveNumber
-          ? updateBy.skip.toNumber()
-          : updateBy.skip,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const project of projects) {
       if (!project.id) {
@@ -1363,21 +1352,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * check that follows anyway.
    */
   private async findAuditLogSettingsInCallerScope(data: {
-    query: Query<Model>;
+    updateBy: UpdateBy<Model>;
     props: DatabaseCommonInteractionProps;
   }): Promise<Array<StoredProjectAuditLogSettings>> {
-    const projects: Array<Model> = await this.findBy({
-      query: data.query,
-      select: {
+    // The projects the update writes, and the update held to them.
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      data.updateBy,
+      {
         _id: true,
         enableAuditLogs: true,
         storeSystemEventsInAuditLogs: true,
         auditLogsRetentionInDays: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
 
     const callerProjectIds: Array<string> = data.props.isMasterAdmin
       ? []

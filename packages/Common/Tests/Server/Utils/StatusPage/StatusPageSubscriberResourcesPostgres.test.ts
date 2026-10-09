@@ -13,7 +13,7 @@ import { ProjectScopedReferenceException } from "../../../../Server/Utils/Databa
 import StatusPageSubscriberResources from "../../../../Server/Utils/StatusPage/StatusPageSubscriberResources";
 import StatusPageEventType from "../../../../Types/StatusPage/StatusPageEventType";
 import ObjectID from "../../../../Types/ObjectID";
-import { DataSource } from "typeorm";
+import { And, DataSource, FindOperator } from "typeorm";
 
 /*
  * THE RESOURCES A SUBSCRIPTION NAMES ARE ITS OWN STATUS PAGE'S - against a
@@ -342,7 +342,7 @@ describePostgres(
         statusPageId: pageA,
         resources: [],
       });
-      // Another project's subscriber, which the update must not reach.
+      // Another project's subscriber, which an update of this project's does not reach.
       await seedSubscriber({
         statusPageId: otherProjectPage,
         projectId: otherProjectId,
@@ -350,7 +350,7 @@ describePostgres(
       });
 
       const updateBy: UpdateBy<StatusPageSubscriber> = {
-        query: {},
+        query: { projectId: projectId },
         data: {
           statusPageResources: [own, legacyForeign].map(
             (id: ObjectID): StatusPageResource => {
@@ -559,6 +559,120 @@ describePostgres(
       }
     });
 
+    /*
+     * A check made once the permission check has run reads the rows the
+     * caller may write when it asks, and holds the update to them with the
+     * conditions its query set on _id kept beside their ids - read, and read
+     * again with the held query, by Postgres.
+     */
+    test("a teammate's check after the permission check keeps the update's conditions on _id beside the rows it holds", async () => {
+      const theirs: ObjectID = await seedSubscriber({
+        statusPageId: pageA,
+        resources: [],
+      });
+      const notTheirs: ObjectID = await seedSubscriber({
+        statusPageId: pageA,
+        resources: [],
+      });
+      const notNamed: ObjectID = await seedSubscriber({
+        statusPageId: pageA,
+        resources: [],
+      });
+
+      // The update's own conditions on _id: it names theirs and notTheirs.
+      const named: FindOperator<unknown> = And(
+        QueryHelper.any([
+          theirs.toString(),
+          notTheirs.toString(),
+        ]) as unknown as FindOperator<unknown>,
+        QueryHelper.any([
+          theirs.toString(),
+          notTheirs.toString(),
+          notNamed.toString(),
+        ]) as unknown as FindOperator<unknown>,
+      );
+
+      // The caller may write theirs and notNamed.
+      const updatableQuery: jest.SpyInstance = jest
+        .spyOn(ModelPermission, "getUpdatableQuery")
+        .mockImplementation(
+          async (
+            _modelType: unknown,
+            query: Query<StatusPageSubscriber>,
+          ): Promise<Query<StatusPageSubscriber>> => {
+            return {
+              ...query,
+              projectId: projectId,
+              _id: And(
+                (query as unknown as Record<string, FindOperator<unknown>>)[
+                  "_id"
+                ]!,
+                QueryHelper.any([
+                  theirs.toString(),
+                  notNamed.toString(),
+                ]) as unknown as FindOperator<unknown>,
+              ),
+            } as unknown as Query<StatusPageSubscriber>;
+          },
+        );
+
+      try {
+        const updateBy: UpdateBy<StatusPageSubscriber> = {
+          query: { statusPageId: pageA, _id: named },
+          data: { isSubscribedToAllResources: true },
+          props: {
+            tenantId: projectId,
+            userId: ObjectID.generate(),
+          },
+          skip: 0,
+          limit: 10,
+        } as unknown as UpdateBy<StatusPageSubscriber>;
+
+        const rows: Array<StatusPageSubscriber> =
+          await StatusPageSubscriberService.findRowsAndHoldUpdateToThem(
+            updateBy,
+            { _id: true, statusPageId: true },
+          );
+
+        expect(
+          sorted(
+            rows.map((row: StatusPageSubscriber): string => {
+              return row._id!;
+            }),
+          ),
+        ).toEqual(sorted([theirs]));
+
+        const heldBy: unknown = (
+          updateBy.query as unknown as Record<string, unknown>
+        )["_id"];
+
+        // The update's conditions stay, beside the one row it is held to.
+        expect((heldBy as FindOperator<unknown>).type).toBe("and");
+        expect((heldBy as FindOperator<unknown>).value).toContain(named);
+        expect(updateBy.limit).toBe(1);
+
+        // The held query, as the write reads it, names that row and no other.
+        const written: Array<StatusPageSubscriber> =
+          await StatusPageSubscriberService.findBy({
+            query: updateBy.query,
+            select: { _id: true },
+            skip: 0,
+            limit: 10,
+            props: { isRoot: true, ignoreHooks: true },
+          });
+
+        expect(
+          sorted(
+            written.map((row: StatusPageSubscriber): string => {
+              return row._id!;
+            }),
+          ),
+        ).toEqual(sorted([theirs]));
+      } finally {
+        updatableQuery.mockRestore();
+      }
+    });
+
     test("a visitor's change adds only what the page shows, and keeps a hidden resource it names already", async () => {
       const shown: ObjectID = await seedResource({
         statusPageId: pageA,
@@ -622,7 +736,7 @@ describePostgres(
       }
     });
 
-    test("an update adds only the subscriber's page's resources, keeps what it names already, and reads only the request's project", async () => {
+    test("an update adds only the subscriber's page's resources, keeps what it names already, and reads only the rows its query names", async () => {
       const ownArchived: ObjectID = await seedResource({
         statusPageId: pageA,
         monitorId: await seedMonitor({ isArchived: true }),
@@ -649,15 +763,23 @@ describePostgres(
         resources: [],
       });
 
+      /*
+       * OneUptime's update of one subscriber, made in this project: its
+       * query names the project unless `inAnyProject` says it does not.
+       */
       const checkUpdate: (data: {
         id: ObjectID;
         resources: Array<ObjectID>;
+        inAnyProject?: boolean;
       }) => Promise<void> = async (data: {
         id: ObjectID;
         resources: Array<ObjectID>;
+        inAnyProject?: boolean;
       }): Promise<void> => {
         const updateBy: UpdateBy<StatusPageSubscriber> = {
-          query: { _id: data.id.toString() },
+          query: data.inAnyProject
+            ? { _id: data.id.toString() }
+            : { _id: data.id.toString(), projectId: projectId },
           data: {
             statusPageResources: data.resources.map(
               (id: ObjectID): StatusPageResource => {
@@ -701,8 +823,8 @@ describePostgres(
       expect(refused.message).not.toContain(ownArchived.toString());
 
       /*
-       * A subscriber of another project is not read under this project:
-       * the update reaches nothing, and the framework answers it.
+       * An update that names this project does not reach another project's
+       * subscriber: nothing is read, and the update is held to nothing.
        */
       await expect(
         checkUpdate({
@@ -710,6 +832,20 @@ describePostgres(
           resources: [otherPage],
         }),
       ).resolves.toBeUndefined();
+
+      /*
+       * OneUptime's update by id alone writes that subscriber, in whatever
+       * project it is, so it is checked against the subscriber's own page.
+       */
+      const refusedElsewhere: Error = await refusalOf(
+        checkUpdate({
+          id: otherProjectSubscriber,
+          resources: [otherPage],
+          inAnyProject: true,
+        }),
+      );
+      expect(refusedElsewhere).toBeInstanceOf(ProjectScopedReferenceException);
+      expect(refusedElsewhere.message).toContain(otherPage.toString());
     });
 
     test("the subscriber jobs read each named resource with its page, and tell a subscriber only through its own page's", async () => {

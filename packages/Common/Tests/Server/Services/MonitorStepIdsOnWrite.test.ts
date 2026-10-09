@@ -56,6 +56,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * What a monitor written by the Terraform provider goes through on the way to
@@ -192,6 +193,17 @@ beforeEach(() => {
     .mockImplementation(() => {
       return Promise.resolve(storedRows);
     }) as unknown as SpyLike;
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks: the rows stored.
+   */
+  stubRowsCallerMayWrite(MonitorService, () => {
+    return storedRows;
+  });
+  stubRowsCallerMayWrite(MonitorTemplateService, () => {
+    return storedRows;
+  });
 
   // The status a new monitor starts in (MonitorService.onBeforeCreate).
   jest
@@ -449,6 +461,7 @@ describe("MonitorTemplateService gives the ids inside monitorSteps", () => {
     );
 
     const row: MonitorTemplate = new MonitorTemplate();
+    row._id = MONITOR_ID.toString();
     row.projectId = PROJECT_ID;
     row.monitorType = MonitorType.Website;
     row.monitorSteps = stored(created);

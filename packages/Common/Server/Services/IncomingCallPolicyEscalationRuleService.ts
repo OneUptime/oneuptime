@@ -131,7 +131,7 @@ export class Service extends ProjectReferencesService<IncomingCallPolicyEscalati
       RelationIdUtil.isPresent(data, USER_KEYS) ||
       RelationIdUtil.isPresent(data, SCHEDULE_KEYS);
 
-    if (isTouchingTarget && updateBy.query._id) {
+    if (isTouchingTarget) {
       const settingUser: boolean = Boolean(
         RelationIdUtil.readConsistent(data, USER_KEYS, "User"),
       );
@@ -156,40 +156,35 @@ export class Service extends ProjectReferencesService<IncomingCallPolicyEscalati
         RelationIdUtil.stamp(data, USER_KEYS, null);
       }
 
-      const existing: IncomingCallPolicyEscalationRule | null =
-        await this.findOneBy({
-          query: {
-            _id: updateBy.query._id!,
-          },
-          select: {
-            userId: true,
-            onCallDutyPolicyScheduleId: true,
-          },
-          props: {
-            isRoot: true,
-          },
+      // Every rule the update writes, and the update held to them.
+      const existingRules: Array<IncomingCallPolicyEscalationRule> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          userId: true,
+          onCallDutyPolicyScheduleId: true,
         });
 
-      /*
-       * Whether each target will be present AFTER this update, accounting for
-       * fields left untouched (keep existing) and the opposite-field clearing
-       * done above.
-       */
-      const willHaveUser: boolean = settingUser
-        ? true
-        : !RelationIdUtil.isPresent(data, USER_KEYS)
-          ? Boolean(existing?.userId)
-          : false;
-      const willHaveSchedule: boolean = settingSchedule
-        ? true
-        : !RelationIdUtil.isPresent(data, SCHEDULE_KEYS)
-          ? Boolean(existing?.onCallDutyPolicyScheduleId)
-          : false;
+      for (const existing of existingRules) {
+        /*
+         * Whether each target will be present AFTER this update, accounting
+         * for fields left untouched (keep existing) and the opposite-field
+         * clearing done above.
+         */
+        const willHaveUser: boolean = settingUser
+          ? true
+          : !RelationIdUtil.isPresent(data, USER_KEYS)
+            ? Boolean(existing.userId)
+            : false;
+        const willHaveSchedule: boolean = settingSchedule
+          ? true
+          : !RelationIdUtil.isPresent(data, SCHEDULE_KEYS)
+            ? Boolean(existing.onCallDutyPolicyScheduleId)
+            : false;
 
-      if (!willHaveUser && !willHaveSchedule) {
-        throw new BadDataException(
-          "Either a User or an On-Call Schedule must be specified for the escalation rule",
-        );
+        if (!willHaveUser && !willHaveSchedule) {
+          throw new BadDataException(
+            "Either a User or an On-Call Schedule must be specified for the escalation rule",
+          );
+        }
       }
     }
 

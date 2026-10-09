@@ -90,11 +90,43 @@ Gå til **Hendelser → Innstillinger → Egendefinerte felt** (`/dashboard/{pro
 - **Feltnavn** — påkrevd, minst to tegn. Plassholderen foreslår et slug-aktig navn som `internal-service`.
 - **Feltbeskrivelse** — valgfritt.
 - **Felttype** — påkrevd. Den bestemmer hvordan data legges inn. Nedtrekkstyper trenger også at alternativene listes opp.
-- **Nedtrekksalternativer** — verdiene som vises i nedtrekkslisten, hver med en valgfri farge.
+- **Nedtrekksalternativer** — verdiene som vises i nedtrekkslisten, hver med en valgfri farge. Dra et alternativ i håndtaket for å endre plasseringen i listen. Alternativer kan også legges til, få nytt navn og fjernes når hendelser allerede har verdier; se nedenfor.
 
 Definisjonene bor i sin egen modell; verdiene bor på selve hendelsen i kolonnen `customFields`. På en enkelt hendelse fyller du dem ut fra **Egendefinerte felt** i hendelsens sidemeny (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **Ett hull verdt å kjenne til.** Definisjoner av egendefinerte hendelsesfelt er den eneste delen av hendelsesfamilien uten arbeidsflyt-triggere — se arbeidsflytdelen nedenfor.
+
+### Endre alternativene i en nedtrekksliste
+
+Alternativene i et felt av typen **Nedtrekksliste (enkeltvalg)** eller **Nedtrekksliste (flervalg)** kan endres når som helst: åpne **Rediger** på feltets rad. En hendelse lagrer teksten til alternativet den fikk, så hva en endring gjør med hendelsene som har et alternativ, avhenger av endringen:
+
+| Det du gjør med et alternativ               | Det som skjer med hendelsene som har det                                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Legger det til**                          | Ingenting. Det tilbys fra nå av.                                                                                                            |
+| **Gir det nytt navn** (endrer teksten)      | De viser det nye navnet. Under alternativet står det hvor mange hendelser det gjelder.                                                      |
+| **Fjerner det** (søppelkassen ved siden av) | De beholder det, vist som _ikke lenger et alternativ_, med mindre du velger et annet alternativ for dem under **Ikke lenger alternativer**. |
+| **Drar det** i håndtaket                    | Ingenting. Bare rekkefølgen alternativene står i, endres.                                                                                   |
+
+Når skjemaet åpnes, teller det hvor mange hendelser som har hver verdi. **Ikke lenger alternativer** viser hvert fjernet alternativ som en hendelse fortsatt har, og hver verdi hendelser har som aldri var et alternativ (for eksempel en skrevet via API-et), hver med antall hendelser. Behold hver som den er, eller velg alternativet disse hendelsene skal ha i stedet. **Angre** henter tilbake et alternativ du fjernet ved en feil.
+
+Et alternativ med nytt navn, og en verdi du velger et alternativ for, flyttes når du lagrer: på hver hendelse og hver hendelsesmal i prosjektet, i de lagrede visningene av hendelseslisten som filtrerer etter den, og i svarene som skjemamaler gir for feltet. Det starter ingen **On Update Incident**-arbeidsflyt og endrer ikke tidspunktet for siste oppdatering på noen hendelse; mislykkes det, flyttes ingenting, og feltet beholder de gamle alternativene. Arbeidsflyter, API-klienter og Terraform-konfigurasjoner som skriver et alternativ med den gamle teksten, trenger den nye.
+
+En hendelse der feltet ikke lenger tilbyr verdien, viser verdien, merket _ikke lenger et alternativ_, på siden **Egendefinerte felt** og i hendelseslisten. Å redigere de andre feltene beholder den; velg et annet alternativ for å endre den.
+
+Egendefinerte felt på alle andre ressurser fungerer på samme måte: monitorer, varsler, planlagt vedlikehold, statussider, vaktpolicyer, team, teammedlemmer og inventarelementer. Å gi et alternativ i et monitorfelt nytt navn eller legge til et gjør det samme i hendelses-, varsel- og vedlikeholdsfeltene som kopierer det, slik at de fortsatt tilbyr hver verdi de kopierer.
+
+Via API-et sender du den nye listen som `dropdownOptions` og navneendringene i `miscDataProps`:
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Hver `to` må være et av feltets alternativer når det er lagret, og hver `from` kan bare få nytt navn én gang. Uten `renamedDropdownOptions` endres bare listen, og hver lagret verdi forblir som den er, som også er det en endring av `dropdown_options` i Terraform gjør.
 
 ## Hendelsesroller
 

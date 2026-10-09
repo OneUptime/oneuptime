@@ -990,7 +990,12 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
     expect(getPillColors("#fef08a").light.textColor).not.toBe("#fef08a");
   });
 
-  test("falls back to the uncolored badge for a saved value no longer in the options", () => {
+  test("marks a saved value that is no longer an option: gray, and said on hover and to a screen reader", () => {
+    /*
+     * An option taken out after the record chose it (#4564) is still the
+     * record's value: shown as itself, never as an empty cell, but not in the
+     * colors of the options the field offers.
+     */
     const container: HTMLElement = renderValue({
       value: "Critical",
       definition: coloredDropdownDefinition,
@@ -999,11 +1004,29 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
       '[data-dropdown-value-badge="true"]',
     );
 
-    expect(
-      requireElement(badgeElement).classList.contains("bg-indigo-50"),
-    ).toBe(true);
+    expect(requireElement(badgeElement).textContent).toBe("Critical");
     expect(
       requireElement(badgeElement).getAttribute("data-dropdown-value-color"),
+    ).toBe("#6b7280");
+
+    const marker: HTMLElement = requireElement(
+      container.querySelector<HTMLElement>('[data-no-longer-an-option="true"]'),
+    );
+    expect(marker.getAttribute("title")).toBe("No longer an option");
+    expect(marker.querySelector(".sr-only")?.textContent).toBe(
+      " (No longer an option)",
+    );
+  });
+
+  test("a dropdown with no options at all marks nothing: there is nothing to compare with", () => {
+    const container: HTMLElement = renderValue({
+      value: "Critical",
+      definition: { ...coloredDropdownDefinition, dropdownOptions: "" },
+    });
+
+    expect(getBadgeLabels(container)).toEqual(["Critical"]);
+    expect(
+      container.querySelector('[data-no-longer-an-option="true"]'),
     ).toBeNull();
   });
 
@@ -1038,9 +1061,13 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
     expect(badges).toHaveLength(3);
     expect(badgeColor(requireElement(badges[0]))).toEqual("rgb(14, 165, 233)");
     expect(badgeColor(requireElement(badges[1]))).toEqual("rgb(168, 85, 247)");
-    expect(requireElement(badges[2]).classList.contains("bg-indigo-50")).toBe(
-      true,
-    );
+    // Legacy is no longer an option: gray, and marked.
+    expect(
+      requireElement(badges[2]).getAttribute("data-dropdown-value-color"),
+    ).toBe("#6b7280");
+    expect(
+      container.querySelectorAll('[data-no-longer-an-option="true"]'),
+    ).toHaveLength(1);
   });
 
   test("renders a bare string on a multi-select field as one badge", () => {
@@ -1067,11 +1094,23 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
   });
 
   test("stringifies non-string multi-select entries", () => {
+    const container: HTMLElement = renderValue({
+      value: [1, "Infra", 2],
+      definition: multiSelectDefinition,
+    });
+
     expect(
-      getBadgeLabels(
-        renderValue({ value: [1, 2], definition: multiSelectDefinition }),
-      ),
-    ).toEqual(["1", "2"]);
+      Array.from(
+        container.querySelectorAll('[data-dropdown-value-badge="true"]'),
+      ).map((element: Element): string => {
+        return (element.textContent || "").trim();
+      }),
+    ).toEqual(["1", "Infra", "2"]);
+
+    // Neither number is one of the options.
+    expect(
+      container.querySelectorAll('[data-no-longer-an-option="true"]'),
+    ).toHaveLength(2);
   });
 
   test("renders the placeholder for an empty multi-select array", () => {

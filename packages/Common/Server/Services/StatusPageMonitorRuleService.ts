@@ -435,42 +435,24 @@ export class Service extends ProjectReferencesService<Model> {
   /**
    * The rules an update actually touches, read for validation.
    *
-   * onBeforeUpdate runs before DatabaseService applies the update query's
-   * permission check, so the query here is still the caller's raw one. The
-   * tenant is pinned onto it when the caller has one, so a validation read can
-   * never reach across projects and answer questions about another tenant's
-   * rules. Genuinely root callers (the engines, migrations) have no tenantId
-   * and are trusted.
+   * They are the rows the update writes - for a teammate, the rules they may
+   * write - and the update is held to them (findRowsAndHoldUpdateToThem), so
+   * a validation read never answers questions about another project's rules,
+   * and no rule is written that was not validated.
    */
   private async findRulesForQuery(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<Model>> {
-    const query: Record<string, unknown> = {
-      ...(updateBy.query as Record<string, unknown>),
-    };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
-    return await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: {
+    return await this.findRowsAndHoldUpdateToThem(updateBy, {
+      _id: true,
+      projectId: true,
+      statusPageId: true,
+      monitorLabels: {
         _id: true,
-        projectId: true,
-        statusPageId: true,
-        monitorLabels: {
-          _id: true,
-        },
-        monitorNamePattern: true,
-        monitorDescriptionPattern: true,
-        criteria: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
+      monitorNamePattern: true,
+      monitorDescriptionPattern: true,
+      criteria: true,
     });
   }
 

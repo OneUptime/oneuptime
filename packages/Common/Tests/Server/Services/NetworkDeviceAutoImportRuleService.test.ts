@@ -45,6 +45,22 @@ import { getMetadataArgsStorage } from "typeorm";
 import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    NetworkDeviceAutoImportRuleService,
+    jest.spyOn(NetworkDeviceAutoImportRuleService, "findBy"),
+  );
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
@@ -634,6 +650,7 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
     overrides: Partial<NetworkDeviceAutoImportRule> = {},
   ): jest.SpyInstance {
     const rule: NetworkDeviceAutoImportRule = new NetworkDeviceAutoImportRule();
+    rule._id = "some-rule-id";
     rule.projectId = PROJECT_ID;
     rule.ipMatchTarget = "10.0.0.0/24";
     rule.isExclusion = false;
@@ -665,7 +682,7 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
     expect(findTemplateSpy).not.toHaveBeenCalled();
   });
 
-  it("tenant-scopes the privileged update snapshot before validating a guessed rule ID", async () => {
+  it("reads a guessed rule ID among the rules the caller may write, in their project, before validating", async () => {
     const findRulesSpy: jest.SpyInstance = jest
       .spyOn(NetworkDeviceAutoImportRuleService, "findBy")
       .mockResolvedValue([]);
@@ -685,15 +702,14 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
       (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(updateBy),
     ).resolves.toBeDefined();
 
-    expect(findRulesSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          _id: "some-rule-id",
-          projectId: PROJECT_ID,
-        },
-        props: { isRoot: true },
-      }),
-    );
+    expect(
+      readsOfRowsCallerMayWrite(NetworkDeviceAutoImportRuleService)[0]!.query,
+    ).toEqual({
+      _id: "some-rule-id",
+      projectId: PROJECT_ID,
+    });
+    // Not one of them: nothing more is read about it.
+    expect(findRulesSpy).not.toHaveBeenCalled();
     expect(findTemplateSpy).not.toHaveBeenCalled();
   });
 

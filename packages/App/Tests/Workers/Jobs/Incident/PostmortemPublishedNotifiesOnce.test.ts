@@ -214,6 +214,7 @@ import {
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendPostmortemNotificationToSubscribers";
+import { stubRowsCallerMayWriteLikeFindBy } from "Common/Tests/Server/TestingUtils/RowsCallerMayWrite";
 import {
   afterEach,
   beforeEach,
@@ -602,6 +603,15 @@ beforeEach(() => {
   > => {
     return [read()];
   }) as never);
+  /*
+   * The editor may write the incident: the update path's read of the rows
+   * the caller may write, which a direct hook call skips, is answered as
+   * the incident table answers.
+   */
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
   jest
     .spyOn(IncidentService, "findOneById")
     .mockImplementation((async (): Promise<Incident> => {
