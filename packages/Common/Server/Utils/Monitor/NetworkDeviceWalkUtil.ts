@@ -506,7 +506,14 @@ export default class NetworkDeviceWalkUtil {
   }): Array<NetworkDeviceTransceiver> | undefined {
     const snmpResponse: SnmpMonitorResponse | undefined = data.snmpResponse;
 
-    if (!snmpResponse || snmpResponse.isOnline === false) {
+    if (!snmpResponse) {
+      return undefined;
+    }
+
+    // Only the server judges optics: anything a probe put here is dropped.
+    delete snmpResponse.transceivers;
+
+    if (snmpResponse.isOnline === false) {
       return undefined;
     }
 

@@ -45,6 +45,12 @@ export const MAX_TRANSCEIVERS_IN_CONTEXT: number = 12;
 // Daily received power averages handed over per optic.
 const MAX_TREND_POINTS: number = TRANSCEIVER_RX_BASELINE_DAYS + 1;
 
+/*
+ * A character that would continue a port name: "Gi1/0/1" named in a text is
+ * not "Gi1/0/17", "Gi1/0/1/2" or "xGi1/0/1".
+ */
+const PORT_NAME_CHARACTER_REGEX: RegExp = /[a-z0-9/_-]/;
+
 export interface TransceiverDevice {
   name?: string | undefined;
   transceivers: Array<NetworkDeviceTransceiver>;
@@ -226,7 +232,8 @@ export default class NetworkTransceiverContext {
       return names.some((name: string) => {
         return (
           labelNames.includes(name) ||
-          (name.length >= 3 && focusText.includes(name))
+          (name.length >= 3 &&
+            NetworkTransceiverContext.mentionsPort(focusText, name))
         );
       });
     };
@@ -378,6 +385,34 @@ export default class NetworkTransceiverContext {
       focusText: data.focusText,
       seriesLabels: data.seriesLabels,
     });
+  }
+
+  /*
+   * Whether a (lower-cased) text names a (lower-cased) port as a whole word,
+   * not as the start of a longer port name.
+   */
+  public static mentionsPort(text: string, portName: string): boolean {
+    let from: number = 0;
+
+    for (;;) {
+      const at: number = text.indexOf(portName, from);
+
+      if (at === -1) {
+        return false;
+      }
+
+      const before: string = at > 0 ? text.charAt(at - 1) : "";
+      const after: string = text.charAt(at + portName.length);
+
+      if (
+        !PORT_NAME_CHARACTER_REGEX.test(before) &&
+        !PORT_NAME_CHARACTER_REGEX.test(after)
+      ) {
+        return true;
+      }
+
+      from = at + 1;
+    }
   }
 
   // Whether an optic needs a look: anything but healthy, unjudged or disabled.

@@ -4,14 +4,17 @@
     "untranslated": 16649
   },
   "sameAsEnglish": [
+    "Alarm",
     "CloudWatch Metric Streams",
     "Offline",
+    "Revision",
     "Runbook: {{name}}",
     "Runner",
     "Start import",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "teams",
+    "{{count}} alarm",
     "{{count}} match",
     "{{count}} rotation"
   ]

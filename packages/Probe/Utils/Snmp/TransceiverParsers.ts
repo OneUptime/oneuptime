@@ -9,6 +9,7 @@ import {
   TransceiverThresholds,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import TransceiverUnitUtil from "Common/Utils/NetworkDevice/TransceiverUnitUtil";
+import TransceiverHealthUtil from "Common/Utils/NetworkDevice/TransceiverHealthUtil";
 import { SnmpTableRows } from "./EndpointTableParsers";
 
 /*
@@ -64,6 +65,7 @@ const IF_INDEX_ROW_POINTER_PREFIX: string = "1.3.6.1.2.1.2.2.1.1.";
 // IANAPhysicalClass values the transceiver search cares about.
 const PHYSICAL_CLASS: {
   other: number;
+  unknown: number;
   chassis: number;
   container: number;
   sensor: number;
@@ -72,6 +74,7 @@ const PHYSICAL_CLASS: {
   stack: number;
 } = {
   other: 1,
+  unknown: 2,
   chassis: 3,
   container: 5,
   sensor: 8,
@@ -79,6 +82,19 @@ const PHYSICAL_CLASS: {
   port: 10,
   stack: 11,
 };
+
+/*
+ * The classes an optic is modelled as: Cisco makes it the port itself,
+ * Arista a container ("Xcvr for Ethernet1"), others a module. A power
+ * supply, a fan or a CPU is never one, whatever its sensors are called.
+ */
+const OPTIC_PHYSICAL_CLASSES: Array<number> = [
+  PHYSICAL_CLASS.other,
+  PHYSICAL_CLASS.unknown,
+  PHYSICAL_CLASS.container,
+  PHYSICAL_CLASS.module,
+  PHYSICAL_CLASS.port,
+];
 
 // --- ENTITY-SENSOR-MIB (RFC 3433) ---
 
@@ -626,6 +642,11 @@ function thresholdsFrom(data: {
   return Object.keys(thresholds).length > 0 ? thresholds : undefined;
 }
 
+/*
+ * One reading, with the device's thresholds for it - only the ones that say
+ * something: a set an agent fills with zeros for "not supported" (HPE
+ * Comware does) is no thresholds at all.
+ */
 function setMeasurement(
   measurements: TransceiverMeasurements,
   kind: TransceiverReadingKind,
@@ -636,9 +657,12 @@ function setMeasurement(
     return;
   }
 
+  const meaningful: TransceiverThresholds | undefined =
+    TransceiverHealthUtil.normalizeThresholds(thresholds);
+
   measurements[kind] = {
     readings: [{ value: value }],
-    ...(thresholds ? { thresholds: thresholds } : {}),
+    ...(meaningful ? { thresholds: meaningful } : {}),
   };
 }
 
@@ -897,6 +921,50 @@ function looksLikeTransceiver(entity: EntityRow): boolean {
   );
 }
 
+// The ports an entity holds directly (a QSFP's lanes are not ports).
+function portChildren(
+  entity: EntityRow,
+  childrenByParent: Map<string, Array<EntityRow>>,
+): Array<EntityRow> {
+  return (childrenByParent.get(entity.index) || []).filter(
+    (child: EntityRow) => {
+      return child.physicalClass === PHYSICAL_CLASS.port && !isLaneEntity(child);
+    },
+  );
+}
+
+function isOpticClass(entity: EntityRow): boolean {
+  return (
+    entity.physicalClass === undefined ||
+    OPTIC_PHYSICAL_CLASSES.includes(entity.physicalClass)
+  );
+}
+
+/*
+ * Whether an entity holding sensors is an optic. A line card or a network
+ * module holds many ports and often a temperature sensor, and its model can
+ * even say "SFP" (WS-X4748-SFP-E): it is only an optic when it measures
+ * light AND says it is one - a QSFP split into breakout ports. One port or
+ * none, light or a name that says transceiver is enough.
+ */
+function isOpticOwner(data: {
+  owner: EntityRow;
+  hasOpticalPower: boolean;
+  childrenByParent: Map<string, Array<EntityRow>>;
+}): boolean {
+  if (!isOpticClass(data.owner)) {
+    return false;
+  }
+
+  const ports: number = portChildren(data.owner, data.childrenByParent).length;
+
+  if (ports > 1) {
+    return data.hasOpticalPower && looksLikeTransceiver(data.owner);
+  }
+
+  return data.hasOpticalPower || looksLikeTransceiver(data.owner);
+}
+
 /*
  * The entity a sensor belongs to: its nearest ancestor that is not a lane.
  * Arista hangs a QSFP's per-lane sensors under "Lane N for Xcvr for
@@ -1000,13 +1068,26 @@ function findInterfaceIndex(data: {
     return ownAlias;
   }
 
-  for (const child of data.childrenByParent.get(data.owner.index) || []) {
-    if (child.physicalClass === PHYSICAL_CLASS.port) {
-      const childAlias: number | undefined = fromAlias(child);
-      if (childAlias !== undefined) {
-        return childAlias;
-      }
-    }
+  /*
+   * The port inside it. A cage split into breakout ports holds several:
+   * the optic is reported once, on the first of them.
+   */
+  const childAliases: Array<number> = portChildren(
+    data.owner,
+    data.childrenByParent,
+  )
+    .map((child: EntityRow) => {
+      return fromAlias(child);
+    })
+    .filter((mapped: number | undefined): mapped is number => {
+      return mapped !== undefined;
+    })
+    .sort((a: number, b: number) => {
+      return a - b;
+    });
+
+  if (childAliases.length > 0) {
+    return childAliases[0];
   }
 
   const parent: EntityRow | undefined = data.owner.containedIn
@@ -1405,8 +1486,11 @@ export function parseEntitySensorTransceivers(
 
     measurement.readings.push(reading);
 
-    if (!measurement.thresholds && thresholds) {
-      measurement.thresholds = thresholds;
+    const meaningful: TransceiverThresholds | undefined =
+      TransceiverHealthUtil.normalizeThresholds(thresholds);
+
+    if (!measurement.thresholds && meaningful) {
+      measurement.thresholds = meaningful;
     }
 
     accumulator.measurements[kind] = measurement;
@@ -1434,11 +1518,23 @@ export function parseEntitySensorTransceivers(
     reportedInterfaces.add(interfaceIndex);
 
     for (const measurement of Object.values(accumulator.measurements)) {
-      measurement?.readings.sort(
+      if (!measurement) {
+        continue;
+      }
+
+      measurement.readings.sort(
         (a: TransceiverReading, b: TransceiverReading) => {
           return (a.lane ?? -1) - (b.lane ?? -1);
         },
       );
+
+      /*
+       * One reading is a single-lane optic, whatever the device numbers its
+       * one lane (Arista calls an SFP's "Lane 0"): no lane to name.
+       */
+      if (measurement.readings.length === 1) {
+        delete measurement.readings[0]!.lane;
+      }
     }
 
     const owner: EntityRow = accumulator.owner;
@@ -1465,7 +1561,13 @@ export function parseEntitySensorTransceivers(
 
   for (const accumulator of owners.values()) {
     // A line card's temperature sensors are not an optic.
-    if (!accumulator.hasOpticalPower && !looksLikeTransceiver(accumulator.owner)) {
+    if (
+      !isOpticOwner({
+        owner: accumulator.owner,
+        hasOpticalPower: accumulator.hasOpticalPower,
+        childrenByParent: childrenByParent,
+      })
+    ) {
       continue;
     }
 
@@ -1479,12 +1581,10 @@ export function parseEntitySensorTransceivers(
       isLaneEntity(entity) ||
       !(entity.serial || entity.modelName) ||
       !looksLikeTransceiver(entity) ||
-      ![
-        PHYSICAL_CLASS.other,
-        PHYSICAL_CLASS.container,
-        PHYSICAL_CLASS.module,
-        PHYSICAL_CLASS.port,
-      ].includes(entity.physicalClass ?? -1)
+      entity.physicalClass === undefined ||
+      !isOpticClass(entity) ||
+      // A line card whose model says "SFP" holds many ports; an optic one.
+      portChildren(entity, childrenByParent).length > 1
     ) {
       continue;
     }

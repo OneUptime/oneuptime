@@ -11,6 +11,7 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "../../Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import { NetworkAlertPolicyScopeUtil } from "../../Types/NetworkDevice/NetworkAlertPolicyScope";
 import ObjectID from "../../Types/ObjectID";
+import { TRANSCEIVER_RX_DROP_ALERT_DB } from "./TransceiverHealthUtil";
 
 /*
  * The "one click to alerting" path for network devices.
@@ -198,7 +199,7 @@ export default class NetworkAlertPolicyBootstrapUtil {
    * the tag that makes the template findable.
    */
   public static buildRecommendedTemplateDescription(): string {
-    return `The Recommended Alert Pack for network devices: an incident when a device stops answering ping and SNMP or an interface goes down, an alert when the SNMP walk fails, an interface runs above 80% utilization or logs errors, or a transceiver is no longer detected, passes its alarm threshold or receives 2 dB less light than on its best recent day. Created by the "Create the recommended policy" action under Network > Settings > Alert Policies; edit the criteria here and every monitor the policy provisions follows. Keep the marker below so the action can find this template again.\n\n${RECOMMENDED_TEMPLATE_MARKER}`;
+    return `The Recommended Alert Pack for network devices: an incident when a device stops answering ping and SNMP or an interface goes down, an alert when the SNMP walk fails, an interface runs above 80% utilization or logs errors, or a transceiver is no longer detected, passes its alarm threshold or receives ${TRANSCEIVER_RX_DROP_ALERT_DB} dB less light than on its best recent day. Created by the "Create the recommended policy" action under Network > Settings > Alert Policies; edit the criteria here and every monitor the policy provisions follows. Keep the marker below so the action can find this template again.\n\n${RECOMMENDED_TEMPLATE_MARKER}`;
   }
 
   /*

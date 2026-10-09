@@ -14,6 +14,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import {
   TRANSCEIVER_READING_TITLES,
+  TRANSCEIVER_READING_UNITS,
   TransceiverReadingKind,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 
@@ -408,6 +409,15 @@ export default class CriteriaNameUtil {
         getDatabaseMetricByMetricType(
           criteriaFilter.databaseMonitorOptions.metricType,
         )?.unit || "";
+    } else if (
+      criteriaFilter.checkOn === CheckOn.SnmpTransceiverReading &&
+      criteriaFilter.snmpMonitorOptions?.transceiverReading
+    ) {
+      unit =
+        TRANSCEIVER_READING_UNITS[
+          criteriaFilter.snmpMonitorOptions
+            .transceiverReading as TransceiverReadingKind
+        ] || "";
     }
 
     return unit ? `${value} ${unit}` : value;

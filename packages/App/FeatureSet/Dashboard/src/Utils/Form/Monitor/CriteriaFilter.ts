@@ -18,6 +18,7 @@ import MonitorType, {
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import {
   TRANSCEIVER_READING_TITLES,
+  TRANSCEIVER_READING_UNITS,
   TransceiverReadingKind,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
@@ -234,9 +235,22 @@ export default class CriteriaFilterUtil {
           ? ` ${databaseMetric.unit}`
           : "";
 
+        // A transceiver reading is in its own unit: dBm, °C, V or mA.
+        const transceiverUnit: string | undefined =
+          criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+          criteriaFilter?.snmpMonitorOptions?.transceiverReading
+            ? TRANSCEIVER_READING_UNITS[
+                criteriaFilter.snmpMonitorOptions
+                  .transceiverReading as TransceiverReadingKind
+              ]
+            : undefined;
+        const transceiverUnitSuffix: string = transceiverUnit
+          ? ` ${transceiverUnit}`
+          : "";
+
         text += `${criteriaFilter?.value.toString()}${
           isPercentage ? "%" : ""
-        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix} `;
+        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix}${transceiverUnitSuffix} `;
       }
     }
 

@@ -64,6 +64,11 @@ import crypto from "crypto";
  * is tried with: the first column of a table the agent does not implement
  * comes back as the next object outside it, and the walk ends there.
  *
+ * An empty table answers the same way - and is also how a vendor table
+ * whose every optic was just pulled answers. So a source that read this
+ * device's optics within the last hour is still taken to be there when it
+ * comes back empty: the optics are gone, not the MIB.
+ *
  * Nothing is reported from a partial read. A table longer than its row cap,
  * a walk that runs out of time or a timeout throws, and the caller reports
  * the walk as failed - so the server keeps the device's last good optics
@@ -148,6 +153,8 @@ interface CacheEntry {
   storedAtMs: number;
   // Rows read on a full walk and reused until the signature changes.
   statics: Record<string, SnmpTableRows>;
+  // The last poll this source reported optics for the device.
+  answeredAtMs: number;
 }
 
 /*
@@ -213,6 +220,7 @@ export class TransceiverStaticCache {
       signature: data.signature,
       storedAtMs: data.nowMs,
       statics: data.statics,
+      answeredAtMs: data.nowMs,
     });
 
     while (this.entries.size > this.maxEntries) {
@@ -222,6 +230,44 @@ export class TransceiverStaticCache {
       }
       this.entries.delete(oldest);
     }
+  }
+
+  // The source just reported optics for the device.
+  public noteAnswered(data: {
+    key: string | undefined;
+    source: TransceiverMibSource;
+    nowMs: number;
+  }): void {
+    const entry: CacheEntry | undefined = data.key
+      ? this.entries.get(data.key)
+      : undefined;
+
+    if (entry && entry.source === data.source) {
+      entry.answeredAtMs = data.nowMs;
+    }
+  }
+
+  /*
+   * The source that reported optics for the device within the last TTL,
+   * whatever has happened to the static part since.
+   */
+  public getRecentSource(data: {
+    key: string | undefined;
+    nowMs: number;
+  }): TransceiverMibSource | undefined {
+    const entry: CacheEntry | undefined = data.key
+      ? this.entries.get(data.key)
+      : undefined;
+
+    if (
+      !entry ||
+      data.nowMs < entry.answeredAtMs ||
+      data.nowMs - entry.answeredAtMs >= this.ttlMs
+    ) {
+      return undefined;
+    }
+
+    return entry.source;
   }
 
   public delete(key: string | undefined): void {
@@ -480,6 +526,19 @@ export default class TransceiverWalker {
         });
 
       if (results) {
+        /*
+         * Only a source that found optics renews its standing: one that
+         * keeps answering empty is forgotten after an hour, and the device
+         * is probed afresh - in case it is the MIB that went away.
+         */
+        if (results.length > 0) {
+          TransceiverWalker.cache.noteAnswered({
+            key: input.cacheKey,
+            source: source,
+            nowMs: input.nowMs ?? Date.now(),
+          });
+        }
+
         return { results: results, source: source };
       }
     }
@@ -523,6 +582,7 @@ export default class TransceiverWalker {
    */
   private static async probeColumn(data: {
     input: TransceiverWalkInput;
+    source: TransceiverMibSource;
     tableOid: string;
     column: number;
     maxRows: number;
@@ -544,7 +604,17 @@ export default class TransceiverWalker {
 
     TransceiverWalker.assertUnderCap(rows, data.maxRows, data.tableOid);
 
-    return rowCount(rows) > 0 ? rows : undefined;
+    if (rowCount(rows) > 0) {
+      return rows;
+    }
+
+    // Empty: no MIB - unless this source read the device's optics lately.
+    return TransceiverWalker.cache.getRecentSource({
+      key: data.input.cacheKey,
+      nowMs: data.input.nowMs ?? Date.now(),
+    }) === data.source
+      ? {}
+      : undefined;
   }
 
   private static async collectEntitySensors(data: {
@@ -563,6 +633,7 @@ export default class TransceiverWalker {
     const typeRows: SnmpTableRows | undefined =
       await TransceiverWalker.probeColumn({
         input: data.input,
+        source: data.source,
         tableOid: sensorTableOid,
         column: ENT_PHY_SENSOR_COLUMNS.type,
         maxRows: MAX_SENSOR_ROWS,
@@ -740,6 +811,7 @@ export default class TransceiverWalker {
     const keyRows: SnmpTableRows | undefined =
       await TransceiverWalker.probeColumn({
         input: data.input,
+        source: data.source,
         tableOid: spec.tableOid,
         column: keyColumn!,
         maxRows: MAX_PORT_TABLE_ROWS,
@@ -747,6 +819,11 @@ export default class TransceiverWalker {
 
     if (!keyRows) {
       return undefined;
+    }
+
+    // The table is there and empty: every optic it reported is gone.
+    if (rowCount(keyRows) === 0) {
+      return [];
     }
 
     const pollRows: SnmpTableRows = mergeTableRows(

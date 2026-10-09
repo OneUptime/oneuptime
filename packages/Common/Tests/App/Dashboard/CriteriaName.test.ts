@@ -377,6 +377,54 @@ describe("CriteriaNameUtil.describeFilter - one filter as a phrase", () => {
     ).toBe("SNMP OID Value 1.3.6.1.2.1.1.3.0 is above 5");
   });
 
+  test("a transceiver criteria names its reading, its ports and its unit", () => {
+    expect(
+      CriteriaNameUtil.describeFilter(
+        filter({
+          checkOn: CheckOn.SnmpTransceiverReading,
+          filterType: FilterType.LessThan,
+          value: "-14",
+          snmpMonitorOptions: {
+            interfaceName: "*",
+            transceiverReading: "rxPower",
+          },
+        }),
+      ),
+    ).toBe("SNMP Transceiver RX Power on * is below -14 dBm");
+
+    expect(
+      CriteriaNameUtil.describeFilter(
+        filter({
+          checkOn: CheckOn.SnmpTransceiverReading,
+          filterType: FilterType.GreaterThanOrEqualTo,
+          value: 70,
+          snmpMonitorOptions: { transceiverReading: "temperature" },
+        }),
+      ),
+    ).toBe("SNMP Transceiver Temperature is at least 70 °C");
+
+    expect(
+      CriteriaNameUtil.describeFilter(
+        filter({
+          checkOn: CheckOn.SnmpTransceiverRxPowerDrop,
+          filterType: FilterType.GreaterThanOrEqualTo,
+          value: 2,
+          snmpMonitorOptions: { interfaceName: "Te1/1/1" },
+        }),
+      ),
+    ).toBe("SNMP Transceiver RX Power Drop (in dB) on Te1/1/1 is at least 2");
+
+    expect(
+      CriteriaNameUtil.describeFilter(
+        filter({
+          checkOn: CheckOn.SnmpTransceiverNotDetected,
+          filterType: FilterType.True,
+          snmpMonitorOptions: { interfaceName: "*" },
+        }),
+      ),
+    ).toBe("SNMP Transceiver Not Detected on * is true");
+  });
+
   test("a long text value is cut short", () => {
     const name: string = CriteriaNameUtil.describeFilter(
       filter({

@@ -16,6 +16,7 @@ import IPv4 from "Common/Types/IP/IPv4";
 import IPv6 from "Common/Types/IP/IPv6";
 import { JSONObject } from "Common/Types/JSON";
 import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import { TransceiverMibSource } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
@@ -728,6 +729,70 @@ describe("pollDevice — a successful poll's report", () => {
 
       expect(
         (querySpy.mock.calls[0]![1] as JSONObject)["collectEndpoints"],
+      ).toBe(false);
+    },
+  );
+
+  /*
+   * Transceiver health is read when the server asks for it, and the static
+   * part of a device's optics is cached under the device and its address -
+   * so a device that moves to another address is read in full again.
+   */
+  test("collectTransceivers true is passed through, with the device's cache key", async () => {
+    await pollDevice(makeDevice({ collectTransceivers: true }));
+
+    const options: JSONObject = querySpy.mock.calls[0]![1] as JSONObject;
+    expect(options["collectTransceivers"]).toBe(true);
+    expect(options["transceiverCacheKey"]).toBe("device-1@10.0.0.5");
+  });
+
+  test("the optics the walk read travel to the server with it, a failed read too", async () => {
+    const walk: SnmpMonitorResponse = makeSnmpResponse({
+      transceiverResults: [
+        {
+          interfaceIndex: 49,
+          serialNumber: "F2030411122",
+          measurements: { rxPower: { readings: [{ value: -4.2 }] } },
+          source: TransceiverMibSource.EntitySensor,
+        },
+      ],
+      transceiverSource: TransceiverMibSource.EntitySensor,
+    });
+    querySpy.mockResolvedValue(walk as never);
+
+    await pollDevice(makeDevice({ collectTransceivers: true }));
+
+    const sent: JSONObject = soleIngestBody()["snmpResponse"] as JSONObject;
+    expect(sent["transceiverResults"]).toEqual(walk.transceiverResults);
+    expect(sent["transceiverSource"]).toBe(TransceiverMibSource.EntitySensor);
+
+    fetchSpy.mockClear();
+    querySpy.mockResolvedValue(
+      makeSnmpResponse({
+        transceiverWalkFailure: "Request timed out",
+      }) as never,
+    );
+
+    await pollDevice(makeDevice({ collectTransceivers: true }));
+
+    expect(
+      (soleIngestBody()["snmpResponse"] as JSONObject)[
+        "transceiverWalkFailure"
+      ],
+    ).toBe("Request timed out");
+  });
+
+  test.each([
+    ["false", false],
+    ["absent (a server that predates transceiver health)", undefined],
+    ["a truthy non-boolean", "true"],
+  ])(
+    "collectTransceivers %s means no transceiver read",
+    async (_label: string, value: unknown) => {
+      await pollDevice(makeDevice({ collectTransceivers: value }));
+
+      expect(
+        (querySpy.mock.calls[0]![1] as JSONObject)["collectTransceivers"],
       ).toBe(false);
     },
   );

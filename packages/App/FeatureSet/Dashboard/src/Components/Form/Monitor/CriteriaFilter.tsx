@@ -35,10 +35,10 @@ import {
 import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import {
   TRANSCEIVER_READING_KINDS,
-  TRANSCEIVER_READING_TITLES,
   TRANSCEIVER_READING_UNITS,
   TransceiverReadingKind,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import { TRANSCEIVER_READING_COLUMN_TITLES } from "../../NetworkDevice/TransceiverViewModel";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import Button, {
   ButtonSize,
@@ -375,6 +375,14 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   value: undefined,
                   evaluateOverTime: false,
                   evaluateOverTimeOptions: undefined,
+                  // Same for a transceiver reading: received power first.
+                  ...(checkOn === CheckOn.SnmpTransceiverReading
+                    ? {
+                        snmpMonitorOptions: {
+                          transceiverReading: TransceiverReadingKind.RxPower,
+                        },
+                      }
+                    : {}),
                 });
               }}
             />
@@ -545,15 +553,20 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           (() => {
             /*
              * Which of the optic's five readings this criteria compares. A
-             * criteria saved without one is shown with RX power picked,
-             * which is also what a new one is saved with on first change.
+             * new one starts on received power (see the Filter Type above);
+             * one saved without a reading is not evaluated, and shows the
+             * placeholder until one is picked.
              */
             const readingOptions: Array<DropdownOption> =
               TRANSCEIVER_READING_KINDS.map(
                 (kind: TransceiverReadingKind): DropdownOption => {
                   return {
                     value: kind,
-                    label: `${TRANSCEIVER_READING_TITLES[kind]} (${TRANSCEIVER_READING_UNITS[kind]})`,
+                    label: `${
+                      translator.translateText(
+                        TRANSCEIVER_READING_COLUMN_TITLES[kind],
+                      ) || TRANSCEIVER_READING_COLUMN_TITLES[kind]
+                    } (${TRANSCEIVER_READING_UNITS[kind]})`,
                   };
                 },
               );

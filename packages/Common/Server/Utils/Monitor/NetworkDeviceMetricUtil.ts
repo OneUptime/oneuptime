@@ -22,6 +22,7 @@ import SnmpMonitorResponse, {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import {
   NetworkDeviceTransceiver,
+  SnmpTransceiverResult,
   TRANSCEIVER_READING_KINDS,
   TRANSCEIVER_READING_METRIC_NAMES,
   TRANSCEIVER_READING_TITLES,
@@ -399,12 +400,27 @@ export default class NetworkDeviceMetricUtil {
      * port, reading and lane, so a month of received power is a chart of its
      * own rather than only the page's daily sparkline. An optic that is not
      * detected has no readings and writes nothing.
+     *
+     * Only optics the probe read on this poll: when a read fails the
+     * criteria still judge the stored optics (so alerts do not flap), and
+     * charting those again would draw old readings as new points.
      */
     let transceiverPoints: number = 0;
     let droppedTransceiverPoints: number = 0;
 
+    const readThisPoll: Set<number> = new Set(
+      (data.snmpResponse?.transceiverResults || []).map(
+        (result: SnmpTransceiverResult) => {
+          return result.interfaceIndex;
+        },
+      ),
+    );
+
     for (const transceiver of data.snmpResponse?.transceivers || []) {
-      if (!transceiver.isPresent) {
+      if (
+        !transceiver.isPresent ||
+        !readThisPoll.has(transceiver.interfaceIndex)
+      ) {
         continue;
       }
 
