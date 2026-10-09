@@ -35,10 +35,12 @@ export class Service extends ProjectReferencesService<Model> {
    * The steps are the graph: what each step does, and with what. Creating
    * the workflow, and every save of its graph made in a project - through
    * the builder, the API, Terraform or the admin dashboard - records the
-   * person who made it, and nobody when there is no person (an API key).
-   * A change that leaves the graph as it is - renaming the workflow, its
-   * labels, turning it on or off - keeps who saved its steps: they decided
-   * what the steps do, and whoever only turns the workflow on did not.
+   * person who made it, and nobody when there is no person (an API key) -
+   * even when the graph it writes is the one stored: whoever saves the
+   * steps answers for them from then on. A change that does not write the
+   * graph - renaming the workflow, its labels, turning it on or off - keeps
+   * who saved its steps: they decided what the steps do, and whoever only
+   * turns the workflow on did not.
    * OneUptime's own writes - the trigger it reads off the graph, the
    * webhook key, the labels and owners its rules add - keep it too.
    * Stamped after the save's permission check, as the creator is, so the

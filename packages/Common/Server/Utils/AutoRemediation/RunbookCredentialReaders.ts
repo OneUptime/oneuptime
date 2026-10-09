@@ -1,4 +1,9 @@
 import RelationListPermission from "../../Types/Database/Permissions/RelationListPermission";
+/*
+ * AccessTokenService reaches services that ask this rule (through
+ * KubernetesClusterService), so the two load each other: use it only inside
+ * a method, never while this module loads.
+ */
 import AccessTokenService from "../../Services/AccessTokenService";
 import WorkflowPrincipal from "../Workflow/WorkflowPrincipal";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
