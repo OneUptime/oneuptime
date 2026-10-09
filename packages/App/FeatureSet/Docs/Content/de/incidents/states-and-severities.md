@@ -74,7 +74,7 @@ Pro Projekt soll jeweils nur ein Status jedes Flag tragen – die Abfragen holen
 - **Sie behalten ihre Reihenfolge.** Der Erstellungsstatus kommt vor dem bestätigten, der bestätigte vor dem behobenen. Ein Ziehen, das das bricht – etwa **Behoben** über **Bestätigt** –, wird abgelehnt, die Zeilen springen zurück, und die Seite sagt, warum.
 - **Sie lassen sich nicht löschen.** Ihr **Löschen** bleibt im Zeilenmenü, gesperrt, mit Begründung. Ein Massenlöschen überspringt sie und listet sie als nicht gelöscht. Auch die API lehnt das Löschen des letzten Erstellungs-, bestätigten oder behobenen Status eines Projekts ab.
 
-Weil die Oberfläche Statusnamen dynamisch liest, ändert eine Umbenennung, was Sie überall sehen – die Kennzahlenkacheln (**Acknowledged in** und **Resolved in** mit den vorangelegten Namen), die Bestätigung **Mark Incident as …** eines eigenen Status und das Etikett in der Vorfallliste folgen alle dem Namen, den Sie der Zeile gegeben haben.
+Weil die Oberfläche Statusnamen dynamisch liest, ändert eine Umbenennung, was Sie überall sehen – die Kennzahlenkacheln (**Acknowledged in** und **Resolved in** mit den vorangelegten Namen), die Bestätigung **Vorfall als … markieren** eines eigenen Status und das Etikett in der Vorfallliste folgen alle dem Namen, den Sie der Zeile gegeben haben.
 
 ## Eigene Status anlegen
 
@@ -100,7 +100,7 @@ Ziehen Sie eine Zeile an ihrem Griff, um sie zu verschieben. Die neue Reihenfolg
 | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Name**        | Ja       | Mindestens zwei Zeichen. Der Platzhalter schlägt etwa „Investigating“ vor. |
 | **Beschreibung** | Nein    | Freitext, der erklärt, wann ein Vorfall in diesem Status steht. |
-| **Farbe**       | Ja       | Beim Öffnen des Formulars schon gewählt: eine Farbe, die noch kein Status der Liste verwendet, damit ein neuer Status nie im selben Rot wie der darüber erscheint. Wählen Sie eine andere aus der Reihe benannter Farben (Red, Orange, Lime, Green, Teal, Blue, Indigo, Purple, Magenta, Pink) oder nehmen Sie **Benutzerdefinierte Farbe** für eine exakte Markenfarbe wie `#fd625e`. |
+| **Farbe**       | Ja       | Beim Öffnen des Formulars schon gewählt: eine Farbe, die noch kein Status der Liste verwendet, damit ein neuer Status nie im selben Rot wie der darüber erscheint. Wählen Sie eine andere aus der Reihe benannter Farben (Rot, Orange, Limette, Grün, Petrol, Blau, Indigo, Lila, Magenta, Rosa) oder nehmen Sie **Benutzerdefinierte Farbe** für eine exakte Markenfarbe wie `#fd625e`. |
 
 Die Farbe färbt das Etikett des Status und den Punkt vor seinem Namen in jeder Statusauswahl: in den Melde- und Vorlagenformularen, der Massenaktion **Status ändern**, dem Statusmenü der Kopfzeile sowie in Regel- und Filterbedingungen. Jede dieser Auswahlen listet die Status in der Reihenfolge, die diese Seite vorgibt.
 
@@ -108,7 +108,7 @@ Die drei Flags können Sie in diesem Formular nicht setzen – sie gehören zu d
 
 - **Seine Position bestimmt, was er zählt.** Die Spalte **Zählt als** zeigt es und ändert sich beim Ziehen: Über dem bestätigten Status ist ein Vorfall darin **Nicht bestätigt**; ab dem bestätigten Status abwärts zählt er als **Bestätigt**, Bereitschaftsrichtlinien eskalieren ihn also nicht mehr; ab dem behobenen Status abwärts zählt er als **Behoben**, Statusseiten zeigen ihn also nicht mehr als aktiv.
 - **Über dem behobenen Status hält er den Vorfall aktiv.** **Aktive Vorfälle** enthält die Vorfälle, deren aktueller Status über dem behobenen Status liegt; ein dort angelegter Status hält den Vorfall also in der aktiven Liste und im Zähler der Seitenleiste. Ein unter den behobenen Status gezogener Status zählt überall als behoben – in den aktiven Listen, auf Statusseiten, bei Erinnerungen und beim SLA –, und einen Vorfall von **Behoben** in ihn zu verschieben ist kein zweites Beheben.
-- **Sie verschieben einen Vorfall über das Menü der Kopfzeile hinein.** Die Schaltflächen der Kopfzeile sind nur **Bestätigen** und **Beheben**; ein eigener Status steht unter **Status ändern in** im Menü **⋯** daneben, das jeden Status nach dem aktuellen listet. Seine Bestätigung heißt **Mark Incident as `<state name>`**, mit der Schaltfläche **Mark as `<state name>`**.
+- **Sie verschieben einen Vorfall über das Menü der Kopfzeile hinein.** Die Schaltflächen der Kopfzeile sind nur **Bestätigen** und **Beheben**; ein eigener Status steht unter **Status ändern in** im Menü **⋯** daneben, das jeden Status nach dem aktuellen listet. Seine Bestätigung heißt **Vorfall als `<state name>` markieren**, mit der Schaltfläche **Als `<state name>` markieren**.
 
 > [!TIP]
 > Eine verbreitete Form ist ein Schritt zur Eindämmung zwischen dem bestätigten und dem behobenen Status – legen Sie „Mitigated“ an, und er landet direkt über **Behoben**, nach **Bestätigt**, und zählt als bestätigt. Für einen Schritt zur Sichtung, bevor jemand den Vorfall bestätigt hat, ziehen Sie ihn über **Bestätigt**.
