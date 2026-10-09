@@ -220,7 +220,9 @@ export default class ReceivingCoverage {
    * - When the window holds time OneUptime was not receiving (or was just
    *   back and reconnecting), the check waits: no status change, no incident
    *   or alert opened, none resolved. It waits until that time is behind the
-   *   window, and at most TELEMETRY_EVALUATION_MAX_DEFERRAL_MS after it.
+   *   window, and at most TELEMETRY_EVALUATION_MAX_DEFERRAL_MS after it -
+   *   measured from where the window ends, so a window moved back by a
+   *   backed-up queue into the very outage still waits.
    */
   @CaptureSpan()
   public static async planTelemetryEvaluation(data: {
@@ -265,7 +267,8 @@ export default class ReceivingCoverage {
 
     if (
       latestGap &&
-      nowMs - latestGap.endsAt.getTime() < TELEMETRY_EVALUATION_MAX_DEFERRAL_MS
+      evaluateUntilMs - latestGap.endsAt.getTime() <
+        TELEMETRY_EVALUATION_MAX_DEFERRAL_MS
     ) {
       return {
         evaluate: false,
