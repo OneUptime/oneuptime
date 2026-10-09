@@ -19,6 +19,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
+import { PacketCaptureCapability } from "../../Types/PacketCapture/PacketCaptureCapability";
 import Permission from "../../Types/Permission";
 import Version from "../../Types/Version";
 import {
@@ -628,6 +629,44 @@ export default class Probe extends BaseModel {
     unique: false,
   })
   public connectionStatus?: ProbeConnectionStatus = undefined;
+
+  /*
+   * What the probe last said about packet capture: whether whoever runs it
+   * turned captures on (PROBE_PACKET_CAPTURE_ENABLED), whether tcpdump is
+   * installed, the interfaces it can capture on and the limits its operator
+   * set (Types/PacketCapture/PacketCaptureCapability). Written by the probe's
+   * report, never by a request; empty for a probe older than packet capture.
+   * Only project probes keep one: a global probe never captures.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectProbe,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Packet Capture",
+    description:
+      "What the probe last reported about packet capture: whether it is turned on (PROBE_PACKET_CAPTURE_ENABLED on the probe), whether tcpdump is installed, the network interfaces it can capture on, and the limits its operator set. Managed by the probe.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public packetCaptureCapability?: PacketCaptureCapability = undefined;
 
   @ColumnAccessControl({
     create: [
