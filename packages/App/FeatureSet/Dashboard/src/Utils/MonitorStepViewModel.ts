@@ -10,9 +10,14 @@ import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import {
+  DEFAULT_NTP_PORT,
+  DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS,
+} from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { PROBE_DEFAULT_RETRY_COUNT_LABEL } from "./MonitorRetryHelpText";
 
 /*
@@ -409,6 +414,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getDnsRows(data);
       case MonitorType.DNSSEC:
         return MonitorStepViewModel.getDnssecRows(data);
+      case MonitorType.NTP:
+        return MonitorStepViewModel.getNtpRows(data);
       case MonitorType.SQLQuery:
         return MonitorStepViewModel.getSqlRows(data);
       case MonitorType.Database:
@@ -635,6 +642,53 @@ export default class MonitorStepViewModel {
         placeholder: "No port entered",
       },
       ...MonitorStepViewModel.getTimeoutAndRetryRows(data),
+    ]);
+  }
+
+  /*
+   * The server, then its port - shown as 123 when the step leaves it empty,
+   * which is the port the probe then uses - then the timeout and retries.
+   */
+  private static getNtpRows(data: MonitorStepType): Array<MonitorStepViewRow> {
+    return compact([
+      MonitorStepViewModel.getDestinationRow(
+        data,
+        translationKey("NTP Server"),
+        translationKey("The time server this monitor checks."),
+      ),
+      {
+        key: "monitorDestinationPort",
+        title: "Port",
+        description: "The UDP port the request goes to.",
+        valueType: MonitorStepViewValueType.Port,
+        value:
+          toText(data.monitorDestinationPort?.toString()) ||
+          String(DEFAULT_NTP_PORT),
+        placeholder: String(DEFAULT_NTP_PORT),
+      },
+      optional({
+        key: "requestTimeoutInMs",
+        title: "Request Timeout",
+        description: "How long we wait for the server's reply on each attempt.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toMilliseconds(data.requestTimeoutInMs),
+        placeholder: "Default",
+      }) || {
+        key: "requestTimeoutInMs",
+        title: "Request Timeout",
+        description: "How long we wait for the server's reply on each attempt.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toMilliseconds(DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS),
+        placeholder: "Default",
+      },
+      {
+        key: "retryCount",
+        title: "Retry Count",
+        description: "How many times we retry after the first attempt fails.",
+        valueType: MonitorStepViewValueType.Number,
+        value: data.retryCount,
+        placeholder: PROBE_DEFAULT_RETRY_COUNT_LABEL,
+      },
     ]);
   }
 

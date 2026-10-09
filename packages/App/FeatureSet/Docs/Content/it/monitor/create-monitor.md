@@ -26,7 +26,7 @@ In questo passaggio nulla viene segnato come mancante finché non fai clic su **
 
 ## Sonde e intervallo
 
-I monitor controllati dalle sonde terminano con questo passaggio: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code ed External Status Page. Le **Sonde** sono le macchine che eseguono i controlli, e le sonde predefinite del progetto sono già selezionate. L'**Intervallo di monitoraggio** parte da **Ogni 5 minuti**. Fai clic su **Crea monitor**.
+I monitor controllati dalle sonde terminano con questo passaggio: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code ed External Status Page. Le **Sonde** sono le macchine che eseguono i controlli, e le sonde predefinite del progetto sono già selezionate. L'**Intervallo di monitoraggio** parte da **Ogni 5 minuti**. Fai clic su **Crea monitor**.
 
 Tutti gli altri tipi si creano dal passaggio **Criteri**.
 

@@ -84,6 +84,28 @@ In a title, each of these is cut to one line of at most 150 characters. Descript
 | `failureCause`     | The reason for failure if the IP check failed. | `string`  |
 | `isTimeout`        | Whether the IP ping request timed out.         | `boolean` |
 
+### NTP Monitors
+
+| Variable             | Description                                                                                               | Type      |
+| -------------------- | --------------------------------------------------------------------------------------------------------- | --------- |
+| `isOnline`           | Whether the time server answered the probe's request.                                                     | `boolean` |
+| `isSynchronized`     | Whether it answered at stratum 1 to 15, without the leap alarm and with real timestamps.                  | `boolean` |
+| `stratum`            | The stratum the server reported: 1 for a primary server, 16 when not synchronized, 0 for a kiss-o'-death. | `number`  |
+| `clockOffsetInMs`    | How far the server's clock is from the probe's, in milliseconds. Positive means the server is ahead.      | `number`  |
+| `referenceId`        | What the server synchronizes to: a source such as `GPS` at stratum 1, or its upstream server's address.   | `string`  |
+| `leapIndicator`      | 0 to 2 when all is well, 3 when the server says its clock is not synchronized.                            | `number`  |
+| `kissCode`           | With stratum 0, the four-letter code the server sent instead of the time, such as `RATE`.                 | `string`  |
+| `responseTimeInMs`   | The time from the request to the reply, in milliseconds.                                                  | `number`  |
+| `roundTripDelayInMs` | The network round trip of the exchange, without the server's own processing time.                         | `number`  |
+| `rootDelayInMs`      | The round trip from the server to its reference clock, in milliseconds.                                   | `number`  |
+| `rootDispersionInMs` | The server's own estimate of its maximum error, in milliseconds.                                          | `number`  |
+| `serverTime`         | The server's clock when it sent the reply, as an ISO 8601 timestamp.                                      | `string`  |
+| `referenceTime`      | When the server's clock was last set or corrected, as an ISO 8601 timestamp.                              | `string`  |
+| `serverAddress`      | The address the request went to.                                                                          | `string`  |
+| `port`               | The UDP port the request went to.                                                                         | `number`  |
+| `failureCause`       | Why the server did not answer, or why it is not synchronized.                                             | `string`  |
+| `isTimeout`          | Whether the server did not answer in time.                                                                | `boolean` |
+
 ### SSL Certificate Monitors
 
 | Variable             | Description                                        | Type      |

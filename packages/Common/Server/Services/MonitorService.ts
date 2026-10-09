@@ -47,6 +47,7 @@ import MonitorType, {
 } from "../../Types/Monitor/MonitorType";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
+import { DEFAULT_NTP_PORT } from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import ObjectID from "../../Types/ObjectID";
 
 import EventFieldChange, {
@@ -291,6 +292,24 @@ export class Service extends ProjectReferencesService<Model> {
              * address — a DIFFERENT host from the one being monitored, named
              * in an alert somebody is about to act on.
              */
+            monitorDestination = HostAddressUtil.formatHostAndPort({
+              host: monitorDestination,
+              port: port,
+            });
+          }
+        }
+
+        /*
+         * For NTP monitors, the server, with its port only when it is not
+         * NTP's own 123 - the field is optional and usually left empty.
+         */
+        if (
+          monitorType === MonitorType.NTP &&
+          firstStep?.data?.monitorDestinationPort
+        ) {
+          const port: string = firstStep.data.monitorDestinationPort.toString();
+
+          if (monitorDestination && port && port !== String(DEFAULT_NTP_PORT)) {
             monitorDestination = HostAddressUtil.formatHostAndPort({
               host: monitorDestination,
               port: port,

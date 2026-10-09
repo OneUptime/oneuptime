@@ -26,7 +26,7 @@
 
 ## プローブと間隔
 
-プローブがチェックするモニターは、このステップで終わります: Website、API、Ping、IP、Port、SSL Certificate、DNS、DNSSEC、Domain、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code、External Status Page。**プローブ** はチェックを実行するマシンで、プロジェクトのデフォルトのプローブがあらかじめ選択されています。**監視間隔** は **5 分ごと** から始まります。**モニターを作成** をクリックします。
+プローブがチェックするモニターは、このステップで終わります: Website、API、Ping、IP、Port、SSL Certificate、DNS、DNSSEC、NTP、Domain、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code、External Status Page。**プローブ** はチェックを実行するマシンで、プロジェクトのデフォルトのプローブがあらかじめ選択されています。**監視間隔** は **5 分ごと** から始まります。**モニターを作成** をクリックします。
 
 ほかの種類はすべて **条件** のステップから作成します。
 

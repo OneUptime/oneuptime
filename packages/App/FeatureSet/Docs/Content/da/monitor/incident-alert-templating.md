@@ -71,6 +71,28 @@ Når kriteriet har **Group incidents and alerts by a payload field** slået til,
 | `failureCause`     | Årsagen til fejl, hvis IP-tjekket mislykkedes. | `string`  |
 | `isTimeout`        | Om IP-ping-anmodningen fik timeout.            | `boolean` |
 
+### NTP-monitorer
+
+| Variabel             | Beskrivelse                                                                                                           | Type      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
+| `isOnline`           | Om tidsserveren besvarede sondens anmodning.                                                                          | `boolean` |
+| `isSynchronized`     | Om den svarede på stratum 1 til 15, uden skudsekundalarmen og med rigtige tidsstempler.                               | `boolean` |
+| `stratum`            | Det stratum, serveren rapporterede: 1 for en primær server, 16 når den ikke er synkroniseret, 0 for et kiss-o'-death. | `number`  |
+| `clockOffsetInMs`    | Hvor langt serverens ur er fra sondens, i millisekunder. Positiv betyder, at serveren går foran.                      | `number`  |
+| `referenceId`        | Hvad serveren synkroniserer med: en kilde som `GPS` på stratum 1 eller adressen på dens overordnede server.           | `string`  |
+| `leapIndicator`      | 0 til 2, når alt er i orden, 3, når serveren siger, at dens ur ikke er synkroniseret.                                 | `number`  |
+| `kissCode`           | Ved stratum 0 koden på fire bogstaver, som serveren sendte i stedet for tiden, f.eks. `RATE`.                         | `string`  |
+| `responseTimeInMs`   | Tiden fra anmodningen til svaret, i millisekunder.                                                                    | `number`  |
+| `roundTripDelayInMs` | Netværksrundturen for udvekslingen, uden serverens egen behandlingstid.                                               | `number`  |
+| `rootDelayInMs`      | Rundturen fra serveren til dens referenceur, i millisekunder.                                                         | `number`  |
+| `rootDispersionInMs` | Serverens eget skøn over sin største fejl, i millisekunder.                                                           | `number`  |
+| `serverTime`         | Serverens ur, da den sendte svaret, som ISO 8601-tidsstempel.                                                         | `string`  |
+| `referenceTime`      | Hvornår serverens ur sidst blev stillet eller korrigeret, som ISO 8601-tidsstempel.                                   | `string`  |
+| `serverAddress`      | Adressen, anmodningen gik til.                                                                                        | `string`  |
+| `port`               | UDP-porten, anmodningen gik til.                                                                                      | `number`  |
+| `failureCause`       | Hvorfor serveren ikke svarede, eller hvorfor den ikke er synkroniseret.                                               | `string`  |
+| `isTimeout`          | Om serveren ikke svarede i tide.                                                                                      | `boolean` |
+
 ### SSL-certifikatmonitorer
 
 | Variabel             | Beskrivelse                                     | Type      |

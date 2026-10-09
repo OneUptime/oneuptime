@@ -301,6 +301,29 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "failureCause",
     ],
   },
+  {
+    monitorType: MonitorType.NTP,
+    title: "NTP",
+    keys: [
+      "isOnline",
+      "isSynchronized",
+      "stratum",
+      "clockOffsetInMs",
+      "referenceId",
+      "leapIndicator",
+      "kissCode",
+      "responseTimeInMs",
+      "roundTripDelayInMs",
+      "rootDelayInMs",
+      "rootDispersionInMs",
+      "serverTime",
+      "referenceTime",
+      "serverAddress",
+      "port",
+      "isTimeout",
+      "failureCause",
+    ],
+  },
 ];
 
 /*

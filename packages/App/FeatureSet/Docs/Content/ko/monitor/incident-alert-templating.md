@@ -71,6 +71,28 @@ criteria에서 **Group incidents and alerts by a payload field** 를 켜두면 �
 | `failureCause`     | IP 확인이 실패한 경우 실패 원인.      | `string`  |
 | `isTimeout`        | IP Ping 요청이 타임아웃되었는지 여부. | `boolean` |
 
+### NTP 모니터
+
+| 변수                 | 설명                                                                                     | 유형      |
+| -------------------- | ---------------------------------------------------------------------------------------- | --------- |
+| `isOnline`           | 타임 서버가 프로브의 요청에 응답했는지 여부.                                             | `boolean` |
+| `isSynchronized`     | 윤초 경보 없이, 실제 타임스탬프와 함께 스트라텀 1~15로 응답했는지 여부.                  | `boolean` |
+| `stratum`            | 서버가 보고한 스트라텀. 기본 서버는 1, 동기화되지 않았으면 16, kiss-o'-death면 0.        | `number`  |
+| `clockOffsetInMs`    | 서버의 시계가 프로브의 시계와 떨어진 정도(밀리초). 양수이면 서버가 앞서 있다는 뜻입니다. | `number`  |
+| `referenceId`        | 서버가 동기화하는 대상. 스트라텀 1에서는 `GPS` 같은 소스, 그 외에는 상위 서버의 주소.    | `string`  |
+| `leapIndicator`      | 문제가 없으면 0~2, 서버가 자신의 시계가 동기화되지 않았다고 알리면 3.                    | `number`  |
+| `kissCode`           | 스트라텀 0일 때 서버가 시간 대신 보낸 `RATE` 같은 네 글자 코드.                          | `string`  |
+| `responseTimeInMs`   | 요청부터 응답까지의 시간(밀리초).                                                        | `number`  |
+| `roundTripDelayInMs` | 서버 자체 처리 시간을 뺀, 교환의 네트워크 왕복 시간.                                     | `number`  |
+| `rootDelayInMs`      | 서버에서 기준 시계까지의 왕복 시간(밀리초).                                              | `number`  |
+| `rootDispersionInMs` | 서버 자신이 추정한 최대 오차(밀리초).                                                    | `number`  |
+| `serverTime`         | 서버가 응답을 보낼 때의 서버 시계(ISO 8601 타임스탬프).                                  | `string`  |
+| `referenceTime`      | 서버의 시계가 마지막으로 설정되거나 보정된 시각(ISO 8601 타임스탬프).                    | `string`  |
+| `serverAddress`      | 요청을 보낸 주소.                                                                        | `string`  |
+| `port`               | 요청을 보낸 UDP 포트.                                                                    | `number`  |
+| `failureCause`       | 서버가 응답하지 않은 이유 또는 동기화되지 않은 이유.                                     | `string`  |
+| `isTimeout`          | 서버가 제시간에 응답하지 않았는지 여부.                                                  | `boolean` |
+
 ### SSL 인증서 모니터
 
 | 변수                 | 설명                                 | 유형      |

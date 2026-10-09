@@ -45,9 +45,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   /*
    * Adjusts the copy once it holds the original's values and what the
    * dialog asked, just before it is saved - a form's copy starts turned
-   * off, say. Whatever it sets is what is saved.
+   * off, say. Whatever it sets is what is saved. It may read what it needs
+   * first (return a promise): the copy is saved once it has settled, and
+   * not at all if it throws.
    */
-  prepareCopy?: ((copy: TBaseModel) => void) | undefined;
+  prepareCopy?: ((copy: TBaseModel) => void | Promise<void>) | undefined;
   /*
    * What the card says about the copy, in place of the generic "Duplicating
    * this <model> will create another <model> exactly like this one." - for
@@ -196,7 +198,7 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
       item.setValue(key, value);
     }
 
-    props.prepareCopy?.(item);
+    await props.prepareCopy?.(item);
 
     // A new record: the original's id stays with the original.
     item.removeValue("_id");

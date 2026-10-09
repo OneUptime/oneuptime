@@ -219,6 +219,38 @@ here would override the image's own marker.
   {{- else }}
   value: {{ $.Values.slackApp.clientId | quote }}
   {{- end }}
+{{- /*
+The public client ids of the apps behind the one-click Connect of a video
+call provider. The Dashboard offers it for a provider whose id is set
+(FRONTEND_ENV_ALLOW_LIST); their secrets are in oneuptime.env.runtime.
+*/}}
+- name: ZOOM_APP_CLIENT_ID
+  {{- if $.Values.zoomApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.zoomApp.existingSecret.name | quote }}
+      key: {{ $.Values.zoomApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.zoomApp.clientId | quote }}
+  {{- end }}
+- name: GOOGLE_MEET_APP_CLIENT_ID
+  {{- if $.Values.googleMeetApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.googleMeetApp.existingSecret.name | quote }}
+      key: {{ $.Values.googleMeetApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.googleMeetApp.clientId | quote }}
+  {{- end }}
+- name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID
+  {{- if $.Values.microsoftTeamsMeetingsApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.microsoftTeamsMeetingsApp.clientId | quote }}
+  {{- end }}
 - name: GITHUB_APP_ID
   value: {{ $.Values.gitHubApp.id | quote }}
 - name: GITHUB_APP_NAME
@@ -435,6 +467,46 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
       key: {{ $.Values.microsoftTeamsApp.existingSecret.clientSecretKey | quote }}
   {{- else }}
   value: {{ $.Values.microsoftTeamsApp.clientSecret }}
+  {{- end }}
+
+- name: ZOOM_APP_CLIENT_SECRET
+  {{- if $.Values.zoomApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.zoomApp.existingSecret.name | quote }}
+      key: {{ $.Values.zoomApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.zoomApp.clientSecret | quote }}
+  {{- end }}
+
+- name: ZOOM_APP_WEBHOOK_SECRET_TOKEN
+  {{- if $.Values.zoomApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.zoomApp.existingSecret.name | quote }}
+      key: {{ $.Values.zoomApp.existingSecret.webhookSecretTokenKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.zoomApp.webhookSecretToken | quote }}
+  {{- end }}
+
+- name: GOOGLE_MEET_APP_CLIENT_SECRET
+  {{- if $.Values.googleMeetApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.googleMeetApp.existingSecret.name | quote }}
+      key: {{ $.Values.googleMeetApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.googleMeetApp.clientSecret | quote }}
+  {{- end }}
+
+- name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET
+  {{- if $.Values.microsoftTeamsMeetingsApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsMeetingsApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" $.Values.microsoftTeamsMeetingsApp.clientSecret | quote }}
   {{- end }}
 
 - name: GITHUB_APP_CLIENT_SECRET

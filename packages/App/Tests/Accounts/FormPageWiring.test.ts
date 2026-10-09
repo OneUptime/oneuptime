@@ -297,10 +297,32 @@ describe("the page talks to the server through its own client only", () => {
 
 describe("what the page asks", () => {
   test("its questions are drawn by the builder the dashboard's preview draws them with", () => {
-    expect(pageSource).toContain("buildPublicFormFields(form)");
+    expect(pageSource).toContain("buildPublicFormFields(askedForm)");
     expect(pageSource).toContain(
       'from "Common/UI/Components/PublicForm/PublicFormFields"',
     );
+  });
+
+  /*
+   * A template can make a question required, optional or hidden (issue
+   * #4563). The page draws the form as the chosen template asks it, with
+   * the function the server holds the submission to, and sends the request
+   * built the same way - never the raw list of every question the page was
+   * told about.
+   */
+  test("it asks the form as the chosen template asks it, as the server does", () => {
+    expect(pageSource).toContain(
+      "getPublicFormForTemplate({ form, template })",
+    );
+    expect(pageSource).not.toContain("buildPublicFormFields(form)");
+    expect(utilsSource).toContain("getPublicFormForTemplate({");
+    expect(
+      sliceBetween(
+        utilsSource,
+        "export const buildFormSubmissionRequest",
+        "return request;",
+      ),
+    ).toContain("form: getPublicFormForTemplate({");
   });
 
   test("no Markdown editor on it can upload an image", () => {
