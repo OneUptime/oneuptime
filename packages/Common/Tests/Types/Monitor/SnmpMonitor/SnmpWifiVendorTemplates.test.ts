@@ -170,7 +170,7 @@ function unifiResults(): Array<SnmpTableResult> {
         {
           index: "1",
           values: {
-            [`${UNIFI_VAP}.6`]: "homewifi_ac",
+            [`${UNIFI_VAP}.6`]: "Office",
             [`${UNIFI_VAP}.9`]: "ng",
             [`${UNIFI_VAP}.4`]: 6,
             [`${UNIFI_VAP}.8`]: 4,
@@ -183,7 +183,7 @@ function unifiResults(): Array<SnmpTableResult> {
         {
           index: "2",
           values: {
-            [`${UNIFI_VAP}.6`]: "vwire-d4aebb3212a82cd8",
+            [`${UNIFI_VAP}.6`]: "vwire-5f0e2a91c3b7d468",
             [`${UNIFI_VAP}.9`]: "ng",
             [`${UNIFI_VAP}.4`]: 6,
             [`${UNIFI_VAP}.8`]: 0,
@@ -194,7 +194,7 @@ function unifiResults(): Array<SnmpTableResult> {
         {
           index: "3",
           values: {
-            [`${UNIFI_VAP}.6`]: "homewifi_ac",
+            [`${UNIFI_VAP}.6`]: "Office",
             [`${UNIFI_VAP}.9`]: "na",
             [`${UNIFI_VAP}.4`]: 157,
             [`${UNIFI_VAP}.8`]: 14,
@@ -207,7 +207,7 @@ function unifiResults(): Array<SnmpTableResult> {
         {
           index: "4",
           values: {
-            [`${UNIFI_VAP}.6`]: "vwire-d4aebb3212a82cd8",
+            [`${UNIFI_VAP}.6`]: "vwire-5f0e2a91c3b7d468",
             [`${UNIFI_VAP}.9`]: "na",
             [`${UNIFI_VAP}.4`]: 157,
             [`${UNIFI_VAP}.8`]: 0,
@@ -284,12 +284,12 @@ describe("Ubiquiti UniFi access points", () => {
         return `${ssid.ssid}|${ssid.band}|${ssid.clients}`;
       }),
     ).toEqual([
-      "homewifi_ac|2.4 GHz|4",
-      "vwire-d4aebb3212a82cd8|2.4 GHz|0",
-      "homewifi_ac|5 GHz|14",
-      "vwire-d4aebb3212a82cd8|5 GHz|0",
+      "Office|2.4 GHz|4",
+      "vwire-5f0e2a91c3b7d468|2.4 GHz|0",
+      "Office|5 GHz|14",
+      "vwire-5f0e2a91c3b7d468|5 GHz|0",
     ]);
-    expect(summary.ssids[0]!.name).toBe("homewifi_ac / 2.4 GHz");
+    expect(summary.ssids[0]!.name).toBe("Office / 2.4 GHz");
   });
 
   it("reads connection quality in percent, though UniFi reports tenths of one", () => {
@@ -383,9 +383,9 @@ const AI_RADIO: string = "1.3.6.1.4.1.14823.2.3.3.1.2.2.1";
 const AI_SSID: string = "1.3.6.1.4.1.14823.2.3.3.1.1.7.1";
 
 // Access points' MAC addresses, as the six arcs of an index.
-const AP06: string = "104.40.207.199.233.192";
-const AP14: string = "104.40.207.200.4.72";
-const AP_CONDUCTOR: string = "112.58.14.201.194.70";
+const AP06: string = "2.0.94.16.0.6";
+const AP14: string = "2.0.94.16.0.14";
+const AP_CONDUCTOR: string = "2.0.94.16.1.1";
 
 /*
  * A three-access-point Instant cluster walked through its virtual
@@ -404,20 +404,20 @@ function arubaInstantResults(): Array<SnmpTableResult> {
         {
           index: AP06,
           values: {
-            [apName]: "ECA-Ultimo-L11-AP06",
+            [apName]: "HQ-L3-AP06",
             [`${AI_AP}.11`]: 1,
             [`${AI_AP}.6`]: "635",
-            [`${AI_AP}.3`]: "192.168.126.30",
-            [`${AI_AP}.4`]: "PHRCKYJ2RR",
+            [`${AI_AP}.3`]: "10.20.30.41",
+            [`${AI_AP}.4`]: "CNB7K3M9QX",
             [`${AI_AP}.7`]: 6,
-            [`${AI_AP}.8`]: 564543488,
-            [`${AI_AP}.10`]: 1787162624,
+            [`${AI_AP}.8`]: 612368384,
+            [`${AI_AP}.10`]: 1910374400,
           },
         },
         {
           index: AP14,
           values: {
-            [apName]: "ECA-Ultimo-L11-AP14",
+            [apName]: "HQ-L3-AP14",
             [`${AI_AP}.11`]: 2,
             [`${AI_AP}.6`]: "635",
             [`${AI_AP}.7`]: 5,
@@ -426,7 +426,7 @@ function arubaInstantResults(): Array<SnmpTableResult> {
         {
           index: AP_CONDUCTOR,
           values: {
-            [apName]: "instant-ap-src-1",
+            [apName]: "branch-cluster-1",
             [`${AI_AP}.11`]: 1,
             [`${AI_AP}.6`]: "225",
             [`${AI_AP}.7`]: 9,
@@ -437,9 +437,9 @@ function arubaInstantResults(): Array<SnmpTableResult> {
     {
       key: "wifi_radios",
       rows: [
-        { index: AP06, values: { [apName]: "ECA-Ultimo-L11-AP06" } },
-        { index: AP14, values: { [apName]: "ECA-Ultimo-L11-AP14" } },
-        { index: AP_CONDUCTOR, values: { [apName]: "instant-ap-src-1" } },
+        { index: AP06, values: { [apName]: "HQ-L3-AP06" } },
+        { index: AP14, values: { [apName]: "HQ-L3-AP14" } },
+        { index: AP_CONDUCTOR, values: { [apName]: "branch-cluster-1" } },
         {
           index: `${AP06}.0`,
           values: {
@@ -520,7 +520,7 @@ function arubaInstantResults(): Array<SnmpTableResult> {
         {
           index: "0",
           values: {
-            [`${AI_SSID}.2`]: "EOU-Regional",
+            [`${AI_SSID}.2`]: "Acme-Regional",
             [`${AI_SSID}.4`]: 9,
             [`${AI_SSID}.3`]: 0,
             [`${AI_SSID}.5`]: 0,
@@ -529,7 +529,7 @@ function arubaInstantResults(): Array<SnmpTableResult> {
         {
           index: "1",
           values: {
-            [`${AI_SSID}.2`]: "ECA-Corp",
+            [`${AI_SSID}.2`]: "Acme-Corp",
             [`${AI_SSID}.4`]: 19,
             [`${AI_SSID}.3`]: 0,
             [`${AI_SSID}.5`]: 1,
@@ -548,12 +548,12 @@ describe("HPE Aruba Instant", () => {
     );
 
     expect(labels(radios)).toEqual([
-      "ECA-Ultimo-L11-AP06 / Radio 0",
-      "ECA-Ultimo-L11-AP06 / Radio 1",
-      "ECA-Ultimo-L11-AP06 / Radio 2",
-      "ECA-Ultimo-L11-AP14 / Radio 0",
-      "instant-ap-src-1 / Radio 0",
-      "instant-ap-src-1 / Radio 1",
+      "HQ-L3-AP06 / Radio 0",
+      "HQ-L3-AP06 / Radio 1",
+      "HQ-L3-AP06 / Radio 2",
+      "HQ-L3-AP14 / Radio 0",
+      "branch-cluster-1 / Radio 0",
+      "branch-cluster-1 / Radio 1",
     ]);
   });
 
@@ -575,7 +575,7 @@ describe("HPE Aruba Instant", () => {
       walk("aruba-instant", arubaInstantResults()),
     );
 
-    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 0")).toMatchObject({
+    expect(radioNamed(summary, "HQ-L3-AP06 / Radio 0")).toMatchObject({
       band: WifiBand.Band5GHz,
       channel: 161,
       frequencyMHz: 5805,
@@ -586,24 +586,24 @@ describe("HPE Aruba Instant", () => {
       isOn: true,
       statusText: "up",
     });
-    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 1")).toMatchObject({
+    expect(radioNamed(summary, "HQ-L3-AP06 / Radio 1")).toMatchObject({
       band: WifiBand.Band2_4GHz,
       channel: 1,
       frequencyMHz: 2412,
     });
     // "53S": channel 53 at 160 MHz - a number only 6 GHz uses.
-    expect(radioNamed(summary, "ECA-Ultimo-L11-AP06 / Radio 2")).toMatchObject({
+    expect(radioNamed(summary, "HQ-L3-AP06 / Radio 2")).toMatchObject({
       band: WifiBand.Band6GHz,
       channel: 53,
       frequencyMHz: 6215,
     });
     // "116E": channel 116 at 80 MHz.
-    expect(radioNamed(summary, "instant-ap-src-1 / Radio 0")).toMatchObject({
+    expect(radioNamed(summary, "branch-cluster-1 / Radio 0")).toMatchObject({
       band: WifiBand.Band5GHz,
       channel: 116,
       frequencyMHz: 5580,
     });
-    expect(radioNamed(summary, "ECA-Ultimo-L11-AP14 / Radio 0")).toMatchObject({
+    expect(radioNamed(summary, "HQ-L3-AP14 / Radio 0")).toMatchObject({
       isOn: false,
       statusText: "down",
     });
@@ -616,7 +616,7 @@ describe("HPE Aruba Instant", () => {
 
     expect(summary.accessPoints).toEqual([
       {
-        name: "ECA-Ultimo-L11-AP06",
+        name: "HQ-L3-AP06",
         index: AP06,
         isUp: true,
         statusText: "up",
@@ -624,7 +624,7 @@ describe("HPE Aruba Instant", () => {
         clients: 11,
       },
       {
-        name: "ECA-Ultimo-L11-AP14",
+        name: "HQ-L3-AP14",
         index: AP14,
         isUp: false,
         statusText: "down",
@@ -632,7 +632,7 @@ describe("HPE Aruba Instant", () => {
         clients: 0,
       },
       {
-        name: "instant-ap-src-1",
+        name: "branch-cluster-1",
         index: AP_CONDUCTOR,
         isUp: true,
         statusText: "up",
@@ -653,18 +653,18 @@ describe("HPE Aruba Instant", () => {
 
     expect(accessPoints.kind).toBe(SnmpTableKind.WifiAccessPoint);
     expect(labels(accessPoints)).toEqual([
-      "ECA-Ultimo-L11-AP06",
-      "ECA-Ultimo-L11-AP14",
-      "instant-ap-src-1",
+      "HQ-L3-AP06",
+      "HQ-L3-AP14",
+      "branch-cluster-1",
     ]);
 
     const ap06: SnmpTableSnapshotRow = accessPoints.rows[0]!;
     expect(ap06.cells[`${AI_AP}.6`]!.display).toBe("635");
     // A model number is a name, not a quantity: it is not charted.
     expect(ap06.cells[`${AI_AP}.6`]!.numeric).toBeUndefined();
-    expect(ap06.cells[`${AI_AP}.3`]!.display).toBe("192.168.126.30");
+    expect(ap06.cells[`${AI_AP}.3`]!.display).toBe("10.20.30.41");
     expect(ap06.cells[`${AI_AP}.7`]!.numeric).toBe(6);
-    expect(ap06.cells[`${AI_AP}.10`]!.numeric).toBe(1787162624);
+    expect(ap06.cells[`${AI_AP}.10`]!.numeric).toBe(1910374400);
     expect(accessPoints.rows[1]!.cells[`${AI_AP}.11`]!.isHealthy).toBe(false);
   });
 
@@ -674,8 +674,8 @@ describe("HPE Aruba Instant", () => {
     );
 
     expect(summary.ssids).toEqual([
-      { name: "EOU-Regional", ssid: "EOU-Regional", clients: 9 },
-      { name: "ECA-Corp", ssid: "ECA-Corp", clients: 19 },
+      { name: "Acme-Regional", ssid: "Acme-Regional", clients: 9 },
+      { name: "Acme-Corp", ssid: "Acme-Corp", clients: 19 },
     ]);
 
     const ssids: SnmpTableSnapshot = snapshotOf(
@@ -711,7 +711,7 @@ function arubaControllerResults(): Array<SnmpTableResult> {
         {
           index: CAMPUS_AP,
           values: {
-            [`${WLSX_AP}.3`]: "ar6-bib4le2n",
+            [`${WLSX_AP}.3`]: "ap-floor2-east",
             [`${WLSX_AP}.19`]: 1,
             [`${WLSX_AP}.13`]: "515",
             [`${WLSX_AP}.2`]: "10.20.30.40",
@@ -726,7 +726,7 @@ function arubaControllerResults(): Array<SnmpTableResult> {
         {
           index: `${CAMPUS_AP}.1`,
           values: {
-            [`${WLSX_RADIO}.16`]: "ar6-bib4le2n",
+            [`${WLSX_RADIO}.16`]: "ap-floor2-east",
             [`${WLSX_RADIO}.2`]: 1,
             [`${WLSX_RADIO}.3`]: 44,
             [`${WLSX_RADIO}.4`]: 38,
@@ -738,7 +738,7 @@ function arubaControllerResults(): Array<SnmpTableResult> {
         {
           index: `${CAMPUS_AP}.2`,
           values: {
-            [`${WLSX_RADIO}.16`]: "ar6-bib4le2n",
+            [`${WLSX_RADIO}.16`]: "ap-floor2-east",
             [`${WLSX_RADIO}.2`]: 3,
             [`${WLSX_RADIO}.3`]: 1,
             [`${WLSX_RADIO}.4`]: 28,
@@ -785,9 +785,9 @@ function arubaControllerResults(): Array<SnmpTableResult> {
         {
           index: "1",
           values: {
-            [`${SYSX_MEMORY}.2`]: 5184256,
-            [`${SYSX_MEMORY}.3`]: 4326272,
-            [`${SYSX_MEMORY}.4`]: 857984,
+            [`${SYSX_MEMORY}.2`]: 5242880,
+            [`${SYSX_MEMORY}.3`]: 4390912,
+            [`${SYSX_MEMORY}.4`]: 851968,
           },
         },
       ],
@@ -803,8 +803,8 @@ describe("HPE Aruba Mobility Controller", () => {
     );
 
     expect(labels(radios)).toEqual([
-      "ar6-bib4le2n / 5 GHz",
-      "ar6-bib4le2n / 2.4 GHz",
+      "ap-floor2-east / 5 GHz",
+      "ap-floor2-east / 2.4 GHz",
     ]);
   });
 
@@ -813,7 +813,7 @@ describe("HPE Aruba Mobility Controller", () => {
       walk("aruba-mobility-controller", arubaControllerResults()),
     );
 
-    expect(radioNamed(summary, "ar6-bib4le2n / 5 GHz")).toMatchObject({
+    expect(radioNamed(summary, "ap-floor2-east / 5 GHz")).toMatchObject({
       band: WifiBand.Band5GHz,
       bandText: "5 GHz",
       channel: 44,
@@ -822,7 +822,7 @@ describe("HPE Aruba Mobility Controller", () => {
       utilizationPercent: 4,
       clients: 18,
     });
-    expect(radioNamed(summary, "ar6-bib4le2n / 2.4 GHz")).toMatchObject({
+    expect(radioNamed(summary, "ap-floor2-east / 2.4 GHz")).toMatchObject({
       band: WifiBand.Band2_4GHz,
       channel: 1,
       txPowerDbm: 14,
@@ -849,7 +849,7 @@ describe("HPE Aruba Mobility Controller", () => {
 
     expect(summary.accessPoints).toEqual([
       {
-        name: "ar6-bib4le2n",
+        name: "ap-floor2-east",
         index: CAMPUS_AP,
         isUp: true,
         statusText: "up",
@@ -869,7 +869,7 @@ describe("HPE Aruba Mobility Controller", () => {
     expect(
       snapshotOf(snapshots, "memory").rows[0]!.cells[`${SYSX_MEMORY}.4`]!
         .numeric,
-    ).toBe(857984);
+    ).toBe(851968);
   });
 });
 
@@ -889,9 +889,9 @@ function hiveosResults(): Array<SnmpTableResult> {
     ["7", "wifi0", "N/A"],
     ["8", "wifi1", "N/A"],
     ["11", "mgt0", "N/A"],
-    ["14", "wifi0.1", "AH-Guest"],
-    ["16", "wifi1.1", "AH-Air"],
-    ["17", "wifi1.2", "AH-employee"],
+    ["14", "wifi0.1", "Campus-Guest"],
+    ["16", "wifi1.1", "Campus-Air"],
+    ["17", "wifi1.2", "Campus-Staff"],
   ];
 
   return [
@@ -989,9 +989,9 @@ describe("Extreme Networks IQ Engine (HiveOS) access points", () => {
         return ssid.name;
       }),
     ).toEqual([
-      "AH-Guest / wifi0.1",
-      "AH-Air / wifi1.1",
-      "AH-employee / wifi1.2",
+      "Campus-Guest / wifi0.1",
+      "Campus-Air / wifi1.1",
+      "Campus-Staff / wifi1.2",
     ]);
 
     // The SNMP Tables tab still shows every interface, as walked.
@@ -1037,7 +1037,7 @@ function extremeControllerResults(): Array<SnmpTableResult> {
         {
           index: "1",
           values: {
-            [`${HWC_AP}.2`]: "TestAP",
+            [`${HWC_AP}.2`]: "Lobby-AP",
             [`${HWC_AP}.22`]: 1,
             [`${HWC_AP_STATS}.14`]: 10,
             [`${HWC_AP}.14`]: "10.0.0.21",
@@ -1063,7 +1063,7 @@ function extremeControllerResults(): Array<SnmpTableResult> {
         {
           index: "1001",
           values: {
-            [IF_NAME]: "TestAP_r1_802.11a/n",
+            [IF_NAME]: "Lobby-AP_r1_802.11a/n",
             [`${HWC_RADIO_STATS}.1`]: 2,
             [`${HWC_RADIO_STATUS}.1`]: 5220,
             [`${HWC_RADIO_STATUS}.2`]: 4,
@@ -1074,7 +1074,7 @@ function extremeControllerResults(): Array<SnmpTableResult> {
         {
           index: "1002",
           values: {
-            [IF_NAME]: "TestAP_r2_802.11g/n",
+            [IF_NAME]: "Lobby-AP_r2_802.11g/n",
             [`${HWC_RADIO_STATS}.1`]: 7,
             [`${HWC_RADIO_STATUS}.1`]: 2412,
             [`${HWC_RADIO_STATUS}.2`]: 1,
@@ -1090,8 +1090,8 @@ function extremeControllerResults(): Array<SnmpTableResult> {
         {
           index: "101",
           values: {
-            [`${HWC_WLAN}.4`]: "Test VNS",
-            [`${HWC_WLAN}.5`]: "Test",
+            [`${HWC_WLAN}.4`]: "Staff VNS",
+            [`${HWC_WLAN}.5`]: "Staff",
             [`${HWC_WLAN_STATS}.2`]: 10,
             [`${HWC_WLAN}.7`]: 1,
           },
@@ -1107,8 +1107,8 @@ describe("Extreme Networks wireless controller", () => {
       walk("extreme-wireless-controller", extremeControllerResults()),
     );
 
-    expect(radioNamed(summary, "TestAP_r1_802.11a/n")).toEqual({
-      name: "TestAP_r1_802.11a/n",
+    expect(radioNamed(summary, "Lobby-AP_r1_802.11a/n")).toEqual({
+      name: "Lobby-AP_r1_802.11a/n",
       index: "1001",
       band: WifiBand.Band5GHz,
       bandText: "5 GHz",
@@ -1118,7 +1118,7 @@ describe("Extreme Networks wireless controller", () => {
       noiseFloorDbm: -94,
       utilizationPercent: 37,
     });
-    expect(radioNamed(summary, "TestAP_r2_802.11g/n")).toMatchObject({
+    expect(radioNamed(summary, "Lobby-AP_r2_802.11g/n")).toMatchObject({
       band: WifiBand.Band2_4GHz,
       channel: 1,
       frequencyMHz: 2412,
@@ -1138,8 +1138,8 @@ describe("Extreme Networks wireless controller", () => {
     );
 
     expect(labels(radios)).toEqual([
-      "TestAP_r1_802.11a/n",
-      "TestAP_r2_802.11g/n",
+      "Lobby-AP_r1_802.11a/n",
+      "Lobby-AP_r2_802.11g/n",
     ]);
   });
 
@@ -1150,7 +1150,7 @@ describe("Extreme Networks wireless controller", () => {
 
     expect(summary.accessPoints).toEqual([
       {
-        name: "TestAP",
+        name: "Lobby-AP",
         index: "1",
         isUp: true,
         statusText: "active",
@@ -1172,7 +1172,7 @@ describe("Extreme Networks wireless controller", () => {
     );
 
     expect(summary.ssids).toEqual([
-      { name: "Test VNS", ssid: "Test", clients: 10 },
+      { name: "Staff VNS", ssid: "Staff", clients: 10 },
     ]);
     // No radio counts clients here, so the total is the WLANs'.
     expect(summary.totalClients).toBe(10);
@@ -1356,17 +1356,17 @@ describe("the Wi-Fi vendor templates", () => {
 describe("matching a Wi-Fi device to its template", () => {
   it.each([
     // UniFi: bare Ubiquiti arc on current firmware, Net-SNMP's on older.
-    ["1.3.6.1.4.1.41112", "UAP-nanoHD 5.60.3.12934", "ubiquiti-unifi-ap"],
-    ["1.3.6.1.4.1.41112", "U6-Pro 6.5.28.14491", "ubiquiti-unifi-ap"],
-    ["1.3.6.1.4.1.41112", "U6+ 6.6.55.15189", "ubiquiti-unifi-ap"],
-    ["1.3.6.1.4.1.41112", "U7-Pro 7.0.83.16045", "ubiquiti-unifi-ap"],
-    ["1.3.6.1.4.1.41112", "UK-Ultra 6.6.77.15402", "ubiquiti-unifi-ap"],
-    ["1.3.6.1.4.1.41112", "U-LTE-Pro-EU 6.6.57.15206", "ubiquiti-unifi-ap"],
-    ["1.3.6.1.4.1.41112", "E7 *14", "ubiquiti-unifi-ap"],
-    ["1.3.6.1.4.1.8072.3.2.10", "UAP-AC-HD 3.9.19.8123", "ubiquiti-unifi-ap"],
+    ["1.3.6.1.4.1.41112", "UAP-nanoHD 6.0.21.13673", "ubiquiti-unifi-ap"],
+    ["1.3.6.1.4.1.41112", "U6-Pro 6.6.50.15098", "ubiquiti-unifi-ap"],
+    ["1.3.6.1.4.1.41112", "U6+ 6.6.62.15214", "ubiquiti-unifi-ap"],
+    ["1.3.6.1.4.1.41112", "U7-Pro 7.0.66.15934", "ubiquiti-unifi-ap"],
+    ["1.3.6.1.4.1.41112", "UK-Ultra 6.6.65.15248", "ubiquiti-unifi-ap"],
+    ["1.3.6.1.4.1.41112", "U-LTE-Pro-EU 6.5.62.14789", "ubiquiti-unifi-ap"],
+    ["1.3.6.1.4.1.41112", "E7 *21", "ubiquiti-unifi-ap"],
+    ["1.3.6.1.4.1.8072.3.2.10", "UAP-AC-HD 4.3.28.11361", "ubiquiti-unifi-ap"],
     [
       ".1.3.6.1.4.1.8072.3.2.10",
-      "UAP-nanoHD 5.43.36.12724",
+      "UAP-nanoHD 5.43.52.12774",
       "ubiquiti-unifi-ap",
     ],
     // Ubiquiti's routers and switches keep their template.
@@ -1375,59 +1375,59 @@ describe("matching a Wi-Fi device to its template", () => {
     // Aruba: access points (Instant) and controllers by product arc.
     [
       "1.3.6.1.4.1.14823.1.2.59",
-      "ArubaOS (MODEL: 225), Version 8.4.0.0-8.4.0.0",
+      "ArubaOS (MODEL: 225), Version 8.6.0.4-8.6.0.4",
       "aruba-instant",
     ],
     [
       "1.3.6.1.4.1.14823.1.2.107",
-      "AOS-8 (MODEL: 515), Version 8.13.0.1-8.13.0.1 LSR",
+      "AOS-8 (MODEL: 515), Version 8.12.0.2-8.12.0.2 LSR",
       "aruba-instant",
     ],
     [
       "1.3.6.1.4.1.14823.1.1.32",
-      "ArubaOS (MODEL: Aruba7210), Version 8.2.0.2 (62929)",
+      "ArubaOS (MODEL: Aruba7210), Version 8.6.0.9 (78123)",
       "aruba-mobility-controller",
     ],
     [
       "1.3.6.1.4.1.14823.1.1.9999",
-      "ArubaOS (MODEL: ArubaMC-VA), Version 8.10.0.12-FIPS LSR (89862)",
+      "ArubaOS (MODEL: ArubaMC-VA), Version 8.10.0.7 LSR (88512)",
       "aruba-mobility-controller",
     ],
     // Extreme: IQ Engine access points by their description.
     [
       "1.3.6.1.4.1.26928.1",
-      "AP230, HiveOS 8.1r2a build-178408",
+      "AP230, HiveOS 8.2r1 build-190112",
       "extreme-iq-engine-ap",
     ],
     [
       "1.3.6.1.4.1.26928.1",
-      "HiveAP330, HiveOS 6.5r7 build-160188",
+      "HiveAP330, HiveOS 6.5r8b build-171544",
       "extreme-iq-engine-ap",
     ],
     [
       "1.3.6.1.4.1.26928.1",
-      "HiveAP320_n, HiveOS 6.5r9a build-194750",
+      "HiveAP320_n, HiveOS 6.5r10 build-197321",
       "extreme-iq-engine-ap",
     ],
     [
       ".1.3.6.1.4.1.26928.1",
-      "AP245X, HiveOS 8.2r4 build-207023",
+      "AP245X, HiveOS 8.2r6 build-211954",
       "extreme-iq-engine-ap",
     ],
     [
       "1.3.6.1.4.1.26928.1",
-      "AP305C-1, HiveOS 10.6r4 build-dcfd27b",
+      "AP305C-1, HiveOS 10.6r2 build-a41c0e9",
       "extreme-iq-engine-ap",
     ],
     [
       "1.3.6.1.4.1.26928.1",
-      "AP4000, IQ Engine 10.6r7 build-282012",
+      "AP4000, IQ Engine 10.7r1 build-290455",
       "extreme-iq-engine-ap",
     ],
     // Extreme: the controllers on Siemens' HiPath Wireless arc.
     [
       "1.3.6.1.4.1.4329.15.1.1.13",
-      "Extreme Networks Wireless Controller - V2110 Medium,  System Version 10.21.04.0005",
+      "Extreme Networks Wireless Controller - V2110 Large,  System Version 10.41.03.0012",
       "extreme-wireless-controller",
     ],
   ])("%s (%s) -> %s", (sysObjectId: string, sysDescr: string, id: string) => {
@@ -1445,9 +1445,9 @@ describe("matching a Wi-Fi device to its template", () => {
     // A description that only starts like a UniFi model, with no version.
     ["1.3.6.1.4.1.8072.3.2.10", "UK-London file server"],
     // The first UniFi firmware answered with Frogfoot's arc and "Linux".
-    ["1.3.6.1.4.1.10002.1", "Linux 3.3.8 #1 Wed Jan 18 09:26:53 PST 2017 mips"],
+    ["1.3.6.1.4.1.10002.1", "Linux 3.3.8 #1 Tue Mar 6 14:02:11 PST 2018 mips"],
     // Aerohive's switches share the arc and the OS name; they have no radios.
-    ["1.3.6.1.4.1.26928.1", "SR2024P, HiveOS 6.5r4 Honolulu build-128121"],
+    ["1.3.6.1.4.1.26928.1", "SR2024P, HiveOS 6.5r5 Honolulu build-133702"],
     // ClearPass and other Aruba products are neither.
     ["1.3.6.1.4.1.14823.1.6.1", "ClearPass Policy Manager"],
     // Other Siemens products.
@@ -1469,16 +1469,16 @@ describe("matching a Wi-Fi device to its template", () => {
   );
 
   it.each([
-    ["1.3.6.1.4.1.8072.3.2.10", "UAP-AC-HD 3.9.19.8123", "Ubiquiti"],
-    ["1.3.6.1.4.1.41112", "U6-Pro 6.5.28.14491", "Ubiquiti"],
+    ["1.3.6.1.4.1.8072.3.2.10", "UAP-AC-HD 4.3.28.11361", "Ubiquiti"],
+    ["1.3.6.1.4.1.41112", "U6-Pro 6.6.50.15098", "Ubiquiti"],
     [
       "1.3.6.1.4.1.26928.1",
-      "AP230, HiveOS 8.1r2a build-178408",
+      "AP230, HiveOS 8.2r1 build-190112",
       "Extreme Networks",
     ],
     [
       "1.3.6.1.4.1.4329.15.1.1.13",
-      "Extreme Networks Wireless Controller - V2110 Medium",
+      "Extreme Networks Wireless Controller - V2110 Large",
       "Extreme Networks",
     ],
     ["1.3.6.1.4.1.14823.1.2.59", "ArubaOS (MODEL: 225)", "Aruba"],

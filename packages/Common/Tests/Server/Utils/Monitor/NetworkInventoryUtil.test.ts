@@ -1825,7 +1825,7 @@ describe("NetworkInventoryUtil.updateFromWalk — Wi-Fi vendors", () => {
   const UNIFI_ON_NET_SNMP: Partial<SnmpMonitorResponse> = {
     systemInfo: {
       sysObjectId: "1.3.6.1.4.1.8072.3.2.10",
-      sysDescr: "UAP-AC-HD 3.9.19.8123",
+      sysDescr: "UAP-AC-HD 4.3.28.11361",
     },
   };
 
@@ -1865,7 +1865,7 @@ describe("NetworkInventoryUtil.updateFromWalk — Wi-Fi vendors", () => {
       systemInfo: {
         sysObjectId: "1.3.6.1.4.1.4329.15.1.1.13",
         sysDescr:
-          "Extreme Networks Wireless Controller - V2110 Medium,  System Version 10.21.04.0005",
+          "Extreme Networks Wireless Controller - V2110 Large,  System Version 10.41.03.0012",
       },
     });
 
@@ -1902,7 +1902,7 @@ describe("NetworkInventoryUtil.updateFromWalk — Wi-Fi vendors", () => {
     await runWalk({
       systemInfo: {
         sysObjectId: "1.3.6.1.4.1.41112",
-        sysDescr: "U6-Pro 6.5.28.14491",
+        sysDescr: "U6-Pro 6.6.50.15098",
       },
     });
 
@@ -1922,7 +1922,7 @@ describe("NetworkInventoryUtil.updateFromWalk — Wi-Fi vendors", () => {
     await runWalk({
       systemInfo: {
         sysObjectId: "1.3.6.1.4.1.14823.1.2.59",
-        sysDescr: "ArubaOS (MODEL: 225), Version 8.4.0.0-8.4.0.0",
+        sysDescr: "ArubaOS (MODEL: 225), Version 8.6.0.4-8.6.0.4",
       },
     });
 
@@ -1939,7 +1939,7 @@ describe("NetworkInventoryUtil.updateFromWalk — Wi-Fi vendors", () => {
     await runWalk({
       systemInfo: {
         sysObjectId: "1.3.6.1.4.1.26928.1",
-        sysDescr: "SR2024P, HiveOS 6.5r4 Honolulu build-128121",
+        sysDescr: "SR2024P, HiveOS 6.5r5 Honolulu build-133702",
       },
     });
 

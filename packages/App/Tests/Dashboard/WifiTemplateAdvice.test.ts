@@ -25,7 +25,7 @@ import { describe, expect, test } from "@jest/globals";
 
 const UNIFI: Partial<WifiAdviceDeviceFacts> = {
   sysObjectId: "1.3.6.1.4.1.41112",
-  sysDescr: "U6-Pro 6.5.28.14491",
+  sysDescr: "U6-Pro 6.6.50.15098",
 };
 
 function device(
@@ -60,22 +60,22 @@ describe("the Wi-Fi tab's advice", () => {
   test.each([
     [
       "1.3.6.1.4.1.14823.1.2.59",
-      "ArubaOS (MODEL: 225), Version 8.4.0.0-8.4.0.0",
+      "ArubaOS (MODEL: 225), Version 8.6.0.4-8.6.0.4",
       "aruba-instant",
     ],
     [
       "1.3.6.1.4.1.14823.1.1.32",
-      "ArubaOS (MODEL: Aruba7210), Version 8.2.0.2 (62929)",
+      "ArubaOS (MODEL: Aruba7210), Version 8.6.0.9 (78123)",
       "aruba-mobility-controller",
     ],
     [
       "1.3.6.1.4.1.26928.1",
-      "AP230, HiveOS 8.1r2a build-178408",
+      "AP230, HiveOS 8.2r1 build-190112",
       "extreme-iq-engine-ap",
     ],
     [
       "1.3.6.1.4.1.4329.15.1.1.13",
-      "Extreme Networks Wireless Controller - V2110 Medium",
+      "Extreme Networks Wireless Controller - V2110 Large",
       "extreme-wireless-controller",
     ],
     ["1.3.6.1.4.1.17713.22.8", "Cambium XV3-8", "cambium-wifi-ap"],

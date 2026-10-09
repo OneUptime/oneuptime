@@ -609,7 +609,7 @@ describe("access points", () => {
         [
           {
             index: "1",
-            label: "TestAP",
+            label: "Lobby-AP",
             cells: { [SnmpTableColumnRole.Clients]: value(10) },
           },
         ],

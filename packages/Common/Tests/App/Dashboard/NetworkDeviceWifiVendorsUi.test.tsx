@@ -381,7 +381,7 @@ describe("the Wi-Fi tab of a UniFi access point", () => {
 describe("the empty Wi-Fi tab", () => {
   const UNIFI_IDENTITY: Partial<NetworkDevice> = {
     sysObjectId: "1.3.6.1.4.1.41112",
-    sysDescr: "U6-Pro 6.5.28.14491",
+    sysDescr: "U6-Pro 6.6.50.15098",
   };
 
   test("asks for what it needs to name the device's template", async () => {
@@ -514,7 +514,7 @@ describe("the empty Wi-Fi tab", () => {
   test("waits for the next poll when the device already walks the template's tables", async () => {
     deviceRow = deviceWith({
       ...UNIFI_IDENTITY,
-      snmpTables: SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables,
+      snmpTables: SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables!,
     });
 
     renderWiFi();

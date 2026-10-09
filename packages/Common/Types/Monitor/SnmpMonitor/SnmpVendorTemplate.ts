@@ -1865,16 +1865,16 @@ interface DeviceTemplateRule {
 
 /*
  * A UniFi access point's sysDescr: its model, then its firmware version -
- * "UAP-nanoHD 5.60.3.12934", "U6-Pro 6.5.28.14491", "UK-Ultra 6.6.77.15402",
- * "U-LTE-Pro-EU 6.6.57.15206", "E7 *14". The version is required, so a host
+ * "UAP-nanoHD 6.0.21.13673", "U6-Pro 6.6.50.15098", "UK-Ultra 6.6.65.15248",
+ * "U-LTE-Pro-EU 6.5.62.14789", "E7 *21". The version is required, so a host
  * whose description merely starts with "UK" is not taken for one.
  */
 const UNIFI_ACCESS_POINT_SYS_DESCR: RegExp =
   /^(?:UAP|U6|U7|UK|U-LTE|E7)[A-Za-z0-9+-]* +[\d*]/;
 
 /*
- * An IQ Engine (HiveOS) access point's sysDescr: "AP230, HiveOS 8.1r2a
- * build-178408", "HiveAP330, HiveOS 6.5r7 ...", "AP4000, IQ Engine 10.6r7".
+ * An IQ Engine (HiveOS) access point's sysDescr: "AP230, HiveOS 8.2r1
+ * build-190112", "HiveAP330, HiveOS 6.5r8b ...", "AP4000, IQ Engine 10.7r1".
  * Aerohive's switches share the arc and the OS name ("SR2024P, HiveOS ..."),
  * and have no radios.
  */

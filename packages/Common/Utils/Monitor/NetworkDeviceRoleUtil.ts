@@ -179,10 +179,10 @@ const PRODUCT_RULES: ReadonlyArray<RoleRule> = [
       /\b(?:unifi ap|uap[- ]|u6-|nanostation|instant ap|iap\b|aruba ap|ap-\d{3}|fortiap|omada|eap\d{3}|cw9\d{3})/,
   },
   /*
-   * UniFi access points by model ("U6+ 6.6.55", "U7-Pro 7.0.83",
-   * "UK-Ultra 6.6.77"), and IQ Engine (HiveOS) access points by the way
-   * they describe themselves ("AP230, HiveOS 8.1r2a", "AP4000, IQ Engine
-   * 10.6r7") - Aerohive's switches say "SR2024P, HiveOS" and stay switches.
+   * UniFi access points by model ("U6+ 6.6.62", "U7-Pro 7.0.66",
+   * "UK-Ultra 6.6.65"), and IQ Engine (HiveOS) access points by the way
+   * they describe themselves ("AP230, HiveOS 8.2r1", "AP4000, IQ Engine
+   * 10.7r1") - Aerohive's switches say "SR2024P, HiveOS" and stay switches.
    */
   {
     role: "wirelessAccessPoint",
