@@ -11465,7 +11465,7 @@
   "ID of the collection to poll for indicator objects.": "ID of the collection to poll for indicator objects.",
   "ID of this {{itemName}}:": "ID di questo elemento ({{itemName}}):",
   "IDF-2 uplink to core": "IDF-2 uplink to core",
-  "IP address": "IP address",
+  "IP address": "Indirizzo IP",
   "IPv4 address": "IPv4 address",
   "IPv6 address": "IPv6 address",
   "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.": "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.",
@@ -27451,5 +27451,16 @@
   "Something went wrong while drawing it.": "Qualcosa è andato storto durante la visualizzazione.",
   "These settings could not be shown. You can still delete this widget and add it again.": "Impossibile mostrare queste impostazioni. Puoi comunque eliminare questo widget e aggiungerlo di nuovo.",
   "This widget could not be shown": "Impossibile mostrare questo widget",
-  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Questo widget non indica di che tipo di widget si tratta, quindi non ci sono impostazioni da modificare. Eliminalo per toglierlo da questa dashboard."
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Questo widget non indica di che tipo di widget si tratta, quindi non ci sono impostazioni da modificare. Eliminalo per toglierlo da questa dashboard.",
+  "A discovery scan named this device. A later scan that finds a better name, such as the device's own name instead of its DNS name or IP address, renames it. Rename it yourself to keep a name of your own.": "Una scansione di rilevamento ha dato un nome a questo dispositivo. Se una scansione successiva trova un nome migliore, ad esempio il nome proprio del dispositivo invece del suo nome DNS o del suo indirizzo IP, lo rinomina. Rinominalo tu per mantenere un nome tuo.",
+  "Best-effort: after the sweep, the probe asks each host that has no SNMP name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself (its Windows computer name), so it is used ahead of the host's reverse-DNS name. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.": "Al meglio: dopo la scansione, la sonda chiede a ogni host senza nome SNMP il suo nome NetBIOS tramite UDP 137. Gli host Windows e Samba di solito rispondono, e il nome è quello che l'host dichiara per sé (il suo nome computer di Windows), quindi viene usato prima del nome DNS inverso dell'host. Vengono interrogati solo gli indirizzi privati, e le sonde globali non inviano mai queste richieste. Gli host devono consentire UDP 137 dalla sonda. Disattiva questa opzione se il tuo sistema di rilevamento delle intrusioni segnala le richieste NetBIOS.",
+  "Discovered Name": "Nome rilevato",
+  "Discovered Name Source": "Origine del nome rilevato",
+  "Look up Windows names (NetBIOS)": "Cerca i nomi Windows (NetBIOS)",
+  "Name Source": "Origine del nome",
+  "NetBIOS (Windows) name": "Nome NetBIOS (Windows)",
+  "Reverse-DNS name": "Nome DNS inverso",
+  "SNMP system name": "Nome di sistema SNMP",
+  "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "Il nome computer di Windows che questo host ha dichiarato per sé tramite NetBIOS. Il nome proprio di un host viene usato prima del suo nome DNS inverso.",
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "Come viene chiamato ogni dispositivo importato da questa scansione. Un host prende prima il proprio nome: quello che dichiara tramite SNMP, poi il nome NetBIOS che dichiara un host Windows se la scansione ne cerca uno. Poi il suo nome DNS inverso, infine il suo indirizzo."
 }

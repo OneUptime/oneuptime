@@ -11465,7 +11465,7 @@
   "ID of the collection to poll for indicator objects.": "ID of the collection to poll for indicator objects.",
   "ID of this {{itemName}}:": "이 {{itemName}}의 ID:",
   "IDF-2 uplink to core": "IDF-2 uplink to core",
-  "IP address": "IP address",
+  "IP address": "IP 주소",
   "IPv4 address": "IPv4 address",
   "IPv6 address": "IPv6 address",
   "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.": "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.",
@@ -27451,5 +27451,16 @@
   "Something went wrong while drawing it.": "표시하는 중에 문제가 발생했습니다.",
   "These settings could not be shown. You can still delete this widget and add it again.": "이 설정을 표시할 수 없습니다. 이 위젯을 삭제하고 다시 추가할 수는 있습니다.",
   "This widget could not be shown": "이 위젯을 표시할 수 없습니다",
-  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "이 위젯은 어떤 종류의 위젯인지 지정되어 있지 않아 변경할 설정이 없습니다. 이 대시보드에서 빼려면 삭제하세요."
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "이 위젯은 어떤 종류의 위젯인지 지정되어 있지 않아 변경할 설정이 없습니다. 이 대시보드에서 빼려면 삭제하세요.",
+  "A discovery scan named this device. A later scan that finds a better name, such as the device's own name instead of its DNS name or IP address, renames it. Rename it yourself to keep a name of your own.": "검색 스캔이 이 디바이스의 이름을 지정했습니다. 이후 스캔에서 DNS 이름이나 IP 주소 대신 디바이스 자체 이름처럼 더 나은 이름을 찾으면 이름이 바뀝니다. 직접 이름을 바꾸면 그 이름이 유지됩니다.",
+  "Best-effort: after the sweep, the probe asks each host that has no SNMP name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself (its Windows computer name), so it is used ahead of the host's reverse-DNS name. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.": "최선 노력: 스윕 후 프로브는 SNMP 이름이 없는 각 호스트에 UDP 137로 NetBIOS 이름을 묻습니다. Windows와 Samba 호스트는 보통 응답하며, 이 이름은 호스트가 스스로 보고하는 이름(Windows 컴퓨터 이름)이므로 호스트의 역방향 DNS 이름보다 우선합니다. 사설 주소에만 묻고, 글로벌 프로브는 이 쿼리를 보내지 않습니다. 호스트는 프로브에서 오는 UDP 137을 허용해야 합니다. 침입 탐지 시스템이 NetBIOS 쿼리를 경고한다면 이 옵션을 끄세요.",
+  "Discovered Name": "검색된 이름",
+  "Discovered Name Source": "검색된 이름의 출처",
+  "Look up Windows names (NetBIOS)": "Windows 이름 조회(NetBIOS)",
+  "Name Source": "이름 출처",
+  "NetBIOS (Windows) name": "NetBIOS 이름(Windows)",
+  "Reverse-DNS name": "역방향 DNS 이름",
+  "SNMP system name": "SNMP 시스템 이름",
+  "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "이 호스트가 NetBIOS로 스스로 보고한 Windows 컴퓨터 이름입니다. 호스트 자체 이름은 역방향 DNS 이름보다 우선합니다.",
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "이 스캔에서 가져온 각 디바이스의 이름입니다. 호스트는 먼저 자체 이름으로 지정됩니다. SNMP로 보고하는 이름, 그다음 스캔이 조회하는 경우 Windows 호스트가 보고하는 NetBIOS 이름입니다. 그다음은 역방향 DNS 이름, 마지막은 주소입니다."
 }

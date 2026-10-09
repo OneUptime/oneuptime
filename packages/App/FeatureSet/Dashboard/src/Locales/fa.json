@@ -11465,7 +11465,7 @@
   "ID of the collection to poll for indicator objects.": "ID of the collection to poll for indicator objects.",
   "ID of this {{itemName}}:": "شناسهٔ این مورد ({{itemName}}):",
   "IDF-2 uplink to core": "IDF-2 uplink to core",
-  "IP address": "IP address",
+  "IP address": "نشانی IP",
   "IPv4 address": "IPv4 address",
   "IPv6 address": "IPv6 address",
   "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.": "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.",
@@ -27451,5 +27451,16 @@
   "Something went wrong while drawing it.": "هنگام نمایش آن مشکلی پیش آمد.",
   "These settings could not be shown. You can still delete this widget and add it again.": "این تنظیمات نمایش داده نشد. همچنان می‌توانید این ویجت را حذف کنید و دوباره اضافه کنید.",
   "This widget could not be shown": "این ویجت نمایش داده نشد",
-  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "در این ویجت مشخص نشده است که از چه نوعی است، بنابراین تنظیماتی برای تغییر وجود ندارد. برای برداشتن آن از این داشبورد، حذفش کنید."
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "در این ویجت مشخص نشده است که از چه نوعی است، بنابراین تنظیماتی برای تغییر وجود ندارد. برای برداشتن آن از این داشبورد، حذفش کنید.",
+  "A discovery scan named this device. A later scan that finds a better name, such as the device's own name instead of its DNS name or IP address, renames it. Rename it yourself to keep a name of your own.": "یک اسکن کشف این دستگاه را نام‌گذاری کرده است. اگر اسکن بعدی نام بهتری پیدا کند، مثلاً نام خود دستگاه به جای نام DNS یا نشانی IP آن، نام آن را تغییر می‌دهد. برای نگه داشتن نامی از خودتان، خودتان نام آن را تغییر دهید.",
+  "Best-effort: after the sweep, the probe asks each host that has no SNMP name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself (its Windows computer name), so it is used ahead of the host's reverse-DNS name. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.": "در حد امکان: پس از اسکن، پراب از هر میزبانی که نام SNMP ندارد، نام NetBIOS آن را از طریق UDP 137 می‌پرسد. میزبان‌های Windows و Samba معمولاً پاسخ می‌دهند و این نام همان نامی است که میزبان خودش اعلام می‌کند (نام رایانهٔ Windows آن)، بنابراین بر نام DNS معکوس میزبان مقدم است. فقط از نشانی‌های خصوصی پرسیده می‌شود و پراب‌های سراسری هرگز این پرس‌وجوها را نمی‌فرستند. میزبان‌ها باید UDP 137 را از پراب مجاز کنند. اگر سامانهٔ تشخیص نفوذ شما پرس‌وجوهای NetBIOS را علامت‌گذاری می‌کند، این گزینه را خاموش کنید.",
+  "Discovered Name": "نام کشف‌شده",
+  "Discovered Name Source": "منبع نام کشف‌شده",
+  "Look up Windows names (NetBIOS)": "جست‌وجوی نام‌های Windows (NetBIOS)",
+  "Name Source": "منبع نام",
+  "NetBIOS (Windows) name": "نام NetBIOS (Windows)",
+  "Reverse-DNS name": "نام DNS معکوس",
+  "SNMP system name": "نام سیستمی SNMP",
+  "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "نام رایانهٔ Windows که این میزبان از طریق NetBIOS دربارهٔ خودش اعلام کرده است. نام خود میزبان بر نام DNS معکوس آن مقدم است.",
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "نام هر دستگاهی که از این اسکن وارد می‌شود. میزبان ابتدا با نام خودش نام‌گذاری می‌شود: نامی که از طریق SNMP اعلام می‌کند، سپس نام NetBIOS که یک میزبان Windows اعلام می‌کند، اگر اسکن آن را جست‌وجو کند. پس از آن با نام DNS معکوس و در پایان با نشانی آن."
 }
