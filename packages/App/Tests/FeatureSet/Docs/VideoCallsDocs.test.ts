@@ -6,12 +6,15 @@ import {
   GOOGLE_MEET_SCOPE,
   MICROSOFT_TEAMS_LOBBY_BYPASS_OPTIONS,
   MICROSOFT_TEAMS_MEETING_PERMISSION,
+  MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
   VideoCallConnectionField,
   VideoCallConnectionFieldOption,
   VideoCallProviderCatalog,
   VideoCallProviderDefinition,
   ZOOM_CLASSIC_MEETING_SCOPE,
   ZOOM_MEETING_SCOPE,
+  ZOOM_OAUTH_MEETING_SCOPE,
+  ZOOM_OAUTH_USER_SCOPE,
 } from "Common/Types/VideoCall/VideoCallProviderCatalog";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -39,6 +42,14 @@ const NAV_LINK_TITLE: string = "Video Calls";
 const SETTINGS_SIDE_MENU: string = path.resolve(
   __dirname,
   "../../../FeatureSet/Dashboard/src/Pages/Settings/SideMenu.tsx",
+);
+const DASHBOARD_VIDEO_CALL_API: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Dashboard/src/Components/VideoCall/VideoCallApi.ts",
+);
+const ENVIRONMENT_CONFIG: string = path.resolve(
+  __dirname,
+  "../../../../Common/Server/EnvironmentConfig.ts",
 );
 const HEADING_LINE: RegExp = /^(#{1,6})\s+(.+?)\s*$/;
 const FENCE_LINE: RegExp = /^\s*```/;
@@ -366,5 +377,79 @@ describe("Video Calls docs - the permissions each provider needs", () => {
     expect(section).toMatch(
       /has to create a channel or post to an existing one/,
     );
+  });
+});
+
+/*
+ * The one-click Connect: the Dashboard links straight into the section that
+ * explains it, and a self-hosted administrator sets up its apps from the
+ * page alone - the redirect URIs the server builds, the variables it reads
+ * and the scopes its apps ask for.
+ */
+describe("Video Calls docs - connecting in one click", () => {
+  test("the Dashboard's How it works link opens a section of this page", () => {
+    const source: string = fs.readFileSync(DASHBOARD_VIDEO_CALL_API, "utf8");
+    const match: RegExpExecArray | null =
+      /VIDEO_CALL_ONE_CLICK_DOCS_PATH: string =\s*"([^"]+)"/.exec(source);
+
+    expect(match).not.toBe(null);
+
+    const [docsPage, anchor] = match![1]!.split("#");
+    expect(docsPage).toBe(PAGE_URL);
+    expect(sectionOf(readPage(), anchor!)).toMatch(/^## Connect in one click/);
+  });
+
+  test("says which account to sign in with, and that a shared one keeps calls starting", () => {
+    const section: string = sectionOf(readPage(), "connect-in-one-click");
+
+    expect(section).toContain("Sign in with a shared account");
+    expect(section).toContain("**Reconnect**");
+    expect(section).toContain("**Use your own Zoom app**");
+  });
+
+  test("names every permission the one-click apps ask for", () => {
+    const section: string = sectionOf(readPage(), "connect-in-one-click");
+
+    for (const scope of [
+      ZOOM_OAUTH_MEETING_SCOPE,
+      ZOOM_OAUTH_USER_SCOPE,
+      "meetings.space.created",
+      MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
+      "offline_access",
+    ]) {
+      expect(section).toContain(scope);
+    }
+  });
+
+  test("a self-hosted server: every redirect URI the server builds, every variable it reads", () => {
+    const section: string = sectionOf(
+      readPage(),
+      "one-click-connect-on-a-self-hosted-server",
+    );
+    const environment: string = fs.readFileSync(ENVIRONMENT_CONFIG, "utf8");
+
+    for (const definition of VideoCallProviderCatalog) {
+      if (definition.oauth) {
+        expect(section).toContain(
+          `/api/video-call-oauth/${definition.oauth.slug}/callback`,
+        );
+      }
+    }
+
+    expect(section).toContain("/api/video-call-oauth/zoom/events");
+    expect(section).toContain(GOOGLE_MEET_SCOPE);
+
+    for (const variable of [
+      "ZOOM_APP_CLIENT_ID",
+      "ZOOM_APP_CLIENT_SECRET",
+      "ZOOM_APP_WEBHOOK_SECRET_TOKEN",
+      "GOOGLE_MEET_APP_CLIENT_ID",
+      "GOOGLE_MEET_APP_CLIENT_SECRET",
+      "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID",
+      "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET",
+    ]) {
+      expect(section).toContain(variable);
+      expect(environment).toContain(`process.env["${variable}"]`);
+    }
   });
 });

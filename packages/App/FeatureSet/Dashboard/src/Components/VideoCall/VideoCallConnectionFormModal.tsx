@@ -2,10 +2,12 @@ import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnectio
 import HashedString from "Common/Types/HashedString";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { isVideoCallOAuth } from "Common/Types/VideoCall/VideoCallAuthMethod";
 import VideoCallProvider from "Common/Types/VideoCall/VideoCallProvider";
 import {
   VideoCallConnectionField,
   VideoCallProviderDefinition,
+  getVideoCallConfigFields,
   getVideoCallProviderDefinition,
 } from "Common/Types/VideoCall/VideoCallProviderCatalog";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -30,6 +32,7 @@ import React, {
   useState,
 } from "react";
 import {
+  VIDEO_CALL_ONE_CLICK_DOCS_PATH,
   VideoCallTestResult,
   runVideoCallConnectionTest,
   videoCallDocsUrl,
@@ -45,6 +48,10 @@ import VideoCallTestPanel from "./VideoCallTestPanel";
  *
  * Secrets are write-only. On edit, a credential left blank keeps the stored
  * value; the server merges what is sent over what it stores.
+ *
+ * A connection made by signing in (VideoCallOAuthConnectModal) is only ever
+ * edited here: its name, and the settings a sign-in leaves to pick. Its
+ * account and credentials are the sign-in's, changed by reconnecting.
  */
 
 export const SETUP_STEP_ID: string = "setup";
@@ -91,10 +98,14 @@ export interface VideoCallConnectionFormSubmission {
 export function readVideoCallConnectionForm(
   definition: VideoCallProviderDefinition,
   values: JSONObject,
+  isOAuth?: boolean | undefined,
 ): VideoCallConnectionFormSubmission {
   const config: JSONObject = {};
 
-  for (const field of definition.configFields) {
+  for (const field of getVideoCallConfigFields({
+    definition,
+    isOAuth: Boolean(isOAuth),
+  })) {
     const text: string = readText(
       values[configFieldName(field.key)] as JSONValue | undefined,
     ).trim();
@@ -106,7 +117,8 @@ export function readVideoCallConnectionForm(
 
   const secrets: JSONObject = {};
 
-  for (const field of definition.secretFields) {
+  // A sign-in's credentials are never typed in.
+  for (const field of isOAuth ? [] : definition.secretFields) {
     const raw: string = readText(
       values[secretFieldName(field.key)] as JSONValue | undefined,
     );
@@ -139,8 +151,17 @@ export function videoCallConnectionTestBody(data: {
   values: JSONObject;
   connection?: VideoCallConnection | undefined;
 }): JSONObject {
+  const isOAuth: boolean = isVideoCallOAuth(data.connection?.authMethod);
   const submission: VideoCallConnectionFormSubmission =
-    readVideoCallConnectionForm(data.definition, data.values);
+    readVideoCallConnectionForm(data.definition, data.values, isOAuth);
+
+  if (data.connection?.id && isOAuth) {
+    // Tested with its own sign-in, which no form sends.
+    return {
+      connectionId: data.connection.id.toString(),
+      config: submission.config,
+    };
+  }
 
   if (data.connection?.id) {
     return {
@@ -308,6 +329,12 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
   }
 
   const isEditing: boolean = Boolean(props.connection?.id);
+  const isOAuth: boolean = isVideoCallOAuth(props.connection?.authMethod);
+  const configFields: Array<VideoCallConnectionField> =
+    getVideoCallConfigFields({ definition, isOAuth });
+  const secretFields: Array<VideoCallConnectionField> = isOAuth
+    ? []
+    : definition.secretFields;
 
   const steps: Array<FormStep<JSONObject>> = isEditing
     ? []
@@ -334,6 +361,41 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
     });
   }
 
+  if (isOAuth) {
+    fields.push({
+      field: { signedInAs: true },
+      title: "",
+      stepId,
+      fieldType: FormFieldSchemaType.CustomComponent,
+      required: false,
+      hideOptionalLabel: true,
+      getCustomElement: (): ReactElement => {
+        return (
+          <div
+            data-testid="video-call-signed-in-as"
+            className="flex items-start gap-3 rounded-md bg-gray-50 p-3 text-sm text-gray-700 ring-1 ring-inset ring-gray-200"
+          >
+            <VideoCallProviderLogo provider={definition.provider} size="md" />
+            <span className="min-w-0">
+              {props.connection?.connectedAccount
+                ? translator.translateTemplate(
+                    "Signed in as {{account}}. Every meeting is created as this account. To use another account, reconnect {{provider}}.",
+                    {
+                      account: props.connection.connectedAccount,
+                      provider: definition.title,
+                    },
+                  )
+                : translator.translateTemplate(
+                    "Signed out: the account that connected it removed OneUptime. Reconnect {{provider}} to start calls again.",
+                    { provider: definition.title },
+                  )}
+            </span>
+          </div>
+        );
+      },
+    });
+  }
+
   fields.push({
     field: { name: true },
     title: "Name",
@@ -348,7 +410,7 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
     validation: { minLength: 2 },
   });
 
-  definition.configFields.forEach(
+  configFields.forEach(
     (field: VideoCallConnectionField, index: number): void => {
       fields.push({
         field: { [configFieldName(field.key)]: true },
@@ -376,7 +438,11 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
               ),
               sideLink: {
                 text: "Setup guide",
-                url: videoCallDocsUrl(definition.docsPath),
+                url: videoCallDocsUrl(
+                  isOAuth
+                    ? VIDEO_CALL_ONE_CLICK_DOCS_PATH
+                    : definition.docsPath,
+                ),
                 openLinkInNewTab: true,
               },
             }
@@ -385,7 +451,7 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
     },
   );
 
-  definition.secretFields.forEach(
+  secretFields.forEach(
     (field: VideoCallConnectionField, index: number): void => {
       fields.push({
         field: { [secretFieldName(field.key)]: true },
@@ -466,7 +532,7 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
 
     const config: JSONObject = props.connection.config || {};
 
-    for (const field of definition.configFields) {
+    for (const field of configFields) {
       const value: JSONValue | undefined = config[field.key];
 
       if (value !== undefined && value !== null) {
@@ -517,7 +583,7 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
 
         try {
           const submission: VideoCallConnectionFormSubmission =
-            readVideoCallConnectionForm(definition, values);
+            readVideoCallConnectionForm(definition, values, isOAuth);
 
           if (isEditing && props.connection?.id) {
             await ModelAPI.updateById<VideoCallConnection>({

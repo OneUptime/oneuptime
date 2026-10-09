@@ -3,6 +3,7 @@ import ConnectCallbackUtil, {
   ConnectCallbackError,
   ConnectProvider,
   ConnectStartPage,
+  VideoCallConnectProviders,
 } from "Common/Types/Workspace/ConnectCallback";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -35,7 +36,16 @@ const NOT_CONNECTED: Record<ConnectProvider, string> = {
     "Microsoft Teams was not connected",
   ),
   [ConnectProvider.GitHub]: translationKey("GitHub was not connected"),
+  [ConnectProvider.Zoom]: translationKey("Zoom was not connected"),
+  [ConnectProvider.GoogleMeet]: translationKey("Google Meet was not connected"),
+  [ConnectProvider.MicrosoftTeamsMeetings]: translationKey(
+    "Microsoft Teams meetings were not connected",
+  ),
 };
+
+const VIDEO_CALL_NO_PERMISSION: string = translationKey(
+  "You do not have permission to connect video call providers in this project.",
+);
 
 // For anything the page does not know, and for every failure that is no one's refusal.
 export const CONNECT_COULD_NOT_FINISH: string = translationKey(
@@ -57,6 +67,9 @@ const NO_PERMISSION: Record<ConnectProvider, string> = {
   [ConnectProvider.GitHub]: translationKey(
     "You do not have permission to add code repositories to this project.",
   ),
+  [ConnectProvider.Zoom]: VIDEO_CALL_NO_PERMISSION,
+  [ConnectProvider.GoogleMeet]: VIDEO_CALL_NO_PERMISSION,
+  [ConnectProvider.MicrosoftTeamsMeetings]: VIDEO_CALL_NO_PERMISSION,
 };
 
 const NOT_CONFIGURED: Record<ConnectProvider, string> = {
@@ -69,6 +82,15 @@ const NOT_CONFIGURED: Record<ConnectProvider, string> = {
   [ConnectProvider.GitHub]: translationKey(
     "The GitHub App is not set up on this OneUptime server. Please ask your server admin to set it up.",
   ),
+  [ConnectProvider.Zoom]: translationKey(
+    "Connecting Zoom by signing in is not set up on this OneUptime server. Please ask your server admin to set up its Zoom app, or connect your own Zoom app instead.",
+  ),
+  [ConnectProvider.GoogleMeet]: translationKey(
+    "Connecting Google Meet by signing in is not set up on this OneUptime server. Please ask your server admin to set up its Google app, or connect your own Google service account instead.",
+  ),
+  [ConnectProvider.MicrosoftTeamsMeetings]: translationKey(
+    "Connecting Microsoft Teams meetings by signing in is not set up on this OneUptime server. Please ask your server admin to set up its Microsoft app, or connect your own app registration instead.",
+  ),
 };
 
 /*
@@ -79,17 +101,23 @@ const PLAN_REQUIRED: string = translationKey(
   "Your project's plan does not include this. Please upgrade the plan and try again.",
 );
 
-// The codes only one provider's callback answers with.
-const PROVIDER_OF_CODE: Partial<Record<ConnectCallbackError, ConnectProvider>> =
-  {
-    [ConnectCallbackError.SlackOtherWorkspace]: ConnectProvider.Slack,
-    [ConnectCallbackError.SlackNotInstalled]: ConnectProvider.Slack,
-    [ConnectCallbackError.TeamsOtherTenant]: ConnectProvider.MicrosoftTeams,
-    [ConnectCallbackError.TeamsNoTeams]: ConnectProvider.MicrosoftTeams,
-    [ConnectCallbackError.GitHubNoInstallation]: ConnectProvider.GitHub,
-    [ConnectCallbackError.GitHubNoAuthorization]: ConnectProvider.GitHub,
-    [ConnectCallbackError.GitHubNotVerified]: ConnectProvider.GitHub,
-  };
+// The codes only some providers' callbacks answer with.
+const PROVIDERS_OF_CODE: Partial<
+  Record<ConnectCallbackError, Array<ConnectProvider>>
+> = {
+  [ConnectCallbackError.SlackOtherWorkspace]: [ConnectProvider.Slack],
+  [ConnectCallbackError.SlackNotInstalled]: [ConnectProvider.Slack],
+  [ConnectCallbackError.TeamsOtherTenant]: [ConnectProvider.MicrosoftTeams],
+  [ConnectCallbackError.TeamsNoTeams]: [ConnectProvider.MicrosoftTeams],
+  [ConnectCallbackError.GitHubNoInstallation]: [ConnectProvider.GitHub],
+  [ConnectCallbackError.GitHubNoAuthorization]: [ConnectProvider.GitHub],
+  [ConnectCallbackError.GitHubNotVerified]: [ConnectProvider.GitHub],
+  [ConnectCallbackError.VideoCallPermissionNotGranted]:
+    VideoCallConnectProviders,
+  [ConnectCallbackError.VideoCallWorkAccountRequired]: [
+    ConnectProvider.MicrosoftTeamsMeetings,
+  ],
+};
 
 /*
  * The code `provider`'s page shows for the `?error=` it was opened with:
@@ -110,9 +138,10 @@ export const readConnectCallbackError: (
     return null;
   }
 
-  const ownProvider: ConnectProvider | undefined = PROVIDER_OF_CODE[code];
+  const ownProviders: Array<ConnectProvider> | undefined =
+    PROVIDERS_OF_CODE[code];
 
-  return ownProvider && ownProvider !== provider
+  return ownProviders && !ownProviders.includes(provider)
     ? ConnectCallbackError.CouldNotFinish
     : code;
 };
@@ -169,6 +198,14 @@ export const getConnectCallbackMessageKey: (
     case ConnectCallbackError.GitHubNotVerified:
       return translationKey(
         "OneUptime could not confirm that your GitHub account can manage this installation. Please install the app with a GitHub account that can.",
+      );
+    case ConnectCallbackError.VideoCallPermissionNotGranted:
+      return translationKey(
+        "OneUptime was not allowed to create meetings, so the connection could not be used. Please connect again and allow it to create meetings.",
+      );
+    case ConnectCallbackError.VideoCallWorkAccountRequired:
+      return translationKey(
+        "Microsoft Teams meetings need a work or school account. Please connect again and sign in with your organization's account.",
       );
   }
 };
@@ -250,5 +287,16 @@ export const getConnectReturnPath: (data: {
     data.error,
   );
 
-  return code ? `${pagePath}?${CONNECT_ERROR_QUERY_PARAM}=${code}` : pagePath;
+  // The Video Calls page is told which of its providers it was.
+  const query: URLSearchParams = new URLSearchParams(
+    ConnectCallbackUtil.getPageQuery(provider),
+  );
+
+  if (code) {
+    query.set(CONNECT_ERROR_QUERY_PARAM, code);
+  }
+
+  const queryString: string = query.toString();
+
+  return queryString ? `${pagePath}?${queryString}` : pagePath;
 };

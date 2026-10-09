@@ -1,0 +1,152 @@
+# The one-click Connect of a video call provider (Project Settings > Video
+# Calls) runs on this server's own Zoom, Google and Microsoft apps. The
+# Dashboard offers it for a provider whose public client id reaches env.js,
+# and the app needs the matching secret to finish the sign-in - so both have
+# to reach the app, and the worker too when it runs on its own: it refreshes
+# every sign-in daily so none lapses for being idle.
+#
+# An id without its secret, or a secret that never arrives, sends people to a
+# sign-in that cannot finish; an install without the apps must keep offering
+# the connection form, so the values default to empty.
+suite: video call apps
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: ships with no app, so projects connect their own
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_CLIENT_ID
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_MEET_APP_CLIENT_ID
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_CLIENT_SECRET
+            value: ""
+
+  - it: passes every app's id and secret to the app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      zoomApp.clientId: zoom-client-id
+      zoomApp.clientSecret: zoom-client-secret
+      zoomApp.webhookSecretToken: zoom-webhook-secret-token
+      googleMeetApp.clientId: google-client-id.apps.googleusercontent.com
+      googleMeetApp.clientSecret: google-client-secret
+      microsoftTeamsMeetingsApp.clientId: 6c1a8d3e-1111-4222-8333-944455556666
+      microsoftTeamsMeetingsApp.clientSecret: ms-client-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_CLIENT_ID
+            value: zoom-client-id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_CLIENT_SECRET
+            value: zoom-client-secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_WEBHOOK_SECRET_TOKEN
+            value: zoom-webhook-secret-token
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_MEET_APP_CLIENT_ID
+            value: google-client-id.apps.googleusercontent.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_MEET_APP_CLIENT_SECRET
+            value: google-client-secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID
+            value: 6c1a8d3e-1111-4222-8333-944455556666
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET
+            value: ms-client-secret
+
+  - it: passes them to the worker, which keeps every sign-in alive
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      zoomApp.clientId: zoom-client-id
+      zoomApp.clientSecret: zoom-client-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_CLIENT_ID
+            value: zoom-client-id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_CLIENT_SECRET
+            value: zoom-client-secret
+
+  - it: reads an app's values from an existing secret when one is named
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      zoomApp.existingSecret.name: zoom-app-secret
+      zoomApp.existingSecret.clientIdKey: clientId
+      zoomApp.existingSecret.clientSecretKey: clientSecret
+      zoomApp.existingSecret.webhookSecretTokenKey: webhookSecretToken
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: zoom-app-secret
+                key: clientId
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: zoom-app-secret
+                key: clientSecret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ZOOM_APP_WEBHOOK_SECRET_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: zoom-app-secret
+                key: webhookSecretToken

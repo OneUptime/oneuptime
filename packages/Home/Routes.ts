@@ -48,6 +48,10 @@ import {
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import { generateNostrWellKnown } from "./Utils/Nostr";
+import {
+  generateMicrosoftIdentityAssociation,
+  MicrosoftIdentityAssociationPath,
+} from "./Utils/MicrosoftIdentityAssociation";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
@@ -240,6 +244,19 @@ const HomeFeatureSet: FeatureSet = {
             requestedName: requestedName,
           }),
         );
+      },
+    );
+
+    /*
+     * Microsoft Entra fetches this to let OneUptime's app registrations name
+     * oneuptime.com as their publisher domain. Off the canonical host it
+     * lists no apps - see Home/Utils/MicrosoftIdentityAssociation.ts.
+     */
+    app.get(
+      MicrosoftIdentityAssociationPath,
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.json(generateMicrosoftIdentityAssociation({ host: Host }));
       },
     );
 
