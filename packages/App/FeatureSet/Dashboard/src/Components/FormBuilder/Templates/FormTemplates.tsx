@@ -1,8 +1,9 @@
-import {
-  loadFormCustomFields,
-  loadFormRecordOptions,
-} from "../FormBuilderData";
 import FormsCopy from "../FormsCopy";
+import {
+  FormQuestionData,
+  FormRecordOptionsBySource,
+  loadFormQuestionData,
+} from "./FormQuestionData";
 import FormTemplateQuestionSettings from "./FormTemplateQuestionSettings";
 import {
   fitFormTemplateToQuestions,
@@ -21,23 +22,13 @@ import {
   TEMPLATE_NAME_KEY,
 } from "./FormTemplatesState";
 import Form from "Common/Models/DatabaseModels/Form";
-import {
-  FormField,
-  FormFieldSource,
-  readFormFields,
-} from "Common/Types/Form/FormField";
+import { readFormFields } from "Common/Types/Form/FormField";
 import {
   BuiltPublicForm,
   buildPublicForm,
   FormCustomFieldDefinition,
-  FormRecordOption,
   PublicFormField,
 } from "Common/Types/Form/FormPublic";
-import {
-  FormTargetFieldDefinition,
-  FormTargetOptionsSource,
-  getFormTargetField,
-} from "Common/Types/Form/FormTargetCatalog";
 import FormTargetType, {
   readFormTargetType,
 } from "Common/Types/Form/FormTargetType";
@@ -113,10 +104,6 @@ export interface ComponentProps {
   formId: ObjectID;
 }
 
-type RecordOptions = Partial<
-  Record<FormTargetOptionsSource, Array<FormRecordOption>>
->;
-
 interface EditorState {
   // The template being edited; undefined for a new one.
   template: FormTemplate | undefined;
@@ -159,7 +146,9 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
   const [customFields, setCustomFields] = useState<
     Array<FormCustomFieldDefinition>
   >([]);
-  const [recordOptions, setRecordOptions] = useState<RecordOptions>({});
+  const [recordOptions, setRecordOptions] = useState<FormRecordOptionsBySource>(
+    {},
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -197,42 +186,14 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const target: FormTargetType = readFormTargetType(loaded.targetType);
-      const questions: Array<FormField> = readFormFields(loaded.fields);
+      // The custom fields and records the questions need, every kind once.
+      const questionData: FormQuestionData = await loadFormQuestionData({
+        targetType: readFormTargetType(loaded.targetType),
+        fields: readFormFields(loaded.fields),
+      });
 
-      // The records each choice question offers, every kind once.
-      const sources: Set<FormTargetOptionsSource> =
-        new Set<FormTargetOptionsSource>();
-
-      for (const question of questions) {
-        if (question.source !== FormFieldSource.TargetField) {
-          continue;
-        }
-
-        const definition: FormTargetFieldDefinition | undefined =
-          getFormTargetField(target, question.targetField);
-
-        if (definition?.optionsSource) {
-          sources.add(definition.optionsSource);
-        }
-      }
-
-      const options: RecordOptions = {};
-
-      for (const source of sources) {
-        options[source] = await loadFormRecordOptions(source);
-      }
-
-      const asksCustomField: boolean = questions.some(
-        (question: FormField): boolean => {
-          return question.source === FormFieldSource.TargetCustomField;
-        },
-      );
-
-      setCustomFields(
-        asksCustomField ? await loadFormCustomFields(target) : [],
-      );
-      setRecordOptions(options);
+      setCustomFields(questionData.customFields);
+      setRecordOptions(questionData.recordOptions);
       setTemplates(readFormTemplates(loaded.templates));
       setForm(loaded);
     } catch (err) {

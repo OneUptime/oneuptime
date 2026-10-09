@@ -116,6 +116,7 @@ const TOKENS: Array<string> = Array.from(new Set(stringTokens(CODE)));
 describe("the Templates page in the dark theme", () => {
   test("reads every module of the folder", () => {
     expect(MODULES).toEqual([
+      "FormQuestionData.ts",
       "FormTemplateQuestionSettings.tsx",
       "FormTemplates.tsx",
       "FormTemplatesState.ts",

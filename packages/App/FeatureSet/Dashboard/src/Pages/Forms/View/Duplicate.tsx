@@ -1,11 +1,28 @@
 import FormsCopy from "../../../Components/FormBuilder/FormsCopy";
+import {
+  FormQuestionData,
+  loadFormQuestionData,
+} from "../../../Components/FormBuilder/Templates/FormQuestionData";
+import {
+  fitFormTemplateToQuestions,
+  FormTemplateEditorQuestion,
+  getFormTemplateEditorQuestions,
+} from "../../../Components/FormBuilder/Templates/FormTemplatesState";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Form from "Common/Models/DatabaseModels/Form";
 import Route from "Common/Types/API/Route";
 import { FormField, readFormFields } from "Common/Types/Form/FormField";
-import { limitFormTemplatesToQuestions } from "Common/Types/Form/FormTemplate";
+import { buildPublicForm } from "Common/Types/Form/FormPublic";
+import FormTargetType, {
+  readFormTargetType,
+} from "Common/Types/Form/FormTargetType";
+import {
+  FormTemplate,
+  limitFormTemplatesToQuestions,
+  readFormTemplates,
+} from "Common/Types/Form/FormTemplate";
 import { JSONArray } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
@@ -27,16 +44,64 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * original.
  */
 
+type GetCopyTemplatesFunction = (copy: Form) => Promise<Array<FormTemplate>>;
+
+/*
+ * The copy's templates, each keeping only what it can still use, as the
+ * Templates page saves one (fitFormTemplateToQuestions): its answers that
+ * suit their questions and its settings for questions the form asks. The
+ * server judges a new form's templates whole, so an answer left behind by a
+ * question removed or changed since - never used by the original - would
+ * get the copy refused. Without the project's custom fields and records
+ * (the read failed), the copy keeps what the questions' ids allow.
+ */
+const getCopyTemplates: GetCopyTemplatesFunction = async (
+  copy: Form,
+): Promise<Array<FormTemplate>> => {
+  const fields: Array<FormField> = readFormFields(copy.fields);
+  const targetType: FormTargetType = readFormTargetType(copy.targetType);
+
+  try {
+    const questionData: FormQuestionData = await loadFormQuestionData({
+      targetType,
+      fields,
+    });
+
+    const questions: Array<FormTemplateEditorQuestion> =
+      getFormTemplateEditorQuestions(
+        buildPublicForm({
+          form: { name: copy.name || "", fields: copy.fields, targetType },
+          customFields: questionData.customFields,
+          recordOptions: questionData.recordOptions,
+          isCaptchaRequired: false,
+        }),
+      );
+
+    return readFormTemplates(copy.templates).map(
+      (template: FormTemplate): FormTemplate => {
+        return fitFormTemplateToQuestions({ template, questions });
+      },
+    );
+  } catch {
+    return limitFormTemplatesToQuestions({
+      templates: copy.templates,
+      fieldIds: fields.map((field: FormField): string => {
+        return field.id;
+      }),
+    });
+  }
+};
+
 /*
  * The copy as it is saved: turned off, and without an IP allowlist the
  * original does not have - the allowlist needs the Scale plan, and sending
  * it empty would still ask for that plan. One the original has is copied:
  * dropping a form's network restriction must never be silent. Its templates
- * keep their answers to, and settings for, the questions the form has: one
- * left behind by a question deleted since was never used, and would get the
- * new form refused.
+ * keep only what they can still use (getCopyTemplates).
  */
-export const prepareFormCopy: (copy: Form) => void = (copy: Form): void => {
+export const prepareFormCopy: (copy: Form) => Promise<void> = async (
+  copy: Form,
+): Promise<void> => {
   copy.isEnabled = false;
 
   if (!copy.ipWhitelist || !copy.ipWhitelist.trim()) {
@@ -44,12 +109,7 @@ export const prepareFormCopy: (copy: Form) => void = (copy: Form): void => {
   }
 
   if (Array.isArray(copy.templates)) {
-    copy.templates = limitFormTemplatesToQuestions({
-      templates: copy.templates,
-      fieldIds: readFormFields(copy.fields).map((field: FormField): string => {
-        return field.id;
-      }),
-    }) as unknown as JSONArray;
+    copy.templates = (await getCopyTemplates(copy)) as unknown as JSONArray;
   }
 };
 const FormDuplicate: FunctionComponent<
