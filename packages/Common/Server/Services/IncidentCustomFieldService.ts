@@ -174,9 +174,10 @@ export class Service extends DatabaseService<Model> {
    * had, and a refusal when the rename cannot be done safely.
    *
    * The store is read as root, like IncidentService reads incidents for its
-   * update hooks, and limited to the caller's project: the update's own
-   * permission check has not run yet, and a non-root caller must not learn
-   * anything about another project's fields from a refusal.
+   * update hooks, from the fields the update writes
+   * (findRowsAndHoldUpdateToThem): for a teammate, only the ones they may
+   * write, with the update held to them, so a refusal never tells them
+   * about a field they cannot reach.
    */
   private async prepareRename(
     updateBy: UpdateBy<Model>,

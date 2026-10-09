@@ -13,7 +13,7 @@ import { ProjectScopedReferenceException } from "../../../../Server/Utils/Databa
 import StatusPageSubscriberResources from "../../../../Server/Utils/StatusPage/StatusPageSubscriberResources";
 import StatusPageEventType from "../../../../Types/StatusPage/StatusPageEventType";
 import ObjectID from "../../../../Types/ObjectID";
-import { DataSource } from "typeorm";
+import { And, DataSource, FindOperator } from "typeorm";
 
 /*
  * THE RESOURCES A SUBSCRIPTION NAMES ARE ITS OWN STATUS PAGE'S - against a
@@ -554,6 +554,120 @@ describePostgres(
         expect(sorted(heldIdsOf(updateBy))).toEqual(sorted(theirs));
         expect(updateBy.skip).toBe(0);
         expect(updateBy.limit).toBe(2);
+      } finally {
+        updatableQuery.mockRestore();
+      }
+    });
+
+    /*
+     * A check made once the permission check has run reads the rows the
+     * caller may write when it asks, and holds the update to them with the
+     * conditions its query set on _id kept beside their ids - read, and read
+     * again with the held query, by Postgres.
+     */
+    test("a teammate's check after the permission check keeps the update's conditions on _id beside the rows it holds", async () => {
+      const theirs: ObjectID = await seedSubscriber({
+        statusPageId: pageA,
+        resources: [],
+      });
+      const notTheirs: ObjectID = await seedSubscriber({
+        statusPageId: pageA,
+        resources: [],
+      });
+      const notNamed: ObjectID = await seedSubscriber({
+        statusPageId: pageA,
+        resources: [],
+      });
+
+      // The update's own conditions on _id: it names theirs and notTheirs.
+      const named: FindOperator<unknown> = And(
+        QueryHelper.any([
+          theirs.toString(),
+          notTheirs.toString(),
+        ]) as unknown as FindOperator<unknown>,
+        QueryHelper.any([
+          theirs.toString(),
+          notTheirs.toString(),
+          notNamed.toString(),
+        ]) as unknown as FindOperator<unknown>,
+      );
+
+      // The caller may write theirs and notNamed.
+      const updatableQuery: jest.SpyInstance = jest
+        .spyOn(ModelPermission, "getUpdatableQuery")
+        .mockImplementation(
+          async (
+            _modelType: unknown,
+            query: Query<StatusPageSubscriber>,
+          ): Promise<Query<StatusPageSubscriber>> => {
+            return {
+              ...query,
+              projectId: projectId,
+              _id: And(
+                (query as unknown as Record<string, FindOperator<unknown>>)[
+                  "_id"
+                ]!,
+                QueryHelper.any([
+                  theirs.toString(),
+                  notNamed.toString(),
+                ]) as unknown as FindOperator<unknown>,
+              ),
+            } as unknown as Query<StatusPageSubscriber>;
+          },
+        );
+
+      try {
+        const updateBy: UpdateBy<StatusPageSubscriber> = {
+          query: { statusPageId: pageA, _id: named },
+          data: { isSubscribedToAllResources: true },
+          props: {
+            tenantId: projectId,
+            userId: ObjectID.generate(),
+          },
+          skip: 0,
+          limit: 10,
+        } as unknown as UpdateBy<StatusPageSubscriber>;
+
+        const rows: Array<StatusPageSubscriber> =
+          await StatusPageSubscriberService.findRowsAndHoldUpdateToThem(
+            updateBy,
+            { _id: true, statusPageId: true },
+          );
+
+        expect(
+          sorted(
+            rows.map((row: StatusPageSubscriber): string => {
+              return row._id!;
+            }),
+          ),
+        ).toEqual(sorted([theirs]));
+
+        const heldBy: unknown = (
+          updateBy.query as unknown as Record<string, unknown>
+        )["_id"];
+
+        // The update's conditions stay, beside the one row it is held to.
+        expect((heldBy as FindOperator<unknown>).type).toBe("and");
+        expect((heldBy as FindOperator<unknown>).value).toContain(named);
+        expect(updateBy.limit).toBe(1);
+
+        // The held query, as the write reads it, names that row and no other.
+        const written: Array<StatusPageSubscriber> =
+          await StatusPageSubscriberService.findBy({
+            query: updateBy.query,
+            select: { _id: true },
+            skip: 0,
+            limit: 10,
+            props: { isRoot: true, ignoreHooks: true },
+          });
+
+        expect(
+          sorted(
+            written.map((row: StatusPageSubscriber): string => {
+              return row._id!;
+            }),
+          ),
+        ).toEqual(sorted([theirs]));
       } finally {
         updatableQuery.mockRestore();
       }

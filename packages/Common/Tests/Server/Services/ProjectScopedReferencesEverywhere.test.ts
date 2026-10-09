@@ -1108,7 +1108,7 @@ describe("services whose rows name the project's records", () => {
         data: Record<string, unknown>,
       ): Promise<unknown> => {
         return baseHook.call(service, {
-          query: { _id: "1c2d3e4f-0000-4000-8000-0000000000a1" },
+          query: { _id: record._id },
           data: data,
           props: USER_PROPS,
           limit: 1,

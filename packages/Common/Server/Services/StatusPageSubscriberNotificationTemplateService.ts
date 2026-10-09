@@ -87,9 +87,9 @@ export class Service extends DatabaseService<Model> {
    * across every template it would change: those it writes into a body or
    * subject that the template did not hold before, and, when it changes
    * where the template is sent (its channel or event type), every one the
-   * template will hold once written. The templates are read as root and
-   * limited to the caller's project, like other update hooks: the update's
-   * own permission check has not run yet, and only narrows the rows further.
+   * template will hold once written. The templates are read as root, from
+   * the ones the update writes (findRowsAndHoldUpdateToThem): the ones the
+   * caller may write, with the update held to them.
    */
   private async getIncidentRecordPlaceholdersToCheck(
     updateBy: UpdateBy<Model>,

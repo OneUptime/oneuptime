@@ -137,15 +137,18 @@ const givenStoredProjects: (projects: Array<Project>) => void = (
   findBySpy.mockResolvedValue(projects as never);
 };
 
+// An update of the project PROJECT_ID, or of `projectId`.
 const update: (
   data: Record<string, unknown>,
   props?: DatabaseCommonInteractionProps,
+  projectId?: ObjectID,
 ) => Promise<unknown> = (
   data: Record<string, unknown>,
   props?: DatabaseCommonInteractionProps,
+  projectId?: ObjectID,
 ): Promise<unknown> => {
   return hooks.onBeforeUpdate({
-    query: { _id: PROJECT_ID.toString() },
+    query: { _id: (projectId || PROJECT_ID).toString() },
     data: data,
     props: props || OWNER_PROPS,
   } as unknown as UpdateBy<Project>);
@@ -537,6 +540,7 @@ describe("updating a project's audit log settings, billing off", () => {
               projectIds: [OTHER_PROJECT_ID],
             } as never,
           },
+          OTHER_PROJECT_ID,
         ),
       ).rejects.toThrow(COMMUNITY_REFUSAL);
     });

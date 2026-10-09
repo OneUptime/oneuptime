@@ -23,7 +23,6 @@ import {
   getCustomFieldMappingTarget,
   getCustomFieldMappingTargetsForSource,
 } from "../Utils/CustomField/CustomFieldMappingRegistry";
-import DatabaseService from "./DatabaseService";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -405,36 +404,25 @@ export class CustomFieldMappingServiceClass {
       }
 
       /*
-       * The records the update writes, and the update held to them: the
-       * values folded in below are worked out for the one record read, and
-       * written to no other. Only an update of one record has them folded
-       * in, so an update that does not name one record by id has the ids of
-       * the records it writes read first, and goes on only when that is one.
+       * The record the update writes, and the update held to it: the values
+       * folded in below are worked out for that one record, and written to
+       * no other. An update of more than one record is left as it is - its
+       * records are stamped one by one once it is written
+       * (restampRecordsByIds) - and two records read are enough to tell.
        */
       const targetService: DatabaseServiceLike = target.getTargetService();
 
-      if (!DatabaseService.getOneRowIdNamedBy(data.updateBy.query)) {
-        const written: Array<BaseModel> =
-          await targetService.findRowsAndHoldUpdateToThem(data.updateBy, {
-            _id: true,
-          });
-
-        if (written.length !== 1) {
-          return;
-        }
-      }
-
-      const affected: Array<BaseModel> =
-        await targetService.findRowsAndHoldUpdateToThem(
+      const written: { row: BaseModel | null; writesMore: boolean } =
+        await targetService.findOneRowAndHoldUpdateToIt(
           data.updateBy,
           this.getTargetRecordSelect(target),
         );
 
-      if (affected.length !== 1) {
+      if (!written.row) {
         return;
       }
 
-      const record: BaseModel = affected[0]!;
+      const record: BaseModel = written.row;
       const projectId: ObjectID | undefined = (record as any)["projectId"];
 
       if (!projectId) {

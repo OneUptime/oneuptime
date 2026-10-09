@@ -314,7 +314,7 @@ describe("auto-provisioned Monitor lifecycle", () => {
 
     await expect(
       (MonitorService as any).onBeforeUpdate({
-        query: { _id: ObjectID.generate() },
+        query: { _id: monitor.id.toString() },
         data: { monitorTemplateId: TEMPLATE_ID },
         limit: 1,
         skip: 0,

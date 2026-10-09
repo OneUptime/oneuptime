@@ -979,10 +979,11 @@ export class Service extends ProjectReferencesService<Model> {
    * workflow may write the whole monitor back, so their being there is no
    * news.
    *
-   * Read as root - the answer only decides what the feed says - but held to
-   * the caller's project, like the other reads here: the update's own
-   * permission check narrows it only after this hook runs. Keyed by monitor
-   * id; null, with nothing read, when the update writes none of the three.
+   * Read as root - the answer only decides what the feed says - from the
+   * monitors the update writes (findRowsAndHoldUpdateToThem): for a
+   * teammate, the ones they may write, with the update held to them. Keyed
+   * by monitor id; null, with nothing read, when the update writes none of
+   * the three.
    */
   private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -1324,25 +1325,23 @@ export class Service extends ProjectReferencesService<Model> {
     data["incomingEmailCustomLocalPart"] = localPart;
 
     /*
-     * The monitors the update writes. More than one is itself the error -
-     * one address cannot route to two monitors - and the update is refused
-     * before it writes any of them.
+     * The monitor the update writes. More than one is itself the error - one
+     * address cannot route to two monitors - and the update is refused
+     * before it writes any of them; two monitors read are enough to tell.
      */
-    const targets: Array<Model> = await this.findRowsAndHoldUpdateToThem(
-      updateBy,
-      {
+    const written: { row: Model | null; writesMore: boolean } =
+      await this.findOneRowAndHoldUpdateToIt(updateBy, {
         _id: true,
         monitorType: true,
-      },
-    );
+      });
 
-    if (targets.length > 1) {
+    if (written.writesMore) {
       throw new BadDataException(
         "A custom email address can only be set on one monitor at a time.",
       );
     }
 
-    const target: Model | undefined = targets[0];
+    const target: Model | null = written.row;
 
     // Nothing matched: the update writes nothing, so there is nothing to guard.
     if (!target) {

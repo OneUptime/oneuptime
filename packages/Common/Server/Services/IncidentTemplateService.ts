@@ -242,9 +242,9 @@ export class Service extends ProjectReferencesService<Model> {
    * The status pages an update adds to a template must be pages the caller
    * can read (see StatusPageReadAccess). Pages the template already holds are
    * not checked, so saving a template limited to a page the editor cannot
-   * see does not fail. The templates are read as root, limited to the
-   * caller's project: the update's own tenant filter is only added after
-   * this hook.
+   * see does not fail. The templates are read as root, from the ones the
+   * update writes (findRowsAndHoldUpdateToThem): the ones the caller may
+   * write, with the update held to them.
    */
   private async assertCallerCanReadAddedStatusPages(
     updateBy: UpdateBy<Model>,

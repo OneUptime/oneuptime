@@ -152,7 +152,11 @@ export default class DiscoveredResourceUpdate {
 
     values[column] = value;
 
-    // The rows this write reaches - already narrowed to what the caller may write.
+    /*
+     * Every row this write reaches - the ones the caller may write - with
+     * the write held to them: whether it is refused turns on whether any of
+     * them changes, so each one is read.
+     */
     const targets: Array<TModel> =
       await data.service.findRowsAndHoldUpdateToThem(data.updateBy, {
         _id: true,
