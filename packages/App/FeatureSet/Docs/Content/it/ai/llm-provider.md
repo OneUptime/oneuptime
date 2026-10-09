@@ -62,7 +62,7 @@ OneUptime supporta attualmente i seguenti provider LLM:
 | --------------------- | ------------------------------------------------------------------------ | -------------------- | ----------------------- |
 | **OpenAI**            | GPT-5.1 e altri modelli OpenAI                                           | Sì                   | No (usa il predefinito) |
 | **Azure OpenAI**      | Modelli OpenAI ospitati sul tuo deployment Azure                         | Sì                   | Sì                      |
-| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 e altri modelli Claude  | Sì                   | No (usa il predefinito) |
+| **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 e altri modelli Claude  | Sì                   | No (usa il predefinito) |
 | **Groq**              | Inferenza veloce per Llama, Mixtral e altri modelli open                 | Sì                   | No (usa il predefinito) |
 | **Mistral**           | Modelli ospitati da Mistral                                              | Sì                   | No (usa il predefinito) |
 | **Ollama**            | Modelli open-source self-hosted come Llama 3.1, Mistral, Qwen, ecc.      | No                   | Sì                      |
@@ -84,7 +84,7 @@ Compila i seguenti campi:
 - **Descrizione** (opzionale): Una descrizione per identificare lo scopo di questo provider
 - **Provider LLM**: Seleziona il tipo di provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama o OpenAI Compatible)
 - **Chiave API**: La tua chiave API (richiesta per OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opzionale per Ollama e per i server compatibili con OpenAI)
-- **Nome modello**: Il modello specifico da utilizzare (es. `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
+- **Nome modello**: Il modello specifico da utilizzare (es. `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **URL di base** (opzionale): URL endpoint API personalizzato (richiesto per Azure OpenAI, Ollama e OpenAI Compatible; opzionale per gli altri)
 - **Altri campi**, chiuso sotto i campi qui sopra: **Imposta come predefinito**, attivo per un nuovo provider perché le funzionalità AI usano solo il provider predefinito del progetto, e **Parametri aggiuntivi**, un oggetto JSON facoltativo di parametri extra inviati al provider con ogni richiesta (per esempio `{"temperature": 0.2}`)
 
@@ -114,9 +114,9 @@ Nome del Modello: gpt-5.1
 2. Seleziona **Anthropic** come Provider LLM
 3. Inserisci la tua chiave API
 4. Scegli un nome di modello:
-   - `claude-sonnet-5` - Predefinito consigliato, il miglior equilibrio tra intelligenza, velocità e costo
-   - `claude-opus-5` - Modello più capace, per le indagini più difficili
-   - `claude-haiku-4-5` - Il più veloce e conveniente
+   - `claude-sonnet-5-5` - Predefinito consigliato, il miglior equilibrio tra intelligenza, velocità e costo
+   - `claude-opus-5-5` - Più capace, per le indagini più difficili
+   - `claude-haiku-5-5` - Il più veloce e conveniente
 
 **Esempio di Configurazione:**
 
@@ -124,8 +124,12 @@ Nome del Modello: gpt-5.1
 Nome: Anthropic Produzione
 Provider LLM: Anthropic
 Chiave API: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Nome del Modello: claude-sonnet-5
+Nome del Modello: claude-sonnet-5-5
 ```
+
+Claude Opus 4.7 e tutti i modelli Claude successivi scelgono da soli il proprio campionamento e rifiutano una richiesta che imposta `temperature`, `top_p` o `top_k`. OneUptime omette queste impostazioni per questi modelli. Se un modello ne rifiuta comunque una, OneUptime invia di nuovo la richiesta senza di essa e se lo ricorda per quel provider.
+
+I modelli Claude 5 ragionano prima di rispondere, e il ragionamento rientra nel limite di token della risposta, quindi OneUptime gli lascia spazio. Per farli ragionare di meno, e rispondere più in fretta e spendendo meno, imposta `{"output_config": {"effort": "low"}}` nel campo **Parametri aggiuntivi** del provider. OneUptime invia ad Anthropic con ogni richiesta le impostazioni che aggiungi lì, tranne `model`, `messages`, `system`, `tools`, `tool_choice` e `stream`, che imposta da sé.
 
 ### Ollama (Self-Hosted)
 

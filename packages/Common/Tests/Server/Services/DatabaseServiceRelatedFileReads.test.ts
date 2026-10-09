@@ -450,8 +450,60 @@ describe("GUARD: every model's files reach a caller only when they may see them"
     expect(FILE_COLUMN_CASES.length).toBeGreaterThanOrEqual(19);
   });
 
+  /*
+   * A File column nobody may read through the API - its read list is empty
+   * (a packet capture's pcap file, which only its download route hands out,
+   * after a permission of its own and an audit entry) - is held to more
+   * than the check above: a read that selects it is refused outright, and
+   * nothing is read.
+   */
+  const isReadableByNobody: (entry: FileColumnCase) => boolean = (
+    entry: FileColumnCase,
+  ): boolean => {
+    const read: Array<Permission> | undefined =
+      new entry.modelType().getColumnAccessControlFor(
+        entry.column.relationColumn,
+      )?.read;
+
+    return Array.isArray(read) && read.length === 0;
+  };
+
   test.each(
-    FILE_COLUMN_CASES.map((entry: FileColumnCase) => {
+    FILE_COLUMN_CASES.filter(isReadableByNobody).map(
+      (entry: FileColumnCase) => {
+        return { ...entry, name: entry.column.relationColumn };
+      },
+    ),
+  )(
+    "$table $name: readable by nobody through the API, so a read that selects it is refused",
+    async ({ modelType, column }: FileColumnCase) => {
+      const service: DatabaseService<BaseModel> = new DatabaseService(
+        modelType,
+      );
+      const repository: FakeRepository = useRepository(service, []);
+
+      await expect(
+        service.findBy({
+          query: {},
+          select: {
+            [column.relationColumn]: { _id: true, file: true, name: true },
+          } as never,
+          limit: 10,
+          skip: 0,
+          props: memberProps(),
+        }),
+      ).rejects.toThrow(
+        `You do not have permissions to select on - ${column.relationColumn}.`,
+      );
+
+      expect(repository.find).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(
+    FILE_COLUMN_CASES.filter((entry: FileColumnCase): boolean => {
+      return !isReadableByNobody(entry);
+    }).map((entry: FileColumnCase) => {
       return { ...entry, name: entry.column.relationColumn };
     }),
   )(

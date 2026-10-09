@@ -306,16 +306,39 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
       ctx.page.getByTestId("huntress-connection-state"),
     ).toHaveAttribute("data-state", "waiting", SERVER);
 
+    // The connection says that a secret is set, and never what it is.
     const connection: JSONish = await getItem({
       page: ctx.page,
       projectId: ctx.projectId,
       path: "/api/huntress-connection",
       id: ctx.connectionId,
-      select: { _id: true, isSigningSecretSet: true, signingSecret: true },
+      select: { _id: true, isSigningSecretSet: true },
     });
 
     expect(connection["isSigningSecretSet"]).toBe(true);
-    expect(connection["signingSecret"]).toBeFalsy();
+    expect(connection["signingSecret"]).toBeUndefined();
+
+    /*
+     * Asking for the secret by name is refused outright: its read list is
+     * empty, and the API refuses a select of a column the caller may not
+     * read rather than leaving it out.
+     */
+    const asked: APIResponse = await ctx.page.request.post(
+      urlFor(`/api/huntress-connection/${ctx.connectionId}/get-item`),
+      {
+        headers: {
+          "content-type": "application/json",
+          tenantid: ctx.projectId,
+          projectid: ctx.projectId,
+        },
+        data: { select: { _id: true, signingSecret: true } },
+      },
+    );
+    const askedText: string = await asked.text();
+
+    expect(asked.status(), askedText).toBe(422);
+    expect(askedText).toContain("signingSecret");
+    expect(askedText).not.toContain(SIGNING_SECRET);
   });
 
   test("refuses a delivery that is not signed", async () => {

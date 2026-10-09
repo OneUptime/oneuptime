@@ -217,6 +217,12 @@ import "./Jobs/ToolImport/SweepStaleToolImports";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 
+/*
+ * Packet captures: fail the ones no probe will finish, and delete them with
+ * their files after the retention period.
+ */
+import "./Jobs/PacketCapture/SweepPacketCaptures";
+
 // AI Agents
 import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";

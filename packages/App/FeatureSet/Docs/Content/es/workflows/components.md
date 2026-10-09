@@ -36,7 +36,7 @@ Genera una respuesta de texto a partir de un prompt y de un contexto JSON opcion
 - **Temperature** — la variación, de `0` a `1`. El valor predeterminado es `0.2`, pensado para una automatización predecible.
 - **Maximum Output Tokens** — de `1` a `4096`. El valor predeterminado es `1024`.
 
-La suma de System Instructions, Prompt y el Context serializado está limitada a 50.000 caracteres. La petición al proveedor dura como máximo 60 segundos y se intenta una sola vez. Por proyecto pueden ejecutarse a la vez tres peticiones de AI de flujo de trabajo como mucho.
+La suma de System Instructions, Prompt y el Context serializado está limitada a 50.000 caracteres. Una imagen incrustada en base64, como la captura de pantalla de un monitor sintético en la descripción de un incidente, se sustituye por una nota breve como `[image omitted: PNG, 340 KB]` antes de contar, porque el modelo lee texto, no imágenes. El registro de la ejecución indica qué se omitió. La petición al proveedor dura como máximo 60 segundos y se intenta una sola vez. Por proyecto pueden ejecutarse a la vez tres peticiones de AI de flujo de trabajo como mucho.
 
 **Outputs**:
 

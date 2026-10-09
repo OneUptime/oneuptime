@@ -25,7 +25,7 @@ export const ENTERPRISE_SERVER_MODULE_NAME: EnterpriseServerModuleName =
   "oneuptime-enterprise";
 
 /*
- * The recording half of the audit log. Core's AuditLogService keeps these four
+ * The recording half of the audit log. Core's AuditLogService keeps these
  * public methods as thin delegates, so DatabaseService, ProjectService and the
  * user-notification services call exactly what they call today; on the
  * Community Edition there is no recorder and nothing is recorded.
@@ -50,6 +50,18 @@ export interface AuditLogRecorder {
   recordDelete<TModel extends BaseModel>(data: {
     model: TModel;
     deletedItem: TModel;
+    itemId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void>;
+
+  /*
+   * Someone downloaded a record's file - a packet capture's pcap file. The
+   * entry names the record and who downloaded it; `downloadedItem` holds the
+   * columns that say what was downloaded, recorded as the entry's fields.
+   */
+  recordDownload<TModel extends BaseModel>(data: {
+    model: TModel;
+    downloadedItem: TModel;
     itemId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<void>;

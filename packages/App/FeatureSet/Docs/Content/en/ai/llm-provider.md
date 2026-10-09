@@ -60,15 +60,15 @@ The sync is declarative: changing the variables updates the provider on the next
 
 OneUptime currently supports the following LLM providers:
 
-| Provider              | Description                                                                  | API Key Required | Base URL Required |
-| --------------------- | ---------------------------------------------------------------------------- | ---------------- | ----------------- |
-| **OpenAI**            | GPT-5.1 and other OpenAI models                                              | Yes              | No (uses default) |
-| **Azure OpenAI**      | OpenAI models hosted on your Azure deployment                                | Yes              | Yes               |
-| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5, and other Claude models    | Yes              | No (uses default) |
-| **Groq**              | Fast inference for Llama, Mixtral, and other open models                     | Yes              | No (uses default) |
-| **Mistral**           | Mistral's hosted models                                                      | Yes              | No (uses default) |
-| **Ollama**            | Self-hosted open-source models like Llama 3.1, Mistral, Qwen, etc.           | No               | Yes               |
-| **OpenAI Compatible** | Any OpenAI-compatible server (vLLM, LocalAI, LM Studio, etc.)                | No (optional)    | Yes               |
+| Provider              | Description                                                                   | API Key Required | Base URL Required |
+| --------------------- | ----------------------------------------------------------------------------- | ---------------- | ----------------- |
+| **OpenAI**            | GPT-5.1 and other OpenAI models                                               | Yes              | No (uses default) |
+| **Azure OpenAI**      | OpenAI models hosted on your Azure deployment                                 | Yes              | Yes               |
+| **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5, and other Claude models | Yes              | No (uses default) |
+| **Groq**              | Fast inference for Llama, Mixtral, and other open models                      | Yes              | No (uses default) |
+| **Mistral**           | Mistral's hosted models                                                       | Yes              | No (uses default) |
+| **Ollama**            | Self-hosted open-source models like Llama 3.1, Mistral, Qwen, etc.            | No               | Yes               |
+| **OpenAI Compatible** | Any OpenAI-compatible server (vLLM, LocalAI, LM Studio, etc.)                 | No (optional)    | Yes               |
 
 ## Setting Up an LLM Provider
 
@@ -86,7 +86,7 @@ Fill in the following fields:
 - **Description** (optional): A description to help identify the purpose of this provider
 - **LLM Provider**: Select the provider type (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or OpenAI Compatible)
 - **API Key**: Your API key (required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral; optional for Ollama and OpenAI-compatible servers)
-- **Model Name**: The specific model to use (e.g., `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
+- **Model Name**: The specific model to use (e.g., `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **Base URL** (optional): Custom API endpoint URL (required for Azure OpenAI, Ollama, and OpenAI Compatible; optional for others)
 - **More fields**, folded under the fields above: **Set as Default**, which is on for a new provider because AI features only use the project's default provider, and **Additional Parameters**, an optional JSON object of extra parameters sent to the provider with every request (for example `{"temperature": 0.2}`)
 
@@ -118,9 +118,9 @@ Model Name: gpt-5.1
 2. Select **Anthropic** as the LLM Provider
 3. Enter your API key
 4. Choose a model name:
-   - `claude-sonnet-5` - Recommended default, best balance of intelligence, speed, and cost
-   - `claude-opus-5` - Most capable model, for the hardest investigations
-   - `claude-haiku-4-5` - Fastest and most cost-effective
+   - `claude-sonnet-5-5` - Recommended default, best balance of intelligence, speed, and cost
+   - `claude-opus-5-5` - More capable, for the hardest investigations
+   - `claude-haiku-5-5` - Fastest and most cost-effective
 
 **Example Configuration:**
 
@@ -128,8 +128,12 @@ Model Name: gpt-5.1
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-sonnet-5
+Model Name: claude-sonnet-5-5
 ```
+
+Claude Opus 4.7 and every later Claude model choose their own sampling, and refuse a request that sets `temperature`, `top_p` or `top_k`. OneUptime leaves those settings out for these models. If a model refuses one anyway, OneUptime sends the request again without it and remembers that for the provider.
+
+Claude 5 models think before they answer, and the thinking counts toward the reply's token limit, so OneUptime leaves room for it. To make them think less, and answer faster and for less, set `{"output_config": {"effort": "low"}}` in the provider's **Additional Parameters**. OneUptime sends the settings you add there to Anthropic with each request, except `model`, `messages`, `system`, `tools`, `tool_choice` and `stream`, which it sets itself.
 
 ### Ollama (Self-Hosted)
 

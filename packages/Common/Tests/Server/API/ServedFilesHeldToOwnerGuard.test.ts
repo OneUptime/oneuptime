@@ -92,6 +92,12 @@ const BYTE_READERS: Record<string, string> = {
     "FileOwnership.findProjectAttachment",
   "packages/Common/Server/API/StatusPageAnnouncementAPI.ts":
     "FileOwnership.findProjectAttachment",
+  /*
+   * A packet capture's pcap file, through its download route only: held to
+   * the capture's project, after Download Packet Capture and an audit entry.
+   */
+  "packages/Common/Server/API/PacketCaptureAPI.ts":
+    "FileOwnership.keepProjectFile",
 };
 
 // A select of a stored file's bytes: `file: true`.

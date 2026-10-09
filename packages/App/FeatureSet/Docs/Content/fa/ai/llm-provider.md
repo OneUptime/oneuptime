@@ -62,7 +62,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 | --------------------- | ---------------------------------------------------------------------------- | ---------------- | ----------------- |
 | **OpenAI** | ‏GPT-5.1 و دیگر مدل‌های OpenAI | بله | خیر (پیش‌فرض را به کار می‌برد) |
 | **Azure OpenAI** | مدل‌های OpenAI میزبانی‌شده روی استقرار Azure شما | بله | بله |
-| **Anthropic** | ‏Claude Sonnet 5، ‏Claude Opus 5، ‏Claude Haiku 4.5 و دیگر مدل‌های Claude | بله | خیر (پیش‌فرض را به کار می‌برد) |
+| **Anthropic** | ‏Claude Sonnet 5.5، ‏Claude Opus 5.5، ‏Claude Haiku 5.5 و دیگر مدل‌های Claude | بله | خیر (پیش‌فرض را به کار می‌برد) |
 | **Groq** | استنتاج سریع برای Llama، ‏Mixtral و دیگر مدل‌های باز | بله | خیر (پیش‌فرض را به کار می‌برد) |
 | **Mistral** | مدل‌های میزبانی‌شده Mistral | بله | خیر (پیش‌فرض را به کار می‌برد) |
 | **Ollama** | مدل‌های متن‌باز خودمیزبان مانند Llama 3.1، ‏Mistral، ‏Qwen و غیره | خیر | بله |
@@ -84,7 +84,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 - **Description** (اختیاری): توضیحی که به شناسایی هدف این ارائه‌دهنده کمک کند
 - **LLM Provider**: نوع ارائه‌دهنده را برگزینید (OpenAI، ‏Azure OpenAI، ‏Anthropic، ‏Groq، ‏Mistral، ‏Ollama یا OpenAI Compatible)
 - **API Key**: کلید API شما (برای OpenAI، ‏Azure OpenAI، ‏Anthropic، ‏Groq و Mistral الزامی؛ برای Ollama و کارسازهای سازگار با OpenAI اختیاری)
-- **Model Name**: مدل مشخصی که به کار می‌رود (برای نمونه `gpt-5.1`، `claude-sonnet-5`، `llama3.1`)
+- **Model Name**: مدل مشخصی که به کار می‌رود (برای نمونه `gpt-5.1`، `claude-sonnet-5-5`، `llama3.1`)
 - **Base URL** (اختیاری): نشانی سفارشی نقطه پایانی API (برای Azure OpenAI، ‏Ollama و OpenAI Compatible الزامی؛ برای بقیه اختیاری)
 - **More fields**، بسته زیر فیلدهای بالا: **Set as Default**، که برای ارائه‌دهنده تازه روشن است چون قابلیت‌های هوش مصنوعی فقط از ارائه‌دهنده پیش‌فرض پروژه استفاده می‌کنند، و **Additional Parameters**، شیء JSON اختیاری از پارامترهای افزوده که با هر درخواست برای ارائه‌دهنده فرستاده می‌شود (برای نمونه `{"temperature": 0.2}`)
 
@@ -114,9 +114,9 @@ Model Name: gpt-5.1
 2. ارائه‌دهنده LLM را **Anthropic** برگزینید
 3. کلید API خود را وارد کنید
 4. نام مدلی برگزینید:
-   - `claude-sonnet-5` — پیش‌فرض توصیه‌شده، بهترین توازن هوش، سرعت و هزینه
-   - `claude-opus-5` — تواناترین مدل، برای سخت‌ترین بررسی‌ها
-   - `claude-haiku-4-5` — سریع‌ترین و به‌صرفه‌ترین
+   - `claude-sonnet-5-5` — پیش‌فرض توصیه‌شده، بهترین توازن هوش، سرعت و هزینه
+   - `claude-opus-5-5` — تواناتر، برای سخت‌ترین بررسی‌ها
+   - `claude-haiku-5-5` — سریع‌ترین و به‌صرفه‌ترین
 
 **نمونه پیکربندی:**
 
@@ -124,8 +124,12 @@ Model Name: gpt-5.1
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-sonnet-5
+Model Name: claude-sonnet-5-5
 ```
+
+‏Claude Opus 4.7 و همه مدل‌های Claude پس از آن، نمونه‌برداری (sampling) خود را خودشان برمی‌گزینند و درخواستی را که `temperature`، `top_p` یا `top_k` را تنظیم کند رد می‌کنند. OneUptime این تنظیم‌ها را برای این مدل‌ها نمی‌فرستد. اگر مدلی باز هم یکی از آن‌ها را رد کند، OneUptime درخواست را بدون آن دوباره می‌فرستد و این را برای آن ارائه‌دهنده به خاطر می‌سپارد.
+
+مدل‌های Claude 5 پیش از پاسخ دادن فکر می‌کنند و این فکر کردن جزو سقف توکن پاسخ شمرده می‌شود، بنابراین OneUptime برای آن جا می‌گذارد. برای این‌که کمتر فکر کنند و سریع‌تر و ارزان‌تر پاسخ دهند، `{"output_config": {"effort": "low"}}` را در **Additional Parameters** ارائه‌دهنده تنظیم کنید. OneUptime تنظیم‌هایی را که آنجا می‌افزایید با هر درخواست برای Anthropic می‌فرستد، به‌جز `model`، `messages`، `system`، `tools`، `tool_choice` و `stream` که خودش تنظیم می‌کند.
 
 ### Ollama (خودمیزبان)
 

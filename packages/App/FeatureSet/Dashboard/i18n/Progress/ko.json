@@ -9,6 +9,9 @@
     "Splunk On-Call API ID",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{itemName}} ID"
   ]
 }

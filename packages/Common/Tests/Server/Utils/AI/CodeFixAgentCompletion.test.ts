@@ -292,6 +292,26 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
     expect(result.stopReason).toBe("stop");
   });
 
+  /*
+   * Every other call has embedded data left out (PromptText), so a model
+   * never pays for a screenshot's base64. The coding agent's messages are
+   * source files it rewrites whole: a data: URL in a stylesheet is code, and
+   * must reach the model - and come back - exactly as written.
+   */
+  test("sends the agent's messages with their embedded data, exactly as given", async () => {
+    const { executeSpy } = mockHappyDependencies();
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    const request: AILogRequest = executeSpy.mock.calls[0]![0]!;
+    expect(request.keepEmbeddedData).toBe(true);
+    expect(request.messages).toBe(messages);
+  });
+
   test("clamps a worker-supplied maxTokens to the per-call cap", async () => {
     const { executeSpy } = mockHappyDependencies();
 

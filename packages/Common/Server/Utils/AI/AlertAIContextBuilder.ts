@@ -9,6 +9,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LLMMessage } from "../LLM/LLMService";
+import PromptText from "../../../Utils/AI/PromptText";
 
 export interface AlertContextData {
   alert: Alert;
@@ -144,7 +145,7 @@ export default class AlertAIContextBuilder {
     // Basic alert information
     contextText += "# Alert Information\n\n";
     contextText += `**Title:** ${alert.title || "N/A"}\n\n`;
-    contextText += `**Description:** ${alert.description || "N/A"}\n\n`;
+    contextText += `**Description:** ${PromptText.draftField(alert.description) || "N/A"}\n\n`;
     contextText += `**Severity:** ${alert.alertSeverity?.name || "N/A"}\n\n`;
     contextText += `**Current State:** ${alert.currentAlertState?.name || "N/A"}\n\n`;
     contextText += `**Created At:** ${alert.createdAt ? OneUptimeDate.getDateAsFormattedString(alert.createdAt) : "N/A"}\n\n`;
@@ -183,12 +184,12 @@ export default class AlertAIContextBuilder {
 
     // Root cause if available
     if (alert.rootCause) {
-      contextText += `**Root Cause:** ${alert.rootCause}\n\n`;
+      contextText += `**Root Cause:** ${PromptText.draftField(alert.rootCause)}\n\n`;
     }
 
     // Remediation notes if available
     if (alert.remediationNotes) {
-      contextText += `**Remediation Notes:** ${alert.remediationNotes}\n\n`;
+      contextText += `**Remediation Notes:** ${PromptText.draftField(alert.remediationNotes)}\n\n`;
     }
 
     // State timeline
@@ -207,7 +208,7 @@ export default class AlertAIContextBuilder {
 
         contextText += `- **${startTime}**: State changed to **${stateName}** by ${createdBy}\n`;
         if (timeline.rootCause) {
-          contextText += `  - Root cause noted: ${timeline.rootCause}\n`;
+          contextText += `  - Root cause noted: ${PromptText.draftField(timeline.rootCause)}\n`;
         }
       }
       contextText += "\n";
@@ -226,7 +227,7 @@ export default class AlertAIContextBuilder {
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 

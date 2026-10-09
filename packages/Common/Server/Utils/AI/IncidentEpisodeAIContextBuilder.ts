@@ -15,6 +15,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LLMMessage } from "../LLM/LLMService";
+import PromptText from "../../../Utils/AI/PromptText";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { AIGenerationContext } from "./IncidentAIContextBuilder";
@@ -234,7 +235,7 @@ export default class IncidentEpisodeAIContextBuilder {
     contextText += "# Incident Episode Information\n\n";
     contextText += `**Episode Number:** ${episode.episodeNumberWithPrefix || "#" + (episode.episodeNumber || "N/A")}\n\n`;
     contextText += `**Title:** ${episode.title || "N/A"}\n\n`;
-    contextText += `**Description:** ${episode.description || "N/A"}\n\n`;
+    contextText += `**Description:** ${PromptText.draftField(episode.description) || "N/A"}\n\n`;
     contextText += `**Severity:** ${episode.incidentSeverity?.name || "N/A"}\n\n`;
     contextText += `**Current State:** ${episode.currentIncidentState?.name || "N/A"}\n\n`;
     contextText += `**Created At:** ${episode.createdAt ? OneUptimeDate.getDateAsFormattedString(episode.createdAt) : "N/A"}\n\n`;
@@ -252,12 +253,12 @@ export default class IncidentEpisodeAIContextBuilder {
 
     // Root cause if available
     if (episode.rootCause) {
-      contextText += `**Root Cause:** ${episode.rootCause}\n\n`;
+      contextText += `**Root Cause:** ${PromptText.draftField(episode.rootCause)}\n\n`;
     }
 
     // Remediation notes if available
     if (episode.remediationNotes) {
-      contextText += `**Remediation Notes:** ${episode.remediationNotes}\n\n`;
+      contextText += `**Remediation Notes:** ${PromptText.draftField(episode.remediationNotes)}\n\n`;
     }
 
     // Member incidents
@@ -277,7 +278,7 @@ export default class IncidentEpisodeAIContextBuilder {
         contextText += `- **Created:** ${incident.createdAt ? OneUptimeDate.getDateAsFormattedString(incident.createdAt) : "N/A"}\n`;
 
         if (incident.description) {
-          contextText += `- **Description:** ${incident.description}\n`;
+          contextText += `- **Description:** ${PromptText.field(incident.description)}\n`;
         }
 
         if (incident.monitors && incident.monitors.length > 0) {
@@ -289,11 +290,11 @@ export default class IncidentEpisodeAIContextBuilder {
         }
 
         if (incident.rootCause) {
-          contextText += `- **Root Cause:** ${incident.rootCause}\n`;
+          contextText += `- **Root Cause:** ${PromptText.field(incident.rootCause)}\n`;
         }
 
         if (incident.remediationNotes) {
-          contextText += `- **Remediation:** ${incident.remediationNotes}\n`;
+          contextText += `- **Remediation:** ${PromptText.field(incident.remediationNotes)}\n`;
         }
 
         contextText += "\n";
@@ -316,7 +317,7 @@ export default class IncidentEpisodeAIContextBuilder {
 
         contextText += `- **${startTime}**: State changed to **${stateName}** by ${createdBy}\n`;
         if (timeline.rootCause) {
-          contextText += `  - Root cause noted: ${timeline.rootCause}\n`;
+          contextText += `  - Root cause noted: ${PromptText.draftField(timeline.rootCause)}\n`;
         }
       }
       contextText += "\n";
@@ -335,7 +336,7 @@ export default class IncidentEpisodeAIContextBuilder {
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 
