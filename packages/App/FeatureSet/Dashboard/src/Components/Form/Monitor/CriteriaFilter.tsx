@@ -33,6 +33,12 @@ import {
   SnmpTableDefinition,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import {
+  TRANSCEIVER_READING_KINDS,
+  TRANSCEIVER_READING_TITLES,
+  TRANSCEIVER_READING_UNITS,
+  TransceiverReadingKind,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import Button, {
   ButtonSize,
@@ -535,11 +541,59 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             );
           })()}
 
+        {criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+          (() => {
+            /*
+             * Which of the optic's five readings this criteria compares. A
+             * criteria saved without one is shown with RX power picked,
+             * which is also what a new one is saved with on first change.
+             */
+            const readingOptions: Array<DropdownOption> =
+              TRANSCEIVER_READING_KINDS.map(
+                (kind: TransceiverReadingKind): DropdownOption => {
+                  return {
+                    value: kind,
+                    label: `${TRANSCEIVER_READING_TITLES[kind]} (${TRANSCEIVER_READING_UNITS[kind]})`,
+                  };
+                },
+              );
+
+            const savedReading: string =
+              criteriaFilter?.snmpMonitorOptions?.transceiverReading || "";
+
+            const selectedReadingOption: DropdownOption | undefined =
+              readingOptions.find((option: DropdownOption) => {
+                return option.value === savedReading;
+              });
+
+            return (
+              <div className="mt-1" data-testid="transceiver-reading-picker">
+                <FieldLabelElement
+                  title="Transceiver Reading"
+                  description="Which reading of the optic to compare: received or transmitted power in dBm, temperature in °C, supply voltage in V or laser bias current in mA. Useful on devices that report no thresholds of their own; every lane of a multi-lane optic is compared."
+                />
+                <Dropdown
+                  value={selectedReadingOption}
+                  options={readingOptions}
+                  placeholder="Choose a reading"
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      snmpMonitorOptions: {
+                        ...criteriaFilter?.snmpMonitorOptions,
+                        transceiverReading: value?.toString() || undefined,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            );
+          })()}
+
         {criteriaFilter?.checkOn &&
-          (criteriaFilter?.checkOn === CheckOn.SnmpInterfaceIsDown ||
-            criteriaFilter?.checkOn ===
-              CheckOn.SnmpInterfaceUtilizationPercent ||
-            criteriaFilter?.checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) &&
+          CriteriaFilterUtil.isInterfaceScopedCheckOn(criteriaFilter.checkOn) &&
           (() => {
             const savedInterfaceName: string =
               criteriaFilter?.snmpMonitorOptions?.interfaceName || "";
