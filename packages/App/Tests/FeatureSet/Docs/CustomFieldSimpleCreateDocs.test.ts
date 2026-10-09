@@ -217,8 +217,12 @@ describe("the incident custom field docs describe the simple form", () => {
       CUSTOM_FIELDS_SECTION["en"] as string,
     );
 
+    // The list, in the first step; Edit, in the step that saves the field.
     expect(section).toContain(
-      "each by its **Field Name** and **Field Type** alone. **Edit** on a field's row opens the rest of its settings.",
+      "each by its **Field Name** and **Field Type** alone.",
+    );
+    expect(section).toContain(
+      "**Edit** on a field's row opens the rest of its settings.",
     );
     // A new field's values are typed in: no "Map Value From" on Create.
     expect(section).toContain("A new field's values are typed in.");

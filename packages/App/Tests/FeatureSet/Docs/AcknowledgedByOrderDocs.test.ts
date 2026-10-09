@@ -2,6 +2,7 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { dashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -203,7 +204,8 @@ describe.each(LANGUAGES)("the %s states page", (language: string) => {
 
     expect(row).toBeDefined();
     expect(row).not.toContain(OLD_ROW[language]!);
-    expect(row).toContain("**Acknowledge**");
+    // The header's button, named as this language's Dashboard draws it.
+    expect(row).toContain(`**${dashboardLabel(language, "Acknowledge")}**`);
   });
 
   test("has a section on what acknowledging does, right before what resolving does", () => {
