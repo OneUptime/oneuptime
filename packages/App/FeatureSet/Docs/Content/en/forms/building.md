@@ -1,6 +1,6 @@
 # Building a Form
 
-A form's **Build** page is where you decide what it asks, and how its page looks. The questions are on the left, in the order the public page shows them; **Add a Question**, on the right, lists everything you can add. Select a question to edit it where it is, drag it to move it, and click **Save Changes** when the form reads the way you want. Above the questions, folded, is the form's [Branding](#branding): its logo and favicon. Named sets of answers people can start the form from are on its **Templates** page — see [Templates](#templates).
+A form's **Build** page is where you decide what it asks, and how its page looks. The questions are on the left, in the order the public page shows them; **Add a Question**, on the right, lists everything you can add. Select a question to edit it where it is, drag it to move it, and click **Save Changes** when the form reads the way you want. Above the questions, folded, is the form's [Branding](#branding): its logo and favicon. Named sets of answers people can start the form from — each of which can also make a question required, optional or hidden for its own case — are on its **Templates** page: see [Templates](#templates).
 
 ## The builder
 
@@ -106,7 +106,7 @@ A question that is not required may be left empty: its field is then filled in f
 
 ## Hidden questions
 
-Turn on **Hidden** on a card and the question is no longer shown on the form. Nobody is asked it, so it is never required, and a submission cannot answer it — the request is not even read for it. Only the [template](#templates) a submission starts from answers it, and it stays unanswered when the submitter starts from no template, or from one that leaves it empty.
+Turn on **Hidden** on a card and the question is no longer shown on the form. Nobody is asked it, so it is never required, and a submission cannot answer it — the request is not even read for it. Only the [template](#templates) a submission starts from answers it, and it stays unanswered when the submitter starts from no template, or from one that leaves it empty. A template can also ask a hidden question after all, for its own case: see [How a template asks each question](#how-a-template-asks-each-question).
 
 Hide a question when its answer is your team's to decide, not the submitter's:
 
@@ -120,16 +120,39 @@ A hidden question keeps its place, its label and its settings, so you can show i
 
 A form's **Templates** page holds named sets of answers people can start the form from — one for each case your team reports often, such as **Application Outage**, **Planned Maintenance** or **Service Restored** — so one form, and one link, serves them all.
 
-- **Add Template** opens the form's own questions, hidden ones included and none of them required: fill in what the template should answer, and leave the rest to the person submitting. A hidden question says so under it.
+- **Add Template** opens the template's editor, in two parts. **Questions** lists every question of the form with how this template asks it — see [How a template asks each question](#how-a-template-asks-each-question). **Answers** lists them again, hidden ones included and none of them required: fill in what the template should answer, and leave the rest to the person submitting. An answer to a question the template does not ask says so under it — it is used as it is.
 - **Default** makes it the template the form opens with. Only one template can be the default, and a form whose only template is its default is simply a pre-filled form.
-- Each template lists what it fills in, and has **Edit**, **Duplicate** — a copy right after it, named like **Application Outage 2** — **Move Up** and **Move Down**, for the order the form lists them in, and **Delete**.
+- Each template lists what it fills in and the questions it asks its own way, such as **Scheduled Maintenance Date · Hidden**, and has **Edit**, **Duplicate** — a copy right after it, named like **Application Outage 2** — **Move Up** and **Move Down**, for the order the form lists them in, and **Delete**.
 - **Copy Link** copies the template's own link, which opens the form with it filled in. See [Sharing & Security](/docs/forms/sharing-and-security#a-link-for-each-template).
 
-On the public page, a form with templates lists them over its questions, under **Start from a template**. Choosing one fills the form in; the submitter can still change any answer before submitting, and choosing another starts the form over from that one. The page opens with the template its link names, otherwise with the default, otherwise with none. **Preview** lists the templates and opens on the default too.
+On the public page, a form with templates lists them over its questions, under **Start from a template**. Choosing one fills the form in and asks the questions as that template asks them; the submitter can still change any answer before submitting, and choosing another starts the form over from that one. The page opens with the template its link names, otherwise with the default, otherwise with none. **Preview** lists the templates and opens on the default too.
 
-Everyone who opens the link sees every template's name and its answers to the questions the form shows — that is how the page fills itself in. A template's answers to hidden questions never leave the server, so keep anything internal in a hidden question.
+Everyone who opens the link sees every template's name and its answers to the questions it asks — that is how the page fills itself in. A template's answers to questions it does not ask never leave the server, so keep anything internal in a hidden question.
 
-Every answer of every template is checked against its question when the templates are saved — an option the question offers, a record the form offers, text that fits — and saving is refused with a message that names the template and the problem, whether it comes from the dashboard, the API or Terraform. A template's name is up to 100 characters and unique within the form, and a form has up to 50 templates. When you later change the questions, a template's answer to a question you removed, or that no longer fits it, is simply not used, and the next save of that template drops it.
+Every answer of every template is checked against its question when the templates are saved — an option the question offers, a record the form offers, text that fits — and so is every question a template asks its own way, and saving is refused with a message that names the template and the problem, whether it comes from the dashboard, the API or Terraform. A template's name is up to 100 characters and unique within the form, and a form has up to 50 templates. When you later change the questions, a template's answer to a question you removed, or that no longer fits it, is simply not used, and the next save of that template drops it. Saving the other templates is never refused for it: what a template already held is not checked again.
+
+### How a template asks each question
+
+Different cases need different questions: an outage needs the affected application and not a maintenance window, planned maintenance needs the window. Rather than build a form for each case, let each template ask the form's questions its own way. In a template's **Questions**, each question has one of these:
+
+| Setting          | When someone starts from the template                                                                                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Form default** | The question is asked as the form asks it — required, optional or hidden, as its card in the builder says. The picker says which, such as **Form default (Hidden)**, and follows the card when you change it. |
+| **Required**     | The question is asked, and the form cannot be submitted without an answer.                                                                                                                            |
+| **Optional**     | The question is asked, and may be left empty.                                                                                                                                                         |
+| **Hidden**       | The question is not asked. The template's own answer to it, if it has one, is the answer, as for a question the form hides.                                                                           |
+
+One incident form can so serve both cases:
+
+| Question                   | Application Outage | Planned Maintenance |
+| -------------------------- | ------------------ | ------------------- |
+| Application Name           | Required           | Required            |
+| Affected Facilities        | Required           | Optional            |
+| Scheduled Maintenance Date | Hidden             | Required            |
+
+Every question starts on **Form default**, and so does every question you add to the form later, in every template. A maintenance event's **Starts At** and **Ends At** are always asked and always required: no template can change them.
+
+The page follows the template the submitter chooses: picking another one draws the form again with that template's questions, and **Preview** does the same. The server holds every submission to the questions the template it names asks, whatever sent it: a question the template requires must be answered, and one it hides is not read from the request — the template's own answer is used. A submission that names no template, or a template deleted since, is held to the form's own settings. A question the form hides is shown to the public page only when a template asks it.
 
 ## When the builder flags a question
 
@@ -144,11 +167,11 @@ The form cannot be saved while a question has one of the last three: **Save Chan
 
 ## Preview
 
-**Preview** opens the form exactly as people see it at its link — the same logo, questions, inputs, options and checks, its list of templates, and no hidden question — and lets you fill it in. Nothing you enter there is submitted: **Submit** only checks your answers, and **Fill It In Again** starts over. The preview shows the questions as they are in the builder, saved or not, and says when it leaves a flagged question out.
+**Preview** opens the form exactly as people see it at its link — the same logo, questions, inputs, options and checks, its list of templates, and only the questions the chosen template asks — and lets you fill it in. Nothing you enter there is submitted: **Submit** only checks your answers, and **Fill It In Again** starts over. The preview shows the questions as they are in the builder, saved or not, and says when it leaves a flagged question out.
 
 ## What the submitter sees
 
-The public page shows the form's logo — the OneUptime logo until you upload yours — then the form's name and description, its templates if it has any, the questions it does not hide, and **Submit**, and the browser tab shows the form's name and its favicon. It is in the submitter's language when OneUptime has it — the language they last chose in OneUptime on that browser, or else the one their browser asks for — and in English otherwise. Your questions, options and help texts are shown as you wrote them.
+The public page shows the form's logo — the OneUptime logo until you upload yours — then the form's name and description, its templates if it has any, the questions it asks — as the chosen template asks them, or the ones it does not hide when no template is chosen — and **Submit**, and the browser tab shows the form's name and its favicon. It is in the submitter's language when OneUptime has it — the language they last chose in OneUptime on that browser, or else the one their browser asks for — and in English otherwise. Your questions, options and help texts are shown as you wrote them.
 
 After submitting, the page says "Thank you — your response was submitted." and gives the number of what was created — "Your reference number is INC-42." — followed by the form's thank-you message, if you wrote one on the **Share** page. **Submit another response** opens an empty form. The submitter gets no email and no way back to the incident or event.
 
