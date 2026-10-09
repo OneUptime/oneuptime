@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 26121,
-    "untranslated": 3093
+    "keys": 27297,
+    "untranslated": 3378
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -451,8 +451,11 @@
     "you@company.com",
     "z",
     "{\"version\": \"...\", \"records\": [...]}",
+    "{{count}} B",
     "{{count}} Docker",
+    "{{count}} KB",
     "{{count}} Kubernetes",
+    "{{count}} MB",
     "{{count}} OID",
     "{{count}} Podman",
     "{{count}} VM",

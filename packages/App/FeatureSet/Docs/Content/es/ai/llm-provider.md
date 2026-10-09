@@ -62,7 +62,7 @@ OneUptime actualmente admite los siguientes proveedores LLM:
 | --------------------- | --------------------------------------------------------------------------- | ---------------------- | -------------------------- |
 | **OpenAI**            | GPT-5.1 y otros modelos de OpenAI                                           | Sí                     | No (usa la predeterminada) |
 | **Azure OpenAI**      | Modelos de OpenAI alojados en tu implementación de Azure                    | Sí                     | Sí                         |
-| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 y otros modelos Claude     | Sí                     | No (usa la predeterminada) |
+| **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 y otros modelos Claude | Sí                     | No (usa la predeterminada) |
 | **Groq**              | Inferencia rápida para Llama, Mixtral y otros modelos abiertos              | Sí                     | No (usa la predeterminada) |
 | **Mistral**           | Modelos alojados de Mistral                                                 | Sí                     | No (usa la predeterminada) |
 | **Ollama**            | Modelos de código abierto auto-alojados como Llama 3.1, Mistral, Qwen, etc. | No                     | Sí                         |
@@ -84,7 +84,7 @@ Completa los siguientes campos:
 - **Descripción** (opcional): Una descripción para identificar el propósito de este proveedor
 - **Proveedor de LLM**: Selecciona el tipo de proveedor (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama u OpenAI Compatible)
 - **Clave de API**: Tu clave de API (requerida para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral; opcional para Ollama y para servidores compatibles con OpenAI)
-- **Nombre del modelo**: El modelo específico a usar (por ejemplo, `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
+- **Nombre del modelo**: El modelo específico a usar (por ejemplo, `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **URL base** (opcional): URL de punto de conexión de API personalizado (requerida para Azure OpenAI, Ollama y OpenAI Compatible; opcional para otros)
 - **Más campos**, plegado bajo los campos anteriores: **Establecer como predeterminado**, que viene activado en un proveedor nuevo porque las funciones de IA solo usan el proveedor predeterminado del proyecto, y **Parámetros adicionales**, un objeto JSON opcional con parámetros extra que se envían al proveedor en cada solicitud (por ejemplo, `{"temperature": 0.2}`)
 
@@ -114,9 +114,9 @@ Nombre del modelo: gpt-5.1
 2. Selecciona **Anthropic** como proveedor de LLM
 3. Ingresa tu clave de API
 4. Elige un nombre de modelo:
-   - `claude-sonnet-5` - Opción predeterminada recomendada, el mejor equilibrio entre inteligencia, velocidad y coste
-   - `claude-opus-5` - Modelo más capaz, para las investigaciones más difíciles
-   - `claude-haiku-4-5` - El más rápido y económico
+   - `claude-sonnet-5-5` - Opción predeterminada recomendada, el mejor equilibrio entre inteligencia, velocidad y coste
+   - `claude-opus-5-5` - Más capaz, para las investigaciones más difíciles
+   - `claude-haiku-5-5` - El más rápido y económico
 
 **Ejemplo de configuración:**
 
@@ -124,8 +124,12 @@ Nombre del modelo: gpt-5.1
 Nombre: Anthropic de producción
 Proveedor de LLM: Anthropic
 Clave de API: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Nombre del modelo: claude-sonnet-5
+Nombre del modelo: claude-sonnet-5-5
 ```
+
+Claude Opus 4.7 y todos los modelos Claude posteriores eligen su propio muestreo y rechazan una solicitud que defina `temperature`, `top_p` o `top_k`. OneUptime omite esos ajustes con estos modelos. Si aun así un modelo rechaza alguno, OneUptime vuelve a enviar la solicitud sin él y lo recuerda para ese proveedor.
+
+Los modelos Claude 5 piensan antes de responder, y ese razonamiento cuenta para el límite de tokens de la respuesta, así que OneUptime le deja espacio. Para que piensen menos, y respondan más rápido y por menos dinero, añade `{"output_config": {"effort": "low"}}` en el campo **Parámetros adicionales** del proveedor. OneUptime envía a Anthropic con cada solicitud los ajustes que añadas ahí, salvo `model`, `messages`, `system`, `tools`, `tool_choice` y `stream`, que fija él mismo.
 
 ### Ollama (Auto-alojado)
 

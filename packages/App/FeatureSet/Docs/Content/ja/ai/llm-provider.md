@@ -62,7 +62,7 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 | --------------------- | ------------------------------------------------------------------------ | -------------- | ------------------------ |
 | **OpenAI**            | GPT-5.1、その他の OpenAI モデル                                          | はい           | いいえ（デフォルト使用） |
 | **Azure OpenAI**      | Azure デプロイメント上でホストされる OpenAI モデル                       | はい           | はい                     |
-| **Anthropic**         | Claude Sonnet 5、Claude Opus 5、Claude Haiku 4.5、その他の Claude モデル | はい           | いいえ（デフォルト使用） |
+| **Anthropic**         | Claude Sonnet 5.5、Claude Opus 5.5、Claude Haiku 5.5、その他の Claude モデル | はい           | いいえ（デフォルト使用） |
 | **Groq**              | Llama、Mixtral、その他のオープンモデル向けの高速推論                     | はい           | いいえ（デフォルト使用） |
 | **Mistral**           | Mistral のホスト型モデル                                                 | はい           | いいえ（デフォルト使用） |
 | **Ollama**            | Llama 3.1、Mistral、Qwen などのセルフホストオープンソースモデル          | いいえ         | はい                     |
@@ -84,7 +84,7 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 - **説明**（任意）: このプロバイダーの目的を識別するための説明
 - **LLM プロバイダー**: プロバイダーの種類を選択（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama、または OpenAI Compatible）
 - **API キー**: API キー（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral では必須。Ollama と OpenAI 互換サーバーでは任意）
-- **モデル名**: 使用する特定のモデル（例: `gpt-5.1`、`claude-sonnet-5`、`llama3.1`）
+- **モデル名**: 使用する特定のモデル（例: `gpt-5.1`、`claude-sonnet-5-5`、`llama3.1`）
 - **ベース URL**（任意）: カスタム API エンドポイント URL（Azure OpenAI、Ollama、OpenAI Compatible では必須、その他では任意）
 - **その他の項目**（上記の項目の下に折りたたまれています）: **デフォルトに設定** は、AI 機能がプロジェクトのデフォルトプロバイダーしか使わないため、新しいプロバイダーではオンになっています。**追加パラメーター** は、すべてのリクエストでプロバイダーに送る追加パラメーターを指定する任意の JSON オブジェクトです（例: `{"temperature": 0.2}`）
 
@@ -114,9 +114,9 @@ Model Name: gpt-5.1
 2. **LLM プロバイダー** として **Anthropic** を選択します
 3. API キーを入力します
 4. モデル名を選択します:
-   - `claude-sonnet-5` - 推奨のデフォルト。知性、速度、コストのバランスが最も良い
-   - `claude-opus-5` - 最も高性能なモデル。最も難しい調査向け
-   - `claude-haiku-4-5` - 最速でコスト効率が最も高い
+   - `claude-sonnet-5-5` - 推奨のデフォルト。知性、速度、コストのバランスが最も良い
+   - `claude-opus-5-5` - より高性能。最も難しい調査向け
+   - `claude-haiku-5-5` - 最速でコスト効率が最も高い
 
 **設定例:**
 
@@ -124,8 +124,12 @@ Model Name: gpt-5.1
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-sonnet-5
+Model Name: claude-sonnet-5-5
 ```
+
+Claude Opus 4.7 以降のすべての Claude モデルはサンプリングを自ら決めるため、`temperature`、`top_p`、`top_k` を指定したリクエストを拒否します。OneUptime はこれらのモデルにはこれらの設定を送りません。それでもモデルがいずれかを拒否した場合、OneUptime はその設定を外してリクエストを送り直し、そのプロバイダーについて記憶します。
+
+Claude 5 のモデルは回答の前に思考し、その思考は回答のトークン上限に含まれるため、OneUptime は思考のための余裕を確保します。思考を減らして、より速く、より安く回答させるには、プロバイダーの **追加パラメーター** に `{"output_config": {"effort": "low"}}` を設定します。そこに追加した設定は、OneUptime がリクエストごとに Anthropic へ送ります。ただし `model`、`messages`、`system`、`tools`、`tool_choice`、`stream` は OneUptime 自身が設定します。
 
 ### Ollama（セルフホスト）
 

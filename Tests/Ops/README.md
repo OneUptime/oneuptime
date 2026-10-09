@@ -849,6 +849,48 @@ and that each package's build output, its `node_modules` and App's recorder
 suites still are. Write entries as whole path segments: `"/dist/"` for a name
 at any depth, `"<rootDir>/build/"` for one directory of the package.
 
+### `OssScannerImage.test.js`
+
+`.oss-scanner/` is OneUptime's enrolment in Anthropic's OSS Scanner, which
+builds `.oss-scanner/Dockerfile` from master and studies the image with no
+network (`.oss-scanner/README.md`). Nothing else runs those files, so the
+suite holds them to the repository:
+
+- every directory with a tracked `package.json` or `go.mod` is installed
+  (`npm ci` from its committed lockfile, after every project it links with
+  `file:`) and built (its `compile`, or the App's `build-frontends:prod`
+  bundles it), or sits on a `# not built: <dir> - <reason>` line; a listed
+  directory that is gone fails too;
+- every `FROM` is pinned by digest, on the Probe image's Node base (the Node
+  major of every `Dockerfile.tpl` and the root `engines`), the ClickHouse
+  image `docker-compose.base.yml` runs, its Postgres major, and the Go version
+  of the Infrastructure Agent's `go.mod` on the same Debian release;
+- the files are committed and not ignored (the repo-wide `**/Dockerfile`
+  rule once swallowed a hand-written Dockerfile), and the rendered service
+  Dockerfiles still are;
+- `Dockerfile.dockerignore` keeps every tracked file, and the Dockerfile stops
+  on the paths the root `.dockerignore` leaves out (read with a matcher of
+  Docker's own rules);
+- `config.env` carries CI's test settings from `packages/Common/test-setup.sh`,
+  only settings something reads, and no placeholder secret; the datastores
+  listen where it, the dev stack and `start-services.sh` say; ClickHouse runs
+  the drop-ins compose mounts; the Probe's browsers and native helpers are
+  where the Probe image puts and the Probe loads them; every `/usr/src` path
+  the server code hard-codes is linked;
+- the threat model has the scanner template's sections, names every compose
+  service, boundary and entry point, and every path, link and test file it
+  cites exists; `project.yaml` passes the rules of the scanner's
+  `tools/validate.py`;
+- the scripts parse, pass `shellcheck` when it is installed, and
+  `run-in-parallel.sh` and `start-services.sh` are run for real in a scratch
+  copy.
+
+The "Ops Config Test" workflow also runs `docker buildx build --check` over
+the Dockerfile. It does not build the image: that is about 10 GB, more than a
+standard runner has to spare, and the scanner emails security@oneuptime.com
+when its build fails. `.oss-scanner/README.md` says how to build it locally
+with the scanner's own tools.
+
 ### `agent-ebpf-e2e/`
 
 Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway

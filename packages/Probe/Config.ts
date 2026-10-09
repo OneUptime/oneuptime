@@ -17,6 +17,10 @@ import {
   MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
   SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS,
 } from "./Utils/Monitors/SyntheticRuntime/Limits";
+import {
+  PacketCaptureSettings,
+  readPacketCaptureSettings,
+} from "./Utils/PacketCapture/PacketCaptureSettings";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
   logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
@@ -543,6 +547,17 @@ export const PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE: number =
  */
 export const PROBE_NETFLOW_RECEIVER_ENABLED: boolean =
   process.env["PROBE_NETFLOW_RECEIVER_ENABLED"] === "true";
+
+/*
+ * Packet captures started from the dashboard (Utils/PacketCapture). Off
+ * until whoever runs this probe sets PROBE_PACKET_CAPTURE_ENABLED=true, and
+ * then held to PROBE_PACKET_CAPTURE_MAX_DURATION_IN_SECONDS and
+ * PROBE_PACKET_CAPTURE_MAX_FILE_SIZE_IN_MB when they are set lower than the
+ * hard maximums. Seeing real interfaces and mirrored ports takes host
+ * networking and the NET_RAW capability: see the packet capture docs.
+ */
+export const PROBE_PACKET_CAPTURE_SETTINGS: PacketCaptureSettings =
+  readPacketCaptureSettings(process.env);
 
 export const PROBE_NETFLOW_RECEIVER_PORT: number =
   NumberUtil.parseNumberWithDefault({

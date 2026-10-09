@@ -47,6 +47,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 入站           | 將 Alertmanager 通知轉換為事件。                                     |
 | [Grafana](/docs/integrations/grafana)                                 | 入站           | 將 Grafana 警示轉換為事件。                                          |
 | [Datadog](/docs/integrations/datadog)                                 | 入站           | 將 Datadog 監控警示轉換為事件。                                      |
+| [Huntress](/docs/integrations/huntress)                               | 入站                   | 為 Huntress 事件報告呼叫待命人員，並在報告關閉時解決事件。 |
 | [GitHub](/docs/integrations/github)                                   | 出站           | 為事件開立一個 GitHub issue。                                        |
 | [GitLab](/docs/integrations/gitlab)                                   | 出站           | 為事件開立一個 GitLab issue。                                        |
 | [Discord](/docs/integrations/discord)                                 | 出站           | 將事件更新張貼到 Discord 頻道。                                      |

@@ -106,7 +106,7 @@ export type MockedAuditLogRecorder = {
   [K in keyof AuditLogRecorder]: AuditLogRecorder[K] & jest.Mock;
 };
 
-// An audit-log recorder whose four methods are jest spies that do nothing.
+// An audit-log recorder whose methods are jest spies that do nothing.
 export const createAuditLogRecorderSpy: () => MockedAuditLogRecorder =
   (): MockedAuditLogRecorder => {
     return {
@@ -119,6 +119,9 @@ export const createAuditLogRecorderSpy: () => MockedAuditLogRecorder =
       recordDelete: jest.fn(async (): Promise<void> => {
         return undefined;
       }) as unknown as MockedAuditLogRecorder["recordDelete"],
+      recordDownload: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }) as unknown as MockedAuditLogRecorder["recordDownload"],
       invalidateProjectSettings: jest.fn((): void => {
         return undefined;
       }) as unknown as MockedAuditLogRecorder["invalidateProjectSettings"],

@@ -1,16 +1,22 @@
 {
   "baseline": {
-    "keys": 25975,
-    "untranslated": 16710
+    "keys": 27297,
+    "untranslated": 17111
   },
   "sameAsEnglish": [
     "1 week",
     "Alarm",
+    "Capture",
     "CloudWatch Metric Streams",
+    "Filter:",
+    "Filter: {{expression}}",
+    "In Huntress",
     "Incident {{number}}: {{title}}",
+    "Interface",
     "Interface {{index}}",
     "Label: {{name}}",
     "Offline",
+    "Protocol",
     "Runbook: {{name}}",
     "Runner",
     "Transceivers",
@@ -22,6 +28,9 @@
     "kubectl set image deployment/web * -n web",
     "services",
     "teams",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{count}} alarm",
     "{{count}} product",
     "{{field}} is {{value}}"

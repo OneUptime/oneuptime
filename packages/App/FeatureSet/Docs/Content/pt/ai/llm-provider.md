@@ -62,7 +62,7 @@ O OneUptime atualmente suporta os seguintes provedores de LLM:
 | --------------------- | ---------------------------------------------------------------------------- | ----------------------- | ------------------- |
 | **OpenAI**            | GPT-5.1 e outros modelos OpenAI                                              | Sim                     | Não (usa o padrão)  |
 | **Azure OpenAI**      | Modelos OpenAI hospedados na sua implantação Azure                           | Sim                     | Sim                 |
-| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 e outros modelos Claude     | Sim                     | Não (usa o padrão)  |
+| **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 e outros modelos Claude | Sim                     | Não (usa o padrão)  |
 | **Groq**              | Inferência rápida para Llama, Mixtral e outros modelos abertos               | Sim                     | Não (usa o padrão)  |
 | **Mistral**           | Modelos hospedados da Mistral                                                | Sim                     | Não (usa o padrão)  |
 | **Ollama**            | Modelos de código aberto auto-hospedados como Llama 3.1, Mistral, Qwen, etc. | Não                     | Sim                 |
@@ -84,7 +84,7 @@ Preencha os seguintes campos:
 - **Descrição** (opcional): Uma descrição para ajudar a identificar o propósito deste provedor
 - **Provedor LLM**: Selecione o tipo de provedor (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
 - **Chave de API**: Sua chave de API (obrigatória para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opcional para Ollama e servidores compatíveis com OpenAI)
-- **Nome do Modelo**: O modelo específico a ser usado (ex.: `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
+- **Nome do Modelo**: O modelo específico a ser usado (ex.: `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **URL base** (opcional): URL do endpoint de API personalizado (obrigatória para Azure OpenAI, Ollama e OpenAI Compatible; opcional para outros)
 - **Mais campos**, recolhido abaixo dos campos acima: **Definir como padrão**, que vem ativado em um provedor novo porque os recursos de IA usam apenas o provedor padrão do projeto, e **Parâmetros adicionais**, um objeto JSON opcional com parâmetros extras enviados ao provedor em cada requisição (por exemplo, `{"temperature": 0.2}`)
 
@@ -114,9 +114,9 @@ Nome do Modelo: gpt-5.1
 2. Selecione **Anthropic** como o Provedor LLM
 3. Insira sua chave de API
 4. Escolha um nome de modelo:
-   - `claude-sonnet-5` - Padrão recomendado, melhor equilíbrio entre inteligência, velocidade e custo
-   - `claude-opus-5` - Modelo mais capaz, para as investigações mais difíceis
-   - `claude-haiku-4-5` - O mais rápido e mais econômico
+   - `claude-sonnet-5-5` - Padrão recomendado, melhor equilíbrio entre inteligência, velocidade e custo
+   - `claude-opus-5-5` - Mais capaz, para as investigações mais difíceis
+   - `claude-haiku-5-5` - O mais rápido e mais econômico
 
 **Exemplo de Configuração:**
 
@@ -124,8 +124,12 @@ Nome do Modelo: gpt-5.1
 Nome: Anthropic de Produção
 Provedor LLM: Anthropic
 Chave de API: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Nome do Modelo: claude-sonnet-5
+Nome do Modelo: claude-sonnet-5-5
 ```
+
+O Claude Opus 4.7 e todos os modelos Claude posteriores escolhem a própria amostragem e recusam uma requisição que defina `temperature`, `top_p` ou `top_k`. O OneUptime omite essas configurações nesses modelos. Se mesmo assim um modelo recusar alguma, o OneUptime envia a requisição de novo sem ela e se lembra disso para aquele provedor.
+
+Os modelos Claude 5 pensam antes de responder, e esse raciocínio conta para o limite de tokens da resposta, então o OneUptime reserva espaço para ele. Para que pensem menos, e respondam mais rápido e gastando menos, defina `{"output_config": {"effort": "low"}}` no campo **Parâmetros adicionais** do provedor. O OneUptime envia à Anthropic, em cada requisição, as configurações que você adicionar ali, exceto `model`, `messages`, `system`, `tools`, `tool_choice` e `stream`, que ele mesmo define.
 
 ### Ollama (Auto-Hospedado)
 

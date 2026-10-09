@@ -160,7 +160,8 @@ export default class AuditLog extends AnalyticsBaseModel {
     const actionColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "action",
       title: "Action",
-      description: "The action performed: Create, Update, or Delete.",
+      description:
+        "The action performed: Create, Update, Delete, or Download (a packet capture file was downloaded).",
       required: true,
       type: TableColumnType.Text,
       accessControl: {

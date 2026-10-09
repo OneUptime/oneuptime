@@ -362,6 +362,10 @@ const DocsNav: NavGroup[] = [
         title: "Incoming Request Ingress",
         url: "/docs/probe/incoming-request-ingress",
       },
+      {
+        title: "Packet Capture",
+        url: "/docs/probe/packet-capture",
+      },
     ],
   },
   {
@@ -944,6 +948,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Datadog",
         url: "/docs/integrations/datadog",
+      },
+      {
+        title: "Huntress",
+        url: "/docs/integrations/huntress",
       },
       {
         title: "Google SecOps",

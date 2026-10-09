@@ -132,7 +132,16 @@ describe("LLMService tool calling — Anthropic", () => {
     });
 
     const response: LLMCompletionResponse = await LLMService.getCompletion({
-      llmProviderConfig: { llmType: LlmType.Anthropic, apiKey: "test-key" },
+      llmProviderConfig: {
+        llmType: LlmType.Anthropic,
+        apiKey: "test-key",
+        /*
+         * A model that does not think unless asked, so max_tokens is the
+         * default cap alone. Room for thinking on the models that do is
+         * covered in LLMServiceAnthropicCurrentModels.test.ts.
+         */
+        modelName: "claude-sonnet-4-6",
+      },
       messages: [
         { role: "system", content: "be helpful" },
         { role: "user", content: "cpu usage?" },

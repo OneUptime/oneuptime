@@ -62,7 +62,7 @@ OneUptime ondersteunt momenteel de volgende LLM-providers:
 | --------------------- | -------------------------------------------------------------------------- | ------------------- | ------------------------ |
 | **OpenAI**            | GPT-5.1 en andere OpenAI-modellen                                          | Ja                  | Nee (gebruikt standaard) |
 | **Azure OpenAI**      | OpenAI-modellen gehost op uw Azure-implementatie                           | Ja                  | Ja                       |
-| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 en andere Claude-modellen | Ja                  | Nee (gebruikt standaard) |
+| **Anthropic**         | Claude Sonnet 5.5, Claude Opus 5.5, Claude Haiku 5.5 en andere Claude-modellen | Ja                  | Nee (gebruikt standaard) |
 | **Groq**              | Snelle inferentie voor Llama, Mixtral en andere open modellen              | Ja                  | Nee (gebruikt standaard) |
 | **Mistral**           | Door Mistral gehoste modellen                                              | Ja                  | Nee (gebruikt standaard) |
 | **Ollama**            | Zelf-gehoste open-source modellen zoals Llama 3.1, Mistral, Qwen, enz.     | Nee                 | Ja                       |
@@ -84,7 +84,7 @@ Vul de volgende velden in:
 - **Beschrijving** (optioneel): Een omschrijving om het doel van deze provider te identificeren
 - **LLM-provider**: Selecteer het providertype (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama of OpenAI Compatible)
 - **API-sleutel**: Uw API-sleutel (vereist voor OpenAI, Azure OpenAI, Anthropic, Groq en Mistral; optioneel voor Ollama en OpenAI-compatibele servers)
-- **Modelnaam**: Het specifieke te gebruiken model (bijv. `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
+- **Modelnaam**: Het specifieke te gebruiken model (bijv. `gpt-5.1`, `claude-sonnet-5-5`, `llama3.1`)
 - **Basis-URL** (optioneel): Aangepaste API-eindpunt-URL (vereist voor Azure OpenAI, Ollama en OpenAI Compatible; optioneel voor anderen)
 - **Meer velden**, ingeklapt onder de velden hierboven: **Instellen als standaard**, dat voor een nieuwe provider aan staat omdat AI-functies alleen de standaardprovider van het project gebruiken, en **Extra parameters**, een optioneel JSON-object met extra parameters dat bij elk verzoek naar de provider wordt gestuurd (bijvoorbeeld `{"temperature": 0.2}`)
 
@@ -114,9 +114,9 @@ Model Name: gpt-5.1
 2. Selecteer **Anthropic** als LLM-provider
 3. Voer uw API-sleutel in
 4. Kies een modelnaam:
-   - `claude-sonnet-5` - Aanbevolen standaard, beste balans tussen intelligentie, snelheid en kosten
-   - `claude-opus-5` - Meest capabele model, voor de moeilijkste onderzoeken
-   - `claude-haiku-4-5` - Snelst en meest kosteneffectief
+   - `claude-sonnet-5-5` - Aanbevolen standaard, beste balans tussen intelligentie, snelheid en kosten
+   - `claude-opus-5-5` - Capabeler, voor de moeilijkste onderzoeken
+   - `claude-haiku-5-5` - Snelst en meest kosteneffectief
 
 **Voorbeeldconfiguratie:**
 
@@ -124,8 +124,12 @@ Model Name: gpt-5.1
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-sonnet-5
+Model Name: claude-sonnet-5-5
 ```
+
+Claude Opus 4.7 en alle latere Claude-modellen kiezen zelf hun sampling en weigeren een verzoek dat `temperature`, `top_p` of `top_k` instelt. OneUptime laat die instellingen voor deze modellen weg. Weigert een model er toch een, dan stuurt OneUptime het verzoek opnieuw zonder die instelling en onthoudt dat voor de provider.
+
+Claude 5-modellen denken na voordat ze antwoorden, en dat nadenken telt mee voor de tokenlimiet van het antwoord, dus OneUptime laat er ruimte voor. Wilt u dat ze minder nadenken, en sneller en goedkoper antwoorden, zet dan `{"output_config": {"effort": "low"}}` in het veld **Extra parameters** van de provider. Wat u daar toevoegt, stuurt OneUptime bij elk verzoek naar Anthropic, behalve `model`, `messages`, `system`, `tools`, `tool_choice` en `stream`, die OneUptime zelf instelt.
 
 ### Ollama (Zelf-gehost)
 

@@ -547,6 +547,7 @@ const getDeleteLabel: GetDeleteLabelFunction = (
  */
 const CREATE_BUTTON_TEMPLATES: Record<string, string> = {
   Add: translationKey("Add {{itemName}}"),
+  Connect: translationKey("Connect {{itemName}}"),
   Create: translationKey("Create {{itemName}}"),
   Declare: translationKey("Declare {{itemName}}"),
   Invite: translationKey("Invite {{itemName}}"),

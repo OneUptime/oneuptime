@@ -69,6 +69,7 @@ import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkDeviceDiagnosticService from "./NetworkDeviceDiagnosticService";
+import PacketCaptureService from "./PacketCaptureService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
@@ -358,6 +359,8 @@ import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
+import HuntressConnectionService from "./HuntressConnectionService";
+import HuntressIncidentReportService from "./HuntressIncidentReportService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
@@ -565,6 +568,7 @@ const services: Array<BaseService> = [
   NetworkSnmpCredentialProfileService,
   NetworkDeviceDiscoveryScanService,
   NetworkDeviceDiagnosticService,
+  PacketCaptureService,
   NetworkInterfaceService,
   NetworkSiteService,
   NetworkSiteTypeService,
@@ -824,6 +828,8 @@ const services: Array<BaseService> = [
   DetectionRuleService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
+  HuntressConnectionService,
+  HuntressIncidentReportService,
   ThreatIntelFeedService,
   AlertNoteTemplateService,
   AlertFeedService,

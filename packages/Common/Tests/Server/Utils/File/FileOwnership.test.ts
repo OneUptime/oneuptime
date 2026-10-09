@@ -20,6 +20,7 @@ import IncidentEpisodePublicNote from "../../../../Models/DatabaseModels/Inciden
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
 import Label from "../../../../Models/DatabaseModels/Label";
+import PacketCapture from "../../../../Models/DatabaseModels/PacketCapture";
 import Probe from "../../../../Models/DatabaseModels/Probe";
 import ScheduledMaintenanceInternalNote from "../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenancePublicNote from "../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -237,6 +238,19 @@ describe("FileOwnership.getFileReferenceColumns", () => {
           isList: false,
           notFoundMessage:
             "The icon's file could not be found. Upload the icon again.",
+        },
+      ],
+    },
+    // A packet capture's pcap file: written only by the server, read only by its download route.
+    {
+      model: new PacketCapture(),
+      columns: [
+        {
+          relationColumn: "file",
+          idColumn: "fileId",
+          isList: false,
+          notFoundMessage:
+            "The capture file's file could not be found. Upload the capture file again.",
         },
       ],
     },

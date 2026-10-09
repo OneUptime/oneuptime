@@ -1,9 +1,10 @@
 {
   "baseline": {
-    "keys": 25975,
-    "untranslated": 16617
+    "keys": 27297,
+    "untranslated": 17017
   },
   "sameAsEnglish": [
+    "Interface",
     "Interface {{index}}",
     "Offline",
     "Runbook: {{name}}",
@@ -11,6 +12,9 @@
     "VMware vCenter",
     "cluster",
     "host",
-    "kubectl set image deployment/web * -n web"
+    "kubectl set image deployment/web * -n web",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB"
   ]
 }

@@ -306,6 +306,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkflowIncomingEmailSecretKeyPostgres.test.ts --forceExit
 
+      # Clones the migrated HuntressConnection and HuntressIncidentReport tables
+      # into an isolated schema: the signing secret is written encrypted and a
+      # new one clears the last refusal, and of two deliveries racing to claim
+      # one Huntress report the unique index lets exactly one through - what
+      # "one incident per report" rests on.
+      - name: Test Huntress connections and report claims on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_HUNTRESS_TESTS: "true"
+          HUNTRESS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          HUNTRESS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          HUNTRESS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/HuntressPostgres.test.ts --forceExit
+
       # Clones the migrated IoTDevice and sibling inventory tables into an
       # isolated schema and executes each service's hand-built
       # UPDATE ... FROM (VALUES ...) latest-metric mirror write against them.
@@ -1163,6 +1179,23 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ExpoPushReceiptsPostgres.test.ts --forceExit
+
+      # Clones the migrated PacketCapture, File and Probe tables into an
+      # isolated schema and runs packet capture's hand-written SQL: a probe
+      # claims only its own Pending captures (FOR UPDATE SKIP LOCKED), hears
+      # only its own stops, settles only its own captures, and the server
+      # counts the packets in the uploaded file; Stop from the dashboard, the
+      # stale capture sweep and the retention sweep (files included).
+      - name: Test packet capture's SQL on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PACKET_CAPTURE_SQL_TESTS: "true"
+          PACKET_CAPTURE_SQL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PACKET_CAPTURE_SQL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PACKET_CAPTURE_SQL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/PacketCaptureSqlPostgres.test.ts --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification

@@ -40,6 +40,7 @@ import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
+import PacketCaptureAPI from "Common/Server/API/PacketCaptureAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
 import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
@@ -584,6 +585,11 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
+import HuntressConnectionAPI from "Common/Server/API/HuntressConnectionAPI";
+import HuntressIncidentReportService, {
+  Service as HuntressIncidentReportServiceType,
+} from "Common/Server/Services/HuntressIncidentReportService";
+import HuntressIncidentReport from "Common/Models/DatabaseModels/HuntressIncidentReport";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
@@ -3822,6 +3828,19 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new HuntressConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HuntressIncidentReport, HuntressIncidentReportServiceType>(
+        HuntressIncidentReport,
+        HuntressIncidentReportService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
         SecurityEventConnectionRun,
         SecurityEventConnectionRunServiceType
@@ -5886,6 +5905,12 @@ const BaseAPIFeatureSet: FeatureSet = {
         NetworkDeviceDiagnostic,
         NetworkDeviceDiagnosticService,
       ).getRouter(),
+    );
+
+    // packet captures run on the project's probes (start, stop, download)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new PacketCaptureAPI().getRouter(),
     );
 
     // network site
