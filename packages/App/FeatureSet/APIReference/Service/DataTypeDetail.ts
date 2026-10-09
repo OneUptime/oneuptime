@@ -2,6 +2,10 @@ import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
+import {
+  DASHBOARD_COMPONENT_EXAMPLE,
+  DASHBOARD_VIEW_CONFIG_EXAMPLE,
+} from "../Utils/DashboardDataTypeExamples";
 import { buildRenderContext } from "../Utils/RenderContext";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
@@ -1849,70 +1853,78 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       2,
     ),
   },
+  // Examples: Utils/DashboardDataTypeExamples (issue #4571).
   "dashboard-component": {
     title: "DashboardComponent",
     description:
-      "A configuration object for a dashboard component including its type, layout, and settings.",
+      "One widget on a dashboard: what kind of widget it is, where it sits on the grid, and its settings. The dashboard grid is 12 units wide.",
     isEnum: false,
     properties: [
       {
         name: "componentId",
         type: "ObjectID",
         required: true,
-        description: "Unique identifier for this dashboard component.",
+        description:
+          "Unique identifier for this widget on the dashboard. A UUID string.",
       },
       {
         name: "componentType",
         type: "string",
         required: true,
-        description: "The type of component (e.g., Chart, Value, Table).",
+        description:
+          "The kind of widget: Chart, Value, Text, Clock, Table, Gauge, LogStream, IncidentList, MonitorList and the rest of the widget catalog. A type OneUptime does not know is kept, and the dashboard shows it as a widget that could not be shown.",
       },
       {
         name: "widthInDashboardUnits",
         type: "number",
         required: true,
-        description: "Width of the component in dashboard grid units.",
+        description: "Width of the widget in dashboard grid units (1-12).",
       },
       {
         name: "heightInDashboardUnits",
         type: "number",
         required: true,
-        description: "Height of the component in dashboard grid units.",
+        description: "Height of the widget in dashboard grid units.",
       },
       {
         name: "topInDashboardUnits",
         type: "number",
         required: true,
-        description: "Top position of the component in dashboard grid units.",
+        description: "Row the widget starts on, counted from 0.",
       },
       {
         name: "leftInDashboardUnits",
         type: "number",
         required: true,
-        description: "Left position of the component in dashboard grid units.",
+        description: "Column the widget starts in, counted from 0.",
+      },
+      {
+        name: "minWidthInDashboardUnits",
+        type: "number",
+        required: false,
+        description: "Narrowest the widget can be resized to.",
+      },
+      {
+        name: "minHeightInDashboardUnits",
+        type: "number",
+        required: false,
+        description: "Shortest the widget can be resized to.",
+      },
+      {
+        name: "arguments",
+        type: "JSON object",
+        required: false,
+        description:
+          "The widget's settings, which depend on its componentType (a Text widget's text, a Chart's queries). Easiest to get right by building the widget in the dashboard editor and reading the dashboard back.",
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      {
-        _type: "DashboardComponent",
-        value: {
-          componentId: "550e8400-e29b-41d4-a716-446655440000",
-          componentType: "Chart",
-          widthInDashboardUnits: 6,
-          heightInDashboardUnits: 4,
-          topInDashboardUnits: 0,
-          leftInDashboardUnits: 0,
-        },
-      },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify(DASHBOARD_COMPONENT_EXAMPLE, null, 2),
   },
   "dashboard-view-config": {
     title: "DashboardViewConfig",
     description:
-      "A configuration object for a dashboard view including its components and layout.",
+      "A dashboard's widgets and layout. Send it as a JSON object with its widgets in `components`, as in the example - not wrapped in a `value`.",
     isEnum: false,
     properties: [
       {
@@ -1920,29 +1932,32 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "Array<DashboardComponent>",
         required: true,
         description:
-          "An array of DashboardComponent objects that define the layout and content of the dashboard.",
+          "The widgets on the dashboard. An empty list is an empty dashboard.",
+      },
+      {
+        name: "heightInDashboardUnits",
+        type: "number",
+        required: false,
+        description:
+          "Height of the dashboard in grid units. It grows to fit its widgets.",
+      },
+      {
+        name: "refreshInterval",
+        type: "string",
+        required: false,
+        description:
+          "How often the dashboard refreshes itself: off, 5s, 10s, 30s, 1m, 5m or 15m.",
+      },
+      {
+        name: "variables",
+        type: "Array<JSON object>",
+        required: false,
+        description:
+          "The dashboard's variables, the filters shown in its toolbar.",
       },
     ],
     values: [],
-    jsonExample: JSON.stringify(
-      {
-        _type: "DashboardViewConfig",
-        value: {
-          components: [
-            {
-              componentId: "550e8400-e29b-41d4-a716-446655440000",
-              componentType: "Chart",
-              widthInDashboardUnits: 6,
-              heightInDashboardUnits: 4,
-              topInDashboardUnits: 0,
-              leftInDashboardUnits: 0,
-            },
-          ],
-        },
-      },
-      null,
-      2,
-    ),
+    jsonExample: JSON.stringify(DASHBOARD_VIEW_CONFIG_EXAMPLE, null, 2),
   },
   "criteria-filter": {
     title: "CriteriaFilter",

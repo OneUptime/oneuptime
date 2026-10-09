@@ -362,7 +362,7 @@ describe("keeping a send's receipts to read (add)", () => {
   });
 
   test("the set expires two days after it was last written, if nothing ever reads it", async () => {
-    await queue.add([receipt()]);
+    await queue.add([receipt()], SENT_AT);
 
     expect(redis.expiries.get(queue.getPendingKey())).toBe(48 * HOUR);
   });
@@ -372,8 +372,13 @@ describe("keeping a send's receipts to read (add)", () => {
       keyPrefix: "other-receipts",
     });
 
-    await queue.add([receiptNumber(1)]);
-    await other.add([receiptNumber(2)]);
+    /*
+     * Added at the fixtures' own time: on the real clock, a push sent on
+     * SENT_AT is past the day Expo keeps receipts, and is cleared as soon
+     * as it is added.
+     */
+    await queue.add([receiptNumber(1)], SENT_AT);
+    await other.add([receiptNumber(2)], SENT_AT);
 
     expect(redis.zcard("test-receipts:pending")).toBe(1);
     expect(redis.zcard("other-receipts:pending")).toBe(1);

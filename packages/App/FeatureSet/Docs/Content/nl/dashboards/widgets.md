@@ -240,6 +240,14 @@ Een paar vuistregels:
 
 De meeste dashboards mengen er een paar — een chart bovenaan, een value of twee ernaast, een tekstscheiding en een lijst of twee eronder.
 
+## Als een widget niet kan worden weergegeven
+
+Een widget die niet kan worden getekend, toont op zijn eigen plek **Deze widget kon niet worden weergegeven**, en de rest van het dashboard blijft werken. Dat gebeurt als OneUptime geen widget van dat type heeft (een widget die is verwijderd, een type dat verkeerd is gespeld toen het dashboard via de API werd geschreven, of een widget uit een nieuwere versie), of als de widget mislukt tijdens het tekenen, bijvoorbeeld omdat de opgeslagen instellingen onvolledig zijn.
+
+Als u het dashboard mag bewerken, klikt u op **Widget bewerken** op de widget. Het dashboard gaat naar de bewerkmodus met de instellingen van die widget geopend: verbeter ze, of klik op **Widget verwijderen** en daarna op **Wijzigingen opslaan**. Een widget die mislukte tijdens het tekenen, biedt ook **Opnieuw proberen** en wordt opnieuw getekend bij de volgende automatische vernieuwing of als u de periode wijzigt.
+
+Bezoekers van een openbaar dashboard zien alleen dat de widget niet kon worden weergegeven.
+
 ## Waar verder lezen
 
 - [Variabelen en filters](/docs/dashboards/variables) — widgets herbruikbaar maken voor veel services of klanten.
