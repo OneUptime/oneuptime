@@ -67,7 +67,10 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
-import { stubRowsCallerMayWrite } from "../../Server/TestingUtils/RowsCallerMayWrite";
+import {
+  stubRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../../Server/TestingUtils/RowsCallerMayWrite";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
@@ -236,6 +239,15 @@ function makeAgentRow(
  * and answers "which of these clusters has an AI agent?" the same way.
  */
 function serveStoredCluster(settings: StoredSettings): void {
+  /*
+   * The hook judges the clusters the update writes: the editor may write
+   * this one (the update path's read, which a direct hook call skips, is
+   * answered as the hook's own read of it is).
+   */
+  stubRowsCallerMayWriteLikeFindBy(
+    KubernetesClusterService,
+    jest.spyOn(KubernetesClusterService, "findBy"),
+  );
   jest.spyOn(KubernetesClusterService, "findBy").mockResolvedValue([
     {
       id: CLUSTER_ID,

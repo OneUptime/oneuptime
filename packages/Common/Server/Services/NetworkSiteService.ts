@@ -672,12 +672,11 @@ export class Service extends ProjectReferencesService<Model> {
    */
 
   /*
-   * The hierarchy hooks run BEFORE DatabaseService applies tenant scoping to
-   * the caller's query (ModelPermission.check*QueryPermissions runs after
-   * onBeforeUpdate / onBeforeDelete), so reading the raw client query with
-   * props.isRoot would hand the hook rows from other projects - which the
-   * success hooks then write. Re-apply the caller's tenant here so a hook can
-   * never see, let alone rewrite, a row outside the caller's project.
+   * Which projects' hierarchy lock an update takes is read before the update
+   * runs, from the caller's own query, as root: keep that read in the
+   * caller's project, so the update takes no lock outside it. The update's
+   * hook then reads the rows it writes, checks them and holds the update to
+   * them inside the lock (findRowsAndHoldUpdateToThem).
    */
   private scopeQueryToCallerTenant(
     query: Query<Model>,
@@ -1914,9 +1913,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Deletes are hard deletes, so the rows' hierarchy state has to be captured
-   * before they disappear. Scoped to the caller's tenant for the same reason
-   * onBeforeUpdate is: this hook runs before the delete query is permission
-   * checked.
+   * before they disappear. Scoped to the caller's tenant, as the delete's own
+   * permission check scopes it, because this hook runs before that check.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(

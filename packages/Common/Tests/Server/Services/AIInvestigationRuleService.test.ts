@@ -31,6 +31,22 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    AIInvestigationRuleService,
+    jest.spyOn(AIInvestigationRuleService, "findBy"),
+  );
+});
 
 /*
  * One table holds incident and alert investigation rules, and each can only
@@ -107,7 +123,10 @@ async function updateError(
     .mockResolvedValue(
       stored.map(
         (row: { triggerEntityType: AIInvestigationRuleTriggerEntity }) => {
-          return Object.assign(new AIInvestigationRule(), row);
+          return Object.assign(new AIInvestigationRule(), {
+            _id: ObjectID.generate().toString(),
+            ...row,
+          });
         },
       ),
     );
@@ -262,11 +281,12 @@ describe("AIInvestigationRuleService", () => {
         props: { tenantId: PROJECT_ID },
       } as unknown as UpdateBy<AIInvestigationRule>);
 
-      expect(findBy.mock.calls[0]![0]).toMatchObject({
-        query: { _id: "x", projectId: PROJECT_ID },
-        select: { _id: true, triggerEntityType: true },
-        props: { isRoot: true },
-      });
+      // The rules the caller may write, found in their project.
+      expect(
+        readsOfRowsCallerMayWrite(AIInvestigationRuleService)[0]!.query,
+      ).toEqual({ _id: "x", projectId: PROJECT_ID });
+      // None of them here: nothing more is read.
+      expect(findBy).not.toHaveBeenCalled();
     });
   });
 });

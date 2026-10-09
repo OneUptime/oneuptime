@@ -31,6 +31,27 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    AlertService,
+    jest.spyOn(AlertService, "findBy"),
+  );
+});
 
 /*
  * An incident's or an alert's "updated" feed item records what an update
@@ -878,11 +899,11 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
 
   describe("the read before the write", () => {
     /*
-     * The stored read: as root, pinned to the caller's project, asking for
-     * a column the feed or the reminders compare. (The project reference
+     * The stored read: the records the update writes, read as root by id
+     * among those the caller may write (findRowsAndHoldUpdateToThem), asking
+     * for a column the feed or the reminders compare. (The project reference
      * check reads the labels a record holds as well, when an update writes
-     * some - unpinned, so a label it already holds may stay: another read,
-     * for another question.)
+     * some: another read, for another question.)
      */
     function comparedReads(): Array<{
       query: Dictionary<unknown>;
@@ -897,8 +918,8 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
             props: DatabaseCommonInteractionProps;
           };
         })
-        .filter((read: { query: Dictionary<unknown> }): boolean => {
-          return read.query["projectId"] !== undefined;
+        .filter((read: { props?: DatabaseCommonInteractionProps }): boolean => {
+          return read.props?.ignoreHooks === true;
         })
         .filter((read: { select: Dictionary<unknown> }): boolean => {
           return [
@@ -953,7 +974,7 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
       });
     });
 
-    test("is made as root, within the update's query and the caller's project", async () => {
+    test("is made as root, by id, among the records the caller may write in their project", async () => {
       await runBeforeUpdate({ description: "x" });
 
       const read: {
@@ -961,9 +982,15 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
         props: DatabaseCommonInteractionProps;
       } = comparedReads()[0]!;
 
-      expect(read.props).toEqual({ isRoot: true });
-      expect(read.query["_id"]).toBe(RECORD_ID);
-      expect(read.query["projectId"]).toBe(PROJECT_ID);
+      expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
+      expect(read.query).toEqual({ _id: RECORD_ID });
+
+      // The records the caller may write: the update's query, in their project.
+      const writable: RowsCallerMayWriteRead = readsOfRowsCallerMayWrite(
+        kind.hooks as never,
+      )[0]!;
+      expect(writable.query["_id"]).toBe(RECORD_ID);
+      expect(writable.query["projectId"]).toBe(PROJECT_ID);
     });
 
     test("is not made for an update that writes none of those columns", async () => {

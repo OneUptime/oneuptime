@@ -20,6 +20,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    MonitorSecretService,
+    jest.spyOn(MonitorSecretService, "findBy"),
+  );
+});
 
 /*
  * MonitorSecretService owns the three ways a secret can be shared with

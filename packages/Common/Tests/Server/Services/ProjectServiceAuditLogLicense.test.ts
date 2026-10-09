@@ -23,6 +23,19 @@ import {
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ProjectService,
+    jest.spyOn(ProjectService, "findBy"),
+  );
+});
 
 /*
  * Audit logging is an Enterprise feature (EnterpriseFeature.AuditLogs), but its
@@ -463,7 +476,7 @@ describe("updating a project's audit log settings, billing off", () => {
       };
 
       expect(findBy.query).toEqual({ _id: PROJECT_ID.toString() });
-      expect(findBy.props).toEqual({ isRoot: true });
+      expect(findBy.props).toEqual({ isRoot: true, ignoreHooks: true });
       expect(findBy.select).toMatchObject({
         enableAuditLogs: true,
         storeSystemEventsInAuditLogs: true,

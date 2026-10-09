@@ -140,6 +140,11 @@ const ALLOWED: Record<string, Allowed> = {
     reason:
       "Asks whether the query names the caller's own user (OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser): what the query says, not what a row holds.",
   },
+  "packages/Common/Server/Services/DomainService.ts::onBeforeUpdate": {
+    mentions: 1,
+    reason:
+      "Asks whether the update names a project when its caller has none, to refuse it: what the query says, not what a row holds. The domains are read with findRowsAndHoldUpdateToThem.",
+  },
   "packages/Common/Server/Services/TeamComplianceSettingService.ts::assertMayUpdate":
     {
       mentions: 1,

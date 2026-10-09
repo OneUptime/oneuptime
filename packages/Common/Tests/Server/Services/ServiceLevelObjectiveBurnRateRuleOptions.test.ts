@@ -965,14 +965,18 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
     const read: { query: unknown; select: unknown; props: unknown } = findBySpy
       .mock.calls[0]![0] as { query: unknown; select: unknown; props: unknown };
 
-    expect(read.query).toEqual({ _id: RULE_ID.toString() });
+    // The rule the update names, in the request's project.
+    expect(read.query).toEqual({
+      _id: RULE_ID.toString(),
+      projectId: PROJECT_ID,
+    });
     expect(read.select).toEqual({
       _id: true,
       projectId: true,
       alertLabels: { _id: true },
       incidentOwnerUsers: { _id: true },
     });
-    expect(read.props).toEqual({ isRoot: true });
+    expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   /*

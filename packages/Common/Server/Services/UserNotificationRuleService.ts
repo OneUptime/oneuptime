@@ -5547,27 +5547,25 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /**
-   * Narrow a caller-supplied query to the rows that caller is actually entitled
-   * to write, for use by the write hooks.
+   * Narrow a caller-supplied delete query to the rows that caller is actually
+   * entitled to delete, for onBeforeDelete. (An update's hook reads the rows
+   * the update writes with findRowsAndHoldUpdateToThem instead.)
    *
-   * WHY THIS EXISTS AT ALL. DatabaseService runs the hooks BEFORE the permission
-   * layer: _updateBy calls onBeforeUpdate and only then
-   * ModelPermission.checkUpdateQueryPermissions; _deleteBy calls onBeforeDelete
-   * and only then checkDeleteQueryPermission. So a hook that reads
-   * `updateBy.query` is reading the RAW request — no tenant predicate, no
-   * ownership predicate — and the hooks below read it with `isRoot` props on
-   * top, because the question they ask is a question about the database's state
-   * rather than about the caller's visibility. Left there, a caller could point
-   * the guard at rows in another project entirely: the guard would validate
-   * against them, the audit trail would name their owners, and the write itself
-   * would touch a completely different set.
+   * WHY THIS EXISTS AT ALL. _deleteBy calls onBeforeDelete and only then
+   * ModelPermission.checkDeleteQueryPermission. So the hook, reading
+   * `deleteBy.query`, reads the RAW request — no tenant predicate, no
+   * ownership predicate — and reads it with `isRoot` props on top, because the
+   * question it asks is a question about the database's state rather than
+   * about the caller's visibility. Left there, a caller could point the guard
+   * at rows in another project entirely: the audit trail would name their
+   * owners, and the delete itself would touch a completely different set.
    *
    * WHY NOT JUST CALL ModelPermission. That is the obvious fix and it is the
-   * wrong one. checkUpdateQueryPermissions does two jobs — it narrows the query
+   * wrong one. checkDeleteQueryPermission does two jobs — it narrows the query
    * AND it authorises the request — and running it here would run the second
-   * job twice, moving every table- and column-level rejection into the hook and
-   * duplicating the team lookups behind the tenant scope on every write. The
-   * hook does not need to authorise anything; _updateBy authorises it a few
+   * job twice, moving every table-level rejection into the hook and
+   * duplicating the team lookups behind the tenant scope on every delete. The
+   * hook does not need to authorise anything; _deleteBy authorises it a few
    * lines later and is the authority. What the hook needs is only that the row
    * set it reasons about is no wider than the row set the write can reach.
    *
@@ -5644,11 +5642,12 @@ export class Service extends ProjectReferencesService<Model> {
    * different lists, and it is the write one that decides what this hook has to
    * answer for.
    *
-   * The QUERY, on the other hand, is narrowed first. Root props remove the
-   * caller's visibility from the answer; they must not also remove the caller's
-   * ENTITLEMENT from it, and this hook runs before ModelPermission has applied
-   * either. See narrowQueryToCallerEntitlement for why the narrowing is
-   * reproduced here rather than delegated.
+   * The ROWS, on the other hand, are the ones the write reaches. Root props
+   * remove the caller's visibility from the answer; they must not also remove
+   * the caller's ENTITLEMENT from it. findRowsAndHoldUpdateToThem reads the
+   * rows the update writes - for a member, the rules their update permission
+   * reaches - and holds the update to them, so every row written is a row
+   * checked here.
    *
    * The rows are carried forward so onUpdateSuccess can audit against the
    * owner as it stood BEFORE the write, without a second read and without
@@ -5919,9 +5918,9 @@ export class Service extends ProjectReferencesService<Model> {
    * then the rows are gone.
    *
    * The query is narrowed first. onBeforeDelete runs BEFORE
-   * ModelPermission.checkDeleteQueryPermission, exactly as onBeforeUpdate runs
-   * before its update counterpart, so the raw query carries neither the tenant
-   * predicate nor the ownership predicate — see narrowQueryToCallerEntitlement.
+   * ModelPermission.checkDeleteQueryPermission, so the raw query carries
+   * neither the tenant predicate nor the ownership predicate — see
+   * narrowQueryToCallerEntitlement.
    * Without it, a member could point this read at another project's rules and
    * have their owners written into the audit trail and mailed a warning about a
    * deletion that never touched them.

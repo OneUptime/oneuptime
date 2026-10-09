@@ -62,6 +62,10 @@ import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  stubRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 /*
  * Who may make OneUptime AI do MORE on an infrastructure resource a
  * resource AI agent serves, enforced in each resource's own service (the
@@ -405,6 +409,15 @@ describe.each(FULLY_COVERED)(
       resourceLookup = jest
         .spyOn(wiring.service, "findBy")
         .mockResolvedValue([resource()]);
+
+      /*
+       * The read of the rows the caller's update may write, which the update
+       * path makes before the hooks: what the read above answers.
+       */
+      stubRowsCallerMayWriteLikeFindBy(
+        wiring.service,
+        jest.spyOn(wiring.service, "findBy"),
+      );
     });
 
     afterEach(() => {
@@ -723,10 +736,13 @@ describe.each(FULLY_COVERED)(
           props: DatabaseCommonInteractionProps;
         };
 
-        expect(args.query).toEqual({
-          _id: RESOURCE_ID.toString(),
-          projectId: PROJECT_ID,
-        });
+        expect(args.query).toEqual({ _id: RESOURCE_ID.toString() });
+        // Within the caller's project: the rows they may write are found there.
+        expect(
+          readsOfRowsCallerMayWrite(wiring.service as never)[0]!.query[
+            "projectId"
+          ],
+        ).toEqual(PROJECT_ID);
         expect(args.props.isRoot).toBe(true);
         for (const column of [
           "projectId",
@@ -805,6 +821,15 @@ describe.each(WIRING)(
       resourceLookup = jest
         .spyOn(wiring.service, "findBy")
         .mockResolvedValue([resource()]);
+
+      /*
+       * The read of the rows the caller's update may write, which the update
+       * path makes before the hooks: what the read above answers.
+       */
+      stubRowsCallerMayWriteLikeFindBy(
+        wiring.service,
+        jest.spyOn(wiring.service, "findBy"),
+      );
       markerWrite = jest
         .spyOn(wiring.service, "updateBy")
         .mockResolvedValue(1 as never);

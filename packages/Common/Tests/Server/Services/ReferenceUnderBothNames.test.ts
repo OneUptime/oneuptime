@@ -26,6 +26,7 @@ import {
   ProjectDirectoryStub,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * An incident, an alert, a scheduled maintenance event, an episode and a
@@ -420,6 +421,14 @@ beforeEach(() => {
     jest
       .spyOn(service as unknown as { findBy: () => Promise<unknown> }, "findBy")
       .mockResolvedValue([] as never);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: none here either.
+     */
+    stubRowsCallerMayWrite(service as never, () => {
+      return [];
+    });
   }
 
   /*

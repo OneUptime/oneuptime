@@ -30,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Every service whose rows name another record of the project - an
@@ -983,6 +984,12 @@ describe("services whose rows name the project's records", () => {
       // The record holds nothing yet.
       jest.spyOn(service, "findBy").mockResolvedValue([] as never);
 
+      /*
+       * The read of the rows the caller's update may write, which the update
+       * path makes before the hooks: what the read above answers.
+       */
+      stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
+
       const thrown: unknown = await refusalOf(
         callHook(service, "onBeforeUpdate", {
           query: { _id: "1c2d3e4f-0000-4000-8000-0000000000a1" },
@@ -1072,9 +1079,20 @@ describe("services whose rows name the project's records", () => {
           : { _id: foreignIdFor(index) };
       });
 
-      jest
-        .spyOn(service, "findBy")
-        .mockResolvedValue([recordWith(service, held)] as never);
+      const record: DatabaseBaseModel = recordWith(service, held);
+
+      // The record the update names - a project is its own project already.
+      if (!record._id) {
+        record._id = "1c2d3e4f-0000-4000-8000-0000000000a1";
+      }
+
+      jest.spyOn(service, "findBy").mockResolvedValue([record] as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the update
+       * path makes before the hooks: what the read above answers.
+       */
+      stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
 
       // The base class's hook: the service's own may read the database.
       const baseHook: HookFunction = (

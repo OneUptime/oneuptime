@@ -41,6 +41,22 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import {
+  stubRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    StatusPageMonitorRuleService,
+    jest.spyOn(StatusPageMonitorRuleService, "findBy"),
+  );
+});
 
 /*
  * Contract under test - the places that have to notice a status page monitor
@@ -1337,10 +1353,13 @@ describe("StatusPageMonitorRuleService - keeping a rule's references in scope", 
       props: { isRoot: false, tenantId: PROJECT_ID },
     });
 
-    const call: { query: { projectId?: ObjectID } } = findBySpy.mock
-      .calls[0]![0] as { query: { projectId?: ObjectID } };
-
-    expect(call.query.projectId).toEqual(PROJECT_ID);
+    // The rules the caller may write are found in their project only.
+    expect(
+      readsOfRowsCallerMayWrite(StatusPageMonitorRuleService)[0]!.query[
+        "projectId"
+      ],
+    ).toEqual(PROJECT_ID);
+    expect(findBySpy).toHaveBeenCalled();
   });
 
   it("leaves the query alone for a genuinely root caller, which carries no tenant", async () => {

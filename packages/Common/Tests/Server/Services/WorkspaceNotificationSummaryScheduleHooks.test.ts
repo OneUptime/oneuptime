@@ -328,7 +328,10 @@ describe("updating a summary", () => {
     // It read the summaries the update is about, with root props.
     const readArguments: Record<string, any> = findBy.mock.calls[0]![0];
     expect(readArguments["query"]).toEqual({ _id: SUMMARY_ID.toString() });
-    expect(readArguments["props"]).toEqual({ isRoot: true });
+    expect(readArguments["props"]).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
     expect(readArguments["select"]).toEqual(
       expect.objectContaining({
         recurringInterval: true,

@@ -24,6 +24,23 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentCustomFieldService,
+    jest.spyOn(IncidentCustomFieldService, "findBy"),
+  );
+});
 
 /*
  * IncidentCustomFieldService looks after the two things an incident custom
@@ -312,12 +329,16 @@ describe("IncidentCustomFieldService.onBeforeUpdate", () => {
       [fieldId.toString()]: { oldName: "Impact", projectId: projectId },
     });
 
+    // Read among the fields the caller may write: those of their project.
+    const writable: RowsCallerMayWriteRead = readsOfRowsCallerMayWrite(
+      IncidentCustomFieldService,
+    )[0]!;
+    expect(writable.query["_id"]).toBe(fieldId.toString());
+    expect(String(writable.query["projectId"])).toBe(projectId.toString());
+
+    // Then those, by id, as root.
     const read: JSONObject = findBy.mock.calls[0]![0] as JSONObject;
-    // Read as root, but only within the caller's project.
-    expect(read["query"]).toEqual({
-      _id: fieldId.toString(),
-      projectId: projectId,
-    });
+    expect(read["query"]).toEqual({ _id: fieldId.toString() });
     expect((read["props"] as JSONObject)["isRoot"]).toBe(true);
   });
 

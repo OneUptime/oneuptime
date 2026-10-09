@@ -1108,6 +1108,7 @@ describe("hook wiring: OnCallDutyPolicyUserOverrideService", () => {
       .spyOn(OnCallDutyPolicyUserOverrideService, "findBy")
       .mockResolvedValue([
         {
+          _id: ROW_ID,
           projectId: PROJECT_ID,
           overrideUserId: USER_A,
           routeAlertsToUserId: USER_C,
@@ -1116,7 +1117,11 @@ describe("hook wiring: OnCallDutyPolicyUserOverrideService", () => {
 
     const onUpdate: any = await (
       OnCallDutyPolicyUserOverrideService as any
-    ).onBeforeUpdate({ query: { _id: ROW_ID }, data: {}, props: {} });
+    ).onBeforeUpdate({
+      query: { _id: ROW_ID },
+      data: {},
+      props: { isRoot: true },
+    });
 
     expect(onUpdate.carryForward).toHaveLength(1);
     expect(onUpdate.carryForward[0].overrideUserId).toBe(USER_A);

@@ -366,12 +366,15 @@ export class Service extends DatabaseService<Model> {
       );
 
       /*
-       * Hooks run before the permission layer narrows the update to the
-       * request's project, so the forms read here may be another project's.
-       * The files must then come from the request's project, as every other
-       * reference a form names does, and what such a form shows now is not
-       * used: an update aimed at another project's form is refused alike
-       * whichever file it names, and so tells nothing about that project.
+       * The forms read are the ones the update writes. A teammate's are the
+       * forms they may write; OneUptime's, or a master admin's, are the ones
+       * the update's query names - in the request's project, unless the
+       * query names another one. The files must then come from the request's
+       * project, as
+       * every other reference a form names does, and what such a form shows
+       * now is not used: an update aimed at another project's form is
+       * refused alike whichever file it names, and so tells nothing about
+       * that project.
        */
       const tenantId: ObjectID | undefined = updateBy.props.tenantId;
 

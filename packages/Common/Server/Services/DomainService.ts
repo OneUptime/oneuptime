@@ -56,6 +56,13 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.isVerified && !updateBy.props.isRoot) {
+      // A domain is verified within a project: the one named, or the caller's.
+      if (!updateBy.query.projectId && !updateBy.props.tenantId) {
+        throw new BadDataException(
+          "Project ID is required to verify the domain.",
+        );
+      }
+
       /*
        * Every domain the update verifies - the ones its caller may write -
        * with the update held to them, so none is verified unchecked.

@@ -11,6 +11,8 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ObjectID from "../../../../Types/ObjectID";
+import UpdateBy from "../../../../Server/Types/Database/UpdateBy";
+import { idsNamedBy } from "../../TestingUtils/QueryConditions";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
@@ -173,27 +175,59 @@ describe("ProjectScopedReferenceValidator.getRelationReferences", () => {
 });
 
 describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
+  const INCIDENT_A: string = "7d1c0b2a-3e4f-4a5b-8c6d-7e8f9a0b1c01";
+  const INCIDENT_B: string = "7d1c0b2a-3e4f-4a5b-8c6d-7e8f9a0b1c02";
+  const INCIDENT_C: string = "7d1c0b2a-3e4f-4a5b-8c6d-7e8f9a0b1c03";
+
+  function row(id: string): Incident {
+    const model: Incident = new Incident();
+    model._id = id;
+    return model;
+  }
+
+  function updateOf(query: Record<string, unknown>): UpdateBy<Incident> {
+    return {
+      query: query,
+      data: {},
+      skip: 0,
+      limit: 10,
+      props: { tenantId: PROJECT_ID },
+    } as unknown as UpdateBy<Incident>;
+  }
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it("reads the matched rows as root with their project, one relation per query", async () => {
+  it("reads the rows the update writes, holds the update to them, then each relation of those rows as root, one per query", async () => {
     /*
      * Loading several many-to-many relations in one find joins them all,
      * so a row comes back for every combination of their ids. An alert
      * saves up to sixteen lists at once, so each is read on its own.
      */
+    const held: SpyInstance<
+      typeof IncidentService.findRowsAndHoldUpdateToThem
+    > = jest
+      .spyOn(IncidentService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([row(INCIDENT_A), row(INCIDENT_B)]);
     const findBy: SpyInstance<typeof IncidentService.findBy> = jest
       .spyOn(IncidentService, "findBy")
       .mockResolvedValue([]);
 
-    const query: { _id: string } = { _id: MONITOR_A };
+    const updateBy: UpdateBy<Incident> = updateOf({
+      title: "Checkout is down",
+    });
 
     await ProjectScopedReferenceValidator.getHeldRelationIds({
       service: IncidentService as never,
-      query: query as never,
+      updateBy: updateBy as never,
       columns: ["monitors", "labels"],
     });
+
+    // The rows the update writes - and the update held to exactly them.
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(held.mock.calls[0]![0]).toBe(updateBy);
+    expect(held.mock.calls[0]![1]).toEqual({ _id: true });
 
     expect(findBy).toHaveBeenCalledTimes(2);
 
@@ -201,7 +235,12 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
       (call: Parameters<typeof IncidentService.findBy>) => {
         const args: Parameters<typeof IncidentService.findBy>[0] = call[0];
 
-        expect(args.query).toBe(query);
+        // Those rows only, by id: never the update's own query again.
+        expect(Object.keys(args.query)).toEqual(["_id"]);
+        expect(
+          idsNamedBy((args.query as Record<string, unknown>)["_id"]).sort(),
+        ).toEqual([INCIDENT_A, INCIDENT_B]);
+        expect(args.limit).toBe(2);
         expect(args.props).toEqual({ isRoot: true });
 
         return args.select;
@@ -214,7 +253,10 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
     ]);
   });
 
-  it("counts an id as held only when every matched row in the project holds it", async () => {
+  it("counts an id as held only when every row the update writes in the project holds it", async () => {
+    jest
+      .spyOn(IncidentService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([row(INCIDENT_A), row(INCIDENT_B), row(INCIDENT_C)]);
     jest.spyOn(IncidentService, "findBy").mockResolvedValue([
       incident({
         projectId: PROJECT_ID,
@@ -234,7 +276,7 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
     const heldIds: HeldRelationIds =
       await ProjectScopedReferenceValidator.getHeldRelationIds({
         service: IncidentService as never,
-        query: {} as never,
+        updateBy: updateOf({}) as never,
         columns: ["monitors", "labels"],
       });
 
@@ -249,7 +291,10 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
     ).toEqual([MONITOR_C]);
   });
 
-  it("reads nothing when no relation list is being written", async () => {
+  it("an update that writes no row holds nothing, and reads no relation", async () => {
+    jest
+      .spyOn(IncidentService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([]);
     const findBy: SpyInstance<typeof IncidentService.findBy> = jest.spyOn(
       IncidentService,
       "findBy",
@@ -258,11 +303,32 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
     const heldIds: HeldRelationIds =
       await ProjectScopedReferenceValidator.getHeldRelationIds({
         service: IncidentService as never,
-        query: {} as never,
+        updateBy: updateOf({ _id: INCIDENT_A }) as never,
+        columns: ["monitors"],
+      });
+
+    expect(heldIds.size).toBe(0);
+    expect(findBy).not.toHaveBeenCalled();
+  });
+
+  it("reads nothing when no relation list is being written", async () => {
+    const held: SpyInstance<
+      typeof IncidentService.findRowsAndHoldUpdateToThem
+    > = jest.spyOn(IncidentService, "findRowsAndHoldUpdateToThem");
+    const findBy: SpyInstance<typeof IncidentService.findBy> = jest.spyOn(
+      IncidentService,
+      "findBy",
+    );
+
+    const heldIds: HeldRelationIds =
+      await ProjectScopedReferenceValidator.getHeldRelationIds({
+        service: IncidentService as never,
+        updateBy: updateOf({}) as never,
         columns: [],
       });
 
     expect(heldIds.size).toBe(0);
+    expect(held).not.toHaveBeenCalled();
     expect(findBy).not.toHaveBeenCalled();
   });
 });

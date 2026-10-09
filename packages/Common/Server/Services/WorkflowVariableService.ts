@@ -665,17 +665,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Read the rows this update will actually touch. Two things about this
-     * query matter.
+     * Read the rows this update will actually touch, with the update held to
+     * them (findRowsAndHoldUpdateToThem). Two things about this read matter.
      *
-     * It is scoped to the caller's tenant here rather than relying on the
-     * permission layer, because _updateBy runs this hook BEFORE
-     * ModelPermission.checkUpdateQueryPermissions - which is what appends the
-     * project clause. Reading unscoped-as-root would make this hook answer
-     * questions about another project's rows, and its refusal messages say
-     * whether a variable is global and whether a name is taken. A caller
-     * holding a variable id from a project they cannot see would get an oracle
-     * before any authorization ran.
+     * They are the rows the caller may write, never another project's: this
+     * hook's refusal messages say whether a variable is global and whether a
+     * name is taken, and a caller holding a variable id from a project they
+     * cannot see must learn neither.
      *
      * isRoot inside that scope is still right: the conflicting row may be one
      * this caller cannot read - read access is label-gated - and a count that

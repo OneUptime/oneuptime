@@ -44,6 +44,9 @@ import UserNotificationEventType from "../../../Types/UserNotification/UserNotif
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import { meetsCondition } from "../TestingUtils/QueryConditions";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -614,6 +617,15 @@ describe("Administrative notification rule edit guards", () => {
       }),
       methodFindOneById: methodFindOneById,
     };
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: the rules the rule read answers with.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      UserNotificationRuleService,
+      stubs.ruleFindBy,
+    );
 
     jest.spyOn(logger, "warn").mockImplementation((): void => {
       return undefined;
@@ -1874,12 +1886,30 @@ describe("Administrative notification rule edit guards", () => {
 
   /*
    * ------------------------------------------------------------------
-   * The guard's row set. DatabaseService runs these hooks BEFORE
-   * ModelPermission narrows the query, so the narrowing has to be reproduced
-   * here or the guard reasons about rows the caller cannot reach.
+   * The guard's row set. Before these hooks run, the update path works out
+   * the rows of the update the caller may write, with the permission
+   * layer's narrowing (DatabaseService.keepRowsCallerMayWrite), and the
+   * guard reads those rows alone, by id (findRowsAndHoldUpdateToThem) - so
+   * it never reasons about a row the caller cannot reach. Here that
+   * permission layer runs for real; only the database read is answered.
    * ------------------------------------------------------------------
    */
   describe("the guard reads only rows the caller is entitled to write", () => {
+    beforeEach(() => {
+      jest.mocked(ModelPermission.getUpdatableQuery).mockRestore();
+    });
+
+    // The query the rows the caller may write were read with.
+    function writableRowsQuery(): Record<string, unknown> {
+      const read: jest.SpyInstance = jest.spyOn(
+        UserNotificationRuleService as unknown as { _findBy: () => unknown },
+        "_findBy",
+      );
+
+      return (read.mock.calls[0]![0] as { query: Record<string, unknown> })
+        .query;
+    }
+
     test("an ordinary member's guard read is confined to their own rows", async () => {
       /*
        * Permission.CurrentUser is auto-granted to every authenticated caller,
@@ -1896,7 +1926,15 @@ describe("Administrative notification rule edit guards", () => {
         }),
       );
 
-      expect(guardReadQuery(stubs.ruleFindBy)["userId"]).toBe(ADMIN_USER_ID);
+      const userCondition: unknown = writableRowsQuery()["userId"];
+
+      expect(meetsCondition(userCondition, ADMIN_USER_ID)).toBe(true);
+      expect(meetsCondition(userCondition, VICTIM_USER_ID)).toBe(false);
+
+      // The guard reads those rows alone, by id.
+      expect(String(guardReadQuery(stubs.ruleFindBy)["_id"])).toBe(
+        RULE_ID.toString(),
+      );
     });
 
     test("a query naming another project is pulled back to the session's own project", async () => {
@@ -1910,7 +1948,10 @@ describe("Administrative notification rule edit guards", () => {
         }),
       );
 
-      expect(guardReadQuery(stubs.ruleFindBy)["projectId"]).toBe(PROJECT_ID);
+      const projectCondition: unknown = writableRowsQuery()["projectId"];
+
+      expect(meetsCondition(projectCondition, PROJECT_ID)).toBe(true);
+      expect(meetsCondition(projectCondition, OTHER_PROJECT_ID)).toBe(false);
     });
 
     test("an administrator is scoped to their project but NOT to their own rows - that is the repair capability", async () => {
@@ -1928,9 +1969,9 @@ describe("Administrative notification rule edit guards", () => {
         }),
       );
 
-      const query: Record<string, unknown> = guardReadQuery(stubs.ruleFindBy);
+      const query: Record<string, unknown> = writableRowsQuery();
 
-      expect(query["projectId"]).toBe(PROJECT_ID);
+      expect(meetsCondition(query["projectId"], PROJECT_ID)).toBe(true);
       expect(query["userId"]).toBeUndefined();
     });
 

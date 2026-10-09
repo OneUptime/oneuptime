@@ -1843,10 +1843,10 @@ export class Service extends ProjectReferencesService<Model> {
    * out-of-date SLO form re-sends every field it loaded, labels included, on
    * every save.
    *
-   * Pinned to the caller's tenant like the feed snapshot, since this runs
-   * before DatabaseService applies the update's permissions. A failed read
-   * never blocks the update; its SLOs then count as re-submitting their list,
-   * the reading that can never bring a deleted rule back.
+   * Read as the rows the update writes, like the feed snapshot
+   * (findRowsAndHoldUpdateToThem). A failed read never blocks the update; its
+   * SLOs then count as re-submitting their list, the reading that can never
+   * bring a deleted rule back.
    */
   private async readDeprecatedMonitorLabelsBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -1899,10 +1899,11 @@ export class Service extends ProjectReferencesService<Model> {
    * Root writes pass untouched: the rule engine itself writes `monitors` as
    * root, and it must never be refused by the guard that protects its output.
    *
-   * This hook runs before DatabaseService's update permission check, so the
-   * caller's raw query is pinned to the caller's tenant before anything is
-   * read - a validation read must not answer questions about another
-   * project's SLOs.
+   * The SLOs judged are the ones the update writes - for a teammate, the SLOs
+   * they may write - and the update is held to them
+   * (findRowsAndHoldUpdateToThem): a validation read must not answer
+   * questions about another project's SLOs, and no SLO may be written
+   * unjudged.
    */
   private async assertMonitorEditRespectsMonitorRules(
     updateBy: UpdateBy<Model>,
