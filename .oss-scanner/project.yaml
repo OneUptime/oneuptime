@@ -1,0 +1,11 @@
+# OneUptime's enrolment in Anthropic's OSS Scanner.
+#
+# The scanner reads projects/oneuptime/project.yaml in
+# https://github.com/anthropics/oss-scanner, not this file. This is the copy
+# of it kept next to the files it points at; change both together
+# (.oss-scanner/README.md says how). Every address here is public.
+repo: https://github.com/OneUptime/oneuptime
+primary_contact: security@oneuptime.com
+homepage: https://oneuptime.com
+dockerfile: .oss-scanner/Dockerfile
+threat_model: .oss-scanner/threat_model.md

@@ -157,6 +157,14 @@ jobs:
       # the development render, without building anything; the jest suite
       # above pins what the stages contain.
       - run: bash Tests/Ops/lint-app-dockerfile.sh
+      # The same for the image Anthropic's OSS Scanner builds from master
+      # (.oss-scanner/Dockerfile): BuildKit's checks, without building it.
+      # The image is about 10 GB, more than a standard runner has to spare,
+      # and the scanner emails security@oneuptime.com when its build fails;
+      # OssScannerImage.test.js (in the jest run above) pins what it builds.
+      # An empty context: --check reads only the Dockerfile.
+      - name: Check the OSS Scanner Dockerfile
+        run: docker buildx build --check -f .oss-scanner/Dockerfile "$(mktemp -d)"
       # What agent-trace-filter-behaviour.sh does for the agent's collector,
       # this does for its eBPF DaemonSet. helm-unittest pins OBI's config file
       # and env as text, but only OBI can say whether it takes them: it
