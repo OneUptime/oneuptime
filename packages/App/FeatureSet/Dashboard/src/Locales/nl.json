@@ -11465,7 +11465,7 @@
   "ID of the collection to poll for indicator objects.": "ID of the collection to poll for indicator objects.",
   "ID of this {{itemName}}:": "ID van dit item ({{itemName}}):",
   "IDF-2 uplink to core": "IDF-2 uplink to core",
-  "IP address": "IP address",
+  "IP address": "IP-adres",
   "IPv4 address": "IPv4 address",
   "IPv6 address": "IPv6 address",
   "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.": "IS_ENTERPRISE_EDITION is set but this is the Community Edition image — switch to the enterprise image (the enterprise-* image tags) to use Enterprise Edition features. Until then they are off; everything else keeps working.",
@@ -27442,5 +27442,16 @@
   "Wi-Fi access points": "Wi-Fi-access points",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "De leverancier indexeert deze tabel op naam: rijen zonder naamkolom krijgen hun index als naam, gelezen als tekst.",
   "Wi-Fi template available": "Wi-Fi-sjabloon beschikbaar",
-  "Every SSID its access points broadcast, and who is on it.": "Elke SSID die de access points uitzenden, en wie ermee verbonden is."
+  "Every SSID its access points broadcast, and who is on it.": "Elke SSID die de access points uitzenden, en wie ermee verbonden is.",
+  "A discovery scan named this device. A later scan that finds a better name, such as the device's own name instead of its DNS name or IP address, renames it. Rename it yourself to keep a name of your own.": "Een discoveryscan heeft dit apparaat een naam gegeven. Vindt een latere scan een betere naam, zoals de eigen naam van het apparaat in plaats van de DNS-naam of het IP-adres, dan krijgt het apparaat die naam. Geef het zelf een andere naam om een eigen naam te houden.",
+  "Best-effort: after the sweep, the probe asks each host that has no SNMP name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself (its Windows computer name), so it is used ahead of the host's reverse-DNS name. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.": "Naar beste vermogen: na de scan vraagt de sonde elke host zonder SNMP-naam via UDP 137 om zijn NetBIOS-naam. Windows- en Samba-hosts antwoorden meestal, en de naam is de naam die de host zelf opgeeft (de Windows-computernaam), dus die gaat voor op de reverse-DNS-naam van de host. Alleen privéadressen worden gevraagd, en globale sondes sturen deze query's nooit. Hosts moeten UDP 137 vanaf de sonde toestaan. Zet dit uit als uw inbraakdetectiesysteem NetBIOS-query's markeert.",
+  "Discovered Name": "Ontdekte naam",
+  "Discovered Name Source": "Bron van de ontdekte naam",
+  "Look up Windows names (NetBIOS)": "Windows-namen opzoeken (NetBIOS)",
+  "Name Source": "Naambron",
+  "NetBIOS (Windows) name": "NetBIOS-naam (Windows)",
+  "Reverse-DNS name": "Reverse-DNS-naam",
+  "SNMP system name": "SNMP-systeemnaam",
+  "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.": "De Windows-computernaam die deze host via NetBIOS voor zichzelf opgaf. De eigen naam van een host gaat voor op de reverse-DNS-naam.",
+  "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.": "Hoe elk apparaat dat uit deze scan is geïmporteerd heet. Een host krijgt eerst zijn eigen naam: de naam die hij via SNMP opgeeft, daarna de NetBIOS-naam die een Windows-host opgeeft als de scan die opzoekt. Daarna zijn reverse-DNS-naam en ten slotte zijn adres."
 }

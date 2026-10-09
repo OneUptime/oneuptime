@@ -81,9 +81,10 @@ import {
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
   getDiscoveredHostFullName,
+  getDiscoveredHostNameSource,
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
-import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
+import { DeviceNameSource } from "Common/Types/NetworkDevice/DeviceNameSource";
 import {
   DiscoveredHostNamingExplanation,
   explainUnnamedDiscoveredHost,
@@ -433,10 +434,12 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
      */
     SCAN_NAME_FORM_FIELD,
     /*
-     * Whether the probe asks still-unnamed hosts for their NetBIOS name
+     * Whether the probe asks hosts SNMP did not name for their NetBIOS name
      * (OneUptime issue #3677): the Windows machines that otherwise sit in the
      * Review dialog as bare addresses, because they have no PTR record and no
-     * SNMP.
+     * SNMP — and, since issue #4518, the ones reverse DNS did name, because a
+     * Windows host's own computer name (WB0024KDS04) names the device ahead
+     * of whatever its reverse zone says (wb-0024-kds04.wbhq.com).
      *
      * Under More fields, with the other naming switch: most scans leave it
      * as it is. It IS a packet the scan puts on the wire - one UDP datagram
@@ -464,34 +467,34 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
      * The Edit dialog's footer says so.
      *
      * The description carries what an operator needs before turning it on or
-     * leaving it on: that it is best-effort, which hosts are asked, the hard
-     * limits the probe enforces whatever this says (private addresses only,
-     * never from a global probe), the firewall rule it needs, and when to turn
-     * it off. The name is self-reported, which the Review dialog marks on each
-     * row it names.
+     * leaving it on: that it is best-effort, which hosts are asked, that the
+     * name it finds wins over the reverse-DNS name, the hard limits the probe
+     * enforces whatever this says (private addresses only, never from a global
+     * probe), the firewall rule it needs, and when to turn it off. The Review
+     * dialog marks each row it names.
      */
     {
       field: {
         isNetbiosLookupEnabled: true,
       },
-      title: "Look up NetBIOS names for hosts DNS doesn't name",
+      title: "Look up Windows names (NetBIOS)",
       stepId: "scan-target",
       collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
       /*
        * A small heading inside the fold, over the two naming switches:
        * how a host is named, in order, so the NetBIOS lookup reads as the
-       * step it is in that order.
+       * step it is in that order — the device's own names first (#4518).
        */
       sectionTitle: "Device names",
       sectionDescription:
-        "What each device imported from this scan is called. A host is named by the name it reports over SNMP, then by its reverse-DNS name, then by the NetBIOS name it reports if the scan looked one up, then by its address.",
+        "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: true,
       // A toggle is always answered one way or the other; see isSnmpEnabled.
       hideOptionalLabel: true,
       description:
-        "Best-effort: after the sweep, the probe asks each host that has no SNMP name and no reverse-DNS name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.",
+        "Best-effort: after the sweep, the probe asks each host that has no SNMP name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself (its Windows computer name), so it is used ahead of the host's reverse-DNS name. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.",
     },
     /*
      * How the hosts this scan finds are NAMED when they import (OneUptime
@@ -2575,42 +2578,34 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     ? normalizedDnsHostname
                     : undefined;
                 /*
-                 * Whether the name line is a NetBIOS name (issue #3677), so
-                 * the row can say so beside the address.
+                 * Whether the name line is a NetBIOS name (issues #3677,
+                 * #4518), so the row can say so beside the address.
                  *
-                 * Said because the name is SELF-REPORTED. A sysName is at least
-                 * configured by whoever runs the device and a PTR record by
-                 * whoever runs DNS; a NetBIOS name is whatever the machine on
-                 * the other end of a UDP datagram chose to answer, on a subnet
-                 * this project may not administer. The operator deciding to
-                 * import it deserves to know which of those they are trusting.
+                 * Said because a NetBIOS name is the Windows computer name the
+                 * host reported for itself, and since #4518 it names the row
+                 * AHEAD of the host's reverse-DNS name: an operator who knows
+                 * the estate by its DNS names sees "WB0024KDS04" where the
+                 * zone says "wb-0024-kds04.wbhq.com", and the hint (with the
+                 * PTR name after it on the same line) says why.
                  *
-                 * Derived from the naming order rather than from "the host has
-                 * a netbiosName": NetBIOS names a host only when it has no
-                 * sysName and no usable PTR name, and only a name that
-                 * normalises to exactly the name line counts. The sysName test
-                 * mirrors the builder's own (a string with something left after
-                 * trimming), and the PTR test reuses the re-normalised value
-                 * above. So a row named by SNMP or DNS never carries the hint
-                 * even if its jsonb also holds a NetBIOS answer, and a NetBIOS
+                 * Asked of the naming rule itself — the source the builder
+                 * names the row from — rather than worked out here, so the
+                 * hint can never disagree with the name line: a row named by
+                 * SNMP never carries it even if its jsonb also holds a NetBIOS
+                 * answer, a fifteen-character NetBIOS stump of the PTR name
+                 * loses to the PTR name and carries no hint, and a NetBIOS
                  * answer the rules reject leaves the row on its address with no
-                 * hint beside it. Re-normalised here, like the PTR name, rather
-                 * than trusted from the column.
+                 * hint beside it. The rule re-normalises every value rather
+                 * than trusting the column.
                  *
                  * Rendered as plain secondary text beside the address, not as a
                  * badge: it says where the name line came from, and a badge on
                  * the right would read as a state of the host alongside "No
                  * SNMP" and "Already added".
                  */
-                const normalizedNetbiosName: string | undefined =
-                  normalizeNetbiosName(entry.netbiosName);
                 const isNamedByNetbios: boolean =
-                  !(
-                    typeof entry.sysName === "string" && entry.sysName.trim()
-                  ) &&
-                  !normalizedDnsHostname &&
-                  Boolean(normalizedNetbiosName) &&
-                  normalizedNetbiosName === displayName;
+                  getDiscoveredHostNameSource(entry) ===
+                  DeviceNameSource.NetbiosName;
                 return (
                   <div
                     /*
@@ -2720,7 +2715,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                             <span
                               className="text-gray-400"
                               title={translator.translateText(
-                                "The host reported this name itself over NetBIOS. It has no SNMP name and no reverse-DNS name to confirm it.",
+                                "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.",
                               )}
                             >
                               {" · "}

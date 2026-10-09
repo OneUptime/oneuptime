@@ -534,8 +534,12 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     expect(hint.tagName).toBe("SPAN");
     // Beside the address, on the address line — not a badge elsewhere.
     expect(hint.parentElement).toHaveTextContent("10.0.0.1 · NetBIOS name");
+    // Says what the name is, and why it beat any reverse-DNS name (#4518).
     expect(hint.getAttribute("title") || "").toContain(
-      "reported this name itself",
+      "Windows computer name this host reported for itself",
+    );
+    expect(hint.getAttribute("title") || "").toContain(
+      "ahead of its reverse-DNS name",
     );
   });
 
@@ -575,11 +579,11 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     expect(device.dnsName).toBeUndefined();
   });
 
-  test("a host DNS names carries no NetBIOS hint, and imports under its DNS name", async () => {
+  test("a host DNS names as well is named by its NetBIOS name, and keeps the DNS name as its DNS Name (issue #4518)", async () => {
     getItemSpy.mockResolvedValue(
       scan([
         {
-          ...netbiosHost("10.0.0.1", "accounts-pc01"),
+          ...netbiosHost("10.0.0.1", "ACCOUNTS-PC01"),
           dnsHostname: "core-gw.corp.example.com",
         },
       ]),
@@ -587,15 +591,23 @@ describe("Discovery review names a host by its NetBIOS answer when nothing else 
     await renderPage();
     await openReview(scan([]));
 
-    expect(screen.getByText("core-gw.corp.example.com")).toBeInTheDocument();
-    expect(screen.queryByText(/NetBIOS name/)).not.toBeInTheDocument();
+    expect(screen.getByText("ACCOUNTS-PC01")).toHaveAttribute(
+      "title",
+      "ACCOUNTS-PC01",
+    );
+    // The hint, then the PTR name, after the address on the one line.
+    expect(screen.getByText(/NetBIOS name/).parentElement).toHaveTextContent(
+      "10.0.0.1 · NetBIOS name · core-gw.corp.example.com",
+    );
 
     await importSelected();
 
     const device: NetworkDevice = createSpy.mock.calls[0]![0].model;
 
-    expect(device.name).toBe("core-gw.corp.example.com");
+    expect(device.name).toBe("ACCOUNTS-PC01");
     expect(device.dnsName).toBe("core-gw.corp.example.com");
+    expect(device.discoveredNameSource).toBe("netbios-name");
+    expect(device.discoveredName).toBe("ACCOUNTS-PC01");
   });
 
   test("a NetBIOS answer the rules reject leaves the host on its address, with no hint", async () => {
