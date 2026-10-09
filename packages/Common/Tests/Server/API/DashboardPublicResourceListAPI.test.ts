@@ -23,6 +23,8 @@ import PublicDashboardResourceListPolicy, {
   BuildPublicDashboardResourceListPolicyData,
   PublicDashboardResourceListPolicyResult,
 } from "../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
+import PublicDashboardViewConfig from "../../../Server/Utils/Dashboard/PublicDashboardViewConfig";
+import StoredDashboardViewConfig from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -1405,6 +1407,176 @@ describe("DashboardAPI public resource-list", () => {
       });
 
       expect(getThrownError()).toBeInstanceOf(NotFoundException);
+      expectNothingListed();
+    });
+  });
+
+  /*
+   * Issue #4571. A config is stored as it was sent, and the API reference
+   * documented it inside `{"_type": "DashboardViewConfig", "value": {...}}`.
+   * The public page now draws such a dashboard's widgets
+   * (StoredDashboardViewConfig), so the route that serves a widget's rows
+   * has to find the widget there too - and find it by the id the page draws
+   * it under, which is derived when the widget was stored without one or
+   * with one an earlier widget already has.
+   */
+  describe("a dashboard stored in another shape (issue #4571)", () => {
+    // The id the visitor's page asks with: what /view-config serves, read.
+    const pageIdsFor: (stored: unknown) => Array<string> = (
+      stored: unknown,
+    ): Array<string> => {
+      return StoredDashboardViewConfig.read(
+        PublicDashboardViewConfig.sanitize(stored as DashboardViewConfig),
+      ).components.map((component: { componentId: ObjectID }) => {
+        return component.componentId.toString();
+      });
+    };
+
+    const listedLimit: () => unknown = (): unknown => {
+      return getFindByArgs(IncidentService)["limit"];
+    };
+
+    it.each([
+      [
+        "the DashboardViewConfig envelope",
+        (components: Array<JSONObject>): unknown => {
+          return {
+            _type: "DashboardViewConfig",
+            value: { components },
+          };
+        },
+      ],
+      [
+        "JSON text",
+        (components: Array<JSONObject>): unknown => {
+          return JSON.stringify({ components });
+        },
+      ],
+      [
+        "a widget in the DashboardComponent envelope",
+        (components: Array<JSONObject>): unknown => {
+          return {
+            components: components.map((component: JSONObject) => {
+              return { _type: "DashboardComponent", value: component };
+            }),
+          };
+        },
+      ],
+    ])(
+      "serves the widget of a config stored as %s",
+      async (
+        _name: string,
+        storeAs: (components: Array<JSONObject>) => unknown,
+      ) => {
+        const incident: BuiltWidget = buildWidget({
+          componentType: DashboardComponentType.IncidentList,
+          argumentsObject: { maxRows: 7 },
+          storedIdShape: "string",
+        });
+        dashboard.dashboardViewConfig = storeAs([
+          incident.widget,
+        ]) as DashboardViewConfig;
+
+        await callRoute({
+          resourceType: "incident",
+          body: { componentId: incident.componentId.toString() },
+        });
+
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(listedLimit()).toBe(7);
+        expect(
+          (getFindByArgs(IncidentService)["query"] as JSONObject)[
+            "projectId"
+          ],
+        ).toBe(projectId);
+      },
+    );
+
+    it("serves a widget stored without an id by the id the page draws it under", async () => {
+      const incident: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { maxRows: 5 },
+      });
+      delete incident.widget["componentId"];
+      setDashboardWidgets([incident.widget]);
+
+      const [pageId] = pageIdsFor(dashboard.dashboardViewConfig);
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: pageId },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(listedLimit()).toBe(5);
+    });
+
+    it("still refuses an id no widget is drawn under", async () => {
+      const incident: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+      });
+      delete incident.widget["componentId"];
+      setDashboardWidgets([incident.widget]);
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: ObjectID.generate().toString() },
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingListed();
+    });
+
+    it("answers two widgets that were stored with the same id each from its own settings", async () => {
+      const sharedId: ObjectID = ObjectID.generate();
+      const first: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { maxRows: 7 },
+        componentId: sharedId,
+      });
+      const second: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { maxRows: 11 },
+        componentId: sharedId,
+      });
+      setDashboardWidgets([first.widget, second.widget]);
+
+      const [firstPageId, secondPageId] = pageIdsFor(
+        dashboard.dashboardViewConfig,
+      );
+      expect(firstPageId).toBe(sharedId.toString());
+      expect(secondPageId).not.toBe(sharedId.toString());
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: firstPageId },
+      });
+      expect(listedLimit()).toBe(7);
+
+      jest.clearAllMocks();
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: secondPageId },
+      });
+      expect(listedLimit()).toBe(11);
+    });
+
+    it("never serves a Data Source widget hidden in the envelope", async () => {
+      const dataSourceTable: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.DataSourceTable,
+      });
+      dashboard.dashboardViewConfig = {
+        _type: "DashboardViewConfig",
+        value: { components: [dataSourceTable.widget] },
+      } as unknown as DashboardViewConfig;
+
+      await callRoute({
+        resourceType: "incident",
+        body: { componentId: dataSourceTable.componentId.toString() },
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
       expectNothingListed();
     });
   });

@@ -1293,4 +1293,105 @@ describe("DashboardAPI public metrics-aggregate", () => {
       expect(query["projectId"]).not.toBe(otherProjectId.toString());
     });
   });
+
+  /*
+   * Issue #4571. The public page now draws a dashboard whose config was
+   * stored as JSON text or inside the API reference's
+   * `{"_type": "DashboardViewConfig", "value": {...}}` envelope, so its
+   * charts ask for their metrics. The allowlists are built from that same
+   * config: the charted metric, the keys it groups and filters by - and
+   * still nothing else.
+   */
+  describe("a dashboard stored in another shape (issue #4571)", () => {
+    const STORED_SHAPES: Array<[string, (config: DashboardViewConfig) => unknown]> =
+      [
+        [
+          "JSON text",
+          (config: DashboardViewConfig): unknown => {
+            return JSON.stringify(config);
+          },
+        ],
+        [
+          "the DashboardViewConfig envelope",
+          (config: DashboardViewConfig): unknown => {
+            return { _type: "DashboardViewConfig", value: config };
+          },
+        ],
+        [
+          "the envelope as JSON text",
+          (config: DashboardViewConfig): unknown => {
+            return JSON.stringify({ _type: "DashboardViewConfig", value: config });
+          },
+        ],
+      ];
+
+    describe.each(STORED_SHAPES)(
+      "stored as %s",
+      (_name: string, storeAs: (config: DashboardViewConfig) => unknown) => {
+        it("aggregates the metric it charts", async () => {
+          dashboard.dashboardViewConfig = storeAs(
+            buildViewConfig([{ metricName: CHARTED_METRIC_NAME }]),
+          ) as DashboardViewConfig;
+
+          await callWithAggregate();
+
+          expect(nextFunction).not.toHaveBeenCalled();
+          expect(MetricService.aggregateBy).toHaveBeenCalledTimes(1);
+        });
+
+        it("still refuses a metric it does not chart", async () => {
+          dashboard.dashboardViewConfig = storeAs(
+            buildViewConfig([{ metricName: CHARTED_METRIC_NAME }]),
+          ) as DashboardViewConfig;
+
+          await callWithAggregate({ query: { name: "billing.revenue.total" } });
+
+          expect(getThrownError()).toBeInstanceOf(BadDataException);
+          expectNothingAggregated();
+        });
+
+        it("allows the key its chart groups by, and no other", async () => {
+          dashboard.dashboardViewConfig = storeAs(
+            buildViewConfig([
+              {
+                metricName: CHARTED_METRIC_NAME,
+                groupByAttributeKeys: ["host.name"],
+              },
+            ]),
+          ) as DashboardViewConfig;
+
+          await callWithAggregate({ groupByAttributeKeys: ["host.name"] });
+          expect(nextFunction).not.toHaveBeenCalled();
+
+          jest.clearAllMocks();
+
+          await callWithAggregate({ groupByAttributeKeys: ["enduser.id"] });
+          expect(getThrownError()).toBeInstanceOf(BadDataException);
+          expectNothingAggregated();
+        });
+
+        it("forwards a filter on a key only its variable binds to", async () => {
+          dashboard.dashboardViewConfig = storeAs(
+            buildViewConfig(
+              [{ metricName: CHARTED_METRIC_NAME }],
+              ["k8s.cluster.name"],
+            ),
+          ) as DashboardViewConfig;
+
+          await callWithAggregate({
+            query: {
+              name: CHARTED_METRIC_NAME,
+              attributes: { "k8s.cluster.name": "prod" },
+            },
+          });
+
+          expect(nextFunction).not.toHaveBeenCalled();
+          const query: JSONObject = getAggregateArgs()["query"] as JSONObject;
+          expect((query["attributes"] as JSONObject)["k8s.cluster.name"]).toBe(
+            "prod",
+          );
+        });
+      },
+    );
+  });
 });
