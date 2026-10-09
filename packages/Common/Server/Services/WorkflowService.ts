@@ -191,38 +191,32 @@ export class Service extends ProjectReferencesService<Model> {
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
     /// save trigger and trigger args.
-
-    // The one workflow an update names by its id.
-    const workflowId: ObjectID | null = Service.getOneRowIdNamedBy(
-      onUpdate.updateBy.query,
-    );
-
-    if (!workflowId) {
-      return onUpdate;
-    }
 
     const updatedGraph: JSONObject | undefined = (onUpdate.updateBy.data as any)
       ?.graph as JSONObject | undefined;
 
-    if (updatedGraph) {
-      await this.saveTriggerFromGraph({
-        workflowId: workflowId,
-        graph: updatedGraph,
-      });
+    // Every workflow the update wrote.
+    for (const workflowId of updatedItemIds) {
+      if (updatedGraph) {
+        await this.saveTriggerFromGraph({
+          workflowId: workflowId,
+          graph: updatedGraph,
+        });
+      }
+
+      logger.debug("Updating workflow on the workflow service", {
+        workflowId: workflowId.toString(),
+      } as LogAttributes);
+
+      await this.notifyWorkflowService(workflowId);
+
+      logger.debug("Updated workflow on the workflow service", {
+        workflowId: workflowId.toString(),
+      } as LogAttributes);
     }
-
-    logger.debug("Updating workflow on the workflow service", {
-      workflowId: workflowId.toString(),
-    } as LogAttributes);
-
-    await this.notifyWorkflowService(workflowId);
-
-    logger.debug("Updated workflow on the workflow service", {
-      workflowId: workflowId.toString(),
-    } as LogAttributes);
 
     return onUpdate;
   }

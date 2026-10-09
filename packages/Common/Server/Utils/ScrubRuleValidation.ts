@@ -169,11 +169,12 @@ export function validateScrubRuleCreate(
  * The services call this from onBeforeUpdateUniqueCheck, which runs once the
  * caller has passed the permission checks: the rows read here, as root, are
  * the ones the update writes - those the caller may write - and the update is
- * held to them, so they are never another project's, a refusal never tells a
- * caller about a rule they may not see, and no rule is written unchecked. The rows are read only when the update touches a column that decides
- * whether the rule scrubs anything, so renaming a rule, switching it off or
- * dragging it to another place in the list costs no read - and is never held
- * up by a rule that was saved broken before this check existed.
+ * held to them, so a refusal never tells a caller about a rule they may not
+ * see, and no rule is written unchecked. The rows are read only when the
+ * update touches a column that decides whether the rule scrubs anything, so
+ * renaming a rule, switching it off or dragging it to another place in the
+ * list costs no read - and is never held up by a rule that was saved broken
+ * before this check existed.
  */
 export async function validateScrubRuleUpdate<
   TModel extends BaseModel & ScrubRuleCandidate,

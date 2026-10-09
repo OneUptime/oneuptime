@@ -14,6 +14,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { meetsCondition } from "../TestingUtils/QueryConditions";
 import {
   afterEach,
   beforeEach,
@@ -31,10 +32,10 @@ import {
  * them with findRowsAndHoldUpdateToThem. For OneUptime and a master admin,
  * who write any row, they are the update's own rows, read by its own query
  * in its window, as their write reaches them (the first describe below);
- * for anyone else they are the
- * rows the caller may write - found by the update path before the hooks, or
- * by the hook itself when the update reached it some other way - that the
- * update's query, as its hooks have narrowed it, still names (the second).
+ * for anyone else they are the rows the caller may write - found by the
+ * update path before the hooks, or by the hook itself when the update
+ * reached it some other way - that the update's query, as its hooks have
+ * narrowed it, still names (the second).
  * The update is then held to the rows read: its query names them, with a
  * window that covers just them, so the write can never reach a row the
  * check did not see.
@@ -524,6 +525,85 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - the rows the caller may 
     expect(updateBy.limit).toBe(1);
   });
 
+  /*
+   * The rows a hook names by id are read together with the rows the caller
+   * may write, in the read itself: rows the caller may not write never take
+   * the places in the window that the caller's own rows need.
+   */
+  it("reads the rows a hook names by id only among the rows the caller may write, so none of theirs is left out of the window", async () => {
+    const ROW_D: string = "5f000000-0000-4000-8000-000000000004";
+    const ROW_E: string = "5f000000-0000-4000-8000-000000000005";
+
+    // The database: answers the read's _id condition, in its window.
+    const pool: Array<StatusPageSubscriber> = [
+      row(ROW_C),
+      row(ROW_D),
+      row(ROW_E),
+      row(ROW_A),
+      row(ROW_B),
+    ];
+
+    findBy.mockImplementation(
+      async (read: {
+        query: JSONObject;
+        limit: number;
+      }): Promise<Array<StatusPageSubscriber>> => {
+        return pool
+          .filter((each: StatusPageSubscriber): boolean => {
+            return meetsCondition(read.query["_id"], each._id);
+          })
+          .slice(0, read.limit);
+      },
+    );
+
+    const updateBy: UpdateBy<StatusPageSubscriber> = update(TEAM_MEMBER);
+
+    await callerRows().keepRowsCallerMayWrite(
+      updateBy,
+      DatabaseRequestType.Update,
+    );
+
+    // A hook names C, D and E - none of them the caller's - and A.
+    updateBy.query = {
+      ...updateBy.query,
+      _id: QueryHelper.any([ROW_C, ROW_D, ROW_E, ROW_A]),
+    } as Query<StatusPageSubscriber>;
+
+    const rows: Array<StatusPageSubscriber> =
+      await callerRows().findRowsAndHoldUpdateToThem(updateBy, SELECT);
+
+    expect(
+      rows.map((each: StatusPageSubscriber) => {
+        return each._id;
+      }),
+    ).toEqual([ROW_A]);
+    expect((updateBy.query as unknown as JSONObject)["_id"]).toBe(ROW_A);
+    expect(updateBy.limit).toBe(1);
+  });
+
+  it("reads nothing, and holds the update to none, when the one row the update names by id is not the caller's", async () => {
+    const updateBy: UpdateBy<StatusPageSubscriber> = update(TEAM_MEMBER);
+
+    await callerRows().keepRowsCallerMayWrite(
+      updateBy,
+      DatabaseRequestType.Update,
+    );
+
+    // A hook names C by its plain id, which the caller may not write.
+    updateBy.query = {
+      ...updateBy.query,
+      _id: ROW_C,
+    } as Query<StatusPageSubscriber>;
+
+    await expect(
+      callerRows().findRowsAndHoldUpdateToThem(updateBy, SELECT),
+    ).resolves.toEqual([]);
+    expect(findBy).not.toHaveBeenCalled();
+    expect(
+      meetsCondition((updateBy.query as unknown as JSONObject)["_id"], ROW_C),
+    ).toBe(false);
+  });
+
   it("never asks about, nor holds, a row the caller may not write", async () => {
     const updateBy: UpdateBy<StatusPageSubscriber> = update(TEAM_MEMBER);
 
@@ -581,6 +661,66 @@ describe("DatabaseService.findRowsAndHoldUpdateToThem - the rows the caller may 
     expect(
       idsNamedBy((updateBy.query as unknown as JSONObject)["_id"]),
     ).toEqual([]);
+  });
+
+  /*
+   * A service whose only update hook runs once the caller passed the checks
+   * (onBeforeUpdateUniqueCheck) reads the rows it writes there: the update
+   * path reads the rows the caller may write for it too, from the update as
+   * it was sent, and the hook's read is within them - the caller's update
+   * permission is worked out once.
+   */
+  it("reads the rows the caller may write before the hooks for a service whose only update hook runs once the checks passed", async () => {
+    class ServiceWithUniqueCheck extends DatabaseService<StatusPageSubscriber> {
+      public constructor() {
+        super(StatusPageSubscriber);
+      }
+
+      protected override async onBeforeUpdateUniqueCheck(
+        _updateBy: UpdateBy<StatusPageSubscriber>,
+      ): Promise<void> {
+        return Promise.resolve();
+      }
+    }
+
+    const checkedService: ServiceWithUniqueCheck = new ServiceWithUniqueCheck();
+    const checked: RowsTheCallerMayWrite =
+      checkedService as unknown as RowsTheCallerMayWrite;
+
+    const updatableQuery: jest.SpyInstance =
+      ModelPermission.getUpdatableQuery as unknown as jest.SpyInstance;
+    updatableQuery.mockClear();
+
+    const readsCallerMayWrite: jest.SpyInstance = getJestSpyOn(
+      checkedService,
+      "_findBy",
+    ).mockImplementation(async (): Promise<Array<StatusPageSubscriber>> => {
+      return rowsTheCallerMayWrite;
+    });
+    const readsAgain: jest.SpyInstance = getJestSpyOn(
+      checkedService,
+      "findBy",
+    ).mockImplementation(async (): Promise<Array<StatusPageSubscriber>> => {
+      return rowsReadAgain;
+    });
+
+    const updateBy: UpdateBy<StatusPageSubscriber> = update(TEAM_MEMBER);
+
+    await expect(
+      checked.keepRowsCallerMayWrite(updateBy, DatabaseRequestType.Update),
+    ).resolves.toBe(true);
+    expect(readsCallerMayWrite).toHaveBeenCalledTimes(1);
+
+    await checked.findRowsAndHoldUpdateToThem(updateBy, SELECT);
+
+    // The caller's update permission, worked out once: before the hooks.
+    expect(updatableQuery).toHaveBeenCalledTimes(1);
+    expect(readsCallerMayWrite).toHaveBeenCalledTimes(1);
+    expect(readsAgain).toHaveBeenCalledTimes(1);
+
+    const held: JSONObject = updateBy.query as unknown as JSONObject;
+
+    expect(idsNamedBy(held["_id"]).sort()).toEqual([ROW_A, ROW_B].sort());
   });
 
   it("reads the rows the caller may write itself when the update reached the hook without that read", async () => {

@@ -199,7 +199,12 @@ export default class SsoSignInsEnded {
     return { signInsEndedAt: SIGN_INS_ENDED_BY_DATABASE_SQL };
   }
 
-  // Whether any provider the update names is on now.
+  /*
+   * Whether any provider the update writes is on now. The providers are read
+   * with findRowsAndHoldUpdateToThem, so the update writes the providers
+   * this answer was worked out from, and no other: the stamp it decides is
+   * never written onto a provider it did not look at.
+   */
   private static async isAnyOn<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
     updateBy: UpdateBy<TModel>;

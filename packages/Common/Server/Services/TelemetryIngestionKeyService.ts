@@ -842,8 +842,8 @@ export class Service extends DatabaseService<Model> {
    * The read runs as root because it is a policy check, not a data return.
    * The rows are the ones the update writes, and the update is held to them
    * (findRowsAndHoldUpdateToThem): the check sees every row the write
-   * touches and no other, so a broad query is never failed by another
-   * project's key, and never writes a key the check did not see.
+   * touches and no other - for a teammate, only keys they may write - and
+   * the update never writes a key the check did not see.
    */
   private async assertNoBrowserKeyIsBeingUpdated(
     updateBy: UpdateBy<Model>,

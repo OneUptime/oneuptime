@@ -257,8 +257,9 @@ export class TeamComplianceSettingService extends ProjectReferencesService<Model
 
     /*
      * The rows being changed, read to work out what each will check once the
-     * update lands. Scoped to the caller's project when there is one, so the
-     * rows of another project are never checked, let alone described.
+     * update lands: the rows the update writes, with the update held to them
+     * (findRowsAndHoldUpdateToThem). A teammate's are rows they may write, so
+     * no other project's rows are checked, let alone described.
      */
     const existingSettings: Array<Model> =
       await this.findRowsAndHoldUpdateToThem(updateBy, {

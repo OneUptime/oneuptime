@@ -8,9 +8,10 @@ import { FindOperator } from "typeorm";
  * Update checks read the rows an update writes, and hold the update to
  * them, by id (DatabaseService.findRowsAndHoldUpdateToThem): a plain id for
  * one row, "any of" (QueryHelper.any) for several, and a condition that
- * matches nothing (QueryHelper.any([])) for none. A suite's own query
- * conditions are answered too: "none of" (QueryHelper.notIn) and "not"
- * (QueryHelper.notEquals).
+ * matches nothing (QueryHelper.any([])) for none - and a condition the
+ * update names its rows by, held together with the rows its caller may
+ * write ("and"). A suite's own query conditions are answered too: "none of"
+ * (QueryHelper.notIn), "not" (QueryHelper.notEquals) and "is" (Equal).
  */
 
 interface RawCondition {
@@ -23,6 +24,31 @@ const MATCHES_NOTHING: RegExp = /TRUE\s*=\s*FALSE/i;
 const NONE_OF: RegExp = /NOT\s+IN/i;
 const ANY_OF: RegExp = /\sIN\s/i;
 const IS: RegExp = /[^!<>]=\s*:/;
+
+// The conditions an "and" (TypeORM's And) holds together, or null.
+function conditionsHeldTogether(condition: unknown): Array<unknown> | null {
+  if (
+    condition instanceof FindOperator &&
+    (condition as FindOperator<unknown>).type === "and"
+  ) {
+    return (condition as FindOperator<unknown>)
+      .value as unknown as Array<unknown>;
+  }
+
+  return null;
+}
+
+// The value an "is" (TypeORM's Equal) names, or undefined.
+function valueEqualTo(condition: unknown): unknown {
+  if (
+    condition instanceof FindOperator &&
+    (condition as FindOperator<unknown>).type === "equal"
+  ) {
+    return (condition as FindOperator<unknown>).value;
+  }
+
+  return undefined;
+}
 
 function asRawCondition(condition: unknown): RawCondition | null {
   if (!(condition instanceof FindOperator)) {
@@ -44,6 +70,20 @@ function asRawCondition(condition: unknown): RawCondition | null {
 
 // Whether `value` meets `condition`.
 export function meetsCondition(condition: unknown, value: unknown): boolean {
+  const together: Array<unknown> | null = conditionsHeldTogether(condition);
+
+  if (together) {
+    return together.every((each: unknown): boolean => {
+      return meetsCondition(each, value);
+    });
+  }
+
+  const equalTo: unknown = valueEqualTo(condition);
+
+  if (equalTo !== undefined) {
+    return String(value).toLowerCase() === String(equalTo).toLowerCase();
+  }
+
   const raw: RawCondition | null = asRawCondition(condition);
 
   if (!raw) {
@@ -80,9 +120,36 @@ export function meetsCondition(condition: unknown, value: unknown): boolean {
 
 /*
  * The ids an "is" or "any of" condition names: none for one that matches
- * nothing.
+ * nothing, and for an "and" the ids every condition it holds together
+ * names.
  */
 export function idsNamedBy(condition: unknown): Array<string> {
+  const together: Array<unknown> | null = conditionsHeldTogether(condition);
+
+  if (together) {
+    return together
+      .map((each: unknown): Array<string> => {
+        return idsNamedBy(each);
+      })
+      .reduce((kept: Array<string>, named: Array<string>): Array<string> => {
+        const lower: Set<string> = new Set<string>(
+          named.map((id: string): string => {
+            return id.toLowerCase();
+          }),
+        );
+
+        return kept.filter((id: string): boolean => {
+          return lower.has(id.toLowerCase());
+        });
+      });
+  }
+
+  const equalTo: unknown = valueEqualTo(condition);
+
+  if (equalTo !== undefined) {
+    return [String(equalTo)];
+  }
+
   const raw: RawCondition | null = asRawCondition(condition);
 
   if (!raw) {

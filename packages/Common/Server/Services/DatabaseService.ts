@@ -41,6 +41,7 @@ import ReadPermission, {
 } from "../Types/Database/Permissions/ReadPermission";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
+import QueryUtil from "../Types/Database/QueryUtil";
 import RelationSelect from "../Types/Database/RelationSelect";
 import SearchBy from "../Types/Database/SearchBy";
 import SearchResult from "../Types/Database/SearchResult";
@@ -106,9 +107,12 @@ import RuleCriteria, {
 } from "../../Types/Rules/RuleCriteria";
 import { getRuleCriteriaFieldsForModel } from "../../Types/Rules/RuleCriteriaFieldRegistry";
 import {
+  And,
   DataSource,
   Driver,
   EntityManager,
+  Equal,
+  FindOperator,
   Repository,
   SelectQueryBuilder,
   UpdateResult,
@@ -1024,15 +1028,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Whether this service has a hook for an update or a delete - before it or
-   * after it - that could act on the rows it names.
+   * Whether this service has a hook for an update or a delete - before it,
+   * once its caller passed the checks, or after it - that could act on the
+   * rows it names. A hook that runs once the checks passed reads the rows
+   * the update writes too (findRowsAndHoldUpdateToThem), and finds them
+   * read here, from the update as its caller sent it.
    */
   private hasHooksFor(
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
   ): boolean {
     const hookNames: Array<string> =
       type === DatabaseRequestType.Update
-        ? ["onBeforeUpdate", "onUpdateSuccess"]
+        ? [
+            "onBeforeUpdate",
+            "onBeforeUpdateUniqueCheck",
+            "onUpdatePermitted",
+            "onUpdateSuccess",
+          ]
         : ["onBeforeDelete", "onDeleteSuccess", "onHardDeleteSuccess"];
 
     return hookNames.some((hookName: string): boolean => {
@@ -1071,7 +1083,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     if (Array.isArray(query)) {
       return {
         query: {
-          _id: oneRowId || QueryHelper.any(rowIds),
+          _id: DatabaseService.idsCondition(rowIds),
         } as Query<TBaseModel>,
         namesTheRows: true,
       };
@@ -1091,7 +1103,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return {
         query: {
           ...query,
-          _id: oneRowId || QueryHelper.any(rowIds),
+          _id: DatabaseService.idsCondition(rowIds),
         } as Query<TBaseModel>,
         namesTheRows: true,
       };
@@ -6872,7 +6884,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const rowsQuery: Query<TBaseModel> | null = !callerMayWrite
       ? updateBy.query
       : callerMayWrite.length > 0
-        ? DatabaseService.queryWithinRows(updateBy.query, callerMayWrite)
+        ? this.queryWithinRows(updateBy.query, callerMayWrite)
         : null;
 
     let rows: Array<TBaseModel> = [];
@@ -7069,33 +7081,72 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * An update's query kept to `rowIds`, the rows its caller may write
-   * (findRowsAndHoldUpdateToThem). Whatever else it says - a condition a
-   * hook narrowed it by - stays. A query that names rows by _id names some
-   * of them already, as the update path pinned it (pinQueryToRows), and is
-   * read as it is and kept to them after (rowsAmong); any other gets _id
-   * set to them. A list of queries was read when the rows were, and is
-   * named by them alone.
+   * (findRowsAndHoldUpdateToThem), or null when it names none of them.
+   * Whatever else it says stays - a condition a hook narrowed it by, the
+   * rows it names by _id - and holds together with being one of those rows
+   * in the read itself, so a row the query names but the caller may not
+   * write never takes a place in the window. A query that names one row by
+   * a plain id is read as it is when that row is one of them. A list of
+   * queries was read when the rows were, and is named by them alone.
    */
-  private static queryWithinRows<TModel extends BaseModel>(
-    query: Query<TModel>,
+  private queryWithinRows(
+    query: Query<TBaseModel>,
     rowIds: Array<string>,
-  ): Query<TModel> {
+  ): Query<TBaseModel> | null {
     if (Array.isArray(query)) {
       return {
         _id: DatabaseService.idsCondition(rowIds),
-      } as Query<TModel>;
+      } as Query<TBaseModel>;
     }
 
     const namedById: unknown = (query as Dictionary<unknown>)["_id"];
 
-    if (namedById !== undefined && namedById !== null) {
-      return query;
+    if (namedById === undefined || namedById === null) {
+      return {
+        ...query,
+        _id: DatabaseService.idsCondition(rowIds),
+      } as Query<TBaseModel>;
     }
 
-    return {
-      ...query,
-      _id: DatabaseService.idsCondition(rowIds),
-    } as Query<TModel>;
+    const oneRowId: ObjectID | null = DatabaseService.getOneRowIdNamedBy(query);
+
+    if (oneRowId) {
+      const named: string = oneRowId.toString().toLowerCase();
+
+      return rowIds.some((id: string): boolean => {
+        return id.toLowerCase() === named;
+      })
+        ? query
+        : null;
+    }
+
+    // The condition on _id as the read runs it, and the rows, together.
+    const idFilter: unknown = (
+      QueryUtil.serializeQuery(this.modelType, {
+        _id: namedById,
+      } as Query<TBaseModel>) as Dictionary<unknown>
+    )["_id"];
+
+    const withinRows: FindOperator<unknown> = QueryHelper.any(
+      rowIds,
+    ) as unknown as FindOperator<unknown>;
+
+    if (idFilter instanceof FindOperator) {
+      return {
+        ...query,
+        _id: And(idFilter as FindOperator<unknown>, withinRows),
+      } as Query<TBaseModel>;
+    }
+
+    if (typeof idFilter === "string" && idFilter) {
+      return {
+        ...query,
+        _id: And(Equal(idFilter), withinRows),
+      } as Query<TBaseModel>;
+    }
+
+    // A condition on _id this cannot hold the rows to: none is read.
+    return null;
   }
 
   // The rows read that are among `rowIds`.

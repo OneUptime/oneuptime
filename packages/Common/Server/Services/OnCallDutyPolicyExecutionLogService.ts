@@ -454,17 +454,18 @@ export class Service extends ProjectReferencesService<Model> {
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     /*
-     * if status is updtaed then check if this on-call is related to the incident, if yes, then add to incident feed.
-     * The one execution log an update names by its id.
+     * When the status is updated, each execution log the update wrote that
+     * an incident, an alert or an episode triggered adds its new status to
+     * that record's feed.
      */
-    const id: ObjectID | null = Service.getOneRowIdNamedBy(
-      onUpdate.updateBy.query,
-    );
+    if (!onUpdate.updateBy.data.status) {
+      return onUpdate;
+    }
 
-    if (onUpdate.updateBy.data.status && id) {
+    for (const id of updatedItemIds) {
       const onCalldutyPolicyExecutionLog: Model | null = await this.findOneById(
         {
           id: id,

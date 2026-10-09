@@ -204,6 +204,19 @@ function stopBeforeUpdate<TBaseModel extends BaseModel>(modelType: {
   let permitted: { query: JSONObject; data: JSONObject } | undefined =
     undefined;
 
+  /*
+   * A service with a hook that runs once the checks passed has the rows the
+   * caller may write read before its hooks (keepRowsCallerMayWrite): that
+   * read is answered with the record the step names, without a database.
+   */
+  getJestSpyOn(service, "_findBy").mockImplementation((async (): Promise<
+    Array<TBaseModel>
+  > => {
+    const row: TBaseModel = new modelType();
+    row._id = RECORD_ID;
+    return [row];
+  }) as never);
+
   getJestSpyOn(service, "onUpdatePermitted").mockImplementation(((updateBy: {
     query: JSONObject;
     data: JSONObject;
