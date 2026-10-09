@@ -24,12 +24,27 @@ export enum ConnectProvider {
   Slack = "slack",
   MicrosoftTeams = "microsoft-teams",
   GitHub = "github",
+  /*
+   * The one-click Connect of a video call provider. All three start from,
+   * and come back to, Project Settings > Video Calls, which reads which one
+   * it was from `?provider=` (getPageQuery).
+   */
+  Zoom = "zoom",
+  GoogleMeet = "google-meet",
+  MicrosoftTeamsMeetings = "microsoft-teams-meetings",
 }
+
+export const VideoCallConnectProviders: Array<ConnectProvider> = [
+  ConnectProvider.Zoom,
+  ConnectProvider.GoogleMeet,
+  ConnectProvider.MicrosoftTeamsMeetings,
+];
 
 /*
  * The page a Slack or Microsoft Teams connection was started from, and goes
  * back to: the project's settings, or the person's own settings in the
- * project. A GitHub installation is always started from Code Repositories.
+ * project. A GitHub installation is always started from Code Repositories,
+ * and a video call provider from Project Settings > Video Calls.
  */
 export enum ConnectStartPage {
   ProjectSettings = "project-settings",
@@ -65,11 +80,21 @@ export enum ConnectCallbackError {
   GitHubNoAuthorization = "github-no-authorization",
   // GitHub: the GitHub account could not be confirmed to manage the installation.
   GitHubNotVerified = "github-not-verified",
+  // A video call sign-in came back without the permission to create meetings.
+  VideoCallPermissionNotGranted = "video-call-permission-not-granted",
+  // Microsoft Teams meetings: a personal Microsoft account signed in.
+  VideoCallWorkAccountRequired = "video-call-work-account-required",
 }
 
 // The query parameters a callback answers with.
 export const CONNECT_ERROR_QUERY_PARAM: string = "error";
 export const CONNECT_PROVIDER_QUERY_PARAM: string = "provider";
+
+/*
+ * A video call connection a sign-in made or reconnected: the Video Calls
+ * page names it and offers a test meeting.
+ */
+export const CONNECT_CONNECTED_QUERY_PARAM: string = "connected";
 
 // The query parameter a connection's start route reads the start page from.
 export const CONNECT_START_PAGE_QUERY_PARAM: string = "from";
@@ -105,7 +130,29 @@ export default class ConnectCallbackUtil {
         return `${settings}/microsoft-teams-integration`;
       case ConnectProvider.GitHub:
         return "/code-repository";
+      case ConnectProvider.Zoom:
+      case ConnectProvider.GoogleMeet:
+      case ConnectProvider.MicrosoftTeamsMeetings:
+        // A project's video calls live in its settings only.
+        return "/settings/video-calls";
     }
+  }
+
+  /*
+   * What the page `provider` comes back to must also be told: which video
+   * call provider it was, since the three share the Video Calls page.
+   * Nothing for any other provider.
+   */
+  public static getPageQuery(
+    provider: ConnectProvider,
+  ): Record<string, string> {
+    return VideoCallConnectProviders.includes(provider)
+      ? { [CONNECT_PROVIDER_QUERY_PARAM]: provider }
+      : {};
+  }
+
+  public static isVideoCallProvider(provider: ConnectProvider): boolean {
+    return VideoCallConnectProviders.includes(provider);
   }
 
   public static isError(value: unknown): value is ConnectCallbackError {

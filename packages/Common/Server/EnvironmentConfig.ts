@@ -47,6 +47,13 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "DISABLE_TELEMETRY",
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
+  /*
+   * Public OAuth client ids: the Video Calls page offers the one-click
+   * Connect for a provider whose app this server has.
+   */
+  "ZOOM_APP_CLIENT_ID",
+  "GOOGLE_MEET_APP_CLIENT_ID",
+  "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID",
   "GITHUB_APP_CLIENT_ID",
   "GITHUB_APP_NAME",
   "CAPTCHA_ENABLED",
@@ -1334,6 +1341,39 @@ export const MicrosoftTeamsAppClientSecret: string | null =
   process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
 export const MicrosoftTeamsAppTenantId: string | null =
   process.env["MICROSOFT_TEAMS_APP_TENANT_ID"] || null;
+
+/*
+ * The apps behind the one-click Connect of a video call provider
+ * (VideoCallAuthMethod.OAuth): someone signs in to Zoom, Google or Microsoft
+ * and allows this app to create meetings as that account. A provider whose
+ * client id and secret are both set is offered as one click on the Video
+ * Calls page; without them, a project connects its own app instead.
+ *
+ * The Teams meetings app is its own registration, not the Teams bot's
+ * (MICROSOFT_TEAMS_APP_CLIENT_ID): it asks a person for delegated meeting
+ * permissions, which the bot's admin consent does not cover, and a
+ * deployment that sets up the bot must not start sending people to a
+ * sign-in its registration has no redirect URI for.
+ *
+ * ZOOM_APP_WEBHOOK_SECRET_TOKEN verifies the events Zoom sends when someone
+ * removes the app from their Zoom account (/api/video-call-oauth/zoom/events).
+ */
+export const ZoomAppClientId: string | null =
+  process.env["ZOOM_APP_CLIENT_ID"] || null;
+export const ZoomAppClientSecret: string | null =
+  process.env["ZOOM_APP_CLIENT_SECRET"] || null;
+export const ZoomAppWebhookSecretToken: string | null =
+  process.env["ZOOM_APP_WEBHOOK_SECRET_TOKEN"] || null;
+
+export const GoogleMeetAppClientId: string | null =
+  process.env["GOOGLE_MEET_APP_CLIENT_ID"] || null;
+export const GoogleMeetAppClientSecret: string | null =
+  process.env["GOOGLE_MEET_APP_CLIENT_SECRET"] || null;
+
+export const MicrosoftTeamsMeetingsAppClientId: string | null =
+  process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID"] || null;
+export const MicrosoftTeamsMeetingsAppClientSecret: string | null =
+  process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET"] || null;
 
 // GitHub App Configuration
 export const GitHubAppId: string | null = process.env["GITHUB_APP_ID"] || null;

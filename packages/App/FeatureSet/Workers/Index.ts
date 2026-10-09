@@ -173,6 +173,9 @@ import "./Jobs/WorkspaceNotificationSummary/SendSummary";
 // Microsoft Teams: save pinned / megaphoned channel messages as notes
 import "./Jobs/MicrosoftTeams/SyncReactionNotes";
 
+// Video calls: keep the sign-ins of connections made by signing in from expiring
+import "./Jobs/VideoCall/KeepVideoCallSignInsAlive";
+
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
 

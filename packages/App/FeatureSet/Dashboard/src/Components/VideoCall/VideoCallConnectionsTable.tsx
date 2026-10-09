@@ -5,6 +5,7 @@ import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import { isVideoCallOAuth } from "Common/Types/VideoCall/VideoCallAuthMethod";
 import VideoCallProvider, {
   getVideoCallProviderDisplayName,
 } from "Common/Types/VideoCall/VideoCallProvider";
@@ -27,6 +28,7 @@ import React, {
 } from "react";
 import {
   VideoCallTestResult,
+  isVideoCallOAuthAvailable,
   runVideoCallConnectionTest,
 } from "./VideoCallApi";
 import VideoCallProviderLogo from "./VideoCallProviderLogo";
@@ -65,8 +67,14 @@ export function getVideoCallConnectionHealth(
     (!lastCallStartedAt ||
       (lastErrorAt && lastErrorAt.getTime() >= lastCallStartedAt.getTime()))
   ) {
+    /*
+     * A sign-in is also checked every day, without a call, so its error is
+     * not always a call's.
+     */
     return {
-      label: translationKey("Last call failed"),
+      label: isVideoCallOAuth(connection.authMethod)
+        ? translationKey("Not working")
+        : translationKey("Last call failed"),
       color: Red,
       tooltip: connection.lastError,
     };
@@ -94,6 +102,8 @@ export interface ComponentProps {
   createGate: PermissionGateResult;
   updateGate: PermissionGateResult;
   onEdit: (connection: VideoCallConnection) => void;
+  // Signs a connection made by signing in in again.
+  onReconnect: (connection: VideoCallConnection) => void;
   onAdd: () => void;
   onConnectionsLoaded: (connections: Array<VideoCallConnection>) => void;
 }
@@ -119,6 +129,8 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
         }}
         selectMoreFields={{
           provider: true,
+          authMethod: true,
+          connectedAccount: true,
           description: true,
           config: true,
           lastError: true,
@@ -175,6 +187,28 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
               onCompleteAction: VoidFunction,
             ): void => {
               setErrorItem(item);
+              onCompleteAction();
+            },
+          },
+          {
+            title: "Reconnect",
+            icon: IconProp.Refresh,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            isVisible: (item: VideoCallConnection): boolean => {
+              return (
+                isVideoCallOAuth(item.authMethod) &&
+                isVideoCallOAuthAvailable(item.provider)
+              );
+            },
+            disabled: !props.updateGate.isAllowed,
+            tooltip: props.updateGate.isAllowed
+              ? "Sign in again - after the account removed OneUptime or its sign-in expired, or to create meetings as another account."
+              : props.updateGate.disabledReason,
+            onClick: (
+              item: VideoCallConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              props.onReconnect(item);
               onCompleteAction();
             },
           },
@@ -238,8 +272,17 @@ const VideoCallConnectionsTable: FunctionComponent<ComponentProps> = (
                       {item.name}
                     </p>
                     <p className="truncate text-xs text-gray-500">
-                      {item.description ||
-                        getVideoCallProviderDisplayName(item.provider)}
+                      {isVideoCallOAuth(item.authMethod)
+                        ? item.connectedAccount
+                          ? translator.translateTemplate(
+                              "Signed in as {{account}}",
+                              { account: item.connectedAccount },
+                            )
+                          : translator.translateText(
+                              "Signed out - reconnect to start calls",
+                            )
+                        : item.description ||
+                          getVideoCallProviderDisplayName(item.provider)}
                     </p>
                   </div>
                 </div>

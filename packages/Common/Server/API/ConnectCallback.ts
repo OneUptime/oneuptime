@@ -24,8 +24,9 @@ import ConnectCallbackUtil, {
  * HOW A CONNECT CALLBACK ANSWERS.
  *
  * Connecting Slack (installing the app, signing in), Microsoft Teams (admin
- * consent, signing in) or a GitHub App installation ends on a callback the
- * provider sends the browser to. Every one of them is registered through
+ * consent, signing in), a GitHub App installation or a video call provider
+ * (signing in to Zoom, Google or Microsoft) ends on a callback the provider
+ * sends the browser to. Every one of them is registered through
  * ConnectCallback.route, which runs it in one order and answers every way it
  * can end the same way:
  *
@@ -259,12 +260,21 @@ export default class ConnectCallback {
     provider: ConnectProvider;
     record: Pick<WorkspaceOAuthStateRecord, "projectId" | "startPage">;
   }): URL {
-    return URL.fromString(
+    const pageUrl: URL = URL.fromString(
       `${DashboardClientUrl.toString()}/${data.record.projectId.toString()}${ConnectCallbackUtil.getPagePath(
         data.provider,
         data.record.startPage,
       )}`,
     );
+
+    // The Video Calls page is told which of its providers it was.
+    for (const [name, value] of Object.entries(
+      ConnectCallbackUtil.getPageQuery(data.provider),
+    )) {
+      pageUrl.addQueryParam(name, value, true);
+    }
+
+    return pageUrl;
   }
 
   /*
