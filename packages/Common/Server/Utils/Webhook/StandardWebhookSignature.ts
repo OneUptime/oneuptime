@@ -12,8 +12,9 @@ import crypto from "crypto";
  *   svix-signature  "v1,<base64 HMAC-SHA256>", space separated when the
  *                   secret is being rotated and more than one is valid
  *
- * (Svix's white-label and the Standard Webhooks libraries send the same
- * three as webhook-id, webhook-timestamp and webhook-signature.)
+ * (Senders that follow the Standard Webhooks specification under their
+ * own name send the same three as webhook-id, webhook-timestamp and
+ * webhook-signature.)
  *
  * The signed content is `${id}.${timestamp}.${body}`, over the body exactly
  * as it was sent - never a re-serialized copy, which changes whitespace and

@@ -141,36 +141,17 @@ export function validateHuntressWatchedOrganizations(
   );
 }
 
-function getSeverityField(data: {
-  severity: HuntressSeverity;
-  title: string;
-  section: FormFieldCollapsibleSection<HuntressConnection>;
-}): ModelField<HuntressConnection> {
-  const field: ModelField<HuntressConnection>["field"] =
-    data.severity === HuntressSeverity.Critical
-      ? { criticalIncidentSeverity: true }
-      : data.severity === HuntressSeverity.High
-        ? { highIncidentSeverity: true }
-        : { lowIncidentSeverity: true };
-
-  return {
-    field,
-    title: data.title,
-    fieldType: FormFieldSchemaType.Dropdown,
-    dropdownModal: {
-      type: IncidentSeverity,
-      labelField: "name",
-      valueField: "_id",
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    },
-    required: false,
-    // Left empty, the project's severities in rank order decide.
-    placeholder: HUNTRESS_SEVERITY_BY_RANK_LABELS[data.severity],
-    collapsibleSection: data.section,
-  };
-}
+// Each Huntress severity's incident severity, picked from the project's own.
+const INCIDENT_SEVERITY_DROPDOWN: NonNullable<
+  ModelField<HuntressConnection>["dropdownModal"]
+> = {
+  type: IncidentSeverity,
+  labelField: "name",
+  valueField: "_id",
+  sort: {
+    order: SortOrder.Ascending,
+  },
+};
 
 export function getHuntressConnectionFormFields(): Array<
   ModelField<HuntressConnection>
@@ -224,21 +205,43 @@ export function getHuntressConnectionFormFields(): Array<
       isAtDefault: isHuntressConnectionNameAtDefault,
       collapsibleSection: moreFields,
     },
-    getSeverityField({
-      severity: HuntressSeverity.Critical,
+    /*
+     * Left empty, the project's severities in rank order decide: the
+     * placeholder says which.
+     */
+    {
+      field: {
+        criticalIncidentSeverity: true,
+      },
       title: "Severity For Critical Reports",
-      section: moreFields,
-    }),
-    getSeverityField({
-      severity: HuntressSeverity.High,
+      fieldType: FormFieldSchemaType.Dropdown,
+      dropdownModal: INCIDENT_SEVERITY_DROPDOWN,
+      required: false,
+      placeholder: HUNTRESS_SEVERITY_BY_RANK_LABELS[HuntressSeverity.Critical],
+      collapsibleSection: moreFields,
+    },
+    {
+      field: {
+        highIncidentSeverity: true,
+      },
       title: "Severity For High Reports",
-      section: moreFields,
-    }),
-    getSeverityField({
-      severity: HuntressSeverity.Low,
+      fieldType: FormFieldSchemaType.Dropdown,
+      dropdownModal: INCIDENT_SEVERITY_DROPDOWN,
+      required: false,
+      placeholder: HUNTRESS_SEVERITY_BY_RANK_LABELS[HuntressSeverity.High],
+      collapsibleSection: moreFields,
+    },
+    {
+      field: {
+        lowIncidentSeverity: true,
+      },
       title: "Severity For Low Reports",
-      section: moreFields,
-    }),
+      fieldType: FormFieldSchemaType.Dropdown,
+      dropdownModal: INCIDENT_SEVERITY_DROPDOWN,
+      required: false,
+      placeholder: HUNTRESS_SEVERITY_BY_RANK_LABELS[HuntressSeverity.Low],
+      collapsibleSection: moreFields,
+    },
     {
       field: {
         watchedOrganizations: true,
