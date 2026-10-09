@@ -101,6 +101,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
       "How the levels page people",
       "Editing, reordering and deleting rules",
       "Creating rules with the API or Terraform",
+      "Next steps",
     ]);
   });
 
@@ -175,7 +176,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
         const pageSections: Array<{ heading: string; body: string }> =
           sections(page);
 
-        expect(pageSections).toHaveLength(5);
+        expect(pageSections).toHaveLength(6);
 
         const first: string = pageSections[0]!.body;
         const api: string = pageSections[4]!.body;

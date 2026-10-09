@@ -1,19 +1,25 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
   DocsFence,
-  DocsLink,
-  DocsPageLink,
   ScannedPage,
-  anchorsOf,
   hasPage,
-  parseDocsLink,
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
 import { dashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
+import {
+  CARD_LINE,
+  anchorProblems,
+  cardLines,
+  cardTargets,
+  comparableFence,
+  diagramSkeleton,
+  inlineCode,
+  listItemCount,
+  navTitle,
+  tableShape,
+} from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 
 /*
  * The six incident pages are translated into every docs language, and each
@@ -135,23 +141,9 @@ const PROSE: Record<string, Array<string>> = {
 
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const MENU_PATH: RegExp = /\*\*([^*\n]+? → [^*\n]+?)\*\*/g;
-const INLINE_CODE: RegExp = /`([^`\n]+)`/g;
-const CARD_LINE: RegExp = /^- \[[^\]]+\]\([^)\s]+\): \S/;
-// A card's target: the page it opens, without its anchor.
-const CARD_TARGET: RegExp = /\]\(([^)#]*)/;
-const CARDS_OPEN: RegExp = /^:::\s*cards\s*$/;
-const CONTAINER_CLOSE: RegExp = /^:::\s*$/;
-const LIST_ITEM: RegExp = /^\s*(?:[-*]|\d+\.)\s/;
-// A diagram's title, which a translation translates.
-const DIAGRAM_TITLE: RegExp = /\btitle="[^"]+"/;
 
 function englishPage(page: string): string {
   return readPage("en", page);
-}
-
-// The page without its fenced code blocks.
-function prose(markdown: string): string {
-  return markdown.replace(/^ {0,3}```[\s\S]*?^ {0,3}```[^\n]*$/gm, "");
 }
 
 // Every bold span that is not a menu path, once each, in order.
@@ -195,162 +187,9 @@ function menuPaths(markdown: string): Array<Array<string>> {
   return paths;
 }
 
-// Every inline code span outside the code blocks, sorted: a multiset.
-function inlineCode(markdown: string): Array<string> {
-  return Array.from(prose(markdown).matchAll(INLINE_CODE))
-    .map((match: RegExpMatchArray): string => {
-      return match[1] as string;
-    })
-    .sort();
-}
-
-// What a diagram says, as opposed to how it is built: labels and message text.
-const DIAGRAM_QUOTED_LABEL: RegExp = /"[^"\n]*"/g;
-const DIAGRAM_EDGE_LABEL: RegExp = /\|[^|\n]*\|/g;
-const DIAGRAM_PARTICIPANT_ALIAS: RegExp = /^(\s*participant\s+\S+)\s+as\s+.*$/;
-const DIAGRAM_MESSAGE_TEXT: RegExp = /:.*$/;
-
-/*
- * A Mermaid diagram with its words taken out: node ids, shapes, arrows and
- * the order of its lines. A translation translates a diagram's labels, so a
- * diagram is compared by this; every other code block must be the English
- * one exactly.
- */
-function diagramSkeleton(code: string): string {
-  return code
-    .split("\n")
-    .map((line: string): string => {
-      return line
-        .replace(DIAGRAM_QUOTED_LABEL, '""')
-        .replace(DIAGRAM_EDGE_LABEL, "||")
-        .replace(DIAGRAM_PARTICIPANT_ALIAS, "$1")
-        .replace(DIAGRAM_MESSAGE_TEXT, ":")
-        .trimEnd();
-    })
-    .join("\n");
-}
-
-// A code block as a translation must keep it: code exactly, a diagram by its build.
-function comparableFence(fence: DocsFence): string {
-  if (fence.lang === "mermaid") {
-    // The title is translated; that there is one is not.
-    const titled: boolean = DIAGRAM_TITLE.test(fence.info);
-
-    return `mermaid titled=${titled}\n${diagramSkeleton(fence.code)}`;
-  }
-
-  return `${fence.info}\n${fence.code}`;
-}
-
-// The number of body rows of each table, in order.
-function tableShape(markdown: string): Array<number> {
-  const shape: Array<number> = [];
-  let rows: number = 0;
-
-  for (const line of prose(markdown).split("\n")) {
-    if (line.startsWith("|")) {
-      rows++;
-      continue;
-    }
-
-    if (rows > 0) {
-      // Minus the header and the delimiter row.
-      shape.push(rows - 2);
-      rows = 0;
-    }
-  }
-
-  if (rows > 0) {
-    shape.push(rows - 2);
-  }
-
-  return shape;
-}
-
-function listItemCount(markdown: string): number {
-  return prose(markdown)
-    .split("\n")
-    .filter((line: string): boolean => {
-      return LIST_ITEM.test(line);
-    }).length;
-}
-
-// The lines of every :::cards block.
-function cardLines(markdown: string): Array<string> {
-  const lines: Array<string> = [];
-  let inCards: boolean = false;
-
-  for (const line of markdown.split("\n")) {
-    if (CARDS_OPEN.test(line)) {
-      inCards = true;
-      continue;
-    }
-
-    if (inCards && CONTAINER_CLOSE.test(line)) {
-      inCards = false;
-      continue;
-    }
-
-    if (inCards && line.trim()) {
-      lines.push(line);
-    }
-  }
-
-  return lines;
-}
-
-function navTitle(language: string, englishTitle: string): string {
-  const locale: { navLinks: Record<string, string> } = JSON.parse(
-    fs.readFileSync(
-      path.resolve(
-        __dirname,
-        "../../../FeatureSet/Docs/Locales",
-        `${language}.json`,
-      ),
-      "utf8",
-    ),
-  ) as { navLinks: Record<string, string> };
-
-  return locale.navLinks[englishTitle] as string;
-}
-
 // A Dashboard template with its placeholder filled, as this language draws it.
 function filled(language: string, template: string, value: string): string {
   return dashboardLabel(language, template).replace(/\{\{\s*\w+\s*\}\}/, value);
-}
-
-/*
- * Where a link's #anchor must be a heading: the page it opens, in this
- * language when the language has the page, else the English page the docs
- * serve instead.
- */
-function anchorProblems(language: string, page: string): Array<string> {
-  const scanned: ScannedPage = scanMarkdown(readPage(language, page));
-  const problems: Array<string> = [];
-
-  for (const link of scanned.links) {
-    const docsLink: DocsLink = link;
-    let target: DocsPageLink | null = null;
-
-    if (docsLink.target.startsWith("#")) {
-      target = { page: page, anchor: docsLink.target.slice(1) };
-    } else {
-      target = parseDocsLink(docsLink.target);
-    }
-
-    if (!target || target.anchor === null || target.anchor === "") {
-      continue;
-    }
-
-    const served: string = hasPage(language, target.page) ? language : "en";
-    const anchor: string = decodeURIComponent(target.anchor);
-
-    if (!anchorsOf(served, target.page).has(anchor)) {
-      problems.push(`${page}:${docsLink.line} -> ${docsLink.target}`);
-    }
-  }
-
-  return problems;
 }
 
 describe("the lists this test keeps", () => {
@@ -449,13 +288,6 @@ describe.each(LANGUAGES)("%s incident pages", (language: string) => {
       const translated: Array<string> = cardLines(
         readPage(language, entry.page),
       );
-      const targets: (lines: Array<string>) => Array<string> = (
-        lines: Array<string>,
-      ): Array<string> => {
-        return lines.map((line: string): string => {
-          return (CARD_TARGET.exec(line)?.[1] as string) || "";
-        });
-      };
 
       expect(translated.length).toBe(cardLines(english).length);
 
@@ -466,7 +298,9 @@ describe.each(LANGUAGES)("%s incident pages", (language: string) => {
         });
       }
 
-      expect(targets(translated)).toEqual(targets(cardLines(english)));
+      expect(cardTargets(translated)).toEqual(
+        cardTargets(cardLines(english)),
+      );
     });
 
     it("links only to anchors that are headings of the page they open", () => {

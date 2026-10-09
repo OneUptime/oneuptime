@@ -224,7 +224,7 @@ describe("the On-Call Schedules docs page", () => {
     const pageSections: Array<{ heading: string; body: string }> =
       sections(ENGLISH);
 
-    it("has its three sections, in order", () => {
+    it("has its three sections and its next steps, in order", () => {
       expect(
         pageSections.map((section: { heading: string }): string => {
           return section.heading;
@@ -233,6 +233,7 @@ describe("the On-Call Schedules docs page", () => {
         "Who takes turns",
         "Layers",
         "Creating schedules with the API or Terraform",
+        "Next steps",
       ]);
     });
 
@@ -382,9 +383,9 @@ describe("the On-Call Schedules docs page", () => {
         const pageSections: Array<{ heading: string; body: string }> =
           sections(page);
 
-        expect(pageSections).toHaveLength(3);
+        expect(pageSections).toHaveLength(4);
 
-        // One title, three sections, nothing deeper.
+        // One title, three sections and the next steps, nothing deeper.
         expect(page.match(/^# /gm)).toHaveLength(1);
         expect(page.match(/^### /gm)).toBeNull();
 
