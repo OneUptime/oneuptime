@@ -12,7 +12,8 @@ import { LLMMessage } from "../../LLM/LLMService";
  * wrote stays valid, and the note says how to get the data back (re-run the
  * call, or read_tool_output for a stored long output).
  *
- * Everything here is pure over the message array.
+ * Everything here is pure over the message array, except the overflow
+ * recovery at the end, which wraps the loops' model call.
  */
 
 // Roughly 75–90k tokens of transcript before older results are elided.
@@ -134,6 +135,75 @@ export function compactAgentContext(
   }
 
   return { elidedCount, charsBefore, charsAfter: chars };
+}
+
+/*
+ * The default budget assumes a large context window, and nothing here knows
+ * the real one: there is no tokenizer and no per-model context length. A
+ * model served with a smaller window (a self-hosted one at 64k, say) rejects
+ * the request long before the transcript reaches the budget, so compaction
+ * never runs and the run fails. The rejection is the measurement: the loops
+ * keep a budget per run, and on an overflow they lower it below what was
+ * just sent, compact to it and retry the same call. Later calls in the run
+ * stay compacted to the lowered budget.
+ */
+export interface AgentContextBudget {
+  maxChars: number;
+}
+
+export const CONTEXT_OVERFLOW_SHRINK_FACTOR: number = 0.75;
+
+/*
+ * How providers word it: OpenAI and Azure "maximum context length" /
+ * "context_length_exceeded", vLLM "the model's context length is only N
+ * tokens" / "maximum input length", Anthropic "prompt is too long". Rate
+ * limits ("token limit exceeded") must not match — waiting fixes those,
+ * a smaller transcript does not. Nor may "context window": the elision
+ * note above says it, and a provider error can echo the request body.
+ */
+const CONTEXT_OVERFLOW_PATTERN: RegExp =
+  /context[ _-]?length|maximum input length|prompt is too long/i;
+
+export function isContextOverflowError(error: unknown): boolean {
+  const message: string =
+    error instanceof Error ? error.message : String(error);
+
+  return CONTEXT_OVERFLOW_PATTERN.test(message);
+}
+
+/*
+ * Runs `call` and, while the provider rejects the transcript as too long,
+ * lowers the budget, compacts and runs it again. Rethrows when the error is
+ * not an overflow, or when nothing is left to elide — the same request
+ * would only fail the same way.
+ */
+export async function callWithContextOverflowRecovery<T>(data: {
+  messages: Array<LLMMessage>;
+  budget: AgentContextBudget;
+  call: () => Promise<T>;
+}): Promise<T> {
+  for (;;) {
+    try {
+      return await data.call();
+    } catch (error) {
+      if (!isContextOverflowError(error)) {
+        throw error;
+      }
+
+      data.budget.maxChars = Math.floor(
+        Math.min(data.budget.maxChars, measureContextChars(data.messages)) *
+          CONTEXT_OVERFLOW_SHRINK_FACTOR,
+      );
+
+      const compaction: CompactionResult = compactAgentContext(data.messages, {
+        maxChars: data.budget.maxChars,
+      });
+
+      if (compaction.elidedCount === 0) {
+        throw error;
+      }
+    }
+  }
 }
 
 /*

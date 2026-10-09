@@ -88,6 +88,7 @@ When the copilot shows an error like `OpenAICompatible API error: ...`, the mess
 
 - **`{"detail":"Not Found"}`** — the request reached the server but not a valid route. The base URL is missing the `/v1` path (or has a stray trailing slash). The chart's auto-registered provider already uses `.../v1`; if you configured the provider manually in the dashboard, set the Base URL to `http://<host>:8000/v1`. (OneUptime also normalizes a `/v1`-less base URL, so upgrade the server if you still hit this.)
 - **`"auto" tool choice requires --enable-auto-tool-choice and --tool-call-parser to be set` (HTTP 400)** — tool calling is off on the vLLM server. Ensure `vllm.toolCalling.enabled: true` (the default) and that `vllm.toolCalling.parser` matches your model, then `helm upgrade` and wait for the pod to restart.
+- **`the model's context length is only N tokens` (HTTP 400)** — the request did not fit `--max-model-len`. Investigations and the copilot recover from this on their own: they elide their oldest tool results and retry, so a long run keeps going on a smaller window. The error only surfaces when even the newest results do not fit. The first request alone (tool definitions plus the system prompt) runs to roughly 13–15k tokens, so a window much below 32k leaves little room for evidence; raise `--max-model-len` if your GPU can hold it.
 
 ### Fix startup OOM on small GPUs
 
