@@ -97,7 +97,7 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
   }'
 ```
 
-**Next steps**
+## Next steps
 
 :::cards
 - [Escalation Rules](/docs/on-call/escalation-rules): Page this schedule from a level of an on-call policy.
