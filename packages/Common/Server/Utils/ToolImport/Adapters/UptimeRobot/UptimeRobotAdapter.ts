@@ -617,9 +617,9 @@ export default class UptimeRobotAdapter implements ToolImportAdapter {
             monitor["friendlyName"],
             `Monitor ${monitorId}`,
           ),
-          showUptimePercent:
-            asString(features["showUptimePercentage"]) !== "false",
-          showStatusHistoryChart: asString(features["showBars"]) !== "false",
+          // "true"/"false" in a page as read; true/false in one as written.
+          showUptimePercent: asBoolean(features["showUptimePercentage"], true),
+          showStatusHistoryChart: asBoolean(features["showBars"], true),
         };
       },
     );
