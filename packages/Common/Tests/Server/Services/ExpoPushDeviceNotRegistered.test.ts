@@ -1,6 +1,7 @@
 import PushNotificationService, {
   EXPO_DEVICE_NOT_REGISTERED,
   ExpoDeviceNotRegisteredError,
+  ExpoPushRefusedError,
 } from "../../../Server/Services/PushNotificationService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
@@ -656,13 +657,19 @@ describe("the relay's own send (sendRelayPushNotification)", () => {
     expect(updateBy).not.toHaveBeenCalled();
   });
 
-  test("any other refusal stays the failure it was", async () => {
+  /*
+   * A refusal of its own kind, carrying Expo's code and words, so the
+   * relay route answers it with them (502) rather than 500 "Server Error"
+   * (ExpoPushRelayReceiptsContract.test.ts). Its message is what it was.
+   */
+  test("any other refusal is said apart from a gone token, with Expo's code", async () => {
     answer = expoError("MessageTooBig", "Message too big");
 
     const failure: unknown = await relaySend();
 
-    expect(failure).toBeInstanceOf(Error);
+    expect(failure).toBeInstanceOf(ExpoPushRefusedError);
     expect(failure).not.toBeInstanceOf(ExpoDeviceNotRegisteredError);
+    expect((failure as ExpoPushRefusedError).code).toBe("MessageTooBig");
     expect((failure as Error).message).toBe(
       "Failed to send push notification: Message too big",
     );

@@ -16,12 +16,12 @@ L’app mobile ufficiale con il relay predefinito non richiede credenziali Expo 
 
 | Direzione | Destinazione | Protocollo / porta | Quando serve |
 | --- | --- | --- | --- |
-| OneUptime → relay predefinito | `https://oneuptime.com/api/notification/push-relay/send` | HTTPS / TCP 443 | Push mobile senza `EXPO_ACCESS_TOKEN`. |
-| OneUptime → Expo | `https://exp.host/--/api/v2/push/send` | HTTPS / TCP 443 | Push mobile diretto con `EXPO_ACCESS_TOKEN`. |
+| OneUptime → relay predefinito | `https://oneuptime.com/api/notification/push-relay/send`, `https://oneuptime.com/api/notification/push-relay/receipts` | HTTPS / TCP 443 | Push mobile senza `EXPO_ACCESS_TOKEN`. |
+| OneUptime → Expo | `https://exp.host/--/api/v2/push/send`, `https://exp.host/--/api/v2/push/getReceipts` | HTTPS / TCP 443 | Push mobile diretto con `EXPO_ACCESS_TOKEN`. |
 | OneUptime → servizio push del browser | Endpoint HTTPS della sottoscrizione push | HTTPS / normalmente TCP 443 | Web push. |
 | App mobile o browser → OneUptime | Il tuo hostname OneUptime | HTTPS / TCP 443 | Accesso, registrazione del dispositivo e apertura dei link. |
 
-Se cambi `PUSH_NOTIFICATION_RELAY_URL`, consenti il relativo hostname e la porta configurata. Un relay personalizzato deve implementare l’API relay OneUptime. Valori predefiniti e selezione della modalità sono nella [configurazione](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) e nel [servizio push OneUptime](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts); [Expo](https://docs.expo.dev/push-notifications/sending-notifications/) documenta l’endpoint diretto.
+Se cambi `PUSH_NOTIFICATION_RELAY_URL`, consenti il relativo hostname e la porta configurata. Un relay personalizzato deve implementare l’API relay OneUptime. Valori predefiniti e selezione della modalità sono nella [configurazione](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) e nel [servizio push OneUptime](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts); [Expo](https://docs.expo.dev/push-notifications/sending-notifications/) documenta l’endpoint diretto. OneUptime legge le ricevute di consegna dal relay allo stesso indirizzo, con `/receipts` al posto di `/send`. Un relay senza questa route continua a consegnare i push; un dispositivo da cui è stata rimossa l'app viene allora notato solo quando un push successivo verso di esso viene rifiutato.
 
 Per web push, consenti gli host effettivi degli endpoint dei browser utilizzati. OneUptime accetta `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` e `push.apple.com`, inclusi i sottodomini come `updates.push.services.mozilla.com` e `web.push.apple.com`. La [sottoscrizione del browser](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) determina la destinazione. Consentire solo Expo o il relay non abilita web push.
 
@@ -29,7 +29,7 @@ Consenti DNS e TLS in uscita dal processo OneUptime che invia notifiche. L’arc
 
 I dispositivi hanno requisiti di connettività distinti. iOS richiede APNs, in genere TCP 5223 con TCP 443 come alternativa; consulta gli intervalli aggiornati di [Apple](https://support.apple.com/en-us/102266). Android richiede FCM su TCP 5228–5230 e 443; consulta host e regole aggiornati di [Google](https://firebase.google.com/docs/cloud-messaging/network-configuration). Non aprire queste porte in ingresso su OneUptime: il server usa il relay o Expo per il push mobile, non direttamente APNs/FCM.
 
-Verifica DNS e HTTPS dal container o pod mittente alla destinazione della modalità scelta. Invia una prova da **User Settings > Notification Methods > Push** e conferma la ricezione sul dispositivo registrato. Prova web push separatamente su ogni browser. Controlla gli errori relay, Expo o web-push nei log OneUptime; l’accettazione dell’API non conferma la consegna al dispositivo.
+Verifica DNS e HTTPS dal container o pod mittente alla destinazione della modalità scelta. Invia una prova da **User Settings > Notification Methods > Push** e conferma la ricezione sul dispositivo registrato. Prova web push separatamente su ogni browser. Controlla gli errori relay, Expo o web-push nei log OneUptime; l’accettazione dell’API non conferma la consegna al dispositivo. Per i push mobili, OneUptime legge anche la ricevuta di consegna di Expo circa 15 minuti dopo ogni push: un push che non ha mai raggiunto il dispositivo appare allora come non consegnato nel log push e, per un avviso di reperibilità, nella timeline di reperibilità.
 
 ## Risoluzione dei Problemi
 
@@ -41,11 +41,24 @@ Verifica DNS e HTTPS dal container o pod mittente alla destinazione della modali
 - Confermare che il dispositivo abbia una connessione internet attiva e i permessi per le notifiche abilitati
 - Controllare **User Settings > Notification Methods > Push**: un dispositivo contrassegnato come **Non riceve notifiche** ha smesso di riceverle e va registrato di nuovo (vedi sotto)
 
+### Push contrassegnati come "non consegnati"
+
+Che Expo accetti un push non significa che abbia raggiunto il dispositivo: Apple o Google possono ancora rifiutarlo. OneUptime legge la ricevuta di consegna di ogni push mobile circa 15 minuti dopo l'invio, tramite il relay push quando `EXPO_ACCESS_TOKEN` non è impostato. Quando la ricevuta segnala un errore, il log push e la timeline di reperibilità dell'avviso passano da inviato a **Push notification not delivered**, con il codice di errore di Expo:
+
+- `DeviceNotRegistered`: l'app mobile è stata rimossa dal dispositivo, oppure il suo token push non è più valido. Vedi la sezione successiva.
+- `MessageRateExceeded`: sono state inviate troppe notifiche al dispositivo in poco tempo. I push successivi verso di esso vengono inviati normalmente.
+- `MessageTooBig`: la notifica era più grande di quanto accettano i servizi push. OneUptime accorcia le notifiche perché rientrino, quindi non dovrebbe succedere; se succede, segnalalo.
+- `InvalidCredentials` o `MismatchSenderId`: le credenziali push del progetto Expo che ha inviato il push non sono valide. Con `EXPO_ACCESS_TOKEN`, controlla le credenziali push del tuo progetto Expo; con il relay predefinito, contatta il supporto OneUptime.
+
+Quando Expo rifiuta subito un push, il log push ne indica subito il motivo. Funziona così anche tramite il relay push: il relay inoltra il codice di errore di Expo invece di rispondere con un errore del server.
+
 ### Errori "DeviceNotRegistered" nei log
 
-Expo risponde a un push con `DeviceNotRegistered` quando l'app mobile è stata rimossa dal dispositivo o il token push del dispositivo non è più valido. OneUptime smette quindi di inviare a quel dispositivo. Viene contrassegnato come non più in grado di ricevere notifiche anziché eliminato, così le sue regole di notifica restano, e il log push e la timeline di reperibilità ne indicano il motivo. **User Settings > Notification Methods > Push** lo mostra come **Non riceve notifiche**. Gli altri dispositivi e metodi di notifica del suo proprietario continuano a ricevere gli avvisi.
+Expo segnala `DeviceNotRegistered` quando l'app mobile è stata rimossa dal dispositivo o il token push del dispositivo non è più valido. Di solito lo indica nella ricevuta di consegna di un push, che OneUptime legge circa 15 minuti dopo l'invio, e a volte rifiuta subito il push. In entrambi i casi OneUptime smette di inviare a quel dispositivo. Viene contrassegnato come non più in grado di ricevere notifiche anziché eliminato, così le sue regole di notifica restano, e il log push e la timeline di reperibilità dell'avviso che non è arrivato ne indicano il motivo. **User Settings > Notification Methods > Push** lo mostra come **Non riceve notifiche**. Gli altri dispositivi e metodi di notifica del suo proprietario continuano a ricevere gli avvisi.
 
-Per recuperare il dispositivo, apri l'app mobile su di esso con l'accesso effettuato. L'app si registra di nuovo, rinnovando il suo token push presso Expo, e il dispositivo torna a ricevere notifiche con le sue regole. Se l'app è stata rimossa, reinstallala ed effettua l'accesso. Tramite il relay push (senza `EXPO_ACCESS_TOKEN`) funziona allo stesso modo: il relay segnala `DeviceNotRegistered` alla tua istanza.
+Per recuperare il dispositivo, apri l'app mobile su di esso con l'accesso effettuato. L'app si registra di nuovo, rinnovando il suo token push presso Expo, e il dispositivo torna a ricevere notifiche con le sue regole. Se l'app è stata rimossa, reinstallala ed effettua l'accesso. La ricevuta di un push inviato prima che l'app si registrasse di nuovo non contrassegna il dispositivo. Quando un'app mobile aggiornata viene configurata su un nuovo telefono da un backup di quello vecchio, comunica a OneUptime il token push che aveva prima; se il dispositivo del vecchio telefono non riceve più notifiche, il nuovo telefono lo rileva con le sue regole.
+
+Tramite il relay push (senza `EXPO_ACCESS_TOKEN`) funziona allo stesso modo: il relay segnala `DeviceNotRegistered` quando invia un push, e legge le ricevute di consegna che la tua istanza gli chiede.
 
 ## Supporto
 
