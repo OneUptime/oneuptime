@@ -104,6 +104,14 @@ export function createToolImportClient(data: {
     case "Plain":
       headers["Authorization"] = apiKey;
       break;
+    case "OAuth":
+      headers["Authorization"] = `OAuth ${apiKey}`;
+      break;
+    case "None":
+      // A tool read from a file has no API to call.
+      throw new ToolImportReadError(
+        `${definition.title} is read from a file. Choose the file to read.`,
+      );
     case "ApiIdAndKey": {
       const apiKeyId: string = (data.settings.apiKeyId || "").trim();
 

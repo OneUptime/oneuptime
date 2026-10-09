@@ -46,6 +46,8 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
  *   POST /tool-import/read                  read a tool: { source, region, apiKey },
  *                                           plus apiKeyId (Splunk On-Call) or
  *                                           apiUrl (Grafana OnCall)
+ *   POST /tool-import/upload                read a tool's file: { source,
+ *                                           fileName, content } (Uptime Kuma)
  *   GET  /tool-import/run/:runId            one import: its status, progress,
  *                                           the preview (while it waits to be
  *                                           started) and the report
@@ -307,6 +309,49 @@ router.post(
         apiKey: body["apiKey"],
         apiKeyId: body["apiKeyId"],
         apiUrl: body["apiUrl"],
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        runId: runId.toString(),
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * A tool read from a file (Uptime Kuma's backup or metrics page): the
+ * file's text, read in the browser, comes in once and is read at once into
+ * a preview. It is never stored. Same gate as a read.
+ */
+router.post(
+  "/tool-import/upload",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { props, projectId } = await getPersonProps(req);
+      const body: JSONObject = readBody(req);
+
+      if (!isToolImportSource(body["source"])) {
+        throw new BadDataException("Choose a tool to import from.");
+      }
+
+      ToolImportAPIAccess.assertCanImportAnything({
+        props: props,
+        kinds: getToolImportSourceDefinition(body["source"]).kinds,
+      });
+
+      const runId: ObjectID = await ToolImportRunExecutor.startUpload({
+        projectId: projectId,
+        userId: props.userId!,
+        source: body["source"],
+        fileName: body["fileName"],
+        content: body["content"],
       });
 
       return Response.sendJsonObjectResponse(req, res, {

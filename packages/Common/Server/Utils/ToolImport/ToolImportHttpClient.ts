@@ -492,9 +492,10 @@ export default class ToolImportHttpClient {
 
   /*
    * The tool's own words for a failure, from the error shapes their APIs
-   * document: Opsgenie's and Splunk On-Call's { message }, incident.io's
-   * { errors: [{ message }] }, PagerDuty's { error: { message } } and Grafana
-   * OnCall's { detail }. Cut short, and with the key cut out.
+   * document: Opsgenie's, Splunk On-Call's, UptimeRobot's, StatusCake's and
+   * Better Stack's { message }, incident.io's { errors: [{ message }] },
+   * PagerDuty's { error: { message } }, Pingdom's { error: { errormessage } }
+   * and Grafana OnCall's { detail }. Cut short, and with the key cut out.
    */
   private getErrorDetail(response: ToolImportHttpResponse): string {
     const body: unknown = response.bodyJson;
@@ -521,7 +522,10 @@ export default class ToolImportHttpClient {
       const error: unknown = record["error"];
 
       if (!detail && error && typeof error === "object") {
-        const message: unknown = (error as Record<string, unknown>)["message"];
+        const message: unknown =
+          (error as Record<string, unknown>)["message"] ??
+          // Pingdom's { error: { errormessage } }.
+          (error as Record<string, unknown>)["errormessage"];
 
         if (typeof message === "string") {
           detail = message;

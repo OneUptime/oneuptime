@@ -27,10 +27,22 @@ export const TOOL_IMPORT_MAX_ITEMS_PER_KIND: Record<
   [ToolImportResourceKind.IncidentCustomField]: 100,
   [ToolImportResourceKind.OnCallSchedule]: 200,
   [ToolImportResourceKind.OnCallPolicy]: 200,
+  [ToolImportResourceKind.Monitor]: 1000,
+  [ToolImportResourceKind.StatusPage]: 50,
+  [ToolImportResourceKind.StatusPageSubscriber]: 5000,
 };
 
 // Records one import creates at most, of every kind together.
 export const TOOL_IMPORT_MAX_ITEMS: number = 2000;
+
+/*
+ * Kinds that do not count towards TOOL_IMPORT_MAX_ITEMS. A status page's
+ * subscribers are many small records - a page can have thousands - each an
+ * email address and the page it follows, so they keep a limit of their own
+ * rather than crowd out the monitors and pages they belong with.
+ */
+export const TOOL_IMPORT_KINDS_OUTSIDE_TOTAL: ReadonlyArray<ToolImportResourceKind> =
+  [ToolImportResourceKind.StatusPageSubscriber];
 
 // Layers of one OneUptime schedule, and levels of one policy, at most.
 export const TOOL_IMPORT_MAX_LAYERS_PER_SCHEDULE: number = 20;
@@ -65,3 +77,13 @@ export const TOOL_IMPORT_MAX_DESCRIPTION_LENGTH: number = 500;
 
 // An API key is a token: anything longer than this is not one.
 export const TOOL_IMPORT_MAX_API_KEY_LENGTH: number = 512;
+
+/*
+ * The largest file a tool that is read from a file (Uptime Kuma's backup)
+ * may be. A backup of 5,000 monitors is a few megabytes; anything larger
+ * is refused before it is read.
+ */
+export const TOOL_IMPORT_MAX_UPLOAD_BYTES: number = 10 * 1024 * 1024;
+
+// A file's name is shown back to the person; anything longer is cut.
+export const TOOL_IMPORT_MAX_FILE_NAME_LENGTH: number = 200;
