@@ -6978,7 +6978,7 @@
   "Delete this submission? Its answers and the submitter's name and email are removed from this list. What it created is not deleted, and neither is the private note on it.": "이 제출을 삭제할까요? 답변과 제출자의 이름 및 이메일이 이 목록에서 제거됩니다. 만들어진 항목과 그에 달린 비공개 메모는 삭제되지 않습니다.",
   "Its submissions are deleted with it. The incidents and events it created are not.": "제출 내역은 양식과 함께 삭제됩니다. 양식이 만든 인시던트와 이벤트는 삭제되지 않습니다.",
   "A hidden question is never required: nobody is asked it.": "숨긴 질문은 절대 필수가 아닙니다. 누구에게도 묻지 않기 때문입니다.",
-  "Not shown on the form. Only the template a submission starts from can answer it.": "양식에 표시되지 않습니다. 제출이 시작된 템플릿만 이 질문에 답할 수 있습니다.",
+  "Not shown on the form unless the template a submission starts from asks it. Otherwise only that template can answer it.": "제출이 시작된 템플릿이 이 질문을 묻지 않는 한 양식에 표시되지 않습니다. 그렇지 않으면 해당 템플릿만 이 질문에 답할 수 있습니다.",
   "Named sets of answers people can start the form from, so one form covers each case your team reports often. Choosing a template fills the form in, and every answer can still be changed before submitting.": "양식을 시작할 수 있는 이름 있는 답변 묶음으로, 하나의 양식으로 팀이 자주 보고하는 모든 경우를 처리할 수 있습니다. 템플릿을 고르면 양식이 채워지고, 제출 전에 어떤 답변이든 바꿀 수 있습니다.",
   "No templates yet. Add one for each case people report often, such as an outage or planned maintenance.": "아직 템플릿이 없습니다. 장애나 예정된 유지 관리처럼 자주 보고되는 경우마다 하나씩 추가하세요.",
   "This form has as many templates as a form can have.": "이 양식에는 양식이 가질 수 있는 최대 개수의 템플릿이 있습니다.",

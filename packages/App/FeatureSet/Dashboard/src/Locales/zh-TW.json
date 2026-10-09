@@ -6978,7 +6978,7 @@
   "Delete this submission? Its answers and the submitter's name and email are removed from this list. What it created is not deleted, and neither is the private note on it.": "刪除此提交？其回答以及提交者的姓名和電子郵件將從此清單中移除。它建立的內容不會被刪除，其上的私人備註也不會。",
   "Its submissions are deleted with it. The incidents and events it created are not.": "其提交會隨之一起刪除。它建立的事件和活動不會被刪除。",
   "A hidden question is never required: nobody is asked it.": "隱藏的問題永遠不是必填：不會有人被問到它。",
-  "Not shown on the form. Only the template a submission starts from can answer it.": "不會在表單上顯示。只有提交所依據的範本可以回答它。",
+  "Not shown on the form unless the template a submission starts from asks it. Otherwise only that template can answer it.": "不會在表單上顯示，除非提交所依據的範本詢問它。否則只有該範本可以回答它。",
   "Named sets of answers people can start the form from, so one form covers each case your team reports often. Choosing a template fills the form in, and every answer can still be changed before submitting.": "可作為表單起點的具名答案組，讓一個表單就能涵蓋你的團隊經常回報的每種情況。選擇範本會填寫表單，提交前仍可修改任何回答。",
   "No templates yet. Add one for each case people report often, such as an outage or planned maintenance.": "還沒有範本。為經常回報的每種情況新增一個，例如故障或排定維護。",
   "This form has as many templates as a form can have.": "此表單的範本數量已達上限。",

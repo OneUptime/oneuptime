@@ -6978,7 +6978,7 @@
   "Delete this submission? Its answers and the submitter's name and email are removed from this list. What it created is not deleted, and neither is the private note on it.": "删除此提交？其回答以及提交者的姓名和邮箱将从此列表中移除。它创建的内容不会被删除，其上的私密备注也不会。",
   "Its submissions are deleted with it. The incidents and events it created are not.": "其提交会随之一起删除。它创建的事件和活动不会被删除。",
   "A hidden question is never required: nobody is asked it.": "隐藏的问题永远不是必填的：没有人会被问到它。",
-  "Not shown on the form. Only the template a submission starts from can answer it.": "不在表单上显示。只有提交所基于的模板可以回答它。",
+  "Not shown on the form unless the template a submission starts from asks it. Otherwise only that template can answer it.": "不在表单上显示，除非提交所基于的模板询问它。否则只有该模板可以回答它。",
   "Named sets of answers people can start the form from, so one form covers each case your team reports often. Choosing a template fills the form in, and every answer can still be changed before submitting.": "可以作为表单起点的命名答案集，让一个表单就能涵盖你的团队经常报告的每种情况。选择模板会填写表单，提交前仍可修改任何回答。",
   "No templates yet. Add one for each case people report often, such as an outage or planned maintenance.": "还没有模板。为经常报告的每种情况添加一个，例如故障或计划维护。",
   "This form has as many templates as a form can have.": "此表单的模板数量已达到上限。",

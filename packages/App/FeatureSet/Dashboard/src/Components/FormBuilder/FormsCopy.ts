@@ -342,7 +342,7 @@ export const FormsCopy: {
     "Always required: a scheduled maintenance event cannot be created without it.",
   requiredHidden: "A hidden question is never required: nobody is asked it.",
   hiddenDescription:
-    "Not shown on the form. Only the template a submission starts from can answer it.",
+    "Not shown on the form unless the template a submission starts from asks it. Otherwise only that template can answer it.",
   answerType: "Answer Type",
   options: "Options",
   choicesOffered: "Choices Offered",
