@@ -80,6 +80,7 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import {
   CUSTOM_FIELD_DUPLICATE_OPTION_MESSAGE,
   CustomFieldOptionsFormField,
+  getCustomFieldOptionsFormField,
   getDuplicateOptionProblem,
   isDropdownCustomFieldType,
   useCustomFieldOptionsFormField,
@@ -116,6 +117,13 @@ function hook(
       modelType: modelType,
     });
   }).result.current;
+}
+
+// The Dropdown Options field, built as the pages build it.
+function fieldOf(
+  options: CustomFieldOptionsFormField<BaseModel>,
+): ModelField<BaseModel> {
+  return getCustomFieldOptionsFormField<BaseModel>(options.formFieldInput);
 }
 
 function values(data: JSONObject): FormValues<BaseModel> {
@@ -155,7 +163,7 @@ describe("isDropdownCustomFieldType and getDuplicateOptionProblem", () => {
 
 describe("the Dropdown Options field", () => {
   test("is the options column, as a custom component, with the editor's description", () => {
-    const field: ModelField<BaseModel> = hook().formField;
+    const field: ModelField<BaseModel> = fieldOf(hook());
 
     expect(field.field).toEqual({ dropdownOptions: true });
     expect(field.title).toBe("Dropdown Options");
@@ -166,7 +174,7 @@ describe("the Dropdown Options field", () => {
   });
 
   test("on Create, is shown and required under a dropdown type the form holds", () => {
-    const field: ModelField<BaseModel> = hook().formField;
+    const field: ModelField<BaseModel> = fieldOf(hook());
     const showIf: (item: FormValues<BaseModel>) => boolean = field.showIf!;
     const required: (item: FormValues<BaseModel>) => boolean =
       field.required as (item: FormValues<BaseModel>) => boolean;
@@ -189,7 +197,7 @@ describe("the Dropdown Options field", () => {
   test("on Edit, where the form cannot read the type, the row the Edit button was pressed on says it", async () => {
     const options: CustomFieldOptionsFormField<BaseModel> = hook();
     const showIf: (item: FormValues<BaseModel>) => boolean =
-      options.formField.showIf!;
+      fieldOf(options).showIf!;
 
     // Before the row has said anything, the form has nothing to go on.
     expect(showIf(values({ _id: FIELD_ID }))).toBe(false);
@@ -222,7 +230,7 @@ describe("the Dropdown Options field", () => {
 
   test("refuses two options of the same name - for a dropdown only", () => {
     const validate: (item: FormValues<BaseModel>) => string | null =
-      hook().formField.customValidation!;
+      fieldOf(hook()).customValidation!;
 
     expect(
       validate(
@@ -254,7 +262,7 @@ describe("the Dropdown Options field", () => {
   });
 
   test("on Create it is a plain list, and asks for no counts", () => {
-    const field: ModelField<BaseModel> = hook().formField;
+    const field: ModelField<BaseModel> = fieldOf(hook());
 
     render(
       field.getCustomElement!(values({}), {
@@ -282,7 +290,7 @@ describe("the Dropdown Options field", () => {
     const onChange: MockFunction = getJestMockFunction();
 
     render(
-      options.formField.getCustomElement!(values({ _id: FIELD_ID }), {
+      fieldOf(options).getCustomElement!(values({ _id: FIELD_ID }), {
         initialValue: "Facility A\nFacility B",
         onChange: onChange as never,
       }) as ReactElement,
@@ -326,7 +334,7 @@ describe("the Dropdown Options field", () => {
     );
 
     render(
-      options.formField.getCustomElement!(values({ _id: FIELD_ID }), {
+      fieldOf(options).getCustomElement!(values({ _id: FIELD_ID }), {
         initialValue: "Facility A",
         onChange: jest.fn(),
       }) as ReactElement,

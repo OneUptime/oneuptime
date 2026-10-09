@@ -10,6 +10,7 @@ import {
 } from "../../Components/CustomFields/CustomFieldSettingsCopy";
 import {
   CustomFieldOptionsFormField,
+  getCustomFieldOptionsFormField,
   useCustomFieldOptionsFormField,
 } from "../../Components/CustomFields/CustomFieldOptionsField";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -108,7 +109,7 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
               },
             ),
           },
-          optionsField.formField,
+          getCustomFieldOptionsFormField(optionsField.formFieldInput),
         ]}
         showRefreshButton={true}
         // The same two columns as every other custom field settings table.

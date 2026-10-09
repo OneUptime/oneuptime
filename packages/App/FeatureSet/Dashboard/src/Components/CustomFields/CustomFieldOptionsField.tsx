@@ -152,9 +152,26 @@ export const CustomFieldOptionsEditor: FunctionComponent<
   );
 };
 
+/*
+ * What the Dropdown Options field is built from
+ * (getCustomFieldOptionsFormField).
+ */
+export interface CustomFieldOptionsFormFieldInput<TModel extends BaseModel> {
+  // The custom field definition model: IncidentCustomField, ...
+  modelType: { new (): TModel };
+  // The field's type: what the form holds, or, on Edit, what the row said.
+  getFieldType: (values: FormValues<TModel>) => unknown;
+  // The renames the open edit has made so far.
+  onRenamesChange: (renames: Array<CustomFieldOptionRename>) => void;
+}
+
 export interface CustomFieldOptionsFormField<TModel extends BaseModel> {
-  // The Dropdown Options field, for Create and Edit.
-  formField: ModelField<TModel>;
+  /*
+   * What the page builds its Dropdown Options field from, for Create and
+   * Edit: getCustomFieldOptionsFormField(formFieldInput), written in the
+   * page's own field list, where the form guards read it.
+   */
+  formFieldInput: CustomFieldOptionsFormFieldInput<TModel>;
   // The table's Edit button: what the form cannot read for itself.
   onBeforeEdit: (item: TModel) => Promise<TModel>;
   // The Edit form's save: the renames go with it.
@@ -178,43 +195,20 @@ const readId: ReadIdFunction = (values: unknown): string | undefined => {
 };
 
 /**
- * The options field of a custom field settings form, and the two table
- * hooks it needs on Edit. A hook: the field's type, by id, and the renames
- * of the open edit are kept for the page's life.
+ * The Dropdown Options field of a custom field settings form, from what
+ * useCustomFieldOptionsFormField keeps for the page. Creating a field, it is
+ * the plain option list; editing a saved one, the option editor with how
+ * many records hold each value.
  */
-export const useCustomFieldOptionsFormField: <TModel extends BaseModel>(data: {
-  modelType: { new (): TModel };
-}) => CustomFieldOptionsFormField<TModel> = <TModel extends BaseModel>(data: {
-  modelType: { new (): TModel };
-}): CustomFieldOptionsFormField<TModel> => {
-  const typesByIdRef: MutableRefObject<Record<string, unknown>> = useRef<
-    Record<string, unknown>
-  >({});
-  const renamesRef: MutableRefObject<Array<CustomFieldOptionRename>> = useRef<
-    Array<CustomFieldOptionRename>
-  >([]);
-
+export const getCustomFieldOptionsFormField: <TModel extends BaseModel>(
+  input: CustomFieldOptionsFormFieldInput<TModel>,
+) => ModelField<TModel> = <TModel extends BaseModel>(
+  input: CustomFieldOptionsFormFieldInput<TModel>,
+): ModelField<TModel> => {
   const recordName: CustomFieldRecordName | undefined =
-    getCustomFieldRecordName(new data.modelType().tableName || undefined);
+    getCustomFieldRecordName(new input.modelType().tableName || undefined);
 
-  type GetFieldTypeFunction = (values: FormValues<TModel>) => unknown;
-
-  // What the form holds, or, on Edit, what the row said.
-  const getFieldType: GetFieldTypeFunction = (
-    values: FormValues<TModel>,
-  ): unknown => {
-    const own: unknown = (values as Record<string, unknown>)["customFieldType"];
-
-    if (own) {
-      return own;
-    }
-
-    const id: string | undefined = readId(values);
-
-    return id ? typesByIdRef.current[id] : undefined;
-  };
-
-  const formField: ModelField<TModel> = {
+  return {
     field: {
       dropdownOptions: true,
     } as ModelField<TModel>["field"],
@@ -222,13 +216,13 @@ export const useCustomFieldOptionsFormField: <TModel extends BaseModel>(data: {
     description: CustomFieldFormCopy.dropdownOptionsDescription,
     fieldType: FormFieldSchemaType.CustomComponent,
     required: (values: FormValues<TModel>) => {
-      return isDropdownCustomFieldType(getFieldType(values));
+      return isDropdownCustomFieldType(input.getFieldType(values));
     },
     showIf: (values: FormValues<TModel>) => {
-      return isDropdownCustomFieldType(getFieldType(values));
+      return isDropdownCustomFieldType(input.getFieldType(values));
     },
     customValidation: (values: FormValues<TModel>): string | null => {
-      if (!isDropdownCustomFieldType(getFieldType(values))) {
+      if (!isDropdownCustomFieldType(input.getFieldType(values))) {
         return null;
       }
 
@@ -273,23 +267,63 @@ export const useCustomFieldOptionsFormField: <TModel extends BaseModel>(data: {
       return (
         <CustomFieldOptionsEditor
           key={id}
-          modelType={data.modelType}
+          modelType={input.modelType}
           fieldId={new ObjectID(id)}
           recordName={recordName}
           initialValue={initialValue}
           error={customElementProps.error}
           onChange={onChange}
           onBlur={onBlur}
-          onRenamesChange={(renames: Array<CustomFieldOptionRename>) => {
-            renamesRef.current = renames;
-          }}
+          onRenamesChange={input.onRenamesChange}
         />
       );
     },
   };
+};
+
+/**
+ * What the options field of a custom field settings form is built from
+ * (getCustomFieldOptionsFormField), and the two table hooks it needs on
+ * Edit. A hook: the field's type, by id, and the renames of the open edit
+ * are kept for the page's life.
+ */
+export const useCustomFieldOptionsFormField: <TModel extends BaseModel>(data: {
+  modelType: { new (): TModel };
+}) => CustomFieldOptionsFormField<TModel> = <TModel extends BaseModel>(data: {
+  modelType: { new (): TModel };
+}): CustomFieldOptionsFormField<TModel> => {
+  const typesByIdRef: MutableRefObject<Record<string, unknown>> = useRef<
+    Record<string, unknown>
+  >({});
+  const renamesRef: MutableRefObject<Array<CustomFieldOptionRename>> = useRef<
+    Array<CustomFieldOptionRename>
+  >([]);
+
+  type GetFieldTypeFunction = (values: FormValues<TModel>) => unknown;
+
+  // What the form holds, or, on Edit, what the row said.
+  const getFieldType: GetFieldTypeFunction = (
+    values: FormValues<TModel>,
+  ): unknown => {
+    const own: unknown = (values as Record<string, unknown>)["customFieldType"];
+
+    if (own) {
+      return own;
+    }
+
+    const id: string | undefined = readId(values);
+
+    return id ? typesByIdRef.current[id] : undefined;
+  };
 
   return {
-    formField: formField,
+    formFieldInput: {
+      modelType: data.modelType,
+      getFieldType: getFieldType,
+      onRenamesChange: (renames: Array<CustomFieldOptionRename>): void => {
+        renamesRef.current = renames;
+      },
+    },
     onBeforeEdit: async (item: TModel): Promise<TModel> => {
       const id: string | undefined = readId(item);
 

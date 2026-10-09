@@ -220,7 +220,9 @@ describe("the settings pages render the shared strings", () => {
     expect(optionsField).toContain(
       "CustomFieldFormCopy.dropdownOptionsDescription",
     );
-    expect(base).toContain("optionsField.formField");
+    expect(base).toContain(
+      "getCustomFieldOptionsFormField(optionsField.formFieldInput)",
+    );
 
     for (const key of [
       "fieldTypeDescription",

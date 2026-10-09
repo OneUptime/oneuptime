@@ -15,6 +15,7 @@ import {
 import CustomFieldTemplateVariable from "../../../Components/CustomFields/CustomFieldTemplateVariable";
 import {
   CustomFieldOptionsFormField,
+  getCustomFieldOptionsFormField,
   useCustomFieldOptionsFormField,
 } from "../../../Components/CustomFields/CustomFieldOptionsField";
 import CreateMappedCustomFieldModal from "../../../Components/CustomFields/CreateMappedCustomFieldModal";
@@ -494,7 +495,7 @@ const CustomFieldsPageBase: (
         },
       ),
     },
-    optionsField.formField,
+    getCustomFieldOptionsFormField(optionsField.formFieldInput),
     // Advanced, in this order: where the value comes from, then the rest.
     ...mappingFormFields,
     ...incidentSettingsFormFields,
