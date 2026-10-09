@@ -651,6 +651,69 @@ describe("query_probes", () => {
     expect(countBySpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * A monitor's probes are read through their monitor (MonitorProbe's
+   * CanAccessIfCanReadOn): whoever may read the probe rows but not the
+   * monitors is refused every count. The tool asks that rule once, and
+   * answers with the probes and no counts rather than failing.
+   */
+  test("a caller who may read a monitor's probes but not its monitors gets the probes without monitor counts", async () => {
+    jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      {},
+      memberContext([Permission.ReadProjectProbe, Permission.ReadMonitorProbe]),
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain("EU probe");
+    expect(result.dataForLlm).not.toContain("monitorsServed=");
+    expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  test("a monitor viewer gets the project's probes with the monitor counts", async () => {
+    const viewerContext: ToolContext = memberContext([
+      Permission.MonitorViewer,
+    ]);
+
+    const probesSpy: jest.SpyInstance = jest
+      .spyOn(ProbeService, "findBy")
+      .mockResolvedValueOnce([
+        buildProbe({
+          id: PROJECT_PROBE_ID,
+          name: "EU probe",
+          lastAlive: OneUptimeDate.getCurrentDate(),
+          version: null,
+        }),
+      ] as never)
+      .mockResolvedValueOnce([] as never);
+    const countBySpy: jest.SpyInstance = mockMonitorCounts();
+
+    const result: ToolExecutionResult = await QueryProbesTool.execute(
+      {},
+      viewerContext,
+    );
+
+    expect(result.dataForLlm).toContain("EU probe");
+    expect(result.dataForLlm).toContain("monitorsServed=3");
+    expect((probesSpy.mock.calls[0]?.[0] as JSONObject)["props"]).toBe(
+      viewerContext.props,
+    );
+    expect((countBySpy.mock.calls[0]?.[0] as JSONObject)["props"]).toBe(
+      viewerContext.props,
+    );
+  });
+
   test("a monitor count that fails for any other reason still fails the tool", async () => {
     jest
       .spyOn(ProbeService, "findBy")

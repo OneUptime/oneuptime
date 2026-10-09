@@ -20,9 +20,10 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
 import ColumnPermissions from "../../../Types/Database/Permissions/ColumnPermission";
-import TablePermission from "../../../Types/Database/Permissions/TablePermission";
+import ModelPermission from "../../../Types/Database/Permissions/Index";
+import Query from "../../../Types/Database/Query";
 import MonitorProbe from "../../../../Models/DatabaseModels/MonitorProbe";
-import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
@@ -79,29 +80,30 @@ export const PROBE_READER_SELECT: Select<Probe> = {
 };
 
 /*
- * Whether `props` may read `modelType`'s records at all, by the table checks
- * every read runs first (TablePermission: the table's read list, or its
- * operational-resource wildcard, and no block on the whole table). Asked
- * once, before any query, instead of catching a refusal per query.
+ * Whether `props` may read the `modelType` rows `query` names, by the read
+ * rule every query of them runs first (ModelPermission
+ * .checkReadQueryPermission): the table's read list and blocks, the columns
+ * asked for, the plan, and - for rows read through another record, as a
+ * monitor's probes are read through their monitor - the read of that
+ * record. Asked once, before the queries it decides, instead of catching a
+ * refusal from each of them.
  */
-function mayReadTable(
-  modelType: DatabaseBaseModelType,
-  props: DatabaseCommonInteractionProps,
-): boolean {
-  if (props.isRoot || props.isMasterAdmin) {
+async function mayRead<TBaseModel extends BaseModel>(data: {
+  modelType: { new (): TBaseModel };
+  query: Query<TBaseModel>;
+  select: Select<TBaseModel> | null;
+  props: DatabaseCommonInteractionProps;
+}): Promise<boolean> {
+  if (data.props.isRoot || data.props.isMasterAdmin) {
     return true;
   }
 
   try {
-    TablePermission.checkTableLevelPermissions(
-      modelType,
-      props,
-      DatabaseRequestType.Read,
-    );
-    TablePermission.checkTableLevelBlockPermissions(
-      modelType,
-      props,
-      DatabaseRequestType.Read,
+    await ModelPermission.checkReadQueryPermission(
+      data.modelType,
+      data.query,
+      data.select,
+      data.props,
     );
 
     return true;
@@ -166,7 +168,15 @@ async function readProjectProbes(data: {
 }): Promise<Array<Probe>> {
   const select: Select<Probe> | null = getProbeSelectFor(data.props);
 
-  if (!select || !mayReadTable(Probe, data.props)) {
+  if (
+    !select ||
+    !(await mayRead({
+      modelType: Probe,
+      query: {},
+      select: select,
+      props: data.props,
+    }))
+  ) {
     return [];
   }
 
@@ -184,8 +194,9 @@ async function readProjectProbes(data: {
 
 /*
  * How many of this project's monitors a probe serves, counted as the caller.
- * Asked only of a caller who may read a monitor's probes (mayReadTable, once
- * per run); anyone else's answer leaves the counts out rather than failing.
+ * Asked only of a caller who may read a monitor's probes - and the monitors
+ * they are read through - (mayRead, once per run); anyone else's answer
+ * leaves the counts out rather than failing.
  */
 async function countMonitorsServed(data: {
   probeId: ObjectID;
@@ -718,8 +729,19 @@ export const QueryProbesTool: ObservabilityTool = {
       PROBE_STALE_CUTOFF_IN_MINUTES,
     );
 
-    // Whether the counts are asked for at all: once, for every probe.
-    const mayCountMonitors: boolean = mayReadTable(MonitorProbe, ctx.props);
+    /*
+     * Whether the counts are asked for at all: once, for every probe, by the
+     * rule each count runs - the project's monitor probes, read through
+     * their monitors.
+     */
+    const mayCountMonitors: boolean =
+      probesWithScope.length > 0 &&
+      (await mayRead({
+        modelType: MonitorProbe,
+        query: { projectId: ctx.projectId },
+        select: null,
+        props: ctx.props,
+      }));
 
     const rows: Array<JSONObject> = await Promise.all(
       probesWithScope.map(
