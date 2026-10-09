@@ -24,6 +24,8 @@ import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
+import AccessTokenService from "../../../Server/Services/AccessTokenService";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 
 /*
  * A RULE LETS ONEUPTIME AI RUN ITS COMMANDS WITHOUT ASKING ONLY WHEN WHOEVER
@@ -955,5 +957,122 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
         ),
       ),
     ).rejects.toBeInstanceOf(NotAuthorizedException);
+  });
+});
+
+/*
+ * A WORKFLOW'S STEP IS HELD TO THE PERSON WHO LAST SAVED THE WORKFLOW.
+ *
+ * A step acts as a Project Admin of its project (WorkflowPrincipal), and a
+ * Project Admin may read runbook credentials - but that read is not lent:
+ * saving a rule that runs OneUptime AI's commands without asking, or widening
+ * one, is asked of the person who last saved the workflow
+ * (RunbookCredentialReaders), with a refusal that says so.
+ */
+describe("AutoRemediationRuleService - a workflow's step saving a rule that runs AI commands without asking", () => {
+  const WORKFLOW_ID: ObjectID = new ObjectID(
+    "ca000000-0000-4000-8000-000000000031",
+  );
+  const SAVER_ID: ObjectID = new ObjectID(
+    "ca000000-0000-4000-8000-000000000041",
+  );
+
+  let saverPermissions: Array<Permission>;
+  let lookUp: jest.SpyInstance;
+
+  beforeEach(() => {
+    stubProjectDirectory({});
+    saverPermissions = [Permission.WorkflowAdmin];
+
+    lookUp = jest
+      .spyOn(
+        AccessTokenService,
+        "getDatabaseCommonInteractionPropsByUserAndProject",
+      )
+      .mockImplementation(
+        async (data: {
+          userId: ObjectID;
+          projectId: ObjectID;
+        }): Promise<DatabaseCommonInteractionProps> => {
+          return { ...editor(saverPermissions), userId: data.userId };
+        },
+      );
+
+    // No Runner these rules name is a cluster's in-cluster agent.
+    jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function step(
+    savedBy: ObjectID | null = SAVER_ID,
+  ): DatabaseCommonInteractionProps {
+    return WorkflowPrincipal.getPropsWithoutPlan({
+      projectId: PROJECT_ID,
+      workflowId: WORKFLOW_ID,
+      workflowName: "Restart web when it is slow",
+      savedByUserId: savedBy,
+    });
+  }
+
+  async function create(
+    settings: RuleCommandSettings,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<unknown> {
+    const rule: AutoRemediationRule = new AutoRemediationRule();
+    rule.name = "Restart web on high latency";
+    rule.projectId = PROJECT_ID;
+    Object.assign(rule, settings);
+
+    try {
+      await hooks.onBeforeCreate({ data: rule, props: props });
+      return null;
+    } catch (error) {
+      return error;
+    }
+  }
+
+  it("refuses it when the person who last saved the workflow may not read credentials, and says whose permission was asked about", async () => {
+    const thrown: unknown = await create(unattended(), step());
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((thrown as Error).message).toContain(
+      "needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential.",
+    );
+    expect((thrown as Error).message).toContain(
+      "A workflow's step has this permission only when the person who last saved the workflow has it, and they do not.",
+    );
+
+    const asked: { userId: ObjectID } = lookUp.mock.calls[0]![0] as {
+      userId: ObjectID;
+    };
+    expect(asked.userId.toString()).toBe(SAVER_ID.toString());
+  });
+
+  it("saves it when the person who last saved the workflow may read credentials", async () => {
+    saverPermissions = [Permission.ReadRunbookCredential];
+
+    expect(await create(unattended(), step())).toBeNull();
+  });
+
+  it("refuses it, looking nobody up, when the workflow names nobody as its last saver", async () => {
+    saverPermissions = [Permission.ProjectOwner];
+
+    expect(await create(unattended(), step(null))).toBeInstanceOf(
+      NotAuthorizedException,
+    );
+    expect(lookUp).not.toHaveBeenCalled();
+  });
+
+  it("asks nothing of the saver for a rule that asks before fixing", async () => {
+    expect(
+      await create(
+        unattended({ executionMode: AutoRemediationExecutionMode.Suggest }),
+        step(null),
+      ),
+    ).toBeNull();
+    expect(lookUp).not.toHaveBeenCalled();
   });
 });
