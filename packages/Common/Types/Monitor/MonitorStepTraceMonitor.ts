@@ -23,8 +23,14 @@ export default interface MonitorStepTraceMonitor {
 }
 
 export class MonitorStepTraceMonitorUtil {
+  /*
+   * `evaluateUntil` ends the window earlier than now: a telemetry check
+   * judges only data OneUptime has finished reading while its ingest queue
+   * is behind (ReceivingCoverage.planTelemetryEvaluation, issue #2825).
+   */
   public static toQuery(
     monitorStepTraceMonitor: MonitorStepTraceMonitor,
+    evaluateUntil?: Date | undefined,
   ): Query<Span> {
     const query: Query<Span> = {};
 
@@ -64,7 +70,7 @@ export class MonitorStepTraceMonitorUtil {
     }
 
     if (monitorStepTraceMonitor.lastXSecondsOfSpans) {
-      const endDate: Date = OneUptimeDate.getCurrentDate();
+      const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
       const startDate: Date = OneUptimeDate.addRemoveSeconds(
         endDate,
         monitorStepTraceMonitor.lastXSecondsOfSpans * -1,

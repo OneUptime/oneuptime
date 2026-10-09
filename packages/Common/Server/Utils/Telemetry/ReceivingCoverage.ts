@@ -72,6 +72,11 @@ export interface TelemetryEvaluationPlan {
    * has been read.
    */
   evaluateUntil: Date;
+  /*
+   * True when evaluateUntil is earlier than now because the ingest queue is
+   * behind; false when the window simply ends now.
+   */
+  isIngestBehind: boolean;
   // Set when the check waits: what OneUptime was doing during its window.
   deferredBecause?: ReceivingGapReason | undefined;
 }
@@ -229,11 +234,11 @@ export default class ReceivingCoverage {
     const backlogSinceMs: number | null =
       backlog.oldestWaitingSince?.getTime() ?? null;
 
-    const evaluateUntilMs: number =
+    const isIngestBehind: boolean =
       backlogSinceMs !== null &&
-      nowMs - backlogSinceMs > INGEST_BACKLOG_ALLOWANCE_MS
-        ? backlogSinceMs
-        : nowMs;
+      nowMs - backlogSinceMs > INGEST_BACKLOG_ALLOWANCE_MS;
+
+    const evaluateUntilMs: number = isIngestBehind ? backlogSinceMs! : nowMs;
 
     const evaluateUntil: Date = new Date(evaluateUntilMs);
     const windowStart: Date = new Date(
@@ -265,11 +270,12 @@ export default class ReceivingCoverage {
       return {
         evaluate: false,
         evaluateUntil,
+        isIngestBehind,
         deferredBecause: latestGap.reason,
       };
     }
 
-    return { evaluate: true, evaluateUntil };
+    return { evaluate: true, evaluateUntil, isIngestBehind };
   }
 
   // Forgets every cached answer. For tests, and after a heartbeat starts a new period.
