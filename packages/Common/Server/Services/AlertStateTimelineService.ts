@@ -625,18 +625,10 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
   private async getAlertIdsForTimelineQuery(
     updateBy: UpdateBy<AlertStateTimeline>,
   ): Promise<Array<ObjectID>> {
-    const timelines: Array<AlertStateTimeline> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const timelines: Array<AlertStateTimeline> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         alertId: true,
-      },
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+      });
 
     return this.getAlertIdsFromTimelines(timelines);
   }

@@ -445,14 +445,6 @@ export class Service extends ProjectReferencesService<Model> {
   private async findRulesForQuery(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<Model>> {
-    const query: Record<string, unknown> = {
-      ...(updateBy.query as Record<string, unknown>),
-    };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
     return await this.findRowsAndHoldUpdateToThem(updateBy, {
       _id: true,
       projectId: true,

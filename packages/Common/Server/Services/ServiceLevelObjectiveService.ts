@@ -1262,19 +1262,10 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     try {
-      const rows: Array<Model> = await this.findBy({
-        // Pinned: this hook runs before DatabaseService applies permissions.
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: updateBy.query,
-          tenantId: updateBy.props.tenantId,
-        }),
-        select: this.getFeedSelect(columns),
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        this.getFeedSelect(columns),
+      );
 
       const rowsById: Dictionary<Model> = {};
 
@@ -1867,23 +1858,15 @@ export class Service extends ProjectReferencesService<Model> {
     const labelIdsBySloId: Dictionary<Array<string>> = {};
 
     try {
-      const rows: Array<Model> = await this.findBy({
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: updateBy.query,
-          tenantId: updateBy.props.tenantId,
-        }),
-        select: {
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           monitorLabels: {
             _id: true,
           },
         },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       for (const row of rows) {
         if (row.id) {
@@ -1928,14 +1911,6 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (nextMonitors === undefined || updateBy.props.isRoot) {
       return;
-    }
-
-    const query: Record<string, unknown> = {
-      ...(updateBy.query as Record<string, unknown>),
-    };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
     }
 
     const slos: Array<Model> = await this.findRowsAndHoldUpdateToThem(

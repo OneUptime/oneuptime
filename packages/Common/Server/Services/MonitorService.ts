@@ -996,22 +996,13 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
-    const monitors: Array<Model> = await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
+    const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> = {};
 

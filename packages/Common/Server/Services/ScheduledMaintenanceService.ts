@@ -1059,11 +1059,8 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         )
       : null;
 
-    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-      query: updateBy.props.tenantId
-        ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-        : updateBy.query,
-      select: {
+    const scheduledMaintenanceEvents: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         projectId: true,
         ...(isMonitorStatusWritten
@@ -1075,13 +1072,7 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         ...(ScheduledMaintenanceFieldChange.getSelect(
           fieldsWritten,
         ) as Select<Model>),
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     const monitorStatus: Dictionary<MonitorStatusBeforeUpdate> | null =
       isMonitorStatusWritten ? {} : null;
@@ -1332,17 +1323,8 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         },
       } as Select<Model>;
 
-      const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-        query: updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-        select: select,
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      const scheduledMaintenanceEvents: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, select);
 
       for (const scheduledMaintenanceEvent of scheduledMaintenanceEvents) {
         if (!scheduledMaintenanceEvent.id) {

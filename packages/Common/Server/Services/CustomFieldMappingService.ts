@@ -403,16 +403,16 @@ export class CustomFieldMappingServiceClass {
       }
 
       /*
-       * Limit 2 rather than 1: the answer needed is "exactly one row or more
-       * than one", and asking for two is how you tell those apart without
-       * counting the whole match.
+       * The records the update writes, and the update held to them: the
+       * values folded in below are worked out for the one record read, and
+       * written to no other.
        */
-      const affected: Array<BaseModel> = await this.findTargetRecords({
-        target: target,
-        query: data.updateBy.query as JSONObject,
-        limit: 2,
-        skip: 0,
-      });
+      const affected: Array<BaseModel> = await target
+        .getTargetService()
+        .findRowsAndHoldUpdateToThem(
+          data.updateBy,
+          this.getTargetRecordSelect(target),
+        );
 
       if (affected.length !== 1) {
         return;
@@ -844,6 +844,23 @@ export class CustomFieldMappingServiceClass {
     }
   }
 
+  // What a mapping reads of a target record: its fields, and its sources.
+  private getTargetRecordSelect(
+    target: CustomFieldMappingTargetEntry,
+  ): JSONObject {
+    const select: JSONObject = {
+      _id: true,
+      projectId: true,
+      customFields: true,
+    };
+
+    for (const source of target.sources) {
+      Object.assign(select, source.targetRelationSelect);
+    }
+
+    return select;
+  }
+
   private async findTargetRecords(data: {
     target: CustomFieldMappingTargetEntry;
     query: JSONObject;
@@ -851,19 +868,9 @@ export class CustomFieldMappingServiceClass {
     skip: number;
     sortNewestFirst?: boolean | undefined;
   }): Promise<Array<BaseModel>> {
-    const select: JSONObject = {
-      _id: true,
-      projectId: true,
-      customFields: true,
-    };
-
-    for (const source of data.target.sources) {
-      Object.assign(select, source.targetRelationSelect);
-    }
-
     return data.target.getTargetService().findBy({
       query: data.query,
-      select: select,
+      select: this.getTargetRecordSelect(data.target),
       limit: data.limit,
       skip: data.skip,
       sort: data.sortNewestFirst ? { createdAt: SortOrder.Descending } : {},

@@ -452,16 +452,13 @@ export class Service extends DatabaseService<Model> {
     let carryForward: Array<Model> = [];
 
     if (updateBy.data.password || updateBy.data.email) {
-      const users: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const users: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           email: true,
         },
-        props: updateBy.props,
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
+      );
 
       carryForward = users;
     }
