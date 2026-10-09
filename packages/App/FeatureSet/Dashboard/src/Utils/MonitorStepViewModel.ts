@@ -17,6 +17,7 @@ import {
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { PROBE_DEFAULT_RETRY_COUNT_LABEL } from "./MonitorRetryHelpText";
 
 /*
@@ -652,8 +653,8 @@ export default class MonitorStepViewModel {
     return compact([
       MonitorStepViewModel.getDestinationRow(
         data,
-        "NTP Server",
-        "The time server this monitor checks.",
+        translationKey("NTP Server"),
+        translationKey("The time server this monitor checks."),
       ),
       {
         key: "monitorDestinationPort",

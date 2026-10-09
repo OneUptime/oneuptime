@@ -176,6 +176,7 @@ import {
   MONITOR_PORT_FIELD_DESCRIPTION,
   MonitorDestinationFieldCopy,
   NTP_PORT_FIELD_DESCRIPTION,
+  NTP_PORT_FIELD_ERROR,
 } from "../../../Utils/Form/Monitor/MonitorDestinationFieldCopy";
 import { DEFAULT_NTP_PORT } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import {
@@ -1501,10 +1502,7 @@ return {
 
                   setErrors({
                     ...errors,
-                    ntpPort:
-                      trimmed && !isValidPort
-                        ? "Enter a port from 1 to 65535, or leave it empty for 123."
-                        : "",
+                    ntpPort: trimmed && !isValidPort ? NTP_PORT_FIELD_ERROR : "",
                   });
 
                   monitorStep.setPort(

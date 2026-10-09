@@ -93,3 +93,8 @@ export const MONITOR_PORT_FIELD_DESCRIPTION: string = translationKey(
 export const NTP_PORT_FIELD_DESCRIPTION: string = translationKey(
   "The UDP port the server answers NTP on. Leave it empty for the standard port, 123.",
 );
+
+// What the NTP port field says when what was typed is not a port.
+export const NTP_PORT_FIELD_ERROR: string = translationKey(
+  "Enter a port from 1 to 65535, or leave it empty for 123.",
+);

@@ -1,5 +1,6 @@
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export const PROBE_DEFAULT_RETRY_COUNT_LABEL: string =
   "Probe default (usually 3)";
@@ -67,15 +68,17 @@ export const SSL_RETRIES_ON_FAILURE_DESCRIPTION: string =
  * answered, and a RATE kiss asks for fewer requests, not more. There is no
  * slow-response re-check.
  */
-export const NTP_RETRIES_ON_FAILURE_DESCRIPTION: string =
-  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.";
+export const NTP_RETRIES_ON_FAILURE_DESCRIPTION: string = translationKey(
+  "How many times to retry after a failed attempt: 0 means one attempt, 2 means up to 3. Leave blank to use the probe's default (usually 3). Maximum is 3. No reply, a refused port and a failed lookup are retried, each with a new request. A server that answers is never asked again, even when it answers that it is not synchronized.",
+);
 
 /*
  * NTP waits 5 seconds per attempt by default (DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS),
  * not the 60 seconds of the TCP and HTTP checks.
  */
-export const NTP_REQUEST_TIMEOUT_DESCRIPTION: string =
-  "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.";
+export const NTP_REQUEST_TIMEOUT_DESCRIPTION: string = translationKey(
+  "How long to wait for the server's reply on each attempt, including the DNS lookup. Each retry gets a new timeout. Defaults to 5 seconds. Maximum is 60 seconds.",
+);
 
 /*
  * The field is rendered for seven monitor types (the API, Website and

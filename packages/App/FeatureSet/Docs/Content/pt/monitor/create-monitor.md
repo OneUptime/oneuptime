@@ -26,7 +26,7 @@ Nada nesta etapa é marcado como faltando até você clicar em **Próximo**.
 
 ## Sondas e intervalo
 
-Os monitores que as sondas verificam terminam com esta etapa: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code e External Status Page. As **Sondas** são as máquinas que executam as verificações, e as sondas padrão do seu projeto já vêm selecionadas. O **Intervalo de monitoramento** começa em **A cada 5 minutos**. Clique em **Criar monitor**.
+Os monitores que as sondas verificam terminam com esta etapa: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code e External Status Page. As **Sondas** são as máquinas que executam as verificações, e as sondas padrão do seu projeto já vêm selecionadas. O **Intervalo de monitoramento** começa em **A cada 5 minutos**. Clique em **Criar monitor**.
 
 Todos os outros tipos são criados a partir da etapa **Critérios**.
 

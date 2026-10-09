@@ -161,6 +161,7 @@
     "Port Monitor": "連接埠監控",
     "DNS Monitor": "DNS 監控",
     "DNSSEC Monitor": "DNSSEC 監控",
+    "NTP Monitor": "NTP 監控",
     "SSL Certificate Monitor": "SSL 憑證監控",
     "Domain Monitor": "網域監控",
     "Custom Code Monitor": "自訂程式碼監控",

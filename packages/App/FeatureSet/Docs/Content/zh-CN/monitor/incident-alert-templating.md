@@ -71,6 +71,28 @@
 | `failureCause`     | IP 检查失败的原因（如失败）。 | `string`  |
 | `isTimeout`        | IP Ping 请求是否超时。        | `boolean` |
 
+### NTP 监控器
+
+| 变量                 | 描述                                                                   | 类型      |
+| -------------------- | ---------------------------------------------------------------------- | --------- |
+| `isOnline`           | 时间服务器是否应答了探测器的请求。                                     | `boolean` |
+| `isSynchronized`     | 是否以层级 1 到 15 应答，没有闰秒告警，并且带有真实的时间戳。          | `boolean` |
+| `stratum`            | 服务器报告的层级：主服务器为 1，未同步为 16，kiss-o'-death 为 0。      | `number`  |
+| `clockOffsetInMs`    | 服务器的时钟与探测器的时钟相差多少（毫秒）。正值表示服务器偏快。       | `number`  |
+| `referenceId`        | 服务器同步的对象：层级 1 时是 `GPS` 这样的源，否则是上游服务器的地址。 | `string`  |
+| `leapIndicator`      | 一切正常时为 0 到 2，服务器表示其时钟未同步时为 3。                    | `number`  |
+| `kissCode`           | 层级为 0 时，服务器代替时间发送的四个字母的代码，例如 `RATE`。         | `string`  |
+| `responseTimeInMs`   | 从请求到应答的时间（毫秒）。                                           | `number`  |
+| `roundTripDelayInMs` | 本次交换的网络往返时间，不含服务器自身的处理时间。                     | `number`  |
+| `rootDelayInMs`      | 从服务器到其参考时钟的往返时间（毫秒）。                               | `number`  |
+| `rootDispersionInMs` | 服务器自己估计的最大误差（毫秒）。                                     | `number`  |
+| `serverTime`         | 服务器发送应答时的时钟，ISO 8601 时间戳。                              | `string`  |
+| `referenceTime`      | 服务器时钟最后一次设置或校正的时间，ISO 8601 时间戳。                  | `string`  |
+| `serverAddress`      | 请求发送到的地址。                                                     | `string`  |
+| `port`               | 请求发送到的 UDP 端口。                                                | `number`  |
+| `failureCause`       | 服务器没有应答的原因，或未同步的原因。                                 | `string`  |
+| `isTimeout`          | 服务器是否没有及时应答。                                               | `boolean` |
+
 ### SSL 证书监控器
 
 | 变量                 | 描述                           | 类型      |

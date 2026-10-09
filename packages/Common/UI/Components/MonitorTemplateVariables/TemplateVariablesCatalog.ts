@@ -759,7 +759,7 @@ export default class TemplateVariablesCatalog {
             {
               key: "referenceId",
               description:
-                "What the server syncs to: a source such as GPS, or its upstream server's address.",
+                "What the server synchronizes to: a source such as GPS at stratum 1, or its upstream server's address.",
               example: "GPS",
             },
             {
