@@ -68,7 +68,8 @@ const NETWORK_DEVICE_PING_CAPABILITY: string = "networkDevicePing";
  * Hands the requesting probe the polling-enabled devices assigned to it
  * that are due for a poll. Every device is handed out as
  * `{ networkDeviceId, projectId, hostname, pollMode, collectEndpoints,
- * snmpMonitor? }`:
+ * collectTransceivers?, snmpMonitor? }` (collectTransceivers only in snmp
+ * mode):
  *
  *   pollMode "snmp" - usable SNMP credentials resolved for the device
  *                     (NetworkDeviceHydrationUtil.resolveSnmpCredentials:
@@ -420,6 +421,14 @@ router.post(
           hostname: device.hostname,
           pollMode: pollMode,
           collectEndpoints: device.collectEndpoints === true,
+          /*
+           * Transceiver (SFP/SFP+/QSFP) health rides the interface walk:
+           * optics are matched to the ports it finds. A device answers one
+           * request per transceiver MIB it lacks, and the probe reads the
+           * static part of the ones it has (thresholds, identity) once an
+           * hour, so this is on wherever interfaces are walked.
+           */
+          collectTransceivers: monitorInterfaces,
           snmpMonitor: NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
             hostname: device.hostname,
             // Where to connect is the device's; what to connect with is resolved.

@@ -116,6 +116,35 @@ export enum CheckOn {
    * snmpMonitorOptions.oid optionally narrows it to one varbind.
    */
   SnmpTrapVarbindValue = "SNMP Trap Varbind Value",
+  /*
+   * Transceivers (SFP, SFP+, QSFP), judged port by port and scoped like the
+   * interface CheckOns: snmpMonitorOptions.interfaceName narrows them to one
+   * port by name or alias, and "*" raises one alert per port.
+   *
+   * Not detected: a port that had an optic no longer reports one, for two
+   * polls in a row, while the port is still enabled.
+   */
+  SnmpTransceiverNotDetected = "SNMP Transceiver Not Detected",
+  /*
+   * A reading at or past the device's own alarm threshold, or a fault the
+   * device flags (loss of signal, transmitter fault).
+   */
+  SnmpTransceiverPastAlarmThreshold = "SNMP Transceiver Past Alarm Threshold",
+  // A reading at or past the device's warning threshold (alarms included).
+  SnmpTransceiverPastWarningThreshold = "SNMP Transceiver Past Warning Threshold",
+  /*
+   * One reading (snmpMonitorOptions.transceiverReading: RX or TX power,
+   * temperature, voltage, bias current) against a value of your own - for
+   * devices that report no thresholds. Met when any lane of any optic in
+   * scope matches.
+   */
+  SnmpTransceiverReading = "SNMP Transceiver Reading",
+  /*
+   * How far the received power is below its best daily average of the last
+   * 30 days, in dB. Catches a fibre or an optic degrading over weeks, before
+   * the link goes down.
+   */
+  SnmpTransceiverRxPowerDrop = "SNMP Transceiver RX Power Drop (in dB)",
 
   // DNS monitors.
   DnsResponseTime = "DNS Response Time (in ms)",
@@ -192,6 +221,12 @@ export interface SnmpMonitorOptions {
   tableKey?: string | undefined;
   tableColumnOid?: string | undefined;
   tableRow?: string | undefined;
+  /*
+   * For CheckOn.SnmpTransceiverReading: which reading - a
+   * TransceiverReadingKind value ("rxPower", "txPower", "temperature",
+   * "voltage", "biasCurrent").
+   */
+  transceiverReading?: string | undefined;
 }
 
 export interface DatabaseMonitorOptions {
@@ -407,6 +442,9 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.DomainIsExpired ||
       checkOn === CheckOn.DnssecChainValid ||
@@ -548,6 +586,31 @@ export class CriteriaFilterUtil {
     }
   }
 
+  // The transceiver CheckOns.
+  public static isTransceiverCheckOn(checkOn: CheckOn | undefined): boolean {
+    return (
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold ||
+      checkOn === CheckOn.SnmpTransceiverReading ||
+      checkOn === CheckOn.SnmpTransceiverRxPowerDrop
+    );
+  }
+
+  /*
+   * The CheckOns scoped by snmpMonitorOptions.interfaceName - a name, an
+   * alias, empty for every interface as one alert, or "*" for one alert per
+   * interface. One list, read by the criteria form and the evaluator alike.
+   */
+  public static isInterfaceScopedCheckOn(checkOn: CheckOn | undefined): boolean {
+    return (
+      checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
+      CriteriaFilterUtil.isTransceiverCheckOn(checkOn)
+    );
+  }
+
   public static isEvaluateOverTimeFilter(checkOn: CheckOn): boolean {
     return (
       checkOn === CheckOn.ResponseStatusCode ||
@@ -605,6 +668,7 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     tableKey: Zod.string().optional(),
     tableColumnOid: Zod.string().optional(),
     tableRow: Zod.string().optional(),
+    transceiverReading: Zod.string().optional(),
   }).optional(),
   databaseMonitorOptions: Zod.object({
     metricType: Zod.string().optional(),

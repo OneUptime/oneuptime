@@ -51,6 +51,7 @@ import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import SnmpTableCriteria from "./Criteria/SnmpTableCriteria";
+import SnmpTransceiverCriteria from "./Criteria/SnmpTransceiverCriteria";
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -225,6 +226,17 @@ export default class MonitorCriteriaObservationBuilder {
           tables: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
             input.dataToProcess,
           )?.snmpResponse?.tables,
+          criteriaFilter: input.criteriaFilter,
+        });
+      case CheckOn.SnmpTransceiverNotDetected:
+      case CheckOn.SnmpTransceiverPastAlarmThreshold:
+      case CheckOn.SnmpTransceiverPastWarningThreshold:
+      case CheckOn.SnmpTransceiverReading:
+      case CheckOn.SnmpTransceiverRxPowerDrop:
+        return SnmpTransceiverCriteria.describeObservation({
+          transceivers: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+            input.dataToProcess,
+          )?.snmpResponse?.transceivers,
           criteriaFilter: input.criteriaFilter,
         });
       case CheckOn.SnmpTrapVarbindValue:

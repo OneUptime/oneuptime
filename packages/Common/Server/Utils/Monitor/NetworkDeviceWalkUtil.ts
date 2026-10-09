@@ -25,6 +25,9 @@ import {
   SnmpTableSnapshot,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import { NetworkDeviceTransceiver } from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import TransceiverHealthUtil from "../../../Utils/NetworkDevice/TransceiverHealthUtil";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -122,6 +125,8 @@ export default class NetworkDeviceWalkUtil {
         snmpTables: true,
         oidTemplateId: true,
         snmpTableSnapshot: true,
+        // To tell a pulled optic from one still in place, and for its trend.
+        transceiverSnapshot: true,
       },
       props: {
         isRoot: true,
@@ -272,6 +277,28 @@ export default class NetworkDeviceWalkUtil {
     }
 
     /*
+     * Transceivers: this poll's optics folded into what the device had
+     * stored, and judged - before inventory, metrics and criteria read the
+     * response. Never fatal: a poll that cannot judge its optics leaves the
+     * stored ones alone.
+     */
+    let transceiverSnapshot: Array<NetworkDeviceTransceiver> | undefined =
+      undefined;
+
+    try {
+      transceiverSnapshot = NetworkDeviceWalkUtil.applyTransceivers({
+        device: device,
+        snmpResponse: data.snmpResponse,
+        now: OneUptimeDate.getCurrentDate(),
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to read transceivers for device ${device.id.toString()}:`,
+      );
+      logger.error(err);
+    }
+
+    /*
      * Inventory sync also prunes data.snmpResponse.interfaces down to
      * monitored ports, so the metrics and criteria below only see ports the
      * user cares about.
@@ -283,6 +310,7 @@ export default class NetworkDeviceWalkUtil {
       isOnline: isOnline,
       pollMode: pollMode,
       snmpTableSnapshot: snmpTableSnapshot,
+      transceiverSnapshot: transceiverSnapshot,
     });
 
     try {
@@ -452,6 +480,83 @@ export default class NetworkDeviceWalkUtil {
         }),
       }),
     );
+  }
+
+  /*
+   * Folds this walk's transceivers into the device's stored ones
+   * (TransceiverHealthUtil.mergeSnapshot), puts what the criteria judge on
+   * `snmpResponse.transceivers`, and returns the snapshot the device should
+   * store - or undefined when the stored one must not be touched.
+   *
+   * What the criteria judge:
+   *
+   *   - the merged state, when this poll read the optics;
+   *   - the STORED state, when it tried and could not (a timeout, a table
+   *     too long, an agent that answered nothing at all where it used to
+   *     report optics) - so an open "not detected" or "past its alarm
+   *     threshold" alert does not resolve on a poll that could not look,
+   *     and reopen on the next one;
+   *   - nothing, when this poll did not try (an older probe, interface
+   *     walking off): the transceiver criteria are then not evaluated.
+   */
+  public static applyTransceivers(data: {
+    device: NetworkDevice;
+    snmpResponse: SnmpMonitorResponse | undefined;
+    now: Date;
+  }): Array<NetworkDeviceTransceiver> | undefined {
+    const snmpResponse: SnmpMonitorResponse | undefined = data.snmpResponse;
+
+    if (!snmpResponse || snmpResponse.isOnline === false) {
+      return undefined;
+    }
+
+    const stored: Array<NetworkDeviceTransceiver> = Array.isArray(
+      data.device.transceiverSnapshot,
+    )
+      ? data.device.transceiverSnapshot
+      : [];
+
+    const merged: Array<NetworkDeviceTransceiver> | undefined =
+      TransceiverHealthUtil.mergeSnapshot({
+        previous: stored,
+        results: snmpResponse.transceiverResults,
+        source: snmpResponse.transceiverSource,
+        interfaces: (snmpResponse.interfaces || []).map(
+          (walked: SnmpInterface) => {
+            return {
+              interfaceIndex: walked.interfaceIndex,
+              name: walked.name,
+              alias: walked.alias,
+              isAdministrativelyUp: walked.isAdministrativelyUp,
+            };
+          },
+        ),
+        now: data.now,
+      });
+
+    const triedAndCouldNotRead: boolean =
+      Boolean(snmpResponse.transceiverWalkFailure) ||
+      (snmpResponse.transceiverResults !== undefined && merged === undefined);
+
+    let judged: Array<NetworkDeviceTransceiver> | undefined = merged;
+
+    if (!judged && triedAndCouldNotRead) {
+      judged = stored;
+    }
+
+    if (!judged && snmpResponse.transceiverResults !== undefined) {
+      judged = [];
+    }
+
+    if (judged) {
+      snmpResponse.transceivers = judged.map(
+        (transceiver: NetworkDeviceTransceiver) => {
+          return { ...transceiver };
+        },
+      );
+    }
+
+    return merged;
   }
 
   /*
