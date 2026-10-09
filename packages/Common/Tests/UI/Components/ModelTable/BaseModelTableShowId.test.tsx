@@ -515,11 +515,18 @@ describe("rows with no ID", () => {
 
     const rows: Array<HTMLElement> = await waitForRows(2);
 
-    expect(menuItemNames(rows[0]!)).toContain("Show ID");
+    expect(menuItemNames(rows[0]!)).toEqual(["Show ID"]);
+
+    /*
+     * Show ID was the only thing in the row's ⋯ menu, so a row with no ID has
+     * no menu at all - and keeps the View it opens with.
+     */
     expect(
-      within(rows[1]!).queryByTestId("row-actions-more-button") === null ||
-        !menuItemNames(rows[1]!).includes("Show ID"),
-    ).toBe(true);
+      within(rows[1]!).queryByTestId("row-actions-more-button"),
+    ).toBeNull();
+    expect(
+      within(rows[1]!).getByRole("button", { name: "View LLM Call" }),
+    ).toBeInTheDocument();
   });
 });
 
