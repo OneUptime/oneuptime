@@ -66,6 +66,14 @@ enum MonitorType {
   // DNSSEC validation monitoring
   DNSSEC = "DNSSEC",
 
+  /*
+   * Time server monitoring. A probe sends an SNTP client request (RFC 4330 /
+   * RFC 5905, mode 3) to the server's UDP port, 123 unless the step names
+   * another, and reads the reply: whether it answered, its stratum and leap
+   * indicator, and how far its clock is from the probe's.
+   */
+  NTP = "NTP",
+
   // Domain registration monitoring
   Domain = "Domain",
 
@@ -155,7 +163,12 @@ export class MonitorTypeHelper {
       },
       {
         label: "Network",
-        monitorTypes: [MonitorType.NetworkDevice],
+        /*
+         * NTP sits with the network gear rather than under Basic Monitoring:
+         * the people who run time servers are the people who run the
+         * switches and routers, and look for both in one place.
+         */
+        monitorTypes: [MonitorType.NetworkDevice, MonitorType.NTP],
       },
       {
         label: "Infrastructure",
@@ -769,6 +782,26 @@ export class MonitorTypeHelper {
         ],
       },
       {
+        monitorType: MonitorType.NTP,
+        title: "NTP",
+        description:
+          "Whether a time server answers, its stratum, and how far its clock is off.",
+        icon: IconProp.Clock,
+        keywords: [
+          "time",
+          "time server",
+          "clock",
+          "clock offset",
+          "time sync",
+          "sntp",
+          "stratum",
+          "udp 123",
+          "chrony",
+          "ntpd",
+          "w32time",
+        ],
+      },
+      {
         monitorType: MonitorType.DNSSEC,
         title: "DNSSEC",
         description:
@@ -891,6 +924,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.CustomJavaScriptCode ||
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
+      monitorType === MonitorType.NTP ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.SQLQuery ||
       monitorType === MonitorType.Database ||
@@ -920,6 +954,7 @@ export class MonitorTypeHelper {
       MonitorType.NetworkDevice,
       MonitorType.DNS,
       MonitorType.DNSSEC,
+      MonitorType.NTP,
       MonitorType.Domain,
       MonitorType.SQLQuery,
       MonitorType.Database,
@@ -970,6 +1005,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.NetworkDevice ||
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
+      monitorType === MonitorType.NTP ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.SQLQuery ||
       monitorType === MonitorType.Database ||

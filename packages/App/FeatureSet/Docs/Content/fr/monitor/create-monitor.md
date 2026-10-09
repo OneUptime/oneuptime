@@ -26,7 +26,7 @@ Rien sur cette étape n'est signalé comme manquant avant que vous cliquiez sur 
 
 ## Sondes et intervalle
 
-Les moniteurs vérifiés par des sondes se terminent par cette étape : Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code et External Status Page. Les **Sondes** sont les machines qui exécutent les vérifications, et les sondes par défaut de votre projet sont déjà sélectionnées. L'**Intervalle de surveillance** commence à **Toutes les 5 minutes**. Cliquez sur **Créer un moniteur**.
+Les moniteurs vérifiés par des sondes se terminent par cette étape : Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code et External Status Page. Les **Sondes** sont les machines qui exécutent les vérifications, et les sondes par défaut de votre projet sont déjà sélectionnées. L'**Intervalle de surveillance** commence à **Toutes les 5 minutes**. Cliquez sur **Créer un moniteur**.
 
 Tous les autres types se créent depuis l'étape **Critères**.
 

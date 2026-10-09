@@ -103,7 +103,14 @@ retry_with_backoff() {
 # "toomanyrequests". Bare status numbers are deliberately spelled out with their
 # reason phrase ("429 Too Many Requests", not "429") because these messages quote
 # blob digests, and a hex digest containing "429" would otherwise look retryable.
-RETRYABLE_REGISTRY_READ_ERRORS='TOOMANYREQUESTS|too many requests|429 Too Many Requests|rate limit|500 Internal Server Error|502 Bad Gateway|503 Service Unavailable|504 Gateway Time|connection reset|connection refused|unexpected EOF|i/o timeout|TLS handshake timeout|no such host|context deadline exceeded'
+#
+# Go's HTTP client, which docker and syft both use, names its own timeout in two
+# ways: "context deadline exceeded (Client.Timeout exceeded while awaiting
+# headers)" and "net/http: request canceled (Client.Timeout exceeded while
+# awaiting headers)". Docker Hub's token service answered a Common Test pull with
+# each in turn (fb78dc289a, 2026-10-09); only the first matched, so the pull gave
+# up with an attempt still left. "Client.Timeout exceeded" covers both.
+RETRYABLE_REGISTRY_READ_ERRORS='TOOMANYREQUESTS|too many requests|429 Too Many Requests|rate limit|500 Internal Server Error|502 Bad Gateway|503 Service Unavailable|504 Gateway Time|connection reset|connection refused|unexpected EOF|i/o timeout|TLS handshake timeout|no such host|context deadline exceeded|Client.Timeout exceeded'
 
 # Seconds to wait before each retry, space separated; the count also sets the
 # attempt limit (delays + 1), and an empty value disables retrying altogether.

@@ -5,11 +5,15 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   HTTP_RETRIES_ON_FAILURE_DESCRIPTION,
   NETWORK_RETRIES_ON_FAILURE_DESCRIPTION,
+  NTP_REQUEST_TIMEOUT_DESCRIPTION,
+  NTP_RETRIES_ON_FAILURE_DESCRIPTION,
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
   REQUEST_TIMEOUT_DESCRIPTION,
   SSL_RETRIES_ON_FAILURE_DESCRIPTION,
+  getRequestTimeoutField,
   getRetriesOnFailureDescription,
 } from "../../FeatureSet/Dashboard/src/Utils/MonitorRetryHelpText";
+import { DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 
 /*
  * The "Retries on Failure" field on probe-based monitor steps.
@@ -90,18 +94,24 @@ const VARIANT_BY_MONITOR_TYPE: Array<{
     monitorType: MonitorType.SSLCertificate,
     description: SSL_RETRIES_ON_FAILURE_DESCRIPTION,
   },
+  {
+    monitorType: MonitorType.NTP,
+    description: NTP_RETRIES_ON_FAILURE_DESCRIPTION,
+  },
 ];
 
 const DESCRIPTIONS: Array<string> = [
   HTTP_RETRIES_ON_FAILURE_DESCRIPTION,
   NETWORK_RETRIES_ON_FAILURE_DESCRIPTION,
   SSL_RETRIES_ON_FAILURE_DESCRIPTION,
+  NTP_RETRIES_ON_FAILURE_DESCRIPTION,
 ];
 
 const TRANSLATED_TEXT: Array<string> = [
   ...DESCRIPTIONS,
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
   REQUEST_TIMEOUT_DESCRIPTION,
+  NTP_REQUEST_TIMEOUT_DESCRIPTION,
 ];
 
 /*
@@ -157,7 +167,7 @@ describe("getRetriesOnFailureDescription", () => {
     },
   );
 
-  test("the three variants are distinct strings", () => {
+  test("the four variants are distinct strings", () => {
     expect(new Set(DESCRIPTIONS).size).toBe(DESCRIPTIONS.length);
   });
 });
@@ -226,6 +236,21 @@ describe("Retries on Failure descriptions", () => {
     expect(SSL_RETRIES_ON_FAILURE_DESCRIPTION).not.toContain("10 seconds");
   });
 
+  /*
+   * The NTP check retries silence and errors, never an answer: a
+   * kiss-o'-death or an unsynchronized server has answered, and RATE asks
+   * for fewer requests (NtpMonitor.ts). It has no slow-response re-check.
+   */
+  test("NTP retries no reply, a refused port and a failed lookup, and never re-asks a server that answered", () => {
+    expect(NTP_RETRIES_ON_FAILURE_DESCRIPTION).toContain(
+      "No reply, a refused port and a failed lookup are retried, each with a new request.",
+    );
+    expect(NTP_RETRIES_ON_FAILURE_DESCRIPTION).toContain(
+      "A server that answers is never asked again, even when it answers that it is not synchronized.",
+    );
+    expect(NTP_RETRIES_ON_FAILURE_DESCRIPTION).not.toContain("10 seconds");
+  });
+
   test("no variant leaks probe internals into the help text", () => {
     for (const description of DESCRIPTIONS) {
       expect(description).not.toContain("EgressGuard");
@@ -245,6 +270,33 @@ describe("Request timeout description", () => {
     expect(REQUEST_TIMEOUT_DESCRIPTION).toContain("Defaults to 60 seconds");
     expect(REQUEST_TIMEOUT_DESCRIPTION).toContain("Maximum is 60 seconds");
   });
+
+  test("NTP says, and starts the field on, the 5 seconds the probe really waits", () => {
+    expect(getRequestTimeoutField(MonitorType.NTP)).toEqual({
+      description: NTP_REQUEST_TIMEOUT_DESCRIPTION,
+      defaultSeconds: DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS / 1000,
+    });
+    expect(DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS).toBe(5000);
+    expect(NTP_REQUEST_TIMEOUT_DESCRIPTION).toContain("Defaults to 5 seconds");
+    expect(NTP_REQUEST_TIMEOUT_DESCRIPTION).toContain("Maximum is 60 seconds");
+    expect(NTP_REQUEST_TIMEOUT_DESCRIPTION).toContain(
+      "Each retry gets a new timeout",
+    );
+  });
+
+  test.each([
+    MonitorType.Website,
+    MonitorType.API,
+    MonitorType.Ping,
+    MonitorType.IP,
+    MonitorType.Port,
+    MonitorType.SSLCertificate,
+  ])("%s keeps the 60-second timeout field", (monitorType: MonitorType) => {
+    expect(getRequestTimeoutField(monitorType)).toEqual({
+      description: REQUEST_TIMEOUT_DESCRIPTION,
+      defaultSeconds: 60,
+    });
+  });
 });
 
 describe("Monitor step form", () => {
@@ -262,9 +314,14 @@ describe("Monitor step form", () => {
     );
   });
 
-  test("the timeout field uses the translated per-attempt description", () => {
-    expect(source).toContain("description={REQUEST_TIMEOUT_DESCRIPTION}");
+  test("the timeout field takes its description and default from the helper", () => {
+    expect(source).toMatch(
+      /getRequestTimeoutField\(\s*props\.monitorType,?\s*\)/,
+    );
+    expect(source).toContain("description={requestTimeoutField.description}");
+    expect(source).toContain("requestTimeoutField.defaultSeconds.toString()");
     expect(source).not.toContain(REQUEST_TIMEOUT_DESCRIPTION);
+    expect(source).not.toContain(NTP_REQUEST_TIMEOUT_DESCRIPTION);
   });
 
   test("no description is inlined in the form", () => {

@@ -26,7 +26,7 @@
 
 ## 探测器与间隔
 
-由探测器检查的监视器以这一步结束：Website、API、Ping、IP、Port、SSL Certificate、DNS、DNSSEC、Domain、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code 和 External Status Page。**探测器** 是运行检查的机器，您项目的默认探测器已预先选中。**监控间隔** 从 **每 5 分钟** 开始。点击 **创建监视器**。
+由探测器检查的监视器以这一步结束：Website、API、Ping、IP、Port、SSL Certificate、DNS、DNSSEC、NTP、Domain、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code 和 External Status Page。**探测器** 是运行检查的机器，您项目的默认探测器已预先选中。**监控间隔** 从 **每 5 分钟** 开始。点击 **创建监视器**。
 
 其他所有类型都在 **标准** 这一步创建。
 

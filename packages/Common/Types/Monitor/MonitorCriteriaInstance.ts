@@ -19,6 +19,7 @@ import IncidentGroupingConfig, {
   IncidentGroupingConfigSchema,
 } from "./IncomingMonitor/IncidentGroupingConfig";
 import MonitorType from "./MonitorType";
+import { DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS } from "./NtpMonitor/NtpMonitorUtil";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
@@ -729,6 +730,50 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.NTP) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      /*
+       * Up means serving good time, not merely answering: the server replied,
+       * at stratum 1 to 15 without the leap alarm, and its clock is within
+       * DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS of the probe's. The offline
+       * criteria is the exact complement, so every check lands in one of the
+       * two.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.NtpIsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpIsSynchronized,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpClockOffset,
+            filterType: FilterType.LessThan,
+            value: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} serves good time`,
+        description: `This criteria checks if the ${arg.monitorName} time server answers, is synchronized, and its clock is within ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms of the probe's`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.ExternalStatusPage) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -1186,6 +1231,62 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ],
         name: `Check if ${arg.monitorName} DNSSEC chain is broken`,
         description: `This criteria checks if the ${arg.monitorName} DNSSEC chain is broken`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.NTP) {
+      /*
+       * Named for the outcome rather than "is offline": a server that
+       * answers with stratum 16, or two seconds off, is up and still breaks
+       * every clock that follows it. The incident's root cause says which of
+       * the three it was.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.NtpIsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpIsSynchronized,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpClockOffset,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} is not serving good time`,
+            description: `${arg.monitorName} did not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: `${arg.monitorName} is not serving good time`,
+            description: `${arg.monitorName} did not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        name: `Check if ${arg.monitorName} is not serving good time`,
+        description: `This criteria checks if the ${arg.monitorName} time server does not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's`,
       };
     }
 

@@ -551,7 +551,12 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
-  public setPort(monitorDestinationPort: Port): MonitorStep {
+  /*
+   * `undefined` clears it, which an NTP step needs: its port is optional,
+   * and an emptied field must go back to the default (123) rather than keep
+   * the port typed before.
+   */
+  public setPort(monitorDestinationPort: Port | undefined): MonitorStep {
     this.data!.monitorDestinationPort = monitorDestinationPort;
     return this;
   }
@@ -880,6 +885,29 @@ export default class MonitorStep extends DatabaseProperty {
       !value.data.monitorDestinationPort
     ) {
       return "Port is required";
+    }
+
+    /*
+     * An NTP step needs only the server. Its port is optional - 123 when
+     * empty - but one that is set has to be a port a request can go to.
+     */
+    if (monitorType === MonitorType.NTP) {
+      if (!value.data.monitorDestination) {
+        return "NTP server is required";
+      }
+
+      if (value.data.monitorDestination instanceof URL) {
+        return "Enter the NTP server as a host name or IP address, without a scheme like udp://";
+      }
+
+      const port: Port | undefined = value.data.monitorDestinationPort;
+
+      if (
+        port &&
+        (port.toNumber() < 1 || port.toNumber() > 65535 || !port.toNumber())
+      ) {
+        return "NTP port must be a number from 1 to 65535";
+      }
     }
 
     /*

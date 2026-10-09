@@ -26,7 +26,7 @@
 
 ## प्रोब और अंतराल
 
-जिन मॉनिटर की जाँच प्रोब करते हैं वे इसी चरण पर खत्म होते हैं: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code और External Status Page। **प्रोब** वे मशीनें हैं जो जाँच चलाती हैं, और आपके प्रोजेक्ट के डिफ़ॉल्ट प्रोब पहले से चुने होते हैं। **निगरानी अंतराल** **हर 5 मिनट** से शुरू होता है। **मॉनिटर बनाएं** पर क्लिक करें।
+जिन मॉनिटर की जाँच प्रोब करते हैं वे इसी चरण पर खत्म होते हैं: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code और External Status Page। **प्रोब** वे मशीनें हैं जो जाँच चलाती हैं, और आपके प्रोजेक्ट के डिफ़ॉल्ट प्रोब पहले से चुने होते हैं। **निगरानी अंतराल** **हर 5 मिनट** से शुरू होता है। **मॉनिटर बनाएं** पर क्लिक करें।
 
 बाकी सभी प्रकार **मानदंड** चरण से बनाए जाते हैं।
 

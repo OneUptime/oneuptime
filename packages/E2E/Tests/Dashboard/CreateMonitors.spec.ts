@@ -120,6 +120,18 @@ const recipes: Array<MonitorTypeRecipe> = [
       await fillDestination({ page, value: "https://example.com" });
     },
   },
+  /*
+   * NTP asks only for the time server: the port (123), the timeout and the
+   * retries wait folded under More fields.
+   */
+  {
+    label: "NTP",
+    cardValue: "NTP",
+    hasInterval: true,
+    fillCriteria: async ({ page }: { page: Page }) => {
+      await fillDestination({ page, value: "time.example.com" });
+    },
+  },
 
   // Probeable types with placeholder-labelled step forms + interval.
   {

@@ -4,12 +4,14 @@
     "untranslated": 17039
   },
   "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
     "In Huntress",
     "Offline",
     "Pattern {{number}}: {{problem}}",
     "Report",
     "Runbook: {{name}}",
     "Runner",
+    "Stratum",
     "VMware vCenter",
     "cluster",
     "host",

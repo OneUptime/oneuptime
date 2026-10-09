@@ -166,6 +166,12 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
         monitorDestination: new Hostname("db.example.com"),
         monitorDestinationPort: new Port(5432),
       });
+    case MonitorType.NTP:
+      return buildStep({
+        monitorDestination: new Hostname("time.example.com"),
+        requestTimeoutInMs: 2000,
+        retryCount: 1,
+      });
     case MonitorType.SSLCertificate:
       return buildStep({
         monitorDestination: URL.fromString("https://secure.example.com"),
@@ -578,6 +584,60 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
     expect(getRow(MonitorType.Port, "monitorDestinationPort")?.value).toBe(
       "5432",
     );
+  });
+
+  it("shows an NTP monitor's server, its port, timeout and retries", () => {
+    expect(
+      getRows(MonitorType.NTP).map((row: MonitorStepViewRow) => {
+        return [row.key, row.title, row.value];
+      }),
+    ).toEqual([
+      ["monitorDestination", "NTP Server", "time.example.com"],
+      ["monitorDestinationPort", "Port", "123"],
+      ["requestTimeoutInMs", "Request Timeout", "2000 ms"],
+      ["retryCount", "Retry Count", 1],
+    ]);
+  });
+
+  it("an NTP step left at its defaults shows the port and timeout the probe uses", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        monitorDestination: new IP("192.0.2.10"),
+      }),
+      monitorType: MonitorType.NTP,
+    });
+
+    const byKey: (key: string) => MonitorStepViewRow | undefined = (
+      key: string,
+    ): MonitorStepViewRow | undefined => {
+      return rows.find((row: MonitorStepViewRow) => {
+        return row.key === key;
+      });
+    };
+
+    expect(byKey("monitorDestination")?.value).toBe("192.0.2.10");
+    expect(byKey("monitorDestinationPort")?.value).toBe("123");
+    expect(byKey("requestTimeoutInMs")?.value).toBe("5000 ms");
+    expect(byKey("retryCount")).toMatchObject({
+      value: undefined,
+      placeholder: "Probe default (usually 3)",
+    });
+  });
+
+  it("an NTP step with its own port shows that port", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        monitorDestination: new Hostname("time.example.com"),
+        monitorDestinationPort: new Port(1123),
+      }),
+      monitorType: MonitorType.NTP,
+    });
+
+    expect(
+      rows.find((row: MonitorStepViewRow) => {
+        return row.key === "monitorDestinationPort";
+      })?.value,
+    ).toBe("1123");
   });
 
   it("shows the SSL certificate monitor's destination, which used to render nothing", () => {

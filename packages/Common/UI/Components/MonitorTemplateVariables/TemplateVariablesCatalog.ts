@@ -729,6 +729,96 @@ export default class TemplateVariablesCatalog {
           ],
         };
 
+      case MonitorType.NTP:
+        return {
+          title: "NTP",
+          variables: [
+            {
+              key: "isOnline",
+              description: "True if the time server answered.",
+              example: "true",
+            },
+            {
+              key: "isSynchronized",
+              description:
+                "True if it answered at stratum 1 to 15 without the leap alarm.",
+              example: "false",
+            },
+            {
+              key: "stratum",
+              description:
+                "Stratum the server reported: 1 is a primary server, 16 is not synchronized, 0 is a kiss-o'-death.",
+              example: "2",
+            },
+            {
+              key: "clockOffsetInMs",
+              description:
+                "How far the server's clock is from the probe's, in milliseconds. Positive is ahead, negative behind.",
+              example: "-12.4",
+            },
+            {
+              key: "referenceId",
+              description:
+                "What the server synchronizes to: a source such as GPS at stratum 1, or its upstream server's address.",
+              example: "GPS",
+            },
+            {
+              key: "leapIndicator",
+              description:
+                "0 to 2 is fine; 3 means the server says its clock is not synchronized.",
+              example: "0",
+            },
+            {
+              key: "kissCode",
+              description:
+                "With stratum 0, the kiss code the server sent instead of the time.",
+              example: "RATE",
+            },
+            {
+              key: "responseTimeInMs",
+              description: "Time from the request to the reply.",
+              example: "18",
+            },
+            {
+              key: "roundTripDelayInMs",
+              description:
+                "Network round trip of the exchange, without the server's own time.",
+            },
+            {
+              key: "rootDelayInMs",
+              description: "Round trip from the server to its reference clock.",
+            },
+            {
+              key: "rootDispersionInMs",
+              description: "The server's own estimate of its maximum error.",
+            },
+            {
+              key: "serverTime",
+              description: "The server's time when it sent the reply.",
+              example: "2026-07-14T09:55:00.000Z",
+            },
+            {
+              key: "referenceTime",
+              description: "When the server's clock was last set or corrected.",
+            },
+            {
+              key: "serverAddress",
+              description: "The address the request went to.",
+              example: "192.0.2.10",
+            },
+            { key: "port", description: "The UDP port the request went to." },
+            {
+              key: "isTimeout",
+              description: "True if no reply came before the timeout.",
+            },
+            {
+              key: "failureCause",
+              description:
+                "Why the server did not answer, or is not synchronized.",
+            },
+          ],
+        };
+
       case MonitorType.Database:
         return {
           title: "Database Health",

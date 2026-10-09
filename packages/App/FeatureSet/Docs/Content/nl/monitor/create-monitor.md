@@ -26,7 +26,7 @@ Op deze stap wordt niets als ontbrekend gemarkeerd voordat u op **Volgende** kli
 
 ## Sondes en interval
 
-Monitors die door sondes worden gecontroleerd eindigen met deze stap: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code en External Status Page. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint op **Elke 5 minuten**. Klik op **Monitor maken**.
+Monitors die door sondes worden gecontroleerd eindigen met deze stap: Website, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domain, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code en External Status Page. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint op **Elke 5 minuten**. Klik op **Monitor maken**.
 
 Alle andere typen worden vanaf de stap **Criteria** gemaakt.
 

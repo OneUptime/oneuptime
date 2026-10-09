@@ -165,6 +165,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/dnssec-monitor",
       },
       {
+        title: "NTP Monitor",
+        url: "/docs/monitor/ntp-monitor",
+      },
+      {
         title: "SSL Certificate Monitor",
         url: "/docs/monitor/ssl-certificate-monitor",
       },

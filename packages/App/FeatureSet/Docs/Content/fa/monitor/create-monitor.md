@@ -26,7 +26,7 @@
 
 ## پراب‌ها و بازه
 
-مانیتورهایی که پراب‌ها بررسی می‌کنند با این مرحله تمام می‌شوند: Website، API، Ping، IP، Port، SSL Certificate، DNS، DNSSEC، Domain، SQL Query، Database Health، Synthetic Monitor، Custom JavaScript Code و External Status Page. **پراب‌ها** ماشین‌هایی هستند که بررسی‌ها را اجرا می‌کنند و پراب‌های پیش‌فرض پروژهٔ شما از قبل انتخاب شده‌اند. **بازه پایش** از **هر ۵ دقیقه** شروع می‌شود. روی **ساخت مانیتور** کلیک کنید.
+مانیتورهایی که پراب‌ها بررسی می‌کنند با این مرحله تمام می‌شوند: Website، API، Ping، IP، Port، SSL Certificate، DNS، DNSSEC، NTP، Domain، SQL Query، Database Health، Synthetic Monitor، Custom JavaScript Code و External Status Page. **پراب‌ها** ماشین‌هایی هستند که بررسی‌ها را اجرا می‌کنند و پراب‌های پیش‌فرض پروژهٔ شما از قبل انتخاب شده‌اند. **بازه پایش** از **هر ۵ دقیقه** شروع می‌شود. روی **ساخت مانیتور** کلیک کنید.
 
 همهٔ نوع‌های دیگر از مرحلهٔ **معیارها** ساخته می‌شوند.
 

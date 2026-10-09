@@ -32,6 +32,7 @@ export const MonitorMoreFieldsTitles: {
   doNotFollowRedirects: string;
   allowSelfSignedCertificates: string;
   useClientCertificate: string;
+  port: string;
   requestTimeout: string;
   retries: string;
   retryCountOnError: string;
@@ -48,6 +49,7 @@ export const MonitorMoreFieldsTitles: {
   doNotFollowRedirects: translationKey("Do not follow redirects"),
   allowSelfSignedCertificates: translationKey("Allow self-signed certificates"),
   useClientCertificate: translationKey("Use client certificate (mTLS)"),
+  port: translationKey("Port"),
   requestTimeout: translationKey("Request Timeout (seconds)"),
   retries: translationKey("Retries on Failure"),
   retryCountOnError: translationKey("Retry Count on Error"),
@@ -177,6 +179,20 @@ export const getMonitorStepMoreFieldsItems: GetMonitorStepMoreFieldsItemsFunctio
       case MonitorType.Port:
       case MonitorType.SSLCertificate:
         return getTimeoutAndRetryItems(step);
+      // An NTP server's port is optional (123), so it waits here too.
+      case MonitorType.NTP: {
+        const port: string | undefined =
+          step.data?.monitorDestinationPort?.toString();
+
+        return [
+          foldedSectionItem(MonitorMoreFieldsTitles.port, {
+            key: "monitorDestinationPort",
+            isSet: Boolean(port),
+            value: port,
+          }),
+          ...getTimeoutAndRetryItems(step),
+        ];
+      }
       case MonitorType.SyntheticMonitor: {
         const retries: number | undefined = step.data?.retryCountOnError;
 
