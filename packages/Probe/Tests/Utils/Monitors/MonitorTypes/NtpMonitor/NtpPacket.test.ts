@@ -521,6 +521,9 @@ describe("NtpPacket", () => {
       expect(facts.roundTripDelayInMs).toBeUndefined();
       expect(facts.serverTime).toBeUndefined();
       expect(facts.isSynchronized).toBe(false);
+      // A kiss's zero root delay and dispersion are no error bound.
+      expect(facts.rootDelayInMs).toBeUndefined();
+      expect(facts.rootDispersionInMs).toBeUndefined();
     });
 
     test("a DENY kiss with zero timestamps carries no time either", () => {
@@ -558,6 +561,7 @@ describe("NtpPacket", () => {
       expect(facts.hasUsableTime).toBe(true);
       expect(facts.clockOffsetInMs).toBeCloseTo(3000.5, 3);
       expect(facts.isSynchronized).toBe(false);
+      expect(facts.rootDispersionInMs).toBeUndefined();
     });
 
     test("stratum 16 with the leap alarm is not synchronized", () => {
@@ -577,6 +581,9 @@ describe("NtpPacket", () => {
       expect(facts.isSynchronized).toBe(false);
       expect(facts.kissCode).toBeUndefined();
       expect(facts.referenceId).toBe("INIT");
+      // An unsynchronized server's own error bound is still worth showing.
+      expect(facts.rootDispersionInMs).toBeDefined();
+      expect(facts.rootDelayInMs).toBeDefined();
     });
 
     test("the leap alarm alone makes a stratum 2 server unsynchronized", () => {

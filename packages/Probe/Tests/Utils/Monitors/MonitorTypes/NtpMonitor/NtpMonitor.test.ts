@@ -256,6 +256,9 @@ describe("NtpMonitor.query against a server that answers without good time", () 
     expect(response!.stratum).toBe(0);
     expect(response!.kissCode).toBe("RATE");
     expect(response!.clockOffsetInMs).toBeUndefined();
+    // Not a 0 ms error bound on the chart: a kiss describes no clock.
+    expect(response!.rootDelayInMs).toBeUndefined();
+    expect(response!.rootDispersionInMs).toBeUndefined();
     expect(response!.failureCause).toContain("kiss-o'-death (RATE)");
     expect(response!.failureCause).toContain("rate-limiting this probe");
   });

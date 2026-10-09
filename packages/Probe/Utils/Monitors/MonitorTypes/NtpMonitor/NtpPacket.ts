@@ -94,8 +94,9 @@ export interface NtpReplyFacts {
   referenceId: string;
   pollIntervalInSeconds: number;
   precisionInMs: number;
-  rootDelayInMs: number;
-  rootDispersionInMs: number;
+  // Undefined at stratum 0, where they describe no reference clock.
+  rootDelayInMs: number | undefined;
+  rootDispersionInMs: number | undefined;
   referenceTime: string | undefined;
   serverTime: string | undefined;
   /*
@@ -289,6 +290,14 @@ export default class NtpPacket {
       reply.referenceTimestamp,
     );
 
+    /*
+     * Stratum 0 is a kiss-o'-death, or a server that does not know its own
+     * state. Its root delay and dispersion describe no reference clock -
+     * a kiss usually sends zeros - so they are not reported: a 0 ms error
+     * bound would read as a perfect clock on the chart and to a criteria.
+     */
+    const hasReference: boolean = reply.stratum !== 0;
+
     return {
       version: reply.version,
       leapIndicator: reply.leapIndicator,
@@ -300,8 +309,8 @@ export default class NtpPacket {
       ),
       pollIntervalInSeconds: Math.pow(2, reply.poll),
       precisionInMs: Math.pow(2, reply.precision) * 1000,
-      rootDelayInMs: reply.rootDelayInMs,
-      rootDispersionInMs: reply.rootDispersionInMs,
+      rootDelayInMs: hasReference ? reply.rootDelayInMs : undefined,
+      rootDispersionInMs: hasReference ? reply.rootDispersionInMs : undefined,
       referenceTime:
         referenceMs === undefined
           ? undefined

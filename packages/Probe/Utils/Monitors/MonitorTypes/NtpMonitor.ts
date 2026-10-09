@@ -788,8 +788,14 @@ export default class NtpMonitor {
       referenceId: facts.referenceId || undefined,
       pollIntervalInSeconds: facts.pollIntervalInSeconds,
       precisionInMs: facts.precisionInMs,
-      rootDelayInMs: roundMs(facts.rootDelayInMs),
-      rootDispersionInMs: roundMs(facts.rootDispersionInMs),
+      rootDelayInMs:
+        facts.rootDelayInMs === undefined
+          ? undefined
+          : roundMs(facts.rootDelayInMs),
+      rootDispersionInMs:
+        facts.rootDispersionInMs === undefined
+          ? undefined
+          : roundMs(facts.rootDispersionInMs),
       referenceTime: facts.referenceTime,
       serverTime: facts.serverTime,
       clockOffsetInMs:
