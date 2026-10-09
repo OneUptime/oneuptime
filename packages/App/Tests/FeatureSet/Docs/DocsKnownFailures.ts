@@ -183,22 +183,22 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: EVERY_TRANSLATION,
   },
   "incidents/declaring-incidents": {
-    sameShape: ["zh-CN", "zh-TW", "hi"],
+    sameShape: ["zh-TW", "hi"],
   },
   "incidents/index": {
-    sameShape: ["zh-CN", "zh-TW", "hi"],
+    sameShape: ["zh-TW", "hi"],
   },
   "incidents/linked-alerts": {
-    translated: ["zh-CN", "zh-TW", "hi"],
+    translated: ["zh-TW", "hi"],
   },
   "incidents/notes-owners-and-feed": {
-    sameShape: ["zh-CN", "zh-TW", "hi"],
+    sameShape: ["zh-TW", "hi"],
   },
   "incidents/settings": {
-    sameShape: ["zh-CN", "zh-TW", "hi"],
+    sameShape: ["zh-TW", "hi"],
   },
   "incidents/states-and-severities": {
-    sameShape: ["zh-CN", "zh-TW", "hi"],
+    sameShape: ["zh-TW", "hi"],
   },
   "installation/docker-compose": {
     sameShape: EVERY_TRANSLATION,
