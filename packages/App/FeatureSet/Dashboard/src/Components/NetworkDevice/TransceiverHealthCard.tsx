@@ -245,7 +245,7 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
             )}
           </ul>
           <div
-            className="-mx-1 hidden overflow-x-auto md:block"
+            className="-mx-1 max-md:hidden overflow-x-auto md:block"
             data-testid="transceiver-table"
           >
             <table className="min-w-full divide-y divide-gray-100 text-sm">
@@ -267,7 +267,7 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
                           key={kind}
                           className={`py-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-gray-500 ${
                             TRANSCEIVER_READINGS_HIDDEN_ON_MOBILE.includes(kind)
-                              ? "hidden md:table-cell"
+                              ? "max-md:hidden md:table-cell"
                               : ""
                           }`}
                         >
@@ -440,7 +440,7 @@ const TransceiverRow: FunctionComponent<RowProps> = (
               key={kind}
               className={`py-2.5 pr-4 ${
                 TRANSCEIVER_READINGS_HIDDEN_ON_MOBILE.includes(kind)
-                  ? "hidden md:table-cell"
+                  ? "max-md:hidden md:table-cell"
                   : ""
               }`}
             >
