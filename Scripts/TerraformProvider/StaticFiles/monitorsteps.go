@@ -109,11 +109,17 @@ var monitorStepsNoDataPolicyValues = []string{
 	"Trigger",
 }
 
-// CheckOn enum (Common/Types/Monitor/CriteriaFilter.ts).
+// CheckOn enum (Common/Types/Monitor/CriteriaFilter.ts), every value in
+// declaration order. Common/Tests/Utils/DeveloperDocs/TerraformCheckOnValues.test.ts
+// fails when a value the API accepts is missing here, so a filter on a new
+// check (NTP, SNMP tables and transceivers, Port timings, ...) is never
+// refused at plan time.
 var monitorStepsCheckOnValues = []string{
 	"Response Time (in ms)",
 	"Packet Loss (in %)",
 	"Jitter (in ms)",
+	"Port DNS Lookup Time (in ms)",
+	"Port TCP Connect Time (in ms)",
 	"Response Status Code",
 	"Response Header",
 	"Response Header Value",
@@ -148,6 +154,7 @@ var monitorStepsCheckOnValues = []string{
 	"Screen Size",
 	"Browser Type",
 	"Log Count",
+	"Security Event Count",
 	"Span Count",
 	"Exception Count",
 	"Profile Count",
@@ -161,10 +168,20 @@ var monitorStepsCheckOnValues = []string{
 	"SNMP OID Exists",
 	"SNMP Response Time (in ms)",
 	"SNMP Device Is Online",
+	"SNMP Walk Is Succeeding",
 	"SNMP Interface Is Down",
 	"SNMP Trap Received (Trap OID)",
 	"SNMP Interface Utilization (in %)",
 	"SNMP Interface Errors (per second)",
+	"SNMP Table Value",
+	"SNMP Table Row Count",
+	"SNMP Table Row Is Unhealthy",
+	"SNMP Trap Varbind Value",
+	"SNMP Transceiver Not Detected",
+	"SNMP Transceiver Past Alarm Threshold",
+	"SNMP Transceiver Past Warning Threshold",
+	"SNMP Transceiver Reading",
+	"SNMP Transceiver RX Power Drop (in dB)",
 	"DNS Response Time (in ms)",
 	"DNS Is Online",
 	"DNS Record Value",
@@ -181,6 +198,12 @@ var monitorStepsCheckOnValues = []string{
 	"DNSSEC Signature Expires In Days",
 	"DNSSEC Resolver Consensus (AD Flag)",
 	"DNSSEC Nameservers Are Consistent",
+	"NTP Is Online",
+	"NTP Is Synchronized",
+	"NTP Stratum",
+	"NTP Clock Offset (in ms)",
+	"NTP Response Time (in ms)",
+	"NTP Root Dispersion (in ms)",
 	"SQL Is Online",
 	"SQL Query Row Count",
 	"SQL Query Scalar Value",

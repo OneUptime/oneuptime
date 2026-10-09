@@ -71,6 +71,14 @@ export const getMonitorDestinationFieldCopy: (
         ),
         placeholder: "example.com",
       };
+    case MonitorType.NTP:
+      return {
+        title: translationKey("NTP Server"),
+        description: translationKey(
+          "The time server to check, like time.example.com or 192.168.1.10.",
+        ),
+        placeholder: "time.example.com",
+      };
     default:
       return null;
   }
@@ -79,4 +87,9 @@ export const getMonitorDestinationFieldCopy: (
 // The Port monitor's second field.
 export const MONITOR_PORT_FIELD_DESCRIPTION: string = translationKey(
   "The TCP or UDP port to check, like 443.",
+);
+
+// The NTP monitor's port, under More fields.
+export const NTP_PORT_FIELD_DESCRIPTION: string = translationKey(
+  "The UDP port the server answers NTP on. Leave it empty for the standard port, 123.",
 );

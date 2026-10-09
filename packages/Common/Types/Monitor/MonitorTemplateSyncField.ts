@@ -34,6 +34,7 @@ export default class MonitorTemplateSyncFieldUtil {
         MonitorType.IP,
         MonitorType.Port,
         MonitorType.SSLCertificate,
+        MonitorType.NTP,
       ].includes(monitorType)
     ) {
       add("monitorDestination", "Monitor destination");
@@ -61,7 +62,7 @@ export default class MonitorTemplateSyncFieldUtil {
       );
     }
 
-    if (monitorType === MonitorType.Port) {
+    if ([MonitorType.Port, MonitorType.NTP].includes(monitorType)) {
       add("monitorDestinationPort", "Port");
     }
 

@@ -23,6 +23,8 @@ import { getAllDatabaseMetrics } from "../../../Types/Monitor/DatabaseMetricCata
 import DatabaseMonitorResponse from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import HttpPhaseTimings from "../../../Types/Monitor/HttpPhaseTimings";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
+import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import PortMonitorTimings from "../../../Types/Monitor/PortMonitor/PortMonitorTimings";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
@@ -1244,6 +1246,72 @@ export default class MonitorMetricUtil {
           value: phaseMetric.value,
           description: phaseMetric.description,
           unit: "ms",
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+      }
+    }
+
+    const ntpResponse: NtpMonitorResponse | undefined = (
+      data.dataToProcess as ProbeMonitorResponse
+    ).ntpResponse;
+
+    /*
+     * Only an answer has a clock, a stratum and a synchronized state, so a
+     * check that got no reply writes none of them: a gap in the chart,
+     * and "no data" for an over-time criteria, rather than a zero offset
+     * that would read as a perfect clock.
+     */
+    if (ntpResponse && ntpResponse.isOnline) {
+      const extraAttributes: JSONObject = {
+        probeId: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString(),
+      };
+
+      const ntpMetrics: Array<{
+        metricName: MonitorMetricType;
+        value: number | undefined;
+        description: string;
+        unit: string;
+      }> = [
+        {
+          metricName: MonitorMetricType.NtpClockOffset,
+          value: NtpMonitorUtil.getAbsoluteClockOffsetInMs(ntpResponse),
+          description: CheckOn.NtpClockOffset + " of this time server",
+          unit: "ms",
+        },
+        {
+          metricName: MonitorMetricType.NtpStratum,
+          value: NtpMonitorUtil.getEffectiveStratum(ntpResponse.stratum),
+          description: CheckOn.NtpStratum + " of this time server",
+          unit: "",
+        },
+        {
+          metricName: MonitorMetricType.NtpIsSynchronized,
+          value: ntpResponse.isSynchronized ? 1 : 0,
+          description: CheckOn.NtpIsSynchronized + " status of this time server",
+          unit: "",
+        },
+        {
+          metricName: MonitorMetricType.NtpRootDispersion,
+          value: ntpResponse.rootDispersionInMs,
+          description: CheckOn.NtpRootDispersion + " of this time server",
+          unit: "ms",
+        },
+      ];
+
+      for (const ntpMetric of ntpMetrics) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: ntpMetric.metricName,
+          value: ntpMetric.value,
+          description: ntpMetric.description,
+          unit: ntpMetric.unit,
           extraAttributes: extraAttributes,
           metricRows: metricRows,
           metricNameServiceNameMap: metricNameServiceNameMap,
