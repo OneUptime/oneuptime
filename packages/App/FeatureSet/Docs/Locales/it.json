@@ -227,6 +227,7 @@
     "Prometheus Alertmanager": "Prometheus Alertmanager",
     "Grafana": "Grafana",
     "Datadog": "Datadog",
+    "Huntress": "Huntress",
     "GitHub": "GitHub",
     "GitLab": "GitLab",
     "Discord": "Discord",

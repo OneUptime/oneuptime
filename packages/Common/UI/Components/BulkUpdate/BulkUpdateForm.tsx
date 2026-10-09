@@ -9,7 +9,7 @@ import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import MoreMenuDivider from "../MoreMenu/Divider";
 import ProgressBar, { ProgressBarSize } from "../ProgressBar/ProgressBar";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
-import { Green, Red } from "../../../Types/BrandColors";
+import { Gray500, Green, Red } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -41,6 +41,17 @@ export const BULK_FAILED_COUNT: PluralTemplate = {
   other: "{{count}} {{itemsName}} failed",
 };
 
+/*
+ * The third outcome: items an action looked at and left alone on purpose -
+ * a device nothing polls, one already in the state asked for. Neither
+ * "succeeded" (nothing was done) nor "failed" (nothing went wrong), so it is
+ * a list of its own, each item with the reason it was left.
+ */
+export const BULK_UNCHANGED_COUNT: PluralTemplate = {
+  one: "{{count}} {{itemName}} not changed",
+  other: "{{count}} {{itemsName}} not changed",
+};
+
 export const BULK_SELECTION_LIMIT: PluralTemplate = {
   one: "Selected {{selected}} of {{count}} matching {{itemName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
   other:
@@ -52,10 +63,21 @@ export interface BulkActionFailed<T extends GenericObject> {
   item: T;
 }
 
+// An item the action left alone on purpose, and why (BULK_UNCHANGED_COUNT).
+export interface BulkActionUnchanged<T extends GenericObject> {
+  reason: string | ReactElement;
+  item: T;
+}
+
 export interface ProgressInfo<T extends GenericObject> {
   inProgressItems: Array<T>;
   successItems: Array<T>;
   failed: Array<BulkActionFailed<T>>;
+  /*
+   * Optional: only an action that can leave an item alone on purpose reports
+   * it. Counted towards the progress bar like the other two.
+   */
+  unchanged?: Array<BulkActionUnchanged<T>> | undefined;
   totalItems: Array<T>;
 }
 
@@ -275,6 +297,9 @@ const BulkUpdateForm: <T extends GenericObject>(
   };
 
   const showProgressInfo: GetReactElementFunction = (): ReactElement => {
+    const unchangedItems: Array<BulkActionUnchanged<T>> =
+      progressInfo?.unchanged || [];
+
     if (actionInProgress && progressInfo) {
       return (
         <div className="space-y-4">
@@ -285,7 +310,9 @@ const BulkUpdateForm: <T extends GenericObject>(
           </p>
           <ProgressBar
             count={
-              progressInfo.successItems.length + progressInfo.failed.length
+              progressInfo.successItems.length +
+              progressInfo.failed.length +
+              unchangedItems.length
             }
             totalCount={progressInfo.totalItems.length}
             suffix={props.pluralLabel}
@@ -298,6 +325,7 @@ const BulkUpdateForm: <T extends GenericObject>(
     if (!actionInProgress && progressInfo) {
       const hasFailures: boolean = progressInfo.failed.length > 0;
       const hasSuccesses: boolean = progressInfo.successItems.length > 0;
+      const hasUnchanged: boolean = unchangedItems.length > 0;
 
       return (
         <div className="space-y-4">
@@ -346,37 +374,100 @@ const BulkUpdateForm: <T extends GenericObject>(
           </div>
 
           {/* Failure details */}
-          {hasFailures && (
-            <div className="rounded-lg border border-gray-200 overflow-hidden">
-              <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
-                {progressInfo.failed.map(
-                  (failedItem: BulkActionFailed<T>, i: number) => {
-                    const itemName: string = props.itemToString
-                      ? props.itemToString(failedItem.item)
-                      : "";
+          {hasFailures &&
+            renderItemList(
+              progressInfo.failed.map((failedItem: BulkActionFailed<T>) => {
+                return {
+                  item: failedItem.item,
+                  message: failedItem.failedMessage,
+                };
+              }),
+              "bulk-action-failed-items",
+            )}
 
-                    return (
-                      <div className="px-4 py-3 text-sm" key={i}>
-                        {itemName && (
-                          <div className="font-medium text-gray-900">
-                            {itemName}
-                          </div>
-                        )}
-                        <div className="text-gray-500 mt-0.5">
-                          {failedItem.failedMessage}
-                        </div>
-                      </div>
-                    );
+          {/*
+           * Left alone on purpose, after the failures: those are what to act
+           * on first. Its own count and its own list, so a reason never reads
+           * as an error.
+           */}
+          {hasUnchanged && (
+            <div
+              className="flex items-center rounded-lg bg-gray-50 p-3"
+              data-testid="bulk-action-unchanged-count"
+            >
+              <Icon
+                className="h-5 w-5 flex-shrink-0"
+                icon={IconProp.Info}
+                color={Gray500}
+              />
+              <div className="ml-2 text-sm font-medium text-gray-800">
+                {translator.translatePlural(
+                  BULK_UNCHANGED_COUNT,
+                  unchangedItems.length,
+                  {
+                    count: String(unchangedItems.length),
+                    itemName: itemTerm,
+                    itemsName: itemsTerm,
                   },
                 )}
               </div>
             </div>
           )}
+          {hasUnchanged &&
+            renderItemList(
+              unchangedItems.map((unchanged: BulkActionUnchanged<T>) => {
+                return {
+                  item: unchanged.item,
+                  message: unchanged.reason,
+                };
+              }),
+              "bulk-action-unchanged-items",
+            )}
         </div>
       );
     }
 
     return <></>;
+  };
+
+  /*
+   * One item per row: its name, then what happened to it. The failure list
+   * and the "not changed" list are the same list with different words.
+   */
+  type RenderItemListFunction = (
+    entries: Array<{ item: T; message: string | ReactElement }>,
+    dataTestId: string,
+  ) => ReactElement;
+
+  const renderItemList: RenderItemListFunction = (
+    entries: Array<{ item: T; message: string | ReactElement }>,
+    dataTestId: string,
+  ): ReactElement => {
+    return (
+      <div
+        className="rounded-lg border border-gray-200 overflow-hidden"
+        data-testid={dataTestId}
+      >
+        <div className="max-h-64 overflow-y-auto divide-y divide-gray-200">
+          {entries.map(
+            (entry: { item: T; message: string | ReactElement }, i: number) => {
+              const itemName: string = props.itemToString
+                ? props.itemToString(entry.item)
+                : "";
+
+              return (
+                <div className="px-4 py-3 text-sm" key={i}>
+                  {itemName && (
+                    <div className="font-medium text-gray-900">{itemName}</div>
+                  )}
+                  <div className="text-gray-500 mt-0.5">{entry.message}</div>
+                </div>
+              );
+            },
+          )}
+        </div>
+      </div>
+    );
   };
 
   const menuChildren: Array<ReactElement> = [];

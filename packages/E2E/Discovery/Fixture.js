@@ -4,6 +4,12 @@ import { BrowserRouter, useLocation, useNavigate, useParams } from "react-router
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import Discovery from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery";
+import Devices from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Devices";
+import ProbeUtil from "../../App/FeatureSet/Dashboard/src/Utils/Probe";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -70,8 +76,74 @@ const scans = [
   // A summary with diagnostics, which the two-line preview has to cut short.
   scan(7, { name: "Access Discovery — WBHQ Unit/Access Switches", cidr: "10.250.0.0/24", status: "Completed", scannedHostCount: 254, completedAt: new Date(), statusMessage: "Swept 254 hosts: 41 answered ICMP ping, 3 answered SNMP. 12 host(s) replied with an SNMP error rather than silence; most common: Authentication failure (incorrect password, community or key). Answered by credentials: Core v3 on 3. No host answered: Legacy v2c community." }),
 ];
+/*
+ * The Devices list, for what happens after an import: setting a site, a role
+ * or a vendor template on many devices at once. Answered only on the Devices
+ * route, so the Discovery page's own requests are answered exactly as before.
+ */
+const isDevicesRoute = () => window.location.pathname.endsWith("/network-devices");
+function networkSite(index, name) {
+  const item = new NetworkSite();
+  item._id = `50000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+  item.name = name;
+  return item;
+}
+const sites = [networkSite(1, "Contoso - Building A"), networkSite(2, "Contoso - Building B")];
+function deviceRole(index, name) {
+  const item = new NetworkDeviceRole();
+  item._id = `70000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+  item.name = name;
+  return item;
+}
+const roles = [deviceRole(1, "Core Switch"), deviceRole(2, "Access Switch")];
+const linkedTemplate = new NetworkDeviceOidTemplate();
+linkedTemplate._id = "80000000-0000-4000-8000-000000000001";
+linkedTemplate.name = "Cisco Catalyst 9300";
+const CNMATRIX_OID = "1.3.6.1.4.1.17713.24.1.2";
+function device(index, fields) {
+  const item = new NetworkDevice();
+  Object.assign(item, {
+    _id: `40000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    name: `cnmatrix-sw-${String(index).padStart(2, "0")}`,
+    hostname: `10.20.0.${index}`,
+    projectId: project.id,
+    isReachable: true,
+    isSnmpReachable: true,
+    lastPolledAt: new Date(),
+    lastSeenAt: new Date(),
+    lastSnmpSeenAt: new Date(),
+    monitoringMethod: "Probe",
+    probeId: probe.id,
+    probe,
+    isPollingEnabled: true,
+    interfacesUp: 26,
+    interfacesDown: 0,
+    vendor: "Cambium Networks",
+    deviceModel: "cnMatrix EX2028-P",
+    sysObjectId: CNMATRIX_OID,
+    sysDescr: "Cambium cnMatrix EX2028-P",
+    snmpOids: [],
+    snmpTables: [],
+    ...fields,
+  });
+  return item;
+}
+const devices = [
+  device(1, {}),
+  device(2, {}),
+  device(3, { siteId: sites[0].id, site: sites[0] }),
+  device(4, { name: "lab-sw-04", vendor: undefined, deviceModel: undefined, sysObjectId: undefined, sysDescr: undefined }),
+  device(5, { name: "dist-sw-05", vendor: "Cisco", deviceModel: "C9300-48P", sysObjectId: "1.3.6.1.4.1.9.1.2494", sysDescr: "Cisco IOS XE Software", oidTemplateId: linkedTemplate.id, oidTemplate: linkedTemplate }),
+  device(6, { name: "lobby-camera", vendor: undefined, deviceModel: undefined, sysObjectId: undefined, sysDescr: undefined, monitoringMethod: "Monitor", probeId: undefined, probe: undefined }),
+];
+const fixtureDevices = () => devices.map((item) => Object.assign(new NetworkDevice(), item));
 window.__discoveryFixture = {
   requests: [],
+  // Every device write and every device created by an import, in order.
+  updates: [],
+  creates: [],
+  // A device whose update the server refuses, by id; none unless a test sets it.
+  refuseUpdateOf: "",
   fail: false,
   stall: false,
   startAgain() {
@@ -105,12 +177,46 @@ ModelAPI.getList = async ({ modelType, query, requestOptions }) => {
       options: requestOptions?.apiRequestOptions,
     });
   }
+  if (isDevicesRoute() && modelType === NetworkDevice) {
+    const ids = query?._id?.values;
+    const data = Array.isArray(ids)
+      ? fixtureDevices().filter((item) => ids.map(String).includes(item._id))
+      : fixtureDevices();
+    return { data, count: data.length, skip: 0, limit: 10 };
+  }
+  if (isDevicesRoute() && modelType === NetworkSite) {
+    return { data: sites, count: sites.length, skip: 0, limit: 10 };
+  }
+  if (isDevicesRoute() && modelType === NetworkDeviceRole) {
+    return { data: roles, count: roles.length, skip: 0, limit: 10 };
+  }
   const data = modelType === NetworkDeviceDiscoveryScan
     ? scans.map((item) => Object.assign(new NetworkDeviceDiscoveryScan(), item))
     : modelType === Probe && !requestOptions?.overrideRequestUrl ? [probe] : [];
   return { data, count: data.length, skip: 0, limit: 10 };
 };
 ModelAPI.getItem = async ({ modelType, id }) => modelType === NetworkDeviceDiscoveryScan ? scans.find((item) => item.id.toString() === id.toString()) : null;
+const originalCount = ModelAPI.count.bind(ModelAPI);
+ModelAPI.count = async (args) => (isDevicesRoute() ? 0 : originalCount(args));
+ModelAPI.updateById = async ({ id, data }) => {
+  const write = { id: id.toString(), data: JSON.parse(JSON.stringify(data)), startedAt: performance.now(), endedAt: 0 };
+  window.__discoveryFixture.updates.push(write);
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  write.endedAt = performance.now();
+  if (write.id === window.__discoveryFixture.refuseUpdateOf) {
+    throw new Error("You do not have permission to edit this Network Device.");
+  }
+  return { data: {} };
+};
+ModelAPI.create = async ({ model }) => {
+  window.__discoveryFixture.creates.push({
+    hostname: model.hostname,
+    name: model.name,
+    autoApplyVendorHealthTemplate: model.autoApplyVendorHealthTemplate === true,
+  });
+  return { data: model };
+};
+ProbeUtil.getAllProbes = async () => [probe];
 ModelAPI.getCommonHeaders = () => ({});
 API.post = async () => ({ data: { data: [], count: 0 } });
 API.get = async () => ({ data: { data: [], count: 0 } });
@@ -125,7 +231,7 @@ function Fixture() {
       <span className="font-semibold text-gray-900">OneUptime <span className="ml-6 font-normal text-gray-500">Network operations</span></span>
       <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">Review workspace · Synthetic data</span>
     </div>
-    <main className="mx-auto max-w-screen-2xl p-6"><Discovery /></main>
+    <main className="mx-auto max-w-screen-2xl p-6">{isDevicesRoute() ? <Devices /> : <Discovery />}</main>
   </>;
 }
 createRoot(document.getElementById("root")).render(<BrowserRouter><Fixture /></BrowserRouter>);
