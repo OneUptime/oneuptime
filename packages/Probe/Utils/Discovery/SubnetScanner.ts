@@ -12,6 +12,7 @@ import NetbiosNameResolver, {
   NetbiosNameResolution,
 } from "./NetbiosNameResolver";
 import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
+import { normalizeSystemName } from "Common/Utils/NetworkDevice/DeviceNameRule";
 import {
   DiscoveredHostNetbiosStatus,
   DiscoveredHostReverseDnsStatus,
@@ -42,14 +43,15 @@ export interface DiscoveredHost {
    */
   dnsHostname?: string | undefined;
   /*
-   * The host's NetBIOS name, lower-cased, when the scan asked for one and the
-   * host answered (OneUptime issue #3677).
+   * The host's NetBIOS name, in the case the host reported it, when the scan
+   * asked for one and the host answered (OneUptime issues #3677, #4518).
    *
-   * Only ever looked up for hosts left with neither a sysName nor a
-   * dnsHostname, only on scans that opted in, only for private addresses, and
-   * never by a global probe — see attachNetbiosNames. SELF-REPORTED by the host
-   * and already normalised by NetbiosNameUtil.normalizeNetbiosName, which every
-   * reader applies again.
+   * Only ever looked up for hosts with no usable sysName — whether or not
+   * reverse DNS named them, since the NetBIOS name is the host's own and
+   * names it ahead of its PTR record — only on scans that opted in, only for
+   * private addresses, and never by a global probe — see attachNetbiosNames.
+   * SELF-REPORTED by the host and already normalised by
+   * NetbiosNameUtil.normalizeNetbiosName, which every reader applies again.
    *
    * The key is ABSENT, not undefined, whenever no name was found, so every
    * host literal written before this field existed still describes the same
@@ -337,19 +339,22 @@ export interface ReverseDnsNamingOutcome {
  * this lookup can stop early: the host cap, the wall-clock budget, and a
  * socket that failed.
  *
- * Address counts are over DISTINCT addresses among the hosts that were still
- * unnamed when the lookup ran; `resolvedCount` counts host entries, as
- * SubnetScanResult.netbiosResolvedCount always has.
+ * Address counts are over DISTINCT addresses among the hosts the lookup was
+ * handed — every host with no usable sysName (issue #4518); `resolvedCount`
+ * counts host entries, as SubnetScanResult.netbiosResolvedCount always has.
  */
 export interface NetbiosNamingOutcome {
   // Host entries that got a netbiosName.
   resolvedCount: number;
-  // Distinct addresses still unnamed after SNMP and reverse DNS.
-  unnamedAddressCount: number;
+  /*
+   * Distinct addresses the lookup was handed: every host SNMP did not name,
+   * whether or not reverse DNS did.
+   */
+  candidateAddressCount: number;
   // Distinct addresses that got a NetBIOS name.
   namedAddressCount: number;
   /*
-   * Distinct unnamed addresses the address policy allowed (private IPv4),
+   * Distinct candidate addresses the address policy allowed (private IPv4),
    * before the host cap. Undefined when the resolver did not say.
    */
   eligibleAddressCount?: number | undefined;
@@ -1639,7 +1644,7 @@ export default class SubnetScanner {
       if (statusByIpAddress) {
         for (const host of hosts) {
           if (
-            SubnetScanner.hasText(host.sysName) ||
+            SubnetScanner.hasSystemName(host) ||
             SubnetScanner.hasText(host.dnsHostname)
           ) {
             continue;
@@ -1818,12 +1823,20 @@ export default class SubnetScanner {
    * Stamps `netbiosName` onto the hosts that answer a NetBIOS node status
    * query, in place, and answers how many got one (OneUptime issue #3677).
    *
-   * Asks ONLY hosts that are still unnamed: no non-empty sysName and no
-   * non-empty dnsHostname. Those are the hosts the issue is about — the ones
-   * the Review dialog can otherwise only show as an address — and a host that
-   * already has a better name costs nothing here. On an estate with working
-   * reverse DNS that means no datagram is sent at all, which is why this runs
-   * AFTER attachReverseDnsHostnames rather than beside it.
+   * Asks every host with no usable sysName (normalizeSystemName — blank, a
+   * placeholder such as "localhost" or an address is no name), whether or
+   * not reverse DNS named it (OneUptime issue #4518). A NetBIOS name is the
+   * host's own computer name and names the device ahead of its PTR record:
+   * on the #4518 estate the displays everyone calls WB0024KDS04 were imported
+   * as wb-0024-kds04.wbhq.com because, until then, a host DNS had named was
+   * never asked. A host with a sysName is not asked — its SNMP name outranks
+   * anything NetBIOS could say.
+   *
+   * The still-unnamed hosts go FIRST. The lookup asks at most its host cap,
+   * in the order it is handed, and a host with no PTR name has nothing but
+   * this lookup between it and its address; a host DNS named merely gets a
+   * better name. Runs AFTER attachReverseDnsHostnames, which is what tells
+   * the two groups apart.
    *
    * Like attachReverseDnsHostnames, deliberately NOT called by scan(): it runs
    * in FetchScans.scanWithDeadline after the sweep has won its deadline race,
@@ -1848,11 +1861,11 @@ export default class SubnetScanner {
    * log (see NetbiosNamingOutcome).
    *
    * And stamps `netbiosNameStatus` — no reply, no usable name, never asked and
-   * why — on each host it was handed and did not name (OneUptime issue
-   * #3916), for the Review dialog's tooltip. Only those hosts: a host SNMP or
-   * reverse DNS already named was never this lookup's business, and "NetBIOS:
-   * not asked" beside a host with a perfectly good name would be noise. Only
-   * with a code the resolver reported, for the reason reverse DNS gives.
+   * why — on each host it was handed and left with no name at all (OneUptime
+   * issue #3916), for the Review dialog's tooltip. Only those hosts: the
+   * tooltip is shown beside a host listed by its address, and "NetBIOS: not
+   * asked" beside a host reverse DNS named would be noise. Only with a code
+   * the resolver reported, for the reason reverse DNS gives.
    */
   public static async attachNetbiosNames(
     hosts: Array<DiscoveredHost>,
@@ -1860,7 +1873,7 @@ export default class SubnetScanner {
   ): Promise<NetbiosNamingOutcome> {
     const outcome: NetbiosNamingOutcome = {
       resolvedCount: 0,
-      unnamedAddressCount: 0,
+      candidateAddressCount: 0,
       namedAddressCount: 0,
       isHostCapReached: false,
       isTimeBudgetExhausted: false,
@@ -1870,36 +1883,44 @@ export default class SubnetScanner {
      * Held outside the try so the catch can recount what was stamped before
      * a throw, the same way attachReverseDnsHostnames does.
      */
-    let unnamedHosts: Array<DiscoveredHost> = [];
+    let candidateHosts: Array<DiscoveredHost> = [];
 
     try {
       if (!Array.isArray(hosts) || hosts.length === 0) {
         return outcome;
       }
 
-      unnamedHosts = hosts.filter((host: DiscoveredHost) => {
-        return (
-          Boolean(host) &&
-          !SubnetScanner.hasText(host.sysName) &&
-          !SubnetScanner.hasText(host.dnsHostname)
-        );
-      });
+      const candidates: Array<DiscoveredHost> = hosts.filter(
+        (host: DiscoveredHost) => {
+          return Boolean(host) && !SubnetScanner.hasSystemName(host);
+        },
+      );
 
-      if (unnamedHosts.length === 0) {
+      // Unnamed first, then the hosts reverse DNS named: see above.
+      candidateHosts = [
+        ...candidates.filter((host: DiscoveredHost) => {
+          return !SubnetScanner.hasText(host.dnsHostname);
+        }),
+        ...candidates.filter((host: DiscoveredHost) => {
+          return SubnetScanner.hasText(host.dnsHostname);
+        }),
+      ];
+
+      if (candidateHosts.length === 0) {
         return outcome;
       }
 
-      const unnamedAddresses: Set<string> = new Set<string>(
-        unnamedHosts.map((host: DiscoveredHost) => {
+      const candidateAddresses: Set<string> = new Set<string>(
+        candidateHosts.map((host: DiscoveredHost) => {
           return host.ipAddress;
         }),
       );
 
-      outcome.unnamedAddressCount = unnamedAddresses.size;
+      outcome.candidateAddressCount = candidateAddresses.size;
 
       const resolution: NetbiosNameResolution =
         await SubnetScanner.resolveNetbiosNames(
-          unnamedHosts.map((host: DiscoveredHost) => {
+          candidateHosts.map((host: DiscoveredHost) => {
             return host.ipAddress;
           }),
           options,
@@ -1907,7 +1928,7 @@ export default class SubnetScanner {
 
       const namedAddresses: Set<string> = new Set<string>();
 
-      for (const host of unnamedHosts) {
+      for (const host of candidateHosts) {
         const netbiosName: string | undefined = normalizeNetbiosName(
           resolution.nameByIpAddress.get(host.ipAddress),
         );
@@ -1924,15 +1945,19 @@ export default class SubnetScanner {
       /*
        * Why the rest got no NetBIOS name (issue #3916): read the way reverse
        * DNS reads its statuses — a real Map, whitelisted codes, no default —
-       * and stamped only on the hosts this lookup was handed, after every name
-       * is on.
+       * and stamped only on the hosts this lookup was handed that end with no
+       * name at all, after every name is on. A host reverse DNS named is
+       * listed by that name, with no tooltip to explain anything.
        */
       const statusByIpAddress: Map<unknown, unknown> | undefined =
         SubnetScanner.readStatusMap(resolution.statusByIpAddress);
 
       if (statusByIpAddress) {
-        for (const host of unnamedHosts) {
-          if (SubnetScanner.hasText(host.netbiosName)) {
+        for (const host of candidateHosts) {
+          if (
+            SubnetScanner.hasText(host.netbiosName) ||
+            SubnetScanner.hasText(host.dnsHostname)
+          ) {
             continue;
           }
 
@@ -1965,7 +1990,7 @@ export default class SubnetScanner {
       );
 
       logger.debug(
-        `Discovery NetBIOS named ${outcome.resolvedCount} of ${unnamedHosts.length} otherwise unnamed discovered host(s).`,
+        `Discovery NetBIOS named ${outcome.resolvedCount} of the ${candidateHosts.length} discovered host(s) SNMP did not name.`,
       );
 
       return outcome;
@@ -1985,7 +2010,7 @@ export default class SubnetScanner {
       const namedAddresses: Set<string> = new Set<string>();
       let resolvedCount: number = 0;
 
-      for (const host of unnamedHosts) {
+      for (const host of candidateHosts) {
         if (host && SubnetScanner.hasText(host.netbiosName)) {
           resolvedCount++;
           namedAddresses.add(host.ipAddress);
@@ -2018,8 +2043,8 @@ export default class SubnetScanner {
 
   /*
    * Stamps `status` as the NetBIOS status of every host still without any
-   * name — no sysName, no dnsHostname, no netbiosName — and answers how many
-   * it stamped (OneUptime issue #3916).
+   * name — no usable sysName, no dnsHostname, no netbiosName — and answers how
+   * many it stamped (OneUptime issue #3916).
    *
    * For the one way NetBIOS is skipped wholesale rather than host by host: a
    * scan that asked for it running on a global probe, which never sends it
@@ -2049,7 +2074,7 @@ export default class SubnetScanner {
         if (
           !host ||
           typeof host !== "object" ||
-          SubnetScanner.hasText(host.sysName) ||
+          SubnetScanner.hasSystemName(host) ||
           SubnetScanner.hasText(host.dnsHostname) ||
           SubnetScanner.hasText(host.netbiosName)
         ) {
@@ -2112,7 +2137,7 @@ export default class SubnetScanner {
         if (
           !host ||
           typeof host !== "object" ||
-          SubnetScanner.hasText(host.sysName) ||
+          SubnetScanner.hasSystemName(host) ||
           SubnetScanner.hasText(host.dnsHostname) ||
           SubnetScanner.hasText(host.netbiosName)
         ) {
@@ -2153,6 +2178,52 @@ export default class SubnetScanner {
   // A string with something in it besides whitespace.
   private static hasText(value: unknown): boolean {
     return typeof value === "string" && value.trim().length > 0;
+  }
+
+  /*
+   * Whether the host's sysName NAMES it, by the one naming rule the dashboard
+   * and the server use (Common/Utils/NetworkDevice/DeviceNameRule.ts): blank,
+   * a placeholder such as "localhost", or an IP address is no name, so such a
+   * host is still asked for its NetBIOS name and is still explained as
+   * unnamed — exactly as the Review dialog will list it (OneUptime issue
+   * #4518).
+   */
+  public static hasSystemName(host: DiscoveredHost): boolean {
+    return Boolean(normalizeSystemName(host?.sysName));
+  }
+
+  /*
+   * How many distinct addresses the NetBIOS lookup would be handed: every
+   * host with no usable sysName, named by reverse DNS or not (issue #4518).
+   * What a scan that asked for NetBIOS names on a global probe — which never
+   * sends them — went without. NEVER throws.
+   */
+  public static countNetbiosCandidateAddresses(
+    hosts: Array<DiscoveredHost>,
+  ): number {
+    if (!Array.isArray(hosts)) {
+      return 0;
+    }
+
+    const addresses: Set<string> = new Set<string>();
+
+    try {
+      for (const host of hosts) {
+        if (
+          host &&
+          typeof host === "object" &&
+          !SubnetScanner.hasSystemName(host)
+        ) {
+          addresses.add(host.ipAddress);
+        }
+      }
+    } catch (err) {
+      logger.warn(
+        `Discovery could not count the hosts NetBIOS would have asked. ${SubnetScanner.describeEnrichmentError(err)}`,
+      );
+    }
+
+    return addresses.size;
   }
 
   /*

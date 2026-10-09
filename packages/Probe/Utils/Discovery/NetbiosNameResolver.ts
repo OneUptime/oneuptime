@@ -588,7 +588,7 @@ export default class NetbiosNameResolver {
 
     if (isHostCapReached) {
       logger.warn(
-        `Discovery NetBIOS lookups are capped at ${this.maxHosts} host(s) per scan; ${eligibleAddresses.length} unnamed host(s) were eligible, so ${eligibleAddresses.length - this.maxHosts} will keep being named by IP address. The sweep itself is unaffected.`,
+        `Discovery NetBIOS lookups are capped at ${this.maxHosts} host(s) per scan; ${eligibleAddresses.length} host(s) were eligible, so ${eligibleAddresses.length - this.maxHosts} were not asked and keep the name reverse DNS gave them, or their IP address. The sweep itself is unaffected.`,
       );
     }
 

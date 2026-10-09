@@ -83,8 +83,11 @@ import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverse
  * the scan-row flag — because every one of those decisions is about the job,
  * not the resolver:
  *
- *   1. Only hosts that are STILL unnamed are asked: no sysName, no
- *      dnsHostname. On both return paths of the sweep.
+ *   1. Only hosts SNMP did not name are asked — and since issue #4518 that
+ *      includes the hosts reverse DNS named, because a host's NetBIOS name
+ *      is its own and names it ahead of its PTR record. Still-unnamed hosts
+ *      are asked first, so the host cap can only cut the ones DNS named. On
+ *      both return paths of the sweep.
  *   2. It never runs unless the scan opted in with a literal true, and never
  *      on a global probe, whatever the row says. It sends UDP 137 to scanned
  *      hosts; nothing about that may happen by default.
@@ -299,36 +302,62 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("who gets asked — only hosts that are still unnamed", () => {
-  it("on an ICMP-only sweep, skips hosts reverse DNS already named", async () => {
+describe("who gets asked — every host SNMP did not name, unnamed ones first", () => {
+  it("on an ICMP-only sweep, asks the hosts reverse DNS named too, after the unnamed ones (issue #4518)", async () => {
     mockPingAlive(["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
     mockReverseDns({ "10.0.0.1": "gw.corp.example.com" });
     const netbios: { asked: Array<Array<string>> } = mockNetbios({
+      "10.0.0.1": "GW-WIN",
       "10.0.0.2": "reg01",
     });
 
     const result: SubnetScanResult = await sweep(icmpOnly(true));
 
-    expect(netbios.asked).toEqual([["10.0.0.2", "10.0.0.3"]]);
+    expect(netbios.asked).toEqual([["10.0.0.2", "10.0.0.3", "10.0.0.1"]]);
     expect(hostAt(result, "10.0.0.2")?.netbiosName).toBe("reg01");
-    expect(result.netbiosResolvedCount).toBe(1);
+    // The PTR-named host gets its own name too, and keeps its PTR name.
+    expect(hostAt(result, "10.0.0.1")?.netbiosName).toBe("GW-WIN");
+    expect(hostAt(result, "10.0.0.1")?.dnsHostname).toBe(
+      "gw.corp.example.com",
+    );
+    expect(result.netbiosResolvedCount).toBe(2);
   });
 
-  it("on an SNMP sweep, skips hosts with a sysName and hosts with a PTR name", async () => {
+  it("on an SNMP sweep, skips hosts with a sysName, and asks a host with a PTR name last", async () => {
     mockPingAlive(["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
     mockSnmp({ "10.0.0.1": "core-switch-01" });
     mockReverseDns({ "10.0.0.3": "printer.corp.example.com" });
     const netbios: { asked: Array<Array<string>> } = mockNetbios({
+      "10.0.0.1": "NOT-ASKED",
       "10.0.0.2": "cam-lobby",
     });
 
     const result: SubnetScanResult = await sweep(withSnmp(true));
 
-    expect(netbios.asked).toEqual([["10.0.0.2"]]);
+    expect(netbios.asked).toEqual([["10.0.0.2", "10.0.0.3"]]);
     expect(hostAt(result, "10.0.0.2")?.netbiosName).toBe("cam-lobby");
-    // A named host is never handed a NetBIOS name, even if the table has one.
+    // A host with a sysName is never handed a NetBIOS name, even if the table has one.
     expect(hostAt(result, "10.0.0.1")).not.toHaveProperty("netbiosName");
+    // The printer was asked and did not answer: no key.
     expect(hostAt(result, "10.0.0.3")).not.toHaveProperty("netbiosName");
+  });
+
+  it("treats a placeholder or address sysName as no name, so the host is asked (issue #4518)", async () => {
+    /*
+     * The naming rule reads "localhost" and an address as no name at all, so
+     * the Review dialog lists such a host by its address — and the lookup
+     * that could name it has to ask it.
+     */
+    mockPingAlive(["10.0.0.1", "10.0.0.2"]);
+    mockSnmp({ "10.0.0.1": "localhost", "10.0.0.2": "10.0.0.2" });
+    const netbios: { asked: Array<Array<string>> } = mockNetbios({
+      "10.0.0.1": "LAB-PC-01",
+    });
+
+    const result: SubnetScanResult = await sweep(withSnmp(true));
+
+    expect(netbios.asked).toEqual([["10.0.0.1", "10.0.0.2"]]);
+    expect(hostAt(result, "10.0.0.1")?.netbiosName).toBe("LAB-PC-01");
   });
 
   it("treats a blank sysName as no name at all", async () => {
@@ -349,7 +378,19 @@ describe("who gets asked — only hosts that are still unnamed", () => {
     expect(hostAt(result, "10.0.0.1")?.netbiosName).toBe("blank-agent");
   });
 
-  it("asks nothing when every host already has a name", async () => {
+  it("asks nothing when SNMP named every host", async () => {
+    mockPingAlive(["10.0.0.1", "10.0.0.2"]);
+    mockSnmp({ "10.0.0.1": "core-a", "10.0.0.2": "core-b" });
+    const netbios: { asked: Array<Array<string>> } = mockNetbios({});
+
+    const result: SubnetScanResult = await sweep(withSnmp(true));
+
+    expect(netbios.asked).toEqual([]);
+    // It RAN — it just had nobody to ask — so the count is zero, not absent.
+    expect(result.netbiosResolvedCount).toBe(0);
+  });
+
+  it("asks hosts reverse DNS named every one of, since their own names outrank it (issue #4518)", async () => {
     mockPingAlive(["10.0.0.1", "10.0.0.2"]);
     mockReverseDns({
       "10.0.0.1": "a.corp.example.com",
@@ -359,8 +400,7 @@ describe("who gets asked — only hosts that are still unnamed", () => {
 
     const result: SubnetScanResult = await sweep(icmpOnly(true));
 
-    expect(netbios.asked).toEqual([]);
-    // It RAN — it just had nobody to ask — so the count is zero, not absent.
+    expect(netbios.asked).toEqual([["10.0.0.1", "10.0.0.2"]]);
     expect(result.netbiosResolvedCount).toBe(0);
   });
 
@@ -376,13 +416,13 @@ describe("who gets asked — only hosts that are still unnamed", () => {
 });
 
 describe("what a host looks like afterwards", () => {
-  it("stores the name lower-cased and normalised, whatever the seam returned", async () => {
+  it("stores the name normalised, in the case the host reported, whatever the seam returned", async () => {
     mockPingAlive(["10.0.0.1", "10.0.0.2"]);
-    mockNetbios({ "10.0.0.1": "WORKSTATION-01", "10.0.0.2": "BAD NAME" });
+    mockNetbios({ "10.0.0.1": "WORKSTATION-01   ", "10.0.0.2": "BAD NAME" });
 
     const result: SubnetScanResult = await sweep(icmpOnly(true));
 
-    expect(hostAt(result, "10.0.0.1")?.netbiosName).toBe("workstation-01");
+    expect(hostAt(result, "10.0.0.1")?.netbiosName).toBe("WORKSTATION-01");
     // Not a usable name, so not a name at all.
     expect(hostAt(result, "10.0.0.2")).not.toHaveProperty("netbiosName");
     expect(result.netbiosResolvedCount).toBe(1);
@@ -1035,7 +1075,7 @@ function pingOnly(ipAddress: string): DiscoveredHost {
 // The verdict of a lookup that had nobody to ask.
 const UNASKED_OUTCOME: NetbiosNamingOutcome = {
   resolvedCount: 0,
-  unnamedAddressCount: 0,
+  candidateAddressCount: 0,
   namedAddressCount: 0,
   isHostCapReached: false,
   isTimeBudgetExhausted: false,
@@ -1059,7 +1099,7 @@ describe("result.netbiosOutcome — present exactly when the lookup ran", () => 
 
     expect(result.netbiosOutcome).toEqual({
       resolvedCount: 1,
-      unnamedAddressCount: 2,
+      candidateAddressCount: 2,
       namedAddressCount: 1,
       eligibleAddressCount: 2,
       queriedAddressCount: 2,
@@ -1089,7 +1129,7 @@ describe("result.netbiosOutcome — present exactly when the lookup ran", () => 
 
     expect(result.netbiosOutcome).toMatchObject({
       resolvedCount: 1,
-      unnamedAddressCount: 2,
+      candidateAddressCount: 2,
       namedAddressCount: 1,
     });
   });
@@ -1181,19 +1221,16 @@ describe("result.netbiosOutcome — present exactly when the lookup ran", () => 
     expect(result.reverseDnsOutcome).toBeDefined();
   });
 
-  it("is zeroed, not absent, when every host already has a name", async () => {
+  it("is zeroed, not absent, when SNMP named every host", async () => {
     mockPingAlive(["10.0.0.1", "10.0.0.2"]);
-    mockReverseDns({
-      "10.0.0.1": "a.corp.example.com",
-      "10.0.0.2": "b.corp.example.com",
-    });
+    mockSnmp({ "10.0.0.1": "core-a", "10.0.0.2": "core-b" });
     const netbios: { asked: Array<Array<string>> } = mockNetbios(
       {},
       // Would read as a cut-short lookup if any of it leaked through.
       { resolution: { isTimeBudgetExhausted: true, isHostCapReached: true } },
     );
 
-    const result: SubnetScanResult = await sweep(icmpOnly(true));
+    const result: SubnetScanResult = await sweep(withSnmp(true));
 
     expect(netbios.asked).toEqual([]);
     expect(result.netbiosOutcome).toEqual(UNASKED_OUTCOME);
@@ -1216,12 +1253,13 @@ describe("result.netbiosOutcome — present exactly when the lookup ran", () => 
 });
 
 describe("SubnetScanner.attachNetbiosNames — the counts in its verdict", () => {
-  it("counts distinct unnamed addresses, treating blank sysName and dnsHostname as no name", async () => {
+  it("counts distinct candidate addresses: every host SNMP did not name, unnamed ones asked first", async () => {
     /*
-     * unnamedAddressCount is the denominator of "NetBIOS named X of N hosts".
-     * Counting a host SNMP or DNS already named would make a lookup that
-     * named everyone it asked look like a partial one; counting a repeated
-     * address twice would do the same.
+     * candidateAddressCount is the denominator of "NetBIOS named X of N hosts":
+     * every address the lookup was handed. A host SNMP named is not one of
+     * them; a host reverse DNS named is (issue #4518), asked after the hosts
+     * nothing named; a blank sysName or dnsHostname is no name; a repeated
+     * address counts once.
      */
     const netbios: { asked: Array<Array<string>> } = mockNetbios({});
 
@@ -1238,9 +1276,9 @@ describe("SubnetScanner.attachNetbiosNames — the counts in its verdict", () =>
       await SubnetScanner.attachNetbiosNames(hosts);
 
     expect(netbios.asked).toEqual([
-      ["10.0.0.3", "10.0.0.4", "10.0.0.5", "10.0.0.5"],
+      ["10.0.0.3", "10.0.0.4", "10.0.0.5", "10.0.0.5", "10.0.0.2"],
     ]);
-    expect(outcome.unnamedAddressCount).toBe(3);
+    expect(outcome.candidateAddressCount).toBe(4);
     expect(outcome.namedAddressCount).toBe(0);
     expect(outcome.resolvedCount).toBe(0);
   });
@@ -1259,7 +1297,7 @@ describe("SubnetScanner.attachNetbiosNames — the counts in its verdict", () =>
     // resolvedCount keeps its legacy meaning: host entries stamped.
     expect(outcome.resolvedCount).toBe(3);
     expect(outcome.namedAddressCount).toBe(2);
-    expect(outcome.unnamedAddressCount).toBe(3);
+    expect(outcome.candidateAddressCount).toBe(3);
   });
 
   it("does not count a name that normalises to nothing, or a name for an address it was not given", async () => {
@@ -1273,7 +1311,7 @@ describe("SubnetScanner.attachNetbiosNames — the counts in its verdict", () =>
 
     expect(outcome.resolvedCount).toBe(0);
     expect(outcome.namedAddressCount).toBe(0);
-    expect(outcome.unnamedAddressCount).toBe(2);
+    expect(outcome.candidateAddressCount).toBe(2);
   });
 
   it("copies eligible, queried, cap and budget figures from the resolution", async () => {
@@ -1303,7 +1341,7 @@ describe("SubnetScanner.attachNetbiosNames — the counts in its verdict", () =>
       ]);
 
     expect(outcome).toMatchObject({
-      unnamedAddressCount: 4,
+      candidateAddressCount: 4,
       eligibleAddressCount: 3,
       queriedAddressCount: 2,
       maxHosts: 2,
@@ -1367,7 +1405,7 @@ describe("SubnetScanner.attachNetbiosNames — the counts in its verdict", () =>
       // The counts it derives itself are unaffected by a bad resolution.
       expect(outcome.resolvedCount).toBe(1);
       expect(outcome.namedAddressCount).toBe(1);
-      expect(outcome.unnamedAddressCount).toBe(1);
+      expect(outcome.candidateAddressCount).toBe(1);
     }
   });
 
@@ -1474,7 +1512,7 @@ describe("SubnetScanner.attachNetbiosNames — a failed socket in its verdict", 
     expect(outcome).toMatchObject({
       resolvedCount: 1,
       namedAddressCount: 1,
-      unnamedAddressCount: 2,
+      candidateAddressCount: 2,
       queriedAddressCount: 1,
       failureReason: "socket closed",
     });
@@ -1523,7 +1561,7 @@ describe("SubnetScanner.attachNetbiosNames — when the lookup itself throws", (
     expect(outcome).toEqual({
       resolvedCount: 0,
       // Counted before the seam was called: the hosts it was about to ask.
-      unnamedAddressCount: 2,
+      candidateAddressCount: 2,
       namedAddressCount: 0,
       isHostCapReached: false,
       isTimeBudgetExhausted: false,
@@ -1615,7 +1653,7 @@ describe("SubnetScanner.attachNetbiosNames — when the lookup itself throws", (
     expect(outcome).toMatchObject({
       resolvedCount: 2,
       namedAddressCount: 1,
-      unnamedAddressCount: 3,
+      candidateAddressCount: 3,
       error: "name table corrupted",
     });
   });
@@ -1660,7 +1698,7 @@ describe("SubnetScanner.attachNetbiosNames — when the lookup itself throws", (
     expect(outcome).toMatchObject({
       resolvedCount: 2,
       namedAddressCount: 2,
-      unnamedAddressCount: 2,
+      candidateAddressCount: 2,
       isHostCapReached: false,
       error: "flag getter exploded",
     });
@@ -1694,8 +1732,11 @@ describe("scanWithDeadline — a cut-short NetBIOS lookup keeps the sweep and sa
     expect(hostAt(result, "10.0.0.3")).not.toHaveProperty("netbiosName");
     expect(result.netbiosOutcome).toEqual({
       resolvedCount: 1,
-      // The host reverse DNS named is not part of NetBIOS's denominator.
-      unnamedAddressCount: 2,
+      /*
+       * Every host SNMP did not name, the one reverse DNS named included: its
+       * own name would outrank its PTR record (issue #4518).
+       */
+      candidateAddressCount: 3,
       namedAddressCount: 1,
       eligibleAddressCount: 2,
       queriedAddressCount: 1,
@@ -1746,7 +1787,7 @@ describe("scanWithDeadline — a cut-short NetBIOS lookup keeps the sweep and sa
     expect(hostAt(result, "10.0.0.2")?.netbiosName).toBe("cam-lobby");
     expect(result.netbiosOutcome).toMatchObject({
       resolvedCount: 1,
-      unnamedAddressCount: 5,
+      candidateAddressCount: 5,
       namedAddressCount: 1,
       eligibleAddressCount: 5,
       queriedAddressCount: 3,
@@ -1776,7 +1817,7 @@ describe("scanWithDeadline — a cut-short NetBIOS lookup keeps the sweep and sa
     expect(result.discoveredHosts).toHaveLength(3);
     expect(result.netbiosOutcome).toMatchObject({
       resolvedCount: 0,
-      unnamedAddressCount: 3,
+      candidateAddressCount: 3,
       isHostCapReached: true,
       isTimeBudgetExhausted: true,
     });
@@ -1799,7 +1840,7 @@ describe("scanWithDeadline — a cut-short NetBIOS lookup keeps the sweep and sa
     expect(result.discoveredHosts).toHaveLength(2);
     expect(result.netbiosOutcome).toMatchObject({
       resolvedCount: 0,
-      unnamedAddressCount: 2,
+      candidateAddressCount: 2,
       queriedAddressCount: 0,
       failureReason: "bind EADDRINUSE 0.0.0.0:137",
     });
@@ -1816,7 +1857,7 @@ describe("scanWithDeadline — a cut-short NetBIOS lookup keeps the sweep and sa
     expect(result.discoveredHosts).toHaveLength(2);
     expect(result.netbiosOutcome).toEqual({
       resolvedCount: 0,
-      unnamedAddressCount: 1,
+      candidateAddressCount: 1,
       namedAddressCount: 0,
       isHostCapReached: false,
       isTimeBudgetExhausted: false,
@@ -1941,7 +1982,7 @@ describe("netbiosOutcome.error — a rejection that carries no text says 'unknow
       expect(result.discoveredHosts).toHaveLength(2);
       expect(result.netbiosOutcome).toEqual({
         resolvedCount: 0,
-        unnamedAddressCount: 2,
+        candidateAddressCount: 2,
         namedAddressCount: 0,
         isHostCapReached: false,
         isTimeBudgetExhausted: false,
@@ -2062,7 +2103,7 @@ describe("netbiosOutcome.failureReason — read through the shared reason helper
 
       expect(result.netbiosOutcome).toEqual({
         resolvedCount: 1,
-        unnamedAddressCount: 2,
+        candidateAddressCount: 2,
         namedAddressCount: 1,
         eligibleAddressCount: 2,
         queriedAddressCount: 1,
@@ -2111,7 +2152,7 @@ describe("netbiosOutcome.failureReason — read through the shared reason helper
       expect(result.netbiosOutcome).toMatchObject({
         resolvedCount: 1,
         namedAddressCount: 1,
-        unnamedAddressCount: 2,
+        candidateAddressCount: 2,
       });
       expect(result.netbiosOutcome?.error).toBeUndefined();
     }
@@ -2197,7 +2238,7 @@ describe("SubnetScanner.attachNetbiosNames — the recount when it throws after 
      */
     expect(outcome).toEqual({
       resolvedCount: 1,
-      unnamedAddressCount: 3,
+      candidateAddressCount: 3,
       namedAddressCount: 1,
       isHostCapReached: false,
       isTimeBudgetExhausted: false,
@@ -2235,7 +2276,7 @@ describe("SubnetScanner.attachNetbiosNames — the recount when it throws after 
     expect(outcome).toEqual({
       // Three entries, two distinct addresses.
       resolvedCount: 3,
-      unnamedAddressCount: 4,
+      candidateAddressCount: 4,
       namedAddressCount: 2,
       isHostCapReached: false,
       isTimeBudgetExhausted: false,
@@ -2286,7 +2327,7 @@ describe("SubnetScanner.attachNetbiosNames — the recount when it throws after 
 
     expect(outcome).toEqual({
       resolvedCount: 2,
-      unnamedAddressCount: 3,
+      candidateAddressCount: 3,
       namedAddressCount: 2,
       eligibleAddressCount: 3,
       queriedAddressCount: 2,
@@ -2300,11 +2341,12 @@ describe("SubnetScanner.attachNetbiosNames — the recount when it throws after 
     expect(outcome.failureReason).toBeUndefined();
   });
 
-  it("recounts only the hosts this pass was asking about, not a host SNMP or DNS already named", async () => {
+  it("recounts only the hosts this pass was asking about, not a host SNMP already named", async () => {
     /*
-     * A host with a sysName or a PTR name was never handed to NetBIOS, so a
-     * netbiosName it happens to carry is not this pass's doing, and counting
-     * it would make the recount claim names the pass never found.
+     * A host with a sysName was never handed to NetBIOS, so a netbiosName it
+     * happens to carry is not this pass's doing, and counting it would make
+     * the recount claim names the pass never found. A host with only a PTR
+     * name IS handed to NetBIOS since issue #4518, so its name counts.
      */
     mockNetbios(
       {},
@@ -2340,13 +2382,15 @@ describe("SubnetScanner.attachNetbiosNames — the recount when it throws after 
       await SubnetScanner.attachNetbiosNames(hosts);
 
     expect(outcome).toEqual({
-      resolvedCount: 1,
-      unnamedAddressCount: 2,
-      namedAddressCount: 1,
+      resolvedCount: 2,
+      candidateAddressCount: 3,
+      namedAddressCount: 2,
       isHostCapReached: false,
       isTimeBudgetExhausted: false,
       error: "name table corrupted",
     });
+    // The SNMP-named host's carried-over name was never this pass's.
+    expect(hosts[0]!.netbiosName).toBe("carried-over");
   });
 
   it("through scanWithDeadline, the recount and netbiosResolvedCount agree with the hosts returned", async () => {
@@ -2377,7 +2421,7 @@ describe("SubnetScanner.attachNetbiosNames — the recount when it throws after 
     expect(hostAt(result, "10.0.0.3")).not.toHaveProperty("netbiosName");
     expect(result.netbiosOutcome).toEqual({
       resolvedCount: namedHostCount,
-      unnamedAddressCount: 3,
+      candidateAddressCount: 3,
       namedAddressCount: 1,
       isHostCapReached: false,
       isTimeBudgetExhausted: false,

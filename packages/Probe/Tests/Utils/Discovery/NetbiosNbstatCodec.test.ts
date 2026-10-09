@@ -269,7 +269,7 @@ describe("parseNbstatResponse — real-world responses", () => {
     expect(response).not.toBeNull();
     expect(response!.transactionId).toBe(0xabcd);
     expect(response!.names).toEqual(WINDOWS_NAMES);
-    expect(chooseNetbiosName(response!.names)).toBe("workstation01");
+    expect(chooseNetbiosName(response!.names)).toBe("WORKSTATION01");
   });
 
   it("reads a Samba server whose statistics block is all zero", () => {
@@ -283,7 +283,7 @@ describe("parseNbstatResponse — real-world responses", () => {
       "WORKGROUP<00>",
       "WORKGROUP<1e>",
     ]);
-    expect(chooseNetbiosName(response!.names)).toBe("fileserver");
+    expect(chooseNetbiosName(response!.names)).toBe("FILESERVER");
   });
 
   it("round-trips the transaction id of the query it answers", () => {
@@ -515,7 +515,7 @@ describe("parseNbstatResponse — damaged name tables yield what can be read", (
       WINDOWS_RESPONSE.subarray(0, 57 + 18),
     );
 
-    expect(chooseNetbiosName(response!.names)).toBe("workstation01");
+    expect(chooseNetbiosName(response!.names)).toBe("WORKSTATION01");
   });
 
   it("reads only the entries present when NUM_NAMES claims more", () => {
@@ -583,7 +583,7 @@ describe("chooseNetbiosName", () => {
   it("prefers the unique <00> name even when <20> is listed first", () => {
     expect(
       chooseNetbiosName([node("SRV-TWENTY", 0x20), node("SRV-ZERO", 0x00)]),
-    ).toBe("srv-zero");
+    ).toBe("SRV-ZERO");
   });
 
   it("falls back to the unique <20> name when there is no usable <00>", () => {
@@ -592,7 +592,7 @@ describe("chooseNetbiosName", () => {
         node("CORP", 0x00, { isGroup: true }),
         node("NAS", 0x20),
       ]),
-    ).toBe("nas");
+    ).toBe("NAS");
   });
 
   it("never picks a group name, however it is listed", () => {
@@ -611,7 +611,7 @@ describe("chooseNetbiosName", () => {
         node("LEAVING", 0x00, { isDeregistering: true }),
         node("REAL", 0x00),
       ]),
-    ).toBe("real");
+    ).toBe("REAL");
     expect(
       chooseNetbiosName([
         node("STOLEN", 0x00, { isConflict: true }),
@@ -627,19 +627,19 @@ describe("chooseNetbiosName", () => {
         node("__MSBROWSE__", 0x00),
         node("HOST", 0x20),
       ]),
-    ).toBe("host");
+    ).toBe("HOST");
   });
 
   it("skips the IIS IS~ name that sits beside the workstation name", () => {
     expect(
       chooseNetbiosName([node("IS~WEB01", 0x00), node("WEB01", 0x00)]),
-    ).toBe("web01");
+    ).toBe("WEB01");
   });
 
   it("moves past a <00> name that does not normalise to the next one", () => {
     expect(
       chooseNetbiosName([node("BAD NAME", 0x00), node("GOOD", 0x00)]),
-    ).toBe("good");
+    ).toBe("GOOD");
   });
 
   it("does not name a machine after its messenger or domain-role suffixes", () => {
@@ -655,7 +655,7 @@ describe("chooseNetbiosName", () => {
 
   it("does not require the ACT bit", () => {
     expect(chooseNetbiosName([node("QUIET", 0x00, { isActive: false })])).toBe(
-      "quiet",
+      "QUIET",
     );
   });
 
@@ -709,7 +709,8 @@ describe("parseNbstatResponse — seeded hostile datagrams", () => {
     const chosen: string | undefined = chooseNetbiosName(response.names);
 
     if (chosen !== undefined) {
-      expect(chosen).toMatch(/^[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?$/);
+      // Case as the host reported it (issue #4518).
+      expect(chosen).toMatch(/^[A-Za-z0-9_](?:[A-Za-z0-9_-]*[A-Za-z0-9_])?$/);
       expect(chosen.length).toBeLessThanOrEqual(15);
     }
   }

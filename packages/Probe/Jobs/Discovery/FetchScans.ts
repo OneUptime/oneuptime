@@ -673,7 +673,7 @@ function buildNetbiosNote(
     ];
   }
 
-  if (!(outcome.unnamedAddressCount > 0)) {
+  if (!(outcome.candidateAddressCount > 0)) {
     return [];
   }
 
@@ -704,7 +704,7 @@ function buildNetbiosNote(
       sentences.push(
         isCompact
           ? `NetBIOS skipped ${formatHosts(leftOut)} over its ${formatCount(outcome.maxHosts)}-host cap.`
-          : `NetBIOS lookups are capped at ${formatHosts(outcome.maxHosts)} per scan, so ${formatCount(leftOut)} unnamed ${leftOut === 1 ? "host was" : "hosts were"} not asked` +
+          : `NetBIOS lookups are capped at ${formatHosts(outcome.maxHosts)} per scan, so ${formatCount(leftOut)} ${leftOut === 1 ? "host was" : "hosts were"} not asked` +
               (canBeRaised
                 ? ` (raise PROBE_DISCOVERY_NETBIOS_MAX_HOSTS on the probe to ask more).`
                 : "."),
@@ -713,7 +713,7 @@ function buildNetbiosNote(
       sentences.push(
         isCompact
           ? `NetBIOS hit its host cap.`
-          : `NetBIOS lookups reached their per-scan host cap, so some unnamed hosts were not asked.`,
+          : `NetBIOS lookups reached their per-scan host cap, so some hosts were not asked.`,
       );
     }
   }
@@ -753,14 +753,14 @@ function buildNetbiosNote(
     /*
      * The hosts the lookup MEANT to ask: the eligible ones, cut to the cap.
      * Unknown from a resolution that did not say, in which case the sentence
-     * falls back to the unnamed hosts it was handed.
+     * falls back to the hosts it was handed.
      */
     const targetCount: number =
       outcome.eligibleAddressCount !== undefined
         ? outcome.maxHosts !== undefined
           ? Math.min(outcome.eligibleAddressCount, outcome.maxHosts)
           : outcome.eligibleAddressCount
-        : outcome.unnamedAddressCount;
+        : outcome.candidateAddressCount;
 
     const notQueried: number | undefined =
       outcome.queriedAddressCount !== undefined
@@ -1720,9 +1720,11 @@ export async function scanWithDeadline(
     result.reverseDnsOutcome = reverseDnsOutcome;
 
     /*
-     * NetBIOS names (OneUptime issue #3677), for whatever is STILL unnamed —
-     * which is why this comes after reverse DNS and not before or beside it:
-     * a host with a PTR record is never sent a datagram.
+     * NetBIOS names (OneUptime issue #3677), for every host SNMP did not name
+     * — including the hosts reverse DNS did, since a host's NetBIOS name is
+     * its own and names the device ahead of its PTR record (issue #4518).
+     * After reverse DNS rather than beside it, because the still-unnamed
+     * hosts are asked first and only reverse DNS can say which those are.
      *
      * Past the race for the same reason reverse DNS is, and gated three ways:
      *
@@ -1752,12 +1754,14 @@ export async function scanWithDeadline(
          * lookup had never run. The bundled self-hosted probes register as
          * global, which made that the out-of-the-box experience.
          *
-         * Each host the lookup WOULD have asked — still with no sysName, no
-         * PTR name and no NetBIOS name — carries the reason for the Review
-         * dialog's tooltip, and the status message gets one sentence for the
-         * scan. Only when there is such a host: with every host already
-         * named, NetBIOS would have sent nothing anyway, and there is nothing
-         * to explain. netbiosOutcome stays absent: no lookup ran.
+         * Each host left with no name at all — no usable sysName, no PTR name
+         * and no NetBIOS name — carries the reason for the Review dialog's
+         * tooltip, and the status message gets one sentence for the scan
+         * whenever the lookup WOULD have asked anyone: every host SNMP did
+         * not name, named by reverse DNS or not (issue #4518), since each of
+         * those went without the name it reports for itself. With every host
+         * named by SNMP, NetBIOS would have sent nothing anyway, and there is
+         * nothing to explain. netbiosOutcome stays absent: no lookup ran.
          *
          * The policy itself is unchanged — global probes still never send
          * UDP 137 on a tenant's say-so (see DiscoveryNetbiosPolicy).
@@ -1767,13 +1771,16 @@ export async function scanWithDeadline(
          * finished sweep into a Failed scan with no hosts.
          */
         try {
-          const skippedHostCount: number =
-            SubnetScanner.stampNetbiosStatusOnUnnamedHosts(
-              result.discoveredHosts,
-              DiscoveredHostNetbiosStatus.SkippedGlobalProbe,
-            );
+          SubnetScanner.stampNetbiosStatusOnUnnamedHosts(
+            result.discoveredHosts,
+            DiscoveredHostNetbiosStatus.SkippedGlobalProbe,
+          );
 
-          if (skippedHostCount > 0) {
+          if (
+            SubnetScanner.countNetbiosCandidateAddresses(
+              result.discoveredHosts,
+            ) > 0
+          ) {
             result.isNetbiosLookupSkippedOnGlobalProbe = true;
           }
         } catch (err) {
