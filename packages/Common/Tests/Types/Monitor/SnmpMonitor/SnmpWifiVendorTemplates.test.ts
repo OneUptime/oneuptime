@@ -228,14 +228,14 @@ function unifiResults(): Array<SnmpTableResult> {
 }
 
 describe("Ubiquiti UniFi access points", () => {
-  it("names radios by their band, read from UniFi's 802.11 mode codes", () => {
+  it("names radios by their band, read from UniFi's 802.11 mode codes, and their interface", () => {
     const radios: SnmpTableSnapshot = snapshotOf(
       walk("ubiquiti-unifi-ap", unifiResults()),
       "wifi_radios",
     );
 
     expect(radios.kind).toBe(SnmpTableKind.WifiRadio);
-    expect(labels(radios)).toEqual(["2.4 GHz", "5 GHz"]);
+    expect(labels(radios)).toEqual(["2.4 GHz / wifi0", "5 GHz / wifi1"]);
     expect(radios.rows[0]!.cells[`${UNIFI_RADIO}.3`]).toEqual({
       raw: "ng",
       display: "2.4 GHz",
@@ -247,8 +247,8 @@ describe("Ubiquiti UniFi access points", () => {
       walk("ubiquiti-unifi-ap", unifiResults()),
     );
 
-    expect(radioNamed(summary, "2.4 GHz")).toEqual({
-      name: "2.4 GHz",
+    expect(radioNamed(summary, "2.4 GHz / wifi0")).toEqual({
+      name: "2.4 GHz / wifi0",
       index: "1",
       band: WifiBand.Band2_4GHz,
       bandText: "2.4 GHz",
@@ -259,8 +259,8 @@ describe("Ubiquiti UniFi access points", () => {
       utilizationPercent: 13,
     });
 
-    expect(radioNamed(summary, "5 GHz")).toEqual({
-      name: "5 GHz",
+    expect(radioNamed(summary, "5 GHz / wifi1")).toEqual({
+      name: "5 GHz / wifi1",
       index: "2",
       band: WifiBand.Band5GHz,
       bandText: "5 GHz",

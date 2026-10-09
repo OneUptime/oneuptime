@@ -957,7 +957,11 @@ const UBIQUITI_UNIFI_AP: SnmpVendorTemplate = {
       description:
         "unifiRadioTable - one row per radio: its band and how busy its channel is. Channel, transmit power and clients are on the SSIDs table.",
       kind: SnmpTableKind.WifiRadio,
-      rowLabelColumnOids: ["1.3.6.1.4.1.41112.1.6.1.1.1.3"],
+      // "2.4 GHz / wifi0": the band, then the radio's interface.
+      rowLabelColumnOids: [
+        "1.3.6.1.4.1.41112.1.6.1.1.1.3",
+        "1.3.6.1.4.1.41112.1.6.1.1.1.2",
+      ],
       columns: [
         {
           oid: "1.3.6.1.4.1.41112.1.6.1.1.1.3",

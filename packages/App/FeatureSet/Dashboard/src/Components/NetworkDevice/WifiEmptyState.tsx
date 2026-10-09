@@ -69,6 +69,7 @@ const WifiEmptyState: FunctionComponent<ComponentProps> = (
 
   const settingsLink: ReactElement = (
     <AppLink
+      className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
       to={RouteUtil.populateRouteParams(
         RouteMap[PageMap.NETWORK_DEVICE_VIEW_SETTINGS] as Route,
         { modelId: props.modelId },
@@ -257,7 +258,10 @@ const WifiEmptyState: FunctionComponent<ComponentProps> = (
   return (
     <EmptyState
       id="network-device-wifi-empty"
-      icon={IconProp.Wifi}
+      icon={appliedTemplate ? IconProp.CheckCircle : IconProp.Wifi}
+      iconClassName={`mx-auto h-12 w-12 ${
+        appliedTemplate ? "text-emerald-500" : "text-gray-400"
+      }`}
       title={
         appliedTemplate
           ? "Template applied"

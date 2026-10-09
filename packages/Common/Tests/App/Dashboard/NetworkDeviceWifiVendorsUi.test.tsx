@@ -308,6 +308,36 @@ describe("the Wi-Fi tab of a wireless controller", () => {
     expect(radios).toHaveTextContent("-93 dBm");
     expect(within(radios).getAllByText("down")).toHaveLength(1);
   });
+
+  test("leaves out the columns no row fills, and says whose SSIDs these are", async () => {
+    deviceRow = deviceWith({ snmpTableSnapshot: arubaInstant() });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-radios")).toBeInTheDocument();
+    });
+
+    const radioHeader: HTMLElement = within(
+      screen.getByTestId("wifi-radios"),
+    ).getAllByRole("row")[0]!;
+
+    // Aruba Instant reports no channel width.
+    expect(radioHeader).not.toHaveTextContent("Width");
+    expect(radioHeader).toHaveTextContent("Noise Floor");
+
+    const ssidHeader: HTMLElement = within(
+      screen.getByTestId("wifi-ssids"),
+    ).getAllByRole("row")[0]!;
+
+    // The cluster's SSIDs carry no band.
+    expect(ssidHeader).not.toHaveTextContent("Band");
+    expect(ssidHeader).toHaveTextContent("Clients");
+
+    expect(
+      screen.getByText("Every SSID its access points broadcast, and who is on it."),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("the Wi-Fi tab of a UniFi access point", () => {
@@ -331,6 +361,15 @@ describe("the Wi-Fi tab of a UniFi access point", () => {
     expect(screen.getByTestId("wifi-tiles")).not.toHaveTextContent(
       "Access points up",
     );
+
+    // UniFi says nothing of whether a radio is on: a count, no claim.
+    expect(screen.getByTestId("wifi-tiles")).not.toHaveTextContent(
+      "Radios on",
+    );
+    expect(screen.getByTestId("wifi-tiles")).toHaveTextContent("Radios");
+    expect(
+      within(radios).getAllByRole("row")[0]!,
+    ).not.toHaveTextContent("Status");
 
     const ssids: HTMLElement = screen.getByTestId("wifi-ssids");
     expect(ssids).toHaveTextContent("Office");
