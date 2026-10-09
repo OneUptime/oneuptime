@@ -50,6 +50,22 @@ function jpegScreenshot(kilobytes: number): string {
   return bytes.toString("base64");
 }
 
+// `bytes` bytes of noise as base64: an encoded file that is not an image.
+function noiseBase64(bytes: number): string {
+  const buffer: Buffer = Buffer.alloc(bytes);
+  let seed: number = 11;
+
+  for (let index: number = 0; index < buffer.length; index++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    buffer[index] = (seed >> 8) & 0xff;
+  }
+
+  // Not the first byte of any image the sniffer knows.
+  buffer[0] = 0x01;
+
+  return buffer.toString("base64");
+}
+
 function pngScreenshot(kilobytes: number): string {
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -304,7 +320,7 @@ describe("PromptText.omitEmbeddedData - base64 with no data: URL around it", () 
   });
 
   test("a long run that is not an image is encoded data, sized as text", () => {
-    const blob: string = Buffer.alloc(3000, 1).toString("base64");
+    const blob: string = noiseBase64(3000);
 
     expect(omit(`{"payload":"${blob}"}`)).toBe(
       `{"payload":"[encoded data omitted: 4 KB]"}`,
@@ -314,23 +330,31 @@ describe("PromptText.omitEmbeddedData - base64 with no data: URL around it", () 
     );
   });
 
-  test("a hex dump that long is encoded data too", () => {
-    const hex: string = "0123456789abcdef".repeat(128);
-
-    expect(omit(`dump=${hex};`)).toBe("dump=[encoded data omitted: 2 KB];");
+  test.each([
+    ["one letter repeated", "x".repeat(8000)],
+    ["a DNA sequence", "ACGTTGCA".repeat(500)],
+    ["a hex dump", "0123456789abcdef".repeat(256)],
+    ["upper-case words run together", "CHECKOUTFAILED".repeat(200)],
+    ["digits", "0123456789".repeat(300)],
+  ])("%s is text, however long", (_label: string, text: string) => {
+    // Base64 of a file holds upper- and lower-case letters and digits.
+    expect(omit(`(${text})`)).toBe(`(${text})`);
   });
 
   test(`the run must be ${MIN_ENCODED_RUN_LENGTH} characters long`, () => {
-    const short: string = "A".repeat(MIN_ENCODED_RUN_LENGTH - 1);
-    const long: string = "A".repeat(MIN_ENCODED_RUN_LENGTH);
+    const blob: string = noiseBase64(3000);
+    const short: string = blob.slice(0, MIN_ENCODED_RUN_LENGTH - 1);
+    const long: string = blob.slice(0, MIN_ENCODED_RUN_LENGTH);
 
     expect(omit(`x ${short} y`)).toBe(`x ${short} y`);
     expect(omit(`x ${long} y`)).toBe("x [encoded data omitted: 1 KB] y");
   });
 
   test("its padding goes with it", () => {
-    const run: string = `${"QUJD".repeat(300)}QQ==`;
+    // 1,000 bytes: 1,336 characters, the last two of them padding.
+    const run: string = noiseBase64(1000);
 
+    expect(run.endsWith("==")).toBe(true);
     expect(omit(`(${run})`)).toBe("([encoded data omitted: 1 KB])");
   });
 
@@ -612,7 +636,7 @@ describe("PromptText on megabytes", () => {
   });
 
   test("a run of 16 MB of base64 with no prefix is one note", () => {
-    const run: string = "QUJD".repeat(4 * 1024 * 1024);
+    const run: string = noiseBase64(12 * 1024 * 1024);
 
     expect(omit(run)).toBe("[encoded data omitted: 16 MB]");
   });

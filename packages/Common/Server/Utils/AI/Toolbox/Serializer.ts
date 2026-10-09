@@ -1,10 +1,19 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
- * Prepares tool results for the LLM prompt: redacts likely secrets/PII,
- * truncates long fields, and caps total payload size. Everything that enters
- * the prompt (and therefore leaves for the LLM provider, and is previewed in
- * LlmLog.requestPrompt) passes through here first.
+ * Prepares tool results for the LLM prompt: leaves embedded files out,
+ * redacts likely secrets/PII, truncates long fields, and caps total payload
+ * size. Everything that enters the prompt (and therefore leaves for the LLM
+ * provider, and is previewed in LlmLog.requestPrompt) passes through here
+ * first.
+ *
+ * An incident's description can hold a synthetic monitor's screenshot -
+ * hundreds of kilobytes of base64 in a data: URL. Left in, it filled the
+ * field's MAX_FIELD_LENGTH with base64 and cut off the words after it; so
+ * every value first goes through PromptText.omitEmbeddedData, which puts a
+ * short note where the image was ("[image omitted: PNG, 340 KB]"), before
+ * anything is redacted or cut.
  */
 
 /*
@@ -219,7 +228,9 @@ export default class ToolResultSerializer {
       const parts: Array<string> = [];
 
       for (const key of Object.keys(row)) {
-        const rawValue: string = this.serializeValue(row[key] as JSONValue);
+        const rawValue: string = PromptText.omitEmbeddedData(
+          this.serializeValue(row[key] as JSONValue),
+        ).text;
         if (!rawValue) {
           continue;
         }
@@ -282,7 +293,9 @@ export default class ToolResultSerializer {
     text: string,
     rowCount: number,
   ): SerializedResult {
-    const redacted: { text: string; count: number } = this.redact(text);
+    const redacted: { text: string; count: number } = this.redact(
+      PromptText.omitEmbeddedData(text).text,
+    );
     let output: string = redacted.text;
     let isTruncated: boolean = false;
 

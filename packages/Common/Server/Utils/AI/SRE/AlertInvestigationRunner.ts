@@ -53,6 +53,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationRules, {
   InvestigationRuleScope,
 } from "./InvestigationRules";
+import PromptText from "../../../../Utils/AI/PromptText";
+import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
 
 /*
  * AI SRE — alert investigation.
@@ -195,13 +197,15 @@ export default class AIAlertInvestigationRunner {
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
     let resourceStatuses: Array<ResourceAiAccessStatus> = [];
+    // What the summary left out of the alert's text, for the run to say.
+    const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
     try {
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
           alertId,
         });
 
-      contextSummary = this.buildAlertSummary(contextData);
+      contextSummary = this.buildAlertSummary(contextData, promptOmissions);
 
       /*
        * Direct cluster access. Never a prerequisite: an access lookup that
@@ -375,6 +379,7 @@ export default class AIAlertInvestigationRunner {
         feature: AI_ALERT_INVESTIGATION_FEATURE,
         alertId,
         contextSummary,
+        promptOmissions,
         maxLlmCalls: runLimits.maxLlmCalls,
         maxToolCalls: runLimits.maxToolCalls,
         maxWallClockMs: runLimits.maxWallClockMs,
@@ -642,8 +647,16 @@ export default class AIAlertInvestigationRunner {
     return floorSeverity;
   }
 
-  // Build a compact alert record to seed the investigation.
-  private static buildAlertSummary(contextData: AlertContextData): string {
+  /*
+   * Build a compact alert record to seed the investigation. It is sent with
+   * every call to the model, so each free-text field goes in through
+   * PromptText.field: embedded images left out, held to a length, and what
+   * was left out added to `omissions`.
+   */
+  public static buildAlertSummary(
+    contextData: AlertContextData,
+    omissions?: AIPromptOmissions | undefined,
+  ): string {
     const { alert, internalNotes } = contextData;
 
     const lines: Array<string> = [];
@@ -651,7 +664,9 @@ export default class AIAlertInvestigationRunner {
     lines.push(`Title: ${alert.title || "N/A"}`);
 
     if (alert.description) {
-      lines.push(`Description: ${alert.description}`);
+      lines.push(
+        `Description: ${PromptText.field(alert.description, { omissions })}`,
+      );
     }
 
     lines.push(`Severity: ${alert.alertSeverity?.name || "N/A"}`);
@@ -680,13 +695,17 @@ export default class AIAlertInvestigationRunner {
     }
 
     if (alert.rootCause) {
-      lines.push(`Root cause (as recorded so far): ${alert.rootCause}`);
+      lines.push(
+        `Root cause (as recorded so far): ${PromptText.field(alert.rootCause, { omissions })}`,
+      );
     }
 
     const recentNotes: Array<string> = (internalNotes || [])
       .slice(-5)
       .map((note: { note?: string }) => {
-        return note.note ? `- ${note.note}` : "";
+        return note.note
+          ? `- ${PromptText.field(note.note, { omissions })}`
+          : "";
       })
       .filter(Boolean);
 

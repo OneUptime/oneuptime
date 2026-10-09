@@ -26,7 +26,8 @@ import {
  *
  *   - Every embedded file - a data: URL with base64 data, in Markdown, in
  *     HTML or on its own - and every run of at least MIN_ENCODED_RUN_LENGTH
- *     base64 characters is replaced by a short note that says what it was:
+ *     characters of what can only be encoded bytes (see there) is replaced
+ *     by a short note that says what it was:
  *     "[image omitted: JPEG, 340 KB]", "[file omitted: application/pdf,
  *     12 KB]", "[encoded data omitted: 300 KB]". The model still sees the
  *     alt text and everything around it. An image is named by its bytes, as
@@ -65,7 +66,10 @@ export const MAX_DRAFT_PROMPT_FIELD_LENGTH: number = 16_000;
  * A run of base64 at least this long, with no data: URL around it, is
  * embedded data too: a screenshot placed without its "data:image/png;base64,"
  * prefix, a file in a response body. Text has no word this long; a hash, a
- * token or a key is far shorter.
+ * token or a key is far shorter. The run must also look like encoded bytes -
+ * upper- and lower-case letters and digits, as base64 of an image or a file
+ * always has - or start like an image: a line of one letter repeated, a DNA
+ * sequence or a hex dump is text, however long.
  */
 export const MIN_ENCODED_RUN_LENGTH: number = 1_024;
 
@@ -110,6 +114,13 @@ const MEDIA_TYPE_PATTERN: RegExp = /^[a-z0-9][a-z0-9.+_-]*\/[a-z0-9][a-z0-9.+_-]
 // Digits a thousands separator goes before: 1234567 -> 1,234,567.
 const THOUSANDS_PATTERN: RegExp = /\B(?=(\d{3})+(?!\d))/g;
 
+/*
+ * A note this module writes, at the start of a slice of at most
+ * MAX_NOTE_LENGTH characters: "[image omitted: PNG, 340 KB]".
+ */
+const NOTE_PATTERN: RegExp =
+  /^\[(?:image|file|encoded data) omitted: (?:[^\],\n]{1,64}, )?\d[\d,.]* (?:bytes?|KB|MB)\]/;
+
 const CHAR_SPACE: number = 0x20;
 const CHAR_TAB: number = 0x09;
 const CHAR_LINE_FEED: number = 0x0a;
@@ -123,6 +134,13 @@ const CHAR_LEFT_BRACKET: number = 0x5b;
 
 // Lower case of an ASCII letter: 0x20 set ("D" -> "d"); other codes never match.
 const LOWER_CASE_BIT: number = 0x20;
+
+// The kinds of character a run of base64 holds, as bits.
+const UPPER_CASE_LETTER: number = 1;
+const LOWER_CASE_LETTER: number = 2;
+const DIGIT: number = 4;
+const EVERY_KIND_OF_CHARACTER: number =
+  UPPER_CASE_LETTER | LOWER_CASE_LETTER | DIGIT;
 
 // What a media type and its parameters may hold, besides letters and digits.
 const MEDIA_TYPE_PUNCTUATION: ReadonlySet<number> = new Set<number>(
@@ -192,6 +210,25 @@ const isWhitespace: CharacterTestFunction = (code: number): boolean => {
     code === CHAR_LINE_FEED ||
     code === CHAR_CARRIAGE_RETURN
   );
+};
+
+type CharacterKindFunction = (code: number) => number;
+
+// Which kind of base64 character `code` is: a letter of a case, a digit, or neither.
+const kindOfCharacter: CharacterKindFunction = (code: number): number => {
+  if (code >= 0x41 && code <= 0x5a) {
+    return UPPER_CASE_LETTER;
+  }
+
+  if (code >= 0x61 && code <= 0x7a) {
+    return LOWER_CASE_LETTER;
+  }
+
+  if (code >= 0x30 && code <= 0x39) {
+    return DIGIT;
+  }
+
+  return 0;
 };
 
 const isHighSurrogate: CharacterTestFunction = (code: number): boolean => {
@@ -345,8 +382,10 @@ export const formatSize: FormatFunction = (bytes: number): string => {
   return `${Math.round(rounded / 104857.6) / 10} MB`;
 };
 
+type DecodedLengthFunction = (length: number) => number;
+
 // How many bytes `length` characters of base64 decode to.
-const decodedLength: FormatFunction = (length: number): number => {
+const decodedLength: DecodedLengthFunction = (length: number): number => {
   return Math.floor((length * 3) / 4);
 };
 
@@ -436,6 +475,8 @@ export default class PromptText {
     const length: number = text.length;
     let copiedUpTo: number = 0;
     let runStart: number = -1;
+    // The kinds of character the run holds (kindOfCharacter), as bits.
+    let runKinds: number = 0;
     let index: number = 0;
 
     // Replaces text[start, end) with `note`.
@@ -449,15 +490,25 @@ export default class PromptText {
     };
 
     /*
-     * A run of base64 characters, text[start, end), and the padding after
-     * it: replaced when it is long enough to be embedded data. Returns
-     * where the text goes on.
+     * A run of base64 characters, text[start, end), holding the kinds of
+     * character `kinds` says, and the padding after it: replaced when it is
+     * long enough, and encoded enough, to be embedded data. Returns where
+     * the text goes on.
      */
-    const endRun: (start: number, end: number) => number = (
+    const endRun: (start: number, end: number, kinds: number) => number = (
       start: number,
       end: number,
+      kinds: number,
     ): number => {
       if (end - start < MIN_ENCODED_RUN_LENGTH) {
+        return end;
+      }
+
+      const image: InlineImageType | null = getInlineImageTypeOfBase64(
+        text.slice(start, start + 16),
+      );
+
+      if (!image && kinds !== EVERY_KIND_OF_CHARACTER) {
         return end;
       }
 
@@ -470,10 +521,6 @@ export default class PromptText {
       ) {
         paddedEnd++;
       }
-
-      const image: InlineImageType | null = getInlineImageTypeOfBase64(
-        text.slice(start, start + 16),
-      );
 
       if (image) {
         const bytes: number = decodedLength(end - start);
@@ -506,8 +553,10 @@ export default class PromptText {
       if (isBase64Character(code)) {
         if (runStart === -1) {
           runStart = index;
+          runKinds = 0;
         }
 
+        runKinds |= kindOfCharacter(code);
         index++;
         continue;
       }
@@ -521,7 +570,7 @@ export default class PromptText {
 
         if (url) {
           if (runStart !== -1 && runStart < index - 4) {
-            endRun(runStart, index - 4);
+            endRun(runStart, index - 4, runKinds);
           }
 
           runStart = -1;
@@ -560,7 +609,7 @@ export default class PromptText {
       }
 
       if (runStart !== -1) {
-        const next: number = endRun(runStart, index);
+        const next: number = endRun(runStart, index, runKinds);
 
         runStart = -1;
 
@@ -574,7 +623,7 @@ export default class PromptText {
     }
 
     if (runStart !== -1) {
-      endRun(runStart, length);
+      endRun(runStart, length, runKinds);
     }
 
     if (pieces.length === 0) {
@@ -680,6 +729,20 @@ export default class PromptText {
   }
 
   /**
+   * A free-text field of a draft written in one call - a postmortem, a
+   * note - held to MAX_DRAFT_PROMPT_FIELD_LENGTH.
+   */
+  public static draftField(
+    value: string | null | undefined,
+    omissions?: AIPromptOmissions | undefined,
+  ): string {
+    return PromptText.field(value, {
+      maxLength: MAX_DRAFT_PROMPT_FIELD_LENGTH,
+      omissions: omissions,
+    });
+  }
+
+  /**
    * The messages of a model call with the embedded data in each left out,
    * and what was. Messages that had none are the same objects; when none
    * had any, the same array comes back.
@@ -711,6 +774,36 @@ export default class PromptText {
     }
 
     return { messages: changed || messages, omissions: omissions };
+  }
+
+  /**
+   * The first note omitEmbeddedData writes that `text` holds, or null. A
+   * model shown a file through PromptText sees these notes in place of its
+   * embedded data; text it writes back with one in it would replace that
+   * data, so a writer of files refuses such text.
+   */
+  public static findNote(text: string | null | undefined): string | null {
+    if (typeof text !== "string") {
+      return null;
+    }
+
+    for (const start of NOTE_STARTS) {
+      let at: number = text.indexOf(start);
+
+      while (at !== -1) {
+        const match: RegExpMatchArray | null = text
+          .slice(at, at + MAX_NOTE_LENGTH)
+          .match(NOTE_PATTERN);
+
+        if (match) {
+          return match[0];
+        }
+
+        at = text.indexOf(start, at + 1);
+      }
+    }
+
+    return null;
   }
 
   /**

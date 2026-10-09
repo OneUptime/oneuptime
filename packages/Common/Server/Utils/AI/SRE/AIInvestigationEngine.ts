@@ -4,8 +4,10 @@ import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   AIChatCitation,
+  AIPromptOmissions,
   AIRunEventResultSummary,
 } from "../../../../Types/AI/AIChatTypes";
+import PromptText, { PromptTextResult } from "../../../../Utils/AI/PromptText";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
@@ -157,8 +159,19 @@ export interface InvestigationRequest {
    */
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
-  // A compact markdown summary of the subject that seeds the investigation.
+  /*
+   * A compact markdown summary of the subject that seeds the investigation.
+   * It is sent with every call to the model, so its free-text fields go in
+   * through PromptText.field (Utils/AI/PromptText); anything still embedded
+   * in it is left out here before the model reads it.
+   */
   contextSummary: string;
+  /*
+   * What the runner left out of the subject's text while building the
+   * summary - embedded images, the end of a long description. The run's
+   * activity says so, so responders know what OneUptime AI did not read.
+   */
+  promptOmissions?: AIPromptOmissions | undefined;
   /*
    * Called with the finished, branded, cited analysis so the caller can post
    * it to the subject's timeline. `confidence` is the structured,
@@ -446,6 +459,40 @@ export default class AIInvestigationEngine {
     });
 
     /*
+     * The model reads text: an image embedded in the subject's text - a
+     * synthetic monitor's screenshot is hundreds of kilobytes of base64 -
+     * would only be billed, on every call of the run (issue #4587). The
+     * runner held each field to its length; whatever is still embedded in
+     * the summary (a section quoting another record) is left out here. When
+     * anything was, the run's activity says so first, in the reader's
+     * language, so responders know what OneUptime AI did not read.
+     */
+    const seed: PromptTextResult = PromptText.omitEmbeddedData(
+      request.contextSummary,
+    );
+    const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
+
+    if (request.promptOmissions) {
+      PromptText.addOmissions(promptOmissions, request.promptOmissions);
+    }
+
+    PromptText.addOmissions(promptOmissions, seed.omissions);
+
+    if (PromptText.hasOmissions(promptOmissions)) {
+      await this.emitEvent({
+        projectId,
+        aiRunId,
+        sequence: sequence++,
+        eventType: AIRunEventType.ProgressLog,
+        resultSummary: {
+          message: PromptText.describeOmissions(promptOmissions) || undefined,
+          severity: "Info",
+          promptOmissions,
+        },
+      });
+    }
+
+    /*
      * Cluster tool calls this attempt started. The run's toolCallCount
      * includes them, and the posted report must not call them telemetry
      * queries.
@@ -551,7 +598,7 @@ export default class AIInvestigationEngine {
           question: `${
             request.questionOverride ??
             "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."
-          }\n\n${request.contextSummary}`,
+          }\n\n${seed.text}`,
           maxLlmCalls: request.maxLlmCalls ?? MAX_LLM_CALLS,
           maxToolCalls: request.maxToolCalls ?? MAX_TOOL_CALLS,
           // Null tells the loop "no time limit" (undefined = its chat default).
