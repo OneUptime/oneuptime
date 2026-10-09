@@ -5,6 +5,8 @@
   },
   "sameAsEnglish": [
     "CloudWatch Metric Streams",
+    "Filter:",
+    "Filter: {{expression}}",
     "Incident {{number}}: {{title}}",
     "Offline",
     "Precision",
@@ -14,6 +16,9 @@
     "VMware vCenter",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{count}} process",
     "{{count}} rotation"
   ]

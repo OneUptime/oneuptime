@@ -6,7 +6,10 @@
   "sameAsEnglish": [
     "1 week",
     "Alarm",
+    "Capture",
     "CloudWatch Metric Streams",
+    "Filter:",
+    "Filter: {{expression}}",
     "Incident {{number}}: {{title}}",
     "Interface {{index}}",
     "Label: {{name}}",
@@ -22,6 +25,9 @@
     "kubectl set image deployment/web * -n web",
     "services",
     "teams",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{count}} alarm",
     "{{count}} product",
     "{{field}} is {{value}}"

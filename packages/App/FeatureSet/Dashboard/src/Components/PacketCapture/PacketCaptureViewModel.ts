@@ -155,8 +155,10 @@ export const TURN_ON_SETTINGS: ReadonlyArray<{
     ),
   },
   {
-    code: "--cap-add NET_RAW --cap-add NET_ADMIN",
-    description: translationKey("lets it open them for capture"),
+    code: "--cap-add NET_RAW",
+    description: translationKey(
+      "lets it capture on them (Docker allows it by default)",
+    ),
   },
 ];
 
@@ -222,13 +224,13 @@ export function getDurationChoices(maxDurationInSeconds: number): Array<number> 
 }
 
 const SECONDS: PluralTemplate = {
-  one: translationKey("{{count}} second"),
-  other: translationKey("{{count}} seconds"),
+  one: "{{count}} second",
+  other: "{{count}} seconds",
 };
 
 const MINUTES: PluralTemplate = {
-  one: translationKey("{{count}} minute"),
-  other: translationKey("{{count}} minutes"),
+  one: "{{count}} minute",
+  other: "{{count}} minutes",
 };
 
 // A duration in words: "30 seconds", "1 minute", "90 seconds".
@@ -269,12 +271,8 @@ export function formatBytes(bytes: number, translator: Translator): string {
 }
 
 const LIMITS_SUMMARY: PluralTemplate = {
-  one: translationKey(
-    "Stops after {{duration}}, {{count}} packet or {{size}}, whichever comes first.",
-  ),
-  other: translationKey(
-    "Stops after {{duration}}, {{count}} packets or {{size}}, whichever comes first.",
-  ),
+  one: "Stops after {{duration}}, {{count}} packet or {{size}}, whichever comes first.",
+  other: "Stops after {{duration}}, {{count}} packets or {{size}}, whichever comes first.",
 };
 
 // What the folded Limits section says while it is folded.
@@ -301,12 +299,8 @@ export const PACKET_CAPTURE_SENSITIVE_DATA_TITLE: string = translationKey(
 export function getSensitiveDataNotice(translator: Translator): string {
   return translator.translatePlural(
     {
-      one: translationKey(
-        "Passwords, tokens and personal data that cross the wire end up in the file. Filter to what you need. Captures are deleted after {{count}} day, and every start and download is recorded in the audit log.",
-      ),
-      other: translationKey(
-        "Passwords, tokens and personal data that cross the wire end up in the file. Filter to what you need. Captures are deleted after {{count}} days, and every start and download is recorded in the audit log.",
-      ),
+      one: "Passwords, tokens and personal data that cross the wire end up in the file. Filter to what you need. Captures are deleted after {{count}} day, and every start and download is recorded in the audit log.",
+      other: "Passwords, tokens and personal data that cross the wire end up in the file. Filter to what you need. Captures are deleted after {{count}} days, and every start and download is recorded in the audit log.",
     },
     PACKET_CAPTURE_RETENTION_IN_DAYS,
   );
@@ -445,8 +439,8 @@ export function describeEndReason(
     case PacketCaptureEndReason.PacketLimitReached:
       return translator.translatePlural(
         {
-          one: translationKey("Stopped at its limit of {{count}} packet."),
-          other: translationKey("Stopped at its limit of {{count}} packets."),
+          one: "Stopped at its limit of {{count}} packet.",
+          other: "Stopped at its limit of {{count}} packets.",
         },
         capture.maxPackets,
       );
@@ -564,8 +558,8 @@ export function getCaptureStatusDisplay(
     tone: "success",
     detail: translator.translatePlural(
       {
-        one: translationKey("{{count}} packet · {{size}}"),
-        other: translationKey("{{count}} packets · {{size}}"),
+        one: "{{count}} packet · {{size}}",
+        other: "{{count}} packets · {{size}}",
       },
       packetCount,
       {

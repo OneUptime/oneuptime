@@ -178,9 +178,12 @@ export function buildTcpdumpArguments(job: HeldPacketCaptureJob): Array<string> 
   return args;
 }
 
+// What tcpdump starts each of its own lines with.
+const TOOL_PREFIX: string = "tcpdump:";
+
 // The informative lines tcpdump prints to stderr on every run.
 const ROUTINE_TOOL_LINE: RegExp =
-  /^(tcpdump: listening on|\d+ packets? (captured|received by filter|dropped by kernel)|tcpdump: verbose output suppressed)/i;
+  /^(listening on|\d+ packets? (captured|received by filter|dropped by kernel)|verbose output suppressed)/i;
 const PERMISSION_PROBLEM: RegExp =
   /(permission|not permitted|you don't have|operation not permitted)/i;
 const MISSING_INTERFACE: RegExp =
@@ -198,7 +201,12 @@ export function summarizeToolOutput(stderr: string): string {
   return stderr
     .split(LINE_BREAK)
     .map((line: string): string => {
-      return line.trim();
+      const trimmed: string = line.trim();
+
+      // "tcpdump said: tcpdump: ..." says tcpdump twice.
+      return trimmed.toLowerCase().startsWith(TOOL_PREFIX)
+        ? trimmed.substring(TOOL_PREFIX.length).trim()
+        : trimmed;
     })
     .filter((line: string): boolean => {
       return line.length > 0 && !ROUTINE_TOOL_LINE.test(line);
@@ -217,7 +225,7 @@ export function describeCaptureToolFailure(data: {
   const quoted: string = said ? ` tcpdump said: ${said}` : "";
 
   if (PERMISSION_PROBLEM.test(said)) {
-    return `The probe is not allowed to capture packets on ${data.interfaceName}. Run it with the NET_RAW and NET_ADMIN capabilities, as the packet capture docs show.${quoted}`;
+    return `The probe is not allowed to capture packets on ${data.interfaceName}. Run it with the NET_RAW capability, as the packet capture docs show.${quoted}`;
   }
 
   if (FILTER_PROBLEM.test(said)) {

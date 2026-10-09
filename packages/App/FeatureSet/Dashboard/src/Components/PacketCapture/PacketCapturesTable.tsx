@@ -34,11 +34,15 @@ import {
 } from "Common/Types/PacketCapture/PacketCapturePermissions";
 import PacketCaptureStatus from "Common/Types/PacketCapture/PacketCaptureStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import downloadFile from "Common/UI/Utils/DownloadFile";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Query from "Common/Types/BaseDatabase/Query";
 import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
@@ -116,6 +120,52 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
 
   const capability: PacketCaptureCapability | null =
     PacketCaptureCapabilityUtil.parse(props.probe.packetCaptureCapability);
+
+  const query: Query<PacketCapture> = props.networkDeviceId
+    ? { networkDeviceId: props.networkDeviceId }
+    : { probeId: props.probe.id! };
+
+  const isReady: boolean = readiness === PacketCaptureReadiness.Ready;
+
+  /*
+   * A probe that cannot capture, with nothing captured on it before, needs
+   * only the notice: an empty table under it would say the same thing
+   * twice. Past captures are still listed under the notice. Null while the
+   * count is read; a failed read shows the table, which explains itself.
+   */
+  const [hasPastCaptures, setHasPastCaptures] = useState<boolean | null>(
+    isReady ? true : null,
+  );
+
+  useEffect(() => {
+    if (isReady) {
+      setHasPastCaptures(true);
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    ModelAPI.count<PacketCapture>({
+      modelType: PacketCapture,
+      query: query,
+    })
+      .then((count: number) => {
+        if (isCurrent) {
+          setHasPastCaptures(count > 0);
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setHasPastCaptures(true);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+    // The query is rebuilt every render; what it depends on is listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, props.probe.id?.toString(), props.networkDeviceId?.toString()]);
 
   const downloadGate: PermissionGateResult = PermissionGate.checkPermissions(
     PACKET_CAPTURE_DOWNLOAD_PERMISSIONS,
@@ -288,6 +338,29 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const cardDescription: string =
+    props.description ||
+    "Capture the traffic this probe sees, then download the file and open it in Wireshark.";
+
+  if (!isReady && hasPastCaptures !== true) {
+    return (
+      <Card title="Packet Captures" description={cardDescription}>
+        {hasPastCaptures === null ? (
+          <ComponentLoader />
+        ) : (
+          <PacketCaptureReadinessNotice
+            readiness={
+              readiness as Exclude<
+                PacketCaptureReadiness,
+                PacketCaptureReadiness.Ready
+              >
+            }
+          />
+        )}
+      </Card>
+    );
+  }
+
   return (
     <Fragment>
       <ModelTable<PacketCapture>
@@ -301,7 +374,7 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isViewable={false}
         showViewIdButton={false}
-        isCreateable={readiness === PacketCaptureReadiness.Ready}
+        isCreateable={isReady}
         createVerb="Start"
         singularName="Packet Capture"
         pluralName="Packet Captures"
@@ -310,11 +383,7 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
         }}
         showRefreshButton={true}
         refreshToggle={refreshToggle}
-        query={
-          props.networkDeviceId
-            ? { networkDeviceId: props.networkDeviceId }
-            : { probeId: props.probe.id! }
-        }
+        query={query}
         sortBy="createdAt"
         sortOrder={SortOrder.Descending}
         onFetchSuccess={(items: Array<PacketCapture>) => {
@@ -323,15 +392,20 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
         }}
         cardProps={{
           title: "Packet Captures",
-          description:
-            props.description ||
-            "Capture the traffic this probe sees, then download the file and open it in Wireshark.",
+          description: cardDescription,
         }}
         topContent={
-          readiness !== PacketCaptureReadiness.Ready || actionError ? (
+          !isReady || actionError ? (
             <div className="mb-4 space-y-3">
-              {readiness !== PacketCaptureReadiness.Ready ? (
-                <PacketCaptureReadinessNotice readiness={readiness} />
+              {!isReady ? (
+                <PacketCaptureReadinessNotice
+                  readiness={
+                    readiness as Exclude<
+                      PacketCaptureReadiness,
+                      PacketCaptureReadiness.Ready
+                    >
+                  }
+                />
               ) : (
                 <></>
               )}
@@ -352,9 +426,7 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
         emptyState={{
           title: "No packet captures yet",
           description:
-            readiness === PacketCaptureReadiness.Ready
-              ? "Start one to capture what this probe sees. Narrow it to a host or a port, and download the file when it is done."
-              : "Once packet capture is on for this probe, the captures you start appear here.",
+            "Start one to capture what this probe sees. Narrow it to a host or a port, and download the file when it is done.",
         }}
         selectMoreFields={{
           bpfFilter: true,

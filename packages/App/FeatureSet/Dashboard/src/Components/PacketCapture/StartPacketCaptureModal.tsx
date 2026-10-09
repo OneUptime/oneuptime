@@ -15,6 +15,7 @@ import {
 import PacketCapture from "Common/Models/DatabaseModels/PacketCapture";
 import ObjectID from "Common/Types/ObjectID";
 import PacketCaptureCapabilityUtil, {
+  ALL_INTERFACES_NAME,
   PacketCaptureCapability,
 } from "Common/Types/PacketCapture/PacketCaptureCapability";
 import { PacketCaptureFilterBuild } from "Common/Types/PacketCapture/PacketCaptureFilter";
@@ -129,6 +130,13 @@ const StartPacketCaptureModal: FunctionComponent<ComponentProps> = (
   const limitsSection: FormFieldCollapsibleSection<StartPacketCaptureFormValues> =
     getAdvancedFormSection<StartPacketCaptureFormValues>({
       id: "packet-capture-limits",
+      /*
+       * The sentence says what the limits are, set or not, so the header
+       * draws no chips that would say it a second time.
+       */
+      isConfigured: (): boolean => {
+        return false;
+      },
       getSummary: (
         values: FormValues<StartPacketCaptureFormValues>,
       ): Array<string> => {
@@ -136,19 +144,17 @@ const StartPacketCaptureModal: FunctionComponent<ComponentProps> = (
       },
     });
 
+  // What "every packet on ..." names: the interface, or every interface.
   const getInterfaceLabel: (
     values: FormValues<StartPacketCaptureFormValues>,
   ) => string = (values: FormValues<StartPacketCaptureFormValues>): string => {
-    const name: unknown = normalizeFormValue(values.interfaceName);
+    const name: string = String(normalizeFormValue(values.interfaceName) || "");
 
-    return (
-      interfaceOptions.find((option: InterfaceOption): boolean => {
-        return option.value === name;
-      })?.label ||
-      String(name || "") ||
-      translator.translateText("the interface") ||
-      ""
-    );
+    if (!name || name === ALL_INTERFACES_NAME) {
+      return translator.translateText("every interface") || "";
+    }
+
+    return name;
   };
 
   const fields: Array<Field<StartPacketCaptureFormValues>> = [

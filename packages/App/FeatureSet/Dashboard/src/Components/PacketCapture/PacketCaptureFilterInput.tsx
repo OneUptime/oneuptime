@@ -9,14 +9,17 @@ import PacketCaptureFilterUtil, {
   PacketCaptureFilterBuild,
   PacketCaptureProtocol,
 } from "Common/Types/PacketCapture/PacketCaptureFilter";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -34,7 +37,7 @@ export interface ComponentProps {
 }
 
 const PROTOCOL_LABELS: Record<PacketCaptureProtocol, string> = {
-  [PacketCaptureProtocol.Any]: "Any protocol",
+  [PacketCaptureProtocol.Any]: translationKey("Any protocol"),
   [PacketCaptureProtocol.TCP]: "TCP",
   [PacketCaptureProtocol.UDP]: "UDP",
   [PacketCaptureProtocol.ICMP]: "ICMP",
@@ -190,7 +193,11 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+      {/*
+       * The expression it makes, and the way to write one: side by side
+       * where there is room, the link under the expression on a phone.
+       */}
+      <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
         <p
           className={`min-w-0 flex-1 break-words text-xs ${build.error ? "text-red-600" : "text-gray-600"}`}
           data-testid="packet-capture-filter-preview"
@@ -211,6 +218,8 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
         </p>
         <Button
           buttonStyle={ButtonStyleType.LINK}
+          buttonSize={ButtonSize.ExtraSmall}
+          className="shrink-0 text-xs font-medium"
           dataTestId="packet-capture-filter-mode"
           title={
             isExpression

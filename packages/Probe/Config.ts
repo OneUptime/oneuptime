@@ -554,8 +554,7 @@ export const PROBE_NETFLOW_RECEIVER_ENABLED: boolean =
  * then held to PROBE_PACKET_CAPTURE_MAX_DURATION_IN_SECONDS and
  * PROBE_PACKET_CAPTURE_MAX_FILE_SIZE_IN_MB when they are set lower than the
  * hard maximums. Seeing real interfaces and mirrored ports takes host
- * networking and the NET_RAW / NET_ADMIN capabilities: see the packet
- * capture docs.
+ * networking and the NET_RAW capability: see the packet capture docs.
  */
 export const PROBE_PACKET_CAPTURE_SETTINGS: PacketCaptureSettings =
   readPacketCaptureSettings(process.env);
