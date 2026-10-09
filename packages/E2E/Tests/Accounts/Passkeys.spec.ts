@@ -87,6 +87,15 @@ test.describe("Passkey account lifecycle", () => {
   };
 
   const signOut: () => Promise<void> = async (): Promise<void> => {
+    /*
+     * Leave the app before the session ends. An app page still open gets a
+     * 401 on its next request, signs itself out and navigates to the login
+     * page on its own, racing the navigation below: whichever starts second
+     * aborts the other (net::ERR_ABORTED). /status is a plain response on
+     * the same origin, so no app code runs there, and the app's storage for
+     * this origin can still be cleared from it.
+     */
+    await page.goto(`${origin}/status`);
     const response: APIResponse = await context.request.post(
       `${origin}/identity/logout`,
     );
