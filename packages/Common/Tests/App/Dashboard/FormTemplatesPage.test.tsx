@@ -446,7 +446,9 @@ describe("adding a template", () => {
     expect(
       within(dialog).getByRole("textbox", { name: "Markdown" }),
     ).toBeInTheDocument();
-    expect(within(dialog).getByText("What people are told.")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("What people are told."),
+    ).toBeInTheDocument();
     expect(
       within(dialog).getByTestId("form-template-hidden-note-description"),
     ).toHaveTextContent(FormsCopy.templateHiddenAnswerNote);
@@ -744,7 +746,9 @@ describe("how a template asks each question", () => {
 
     const dialog: HTMLElement = screen.getByTestId("modal");
 
-    expect(within(dialog).getByText(FormsCopy.builderTitle)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(FormsCopy.builderTitle),
+    ).toBeInTheDocument();
     expect(
       within(dialog).getByText(FormsCopy.templateQuestionsDescription),
     ).toBeInTheDocument();
@@ -849,7 +853,10 @@ describe("how a template asks each question", () => {
 
   test("Edit starts from the template's settings; choosing Form default takes one out", async () => {
     storedTemplates = [
-      { ...OUTAGE, fieldSettings: { severity: Required, description: Optional } },
+      {
+        ...OUTAGE,
+        fieldSettings: { severity: Required, description: Optional },
+      },
       MAINTENANCE,
     ];
 
@@ -888,7 +895,9 @@ describe("how a template asks each question", () => {
     await renderPage();
 
     const chips: Array<Element> = Array.from(
-      screen.getByTestId("form-template-settings-outage").querySelectorAll("li"),
+      screen
+        .getByTestId("form-template-settings-outage")
+        .querySelectorAll("li"),
     );
 
     expect(

@@ -604,7 +604,11 @@ describe("setFormTemplateSetting - one row's picker chose", () => {
   test("never changes the settings it was handed", () => {
     const settings: FormTemplateFieldSettings = { severity: Hidden };
 
-    setFormTemplateSetting({ settings, fieldId: "severity", choice: "Required" });
+    setFormTemplateSetting({
+      settings,
+      fieldId: "severity",
+      choice: "Required",
+    });
     setFormTemplateSetting({ settings, fieldId: "title", choice: "Optional" });
 
     expect(settings).toEqual({ severity: Hidden });

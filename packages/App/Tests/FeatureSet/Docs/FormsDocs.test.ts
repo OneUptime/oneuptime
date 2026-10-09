@@ -1839,9 +1839,9 @@ describe("Forms docs: how a template asks each question", () => {
     expect(SECTION).toContain(
       "so does every question you add to the form later, in every template",
     );
-    expect(
-      getFormQuestionAsked({ isRequired: true, isHidden: false }),
-    ).toEqual({ isAsked: true, isRequired: true });
+    expect(getFormQuestionAsked({ isRequired: true, isHidden: false })).toEqual(
+      { isAsked: true, isRequired: true },
+    );
   });
 
   it("say a maintenance event's start and end cannot be changed, as the server's check says", () => {
@@ -1899,7 +1899,11 @@ describe("Forms docs: how a template asks each question", () => {
   });
 
   it("give the API's fieldSettings with every setting the server takes, in an example it accepts", () => {
-    const api: string = sectionOf(readPage(OVERVIEW_PAGE), 3, "Templates in the API");
+    const api: string = sectionOf(
+      readPage(OVERVIEW_PAGE),
+      3,
+      "Templates in the API",
+    );
 
     expect(api).toContain(
       `\`${FORM_TEMPLATE_FIELD_SETTINGS[0]}\`, \`${FORM_TEMPLATE_FIELD_SETTINGS[1]}\` or \`${FORM_TEMPLATE_FIELD_SETTINGS[2]}\``,

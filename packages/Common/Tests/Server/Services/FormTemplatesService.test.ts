@@ -724,9 +724,7 @@ describe("templates that ask the questions their own way", () => {
   });
 
   test("a template that went stale since it was saved keeps nobody from saving another", async () => {
-    storedForms = [
-      storedForm({ templates: [STALE] as unknown as JSONArray }),
-    ];
+    storedForms = [storedForm({ templates: [STALE] as unknown as JSONArray })];
 
     await expect(
       update({ templates: [STALE, PLANNED] as unknown as JSONArray }),
@@ -739,9 +737,7 @@ describe("templates that ask the questions their own way", () => {
   });
 
   test("what went stale is refused in a template that did not hold it", async () => {
-    storedForms = [
-      storedForm({ templates: [STALE] as unknown as JSONArray }),
-    ];
+    storedForms = [storedForm({ templates: [STALE] as unknown as JSONArray })];
 
     const error: Error | undefined = await refusal(
       update({
@@ -758,9 +754,7 @@ describe("templates that ask the questions their own way", () => {
   });
 
   test("a held answer or setting that changes is judged whole", async () => {
-    storedForms = [
-      storedForm({ templates: [STALE] as unknown as JSONArray }),
-    ];
+    storedForms = [storedForm({ templates: [STALE] as unknown as JSONArray })];
 
     const error: Error | undefined = await refusal(
       update({

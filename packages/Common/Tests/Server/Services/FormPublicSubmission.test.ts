@@ -1920,7 +1920,9 @@ describe("submitPublicForm - a template asks the questions its own way", () => {
       incidentNoteCreate.mock.calls[0]![0] as { data: IncidentInternalNote }
     ).data.note!;
 
-    expect(note).toContain("Started from the template **Planned Maintenance**.");
+    expect(note).toContain(
+      "Started from the template **Planned Maintenance**.",
+    );
   });
 
   test("a maintenance event's start stays asked and required, even when a stored template says otherwise", async () => {

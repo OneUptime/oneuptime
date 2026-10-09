@@ -1072,9 +1072,9 @@ describe("the preview", () => {
         const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
         await user.click(
-          within(
-            screen.getByTestId("form-preview-template-picker"),
-          ).getByRole("combobox"),
+          within(screen.getByTestId("form-preview-template-picker")).getByRole(
+            "combobox",
+          ),
         );
 
         const menu: HTMLElement = await screen.findByRole("listbox");
@@ -1113,7 +1113,9 @@ describe("the preview", () => {
           );
         });
 
-        expect(await screen.findByText("Details is required.")).toBeInTheDocument();
+        expect(
+          await screen.findByText("Details is required."),
+        ).toBeInTheDocument();
         expect(
           screen.queryByTestId("form-preview-submitted"),
         ).not.toBeInTheDocument();

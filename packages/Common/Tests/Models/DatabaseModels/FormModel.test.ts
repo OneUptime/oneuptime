@@ -884,9 +884,9 @@ describe("Form columns", () => {
     expect(description).toContain(
       "a question it does not list is asked as the form asks it",
     );
-    expect(
-      model.getTableColumnMetadata("fields").description || "",
-    ).toContain("fieldSettings");
+    expect(model.getTableColumnMetadata("fields").description || "").toContain(
+      "fieldSettings",
+    );
   });
 
   test("the example templates show a template asking questions its own way", () => {

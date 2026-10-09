@@ -264,9 +264,11 @@ describe("what the page is told", () => {
       "ticket",
       "email",
     ]);
-    expect(built.form.fields.some((field: PublicFormField): boolean => {
-      return field.isHidden === true;
-    })).toBe(false);
+    expect(
+      built.form.fields.some((field: PublicFormField): boolean => {
+        return field.isHidden === true;
+      }),
+    ).toBe(false);
   });
 
   test("each template is told with how it asks the page's questions", () => {
@@ -402,7 +404,11 @@ describe("what the page is told", () => {
           id: "a",
           name: "A",
           answers: {},
-          fieldSettings: { starts: "Hidden", ends: "Optional", title: "Hidden" },
+          fieldSettings: {
+            starts: "Hidden",
+            ends: "Optional",
+            title: "Hidden",
+          },
         },
       ],
     });
@@ -484,7 +490,10 @@ describe("getPublicFormForTemplate - the form as one template asks it", () => {
 
   test("a template that sets nothing asks the form as the form does", () => {
     expect(
-      getPublicFormForTemplate({ form, template: templateOf(form, "restored") }),
+      getPublicFormForTemplate({
+        form,
+        template: templateOf(form, "restored"),
+      }),
     ).toEqual(getPublicFormForTemplate({ form }));
   });
 
@@ -610,7 +619,10 @@ describe("getFormQuestionsForTemplate - what the server reads from the request, 
       });
 
       expect(
-        [...idsOf(questions.asked), ...idsOf(questions.answeredByTemplate)].sort(),
+        [
+          ...idsOf(questions.asked),
+          ...idsOf(questions.answeredByTemplate),
+        ].sort(),
       ).toEqual(idsOf(built.allFields).sort());
     }
   });
@@ -681,9 +693,7 @@ describe("a submission is held to the questions its template asks", () => {
   });
 
   test("a hidden question the template asks, and requires, must be answered", () => {
-    expect(
-      check("maintenance", { title: "Patch", app: "Checkout" }),
-    ).toEqual({
+    expect(check("maintenance", { title: "Patch", app: "Checkout" })).toEqual({
       isValid: false,
       errors: ["Scheduled Maintenance Date is required."],
     });
@@ -784,7 +794,12 @@ describe("validateFormTemplateAnswers - the settings the server lets a template 
     expect(
       validateFormTemplateAnswers({
         templates: [
-          { id: "a", name: "A", answers: {}, fieldSettings: { gone: "Hidden" } },
+          {
+            id: "a",
+            name: "A",
+            answers: {},
+            fieldSettings: { gone: "Hidden" },
+          },
         ],
         fields: withGone.allFields,
       }),
@@ -799,9 +814,7 @@ describe("validateFormTemplateAnswers - the settings the server lets a template 
     ).map((field: FormField, index: number): FormField => {
       return {
         ...field,
-        id: ["title", "description", "starts", "ends", "name", "email"][
-          index
-        ]!,
+        id: ["title", "description", "starts", "ends", "name", "email"][index]!,
       };
     });
 

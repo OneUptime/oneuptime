@@ -865,7 +865,13 @@ describe("readPublicForm: how each template asks the questions", () => {
   test("a question the form hides is read as hidden; only a real true is", () => {
     const form: PublicForm = read(undefined, [
       ...FIELDS,
-      { id: "a", label: "A", type: "Text", isRequired: false, isHidden: "true" },
+      {
+        id: "a",
+        label: "A",
+        type: "Text",
+        isRequired: false,
+        isHidden: "true",
+      },
       { id: "b", label: "B", type: "Text", isRequired: false, isHidden: 1 },
     ]);
 

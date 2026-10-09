@@ -2337,9 +2337,7 @@ test.describe("Forms", () => {
     await expect(ctx.submitter.getByTestId("form-field-what")).toHaveValue(
       outageTitle,
     );
-    await expect(ctx.submitter.getByTestId("form-field-window")).toHaveCount(
-      0,
-    );
+    await expect(ctx.submitter.getByTestId("form-field-window")).toHaveCount(0);
 
     // Required by the template: refused in the browser, and nothing is sent.
     const submits: Array<string> = [];
@@ -2390,15 +2388,12 @@ test.describe("Forms", () => {
     expect(await noApp.text()).toContain("Application Name is required.");
 
     // Planned Maintenance asks the window the form hides, and requires it.
-    const noWindow: APIResponse = await ctx.submitter.request.post(
-      submitUrl,
-      {
-        headers,
-        data: {
-          data: { templateId: "planned", answers: { what: aroundThePage } },
-        },
+    const noWindow: APIResponse = await ctx.submitter.request.post(submitUrl, {
+      headers,
+      data: {
+        data: { templateId: "planned", answers: { what: aroundThePage } },
       },
-    );
+    });
     expect(noWindow.status()).toBe(400);
     expect(await noWindow.text()).toContain("Maintenance Window is required.");
     expect(

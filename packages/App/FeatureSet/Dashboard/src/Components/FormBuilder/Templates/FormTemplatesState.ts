@@ -149,7 +149,10 @@ export const getFormTemplateEditorSettings: GetFormTemplateEditorSettingsFunctio
 
     for (const question of data.questions) {
       const setting: FormTemplateFieldSetting | undefined =
-        getFormTemplateFieldSetting({ fieldSettings: stored }, question.field.id);
+        getFormTemplateFieldSetting(
+          { fieldSettings: stored },
+          question.field.id,
+        );
 
       if (!setting || question.isLocked) {
         continue;

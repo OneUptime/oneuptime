@@ -380,7 +380,10 @@ const readFieldSettings: ReadFieldSettingsFunction = (
 
     const setting: unknown = value[key];
 
-    if (!FORM_FIELD_ID_PATTERN.test(key) || !isFormTemplateFieldSetting(setting)) {
+    if (
+      !FORM_FIELD_ID_PATTERN.test(key) ||
+      !isFormTemplateFieldSetting(setting)
+    ) {
       continue;
     }
 
@@ -517,17 +520,22 @@ const getFieldSettingsProblem: GetFieldSettingsProblemFunction = (data: {
 
   if (
     keys.some((key: string): boolean => {
-      return settings[key] !== null && !isFormTemplateFieldSetting(settings[key]);
+      return (
+        settings[key] !== null && !isFormTemplateFieldSetting(settings[key])
+      );
     })
   ) {
-    return `${data.label}: each field setting must be ${FORM_TEMPLATE_FIELD_SETTINGS.slice(
-      0,
-      -1,
-    ).join(", ")} or ${FORM_TEMPLATE_FIELD_SETTINGS[FORM_TEMPLATE_FIELD_SETTINGS.length - 1]}.`;
+    return `${data.label}: each field setting must be ${FIELD_SETTINGS_IN_WORDS}.`;
   }
 
   return null;
 };
+
+// "Required, Optional or Hidden", as a refusal names the settings.
+const FIELD_SETTINGS_IN_WORDS: string = [
+  FORM_TEMPLATE_FIELD_SETTINGS.slice(0, -1).join(", "),
+  FORM_TEMPLATE_FIELD_SETTINGS[FORM_TEMPLATE_FIELD_SETTINGS.length - 1],
+].join(" or ");
 
 export type ValidateFormTemplatesFunction = (value: unknown) => string | null;
 

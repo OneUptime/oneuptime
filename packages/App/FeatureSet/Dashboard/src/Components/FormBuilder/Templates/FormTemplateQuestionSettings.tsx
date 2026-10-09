@@ -50,7 +50,9 @@ const FormTemplateQuestionSettings: FunctionComponent<ComponentProps> = (
   };
 
   const settings: FormTemplateFieldSettings | undefined =
-    props.value && typeof props.value === "object" && !Array.isArray(props.value)
+    props.value &&
+    typeof props.value === "object" &&
+    !Array.isArray(props.value)
       ? (props.value as FormTemplateFieldSettings)
       : undefined;
 
@@ -68,16 +70,17 @@ const FormTemplateQuestionSettings: FunctionComponent<ComponentProps> = (
 
           const chosen: string = question.isLocked
             ? FormTemplateFieldSetting.Required
-            : getFormTemplateFieldSetting({ fieldSettings: settings }, fieldId) ||
-              FORM_DEFAULT_CHOICE;
+            : getFormTemplateFieldSetting(
+                { fieldSettings: settings },
+                fieldId,
+              ) || FORM_DEFAULT_CHOICE;
 
           // English: the dropdown looks each label up itself.
-          const options: Array<DropdownOption> =
-            getFormTemplateSettingChoices(question).map(
-              (choice: FormTemplateSettingChoice): DropdownOption => {
-                return { value: choice.value, label: choice.label };
-              },
-            );
+          const options: Array<DropdownOption> = getFormTemplateSettingChoices(
+            question,
+          ).map((choice: FormTemplateSettingChoice): DropdownOption => {
+            return { value: choice.value, label: choice.label };
+          });
 
           return (
             <div
