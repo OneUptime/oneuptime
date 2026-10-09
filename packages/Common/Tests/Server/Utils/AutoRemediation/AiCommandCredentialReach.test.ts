@@ -477,6 +477,26 @@ describe("AiCommandCredentialReach", () => {
       expect(locks.isHeld(KEY_A, NAMESPACE)).toBe(false);
     });
 
+    it("is remembered for the update and carried forward at once by heldUpdate, so no hook is left without it", async () => {
+      const update: UpdateBy<Runner> = {
+        query: {},
+        data: {},
+        props: {},
+      } as unknown as UpdateBy<Runner>;
+      const hold: CredentialReachHold = await AiCommandCredentialReach.take([
+        PROJECT_A,
+      ]);
+
+      const onUpdate: { updateBy: UpdateBy<Runner>; carryForward: unknown } =
+        AiCommandCredentialReach.heldUpdate(update, hold);
+
+      expect(onUpdate.updateBy).toBe(update);
+      expect(AiCommandCredentialReach.heldFor(update)).toBe(hold);
+      expect(
+        AiCommandCredentialReach.carriedForward(onUpdate.carryForward),
+      ).toBe(hold);
+    });
+
     it("is kept right before the update's write", async () => {
       const update: UpdateBy<Runner> = {
         query: {},

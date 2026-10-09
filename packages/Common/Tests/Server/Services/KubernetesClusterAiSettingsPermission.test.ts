@@ -18,6 +18,8 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import CallerPermission from "../../../Server/Utils/Permission/CallerPermission";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
@@ -483,6 +485,139 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ).resolves.toBeDefined();
       },
     );
+  });
+
+  /*
+   * A workflow's step acts as a Project Admin, who may read credentials -
+   * but that read is not lent to it: binding a credential is asked of the
+   * person who last saved the workflow's steps, as they are in the project
+   * now (RunbookCredentialReaders).
+   */
+  describe("binding a credential from a workflow's step", () => {
+    const WORKFLOW_ID: ObjectID = new ObjectID(
+      "12121212-1212-4121-8121-121212121212",
+    );
+    const SAVER_ID: ObjectID = new ObjectID(
+      "13131313-1313-4131-8131-131313131313",
+    );
+
+    // What the person who last saved the workflow's steps holds in the project.
+    let saverRows: Array<UserPermission>;
+    let saverLookUp: jest.SpyInstance;
+
+    beforeEach(() => {
+      saverRows = [permissionRow(Permission.EditAutoRemediationRule)];
+
+      saverLookUp = jest
+        .spyOn(
+          AccessTokenService,
+          "getDatabaseCommonInteractionPropsByUserAndProject",
+        )
+        .mockImplementation(
+          async (data: {
+            userId: ObjectID;
+            projectId: ObjectID;
+          }): Promise<DatabaseCommonInteractionProps> => {
+            return { ...userProps(saverRows), userId: data.userId };
+          },
+        );
+    });
+
+    function step(
+      savedBy: ObjectID | null = SAVER_ID,
+    ): DatabaseCommonInteractionProps {
+      return WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: PROJECT_ID,
+        workflowId: WORKFLOW_ID,
+        workflowName: "Point the cluster at the new credential",
+        savedByUserId: savedBy,
+      });
+    }
+
+    it("is refused when the person who last saved the workflow's steps may not read credentials, and says whose permission was asked about", async () => {
+      for (const data of [
+        { aiAccessCredentialId: CREDENTIAL_ID },
+        { aiAccessCredential: { _id: CREDENTIAL_ID.toString() } },
+      ]) {
+        const refusal: Promise<unknown> = hooks().onBeforeUpdate(
+          updateBy(data, step()),
+        );
+
+        await expect(refusal).rejects.toThrow(NotAuthorizedException);
+        await expect(refusal).rejects.toThrow(getAiAccessCredentialRefusal());
+        await expect(refusal).rejects.toThrow(
+          "A workflow's step has this permission only when the person who last saved the workflow's steps has it, and they do not.",
+        );
+      }
+
+      const asked: { userId: ObjectID; projectId: ObjectID } = saverLookUp.mock
+        .calls[0]![0] as { userId: ObjectID; projectId: ObjectID };
+      expect(asked.userId.toString()).toBe(SAVER_ID.toString());
+      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+    });
+
+    it("is refused when a block takes the read away from the person who last saved them", async () => {
+      saverRows = [
+        permissionRow(Permission.ProjectAdmin),
+        permissionRow(Permission.ReadRunbookCredential, true),
+      ];
+
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step()),
+        ),
+      ).rejects.toThrow(getAiAccessCredentialRefusal());
+    });
+
+    it.each([Permission.ReadRunbookCredential, Permission.ProjectAdmin])(
+      "is allowed when the person who last saved them holds %s",
+      async (permission: Permission) => {
+        saverRows = [permissionRow(permission)];
+
+        await expect(
+          hooks().onBeforeUpdate(
+            updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step()),
+          ),
+        ).resolves.toBeDefined();
+      },
+    );
+
+    it("is refused, asking about nobody, when the workflow names nobody as its last saver", async () => {
+      saverRows = [permissionRow(Permission.ProjectOwner)];
+
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step(null)),
+        ),
+      ).rejects.toThrow(getAiAccessCredentialRefusal());
+      expect(saverLookUp).not.toHaveBeenCalled();
+    });
+
+    it("asks nothing of the saver for a write that binds no credential", async () => {
+      for (const data of LOOSENING_WRITES_WITHOUT_CREDENTIAL.map(
+        ([, write]: [string, Record<string, unknown>]) => {
+          return write;
+        },
+      )) {
+        await expect(
+          hooks().onBeforeUpdate(updateBy(data, step(null))),
+        ).resolves.toBeDefined();
+      }
+
+      expect(saverLookUp).not.toHaveBeenCalled();
+    });
+
+    it("leaves a person's binding to their own permissions", async () => {
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy(
+            { aiAccessCredentialId: CREDENTIAL_ID },
+            propsWith(Permission.ProjectAdmin),
+          ),
+        ),
+      ).resolves.toBeDefined();
+      expect(saverLookUp).not.toHaveBeenCalled();
+    });
   });
 
   describe("judged against the cluster's current settings", () => {

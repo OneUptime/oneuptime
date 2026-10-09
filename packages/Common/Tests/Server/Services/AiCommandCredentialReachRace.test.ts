@@ -32,9 +32,13 @@ import { getJestSpyOn } from "../../Spy";
  * SSH credentials (RunnerService), and assigning an SSH credential to a
  * Runner against the Runner's switch (RunbookCredentialService). Each reads
  * what the other writes, so two such writes at once could each read the
- * other's side before it is written. Both hold their project's lock
+ * other's side before it is written. Made by someone who may not read
+ * runbook credentials, both hold their project's lock
  * (AiCommandCredentialReach) from before their check reads until they are
- * written, so the second waits and reads what the first wrote.
+ * written, so the second waits and reads what the first wrote. A write by
+ * someone who may is not checked and takes no lock: with a checked write at
+ * the same moment, it ends as the two would one after the other, the
+ * unchecked one second.
  *
  * These run the two services' real hooks against one Runner and its
  * credentials held in memory - "written" when a hook passes, the way the
@@ -363,55 +367,61 @@ describe("an SSH credential assigned while the Runner's switch is turned on", ()
     expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
   });
 
-  it("someone who may read credentials turns the switch on: their write holds the lock, and the credential assigned meanwhile is refused", async () => {
+  it("someone who may read credentials turns the switch on, taking no lock: a credential checked before the switch is written passes, as if saved first", async () => {
     const onUpdate: OnUpdate<Runner> = await runnerHooks.onBeforeUpdate(
       switchOn(ADMIN),
     );
+    expect(locks.events).toEqual([]);
 
-    // Checked, not yet written: the credential waits for it.
-    const waited: Promise<void> = lockWaited(locks);
-    const assigned: Promise<void> = assignCredential(CREDENTIAL_WRITER);
-    await waited;
+    // Checked while the switch is not yet written: it reads the switch off and is saved.
+    await expect(assignCredential(CREDENTIAL_WRITER)).resolves.toBeUndefined();
 
     await runnerHooks.onUpdatePermitted(onUpdate.updateBy);
     runnerOn = true;
     await runnerHooks.onUpdateSuccess(onUpdate, [new ObjectID(RUNNER_ID)]);
 
-    await expect(assigned).rejects.toThrow(NotAuthorizedException);
-    expect(sshCredentialsOfRunner).toBe(0);
+    // As the credential first and the switch second - which the admin may turn on whatever the Runner holds.
+    expect(runnerOn).toBe(true);
+    expect(sshCredentialsOfRunner).toBe(1);
+
+    // Once the switch is written, a credential assigned by someone who may not read them is refused.
+    await expect(assignCredential(CREDENTIAL_WRITER)).rejects.toThrow(
+      NotAuthorizedException,
+    );
+    expect(sshCredentialsOfRunner).toBe(1);
   });
 
-  it("someone who may read credentials assigns one: their write holds the lock, and the switch turned on meanwhile is refused", async () => {
+  it("someone who may read credentials assigns one, taking no lock: a switch checked before the credential is saved passes, as if turned on first", async () => {
     const onCreate: OnCreate<RunbookCredential> =
       await credentialHooks.onBeforeCreate(sshCredential(ADMIN));
+    expect(locks.events).toEqual([]);
 
-    const waited: Promise<void> = lockWaited(locks);
-    const switched: Promise<void> = turnOnSwitch(RUNNER_EDITOR);
-    await waited;
+    // Checked while the credential is not yet saved: it reads no credential and is written.
+    await expect(turnOnSwitch(RUNNER_EDITOR)).resolves.toBeUndefined();
 
     await credentialHooks.onCreatePermitted(onCreate);
     sshCredentialsOfRunner += 1;
     await credentialHooks.onCreateSuccess(onCreate, onCreate.createBy.data);
 
-    await expect(switched).rejects.toThrow(NotAuthorizedException);
+    // As the switch first and the credential second - which the admin may assign whatever the switch.
+    expect(runnerOn).toBe(true);
+    expect(sshCredentialsOfRunner).toBe(1);
+
+    // Once it is saved, the switch turned on again by someone who may not read them is refused.
+    runnerOn = false;
+    await expect(turnOnSwitch(RUNNER_EDITOR)).rejects.toThrow(
+      NotAuthorizedException,
+    );
     expect(runnerOn).toBe(false);
   });
 
-  it("two writes by people who may read credentials both pass, one after the other", async () => {
-    const onCreate: OnCreate<RunbookCredential> =
-      await credentialHooks.onBeforeCreate(sshCredential(ADMIN));
+  it("two writes by people who may read credentials both pass, and neither takes the lock", async () => {
+    await expect(assignCredential(ADMIN)).resolves.toBeUndefined();
+    await expect(turnOnSwitch(ADMIN)).resolves.toBeUndefined();
 
-    const waited: Promise<void> = lockWaited(locks);
-    const switched: Promise<void> = turnOnSwitch(ADMIN);
-    await waited;
-
-    await credentialHooks.onCreatePermitted(onCreate);
-    sshCredentialsOfRunner += 1;
-    await credentialHooks.onCreateSuccess(onCreate, onCreate.createBy.data);
-
-    await expect(switched).resolves.toBeUndefined();
     expect(runnerOn).toBe(true);
     expect(sshCredentialsOfRunner).toBe(1);
+    expect(locks.events).toEqual([]);
   });
 
   it("without the lock both would pass, each on what it read before the other was written", async () => {

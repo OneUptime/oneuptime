@@ -2,6 +2,13 @@ import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import RunbookCredentialReaders from "../../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import WorkflowPrincipal from "../../../../Server/Utils/Workflow/WorkflowPrincipal";
 import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
+import AllModelTypes from "../../../../Models/DatabaseModels/Index";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Dictionary from "../../../../Types/Dictionary";
+import {
+  getTableColumns,
+  TableColumnMetadata,
+} from "../../../../Types/Database/TableColumn";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
@@ -16,16 +23,18 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *
  * The one rule approving an AI command plan, saving a rule that runs
  * OneUptime AI's commands without asking, turning on a Runner's "Runs AI
- * Remediation Commands", assigning an SSH credential to such a Runner and
- * naming a credential in a runbook's steps all ask:
+ * Remediation Commands", assigning an SSH credential to such a Runner,
+ * naming a credential in a runbook's steps and binding one to a cluster all
+ * ask:
  *
  *   - a person, an API key: whoever holds a read of runbook credentials
  *     that no block takes away;
  *   - OneUptime itself and a master admin: always;
  *   - a workflow's step: never by its own Project Admin permissions - the
- *     person who last saved the workflow, as they are in the step's project
- *     when the step asks. A workflow saved by nobody (an API key, or before
- *     OneUptime recorded who saved it) may not.
+ *     person who last saved the workflow's steps, as they are in the step's
+ *     project when the step asks. A workflow whose steps were saved by
+ *     nobody (an API key, or before OneUptime recorded who saved them) may
+ *     not.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -300,6 +309,52 @@ describe("RunbookCredentialReaders", () => {
       PermissionHelper.getPermissionTitles(
         new RunbookCredential().getReadPermissions(),
       ).join(", "),
+    );
+  });
+});
+
+/*
+ * EVERY RECORD THAT NAMES A RUNBOOK CREDENTIAL IS ONE WHOSE SERVICE ASKS
+ * THIS RULE.
+ *
+ * The check of the records a write names (RelationListPermission) answers a
+ * workflow's step by its own Project Admin read, which may read runbook
+ * credentials. So each record that may name one has a service that asks
+ * RunbookCredentialReaders before it is named, which asks a step's saver -
+ * pinned here with where. A new one fails this test until its service asks
+ * too and it is added.
+ */
+const NAMES_A_RUNBOOK_CREDENTIAL: Record<string, string> = {
+  "KubernetesCluster.aiAccessCredential":
+    "KubernetesClusterService.assertMayChangeAiAccess, which asks it before a credential is bound",
+};
+
+describe("the records that name a runbook credential", () => {
+  it("are each held to the rule by their service", () => {
+    const runbookCredentialTable: string = new RunbookCredential().tableName!;
+    const found: Array<string> = [];
+
+    for (const modelType of AllModelTypes as Array<{ new (): BaseModel }>) {
+      const model: BaseModel = new modelType();
+
+      if (model.tableName === runbookCredentialTable) {
+        continue;
+      }
+
+      const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+
+      for (const [column, metadata] of Object.entries(columns)) {
+        if (
+          metadata.modelType &&
+          new metadata.modelType().tableName === runbookCredentialTable
+        ) {
+          found.push(`${model.tableName}.${column}`);
+        }
+      }
+    }
+
+    expect(found.sort()).toEqual(
+      Object.keys(NAMES_A_RUNBOOK_CREDENTIAL).sort(),
     );
   });
 });

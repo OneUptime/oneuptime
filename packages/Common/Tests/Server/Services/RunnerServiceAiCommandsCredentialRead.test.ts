@@ -48,14 +48,16 @@ import InMemoryLocks from "../TestingUtils/InMemoryLocks";
  * - a Runner already taking them asks nothing (the Runner form posts every
  *   field back), and neither does turning it off;
  * - whoever may read credentials (the permission, Project Owner, Project
- *   Admin) and OneUptime itself are let through without a look-up;
+ *   Admin) and OneUptime itself are let through without a look-up, and
+ *   without the lock;
  * - a block on Read Runbook Credential takes it away, even from an admin;
- * - turning it on - whoever does it - holds the project's lock from before
- *   the Runners' credentials are read until the update is written
+ * - writing it on - by anyone else, whether it is on already or not -
+ *   holds the project's lock from before the Runners' switches and
+ *   credentials are read until the update is written
  *   (AiCommandCredentialReach), keeps it right before the write, and is
  *   refused, to be saved again, when the lock cannot be had or was lost;
- * - a workflow's step is held to the person who last saved the workflow,
- *   never to the Project Admin permissions the step acts with.
+ * - a workflow's step is held to the person who last saved the workflow's
+ *   steps, never to the Project Admin permissions the step acts with.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -506,7 +508,7 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
     });
 
-    it("is taken for someone who may read credentials too: an SSH credential assigned at the same moment must see the switch", async () => {
+    it("is not taken by someone who may read credentials: they may turn the switch on whatever the Runners hold", async () => {
       const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
         update(
           { canRunAiCommands: true },
@@ -514,11 +516,37 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
         ),
       );
 
-      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(true);
+      expect(locks.eventsOf("lock")).toEqual([]);
       expect(credentialFindBy).not.toHaveBeenCalled();
+      expect(
+        AiCommandCredentialReach.carriedForward(onUpdate.carryForward),
+      ).toBeNull();
 
+      await hooks.onUpdatePermitted(onUpdate.updateBy);
       await hooks.onUpdateSuccess(onUpdate, [new ObjectID(OFFICE_RUNNER)]);
-      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+      expect(locks.events).toEqual([]);
+    });
+
+    it("is not asked for by someone who may read credentials, so their save goes through when the lock cannot be reached", async () => {
+      locks.unreachable = true;
+
+      // The Runner form posts the switch back with every other field.
+      runners = [runner(OFFICE_RUNNER, "office-runner", true)];
+
+      for (const permission of [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ReadRunbookCredential,
+      ]) {
+        await expect(
+          hooks.onBeforeUpdate(
+            update(
+              { canRunAiCommands: true, description: "In the office rack" },
+              caller({ permissions: [Permission.EditRunner, permission] }),
+            ),
+          ),
+        ).resolves.toBeDefined();
+      }
     });
 
     it("is taken by an update that writes the switch on for a Runner already taking them: whether it is on is the lock's to read", async () => {
@@ -618,13 +646,10 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
       locks.unreachable = true;
 
       await expect(
-        hooks.onBeforeUpdate(
-          update(
-            { canRunAiCommands: true },
-            caller({ permissions: [Permission.ProjectOwner] }),
-          ),
-        ),
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, RUNNER_EDITOR)),
       ).rejects.toThrow(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE);
+
+      expect(credentialFindBy).not.toHaveBeenCalled();
     });
 
     it("refuses the write when the lock was lost after the check", async () => {

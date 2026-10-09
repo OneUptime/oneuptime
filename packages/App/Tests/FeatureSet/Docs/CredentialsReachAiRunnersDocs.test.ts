@@ -10,11 +10,11 @@ import path from "path";
  *
  * From either side: assigning the credential to such a Runner
  * (RunbookCredentialService) and turning the Runner's "Runs AI Remediation
- * Commands" on (RunnerService), saved one at a time in a project
- * (AiCommandCredentialReach). A workflow's step is not lent a Project
- * Admin's read of runbook credentials: it is asked about the person who last
- * saved the workflow's steps (RunbookCredentialReaders,
- * Workflow.lastSavedByUserId).
+ * Commands" on (RunnerService), saved one at a time in a project when
+ * made by someone who may not read them (AiCommandCredentialReach). A
+ * workflow's step is not lent a Project Admin's read of runbook
+ * credentials: it is asked about the person who last saved the workflow's
+ * steps (RunbookCredentialReaders, Workflow.lastSavedByUserId).
  *
  * The credentials page says so where credentials are assigned, the Runners
  * page where the switch is, the AI SRE page and Users, Teams & Permissions
@@ -103,7 +103,7 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       "Without it, the save is refused and names the Runner: assign the credential to Runners that don't run AI remediation commands, or ask someone who has the permission to assign it.",
       "**Turning the switch on.** Turning on **Runs AI Remediation Commands** for a Runner that holds SSH credentials takes the same permission.",
       "Removing Runners from a credential, saving a credential with the Runners it has, and Kubernetes credentials ask nothing more",
-      "Assigning credentials and turning the switch on are saved one at a time in a project, so the two can't pass their checks together;",
+      "Assigning credentials and turning the switch on by someone without that permission are saved one at a time in a project, so the two can't pass their checks together;",
       "it is refused with *Try again in a moment*. Save it again.",
       "A workflow's steps act as a Project Admin, but are not lent a Project Admin's read of runbook credentials: a step has it only when the person who last saved the workflow's steps has it.",
       STEPS_LINK,
@@ -218,7 +218,7 @@ describe("Docs: an SSH credential reaches a Runner that runs AI commands only th
       "Creating an SSH runbook credential with a Runner that has **Runs AI Remediation Commands** on, or adding such a Runner to one, now needs permission to read runbook credentials (`ReadRunbookCredential`, or `ProjectOwner` or `ProjectAdmin`),",
       "without it the save is refused with a `422` that names the Runner.",
       "Credentials keep the Runners they were assigned before the upgrade,",
-      "a save that waits too long for another, or that cannot reach Valkey, is refused with a `400` asking to try again in a moment.",
+      "the switch on by someone without that permission are saved one at a time in a project: such a save that waits too long for another, or that cannot reach Valkey, is refused with a `400` asking to try again in a moment.",
       "where a change takes that read, a step is asked about the person who last saved the workflow's steps, and is refused unless they may read runbook credentials.",
       "A workflow whose steps were last saved with an API key, or not since the upgrade, names nobody until a person saves its steps.",
       "OneUptime records that person when a workflow is created and each time its steps are saved - not when it is renamed or turned on or off -",

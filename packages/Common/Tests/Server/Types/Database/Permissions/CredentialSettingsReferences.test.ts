@@ -5,8 +5,6 @@ import RelationListPermission, {
 } from "../../../../../Server/Types/Database/Permissions/RelationListPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import { UnreadableReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
-import WorkflowPrincipal from "../../../../../Server/Utils/Workflow/WorkflowPrincipal";
-import AccessTokenService from "../../../../../Server/Services/AccessTokenService";
 import AlertVideoCall from "../../../../../Models/DatabaseModels/AlertVideoCall";
 import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
@@ -31,15 +29,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../../../Server/Utils/Logger");
@@ -573,191 +563,6 @@ describe("the credential the AI reaches a cluster with", () => {
         }),
       ).toBeUndefined();
     }
-  });
-});
-
-/*
- * A workflow's step acts as a Project Admin of its project
- * (WorkflowPrincipal), who may read runbook credentials - but that read is
- * not lent to it: a runbook credential a step names is asked of the person
- * who last saved the workflow's steps, as they are in the project now
- * (RunbookCredentialReaders.isAskedOfWorkflowSaver).
- */
-describe("a runbook credential a workflow's step names", () => {
-  const WORKFLOW_ID: ObjectID = new ObjectID(
-    "0193c0de-cccc-4aaa-8bbb-000000000101",
-  );
-  const SAVER_ID: ObjectID = new ObjectID(
-    "0193c0de-cccc-4aaa-8bbb-000000000102",
-  );
-
-  let saverPermissions: Array<Permission | UserPermission>;
-  let lookUp: SpyInstance<
-    typeof AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject
-  >;
-
-  beforeEach(() => {
-    saverPermissions = [Permission.WorkflowAdmin];
-
-    lookUp = jest
-      .spyOn(
-        AccessTokenService,
-        "getDatabaseCommonInteractionPropsByUserAndProject",
-      )
-      .mockImplementation(
-        async (data: {
-          userId: ObjectID;
-          projectId: ObjectID;
-        }): Promise<DatabaseCommonInteractionProps> => {
-          return { ...member(saverPermissions), userId: data.userId };
-        },
-      );
-  });
-
-  const step: (savedBy?: ObjectID | null) => DatabaseCommonInteractionProps = (
-    savedBy: ObjectID | null = SAVER_ID,
-  ): DatabaseCommonInteractionProps => {
-    return WorkflowPrincipal.getPropsWithoutPlan({
-      projectId: projectId,
-      workflowId: WORKFLOW_ID,
-      workflowName: "Point the cluster at the new credential",
-      savedByUserId: savedBy,
-    });
-  };
-
-  test("is refused when the person who last saved the workflow may not read credentials, under either name, and no credential is looked up", async () => {
-    for (const data of [
-      { aiAccessCredentialId: CREDENTIAL_A },
-      { aiAccessCredential: { _id: CREDENTIAL_A } },
-    ]) {
-      const found: Lookups = lookups();
-
-      const refusal: unknown = await check({
-        modelType: KubernetesCluster,
-        data: data,
-        props: step(),
-        lookups: found,
-      });
-
-      expect(refusal).toBeInstanceOf(UnreadableReferenceException);
-      expect((refusal as Error).message).toMatch(
-        refusedFor("AI Access Credential", CREDENTIAL_A),
-      );
-      expect(found.calls).toHaveLength(0);
-    }
-  });
-
-  test("asks about the saver as they are in the workflow's project", async () => {
-    await check({
-      modelType: KubernetesCluster,
-      data: { aiAccessCredentialId: CREDENTIAL_A },
-      props: step(),
-    });
-
-    expect(lookUp).toHaveBeenCalledTimes(1);
-    const asked: { userId: ObjectID; projectId: ObjectID } = lookUp.mock
-      .calls[0]![0] as { userId: ObjectID; projectId: ObjectID };
-    expect(asked.userId.toString()).toBe(SAVER_ID.toString());
-    expect(asked.projectId.toString()).toBe(projectId.toString());
-  });
-
-  test("is refused when the saver's team blocks reading credentials", async () => {
-    saverPermissions = [
-      Permission.ProjectAdmin,
-      row(Permission.ReadRunbookCredential, { isBlock: true }),
-    ];
-
-    expect(
-      await check({
-        modelType: KubernetesCluster,
-        data: { aiAccessCredentialId: CREDENTIAL_A },
-        props: step(),
-      }),
-    ).toBeInstanceOf(UnreadableReferenceException);
-  });
-
-  test("is named when the person who last saved the workflow may read credentials", async () => {
-    for (const permissions of [
-      [Permission.ReadRunbookCredential],
-      [Permission.ProjectAdmin],
-    ]) {
-      saverPermissions = permissions;
-
-      expect(
-        await check({
-          modelType: KubernetesCluster,
-          data: { aiAccessCredentialId: CREDENTIAL_A },
-          props: step(),
-        }),
-      ).toBeUndefined();
-    }
-  });
-
-  test("is refused, looking nobody up, when the workflow names nobody as its last saver", async () => {
-    saverPermissions = [Permission.ProjectOwner];
-
-    expect(
-      await check({
-        modelType: KubernetesCluster,
-        data: { aiAccessCredentialId: CREDENTIAL_A },
-        props: step(null),
-      }),
-    ).toBeInstanceOf(UnreadableReferenceException);
-    expect(lookUp).not.toHaveBeenCalled();
-  });
-
-  test("an update that keeps the credential the cluster holds, or clears it, asks nothing of the saver", async () => {
-    expect(
-      await check({
-        modelType: KubernetesCluster,
-        data: { aiAccessCredentialId: CREDENTIAL_A, name: "Renamed" },
-        props: step(null),
-        heldIdsByColumn: { aiAccessCredential: [[CREDENTIAL_A]] },
-      }),
-    ).toBeUndefined();
-
-    expect(
-      await check({
-        modelType: KubernetesCluster,
-        data: { aiAccessCredentialId: null },
-        props: step(null),
-      }),
-    ).toBeUndefined();
-
-    expect(lookUp).not.toHaveBeenCalled();
-  });
-
-  test("leaves the step's own read to answer for the other settings that hold credentials", async () => {
-    // The step reads SMTP servers as the Project Admin it acts as.
-    expect(
-      await check({
-        modelType: StatusPage,
-        data: { smtpConfigId: SMTP_A },
-        props: step(null),
-      }),
-    ).toBeUndefined();
-    expect(lookUp).not.toHaveBeenCalled();
-  });
-
-  test("leaves OneUptime's own writes and a person's writes as they were", async () => {
-    // A Project Admin who reads credentials names one as before, asking about no saver.
-    expect(
-      await check({
-        modelType: KubernetesCluster,
-        data: { aiAccessCredentialId: CREDENTIAL_A },
-        props: member([Permission.ProjectAdmin]),
-      }),
-    ).toBeUndefined();
-
-    expect(
-      await check({
-        modelType: KubernetesCluster,
-        data: { aiAccessCredentialId: CREDENTIAL_A },
-        props: { isRoot: true } as DatabaseCommonInteractionProps,
-      }),
-    ).toBeUndefined();
-
-    expect(lookUp).not.toHaveBeenCalled();
   });
 });
 

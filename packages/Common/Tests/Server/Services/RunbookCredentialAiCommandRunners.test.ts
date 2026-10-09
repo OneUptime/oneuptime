@@ -46,10 +46,10 @@ import InMemoryLocks from "../TestingUtils/InMemoryLocks";
  *   - Runners that do not run AI commands, a Kubernetes credential, Runners
  *     the credential has already and clearing its Runners ask nothing more;
  *   - whoever may read credentials, and OneUptime itself, are let through
- *     without a look-up of the Runners;
- *   - every such write - whoever makes it - holds its project's lock from
- *     before the Runners are read until it is written or has failed, keeps
- *     it right before the write, and is refused, to be saved again, when the
+ *     without a look-up of the Runners, and without the lock;
+ *   - every such write by anyone else holds its project's lock from before
+ *     the Runners are read until it is written or has failed, keeps it
+ *     right before the write, and is refused, to be saved again, when the
  *     lock cannot be had or was lost.
  */
 
@@ -506,7 +506,7 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
       expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
     });
 
-    it("takes the lock for someone who may read credentials too: the Runner's switch must see their credential", async () => {
+    it("takes no lock for someone who may read credentials: they may assign one to any Runner", async () => {
       const onCreate: OnCreate<RunbookCredential> = await hooks.onBeforeCreate(
         as(
           sshCredential([AI_RUNNER]),
@@ -514,10 +514,32 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
         ),
       );
 
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(true);
+      expect(aiRunnerLookUps()).toHaveLength(0);
+      expect(
+        AiCommandCredentialReach.carriedForward(onCreate.carryForward),
+      ).toBeNull();
 
+      await hooks.onCreatePermitted(onCreate);
       await hooks.onCreateSuccess(onCreate, onCreate.createBy.data);
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
+      expect(locks.events).toEqual([]);
+    });
+
+    it("lets someone who may read credentials create one when the lock cannot be reached", async () => {
+      locks.unreachable = true;
+
+      await expect(
+        hooks.onBeforeCreate(
+          as(
+            sshCredential([AI_RUNNER]),
+            caller({
+              permissions: [
+                Permission.CreateRunbookCredential,
+                Permission.ReadRunbookCredential,
+              ],
+            }),
+          ),
+        ),
+      ).resolves.toBeDefined();
     });
 
     it("gives the lock back when it refuses", async () => {
@@ -702,7 +724,7 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
       expect(locks.eventsOf("lock")).toEqual([]);
     });
 
-    it("lets someone who may read credentials add one, under the lock", async () => {
+    it("lets someone who may read credentials add one, with no look-up and no lock", async () => {
       const onUpdate: OnUpdate<RunbookCredential> = await hooks.onBeforeUpdate(
         update(
           [PLAIN_RUNNER, AI_RUNNER],
@@ -711,10 +733,33 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
       );
 
       expect(aiRunnerLookUps()).toHaveLength(0);
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(true);
+      expect(credentialFindBy).not.toHaveBeenCalled();
+      expect(
+        AiCommandCredentialReach.carriedForward(onUpdate.carryForward),
+      ).toBeNull();
+
+      await hooks.onUpdatePermitted(onUpdate.updateBy);
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(CREDENTIAL_ID)]);
+      expect(locks.events).toEqual([]);
+    });
+
+    it("reads only the credentials' type and project before the lock, and their Runners under it", async () => {
+      const onUpdate: OnUpdate<RunbookCredential> = await hooks.onBeforeUpdate(
+        update([PLAIN_RUNNER]),
+      );
+
+      const selects: Array<JSONObject> = credentialFindBy.mock.calls.map(
+        (call: Array<unknown>): JSONObject => {
+          return (call[0] as { select: JSONObject }).select;
+        },
+      );
+
+      expect(selects).toHaveLength(2);
+      expect(selects[0]!["runners"]).toBeUndefined();
+      expect(selects[0]!["credentialType"]).toBe(true);
+      expect(selects[1]!["runners"]).toBeDefined();
 
       await hooks.onUpdateSuccess(onUpdate, [new ObjectID(CREDENTIAL_ID)]);
-      expect(locks.isHeld(lockKey, LOCK_NAMESPACE)).toBe(false);
     });
 
     it("reads the credentials the update writes and holds the update to them", async () => {
@@ -727,7 +772,7 @@ describe("RunbookCredentialService - assigning SSH credentials to Runners that r
 
       const updateBy: UpdateBy<RunbookCredential> = update(
         [PLAIN_RUNNER],
-        caller({ permissions: [Permission.ProjectAdmin] }),
+        CREDENTIAL_WRITER,
         { name: "web-hosts" },
       );
 

@@ -1,7 +1,6 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import CreateBy from "../Types/Database/CreateBy";
-import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -14,6 +13,7 @@ import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../Models/DatabaseModels/Runner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { normalizeReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import AiCommandCredentialReach, {
   CredentialReachHold,
@@ -30,10 +30,13 @@ import AiCommandCredentialReach, {
  * on for a Runner that holds SSH credentials does (RunnerService).
  *
  * Both sides are checked under one lock per project (AiCommandCredentialReach),
- * taken by every create or update that assigns an SSH credential to Runners -
- * whoever makes it - before the Runners are read and held until the write is
- * done: a Runner's switch turned on at the same moment is either seen by this
- * check, or sees the credential in its own.
+ * taken by every create or update by someone who may not read runbook
+ * credentials that assigns an SSH credential to Runners, before the Runners
+ * are read and held until the write is done: a Runner's switch turned on at
+ * the same moment is either seen by this check, or sees the credential in its
+ * own. One who may read them is not checked and takes no lock: their write
+ * ends as it would have after a switch turned on at the same moment, and
+ * they may assign the credential whatever the switch.
  */
 export class Service extends ProjectReferencesService<RunbookCredential> {
   public constructor() {
@@ -115,6 +118,14 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
       type !== RunbookCredentialType.SSH ||
       runnerIds.length === 0
     ) {
+      return { createBy, carryForward: [] };
+    }
+
+    /*
+     * One who may read runbook credentials may create one with any Runners:
+     * nothing the create reads decides, so it takes no lock.
+     */
+    if (await RunbookCredentialReaders.mayRead(createBy.props)) {
       return { createBy, carryForward: [] };
     }
 
@@ -213,18 +224,22 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
       return { updateBy, carryForward: null };
     }
 
-    const select: Select<RunbookCredential> = {
-      _id: true,
-      projectId: true,
-      credentialType: true,
-      runners: {
-        _id: true,
-      },
-    };
+    /*
+     * One who may read runbook credentials may assign an SSH credential to
+     * any Runner: nothing the update reads decides, so it takes no lock (see
+     * the top of this file).
+     */
+    if (await RunbookCredentialReaders.mayRead(updateBy.props)) {
+      return { updateBy, carryForward: null };
+    }
 
     // A credential's type and project never change: these tell which locks.
     const credentials: Array<RunbookCredential> =
-      await this.findRowsAndHoldUpdateToThem(updateBy, select);
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
+        _id: true,
+        projectId: true,
+        credentialType: true,
+      });
 
     const sshCredentials: Array<RunbookCredential> =
       Service.getSshCredentials(credentials);
@@ -250,7 +265,14 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
 
     try {
       const current: Array<RunbookCredential> = Service.getSshCredentials(
-        await this.findRowsAndHoldUpdateToThem(updateBy, select),
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          _id: true,
+          projectId: true,
+          credentialType: true,
+          runners: {
+            _id: true,
+          },
+        }),
       );
 
       await Service.assertMayAssignToRunners({
@@ -274,12 +296,7 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
       throw error;
     }
 
-    AiCommandCredentialReach.holdFor(updateBy, hold);
-
-    return {
-      updateBy,
-      carryForward: AiCommandCredentialReach.carryForwardOf(hold),
-    };
+    return AiCommandCredentialReach.heldUpdate(updateBy, hold);
   }
 
   // Right before the write: the lock its check was made under is still the update's.
@@ -328,7 +345,8 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
 
   /*
    * Of the Runners a write gives a credential (`written`), the ones it did
-   * not have (`held`, as stored), compared case-insensitively.
+   * not have (`held`, as stored), compared as the other reference checks
+   * compare ids (normalizeReferenceId).
    */
   public static getRunnersAdded(data: {
     held: unknown;
@@ -337,13 +355,13 @@ export class Service extends ProjectReferencesService<RunbookCredential> {
     const held: Set<string> = new Set<string>(
       RunnerServiceClass.readRunnerIds(data.held).map(
         (id: ObjectID): string => {
-          return id.toString().toLowerCase();
+          return normalizeReferenceId(id.toString());
         },
       ),
     );
 
     return data.written.filter((id: ObjectID): boolean => {
-      return !held.has(id.toString().toLowerCase());
+      return !held.has(normalizeReferenceId(id.toString()));
     });
   }
 

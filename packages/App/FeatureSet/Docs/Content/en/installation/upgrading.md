@@ -1095,9 +1095,10 @@ API, SSO, or the Slack and Microsoft Teams apps.
   Credentials keep the Runners they were assigned before the upgrade, and
   removing Runners, saving a credential with the Runners it has and
   Kubernetes credentials need nothing more. Assigning credentials and turning
-  the switch on are saved one at a time in a project: a save that waits too
-  long for another, or that cannot reach Valkey, is refused with a `400`
-  asking to try again in a moment. A workflow's steps act as a Project Admin
+  the switch on by someone without that permission are saved one at a time
+  in a project: such a save that waits too long for another, or that cannot
+  reach Valkey, is refused with a `400` asking to try again in a moment. A
+  workflow's steps act as a Project Admin
   but are not lent a Project Admin's read of runbook credentials: where a
   change takes that read, a step is asked about the person who last saved
   the workflow's steps, and is refused unless they may read runbook

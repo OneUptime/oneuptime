@@ -241,13 +241,14 @@ export class Service extends ProjectReferencesService<Model> {
    *
    * And turning on "Runs AI Remediation Commands" for a Runner that holds SSH
    * credentials takes the read of runbook credentials (see
-   * assertNoCredentialsForAiCommands). Writing it on - for anyone, whether or
-   * not it is on already - holds the project's lock that every write putting
-   * an SSH credential within reach of OneUptime AI's commands holds
-   * (AiCommandCredentialReach), from before whether each Runner's switch is
-   * on and which SSH credentials it holds are read until the update is
-   * written: an SSH credential assigned to one of them at the same moment is
-   * either seen by this check, or sees the switch on in its own.
+   * assertNoCredentialsForAiCommands). Writing it on - by someone who may
+   * not read runbook credentials, whether or not it is on already - holds
+   * the project's lock that every checked write putting an SSH credential
+   * within reach of OneUptime AI's commands holds (AiCommandCredentialReach),
+   * from before whether each Runner's switch is on and which SSH credentials
+   * it holds are read until the update is written: an SSH credential
+   * assigned to one of them at the same moment is either seen by this check,
+   * or sees the switch on in its own.
    *
    * Root writes (registration, heartbeats, sign-off) are the server's own.
    * CardModelDetail posts every field of the Runner form, so a re-posted
@@ -349,13 +350,22 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * An update that writes the switch on holds the projects' lock until it
-     * is written, whether or not the switch is on now: it is the lock's to
-     * decide which Runners the update turns it on for. Whether each one's
-     * switch is on is read again under the lock - as it is now, not as it
-     * was before the lock was taken: another update may have turned it off
-     * since, and an SSH credential been assigned to the Runner while it was
-     * off.
+     * One who may read runbook credentials may turn the switch on whatever
+     * the Runners hold: nothing the update reads decides, so it takes no
+     * lock (see AiCommandCredentialReach).
+     */
+    if (await RunbookCredentialReaders.mayRead(updateBy.props)) {
+      return { updateBy, carryForward: null };
+    }
+
+    /*
+     * Anyone else's update that writes the switch on holds the projects'
+     * lock until it is written, whether or not the switch is on now: it is
+     * the lock's to decide which Runners the update turns it on for.
+     * Whether each one's switch is on is read again under the lock - as it
+     * is now, not as it was before the lock was taken: another update may
+     * have turned it off since, and an SSH credential been assigned to the
+     * Runner while it was off.
      */
     const hold: CredentialReachHold = await AiCommandCredentialReach.take(
       written.map((runner: Model): ObjectID | undefined => {
@@ -385,10 +395,7 @@ export class Service extends ProjectReferencesService<Model> {
         },
       );
 
-      if (
-        turnedOn.length > 0 &&
-        !(await RunbookCredentialReaders.mayRead(updateBy.props))
-      ) {
+      if (turnedOn.length > 0) {
         await this.assertNoCredentialsForAiCommands(turnedOn, updateBy.props);
       }
     } catch (error) {
@@ -396,12 +403,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw error;
     }
 
-    AiCommandCredentialReach.holdFor(updateBy, hold);
-
-    return {
-      updateBy,
-      carryForward: AiCommandCredentialReach.carryForwardOf(hold),
-    };
+    return AiCommandCredentialReach.heldUpdate(updateBy, hold);
   }
 
   // Right before the write: the lock its check was made under is still the update's.

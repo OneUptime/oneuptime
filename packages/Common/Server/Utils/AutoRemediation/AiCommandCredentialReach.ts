@@ -32,12 +32,20 @@ import ObjectID from "../../../Types/ObjectID";
  * and each is checked by reading the other side: the switch by the Runner's
  * SSH credentials, the assignment by the Runner's switch. Two such writes at
  * the same moment would each read the other's side before the other is
- * written, and both would pass. So every write that may bring the two
- * together holds its project's lock from before its check reads until it is
- * written or has failed - whoever makes it, since the other write's check
- * must see it too - and reads what its check decides by (the Runners a
- * credential holds, whether a Runner's switch is on) under that lock, so the
- * write that waits for the lock reads what the other one wrote.
+ * written, and both would pass. So every such write by someone who may not
+ * read runbook credentials holds its project's lock from before its check
+ * reads until it is written or has failed, and reads what its check decides
+ * by (the Runners a credential holds, whether a Runner's switch is on) under
+ * that lock, so the write that waits for the lock reads what the other one
+ * wrote.
+ *
+ * A write by someone who may read runbook credentials - OneUptime itself, a
+ * server admin, a person or a workflow step answered as one who may - is not
+ * checked, and takes no lock. Whichever side it writes, it and a checked
+ * write at the same moment end as they would one after the other with the
+ * unchecked write second, which it may be whatever the other side holds: the
+ * checked write passed on what was there before it, and the unchecked one
+ * needs nothing of what is there.
  *
  * A write that cannot have the lock - Valkey cannot be reached, or another
  * write held it for longer than a write waits - is refused, to be saved again
@@ -340,6 +348,24 @@ export default class AiCommandCredentialReach {
     credentialReachHold: CredentialReachHold;
   } {
     return { credentialReachHold: hold };
+  }
+
+  /*
+   * What an update's onBeforeUpdate hands back once it holds `hold`: the
+   * hold remembered for its onUpdatePermitted (holdFor) and carried forward
+   * to its success and error hooks (carryForwardOf), both at once, so no
+   * hook of the update is left without it.
+   */
+  public static heldUpdate<TModel extends BaseModel>(
+    updateBy: UpdateBy<TModel>,
+    hold: CredentialReachHold,
+  ): OnUpdate<TModel> {
+    AiCommandCredentialReach.holdFor(updateBy, hold);
+
+    return {
+      updateBy: updateBy,
+      carryForward: AiCommandCredentialReach.carryForwardOf(hold),
+    };
   }
 
   // The hold of the update an update hook is handed, if it holds one.
