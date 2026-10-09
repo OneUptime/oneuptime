@@ -364,6 +364,84 @@ export class Service extends DatabaseService<UserPush> {
   }
 
   /**
+   * The mobile app got a new push token on a phone where it kept its data -
+   * a phone set up from a backup of the old one, say - and says which token
+   * it had before (the register route's previousDeviceToken). The person's
+   * device in this project registered with that token is the same phone: it
+   * carries the new token from now on, verified, with the rules its owner
+   * set up for it, and the name, type and critical-alerts setting the phone
+   * registers with now. Before, the new token got a new device with default
+   * rules, and the old one stayed - paged until Expo said its token was gone,
+   * then "Not receiving notifications" until somebody deleted it.
+   *
+   * Like a browser's subscription-change (replaceWebPushSubscription), only
+   * the caller's own iOS or Android device in this project, and only when
+   * the new token has no device there yet (the register route checks):
+   * nothing is ever deleted. Returns the device renewed, or null when there
+   * was none to renew.
+   */
+  @CaptureSpan()
+  public async renewExpoPushDevice(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    previousDeviceToken: string;
+    deviceToken: string;
+    deviceType: PushDeviceType;
+    deviceName: string;
+    isCriticalAlertEnabled: boolean;
+  }): Promise<UserPush | null> {
+    if (
+      !data.previousDeviceToken ||
+      data.previousDeviceToken === data.deviceToken
+    ) {
+      return null;
+    }
+
+    const previous: UserPush | null = await this.findOneBy({
+      query: {
+        userId: data.userId,
+        projectId: data.projectId,
+        deviceToken: data.previousDeviceToken,
+        deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!previous?._id) {
+      return null;
+    }
+
+    /*
+     * Still the old token: another registration may have renewed it a
+     * moment ago, and then this one has nothing to renew.
+     */
+    const renewedCount: number = await this.updateOneBy({
+      query: {
+        _id: previous._id.toString(),
+        userId: data.userId,
+        deviceToken: data.previousDeviceToken,
+      },
+      data: {
+        deviceToken: data.deviceToken,
+        deviceType: data.deviceType,
+        deviceName: data.deviceName,
+        isVerified: true,
+        isCriticalAlertEnabled: data.isCriticalAlertEnabled,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return renewedCount > 0 ? previous : null;
+  }
+
+  /**
    * A browser replaced its push subscription - it expired, the push service
    * rotated it, permission was given back - and its service worker reports
    * the old one and the new one. Every web device of `userId` registered with

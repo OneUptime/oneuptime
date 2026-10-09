@@ -179,6 +179,14 @@ import "./Jobs/EmailRollup/FlushDueRollups";
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
+
+/*
+ * Mobile push receipts. Load-bearing like every import here: without it the
+ * receipts of pushes Expo accepted are never read, so a phone whose app was
+ * removed keeps being paged until a later push's ticket is refused, and the
+ * page that first went to it says it was sent.
+ */
+import "./Jobs/PushNotification/CheckExpoPushReceipts";
 import "./Jobs/Workflow/TimeoutJobs";
 
 /*
