@@ -44,9 +44,7 @@ export interface InterfaceSource {
 
 function readSysFile(name: string, file: string): string | null {
   try {
-    return fs
-      .readFileSync(path.join(SYS_CLASS_NET, name, file), "utf8")
-      .trim();
+    return fs.readFileSync(path.join(SYS_CLASS_NET, name, file), "utf8").trim();
   } catch {
     return null;
   }

@@ -250,7 +250,10 @@ export class PacketCaptureLimitsUtil {
     return Math.round(megabytes * BYTES_IN_A_MEGABYTE);
   }
 
-  private static isLoweredByProbe(maximum: number, hardMaximum: number): boolean {
+  private static isLoweredByProbe(
+    maximum: number,
+    hardMaximum: number,
+  ): boolean {
     return maximum < hardMaximum;
   }
 

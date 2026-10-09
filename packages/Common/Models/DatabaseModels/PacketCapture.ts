@@ -497,8 +497,7 @@ export default class PacketCapture extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     title: "Completed At",
-    description:
-      "When the capture completed or failed. Managed by OneUptime.",
+    description: "When the capture completed or failed. Managed by OneUptime.",
   })
   @Column({
     nullable: true,

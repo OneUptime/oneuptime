@@ -102,8 +102,7 @@ export function readPacketCaptureSettings(
   const warnings: Array<string> = [];
 
   const isEnabled: boolean =
-    (env[PACKET_CAPTURE_ENABLED_ENV_VAR] || "").trim().toLowerCase() ===
-    "true";
+    (env[PACKET_CAPTURE_ENABLED_ENV_VAR] || "").trim().toLowerCase() === "true";
 
   return {
     isEnabled: isEnabled,

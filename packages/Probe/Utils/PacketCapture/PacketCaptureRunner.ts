@@ -139,7 +139,9 @@ export function holdJobToLimits(
  * could read as anything but a name, or a filter that is not one - the
  * server refuses both too, so only a row written by hand gets here.
  */
-export function buildTcpdumpArguments(job: HeldPacketCaptureJob): Array<string> {
+export function buildTcpdumpArguments(
+  job: HeldPacketCaptureJob,
+): Array<string> {
   if (!PacketCaptureCapabilityUtil.isInterfaceName(job.interfaceName)) {
     throw new Error(
       `"${job.interfaceName}" is not a network interface name this probe can capture on.`,
@@ -523,7 +525,11 @@ export async function detectCaptureTool(
             maxBuffer: 64 * 1024,
             encoding: "utf8",
           },
-          (error: ExecException | null, stdout: string, stderr: string): void => {
+          (
+            error: ExecException | null,
+            stdout: string,
+            stderr: string,
+          ): void => {
             const lines: Array<string> = `${stdout}\n${stderr}`
               .split(LINE_BREAK)
               .map((line: string): string => {
