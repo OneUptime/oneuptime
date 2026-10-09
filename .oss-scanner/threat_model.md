@@ -70,8 +70,8 @@ fixtures; `fluentd` and `fluent-bit` are example log shippers
   (`packages/MobileApp`), the Terraform provider
   (`Scripts/TerraformProvider`).
 - **The Enterprise Edition** (`ee/`): SCIM provisioning for projects and status
-  pages, audit logs, team compliance, white-labelling, admin health, and the
-  license client and the license server.
+  pages, audit logs, team compliance, admin health, and the license client
+  and the license server.
 - **Deployment defaults**: `HelmChart/`, `docker-compose*.yml`,
   `config.example.env` and the installers. Insecure defaults there are in
   scope (see below).
@@ -210,7 +210,10 @@ transport (REST, MCP, realtime sockets, workers, AI tools, workflows):
   Pyroscope, session replay, source maps, security and change events,
   Kubernetes cost, server monitor reports. The ingestion key decides the
   project; the payload is attacker-written and later rendered, searched,
-  alerted on and given to the AI.
+  alerted on and given to the AI. Browser ingestion keys are public by design
+  (they ship in web pages, limited to the origins a project allows), so
+  holding one must let a sender add telemetry to that one project and do
+  nothing else.
 - **The probe API** (`packages/App/FeatureSet/Telemetry/API/ProbeIngest`,
   `packages/Common/Server/API/ProbeAPI.ts`): probes register, fetch the
   monitors they run and report results. A probe key is a credential; a
@@ -333,8 +336,8 @@ and what they end with.
 
 A finding that needs a project admin role ranks one level lower unless it
 crosses a project boundary or reaches the instance itself. A finding a
-self-hosted install only has with a non-default setting ranks one level
-lower.
+self-hosted install only has with a non-default setting (other than the
+out-of-scope ones above) ranks one level lower.
 
 ## How reports and patches should look
 
