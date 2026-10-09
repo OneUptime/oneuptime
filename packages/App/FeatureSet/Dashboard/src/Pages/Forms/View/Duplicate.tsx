@@ -4,6 +4,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import Form from "Common/Models/DatabaseModels/Form";
 import Route from "Common/Types/API/Route";
+import { FormField, readFormFields } from "Common/Types/Form/FormField";
+import { limitFormTemplatesToQuestions } from "Common/Types/Form/FormTemplate";
+import { JSONArray } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -28,13 +31,25 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * The copy as it is saved: turned off, and without an IP allowlist the
  * original does not have - the allowlist needs the Scale plan, and sending
  * it empty would still ask for that plan. One the original has is copied:
- * dropping a form's network restriction must never be silent.
+ * dropping a form's network restriction must never be silent. Its templates
+ * keep their answers to, and settings for, the questions the form has: one
+ * left behind by a question deleted since was never used, and would get the
+ * new form refused.
  */
 export const prepareFormCopy: (copy: Form) => void = (copy: Form): void => {
   copy.isEnabled = false;
 
   if (!copy.ipWhitelist || !copy.ipWhitelist.trim()) {
     copy.removeValue("ipWhitelist");
+  }
+
+  if (Array.isArray(copy.templates)) {
+    copy.templates = limitFormTemplatesToQuestions({
+      templates: copy.templates,
+      fieldIds: readFormFields(copy.fields).map((field: FormField): string => {
+        return field.id;
+      }),
+    }) as unknown as JSONArray;
   }
 };
 const FormDuplicate: FunctionComponent<

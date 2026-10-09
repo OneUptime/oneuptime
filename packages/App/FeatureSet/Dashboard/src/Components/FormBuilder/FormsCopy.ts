@@ -132,8 +132,16 @@ export const FormsCopy: {
   templateNameDescription: string;
   templateNamePlaceholder: string;
   defaultTemplateDescription: string;
+  templateEditorDescription: string;
+  templateQuestionsDescription: string;
   templateAnswersDescription: string;
-  hiddenQuestionHelp: string;
+  templateHiddenAnswerNote: string;
+  settingFormDefaultRequired: string;
+  settingFormDefaultOptional: string;
+  settingFormDefaultHidden: string;
+  settingRequired: string;
+  settingOptional: string;
+  settingHidden: string;
   templatePickerLabel: string;
   templatePickerDescription: string;
   deleteTemplateTitle: string;
@@ -390,10 +398,20 @@ export const FormsCopy: {
   templateNamePlaceholder: "Application Outage",
   defaultTemplateDescription:
     "The form opens with this template filled in. Only one template can be the default.",
+  templateEditorDescription:
+    "Which questions the form asks when someone starts from this template, and what it fills in.",
+  templateQuestionsDescription:
+    "Make a question required, optional or hidden for people who start from this template. Form default follows the form's own setting, even after you change it.",
   templateAnswersDescription:
     "What the template fills in. Leave a question empty to leave it to the person submitting.",
-  hiddenQuestionHelp:
-    "Hidden: not shown on the form. Only templates answer it.",
+  templateHiddenAnswerNote:
+    "Not asked when someone starts from this template. What you fill in here is used as the answer.",
+  settingFormDefaultRequired: "Form default (Required)",
+  settingFormDefaultOptional: "Form default (Optional)",
+  settingFormDefaultHidden: "Form default (Hidden)",
+  settingRequired: "Required",
+  settingOptional: "Optional",
+  settingHidden: "Hidden",
   templatePickerLabel: "Start From a Template",
   templatePickerDescription:
     "Choose a template to fill in the form. You can change any answer before you submit.",
