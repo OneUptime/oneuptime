@@ -270,14 +270,20 @@ In the **Health OIDs** editor, the **Vendor Health Template** dropdown applies a
 | Vendor template                                                                                                                                                                 | Health OIDs                                                                        | SNMP tables                                                                                                       |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Generic (Host Resources MIB)                                                                                                                                                    | CPU load, memory, load average                                                     | CPU cores (one row per core, whatever the platform numbers them)                                                  |
-| Arista EOS, Cisco IOS / IOS-XE, Dell Force10, Fortinet FortiGate, HPE / Aruba ProCurve, Huawei VRP, Juniper Junos, MikroTik RouterOS, Palo Alto PAN-OS, Ubiquiti EdgeOS / UniFi | CPU, memory, temperature (and fans / power supplies where the platform has them)   | —                                                                                                                 |
+| Arista EOS, Cisco IOS / IOS-XE, Dell Force10, Fortinet FortiGate, HPE / Aruba ProCurve, Huawei VRP, Juniper Junos, MikroTik RouterOS, Palo Alto PAN-OS, Ubiquiti EdgeOS / EdgeSwitch / UniFi Switches | CPU, memory, temperature (and fans / power supplies where the platform has them)   | —                                                                                                                 |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH)                                                                                                                         | CPU, memory, Wi-Fi clients, cnMaestro connection                                   | Wi-Fi radios (band, channel, width, TX power, clients, noise floor, airtime, state), SSIDs                        |
 | Cambium Networks cnMatrix                                                                                                                                                       | CPU, RAM, flash, temperature, supply voltage                                       | Fans, PoE ports, redundant power supply                                                                           |
 | Extreme Networks EXOS / Switch Engine                                                                                                                                           | CPU, temperature, over-temperature alarm, power state                              | Power supplies, fans, memory per slot, stack members                                                              |
 | Extreme Networks Fabric Engine / VOSS                                                                                                                                           | vIST session, I-SID count                                                          | Fabric (IS-IS) adjacencies named by neighbour, CPU and memory per slot, temperature sensors, fans, power supplies |
 | Sophos Firewall (SFOS / XGS)                                                                                                                                                    | Memory, disk, swap, HA state and peer state, IPsec service, CPU temperature (v22+) | IPsec tunnels (status needs SFOS v20+), CPU cores                                                                 |
+| Ubiquiti UniFi Access Points | Load average, memory, isolated state | Wi-Fi radios (band, airtime), SSIDs (band, channel, clients, TX power, connection quality), CPU cores |
+| HPE Aruba Instant (AOS 8) | Cluster name, firmware version, conductor | Access points (status, model, CPU, memory), Wi-Fi radios named by access point (channel, TX power, noise floor, utilization, clients, state), SSIDs (clients) |
+| HPE Aruba Mobility Controller (AOS 8) | Access points, Wi-Fi clients, controller role | Access points (status, model, AP group), Wi-Fi radios named by access point (band, channel, TX power, utilization, clients, mode), SSIDs (clients, access points up and down), processors, memory |
+| Extreme Networks IQ Engine (HiveOS) Access Points | CPU, memory, Wi-Fi clients, temperature | Wi-Fi radios (channel, TX power, noise floor), SSIDs |
+| Extreme Networks Wireless Controller (XIQ-C, ExtremeWireless) | Access points, active access points, Wi-Fi clients | Access points (state, clients, address, software), Wi-Fi radios (band, channel, width, noise floor, busy airtime), WLANs (SSID, clients) |
+| TP-Link Omada Access Points (EAP) | Wi-Fi clients | — |
 
-The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template. Matching uses the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. Devices with **Auto-Apply Vendor Health Template** on get the template's OIDs **and** tables on their first poll: devices an auto import rule brings in, and devices imported from **Review Results** with its vendor template switch on, which it is unless you turn it off.
+The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template. Matching uses the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. UniFi access points are told from Ubiquiti's routers the same way (`U6-Pro 6.5.28.14491`), also when older firmware answers with Net-SNMP's arc, and IQ Engine access points from the Aerohive switches that share their arc (`AP230, HiveOS 8.1r2a`). Devices with **Auto-Apply Vendor Health Template** on get the template's OIDs **and** tables on their first poll: devices an auto import rule brings in, and devices imported from **Review Results** with its vendor template switch on, which it is unless you turn it off.
 
 To give many devices their template at once — a whole discovered fleet that predates the switch, say — select them on the **Devices** list and use **Apply Vendor Template** (see [Changing Many Devices at Once](#changing-many-devices-at-once)).
 
@@ -397,9 +403,9 @@ A table definition lists:
 | Field        | What it does                                                                                                                                                                                                                                                                                                                           |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Name and key | What the table is called. The key (letters, digits and underscores, derived from the name if left blank) is what criteria, metrics and template variables refer to, so renaming a table never breaks an alert.                                                                                                                         |
-| Kind         | What the rows are — VPN tunnels, Wi-Fi radios, Wi-Fi SSIDs, routing neighbours, hardware, or generic. Wi-Fi kinds drive the device's [Wi-Fi tab](#the-wi-fi-tab).                                                                                                                                                                      |
+| Kind         | What the rows are — VPN tunnels, Wi-Fi access points, Wi-Fi radios, Wi-Fi SSIDs, routing neighbours, hardware, or generic. Wi-Fi kinds drive the device's [Wi-Fi tab](#the-wi-fi-tab).                                                                                                                                                 |
 | Columns      | The **column OIDs** to collect (the table entry's OID plus the column number, for example `1.3.6.1.4.1.2604.5.1.6.1.1.1.1.9` for a Sophos tunnel's status), each with a name and optionally a unit, a role (status, band, channel, channel width, TX power, clients, noise floor, utilization, SSID), value labels and healthy values. |
-| Row names    | Optional columns whose values name each row — a tunnel's connection name, a radio's band. Without them rows are named by their index. A name column can come from a sibling table that shares the index (Fabric Engine names IS-IS adjacencies from `rcIsisAdjHostName`).                                                              |
+| Row names    | Optional columns whose values name each row — a tunnel's connection name, a radio's band. Without them rows are named by their index. A name column can come from a sibling table that shares the index (Fabric Engine names IS-IS adjacencies from `rcIsisAdjHostName`), or from a parent table whose index starts this table's (Aruba Instant names each radio by its access point). A table indexed by a name (ArubaOS indexes its SSIDs by the SSID) is named by its decoded index. |
 | Row limit    | How many rows to keep, 100 by default, 250 at most.                                                                                                                                                                                                                                                                                    |
 
 **Values.** Numbers are read as numbers, and text that _starts_ with a number is
@@ -411,6 +417,14 @@ value is still what is charted and compared numerically, the label is what is
 shown. **Healthy values** (`1`) say which values mean "fine": they colour the
 row on the device's **SNMP Tables** tab and drive the
 **SNMP Table Row Is Unhealthy** criteria.
+
+Some vendor template columns also **adjust** the number they read, for MIBs
+that keep a value in a unit of their own: ArubaOS reports transmit power
+doubled (read × 0.5), Aruba Instant the noise floor without its sign (× −1),
+Aerohive the noise floor plus 256 (− 256), Extreme's controller the channel
+width in 20 MHz steps (× 20). The adjusted number is what is shown, charted
+and compared — so **Noise Floor Greater Than -80** means the same on every
+vendor — and the table editor shows the arithmetic under the column.
 
 **Where tables come from.** On an [OID Collection Template](#oid-collection-templates)
 (shared by every linked device, up to 10 tables) or on the device itself under
@@ -431,18 +445,77 @@ radio's transmit power, and a Metrics monitor can **Group By** `snmpTableRow`.
 
 ### The Wi-Fi Tab
 
-A device whose walk includes a **Wi-Fi radio** table (the Cambium Enterprise
-Wi-Fi template's, or any table of that kind) gets a **Wi-Fi** tab: radios on,
-clients and SSIDs at a glance, then every radio's band, channel, **frequency**,
-channel width, transmit power, clients, noise floor and airtime, and every SSID
-with its band and clients. Columns are found by their role, so any vendor's
-radio table that tags its columns renders the same way. Frequency is worked out
-from the band and channel using the 802.11 channel plan (2.4, 5 and 6 GHz) —
-no vendor MIB reports it.
+A device whose walk includes a Wi-Fi table — access points, radios or SSIDs,
+as the Wi-Fi vendor templates bring them — gets a **Wi-Fi** tab: access points
+up (on a controller), radios on, clients and SSIDs at a glance; then every
+access point a controller manages, with its state, radios and clients; every
+radio's band, channel, **frequency**, channel width, transmit power, clients,
+noise floor and airtime; and every SSID with its band and clients. Columns are
+found by their role, so any vendor's tables that tag their columns render the
+same way.
 
-For Cambium access points, enable SNMP in the AP Group in cnMaestro
-(Configuration → Wi-Fi Profiles → AP Groups → Management → SNMP) and apply the
-**Cambium Networks Enterprise Wi-Fi** template to the access points.
+Vendors split these facts differently, and the tab puts them back together:
+
+- Frequency is worked out from the band and channel using the 802.11 channel
+  plan (2.4, 5 and 6 GHz). A controller that reports the frequency where its
+  MIB says channel (Extreme's) is read the other way round.
+- A radio that reports no band is placed by its channel: 1–14 is 2.4 GHz,
+  32–177 is 5 GHz, and a number only 6 GHz uses (37, 53, 181…) is 6 GHz.
+- UniFi reports channel, transmit power and clients per SSID: a radio takes
+  them from the SSIDs on its band.
+- Aruba counts clients per radio: an access point's clients are its radios'.
+- An interface that broadcasts no network (IQ Engine lists every interface,
+  N/A for those) is not listed as an SSID.
+
+A device that reports no Wi-Fi yet has the tab name its vendor's template —
+matched from the last poll the way auto-apply matches it — and apply it with
+**Apply Template**; the radios appear after the next poll.
+
+### Supported Wi-Fi Vendors
+
+What each Wi-Fi vendor reports over SNMP, and what only its cloud has:
+
+| Vendor | Access points and controllers | Vendor template | Read over SNMP | Needs the vendor's cloud API (not built) |
+| --- | --- | --- | --- | --- |
+| Cambium Networks | Enterprise Wi-Fi access points (cnPilot, XV, XE, XH) | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | Every radio's band, channel, width, TX power, clients, noise floor, airtime and state; SSIDs; CPU, memory | Fleet views in cnMaestro |
+| Ubiquiti UniFi | UniFi access points (UAP, U6, U7, UK) | Ubiquiti UniFi Access Points | Every radio's band and airtime; every SSID's channel, clients and TX power; CPU per core, memory | Per-client data and site views in the UniFi Network application |
+| HPE Aruba | Instant clusters (AOS 8), through their virtual controller | HPE Aruba Instant (AOS 8) | Every access point's status, CPU and memory; every radio's channel, TX power, noise floor, utilization, clients and state; SSIDs with clients | — |
+| HPE Aruba | Mobility Controllers (AOS 8) | HPE Aruba Mobility Controller (AOS 8) | Every managed access point's status; every radio's band, channel, TX power, utilization and clients; SSIDs with clients; the controller's CPU and memory | — |
+| HPE Aruba | Access points on AOS 10, managed by Aruba Central | — | Reachability (ping) | Radios, SSIDs and clients: the Aruba Central API |
+| Extreme Networks | IQ Engine (HiveOS) access points | Extreme Networks IQ Engine (HiveOS) Access Points | Every radio's channel, TX power and noise floor; SSIDs; CPU, memory, clients, temperature | Client and fleet views in ExtremeCloud IQ |
+| Extreme Networks | ExtremeCloud IQ Controller (formerly Extreme Campus Controller) and ExtremeWireless controllers | Extreme Networks Wireless Controller (XIQ-C, ExtremeWireless) | Every access point's state and clients; every radio's band, channel, width, noise floor and busy airtime; WLANs with clients | — |
+| TP-Link | Omada access points (EAP) | TP-Link Omada Access Points (EAP) | The client count, on firmware with TP-Link's EAP client MIB | Radios, channels and SSIDs: the Omada Controller API |
+| Juniper | Mist access points | — | Reachability (ping); access point up and down through Mist's webhooks | Everything else: the Mist cloud API |
+
+The templates are matched from each device's `sysObjectID` and `sysDescr`,
+so auto-apply, the **Apply Vendor Template** bulk action's _Match each
+device's vendor_ and the Wi-Fi tab pick them without being told — except
+TP-Link's, which you apply by hand. Turning SNMP on, per vendor:
+
+- **Cambium**: in cnMaestro SNMP is set per AP Group (Configuration → Wi-Fi
+  Profiles → AP Groups → Management → SNMP), with a v2c community or a v3
+  user. Add each access point.
+- **Ubiquiti UniFi**: turn on SNMP in the UniFi Network application, which
+  sets it on the devices it manages. Add each access point.
+- **HPE Aruba Instant**: turn SNMP on for the cluster and add its virtual
+  controller's address as one device — it answers for every access point.
+- **HPE Aruba Mobility Controller**: add the controller; campus access points
+  do not answer SNMP themselves.
+- **Extreme IQ Engine**: turn SNMP on in the network policy ExtremeCloud IQ
+  pushes to the access points, and add each access point.
+- **Extreme wireless controllers**: turn SNMP on in the controller's
+  administration settings and add the controller.
+- **TP-Link Omada**: turn SNMP on for the site in the Omada Controller
+  (Network Config → SNMP), add the access points, and apply the template from
+  their Settings or with **Apply Vendor Template**.
+- **Juniper Mist**: Mist access points do not answer SNMP. Add them as
+  ping-only devices for reachability, and send Mist's _device-updowns_
+  webhook to an [Incoming Request monitor](/docs/monitor/incoming-request-monitor)
+  to turn an access point going offline into an incident.
+
+A controller's table keeps up to 250 rows: on a controller with more than 250
+access points, or radios, the rest are not listed, and the table says so. Its
+access point and client counts are health OIDs, and count everything.
 
 ### Transceivers
 
@@ -784,8 +857,10 @@ Click **Add Recommended Alerts** on the criteria form to append a prebuilt set o
 
 When the device walks [SNMP tables](#snmp-tables) that declare healthy values,
 the pack also adds one **SNMP Table Row Is Unhealthy** criteria per such table,
-with Row `*` — an **incident** per row for tunnels and routing neighbours
-("IPsec Tunnels: row unhealthy"), an **alert** per row for hardware tables.
+with Row `*` — an **incident** per row for tunnels, routing neighbours and a
+controller's access points ("IPsec Tunnels: row unhealthy", "Access Points: row
+unhealthy" for an access point gone from its controller), an **alert** per row
+for hardware tables and radios.
 
 The three transceiver criteria raise one alert per port (`*`) and are alerts
 rather than incidents for the same reason as the walk: a dark optic already
@@ -1003,6 +1078,7 @@ Rules](#importing-automatically-with-auto-import-rules).
 - The device returned nothing under those column OIDs. Walk one from the probe's network (`snmpwalk -v2c -c <community> <device> <column OID>`) — a column the device does not implement simply has no rows.
 - The SNMP view your credentials use may not include that subtree; a restricted v3 user often sees only the system group and IF-MIB.
 - Sophos tunnel status needs SFOS v20 or later; Cambium client counts read 0 before firmware 6.5.3.
+- A Wi-Fi table stays empty until SNMP is turned on where the vendor sets it (see [Supported Wi-Fi Vendors](#supported-wi-fi-vendors)); Juniper Mist access points and Aruba Central's AOS 10 access points do not answer SNMP at all.
 - A table listed under **Waiting for the first walk** has not been walked yet — it appears after the device's next successful SNMP poll.
 
 ### The Transceivers card does not appear

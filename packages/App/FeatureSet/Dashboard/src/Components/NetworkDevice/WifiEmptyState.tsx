@@ -6,6 +6,7 @@ import {
   mergeVendorTemplate,
 } from "./VendorTemplateApplication";
 import {
+  WIFI_VENDORS_DOCS_PATH,
   WifiAdvice,
   WifiAdviceDeviceFacts,
   WifiAdviceKind,
@@ -35,10 +36,6 @@ export interface ComponentProps {
   // What the page read: identity, monitoring method, links and own tables.
   device: WifiAdviceDeviceFacts;
 }
-
-// The docs section that says what each Wi-Fi vendor reports over SNMP.
-export const WIFI_VENDORS_DOCS_PATH: string =
-  "/monitor/network-device-monitor#supported-wi-fi-vendors";
 
 // What a fresh read of the device needs before a template is merged into it.
 const APPLY_SELECT: JSONObject = {

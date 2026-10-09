@@ -25,6 +25,10 @@ import {
  * its vendor - it says why, and where to go instead.
  */
 
+// The docs section that says what each Wi-Fi vendor reports over SNMP.
+export const WIFI_VENDORS_DOCS_PATH: string =
+  "/monitor/network-device-monitor#supported-wi-fi-vendors";
+
 export enum WifiAdviceKind {
   // The device's vendor has a Wi-Fi template the device does not walk yet.
   ApplyTemplate = "applyTemplate",
