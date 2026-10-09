@@ -24,6 +24,9 @@ const KIND_DESCRIPTIONS: Record<SnmpTableKind, string> = {
   [SnmpTableKind.Generic]: translationKey("Rows walked from the device."),
   [SnmpTableKind.WifiRadio]: translationKey("One row per Wi-Fi radio."),
   [SnmpTableKind.WifiSsid]: translationKey("One row per SSID."),
+  [SnmpTableKind.WifiAccessPoint]: translationKey(
+    "One row per access point the controller manages.",
+  ),
   [SnmpTableKind.VpnTunnel]: translationKey("One row per VPN tunnel."),
   [SnmpTableKind.RoutingAdjacency]: translationKey(
     "One row per routing neighbour.",

@@ -79,6 +79,8 @@ Every Sophos notification is the same trap, `sfosNotification` (`1.3.6.1.4.1.260
 
 EXOS and Fabric Engine export flows as sFlow and IPFIX, which the probe does not ingest; the device's **Traffic** tab stays empty for them.
 
+**Extreme's Wi-Fi.** IQ Engine (HiveOS) access points and ExtremeCloud IQ Controller have vendor templates of their own, which fill the device's **Wi-Fi** tab — see [Supported Wi-Fi Vendors](/docs/monitor/network-device-monitor#supported-wi-fi-vendors), which also covers Ubiquiti UniFi, HPE Aruba, TP-Link Omada and Juniper Mist.
+
 ## Cambium Networks (Enterprise Wi-Fi and cnMatrix)
 
 ### Access points

@@ -124,8 +124,20 @@ describe("WifiRadioUtil.getSummary", () => {
 
   it("lists SSIDs with their band and clients", () => {
     expect(WifiRadioUtil.getSummary(cambiumSnapshots()).ssids).toEqual([
-      { name: "Corp / 5GHz", ssid: "Corp", bandText: "5GHz", clients: 7 },
-      { name: "Guest / 2.4GHz", ssid: "Guest", bandText: "2.4GHz", clients: 2 },
+      {
+        name: "Corp / 5GHz",
+        ssid: "Corp",
+        bandText: "5GHz",
+        band: WifiBand.Band5GHz,
+        clients: 7,
+      },
+      {
+        name: "Guest / 2.4GHz",
+        ssid: "Guest",
+        bandText: "2.4GHz",
+        band: WifiBand.Band2_4GHz,
+        clients: 2,
+      },
     ]);
   });
 
@@ -255,8 +267,11 @@ describe("WifiRadioUtil.inferBandFromChannel", () => {
     expect(WifiRadioUtil.inferBandFromChannel(14)).toBe(WifiBand.Band2_4GHz);
     expect(WifiRadioUtil.inferBandFromChannel(36)).toBe(WifiBand.Band5GHz);
     expect(WifiRadioUtil.inferBandFromChannel(177)).toBe(WifiBand.Band5GHz);
-    // Could be 6 GHz: never guessed.
-    expect(WifiRadioUtil.inferBandFromChannel(181)).toBeUndefined();
+    /*
+     * Past 177 no 5 GHz channel is numbered, and 6 GHz numbers its
+     * channels 1, 5, 9 ... 233: 181 can only be 6 GHz.
+     */
+    expect(WifiRadioUtil.inferBandFromChannel(181)).toBe(WifiBand.Band6GHz);
     expect(WifiRadioUtil.inferBandFromChannel(20)).toBeUndefined();
     expect(WifiRadioUtil.inferBandFromChannel(undefined)).toBeUndefined();
   });

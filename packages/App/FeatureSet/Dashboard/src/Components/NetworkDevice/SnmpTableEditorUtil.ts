@@ -45,6 +45,37 @@ export default class SnmpTableEditorUtil {
       .join(", ");
   }
 
+  /*
+   * A column's numeric adjustment as the arithmetic it does - "value × 0.5",
+   * "value − 256", "value × −1 + 3" - or undefined for a column that reads
+   * numbers as they come. Shown, not edited: the adjustments come with the
+   * vendor templates, and editing the column keeps them.
+   */
+  public static formatAdjustment(column: SnmpTableColumn): string | undefined {
+    if (!SnmpTableListUtil.hasAdjustment(column)) {
+      return undefined;
+    }
+
+    const formatNumber: (value: number) => string = (value: number): string => {
+      return value < 0 ? `−${Math.abs(value)}` : `${value}`;
+    };
+
+    let formula: string = "value";
+
+    if (typeof column.scale === "number" && column.scale !== 1) {
+      formula = `${formula} × ${formatNumber(column.scale)}`;
+    }
+
+    if (typeof column.offset === "number" && column.offset !== 0) {
+      formula =
+        column.offset < 0
+          ? `${formula} − ${Math.abs(column.offset)}`
+          : `${formula} + ${column.offset}`;
+    }
+
+    return formula;
+  }
+
   // "1, 3" -> ["1", "3"]; blanks dropped.
   public static parseList(text: string): Array<string> {
     return text
