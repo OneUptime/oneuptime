@@ -128,6 +128,7 @@ import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Form from "../../../Models/DatabaseModels/Form";
+import { JSONArray } from "../../../Types/JSON";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
@@ -403,6 +404,68 @@ describe("the form's Duplicate", () => {
       expect(copy.isEnabled).toBe(false);
     },
   );
+
+  /*
+   * The server judges a new form's templates whole, so the copy must not
+   * carry an answer to, or a setting for, a question removed since the
+   * template was saved: the original never used it, and it would get the
+   * copy refused.
+   */
+  test("the copy's templates keep their answers and settings for the form's questions, and only those", () => {
+    const copy: Form = new Form();
+    copy.fields = [
+      {
+        id: "title",
+        source: "TargetField",
+        targetField: "title",
+        label: "Title",
+        isRequired: true,
+      },
+      {
+        id: "office",
+        source: "Question",
+        type: "Text",
+        label: "Office",
+        isRequired: false,
+      },
+    ] as unknown as JSONArray;
+    copy.templates = [
+      {
+        id: "outage",
+        name: "Outage",
+        isDefault: true,
+        answers: { title: "Down", removed: "x" },
+        fieldSettings: { office: "Required", removed: "Hidden" },
+      },
+      {
+        id: "plain",
+        name: "Plain",
+        answers: { title: "Up" },
+        fieldSettings: { removed: "Hidden" },
+      },
+    ] as unknown as JSONArray;
+
+    prepareFormCopy(copy);
+
+    expect(copy.templates).toEqual([
+      {
+        id: "outage",
+        name: "Outage",
+        isDefault: true,
+        answers: { title: "Down" },
+        fieldSettings: { office: "Required" },
+      },
+      { id: "plain", name: "Plain", answers: { title: "Up" } },
+    ]);
+  });
+
+  test("a form without templates is copied without any", () => {
+    const copy: Form = new Form();
+
+    prepareFormCopy(copy);
+
+    expect(copy.templates).toBeUndefined();
+  });
 });
 
 /*

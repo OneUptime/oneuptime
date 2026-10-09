@@ -150,6 +150,7 @@ import FormTargetType from "../../../Types/Form/FormTargetType";
 import {
   FORM_MAX_TEMPLATES,
   FormTemplate,
+  FormTemplateFieldSetting,
   isFormTemplateId,
 } from "../../../Types/Form/FormTemplate";
 import ObjectID from "../../../Types/ObjectID";
@@ -157,6 +158,7 @@ import { ACCOUNTS_URL } from "../../../UI/Config";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import userEvent from "@testing-library/user-event";
 
 const FORM_ID: string = "f0f0f0f0-0000-4000-8000-0000000000dd";
 const SHARE_KEY: string = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -214,11 +216,15 @@ const MAINTENANCE: FormTemplate = {
 };
 
 let storedTemplates: Array<FormTemplate> | null;
+let storedFields: Array<FormField>;
+let storedTarget: FormTargetType;
 let stored: "missing" | Error | null;
 let gate: PermissionGateResult;
 
 beforeEach(() => {
   storedTemplates = [OUTAGE, MAINTENANCE];
+  storedFields = FIELDS;
+  storedTarget = FormTargetType.Incident;
   stored = null;
   gate = { isAllowed: true };
 
@@ -235,8 +241,8 @@ beforeEach(() => {
     const form: Form = new Form();
     form._id = FORM_ID;
     form.name = "Department A";
-    form.targetType = FormTargetType.Incident;
-    form.fields = JSON.parse(JSON.stringify(FIELDS));
+    form.targetType = storedTarget;
+    form.fields = JSON.parse(JSON.stringify(storedFields));
     form.templates = JSON.parse(JSON.stringify(storedTemplates));
     form.shareKey = new ObjectID(SHARE_KEY);
     return form;
@@ -429,6 +435,9 @@ describe("adding a template", () => {
     expect(within(dialog).getByTestId("modal-title")).toHaveTextContent(
       FormsCopy.addTemplate,
     );
+    expect(within(dialog).getByTestId("modal-description")).toHaveTextContent(
+      FormsCopy.templateEditorDescription,
+    );
     expect(within(dialog).getByTestId("form-template-name")).toHaveValue("");
     expect(
       within(dialog).getByTestId("form-template-field-title"),
@@ -437,11 +446,10 @@ describe("adding a template", () => {
     expect(
       within(dialog).getByRole("textbox", { name: "Markdown" }),
     ).toBeInTheDocument();
+    expect(within(dialog).getByText("What people are told.")).toBeInTheDocument();
     expect(
-      within(dialog).getByText(
-        `${FormsCopy.hiddenQuestionHelp} What people are told.`,
-      ),
-    ).toBeInTheDocument();
+      within(dialog).getByTestId("form-template-hidden-note-description"),
+    ).toHaveTextContent(FormsCopy.templateHiddenAnswerNote);
     // "(Optional)" on every question: a template need not answer any.
     expect(within(dialog).queryByText("Title *")).not.toBeInTheDocument();
   });
@@ -687,5 +695,284 @@ describe("the read-only page", () => {
     expect(screen.getByTestId("form-templates-read-only")).toHaveTextContent(
       "You need permission to edit forms.",
     );
+  });
+});
+
+/*
+ * How a template asks each question (issue #4563): the editor's Questions
+ * rows - one per question, starting on the form's own setting - what they
+ * save, the answers they mark as used as they are, and what the list says
+ * each template changes.
+ */
+describe("how a template asks each question", () => {
+  const Required: FormTemplateFieldSetting = FormTemplateFieldSetting.Required;
+  const Optional: FormTemplateFieldSetting = FormTemplateFieldSetting.Optional;
+  const Hidden: FormTemplateFieldSetting = FormTemplateFieldSetting.Hidden;
+
+  function row(fieldId: string): HTMLElement {
+    return within(screen.getByTestId("modal")).getByTestId(
+      `form-template-setting-row-${fieldId}`,
+    );
+  }
+
+  // The setting a row shows, as its picker reads.
+  function shown(fieldId: string): string {
+    return (
+      row(fieldId).querySelector(".ou-select__single-value")?.textContent || ""
+    );
+  }
+
+  async function choose(fieldId: string, label: string): Promise<void> {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await user.click(within(row(fieldId)).getByRole("combobox"));
+
+    const menu: HTMLElement = await screen.findByRole("listbox");
+
+    await user.click(within(menu).getByText(label, { exact: true }));
+  }
+
+  function hiddenNote(fieldId: string): HTMLElement | null {
+    return within(screen.getByTestId("modal")).queryByTestId(
+      `form-template-hidden-note-${fieldId}`,
+    );
+  }
+
+  test("the editor has a row for every question, each on the form's own setting, named", async () => {
+    await renderPage();
+    await click(cardButton(FormsCopy.addTemplate));
+
+    const dialog: HTMLElement = screen.getByTestId("modal");
+
+    expect(within(dialog).getByText(FormsCopy.builderTitle)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(FormsCopy.templateQuestionsDescription),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(FormsCopy.templateAnswersDescription),
+    ).toBeInTheDocument();
+
+    expect(
+      Array.from(
+        within(dialog)
+          .getByTestId("form-template-settings")
+          .querySelectorAll('[data-testid^="form-template-setting-row-"]'),
+      ).map((element: Element): string | null => {
+        return element.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "form-template-setting-row-title",
+      "form-template-setting-row-description",
+      "form-template-setting-row-severity",
+      "form-template-setting-row-office",
+    ]);
+
+    expect(shown("title")).toBe(FormsCopy.settingFormDefaultRequired);
+    expect(shown("description")).toBe(FormsCopy.settingFormDefaultHidden);
+    expect(shown("severity")).toBe(FormsCopy.settingFormDefaultOptional);
+    expect(shown("office")).toBe(FormsCopy.settingFormDefaultOptional);
+
+    // Each picker is named by its question.
+    expect(
+      within(row("severity")).getByRole("combobox", { name: "Severity" }),
+    ).toBeInTheDocument();
+  });
+
+  test("the answer to a question the template does not ask says it is used as it is - and follows the rows", async () => {
+    await renderPage();
+    await click(cardButton(FormsCopy.addTemplate));
+
+    // Hidden on the form, and so for the template.
+    expect(hiddenNote("description")).toHaveTextContent(
+      FormsCopy.templateHiddenAnswerNote,
+    );
+    expect(hiddenNote("severity")).not.toBeInTheDocument();
+
+    await choose("description", "Optional");
+
+    expect(hiddenNote("description")).not.toBeInTheDocument();
+
+    await choose("severity", "Hidden");
+
+    expect(hiddenNote("severity")).toHaveTextContent(
+      FormsCopy.templateHiddenAnswerNote,
+    );
+  });
+
+  test("the settings chosen are saved with the template; Form default saves none", async () => {
+    await renderPage();
+    await click(cardButton(FormsCopy.addTemplate));
+
+    fireEvent.change(screen.getByTestId("form-template-name"), {
+      target: { value: "Service Restored" },
+    });
+
+    await choose("severity", "Required");
+    await choose("office", "Hidden");
+    await choose("description", "Required");
+    // And back: the form's own setting is no setting at all.
+    await choose("description", FormsCopy.settingFormDefaultHidden);
+
+    expect(shown("severity")).toBe("Required");
+    expect(shown("description")).toBe(FormsCopy.settingFormDefaultHidden);
+
+    await saveDialog();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const saved: FormTemplate = savedTemplates()[2]!;
+
+    expect(saved.name).toBe("Service Restored");
+    expect(saved.fieldSettings).toEqual({ severity: Required, office: Hidden });
+    // The templates already listed are saved as they were.
+    expect(savedTemplates().slice(0, 2)).toEqual([OUTAGE, MAINTENANCE]);
+  });
+
+  test("a template whose every question follows the form saves no settings", async () => {
+    await renderPage();
+    await click(cardButton(FormsCopy.addTemplate));
+
+    fireEvent.change(screen.getByTestId("form-template-name"), {
+      target: { value: "Plain" },
+    });
+
+    await saveDialog();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedTemplates()[2]).not.toHaveProperty("fieldSettings");
+  });
+
+  test("Edit starts from the template's settings; choosing Form default takes one out", async () => {
+    storedTemplates = [
+      { ...OUTAGE, fieldSettings: { severity: Required, description: Optional } },
+      MAINTENANCE,
+    ];
+
+    await renderPage();
+    await click(screen.getByTestId("form-template-edit-outage"));
+
+    expect(shown("severity")).toBe("Required");
+    expect(shown("description")).toBe("Optional");
+    expect(shown("title")).toBe(FormsCopy.settingFormDefaultRequired);
+    // The description is asked by this template: its answer pre-fills it.
+    expect(hiddenNote("description")).not.toBeInTheDocument();
+
+    await choose("severity", FormsCopy.settingFormDefaultOptional);
+
+    await saveDialog();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(savedTemplates()[0]).toEqual({
+      ...OUTAGE,
+      fieldSettings: { description: Optional },
+    });
+  });
+
+  test("the list says what each template changes, in the form's order", async () => {
+    storedTemplates = [
+      {
+        ...OUTAGE,
+        fieldSettings: { office: Hidden, description: Required, gone: Hidden },
+      },
+      MAINTENANCE,
+    ];
+
+    await renderPage();
+
+    const chips: Array<Element> = Array.from(
+      screen.getByTestId("form-template-settings-outage").querySelectorAll("li"),
+    );
+
+    expect(
+      chips.map((chip: Element): unknown => {
+        return [chip.textContent, chip.getAttribute("data-setting")];
+      }),
+    ).toEqual([
+      ["Description · Required", "Required"],
+      ["Office · Hidden", "Hidden"],
+    ]);
+
+    // A template that asks every question as the form does lists no change.
+    expect(
+      screen.queryByTestId("form-template-settings-maintenance"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Duplicate copies how the template asks each question, without what removed questions left behind", async () => {
+    storedTemplates = [
+      {
+        ...OUTAGE,
+        answers: { ...OUTAGE.answers, removed: "x" },
+        fieldSettings: { office: Hidden, removed: Required },
+      },
+      MAINTENANCE,
+    ];
+
+    await renderPage();
+    await click(screen.getByTestId("form-template-duplicate-outage"));
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const copy: FormTemplate = savedTemplates()[1]!;
+
+    expect(copy.name).toBe("Application Outage 2");
+    expect(copy.fieldSettings).toEqual({ office: Hidden });
+    expect(copy.answers).toEqual(OUTAGE.answers);
+    // The original is saved as it was: the server does not judge it again.
+    expect(savedTemplates()[0]!.fieldSettings).toEqual({
+      office: Hidden,
+      removed: Required,
+    });
+  });
+
+  test("a maintenance form's start and end are always asked, and required: their rows cannot change", async () => {
+    storedTarget = FormTargetType.ScheduledMaintenance;
+    storedFields = [
+      {
+        id: "title",
+        source: FormFieldSource.TargetField,
+        targetField: "title",
+        label: "Title",
+        isRequired: true,
+      },
+      {
+        id: "starts",
+        source: FormFieldSource.TargetField,
+        targetField: "startsAt",
+        label: "Starts At",
+        isRequired: true,
+      },
+      {
+        id: "ends",
+        source: FormFieldSource.TargetField,
+        targetField: "endsAt",
+        label: "Ends At",
+        isRequired: true,
+      },
+    ];
+    storedTemplates = [];
+
+    await renderPage();
+    await click(cardButton(FormsCopy.addTemplate));
+
+    for (const fieldId of ["starts", "ends"]) {
+      expect(shown(fieldId)).toBe("Required");
+      expect(row(fieldId)).toHaveTextContent(FormsCopy.requiredLocked);
+      expect(
+        row(fieldId).querySelector(".ou-select--is-disabled"),
+      ).not.toBeNull();
+    }
+
+    expect(row("title").querySelector(".ou-select--is-disabled")).toBeNull();
   });
 });

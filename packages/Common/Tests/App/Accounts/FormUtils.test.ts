@@ -7,6 +7,7 @@ import {
   PublicForm,
   PublicFormFieldType,
 } from "../../../Types/Form/FormPublic";
+import { FormTemplateFieldSetting } from "../../../Types/Form/FormTemplate";
 import { JSONObject } from "../../../Types/JSON";
 import { FORM_PUBLIC_API_URL } from "../../../../App/FeatureSet/Accounts/src/Utils/ApiPaths";
 import {
@@ -827,5 +828,194 @@ describe("buildFormSubmissionRequest: the template it started from", () => {
         templateId: "outage",
       }).data,
     ).not.toHaveProperty("templateId");
+  });
+});
+
+/*
+ * A template that asks the questions its own way (issue #4563): the page
+ * reads which questions the form hides and how each template asks the
+ * page's questions, with the server's rules, and sends only the answers to
+ * the questions the template it started from asks.
+ */
+describe("readPublicForm: how each template asks the questions", () => {
+  const FIELDS: Array<JSONObject> = [
+    { id: "title", label: "Title", type: "Text", isRequired: true },
+    { id: "app", label: "Application", type: "Text", isRequired: false },
+    {
+      id: "window",
+      label: "Window",
+      type: "Text",
+      isRequired: false,
+      isHidden: true,
+    },
+  ];
+
+  function read(
+    templates: unknown,
+    fields: Array<JSONObject> = FIELDS,
+  ): PublicForm {
+    return readPublicForm({
+      name: "Department A",
+      fields,
+      isCaptchaRequired: false,
+      templates,
+    });
+  }
+
+  test("a question the form hides is read as hidden; only a real true is", () => {
+    const form: PublicForm = read(undefined, [
+      ...FIELDS,
+      { id: "a", label: "A", type: "Text", isRequired: false, isHidden: "true" },
+      { id: "b", label: "B", type: "Text", isRequired: false, isHidden: 1 },
+    ]);
+
+    expect(
+      form.fields.map((field: { id: string; isHidden?: boolean }): unknown => {
+        return [field.id, field.isHidden];
+      }),
+    ).toEqual([
+      ["title", undefined],
+      ["app", undefined],
+      ["window", true],
+      ["a", undefined],
+      ["b", undefined],
+    ]);
+  });
+
+  test("reads each template's settings for the page's questions", () => {
+    expect(
+      read([
+        {
+          id: "planned",
+          name: "Planned",
+          answers: { window: "Saturday" },
+          fieldSettings: { window: "Required", app: "Hidden" },
+        },
+      ]).templates,
+    ).toEqual([
+      {
+        id: "planned",
+        name: "Planned",
+        answers: { window: "Saturday" },
+        fieldSettings: { window: "Required", app: "Hidden" },
+      },
+    ]);
+  });
+
+  test("keeps no setting for a question the page does not have, nor one that is not a setting", () => {
+    const template: { fieldSettings?: unknown } = read([
+      {
+        id: "a",
+        name: "A",
+        answers: {},
+        fieldSettings: {
+          title: "Optional",
+          app: "required",
+          gone: "Hidden",
+          window: 7,
+          __proto__: "Hidden",
+        },
+      },
+    ]).templates![0]!;
+
+    expect(template.fieldSettings).toEqual({ title: "Optional" });
+  });
+
+  test.each([undefined, null, "Hidden", ["Hidden"], {}])(
+    "settings that are none (%j) leave the template without any",
+    (fieldSettings: unknown) => {
+      expect(
+        read([{ id: "a", name: "A", answers: {}, fieldSettings }])
+          .templates![0],
+      ).not.toHaveProperty("fieldSettings");
+    },
+  );
+});
+
+describe("buildFormSubmissionRequest: the questions its template asks", () => {
+  const FORM: PublicForm = {
+    name: "F",
+    fields: [
+      {
+        id: "title",
+        label: "Title",
+        type: PublicFormFieldType.Text,
+        isRequired: true,
+      },
+      {
+        id: "app",
+        label: "Application",
+        type: PublicFormFieldType.Text,
+        isRequired: false,
+      },
+      {
+        id: "window",
+        label: "Window",
+        type: PublicFormFieldType.Text,
+        isRequired: false,
+        isHidden: true,
+      },
+    ],
+    isCaptchaRequired: false,
+    templates: [
+      {
+        id: "outage",
+        name: "Outage",
+        answers: {},
+        fieldSettings: { app: FormTemplateFieldSetting.Hidden },
+      },
+      {
+        id: "planned",
+        name: "Planned",
+        answers: {},
+        fieldSettings: { window: FormTemplateFieldSetting.Required },
+      },
+    ],
+  };
+
+  // Everything the page could hold, whatever it draws.
+  const VALUES: JSONObject = {
+    answer_title: "Down",
+    answer_app: "Checkout",
+    answer_window: "Saturday",
+  };
+
+  test("without a template: the form's own questions - never one it hides", () => {
+    expect(
+      buildFormSubmissionRequest({ form: FORM, values: VALUES }).data,
+    ).toEqual({ answers: { title: "Down", app: "Checkout" } });
+  });
+
+  test("a template that hides a question never sends it", () => {
+    expect(
+      buildFormSubmissionRequest({
+        form: FORM,
+        values: VALUES,
+        templateId: "outage",
+      }).data,
+    ).toEqual({ answers: { title: "Down" }, templateId: "outage" });
+  });
+
+  test("a template that asks a question the form hides sends it", () => {
+    expect(
+      buildFormSubmissionRequest({
+        form: FORM,
+        values: VALUES,
+        templateId: "planned",
+      }).data,
+    ).toEqual({
+      answers: { title: "Down", app: "Checkout", window: "Saturday" },
+      templateId: "planned",
+    });
+  });
+
+  test("a template the form does not have asks as the form does, and is not named", () => {
+    expect(
+      buildFormSubmissionRequest({
+        form: FORM,
+        values: VALUES,
+        templateId: "deleted",
+      }).data,
+    ).toEqual({ answers: { title: "Down", app: "Checkout" } });
   });
 });

@@ -16,6 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -1043,6 +1044,91 @@ describe("the preview", () => {
         screen.getByTestId("form-preview-template-picker"),
       ).toHaveTextContent(FormsCopy.noTemplate);
       expect(titleValue()).toBe("");
+    });
+
+    /*
+     * A template that asks the questions its own way (issue #4563): the
+     * preview asks the form as the chosen template asks it, as the page
+     * does - what it requires is required, what it hides is not drawn, and
+     * a question the form hides shows when it asks it.
+     */
+    describe("a template that asks the questions its own way", () => {
+      const SETTINGS_TEMPLATES: Array<Record<string, unknown>> = [
+        {
+          id: "planned",
+          name: "Planned Maintenance",
+          isDefault: true,
+          answers: { what: "Planned work", details: "Saturday 02:00" },
+          fieldSettings: { details: "Required", what: "Hidden" },
+        },
+        {
+          id: "outage",
+          name: "Application Outage",
+          answers: { what: "The application is down" },
+        },
+      ];
+
+      async function choose(name: string): Promise<void> {
+        const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+        await user.click(
+          within(
+            screen.getByTestId("form-preview-template-picker"),
+          ).getByRole("combobox"),
+        );
+
+        const menu: HTMLElement = await screen.findByRole("listbox");
+
+        await user.click(within(menu).getByText(name, { exact: true }));
+      }
+
+      test("opens on the default as it asks the form: the hidden question asked and filled in, the one it hides not drawn", async () => {
+        await renderPreview([TITLE, DETAILS], undefined, SETTINGS_TEMPLATES);
+
+        const preview: HTMLElement = screen.getByTestId("form-preview");
+
+        expect(
+          screen.queryByTestId("form-preview-field-what"),
+        ).not.toBeInTheDocument();
+        expect(preview).toHaveTextContent("Details");
+        // The description is Markdown: its editor holds the template's answer.
+        expect(
+          within(screen.getByTestId("form-preview-field-details")).getByRole(
+            "textbox",
+          ),
+        ).toHaveTextContent("Saturday 02:00");
+      });
+
+      test("checks the answers as that template asks them: a question it requires must be answered", async () => {
+        await renderPreview([TITLE, DETAILS], undefined, [
+          {
+            ...SETTINGS_TEMPLATES[0],
+            answers: { what: "Planned work" },
+          },
+        ]);
+
+        await act(async () => {
+          fireEvent.click(
+            document.getElementById("form-preview-form-submit-button")!,
+          );
+        });
+
+        expect(await screen.findByText("Details is required.")).toBeInTheDocument();
+        expect(
+          screen.queryByTestId("form-preview-submitted"),
+        ).not.toBeInTheDocument();
+      });
+
+      test("choosing another template asks the form its way: the hidden question goes, the title comes back", async () => {
+        await renderPreview([TITLE, DETAILS], undefined, SETTINGS_TEMPLATES);
+
+        await choose("Application Outage");
+
+        expect(titleValue()).toBe("The application is down");
+        expect(screen.getByTestId("form-preview")).not.toHaveTextContent(
+          "Details",
+        );
+      });
     });
   });
 });
