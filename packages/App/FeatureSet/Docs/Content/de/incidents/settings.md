@@ -90,11 +90,43 @@ Gehen Sie zu **Vorfälle → Einstellungen → Benutzerdefinierte Felder** (`/da
 - **Feldname** – Pflicht, mindestens zwei Zeichen. Der Platzhalter schlägt einen Slug-artigen Namen wie `internal-service` vor.
 - **Feldbeschreibung** – optional.
 - **Feldtyp** – Pflicht. Er bestimmt, wie Daten eingegeben werden. Dropdown-Typen brauchen zusätzlich ihre Optionen.
-- **Dropdown-Optionen** – die Werte, die im Dropdown erscheinen, jeder mit einer optionalen Farbe.
+- **Dropdown-Optionen** – die Werte, die im Dropdown erscheinen, jeder mit einer optionalen Farbe. Ziehen Sie eine Option an ihrem Griff, um ihre Position in der Liste zu ändern. Optionen lassen sich auch hinzufügen, umbenennen und entfernen, wenn Vorfälle schon Werte haben – siehe unten.
 
 Die Definitionen liegen in einem eigenen Modell; die Werte liegen am Vorfall selbst in der Spalte `customFields`. An einem einzelnen Vorfall füllen Sie sie über **Benutzerdefinierte Felder** im Seitenmenü des Vorfalls aus (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **Eine Lücke, die man kennen sollte.** Definitionen benutzerdefinierter Vorfall-Felder sind der einzige Teil der Vorfall-Familie ohne Workflow-Trigger – siehe den Workflow-Abschnitt weiter unten.
+
+### Dropdown-Optionen ändern
+
+Die Optionen eines Felds vom Typ **Dropdown (Einfachauswahl)** oder **Dropdown (Mehrfachauswahl)** lassen sich jederzeit ändern: Öffnen Sie **Bearbeiten** in der Zeile des Felds. Ein Vorfall speichert den Text der Option, die er erhalten hat. Was eine Änderung mit den Vorfällen macht, die eine Option haben, hängt deshalb von der Änderung ab:
+
+| Was Sie mit einer Option tun           | Was mit den Vorfällen geschieht, die sie haben                                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Hinzufügen**                         | Nichts. Sie wird ab jetzt angeboten.                                                                                            |
+| **Umbenennen** (ihren Text ändern)     | Sie zeigen den neuen Namen. Unter der Option steht, wie viele Vorfälle das betrifft.                                            |
+| **Entfernen** (der Papierkorb daneben) | Sie behalten sie, angezeigt als _keine Option mehr_, außer Sie wählen unter **Keine Optionen mehr** eine andere Option für sie. |
+| **Ziehen** an ihrem Griff              | Nichts. Nur die Reihenfolge, in der die Optionen aufgeführt sind, ändert sich.                                                  |
+
+Beim Öffnen zählt das Formular, wie viele Vorfälle jeden Wert haben. **Keine Optionen mehr** listet jede entfernte Option, die ein Vorfall noch hat, und jeden Wert, den Vorfälle haben, der nie eine Option war (etwa einer, der über die API geschrieben wurde) – jeweils mit der Zahl der Vorfälle. Behalten Sie ihn, wie er ist, oder wählen Sie die Option, die diese Vorfälle stattdessen haben sollen. **Rückgängig** holt eine versehentlich entfernte Option zurück.
+
+Eine umbenannte Option und ein Wert, für den Sie eine Option wählen, werden beim Speichern verschoben: an jedem Vorfall und jeder Vorfall-Vorlage im Projekt, in den gespeicherten Ansichten der Vorfallliste, die danach filtern, und in den Antworten, die Formularvorlagen für das Feld geben. Das startet keinen **On Update Incident**-Workflow und ändert bei keinem Vorfall den Zeitpunkt der letzten Änderung. Schlägt es fehl, wird nichts verschoben, und das Feld behält seine alten Optionen. Workflows, API-Clients und Terraform-Konfigurationen, die eine Option mit ihrem alten Text schreiben, brauchen den neuen Text.
+
+Ein Vorfall, dessen Wert sein Feld nicht mehr anbietet, zeigt den Wert, markiert als _keine Option mehr_, auf seiner Seite **Benutzerdefinierte Felder** und in der Vorfallliste. Werden seine anderen Felder bearbeitet, bleibt der Wert erhalten; wählen Sie eine andere Option, um ihn zu ändern.
+
+Die benutzerdefinierten Felder aller anderen Ressourcen funktionieren genauso: Monitore, Alarme, geplante Wartungen, Statusseiten, Bereitschaftsrichtlinien, Teams, Teammitglieder und Inventarelemente. Wird eine Option eines Monitor-Felds umbenannt oder hinzugefügt, geschieht dasselbe in den Vorfall-, Alarm- und Wartungsfeldern, die es übernehmen, damit diese weiterhin jeden Wert anbieten, den sie übernehmen.
+
+Über die API senden Sie die neue Liste als `dropdownOptions` und die Umbenennungen in `miscDataProps`:
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Jedes `to` muss nach dem Speichern eine Option des Felds sein, und jedes `from` kann nur einmal umbenannt werden. Ohne `renamedDropdownOptions` ändert sich nur die Liste, und jeder gespeicherte Wert bleibt, wie er ist – das tut auch eine Änderung von `dropdown_options` in Terraform.
 
 ## Vorfallsrollen
 

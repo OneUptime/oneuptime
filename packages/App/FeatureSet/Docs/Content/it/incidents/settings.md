@@ -90,11 +90,43 @@ Andate su **Incidenti → Impostazioni → Campi personalizzati** (`/dashboard/{
 - **Nome del campo** — obbligatorio, almeno due caratteri. Il segnaposto suggerisce un nome in stile slug, come `internal-service`.
 - **Descrizione del campo** — facoltativa.
 - **Tipo di campo** — obbligatorio. Sceglie come si inseriscono i dati. I tipi a menu a discesa richiedono anche l'elenco delle opzioni.
-- **Opzioni del menu a discesa** — i valori che compaiono nel menu, ciascuno con un colore facoltativo.
+- **Opzioni del menu a discesa** — i valori che compaiono nel menu, ciascuno con un colore facoltativo. Trascina un'opzione dalla sua maniglia per cambiarne la posizione nell'elenco. Le opzioni si possono anche aggiungere, rinominare e togliere quando gli incidenti hanno già dei valori; vedi più sotto.
 
 Le definizioni vivono in un modello a sé; i valori vivono sull'incidente stesso, nella colonna `customFields`. Su un singolo incidente li compilate da **Campi personalizzati** nel menu laterale dell'incidente (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **Una lacuna da conoscere.** Le definizioni dei campi personalizzati degli incidenti sono l'unica parte della famiglia Incidenti senza trigger di workflow — vedete la sezione sui workflow più sotto.
+
+### Modificare le opzioni di un menu a discesa
+
+Le opzioni di un campo **Menu a tendina (selezione singola)** o **Menu a tendina (selezione multipla)** si possono modificare in qualsiasi momento: apri **Modifica** sulla riga del campo. Un incidente conserva il testo dell'opzione che gli è stata data, quindi l'effetto di una modifica sugli incidenti che hanno un'opzione dipende dalla modifica:
+
+| Cosa fai a un'opzione             | Cosa succede agli incidenti che ce l'hanno                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **La aggiungi**                   | Niente. Viene offerta da ora in poi.                                                                                            |
+| **La rinomini** (cambi il testo)  | Mostrano il nuovo nome. Sotto l'opzione, il modulo dice quanti incidenti lo faranno.                                            |
+| **La togli** (il cestino accanto) | La conservano, mostrata come _non è più un'opzione_, a meno che tu non scelga un'altra opzione per loro in **Non più opzioni**. |
+| **La trascini** dalla maniglia    | Niente. Cambia solo l'ordine in cui sono elencate le opzioni.                                                                   |
+
+All'apertura, il modulo conta quanti incidenti hanno ciascun valore. **Non più opzioni** elenca ogni opzione tolta che un incidente ha ancora, e ogni valore che gli incidenti hanno senza che sia mai stato un'opzione (uno scritto tramite l'API, per esempio), ciascuno con il numero di incidenti. Per ognuno, lascialo com'è oppure scegli l'opzione che quegli incidenti devono avere al suo posto. **Annulla** ripristina un'opzione tolta per errore.
+
+Un'opzione rinominata, e un valore per cui scegli un'opzione, vengono spostati al salvataggio: su ogni incidente e ogni modello di incidente del progetto, nelle viste salvate dell'elenco degli incidenti che filtrano per esso, e nelle risposte che i modelli dei moduli danno per il campo. Non avvia nessun workflow **On Update Incident** e non cambia la data dell'ultimo aggiornamento di nessun incidente; se non riesce, non si sposta nulla e il campo mantiene le opzioni precedenti. Workflow, client dell'API e configurazioni Terraform che scrivono un'opzione con il testo precedente hanno bisogno di quello nuovo.
+
+Un incidente il cui campo non offre più il suo valore lo mostra, segnato _non è più un'opzione_, nella sua pagina **Campi personalizzati** e nell'elenco degli incidenti. Modificare gli altri campi lo conserva; scegli un'altra opzione per cambiarlo.
+
+I campi personalizzati di tutte le altre risorse funzionano allo stesso modo: monitor, avvisi, manutenzioni programmate, pagine di stato, policy di reperibilità, team, membri del team ed elementi dell'inventario. Rinominare o aggiungere un'opzione di un campo di monitor fa lo stesso nei campi di incidente, avviso e manutenzione programmata che lo copiano, così continuano a offrire ogni valore che copiano.
+
+Tramite l'API, invia il nuovo elenco in `dropdownOptions` e le rinomine in `miscDataProps`:
+
+```json
+{
+  "data": { "dropdownOptions": "Facility Alpha\nFacility B" },
+  "miscDataProps": {
+    "renamedDropdownOptions": [{ "from": "Facility A", "to": "Facility Alpha" }]
+  }
+}
+```
+
+Ogni `to` deve essere un'opzione del campo una volta salvato, e ogni `from` si può rinominare una sola volta. Senza `renamedDropdownOptions` cambia solo l'elenco e ogni valore salvato resta com'è, ed è anche ciò che fa una modifica di `dropdown_options` in Terraform.
 
 ## Ruoli incidente
 
