@@ -34,6 +34,26 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  stubRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    AlertService,
+    jest.spyOn(AlertService, "findBy"),
+  );
+});
 
 /*
  * A severity change does four things on an incident - an "Incident updated"
@@ -432,10 +452,15 @@ describe("an incident update runs the severity side effects exactly when the sev
     expect(
       (severityReads[0]![0] as { select: Record<string, unknown> }).select,
     ).toEqual({ _id: true, incidentSeverityId: true });
-    // Within the update's own query, and the caller's project.
+    // The incidents the caller may write, found in their project, by id.
     expect(
-      (severityReads[0]![0] as { query: Record<string, unknown> }).query,
-    ).toEqual(expect.objectContaining({ projectId: PROJECT_ID }));
+      Object.keys(
+        (severityReads[0]![0] as { query: Record<string, unknown> }).query,
+      ),
+    ).toEqual(["_id"]);
+    expect(
+      readsOfRowsCallerMayWrite(IncidentService)[0]!.query["projectId"],
+    ).toBe(PROJECT_ID);
   });
 
   test("an incident whose severity was not read before the write counts as changed, so a real change is never missed", async () => {

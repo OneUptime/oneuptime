@@ -45,6 +45,10 @@ import {
 } from "@jest/globals";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  stubRowsCallerMayWrite,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 /*
  * An incident can be limited to some of the status pages its monitors reach
  * (Incident.statusPages). IncidentService owns everything that follows from a
@@ -271,6 +275,14 @@ beforeEach(() => {
     .spyOn(IncidentService, "findBy")
     .mockImplementation(incidentFindBy as never);
 
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks: the incidents the update matches.
+   */
+  stubRowsCallerMayWrite(IncidentService, () => {
+    return storedIncidents;
+  });
+
   statusPageFindBy = getJestMockFunction();
   statusPageFindBy.mockImplementation(
     (findBy: { query: { _id: unknown } }): Promise<Array<StatusPage>> => {
@@ -471,7 +483,7 @@ describe("IncidentService.onBeforeUpdate: isScopedToStatusPages follows statusPa
     expect(data["statusPagesNotifiedOnCreation"]).toEqual([PAGE_A]);
   });
 
-  test("reads the matched incidents as root, with the update's own query", async () => {
+  test("reads the matched incidents - the ones the caller may write - as root", async () => {
     await runBeforeUpdate(scopeUpdate({ data: { statusPages: [PAGE_A] } }));
 
     expect(incidentFindBy).toHaveBeenCalledTimes(1);
@@ -482,20 +494,27 @@ describe("IncidentService.onBeforeUpdate: isScopedToStatusPages follows statusPa
       props: DatabaseCommonInteractionProps;
     } = incidentFindBy.mock.calls[0]![0];
 
-    expect(findBy.props).toEqual({ isRoot: true });
+    expect(findBy.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(findBy.query["_id"]).toBe(incidentId);
     expect(findBy.select["statusPages"]).toEqual({ _id: true });
   });
 
   test("a non-root caller's read is limited to their own project", async () => {
     /*
-     * The update's tenant filter is only added after this hook, so without
-     * it another project's incident would be read, and could refuse the
-     * edit on its own state instead of the usual "nothing updated".
+     * The incidents read are the ones the caller may write - found by the
+     * permission layer, in their own project - so another project's
+     * incident is never read, and cannot refuse the edit on its own state
+     * instead of the usual "nothing updated".
      */
     await runBeforeUpdate(scopeUpdate({ data: { statusPages: [PAGE_A] } }));
 
-    expect(incidentFindBy.mock.calls[0]![0].query["projectId"]).toBe(projectId);
+    expect(
+      readsOfRowsCallerMayWrite(IncidentService)[0]!.query["projectId"],
+    ).toBe(projectId);
+    // Those incidents, by id, with the update's privacy filter kept.
+    expect(
+      Object.keys(incidentFindBy.mock.calls[0]![0].query as JSONObject).sort(),
+    ).toEqual(["_id", "isPrivate"]);
   });
 
   test("a root caller's read uses the update's own query", async () => {
@@ -1611,24 +1630,29 @@ describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification
     expect(scopeAndNotificationReads()).toHaveLength(0);
   });
 
-  test("the resend's read is limited to the caller's project", async () => {
+  test("the resend's reads are limited to the caller's project", async () => {
     storedIncidents = [storedIncident()];
 
     await runBeforeUpdate(resend());
 
-    // The hook's own read, as root; the in-flight check reads as the caller.
-    const rootReads: Array<{ query: JSONObject; props: JSONObject }> =
-      incidentFindBy.mock.calls
-        .map((call: Array<unknown>) => {
-          return call[0] as { query: JSONObject; props: JSONObject };
-        })
-        .filter((read: { props: JSONObject }) => {
-          return read.props["isRoot"] === true;
-        });
+    // The incidents the caller may write: found in their own project.
+    expect(
+      readsOfRowsCallerMayWrite(IncidentService)[0]!.query["projectId"],
+    ).toBe(projectId);
 
-    expect(rootReads).toHaveLength(1);
-    expect(rootReads[0]!.query["projectId"]).toBe(projectId);
-    expect(rootReads[0]!.props).toEqual({ isRoot: true });
+    // The hook's own read and the in-flight check's: those incidents, by id.
+    const reads: Array<{ query: JSONObject; props: JSONObject }> =
+      incidentFindBy.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as { query: JSONObject; props: JSONObject };
+      });
+
+    expect(reads.length).toBeGreaterThan(0);
+
+    for (const read of reads) {
+      // By id, with the update's privacy filter kept.
+      expect(Object.keys(read.query).sort()).toEqual(["_id", "isPrivate"]);
+      expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
+    }
   });
 });
 
@@ -1747,7 +1771,11 @@ describe("IncidentService.onBeforeUpdate: publishing tells the pages added while
 
     expect(findBy.select["statusPages"]).toEqual({ _id: true });
     expect(findBy.select["statusPagesNotifiedOnCreation"]).toBe(true);
-    expect(findBy.query["projectId"]).toBe(projectId);
+    // The incidents the caller may write, found in their project, by id - with the update's privacy filter kept.
+    expect(Object.keys(findBy.query).sort()).toEqual(["_id", "isPrivate"]);
+    expect(
+      readsOfRowsCallerMayWrite(IncidentService)[0]!.query["projectId"],
+    ).toBe(projectId);
   });
 });
 

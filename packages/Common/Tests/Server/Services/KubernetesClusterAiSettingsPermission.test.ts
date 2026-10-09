@@ -38,6 +38,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  stubRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -287,6 +291,15 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
     clusterLookup = jest
       .spyOn(KubernetesClusterService, "findBy")
       .mockResolvedValue([cluster()]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
     runnerLookup = jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
@@ -1233,10 +1246,13 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         props: DatabaseCommonInteractionProps;
       };
 
-      expect(args.query).toEqual({
-        _id: CLUSTER_ID.toString(),
-        projectId: PROJECT_ID,
-      });
+      expect(args.query).toEqual({ _id: CLUSTER_ID.toString() });
+      // Within the caller's project: the clusters they may write are found there.
+      expect(
+        readsOfRowsCallerMayWrite(KubernetesClusterService)[0]!.query[
+          "projectId"
+        ],
+      ).toEqual(PROJECT_ID);
       expect(args.props.isRoot).toBe(true);
       for (const column of [
         "projectId",

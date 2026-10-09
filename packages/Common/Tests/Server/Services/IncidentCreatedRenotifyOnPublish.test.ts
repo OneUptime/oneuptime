@@ -24,6 +24,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
+});
 
 /*
  * Turning 'Visible on Status Page' on for an incident that was declared hidden
@@ -231,7 +244,7 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
     expect(createdNotificationReads()).toHaveLength(1);
     const findBy: Record<string, unknown> = createdNotificationReads()[0]!;
 
-    expect(findBy["props"]).toEqual({ isRoot: true });
+    expect(findBy["props"]).toEqual({ isRoot: true, ignoreHooks: true });
     expect(findBy["query"]).toEqual({ _id: incidentId.toString() });
     expect(findBy["select"]).toEqual(
       expect.objectContaining({
@@ -523,7 +536,7 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
     // The lookup itself is root, whatever the caller's props.
     expect(
       (findByMock.mock.calls[0]![0] as Record<string, unknown>)["props"],
-    ).toEqual({ isRoot: true });
+    ).toEqual({ isRoot: true, ignoreHooks: true });
   });
 });
 

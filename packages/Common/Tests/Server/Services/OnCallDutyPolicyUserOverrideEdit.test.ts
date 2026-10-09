@@ -74,7 +74,9 @@ describe("OnCallDutyPolicyUserOverrideService update-roster refresh (audit M2)",
     // findBy returns the row(s) that match the update query, PRE-update.
     const findBy: jest.SpyInstance = jest
       .spyOn(OnCallDutyPolicyUserOverrideService, "findBy")
-      .mockResolvedValue([{ projectId: P1, overrideUserId: USER_A }] as any);
+      .mockResolvedValue([
+        { _id: OV1, projectId: P1, overrideUserId: USER_A },
+      ] as any);
 
     const onUpdate: any = await (
       OnCallDutyPolicyUserOverrideService as any
@@ -92,7 +94,7 @@ describe("OnCallDutyPolicyUserOverrideService update-roster refresh (audit M2)",
     expect(carryForward[0]!.projectId.toString()).toBe(P1.toString());
     expect(carryForward[0]!.overrideUserId.toString()).toBe(USER_A.toString());
 
-    // The original updateBy is threaded through unchanged.
+    // The update is held to the override read: the one it names.
     expect(onUpdate.updateBy.query["_id"].toString()).toBe(OV1.toString());
   });
 

@@ -10,7 +10,7 @@ import Model, {
 } from "../../Models/DatabaseModels/Probe";
 import ProbeOwnerUser from "../../Models/DatabaseModels/ProbeOwnerUser";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ProbeOwnerTeam from "../../Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -611,19 +611,14 @@ export class Service extends ProjectReferencesService<Model> {
       probesToNotifyOwners: [],
     };
 
-    if (updateBy.data.connectionStatus && updateBy.query._id) {
-      const probes: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+    if (updateBy.data.connectionStatus) {
+      const probes: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           connectionStatus: true,
         },
-        skip: 0,
-        limit: LIMIT_MAX,
-      });
+      );
 
       const probesToNotifyOwners: Array<Model> = probes.filter(
         (probe: Model) => {

@@ -134,17 +134,13 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnUpdate<Model>> {
     // get teams by query.
 
-    const teams: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    const teams: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         name: true,
         isTeamEditable: true,
       },
-
-      props: updateBy.props,
-    });
+    );
 
     for (const team of teams) {
       if (!team.isTeamEditable) {

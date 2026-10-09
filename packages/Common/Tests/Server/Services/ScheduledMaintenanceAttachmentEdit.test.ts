@@ -21,6 +21,10 @@ import ObjectID from "../../../Types/ObjectID";
 import logger, { LogAttributes } from "../../../Server/Utils/Logger";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  stubRowsCallerMayWrite,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -449,6 +453,14 @@ beforeEach(() => {
       return eventsBeforeWrite;
     }) as never);
 
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(ScheduledMaintenanceService, () => {
+    return eventsBeforeWrite;
+  });
+
   eventFindOneById = jest
     .spyOn(ScheduledMaintenanceService, "findOneById")
     .mockImplementation((async (findOneById: {
@@ -619,8 +631,13 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds befo
       };
 
       expect(findBy.query["_id"]).toBe(EVENT_ID);
-      expect(findBy.query["projectId"]).toBe(PROJECT_ID);
-      expect(findBy.props).toEqual({ isRoot: true });
+      // Within the caller's project: the events they may write are found there.
+      expect(
+        readsOfRowsCallerMayWrite(ScheduledMaintenanceService)[0]!.query[
+          "projectId"
+        ],
+      ).toBe(PROJECT_ID);
+      expect(findBy.props).toEqual({ isRoot: true, ignoreHooks: true });
       // Every kind, because a state of the project's own is none of them.
       expect(findBy.select["currentScheduledMaintenanceState"]).toEqual({
         _id: true,

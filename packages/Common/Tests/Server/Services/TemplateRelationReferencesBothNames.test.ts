@@ -24,6 +24,19 @@ import {
   ProjectDirectoryStub,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ScheduledMaintenanceTemplateService,
+    jest.spyOn(ScheduledMaintenanceTemplateService, "findBy"),
+  );
+});
 
 /*
  * A template's single relations - the monitor status its events or

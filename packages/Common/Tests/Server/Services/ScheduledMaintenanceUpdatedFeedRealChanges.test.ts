@@ -37,6 +37,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  stubRowsCallerMayWrite,
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * A SCHEDULED MAINTENANCE EVENT'S "UPDATED" FEED ITEM RECORDS WHAT AN EDIT
@@ -382,6 +387,19 @@ beforeEach(() => {
   jest
     .spyOn(ScheduledMaintenanceService, "findBy")
     .mockImplementation(reads as never);
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(
+    ScheduledMaintenanceService,
+    (read: RowsCallerMayWriteRead) => {
+      return matching(storedEvents, read.query).map((record: StoredEvent) => {
+        return { _id: record.id };
+      });
+    },
+  );
 
   // The event as it reads after the write.
   jest
@@ -1263,9 +1281,14 @@ describe("the read before the write", () => {
       props: DatabaseCommonInteractionProps;
     } = storedReads()[0]!;
 
-    expect(read.props).toEqual({ isRoot: true });
+    expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(read.query["_id"]).toBe(EVENT_ID);
-    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    // Within the caller's project: the rows they may write are found there.
+    expect(
+      readsOfRowsCallerMayWrite(ScheduledMaintenanceService)[0]!.query[
+        "projectId"
+      ],
+    ).toBe(PROJECT_ID);
   });
 
   test("is not made for an update that writes none of those columns", async () => {

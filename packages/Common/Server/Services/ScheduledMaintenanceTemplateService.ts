@@ -1,12 +1,10 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -23,13 +21,11 @@ import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
 import CreateBy from "../Types/Database/CreateBy";
 import OneUptimeDate from "../../Types/Date";
 import Recurring from "../../Types/Events/Recurring";
 import UpdateBy from "../Types/Database/UpdateBy";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
@@ -195,22 +191,15 @@ export class Service extends ProjectReferencesService<Model> {
 
     const newTemplate: QueryDeepPartialEntity<Model> = updateBy.data;
 
-    const existingTemplates: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const existingTemplates: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         isRecurringEvent: true,
         firstEventScheduledAt: true,
         recurringInterval: true,
         firstEventEndsAt: true,
         firstEventStartsAt: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const template of existingTemplates) {
       let isRecurring: boolean = Boolean(template.isRecurringEvent);
@@ -365,14 +354,14 @@ export class Service extends ProjectReferencesService<Model> {
      */
     const projectIds: Array<ObjectID> = updateBy.props.tenantId
       ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+      : await this.findProjectsOfRowsAndHoldUpdateToThem(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -438,32 +427,6 @@ export class Service extends ProjectReferencesService<Model> {
       modelName: "Monitor Status",
       service: MonitorStatusService,
     });
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const templates: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const template of templates) {
-      if (template.projectId) {
-        projectIds[template.projectId.toString()] = template.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()

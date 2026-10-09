@@ -28,6 +28,29 @@ import {
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    StatusPageSubscriberNotificationTemplateService,
+    jest.spyOn(StatusPageSubscriberNotificationTemplateService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    StatusPageSubscriberNotificationTemplateStatusPageService,
+    jest.spyOn(
+      StatusPageSubscriberNotificationTemplateStatusPageService,
+      "findBy",
+    ),
+  );
+});
 
 /*
  * The records these tests name are their project's own: the services check
@@ -111,6 +134,7 @@ const STATUS_PAGE_MEMBER: Array<UserPermission> = [
 
 function template(data: Partial<Model> = {}): Model {
   const model: Model = new StatusPageSubscriberNotificationTemplate();
+  model._id = TEMPLATE_ID.toString();
   model.projectId = PROJECT_ID;
   model.templateName = "Site 03 Slack";
   model.eventType =
@@ -442,7 +466,7 @@ describe("updating a template", () => {
     );
   });
 
-  test("the templates it would change are read as root, in the caller's project", async () => {
+  test("the templates it would change are read as root, among those the caller may write in their project", async () => {
     stored = [template({ templateBody: "{{incidentTitle}}" })];
 
     await expect(
@@ -462,10 +486,17 @@ describe("updating a template", () => {
       props: DatabaseCommonInteractionProps;
     };
 
-    expect(args.query).toEqual({
+    // The templates the caller may write, found in their project.
+    expect(
+      readsOfRowsCallerMayWrite(
+        StatusPageSubscriberNotificationTemplateService,
+      )[0]!.query,
+    ).toEqual({
       _id: TEMPLATE_ID.toString(),
       projectId: PROJECT_ID,
     });
+    // Then those, by id.
+    expect(args.query).toEqual({ _id: TEMPLATE_ID.toString() });
     expect(args.props.isRoot).toBe(true);
   });
 
@@ -704,6 +735,7 @@ describe("linking a template to a status page", () => {
   beforeEach(() => {
     const link: LinkModel =
       new StatusPageSubscriberNotificationTemplateStatusPage();
+    link._id = LINK_ID.toString();
     link.statusPageSubscriberNotificationTemplateId = TEMPLATE_ID;
 
     jest

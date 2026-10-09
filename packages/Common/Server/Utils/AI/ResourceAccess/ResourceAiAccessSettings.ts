@@ -801,10 +801,10 @@ export default class ResourceAiAccessSettings {
 
   /*
    * The AI access settings of every resource an operator's update reaches,
-   * read before the write. onBeforeUpdate runs before the framework scopes
-   * the query to the caller's project, so scope it here: a caller must
-   * never learn anything about, or be judged against, another project's
-   * resource.
+   * read before the write: the resources the update writes, with the update
+   * held to them (DatabaseService.findRowsAndHoldUpdateToThem). A caller is
+   * only ever judged against, and only ever learns about, a resource they
+   * may write.
    */
   public static async readSettingsForUpdateQuery<
     TBaseModel extends BaseModel,
@@ -812,20 +812,11 @@ export default class ResourceAiAccessSettings {
     service: DatabaseService<TBaseModel>;
     updateBy: UpdateBy<TBaseModel>;
   }): Promise<Record<string, ResourceAiAccessSettingsSnapshot>> {
-    const rows: Array<TBaseModel> = await data.service.findBy({
-      query: {
-        ...data.updateBy.query,
-        ...(data.updateBy.props.tenantId
-          ? { projectId: data.updateBy.props.tenantId }
-          : {}),
-      } as never,
-      select: SETTINGS_SELECT as never,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const rows: Array<TBaseModel> =
+      await data.service.findRowsAndHoldUpdateToThem(
+        data.updateBy,
+        SETTINGS_SELECT as never,
+      );
 
     const settings: Record<string, ResourceAiAccessSettingsSnapshot> = {};
 

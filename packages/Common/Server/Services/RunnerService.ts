@@ -294,9 +294,10 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * The Runners the update writes, in the caller's project: a caller is
-     * never judged against, or told about, another project's Runner, nor one
-     * they may not write.
+     * The Runners the update writes, with the update held to them
+     * (findRowsAndHoldUpdateToThem): for a teammate, the ones they may
+     * write, so a caller is never judged against, or told about, another
+     * project's Runner, nor one they may not write.
      */
     const runners: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,

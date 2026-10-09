@@ -36,6 +36,10 @@ import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 /*
  * Contract under test: the SLO feed items about burn rate rules - added,
  * changed, removed.
@@ -327,6 +331,11 @@ describe("SLO burn rate rules - the before-snapshot", () => {
     findBySpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([ruleRow({ burnRateThreshold: 14.4 })]);
+    // The rules a teammate's update may write: what the read above answers.
+    stubRowsCallerMayWriteLikeFindBy(
+      ServiceLevelObjectiveBurnRateRuleService,
+      findBySpy,
+    );
   });
 
   test("a root write - the worker stamping lifecycle columns, or OneUptime's own edits - takes no snapshot", async () => {
@@ -384,12 +393,20 @@ describe("SLO burn rate rules - the before-snapshot", () => {
       props: Record<string, unknown>;
     };
 
-    // Pinned: the hook runs before DatabaseService applies permissions.
-    expect(findByArgs.query).toEqual({
+    /*
+     * Among the rules the caller may write, found in their project: the hook
+     * runs before DatabaseService applies permissions.
+     */
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveBurnRateRuleService)[0]!
+        .query,
+    ).toEqual({
       _id: RULE_ID.toString(),
       projectId: PROJECT_ID,
     });
-    expect(findByArgs.props).toEqual({ isRoot: true });
+    // Then those, by id.
+    expect(findByArgs.query).toEqual({ _id: RULE_ID.toString() });
+    expect(findByArgs.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(findByArgs.select).toEqual({
       _id: true,
       projectId: true,
@@ -439,6 +456,11 @@ describe("SLO burn rate rules - changed", () => {
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([data.before]);
+    // The rules a teammate's update may write: the one before the write.
+    stubRowsCallerMayWriteLikeFindBy(
+      ServiceLevelObjectiveBurnRateRuleService,
+      jest.spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy"),
+    );
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findOneById")
       .mockResolvedValue(data.after);

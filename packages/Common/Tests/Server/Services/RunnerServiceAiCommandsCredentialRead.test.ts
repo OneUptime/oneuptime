@@ -18,7 +18,10 @@ import {
   stubGenericReferenceCheck,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
-import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import AiCommandCredentialReach, {
   CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
@@ -311,12 +314,22 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
 
     await hooks.onBeforeUpdate(updateBy);
 
+    // The Runners the caller may write, found in their project...
+    const mayWrite: JSONObject = readsOfRowsCallerMayWrite(RunnerService)[0]!
+      .query as unknown as JSONObject;
+
+    expect(mayWrite["name"]).toBe("runner");
+    expect(mayWrite["projectId"]).toBe(PROJECT_ID);
+
+    // ... read again by the update's query, among them alone.
     const read: FindBy<Runner> = runnerFindBy.mock
       .calls[0]![0] as FindBy<Runner>;
     const readQuery: JSONObject = read.query as unknown as JSONObject;
 
     expect(readQuery["name"]).toBe("runner");
-    expect(readQuery["projectId"]).toBe(PROJECT_ID);
+    expect(idsNamedBy(readQuery["_id"]).sort()).toEqual(
+      [LAB_RUNNER, OFFICE_RUNNER].sort(),
+    );
 
     // The write covers the Runners checked, and no others.
     const held: JSONObject = updateBy.query as unknown as JSONObject;

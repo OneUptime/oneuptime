@@ -31,6 +31,10 @@ import {
 import { AggregateColumn } from "../../../Server/Types/Database/AggregateBy";
 import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -1056,13 +1060,25 @@ describe("NetworkSiteService.onBeforeUpdate (cycle rejection)", () => {
 
 /*
  * onBeforeUpdate runs BEFORE DatabaseService applies tenant scoping to the
- * query, so an unscoped root read here would hand the hook another project's
- * row - which onUpdateSuccess would then rewrite even though the scoped
- * UPDATE matched nothing.
+ * query, so a root read of the query as sent would hand the hook another
+ * project's row - which onUpdateSuccess would then rewrite even though the
+ * scoped UPDATE matched nothing. The hook reads the sites the caller may
+ * write instead (DatabaseService.findRowsAndHoldUpdateToThem).
  */
 describe("NetworkSiteService.onBeforeUpdate (tenant scoping)", () => {
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks: the site the update names
+   * (stubRowsCallerMayWrite).
+   */
+  beforeEach(() => {
+    stubRowsCallerMayWrite(NetworkSiteService, () => {
+      return [fakeSite({})];
+    });
   });
 
   function makeTenantUpdateBy(
@@ -1075,17 +1091,22 @@ describe("NetworkSiteService.onBeforeUpdate (tenant scoping)", () => {
     } as unknown as UpdateBy<NetworkSite>;
   }
 
-  it("adds the caller's project to the previous-item read", async () => {
+  it("reads the previous items among the sites the caller may write, in their project", async () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkSiteService, "findBy")
       .mockResolvedValue([]);
 
     await (NetworkSiteService as any).onBeforeUpdate(makeTenantUpdateBy(null));
 
+    // The sites the caller may write, found in their project.
+    const writable: any = readsOfRowsCallerMayWrite(NetworkSiteService)[0]!;
+    expect(writable.query._id).toBe(SITE_ID.toString());
+    expect(writable.query.projectId.toString()).toBe(PROJECT_ID.toString());
+
+    // Then those, by id.
     expect(findBySpy).toHaveBeenCalledTimes(1);
     const query: any = findBySpy.mock.calls[0]![0].query;
-    expect(query._id).toBe(SITE_ID.toString());
-    expect(query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(query).toEqual({ _id: SITE_ID.toString() });
   });
 
   /*
@@ -1142,6 +1163,26 @@ describe("NetworkSiteService.onBeforeUpdate (tenant scoping)", () => {
   });
 
   it("reads the same limit and skip window that the bulk update will write", async () => {
+    // A teammate's rows: the ones they may write, in the update's window.
+    const rowsCallerMayWrite: jest.SpyInstance = stubRowsCallerMayWrite(
+      NetworkSiteService,
+      () => {
+        return [];
+      },
+    );
+
+    await (NetworkSiteService as any).onBeforeUpdate({
+      query: {},
+      data: { parentSiteId: null },
+      limit: 7,
+      skip: 3,
+      props: { tenantId: PROJECT_ID },
+    } as unknown as UpdateBy<NetworkSite>);
+
+    expect(rowsCallerMayWrite.mock.calls[0]![0].limit).toBe(7);
+    expect(rowsCallerMayWrite.mock.calls[0]![0].skip).toBe(3);
+
+    // OneUptime's: the update's own query, in the same window.
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkSiteService, "findBy")
       .mockResolvedValue([]);
@@ -1151,7 +1192,7 @@ describe("NetworkSiteService.onBeforeUpdate (tenant scoping)", () => {
       data: { parentSiteId: null },
       limit: 7,
       skip: 3,
-      props: { tenantId: PROJECT_ID },
+      props: { isRoot: true, tenantId: PROJECT_ID },
     } as unknown as UpdateBy<NetworkSite>);
 
     expect(findBySpy.mock.calls[0]![0].limit).toBe(7);
@@ -1731,6 +1772,17 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks: the site the update names
+   * (stubRowsCallerMayWrite).
+   */
+  beforeEach(() => {
+    stubRowsCallerMayWrite(NetworkSiteService, () => {
+      return [fakeSite({})];
+    });
+  });
+
   function makeTypeUpdate(
     data: Record<string, unknown>,
   ): UpdateBy<NetworkSite> {
@@ -2222,6 +2274,17 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
 describe("NetworkSiteService hierarchy depth bound", () => {
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks: the site the update names
+   * (stubRowsCallerMayWrite).
+   */
+  beforeEach(() => {
+    stubRowsCallerMayWrite(NetworkSiteService, () => {
+      return [fakeSite({})];
+    });
   });
 
   function pathOfSegments(count: number): string {
