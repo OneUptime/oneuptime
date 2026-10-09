@@ -27442,5 +27442,14 @@
   "Wi-Fi access points": "Wi-Fi 接入点",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "厂商按名称为此表编制索引：没有名称列的行以其索引命名，索引按文本读取。",
   "Wi-Fi template available": "有可用的 Wi-Fi 模板",
-  "Every SSID its access points broadcast, and who is on it.": "其接入点广播的每个 SSID，以及谁连接在上面。"
+  "Every SSID its access points broadcast, and who is on it.": "其接入点广播的每个 SSID，以及谁连接在上面。",
+  "Click it to edit or delete it.": "点击它即可编辑或删除。",
+  "Edit widget": "编辑小部件",
+  "It does not say which kind of widget it is.": "它没有说明是哪种小部件。",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime 没有“{{componentType}}”小部件，因此没有可更改的设置。删除它即可将其从此仪表板中移除。",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime 没有“{{componentType}}”小部件。",
+  "Something went wrong while drawing it.": "显示时出现了问题。",
+  "These settings could not be shown. You can still delete this widget and add it again.": "无法显示这些设置。您仍然可以删除此小部件并重新添加。",
+  "This widget could not be shown": "无法显示此小部件",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "此小部件没有说明是哪种小部件，因此没有可更改的设置。删除它即可将其从此仪表板中移除。"
 }

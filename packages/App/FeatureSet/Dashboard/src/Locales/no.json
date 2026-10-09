@@ -27442,5 +27442,14 @@
   "Wi-Fi access points": "Wi-Fi-tilgangspunkter",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "Leverandøren indekserer denne tabellen etter navn: rader uten navnekolonne får navn etter indeksen sin, lest som tekst.",
   "Wi-Fi template available": "Wi-Fi-mal tilgjengelig",
-  "Every SSID its access points broadcast, and who is on it.": "Hver SSID tilgangspunktene sender ut, og hvem som er koblet til den."
+  "Every SSID its access points broadcast, and who is on it.": "Hver SSID tilgangspunktene sender ut, og hvem som er koblet til den.",
+  "Click it to edit or delete it.": "Klikk på den for å redigere eller slette den.",
+  "Edit widget": "Rediger widget",
+  "It does not say which kind of widget it is.": "Den oppgir ikke hva slags widget den er.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime har ingen widget «{{componentType}}», så det er ingen innstillinger å endre. Slett den for å fjerne den fra dette dashbordet.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime har ingen widget «{{componentType}}».",
+  "Something went wrong while drawing it.": "Noe gikk galt da den skulle vises.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "Disse innstillingene kunne ikke vises. Du kan fortsatt slette denne widgeten og legge den til på nytt.",
+  "This widget could not be shown": "Denne widgeten kunne ikke vises",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Denne widgeten oppgir ikke hva slags widget den er, så det er ingen innstillinger å endre. Slett den for å fjerne den fra dette dashbordet."
 }

@@ -27442,5 +27442,14 @@
   "Wi-Fi access points": "Wi-Fi-access points",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "De leverancier indexeert deze tabel op naam: rijen zonder naamkolom krijgen hun index als naam, gelezen als tekst.",
   "Wi-Fi template available": "Wi-Fi-sjabloon beschikbaar",
-  "Every SSID its access points broadcast, and who is on it.": "Elke SSID die de access points uitzenden, en wie ermee verbonden is."
+  "Every SSID its access points broadcast, and who is on it.": "Elke SSID die de access points uitzenden, en wie ermee verbonden is.",
+  "Click it to edit or delete it.": "Klik op de widget om hem te bewerken of te verwijderen.",
+  "Edit widget": "Widget bewerken",
+  "It does not say which kind of widget it is.": "Er staat niet bij wat voor widget het is.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime heeft geen widget \"{{componentType}}\", dus er zijn geen instellingen om te wijzigen. Verwijder de widget om hem van dit dashboard te halen.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime heeft geen widget \"{{componentType}}\".",
+  "Something went wrong while drawing it.": "Er ging iets mis bij het weergeven.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "Deze instellingen konden niet worden weergegeven. U kunt deze widget wel verwijderen en opnieuw toevoegen.",
+  "This widget could not be shown": "Deze widget kon niet worden weergegeven",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Bij deze widget staat niet wat voor widget het is, dus er zijn geen instellingen om te wijzigen. Verwijder de widget om hem van dit dashboard te halen."
 }

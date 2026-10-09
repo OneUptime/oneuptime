@@ -27442,5 +27442,14 @@
   "Wi-Fi access points": "Wi-Fi 액세스 포인트",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "벤더는 이 테이블을 이름으로 인덱싱합니다. 이름 열이 없는 행은 텍스트로 읽은 인덱스로 이름이 지정됩니다.",
   "Wi-Fi template available": "Wi-Fi 템플릿 사용 가능",
-  "Every SSID its access points broadcast, and who is on it.": "액세스 포인트가 브로드캐스트하는 모든 SSID와 접속한 사용자."
+  "Every SSID its access points broadcast, and who is on it.": "액세스 포인트가 브로드캐스트하는 모든 SSID와 접속한 사용자.",
+  "Click it to edit or delete it.": "클릭하여 편집하거나 삭제하세요.",
+  "Edit widget": "위젯 편집",
+  "It does not say which kind of widget it is.": "어떤 종류의 위젯인지 지정되어 있지 않습니다.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime에는 \"{{componentType}}\" 위젯이 없으므로 변경할 설정이 없습니다. 이 대시보드에서 빼려면 삭제하세요.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime에는 \"{{componentType}}\" 위젯이 없습니다.",
+  "Something went wrong while drawing it.": "표시하는 중에 문제가 발생했습니다.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "이 설정을 표시할 수 없습니다. 이 위젯을 삭제하고 다시 추가할 수는 있습니다.",
+  "This widget could not be shown": "이 위젯을 표시할 수 없습니다",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "이 위젯은 어떤 종류의 위젯인지 지정되어 있지 않아 변경할 설정이 없습니다. 이 대시보드에서 빼려면 삭제하세요."
 }

@@ -27442,5 +27442,14 @@
   "Wi-Fi access points": "Wi-Fi एक्सेस पॉइंट",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "वेंडर इस तालिका को नाम से इंडेक्स करता है: बिना नाम कॉलम वाली पंक्तियों को उनके इंडेक्स से नाम दिया जाता है, जिसे टेक्स्ट के रूप में पढ़ा जाता है।",
   "Wi-Fi template available": "Wi-Fi टेम्पलेट उपलब्ध",
-  "Every SSID its access points broadcast, and who is on it.": "इसके एक्सेस पॉइंट द्वारा प्रसारित हर SSID, और उस पर कौन है।"
+  "Every SSID its access points broadcast, and who is on it.": "इसके एक्सेस पॉइंट द्वारा प्रसारित हर SSID, और उस पर कौन है।",
+  "Click it to edit or delete it.": "इसे संपादित करने या हटाने के लिए इस पर क्लिक करें।",
+  "Edit widget": "विजेट संपादित करें",
+  "It does not say which kind of widget it is.": "इसमें यह नहीं बताया गया है कि यह किस तरह का विजेट है।",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime में \"{{componentType}}\" विजेट नहीं है, इसलिए बदलने के लिए कोई सेटिंग नहीं है। इस डैशबोर्ड से इसे निकालने के लिए इसे हटाएं।",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime में \"{{componentType}}\" विजेट नहीं है।",
+  "Something went wrong while drawing it.": "इसे दिखाते समय कुछ गलत हो गया।",
+  "These settings could not be shown. You can still delete this widget and add it again.": "ये सेटिंग्स नहीं दिखाई जा सकीं। आप फिर भी इस विजेट को हटाकर दोबारा जोड़ सकते हैं।",
+  "This widget could not be shown": "यह विजेट नहीं दिखाया जा सका",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "इस विजेट में यह नहीं बताया गया है कि यह किस तरह का विजेट है, इसलिए बदलने के लिए कोई सेटिंग नहीं है। इस डैशबोर्ड से इसे निकालने के लिए इसे हटाएं।"
 }

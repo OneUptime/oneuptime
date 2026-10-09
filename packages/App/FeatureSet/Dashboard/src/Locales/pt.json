@@ -27442,5 +27442,14 @@
   "Wi-Fi access points": "Pontos de acesso Wi-Fi",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "O fabricante indexa esta tabela por nome: linhas sem coluna de nome recebem o nome do seu índice, lido como texto.",
   "Wi-Fi template available": "Modelo Wi-Fi disponível",
-  "Every SSID its access points broadcast, and who is on it.": "Cada SSID que seus pontos de acesso transmitem, e quem está conectado a ele."
+  "Every SSID its access points broadcast, and who is on it.": "Cada SSID que seus pontos de acesso transmitem, e quem está conectado a ele.",
+  "Click it to edit or delete it.": "Clique nele para editá-lo ou excluí-lo.",
+  "Edit widget": "Editar widget",
+  "It does not say which kind of widget it is.": "Ele não indica que tipo de widget é.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "O OneUptime não tem um widget \"{{componentType}}\", então não há configurações para alterar. Exclua-o para retirá-lo deste painel.",
+  "OneUptime has no \"{{componentType}}\" widget.": "O OneUptime não tem um widget \"{{componentType}}\".",
+  "Something went wrong while drawing it.": "Algo deu errado ao exibi-lo.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "Não foi possível mostrar estas configurações. Você ainda pode excluir este widget e adicioná-lo novamente.",
+  "This widget could not be shown": "Não foi possível mostrar este widget",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Este widget não indica que tipo de widget é, então não há configurações para alterar. Exclua-o para retirá-lo deste painel."
 }

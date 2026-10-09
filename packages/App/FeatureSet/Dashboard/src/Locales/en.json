@@ -27442,5 +27442,14 @@
   "Wi-Fi access points": "Wi-Fi access points",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "The vendor indexes this table by name: rows without a name column are named by their index, read as text.",
   "Wi-Fi template available": "Wi-Fi template available",
-  "Every SSID its access points broadcast, and who is on it.": "Every SSID its access points broadcast, and who is on it."
+  "Every SSID its access points broadcast, and who is on it.": "Every SSID its access points broadcast, and who is on it.",
+  "Click it to edit or delete it.": "Click it to edit or delete it.",
+  "Edit widget": "Edit widget",
+  "It does not say which kind of widget it is.": "It does not say which kind of widget it is.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime has no \"{{componentType}}\" widget.",
+  "Something went wrong while drawing it.": "Something went wrong while drawing it.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "These settings could not be shown. You can still delete this widget and add it again.",
+  "This widget could not be shown": "This widget could not be shown",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard."
 }

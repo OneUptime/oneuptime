@@ -24,6 +24,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
+import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelListModal from "Common/UI/Components/ModelListModal/ModelListModal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -140,11 +141,15 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
         );
       }
 
+      /*
+       * Read the way the dashboard itself reads it. A config stored in
+       * another shape (the API reference's envelope, JSON text) used to fail
+       * the `components` check here and be replaced by an empty one: the
+       * new chart went in, and every widget already on the dashboard was
+       * written away.
+       */
       const dashboardViewConfig: DashboardViewConfig =
-        fullDashboard.dashboardViewConfig &&
-        fullDashboard.dashboardViewConfig.components
-          ? fullDashboard.dashboardViewConfig
-          : DashboardViewConfigUtil.createDefaultDashboardViewConfig();
+        StoredDashboardViewConfig.read(fullDashboard.dashboardViewConfig);
 
       const plainQueryConfigs: Array<MetricQueryConfigData> =
         buildQueryConfigsFromSerializedQueries(serializedQueries);

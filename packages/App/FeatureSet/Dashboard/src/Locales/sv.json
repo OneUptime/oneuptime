@@ -27442,5 +27442,14 @@
   "Wi-Fi access points": "Wi-Fi-åtkomstpunkter",
   "The vendor indexes this table by name: rows without a name column are named by their index, read as text.": "Tillverkaren indexerar den här tabellen efter namn: rader utan namnkolumn namnges efter sitt index, läst som text.",
   "Wi-Fi template available": "Wi-Fi-mall tillgänglig",
-  "Every SSID its access points broadcast, and who is on it.": "Varje SSID som dess åtkomstpunkter sänder, och vem som är ansluten till det."
+  "Every SSID its access points broadcast, and who is on it.": "Varje SSID som dess åtkomstpunkter sänder, och vem som är ansluten till det.",
+  "Click it to edit or delete it.": "Klicka på den för att redigera eller radera den.",
+  "Edit widget": "Redigera widget",
+  "It does not say which kind of widget it is.": "Den anger inte vilken sorts widget den är.",
+  "OneUptime has no \"{{componentType}}\" widget, so there are no settings to change. Delete it to take it off this dashboard.": "OneUptime har ingen widget ”{{componentType}}”, så det finns inga inställningar att ändra. Radera den för att ta bort den från den här instrumentpanelen.",
+  "OneUptime has no \"{{componentType}}\" widget.": "OneUptime har ingen widget ”{{componentType}}”.",
+  "Something went wrong while drawing it.": "Något gick fel när den skulle visas.",
+  "These settings could not be shown. You can still delete this widget and add it again.": "De här inställningarna kunde inte visas. Du kan fortfarande radera den här widgeten och lägga till den igen.",
+  "This widget could not be shown": "Den här widgeten kunde inte visas",
+  "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.": "Den här widgeten anger inte vilken sorts widget den är, så det finns inga inställningar att ändra. Radera den för att ta bort den från den här instrumentpanelen."
 }

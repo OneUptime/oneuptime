@@ -21,10 +21,9 @@ import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
+import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import useDashboardTimeRangeZoom, {
   DashboardTimeRangeZoom,
@@ -126,10 +125,14 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const config: DashboardViewConfig = JSONFunctions.deserializeValue(
-        response.data["dashboardViewConfig"] ||
-          DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
-      ) as DashboardViewConfig;
+      /*
+       * Read the way the dashboard app reads it (issue #4571): a config the
+       * server stored in another shape, or with widgets this version cannot
+       * draw, opens with what can be shown instead of not at all.
+       */
+      const config: DashboardViewConfig = StoredDashboardViewConfig.read(
+        response.data["dashboardViewConfig"],
+      );
 
       setDashboardViewConfig(config);
       setDashboardName(
