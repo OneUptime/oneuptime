@@ -123,50 +123,52 @@ export const STATUSCAKE_UPTIME: Array<Record<string, unknown>> = [
 ];
 
 // Each uptime check's own settings, as GET /v1/uptime/{id} answers.
-export const STATUSCAKE_UPTIME_DETAILS: Record<string, Record<string, unknown>> =
-  {
-    [HOME_ID]: {
-      follow_redirects: true,
-      timeout: 15,
-      find_string: "Welcome",
-      do_not_find: false,
-      // The codes that raise an alert.
-      status_codes: ["404", "500", "502", "503", "504"],
-      enable_ssl_alert: true,
-      custom_header: "",
-      post_body: "",
-      post_raw: "",
-    },
-    [ORDERS_ID]: {
-      post_raw: '{"ping": true}',
-      custom_header: '{"X-Team":"shop","X-Auth-Token":"orders-secret"}',
-      status_codes: [],
-      enable_ssl_alert: false,
-    },
-    [DOCS_ID]: {
-      follow_redirects: true,
-      find_string: "",
-      status_codes: [],
-    },
-    [ERROR_FREE_ID]: {
-      find_string: "Exception",
-      do_not_find: true,
-      status_codes: [],
-    },
-    [DATABASE_ID]: {
-      port: 5432,
-      timeout: 10,
-    },
-    [MAIL_ID]: {},
-    [BASTION_ID]: {
-      port: 2222,
-    },
-    [NAMES_ID]: {
-      dns_server: "8.8.8.8",
-      dns_ips: ["93.184.216.34"],
-    },
-    [PUSH_ID]: {},
-  };
+export const STATUSCAKE_UPTIME_DETAILS: Record<
+  string,
+  Record<string, unknown>
+> = {
+  [HOME_ID]: {
+    follow_redirects: true,
+    timeout: 15,
+    find_string: "Welcome",
+    do_not_find: false,
+    // The codes that raise an alert.
+    status_codes: ["404", "500", "502", "503", "504"],
+    enable_ssl_alert: true,
+    custom_header: "",
+    post_body: "",
+    post_raw: "",
+  },
+  [ORDERS_ID]: {
+    post_raw: '{"ping": true}',
+    custom_header: '{"X-Team":"shop","X-Auth-Token":"orders-secret"}',
+    status_codes: [],
+    enable_ssl_alert: false,
+  },
+  [DOCS_ID]: {
+    follow_redirects: true,
+    find_string: "",
+    status_codes: [],
+  },
+  [ERROR_FREE_ID]: {
+    find_string: "Exception",
+    do_not_find: true,
+    status_codes: [],
+  },
+  [DATABASE_ID]: {
+    port: 5432,
+    timeout: 10,
+  },
+  [MAIL_ID]: {},
+  [BASTION_ID]: {
+    port: 2222,
+  },
+  [NAMES_ID]: {
+    dns_server: "8.8.8.8",
+    dns_ips: ["93.184.216.34"],
+  },
+  [PUSH_ID]: {},
+};
 
 export const STATUSCAKE_SSL: Array<Record<string, unknown>> = [
   {

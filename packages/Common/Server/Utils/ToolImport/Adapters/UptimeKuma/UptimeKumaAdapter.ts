@@ -131,7 +131,9 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
     fileName: string;
     now: Date;
   }): ToolImportSnapshot {
-    if (Buffer.byteLength(data.content, "utf8") > TOOL_IMPORT_MAX_UPLOAD_BYTES) {
+    if (
+      Buffer.byteLength(data.content, "utf8") > TOOL_IMPORT_MAX_UPLOAD_BYTES
+    ) {
       throw new BadDataException(
         "This file is larger than 10 MB, which is more than an import reads.",
       );
@@ -197,7 +199,9 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
       (backup as Record<string, unknown>)["monitorList"],
     )
       .filter((value: unknown): boolean => {
-        return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+        return (
+          Boolean(value) && typeof value === "object" && !Array.isArray(value)
+        );
       })
       .map(asRecord)
       // Groups are folders, not checks.
@@ -268,7 +272,8 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
         sourceId: id,
         name: name,
         sourceType: type,
-        destination: asString(raw["url"]) || asString(raw["hostname"]) || undefined,
+        destination:
+          asString(raw["url"]) || asString(raw["hostname"]) || undefined,
         skipReason: makeToolImportNote(ToolImportNoteCode.MonitorUpsideDown),
       });
     }
@@ -362,7 +367,9 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
     }
 
     if (type === "dns") {
-      const recordType: string = asString(raw["dns_resolve_type"]).toUpperCase();
+      const recordType: string = asString(
+        raw["dns_resolve_type"],
+      ).toUpperCase();
       const monitor: ImportedMonitor = {
         ...base,
         monitorType: MonitorType.DNS,
@@ -395,7 +402,8 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
           }),
           makeToolImportNote(ToolImportNoteCode.MonitorNewHeartbeatAddress),
         ],
-        heartbeatTimeoutSeconds: (intervalSeconds || 60) + retries * retryInterval,
+        heartbeatTimeoutSeconds:
+          (intervalSeconds || 60) + retries * retryInterval,
       };
     }
 
@@ -407,7 +415,8 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
       sourceId: id,
       name: name,
       sourceType: UNSUPPORTED_TYPE_NAMES[type] || type,
-      destination: asString(raw["url"]) || asString(raw["hostname"]) || undefined,
+      destination:
+        asString(raw["url"]) || asString(raw["hostname"]) || undefined,
     });
   }
 
@@ -491,7 +500,6 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
   }
 }
 
-
 /*
  * JSON from a file the person uploads: refused when it is nested deeper
  * than a backup ever is - checked in one pass before JSON.parse, so a file
@@ -551,7 +559,9 @@ export function getJsonDepth(text: string): number {
 }
 
 // A backup writes a monitor's headers as a JSON object inside a string.
-function readJsonHeaders(value: unknown): Array<{ name: string; value: string }> {
+function readJsonHeaders(
+  value: unknown,
+): Array<{ name: string; value: string }> {
   if (typeof value !== "string" || !value.trim()) {
     return [];
   }
@@ -657,7 +667,10 @@ export function readMetricLabels(line: string): Record<string, string> | null {
     }
 
     // A comma before the next label, or the closing brace.
-    while (index < text.length && (text[index] === "," || text[index] === " ")) {
+    while (
+      index < text.length &&
+      (text[index] === "," || text[index] === " ")
+    ) {
       index++;
     }
 
@@ -668,4 +681,3 @@ export function readMetricLabels(line: string): Record<string, string> | null {
 
   return null;
 }
-

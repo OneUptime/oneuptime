@@ -248,5 +248,7 @@ export function pingdomApi(): FixtureApi {
 }
 
 export function pingdomError(status: number, message: string): unknown {
-  return { error: { statuscode: status, statusdesc: "", errormessage: message } };
+  return {
+    error: { statuscode: status, statusdesc: "", errormessage: message },
+  };
 }

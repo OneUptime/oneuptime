@@ -27128,5 +27128,8 @@
   "Check your status pages": "ステータスページを確認する",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "ドメインが OneUptime を向いたら、購読者に二重に通知されないように {{tool}} のページを閉じます。",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "各ステータスページを開き、{{tool}} のページと比べます。各コンポーネントは手動モニターです。状況が変わったら OneUptime でステータスを変更してください。",
-  "Turn off your page in {{tool}}": "{{tool}} のページをオフにする"
+  "Turn off your page in {{tool}}": "{{tool}} のページをオフにする",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "訪問者は購読する部分を選べます。これには {{plan}} プランが必要なため、この選択なしで取り込まれ、新しい購読者はページ全体の更新を受け取ります。",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "ステータスページのグループには {{plan}} プランが必要なため、グループなしで取り込まれ、表示する項目はそれぞれ個別に並びます。",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "ステータスページにグループを追加する権限がないため、グループなしで取り込まれ、表示する項目はそれぞれ個別に並びます。"
 }

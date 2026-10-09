@@ -416,52 +416,56 @@ const FinishTheSwitch: FunctionComponent<{
           isStatusPageHost: props.isStatusPageHost,
         })
       : [
-    {
-      title: translator.translateTemplate("Check the on-call schedules"),
-      description: translator.translateTemplate(
-        "Open each schedule and check who is on call now and who is next.",
-      ),
-      link: {
-        title: translator.translateTemplate("Open On-Call Schedules"),
-        route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route,
-        ),
-      },
-    },
-    {
-      title: translator.translateTemplate("Make sure everyone can be paged"),
-      description: translator.translateTemplate(
-        "People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on.",
-      ),
-      link: {
-        title: translator.translateTemplate("Open On-Call Readiness"),
-        route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.ON_CALL_DUTY_READINESS] as Route,
-        ),
-      },
-    },
-    {
-      title: translator.translateTemplate("Send your alerts to OneUptime"),
-      description: translator.translateTemplate(
-        "Point your monitors and the tools that raise alerts at OneUptime, and page yourself once to test it.",
-      ),
-      link: {
-        title: translator.translateTemplate("Open Monitors"),
-        route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.MONITORS] as Route,
-        ),
-      },
-    },
-    {
-      title: translator.translateTemplate(
-        "Turn off paging in {{tool}}",
-        toolValues,
-      ),
-      description: translator.translateTemplate(
-        "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.",
-        toolValues,
-      ),
-    },
+          {
+            title: translator.translateTemplate("Check the on-call schedules"),
+            description: translator.translateTemplate(
+              "Open each schedule and check who is on call now and who is next.",
+            ),
+            link: {
+              title: translator.translateTemplate("Open On-Call Schedules"),
+              route: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route,
+              ),
+            },
+          },
+          {
+            title: translator.translateTemplate(
+              "Make sure everyone can be paged",
+            ),
+            description: translator.translateTemplate(
+              "People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on.",
+            ),
+            link: {
+              title: translator.translateTemplate("Open On-Call Readiness"),
+              route: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.ON_CALL_DUTY_READINESS] as Route,
+              ),
+            },
+          },
+          {
+            title: translator.translateTemplate(
+              "Send your alerts to OneUptime",
+            ),
+            description: translator.translateTemplate(
+              "Point your monitors and the tools that raise alerts at OneUptime, and page yourself once to test it.",
+            ),
+            link: {
+              title: translator.translateTemplate("Open Monitors"),
+              route: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITORS] as Route,
+              ),
+            },
+          },
+          {
+            title: translator.translateTemplate(
+              "Turn off paging in {{tool}}",
+              toolValues,
+            ),
+            description: translator.translateTemplate(
+              "Once OneUptime pages the right people, switch off notifications in {{tool}} so nobody is paged twice.",
+              toolValues,
+            ),
+          },
         ];
 
   return (

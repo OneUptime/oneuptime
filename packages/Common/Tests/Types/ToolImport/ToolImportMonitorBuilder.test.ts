@@ -2,7 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import URL from "../../../Types/API/URL";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
-import { CheckOn, CriteriaFilter, FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import DnsRecordType from "../../../Types/Monitor/DnsMonitor/DnsRecordType";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -71,9 +75,11 @@ function criteriaOf(
   return stepOf(built).data!.monitorCriteria.data!.monitorCriteriaInstanceArray;
 }
 
-function filtersOf(
-  instance: MonitorCriteriaInstance,
-): Array<{ checkOn: CheckOn; filterType: FilterType | undefined; value: unknown }> {
+function filtersOf(instance: MonitorCriteriaInstance): Array<{
+  checkOn: CheckOn;
+  filterType: FilterType | undefined;
+  value: unknown;
+}> {
   return instance.data!.filters.map((filter: CriteriaFilter) => {
     return {
       checkOn: filter.checkOn,
@@ -294,35 +300,63 @@ describe("a Website or API monitor", () => {
     expect(isValid(built)).toBe(true);
     expect(criteriaOf(built)).toHaveLength(2);
 
-    expect(offline!.data!.monitorStatusId.toString()).toBe(
+    expect(offline!.data!.monitorStatusId?.toString()).toBe(
       DEFAULTS.offlineMonitorStatusId.toString(),
     );
     expect(offline!.data!.filterCondition).toBe(FilterCondition.Any);
     expect(offline!.data!.createIncidents).toBe(true);
-    expect(offline!.data!.incidents[0]!.incidentSeverityId.toString()).toBe(
+    expect(offline!.data!.incidents[0]!.incidentSeverityId?.toString()).toBe(
       DEFAULTS.defaultIncidentSeverityId.toString(),
     );
     expect(filtersOf(offline!)).toEqual([
-      { checkOn: CheckOn.IsOnline, filterType: FilterType.False, value: undefined },
-      { checkOn: CheckOn.ResponseStatusCode, filterType: FilterType.LessThan, value: 200 },
-      { checkOn: CheckOn.ResponseStatusCode, filterType: FilterType.GreaterThan, value: 299 },
-      { checkOn: CheckOn.ResponseBody, filterType: FilterType.NotContains, value: "Welcome" },
+      {
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      },
+      {
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.LessThan,
+        value: 200,
+      },
+      {
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.GreaterThan,
+        value: 299,
+      },
+      {
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.NotContains,
+        value: "Welcome",
+      },
     ]);
 
-    expect(online!.data!.monitorStatusId.toString()).toBe(
+    expect(online!.data!.monitorStatusId?.toString()).toBe(
       DEFAULTS.onlineMonitorStatusId.toString(),
     );
     expect(online!.data!.filterCondition).toBe(FilterCondition.All);
     expect(online!.data!.createIncidents).toBe(false);
     expect(filtersOf(online!)).toEqual([
-      { checkOn: CheckOn.IsOnline, filterType: FilterType.True, value: undefined },
+      {
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.True,
+        value: undefined,
+      },
       {
         checkOn: CheckOn.ResponseStatusCode,
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 200,
       },
-      { checkOn: CheckOn.ResponseStatusCode, filterType: FilterType.LessThan, value: 300 },
-      { checkOn: CheckOn.ResponseBody, filterType: FilterType.Contains, value: "Welcome" },
+      {
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.LessThan,
+        value: 300,
+      },
+      {
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.Contains,
+        value: "Welcome",
+      },
     ]);
   });
 
@@ -362,7 +396,11 @@ describe("a Website or API monitor", () => {
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 200,
       },
-      { checkOn: CheckOn.ResponseStatusCode, filterType: FilterType.LessThan, value: 300 },
+      {
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.LessThan,
+        value: 300,
+      },
     ]);
     expect(filtersOf(instances[1]!).slice(1)).toEqual([
       {
@@ -370,13 +408,21 @@ describe("a Website or API monitor", () => {
         filterType: FilterType.GreaterThanOrEqualTo,
         value: 401,
       },
-      { checkOn: CheckOn.ResponseStatusCode, filterType: FilterType.LessThan, value: 402 },
+      {
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.LessThan,
+        value: 402,
+      },
     ]);
-    expect(instances[2]!.data!.monitorStatusId.toString()).toBe(
+    expect(instances[2]!.data!.monitorStatusId?.toString()).toBe(
       DEFAULTS.offlineMonitorStatusId.toString(),
     );
     expect(filtersOf(instances[2]!)).toEqual([
-      { checkOn: CheckOn.IsOnline, filterType: FilterType.False, value: undefined },
+      {
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      },
       {
         checkOn: CheckOn.ResponseStatusCode,
         filterType: FilterType.GreaterThanOrEqualTo,
@@ -406,9 +452,9 @@ describe("a Website or API monitor", () => {
   });
 
   test("a Website monitor loads with GET, or HEAD when the tool did, and sends nothing else", () => {
-    expect(stepOf(build({ httpMethod: HTTPMethod.HEAD })).data!.requestType).toBe(
-      HTTPMethod.HEAD,
-    );
+    expect(
+      stepOf(build({ httpMethod: HTTPMethod.HEAD })).data!.requestType,
+    ).toBe(HTTPMethod.HEAD);
 
     const step: MonitorStep = stepOf(
       build({
@@ -494,7 +540,11 @@ describe("the other monitor types", () => {
 
     expect(isValid(built)).toBe(true);
     expect(days.length).toBeGreaterThan(0);
-    expect(days.every((value: unknown) => value === 21)).toBe(true);
+    expect(
+      days.every((value: unknown) => {
+        return value === 21;
+      }),
+    ).toBe(true);
   });
 
   test("a heartbeat is down once nothing has arrived for the time allowed, rounded up to minutes", () => {
@@ -515,7 +565,7 @@ describe("the other monitor types", () => {
         value: 6,
       },
     ]);
-    expect(offline!.data!.monitorStatusId.toString()).toBe(
+    expect(offline!.data!.monitorStatusId?.toString()).toBe(
       DEFAULTS.offlineMonitorStatusId.toString(),
     );
     expect(filtersOf(online!)).toEqual([

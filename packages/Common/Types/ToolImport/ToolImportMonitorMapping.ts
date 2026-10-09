@@ -78,7 +78,8 @@ const KNOWN_METHODS: ReadonlyArray<HTTPMethod> = [
 ];
 
 export function readHttpMethod(value: unknown): HTTPMethod {
-  const upper: string = typeof value === "string" ? value.trim().toUpperCase() : "";
+  const upper: string =
+    typeof value === "string" ? value.trim().toUpperCase() : "";
 
   return (KNOWN_METHODS as ReadonlyArray<string>).includes(upper)
     ? (upper as HTTPMethod)

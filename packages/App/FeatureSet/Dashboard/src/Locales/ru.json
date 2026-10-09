@@ -27128,5 +27128,8 @@
   "Check your status pages": "Проверьте страницы статуса",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "Когда ваш домен будет указывать на OneUptime, закройте страницу в {{tool}}, чтобы её подписчиков не оповещали дважды.",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "Откройте каждую страницу статуса и сравните её со страницей в {{tool}}. Каждый компонент — это ручной монитор: меняйте его статус в OneUptime, когда что-то меняется.",
-  "Turn off your page in {{tool}}": "Отключите свою страницу в {{tool}}"
+  "Turn off your page in {{tool}}": "Отключите свою страницу в {{tool}}",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "Посетители выбирают, на какие части подписаться. Для этого нужен тариф {{plan}}, поэтому страница переносится без такого выбора: новые подписчики получают обновления по всей странице.",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "Группы на странице статуса требуют тарифа {{plan}}, поэтому страница переносится без них: всё, что она показывает, перечислено по отдельности.",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "Вам нельзя добавлять группы на страницу статуса, поэтому она переносится без них: всё, что она показывает, перечислено по отдельности."
 }

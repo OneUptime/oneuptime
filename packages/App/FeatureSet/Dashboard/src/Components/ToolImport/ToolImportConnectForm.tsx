@@ -480,10 +480,7 @@ const ToolImportConnectForm: FunctionComponent<ComponentProps> = (
       <div className="mt-6">
         <p className="text-sm font-medium text-gray-900">
           {isFile
-            ? translator.translateTemplate(
-                "Get your {{tool}} file",
-                toolValues,
-              )
+            ? translator.translateTemplate("Get your {{tool}} file", toolValues)
             : translator.translateTemplate(
                 "Create a read-only API key in {{tool}}",
                 toolValues,

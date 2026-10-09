@@ -319,7 +319,9 @@ describe("UptimeKumaAdapter: a file it must not trust", () => {
 
   test("the size is counted in bytes, not characters", () => {
     // Three bytes each in UTF-8: just over the limit in bytes, a third of it in characters.
-    const wide: string = "€".repeat(Math.ceil(TOOL_IMPORT_MAX_UPLOAD_BYTES / 3) + 1);
+    const wide: string = "€".repeat(
+      Math.ceil(TOOL_IMPORT_MAX_UPLOAD_BYTES / 3) + 1,
+    );
 
     expect(refusal(`{"monitorList":[],"pad":"${wide}"}`)).toBe(
       "This file is larger than 10 MB, which is more than an import reads.",
@@ -410,9 +412,9 @@ describe("UptimeKumaAdapter: a file it must not trust", () => {
       monitorType: MonitorType.API,
       requestHeaders: { "X-Team": "shop" },
     });
-    expect(
-      Object.keys(monitorOf(snapshot, "1").requestHeaders || {}),
-    ).toEqual(["X-Team"]);
+    expect(Object.keys(monitorOf(snapshot, "1").requestHeaders || {})).toEqual([
+      "X-Team",
+    ]);
 
     const parsed: Record<string, unknown> = parseUntrustedJson(
       '{"__proto__":{"a":1},"constructor":1,"prototype":2,"kept":3}',
@@ -475,7 +477,10 @@ describe("UptimeKumaAdapter: a file it must not trust", () => {
 
 describe("UptimeKumaAdapter: a metrics page", () => {
   test("every monitor once, by name, from the status lines only; groups left out; checked at OneUptime's default pace", () => {
-    const snapshot: ToolImportSnapshot = readFile(KUMA_METRICS_1, "metrics.txt");
+    const snapshot: ToolImportSnapshot = readFile(
+      KUMA_METRICS_1,
+      "metrics.txt",
+    );
 
     expect(
       (snapshot.monitors || []).map((monitor: ImportedMonitor) => {
@@ -536,7 +541,11 @@ describe("UptimeKumaAdapter: a metrics page", () => {
   });
 
   test("a metrics page with no monitor lines in reach is refused", () => {
-    expect(refusal("# HELP monitor_status Monitor Status\n# TYPE monitor_status gauge\n")).toBe(
+    expect(
+      refusal(
+        "# HELP monitor_status Monitor Status\n# TYPE monitor_status gauge\n",
+      ),
+    ).toBe(
       "This is not an Uptime Kuma backup or metrics file. Upload the JSON file Settings > Backup > Export gives, or the page /metrics shows.",
     );
   });
@@ -556,15 +565,23 @@ describe("readMetricLabels", () => {
 
   test("a comma or brace inside a value is part of it", () => {
     expect(
-      readMetricLabels('monitor_status{monitor_name="a,b}c",monitor_type="ping"} 0'),
+      readMetricLabels(
+        'monitor_status{monitor_name="a,b}c",monitor_type="ping"} 0',
+      ),
     ).toEqual({ monitor_name: "a,b}c", monitor_type: "ping" });
   });
 
   test("other metrics, and lines that are not whole, are not read", () => {
-    expect(readMetricLabels('monitor_response_time{monitor_name="A"} 1')).toBeNull();
+    expect(
+      readMetricLabels('monitor_response_time{monitor_name="A"} 1'),
+    ).toBeNull();
     expect(readMetricLabels("# TYPE monitor_status gauge")).toBeNull();
-    expect(readMetricLabels('monitor_status{monitor_name="unclosed')).toBeNull();
-    expect(readMetricLabels("monitor_status{monitor_name=unquoted} 1")).toBeNull();
+    expect(
+      readMetricLabels('monitor_status{monitor_name="unclosed'),
+    ).toBeNull();
+    expect(
+      readMetricLabels("monitor_status{monitor_name=unquoted} 1"),
+    ).toBeNull();
     expect(readMetricLabels('monitor_status{monitor_name="A"')).toBeNull();
     expect(readMetricLabels("monitor_status{monitor_name")).toBeNull();
   });

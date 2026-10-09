@@ -177,6 +177,24 @@ export interface ToolImportAccess {
    * null.
    */
   checkedMonitorRefusal?: ToolImportNote | null | undefined;
+  /*
+   * Why a status page's groups cannot be made - the person may not, or
+   * the project's plan does not include them - or null. The page comes
+   * over without them, what it shows listed on its own, and says so.
+   */
+  statusPageGroupRefusal?: ToolImportNote | null | undefined;
+  /*
+   * Why a status page cannot come over private - only some people may
+   * see it, which needs a plan the project is not on - or null. Such a
+   * page is never made public instead: it is not brought over.
+   */
+  privateStatusPageRefusal?: ToolImportNote | null | undefined;
+  /*
+   * Why a status page's visitors cannot choose the parts they follow on
+   * the project's plan (NeedsPlan, naming the plan), or null. The page
+   * comes over without the choice, and says so.
+   */
+  subscriberChoiceRefusal?: ToolImportNote | null | undefined;
 }
 
 // The plan-limit note of each kind the plan counts.
@@ -249,6 +267,11 @@ class PlanBuilder {
   private statusPageItems: Map<string, ToolImportPlanItem> = new Map<
     string,
     ToolImportPlanItem
+  >();
+  // The addresses this import subscribes to each page, by the page's source id.
+  private plannedSubscriberEmails: Map<string, Set<string>> = new Map<
+    string,
+    Set<string>
   >();
 
   public constructor(
@@ -385,11 +408,7 @@ class PlanBuilder {
         });
         return;
       case ToolImportResourceKind.Monitor:
-        getToolImportSnapshotMonitors(this.snapshot).forEach(
-          (monitor: ImportedMonitor) => {
-            this.planMonitor(monitor);
-          },
-        );
+        this.planMonitors(getToolImportSnapshotMonitors(this.snapshot));
         return;
       case ToolImportResourceKind.StatusPage:
         getToolImportSnapshotStatusPages(this.snapshot).forEach(
@@ -406,6 +425,39 @@ class PlanBuilder {
         );
         return;
     }
+  }
+
+  /*
+   * The monitors, in the tool's order. The ones that start ticked are
+   * planned first, so a paused monitor - offered unticked - never takes
+   * the plan's last room from one that is on.
+   */
+  private planMonitors(monitors: Array<ImportedMonitor>): void {
+    const start: number = this.items.length;
+
+    for (const isPaused of [false, true]) {
+      for (const monitor of monitors) {
+        if (Boolean(monitor.isPaused) === isPaused) {
+          this.planMonitor(monitor);
+        }
+      }
+    }
+
+    const order: Map<string, number> = new Map<string, number>();
+
+    monitors.forEach((monitor: ImportedMonitor, index: number) => {
+      if (!order.has(monitor.sourceId)) {
+        order.set(monitor.sourceId, index);
+      }
+    });
+
+    const planned: Array<ToolImportPlanItem> = this.items.splice(start);
+
+    planned.sort((a: ToolImportPlanItem, b: ToolImportPlanItem): number => {
+      return (order.get(a.sourceId) ?? 0) - (order.get(b.sourceId) ?? 0);
+    });
+
+    this.items.push(...planned);
   }
 
   /*
@@ -478,7 +530,8 @@ class PlanBuilder {
       return (
         candidate.monitorType === monitor.monitorType &&
         candidate.addressKey === addressKey &&
-        normalizeImportName(candidate.name) === normalizeImportName(monitor.name)
+        normalizeImportName(candidate.name) ===
+          normalizeImportName(monitor.name)
       );
     });
 
@@ -529,14 +582,46 @@ class PlanBuilder {
    * status pages.
    */
   private planStatusPage(statusPage: ImportedStatusPage): void {
+    const notes: Array<ToolImportNote> = [...statusPage.notes];
+    const choiceRefusal: ToolImportNote | null | undefined =
+      this.access.subscriberChoiceRefusal;
+    const groupRefusal: ToolImportNote | null | undefined =
+      this.access.statusPageGroupRefusal;
+    const hasGroups: boolean = statusPage.groups.length > 0 && !groupRefusal;
+
+    // Its visitors chose what to follow: a choice the plan may not include.
+    if (statusPage.allowsSubscribersToChooseResources && choiceRefusal) {
+      notes.push(
+        makeToolImportNote(
+          ToolImportNoteCode.StatusPageSubscriberChoiceNeedsPlan,
+          { plan: planOf(choiceRefusal) },
+        ),
+      );
+    }
+
+    // Groups the person or the plan may not make: everything shown ungrouped.
+    if (statusPage.groups.length > 0 && groupRefusal) {
+      notes.push(
+        groupRefusal.code === ToolImportNoteCode.NeedsPlan
+          ? makeToolImportNote(ToolImportNoteCode.StatusPageGroupsNeedPlan, {
+              plan: planOf(groupRefusal),
+            })
+          : makeToolImportNote(ToolImportNoteCode.StatusPageGroupsNotAllowed),
+      );
+    }
+
     const item: ToolImportPlanItem | null = this.planNamed({
       kind: ToolImportResourceKind.StatusPage,
       sourceId: statusPage.sourceId,
       name: statusPage.name,
-      notes: statusPage.notes,
+      notes: notes,
+      // A private page comes over private, or not at all: never public.
+      createRefusal: statusPage.isPublic
+        ? null
+        : this.access.privateStatusPageRefusal,
       summary: {
         resourceCount: statusPage.resources.length,
-        groupCount: statusPage.groups.length || undefined,
+        groupCount: hasGroups ? statusPage.groups.length : undefined,
       },
       references: uniqueKeys(
         statusPage.resources.map(
@@ -617,6 +702,20 @@ class PlanBuilder {
       return;
     }
 
+    // The same address twice on one page: the first one brings them over.
+    const email: string = subscriber.email.toLowerCase();
+    const plannedEmails: Set<string> =
+      this.plannedSubscriberEmails.get(subscriber.statusPageSourceId) ||
+      new Set<string>();
+
+    if (plannedEmails.has(email)) {
+      this.skip(
+        item,
+        makeToolImportNote(ToolImportNoteCode.SubscriberAlreadySubscribed),
+      );
+      return;
+    }
+
     const refusal: ToolImportNote | null | undefined =
       this.access.createRefusals.get(
         ToolImportResourceKind.StatusPageSubscriber,
@@ -643,6 +742,12 @@ class PlanBuilder {
       );
       return;
     }
+
+    plannedEmails.add(email);
+    this.plannedSubscriberEmails.set(
+      subscriber.statusPageSourceId,
+      plannedEmails,
+    );
 
     item.action = ToolImportAction.Create;
     item.isSelectable = true;
@@ -1079,6 +1184,8 @@ class PlanBuilder {
     references: Array<string>;
     nameVariants?: Array<string> | undefined;
     matchReason?: ToolImportNote | undefined;
+    // Why this one item cannot be created, besides the kind's own refusal.
+    createRefusal?: ToolImportNote | null | undefined;
   }): ToolImportPlanItem | null {
     const item: ToolImportPlanItem = this.newItem(data);
 
@@ -1146,7 +1253,7 @@ class PlanBuilder {
     }
 
     const refusal: ToolImportNote | null | undefined =
-      this.access.createRefusals.get(data.kind);
+      this.access.createRefusals.get(data.kind) || data.createRefusal;
 
     if (refusal) {
       this.skip(item, refusal);
@@ -1279,6 +1386,11 @@ const UNIQUE_NAME_KINDS: Array<ToolImportResourceKind> = [
   ToolImportResourceKind.IncidentRole,
   ToolImportResourceKind.IncidentCustomField,
 ];
+
+// The plan a NeedsPlan refusal names.
+function planOf(refusal: ToolImportNote): string {
+  return String(refusal.values?.["plan"] || "");
+}
 
 function uniqueKeys(keys: Array<string>): Array<string> {
   return [...new Set<string>(keys)];

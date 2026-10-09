@@ -292,7 +292,10 @@ export default class BetterStackAdapter implements ToolImportAdapter {
       const data: Array<unknown> = asArray(body["data"]);
       records.push(...data.map(asRecord));
 
-      if (data.length === 0 || !asString(asRecord(body["pagination"])["next"])) {
+      if (
+        data.length === 0 ||
+        !asString(asRecord(body["pagination"])["next"])
+      ) {
         return { records: records, hasMore: false };
       }
 
@@ -610,10 +613,7 @@ export default class BetterStackAdapter implements ToolImportAdapter {
       .map((section: Record<string, unknown>): ImportedStatusPageGroup => {
         return {
           key: asString(section["id"]),
-          name: cleanName(
-            asRecord(section["attributes"])["name"],
-            "Services",
-          ),
+          name: cleanName(asRecord(section["attributes"])["name"], "Services"),
         };
       })
       .filter((group: ImportedStatusPageGroup): boolean => {
@@ -654,9 +654,12 @@ export default class BetterStackAdapter implements ToolImportAdapter {
 
       if (!monitorSourceId) {
         notes.push(
-          makeToolImportNote(ToolImportNoteCode.StatusPageResourceNotSupported, {
-            name: displayName,
-          }),
+          makeToolImportNote(
+            ToolImportNoteCode.StatusPageResourceNotSupported,
+            {
+              name: displayName,
+            },
+          ),
         );
         continue;
       }
@@ -748,7 +751,8 @@ export default class BetterStackAdapter implements ToolImportAdapter {
           return subscriber.resourceKeys.length > 0;
         },
       ),
-      isHiddenFromSearchEngines: attributes["hide_from_search_engines"] === true,
+      isHiddenFromSearchEngines:
+        attributes["hide_from_search_engines"] === true,
       groups: groups,
       resources: resources,
       notes: notes,

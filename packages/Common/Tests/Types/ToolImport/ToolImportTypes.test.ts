@@ -158,18 +158,18 @@ describe("ToolImportCatalog", () => {
 
     expect(firstMonitoring).toBeGreaterThan(0);
     expect(
-      categories.slice(0, firstMonitoring).every(
-        (category: ToolImportCategory): boolean => {
+      categories
+        .slice(0, firstMonitoring)
+        .every((category: ToolImportCategory): boolean => {
           return category === ToolImportCategory.OnCall;
-        },
-      ),
+        }),
     ).toBe(true);
     expect(
-      categories.slice(firstMonitoring).every(
-        (category: ToolImportCategory): boolean => {
+      categories
+        .slice(firstMonitoring)
+        .every((category: ToolImportCategory): boolean => {
           return category === ToolImportCategory.Monitoring;
-        },
-      ),
+        }),
     ).toBe(true);
   });
 

@@ -23,13 +23,12 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
  */
 
 // The groups, in the order the page shows them, with their headings.
-export const TOOL_IMPORT_CATEGORY_TITLES: Record<ToolImportCategory, string> =
-  {
-    [ToolImportCategory.OnCall]: translationKey("On-call and incident tools"),
-    [ToolImportCategory.Monitoring]: translationKey(
-      "Uptime monitoring and status pages",
-    ),
-  };
+export const TOOL_IMPORT_CATEGORY_TITLES: Record<ToolImportCategory, string> = {
+  [ToolImportCategory.OnCall]: translationKey("On-call and incident tools"),
+  [ToolImportCategory.Monitoring]: translationKey(
+    "Uptime monitoring and status pages",
+  ),
+};
 
 const CATEGORY_ORDER: ReadonlyArray<ToolImportCategory> = [
   ToolImportCategory.OnCall,

@@ -27128,5 +27128,8 @@
   "Check your status pages": "检查你的状态页",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "当你的域名指向 OneUptime 后，请在 {{tool}} 中关闭该页面，以免其订阅者收到重复通知。",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "打开每个状态页，并与 {{tool}} 中的页面对比。每个组件都是一个手动监视器：情况变化时，请在 OneUptime 中更改其状态。",
-  "Turn off your page in {{tool}}": "在 {{tool}} 中关闭你的页面"
+  "Turn off your page in {{tool}}": "在 {{tool}} 中关闭你的页面",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "访问者可以选择关注的部分。这需要 {{plan}} 套餐，因此导入时不包含此选择：新订阅者将关注整个页面。",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "状态页上的分组需要 {{plan}} 套餐，因此导入时不包含分组：页面显示的每一项都会单独列出。",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "你无权向状态页添加分组，因此导入时不包含分组：页面显示的每一项都会单独列出。"
 }

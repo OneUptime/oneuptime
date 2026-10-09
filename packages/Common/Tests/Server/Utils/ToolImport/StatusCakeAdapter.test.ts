@@ -72,7 +72,7 @@ async function read(
   sleep?: RecordingSleep,
 ): Promise<ToolImportSnapshot> {
   return await new StatusCakeAdapter().read(
-    { source: ToolImportSource.StatusCake, apiKey: STATUSCAKE_KEY },
+    { source: ToolImportSource.StatusCake, region: "", apiKey: STATUSCAKE_KEY },
     context(api, sleep),
   );
 }
@@ -144,9 +144,7 @@ describe("StatusCakeAdapter: what a StatusCake account becomes", () => {
   });
 
   test("an HTTP check that alerts before its certificate expires also gets an SSL certificate monitor", async () => {
-    expect(
-      monitorOf(await read(), `${uptime(HOME_ID)}:certificate`),
-    ).toEqual({
+    expect(monitorOf(await read(), `${uptime(HOME_ID)}:certificate`)).toEqual({
       sourceId: `${uptime(HOME_ID)}:certificate`,
       name: "Home page certificate",
       sourceType: "certificate",

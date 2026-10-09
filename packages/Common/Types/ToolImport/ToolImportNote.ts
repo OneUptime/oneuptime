@@ -109,13 +109,17 @@ export enum ToolImportNoteCode {
   SubscriberPageLeftOut = "SubscriberPageLeftOut",
   SubscriberNotConsented = "SubscriberNotConsented",
 
-  // Why an item is matched to a record that is already in OneUptime.
-  // {name}: the monitor in OneUptime that checks the same address.
+  /*
+   * Why an item is matched to a record that is already in OneUptime.
+   * {name}: the monitor in OneUptime that checks the same address.
+   */
   MonitorAlreadyChecked = "MonitorAlreadyChecked",
   SubscriberAlreadySubscribed = "SubscriberAlreadySubscribed",
 
-  // What does not come over exactly as it was.
-  // {every} and {oneUptimeEvery}: seconds between checks.
+  /*
+   * What does not come over exactly as it was.
+   * {every} and {oneUptimeEvery}: seconds between checks.
+   */
   MonitorIntervalChanged = "MonitorIntervalChanged",
   // {timeout}: seconds the tool waits for an answer.
   MonitorTimeoutShortened = "MonitorTimeoutShortened",
@@ -138,12 +142,19 @@ export enum ToolImportNoteCode {
   // {name}: what the page showed.
   StatusPageResourceNotSupported = "StatusPageResourceNotSupported",
   StatusPageMonitorLeftOut = "StatusPageMonitorLeftOut",
+  // {plan}: the plan that lets visitors choose the parts they follow.
+  StatusPageSubscriberChoiceNeedsPlan = "StatusPageSubscriberChoiceNeedsPlan",
+  // {plan}: the plan a status page's groups need.
+  StatusPageGroupsNeedPlan = "StatusPageGroupsNeedPlan",
+  StatusPageGroupsNotAllowed = "StatusPageGroupsNotAllowed",
   // {count}: subscribers by text message, webhook, Slack or Teams.
   SubscribersLeftOut = "SubscribersLeftOut",
   SubscriberFollowsWholePage = "SubscriberFollowsWholePage",
 
-  // About the whole read.
-  // {count}: maintenance windows in the tool.
+  /*
+   * About the whole read.
+   * {count}: maintenance windows in the tool.
+   */
   MaintenanceWindowsNotRead = "MaintenanceWindowsNotRead",
   MonitorsFromMetricsFile = "MonitorsFromMetricsFile",
 }

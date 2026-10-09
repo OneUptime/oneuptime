@@ -10,6 +10,7 @@ import Semaphore, {
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import MailService from "../../../../Server/Services/MailService";
+import PayAsYouGoBillingService from "../../../../Server/Services/PayAsYouGoBillingService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import ToolImportRecordService from "../../../../Server/Services/ToolImportRecordService";
@@ -21,8 +22,12 @@ import {
   ToolImportTransport,
 } from "../../../../Server/Utils/ToolImport/ToolImportHttpClient";
 import ToolImportRunExecutor from "../../../../Server/Utils/ToolImport/ToolImportRunExecutor";
+import { ActiveMonitoringMeteredPlan } from "../../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
+import { JSONObject } from "../../../../Types/JSON";
+import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   UserGlobalAccessPermission,
@@ -44,6 +49,7 @@ import {
 import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
 import ToolImportRunStatus from "../../../../Types/ToolImport/ToolImportRunStatus";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
+import { BETTER_STACK_TOKEN, betterStackApi } from "./BetterStackFixtures";
 import { OPSGENIE_KEY, opsGenieApi } from "./OpsGenieFixtures";
 import { PAGERDUTY_KEY, pagerDutyApi } from "./PagerDutyFixtures";
 import {
@@ -1367,4 +1373,471 @@ describePostgres("an import from another tool, against Postgres", () => {
     await expect(remember()).resolves.toBeDefined();
     expect(await countRows("ToolImportRecord")).toBe(1);
   });
+
+  /*
+   * WHAT UPTIME AND STATUS PAGE TOOLS BRING, THROUGH THE REAL SERVICES.
+   *
+   * The Better Stack fixture team: monitors of every type the import makes,
+   * heartbeats, an item tracked by hand, two status pages with sections,
+   * and email subscribers - one who never confirmed.
+   */
+
+  // The statuses and severities a new project starts with: a monitor's criteria name them.
+  async function insertMonitoringDefaults(): Promise<void> {
+    const statuses: Array<[string, boolean, boolean, number]> = [
+      ["Operational", true, false, 1],
+      ["Degraded", false, false, 2],
+      ["Offline", false, true, 3],
+    ];
+
+    for (const [name, isOperational, isOffline, priority] of statuses) {
+      await database.query(
+        `INSERT INTO "${schema}"."MonitorStatus" ("_id", "version", "projectId", "name", "slug", "color", "isOperationalState", "isOfflineState", "priority") VALUES ($1, 1, $2, $3, $4, '#22c55e', $5, $6, $7)`,
+        [
+          ObjectID.generate().toString(),
+          PROJECT_ID.toString(),
+          name,
+          name.toLowerCase(),
+          isOperational,
+          isOffline,
+          priority,
+        ],
+      );
+    }
+
+    for (const table of ["IncidentSeverity", "AlertSeverity"]) {
+      for (const [name, order] of [
+        ["Critical", 1],
+        ["Minor", 2],
+      ] as Array<[string, number]>) {
+        await database.query(
+          `INSERT INTO "${schema}"."${table}" ("_id", "version", "projectId", "name", "slug", "color", "order") VALUES ($1, 1, $2, $3, $4, '#ef4444', $5)`,
+          [
+            ObjectID.generate().toString(),
+            PROJECT_ID.toString(),
+            name,
+            name.toLowerCase(),
+            order,
+          ],
+        );
+      }
+    }
+  }
+
+  /*
+   * A project that may run monitors that are checked: on a billed
+   * install, one with a payment method. Reporting usage to the billing
+   * provider is not what this is about.
+   */
+  function withPaymentMethod(hasOne: boolean): void {
+    jest
+      .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
+      .mockResolvedValue(hasOne);
+    jest
+      .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+      .mockImplementation((async () => {
+        if (!hasOne) {
+          throw new Error("A payment method is needed.");
+        }
+      }) as never);
+    jest
+      .spyOn(ActiveMonitoringMeteredPlan, "reportQuantityToBillingProvider")
+      .mockResolvedValue(undefined as never);
+  }
+
+  // The person reads Better Stack (the fixture team) with their token.
+  async function readBetterStack(userId: ObjectID): Promise<ObjectID> {
+    api = betterStackApi();
+    // Better Stack's pace is not what this is about.
+    ToolImportRunExecutor.readSleep = async (): Promise<void> => {};
+
+    const runId: ObjectID = await ToolImportRunExecutor.startRead({
+      projectId: PROJECT_ID,
+      userId: userId,
+      source: ToolImportSource.BetterStack,
+      region: undefined,
+      apiKey: BETTER_STACK_TOKEN,
+    });
+
+    await ToolImportRunExecutor.executeRun(runId);
+
+    expect((await readRun(runId)).status).toBe(
+      ToolImportRunStatus.ReadyToReview,
+    );
+
+    return runId;
+  }
+
+  // Everything the preview lets the person tick, subscribers with their word.
+  async function importEverythingSelectable(userId: ObjectID): Promise<{
+    plan: ToolImportPlan;
+    run: ToolImportRun;
+    report: ToolImportReport;
+  }> {
+    const runId: ObjectID = await readBetterStack(userId);
+    const plan: ToolImportPlan = await previewOf(runId, userId);
+
+    await ToolImportRunExecutor.startImport({
+      runId: runId,
+      projectId: PROJECT_ID,
+      props: propsOf(userId),
+      selection: {
+        selectedKeys: plan.items
+          .filter((item: ToolImportPlanItem): boolean => {
+            return item.isSelectable;
+          })
+          .map((item: ToolImportPlanItem): string => {
+            return item.key;
+          }),
+        inviteTeamId: null,
+        subscribersConsent: true,
+      },
+    });
+
+    await ToolImportRunExecutor.executeRun(runId);
+
+    const run: ToolImportRun = await readRun(runId);
+
+    return { plan, run, report: run.report as unknown as ToolImportReport };
+  }
+
+  /*
+   * A monitor's create returns before the work it starts (its first status,
+   * its probes, its status page rules - MonitorService.onCreateSuccess) has
+   * finished. Let that work finish while the database is still this test's.
+   */
+  async function settleDetachedWork(): Promise<void> {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 1500);
+    });
+  }
+
+  interface MonitorRow {
+    name: string;
+    monitorType: string;
+    disableActiveMonitoring: boolean;
+    monitorSteps: JSONObject | null;
+    incomingRequestSecretKey: string | null;
+  }
+
+  async function monitorRows(): Promise<Array<MonitorRow>> {
+    const rows: Array<MonitorRow> = await database.query(
+      `SELECT "name", "monitorType", "disableActiveMonitoring", "monitorSteps", "incomingRequestSecretKey"::text AS "incomingRequestSecretKey" FROM "${schema}"."Monitor" WHERE "projectId" = $1 AND "deletedAt" IS NULL`,
+      [PROJECT_ID.toString()],
+    );
+
+    return rows.sort((a: MonitorRow, b: MonitorRow): number => {
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  async function statusPageShows(): Promise<
+    Array<{
+      page: string;
+      shows: string;
+      monitor: string;
+      group: string | null;
+    }>
+  > {
+    return await database.query(
+      `SELECT p."name" AS page, r."displayName" AS shows, m."name" AS monitor, g."name" AS "group"
+         FROM "${schema}"."StatusPageResource" r
+         JOIN "${schema}"."StatusPage" p ON p."_id" = r."statusPageId"
+         JOIN "${schema}"."Monitor" m ON m."_id" = r."monitorId"
+         LEFT JOIN "${schema}"."StatusPageGroup" g ON g."_id" = r."statusPageGroupId"
+        WHERE r."deletedAt" IS NULL
+        ORDER BY p."name", r."order"`,
+    );
+  }
+
+  test("an uptime tool's monitors, status pages and subscribers come over through the real services, nobody is emailed, and nothing comes twice", async () => {
+    await insertMonitoringDefaults();
+    withPaymentMethod(true);
+
+    const first: {
+      plan: ToolImportPlan;
+      run: ToolImportRun;
+      report: ToolImportReport;
+    } = await importEverythingSelectable(SAM_ID);
+    await settleDetachedWork();
+
+    expect(first.run.status).toBe(ToolImportRunStatus.Completed);
+    expect(failuresIn(first.report)).toEqual([]);
+
+    const monitors: Array<MonitorRow> = await monitorRows();
+
+    expect(
+      monitors.map((monitor: MonitorRow) => {
+        return [
+          monitor.name,
+          monitor.monitorType,
+          monitor.disableActiveMonitoring,
+        ];
+      }),
+    ).toEqual([
+      ["Checkout", MonitorType.Website, false],
+      ["Database", MonitorType.Port, false],
+      ["Error free", MonitorType.Website, false],
+      ["Gateway", MonitorType.Ping, false],
+      ["Home page", MonitorType.Website, false],
+      ["Home page certificate", MonitorType.SSLCertificate, false],
+      // Paused in Better Stack: it comes over paused.
+      ["Hourly sync", MonitorType.IncomingRequest, true],
+      ["Mail", MonitorType.Port, false],
+      ["Names", MonitorType.DNS, false],
+      ["Nightly backup", MonitorType.IncomingRequest, false],
+      ["Orders API", MonitorType.API, true],
+      ["Support desk", MonitorType.Manual, false],
+    ]);
+
+    // What was saved is what the API takes from a person: valid steps.
+    for (const monitor of monitors) {
+      if (monitor.monitorType === MonitorType.Manual) {
+        continue;
+      }
+
+      expect(monitor.monitorSteps).toBeTruthy();
+      expect(
+        MonitorSteps.getValidationError(
+          MonitorSteps.fromJSON(monitor.monitorSteps!),
+          monitor.monitorType as MonitorType,
+        ),
+      ).toBeNull();
+    }
+
+    // A heartbeat gets its own new address.
+    for (const name of ["Hourly sync", "Nightly backup"]) {
+      expect(
+        monitors.find((monitor: MonitorRow) => {
+          return monitor.name === name;
+        })!.incomingRequestSecretKey,
+      ).toBeTruthy();
+    }
+
+    const pages: Array<{ name: string; isPublicStatusPage: boolean }> =
+      await database.query(
+        `SELECT "name", "isPublicStatusPage" FROM "${schema}"."StatusPage" WHERE "projectId" = $1 AND "deletedAt" IS NULL ORDER BY "name"`,
+        [PROJECT_ID.toString()],
+      );
+
+    if (IsBillingEnabled) {
+      // Scale has private pages and visitors' choice.
+      expect(currentPlan).toBe(PlanType.Scale);
+    }
+
+    expect(pages).toEqual([
+      { name: "Acme", isPublicStatusPage: true },
+      { name: "Internal", isPublicStatusPage: false },
+    ]);
+    expect(await statusPageShows()).toEqual([
+      { page: "Acme", shows: "Orders", monitor: "Orders API", group: "API" },
+      {
+        page: "Acme",
+        shows: "Home page",
+        monitor: "Home page",
+        group: "Website",
+      },
+      { page: "Acme", shows: "Sync", monitor: "Hourly sync", group: "Website" },
+      {
+        page: "Acme",
+        shows: "Support desk",
+        monitor: "Support desk",
+        group: null,
+      },
+      {
+        page: "Internal",
+        shows: "Database",
+        monitor: "Database",
+        group: null,
+      },
+    ]);
+
+    const subscribers: Array<{
+      email: string;
+      confirmed: boolean;
+      everything: boolean;
+      follows: string | null;
+    }> = await database.query(
+      `SELECT s."subscriberEmail" AS email, s."isSubscriptionConfirmed" AS confirmed, s."isSubscribedToAllResources" AS everything,
+              string_agg(r."displayName", ', ' ORDER BY r."order") AS follows
+         FROM "${schema}"."StatusPageSubscriber" s
+         LEFT JOIN "${schema}"."StatusPageSubscriberStatusPageResource" j ON j."statusPageSubscriberId" = s."_id"
+         LEFT JOIN "${schema}"."StatusPageResource" r ON r."_id" = j."statusPageResourceId"
+        WHERE s."deletedAt" IS NULL
+        GROUP BY s."_id"
+        ORDER BY s."subscriberEmail"`,
+    );
+
+    expect(subscribers).toEqual([
+      {
+        email: "ann@example.com",
+        confirmed: true,
+        everything: true,
+        follows: null,
+      },
+      {
+        email: "carol@example.com",
+        confirmed: true,
+        everything: false,
+        follows: "Home page, Sync",
+      },
+    ]);
+
+    // Nobody is emailed: not the subscribers, not the monitors' owners.
+    expect(mailCount).toBe(0);
+
+    // Each made thing is remembered with Better Stack's id.
+    const created: number = first.report.items.filter(
+      (item: ToolImportReportItem): boolean => {
+        return item.outcome === ToolImportOutcome.Created;
+      },
+    ).length;
+
+    expect(created).toBe(12 + 2 + 2);
+    expect(await countRows("ToolImportRecord")).toBe(created);
+
+    // Read again: everything is already imported, and nothing is offered.
+    const again: ToolImportPlan = await previewOf(
+      await readBetterStack(SAM_ID),
+      SAM_ID,
+    );
+
+    expect(
+      again.items.filter((item: ToolImportPlanItem): boolean => {
+        return item.isSelectable;
+      }),
+    ).toEqual([]);
+    expect(
+      again.items
+        .filter((item: ToolImportPlanItem): boolean => {
+          return item.action === ToolImportAction.AlreadyImported;
+        })
+        .map((item: ToolImportPlanItem): string => {
+          return item.key;
+        })
+        .sort(),
+    ).toEqual(
+      first.report.items
+        .filter((item: ToolImportReportItem): boolean => {
+          return item.outcome === ToolImportOutcome.Created;
+        })
+        .map((item: ToolImportReportItem): string => {
+          return item.key;
+        })
+        .sort(),
+    );
+  }, 240000);
+
+  test("without a payment method (billing on), monitors that are checked are not offered; the manual one and the pages still come", async () => {
+    await insertMonitoringDefaults();
+    withPaymentMethod(false);
+
+    const imported: {
+      plan: ToolImportPlan;
+      run: ToolImportRun;
+      report: ToolImportReport;
+    } = await importEverythingSelectable(SAM_ID);
+    await settleDetachedWork();
+
+    expect(imported.run.status).toBe(ToolImportRunStatus.Completed);
+    expect(failuresIn(imported.report)).toEqual([]);
+
+    const monitors: Array<MonitorRow> = await monitorRows();
+
+    if (!IsBillingEnabled) {
+      // Without billing there is nothing to pay: every monitor comes.
+      expect(monitors).toHaveLength(12);
+      return;
+    }
+
+    expect(reasonOf(itemNamed(imported.plan, "Home page"))).toBe(
+      ToolImportNoteCode.MonitorNeedsPaymentMethod,
+    );
+    expect(
+      monitors.map((monitor: MonitorRow) => {
+        return [monitor.name, monitor.monitorType];
+      }),
+    ).toEqual([["Support desk", MonitorType.Manual]]);
+    expect(await statusPageShows()).toEqual([
+      {
+        page: "Acme",
+        shows: "Support desk",
+        monitor: "Support desk",
+        group: null,
+      },
+    ]);
+    expect(mailCount).toBe(0);
+  }, 240000);
+
+  test("on the Free plan (billing on) the plan's room decides: ten checked monitors, one page, and the private page not at all", async () => {
+    currentPlan = PlanType.Free;
+    await insertMonitoringDefaults();
+    withPaymentMethod(true);
+
+    const imported: {
+      plan: ToolImportPlan;
+      run: ToolImportRun;
+      report: ToolImportReport;
+    } = await importEverythingSelectable(SAM_ID);
+    await settleDetachedWork();
+
+    expect(imported.run.status).toBe(ToolImportRunStatus.Completed);
+    expect(failuresIn(imported.report)).toEqual([]);
+
+    const monitors: Array<MonitorRow> = await monitorRows();
+
+    if (!IsBillingEnabled) {
+      expect(monitors).toHaveLength(12);
+      return;
+    }
+
+    // Ten checked monitors fit, the paused heartbeat last; the manual one is free.
+    expect(reasonOf(itemNamed(imported.plan, "Hourly sync"))).toBe(
+      ToolImportNoteCode.MonitorPlanLimit,
+    );
+    expect(monitors).toHaveLength(11);
+
+    // A private page needs Growth: it does not come over public instead.
+    expect(itemNamed(imported.plan, "Internal").reason).toEqual({
+      code: ToolImportNoteCode.NeedsPlan,
+      values: { plan: PlanType.Growth },
+    });
+    // The public page fits the plan's one page: it comes over.
+    expect(itemNamed(imported.plan, "Acme").action).toBe(
+      ToolImportAction.Create,
+    );
+    // Visitors choosing what they follow needs Scale, and groups Growth: said, and left off.
+    for (const code of [
+      ToolImportNoteCode.StatusPageSubscriberChoiceNeedsPlan,
+      ToolImportNoteCode.StatusPageGroupsNeedPlan,
+    ]) {
+      expect(hasNote(itemNamed(imported.plan, "Acme"), code)).toBe(true);
+    }
+
+    const pages: Array<{
+      name: string;
+      allowSubscribersToChooseResources: boolean;
+    }> = await database.query(
+      `SELECT "name", "allowSubscribersToChooseResources" FROM "${schema}"."StatusPage" WHERE "projectId" = $1 AND "deletedAt" IS NULL`,
+      [PROJECT_ID.toString()],
+    );
+
+    expect(pages).toEqual([
+      { name: "Acme", allowSubscribersToChooseResources: false },
+    ]);
+    // Everything it shows is listed on its own: the monitors that came over.
+    expect(await statusPageShows()).toEqual([
+      { page: "Acme", shows: "Orders", monitor: "Orders API", group: null },
+      { page: "Acme", shows: "Home page", monitor: "Home page", group: null },
+      {
+        page: "Acme",
+        shows: "Support desk",
+        monitor: "Support desk",
+        group: null,
+      },
+    ]);
+    // Its subscribers still follow it: the plan has room for them.
+    expect(await countRows("ToolImportRecord")).toBe(11 + 1 + 2);
+    expect(mailCount).toBe(0);
+  }, 240000);
 });

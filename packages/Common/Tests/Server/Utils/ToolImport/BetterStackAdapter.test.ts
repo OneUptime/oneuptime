@@ -74,7 +74,11 @@ async function read(
   sleep?: RecordingSleep,
 ): Promise<ToolImportSnapshot> {
   return await new BetterStackAdapter().read(
-    { source: ToolImportSource.BetterStack, apiKey: BETTER_STACK_TOKEN },
+    {
+      source: ToolImportSource.BetterStack,
+      region: "",
+      apiKey: BETTER_STACK_TOKEN,
+    },
     context(api, sleep),
   );
 }
@@ -582,7 +586,9 @@ describe("BetterStackAdapter: how it reads", () => {
       }),
     ]);
     // No page, so no item tracked by hand either.
-    expect(snapshot.monitors).toHaveLength(BETTER_STACK_MONITORS.length - 1 + 3);
+    expect(snapshot.monitors).toHaveLength(
+      BETTER_STACK_MONITORS.length - 1 + 3,
+    );
   });
 
   test("subscribers the token may not read are said once, and the pages still come", async () => {

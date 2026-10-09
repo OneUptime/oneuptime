@@ -27128,5 +27128,8 @@
   "Check your status pages": "Controleer uw statuspagina's",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "Zodra uw domein naar OneUptime wijst, sluit u de pagina in {{tool}}, zodat de abonnees niet twee keer bericht krijgen.",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "Open elke statuspagina en vergelijk die met de pagina in {{tool}}. Elk component is een handmatige monitor: wijzig de status in OneUptime als er iets verandert.",
-  "Turn off your page in {{tool}}": "Schakel uw pagina in {{tool}} uit"
+  "Turn off your page in {{tool}}": "Schakel uw pagina in {{tool}} uit",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "Bezoekers kiezen welke delen ze volgen. Daarvoor is het {{plan}}-abonnement nodig, dus de pagina wordt overgenomen zonder die keuze: nieuwe abonnees volgen de hele pagina.",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "Groepen op een statuspagina vereisen het {{plan}}-abonnement, dus de pagina wordt zonder groepen overgenomen: alles wat ze toont, staat afzonderlijk vermeld.",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "U mag geen groepen aan een statuspagina toevoegen, dus de pagina wordt zonder groepen overgenomen: alles wat ze toont, staat afzonderlijk vermeld."
 }

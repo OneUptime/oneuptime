@@ -66,7 +66,7 @@ async function read(
   sleep?: RecordingSleep,
 ): Promise<ToolImportSnapshot> {
   return await new PingdomAdapter().read(
-    { source: ToolImportSource.Pingdom, apiKey: PINGDOM_TOKEN },
+    { source: ToolImportSource.Pingdom, region: "", apiKey: PINGDOM_TOKEN },
     context(api, sleep),
   );
 }

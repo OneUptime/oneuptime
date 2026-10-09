@@ -488,6 +488,15 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
   [ToolImportNoteCode.StatusPageMonitorLeftOut]: translationKey(
     "The monitor {{name}} is not being brought over, so the page does not show it.",
   ),
+  [ToolImportNoteCode.StatusPageSubscriberChoiceNeedsPlan]: translationKey(
+    "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.",
+  ),
+  [ToolImportNoteCode.StatusPageGroupsNeedPlan]: translationKey(
+    "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.",
+  ),
+  [ToolImportNoteCode.StatusPageGroupsNotAllowed]: translationKey(
+    "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.",
+  ),
   [ToolImportNoteCode.SubscribersLeftOut]: translationKey(
     "{{count}} of its subscribers get updates by text message, webhook, Slack or Microsoft Teams. Only email subscribers come over.",
   ),
@@ -544,15 +553,24 @@ export function describeToolImportDuration(
   const whole: number = Math.max(0, Math.round(seconds));
 
   if (whole % 86400 === 0 && whole >= 86400) {
-    return translator.translatePlural(TOOL_IMPORT_DURATIONS.days, whole / 86400);
+    return translator.translatePlural(
+      TOOL_IMPORT_DURATIONS.days,
+      whole / 86400,
+    );
   }
 
   if (whole % 3600 === 0 && whole >= 3600) {
-    return translator.translatePlural(TOOL_IMPORT_DURATIONS.hours, whole / 3600);
+    return translator.translatePlural(
+      TOOL_IMPORT_DURATIONS.hours,
+      whole / 3600,
+    );
   }
 
   if (whole % 60 === 0 && whole >= 60) {
-    return translator.translatePlural(TOOL_IMPORT_DURATIONS.minutes, whole / 60);
+    return translator.translatePlural(
+      TOOL_IMPORT_DURATIONS.minutes,
+      whole / 60,
+    );
   }
 
   return translator.translatePlural(TOOL_IMPORT_DURATIONS.seconds, whole);
@@ -921,7 +939,9 @@ export const TOOL_IMPORT_SERVER_MESSAGES: ReadonlyArray<string> = [
   translationKey(
     "This import has already started, or is no longer waiting to be started.",
   ),
-  translationKey("This file is larger than 10 MB, which is more than an import reads."),
+  translationKey(
+    "This file is larger than 10 MB, which is more than an import reads.",
+  ),
   translationKey("This import was not found."),
   translationKey(
     "This is not an Uptime Kuma backup or metrics file. Upload the JSON file Settings > Backup > Export gives, or the page /metrics shows.",
@@ -1182,7 +1202,10 @@ export function describeToolImportSummary(
 
     if (summary.groupCount) {
       parts.push(
-        translator.translatePlural(TOOL_IMPORT_PLURALS.groups, summary.groupCount),
+        translator.translatePlural(
+          TOOL_IMPORT_PLURALS.groups,
+          summary.groupCount,
+        ),
       );
     }
   }

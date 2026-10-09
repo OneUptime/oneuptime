@@ -27128,5 +27128,8 @@
   "Check your status pages": "صفحه‌های وضعیت خود را بررسی کنید",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "وقتی دامنه شما به OneUptime اشاره کرد، صفحه را در {{tool}} ببندید تا به مشترکان آن دو بار اطلاع داده نشود.",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "هر صفحه وضعیت را باز کنید و آن را با صفحه موجود در {{tool}} مقایسه کنید. هر جزء یک مانیتور دستی است: وقتی چیزی تغییر کرد، وضعیت آن را در OneUptime تغییر دهید.",
-  "Turn off your page in {{tool}}": "خاموش کردن صفحه خود در {{tool}}"
+  "Turn off your page in {{tool}}": "خاموش کردن صفحه خود در {{tool}}",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "بازدیدکنندگان آن بخش‌هایی را که دنبال می‌کنند انتخاب می‌کنند. این کار به طرح {{plan}} نیاز دارد، پس بدون این انتخاب منتقل می‌شود: مشترکان جدید کل صفحه را دنبال می‌کنند.",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "گروه‌ها در صفحه وضعیت به طرح {{plan}} نیاز دارند، پس بدون آن‌ها منتقل می‌شود: هر چه نشان می‌دهد جداگانه فهرست می‌شود.",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "شما اجازه افزودن گروه به صفحه وضعیت را ندارید، پس بدون آن‌ها منتقل می‌شود: هر چه نشان می‌دهد جداگانه فهرست می‌شود."
 }

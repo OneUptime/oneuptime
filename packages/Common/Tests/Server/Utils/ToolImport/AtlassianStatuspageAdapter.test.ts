@@ -14,7 +14,6 @@ import {
 } from "../../../../Types/ToolImport/ToolImportNote";
 import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
 import {
-  ImportedMonitor,
   ImportedStatusPage,
   ImportedStatusPageSubscriber,
   ToolImportSnapshot,
@@ -67,7 +66,11 @@ async function read(
   sleep?: RecordingSleep,
 ): Promise<ToolImportSnapshot> {
   return await new AtlassianStatuspageAdapter().read(
-    { source: ToolImportSource.AtlassianStatuspage, apiKey: STATUSPAGE_KEY },
+    {
+      source: ToolImportSource.AtlassianStatuspage,
+      region: "",
+      apiKey: STATUSPAGE_KEY,
+    },
     context(api, sleep),
   );
 }

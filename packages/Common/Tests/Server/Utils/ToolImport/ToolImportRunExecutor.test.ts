@@ -7,6 +7,7 @@ import ToolImportRunService from "../../../../Server/Services/ToolImportRunServi
 import ToolImportApplier from "../../../../Server/Utils/ToolImport/ToolImportApplier";
 import ToolImportProjectStateReader from "../../../../Server/Utils/ToolImport/ToolImportProjectStateReader";
 import ToolImportRunExecutor, {
+  cleanUploadFileName,
   TOOL_IMPORT_RUN_JOB,
   TOOL_IMPORT_STALE_RUN_MS,
 } from "../../../../Server/Utils/ToolImport/ToolImportRunExecutor";
@@ -19,7 +20,11 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { getToolImportSourceDefinition } from "../../../../Types/ToolImport/ToolImportCatalog";
-import { TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS } from "../../../../Types/ToolImport/ToolImportLimits";
+import {
+  TOOL_IMPORT_MAX_FILE_NAME_LENGTH,
+  TOOL_IMPORT_MAX_UPLOAD_BYTES,
+  TOOL_IMPORT_REVIEW_EXPIRES_AFTER_MS,
+} from "../../../../Types/ToolImport/ToolImportLimits";
 import {
   ToolImportOutcome,
   ToolImportPlan,
@@ -43,6 +48,8 @@ import {
   splunkOnCallApi,
 } from "./SplunkOnCallFixtures";
 import { FixtureApi, json } from "./ToolImportFixtureTransport";
+import { KUMA_SECRETS, kumaBackupText } from "./UptimeKumaFixtures";
+import { UPTIMEROBOT_KEY, uptimeRobotApi } from "./UptimeRobotFixtures";
 import {
   fullAccess,
   person,
@@ -1389,5 +1396,286 @@ describe("ToolImportRunExecutor: small rules", () => {
 
     run.snapshot = snapshot() as unknown as JSONObject;
     expect(ToolImportRunExecutor.readSnapshot(run)).not.toBeNull();
+  });
+});
+
+describe("ToolImportRunExecutor: uptime and status page tools read over their API", () => {
+  test("an UptimeRobot run reads only its own host, at its pace; what was read is stored and the key cleared", async () => {
+    const api: FixtureApi = uptimeRobotApi();
+    ToolImportRunExecutor.transportFactory = (hosts: Array<string>) => {
+      expect(hosts).toEqual(["api.uptimerobot.com"]);
+      return api.transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.UptimeRobot,
+      status: ToolImportRunStatus.Reading,
+      apiKey: UPTIMEROBOT_KEY,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    const row: Record<string, unknown> = runs.get(runId);
+    const read: ToolImportSnapshot = row["snapshot"] as ToolImportSnapshot;
+
+    expect(row["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(row["apiKey"]).toBeNull();
+    expect(row["accountName"]).toBe("ops@acme.com");
+    expect(read.monitors).toHaveLength(12);
+    expect(read.statusPages).toHaveLength(3);
+    expect(JSON.stringify(read)).not.toContain(UPTIMEROBOT_KEY);
+    // UptimeRobot allows ten requests a minute: one every six seconds, less the time each took.
+    expect(waits.length).toBeGreaterThan(0);
+
+    for (const wait of waits) {
+      expect(wait).toBeGreaterThan(5000);
+      expect(wait).toBeLessThanOrEqual(6000);
+    }
+  });
+
+  test("the read's progress names monitors, then status pages", async () => {
+    ToolImportRunExecutor.transportFactory = () => {
+      return uptimeRobotApi().transport;
+    };
+
+    const runId: string = runs.add({
+      source: ToolImportSource.UptimeRobot,
+      status: ToolImportRunStatus.Reading,
+      apiKey: UPTIMEROBOT_KEY,
+    });
+
+    await ToolImportRunExecutor.executeRun(new ObjectID(runId));
+
+    expect(
+      runs.updates
+        .filter((update: { data: Record<string, unknown> }): boolean => {
+          return Boolean(update.data["progress"]);
+        })
+        .map((update: { data: Record<string, unknown> }): unknown => {
+          return (update.data["progress"] as JSONObject)["kind"];
+        }),
+    ).toEqual([
+      ToolImportResourceKind.Monitor,
+      ToolImportResourceKind.StatusPage,
+    ]);
+  });
+
+  test("a tool read from a file is never read with a key", () => {
+    expect(() => {
+      ToolImportRunExecutor.validateReadRequest({
+        source: ToolImportSource.UptimeKuma,
+        region: "",
+        apiKey: "anything",
+      });
+    }).toThrow("Uptime Kuma is read from a file. Choose the file to read.");
+  });
+});
+
+describe("ToolImportRunExecutor.startUpload: a file the person uploads", () => {
+  async function upload(
+    data: Partial<{
+      source: unknown;
+      fileName: unknown;
+      content: unknown;
+    }> = {},
+  ): Promise<ObjectID> {
+    return await ToolImportRunExecutor.startUpload({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      source: ToolImportSource.UptimeKuma,
+      fileName: "backup.json",
+      content: kumaBackupText(),
+      ...data,
+    });
+  }
+
+  async function refusal(
+    data: Partial<{ source: unknown; fileName: unknown; content: unknown }>,
+  ): Promise<string> {
+    try {
+      await upload(data);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadDataException);
+      return (error as Error).message;
+    }
+
+    throw new Error("The upload was taken, not refused.");
+  }
+
+  test("a backup is read at once into a preview of the person's, with no key and no job; the file itself is not kept", async () => {
+    const runId: ObjectID = await upload();
+    const row: Record<string, unknown> = runs.get(runId);
+    const read: ToolImportSnapshot = row["snapshot"] as ToolImportSnapshot;
+
+    expect(row).toMatchObject({
+      source: ToolImportSource.UptimeKuma,
+      status: ToolImportRunStatus.ReadyToReview,
+      accountName: "backup.json",
+    });
+    expect(String(row["createdByUserId"])).toBe(USER_ID.toString());
+    expect(row["apiKey"]).toBeUndefined();
+    expect(read.monitors!.length).toBeGreaterThan(5);
+    expect(Queue.addJob).not.toHaveBeenCalled();
+
+    const stored: string = JSON.stringify(row);
+
+    for (const secret of KUMA_SECRETS) {
+      expect(stored).not.toContain(secret);
+    }
+
+    expect(stored).not.toContain("notificationList");
+    expect(Semaphore.release).toHaveBeenCalled();
+  });
+
+  test("a file's name keeps only its name: no folders, nothing unprintable, cut to length", async () => {
+    expect(cleanUploadFileName("C:\\Users\\me\\Downloads\\backup.json")).toBe(
+      "backup.json",
+    );
+    expect(cleanUploadFileName("/home/me/kuma\u0000\u0007backup.json")).toBe(
+      "kumabackup.json",
+    );
+    expect(cleanUploadFileName(`${"a".repeat(500)}.json`)).toHaveLength(
+      TOOL_IMPORT_MAX_FILE_NAME_LENGTH,
+    );
+    expect(cleanUploadFileName(42)).toBe("");
+
+    const runId: ObjectID = await upload({
+      fileName: "../../etc/backup.json",
+    });
+    expect(runs.get(runId)["accountName"]).toBe("backup.json");
+  });
+
+  test("a tool read with a key, an unknown tool, no file and a file over 10 MB are refused before anything is read", async () => {
+    expect(await refusal({ source: ToolImportSource.UptimeRobot })).toBe(
+      "This tool is read with its API key, not from a file.",
+    );
+    expect(await refusal({ source: "Nagios" })).toBe(
+      "Choose a tool to import from.",
+    );
+    expect(await refusal({ content: "   " })).toBe("Choose the file to read.");
+    expect(await refusal({ content: { monitorList: [] } })).toBe(
+      "Choose the file to read.",
+    );
+    expect(
+      await refusal({
+        content: `${kumaBackupText()}${" ".repeat(TOOL_IMPORT_MAX_UPLOAD_BYTES)}`,
+      }),
+    ).toBe(
+      "This file is larger than 10 MB, which is more than an import reads.",
+    );
+    expect(runs.rows.size).toBe(0);
+  });
+
+  test("a file that is not Uptime Kuma's is refused with what to upload, and no run is made", async () => {
+    expect(
+      await refusal({ content: "name,url\nHome,https://example.com" }),
+    ).toBe(
+      "This is not an Uptime Kuma backup or metrics file. Upload the JSON file Settings > Backup > Export gives, or the page /metrics shows.",
+    );
+    expect(runs.rows.size).toBe(0);
+    expect(Semaphore.lock).not.toHaveBeenCalled();
+  });
+
+  test("only one import of a project at a time: an upload waits for one that is running", async () => {
+    runs.add({
+      source: ToolImportSource.OpsGenie,
+      status: ToolImportRunStatus.Importing,
+      createdByUserId: OTHER_USER_ID,
+    });
+
+    expect(await refusal({})).toBe(
+      "Another import is running in this project. Wait for it to finish, then try again.",
+    );
+    expect(Semaphore.release).toHaveBeenCalled();
+  });
+
+  test("an upload discards the person's earlier previews, not anyone else's", async () => {
+    const mine: string = runs.add({
+      source: ToolImportSource.UptimeRobot,
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: snapshot(),
+    });
+    const theirs: string = runs.add({
+      source: ToolImportSource.UptimeRobot,
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: snapshot(),
+      createdByUserId: OTHER_USER_ID,
+    });
+
+    await upload();
+
+    expect(runs.get(mine)).toMatchObject({
+      status: ToolImportRunStatus.Cancelled,
+      snapshot: null,
+    });
+    expect(runs.get(theirs)["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+  });
+});
+
+describe("ToolImportRunExecutor: subscribers need the person's word", () => {
+  function readyRun(): string {
+    return runs.add({
+      source: ToolImportSource.BetterStack,
+      status: ToolImportRunStatus.ReadyToReview,
+      snapshot: snapshot({ source: ToolImportSource.BetterStack }),
+    });
+  }
+
+  test("subscribers ticked without it are refused before anything starts", async () => {
+    const runId: string = readyRun();
+
+    for (const consent of [undefined, false, "true", 1]) {
+      await expect(
+        ToolImportRunExecutor.startImport({
+          runId: new ObjectID(runId),
+          projectId: PROJECT_ID,
+          props: PROPS,
+          selection: {
+            selectedKeys: ["StatusPage:p1", "StatusPageSubscriber:s1"],
+            inviteTeamId: null,
+            subscribersConsent: consent,
+          },
+        }),
+      ).rejects.toThrow(
+        "Confirm that you may move the subscribers you ticked, or untick them.",
+      );
+    }
+
+    expect(runs.get(runId)["status"]).toBe(ToolImportRunStatus.ReadyToReview);
+    expect(Queue.addJob).not.toHaveBeenCalled();
+  });
+
+  test("with it, the selection keeps it for the import", async () => {
+    const runId: string = readyRun();
+
+    await ToolImportRunExecutor.startImport({
+      runId: new ObjectID(runId),
+      projectId: PROJECT_ID,
+      props: PROPS,
+      selection: {
+        selectedKeys: ["StatusPageSubscriber:s1"],
+        inviteTeamId: null,
+        subscribersConsent: true,
+      },
+    });
+
+    expect(runs.get(runId)["selection"]).toEqual({
+      selectedKeys: ["StatusPageSubscriber:s1"],
+      inviteTeamId: null,
+      subscribersConsent: true,
+    });
+  });
+
+  test("ticking no subscriber needs no word", async () => {
+    const runId: string = readyRun();
+
+    await ToolImportRunExecutor.startImport({
+      runId: new ObjectID(runId),
+      projectId: PROJECT_ID,
+      props: PROPS,
+      selection: { selectedKeys: ["StatusPage:p1"], inviteTeamId: null },
+    });
+
+    expect(runs.get(runId)["status"]).toBe(ToolImportRunStatus.Importing);
   });
 });

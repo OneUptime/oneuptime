@@ -115,8 +115,7 @@ export function mergeStatusCodeRanges(
   const merged: Array<ImportedStatusCodeRange> = [];
 
   for (const range of sorted) {
-    const last: ImportedStatusCodeRange | undefined =
-      merged[merged.length - 1];
+    const last: ImportedStatusCodeRange | undefined = merged[merged.length - 1];
 
     if (last && range.from <= last.to + 1) {
       last.to = Math.max(last.to, range.to);
@@ -221,7 +220,9 @@ export function toMonitoringInterval(
   let best: ToolImportMonitoringInterval = TOOL_IMPORT_MONITORING_INTERVALS[0]!;
 
   for (const interval of TOOL_IMPORT_MONITORING_INTERVALS) {
-    if (Math.abs(interval.seconds - seconds) < Math.abs(best.seconds - seconds)) {
+    if (
+      Math.abs(interval.seconds - seconds) < Math.abs(best.seconds - seconds)
+    ) {
       best = interval;
     }
   }

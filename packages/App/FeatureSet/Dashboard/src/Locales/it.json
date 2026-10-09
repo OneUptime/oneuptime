@@ -27128,5 +27128,8 @@
   "Check your status pages": "Controlla le tue pagine di stato",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "Quando il tuo dominio punta a OneUptime, chiudi la pagina in {{tool}} così i suoi iscritti non vengono avvisati due volte.",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "Apri ogni pagina di stato e confrontala con quella in {{tool}}. Ogni componente è un monitor manuale: cambia il suo stato in OneUptime quando qualcosa cambia.",
-  "Turn off your page in {{tool}}": "Disattiva la tua pagina in {{tool}}"
+  "Turn off your page in {{tool}}": "Disattiva la tua pagina in {{tool}}",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "I suoi visitatori scelgono le parti che seguono. Serve il piano {{plan}}, quindi viene importata senza questa scelta: i nuovi iscritti seguono l'intera pagina.",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "I gruppi di una pagina di stato richiedono il piano {{plan}}, quindi viene importata senza di essi: tutto ciò che mostra è elencato singolarmente.",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "Non puoi aggiungere gruppi a una pagina di stato, quindi viene importata senza di essi: tutto ciò che mostra è elencato singolarmente."
 }

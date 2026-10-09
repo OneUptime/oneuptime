@@ -75,12 +75,19 @@ async function read(
   sleep?: RecordingSleep,
 ): Promise<ToolImportSnapshot> {
   return await new UptimeRobotAdapter().read(
-    { source: ToolImportSource.UptimeRobot, apiKey: UPTIMEROBOT_KEY },
+    {
+      source: ToolImportSource.UptimeRobot,
+      region: "",
+      apiKey: UPTIMEROBOT_KEY,
+    },
     context(api, sleep),
   );
 }
 
-function monitorOf(snapshot: ToolImportSnapshot, id: number | string): ImportedMonitor {
+function monitorOf(
+  snapshot: ToolImportSnapshot,
+  id: number | string,
+): ImportedMonitor {
   const found: ImportedMonitor | undefined = (snapshot.monitors || []).find(
     (monitor: ImportedMonitor): boolean => {
       return monitor.sourceId === String(id);
@@ -373,9 +380,7 @@ describe("UptimeRobotAdapter: how it reads", () => {
       }),
     ).toBe(true);
     // A request before each but the first waits out the six seconds.
-    expect(sleep.waits).toEqual(
-      new Array(api.requests.length - 1).fill(6000),
-    );
+    expect(sleep.waits).toEqual(new Array(api.requests.length - 1).fill(6000));
   });
 
   test("lists are read page by page, the cursor the last id of the page before", async () => {
@@ -420,7 +425,10 @@ describe("UptimeRobotAdapter: how it reads", () => {
   });
 
   test("a page that does not move the cursor on ends the list, rather than loop", async () => {
-    const one: Array<Record<string, unknown>> = UPTIMEROBOT_MONITORS.slice(0, 1);
+    const one: Array<Record<string, unknown>> = UPTIMEROBOT_MONITORS.slice(
+      0,
+      1,
+    );
     const api: FixtureApi = uptimeRobotApi()
       .add({
         path: "/v3/monitors",
@@ -444,10 +452,14 @@ describe("UptimeRobotAdapter: how it reads", () => {
     });
 
     await expect(read(api)).rejects.toThrow(ToolImportReadError);
-    await expect(read(uptimeRobotApi().add({
-      path: "/v3/user/me",
-      answers: [json(uptimeRobotError(401, "Unauthorized"), 401)],
-    }))).rejects.toThrow(
+    await expect(
+      read(
+        uptimeRobotApi().add({
+          path: "/v3/user/me",
+          answers: [json(uptimeRobotError(401, "Unauthorized"), 401)],
+        }),
+      ),
+    ).rejects.toThrow(
       "UptimeRobot did not accept the API key. Check that you copied the whole key",
     );
   });

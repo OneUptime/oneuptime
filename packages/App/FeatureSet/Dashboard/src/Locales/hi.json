@@ -27128,5 +27128,8 @@
   "Check your status pages": "अपने स्थिति पृष्ठ जांचें",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "जब आपका डोमेन OneUptime पर हो जाए, तो {{tool}} में पृष्ठ बंद कर दें ताकि उसके सब्सक्राइबर को दो बार न बताया जाए।",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "हर स्थिति पृष्ठ खोलें और उसकी तुलना {{tool}} वाले पृष्ठ से करें। हर कंपोनेंट एक मैनुअल मॉनिटर है: कुछ बदलने पर OneUptime में उसकी स्थिति बदलें।",
-  "Turn off your page in {{tool}}": "{{tool}} में अपना पृष्ठ बंद करें"
+  "Turn off your page in {{tool}}": "{{tool}} में अपना पृष्ठ बंद करें",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "इसके विज़िटर चुनते हैं कि वे किन हिस्सों को फ़ॉलो करें। इसके लिए {{plan}} प्लान चाहिए, इसलिए यह इस विकल्प के बिना लाया जाता है: नए सब्सक्राइबर पूरे पृष्ठ को फ़ॉलो करते हैं।",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "स्थिति पृष्ठ पर समूहों के लिए {{plan}} प्लान चाहिए, इसलिए यह उनके बिना लाया जाता है: यह जो कुछ दिखाता है, वह अलग-अलग सूचीबद्ध होता है।",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "आप स्थिति पृष्ठ में समूह नहीं जोड़ सकते, इसलिए यह उनके बिना लाया जाता है: यह जो कुछ दिखाता है, वह अलग-अलग सूचीबद्ध होता है।"
 }

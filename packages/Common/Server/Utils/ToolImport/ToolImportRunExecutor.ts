@@ -502,19 +502,20 @@ export default class ToolImportRunExecutor {
       throw new BadDataException("Choose the file to read.");
     }
 
-    if (Buffer.byteLength(data.content, "utf8") > TOOL_IMPORT_MAX_UPLOAD_BYTES) {
+    if (
+      Buffer.byteLength(data.content, "utf8") > TOOL_IMPORT_MAX_UPLOAD_BYTES
+    ) {
       throw new BadDataException(
         "This file is larger than 10 MB, which is more than an import reads.",
       );
     }
 
-    const snapshot: ToolImportSnapshot = ToolImportAdapterRegistry.getFileAdapter(
-      data.source,
-    ).readFile({
-      content: data.content,
-      fileName: cleanUploadFileName(data.fileName),
-      now: new Date(),
-    });
+    const snapshot: ToolImportSnapshot =
+      ToolImportAdapterRegistry.getFileAdapter(data.source).readFile({
+        content: data.content,
+        fileName: cleanUploadFileName(data.fileName),
+        now: new Date(),
+      });
 
     const lock: SemaphoreMutex = await Semaphore.lock({
       namespace: "ToolImportAdmission",
@@ -758,6 +759,8 @@ export default class ToolImportRunExecutor {
         selection: { ...selection, inviteTeamId: inviteTeamId },
         props: props,
         isLimitedToOneLevelPerPolicy: access.isLimitedToOneLevelPerPolicy,
+        canLetSubscribersChooseResources: !access.subscriberChoiceRefusal,
+        canCreateStatusPageGroups: !access.statusPageGroupRefusal,
         now: new Date(),
         onProgress: async (value: ToolImportProgress): Promise<void> => {
           await progress.write(value, false);

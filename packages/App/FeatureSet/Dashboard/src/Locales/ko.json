@@ -27128,5 +27128,8 @@
   "Check your status pages": "상태 페이지 확인",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "도메인이 OneUptime을 가리키게 되면 구독자가 두 번 알림을 받지 않도록 {{tool}}에서 페이지를 닫으세요.",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "각 상태 페이지를 열어 {{tool}}의 페이지와 비교하세요. 각 구성 요소는 수동 모니터이므로, 상황이 바뀌면 OneUptime에서 상태를 바꾸세요.",
-  "Turn off your page in {{tool}}": "{{tool}}에서 페이지 끄기"
+  "Turn off your page in {{tool}}": "{{tool}}에서 페이지 끄기",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "방문자가 구독할 부분을 선택합니다. 이 기능에는 {{plan}} 요금제가 필요하므로 선택 기능 없이 가져오며, 새 구독자는 페이지 전체를 구독합니다.",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "상태 페이지의 그룹에는 {{plan}} 요금제가 필요하므로 그룹 없이 가져오며, 페이지에 표시되는 항목은 각각 따로 나열됩니다.",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "상태 페이지에 그룹을 추가할 수 없으므로 그룹 없이 가져오며, 페이지에 표시되는 항목은 각각 따로 나열됩니다."
 }

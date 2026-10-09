@@ -22,7 +22,10 @@ import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import ToolImportRecord from "../../../Models/DatabaseModels/ToolImportRecord";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { isPlanGatedColumnDefault } from "../../../Types/Billing/PlanGatedColumnDefault";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
@@ -59,6 +62,7 @@ import {
   AllowedActiveMonitorCountInFreePlan,
   AllowedStatusPageCountInFreePlan,
   AllowedSubscribersCountInFreePlan,
+  getAllEnvVars,
   IsBillingEnabled,
 } from "../../EnvironmentConfig";
 import DatabaseService from "../../Services/DatabaseService";
@@ -80,6 +84,8 @@ import ToolImportRecordService from "../../Services/ToolImportRecordService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import BillingPermissions from "../../Types/Database/Permissions/BillingPermission";
+import PlanGates from "../../Types/Database/Permissions/PlanGates";
+import CallerPlan from "../Billing/CallerPlan";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import {
   normalizeImportName,
@@ -166,7 +172,12 @@ export const TOOL_IMPORT_KIND_TARGETS: Record<
   },
   [ToolImportResourceKind.StatusPage]: {
     service: serviceOf(StatusPageService),
-    createModels: [StatusPage, StatusPageGroup, StatusPageResource],
+    /*
+     * A page and what it shows. Its groups are asked apart
+     * (ToolImportAccess.statusPageGroupRefusal): a page whose groups the
+     * person or the plan may not make comes over without them.
+     */
+    createModels: [StatusPage, StatusPageResource],
   },
   [ToolImportResourceKind.StatusPageSubscriber]: {
     service: serviceOf(StatusPageSubscriberService),
@@ -651,6 +662,13 @@ export default class ToolImportProjectStateReader {
       ? { teams: [], defaultId: null }
       : await this.readInviteTeams(data);
 
+    /*
+     * What a status page can be on the project's plan: private (only some
+     * people may see it), and one whose visitors choose the parts they
+     * follow - each a plan-gated column of its own (StatusPage).
+     */
+    const statusPage: StatusPage = new StatusPage();
+
     return {
       createRefusals: createRefusals,
       inviteRefusal: inviteRefusal,
@@ -659,6 +677,22 @@ export default class ToolImportProjectStateReader {
       isLimitedToOneLevelPerPolicy: isOnFreePlan,
       planRoomByKind: planRoomByKind,
       checkedMonitorRefusal: checkedMonitorRefusal,
+      statusPageGroupRefusal: this.getCreateRefusal(
+        [StatusPageGroup],
+        data.props,
+      ),
+      privateStatusPageRefusal: this.getColumnCreateRefusal({
+        model: statusPage,
+        column: "isPublicStatusPage",
+        value: false,
+        props: data.props,
+      }),
+      subscriberChoiceRefusal: this.getColumnCreateRefusal({
+        model: statusPage,
+        column: "allowSubscribersToChooseResources",
+        value: true,
+        props: data.props,
+      }),
     };
   }
 
@@ -677,7 +711,10 @@ export default class ToolImportProjectStateReader {
       ToolImportPlanRoom
     >();
 
-    const roomOf: (limit: number, used: PositiveNumber) => ToolImportPlanRoom = (
+    const roomOf: (
+      limit: number,
+      used: PositiveNumber,
+    ) => ToolImportPlanRoom = (
       limit: number,
       used: PositiveNumber,
     ): ToolImportPlanRoom => {
@@ -768,6 +805,57 @@ export default class ToolImportProjectStateReader {
     }
 
     return null;
+  }
+
+  /*
+   * Null when the person's plan lets them create a record whose `column`
+   * holds `value`, else NeedsPlan naming the plan the column needs: the
+   * rule a create follows (ColumnPermission). A plan-gated column left at
+   * its default - the feature off - needs no plan, and neither OneUptime
+   * itself nor a server admin is held to one.
+   */
+  public static getColumnCreateRefusal(data: {
+    model: BaseModel;
+    column: string;
+    value: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): ToolImportNote | null {
+    if (!IsBillingEnabled || CallerPlan.isHeldToNoPlan(data.props)) {
+      return null;
+    }
+
+    if (
+      isPlanGatedColumnDefault(
+        data.model.getTableColumnMetadata(data.column),
+        data.value,
+      )
+    ) {
+      return null;
+    }
+
+    const requiredPlan: PlanType | undefined = PlanGates.getColumnPlan(
+      data.model.getColumnBillingAccessControl(data.column),
+      DatabaseRequestType.Create,
+    );
+
+    if (!requiredPlan || PlanGates.isMetByEveryPlan(requiredPlan)) {
+      return null;
+    }
+
+    if (
+      data.props.currentPlan &&
+      SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+        requiredPlan,
+        data.props.currentPlan,
+        getAllEnvVars(),
+      )
+    ) {
+      return null;
+    }
+
+    return makeToolImportNote(ToolImportNoteCode.NeedsPlan, {
+      plan: requiredPlan,
+    });
   }
 
   /*

@@ -81,6 +81,7 @@ import {
   ImportedSchedule,
   ImportedService,
   ImportedStatusPage,
+  ImportedStatusPageGroup,
   ImportedStatusPageSubscriber,
   ImportedTeam,
   ToolImportSnapshot,
@@ -173,6 +174,18 @@ export interface ToolImportApplyInput {
   props: DatabaseCommonInteractionProps;
   // Whether a policy may have more than one level (not on the Free plan).
   isLimitedToOneLevelPerPolicy: boolean;
+  /*
+   * Whether the project's plan lets a status page's visitors choose the
+   * parts they follow (StatusPage.allowSubscribersToChooseResources). Not
+   * given: it does.
+   */
+  canLetSubscribersChooseResources?: boolean | undefined;
+  /*
+   * Whether the person may make a status page's groups on the project's
+   * plan. Not given: they may. Without them, what a page shows is listed
+   * on its own.
+   */
+  canCreateStatusPageGroups?: boolean | undefined;
   now: Date;
   onProgress?: ((progress: ToolImportProgress) => Promise<void>) | undefined;
 }
@@ -714,7 +727,11 @@ class ApplyRun {
       page.enableEmailSubscribers = source.allowsEmailSubscribers;
     }
 
-    if (source.allowsSubscribersToChooseResources) {
+    // Only on a plan that has it; the preview said so otherwise.
+    if (
+      source.allowsSubscribersToChooseResources &&
+      this.input.canLetSubscribersChooseResources !== false
+    ) {
       page.allowSubscribersToChooseResources = true;
     }
 
@@ -736,11 +753,13 @@ class ApplyRun {
 
     await this.markStatusPageAnnounced(created.id!);
 
-    // The page's groups, in its order.
+    // The page's groups, in its order - when they may be made (the preview said so otherwise).
     const groupIds: Map<string, ObjectID> = new Map<string, ObjectID>();
     let groupOrder: number = 1;
+    const groups: Array<ImportedStatusPageGroup> =
+      this.input.canCreateStatusPageGroups === false ? [] : source.groups;
 
-    for (const group of source.groups) {
+    for (const group of groups) {
       const statusPageGroup: StatusPageGroup = new StatusPageGroup();
       statusPageGroup.projectId = this.input.projectId;
       statusPageGroup.statusPageId = created.id!;
@@ -775,7 +794,9 @@ class ApplyRun {
       if (monitorIds.length === 0) {
         notes.push(
           makeToolImportNote(ToolImportNoteCode.StatusPageMonitorLeftOut, {
-            name: this.monitorName(resource.monitorSourceId) || resource.displayName,
+            name:
+              this.monitorName(resource.monitorSourceId) ||
+              resource.displayName,
           }),
         );
         continue;

@@ -136,8 +136,10 @@ export default class AtlassianStatuspageAdapter implements ToolImportAdapter {
 
       const reads: Array<StatuspagePageRead> = [];
 
+      // Each page's components (manual monitors) and its subscribers.
+      await context.onProgress?.(ToolImportResourceKind.Monitor);
+
       for (const page of pages) {
-        await context.onProgress?.(ToolImportResourceKind.Monitor);
         reads.push(await this.readPage(client, page, snapshot.notes));
       }
 

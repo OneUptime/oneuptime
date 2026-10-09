@@ -173,16 +173,20 @@ export default class StatusCakeAdapter implements ToolImportAdapter {
           .map((test: Record<string, unknown>): ImportedMonitor | null => {
             return this.toHeartbeatMonitor(test);
           })
-          .filter((monitor: ImportedMonitor | null): monitor is ImportedMonitor => {
-            return Boolean(monitor);
-          }),
+          .filter(
+            (monitor: ImportedMonitor | null): monitor is ImportedMonitor => {
+              return Boolean(monitor);
+            },
+          ),
         ...sslTests
           .map((test: Record<string, unknown>): ImportedMonitor | null => {
             return this.toSslMonitor(test);
           })
-          .filter((monitor: ImportedMonitor | null): monitor is ImportedMonitor => {
-            return Boolean(monitor);
-          }),
+          .filter(
+            (monitor: ImportedMonitor | null): monitor is ImportedMonitor => {
+              return Boolean(monitor);
+            },
+          ),
         ...certificates,
       ];
 
@@ -346,8 +350,7 @@ export default class StatusCakeAdapter implements ToolImportAdapter {
         intervalSeconds: intervalSeconds,
         isPaused: isPaused,
       });
-      monitor.port =
-        asNumber(test["port"]) || DEFAULT_PORTS[type] || undefined;
+      monitor.port = asNumber(test["port"]) || DEFAULT_PORTS[type] || undefined;
       monitor.timeoutSeconds = asNumber(test["timeout"]) || undefined;
 
       if (type !== "TCP") {

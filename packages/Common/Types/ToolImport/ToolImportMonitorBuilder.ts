@@ -327,7 +327,6 @@ function applyDestination(
   }
 }
 
-
 function applyRequest(
   step: MonitorStep,
   monitor: ImportedMonitor,
@@ -490,7 +489,9 @@ function keywordFilters(keyword: ImportedKeyword | undefined): {
   };
 }
 
-function statusCodeFilters(range: ImportedStatusCodeRange): Array<CriteriaFilter> {
+function statusCodeFilters(
+  range: ImportedStatusCodeRange,
+): Array<CriteriaFilter> {
   return [
     {
       checkOn: CheckOn.ResponseStatusCode,
@@ -531,8 +532,10 @@ function buildHttpCriteria(data: {
   defaults: ToolImportMonitorDefaults;
 }): MonitorCriteria | null {
   const monitor: ImportedMonitor = data.monitor;
-  const keyword: { online: Array<CriteriaFilter>; offline: Array<CriteriaFilter> } =
-    keywordFilters(monitor.keyword);
+  const keyword: {
+    online: Array<CriteriaFilter>;
+    offline: Array<CriteriaFilter>;
+  } = keywordFilters(monitor.keyword);
   const hasKeyword: boolean = keyword.online.length > 0;
   const ranges: Array<ImportedStatusCodeRange> =
     monitor.acceptedStatusCodes && monitor.acceptedStatusCodes.length > 0
@@ -610,22 +613,24 @@ function buildHttpCriteria(data: {
 
   criteria.data = {
     monitorCriteriaInstanceArray: [
-      ...ranges.map((range: ImportedStatusCodeRange): MonitorCriteriaInstance => {
-        return onlineCriteria({
-          name: `Check if ${name} is online (${describeRange(range)})`,
-          description: `${name} is online when it answers with a status code from ${describeRange(range)}${keywordWords}`,
-          monitorStatusId: data.defaults.onlineMonitorStatusId,
-          filters: [
-            {
-              checkOn: CheckOn.IsOnline,
-              filterType: FilterType.True,
-              value: undefined,
-            },
-            ...statusCodeFilters(range),
-            ...keyword.online,
-          ],
-        });
-      }),
+      ...ranges.map(
+        (range: ImportedStatusCodeRange): MonitorCriteriaInstance => {
+          return onlineCriteria({
+            name: `Check if ${name} is online (${describeRange(range)})`,
+            description: `${name} is online when it answers with a status code from ${describeRange(range)}${keywordWords}`,
+            monitorStatusId: data.defaults.onlineMonitorStatusId,
+            filters: [
+              {
+                checkOn: CheckOn.IsOnline,
+                filterType: FilterType.True,
+                value: undefined,
+              },
+              ...statusCodeFilters(range),
+              ...keyword.online,
+            ],
+          });
+        },
+      ),
       offlineCriteria({
         monitorName: name,
         name: `Check if ${name} is offline`,

@@ -370,7 +370,9 @@ describe("what a web check becomes", () => {
           intervalSeconds: 30,
           timeoutSeconds: 120,
           isPaused: true,
-          notes: [makeToolImportNote(ToolImportNoteCode.MonitorAssertionsLeftOut)],
+          notes: [
+            makeToolImportNote(ToolImportNoteCode.MonitorAssertionsLeftOut),
+          ],
         }).notes,
       ),
     ).toEqual([

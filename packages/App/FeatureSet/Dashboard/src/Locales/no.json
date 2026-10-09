@@ -27128,5 +27128,8 @@
   "Check your status pages": "Sjekk statussidene dine",
   "Once your domain points at OneUptime, close the page in {{tool}} so its subscribers are not told twice.": "Når domenet ditt peker mot OneUptime, lukker du siden i {{tool}}, så abonnentene ikke får beskjed to ganger.",
   "Open each status page and compare it with the one in {{tool}}. Each component is a manual monitor: set its status in OneUptime when something changes.": "Åpne hver statusside og sammenlign den med den i {{tool}}. Hver komponent er en manuell monitor: endre statusen i OneUptime når noe endrer seg.",
-  "Turn off your page in {{tool}}": "Slå av siden din i {{tool}}"
+  "Turn off your page in {{tool}}": "Slå av siden din i {{tool}}",
+  "Its visitors choose the parts they follow. That needs the {{plan}} plan, so it comes over without the choice: new subscribers follow the whole page.": "Besøkende velger hvilke deler de følger. Det krever abonnementet {{plan}}, så den overføres uten valget: nye abonnenter følger hele siden.",
+  "Groups on a status page need the {{plan}} plan, so it comes over without them: everything it shows is listed on its own.": "Grupper på en statusside krever abonnementet {{plan}}, så den overføres uten dem: alt den viser, står hver for seg.",
+  "You may not add groups to a status page, so it comes over without them: everything it shows is listed on its own.": "Du kan ikke legge til grupper på en statusside, så den overføres uten dem: alt den viser, står hver for seg."
 }
