@@ -1,36 +1,34 @@
-import {
-  loadFormCustomFields,
-  loadFormRecordOptions,
-} from "../FormBuilderData";
 import FormsCopy from "../FormsCopy";
 import {
+  FormQuestionData,
+  FormRecordOptionsBySource,
+  loadFormQuestionData,
+} from "./FormQuestionData";
+import FormTemplateQuestionSettings from "./FormTemplateQuestionSettings";
+import {
+  fitFormTemplateToQuestions,
+  FORM_TEMPLATE_FIELD_SETTING_TEXT,
   FormTemplateEditorQuestion,
+  FormTemplateSettingSummary,
   getFormTemplateAnsweredLabels,
   getFormTemplateEditorQuestions,
   getFormTemplateEditorValues,
+  getFormTemplateQuestionAsked,
+  getFormTemplateSettingSummary,
   getFormTemplateShareLink,
   readFormTemplateFromEditor,
   TEMPLATE_DEFAULT_KEY,
+  TEMPLATE_FIELD_SETTINGS_KEY,
   TEMPLATE_NAME_KEY,
 } from "./FormTemplatesState";
 import Form from "Common/Models/DatabaseModels/Form";
-import {
-  FormField,
-  FormFieldSource,
-  readFormFields,
-} from "Common/Types/Form/FormField";
+import { readFormFields } from "Common/Types/Form/FormField";
 import {
   BuiltPublicForm,
   buildPublicForm,
   FormCustomFieldDefinition,
-  FormRecordOption,
   PublicFormField,
 } from "Common/Types/Form/FormPublic";
-import {
-  FormTargetFieldDefinition,
-  FormTargetOptionsSource,
-  getFormTargetField,
-} from "Common/Types/Form/FormTargetCatalog";
 import FormTargetType, {
   readFormTargetType,
 } from "Common/Types/Form/FormTargetType";
@@ -39,6 +37,7 @@ import {
   FORM_MAX_TEMPLATES,
   FORM_TEMPLATE_NAME_MAX_LENGTH,
   FormTemplate,
+  FormTemplateFieldSetting,
   FormTemplatesChange,
   moveFormTemplate,
   readFormTemplates,
@@ -59,8 +58,11 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  CustomElementProps,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -83,24 +85,24 @@ import useAsyncEffect from "use-async-effect";
  * people can start the form from - one per case a team reports often - so a
  * single form, and a single link, serves them all.
  *
- * Each template is listed with what it fills in, and can be edited,
- * duplicated, moved, deleted, or shared by its own link, which opens the
- * form with it filled in. Its editor is the form itself: every question,
- * hidden ones too, none required (FormTemplatesState). The default template
- * is the one the form opens with.
+ * Each template is listed with what it fills in and the questions it asks
+ * its own way, and can be edited, duplicated, moved, deleted, or shared by
+ * its own link, which opens the form with it filled in. Its editor is the
+ * form itself, in two parts: Questions, how the template asks each question
+ * (as the form does, or Required, Optional or Hidden), and Answers, every
+ * question, hidden ones too, none required (FormTemplatesState). An answer
+ * to a question the template does not ask says it is used as it is. The
+ * default template is the one the form opens with.
  *
  * Every change is saved at once, as the whole list, and the server checks
- * each answer against the question it answers: what it refuses is said in
- * the dialog the change came from, or over the list.
+ * each answer against the question it answers, and each setting against
+ * the question it sets: what it refuses is said in the dialog the change
+ * came from, or over the list.
  */
 
 export interface ComponentProps {
   formId: ObjectID;
 }
-
-type RecordOptions = Partial<
-  Record<FormTargetOptionsSource, Array<FormRecordOption>>
->;
 
 interface EditorState {
   // The template being edited; undefined for a new one.
@@ -110,8 +112,25 @@ interface EditorState {
 const ICON_BUTTON_CLASS_NAME: string =
   "inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40";
 
-// How many of the questions a template fills in its row names.
+// How many of the questions a template fills in, or sets, its row names.
 const LISTED_LABELS: number = 6;
+
+/*
+ * How each setting is marked on a template's row: Required in the accent
+ * colour, Optional plain, Hidden in the builder's own Hidden colours.
+ */
+const REQUIRED_CHIP_CLASS_NAME: string =
+  "bg-indigo-50 text-indigo-700 ring-indigo-200";
+const OPTIONAL_CHIP_CLASS_NAME: string =
+  "bg-gray-50 text-gray-600 ring-gray-200";
+const HIDDEN_CHIP_CLASS_NAME: string =
+  "bg-amber-50 text-amber-800 ring-amber-200";
+
+const SETTING_CHIP_CLASS_NAME: Record<FormTemplateFieldSetting, string> = {
+  [FormTemplateFieldSetting.Required]: REQUIRED_CHIP_CLASS_NAME,
+  [FormTemplateFieldSetting.Optional]: OPTIONAL_CHIP_CLASS_NAME,
+  [FormTemplateFieldSetting.Hidden]: HIDDEN_CHIP_CLASS_NAME,
+};
 
 const FormTemplates: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -127,7 +146,9 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
   const [customFields, setCustomFields] = useState<
     Array<FormCustomFieldDefinition>
   >([]);
-  const [recordOptions, setRecordOptions] = useState<RecordOptions>({});
+  const [recordOptions, setRecordOptions] = useState<FormRecordOptionsBySource>(
+    {},
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -165,42 +186,14 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const target: FormTargetType = readFormTargetType(loaded.targetType);
-      const questions: Array<FormField> = readFormFields(loaded.fields);
+      // The custom fields and records the questions need, every kind once.
+      const questionData: FormQuestionData = await loadFormQuestionData({
+        targetType: readFormTargetType(loaded.targetType),
+        fields: readFormFields(loaded.fields),
+      });
 
-      // The records each choice question offers, every kind once.
-      const sources: Set<FormTargetOptionsSource> =
-        new Set<FormTargetOptionsSource>();
-
-      for (const question of questions) {
-        if (question.source !== FormFieldSource.TargetField) {
-          continue;
-        }
-
-        const definition: FormTargetFieldDefinition | undefined =
-          getFormTargetField(target, question.targetField);
-
-        if (definition?.optionsSource) {
-          sources.add(definition.optionsSource);
-        }
-      }
-
-      const options: RecordOptions = {};
-
-      for (const source of sources) {
-        options[source] = await loadFormRecordOptions(source);
-      }
-
-      const asksCustomField: boolean = questions.some(
-        (question: FormField): boolean => {
-          return question.source === FormFieldSource.TargetCustomField;
-        },
-      );
-
-      setCustomFields(
-        asksCustomField ? await loadFormCustomFields(target) : [],
-      );
-      setRecordOptions(options);
+      setCustomFields(questionData.customFields);
+      setRecordOptions(questionData.recordOptions);
       setTemplates(readFormTemplates(loaded.templates));
       setForm(loaded);
     } catch (err) {
@@ -294,17 +287,20 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
   const getEditorFields: () => Array<Field<JSONObject>> = (): Array<
     Field<JSONObject>
   > => {
-    const hiddenIds: Set<string> = new Set<string>(
-      questions
-        .filter((question: FormTemplateEditorQuestion): boolean => {
-          return question.isHidden;
-        })
-        .map((question: FormTemplateEditorQuestion): string => {
-          return question.field.id;
-        }),
+    const questionsByKey: Map<string, FormTemplateEditorQuestion> = new Map<
+      string,
+      FormTemplateEditorQuestion
+    >(
+      questions.map(
+        (
+          question: FormTemplateEditorQuestion,
+        ): [string, FormTemplateEditorQuestion] => {
+          return [getPublicFormFieldKey(question.field.id), question];
+        },
+      ),
     );
 
-    const questionFields: Array<Field<JSONObject>> = buildPublicFormFields(
+    const answerFields: Array<Field<JSONObject>> = buildPublicFormFields(
       {
         ...built.form,
         fields: questions.map(
@@ -314,29 +310,82 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
         ),
       },
       { dataTestIdPrefix: "form-template-field" },
-    ).map((field: Field<JSONObject>): Field<JSONObject> => {
+    ).map((field: Field<JSONObject>, index: number): Field<JSONObject> => {
       const key: string = Object.keys(field.field || {})[0] || "";
-      const isHidden: boolean = Array.from(hiddenIds).some(
-        (id: string): boolean => {
-          return getPublicFormFieldKey(id) === key;
-        },
-      );
-
-      if (!isHidden) {
-        return field;
-      }
-
-      // Said in the reader's language here: FieldLabel looks strings up.
-      const note: string = tx(FormsCopy.hiddenQuestionHelp);
+      const question: FormTemplateEditorQuestion | undefined =
+        questionsByKey.get(key);
 
       return {
         ...field,
-        description:
-          typeof field.description === "string" && field.description
-            ? `${note} ${field.description}`
-            : note,
+        ...(index === 0
+          ? {
+              sectionTitle: FormsCopy.answersTitle,
+              sectionDescription: FormsCopy.templateAnswersDescription,
+            }
+          : {}),
+        /*
+         * A question the template does not ask - the form hides it and the
+         * template leaves it so, or the template hides it - is answered by
+         * what is filled in here, as it is. Worked out from the Questions
+         * rows as they are now.
+         */
+        getFooterElement: (
+          values: FormValues<JSONObject>,
+        ): ReactElement | undefined => {
+          if (
+            !question ||
+            getFormTemplateQuestionAsked({
+              question: question,
+              settings: (values as JSONObject)[TEMPLATE_FIELD_SETTINGS_KEY],
+            }).isAsked
+          ) {
+            return undefined;
+          }
+
+          return (
+            <div
+              className="mt-1.5 flex items-start gap-1.5 text-xs text-gray-500"
+              data-testid={`form-template-hidden-note-${question.field.id}`}
+            >
+              <Icon
+                icon={IconProp.EyeSlash}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0"
+              />
+              <span>{tx(FormsCopy.templateHiddenAnswerNote)}</span>
+            </div>
+          );
+        },
       };
     });
+
+    const settingsFields: Array<Field<JSONObject>> =
+      questions.length > 0
+        ? [
+            {
+              field: { [TEMPLATE_FIELD_SETTINGS_KEY]: true },
+              title: FormsCopy.builderTitle,
+              sectionTitle: FormsCopy.builderTitle,
+              sectionDescription: FormsCopy.templateQuestionsDescription,
+              fieldType: FormFieldSchemaType.CustomComponent,
+              customElementDrawsOwnLabel: true,
+              required: false,
+              getCustomElement: (
+                values: FormValues<JSONObject>,
+                customProps: CustomElementProps,
+              ): ReactElement => {
+                return (
+                  <FormTemplateQuestionSettings
+                    questions={questions}
+                    value={(values as JSONObject)[TEMPLATE_FIELD_SETTINGS_KEY]}
+                    onChange={(settings: unknown) => {
+                      customProps.onChange?.(settings);
+                    }}
+                  />
+                );
+              },
+            },
+          ]
+        : [];
 
     return [
       {
@@ -357,7 +406,8 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
         required: false,
         dataTestId: "form-template-default",
       },
-      ...questionFields,
+      ...settingsFields,
+      ...answerFields,
     ];
   };
 
@@ -369,6 +419,9 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
       template,
       questions,
     });
+
+    const settings: Array<FormTemplateSettingSummary> =
+      getFormTemplateSettingSummary({ template, questions });
 
     return (
       <li
@@ -415,6 +468,40 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
               {labels.length > LISTED_LABELS ? (
                 <li className="px-1 py-0.5 text-xs text-gray-500">
                   +{labels.length - LISTED_LABELS}
+                </li>
+              ) : (
+                <></>
+              )}
+            </ul>
+          ) : (
+            <></>
+          )}
+          {settings.length > 0 ? (
+            <ul
+              className="mt-2 flex flex-wrap gap-1"
+              data-testid={`form-template-settings-${template.id}`}
+            >
+              {settings
+                .slice(0, LISTED_LABELS)
+                .map((setting: FormTemplateSettingSummary): ReactElement => {
+                  return (
+                    <li
+                      key={setting.fieldId}
+                      className={`max-w-full truncate rounded-md px-1.5 py-0.5 text-xs ring-1 ring-inset ${
+                        SETTING_CHIP_CLASS_NAME[setting.setting]
+                      }`}
+                      data-setting={setting.setting}
+                    >
+                      {setting.label} ·{" "}
+                      <span className="font-medium">
+                        {tx(FORM_TEMPLATE_FIELD_SETTING_TEXT[setting.setting])}
+                      </span>
+                    </li>
+                  );
+                })}
+              {settings.length > LISTED_LABELS ? (
+                <li className="px-1 py-0.5 text-xs text-gray-500">
+                  +{settings.length - LISTED_LABELS}
                 </li>
               ) : (
                 <></>
@@ -507,7 +594,22 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                     id: template.id,
                   });
 
-                  listChange(change.templates);
+                  /*
+                   * The copy is new to the server, so it is judged whole:
+                   * it carries only what its original can still use.
+                   */
+                  listChange(
+                    change.templates.map(
+                      (candidate: FormTemplate): FormTemplate => {
+                        return candidate.id === change.templateId
+                          ? fitFormTemplateToQuestions({
+                              template: candidate,
+                              questions,
+                            })
+                          : candidate;
+                      },
+                    ),
+                  );
                 }}
               />
               <Button
@@ -600,7 +702,7 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
           title={
             editor.template ? FormsCopy.editTemplate : FormsCopy.addTemplate
           }
-          description={FormsCopy.templateAnswersDescription}
+          description={FormsCopy.templateEditorDescription}
           name="form-template"
           modalWidth={ModalWidth.Large}
           isLoading={isSaving}

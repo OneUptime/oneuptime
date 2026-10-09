@@ -58,6 +58,8 @@ import {
  *      side of the link;
  *   E. a form made in the dashboard's Create Form dialog that schedules
  *      maintenance events, filled in by a submitter;
+ *   E2. a form whose templates ask its questions their own way (required,
+ *      optional, hidden), on the page and on the server;
  *   F. the submit rate limit, as the submitter sees it.
  *
  * Anti-flake notes:
@@ -2223,6 +2225,235 @@ test.describe("Forms", () => {
       toId(event["_id"]),
     );
     expect(toId(submissions[0]!["incidentId"])).toBe("");
+  });
+
+  /*
+   * Issue #4563: a template asks the form's questions its own way. One form
+   * serves two cases - Application Outage requires the application and
+   * hides the maintenance window, Planned Maintenance asks the window the
+   * form hides and requires it - on the public page, and on the server
+   * whatever sends the submission. Four submissions in all, well inside the
+   * per-network budget F relies on.
+   */
+  test("E2. a form's templates ask its questions their own way, and the server holds each submission to them", async () => {
+    test.setTimeout(240000);
+    const page: Page = ctx.page;
+    const templatedFormName: string = `Department Form ${ctx.unique}`;
+    const outageTitle: string = `Application outage ${ctx.unique}`;
+    const plannedTitle: string = `Planned maintenance ${ctx.unique}`;
+
+    const created: JSONish = await createItem({
+      page,
+      projectId: ctx.projectId,
+      path: "/api/form",
+      item: {
+        projectId: ctx.projectId,
+        name: templatedFormName,
+        targetType: "Incident",
+        fields: [
+          {
+            id: "what",
+            source: "TargetField",
+            targetField: "title",
+            label: "What is happening?",
+            isRequired: true,
+          },
+          {
+            id: "app",
+            source: "Question",
+            type: "Text",
+            label: "Application Name",
+            isRequired: false,
+          },
+          {
+            id: "window",
+            source: "Question",
+            type: "Text",
+            label: "Maintenance Window",
+            isRequired: false,
+            isHidden: true,
+          },
+        ],
+        targetSettings: { incidentSeverityId: ctx.formSeverityId },
+        templates: [
+          {
+            id: "outage",
+            name: "Application Outage",
+            answers: { what: outageTitle, window: "Not planned" },
+            fieldSettings: { app: "Required", window: "Hidden" },
+          },
+          {
+            id: "planned",
+            name: "Planned Maintenance",
+            answers: { what: plannedTitle, window: "Saturday 02:00" },
+            fieldSettings: { app: "Optional", window: "Required" },
+          },
+        ],
+      },
+    });
+    const formId: string = toId(created["_id"]);
+    const shareKey: string = await readShareKey(formId);
+    expect(shareKey).toMatch(UUID_PATTERN);
+
+    // The link that names Application Outage opens the form as it asks it.
+    const formResponsePromise: Promise<Response> =
+      ctx.submitter.waitForResponse(
+        (response: Response): boolean => {
+          return (
+            response.url().endsWith(`/form/public/${shareKey}`) &&
+            response.request().method() === "GET"
+          );
+        },
+        { timeout: 60000 },
+      );
+    await openSubmitterPage(`${shareLinkFor(shareKey)}?template=outage`);
+    const publicForm: JSONish = (await (
+      await formResponsePromise
+    ).json()) as JSONish;
+    await expectFormShown(templatedFormName);
+
+    // The page is told how each template asks, and only answers it may show.
+    expect(
+      ((publicForm["templates"] as Array<JSONish>) || []).map(
+        (template: JSONish): unknown => {
+          return [template["id"], template["fieldSettings"]];
+        },
+      ),
+    ).toEqual([
+      ["outage", { app: "Required", window: "Hidden" }],
+      ["planned", { app: "Optional", window: "Required" }],
+    ]);
+    expect(JSON.stringify(publicForm)).not.toContain("Not planned");
+
+    const form: Locator = ctx.submitter.locator("#public-form");
+    await expect
+      .poll(
+        async (): Promise<Array<string>> => {
+          return fieldLabels(form);
+        },
+        { timeout: 60000 },
+      )
+      .toEqual(["What is happening?", "Application Name"]);
+    await expect(ctx.submitter.getByTestId("form-field-what")).toHaveValue(
+      outageTitle,
+    );
+    await expect(ctx.submitter.getByTestId("form-field-window")).toHaveCount(0);
+
+    // Required by the template: refused in the browser, and nothing is sent.
+    const submits: Array<string> = [];
+    const recordSubmit: (request: Request) => void = (
+      request: Request,
+    ): void => {
+      if (
+        request.url().includes(`/form/public/${shareKey}/submit`) &&
+        request.method() === "POST"
+      ) {
+        submits.push(request.url());
+      }
+    };
+    ctx.submitter.on("request", recordSubmit);
+    await ctx.submitter.locator("#public-form-submit-button").click();
+    await expect(
+      ctx.submitter.getByText("Application Name is required."),
+    ).toBeVisible({ timeout: 60000 });
+    expect(submits).toEqual([]);
+    ctx.submitter.off("request", recordSubmit);
+
+    // Answered, it is created, and the submission keeps exactly what was asked.
+    const app: Locator = ctx.submitter.getByTestId("form-field-app");
+    await app.fill("Checkout");
+    await app.press("Tab");
+    const result: JSONish = await submitForm({
+      submitter: ctx.submitter,
+      shareKey,
+    });
+    expect(String(result["reference"] || "")).not.toBe("");
+    await findIncidentByTitle(outageTitle);
+
+    // Around the page, the server holds each submission to its template.
+    const submitUrl: string = buildUrl(`/api/form/public/${shareKey}/submit`);
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      tenantid: "",
+    };
+    const aroundThePage: string = `Sent around the page ${ctx.unique}`;
+
+    const noApp: APIResponse = await ctx.submitter.request.post(submitUrl, {
+      headers,
+      data: {
+        data: { templateId: "outage", answers: { what: aroundThePage } },
+      },
+    });
+    expect(noApp.status()).toBe(400);
+    expect(await noApp.text()).toContain("Application Name is required.");
+
+    // Planned Maintenance asks the window the form hides, and requires it.
+    const noWindow: APIResponse = await ctx.submitter.request.post(submitUrl, {
+      headers,
+      data: {
+        data: { templateId: "planned", answers: { what: aroundThePage } },
+      },
+    });
+    expect(noWindow.status()).toBe(400);
+    expect(await noWindow.text()).toContain("Maintenance Window is required.");
+    expect(
+      await listItems({
+        page,
+        projectId: ctx.projectId,
+        path: "/api/incident",
+        query: { title: aroundThePage },
+        select: { _id: true },
+      }),
+    ).toHaveLength(0);
+
+    const planned: APIResponse = await ctx.submitter.request.post(submitUrl, {
+      headers,
+      data: {
+        data: {
+          templateId: "planned",
+          answers: { what: plannedTitle, window: "Sunday 03:00" },
+        },
+      },
+    });
+    expect(planned.status(), await planned.text()).toBe(200);
+
+    /*
+     * What each submission kept: the questions its template asked, and -
+     * for Application Outage, which hides the window - the template's own
+     * answer to it, never shown to the submitter.
+     */
+    const submissions: Array<JSONish> = await listItems({
+      page,
+      projectId: ctx.projectId,
+      path: "/api/form-submission",
+      query: { formId },
+      select: { _id: true, answers: true },
+    });
+    expect(
+      submissions
+        .map((submission: JSONish): string => {
+          return JSON.stringify(
+            ((submission["answers"] as Array<JSONish>) || []).map(
+              (answer: JSONish): unknown => {
+                return [answer["fieldId"], answer["value"]];
+              },
+            ),
+          );
+        })
+        .sort(),
+    ).toEqual(
+      [
+        JSON.stringify([
+          ["what", outageTitle],
+          ["app", "Checkout"],
+          ["window", "Not planned"],
+        ]),
+        JSON.stringify([
+          ["what", plannedTitle],
+          ["window", "Sunday 03:00"],
+        ]),
+      ].sort(),
+    );
   });
 
   test("F. past the submit limit the submitter is told to wait", async () => {

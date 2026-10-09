@@ -34,6 +34,7 @@ import {
   PublicForm,
   PublicFormFieldType,
 } from "../../../Types/Form/FormPublic";
+import { FormTemplateFieldSetting } from "../../../Types/Form/FormTemplate";
 import { JSONObject } from "../../../Types/JSON";
 import Navigation from "../../../UI/Utils/Navigation";
 import User from "../../../UI/Utils/User";
@@ -1198,5 +1199,257 @@ describe("templates", () => {
     expect(screen.getByTestId("form-template-picker")).toHaveTextContent(
       "Mit einer Vorlage beginnen",
     );
+  });
+});
+
+/*
+ * Templates that ask the form's questions their own way (issue #4563): the
+ * page asks the form as the chosen template asks it - a question it
+ * requires is required here, one it hides is not drawn and never sent, and
+ * a question the form hides is drawn only under a template that asks it.
+ * The server holds the submission to the same questions.
+ */
+describe("templates that ask the questions their own way", () => {
+  const WITH_SETTINGS: PublicForm = {
+    ...FORM,
+    fields: [
+      ...FORM.fields,
+      {
+        id: "app",
+        label: "Application Name",
+        type: PublicFormFieldType.Text,
+        isRequired: false,
+        maxLength: 10000,
+      },
+      {
+        id: "window",
+        label: "Maintenance Window",
+        type: PublicFormFieldType.Text,
+        isRequired: false,
+        isHidden: true,
+        maxLength: 10000,
+      },
+    ],
+    templates: [
+      {
+        id: "outage",
+        name: "Application Outage",
+        answers: { title: "The application is down" },
+        fieldSettings: {
+          app: FormTemplateFieldSetting.Required,
+          email: FormTemplateFieldSetting.Hidden,
+        },
+      },
+      {
+        id: "maintenance",
+        name: "Planned Maintenance",
+        answers: { title: "Planned maintenance", window: "Saturday 02:00" },
+        fieldSettings: {
+          window: FormTemplateFieldSetting.Required,
+          app: FormTemplateFieldSetting.Optional,
+        },
+      },
+    ],
+  };
+
+  async function choose(name: string): Promise<void> {
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await user.click(
+      screen.getByRole("combobox", { name: "Start from a template" }),
+    );
+
+    const menu: HTMLElement = await screen.findByRole("listbox");
+
+    await user.click(
+      Array.from(menu.querySelectorAll("*")).find((element: Element) => {
+        return element.textContent === name && element.children.length === 0;
+      }) as HTMLElement,
+    );
+
+    await flush();
+  }
+
+  function labelOf(testId: string): string {
+    const input: HTMLElement = screen.getByTestId(testId);
+    const label: HTMLLabelElement | null = document.querySelector(
+      `label[for="${input.id}"]`,
+    );
+
+    return label?.textContent?.trim() || "";
+  }
+
+  afterEach(() => {
+    window.history.replaceState({}, "", "/");
+  });
+
+  test("a question the form hides is not drawn without a template that asks it", async () => {
+    await renderForm(WITH_SETTINGS);
+
+    expect(screen.queryByTestId("form-field-window")).not.toBeInTheDocument();
+    expect(screen.queryByText("Maintenance Window")).not.toBeInTheDocument();
+    expect(screen.getByTestId("form-field-email")).toBeInTheDocument();
+  });
+
+  test("a template that asks it draws it, required, and fills it in", async () => {
+    await renderForm(WITH_SETTINGS);
+
+    await choose("Planned Maintenance");
+
+    expect(screen.getByTestId("form-field-window")).toHaveValue(
+      "Saturday 02:00",
+    );
+    expect(labelOf("form-field-window")).toBe("Maintenance Window");
+    // A question it says nothing of is asked as the form asks it.
+    expect(labelOf("form-field-email")).toBe("Your Email");
+  });
+
+  test("a question the template requires, left empty, is refused in the browser, and nothing is sent", async () => {
+    await renderForm(WITH_SETTINGS);
+    serveSubmit({ status: 200, data: { reference: "INC-1" } });
+
+    await choose("Application Outage");
+
+    expect(labelOf("form-field-app")).toBe("Application Name");
+
+    await submit();
+
+    expect(
+      screen.getByText("Application Name is required."),
+    ).toBeInTheDocument();
+    expect(submittedBodies()).toEqual([]);
+  });
+
+  test("the submission sends only the questions its template asks, and names the template", async () => {
+    await renderForm(WITH_SETTINGS);
+    serveSubmit({ status: 200, data: { reference: "INC-2" } });
+
+    await choose("Application Outage");
+
+    typeInto("form-field-app", "Checkout");
+    await submit();
+
+    expect(submittedBodies()).toEqual([
+      {
+        data: {
+          answers: {
+            title: "The application is down",
+            severity: MINOR_ID,
+            checked: false,
+            app: "Checkout",
+          },
+          templateId: "outage",
+        },
+      },
+    ]);
+  });
+
+  test("another template asks the form its own way: the page follows the choice", async () => {
+    await renderForm(WITH_SETTINGS);
+    serveSubmit({ status: 200, data: { reference: "INC-3" } });
+
+    await choose("Application Outage");
+
+    expect(screen.queryByTestId("form-field-window")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("form-field-email")).not.toBeInTheDocument();
+
+    await choose("Planned Maintenance");
+
+    expect(screen.getByTestId("form-field-window")).toBeInTheDocument();
+    // Outage hid the email; Planned Maintenance asks it as the form does.
+    expect(screen.getByTestId("form-field-email")).toBeInTheDocument();
+    expect(labelOf("form-field-app")).toBe("Application Name (Optional)");
+
+    typeInto("form-field-email", "ada@example.com");
+    await submit();
+
+    expect(submittedBodies()).toEqual([
+      {
+        data: {
+          answers: {
+            title: "Planned maintenance",
+            severity: MINOR_ID,
+            checked: false,
+            email: "ada@example.com",
+            window: "Saturday 02:00",
+          },
+          templateId: "maintenance",
+        },
+      },
+    ]);
+  });
+
+  test("a template that hides every question is one click: Submit, naming the template", async () => {
+    const ONE_CLICK: PublicForm = {
+      ...WITH_SETTINGS,
+      templates: [
+        {
+          id: "restored",
+          name: "Service Restored",
+          answers: {},
+          fieldSettings: Object.fromEntries(
+            WITH_SETTINGS.fields.map(
+              (field: { id: string }): [string, FormTemplateFieldSetting] => {
+                return [field.id, FormTemplateFieldSetting.Hidden];
+              },
+            ),
+          ),
+        },
+      ],
+    };
+
+    window.history.replaceState(
+      {},
+      "",
+      `/accounts/form/${SHARE_KEY}?template=restored`,
+    );
+    serveForm({ status: 200, data: ONE_CLICK as unknown as JSONObject });
+    serveSubmit({ status: 200, data: { reference: "INC-4" } });
+
+    await renderPage();
+
+    expect(screen.getByTestId("form-template-picker")).toHaveTextContent(
+      "Service Restored",
+    );
+    for (const field of WITH_SETTINGS.fields) {
+      expect(
+        screen.queryByTestId(`form-field-${field.id}`),
+      ).not.toBeInTheDocument();
+    }
+
+    await submit();
+
+    expect(submittedBodies()).toEqual([
+      { data: { answers: {}, templateId: "restored" } },
+    ]);
+    expect(screen.getByTestId("form-reference")).toHaveTextContent("INC-4");
+  });
+
+  test("a template's link opens the form asked its way", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      `/accounts/form/${SHARE_KEY}?template=maintenance`,
+    );
+
+    await renderForm(WITH_SETTINGS);
+
+    expect(screen.getByTestId("form-field-window")).toHaveValue(
+      "Saturday 02:00",
+    );
+    expect(labelOf("form-field-app")).toBe("Application Name (Optional)");
+
+    cleanup();
+    window.history.replaceState(
+      {},
+      "",
+      `/accounts/form/${SHARE_KEY}?template=outage`,
+    );
+
+    await renderForm(WITH_SETTINGS);
+
+    expect(screen.queryByTestId("form-field-window")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("form-field-email")).not.toBeInTheDocument();
+    expect(labelOf("form-field-app")).toBe("Application Name");
   });
 });

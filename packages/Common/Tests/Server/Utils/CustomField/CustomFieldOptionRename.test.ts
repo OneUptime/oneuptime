@@ -716,4 +716,43 @@ describe("renameCustomFieldOptionsInFormTemplates", () => {
 
     expect(findBy).not.toHaveBeenCalled();
   });
+
+  /*
+   * A template's settings (issue #4563: Required, Optional or Hidden per
+   * question) hold no option text, so a rename leaves them as they are - and
+   * a rewritten template keeps them.
+   */
+  test("a rewritten template keeps how it asks each question", async () => {
+    const templates: JSONArray = [
+      {
+        id: "outage",
+        name: "Outage",
+        answers: { facility: "Facility A" },
+        fieldSettings: { facility: "Required", region: "Hidden" },
+      },
+    ];
+
+    findBy.mockResolvedValue([
+      form([FACILITY_QUESTION, OTHER_QUESTION], templates),
+    ] as never);
+
+    await renameCustomFieldOptionsInFormTemplates({
+      projectId: projectId,
+      targetType: FormTargetType.Incident,
+      customFieldId: fieldId,
+      renames: RENAMES,
+    });
+
+    expect(
+      (write.mock.calls[0]![0] as { data: { templates: JSONArray } }).data
+        .templates,
+    ).toEqual([
+      {
+        id: "outage",
+        name: "Outage",
+        answers: { facility: "Facility Alpha" },
+        fieldSettings: { facility: "Required", region: "Hidden" },
+      },
+    ]);
+  });
 });

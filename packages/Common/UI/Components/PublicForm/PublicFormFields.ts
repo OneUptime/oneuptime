@@ -5,6 +5,7 @@ import FormValues from "../Forms/Types/FormValues";
 import { translateValidationMessage } from "../Forms/Validation";
 import Color from "../../../Types/Color";
 import {
+  getPublicFormForTemplate,
   isBlankFormAnswer,
   isWholeEmailAddress,
   PUBLIC_FORM_MULTI_LINE_FIELD_TYPES,
@@ -36,6 +37,11 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  * (getPublicFormInitialValues): the same answers a submission sends, put
  * where the inputs hold them (getPublicFormValuesFromAnswers), so a
  * template's answers go back to the server exactly as they came.
+ *
+ * The questions drawn are the ones handed in: a host that fills the form in
+ * from a template hands in the form as that template asks it
+ * (getPublicFormForTemplate), so a question the template hides is not drawn
+ * and one it requires is required here as on the server.
  */
 
 const FORM_KEY_PREFIX: string = "answer_";
@@ -317,17 +323,23 @@ export type GetPublicFormInitialValuesFunction = (
 ) => JSONObject;
 
 /*
- * What the form starts with: the option a question chooses to begin with
- * (the form's own severity), and - when the submitter starts from a
- * template - that template's answers, which win over it.
+ * What the form starts with, for the questions it asks as the template (if
+ * any) asks them: the option a question chooses to begin with (the form's
+ * own severity), and - when the submitter starts from a template - that
+ * template's answers, which win over it. Nothing is filled in for a question
+ * the template does not ask.
  */
 export const getPublicFormInitialValues: GetPublicFormInitialValuesFunction = (
   form: PublicForm,
   template?: PublicFormTemplate | null | undefined,
 ): JSONObject => {
   const values: JSONObject = {};
+  const asked: Array<PublicFormField> = getPublicFormForTemplate({
+    form: form,
+    template: template,
+  }).fields;
 
-  for (const question of form.fields || []) {
+  for (const question of asked) {
     if (question.defaultValue) {
       values[getPublicFormFieldKey(question.id)] = question.defaultValue;
     }
@@ -337,7 +349,7 @@ export const getPublicFormInitialValues: GetPublicFormInitialValuesFunction = (
     Object.assign(
       values,
       getPublicFormValuesFromAnswers({
-        fields: form.fields || [],
+        fields: asked,
         answers: template.answers,
       }),
     );
