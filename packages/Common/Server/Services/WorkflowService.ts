@@ -1,6 +1,8 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ProjectReferencesService from "./ProjectReferencesService";
 import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
@@ -25,6 +27,77 @@ import UUID from "../../Utils/UUID";
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * WHO LAST SAVED THE WORKFLOW'S STEPS (Workflow.lastSavedByUserId).
+   *
+   * The steps are the graph: what each step does, and with what. Creating
+   * the workflow, and every save of its graph made in a project - through
+   * the builder, the API, Terraform or the admin dashboard - records the
+   * person who made it, and nobody when there is no person (an API key) -
+   * even when the graph it writes is the one stored: whoever saves the
+   * steps answers for them from then on. A change that does not write the
+   * graph - renaming the workflow, its labels, turning it on or off - keeps
+   * who saved its steps: they decided what the steps do, and whoever only
+   * turns the workflow on did not.
+   * OneUptime's own writes - the trigger it reads off the graph, the
+   * webhook key, the labels and owners its rules add - keep it too.
+   * Stamped after the save's permission check, as the creator is, so the
+   * person is never asked for access to a column they did not send (the
+   * column takes no caller's value: UserAttribution).
+   *
+   * A workflow's steps are held to this person's read of runbook credentials
+   * (RunbookCredentialReaders): the read a workflow never lends whoever may
+   * edit it.
+   */
+  public static stampLastSavedBy(
+    data: Model | Record<string, unknown>,
+    props: DatabaseCommonInteractionProps,
+    savesSteps: boolean,
+  ): void {
+    if (props.isRoot || !savesSteps) {
+      return;
+    }
+
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    record["lastSavedByUserId"] = props.userId || null;
+    delete record["lastSavedByUser"];
+  }
+
+  // Whether an update's `data` saves the workflow's steps: writes its graph.
+  public static savesSteps(data: Model | Record<string, unknown>): boolean {
+    return (data as unknown as Record<string, unknown>)["graph"] !== undefined;
+  }
+
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    Service.stampLastSavedBy(
+      onCreate.createBy.data,
+      onCreate.createBy.props,
+      true,
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    Service.stampLastSavedBy(
+      updateBy.data as unknown as Record<string, unknown>,
+      updateBy.props,
+      Service.savesSteps(updateBy.data as unknown as Record<string, unknown>),
+    );
   }
 
   @CaptureSpan()

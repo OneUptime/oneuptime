@@ -234,6 +234,7 @@ describe("which columns record a person doing something", () => {
       "deleted",
       "dismissed",
       "humanVerdict",
+      "lastSaved",
       "markedAsArchived",
       "markedAsResolved",
       "overrided",

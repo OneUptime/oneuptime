@@ -12,7 +12,6 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import ModelPermission from "../Types/Database/Permissions/Index";
-import RelationListPermission from "../Types/Database/Permissions/RelationListPermission";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { JsonReferenceColumn } from "../Utils/Database/ProjectReferenceCheck";
 import {
@@ -26,6 +25,7 @@ import ProjectScopedReferenceValidator, {
 import DatabaseService from "./DatabaseService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 
 // The steps that run with a credential: SSH and Kubernetes.
 const CREDENTIAL_STEP_TYPES: Array<string> = [
@@ -137,13 +137,13 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Whether `props` may name credentials in a runbook's steps: whether it
-   * may read them (RelationListPermission.mayReadTable). OneUptime and
-   * master admins may.
+   * may read them (RunbookCredentialReaders - the one rule for letting a
+   * command use a credential). OneUptime and master admins may.
    */
-  public static mayNameCredentials(
+  public static async mayNameCredentials(
     props: DatabaseCommonInteractionProps,
-  ): boolean {
-    return RelationListPermission.mayReadTable(RunbookCredential, props);
+  ): Promise<boolean> {
+    return await RunbookCredentialReaders.mayRead(props);
   }
 
   /*
@@ -171,7 +171,7 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
-    if (!Service.mayNameCredentials(createBy.props)) {
+    if (!(await Service.mayNameCredentials(createBy.props))) {
       Service.refuseCredentialsNamed(
         Service.getStepCredentialIds(createBy.data.steps),
       );
@@ -186,7 +186,10 @@ export class Service extends ProjectReferencesService<Model> {
       (updateBy.data as unknown as Record<string, unknown>)["steps"],
     );
 
-    if (named.length > 0 && !Service.mayNameCredentials(updateBy.props)) {
+    if (
+      named.length > 0 &&
+      !(await Service.mayNameCredentials(updateBy.props))
+    ) {
       Service.refuseCredentialsNamed(
         await this.findCredentialsNotHeld({ updateBy: updateBy, ids: named }),
       );

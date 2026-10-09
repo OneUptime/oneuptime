@@ -20,6 +20,14 @@ import {
 } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
+import AiCommandCredentialReach, {
+  CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
+} from "../../../Server/Utils/AutoRemediation/AiCommandCredentialReach";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import AccessTokenService from "../../../Server/Services/AccessTokenService";
+import Exception from "../../../Types/Exception/Exception";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import InMemoryLocks from "../TestingUtils/InMemoryLocks";
 
 /*
  * TURNING ON "RUNS AI REMEDIATION COMMANDS" FOR A RUNNER THAT HOLDS SSH
@@ -40,8 +48,16 @@ import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/Runb
  * - a Runner already taking them asks nothing (the Runner form posts every
  *   field back), and neither does turning it off;
  * - whoever may read credentials (the permission, Project Owner, Project
- *   Admin) and OneUptime itself are let through without a look-up;
- * - a block on Read Runbook Credential takes it away, even from an admin.
+ *   Admin) and OneUptime itself are let through without a look-up, and
+ *   without the lock;
+ * - a block on Read Runbook Credential takes it away, even from an admin;
+ * - writing it on - by anyone else, whether it is on already or not -
+ *   holds the project's lock from before the Runners' switches and
+ *   credentials are read until the update is written
+ *   (AiCommandCredentialReach), keeps it right before the write, and is
+ *   refused, to be saved again, when the lock cannot be had or was lost;
+ * - a workflow's step is held to the person who last saved the workflow's
+ *   steps, never to the Project Admin permissions the step acts with.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -52,7 +68,23 @@ const LAB_RUNNER: string = "cd000000-0000-4000-8000-000000000012";
 
 interface RunnerHookAccess {
   onBeforeUpdate(updateBy: UpdateBy<Runner>): Promise<OnUpdate<Runner>>;
+  onUpdatePermitted(updateBy: UpdateBy<Runner>): Promise<void>;
+  onUpdateSuccess(
+    onUpdate: OnUpdate<Runner>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Runner>>;
+  onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Runner> | undefined,
+  ): Promise<Exception>;
 }
+
+const LOCK_NAMESPACE: string = "AiCommandCredentialReach";
+const LOCK_KEY: string = "cd000000-0000-4000-8000-000000000001";
+const WORKFLOW_ID: ObjectID = new ObjectID(
+  "cd000000-0000-4000-8000-000000000031",
+);
+const SAVER_ID: ObjectID = new ObjectID("cd000000-0000-4000-8000-000000000041");
 
 const hooks: RunnerHookAccess = RunnerService as unknown as RunnerHookAccess;
 
@@ -101,6 +133,7 @@ function runner(id: string, name: string, canRunAiCommands: boolean): Runner {
   return {
     _id: id,
     id: new ObjectID(id),
+    projectId: PROJECT_ID,
     name: name,
     canRunAiCommands: canRunAiCommands,
     hostInfo: {},
@@ -154,10 +187,14 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
   let credentials: Array<CredentialRow>;
   let runnerFindBy: jest.SpyInstance;
   let credentialFindBy: jest.SpyInstance;
+  let locks: InMemoryLocks;
 
   beforeEach(() => {
     stubProjectDirectory({});
     stubGenericReferenceCheck();
+
+    locks = new InMemoryLocks();
+    locks.install();
 
     runners = [runner(OFFICE_RUNNER, "office-runner", false)];
     credentials = [
@@ -435,5 +472,347 @@ describe('RunnerService - turning on "Runs AI Remediation Commands"', () => {
         ),
       ),
     );
+  });
+
+  describe("the project's lock", () => {
+    it("is taken before the Runner's credentials are read, and held until the update is written", async () => {
+      credentials = [];
+
+      const updateBy: UpdateBy<Runner> = update(
+        { canRunAiCommands: true },
+        RUNNER_EDITOR,
+      );
+
+      let heldWhileReading: boolean = false;
+      credentialFindBy.mockImplementation(
+        async (): Promise<Array<RunbookCredential>> => {
+          heldWhileReading = locks.isHeld(LOCK_KEY, LOCK_NAMESPACE);
+          return [];
+        },
+      );
+
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(updateBy);
+
+      expect(heldWhileReading).toBe(true);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(true);
+      expect(
+        AiCommandCredentialReach.carriedForward(onUpdate.carryForward),
+      ).not.toBeNull();
+
+      await hooks.onUpdatePermitted(onUpdate.updateBy);
+      expect(locks.eventsOf("keep")).toEqual([
+        `keep:${LOCK_NAMESPACE}/${LOCK_KEY}`,
+      ]);
+
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(OFFICE_RUNNER)]);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
+
+    it("is not taken by someone who may read credentials: they may turn the switch on whatever the Runners hold", async () => {
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update(
+          { canRunAiCommands: true },
+          caller({ permissions: [Permission.ProjectAdmin] }),
+        ),
+      );
+
+      expect(locks.eventsOf("lock")).toEqual([]);
+      expect(credentialFindBy).not.toHaveBeenCalled();
+      expect(
+        AiCommandCredentialReach.carriedForward(onUpdate.carryForward),
+      ).toBeNull();
+
+      await hooks.onUpdatePermitted(onUpdate.updateBy);
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(OFFICE_RUNNER)]);
+      expect(locks.events).toEqual([]);
+    });
+
+    it("is not asked for by someone who may read credentials, so their save goes through when the lock cannot be reached", async () => {
+      locks.unreachable = true;
+
+      // The Runner form posts the switch back with every other field.
+      runners = [runner(OFFICE_RUNNER, "office-runner", true)];
+
+      for (const permission of [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ReadRunbookCredential,
+      ]) {
+        await expect(
+          hooks.onBeforeUpdate(
+            update(
+              { canRunAiCommands: true, description: "In the office rack" },
+              caller({ permissions: [Permission.EditRunner, permission] }),
+            ),
+          ),
+        ).resolves.toBeDefined();
+      }
+    });
+
+    it("is taken by an update that writes the switch on for a Runner already taking them: whether it is on is the lock's to read", async () => {
+      runners = [runner(OFFICE_RUNNER, "office-runner", true)];
+
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update({ canRunAiCommands: true }, RUNNER_EDITOR),
+      );
+
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(true);
+      // The Runner takes them already: nothing is asked of its credentials.
+      expect(credentialFindBy).not.toHaveBeenCalled();
+
+      await hooks.onUpdatePermitted(onUpdate.updateBy);
+      expect(locks.eventsOf("keep")).toHaveLength(1);
+
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(OFFICE_RUNNER)]);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
+
+    it("is not taken when the switch is not written on, or by OneUptime", async () => {
+      for (const data of [
+        { canRunAiCommands: false },
+        { description: "In the office rack" },
+        { name: "office-runner" },
+      ]) {
+        await hooks.onBeforeUpdate(update(data, RUNNER_EDITOR));
+      }
+
+      await hooks.onBeforeUpdate(
+        update({ canRunAiCommands: true }, {
+          isRoot: true,
+        } as DatabaseCommonInteractionProps),
+      );
+
+      expect(locks.eventsOf("lock")).toEqual([]);
+    });
+
+    it("reads whether the switch is on again under it: a Runner turned off since the update first read it is asked about", async () => {
+      // As the update first reads it: still taking them.
+      runnerFindBy.mockImplementationOnce(async (): Promise<Array<Runner>> => {
+        return [runner(OFFICE_RUNNER, "office-runner", true)];
+      });
+
+      // As it is once the lock is held: turned off in the meantime, and it holds an SSH credential.
+      runners = [runner(OFFICE_RUNNER, "office-runner", false)];
+
+      const message: string = await refusal(
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, RUNNER_EDITOR)),
+      );
+
+      expect(message).toContain('Runner "office-runner"');
+      expect(credentialFindBy).toHaveBeenCalledTimes(1);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
+
+    it("is given back when the switch is refused", async () => {
+      await refusal(
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, RUNNER_EDITOR)),
+      );
+
+      expect(locks.eventsOf("lock")).toHaveLength(1);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
+
+    it("is given back when the update fails after its check", async () => {
+      credentials = [];
+
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update({ canRunAiCommands: true }, RUNNER_EDITOR),
+      );
+
+      const error: Exception = new BadDataException("The UPDATE failed.");
+      await expect(hooks.onUpdateError(error, onUpdate)).resolves.toBe(error);
+
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
+
+    it("an error before the check gives back nothing, as nothing was taken", async () => {
+      const error: Exception = new BadDataException("Refused earlier.");
+
+      await expect(hooks.onUpdateError(error, undefined)).resolves.toBe(error);
+      expect(locks.eventsOf("release")).toEqual([]);
+    });
+
+    it("refuses the switch, to be saved again, when another change holds the lock for longer than a write waits", async () => {
+      locks.busy.add(LOCK_KEY);
+
+      await expect(
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, RUNNER_EDITOR)),
+      ).rejects.toThrow(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE);
+
+      expect(credentialFindBy).not.toHaveBeenCalled();
+    });
+
+    it("refuses the switch, to be saved again, when the lock cannot be reached", async () => {
+      locks.unreachable = true;
+
+      await expect(
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, RUNNER_EDITOR)),
+      ).rejects.toThrow(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE);
+
+      expect(credentialFindBy).not.toHaveBeenCalled();
+    });
+
+    it("refuses the write when the lock was lost after the check", async () => {
+      credentials = [];
+
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update({ canRunAiCommands: true }, RUNNER_EDITOR),
+      );
+
+      locks.lose(LOCK_KEY, LOCK_NAMESPACE);
+
+      await expect(hooks.onUpdatePermitted(onUpdate.updateBy)).rejects.toThrow(
+        CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+    });
+
+    it("lets an update that holds no lock through its last check", async () => {
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update({ description: "In the office rack" }, RUNNER_EDITOR),
+      );
+
+      await expect(
+        hooks.onUpdatePermitted(onUpdate.updateBy),
+      ).resolves.toBeUndefined();
+      expect(locks.eventsOf("keep")).toEqual([]);
+    });
+  });
+
+  describe("a workflow's step", () => {
+    // What the person who last saved the workflow holds in the project.
+    let saverPermissions: Array<Permission> | null;
+    let saverLookUp: jest.SpyInstance;
+
+    beforeEach(() => {
+      saverPermissions = [Permission.WorkflowAdmin];
+
+      saverLookUp = jest
+        .spyOn(
+          AccessTokenService,
+          "getDatabaseCommonInteractionPropsByUserAndProject",
+        )
+        .mockImplementation(
+          async (data: {
+            userId: ObjectID;
+            projectId: ObjectID;
+          }): Promise<DatabaseCommonInteractionProps> => {
+            if (saverPermissions === null) {
+              // No longer a member of the project.
+              return {
+                userId: data.userId,
+                tenantId: data.projectId,
+                userTenantAccessPermission: {
+                  [data.projectId.toString()]: null,
+                },
+              } as unknown as DatabaseCommonInteractionProps;
+            }
+
+            return {
+              ...caller({ permissions: saverPermissions }),
+              userId: data.userId,
+            };
+          },
+        );
+    });
+
+    function stepProps(
+      savedBy: ObjectID | null = SAVER_ID,
+    ): DatabaseCommonInteractionProps {
+      return WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: PROJECT_ID,
+        workflowId: WORKFLOW_ID,
+        workflowName: "Turn on AI commands",
+        savedByUserId: savedBy,
+      });
+    }
+
+    it("is refused when the person who last saved the workflow may not read credentials, though the step acts as a Project Admin", async () => {
+      const props: DatabaseCommonInteractionProps = stepProps();
+
+      // The step's own permissions would let it read credentials.
+      expect(
+        props.userTenantAccessPermission![
+          PROJECT_ID.toString()
+        ]!.permissions.map((permission: UserPermission): Permission => {
+          return permission.permission;
+        }),
+      ).toContain(Permission.ProjectAdmin);
+
+      const message: string = await refusal(
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, props)),
+      );
+
+      expect(message).toContain('Runner "office-runner" holds SSH credentials');
+      expect(message).toContain(
+        "the person who last saved the workflow's steps has it",
+      );
+      expect(saverLookUp).toHaveBeenCalledTimes(1);
+      expect(String(saverLookUp.mock.calls[0]![0].userId)).toBe(
+        SAVER_ID.toString(),
+      );
+      expect(String(saverLookUp.mock.calls[0]![0].projectId)).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
+
+    it("is let through when the person who last saved the workflow may read credentials", async () => {
+      saverPermissions = [Permission.ReadRunbookCredential];
+
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update({ canRunAiCommands: true }, stepProps()),
+      );
+
+      expect(credentialFindBy).not.toHaveBeenCalled();
+
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(OFFICE_RUNNER)]);
+    });
+
+    it("is refused when the workflow names nobody as its last saver, without a look-up", async () => {
+      await refusal(
+        hooks.onBeforeUpdate(
+          update({ canRunAiCommands: true }, stepProps(null)),
+        ),
+      );
+
+      expect(saverLookUp).not.toHaveBeenCalled();
+    });
+
+    it("is refused when the person who last saved it has left the project", async () => {
+      saverPermissions = null;
+
+      await refusal(
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, stepProps())),
+      );
+    });
+
+    it("is refused when a block takes the read away from the person who last saved it", async () => {
+      saverPermissions = [Permission.ProjectAdmin];
+      saverLookUp.mockImplementation(
+        async (): Promise<DatabaseCommonInteractionProps> => {
+          return caller({
+            permissions: [Permission.ProjectAdmin],
+            blocked: [Permission.ReadRunbookCredential],
+          });
+        },
+      );
+
+      await refusal(
+        hooks.onBeforeUpdate(update({ canRunAiCommands: true }, stepProps())),
+      );
+    });
+
+    it("is let through for a Runner holding no SSH credential, whoever saved the workflow", async () => {
+      credentials = [];
+
+      const onUpdate: OnUpdate<Runner> = await hooks.onBeforeUpdate(
+        update({ canRunAiCommands: true }, stepProps()),
+      );
+
+      expect(onUpdate.updateBy.data).toEqual({ canRunAiCommands: true });
+
+      await hooks.onUpdateSuccess(onUpdate, [new ObjectID(OFFICE_RUNNER)]);
+      expect(locks.isHeld(LOCK_KEY, LOCK_NAMESPACE)).toBe(false);
+    });
   });
 });
