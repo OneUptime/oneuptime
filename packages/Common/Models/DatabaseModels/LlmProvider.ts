@@ -17,13 +17,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  VirtualColumn,
-} from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, VirtualColumn } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import LlmType from "../../Types/LLM/LlmType";
 import { JSONObject } from "../../Types/JSON";

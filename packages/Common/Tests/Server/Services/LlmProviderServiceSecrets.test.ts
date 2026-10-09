@@ -110,8 +110,7 @@ function member(
   return {
     ...ON_HIGHEST_PLAN,
     tenantId: PROJECT_ID,
-    userId:
-      options.userType === UserType.API ? undefined : ObjectID.generate(),
+    userId: options.userType === UserType.API ? undefined : ObjectID.generate(),
     userType: options.userType || UserType.User,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
@@ -137,11 +136,14 @@ function writer(permission: Permission): DatabaseCommonInteractionProps {
 }
 
 describe("LlmProviderService.mayChangeBaseUrl - who may change where the secrets go", () => {
-  test.each(SECRET_READERS)("a member holding %s may", (permission: Permission) => {
-    expect(LlmProviderServiceClass.mayChangeBaseUrl(member([permission]))).toBe(
-      true,
-    );
-  });
+  test.each(SECRET_READERS)(
+    "a member holding %s may",
+    (permission: Permission) => {
+      expect(
+        LlmProviderServiceClass.mayChangeBaseUrl(member([permission])),
+      ).toBe(true);
+    },
+  );
 
   test.each([...OTHER_WRITERS, Permission.Viewer, Permission.ReadProjectLlm])(
     "a member holding %s may not",
@@ -290,8 +292,7 @@ describe("LlmProvider.hasAdditionalParams - worked out on every read, never stor
     expect(metadata.type).toBe(TableColumnType.Boolean);
     expect(
       [
-        ...(model.getColumnAccessControlFor("hasAdditionalParams")?.read ||
-          []),
+        ...(model.getColumnAccessControlFor("hasAdditionalParams")?.read || []),
       ].sort(),
     ).toEqual([...PROVIDER_READERS].sort());
     expect(

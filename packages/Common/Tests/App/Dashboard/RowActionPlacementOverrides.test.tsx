@@ -649,15 +649,17 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
             requestOptions?: { overrideRequestUrl?: unknown };
           };
         })
-        .filter((params: {
-          modelType: unknown;
-          requestOptions?: { overrideRequestUrl?: unknown };
-        }) => {
-          return (
-            params.modelType === Probe &&
-            !params.requestOptions?.overrideRequestUrl
-          );
-        })
+        .filter(
+          (params: {
+            modelType: unknown;
+            requestOptions?: { overrideRequestUrl?: unknown };
+          }) => {
+            return (
+              params.modelType === Probe &&
+              !params.requestOptions?.overrideRequestUrl
+            );
+          },
+        )
         .map((params: { select: Record<string, unknown> }) => {
           return params.select;
         });

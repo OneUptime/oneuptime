@@ -482,9 +482,7 @@ describe("LlmProvider - changing it through the permission layer", () => {
       );
 
       expect(error).toBeInstanceOf(ColumnWriteRefusedException);
-      expect((error as ColumnWriteRefusedException).columnName).toBe(
-        "baseUrl",
-      );
+      expect((error as ColumnWriteRefusedException).columnName).toBe("baseUrl");
     },
   );
 

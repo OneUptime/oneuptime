@@ -37,11 +37,15 @@ const ProbePacketCaptures: FunctionComponent<ComponentProps> = (
         const item: Probe | null = await ModelAPI.getItem<Probe>({
           modelType: Probe,
           id: props.probeId,
+          /*
+           * Not isGlobalProbe: no one reads it on the probe itself (it is
+           * read through the records that name a probe), and a probe read
+           * by its project is that project's own, never a global one.
+           */
           select: {
             _id: true,
             name: true,
             projectId: true,
-            isGlobalProbe: true,
             packetCaptureCapability: true,
           },
         });

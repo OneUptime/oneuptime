@@ -657,12 +657,13 @@ export const QueryProbesTool: ObservabilityTool = {
            * projectId is pinned explicitly because global probes serve every
            * project on the platform.
            */
-          const monitorCount: PositiveNumber | null =
-            await countMonitorsServed({
+          const monitorCount: PositiveNumber | null = await countMonitorsServed(
+            {
               probeId: entry.probe.id!,
               projectId: ctx.projectId,
               props: ctx.props,
-            });
+            },
+          );
 
           const lastAlive: Date | undefined = entry.probe.lastAlive
             ? OneUptimeDate.fromString(entry.probe.lastAlive)

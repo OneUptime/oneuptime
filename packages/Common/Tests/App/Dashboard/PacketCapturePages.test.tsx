@@ -104,11 +104,11 @@ describe("a probe's page", () => {
 
     expect(request.modelType).toBe(Probe);
     expect(request.id.toString()).toBe(PROBE_ID);
+    // Only what the probe's readers may read: never isGlobalProbe or the key.
     expect(request.select).toEqual({
       _id: true,
       name: true,
       projectId: true,
-      isGlobalProbe: true,
       packetCaptureCapability: true,
     });
     expect(latestTable()["probe"]).toBe(probe);

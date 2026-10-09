@@ -666,3 +666,45 @@ describe("Probe - whoever may pick a probe", () => {
     ).toBeInstanceOf(NotAuthorizedException);
   });
 });
+
+/*
+ * A probe's own page asks for what its readers may read: the Packet
+ * Captures card reads a probe's report, and never isGlobalProbe, which no
+ * one reads on the probe itself (it is read through the records that name
+ * a probe), so asking for it refused the whole card.
+ */
+describe("Probe - its page asks only for what its readers read", () => {
+  // What the probe page's Packet Captures card asks for (ProbePacketCaptures).
+  const PACKET_CAPTURE_CARD_SELECT: Record<string, boolean> = {
+    _id: true,
+    name: true,
+    projectId: true,
+    packetCaptureCapability: true,
+  };
+
+  test.each(PROBE_READERS)(
+    "a member holding %s reads what the Packet Captures card asks for",
+    async (permission: Permission) => {
+      await expect(
+        read(
+          PROBE,
+          member({ permissions: [permission] }),
+          PACKET_CAPTURE_CARD_SELECT,
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  test.each(PROBE_READERS)(
+    "a member holding %s may not ask a probe for isGlobalProbe itself",
+    async (permission: Permission) => {
+      expect(
+        await rejectionOf(
+          read(PROBE, member({ permissions: [permission] }), {
+            isGlobalProbe: true,
+          }),
+        ),
+      ).toBeInstanceOf(NotAuthorizedException);
+    },
+  );
+});
