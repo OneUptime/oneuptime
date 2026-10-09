@@ -141,6 +141,11 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
 
         <ModelTable<Probe>
+          /*
+           * Listed again when whether keys may be read changes: the
+           * permission snapshot can land after the first paint.
+           */
+          key={canReadProbeKey ? "probes-with-keys" : "probes"}
           modelType={Probe}
           query={{
             projectId: ProjectUtil.getCurrentProjectId()!,

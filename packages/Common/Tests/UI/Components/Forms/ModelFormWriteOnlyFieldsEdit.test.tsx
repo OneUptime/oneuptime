@@ -84,6 +84,7 @@ import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormField
 import ModelAPI from "../../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
+import Project from "../../../../Models/DatabaseModels/Project";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -149,7 +150,9 @@ const FIELDS: Array<ModelField<LlmProvider>> = [
   },
 ];
 
-async function renderEditForm(): Promise<void> {
+async function renderEditForm(
+  fields: Array<ModelField<LlmProvider>> = FIELDS,
+): Promise<void> {
   await act(async (): Promise<void> => {
     render(
       <ModelForm<LlmProvider>
@@ -157,7 +160,7 @@ async function renderEditForm(): Promise<void> {
         modelAPI={makeModelAPI()}
         id="llm-provider-edit-form"
         name="LLM Provider"
-        fields={FIELDS}
+        fields={fields}
         formType={FormType.Update}
         modelIdToEdit={PROVIDER_ID}
         submitButtonText="Save"
@@ -252,6 +255,157 @@ describe("an edit form for a member who may change the provider but not read its
     await save();
 
     expect("apiKey" in (savedModels[0] || {})).toBe(false);
+  });
+});
+
+describe("a write-only field whose help the page draws itself", () => {
+  beforeEach(() => {
+    capturedSelect = null;
+    savedModels = [];
+    permissionsForTest = [Permission.SettingsMember];
+    PermissionGate.clearPermissionPropsCache();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("keeps that help, and says blank keeps the stored value after it", async () => {
+    await renderEditForm([
+      FIELDS[0]!,
+      {
+        ...FIELDS[1]!,
+        description: <span>Issued on the settings page of the provider.</span>,
+      },
+    ]);
+
+    expect(
+      screen.getByText("Issued on the settings page of the provider."),
+    ).toBeInTheDocument();
+    expect(screen.getByText(KEEP_HINT)).toBeInTheDocument();
+  });
+});
+
+/*
+ * A switch has no blank: drawn off, it would save off over a stored on. One
+ * a member may set but not read - a project's auto recharge, for a member
+ * holding Manage Project Billing alone, which updates it but does not read
+ * it - is left off the edit and never sent, while the form's other fields
+ * still load and save.
+ */
+describe("a switch a member may set but not read", () => {
+  let projectSelect: Record<string, unknown> | null = null;
+  let savedProjects: Array<JSONObject> = [];
+
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+
+  function makeProjectAPI(): typeof ModelAPI {
+    return {
+      getItem: async (data: {
+        select: Record<string, unknown>;
+      }): Promise<Project | null> => {
+        projectSelect = data.select;
+
+        const project: Project = new Project();
+        project._id = PROJECT_ID.toString();
+
+        return project;
+      },
+      getList: async (): Promise<JSONObject> => {
+        return { data: [], count: 0, skip: 0, limit: 10 };
+      },
+      getCommonHeaders: (): JSONObject => {
+        return {};
+      },
+      createOrUpdate: async (data: {
+        model: Project;
+      }): Promise<{ data: JSONObject }> => {
+        savedProjects.push(Project.toJSON(data.model, Project));
+        return { data: {} };
+      },
+    } as unknown as typeof ModelAPI;
+  }
+
+  beforeEach(() => {
+    projectSelect = null;
+    savedProjects = [];
+    permissionsForTest = [Permission.ManageProjectBilling];
+    PermissionGate.clearPermissionPropsCache();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("is left off the edit and never sent; the amount beside it is saved", async () => {
+    await act(async (): Promise<void> => {
+      render(
+        <ModelForm<Project>
+          modelType={Project}
+          modelAPI={makeProjectAPI()}
+          id="project-billing-edit-form"
+          name="Project"
+          fields={[
+            {
+              field: { enableAutoRechargeSmsOrCallBalance: true },
+              title: "Recharge automatically",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
+            {
+              field: { autoRechargeSmsOrCallByBalanceInUSD: true },
+              title: "Recharge by",
+              fieldType: FormFieldSchemaType.Number,
+              required: true,
+              placeholder: "20",
+            },
+          ]}
+          formType={FormType.Update}
+          modelIdToEdit={PROJECT_ID}
+          submitButtonText="Save"
+          onSuccess={() => {
+            // not exercised
+          }}
+        />,
+      );
+    });
+
+    await waitFor(() => {
+      expect(projectSelect).not.toBeNull();
+    });
+
+    const amount: HTMLInputElement = (await screen.findByPlaceholderText(
+      "Unchanged",
+    )) as HTMLInputElement;
+
+    expect(screen.queryByText("Recharge automatically")).toBeNull();
+    expect(
+      projectSelect?.["enableAutoRechargeSmsOrCallBalance"],
+    ).toBeUndefined();
+    expect(
+      projectSelect?.["autoRechargeSmsOrCallByBalanceInUSD"],
+    ).toBeUndefined();
+
+    fireEvent.change(amount, { target: { value: "50" } });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    });
+
+    await waitFor(() => {
+      expect(savedProjects.length).toBe(1);
+    });
+
+    expect(
+      Number(savedProjects[0]?.["autoRechargeSmsOrCallByBalanceInUSD"]),
+    ).toBe(50);
+    expect(
+      "enableAutoRechargeSmsOrCallBalance" in (savedProjects[0] || {}),
+    ).toBe(false);
   });
 });
 

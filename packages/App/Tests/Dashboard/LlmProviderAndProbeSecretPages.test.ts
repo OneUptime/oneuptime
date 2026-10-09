@@ -65,6 +65,12 @@ describe("an LLM provider's page", () => {
     );
   });
 
+  test("fetches the details again when that answer changes, as the permission snapshot lands", () => {
+    expect(source).toMatch(
+      /key=\{\s*canReadAdditionalParams\s*\?\s*"with-parameters"\s*:\s*"without-parameters"\s*\}/,
+    );
+  });
+
   test("shows the parameters to those who may read them", () => {
     expect(source).toContain(
       squash(
@@ -101,6 +107,12 @@ describe("Monitors → Settings → Probes", () => {
   test("decides by the rule every select follows whether a probe's key may be read", () => {
     expect(source).toContain(
       squash('PermissionGate.canReadColumn( new Probe(), "key", )'),
+    );
+  });
+
+  test("lists the probes again when that answer changes, as the permission snapshot lands", () => {
+    expect(source).toMatch(
+      /key=\{\s*canReadProbeKey\s*\?\s*"probes-with-keys"\s*:\s*"probes"\s*\}/,
     );
   });
 

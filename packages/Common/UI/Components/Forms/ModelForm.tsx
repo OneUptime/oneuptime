@@ -485,29 +485,60 @@ const ModelForm: <TBaseModel extends BaseModel>(
     const ownDescription: string | undefined =
       typeof field.description === "string" ? field.description : undefined;
 
+    const sentence: string = translator
+      .translateTemplate(
+        "{{description}} Leave blank to keep the stored value.",
+        {
+          description: composedValue((language: Translator): string => {
+            return (
+              (ownDescription && language.translateText(ownDescription)) || ""
+            );
+          }),
+        },
+      )
+      .trim();
+
     return {
       required: false,
       defaultValue: undefined,
       getDefaultValue: undefined,
       placeholder: "Unchanged",
+      // Help drawn by the page itself keeps its element, with the hint after.
       description:
-        field.description !== undefined && ownDescription === undefined
-          ? field.description
-          : translator
-              .translateTemplate(
-                "{{description}} Leave blank to keep the stored value.",
-                {
-                  description: composedValue((sentence: Translator): string => {
-                    return (
-                      (ownDescription &&
-                        sentence.translateText(ownDescription)) ||
-                      ""
-                    );
-                  }),
-                },
-              )
-              .trim(),
+        field.description !== undefined && ownDescription === undefined ? (
+          <>
+            {field.description}
+            <span className="mt-1 block">{sentence}</span>
+          </>
+        ) : (
+          sentence
+        ),
     };
+  };
+
+  /*
+   * A write-only field is offered only where leaving it blank can keep what
+   * is stored. A switch or a checkbox has no blank - drawn off, it would save
+   * off over a stored on - so one the user may set but not read is left off
+   * the edit, and the rest of the form still loads.
+   */
+  const canOfferWriteOnlyField: (
+    fieldName: string,
+    field: ModelField<TBaseModel>,
+  ) => boolean = (
+    fieldName: string,
+    field: ModelField<TBaseModel>,
+  ): boolean => {
+    if (
+      field.fieldType === FormFieldSchemaType.Toggle ||
+      field.fieldType === FormFieldSchemaType.Checkbox
+    ) {
+      return false;
+    }
+
+    return (
+      model.getTableColumnMetadata(fieldName)?.type !== TableColumnType.Boolean
+    );
   };
 
   const getFieldPermissions: (fieldName: string) => Array<Permission> = (
@@ -576,8 +607,13 @@ const ModelForm: <TBaseModel extends BaseModel>(
           ? isPeoplePickerFieldPermitted(field)
           : hasPermissionOnField(key);
 
+        // A write-only switch is not offered (canOfferWriteOnlyField).
+        const isOfferable: boolean =
+          !isWriteOnlyField(key) || canOfferWriteOnlyField(key, field);
+
         if (
           (field.showEvenIfPermissionDoesNotExist || hasPermission) &&
+          isOfferable &&
           fieldsToSet.filter((i: ModelField<TBaseModel>) => {
             const fieldObj:
               | {

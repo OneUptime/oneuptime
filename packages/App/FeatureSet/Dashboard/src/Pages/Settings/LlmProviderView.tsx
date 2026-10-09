@@ -80,6 +80,11 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
     <Fragment>
       {/* LLM Provider View  */}
       <CardModelDetail<LlmProvider>
+        /*
+         * Fetched again when whether the parameters may be read changes: the
+         * permission snapshot can land after the first paint.
+         */
+        key={canReadAdditionalParams ? "with-parameters" : "without-parameters"}
         name="LLM Provider Details"
         cardProps={{
           title: "LLM Provider Details",
