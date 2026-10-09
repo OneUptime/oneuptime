@@ -128,12 +128,21 @@ const ICON_BUTTON_CLASS_NAME: string =
 // How many of the questions a template fills in, or sets, its row names.
 const LISTED_LABELS: number = 6;
 
-// How each setting is marked on a template's row.
+/*
+ * How each setting is marked on a template's row: Required in the accent
+ * colour, Optional plain, Hidden in the builder's own Hidden colours.
+ */
+const REQUIRED_CHIP_CLASS_NAME: string =
+  "bg-indigo-50 text-indigo-700 ring-indigo-200";
+const OPTIONAL_CHIP_CLASS_NAME: string =
+  "bg-gray-50 text-gray-600 ring-gray-200";
+const HIDDEN_CHIP_CLASS_NAME: string =
+  "bg-amber-50 text-amber-800 ring-amber-200";
+
 const SETTING_CHIP_CLASS_NAME: Record<FormTemplateFieldSetting, string> = {
-  [FormTemplateFieldSetting.Required]:
-    "bg-indigo-50 text-indigo-700 ring-indigo-200",
-  [FormTemplateFieldSetting.Optional]: "bg-gray-50 text-gray-600 ring-gray-200",
-  [FormTemplateFieldSetting.Hidden]: "bg-amber-50 text-amber-800 ring-amber-200",
+  [FormTemplateFieldSetting.Required]: REQUIRED_CHIP_CLASS_NAME,
+  [FormTemplateFieldSetting.Optional]: OPTIONAL_CHIP_CLASS_NAME,
+  [FormTemplateFieldSetting.Hidden]: HIDDEN_CHIP_CLASS_NAME,
 };
 
 const FormTemplates: FunctionComponent<ComponentProps> = (
